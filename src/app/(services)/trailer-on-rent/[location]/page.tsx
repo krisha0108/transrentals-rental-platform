@@ -1,0 +1,92 @@
+import { notFound } from 'next/navigation';
+import { LocationHighlights } from '@/components/location/LocationHighlights';
+import { cities } from '@/data/cities';
+import type { Metadata } from 'next';
+import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
+
+interface Props {
+  params: { location: string };
+}
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const location = cities.find(
+    (city) => city.slug === params.location.toLowerCase()
+  );
+
+  if (!location) {
+    return {
+      title: 'Trailer on Rent | TransRentals',
+    };
+  }
+
+  return {
+    title: `Trailer on Rent in ${location.name} - Heavy Duty Trailer Rental | TransRentals`,
+    description: `Rent trailers in ${location.name} for heavy cargo transportation. 20ft to 40ft trailers available. Best rates guaranteed. Book now!`,
+    keywords: [
+      `trailer on rent in ${location.name}`,
+      `${location.name} trailer rental`,
+      `heavy trailer ${location.name}`,
+      `cargo trailer rent ${location.name}`,
+    ],
+  };
+}
+
+export default function TrailerLocationPage({ params }: Props) {
+  const location = cities.find(
+    (city) => city.slug === params.location.toLowerCase()
+  );
+
+  if (!location) {
+    notFound();
+  }
+
+  const highlights = [
+    {
+      title: '20ft to 40ft Trailers',
+      description: 'Wide range of trailer sizes for all cargo needs',
+    },
+    {
+      title: 'Heavy Duty Capacity',
+      description: 'Transport heavy machinery and cargo safely',
+    },
+    {
+      title: 'Professional Drivers',
+      description: 'Experienced drivers for safe transportation',
+    },
+    {
+      title: '24/7 Support',
+      description: 'Round the clock customer support',
+    },
+  ];
+
+  return (
+    <>
+      <ServiceHeroWithChat
+        badge={`Trailer Rental in ${location.name}`}
+        title="Heavy Duty Trailer Rental"
+        titleHighlight="20ft-40ft Trailers @₹5999/day"
+        description={`Rent heavy duty trailers in ${location.name} for cargo transportation. 20ft to 40ft trailers with professional drivers and 24/7 support.`}
+        features={[
+          { icon: 'star', text: '4.7/5 Rating', color: 'text-amber-500' },
+          { icon: 'shield', text: 'Heavy Duty', color: 'text-stone-600' },
+          { icon: 'zap', text: '24/7 Support', color: 'text-gray-600' },
+        ]}
+        gradientFrom="stone-50"
+        gradientTo="gray-50"
+      />
+
+      <LocationHighlights
+        location={location.name}
+        service="Trailer Rental"
+        highlights={highlights}
+      />
+    </>
+  );
+}
+
+// Generate static paths for all cities
+export async function generateStaticParams() {
+  return cities.map((city) => ({
+    location: city.slug,
+  }));
+}

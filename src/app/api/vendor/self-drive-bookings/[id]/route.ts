@@ -1,0 +1,115 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { getVendorAuth } from '@/lib/auth/vendor-mobile-auth';
+
+import { prisma } from '@/lib/db/prisma';
+import { transformPrismaResponse } from '@/lib/utils/api-transform';
+
+import logger from '@/lib/security/logger';
+export const dynamic = 'force-dynamic';
+
+// GET - Fetch single booking for vendor
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const auth = await getVendorAuth(request);
+    if (!auth.authenticated || !auth.vendorId) {
+      return NextResponse.json({ error: auth.error || 'Unauthorized' }, { status: 401 });
+    }
+
+    const { id } = await params;
+
+    // Get vendor
+    const vendor = await prisma.vendors.findFirst({
+      where: { id: auth.vendorId },
+      select: { id: true },
+    });
+
+    if (!vendor) {
+      return NextResponse.json({ error: 'Vendor not found' }, { status: 404 });
+    }
+
+    // Get booking
+    const booking = await prisma.car_bookings.findUnique({
+      where: { id },
+      include: {
+        locations: { select: { name: true, slug: true } },
+      },
+    });
+
+    if (!booking) {
+      return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
+    }
+
+    // Check if this booking is relevant to this vendor
+    // Allow viewing if:
+    // 1. Vendor is assigned or accepted
+    // 2. Booking is broadcasted and vendor is in the location
+    // 3. Vendor is in notifiedVendorIds
+    const isAssigned = booking.assignedVendorId === vendor.id;
+    const isAccepted = booking.acceptedVendorId === vendor.id;
+    const isBroadcasted = booking.status === 'BROADCASTED';
+    const isNotified = Array.isArray(booking.notifiedVendorIds) &&
+      (booking.notifiedVendorIds as string[]).includes(vendor.id);
+
+    if (!isAssigned && !isAccepted && !isBroadcasted && !isNotified) {
+      return NextResponse.json(
+        { error: 'You are not authorized to view this booking' },
+        { status: 403 }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      booking: {
+        id: booking.id,
+        bookingNumber: booking.bookingNumber,
+        customerId: booking.customerId,
+        customerName: booking.customerName,
+        customerEmail: booking.customerEmail,
+        customerPhone: booking.customerPhone,
+        requestedVehicleId: booking.requestedVehicleId,
+        requestedVehicleName: booking.requestedVehicleName,
+        requestedBrand: booking.requestedBrand,
+        requestedCategory: booking.requestedCategory,
+        requestedTransmission: booking.requestedTransmission,
+        requestedFuelType: booking.requestedFuelType,
+        requestedSeats: booking.requestedSeats,
+        locationId: booking.locationId,
+        locationName: booking.locationName,
+        pickupAddress: booking.pickupAddress,
+        pickupDate: booking.pickupDate,
+        pickupTime: booking.pickupTime,
+        dropDate: booking.dropDate,
+        dropTime: booking.dropTime,
+        totalDays: booking.totalDays,
+        dailyRate: booking.dailyRate,
+        baseAmount: booking.baseAmount,
+        gstAmount: booking.gstAmount,
+        platformFee: booking.platformFee,
+        securityDeposit: booking.securityDeposit,
+        grandTotal: booking.grandTotal,
+        kmLimitPerDay: booking.kmLimitPerDay,
+        extraKmRate: booking.extraKmRate,
+        status: booking.status,
+        paymentStatus: booking.paymentStatus,
+        responseDeadline: booking.responseDeadline,
+        createdAt: booking.createdAt,
+        acceptedAt: booking.acceptedAt,
+        pickedUpAt: booking.pickedUpAt,
+        returnedAt: booking.returnedAt,
+        customerNotes: booking.customerNotes,
+        tripStartOtp: booking.tripStartOtp,
+        odometerStart: booking.odometerStart,
+        odometerEnd: booking.odometerEnd,
+      },
+    });
+  } catch (error: any) {
+    logger.error('Error fetching booking', error);
+    return NextResponse.json(
+      { error: 'Failed to fetch booking', details: error?.message },
+      { status: 500 }
+    );
+  }
+}

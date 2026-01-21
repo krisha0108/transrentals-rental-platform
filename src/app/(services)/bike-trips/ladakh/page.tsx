@@ -1,0 +1,440 @@
+import { Metadata } from 'next';
+import Link from 'next/link';
+import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
+import { FAQSection } from '@/components/services/FAQSection';
+import { BikeServiceSchema } from '@/components/seo/schemas';
+
+export const metadata: Metadata = {
+  title: 'Ladakh Bike Trip Rental | Rent Himalayan, Classic 350 for Leh @₹799/Day | TransRentals',
+  description: 'Rent Royal Enfield bikes for Ladakh trip. Himalayan, Classic 350, Bullet available in Delhi, Manali, Leh. Perfect for Khardung La, Pangong. One-way drops available. Book now!',
+  keywords: [
+    'ladakh bike trip',
+    'bike rental for ladakh',
+    'leh ladakh bike rental',
+    'delhi to ladakh bike rent',
+    'manali to leh bike rental',
+    'himalayan on rent for ladakh',
+    'bullet rental ladakh',
+    'royal enfield ladakh trip',
+    'khardung la bike trip',
+    'pangong lake bike ride',
+    'leh bike rental rates',
+    'ladakh motorcycle tour',
+    'spiti valley bike rental',
+  ],
+  openGraph: {
+    title: 'Ladakh Bike Trip Rental | Royal Enfield @₹799/Day | TransRentals',
+    description: 'Rent Royal Enfield for Ladakh. Himalayan, Classic 350 available in Delhi, Manali, Leh. One-way drops, gear included.',
+    type: 'website',
+    url: 'https://transrentals.in/bike-trips/ladakh',
+    images: [
+      {
+        url: 'https://transrentals.in/images/og/ladakh-bike-trip.jpg',
+        width: 1200,
+        height: 630,
+        alt: 'Ladakh Bike Trip Rental - TransRentals',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Ladakh Bike Trip Rental | Starting @₹799/Day | TransRentals',
+    description: 'Rent Royal Enfield for Ladakh trip. Himalayan, Classic 350 available.',
+    images: ['https://transrentals.in/images/og/ladakh-bike-trip.jpg'],
+  },
+  alternates: {
+    canonical: 'https://transrentals.in/bike-trips/ladakh',
+  },
+};
+
+// Schema data
+const schemaFaqs = [
+  { question: 'Which bike is best for Ladakh trip?', answer: 'Royal Enfield Himalayan is the best choice for Ladakh due to its 411cc engine, long-travel suspension, and reliability at high altitudes. Classic 350 and Meteor 350 are also popular choices.' },
+  { question: 'How much does it cost to rent a bike for Ladakh?', answer: 'Bike rental for Ladakh starts from ₹799/day for Royal Enfield Classic 350. Himalayan costs ₹999-1299/day. 10+ day packages get 15-20% discount.' },
+  { question: 'Can I pick up bike in Delhi and drop in Leh?', answer: 'Yes, one-way rentals are available. Pick up in Delhi/Manali and drop in Leh (or vice versa). One-way charges apply (₹3000-5000).' },
+  { question: 'Is riding gear provided for Ladakh trip?', answer: 'Helmets are included free. Riding jackets, gloves, knee guards, and tank bags are available at ₹100-300/day each.' },
+  { question: 'What documents are needed for Ladakh bike rental?', answer: 'You need valid driving license (original), Aadhar card, and security deposit (₹10,000-20,000 refundable). Inner Line Permit (ILP) can be arranged.' },
+  { question: 'What is included in Ladakh bike rental package?', answer: 'Package includes the bike, comprehensive insurance, basic tool kit, first aid kit, puncture kit, and 24/7 roadside assistance. Fuel, permits, and accommodation not included.' },
+];
+
+const schemaVehicles = [
+  { name: 'Royal Enfield Himalayan', brand: 'Royal Enfield', price: 999 },
+  { name: 'Royal Enfield Classic 350', brand: 'Royal Enfield', price: 799 },
+  { name: 'Royal Enfield Meteor 350', brand: 'Royal Enfield', price: 899 },
+  { name: 'Royal Enfield Interceptor 650', brand: 'Royal Enfield', price: 1299 },
+  { name: 'KTM Adventure 390', brand: 'KTM', price: 1499 },
+];
+
+export default function LadakhBikeTripPage() {
+  return (
+    <>
+      {/* Schema Markup */}
+      <BikeServiceSchema
+        serviceName="Ladakh Bike Trip Rental"
+        serviceSlug="bike-trips/ladakh"
+        description="Rent Royal Enfield bikes for Ladakh trip. Himalayan, Classic 350, Bullet available in Delhi, Manali, Leh. Perfect for Khardung La, Pangong, Nubra Valley."
+        faqs={schemaFaqs}
+        vehicles={schemaVehicles}
+        priceRange={{ min: 799, max: 1499 }}
+        rating={4.9}
+        reviewCount={1856}
+      />
+
+      <ServiceHeroWithChat
+        badge="Ladakh Bike Trip Specialists"
+        title="Ladakh Bike Trip Rental"
+        titleHighlight="Royal Enfield @₹799/Day"
+        description="Rent bikes for Leh Ladakh adventure. Himalayan, Classic 350, Bullet available in Delhi, Manali & Leh. One-way drops, riding gear included."
+        gradientFrom="blue-50"
+        gradientTo="indigo-50"
+      />
+
+      {/* Hero Section */}
+      <section className="relative bg-gradient-to-br from-blue-900 via-indigo-900 to-purple-900 text-white py-20">
+        <div className="absolute inset-0 bg-[url('/images/ladakh-mountains.jpg')] bg-cover bg-center opacity-20"></div>
+        <div className="container-custom relative">
+          <div className="max-w-4xl mx-auto text-center">
+            <div className="inline-block bg-yellow-500 text-black px-4 py-1 rounded-full text-sm font-semibold mb-4">
+              🏔️ Season: May - September
+            </div>
+            <h1 className="text-4xl md:text-5xl font-bold mb-6">
+              Rent Bikes for Ladakh Adventure
+            </h1>
+            <p className="text-xl md:text-2xl mb-8 opacity-90">
+              Conquer Khardung La • Explore Pangong Lake • Ride Through Nubra Valley
+            </p>
+            <div className="grid md:grid-cols-3 gap-6 mb-8 text-left">
+              <div className="bg-white/10 backdrop-blur p-4 rounded-lg">
+                <div className="text-3xl mb-2">🏍️</div>
+                <h3 className="font-semibold mb-1">Himalayan Ready</h3>
+                <p className="text-sm opacity-90">High-altitude proven bikes</p>
+              </div>
+              <div className="bg-white/10 backdrop-blur p-4 rounded-lg">
+                <div className="text-3xl mb-2">🔄</div>
+                <h3 className="font-semibold mb-1">One-Way Drops</h3>
+                <p className="text-sm opacity-90">Delhi ↔ Manali ↔ Leh</p>
+              </div>
+              <div className="bg-white/10 backdrop-blur p-4 rounded-lg">
+                <div className="text-3xl mb-2">🛡️</div>
+                <h3 className="font-semibold mb-1">Fully Equipped</h3>
+                <p className="text-sm opacity-90">Gear, tools, insurance included</p>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-4 justify-center">
+              <Link
+                href="#bikes"
+                className="bg-yellow-500 text-black px-8 py-3 rounded-lg font-semibold hover:bg-yellow-400 transition"
+              >
+                View Bikes & Rates
+              </Link>
+              <Link
+                href="#routes"
+                className="border-2 border-white px-8 py-3 rounded-lg font-semibold hover:bg-white hover:text-indigo-900 transition"
+              >
+                Popular Routes
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Pickup Locations */}
+      <section className="py-12 bg-white">
+        <div className="container-custom">
+          <h2 className="text-2xl font-bold text-center mb-8">Pickup Locations for Ladakh Trip</h2>
+          <div className="grid md:grid-cols-3 gap-6">
+            {[
+              {
+                city: 'Delhi',
+                desc: 'Start your journey from the capital',
+                route: 'Delhi → Manali → Leh (2 days riding)',
+                popular: 'Most Popular',
+                link: '/royal-enfield-on-rent/delhi'
+              },
+              {
+                city: 'Manali',
+                desc: 'Skip Delhi traffic, start from hills',
+                route: 'Manali → Rohtang → Leh (1 day ride)',
+                popular: 'Quick Start',
+                link: '/royal-enfield-on-rent/manali'
+              },
+              {
+                city: 'Leh',
+                desc: 'Fly in, ride around Ladakh',
+                route: 'Explore Nubra, Pangong, Tso Moriri',
+                popular: 'Fly & Ride',
+                link: '/royal-enfield-on-rent/leh'
+              },
+            ].map((loc) => (
+              <Link
+                key={loc.city}
+                href={loc.link}
+                className="bg-gradient-to-br from-blue-50 to-indigo-50 p-6 rounded-lg shadow-md hover:shadow-xl transition group"
+              >
+                <div className="flex justify-between items-start mb-3">
+                  <h3 className="text-xl font-bold group-hover:text-indigo-700">{loc.city}</h3>
+                  <span className="bg-indigo-100 text-indigo-700 text-xs px-2 py-1 rounded">{loc.popular}</span>
+                </div>
+                <p className="text-gray-600 mb-2">{loc.desc}</p>
+                <p className="text-sm text-indigo-600 font-medium">{loc.route}</p>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Bikes for Ladakh */}
+      <section id="bikes" className="py-16 bg-gray-50">
+        <div className="container-custom">
+          <h2 className="text-3xl font-bold text-center mb-4">
+            Best Bikes for Ladakh Trip
+          </h2>
+          <p className="text-center text-gray-600 mb-12">
+            High-altitude ready bikes with proven reliability
+          </p>
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {[
+              {
+                name: 'Royal Enfield Himalayan',
+                price: '999',
+                cc: '411cc',
+                features: ['Adventure ready', 'Long suspension', 'Luggage mounts', 'ABS'],
+                best: 'Most Recommended',
+                rating: '4.9',
+              },
+              {
+                name: 'Royal Enfield Classic 350',
+                price: '799',
+                cc: '350cc',
+                features: ['Iconic style', 'Comfortable seat', 'Reliable engine', 'Easy handling'],
+                best: 'Budget Friendly',
+                rating: '4.7',
+              },
+              {
+                name: 'Royal Enfield Meteor 350',
+                price: '899',
+                cc: '350cc',
+                features: ['Tripper navigation', 'Relaxed ergonomics', 'Smooth engine', 'USB charging'],
+                best: 'Modern Cruiser',
+                rating: '4.8',
+              },
+              {
+                name: 'RE Interceptor 650',
+                price: '1299',
+                cc: '648cc',
+                features: ['Twin cylinder', 'More power', 'Highway beast', 'Premium feel'],
+                best: 'Power Riders',
+                rating: '4.9',
+              },
+            ].map((bike) => (
+              <div key={bike.name} className="bg-white p-6 rounded-lg shadow-md hover:shadow-xl transition">
+                <div className="text-4xl mb-3">🏍️</div>
+                <h3 className="text-lg font-bold mb-1">{bike.name}</h3>
+                <p className="text-sm text-gray-500 mb-2">{bike.cc} • ⭐ {bike.rating}</p>
+                <p className="text-2xl font-bold text-indigo-700 mb-1">₹{bike.price}</p>
+                <p className="text-xs text-gray-500 mb-3">/day (10+ days: 15% off)</p>
+                <div className="bg-indigo-50 text-indigo-700 text-xs px-2 py-1 rounded inline-block mb-3">
+                  {bike.best}
+                </div>
+                <ul className="space-y-1 text-sm">
+                  {bike.features.map((f, i) => (
+                    <li key={i} className="flex items-center gap-2">
+                      <span className="text-green-600">✓</span> {f}
+                    </li>
+                  ))}
+                </ul>
+                <button className="w-full mt-4 bg-indigo-600 text-white py-2 rounded hover:bg-indigo-700 transition">
+                  Book for Ladakh
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Popular Routes */}
+      <section id="routes" className="py-16">
+        <div className="container-custom">
+          <h2 className="text-3xl font-bold text-center mb-12">
+            Popular Ladakh Bike Routes
+          </h2>
+          <div className="grid md:grid-cols-3 gap-8">
+            {[
+              {
+                route: 'Manali-Leh Highway',
+                days: '2 days riding',
+                distance: '490 km',
+                highlights: ['Rohtang Pass', 'Keylong', 'Baralacha La', 'Sarchu', 'Tanglang La'],
+                difficulty: 'Challenging',
+                gradient: 'from-blue-500 to-cyan-600',
+              },
+              {
+                route: 'Leh to Nubra Valley',
+                days: '1 day ride',
+                distance: '160 km',
+                highlights: ['Khardung La (18,380 ft)', 'Diskit Monastery', 'Hunder Sand Dunes', 'Double Hump Camels'],
+                difficulty: 'Moderate',
+                gradient: 'from-purple-500 to-pink-600',
+              },
+              {
+                route: 'Leh to Pangong Lake',
+                days: '1 day ride',
+                distance: '160 km',
+                highlights: ['Chang La Pass', 'Tangtse Village', 'Pangong Tso', '3 Idiots Point', 'Blue Waters'],
+                difficulty: 'Moderate',
+                gradient: 'from-indigo-500 to-blue-600',
+              },
+              {
+                route: 'Srinagar-Leh Highway',
+                days: '2 days riding',
+                distance: '420 km',
+                highlights: ['Zoji La', 'Drass', 'Kargil', 'Lamayuru', 'Magnetic Hill'],
+                difficulty: 'Moderate',
+                gradient: 'from-green-500 to-teal-600',
+              },
+              {
+                route: 'Tso Moriri Lake',
+                days: '2 days round trip',
+                distance: '400 km',
+                highlights: ['Tso Kar Lake', 'Puga Hot Springs', 'Korzok Village', 'Wildlife Spotting'],
+                difficulty: 'Challenging',
+                gradient: 'from-orange-500 to-red-600',
+              },
+              {
+                route: 'Hanle & Umling La',
+                days: '2 days round trip',
+                distance: '500 km',
+                highlights: ['Umling La (19,024 ft)', 'Highest Motorable Road', 'Hanle Observatory', 'Stargazing'],
+                difficulty: 'Expert',
+                gradient: 'from-yellow-500 to-orange-600',
+              },
+            ].map((trip) => (
+              <div key={trip.route} className={`bg-gradient-to-br ${trip.gradient} text-white p-6 rounded-xl shadow-lg`}>
+                <h3 className="text-xl font-bold mb-2">{trip.route}</h3>
+                <div className="flex gap-4 text-sm mb-3">
+                  <span>{trip.days}</span>
+                  <span>•</span>
+                  <span>{trip.distance}</span>
+                </div>
+                <div className="bg-white/20 backdrop-blur px-3 py-1 rounded inline-block text-sm mb-3">
+                  {trip.difficulty}
+                </div>
+                <ul className="space-y-1 text-sm opacity-90">
+                  {trip.highlights.map((h, i) => (
+                    <li key={i}>→ {h}</li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* What's Included */}
+      <section className="py-16 bg-gray-50">
+        <div className="container-custom max-w-4xl">
+          <h2 className="text-3xl font-bold text-center mb-12">
+            Ladakh Bike Rental Package
+          </h2>
+          <div className="grid md:grid-cols-2 gap-8">
+            <div className="bg-green-50 p-6 rounded-lg">
+              <h3 className="font-bold text-xl mb-4 text-green-900">Package Includes</h3>
+              <ul className="space-y-3 text-gray-700">
+                <li className="flex items-start gap-2">
+                  <span className="text-green-700 mt-1">✓</span>
+                  <span>Royal Enfield bike (well-maintained)</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-green-700 mt-1">✓</span>
+                  <span>Comprehensive insurance</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-green-700 mt-1">✓</span>
+                  <span>Helmet (ISI certified)</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-green-700 mt-1">✓</span>
+                  <span>Basic tool kit & puncture kit</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-green-700 mt-1">✓</span>
+                  <span>First aid kit</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-green-700 mt-1">✓</span>
+                  <span>24/7 roadside assistance</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-green-700 mt-1">✓</span>
+                  <span>Emergency contact network in Ladakh</span>
+                </li>
+              </ul>
+            </div>
+            <div className="bg-blue-50 p-6 rounded-lg">
+              <h3 className="font-bold text-xl mb-4 text-blue-900">Add-ons Available</h3>
+              <ul className="space-y-3 text-gray-700">
+                <li className="flex items-start gap-2">
+                  <span className="text-blue-700 mt-1">+</span>
+                  <span>Riding jacket: ₹200/day</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-blue-700 mt-1">+</span>
+                  <span>Riding gloves: ₹100/day</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-blue-700 mt-1">+</span>
+                  <span>Knee guards: ₹100/day</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-blue-700 mt-1">+</span>
+                  <span>Tank bag: ₹150/day</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-blue-700 mt-1">+</span>
+                  <span>Saddle bags: ₹200/day</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-blue-700 mt-1">+</span>
+                  <span>One-way drop: ₹3000-5000</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-blue-700 mt-1">+</span>
+                  <span>Inner Line Permit help: ₹500</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Tips Section */}
+      <section className="py-16">
+        <div className="container-custom">
+          <h2 className="text-3xl font-bold text-center mb-12">
+            Ladakh Bike Trip Tips
+          </h2>
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {[
+              { icon: '🗓️', title: 'Best Season', desc: 'May to September. July-August may have rain. June & September are ideal.' },
+              { icon: '🏔️', title: 'Acclimatize', desc: 'Spend 1-2 days in Leh before high passes. Stay hydrated, avoid alcohol.' },
+              { icon: '⛽', title: 'Fuel Stops', desc: 'Fill tank at every opportunity. Carry extra petrol (5L) for remote areas.' },
+              { icon: '📄', title: 'Permits', desc: 'Inner Line Permit required for Nubra, Pangong, Tso Moriri. Apply online or in Leh.' },
+              { icon: '💊', title: 'Medicine', desc: 'Carry Diamox for altitude sickness. Basic medicines, sunscreen, lip balm essential.' },
+              { icon: '🧥', title: 'Clothing', desc: 'Layer up! Even in summer, passes are freezing. Waterproof jacket a must.' },
+              { icon: '🔧', title: 'Bike Check', desc: 'Check brakes, clutch, tyres before each ride. Carry spare tubes, chain link.' },
+              { icon: '📱', title: 'Connectivity', desc: 'Only BSNL/Jio works in Ladakh. Download offline maps. Inform someone of route.' },
+            ].map((tip) => (
+              <div key={tip.title} className="bg-white p-5 rounded-lg shadow-md">
+                <div className="text-3xl mb-2">{tip.icon}</div>
+                <h3 className="font-semibold text-lg mb-2">{tip.title}</h3>
+                <p className="text-sm text-gray-600">{tip.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <FAQSection service="bike-on-rent" />
+    </>
+  );
+}

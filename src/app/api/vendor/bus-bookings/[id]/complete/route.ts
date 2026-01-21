@@ -1,0 +1,134 @@
+// @ts-nocheck
+import { NextRequest, NextResponse } from 'next/server';
+import { getVendorAuth } from '@/lib/auth/vendor-mobile-auth';
+
+import { prisma } from '@/lib/db/prisma';
+import { transformPrismaResponse } from '@/lib/utils/api-transform';
+
+import logger from '@/lib/security/logger';
+export const dynamic = 'force-dynamic';
+
+// POST - Vendor completes Bus Booking trip
+export async function POST(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+    const auth = await getVendorAuth(request);
+    if (!auth.authenticated || !auth.vendorId) {
+      return NextResponse.json({ error: auth.error || 'Unauthorized' }, { status: 401 });
+    }
+    const vendorId = auth.vendorId;
+
+    // Get vendor
+    const vendor = await prisma.vendors.findFirst({
+      where: { id: vendorId },
+      select: { id: true },
+    });
+
+    if (!vendor) {
+      return NextResponse.json({ error: 'Vendor not found' }, { status: 404 });
+    }
+
+    // Get booking
+    const booking = await prisma.bus_bookings.findUnique({
+      where: { id },
+    });
+
+    if (!booking) {
+      return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
+    }
+
+    // Verify vendor owns this booking
+    if (booking.vendorId !== vendorId) {
+      return NextResponse.json(
+        { error: 'You are not authorized to update this booking' },
+        { status: 403 }
+      );
+    }
+
+    // Check if trip can be completed
+    if (booking.status !== 'IN_PROGRESS') {
+      return NextResponse.json(
+        { error: 'Can only complete trips that are in progress' },
+        { status: 400 }
+      );
+    }
+
+    // Parse request body for trip details
+    const body = await request.json();
+    const {
+      actualKmTravelled,
+      actualDays,
+      tollCharges = 0,
+      parkingCharges = 0,
+      otherCharges = 0,
+      otherChargesDescription,
+    } = body;
+
+    // Calculate extra charges
+    let extraKmCharges = 0;
+    let extraDayCharges = 0;
+
+    // Extra day charges if trip took longer
+    if (actualDays && actualDays > booking.tripDays) {
+      const extraDays = actualDays - booking.tripDays;
+      const perDayRate = booking.baseAmount / booking.tripDays;
+      extraDayCharges = extraDays * perDayRate;
+    }
+
+    // Calculate final amount
+    const additionalCharges = extraKmCharges + extraDayCharges + tollCharges + parkingCharges + otherCharges;
+    const finalAmount = booking.totalAmount + additionalCharges;
+    const newBalanceAmount = finalAmount - booking.advancePaid;
+
+    // Update booking
+    const updatedBooking = await prisma.bus_bookings.update({
+      where: { id },
+      data: {
+        status: 'COMPLETED',
+        tripEndedAt: new Date(),
+        completedAt: new Date(),
+        actualKmTravelled: actualKmTravelled || null,
+        actualDays: actualDays || booking.tripDays,
+        extraKmCharges,
+        extraDayCharges,
+        tollCharges,
+        parkingCharges,
+        otherCharges,
+        finalAmount,
+        balanceAmount: newBalanceAmount,
+        vendorNotes: otherChargesDescription
+          ? `Other charges: ${otherChargesDescription}`
+          : booking.vendorNotes,
+      },
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: 'Trip completed successfully',
+      booking: {
+        id: updatedBooking.id,
+        bookingNumber: updatedBooking.bookingNumber,
+        status: updatedBooking.status,
+        tripEndedAt: updatedBooking.tripEndedAt,
+        actualKmTravelled: updatedBooking.actualKmTravelled,
+        actualDays: updatedBooking.actualDays,
+        extraKmCharges: updatedBooking.extraKmCharges,
+        extraDayCharges: updatedBooking.extraDayCharges,
+        tollCharges: updatedBooking.tollCharges,
+        parkingCharges: updatedBooking.parkingCharges,
+        otherCharges: updatedBooking.otherCharges,
+        finalAmount: updatedBooking.finalAmount,
+        balanceAmount: updatedBooking.balanceAmount,
+      },
+    });
+  } catch (error: any) {
+    logger.error('Failed to complete bus booking trip', error);
+    return NextResponse.json(
+      { error: 'Failed to complete trip', details: error?.message },
+      { status: 500 }
+    );
+  }
+}

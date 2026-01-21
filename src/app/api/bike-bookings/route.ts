@@ -1,0 +1,407 @@
+// @ts-nocheck
+import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { prisma } from '@/lib/db/prisma';
+import { transformPrismaResponse } from '@/lib/utils/api-transform';
+import { authOptions } from '@/lib/auth/auth-options';
+import { emitNewBooking, BookingNotification } from '@/lib/socket';
+import logger from '@/lib/security/logger';
+
+export const dynamic = 'force-dynamic';
+
+// Generate unique booking number
+function generateBookingNumber() {
+  const date = new Date();
+  const year = date.getFullYear();
+  const random = Math.floor(Math.random() * 100000).toString().padStart(5, '0');
+  return `BK-${year}-${random}`;
+}
+
+// Calculate booking amount
+function calculateBookingAmount(dailyRate: number, totalDays: number, securityDeposit: number) {
+  const totalAmount = dailyRate * totalDays;
+  const gstAmount = Math.round(totalAmount * 0.18);
+  const grandTotal = totalAmount + gstAmount;
+
+  return {
+    totalAmount,
+    gstAmount,
+    grandTotal,
+    securityDeposit,
+  };
+}
+
+// POST - Create a new bike booking
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const {
+      customerId,
+      customerName,
+      customerEmail,
+      customerPhone,
+      vehicleId,
+      vehicleModelId,      // NEW: VehicleModel ID for multi-vendor booking
+      vehicleName,
+      vehicleBrand,
+      vehicle_category, // Scooter, Bike, Sports, Cruiser
+      locationId,
+      locationSlug,
+      locationName,
+      pickupDate,
+      pickupTime,
+      dropDate,
+      dropTime,
+      dailyRate,
+      securityDeposit = 2000,
+      helmetsRequired = 1,
+      customerNotes = '',
+      vendorId,
+      broadcastToAll = false, // NEW: Force broadcast to all vendors
+    } = body;
+
+    // Validate required fields
+    if (!customerPhone || !vehicleName || !pickupDate || !dropDate) {
+      return NextResponse.json(
+        { error: 'Missing required fields: customerPhone, vehicleName, pickupDate, dropDate are required' },
+        { status: 400 }
+      );
+    }
+
+    // Calculate total days
+    const pickup = new Date(pickupDate);
+    const drop = new Date(dropDate);
+    const totalDays = Math.max(1, Math.ceil((drop.getTime() - pickup.getTime()) / (1000 * 60 * 60 * 24)));
+
+    // Calculate amounts
+    const amounts = calculateBookingAmount(dailyRate || 299, totalDays, securityDeposit);
+
+    // Find location if slug provided
+    let resolvedLocationId = locationId;
+    let resolvedLocationName = locationName || '';
+
+    if (!resolvedLocationId && (locationSlug || locationName)) {
+      // Try to find location by slug or name
+      const orConditions: any[] = [];
+      if (locationSlug) {
+        orConditions.push({ slug: locationSlug });
+        orConditions.push({ slug: { contains: locationSlug } });
+      }
+      if (locationName) {
+        orConditions.push({ name: locationName });
+        orConditions.push({ name: { contains: locationName } });
+      }
+
+      if (orConditions.length > 0) {
+        const location = await prisma.locations.findFirst({
+          where: {
+            OR: orConditions,
+            isActive: true,
+          },
+          select: { id: true, name: true },
+        });
+        if (location) {
+          resolvedLocationId = location.id;
+          resolvedLocationName = location.name;
+        }
+      }
+    } else if (resolvedLocationId && !resolvedLocationName) {
+      const location = await prisma.locations.findUnique({
+        where: { id: resolvedLocationId },
+        select: { name: true },
+      });
+      resolvedLocationName = location?.name || '';
+    }
+
+    if (!resolvedLocationId) {
+      logger.warn('Location not found', { locationId, locationSlug, locationName });
+      return NextResponse.json(
+        {
+          error: 'Valid location is required',
+          details: `Could not find location: ${locationName || locationSlug}. Please select a valid city.`
+        },
+        { status: 400 }
+      );
+    }
+
+    // Find vehicle owner (vendor) if vehicle ID provided
+    let assignedVendorId: string | null = vendorId || null;
+    let notifiedVendorIds: string[] = [];
+    let resolvedVehicleModelId: string | null = vehicleModelId || null;
+    let resolvedVehicleName = vehicleName;
+    let resolvedVehicleBrand = vehicleBrand || null;
+
+    // If vehicleModelId is provided, find all vendors with this model at this location
+    if (vehicleModelId || broadcastToAll) {
+      // Get vehicle model info
+      if (vehicleModelId) {
+        const vehicle_model = await prisma.vehicle_models.findUnique({
+          where: { id: vehicleModelId },
+          include: {
+            brand: { select: { name: true } },
+          },
+        });
+        if (vehicle_model) {
+          resolvedVehicleName = vehicle_model.name;
+          resolvedVehicleBrand = vehicle_model.brands.name;
+        }
+      }
+
+      // Find all vendors with this model at this location
+      const vendorFleets = await prisma.vendor_fleets.findMany({
+        where: {
+          vehicleModelId: vehicleModelId || undefined,
+          isActive: true,
+          isAvailable: true,
+          vendors: {
+            status: 'APPROVED',
+          },
+          vendor_fleet_locations: {
+            some: {
+              locationId: resolvedLocationId,
+              isActive: true,
+            },
+          },
+        },
+        select: {
+          vendorId: true,
+        },
+        distinct: ['vendorId'],
+      });
+
+      notifiedVendorIds = vendorFleets.map((f: any) => f.vendorId);
+
+      // For multi-vendor broadcast, don't assign to a single vendor
+      if (notifiedVendorIds.length > 0 && broadcastToAll) {
+        assignedVendorId = null;
+      }
+    } else if (!assignedVendorId && vehicleId) {
+      // Legacy: Find vehicle owner if vehicle ID provided
+      const vehicle = await prisma.vendor_fleets.findUnique({
+        where: { id: vehicleId },
+        select: { vendorId: true, vehicleModelId: true },
+      });
+      assignedVendorId = vehicle?.vendorId || null;
+      resolvedVehicleModelId = vehicle?.vehicle_modelsId || null;
+
+      // For single vendor booking, also add them to notified list
+      if (assignedVendorId) {
+        notifiedVendorIds = [assignedVendorId];
+      }
+    }
+
+    // Calculate response deadline (2 hours from now for direct requests)
+    const responseDeadline = new Date();
+    responseDeadline.setHours(responseDeadline.getHours() + 2);
+
+    // Determine if this is a broadcast booking
+    const isBroadcast = broadcastToAll || (!assignedVendorId && notifiedVendorIds.length > 0);
+
+    // Calculate advance amount (30% of grand total)
+    const advanceAmount = Math.round(amounts.grandTotal * 0.3);
+
+    // Create booking - ALWAYS start with PENDING_PAYMENT status
+    // Flow: PENDING_PAYMENT -> Customer pays -> PAYMENT_SUBMITTED -> Admin verifies -> PAYMENT_VERIFIED -> BROADCASTED/PENDING_VENDOR -> Vendor accepts -> ACCEPTED
+    const booking = await prisma.bike_bookings.create({
+      data: {
+        bookingNumber: generateBookingNumber(),
+        customerId: customerId || null,
+        customerName: customerName || 'Guest',
+        customerEmail: customerEmail || '',
+        customerPhone,
+        locationId: resolvedLocationId,
+        locationName: resolvedLocationName,
+        requestedVehicleId: vehicleId || null,
+        requestedModelId: resolvedVehicleModelId,
+        requestedVehicleName: resolvedVehicleName,
+        requestedBrand: resolvedVehicleBrand,
+        requestedCategory: vehicle_category || null,
+        assignedVendorId: isBroadcast ? null : assignedVendorId,
+        notifiedVendorIds: notifiedVendorIds.length > 0 ? JSON.stringify(notifiedVendorIds) : null,
+        pickupDate: pickup,
+        pickupTime: pickupTime || '10:00',
+        dropDate: drop,
+        dropTime: dropTime || '18:00',
+        totalDays,
+        dailyRate: dailyRate || 299,
+        totalAmount: amounts.totalAmount,
+        gstAmount: amounts.gstAmount,
+        securityDeposit: amounts.securityDeposit,
+        grandTotal: amounts.grandTotal,
+        advanceAmount: advanceAmount,
+        helmetsRequired,
+        customerNotes: customerNotes || null,
+        // IMPORTANT: Start with PENDING_PAYMENT, not BROADCASTED
+        status: 'PENDING_PAYMENT',
+        paymentStatus: 'PENDING',
+        // Don't set response deadline until payment is verified
+        responseDeadline: null,
+        broadcastedAt: null,
+        version: 0, // Initialize version for optimistic locking
+      },
+      include: {
+        locations: { select: { name: true, slug: true } },
+        vendors_bike_bookings_assignedVendorIdTovendors: { select: { id: true, businessName: true, phone: true } },
+      },
+    });
+
+    // DON'T notify vendors yet - only after payment is verified
+    // Vendors will be notified when admin verifies payment and status changes to PAYMENT_VERIFIED/BROADCASTED
+
+    return NextResponse.json({
+      success: true,
+      booking: {
+        id: booking.id,
+        bookingNumber: booking.bookingNumber,
+        customerName: booking.customerName,
+        customerPhone: booking.customerPhone,
+        vehicleName: booking.requestedVehicleName,
+        vehicleModelId: booking.requestedModelId,
+        vehicleBrand: booking.requestedBrand,
+        chauffeur_vehicle_categories: booking.requestedCategory,
+        location: booking.locations,
+        locationName: booking.locationName,
+        pickupDate: booking.pickupDate,
+        pickupTime: booking.pickupTime,
+        dropDate: booking.dropDate,
+        dropTime: booking.dropTime,
+        totalDays: booking.totalDays,
+        dailyRate: booking.dailyRate,
+        totalAmount: booking.totalAmount,
+        gstAmount: booking.gstAmount,
+        securityDeposit: booking.securityDeposit,
+        grandTotal: booking.grandTotal,
+        advanceAmount: booking.advanceAmount,
+        status: booking.status,
+        paymentStatus: booking.paymentStatus,
+        vendor: booking.vendors_bike_bookings_assignedVendorIdTovendors,
+        responseDeadline: booking.responseDeadline,
+        notifiedVendorCount: notifiedVendorIds.length,
+        isBroadcast,
+        createdAt: booking.createdAt,
+      },
+      message: 'Booking created. Please complete advance payment to proceed.',
+      nextStep: 'PAYMENT',
+      paymentInfo: {
+        advanceAmount: advanceAmount,
+        totalAmount: amounts.grandTotal,
+        advancePercentage: 30,
+      },
+    });
+  } catch (error: any) {
+    logger.error('Failed to create bike booking', error);
+    return NextResponse.json(
+      { error: 'Failed to create booking', details: error?.message },
+      { status: 500 }
+    );
+  }
+}
+
+// GET - List bookings for a customer
+export async function GET(request: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions);
+    const { searchParams } = new URL(request.url);
+
+    const customerPhone = searchParams.get('phone');
+    const customerEmail = searchParams.get('email');
+    const customerId = searchParams.get('customerId');
+    const status = searchParams.get('status');
+    const page = parseInt(searchParams.get('page') || '1');
+    const limit = parseInt(searchParams.get('limit') || '20');
+    const skip = (page - 1) * limit;
+
+    // Build where clause
+    const whereClause: any = {};
+
+    if (customerId) {
+      whereClause.customerId = customerId;
+    } else if (customerEmail) {
+      whereClause.customerEmail = customerEmail;
+    } else if (customerPhone) {
+      whereClause.customerPhone = customerPhone;
+    } else if (session?.user?.email) {
+      whereClause.customerEmail = session.user.email;
+    }
+
+    // Status filter
+    if (status && status !== 'all') {
+      if (status === 'active') {
+        whereClause.status = {
+          in: ['PENDING_PAYMENT', 'PENDING_VENDOR', 'BROADCASTED', 'ACCEPTED', 'IN_PROGRESS'],
+        };
+      } else if (status === 'completed') {
+        whereClause.status = 'COMPLETED';
+      } else if (status === 'cancelled') {
+        whereClause.status = { in: ['CANCELLED', 'EXPIRED', 'REFUNDED'] };
+      } else {
+        whereClause.status = status;
+      }
+    }
+
+    const [bookings, total] = await Promise.all([
+      prisma.bike_bookings.findMany({
+        where: whereClause,
+        include: {
+          locations: { select: { name: true, slug: true } },
+          vendors_bike_bookings_acceptedVendorIdTovendors: { select: { id: true, businessName: true, phone: true, rating: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit,
+      }),
+      prisma.bike_bookings.count({ where: whereClause }),
+    ]);
+
+    return NextResponse.json({
+      success: true,
+      bookings: bookings.map((b) => ({
+        id: b.id,
+        bookingNumber: b.bookingNumber,
+        customerName: b.customerName,
+        customerEmail: b.customerEmail,
+        customerPhone: b.customerPhone,
+        vehicleName: b.requestedVehicleName,
+        vehicleBrand: b.requestedBrand,
+        chauffeur_vehicle_categories: b.requestedCategory,
+        assignedVehicle: b.acceptedVehicleName,
+        location: b.locations,
+        locationName: b.locationName,
+        pickupDate: b.pickupDate,
+        pickupTime: b.pickupTime,
+        dropDate: b.dropDate,
+        dropTime: b.dropTime,
+        totalDays: b.totalDays,
+        dailyRate: b.dailyRate,
+        totalAmount: b.totalAmount,
+        gstAmount: b.gstAmount,
+        securityDeposit: b.securityDeposit,
+        grandTotal: b.grandTotal,
+        status: b.status,
+        paymentStatus: b.paymentStatus,
+        vendor: b.vendors_bike_bookings_acceptedVendorIdTovendors ? {
+          id: b.vendors_bike_bookings_acceptedVendorIdTovendors.id,
+          name: b.vendors_bike_bookings_acceptedVendorIdTovendors.businessName,
+          phone: b.vendors_bike_bookings_acceptedVendorIdTovendors.phone,
+          rating: b.vendors_bike_bookings_acceptedVendorIdTovendors.rating,
+        } : null,
+        acceptedAt: b.acceptedAt,
+        pickedUpAt: b.pickedUpAt,
+        returnedAt: b.returnedAt,
+        createdAt: b.createdAt,
+      })),
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    });
+  } catch (error: any) {
+    logger.error('Failed to fetch bike bookings', error);
+    return NextResponse.json(
+      { error: 'Failed to fetch bookings', details: error?.message },
+      { status: 500 }
+    );
+  }
+}

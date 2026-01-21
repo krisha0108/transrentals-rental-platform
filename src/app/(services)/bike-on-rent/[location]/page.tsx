@@ -1,0 +1,275 @@
+import React from 'react';
+import type { Metadata } from 'next';
+import { BikeSearchHero } from '@/components/bike';
+import { WhyRentHere } from '@/components/location/WhyRentHere';
+import { FAQSection } from '@/components/services/FAQSection';
+import { NearbyLocations } from '@/components/location/NearbyLocations';
+import { ServiceComingSoon } from '@/components/location/ServiceComingSoon';
+import { capitalize } from '@/lib/utils';
+import { ALL_CITIES, STATIC_CITIES, getCityBySlug } from '@/data/indian-cities';
+import { BikeServiceSchema } from '@/components/seo/schemas';
+import { isServiceAvailableInLocation, getNearbyAvailableLocations } from '@/lib/services/service-availability';
+
+interface PageProps {
+  params: {
+    location: string;
+  };
+}
+
+// Generate static params for ALL locations - GOD LEVEL SEO
+export async function generateStaticParams() {
+  return STATIC_CITIES.map((city) => ({
+    location: city.slug,
+  }));
+}
+
+// Generate metadata for each location
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const city = getCityBySlug(params.location);
+  const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
+  const locationSlug = params.location;
+
+  return {
+    title: `Bike on Rent in ${locationName} | Starting @₹299/Day | TransRentals`,
+    description: `Rent bikes in ${locationName} with TransRentals. Choose from Royal Enfield, KTM, Activa, Honda & more. Best prices guaranteed. Doorstep delivery available. Book your bike rental in ${locationName} now!`,
+    keywords: [
+      `bike on rent in ${locationName}`,
+      `bike rental ${locationName}`,
+      `${locationName} bike rental`,
+      `rent a bike in ${locationName}`,
+      `scooty on rent ${locationName}`,
+      `royal enfield rent ${locationName}`,
+      `activa on rent ${locationName}`,
+      `bike hire ${locationName}`,
+      `two wheeler rental ${locationName}`,
+    ],
+    openGraph: {
+      title: `Bike on Rent in ${locationName} - Starting @₹299/Day | TransRentals`,
+      description: `Rent bikes in ${locationName} starting @₹299/day. Royal Enfield, KTM, Activa & more. Best prices guaranteed.`,
+      type: 'website',
+      url: `https://transrentals.in/bike-on-rent/${locationSlug}`,
+      images: [
+        {
+          url: 'https://transrentals.in/images/og/bike-rental.jpg',
+          width: 1200,
+          height: 630,
+          alt: `Bike Rental in ${locationName} - TransRentals`,
+        },
+      ],
+      locale: 'en_IN',
+      siteName: 'TransRentals',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: `Bike on Rent in ${locationName} - TransRentals`,
+      description: `Rent bikes in ${locationName} starting @₹299/day. Best prices guaranteed.`,
+      images: ['https://transrentals.in/images/og/bike-rental.jpg'],
+    },
+    alternates: {
+      canonical: `https://transrentals.in/bike-on-rent/${locationSlug}`,
+    },
+    robots: {
+      index: true,
+      follow: true,
+      googleBot: {
+        index: true,
+        follow: true,
+        'max-video-preview': -1,
+        'max-image-preview': 'large',
+        'max-snippet': -1,
+      },
+    },
+  };
+}
+
+// Popular bikes data (for display below hero)
+const POPULAR_BIKES = [
+  { name: 'Honda Activa 6G', type: 'Scooter', price: 299, image: '/images/fleet/activa-6g.jpg' },
+  { name: 'Royal Enfield Classic 350', type: 'Cruiser', price: 799, image: '/images/fleet/royal-enfield-classic-350.jpg' },
+  { name: 'TVS Jupiter', type: 'Scooter', price: 349, image: '/images/fleet/tvs-jupiter.jpg' },
+  { name: 'KTM Duke 200', type: 'Sports', price: 999, image: '/images/fleet/ktm-duke-200.jpg' },
+];
+
+// Location-specific FAQs for schema
+const getLocationFaqs = (locationName: string) => [
+  { question: `What documents are required for bike rental in ${locationName}?`, answer: `You need a valid driving license (with MCWG endorsement for bikes above 50cc), government ID proof (Aadhaar/Passport), and a security deposit to rent a bike in ${locationName}.` },
+  { question: `What is the minimum rental duration in ${locationName}?`, answer: `The minimum rental duration is 24 hours. However, we also offer hourly rentals for select bikes in ${locationName} starting from 4 hours.` },
+  { question: `Is doorstep delivery available in ${locationName}?`, answer: `Yes, doorstep delivery is available in ${locationName} for an additional charge. You can also pick up the bike from our partner locations across the city.` },
+  { question: `What bikes are available for rent in ${locationName}?`, answer: `In ${locationName}, we have scooters (Activa, Jupiter), cruisers (Royal Enfield Classic 350, Bullet), sports bikes (KTM Duke), and commuter bikes available for rent.` },
+  { question: `What if the bike breaks down in ${locationName}?`, answer: `We provide 24/7 roadside assistance in ${locationName}. Contact our support and we'll arrange for help or a replacement bike immediately.` },
+];
+
+// Schema vehicles data
+const schemaVehicles = [
+  { name: 'Honda Activa 6G', brand: 'Honda', price: 299 },
+  { name: 'Royal Enfield Classic 350', brand: 'Royal Enfield', price: 799 },
+  { name: 'TVS Jupiter', brand: 'TVS', price: 349 },
+  { name: 'KTM Duke 200', brand: 'KTM', price: 999 },
+  { name: 'Royal Enfield Himalayan', brand: 'Royal Enfield', price: 899 },
+];
+
+export default async function BikeLocationPage({ params }: PageProps) {
+  const city = getCityBySlug(params.location);
+  const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
+  const locationFaqs = getLocationFaqs(locationName);
+
+  // Check if bike-on-rent service is available in this location
+  const isAvailable = await isServiceAvailableInLocation('bike-on-rent', params.location);
+
+  // If service not available, show coming soon page
+  if (!isAvailable) {
+    const nearbyLocations = await getNearbyAvailableLocations('bike-on-rent', params.location, 6);
+    return (
+      <ServiceComingSoon
+        serviceName="Bike Rental"
+        serviceSlug="bike-on-rent"
+        locationName={locationName}
+        locationSlug={params.location}
+        nearbyLocations={nearbyLocations}
+      />
+    );
+  }
+
+  return (
+    <>
+      {/* Schema Markup for SEO */}
+      <BikeServiceSchema
+        serviceName="Bike on Rent"
+        serviceSlug="bike-on-rent"
+        description={`Rent bikes in ${locationName} with TransRentals. Choose from Royal Enfield, KTM, Activa & more. Best prices starting @₹299/day.`}
+        city={locationName}
+        citySlug={params.location}
+        faqs={locationFaqs}
+        vehicles={schemaVehicles}
+        priceRange={{ min: 299, max: 1499 }}
+        rating={4.5}
+        reviewCount={Math.floor(Math.random() * 500) + 200}
+      />
+
+      <div className="flex flex-col">
+        {/* Breadcrumbs */}
+        <div className="bg-gray-50 border-b border-gray-200">
+          <div className="container-custom py-3">
+            <nav className="text-sm text-gray-600" aria-label="Breadcrumb">
+              <a href="/" className="hover:text-primary">Home</a>
+              <span className="mx-2">/</span>
+              <a href="/bike-on-rent" className="hover:text-primary">Bike on Rent</a>
+              <span className="mx-2">/</span>
+              <span className="text-gray-900 font-medium">{locationName}</span>
+            </nav>
+          </div>
+        </div>
+
+      {/* Hero with Search */}
+      <BikeSearchHero city={locationName} citySlug={params.location} />
+
+      {/* Popular Bikes Preview */}
+      <section className="py-16 bg-white">
+        <div className="container-custom">
+          <div className="text-center mb-10">
+            <h2 className="text-3xl font-bold text-gray-900 mb-3">
+              Popular Bikes in {locationName}
+            </h2>
+            <p className="text-gray-600">
+              Choose from our wide range of well-maintained bikes and scooters
+            </p>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            {POPULAR_BIKES.map((bike) => (
+              <div
+                key={bike.name}
+                className="bg-gray-50 rounded-xl p-4 text-center hover:shadow-lg transition-shadow"
+              >
+                <div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <span className="text-3xl">🏍️</span>
+                </div>
+                <h3 className="font-semibold text-gray-900 mb-1">{bike.name}</h3>
+                <p className="text-sm text-gray-500 mb-2">{bike.type}</p>
+                <p className="text-emerald-600 font-bold">₹{bike.price}/day</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="text-center mt-8">
+            <p className="text-gray-600">
+              Search above to see all available bikes with real-time pricing
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* Why Rent Here */}
+      <WhyRentHere locationName={locationName} />
+
+      {/* How It Works */}
+      <section className="py-16 bg-white">
+        <div className="container-custom">
+          <div className="text-center mb-10">
+            <h2 className="text-3xl font-bold text-gray-900 mb-3">
+              How to Rent a Bike in {locationName}
+            </h2>
+            <p className="text-gray-600">Simple 4-step process to get you riding</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+            {[
+              { step: 1, title: 'Select Dates', desc: 'Choose your pickup & drop-off date and time', icon: '📅' },
+              { step: 2, title: 'Choose Bike', desc: 'Browse available bikes and select your ride', icon: '🏍️' },
+              { step: 3, title: 'Book Online', desc: 'Complete booking with secure payment', icon: '💳' },
+              { step: 4, title: 'Ride Away', desc: 'Pick up your bike and enjoy your ride!', icon: '🚀' },
+            ].map((item) => (
+              <div key={item.step} className="text-center">
+                <div className="relative inline-block mb-4">
+                  <div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center text-4xl">
+                    {item.icon}
+                  </div>
+                  <div className="absolute -top-2 -right-2 w-8 h-8 bg-emerald-600 text-white rounded-full flex items-center justify-center font-bold">
+                    {item.step}
+                  </div>
+                </div>
+                <h3 className="font-bold text-gray-900 mb-2">{item.title}</h3>
+                <p className="text-gray-600 text-sm">{item.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* FAQs */}
+      <FAQSection service="bike-on-rent" location={locationName} />
+
+      {/* Nearby Locations */}
+      <NearbyLocations locationSlug={params.location} service="bike-on-rent" />
+
+      {/* SEO Content */}
+      <section className="py-16 bg-gray-50">
+        <div className="container-custom">
+          <div className="max-w-4xl mx-auto prose prose-lg">
+            <h2 className="text-3xl font-bold text-gray-900 mb-6">
+              Bike Rental Services in {locationName}
+            </h2>
+            <p className="text-gray-600">
+              TransRentals offers the best bike rental services in {locationName}. Whether you need a scooter
+              for daily commute, a Royal Enfield for a road trip, or a sports bike for the weekend,
+              we have you covered. Our fleet includes well-maintained bikes from top brands like Honda,
+              Royal Enfield, TVS, KTM, Bajaj, and more.
+            </p>
+            <h3 className="text-2xl font-bold text-gray-900 mt-8 mb-4">
+              Why Choose TransRentals for Bike Rental in {locationName}?
+            </h3>
+            <ul className="text-gray-600 space-y-2">
+              <li><strong>Wide Selection:</strong> Scooters, bikes, sports bikes, cruisers & more</li>
+              <li><strong>Best Prices:</strong> Starting from just ₹299/day</li>
+              <li><strong>Well Maintained:</strong> All bikes are regularly serviced and cleaned</li>
+              <li><strong>Flexible Rentals:</strong> Daily, weekly, and monthly options available</li>
+              <li><strong>Easy Booking:</strong> Book online in minutes with instant confirmation</li>
+              <li><strong>24/7 Support:</strong> Roadside assistance and customer support</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+      </div>
+    </>
+  );
+}

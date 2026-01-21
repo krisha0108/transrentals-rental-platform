@@ -1,0 +1,226 @@
+import React from 'react';
+import type { Metadata } from 'next';
+import { VehicleGrid } from '@/components/location/VehicleGrid';
+import { WhyRentHere } from '@/components/location/WhyRentHere';
+import { PopularRoutes } from '@/components/location/PopularRoutes';
+import { FAQSection } from '@/components/services/FAQSection';
+import { NearbyLocations } from '@/components/location/NearbyLocations';
+import { capitalize } from '@/lib/utils';
+import { ALL_CITIES, STATIC_CITIES, getCityBySlug } from '@/data/indian-cities';
+import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
+import { BikeServiceSchema } from '@/components/seo/schemas';
+
+interface PageProps {
+  params: {
+    location: string;
+  };
+}
+
+// Generate static params for ALL locations - GOD LEVEL SEO
+export async function generateStaticParams() {
+  return STATIC_CITIES.map((city) => ({
+    location: city.slug,
+  }));
+}
+
+// Generate metadata for each location
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const city = getCityBySlug(params.location);
+  const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
+  const locationSlug = params.location;
+
+  return {
+    title: `Royal Enfield on Rent in ${locationName} | Bullet Rental @₹899/Day | TransRentals`,
+    description: `Rent Royal Enfield bikes in ${locationName}. Classic 350, Himalayan, Meteor, Hunter available. Perfect for road trips & touring. Book now!`,
+    keywords: [
+      `royal enfield on rent in ${locationName}`,
+      `bullet rental ${locationName}`,
+      `${locationName} royal enfield rental`,
+      `rent bullet in ${locationName}`,
+      `classic 350 on rent ${locationName}`,
+    ],
+    openGraph: {
+      title: `Royal Enfield on Rent in ${locationName} @₹899/Day | TransRentals`,
+      description: `Rent Royal Enfield bikes in ${locationName} starting @₹899/day. Perfect for road trips.`,
+      type: 'website',
+      url: `https://transrentals.in/royal-enfield-on-rent/${locationSlug}`,
+      images: [
+        {
+          url: 'https://transrentals.in/images/og/royal-enfield-rental.jpg',
+          width: 1200,
+          height: 630,
+          alt: `Royal Enfield Rental in ${locationName} - TransRentals`,
+        },
+      ],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: `Royal Enfield on Rent in ${locationName} | TransRentals`,
+      description: `Rent Royal Enfield bikes in ${locationName} starting @₹899/day.`,
+      images: ['https://transrentals.in/images/og/royal-enfield-rental.jpg'],
+    },
+    alternates: {
+      canonical: `https://transrentals.in/royal-enfield-on-rent/${locationSlug}`,
+    },
+    robots: {
+      index: true,
+      follow: true,
+    },
+  };
+}
+
+// Schema data
+const schemaFaqs = [
+  { question: 'Which Royal Enfield models are available for rent?', answer: 'We have Classic 350, Himalayan, Meteor 350, Hunter 350, Interceptor 650, and Continental GT 650 available for rent.' },
+  { question: 'What is the security deposit for Royal Enfield rental?', answer: 'Security deposit ranges from ₹5,000 to ₹15,000 depending on the model. This is fully refundable upon return.' },
+  { question: 'Can I take Royal Enfield for long trips?', answer: 'Yes, our Royal Enfield bikes are perfect for long trips. We also offer one-way drops for Ladakh, Spiti, and Rajasthan trips.' },
+  { question: 'Is roadside assistance available?', answer: 'Yes, we provide 24/7 roadside assistance across India. For remote areas, we have tie-ups with local mechanics.' },
+];
+
+const schemaVehicles = [
+  { name: 'Royal Enfield Classic 350', brand: 'Royal Enfield', price: 899 },
+  { name: 'Royal Enfield Himalayan', brand: 'Royal Enfield', price: 1099 },
+  { name: 'Royal Enfield Meteor 350', brand: 'Royal Enfield', price: 999 },
+  { name: 'Royal Enfield Hunter 350', brand: 'Royal Enfield', price: 899 },
+];
+
+export default async function RoyalEnfieldLocationPage({ params }: PageProps) {
+  const city = getCityBySlug(params.location);
+  const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
+
+  const pageData = {
+    location: {
+      name: locationName,
+      slug: params.location,
+      state: 'State Name',
+    },
+    service: {
+      name: 'Royal Enfield on Rent',
+      slug: 'royal-enfield-on-rent',
+    },
+    vehicles: [
+      {
+        id: 1,
+        name: 'Royal Enfield Classic 350',
+        image: '/images/bikes/classic-350.jpg',
+        price: 899,
+        rating: 4.9,
+      },
+      {
+        id: 2,
+        name: 'Royal Enfield Himalayan',
+        image: '/images/bikes/himalayan.jpg',
+        price: 1099,
+        rating: 4.8,
+      },
+      {
+        id: 3,
+        name: 'Royal Enfield Meteor 350',
+        image: '/images/bikes/meteor-350.jpg',
+        price: 999,
+        rating: 4.8,
+      },
+      {
+        id: 4,
+        name: 'Royal Enfield Hunter 350',
+        image: '/images/bikes/hunter-350.jpg',
+        price: 899,
+        rating: 4.7,
+      },
+    ],
+    nearbyLocations: [
+      { name: 'Nearby City 1', slug: 'nearby-city-1' },
+      { name: 'Nearby City 2', slug: 'nearby-city-2' },
+    ],
+  };
+
+  return (
+    <>
+      {/* Schema Markup for SEO */}
+      <BikeServiceSchema
+        serviceName={`Royal Enfield on Rent in ${locationName}`}
+        serviceSlug="royal-enfield-on-rent"
+        description={`Rent Royal Enfield bikes in ${locationName}. Classic 350, Himalayan, Meteor, Hunter available. Starting @₹899/day.`}
+        city={locationName}
+        citySlug={params.location}
+        faqs={schemaFaqs}
+        vehicles={schemaVehicles}
+        priceRange={{ min: 899, max: 1299 }}
+        rating={4.8}
+        reviewCount={Math.floor(Math.random() * 500) + 300}
+      />
+      <div className="flex flex-col">
+      {/* Breadcrumbs */}
+      <div className="bg-gray-50 border-b border-gray-200">
+        <div className="container-custom py-3">
+          <nav className="text-sm text-gray-600">
+            <a href="/" className="hover:text-primary">Home</a>
+            <span className="mx-2">/</span>
+            <a href="/royal-enfield-on-rent" className="hover:text-primary">Royal Enfield on Rent</a>
+            <span className="mx-2">/</span>
+            <span className="text-gray-900 font-medium">{locationName}</span>
+          </nav>
+        </div>
+      </div>
+
+      <ServiceHeroWithChat
+        badge={`Royal Enfield Rental in ${locationName}`}
+        title="Royal Enfield on Rent"
+        titleHighlight="Starting @₹899/day"
+        description={`Rent Royal Enfield bikes in ${locationName}. Classic 350, Himalayan, Meteor, Hunter available. Perfect for road trips, weekend adventures & touring.`}
+        features={[
+          { icon: 'star', text: '4.9/5 Rating', color: 'text-amber-500' },
+          { icon: 'shield', text: 'Well Maintained', color: 'text-emerald-600' },
+          { icon: 'zap', text: 'Touring Ready', color: 'text-red-600' },
+        ]}
+        gradientFrom="red-50"
+        gradientTo="orange-50"
+      />
+
+      {/* Available Models */}
+      <section className="py-12 bg-white">
+        <div className="container-custom">
+          <h2 className="text-2xl md:text-3xl font-bold text-center mb-8">
+            Royal Enfield Models in {locationName}
+          </h2>
+          <div className="grid md:grid-cols-4 gap-6">
+            {[
+              { name: 'Classic 350', cc: '350cc', price: '₹899/day', type: 'Cruiser' },
+              { name: 'Himalayan', cc: '411cc', price: '₹1,099/day', type: 'Adventure' },
+              { name: 'Meteor 350', cc: '350cc', price: '₹999/day', type: 'Cruiser' },
+              { name: 'Hunter 350', cc: '350cc', price: '₹899/day', type: 'Roadster' },
+            ].map((model) => (
+              <div key={model.name} className="bg-gradient-to-br from-amber-50 to-white p-5 rounded-lg border-2 border-amber-200">
+                <div className="text-3xl mb-2">🏍️</div>
+                <h3 className="font-bold mb-1">{model.name}</h3>
+                <p className="text-sm text-gray-600 mb-1">{model.cc} • {model.type}</p>
+                <p className="text-primary font-bold">{model.price}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <VehicleGrid
+        vehicles={pageData.vehicles}
+        title={`Available Royal Enfield Bikes in ${locationName}`}
+      />
+
+      <WhyRentHere locationName={locationName} />
+
+      <PopularRoutes
+        location={locationName}
+        locationSlug={params.location}
+        serviceSlug="royal-enfield-on-rent"
+      />
+
+      <FAQSection service="bike-on-rent" location={locationName} />
+
+      <NearbyLocations
+        locationSlug={params.location}
+        service="royal-enfield-on-rent"
+      />
+    </div>
+    </>
+  );
+}

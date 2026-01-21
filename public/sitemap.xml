@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  =============================================================================
+  TRANSRENTALS - SITEMAP INDEX
+  =============================================================================
+  Website: https://transrentals.in
+  Total URLs: ~12,600+
+  Last Updated: January 2026
+  =============================================================================
+
+  SITEMAP BREAKDOWN (Database-Driven):
+  - sitemap/0.xml: Main pages (Homepage, Static, Services, Blog) ~200 URLs
+  - sitemap/1.xml: Service locations (from ServiceLocation table) ~8,000 URLs
+  - sitemap/2.xml: Fleet pages (from Fleet & FleetLocationRate tables) ~4,000 URLs
+  - sitemap/3.xml: City homepages + Blog tags (from Location table) ~400 URLs
+  =============================================================================
+-->
+<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <sitemap>
+    <loc>https://transrentals.in/sitemap/0.xml</loc>
+    <lastmod>2026-01-17</lastmod>
+  </sitemap>
+  <sitemap>
+    <loc>https://transrentals.in/sitemap/1.xml</loc>
+    <lastmod>2026-01-17</lastmod>
+  </sitemap>
+  <sitemap>
+    <loc>https://transrentals.in/sitemap/2.xml</loc>
+    <lastmod>2026-01-17</lastmod>
+  </sitemap>
+  <sitemap>
+    <loc>https://transrentals.in/sitemap/3.xml</loc>
+    <lastmod>2026-01-17</lastmod>
+  </sitemap>
+</sitemapindex>

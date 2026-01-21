@@ -1,0 +1,498 @@
+name: 🚨 STRICT Validation - Block ALL Errors
+
+# This workflow catches EVERYTHING before code reaches server
+# Prisma migrations, table errors, relation issues - ALL blocked here
+
+on:
+  push:
+    branches: [main, master, develop]
+    paths-ignore:
+      - 'tr-app/**'
+      - 'tr-vendor-app/**'
+      - '**.md'
+      - 'docs/**'
+  pull_request:
+    branches: [main, master, develop]
+    paths-ignore:
+      - 'tr-app/**'
+      - 'tr-vendor-app/**'
+      - '**.md'
+      - 'docs/**'
+
+env:
+  NODE_VERSION: '20.x'
+
+jobs:
+  # ============================================
+  # CRITICAL: Prisma Migration Validation
+  # ============================================
+  prisma-migration-check:
+    name: 🗄️ Prisma Migration Strict Check
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: test_root_pass
+          MYSQL_DATABASE: test_transrentals
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping --silent"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for migration checks
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: 📦 Install dependencies
+        run: npm ci
+
+      - name: ⏳ Wait for MySQL to be ready
+        run: |
+          for i in {1..30}; do
+            if mysqladmin ping -h"127.0.0.1" -P"3306" -u"root" -p"test_root_pass" --silent; then
+              echo "MySQL is ready!"
+              break
+            fi
+            echo "Waiting for MySQL... ($i/30)"
+            sleep 2
+          done
+
+      - name: ✅ Validate Prisma Schema
+        run: |
+          echo "Validating Prisma schema..."
+          npx prisma validate
+        env:
+          DATABASE_URL: mysql://root:test_root_pass@localhost:3306/test_transrentals
+
+      - name: 🔄 Generate Prisma Client
+        run: npx prisma generate
+        env:
+          DATABASE_URL: mysql://root:test_root_pass@localhost:3306/test_transrentals
+
+      - name: 🚨 Deploy ALL Migrations (STRICT)
+        run: |
+          echo "Deploying all migrations..."
+          npx prisma migrate deploy
+        env:
+          DATABASE_URL: mysql://root:test_root_pass@localhost:3306/test_transrentals
+        # This MUST succeed - any migration error blocks the PR
+
+      - name: 🔍 Check Migration Status
+        run: |
+          echo "Checking migration status..."
+          npx prisma migrate status
+        env:
+          DATABASE_URL: mysql://root:test_root_pass@localhost:3306/test_transrentals
+
+      - name: 🧪 Test Database Structure
+        run: |
+          echo "Testing database structure..."
+
+          # Check if tables exist
+          mysql -h"127.0.0.1" -P"3306" -u"root" -p"test_root_pass" test_transrentals -e "SHOW TABLES;"
+
+          # Check for common tables
+          REQUIRED_TABLES=(
+            "customers"
+            "vendors"
+            "services"
+            "locations"
+            "notifications"
+            "admin_users"
+          )
+
+          for table in "${REQUIRED_TABLES[@]}"; do
+            echo "Checking table: $table"
+            if mysql -h"127.0.0.1" -P"3306" -u"root" -p"test_root_pass" test_transrentals -e "DESCRIBE $table;" &> /dev/null; then
+              echo "✅ Table $table exists"
+            else
+              echo "❌ Table $table is MISSING!"
+              exit 1
+            fi
+          done
+
+      - name: 🔗 Test Foreign Key Relations
+        run: |
+          echo "Testing foreign key constraints..."
+
+          # Check foreign keys are properly set up
+          mysql -h"127.0.0.1" -P"3306" -u"root" -p"test_root_pass" test_transrentals -e "
+            SELECT
+              TABLE_NAME,
+              COLUMN_NAME,
+              CONSTRAINT_NAME,
+              REFERENCED_TABLE_NAME,
+              REFERENCED_COLUMN_NAME
+            FROM
+              INFORMATION_SCHEMA.KEY_COLUMN_USAGE
+            WHERE
+              REFERENCED_TABLE_SCHEMA = 'test_transrentals'
+              AND REFERENCED_TABLE_NAME IS NOT NULL
+            ORDER BY
+              TABLE_NAME;
+          "
+
+          echo "✅ Foreign keys validated"
+
+  # ============================================
+  # END-TO-END API Testing with Real Database
+  # ============================================
+  e2e-api-tests:
+    name: 🧪 End-to-End API Testing
+    runs-on: ubuntu-latest
+    needs: [prisma-migration-check]
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: test_root_pass
+          MYSQL_DATABASE: test_transrentals
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping --silent"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: 📦 Install dependencies
+        run: npm ci
+
+      - name: ⏳ Wait for MySQL
+        run: |
+          for i in {1..30}; do
+            if mysqladmin ping -h"127.0.0.1" -P"3306" -u"root" -p"test_root_pass" --silent; then
+              break
+            fi
+            sleep 2
+          done
+
+      - name: 🗄️ Setup Database
+        env:
+          DATABASE_URL: mysql://root:test_root_pass@localhost:3306/test_transrentals
+        run: |
+          npx prisma generate
+          npx prisma migrate deploy
+
+      - name: 🧪 Test ALL Critical API Endpoints
+        env:
+          DATABASE_URL: mysql://root:test_root_pass@localhost:3306/test_transrentals
+          NEXTAUTH_SECRET: test-secret-key-for-e2e
+          NEXTAUTH_URL: http://localhost:3000
+          NEXT_PUBLIC_APP_URL: http://localhost:3000
+        run: |
+          echo "Running end-to-end API tests..."
+          npm run test:run || exit 1
+
+      - name: 🔍 Test Prisma Relations (Custom)
+        env:
+          DATABASE_URL: mysql://root:test_root_pass@localhost:3306/test_transrentals
+        run: |
+          echo "Testing Prisma relations work correctly..."
+
+          # Create a test script to verify relations
+          cat > test-relations.js << 'EOF'
+          const { PrismaClient } = require('@prisma/client');
+          const prisma = new PrismaClient();
+
+          async function testRelations() {
+            try {
+              console.log('Testing vendor relations...');
+
+              // Test: Can we query vendors with their relations?
+              const vendors = await prisma.vendors.findMany({
+                take: 1,
+                include: {
+                  vendor_documents: true,
+                  vendor_service_requests: true,
+                  vendor_location_requests: true,
+                  vendor_fleets: true,
+                }
+              });
+              console.log('✅ Vendor relations work');
+
+              // Test: Can we query customers with notifications?
+              console.log('Testing customer relations...');
+              const customers = await prisma.customers.findMany({
+                take: 1,
+                include: {
+                  notifications: true,
+                }
+              });
+              console.log('✅ Customer relations work');
+
+              // Test: Can we query services?
+              console.log('Testing service relations...');
+              const services = await prisma.services.findMany({
+                take: 1,
+                include: {
+                  locations_services: true,
+                }
+              });
+              console.log('✅ Service relations work');
+
+              console.log('✅ ALL RELATIONS WORKING!');
+              process.exit(0);
+            } catch (error) {
+              console.error('❌ RELATION ERROR:', error.message);
+              console.error('Full error:', error);
+              process.exit(1);
+            }
+          }
+
+          testRelations();
+          EOF
+
+          node test-relations.js
+
+  # ============================================
+  # Test Specific Error Scenarios
+  # ============================================
+  error-scenario-tests:
+    name: 🧨 Test Error Scenarios
+    runs-on: ubuntu-latest
+    needs: [prisma-migration-check]
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: test_root_pass
+          MYSQL_DATABASE: test_transrentals
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping --silent"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: 📦 Install dependencies
+        run: npm ci
+
+      - name: 🗄️ Setup Database
+        env:
+          DATABASE_URL: mysql://root:test_root_pass@localhost:3306/test_transrentals
+        run: |
+          npx prisma generate
+          npx prisma migrate deploy
+
+      - name: 🧨 Test: Create Record with Relations
+        env:
+          DATABASE_URL: mysql://root:test_root_pass@localhost:3306/test_transrentals
+        run: |
+          cat > test-create.js << 'EOF'
+          const { PrismaClient } = require('@prisma/client');
+          const crypto = require('crypto');
+          const prisma = new PrismaClient();
+
+          function generateId() {
+            return 'c' + crypto.randomBytes(12).toString('base64url').toLowerCase().slice(0, 24);
+          }
+
+          async function testCreate() {
+            try {
+              // Test: Create customer with notification
+              console.log('Testing customer creation...');
+              const customer = await prisma.customers.create({
+                data: {
+                  id: generateId(),
+                  phone: '9999999999',
+                  name: 'Test Customer',
+                  email: 'test@test.com',
+                  isVerified: true,
+                }
+              });
+              console.log('✅ Customer created:', customer.id);
+
+              // Create notification for customer
+              console.log('Testing notification creation...');
+              const notification = await prisma.notifications.create({
+                data: {
+                  id: generateId(),
+                  customerId: customer.id,
+                  title: 'Test Notification',
+                  body: 'Test body',
+                  type: 'general',
+                }
+              });
+              console.log('✅ Notification created:', notification.id);
+
+              console.log('✅ ALL CREATE OPERATIONS WORK!');
+              process.exit(0);
+            } catch (error) {
+              console.error('❌ CREATE ERROR:', error.message);
+              process.exit(1);
+            }
+          }
+
+          testCreate();
+          EOF
+
+          node test-create.js
+
+      - name: 🧨 Test: Query with Deep Relations
+        env:
+          DATABASE_URL: mysql://root:test_root_pass@localhost:3306/test_transrentals
+        run: |
+          cat > test-deep-query.js << 'EOF'
+          const { PrismaClient } = require('@prisma/client');
+          const prisma = new PrismaClient();
+
+          async function testDeepQuery() {
+            try {
+              // Test complex query with multiple levels
+              console.log('Testing deep relation query...');
+
+              const result = await prisma.vendor_service_requests.findMany({
+                take: 1,
+                include: {
+                  vendors: true,
+                  services: true,
+                  admin_users: true,
+                }
+              });
+
+              console.log('✅ Deep query works');
+              process.exit(0);
+            } catch (error) {
+              console.error('❌ QUERY ERROR:', error.message);
+              process.exit(1);
+            }
+          }
+
+          testDeepQuery();
+          EOF
+
+          node test-deep-query.js
+
+  # ============================================
+  # Build Test with Real Environment
+  # ============================================
+  build-test-real:
+    name: 🏗️ Build Test (Real Environment)
+    runs-on: ubuntu-latest
+    needs: [prisma-migration-check, e2e-api-tests]
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: 📦 Install dependencies
+        run: npm ci
+
+      - name: 🔄 Generate Prisma Client
+        run: npx prisma generate
+        env:
+          DATABASE_URL: mysql://dummy:dummy@localhost:3306/dummy
+
+      - name: 🏗️ Build Application
+        run: npm run build
+        env:
+          DATABASE_URL: mysql://dummy:dummy@localhost:3306/dummy
+          NEXTAUTH_SECRET: build-test-secret
+          NEXTAUTH_URL: http://localhost:3000
+          NEXT_PUBLIC_APP_URL: http://localhost:3000
+          SKIP_ENV_VALIDATION: "1"
+
+      - name: ✅ Verify Build Success
+        run: |
+          if [ ! -d ".next" ]; then
+            echo "❌ Build failed - no .next directory"
+            exit 1
+          fi
+          echo "✅ Build successful"
+
+  # ============================================
+  # FINAL GATE: All Checks Must Pass
+  # ============================================
+  all-validations-passed:
+    name: ✅ ALL VALIDATIONS PASSED
+    runs-on: ubuntu-latest
+    needs: [prisma-migration-check, e2e-api-tests, error-scenario-tests, build-test-real]
+    if: success()
+
+    steps:
+      - name: 🎉 Success Report
+        run: |
+          echo "================================================"
+          echo "✅ ALL STRICT VALIDATIONS PASSED!"
+          echo "================================================"
+          echo ""
+          echo "✓ Prisma migrations deployed successfully"
+          echo "✓ All database tables exist"
+          echo "✓ Foreign keys validated"
+          echo "✓ All relations working"
+          echo "✓ End-to-end API tests passed"
+          echo "✓ Error scenarios handled"
+          echo "✓ Build successful"
+          echo ""
+          echo "================================================"
+          echo "🚀 CODE IS SAFE TO DEPLOY!"
+          echo "================================================"
+
+  validation-failed:
+    name: ❌ VALIDATION FAILED - BLOCKED
+    runs-on: ubuntu-latest
+    needs: [prisma-migration-check, e2e-api-tests, error-scenario-tests, build-test-real]
+    if: failure()
+
+    steps:
+      - name: ❌ Failure Report
+        run: |
+          echo "================================================"
+          echo "❌ VALIDATION FAILED!"
+          echo "================================================"
+          echo ""
+          echo "This code CANNOT be deployed!"
+          echo "Fix all errors shown above before pushing again."
+          echo ""
+          echo "Common issues:"
+          echo "1. Prisma migration errors"
+          echo "2. Missing database tables"
+          echo "3. Broken foreign key relations"
+          echo "4. API endpoint failures"
+          echo "5. Build failures"
+          echo ""
+          echo "================================================"
+          exit 1

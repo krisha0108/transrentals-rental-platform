@@ -1,0 +1,85 @@
+name: Docker Build & Push
+
+on:
+  push:
+    branches: [main, develop]
+    paths-ignore:
+      - "**.md"
+      - ".gitignore"
+      - "tr-app/**"
+      - "tr-vendor-app/**"
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable=${{ github.ref == format('refs/heads/{0}', 'main') }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          platforms: linux/amd64
+          provenance: false
+          sbom: false
+          build-args: |
+            BUILDKIT_INLINE_CACHE=1
+            NEXT_PUBLIC_APP_NAME=${{ secrets.NEXT_PUBLIC_APP_NAME }}
+            NEXT_PUBLIC_APP_URL=${{ secrets.NEXT_PUBLIC_APP_URL }}
+            NEXT_PUBLIC_APP_DESCRIPTION=${{ secrets.NEXT_PUBLIC_APP_DESCRIPTION }}
+            NEXT_PUBLIC_CONTACT_EMAIL=${{ secrets.NEXT_PUBLIC_CONTACT_EMAIL }}
+            NEXT_PUBLIC_CONTACT_PHONE=${{ secrets.NEXT_PUBLIC_CONTACT_PHONE }}
+            NEXT_PUBLIC_WHATSAPP_NUMBER=${{ secrets.NEXT_PUBLIC_WHATSAPP_NUMBER }}
+            NEXT_PUBLIC_ENABLE_BLOG=${{ secrets.NEXT_PUBLIC_ENABLE_BLOG }}
+            NEXT_PUBLIC_ENABLE_VENDOR_SIGNUP=${{ secrets.NEXT_PUBLIC_ENABLE_VENDOR_SIGNUP }}
+            NEXT_PUBLIC_BLOG_DATA_SOURCE=${{ secrets.NEXT_PUBLIC_BLOG_DATA_SOURCE }}
+            NEXT_PUBLIC_FACEBOOK_URL=${{ secrets.NEXT_PUBLIC_FACEBOOK_URL }}
+            NEXT_PUBLIC_INSTAGRAM_URL=${{ secrets.NEXT_PUBLIC_INSTAGRAM_URL }}
+            NEXT_PUBLIC_TWITTER_URL=${{ secrets.NEXT_PUBLIC_TWITTER_URL }}
+            NEXT_PUBLIC_LINKEDIN_URL=${{ secrets.NEXT_PUBLIC_LINKEDIN_URL }}
+            NEXT_PUBLIC_ENABLE_REVIEWS=${{ secrets.NEXT_PUBLIC_ENABLE_REVIEWS }}
+            NEXT_PUBLIC_ENABLE_CHAT=${{ secrets.NEXT_PUBLIC_ENABLE_CHAT }}
+            NEXT_PUBLIC_ENABLE_NOTIFICATIONS=${{ secrets.NEXT_PUBLIC_ENABLE_NOTIFICATIONS }}
+            NEXT_PUBLIC_TWITTER_HANDLE=${{ secrets.NEXT_PUBLIC_TWITTER_HANDLE }}
+            NEXT_PUBLIC_DEFAULT_OG_IMAGE=${{ secrets.NEXT_PUBLIC_DEFAULT_OG_IMAGE }}
+            NEXT_PUBLIC_CUSTOMER_APP_ANDROID=${{ secrets.NEXT_PUBLIC_CUSTOMER_APP_ANDROID }}
+            NEXT_PUBLIC_VENDOR_APP_ANDROID=${{ secrets.NEXT_PUBLIC_VENDOR_APP_ANDROID }}
+
+      - name: Image digest
+        run: echo ${{ steps.meta.outputs.digest }}

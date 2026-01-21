@@ -1,0 +1,269 @@
+name: 🚀 Push to Main - Full Pipeline
+
+# This runs ONLY when code is pushed to main branch
+# By this point, PR checks have already passed
+# This does final validation before deployment
+
+on:
+  push:
+    branches: [main, master]
+    paths-ignore:
+      - 'tr-app/**'
+      - 'tr-vendor-app/**'
+      - '**.md'
+      - 'docs/**'
+
+env:
+  NODE_VERSION: '20.x'
+
+jobs:
+  # ============================================
+  # Quick Status Check
+  # ============================================
+  status-check:
+    name: 📊 Status Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+
+      - name: 📊 Show commit info
+        run: |
+          echo "================================================"
+          echo "🚀 DEPLOYING TO PRODUCTION"
+          echo "================================================"
+          echo "Commit: ${{ github.sha }}"
+          echo "Author: ${{ github.actor }}"
+          echo "Message: ${{ github.event.head_commit.message }}"
+          echo "Branch: ${{ github.ref_name }}"
+          echo "================================================"
+
+  # ============================================
+  # Final Migration Check
+  # ============================================
+  final-migration-check:
+    name: 🗄️ Final Migration Validation
+    runs-on: ubuntu-latest
+    needs: [status-check]
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: final_test_pass
+          MYSQL_DATABASE: final_test_db
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping --silent"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: 📦 Install
+        run: npm ci
+
+      - name: ⏳ Wait for MySQL
+        run: |
+          for i in {1..30}; do
+            if mysqladmin ping -h"127.0.0.1" -u"root" -p"final_test_pass" --silent; then
+              break
+            fi
+            sleep 2
+          done
+
+      - name: 🚨 Deploy Migrations (MUST SUCCEED)
+        env:
+          DATABASE_URL: mysql://root:final_test_pass@localhost:3306/final_test_db
+        run: |
+          echo "Deploying all migrations..."
+          npx prisma generate
+          npx prisma migrate deploy
+
+          echo ""
+          echo "Migration status:"
+          npx prisma migrate status
+
+      - name: ✅ Verify All Tables Created
+        run: |
+          echo "Verifying database structure..."
+
+          # Show all tables
+          mysql -h"127.0.0.1" -u"root" -p"final_test_pass" final_test_db -e "
+            SELECT COUNT(*) as total_tables FROM information_schema.tables
+            WHERE table_schema = 'final_test_db';
+          "
+
+          # Check critical tables
+          CRITICAL_TABLES=(
+            "customers"
+            "vendors"
+            "services"
+            "locations"
+            "notifications"
+            "admin_users"
+            "vendor_documents"
+            "vendor_service_requests"
+            "vendor_location_requests"
+          )
+
+          MISSING_TABLES=()
+
+          for table in "${CRITICAL_TABLES[@]}"; do
+            if ! mysql -h"127.0.0.1" -u"root" -p"final_test_pass" final_test_db -e "DESCRIBE $table;" &> /dev/null; then
+              MISSING_TABLES+=("$table")
+            fi
+          done
+
+          if [ ${#MISSING_TABLES[@]} -gt 0 ]; then
+            echo "❌ CRITICAL: Missing tables:"
+            printf '%s\n' "${MISSING_TABLES[@]}"
+            exit 1
+          fi
+
+          echo "✅ All critical tables exist"
+
+  # ============================================
+  # Final End-to-End Test
+  # ============================================
+  final-e2e-test:
+    name: 🧪 Final E2E Test
+    runs-on: ubuntu-latest
+    needs: [final-migration-check]
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: final_test_pass
+          MYSQL_DATABASE: final_test_db
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping --silent"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: 📦 Install
+        run: npm ci
+
+      - name: 🗄️ Setup Database
+        env:
+          DATABASE_URL: mysql://root:final_test_pass@localhost:3306/final_test_db
+        run: |
+          npx prisma generate
+          npx prisma migrate deploy
+
+      - name: 🧪 Run All Tests
+        env:
+          DATABASE_URL: mysql://root:final_test_pass@localhost:3306/final_test_db
+          NEXTAUTH_SECRET: final-test-secret
+          NEXTAUTH_URL: http://localhost:3000
+        run: npm run test:run
+
+  # ============================================
+  # Build Docker Image
+  # ============================================
+  build-docker:
+    name: 🐳 Build Docker Image
+    runs-on: ubuntu-latest
+    needs: [final-migration-check, final-e2e-test]
+
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+
+      - name: 🔧 Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: 🐳 Build Image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          push: false
+          tags: transrentals:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: ✅ Image Built Successfully
+        run: echo "✅ Docker image built successfully"
+
+  # ============================================
+  # Deployment Ready Notification
+  # ============================================
+  deployment-ready:
+    name: ✅ Ready for Deployment
+    runs-on: ubuntu-latest
+    needs: [final-migration-check, final-e2e-test, build-docker]
+    if: success()
+
+    steps:
+      - name: 🎉 Deployment Ready
+        run: |
+          echo "================================================"
+          echo "✅ ALL CHECKS PASSED!"
+          echo "================================================"
+          echo ""
+          echo "✓ Migrations validated"
+          echo "✓ All tables verified"
+          echo "✓ E2E tests passed"
+          echo "✓ Docker build successful"
+          echo ""
+          echo "================================================"
+          echo "🚀 READY TO DEPLOY TO SERVER"
+          echo "================================================"
+          echo ""
+          echo "Next steps:"
+          echo "1. SSH to your Linode server"
+          echo "2. Pull latest code: git pull origin main"
+          echo "3. Run: docker-compose down"
+          echo "4. Run: docker-compose up -d --build"
+          echo "5. Verify: curl http://localhost:3000/api/health"
+          echo ""
+          echo "OR use Coolify auto-deploy"
+          echo "================================================"
+
+  # ============================================
+  # Failure Alert
+  # ============================================
+  deployment-blocked:
+    name: ❌ Deployment BLOCKED
+    runs-on: ubuntu-latest
+    needs: [final-migration-check, final-e2e-test, build-docker]
+    if: failure()
+
+    steps:
+      - name: ❌ Deployment Failed
+        run: |
+          echo "================================================"
+          echo "❌ DEPLOYMENT BLOCKED!"
+          echo "================================================"
+          echo ""
+          echo "One or more final checks failed."
+          echo "Review the logs above and fix the issues."
+          echo ""
+          echo "DO NOT deploy manually until all checks pass!"
+          echo "================================================"
+          exit 1

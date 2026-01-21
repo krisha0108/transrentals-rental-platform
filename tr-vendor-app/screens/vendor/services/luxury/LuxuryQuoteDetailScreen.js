@@ -1,0 +1,523 @@
+import React, { useState, useEffect, useCallback } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  RefreshControl,
+  ActivityIndicator,
+  Alert,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import Icon from 'react-native-vector-icons/Feather';
+import Ionicons from 'react-native-vector-icons/Ionicons';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import { getVendorQuotes } from '../../../api/client';
+
+const GREEN = '#09B368';
+const BG = '#F5F5F7';
+const DARK = '#0F172A';
+
+const STATUS_COLORS = {
+  PENDING: '#F59E0B',
+  SENT: '#3B82F6',
+  ACCEPTED: '#10B981',
+  REJECTED: '#EF4444',
+  EXPIRED: '#6B7280',
+  WITHDRAWN: '#9CA3AF',
+};
+
+export default function LuxuryQuoteDetailScreen({ route, navigation }) {
+  const { quoteId } = route.params || {};
+  const [quote, setQuote] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const fetchQuoteDetail = useCallback(async () => {
+    if (!quoteId) {
+      Alert.alert('Error', 'Quote ID is missing');
+      navigation.goBack();
+      return;
+    }
+
+    try {
+      const response = await getVendorQuotes('luxury', {});
+      const quotes = response.quotes || [];
+      const foundQuote = quotes.find(q => (q.id || q._id) === quoteId);
+
+      if (foundQuote) {
+        setQuote(foundQuote);
+      } else {
+        Alert.alert('Error', 'Quote not found');
+      }
+    } catch (error) {
+      console.error('Error fetching quote detail:', error);
+      Alert.alert('Error', 'Failed to load quote details');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, [quoteId, navigation]);
+
+  useEffect(() => {
+    fetchQuoteDetail();
+  }, [fetchQuoteDetail]);
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    fetchQuoteDetail();
+  };
+
+  const formatDate = (dateStr) => {
+    if (!dateStr) return 'N/A';
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('en-IN', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    });
+  };
+
+  const formatCurrency = (amount) => {
+    if (!amount) return '₹0';
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR',
+      maximumFractionDigits: 0,
+    }).format(amount);
+  };
+
+  const getStatusIcon = (status) => {
+    switch (status) {
+      case 'ACCEPTED':
+        return 'checkmark-circle';
+      case 'REJECTED':
+        return 'close-circle';
+      case 'EXPIRED':
+        return 'time';
+      case 'PENDING':
+      case 'SENT':
+        return 'hourglass';
+      default:
+        return 'help-circle';
+    }
+  };
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.safe} edges={['top']}>
+        <View style={styles.loaderWrap}>
+          <ActivityIndicator size="large" color={GREEN} />
+          <Text style={styles.loaderText}>Loading quote details...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (!quote) {
+    return (
+      <SafeAreaView style={styles.safe} edges={['top']}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+            <Icon name="arrow-left" size={22} color={DARK} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Quote Detail</Text>
+          <View style={{ width: 40 }} />
+        </View>
+        <View style={styles.emptyState}>
+          <Ionicons name="document-text-outline" size={64} color="#CBD5E1" />
+          <Text style={styles.emptyTitle}>Quote Not Found</Text>
+          <Text style={styles.emptySubtitle}>This quote may have been removed</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  const status = quote.status || 'PENDING';
+  const statusColor = STATUS_COLORS[status] || '#6B7280';
+
+  const request = quote.request || {};
+  const customerName = request.customerName || quote.customerName || 'Customer';
+  const customerEmail = request.customerEmail || quote.customerEmail;
+  const customerPhone = request.customerPhone || quote.customerPhone;
+  const pickupCity = request.pickupCity || quote.pickupCity || 'N/A';
+  const dropCity = request.dropCity || quote.dropCity;
+  const pickupDate = request.pickupDate || quote.pickupDate || request.startDate;
+  const returnDate = request.returnDate || quote.returnDate || request.endDate;
+  const vehicleName = quote.vehicleName || quote.vehicleType || request.vehicleType;
+  const vehicleBrand = quote.vehicleBrand || quote.vehicleBrand;
+
+  const baseAmount = quote.baseAmount || quote.basePrice || 0;
+  const securityDeposit = quote.securityDeposit || quote.deposit || 0;
+  const taxes = quote.taxes || quote.tax || quote.gst || 0;
+  const totalAmount = quote.grandTotal || quote.totalAmount || quote.quotedAmount || baseAmount;
+
+  const validTill = quote.validTill || quote.validUntil;
+  const quoteNumber = quote.quoteNumber || (quote.id || quote._id)?.toString().slice(-8);
+  const requestNumber = request.requestNumber;
+  const notes = quote.notes || quote.description || quote.additionalInfo;
+
+  return (
+    <SafeAreaView style={styles.safe} edges={['top']}>
+      {/* Header */}
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+          <Icon name="arrow-left" size={22} color={DARK} />
+        </TouchableOpacity>
+        <View style={styles.headerCenter}>
+          <Text style={styles.headerTitle}>Quote Details</Text>
+          <Text style={styles.headerSubtitle}>Luxury Car</Text>
+        </View>
+        <View style={{ width: 40 }} />
+      </View>
+
+      <ScrollView
+        style={styles.scrollView}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[GREEN]} />
+        }
+      >
+        {/* Status Banner */}
+        <View style={[styles.statusBanner, { backgroundColor: `${statusColor}15` }]}>
+          <View style={styles.statusContent}>
+            <Ionicons name={getStatusIcon(status)} size={24} color={statusColor} />
+            <View style={styles.statusTextWrap}>
+              <Text style={[styles.statusLabel, { color: statusColor }]}>{status}</Text>
+              <Text style={styles.quoteNumberText}>Quote #{quoteNumber}</Text>
+            </View>
+          </View>
+          <Text style={styles.totalAmount}>{formatCurrency(totalAmount)}</Text>
+        </View>
+
+        <View style={styles.content}>
+          {/* Request Reference */}
+          {requestNumber && (
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <Ionicons name="document-text-outline" size={20} color="#64748B" />
+                <Text style={styles.sectionTitle}>Request Reference</Text>
+              </View>
+              <View style={styles.card}>
+                <Text style={styles.cardText}>Request #{requestNumber}</Text>
+              </View>
+            </View>
+          )}
+
+          {/* Customer Information */}
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Ionicons name="person-circle-outline" size={20} color="#64748B" />
+              <Text style={styles.sectionTitle}>Customer Information</Text>
+            </View>
+            <View style={styles.card}>
+              <View style={styles.infoRow}>
+                <Ionicons name="person" size={18} color="#64748B" />
+                <View style={styles.infoContent}>
+                  <Text style={styles.infoLabel}>Name</Text>
+                  <Text style={styles.infoValue}>{customerName}</Text>
+                </View>
+              </View>
+              {customerEmail && (
+                <View style={styles.infoRow}>
+                  <Ionicons name="mail" size={18} color="#64748B" />
+                  <View style={styles.infoContent}>
+                    <Text style={styles.infoLabel}>Email</Text>
+                    <Text style={styles.infoValue}>{customerEmail}</Text>
+                  </View>
+                </View>
+              )}
+              {customerPhone && (
+                <View style={styles.infoRow}>
+                  <Ionicons name="call" size={18} color="#64748B" />
+                  <View style={styles.infoContent}>
+                    <Text style={styles.infoLabel}>Phone</Text>
+                    <Text style={styles.infoValue}>{customerPhone}</Text>
+                  </View>
+                </View>
+              )}
+            </View>
+          </View>
+
+          {/* Vehicle Information */}
+          {vehicleName && (
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <MaterialCommunityIcons name="car-sport" size={20} color="#64748B" />
+                <Text style={styles.sectionTitle}>Vehicle Details</Text>
+              </View>
+              <View style={styles.card}>
+                <View style={styles.vehicleInfo}>
+                  <MaterialCommunityIcons name="car-sport" size={32} color={GREEN} />
+                  <View style={styles.vehicleTextWrap}>
+                    <Text style={styles.vehicleName}>{vehicleName}</Text>
+                    {vehicleBrand && (
+                      <Text style={styles.vehicleBrand}>{vehicleBrand}</Text>
+                    )}
+                  </View>
+                </View>
+              </View>
+            </View>
+          )}
+
+          {/* Booking Details */}
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Ionicons name="calendar-outline" size={20} color="#64748B" />
+              <Text style={styles.sectionTitle}>Booking Details</Text>
+            </View>
+            <View style={styles.card}>
+              <View style={styles.infoRow}>
+                <Ionicons name="location" size={18} color={GREEN} />
+                <View style={styles.infoContent}>
+                  <Text style={styles.infoLabel}>Pickup Location</Text>
+                  <Text style={styles.infoValue}>{pickupCity}</Text>
+                </View>
+              </View>
+              {dropCity && (
+                <View style={styles.infoRow}>
+                  <Ionicons name="location" size={18} color="#EF4444" />
+                  <View style={styles.infoContent}>
+                    <Text style={styles.infoLabel}>Drop Location</Text>
+                    <Text style={styles.infoValue}>{dropCity}</Text>
+                  </View>
+                </View>
+              )}
+              <View style={styles.infoRow}>
+                <Ionicons name="calendar" size={18} color="#64748B" />
+                <View style={styles.infoContent}>
+                  <Text style={styles.infoLabel}>Pickup Date</Text>
+                  <Text style={styles.infoValue}>{formatDate(pickupDate)}</Text>
+                </View>
+              </View>
+              {returnDate && (
+                <View style={styles.infoRow}>
+                  <Ionicons name="calendar" size={18} color="#64748B" />
+                  <View style={styles.infoContent}>
+                    <Text style={styles.infoLabel}>Return Date</Text>
+                    <Text style={styles.infoValue}>{formatDate(returnDate)}</Text>
+                  </View>
+                </View>
+              )}
+            </View>
+          </View>
+
+          {/* Pricing Breakdown */}
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Ionicons name="receipt-outline" size={20} color="#64748B" />
+              <Text style={styles.sectionTitle}>Pricing Breakdown</Text>
+            </View>
+            <View style={styles.card}>
+              {baseAmount > 0 && (
+                <View style={styles.priceRow}>
+                  <Text style={styles.priceLabel}>Base Amount</Text>
+                  <Text style={styles.priceValue}>{formatCurrency(baseAmount)}</Text>
+                </View>
+              )}
+              {securityDeposit > 0 && (
+                <View style={styles.priceRow}>
+                  <Text style={styles.priceLabel}>Security Deposit</Text>
+                  <Text style={styles.priceValue}>{formatCurrency(securityDeposit)}</Text>
+                </View>
+              )}
+              {taxes > 0 && (
+                <View style={styles.priceRow}>
+                  <Text style={styles.priceLabel}>Taxes & GST</Text>
+                  <Text style={styles.priceValue}>{formatCurrency(taxes)}</Text>
+                </View>
+              )}
+              <View style={styles.priceDivider} />
+              <View style={styles.priceRow}>
+                <Text style={styles.priceLabelTotal}>Grand Total</Text>
+                <Text style={styles.priceValueTotal}>{formatCurrency(totalAmount)}</Text>
+              </View>
+            </View>
+          </View>
+
+          {/* Quote Validity */}
+          {validTill && (
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <Ionicons name="time-outline" size={20} color="#64748B" />
+                <Text style={styles.sectionTitle}>Quote Validity</Text>
+              </View>
+              <View style={styles.card}>
+                <View style={styles.infoRow}>
+                  <Ionicons name="hourglass-outline" size={18} color="#64748B" />
+                  <View style={styles.infoContent}>
+                    <Text style={styles.infoLabel}>Valid Until</Text>
+                    <Text style={styles.infoValue}>{formatDate(validTill)}</Text>
+                  </View>
+                </View>
+              </View>
+            </View>
+          )}
+
+          {/* Additional Notes */}
+          {notes && (
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <Ionicons name="chatbox-outline" size={20} color="#64748B" />
+                <Text style={styles.sectionTitle}>Additional Notes</Text>
+              </View>
+              <View style={styles.card}>
+                <Text style={styles.notesText}>{notes}</Text>
+              </View>
+            </View>
+          )}
+
+          {/* Quote History */}
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Ionicons name="time-outline" size={20} color="#64748B" />
+              <Text style={styles.sectionTitle}>Quote Timeline</Text>
+            </View>
+            <View style={styles.card}>
+              <View style={styles.timelineRow}>
+                <Ionicons name="paper-plane" size={16} color={GREEN} />
+                <Text style={styles.timelineText}>
+                  Sent on {formatDate(quote.createdAt || quote.created_at)}
+                </Text>
+              </View>
+              {quote.updatedAt && quote.updatedAt !== quote.createdAt && (
+                <View style={styles.timelineRow}>
+                  <Ionicons name="refresh" size={16} color="#64748B" />
+                  <Text style={styles.timelineText}>
+                    Updated on {formatDate(quote.updatedAt)}
+                  </Text>
+                </View>
+              )}
+            </View>
+          </View>
+        </View>
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  safe: { flex: 1, backgroundColor: BG },
+
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
+  },
+  backBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: BG,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerCenter: { alignItems: 'center', flex: 1 },
+  headerTitle: { fontSize: 18, fontWeight: '700', color: DARK },
+  headerSubtitle: { fontSize: 12, color: '#64748B', marginTop: 2 },
+
+  loaderWrap: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 12,
+  },
+  loaderText: { fontSize: 14, color: '#64748B', marginTop: 8 },
+
+  scrollView: { flex: 1 },
+
+  statusBanner: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    marginHorizontal: 16,
+    marginTop: 16,
+    borderRadius: 16,
+  },
+  statusContent: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
+  statusTextWrap: { flex: 1 },
+  statusLabel: { fontSize: 16, fontWeight: '700' },
+  quoteNumberText: { fontSize: 12, color: '#64748B', marginTop: 2 },
+  totalAmount: { fontSize: 24, fontWeight: '700', color: GREEN },
+
+  content: { padding: 16, paddingTop: 8 },
+
+  section: { marginBottom: 20 },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 10
+  },
+  sectionTitle: { fontSize: 16, fontWeight: '700', color: DARK },
+
+  card: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    gap: 12,
+  },
+  cardText: { fontSize: 14, color: '#334155', fontWeight: '600' },
+
+  infoRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12
+  },
+  infoContent: { flex: 1 },
+  infoLabel: { fontSize: 12, color: '#64748B', marginBottom: 2 },
+  infoValue: { fontSize: 14, color: DARK, fontWeight: '600' },
+
+  vehicleInfo: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  vehicleTextWrap: { flex: 1 },
+  vehicleName: { fontSize: 16, fontWeight: '700', color: DARK },
+  vehicleBrand: { fontSize: 13, color: '#64748B', marginTop: 2 },
+
+  priceRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center'
+  },
+  priceLabel: { fontSize: 14, color: '#64748B' },
+  priceValue: { fontSize: 14, color: DARK, fontWeight: '600' },
+  priceDivider: {
+    height: 1,
+    backgroundColor: '#E2E8F0',
+    marginVertical: 4
+  },
+  priceLabelTotal: { fontSize: 16, fontWeight: '700', color: DARK },
+  priceValueTotal: { fontSize: 18, fontWeight: '700', color: GREEN },
+
+  notesText: { fontSize: 14, color: '#475569', lineHeight: 20 },
+
+  timelineRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8
+  },
+  timelineText: { fontSize: 13, color: '#64748B' },
+
+  emptyState: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 80,
+  },
+  emptyTitle: { fontSize: 18, fontWeight: '600', color: DARK, marginTop: 16 },
+  emptySubtitle: {
+    fontSize: 14,
+    color: '#64748B',
+    marginTop: 8,
+    textAlign: 'center',
+    paddingHorizontal: 32,
+  },
+});

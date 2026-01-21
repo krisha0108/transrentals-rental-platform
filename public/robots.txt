@@ -1,0 +1,230 @@
+# =============================================================================
+# TRANSRENTALS - ROBOTS.TXT
+# =============================================================================
+# Website: https://transrentals.in
+# Purpose: India's Largest Vehicle Rental Marketplace
+# Last Updated: January 2026
+# =============================================================================
+#
+# This file controls search engine crawling behavior.
+# Reference: https://developers.google.com/search/docs/crawling-indexing/robots/intro
+#
+# =============================================================================
+
+# =============================================================================
+# DEFAULT RULES - All Search Engines
+# =============================================================================
+User-agent: *
+
+# Allow all public pages
+Allow: /
+
+# Block administrative and private areas
+Disallow: /admin/
+Disallow: /admin
+Disallow: /subadmin/
+Disallow: /subadmin
+Disallow: /manager/
+Disallow: /manager
+Disallow: /driver/
+Disallow: /driver
+
+# Block vendor dashboard (private)
+Disallow: /vendor/
+Disallow: /vendor
+
+# Block customer private areas
+Disallow: /customer/dashboard
+Disallow: /customer/booking/
+Disallow: /customer/bookings/
+Disallow: /customer/profile
+Disallow: /customer/settings
+Disallow: /customer/login
+Disallow: /customer/register
+Disallow: /customer/forgot-password
+Disallow: /customer/reset-password
+
+# Block API routes (not for indexing)
+Disallow: /api/
+Disallow: /api
+
+# Block authentication pages
+Disallow: /auth/
+Disallow: /login
+Disallow: /register
+Disallow: /forgot-password
+Disallow: /reset-password
+
+# Block payment and checkout flows
+Disallow: /pay/
+Disallow: /pay
+Disallow: /checkout/
+Disallow: /checkout
+Disallow: /custom-booking/
+Disallow: /custom-booking
+
+# Block internal Next.js routes
+Disallow: /_next/
+Disallow: /_vercel/
+Disallow: /actions/
+
+# Allow booking and vehicle listing subpages (for SEO)
+Allow: /*/book
+Allow: /*/cars
+Allow: /*/bikes
+
+# Block query parameters that create duplicate content
+Disallow: /*?preview=
+Disallow: /*?draft=
+Disallow: /*?ref=
+Disallow: /*?utm_*
+Disallow: /*?fbclid=
+Disallow: /*?gclid=
+
+# =============================================================================
+# GOOGLEBOT - Specific Rules
+# =============================================================================
+User-agent: Googlebot
+
+# Allow everything except private areas
+Allow: /
+Allow: /sitemap/
+Allow: /sitemap.xml
+
+# Standard blocks
+Disallow: /admin/
+Disallow: /api/
+Disallow: /vendor/
+Disallow: /customer/dashboard
+Disallow: /customer/booking/
+Disallow: /customer/login
+Disallow: /_next/
+Disallow: /pay/
+Disallow: /checkout/
+
+# =============================================================================
+# GOOGLEBOT IMAGE - Allow image crawling
+# =============================================================================
+User-agent: Googlebot-Image
+Allow: /images/
+Allow: /uploads/
+Allow: /*.jpg$
+Allow: /*.jpeg$
+Allow: /*.png$
+Allow: /*.gif$
+Allow: /*.webp$
+Allow: /*.svg$
+
+# =============================================================================
+# BINGBOT - Microsoft Bing
+# =============================================================================
+User-agent: Bingbot
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+Disallow: /vendor/
+Disallow: /customer/dashboard
+Disallow: /customer/booking/
+Disallow: /_next/
+
+# =============================================================================
+# YANDEX - Russian Search Engine
+# =============================================================================
+User-agent: Yandex
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+Disallow: /vendor/
+Disallow: /customer/
+Disallow: /_next/
+Crawl-delay: 2
+
+# =============================================================================
+# BAIDUSPIDER - Chinese Search Engine
+# =============================================================================
+User-agent: Baiduspider
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+Disallow: /vendor/
+Disallow: /customer/
+Disallow: /_next/
+Crawl-delay: 2
+
+# =============================================================================
+# SOCIAL MEDIA BOTS - Allow for previews
+# =============================================================================
+User-agent: facebookexternalhit
+Allow: /
+
+User-agent: Twitterbot
+Allow: /
+
+User-agent: LinkedInBot
+Allow: /
+
+User-agent: WhatsApp
+Allow: /
+
+User-agent: TelegramBot
+Allow: /
+
+# =============================================================================
+# AI BOTS - Block AI training crawlers (optional)
+# =============================================================================
+User-agent: GPTBot
+Disallow: /
+
+User-agent: ChatGPT-User
+Disallow: /
+
+User-agent: CCBot
+Disallow: /
+
+User-agent: anthropic-ai
+Disallow: /
+
+User-agent: Claude-Web
+Disallow: /
+
+# =============================================================================
+# BAD BOTS - Block known bad actors
+# =============================================================================
+User-agent: AhrefsBot
+Crawl-delay: 10
+
+User-agent: SemrushBot
+Crawl-delay: 10
+
+User-agent: MJ12bot
+Disallow: /
+
+User-agent: DotBot
+Disallow: /
+
+# =============================================================================
+# CRAWL RATE LIMITING
+# =============================================================================
+# Polite crawl delay for unspecified bots
+Crawl-delay: 1
+
+# =============================================================================
+# SITEMAP LOCATIONS
+# =============================================================================
+# Sitemap Index (references all 4 sitemaps)
+Sitemap: https://transrentals.in/sitemap.xml
+
+# Individual Sitemaps (for direct submission)
+Sitemap: https://transrentals.in/sitemap/0.xml
+Sitemap: https://transrentals.in/sitemap/1.xml
+Sitemap: https://transrentals.in/sitemap/2.xml
+Sitemap: https://transrentals.in/sitemap/3.xml
+
+# =============================================================================
+# HOST DIRECTIVE
+# =============================================================================
+Host: https://transrentals.in
+
+# =============================================================================
+# END OF ROBOTS.TXT
+# =============================================================================

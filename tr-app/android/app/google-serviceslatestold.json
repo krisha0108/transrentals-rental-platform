@@ -1,0 +1,84 @@
+{
+  "project_info": {
+    "project_number": "365663447950",
+    "project_id": "transrentals-5f65e",
+    "storage_bucket": "transrentals-5f65e.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:365663447950:android:bdb5db23b41f91344f52df",
+        "android_client_info": {
+          "package_name": "com.transrentals.customer"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "365663447950-49tilu9cte9mcvbvsctlgct2dcvib5as.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.transrentals.customer",
+            "certificate_hash": "5e8f16062ea3cd2c4a0d547876baa6f38cabf625"
+          }
+        },
+        {
+          "client_id": "365663447950-o996ep372bp2ejippsphe3ktjpen221e.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBPTce_W9qonTs18Tz3TjUKW8P_DXl-vlc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "365663447950-o996ep372bp2ejippsphe3ktjpen221e.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:365663447950:android:0f939f6241f2936e4f52df",
+        "android_client_info": {
+          "package_name": "com.transrentalsvenderapp"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "365663447950-as8k8svdn7bmttij6llse4lo48j17jcv.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.transrentalsvenderapp",
+            "certificate_hash": "5e8f16062ea3cd2c4a0d547876baa6f38cabf625"
+          }
+        },
+        {
+          "client_id": "365663447950-o996ep372bp2ejippsphe3ktjpen221e.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBPTce_W9qonTs18Tz3TjUKW8P_DXl-vlc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "365663447950-o996ep372bp2ejippsphe3ktjpen221e.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

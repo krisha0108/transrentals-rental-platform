@@ -1,0 +1,77 @@
+{
+  "project_info": {
+    "project_number": "915755914011",
+    "firebase_url": "https://tr-app-51375-default-rtdb.firebaseio.com",
+    "project_id": "tr-app-51375",
+    "storage_bucket": "tr-app-51375.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:915755914011:android:57da744e4c4a3382d0b9be",
+        "android_client_info": {
+          "package_name": "com.transrentals.customer"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "915755914011-kpg1sqh8skcj6orphkkpp3m26ba94ar8.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.transrentals.customer",
+            "certificate_hash": "9a51fa6f76056d1cabf0837913259976faf8b6e7"
+          }
+        },
+        {
+          "client_id": "915755914011-564duhpmbfal86ijs7m4pj6ggh93b3ro.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBul0l_DTNED7kXrCiwPUHQOydQEYKUYy8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "915755914011-564duhpmbfal86ijs7m4pj6ggh93b3ro.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:915755914011:android:abe21f9e3266fc8bd0b9be",
+        "android_client_info": {
+          "package_name": "com.transrentalsvenderapp"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "915755914011-564duhpmbfal86ijs7m4pj6ggh93b3ro.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBul0l_DTNED7kXrCiwPUHQOydQEYKUYy8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "915755914011-564duhpmbfal86ijs7m4pj6ggh93b3ro.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

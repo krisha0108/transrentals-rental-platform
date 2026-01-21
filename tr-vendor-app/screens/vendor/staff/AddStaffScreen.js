@@ -1,0 +1,1158 @@
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  TextInput,
+  ActivityIndicator,
+  Alert,
+  Image,
+  Modal,
+  Platform,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import Icon from 'react-native-vector-icons/Feather';
+import { launchImageLibrary } from 'react-native-image-picker';
+import DateTimePickerModal from 'react-native-modal-datetime-picker';
+import { addStaff, updateStaff } from '../../api/client';
+
+const C = {
+  bg: '#F7FAFC',
+  surface: '#FFFFFF',
+  text: '#0F172A',
+  muted: '#6B7280',
+  border: '#E5E7EB',
+  brand: '#22C55E',
+  blue: '#2563EB',
+  red: '#EF4444',
+};
+
+const ROLES = [
+  { label: 'Driver', value: 'DRIVER' },
+  { label: 'Helper', value: 'HELPER' },
+  { label: 'Mechanic', value: 'MECHANIC' },
+  { label: 'Supervisor', value: 'SUPERVISOR' },
+  { label: 'Office Staff', value: 'OFFICE_STAFF' },
+];
+
+const LICENSE_TYPES = [
+  { label: 'LMV (Light Motor Vehicle)', value: 'LMV' },
+  { label: 'LMV-TR (LMV + Transport)', value: 'LMV-TR' },
+  { label: 'HMV (Heavy Motor Vehicle)', value: 'HMV' },
+  { label: 'HGMV (Heavy Goods Motor Vehicle)', value: 'HGMV' },
+  { label: 'HPMV (Heavy Passenger Motor Vehicle)', value: 'HPMV' },
+  { label: 'MCWG (Motorcycle with Gear)', value: 'MCWG' },
+  { label: 'MCWOG (Motorcycle without Gear)', value: 'MCWOG' },
+];
+
+const STATUS_OPTIONS = [
+  { label: 'Active', value: 'ACTIVE' },
+  { label: 'Inactive', value: 'INACTIVE' },
+];
+
+const INDIAN_STATES = [
+  'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chhattisgarh',
+  'Goa', 'Gujarat', 'Haryana', 'Himachal Pradesh', 'Jharkhand', 'Karnataka',
+  'Kerala', 'Madhya Pradesh', 'Maharashtra', 'Manipur', 'Meghalaya', 'Mizoram',
+  'Nagaland', 'Odisha', 'Punjab', 'Rajasthan', 'Sikkim', 'Tamil Nadu',
+  'Telangana', 'Tripura', 'Uttar Pradesh', 'Uttarakhand', 'West Bengal',
+  'Andaman and Nicobar Islands', 'Chandigarh', 'Dadra and Nagar Haveli and Daman and Diu',
+  'Delhi', 'Jammu and Kashmir', 'Ladakh', 'Lakshadweep', 'Puducherry'
+];
+
+export default function AddStaffScreen({ route, navigation }) {
+  const { staffId, staff: existingStaff } = route.params || {};
+  const isEditing = !!staffId;
+
+  const [loading, setLoading] = useState(false);
+  const [photo, setPhoto] = useState(null);
+  const [aadharDoc, setAadharDoc] = useState(null);
+  const [panDoc, setPanDoc] = useState(null);
+  const [licenseDoc, setLicenseDoc] = useState(null);
+
+  // Modal states
+  const [showStateModal, setShowStateModal] = useState(false);
+  const [showRoleModal, setShowRoleModal] = useState(false);
+  const [showStatusModal, setShowStatusModal] = useState(false);
+  const [showLicenseTypeModal, setShowLicenseTypeModal] = useState(false);
+
+  // Date picker states
+  const [showDOBPicker, setShowDOBPicker] = useState(false);
+  const [showJoiningDatePicker, setShowJoiningDatePicker] = useState(false);
+  const [showLicenseExpiryPicker, setShowLicenseExpiryPicker] = useState(false);
+
+  const [form, setForm] = useState({
+    // Personal Info
+    name: '',
+    phone: '',
+    email: '',
+    password: '',
+    address: '',
+    city: '',
+    state: '',
+    pincode: '',
+    dateOfBirth: '',
+
+    // Role & Status
+    role: '',
+    status: 'ACTIVE',
+
+    // Documents
+    aadharNumber: '',
+    panNumber: '',
+
+    // License (for drivers)
+    licenseNumber: '',
+    licenseType: '',
+    licenseExpiry: '',
+
+    // Bank Details
+    bankName: '',
+    accountNumber: '',
+    ifscCode: '',
+    accountHolderName: '',
+
+    // Employment
+    salary: '',
+    joiningDate: '',
+    emergencyContact: '',
+    emergencyPhone: '',
+  });
+
+  useEffect(() => {
+    if (existingStaff) {
+      setForm({
+        name: existingStaff.name || '',
+        phone: existingStaff.phone || '',
+        email: existingStaff.email || '',
+        password: '',
+        address: existingStaff.address || '',
+        city: existingStaff.city || '',
+        state: existingStaff.state || '',
+        pincode: existingStaff.pincode || '',
+        dateOfBirth: existingStaff.dateOfBirth || '',
+        role: existingStaff.role || '',
+        status: existingStaff.status || 'ACTIVE',
+        aadharNumber: existingStaff.aadharNumber || '',
+        panNumber: existingStaff.panNumber || '',
+        licenseNumber: existingStaff.licenseNumber || '',
+        licenseType: existingStaff.licenseType || '',
+        licenseExpiry: existingStaff.licenseExpiry || '',
+        bankName: existingStaff.bankName || '',
+        accountNumber: existingStaff.accountNumber || '',
+        ifscCode: existingStaff.ifscCode || '',
+        accountHolderName: existingStaff.accountHolderName || '',
+        salary: existingStaff.salary?.toString() || '',
+        joiningDate: existingStaff.joiningDate || '',
+        emergencyContact: existingStaff.emergencyContact || '',
+        emergencyPhone: existingStaff.emergencyPhone || '',
+      });
+      if (existingStaff.profilePhoto) setPhoto({ uri: existingStaff.profilePhoto, isExisting: true });
+      if (existingStaff.aadharDocument) setAadharDoc({ uri: existingStaff.aadharDocument, isExisting: true });
+      if (existingStaff.panDocument) setPanDoc({ uri: existingStaff.panDocument, isExisting: true });
+      if (existingStaff.licenseDocument) setLicenseDoc({ uri: existingStaff.licenseDocument, isExisting: true });
+    }
+  }, [existingStaff]);
+
+  const updateForm = (key, value) => {
+    setForm((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const pickPhoto = async () => {
+    const result = await launchImageLibrary({
+      mediaType: 'photo',
+      selectionLimit: 1,
+      quality: 0.8,
+    });
+
+    if (result.assets?.[0]) {
+      const asset = result.assets[0];
+      setPhoto({
+        uri: asset.uri,
+        type: asset.type,
+        name: asset.fileName,
+        isExisting: false,
+      });
+    }
+  };
+
+  const pickDocument = async (docType) => {
+    const result = await launchImageLibrary({
+      mediaType: 'photo',
+      selectionLimit: 1,
+      quality: 0.8,
+    });
+
+    if (result.assets?.[0]) {
+      const asset = result.assets[0];
+      const doc = {
+        uri: asset.uri,
+        type: asset.type,
+        name: asset.fileName,
+        isExisting: false,
+      };
+
+      if (docType === 'aadhar') setAadharDoc(doc);
+      else if (docType === 'pan') setPanDoc(doc);
+      else if (docType === 'license') setLicenseDoc(doc);
+    }
+  };
+
+  // Date picker handlers
+  const handleDateConfirm = (date, field) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const formattedDate = `${year}-${month}-${day}`;
+
+    updateForm(field, formattedDate);
+    setShowDOBPicker(false);
+    setShowJoiningDatePicker(false);
+    setShowLicenseExpiryPicker(false);
+  };
+
+  const formatDateForDisplay = (dateStr) => {
+    if (!dateStr) return '';
+    const [year, month, day] = dateStr.split('-');
+    return `${day}/${month}/${year}`;
+  };
+
+  const getRoleLabel = (value) => {
+    const role = ROLES.find(r => r.value === value);
+    return role ? role.label : 'Select Role';
+  };
+
+  const getStatusLabel = (value) => {
+    const status = STATUS_OPTIONS.find(s => s.value === value);
+    return status ? status.label : 'Select Status';
+  };
+
+  const getLicenseTypeLabel = (value) => {
+    const type = LICENSE_TYPES.find(t => t.value === value);
+    return type ? type.label : 'Select License Type';
+  };
+
+  const validateForm = () => {
+    if (!form.name.trim()) {
+      Alert.alert('Error', 'Please enter staff name');
+      return false;
+    }
+    if (!form.phone.trim()) {
+      Alert.alert('Error', 'Please enter phone number');
+      return false;
+    }
+    if (!form.role) {
+      Alert.alert('Error', 'Please select role');
+      return false;
+    }
+
+    // Password required for new staff
+    if (!isEditing) {
+      if (!form.password.trim()) {
+        Alert.alert('Error', 'Password is required for new staff');
+        return false;
+      }
+      if (form.password.length < 6) {
+        Alert.alert('Error', 'Password must be at least 6 characters');
+        return false;
+      }
+    }
+
+    // For drivers, email is also required
+    if (form.role === 'DRIVER' && !form.email.trim()) {
+      Alert.alert('Error', 'Email is required for drivers (needed for app login)');
+      return false;
+    }
+
+    return true;
+  };
+
+  const handleSubmit = async () => {
+    if (!validateForm()) return;
+
+    setLoading(true);
+    try {
+      const formData = new FormData();
+
+      // All fields
+      formData.append('name', form.name);
+      formData.append('phone', form.phone);
+      formData.append('email', form.email || '');
+      if (form.password) formData.append('password', form.password);
+      formData.append('address', form.address || '');
+      formData.append('city', form.city || '');
+      formData.append('state', form.state || '');
+      formData.append('pincode', form.pincode || '');
+      formData.append('dateOfBirth', form.dateOfBirth || '');
+      formData.append('role', form.role);
+      formData.append('status', form.status);
+      formData.append('aadharNumber', form.aadharNumber || '');
+      formData.append('panNumber', form.panNumber || '');
+      formData.append('licenseNumber', form.licenseNumber || '');
+      formData.append('licenseType', form.licenseType || '');
+      formData.append('licenseExpiry', form.licenseExpiry || '');
+      formData.append('bankName', form.bankName || '');
+      formData.append('accountNumber', form.accountNumber || '');
+      formData.append('ifscCode', form.ifscCode || '');
+      formData.append('accountHolderName', form.accountHolderName || '');
+      formData.append('salary', form.salary || '0');
+      formData.append('joiningDate', form.joiningDate || '');
+      formData.append('emergencyContact', form.emergencyContact || '');
+      formData.append('emergencyPhone', form.emergencyPhone || '');
+
+      // Files
+      if (photo && !photo.isExisting) {
+        formData.append('profilePhoto', {
+          uri: photo.uri,
+          type: photo.type || 'image/jpeg',
+          name: photo.name || 'profile.jpg',
+        });
+      }
+      if (aadharDoc && !aadharDoc.isExisting) {
+        formData.append('aadharDocument', {
+          uri: aadharDoc.uri,
+          type: aadharDoc.type || 'image/jpeg',
+          name: aadharDoc.name || 'aadhar.jpg',
+        });
+      }
+      if (panDoc && !panDoc.isExisting) {
+        formData.append('panDocument', {
+          uri: panDoc.uri,
+          type: panDoc.type || 'image/jpeg',
+          name: panDoc.name || 'pan.jpg',
+        });
+      }
+      if (licenseDoc && !licenseDoc.isExisting) {
+        formData.append('licenseDocument', {
+          uri: licenseDoc.uri,
+          type: licenseDoc.type || 'image/jpeg',
+          name: licenseDoc.name || 'license.jpg',
+        });
+      }
+
+      if (isEditing) {
+        await updateStaff(staffId, formData);
+        Alert.alert('Success', 'Staff updated successfully', [
+          { text: 'OK', onPress: () => navigation.goBack() },
+        ]);
+      } else {
+        await addStaff(formData);
+        Alert.alert('Success', 'Staff added successfully', [
+          { text: 'OK', onPress: () => navigation.goBack() },
+        ]);
+      }
+    } catch (error) {
+      console.log('Error saving staff:', error);
+      Alert.alert('Error', error?.response?.data?.error || 'Failed to save staff');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const isDriver = form.role === 'DRIVER';
+
+  return (
+    <SafeAreaView style={styles.safe}>
+      {/* Header */}
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+          <Icon name="arrow-left" size={20} color={C.text} />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>{isEditing ? 'Edit Staff' : 'Add Staff'}</Text>
+        <View style={{ width: 36 }} />
+      </View>
+
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Photo */}
+        <View style={styles.photoSection}>
+          <TouchableOpacity style={styles.photoContainer} onPress={pickPhoto}>
+            {photo ? (
+              <Image source={{ uri: photo.uri }} style={styles.photo} />
+            ) : (
+              <View style={styles.photoPlaceholder}>
+                <Icon name="camera" size={28} color={C.muted} />
+              </View>
+            )}
+            <View style={styles.editPhotoBtn}>
+              <Icon name="edit-2" size={12} color="#fff" />
+            </View>
+          </TouchableOpacity>
+          <Text style={styles.photoHint}>Tap to add photo</Text>
+        </View>
+
+        {/* Basic Info */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Personal Information</Text>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Full Name *</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Enter full name"
+              placeholderTextColor={C.muted}
+              value={form.name}
+              onChangeText={(v) => updateForm('name', v)}
+            />
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Phone Number *</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Enter phone number"
+              placeholderTextColor={C.muted}
+              value={form.phone}
+              onChangeText={(v) => updateForm('phone', v)}
+              keyboardType="phone-pad"
+            />
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Email {isDriver && '*'}</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Enter email address"
+              placeholderTextColor={C.muted}
+              value={form.email}
+              onChangeText={(v) => updateForm('email', v)}
+              keyboardType="email-address"
+              autoCapitalize="none"
+            />
+            {isDriver && <Text style={styles.hint}>Required for driver app login</Text>}
+          </View>
+
+          {!isEditing && (
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Password {isDriver && '*'}</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Enter password (min 6 characters)"
+                placeholderTextColor={C.muted}
+                value={form.password}
+                onChangeText={(v) => updateForm('password', v)}
+                secureTextEntry
+              />
+              {isDriver && <Text style={styles.hint}>Required for driver app login</Text>}
+            </View>
+          )}
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Date of Birth</Text>
+            <TouchableOpacity
+              style={styles.selectInput}
+              onPress={() => setShowDOBPicker(true)}
+            >
+              <Text style={form.dateOfBirth ? styles.selectInputText : styles.selectInputPlaceholder}>
+                {form.dateOfBirth ? formatDateForDisplay(form.dateOfBirth) : 'Select Date of Birth'}
+              </Text>
+              <Icon name="calendar" size={18} color={C.muted} />
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Role *</Text>
+            <TouchableOpacity
+              style={styles.selectInput}
+              onPress={() => setShowRoleModal(true)}
+            >
+              <Text style={form.role ? styles.selectInputText : styles.selectInputPlaceholder}>
+                {getRoleLabel(form.role)}
+              </Text>
+              <Icon name="chevron-down" size={18} color={C.muted} />
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Status</Text>
+            <TouchableOpacity
+              style={styles.selectInput}
+              onPress={() => setShowStatusModal(true)}
+            >
+              <Text style={form.status ? styles.selectInputText : styles.selectInputPlaceholder}>
+                {getStatusLabel(form.status)}
+              </Text>
+              <Icon name="chevron-down" size={18} color={C.muted} />
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Address */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Address Details</Text>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Address</Text>
+            <TextInput
+              style={[styles.input, styles.textArea]}
+              placeholder="Enter address"
+              placeholderTextColor={C.muted}
+              value={form.address}
+              onChangeText={(v) => updateForm('address', v)}
+              multiline
+              numberOfLines={3}
+            />
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>City</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Enter city"
+              placeholderTextColor={C.muted}
+              value={form.city}
+              onChangeText={(v) => updateForm('city', v)}
+            />
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>State</Text>
+            <TouchableOpacity
+              style={styles.selectInput}
+              onPress={() => setShowStateModal(true)}
+            >
+              <Text style={form.state ? styles.selectInputText : styles.selectInputPlaceholder}>
+                {form.state || 'Select State'}
+              </Text>
+              <Icon name="chevron-down" size={18} color={C.muted} />
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Pincode</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Enter pincode"
+              placeholderTextColor={C.muted}
+              value={form.pincode}
+              onChangeText={(v) => updateForm('pincode', v)}
+              keyboardType="numeric"
+              maxLength={6}
+            />
+          </View>
+        </View>
+
+        {/* Documents */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Identity Documents</Text>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Aadhar Number</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Enter Aadhar number"
+              placeholderTextColor={C.muted}
+              value={form.aadharNumber}
+              onChangeText={(v) => updateForm('aadharNumber', v)}
+              keyboardType="numeric"
+              maxLength={12}
+            />
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Aadhar Document</Text>
+            <TouchableOpacity
+              style={styles.docButton}
+              onPress={() => pickDocument('aadhar')}
+            >
+              <Icon name={aadharDoc ? "check-circle" : "upload"} size={18} color={aadharDoc ? C.brand : C.blue} />
+              <Text style={aadharDoc ? styles.docButtonTextSuccess : styles.docButtonText}>
+                {aadharDoc ? 'Aadhar Uploaded' : 'Upload Aadhar'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>PAN Number</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Enter PAN number"
+              placeholderTextColor={C.muted}
+              value={form.panNumber}
+              onChangeText={(v) => updateForm('panNumber', v.toUpperCase())}
+              autoCapitalize="characters"
+              maxLength={10}
+            />
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>PAN Document</Text>
+            <TouchableOpacity
+              style={styles.docButton}
+              onPress={() => pickDocument('pan')}
+            >
+              <Icon name={panDoc ? "check-circle" : "upload"} size={18} color={panDoc ? C.brand : C.blue} />
+              <Text style={panDoc ? styles.docButtonTextSuccess : styles.docButtonText}>
+                {panDoc ? 'PAN Uploaded' : 'Upload PAN'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* License (Only for drivers) */}
+        {isDriver && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Driving License</Text>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>License Number</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Enter license number"
+                placeholderTextColor={C.muted}
+                value={form.licenseNumber}
+                onChangeText={(v) => updateForm('licenseNumber', v.toUpperCase())}
+                autoCapitalize="characters"
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>License Type</Text>
+              <TouchableOpacity
+                style={styles.selectInput}
+                onPress={() => setShowLicenseTypeModal(true)}
+              >
+                <Text style={form.licenseType ? styles.selectInputText : styles.selectInputPlaceholder}>
+                  {getLicenseTypeLabel(form.licenseType)}
+                </Text>
+                <Icon name="chevron-down" size={18} color={C.muted} />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>License Expiry</Text>
+              <TouchableOpacity
+                style={styles.selectInput}
+                onPress={() => setShowLicenseExpiryPicker(true)}
+              >
+                <Text style={form.licenseExpiry ? styles.selectInputText : styles.selectInputPlaceholder}>
+                  {form.licenseExpiry ? formatDateForDisplay(form.licenseExpiry) : 'Select Expiry Date'}
+                </Text>
+                <Icon name="calendar" size={18} color={C.muted} />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>License Document</Text>
+              <TouchableOpacity
+                style={styles.docButton}
+                onPress={() => pickDocument('license')}
+              >
+                <Icon name={licenseDoc ? "check-circle" : "upload"} size={18} color={licenseDoc ? C.brand : C.blue} />
+                <Text style={licenseDoc ? styles.docButtonTextSuccess : styles.docButtonText}>
+                  {licenseDoc ? 'License Uploaded' : 'Upload License'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+
+        {/* Bank Details */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Bank Details</Text>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Bank Name</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Enter bank name"
+              placeholderTextColor={C.muted}
+              value={form.bankName}
+              onChangeText={(v) => updateForm('bankName', v)}
+            />
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Account Holder Name</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Enter account holder name"
+              placeholderTextColor={C.muted}
+              value={form.accountHolderName}
+              onChangeText={(v) => updateForm('accountHolderName', v)}
+            />
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Account Number</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Enter account number"
+              placeholderTextColor={C.muted}
+              value={form.accountNumber}
+              onChangeText={(v) => updateForm('accountNumber', v)}
+              keyboardType="numeric"
+            />
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>IFSC Code</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Enter IFSC code"
+              placeholderTextColor={C.muted}
+              value={form.ifscCode}
+              onChangeText={(v) => updateForm('ifscCode', v.toUpperCase())}
+              autoCapitalize="characters"
+            />
+          </View>
+        </View>
+
+        {/* Employment Details */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Employment Details</Text>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Monthly Salary</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Enter monthly salary"
+              placeholderTextColor={C.muted}
+              value={form.salary}
+              onChangeText={(v) => updateForm('salary', v)}
+              keyboardType="numeric"
+            />
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Joining Date</Text>
+            <TouchableOpacity
+              style={styles.selectInput}
+              onPress={() => setShowJoiningDatePicker(true)}
+            >
+              <Text style={form.joiningDate ? styles.selectInputText : styles.selectInputPlaceholder}>
+                {form.joiningDate ? formatDateForDisplay(form.joiningDate) : 'Select Joining Date'}
+              </Text>
+              <Icon name="calendar" size={18} color={C.muted} />
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Emergency Contact Name</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Enter emergency contact name"
+              placeholderTextColor={C.muted}
+              value={form.emergencyContact}
+              onChangeText={(v) => updateForm('emergencyContact', v)}
+            />
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Emergency Contact Phone</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Enter emergency contact phone"
+              placeholderTextColor={C.muted}
+              value={form.emergencyPhone}
+              onChangeText={(v) => updateForm('emergencyPhone', v)}
+              keyboardType="phone-pad"
+            />
+          </View>
+        </View>
+
+        {/* Submit Button */}
+        <TouchableOpacity
+          style={[styles.submitBtn, loading && styles.submitBtnDisabled]}
+          onPress={handleSubmit}
+          disabled={loading}
+        >
+          {loading ? (
+            <ActivityIndicator size="small" color="#fff" />
+          ) : (
+            <>
+              <Icon name="check" size={18} color="#fff" />
+              <Text style={styles.submitBtnText}>
+                {isEditing ? 'Update Staff' : 'Add Staff'}
+              </Text>
+            </>
+          )}
+        </TouchableOpacity>
+
+        <View style={{ height: 40 }} />
+      </ScrollView>
+
+      {/* Date Pickers */}
+      <DateTimePickerModal
+        isVisible={showDOBPicker}
+        mode="date"
+        onConfirm={(date) => handleDateConfirm(date, 'dateOfBirth')}
+        onCancel={() => setShowDOBPicker(false)}
+        maximumDate={new Date()}
+      />
+
+      <DateTimePickerModal
+        isVisible={showJoiningDatePicker}
+        mode="date"
+        onConfirm={(date) => handleDateConfirm(date, 'joiningDate')}
+        onCancel={() => setShowJoiningDatePicker(false)}
+      />
+
+      <DateTimePickerModal
+        isVisible={showLicenseExpiryPicker}
+        mode="date"
+        onConfirm={(date) => handleDateConfirm(date, 'licenseExpiry')}
+        onCancel={() => setShowLicenseExpiryPicker(false)}
+        minimumDate={new Date()}
+      />
+
+      {/* Role Modal */}
+      <Modal
+        visible={showRoleModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowRoleModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Select Role</Text>
+              <TouchableOpacity onPress={() => setShowRoleModal(false)}>
+                <Icon name="x" size={24} color={C.text} />
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={styles.modalScroll}>
+              {ROLES.map((role) => (
+                <TouchableOpacity
+                  key={role.value}
+                  style={styles.optionItem}
+                  onPress={() => {
+                    updateForm('role', role.value);
+                    setShowRoleModal(false);
+                  }}
+                >
+                  <Text style={styles.optionText}>{role.label}</Text>
+                  {form.role === role.value && <Icon name="check" size={20} color={C.brand} />}
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Status Modal */}
+      <Modal
+        visible={showStatusModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowStatusModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Select Status</Text>
+              <TouchableOpacity onPress={() => setShowStatusModal(false)}>
+                <Icon name="x" size={24} color={C.text} />
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={styles.modalScroll}>
+              {STATUS_OPTIONS.map((status) => (
+                <TouchableOpacity
+                  key={status.value}
+                  style={styles.optionItem}
+                  onPress={() => {
+                    updateForm('status', status.value);
+                    setShowStatusModal(false);
+                  }}
+                >
+                  <Text style={styles.optionText}>{status.label}</Text>
+                  {form.status === status.value && <Icon name="check" size={20} color={C.brand} />}
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* License Type Modal */}
+      <Modal
+        visible={showLicenseTypeModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowLicenseTypeModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Select License Type</Text>
+              <TouchableOpacity onPress={() => setShowLicenseTypeModal(false)}>
+                <Icon name="x" size={24} color={C.text} />
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={styles.modalScroll}>
+              {LICENSE_TYPES.map((type) => (
+                <TouchableOpacity
+                  key={type.value}
+                  style={styles.optionItem}
+                  onPress={() => {
+                    updateForm('licenseType', type.value);
+                    setShowLicenseTypeModal(false);
+                  }}
+                >
+                  <Text style={styles.optionText}>{type.label}</Text>
+                  {form.licenseType === type.value && <Icon name="check" size={20} color={C.brand} />}
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* State Selection Modal */}
+      <Modal
+        visible={showStateModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowStateModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Select State</Text>
+              <TouchableOpacity onPress={() => setShowStateModal(false)}>
+                <Icon name="x" size={24} color={C.text} />
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={styles.modalScroll}>
+              {INDIAN_STATES.map((state) => (
+                <TouchableOpacity
+                  key={state}
+                  style={styles.optionItem}
+                  onPress={() => {
+                    updateForm('state', state);
+                    setShowStateModal(false);
+                  }}
+                >
+                  <Text style={styles.optionText}>{state}</Text>
+                  {form.state === state && <Icon name="check" size={20} color={C.brand} />}
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  safe: {
+    flex: 1,
+    backgroundColor: C.bg,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: C.surface,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: C.border,
+  },
+  backBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: C.text,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    padding: 16,
+  },
+  photoSection: {
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  photoContainer: {
+    position: 'relative',
+  },
+  photo: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+  },
+  photoPlaceholder: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: C.surface,
+    borderWidth: 2,
+    borderColor: C.border,
+    borderStyle: 'dashed',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  editPhotoBtn: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: C.brand,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: '#fff',
+  },
+  photoHint: {
+    fontSize: 12,
+    color: C.muted,
+    marginTop: 8,
+  },
+  section: {
+    backgroundColor: C.surface,
+    borderRadius: 14,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: C.border,
+  },
+  sectionTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: C.text,
+    marginBottom: 16,
+  },
+  inputGroup: {
+    marginBottom: 16,
+  },
+  label: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: C.text,
+    marginBottom: 8,
+  },
+  input: {
+    backgroundColor: C.bg,
+    borderWidth: 1,
+    borderColor: C.border,
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 15,
+    color: C.text,
+  },
+  selectInput: {
+    backgroundColor: C.bg,
+    borderWidth: 1,
+    borderColor: C.border,
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    minHeight: 48,
+  },
+  selectInputText: {
+    fontSize: 15,
+    color: C.text,
+    flex: 1,
+  },
+  selectInputPlaceholder: {
+    fontSize: 15,
+    color: C.muted,
+    flex: 1,
+  },
+  textArea: {
+    minHeight: 80,
+    textAlignVertical: 'top',
+  },
+  hint: {
+    fontSize: 11,
+    color: C.muted,
+    marginTop: 4,
+  },
+  docButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: C.bg,
+    borderWidth: 1,
+    borderColor: C.blue,
+    borderRadius: 10,
+    paddingVertical: 12,
+    gap: 8,
+  },
+  docButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: C.blue,
+  },
+  docButtonTextSuccess: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: C.brand,
+  },
+  submitBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: C.brand,
+    paddingVertical: 16,
+    borderRadius: 12,
+    gap: 8,
+  },
+  submitBtnDisabled: {
+    backgroundColor: '#9CA3AF',
+  },
+  submitBtnText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: C.surface,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: '70%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: C.border,
+  },
+  modalTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: C.text,
+  },
+  modalScroll: {
+    maxHeight: 400,
+  },
+  optionItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: C.border,
+  },
+  optionText: {
+    fontSize: 15,
+    color: C.text,
+  },
+});

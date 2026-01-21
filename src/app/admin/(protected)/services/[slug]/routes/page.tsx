@@ -1,0 +1,639 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useParams } from 'next/navigation';
+import Link from 'next/link';
+import {
+  Route,
+  Plus,
+  Trash2,
+  Save,
+  Loader2,
+  ArrowRight,
+  Car,
+  Star,
+  Settings2,
+  MapPin,
+  ArrowLeft,
+} from 'lucide-react';
+
+interface VehicleCategory {
+  id: string;
+  name: string;
+  slug: string;
+}
+
+interface Location {
+  id: string;
+  name: string;
+  slug: string;
+}
+
+interface RoutePackage {
+  id: string;
+  vehicleCategoryId: string;
+  fromLocationId: string;
+  toLocationId: string;
+  estimatedKm: number;
+  estimatedDuration: string | null;
+  routeDescription: string | null;
+  basePrice: number;
+  returnMultiplier: number;
+  tollsEstimate: number | null;
+  statePermitCharge: number | null;
+  nightSurcharge: number | null;
+  airportSurcharge: number | null;
+  isPopular: boolean;
+  displayOrder: number;
+  isActive: boolean;
+  chauffeur_vehicle_categories: { id: string; name: string; slug: string };
+  fromLocation: { id: string; name: string; slug: string };
+  toLocation: { id: string; name: string; slug: string };
+}
+
+const SERVICE_TITLES: Record<string, string> = {
+  'car-rental': 'Car Rental',
+  'luxury-car-rental': 'Luxury Car Rental',
+};
+
+const defaultFormData = {
+  vehicleCategoryId: '',
+  fromLocationId: '',
+  toLocationId: '',
+  estimatedKm: 0,
+  estimatedDuration: '',
+  routeDescription: '',
+  basePrice: 0,
+  returnMultiplier: 1.8,
+  tollsEstimate: 0,
+  statePermitCharge: 0,
+  nightSurcharge: 0,
+  airportSurcharge: 0,
+  isPopular: false,
+  displayOrder: 0,
+  isActive: true,
+};
+
+export default function ServiceRoutesPage() {
+  const params = useParams();
+  const serviceSlug = params.slug as string;
+  const serviceTitle = SERVICE_TITLES[serviceSlug] || serviceSlug;
+
+  const [routes, setRoutes] = useState<RoutePackage[]>([]);
+  const [categories, setCategories] = useState<VehicleCategory[]>([]);
+  const [locations, setLocations] = useState<Location[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState('');
+  const [formData, setFormData] = useState(defaultFormData);
+  const [filterCategory, setFilterCategory] = useState('');
+  const [filterFrom, setFilterFrom] = useState('');
+  const [editingId, setEditingId] = useState<string | null>(null);
+
+  const fetchData = async () => {
+    try {
+      const [routesRes, categoriesRes, locationsRes] = await Promise.all([
+        fetch(`/api/admin/services/${serviceSlug}/routes`),
+        fetch(`/api/admin/services/${serviceSlug}/vehicles`),
+        fetch(`/api/services/${serviceSlug}/locations`),
+      ]);
+
+      const routesData = await routesRes.json();
+      const categoriesData = await categoriesRes.json();
+      const locationsData = await locationsRes.json();
+
+      if (routesData.success) setRoutes(routesData.routes);
+      if (categoriesData.success) setCategories(categoriesData.categories);
+      if (locationsData.success) setLocations(locationsData.locations || []);
+    } catch (error) {
+      console.error('Failed to fetch data:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, [serviceSlug]);
+
+  const handleCreate = () => {
+    setEditingId(null);
+    setFormData({
+      ...defaultFormData,
+      vehicleCategoryId: categories[0]?.id || '',
+      basePrice: serviceSlug === 'luxury-car-rental' ? 8000 : 3500,
+    });
+    setShowForm(true);
+  };
+
+  const handleEdit = (route: RoutePackage) => {
+    setEditingId(route.id);
+    setFormData({
+      vehicleCategoryId: route.vehicleCategoryId,
+      fromLocationId: route.fromLocationId,
+      toLocationId: route.toLocationId,
+      estimatedKm: route.estimatedKm,
+      estimatedDuration: route.estimatedDuration || '',
+      routeDescription: route.routeDescription || '',
+      basePrice: route.basePrice,
+      returnMultiplier: route.returnMultiplier,
+      tollsEstimate: route.tollsEstimate || 0,
+      statePermitCharge: route.statePermitCharge || 0,
+      nightSurcharge: route.nightSurcharge || 0,
+      airportSurcharge: route.airportSurcharge || 0,
+      isPopular: route.isPopular,
+      displayOrder: route.displayOrder,
+      isActive: route.isActive,
+    });
+    setShowForm(true);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSaving(true);
+    setError('');
+
+    try {
+      const response = await fetch(`/api/admin/services/${serviceSlug}/routes`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setShowForm(false);
+        fetchData();
+      } else {
+        setError(data.error || 'Failed to save route');
+      }
+    } catch (err) {
+      setError('Failed to save route');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this route?')) return;
+
+    try {
+      const response = await fetch(`/api/admin/services/${serviceSlug}/routes?id=${id}`, {
+        method: 'DELETE',
+      });
+      const data = await response.json();
+
+      if (data.success) {
+        fetchData();
+      } else {
+        alert(data.error || 'Failed to delete');
+      }
+    } catch (err) {
+      alert('Failed to delete route');
+    }
+  };
+
+  const filteredRoutes = routes.filter((r) => {
+    if (filterCategory && r.vehicleCategoryId !== filterCategory) return false;
+    if (filterFrom && r.fromLocationId !== filterFrom) return false;
+    return true;
+  });
+
+  // Group by vehicle category
+  const groupedByCategory: Record<string, RoutePackage[]> = {};
+  filteredRoutes.forEach((r) => {
+    const cat = r.chauffeur_vehicle_categories.name;
+    if (!groupedByCategory[cat]) groupedByCategory[cat] = [];
+    groupedByCategory[cat].push(r);
+  });
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-6 max-w-7xl mx-auto">
+      <div className="mb-6">
+        <Link
+          href={`/admin/services/${serviceSlug}`}
+          className="inline-flex items-center text-blue-600 hover:text-blue-800 text-sm"
+        >
+          <ArrowLeft className="w-4 h-4 mr-1" />
+          Back to {serviceTitle}
+        </Link>
+      </div>
+
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">
+            Route Packages - {serviceTitle}
+          </h1>
+          <p className="text-gray-600">
+            Configure fixed-price routes like Delhi - Jaipur, Mumbai - Pune
+          </p>
+        </div>
+        <button
+          onClick={handleCreate}
+          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+        >
+          <Plus className="w-5 h-5" />
+          Add Route
+        </button>
+      </div>
+
+      {/* Filters */}
+      <div className="flex gap-4 mb-6">
+        <select
+          value={filterCategory}
+          onChange={(e) => setFilterCategory(e.target.value)}
+          className="px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+        >
+          <option value="">All Vehicle Categories</option>
+          {categories.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.name}
+            </option>
+          ))}
+        </select>
+
+        <select
+          value={filterFrom}
+          onChange={(e) => setFilterFrom(e.target.value)}
+          className="px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+        >
+          <option value="">All Origin Cities</option>
+          {locations.map((l) => (
+            <option key={l.id} value={l.id}>
+              {l.name}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {/* Form Modal */}
+      {showForm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b">
+              <h2 className="text-xl font-bold">
+                {editingId ? 'Edit Route Package' : 'Add Route Package'}
+              </h2>
+            </div>
+
+            <form onSubmit={handleSubmit} className="p-6 space-y-4">
+              {error && (
+                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+                  {error}
+                </div>
+              )}
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Vehicle Category *
+                </label>
+                <select
+                  value={formData.vehicleCategoryId}
+                  onChange={(e) =>
+                    setFormData({ ...formData, vehicleCategoryId: e.target.value })
+                  }
+                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                  required
+                >
+                  <option value="">Select Category</option>
+                  {categories.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="bg-blue-50 rounded-xl p-4">
+                <h3 className="font-medium text-blue-900 mb-3">Route Details</h3>
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      From City *
+                    </label>
+                    <select
+                      value={formData.fromLocationId}
+                      onChange={(e) =>
+                        setFormData({ ...formData, fromLocationId: e.target.value })
+                      }
+                      className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                      required
+                    >
+                      <option value="">Select Origin</option>
+                      {locations.map((l) => (
+                        <option key={l.id} value={l.id}>
+                          {l.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      To City *
+                    </label>
+                    <select
+                      value={formData.toLocationId}
+                      onChange={(e) =>
+                        setFormData({ ...formData, toLocationId: e.target.value })
+                      }
+                      className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                      required
+                    >
+                      <option value="">Select Destination</option>
+                      {locations
+                        .filter((l) => l.id !== formData.fromLocationId)
+                        .map((l) => (
+                          <option key={l.id} value={l.id}>
+                            {l.name}
+                          </option>
+                        ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid md:grid-cols-2 gap-4 mt-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Estimated Distance (km)
+                    </label>
+                    <input
+                      type="number"
+                      value={formData.estimatedKm}
+                      onChange={(e) =>
+                        setFormData({ ...formData, estimatedKm: parseInt(e.target.value) || 0 })
+                      }
+                      className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Estimated Duration
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.estimatedDuration}
+                      onChange={(e) =>
+                        setFormData({ ...formData, estimatedDuration: e.target.value })
+                      }
+                      className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                      placeholder="e.g., 5h 30m"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-green-50 rounded-xl p-4">
+                <h3 className="font-medium text-green-900 mb-3">Pricing</h3>
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      One-way Price (Rs) *
+                    </label>
+                    <input
+                      type="number"
+                      value={formData.basePrice}
+                      onChange={(e) =>
+                        setFormData({ ...formData, basePrice: parseFloat(e.target.value) || 0 })
+                      }
+                      className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Round-trip Multiplier
+                    </label>
+                    <input
+                      type="number"
+                      value={formData.returnMultiplier}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          returnMultiplier: parseFloat(e.target.value) || 1.8,
+                        })
+                      }
+                      className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                      step={0.1}
+                      min={1}
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      Round-trip = Rs{Math.round(formData.basePrice * formData.returnMultiplier)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-amber-50 rounded-xl p-4">
+                <h3 className="font-medium text-amber-900 mb-3">Additional Charges</h3>
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Toll Estimate (Rs)
+                    </label>
+                    <input
+                      type="number"
+                      value={formData.tollsEstimate}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          tollsEstimate: parseFloat(e.target.value) || 0,
+                        })
+                      }
+                      className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      State Permit (Rs)
+                    </label>
+                    <input
+                      type="number"
+                      value={formData.statePermitCharge}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          statePermitCharge: parseFloat(e.target.value) || 0,
+                        })
+                      }
+                      className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap gap-4">
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={formData.isPopular}
+                    onChange={(e) => setFormData({ ...formData, isPopular: e.target.checked })}
+                    className="w-4 h-4 text-blue-600 rounded"
+                  />
+                  <span className="text-sm">Mark as Popular</span>
+                </label>
+
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={formData.isActive}
+                    onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
+                    className="w-4 h-4 text-blue-600 rounded"
+                  />
+                  <span className="text-sm">Active</span>
+                </label>
+              </div>
+
+              <div className="flex justify-end gap-3 pt-4 border-t">
+                <button
+                  type="button"
+                  onClick={() => setShowForm(false)}
+                  className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSaving}
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400"
+                >
+                  {isSaving ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="w-4 h-4" />
+                      Save Route
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Routes by Category */}
+      {Object.keys(groupedByCategory).length > 0 ? (
+        <div className="space-y-6">
+          {Object.entries(groupedByCategory).map(([categoryName, items]) => (
+            <div key={categoryName} className="bg-white rounded-xl border shadow-sm overflow-hidden">
+              <div className="bg-gray-50 px-4 py-3 flex items-center gap-2 border-b">
+                <Car className="w-5 h-5 text-blue-600" />
+                <h2 className="font-semibold text-gray-900">{categoryName}</h2>
+                <span className="text-sm text-gray-500">({items.length} routes)</span>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-50 text-xs text-gray-600 uppercase">
+                    <tr>
+                      <th className="px-4 py-3 text-left">Route</th>
+                      <th className="px-4 py-3 text-right">Distance</th>
+                      <th className="px-4 py-3 text-right">One-way</th>
+                      <th className="px-4 py-3 text-right">Round-trip</th>
+                      <th className="px-4 py-3 text-right">Toll Est.</th>
+                      <th className="px-4 py-3 text-center">Status</th>
+                      <th className="px-4 py-3 text-center">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y">
+                    {items.map((route) => (
+                      <tr key={route.id} className="hover:bg-gray-50">
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-2">
+                            <MapPin className="w-4 h-4 text-green-500" />
+                            <span className="font-medium">{route.fromLocation.name}</span>
+                            <ArrowRight className="w-4 h-4 text-gray-400" />
+                            <span className="font-medium">{route.toLocation.name}</span>
+                            {route.isPopular && (
+                              <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
+                            )}
+                          </div>
+                          {route.estimatedDuration && (
+                            <p className="text-xs text-gray-500 mt-1">
+                              ~{route.estimatedDuration}
+                            </p>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-right text-gray-600">
+                          {route.estimatedKm} km
+                        </td>
+                        <td className="px-4 py-3 text-right font-mono font-medium text-green-600">
+                          Rs{route.basePrice.toLocaleString()}
+                        </td>
+                        <td className="px-4 py-3 text-right font-mono text-gray-600">
+                          Rs{Math.round(route.basePrice * route.returnMultiplier).toLocaleString()}
+                        </td>
+                        <td className="px-4 py-3 text-right text-gray-600">
+                          {route.tollsEstimate ? `Rs${route.tollsEstimate}` : '-'}
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          <span
+                            className={`px-2 py-1 rounded-full text-xs ${
+                              route.isActive
+                                ? 'bg-green-100 text-green-700'
+                                : 'bg-red-100 text-red-700'
+                            }`}
+                          >
+                            {route.isActive ? 'Active' : 'Inactive'}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          <div className="flex justify-center gap-1">
+                            <button
+                              onClick={() => handleEdit(route)}
+                              className="p-1.5 text-blue-600 hover:bg-blue-100 rounded"
+                            >
+                              <Settings2 className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => handleDelete(route.id)}
+                              className="p-1.5 text-red-600 hover:bg-red-100 rounded"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="bg-gray-50 rounded-xl p-8 text-center">
+          <Route className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+          <h3 className="font-medium text-gray-900 mb-1">No routes configured</h3>
+          <p className="text-sm text-gray-500 mb-4">
+            Add fixed-price route packages like Delhi - Jaipur, Mumbai - Pune
+          </p>
+          <button
+            onClick={handleCreate}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          >
+            <Plus className="w-4 h-4" />
+            Add Route
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}

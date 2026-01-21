@@ -1,0 +1,82 @@
+version: "3.8"
+
+# ================================================
+# Coolify Deployment Configuration
+# Zero-downtime deployment with health checks
+# ================================================
+
+services:
+  transrentals-app:
+    image: ${DOCKER_IMAGE:-transrentals:latest}
+    container_name: transrentals-app-${DEPLOYMENT_ID:-v1}
+    restart: unless-stopped
+
+    # Health check for zero-downtime deployment
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+
+    # Environment variables (managed by Coolify)
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - DATABASE_URL=${DATABASE_URL}
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
+      - NEXTAUTH_URL=${NEXTAUTH_URL}
+      - NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL}
+      - NEXT_PUBLIC_APP_NAME=${NEXT_PUBLIC_APP_NAME:-TransRentals}
+
+    # Labels for Coolify management
+    labels:
+      # Coolify metadata
+      - "coolify.managed=true"
+      - "coolify.version=${VERSION:-latest}"
+      - "coolify.deployment_id=${DEPLOYMENT_ID:-v1}"
+
+      # Health check endpoint
+      - "coolify.healthcheck.path=/api/health"
+      - "coolify.healthcheck.interval=10s"
+      - "coolify.healthcheck.timeout=5s"
+      - "coolify.healthcheck.retries=5"
+
+      # Zero-downtime deployment
+      - "coolify.deployment.strategy=rolling"
+      - "coolify.deployment.wait_for_healthy=true"
+
+      # Auto-rollback on failure
+      - "coolify.deployment.rollback_on_failure=true"
+      - "coolify.deployment.max_retry=3"
+
+    # Port mapping (Coolify will handle proxy)
+    ports:
+      - "${APP_PORT:-3000}:3000"
+
+    # Network
+    networks:
+      - transrentals-network
+
+    # Resource limits (adjust based on your server)
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '1'
+          memory: 1G
+
+    # Logging
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
+        labels: "coolify.managed"
+
+networks:
+  transrentals-network:
+    driver: bridge
+    name: transrentals-network

@@ -1,0 +1,128 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { getVendorAuth } from '@/lib/auth/vendor-mobile-auth';
+
+import { prisma } from '@/lib/db/prisma';
+import { transformPrismaResponse } from '@/lib/utils/api-transform';
+
+import logger from '@/lib/security/logger';
+export const dynamic = 'force-dynamic';
+
+// GET - Fetch a single bike booking for vendor
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+
+    const auth = await getVendorAuth(request);
+    if (!auth.authenticated || !auth.vendorId) {
+      return NextResponse.json({ error: auth.error || 'Unauthorized' }, { status: 401 });
+    }
+
+    // Get vendor
+    const vendor = await prisma.vendors.findFirst({
+      where: { id: auth.vendorId },
+      select: {
+        id: true,
+        vendor_approved_locations: { select: { locationId: true } },
+      },
+    });
+
+    if (!vendor) {
+      return NextResponse.json({ error: 'Vendor not found' }, { status: 404 });
+    }
+
+    const approvedLocationIds = vendor.vendor_approved_locations.map((l) => l.locationId);
+
+    // Fetch booking - support both ID and booking number
+    const booking = await prisma.bike_bookings.findFirst({
+      where: {
+        OR: [
+          { id },
+          { bookingNumber: id },
+        ],
+      },
+      include: {
+        locations: { select: { id: true, name: true, slug: true } },
+        vendors_bike_bookings_acceptedVendorIdTovendors: { select: { id: true, businessName: true, phone: true } },
+        customers: { select: { id: true, name: true, email: true, phone: true } },
+      },
+    });
+
+    if (!booking) {
+      return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
+    }
+
+    // Check if vendor is authorized to view this booking
+    const notifiedVendors = (booking.notifiedVendorIds as string[] | null) || [];
+    const isAssigned = booking.assignedVendorId === vendor.id;
+    const isAccepted = booking.acceptedVendorId === vendor.id;
+    const isNotified = notifiedVendors.includes(vendor.id);
+    const hasApprovedLocation = approvedLocationIds.includes(booking.locationId);
+
+    // Statuses that allow vendor viewing with approved location
+    const viewableStatuses = ['BROADCASTED', 'PENDING_VENDOR', 'PAYMENT_VERIFIED', 'ACCEPTED', 'READY_FOR_PICKUP', 'IN_PROGRESS', 'COMPLETED'];
+
+    // Vendor can view if:
+    // 1. They are the assigned vendor
+    // 2. They accepted the booking
+    // 3. They were notified about the booking (in notifiedVendorIds)
+    // 4. They have approved location and booking is in a viewable status
+    const canView = isAssigned || isAccepted || isNotified || (hasApprovedLocation && viewableStatuses.includes(booking.status));
+
+    if (!canView) {
+      return NextResponse.json(
+        { error: 'You are not authorized to view this booking' },
+        { status: 403 }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      booking: {
+        id: booking.id,
+        bookingNumber: booking.bookingNumber,
+        customerId: booking.customerId,
+        customerName: booking.customerName,
+        customerEmail: booking.customerEmail,
+        customerPhone: booking.customerPhone,
+        requestedVehicleName: booking.requestedVehicleName,
+        requestedBrand: booking.requestedBrand,
+        requestedCategory: booking.requestedCategory,
+        requestedModelId: booking.requestedModelId,
+        locationId: booking.locationId,
+        locationName: booking.locationName,
+        location: booking.locations,
+        pickupDate: booking.pickupDate.toISOString(),
+        pickupTime: booking.pickupTime,
+        dropDate: booking.dropDate.toISOString(),
+        dropTime: booking.dropTime,
+        totalDays: booking.totalDays,
+        dailyRate: booking.dailyRate,
+        totalAmount: booking.totalAmount,
+        gstAmount: booking.gstAmount,
+        securityDeposit: booking.securityDeposit,
+        grandTotal: booking.grandTotal,
+        status: booking.status,
+        paymentStatus: booking.paymentStatus,
+        customerNotes: booking.customerNotes,
+        acceptedVehicleName: booking.acceptedVehicleName,
+        acceptedVendor: booking.vendors_bike_bookings_acceptedVendorIdTovendors,
+        acceptedAt: booking.acceptedAt?.toISOString(),
+        createdAt: booking.createdAt.toISOString(),
+        updatedAt: booking.updatedAt.toISOString(),
+        // Additional flags for UI
+        canAccept: ['PENDING_VENDOR', 'BROADCASTED', 'PAYMENT_VERIFIED'].includes(booking.status) &&
+                   (isAssigned || isNotified || (hasApprovedLocation && viewableStatuses.includes(booking.status))),
+        isOwnBooking: isAssigned || isAccepted,
+      },
+    });
+  } catch (error: any) {
+    logger.error('Failed to fetch bike booking', error);
+    return NextResponse.json(
+      { error: 'Failed to fetch booking', details: error?.message },
+      { status: 500 }
+    );
+  }
+}

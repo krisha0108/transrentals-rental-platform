@@ -1,0 +1,271 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import {
+  Package,
+  MapPin,
+  Calendar,
+  Home,
+  Building,
+  Car,
+  CheckCircle,
+  XCircle,
+  AlertCircle,
+  ChevronRight,
+  Send,
+  MessageSquare,
+  Inbox,
+} from 'lucide-react';
+import { useCustomerAuth } from '@/hooks/useCustomer';
+
+interface QuoteRequest {
+  id: string;
+  requestNumber: string;
+  serviceType: string;
+  shiftingType: string;
+  propertySize: string;
+  pickupCity: string;
+  dropCity: string;
+  preferredDate: string;
+  status: string;
+  totalQuotesReceived: number;
+  quotes: { id: string; totalAmount: number }[];
+  createdAt: string;
+}
+
+const STATUS_CONFIG: Record<string, { label: string; color: string; icon: any }> = {
+  PENDING: { label: 'Awaiting Quotes', color: 'bg-yellow-100 text-yellow-700', icon: AlertCircle },
+  QUOTES_RECEIVED: { label: 'Quotes Available', color: 'bg-green-100 text-green-700', icon: MessageSquare },
+  QUOTE_ACCEPTED: { label: 'Quote Accepted', color: 'bg-blue-100 text-blue-700', icon: CheckCircle },
+  BOOKING_CREATED: { label: 'Booking Created', color: 'bg-purple-100 text-purple-700', icon: CheckCircle },
+  CANCELLED: { label: 'Cancelled', color: 'bg-red-100 text-red-700', icon: XCircle },
+  EXPIRED: { label: 'Expired', color: 'bg-gray-100 text-gray-600', icon: XCircle },
+};
+
+const SHIFTING_ICONS: Record<string, any> = {
+  Home: Home,
+  Office: Building,
+  Vehicle: Car,
+};
+
+export default function CustomerPackersQuotesPage() {
+  const { customer, isAuthenticated, isLoading: authLoading } = useCustomerAuth();
+  const [requests, setRequests] = useState<QuoteRequest[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [filter, setFilter] = useState('all');
+  const router = useRouter();
+
+  useEffect(() => {
+    if (authLoading) return;
+
+    if (!isAuthenticated || !customer) {
+      router.push('/customer/login?redirect=/customer/packers-quotes');
+      return;
+    }
+
+    fetchRequests();
+  }, [authLoading, isAuthenticated, customer]);
+
+  const fetchRequests = async () => {
+    try {
+      const identifier = customer?.phone || customer?.email;
+      const response = await fetch(`/api/bookings?type=packers&phone=${identifier}`);
+      const data = await response.json();
+
+      if (data.success && data.requests) {
+        setRequests(data.requests);
+      }
+    } catch (error) {
+      console.error('Failed to fetch packers quote requests:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const filteredRequests = requests.filter((r) => {
+    if (filter === 'active') return ['PENDING', 'QUOTES_RECEIVED'].includes(r.status);
+    if (filter === 'booked') return ['QUOTE_ACCEPTED', 'BOOKING_CREATED'].includes(r.status);
+    return true;
+  });
+
+  const getLowestQuote = (quotes: { totalAmount: number }[]) => {
+    if (!quotes || quotes.length === 0) return null;
+    return Math.min(...quotes.map(q => q.totalAmount));
+  };
+
+  if (authLoading || isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="animate-spin w-10 h-10 border-4 border-green-500 border-t-transparent rounded-full" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <div className="bg-gradient-to-r from-green-600 to-green-800 text-white py-8">
+        <div className="container mx-auto px-4">
+          <div className="flex items-center gap-3 mb-2">
+            <Package className="w-8 h-8" />
+            <h1 className="text-2xl font-bold">My Packers & Movers Requests</h1>
+          </div>
+          <p className="text-green-100">Track your quote requests and compare vendor quotes</p>
+        </div>
+      </div>
+
+      <div className="container mx-auto px-4 py-6">
+        {/* Quick Actions */}
+        <div className="flex gap-3 mb-6">
+          <Link
+            href="/packers-and-movers"
+            className="px-4 py-2 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition flex items-center gap-2"
+          >
+            <Send className="w-4 h-4" />
+            New Request
+          </Link>
+          <Link
+            href="/customer/packers-bookings"
+            className="px-4 py-2 bg-white text-gray-700 font-semibold rounded-lg hover:bg-gray-100 transition border"
+          >
+            View Bookings
+          </Link>
+        </div>
+
+        {/* Filter */}
+        <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
+          {[
+            { value: 'all', label: 'All Requests' },
+            { value: 'active', label: 'Active' },
+            { value: 'booked', label: 'Booked' },
+          ].map((f) => (
+            <button
+              key={f.value}
+              onClick={() => setFilter(f.value)}
+              className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition ${
+                filter === f.value
+                  ? 'bg-green-500 text-white'
+                  : 'bg-white text-gray-600 hover:bg-gray-100'
+              }`}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Requests List */}
+        <div className="space-y-4">
+          {filteredRequests.length === 0 ? (
+            <div className="bg-white rounded-xl p-8 text-center">
+              <Inbox className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+              <h3 className="font-medium text-gray-900 mb-1">No requests found</h3>
+              <p className="text-sm text-gray-500 mb-4">
+                Submit a request to get quotes from packers & movers
+              </p>
+              <Link
+                href="/packers-and-movers"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+              >
+                <Send className="w-4 h-4" />
+                Get Quotes
+              </Link>
+            </div>
+          ) : (
+            filteredRequests.map((request) => {
+              const statusConfig = STATUS_CONFIG[request.status] || STATUS_CONFIG.PENDING;
+              const StatusIcon = statusConfig.icon;
+              const ShiftingIcon = SHIFTING_ICONS[request.shiftingType] || Package;
+              const hasNewQuotes = request.status === 'QUOTES_RECEIVED' && request.totalQuotesReceived > 0;
+              const lowestQuote = getLowestQuote(request.quotes);
+
+              return (
+                <Link
+                  key={request.id}
+                  href={`/customer/packers-quotes/${request.id}`}
+                  className="block bg-white rounded-xl shadow-sm border overflow-hidden hover:shadow-md transition"
+                >
+                  {/* Header */}
+                  <div className={`px-4 py-2 flex items-center justify-between ${
+                    hasNewQuotes ? 'bg-green-50' : 'bg-gray-50'
+                  }`}>
+                    <span className="font-mono text-sm text-gray-700">
+                      #{request.requestNumber}
+                    </span>
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium flex items-center gap-1 ${statusConfig.color}`}>
+                      <StatusIcon className="w-3 h-3" />
+                      {statusConfig.label}
+                    </span>
+                  </div>
+
+                  <div className="p-4">
+                    {/* Main Info */}
+                    <div className="flex items-start justify-between gap-4 mb-4">
+                      <div className="flex items-start gap-3">
+                        <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
+                          <ShiftingIcon className="w-6 h-6 text-green-600" />
+                        </div>
+                        <div>
+                          <h3 className="font-bold text-gray-900">
+                            {request.shiftingType} Shifting
+                          </h3>
+                          <p className="text-sm text-gray-500">
+                            {request.propertySize || 'Standard'} • {request.serviceType || 'Full Service'}
+                          </p>
+                        </div>
+                      </div>
+
+                      {request.totalQuotesReceived > 0 && (
+                        <div className="text-right">
+                          <div className="flex items-center gap-1">
+                            <MessageSquare className="w-4 h-4 text-green-500" />
+                            <span className="font-bold text-gray-900">{request.totalQuotesReceived}</span>
+                            <span className="text-sm text-gray-500">quotes</span>
+                          </div>
+                          {lowestQuote && (
+                            <p className="text-sm text-green-600 font-medium">
+                              From ₹{lowestQuote.toLocaleString()}
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Trip Details */}
+                    <div className="flex flex-wrap gap-4 text-sm text-gray-600">
+                      <div className="flex items-center gap-1.5">
+                        <MapPin className="w-4 h-4 text-green-500" />
+                        {request.pickupCity} → {request.dropCity}
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <Calendar className="w-4 h-4 text-green-500" />
+                        {new Date(request.preferredDate).toLocaleDateString('en-IN', {
+                          day: 'numeric',
+                          month: 'short',
+                          year: 'numeric',
+                        })}
+                      </div>
+                    </div>
+
+                    {/* CTA */}
+                    {hasNewQuotes && (
+                      <div className="mt-4 pt-4 border-t flex items-center justify-between">
+                        <span className="text-sm text-green-600 font-medium">
+                          New quotes available!
+                        </span>
+                        <span className="flex items-center gap-1 text-green-600 font-medium text-sm">
+                          View Quotes <ChevronRight className="w-4 h-4" />
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </Link>
+              );
+            })
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}

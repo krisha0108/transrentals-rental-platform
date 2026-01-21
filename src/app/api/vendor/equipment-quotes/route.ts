@@ -1,0 +1,385 @@
+// @ts-nocheck
+import { NextRequest, NextResponse } from 'next/server';
+import { getVendorAuth } from '@/lib/auth/vendor-mobile-auth';
+import { prisma } from '@/lib/db/prisma';
+import { transformPrismaResponse } from '@/lib/utils/api-transform';
+import crypto from 'crypto';
+
+import logger from '@/lib/security/logger';
+export const dynamic = 'force-dynamic';
+
+// Helper to generate a unique ID
+function generateId(): string {
+  return 'c' + crypto.randomBytes(12).toString('base64url').toLowerCase().slice(0, 24);
+}
+
+function generateQuoteNumber(): string {
+  const prefix = 'EQ';
+  const year = new Date().getFullYear();
+  const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
+  return `${prefix}-${year}-${random}`;
+}
+
+// GET - Get Equipment Quotes submitted by vendor
+export async function GET(request: NextRequest) {
+  try {
+    const auth = await getVendorAuth(request);
+
+    if (!auth.authenticated || !auth.vendorId) {
+
+      return NextResponse.json({ error: auth.error || 'Unauthorized' }, { status: 401 });
+
+    }
+
+    const vendorId = auth.vendorId;
+
+    const { searchParams } = new URL(request.url);
+    const status = searchParams.get('status');
+    const page = parseInt(searchParams.get('page') || '1');
+    const limit = parseInt(searchParams.get('limit') || '20');
+    const skip = (page - 1) * limit;
+
+    let whereClause: any = { vendorId: vendorId };
+    if (status && status !== 'all') {
+      whereClause.status = status.toUpperCase();
+    }
+
+    const [quotes, total] = await Promise.all([
+      prisma.equipment_quotes.findMany({
+        where: whereClause,
+        include: {
+          equipment_quote_requests: {
+            select: {
+              id: true,
+              requestNumber: true,
+              customerName: true,
+              equipmentCategory: true,
+              equipmentType: true,
+              deliveryCity: true,
+              startDate: true,
+              status: true,
+            },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit,
+      }),
+      prisma.equipment_quotes.count({ where: whereClause }),
+    ]);
+
+    return NextResponse.json({
+      success: true,
+      quotes: quotes.map((q: any) => ({
+        id: q.id,
+        quoteNumber: q.quoteNumber,
+        totalAmount: q.totalAmount,
+        dailyRate: q.dailyRate,
+        weeklyRate: q.weeklyRate,
+        monthlyRate: q.monthlyRate,
+        operatorCharges: q.operatorCharges,
+        fuelCharges: q.fuelCharges,
+        deliveryCharges: q.deliveryCharges,
+        pickupCharges: q.pickupCharges,
+        securityDeposit: q.securityDeposit,
+        gstAmount: q.gstAmount,
+        equipmentModel: q.equipmentModel,
+        status: q.status,
+        validTill: q.validTill,
+        request: q.equipment_quote_requests,
+        createdAt: q.createdAt,
+      })),
+      pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
+    });
+  } catch (error: any) {
+    logger.error('Failed to fetch vendor equipment quotes', error);
+    return NextResponse.json({ error: 'Failed to fetch quotes', details: error?.message }, { status: 500 });
+  }
+}
+
+// POST - Submit a new Equipment Quote
+export async function POST(request: NextRequest) {
+  try {
+    const auth = await getVendorAuth(request);
+
+    if (!auth.authenticated || !auth.vendorId) {
+
+      return NextResponse.json({ error: auth.error || 'Unauthorized' }, { status: 401 });
+
+    }
+
+    const vendorId = auth.vendorId;
+
+
+    // Get vendor
+
+    const vendor = await prisma.vendors.findFirst({
+
+      where: { id: vendorId },
+      select: { id: true, businessName: true },
+    });
+
+    if (!vendor) {
+      return NextResponse.json({ error: 'Vendor not found' }, { status: 404 });
+    }
+
+    const body = await request.json();
+    const {
+      requestId,
+      templateId,
+      equipmentName,
+      equipmentCategory,
+      equipmentModel,
+      equipmentYear,
+      equipmentCondition,
+      dailyRate,
+      weeklyRate,
+      monthlyRate,
+      operatorCharges,
+      fuelCharges,
+      deliveryCharges,
+      pickupCharges,
+      securityDeposit,
+      gstAmount,
+      totalAmount: providedTotal,
+      advanceAmount,
+      advancePercent,
+      rentalStartDate,
+      rentalEndDate,
+      rentalDays: providedRentalDays,
+      availableFrom,
+      inclusions,
+      exclusions,
+      termsConditions,
+      validityDays,
+      notes,
+      vendorMessage,
+    } = body;
+
+    if (!requestId) {
+      return NextResponse.json({ error: 'Request ID is required' }, { status: 400 });
+    }
+
+    // Verify request exists and is open for quotes
+    const quoteRequest = await prisma.equipment_quote_requests.findUnique({
+      where: { id: requestId },
+    });
+
+    if (!quoteRequest) {
+      return NextResponse.json({ error: 'Quote request not found' }, { status: 404 });
+    }
+
+    if (quoteRequest.status !== 'PENDING' && quoteRequest.status !== 'QUOTES_RECEIVED') {
+      return NextResponse.json({ error: 'This request is no longer accepting quotes' }, { status: 400 });
+    }
+
+    if (new Date() > new Date(quoteRequest.quotesOpenTill)) {
+      return NextResponse.json({ error: 'Quote submission window has closed' }, { status: 400 });
+    }
+
+    // Check if vendor already submitted a quote
+    const existingQuote = await prisma.equipment_quotes.findFirst({
+      where: { requestId, vendorId: vendorId },
+    });
+
+    if (existingQuote) {
+      return NextResponse.json({ error: 'You have already submitted a quote for this request' }, { status: 400 });
+    }
+
+    // Calculate total based on duration
+    // rentalDuration is the type (daily/weekly/monthly), rentalDays is the actual number
+    let rentalAmount = 0;
+    const durationType = quoteRequest.rentalDuration || 'daily';
+    const rentalDays = quoteRequest.rentalDays || 1;
+    const quantity = quoteRequest.quantity || 1;
+
+    if (durationType === 'monthly' && monthlyRate) {
+      // For monthly, calculate based on months (approximate)
+      const months = Math.ceil(rentalDays / 30);
+      rentalAmount = monthlyRate * months * quantity;
+    } else if (durationType === 'weekly' && weeklyRate) {
+      // For weekly, calculate based on weeks
+      const weeks = Math.ceil(rentalDays / 7);
+      rentalAmount = weeklyRate * weeks * quantity;
+    } else if (dailyRate) {
+      // Default to daily rate
+      rentalAmount = dailyRate * rentalDays * quantity;
+    }
+
+    // Use provided total or calculate
+    const calculatedTotal =
+      rentalAmount +
+      (operatorCharges || 0) +
+      (fuelCharges || 0) +
+      (deliveryCharges || 0) +
+      (pickupCharges || 0) +
+      (gstAmount || 0);
+
+    const totalAmount = providedTotal || calculatedTotal;
+
+    if (totalAmount <= 0) {
+      return NextResponse.json({ error: 'Total amount must be greater than zero' }, { status: 400 });
+    }
+
+    // Get equipment name from request if not provided
+    const finalEquipmentName = equipmentName || quoteRequest.equipmentType || 'Equipment';
+
+    const quoteNumber = generateQuoteNumber();
+    const validTill = new Date();
+    validTill.setDate(validTill.getDate() + (validityDays || 7));
+
+    // Update template usage count if template was used
+    if (templateId) {
+      await prisma.vendor_equipment_templates.update({
+        where: { id: templateId },
+        data: { usageCount: { increment: 1 } },
+      }).catch(() => {}); // Ignore if template not found
+    }
+
+    const quote = await prisma.$transaction(async (tx) => {
+      const newQuote = await tx.equipment_quotes.create({
+        data: {
+          id: generateId(),
+          quoteNumber,
+          requestId,
+          vendorId: vendorId,
+          templateId: templateId || null,
+          equipmentName: finalEquipmentName,
+          equipmentModel: equipmentModel || null,
+          equipmentYear: equipmentYear || null,
+          equipmentCondition: equipmentCondition || null,
+          dailyRate: dailyRate || 0,
+          weeklyRate: weeklyRate || null,
+          monthlyRate: monthlyRate || null,
+          operatorCharges: operatorCharges || 0,
+          fuelCharges: fuelCharges || 0,
+          deliveryCharges: deliveryCharges || 0,
+          pickupCharges: pickupCharges || 0,
+          securityDeposit: securityDeposit || 0,
+          gstAmount: gstAmount || 0,
+          totalAmount,
+          inclusions: Array.isArray(inclusions) ? JSON.stringify(inclusions) : (inclusions || null),
+          exclusions: Array.isArray(exclusions) ? JSON.stringify(exclusions) : (exclusions || null),
+          termsConditions: Array.isArray(termsConditions) ? JSON.stringify(termsConditions) : (termsConditions || null),
+          notes: notes || vendorMessage || null,
+          status: 'SENT',
+          validTill,
+        },
+      });
+
+      // Update request status and quote count
+      await tx.equipment_quote_requests.update({
+        where: { id: requestId },
+        data: {
+          status: 'QUOTES_RECEIVED',
+          totalQuotesReceived: { increment: 1 },
+        },
+      });
+
+      return newQuote;
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: 'Quote submitted successfully',
+      quote: {
+        id: quote.id,
+        quoteNumber: quote.quoteNumber,
+        totalAmount: quote.totalAmount,
+        status: quote.status,
+        validTill: quote.validTill,
+      },
+    });
+  } catch (error: any) {
+    logger.error('Failed to submit equipment quote', error);
+    return NextResponse.json({ error: 'Failed to submit quote', details: error?.message }, { status: 500 });
+  }
+}
+
+// PATCH - Update an Equipment Quote (before accepted)
+export async function PATCH(request: NextRequest) {
+  try {
+    const auth = await getVendorAuth(request);
+
+    if (!auth.authenticated || !auth.vendorId) {
+
+      return NextResponse.json({ error: auth.error || 'Unauthorized' }, { status: 401 });
+
+    }
+
+    const vendorId = auth.vendorId;
+
+    const body = await request.json();
+    const { quoteId, ...updateData } = body;
+
+    if (!quoteId) {
+      return NextResponse.json({ error: 'Quote ID is required' }, { status: 400 });
+    }
+
+    const quote = await prisma.equipment_quotes.findUnique({
+      where: { id: quoteId },
+      include: { request: true },
+    });
+
+    if (!quote) {
+      return NextResponse.json({ error: 'Quote not found' }, { status: 404 });
+    }
+
+    if (quote.vendorId !== vendorId) {
+      return NextResponse.json({ error: 'Unauthorized to update this quote' }, { status: 403 });
+    }
+
+    if (quote.status !== 'DRAFT' && quote.status !== 'SENT') {
+      return NextResponse.json({ error: 'Cannot update quote in current status' }, { status: 400 });
+    }
+
+    // Recalculate total if rates are updated
+    const dailyRate = updateData.dailyRate ?? quote.dailyRate;
+    const weeklyRate = updateData.weeklyRate ?? quote.weeklyRate;
+    const monthlyRate = updateData.monthlyRate ?? quote.monthlyRate;
+    const operatorCharges = updateData.operatorCharges ?? quote.operatorCharges;
+    const fuelCharges = updateData.fuelCharges ?? quote.fuelCharges;
+    const deliveryCharges = updateData.deliveryCharges ?? quote.deliveryCharges;
+    const pickupCharges = updateData.pickupCharges ?? quote.pickupCharges;
+    const gstAmount = updateData.gstAmount ?? quote.gstAmount;
+
+    const durationType = quote.request.rentalDuration || 'daily';
+    const rentalDays = quote.request.rentalDays || 1;
+    const quantity = quote.request.quantity || 1;
+
+    let rentalAmount = 0;
+    if (durationType === 'monthly' && monthlyRate) {
+      const months = Math.ceil(rentalDays / 30);
+      rentalAmount = monthlyRate * months * quantity;
+    } else if (durationType === 'weekly' && weeklyRate) {
+      const weeks = Math.ceil(rentalDays / 7);
+      rentalAmount = weeklyRate * weeks * quantity;
+    } else if (dailyRate) {
+      rentalAmount = dailyRate * rentalDays * quantity;
+    }
+
+    const totalAmount = rentalAmount + operatorCharges + fuelCharges + deliveryCharges + pickupCharges + gstAmount;
+
+    const updatedQuote = await prisma.equipment_quotes.update({
+      where: { id: quoteId },
+      data: {
+        ...updateData,
+        totalAmount,
+      },
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: 'Quote updated successfully',
+      quote: {
+        id: updatedQuote.id,
+        quoteNumber: updatedQuote.quoteNumber,
+        totalAmount: updatedQuote.totalAmount,
+        status: updatedQuote.status,
+      },
+    });
+  } catch (error: any) {
+    logger.error('Failed to update equipment quote', error);
+    return NextResponse.json({ error: 'Failed to update quote', details: error?.message }, { status: 500 });
+  }
+}

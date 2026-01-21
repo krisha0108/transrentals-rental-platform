@@ -1,0 +1,2802 @@
+[
+  {
+    "fromPath": "/transporter/transporter-in-ahmedabad/",
+    "toPath": "/transporter/ahmedabad/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Ahmedabad",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-agra/",
+    "toPath": "/transporter/agra/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Agra",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-katni-madhya-pradesh/",
+    "toPath": "/transporter/katni-madhya-pradesh/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Katni Madhya Pradesh",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-ahmedabad-to-rajkot/",
+    "toPath": "/transporter/ahmedabad-to-rajkot/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Ahmedabad To Rajkot",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-kerala/",
+    "toPath": "/transporter/kerala/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Kerala",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-ahmednagar/",
+    "toPath": "/transporter/ahmednagar/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Ahmednagar",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-lucknow/",
+    "toPath": "/transporter/lucknow/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Lucknow",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-madhya-pradesh/",
+    "toPath": "/transporter/madhya-pradesh/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Madhya Pradesh",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-kolkata/",
+    "toPath": "/transporter/kolkata/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Kolkata",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-kochi/",
+    "toPath": "/transporter/kochi/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Kochi",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-kolhapur/",
+    "toPath": "/transporter/kolhapur/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Kolhapur",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-ajmer/",
+    "toPath": "/transporter/ajmer/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Ajmer",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-aligarh/",
+    "toPath": "/transporter/aligarh/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Aligarh",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-ludhiana/",
+    "toPath": "/transporter/ludhiana/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Ludhiana",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-allahabad/",
+    "toPath": "/transporter/allahabad/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Allahabad",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-kota/",
+    "toPath": "/transporter/kota/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Kota",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-manipur/",
+    "toPath": "/transporter/manipur/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Manipur",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-maharashtra/",
+    "toPath": "/transporter/maharashtra/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Maharashtra",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-mangalore/",
+    "toPath": "/transporter/mangalore/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Mangalore",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-alwar/",
+    "toPath": "/transporter/alwar/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Alwar",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-ambala/",
+    "toPath": "/transporter/ambala/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Ambala",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-mira-road/",
+    "toPath": "/transporter/mira-road/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Mira Road",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-mathura/",
+    "toPath": "/transporter/mathura/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Mathura",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-meerut/",
+    "toPath": "/transporter/meerut/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Meerut",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-amravati/",
+    "toPath": "/transporter/amravati/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Amravati",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-amritsar/",
+    "toPath": "/transporter/amritsar/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Amritsar",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-morbi/",
+    "toPath": "/transporter/morbi/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Morbi",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-mumbai/",
+    "toPath": "/transporter/mumbai/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Mumbai",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-mohali/",
+    "toPath": "/transporter/mohali/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Mohali",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-moradabad/",
+    "toPath": "/transporter/moradabad/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Moradabad",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-andhra-pradesh/",
+    "toPath": "/transporter/andhra-pradesh/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Andhra Pradesh",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-ankleshwar/",
+    "toPath": "/transporter/ankleshwar/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Ankleshwar",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-assam/",
+    "toPath": "/transporter/assam/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Assam",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-aurangabad/",
+    "toPath": "/transporter/aurangabad/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Aurangabad",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-mysore/",
+    "toPath": "/transporter/mysore/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Mysore",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-nagpur/",
+    "toPath": "/transporter/nagpur/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Nagpur",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-mumbai-to-gujarat/",
+    "toPath": "/transporter/mumbai-to-gujarat/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Mumbai To Gujarat",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-mundra/",
+    "toPath": "/transporter/mundra/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Mundra",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-bangalore/",
+    "toPath": "/transporter/bangalore/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Bangalore",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-bangalore-to-hyderabad/",
+    "toPath": "/transporter/bangalore-to-hyderabad/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Bangalore To Hyderabad",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-bathinda/",
+    "toPath": "/transporter/bathinda/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Bathinda",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-mumbai-to-goa/",
+    "toPath": "/transporter/mumbai-to-goa/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Mumbai To Goa",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-belgaum/",
+    "toPath": "/transporter/belgaum/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Belgaum",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-bharuch/",
+    "toPath": "/transporter/bharuch/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Bharuch",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-mumbai-to-pune/",
+    "toPath": "/transporter/mumbai-to-pune/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Mumbai To Pune",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-bhavnagar/",
+    "toPath": "/transporter/bhavnagar/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Bhavnagar",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-bhiwadi/",
+    "toPath": "/transporter/bhiwadi/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Bhiwadi",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-navi-mumbai/",
+    "toPath": "/transporter/navi-mumbai/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Navi Mumbai",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-navsari/",
+    "toPath": "/transporter/navsari/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Navsari",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-nashik/",
+    "toPath": "/transporter/nashik/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Nashik",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-nashik-to-pune/",
+    "toPath": "/transporter/nashik-to-pune/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Nashik To Pune",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-nanded/",
+    "toPath": "/transporter/nanded/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Nanded",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-bhiwandi/",
+    "toPath": "/transporter/bhiwandi/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Bhiwandi",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-bhopal/",
+    "toPath": "/transporter/bhopal/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Bhopal",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-bhosari/",
+    "toPath": "/transporter/bhosari/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Bhosari",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-nellore/",
+    "toPath": "/transporter/nellore/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Nellore",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-noida/",
+    "toPath": "/transporter/noida/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Noida",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-bhubaneswar/",
+    "toPath": "/transporter/bhubaneswar/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Bhubaneswar",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-bhuj/",
+    "toPath": "/transporter/bhuj/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Bhuj",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-bihar/",
+    "toPath": "/transporter/bihar/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Bihar",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-chakan/",
+    "toPath": "/transporter/chakan/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Chakan",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-chandigarh/",
+    "toPath": "/transporter/chandigarh/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Chandigarh",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-odisha/",
+    "toPath": "/transporter/odisha/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Odisha",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-chandrapur/",
+    "toPath": "/transporter/chandrapur/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Chandrapur",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-chennai/",
+    "toPath": "/transporter/chennai/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Chennai",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-okhla/",
+    "toPath": "/transporter/okhla/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Okhla",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-panipat/",
+    "toPath": "/transporter/panipat/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Panipat",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-pathankot/",
+    "toPath": "/transporter/pathankot/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Pathankot",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-patiala/",
+    "toPath": "/transporter/patiala/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Patiala",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-patna/",
+    "toPath": "/transporter/patna/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Patna",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-chhattisgarh/",
+    "toPath": "/transporter/chhattisgarh/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Chhattisgarh",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-cuttack/",
+    "toPath": "/transporter/cuttack/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Cuttack",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-dehradun/",
+    "toPath": "/transporter/dehradun/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Dehradun",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-delhi/",
+    "toPath": "/transporter/delhi/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Delhi",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-pune/",
+    "toPath": "/transporter/pune/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Pune",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-pondicherry/",
+    "toPath": "/transporter/pondicherry/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Pondicherry",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-pune-to-mumbai/",
+    "toPath": "/transporter/pune-to-mumbai/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Pune To Mumbai",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-raigarh/",
+    "toPath": "/transporter/raigarh/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Raigarh",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-punjab/",
+    "toPath": "/transporter/punjab/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Punjab",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-dhanbad/",
+    "toPath": "/transporter/dhanbad/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Dhanbad",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-dhule/",
+    "toPath": "/transporter/dhule/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Dhule",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-raipur/",
+    "toPath": "/transporter/raipur/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Raipur",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-rajahmundry/",
+    "toPath": "/transporter/rajahmundry/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Rajahmundry",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-rajasthan/",
+    "toPath": "/transporter/rajasthan/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Rajasthan",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-ranchi/",
+    "toPath": "/transporter/ranchi/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Ranchi",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-rajkot/",
+    "toPath": "/transporter/rajkot/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Rajkot",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-durgapur/",
+    "toPath": "/transporter/durgapur/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Durgapur",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-dwarka-delhi/",
+    "toPath": "/transporter/dwarka-delhi/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Dwarka Delhi",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-ernakulam/",
+    "toPath": "/transporter/ernakulam/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Ernakulam",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-faridabad/",
+    "toPath": "/transporter/faridabad/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Faridabad",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-satara/",
+    "toPath": "/transporter/satara/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Satara",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-sarkhej-ahmedabad/",
+    "toPath": "/transporter/sarkhej-ahmedabad/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Sarkhej Ahmedabad",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-sangli/",
+    "toPath": "/transporter/sangli/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Sangli",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-saharanpur/",
+    "toPath": "/transporter/saharanpur/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Saharanpur",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-sambalpur/",
+    "toPath": "/transporter/sambalpur/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Sambalpur",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-rudrapur/",
+    "toPath": "/transporter/rudrapur/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Rudrapur",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-rourkela/",
+    "toPath": "/transporter/rourkela/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Rourkela",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-ratnagiri/",
+    "toPath": "/transporter/ratnagiri/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Ratnagiri",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-gandhidham/",
+    "toPath": "/transporter/gandhidham/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Gandhidham",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-ghaziabad/",
+    "toPath": "/transporter/ghaziabad/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Ghaziabad",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-goa/",
+    "toPath": "/transporter/goa/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Goa",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-gorakhpur/",
+    "toPath": "/transporter/gorakhpur/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Gorakhpur",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-gujarat/",
+    "toPath": "/transporter/gujarat/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Gujarat",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-gulbarga/",
+    "toPath": "/transporter/gulbarga/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Gulbarga",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-guntur/",
+    "toPath": "/transporter/guntur/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Guntur",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-guwahati/",
+    "toPath": "/transporter/guwahati/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Guwahati",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-solapur/",
+    "toPath": "/transporter/solapur/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Solapur",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-siliguri/",
+    "toPath": "/transporter/siliguri/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Siliguri",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-silvassa/",
+    "toPath": "/transporter/silvassa/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Silvassa",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-satna/",
+    "toPath": "/transporter/satna/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Satna",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-gwalior/",
+    "toPath": "/transporter/gwalior/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Gwalior",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-hadapsar/",
+    "toPath": "/transporter/hadapsar/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Hadapsar",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-haldia/",
+    "toPath": "/transporter/haldia/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Haldia",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-haldwani/",
+    "toPath": "/transporter/haldwani/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Haldwani",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-harbour/",
+    "toPath": "/transporter/harbour/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Harbour",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-haridwar/",
+    "toPath": "/transporter/haridwar/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Haridwar",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-telangana/",
+    "toPath": "/transporter/telangana/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Telangana",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-surat/",
+    "toPath": "/transporter/surat/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Surat",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-tamilnadu/",
+    "toPath": "/transporter/tamilnadu/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Tamilnadu",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-tarapur/",
+    "toPath": "/transporter/tarapur/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Tarapur",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-sonipat/",
+    "toPath": "/transporter/sonipat/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Sonipat",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-srinagar/",
+    "toPath": "/transporter/srinagar/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Srinagar",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-haryana/",
+    "toPath": "/transporter/haryana/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Haryana",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-himatnagar/",
+    "toPath": "/transporter/himatnagar/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Himatnagar",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-hisar/",
+    "toPath": "/transporter/hisar/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Hisar",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-hosur/",
+    "toPath": "/transporter/hosur/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Hosur",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-tumkur/",
+    "toPath": "/transporter/tumkur/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Tumkur",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-trivandrum/",
+    "toPath": "/transporter/trivandrum/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Trivandrum",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-trichy/",
+    "toPath": "/transporter/trichy/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Trichy",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-thane/",
+    "toPath": "/transporter/thane/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Thane",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-tirupati/",
+    "toPath": "/transporter/tirupati/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Tirupati",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-coimbatore/",
+    "toPath": "/transporter/coimbatore/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Coimbatore",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-howrah/",
+    "toPath": "/transporter/howrah/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Howrah",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-hubli/",
+    "toPath": "/transporter/hubli/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Hubli",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-hyderabad/",
+    "toPath": "/transporter/hyderabad/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Hyderabad",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-imphal/",
+    "toPath": "/transporter/imphal/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Imphal",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-indore/",
+    "toPath": "/transporter/indore/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Indore",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-jabalpur/",
+    "toPath": "/transporter/jabalpur/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Jabalpur",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-jaipur/",
+    "toPath": "/transporter/jaipur/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Jaipur",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-uttarakhand/",
+    "toPath": "/transporter/uttarakhand/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Uttarakhand",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-ujjain/",
+    "toPath": "/transporter/ujjain/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Ujjain",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-uttar-pradesh/",
+    "toPath": "/transporter/uttar-pradesh/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Uttar Pradesh",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-tuticorin/",
+    "toPath": "/transporter/tuticorin/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Tuticorin",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-udaipur/",
+    "toPath": "/transporter/udaipur/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Udaipur",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-jaisalmer/",
+    "toPath": "/transporter/jaisalmer/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Jaisalmer",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-jalandhar/",
+    "toPath": "/transporter/jalandhar/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Jalandhar",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-jalgaon/",
+    "toPath": "/transporter/jalgaon/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Jalgaon",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-jalna/",
+    "toPath": "/transporter/jalna/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Jalna",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-jammu/",
+    "toPath": "/transporter/jammu/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Jammu",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-jamnagar/",
+    "toPath": "/transporter/jamnagar/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Jamnagar",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-jamshedpur/",
+    "toPath": "/transporter/jamshedpur/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Jamshedpur",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-yamunanagar/",
+    "toPath": "/transporter/yamunanagar/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Yamunanagar",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-zirakpur/",
+    "toPath": "/transporter/zirakpur/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Zirakpur",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-west-bengal/",
+    "toPath": "/transporter/west-bengal/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in West Bengal",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-vijayawada/",
+    "toPath": "/transporter/vijayawada/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Vijayawada",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-vizag/",
+    "toPath": "/transporter/vizag/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Vizag",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-vasai/",
+    "toPath": "/transporter/vasai/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Vasai",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-vashi/",
+    "toPath": "/transporter/vashi/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Vashi",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-varanasi/",
+    "toPath": "/transporter/varanasi/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Varanasi",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-vapi/",
+    "toPath": "/transporter/vapi/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Vapi",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-vadodara/",
+    "toPath": "/transporter/vadodara/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Vadodara",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-jhansi/",
+    "toPath": "/transporter/jhansi/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Jhansi",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-jharkhand/",
+    "toPath": "/transporter/jharkhand/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Jharkhand",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-jharsuguda/",
+    "toPath": "/transporter/jharsuguda/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Jharsuguda",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-jodhpur/",
+    "toPath": "/transporter/jodhpur/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Jodhpur",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-junagadh/",
+    "toPath": "/transporter/junagadh/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Junagadh",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-kakinada/",
+    "toPath": "/transporter/kakinada/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Kakinada",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-karnal/",
+    "toPath": "/transporter/karnal/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Karnal",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-kashmir/",
+    "toPath": "/transporter/kashmir/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Kashmir",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-karnataka/",
+    "toPath": "/transporter/karnataka/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Karnataka",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-kalyan/",
+    "toPath": "/transporter/kalyan/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Kalyan",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-kanpur/",
+    "toPath": "/transporter/kanpur/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Kanpur",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-kalyan-dombivali/",
+    "toPath": "/transporter/kalyan-dombivali/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Kalyan-Dombivali",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-dombivali/",
+    "toPath": "/transporter/dombivali/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Dombivali",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-hubballi/",
+    "toPath": "/transporter/hubballi/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Hubballi",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-hubballi-dharwad/",
+    "toPath": "/transporter/hubballi-dharwad/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Hubballi-Dharwad",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-tiruchirappalli/",
+    "toPath": "/transporter/tiruchirappalli/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Tiruchirappalli",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-dharwad/",
+    "toPath": "/transporter/dharwad/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Dharwad",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-tiruppur/",
+    "toPath": "/transporter/tiruppur/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Tiruppur",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-salem/",
+    "toPath": "/transporter/salem/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Salem",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-bhayandar/",
+    "toPath": "/transporter/bhayandar/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Bhayandar",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-thiruvananthapuram/",
+    "toPath": "/transporter/thiruvananthapuram/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Thiruvananthapuram",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-bhilai/",
+    "toPath": "/transporter/bhilai/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Bhilai",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-loni/",
+    "toPath": "/transporter/loni/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Loni",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-sangli-miraj-kupwad/",
+    "toPath": "/transporter/sangli-miraj-kupwad/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Sangli-Miraj & Kupwad",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-miraj-kupwad/",
+    "toPath": "/transporter/miraj-kupwad/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Miraj Kupwad",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-ambattur/",
+    "toPath": "/transporter/ambattur/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Ambattur",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-tirunelveli/",
+    "toPath": "/transporter/tirunelveli/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Tirunelveli",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-malegaon/",
+    "toPath": "/transporter/malegaon/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Malegaon",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-gaya/",
+    "toPath": "/transporter/gaya/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Gaya",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-maheshtala/",
+    "toPath": "/transporter/maheshtala/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Maheshtala",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-davanagere/",
+    "toPath": "/transporter/davanagere/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Davanagere",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-kurnool/",
+    "toPath": "/transporter/kurnool/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Kurnool",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-rajpur-sonarpur/",
+    "toPath": "/transporter/rajpur-sonarpur/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Rajpur Sonarpur",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-bokaro-steel-city/",
+    "toPath": "/transporter/bokaro-steel-city/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Bokaro Steel City",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-south-dumdum/",
+    "toPath": "/transporter/south-dumdum/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in South Dumdum",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-bellary/",
+    "toPath": "/transporter/bellary/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Bellary",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-gopalpur/",
+    "toPath": "/transporter/gopalpur/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Gopalpur",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-agartala/",
+    "toPath": "/transporter/agartala/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Agartala",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-bhagalpur/",
+    "toPath": "/transporter/bhagalpur/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Bhagalpur",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-bhatpara/",
+    "toPath": "/transporter/bhatpara/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Bhatpara",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-panihati/",
+    "toPath": "/transporter/panihati/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Panihati",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-rohtak/",
+    "toPath": "/transporter/rohtak/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Rohtak",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-korba/",
+    "toPath": "/transporter/korba/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Korba",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-berhampur/",
+    "toPath": "/transporter/berhampur/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Berhampur",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-muzaffarpur/",
+    "toPath": "/transporter/muzaffarpur/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Muzaffarpur",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-kollam/",
+    "toPath": "/transporter/kollam/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Kollam",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-avadi/",
+    "toPath": "/transporter/avadi/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Avadi",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-kadapa/",
+    "toPath": "/transporter/kadapa/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Kadapa",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-kamarhati/",
+    "toPath": "/transporter/kamarhati/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Kamarhati",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-bilaspur/",
+    "toPath": "/transporter/bilaspur/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Bilaspur",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-bijapur/",
+    "toPath": "/transporter/bijapur/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Bijapur",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-shivamogga/",
+    "toPath": "/transporter/shivamogga/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Shivamogga",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-bardhaman/",
+    "toPath": "/transporter/bardhaman/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Bardhaman",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-kulti/",
+    "toPath": "/transporter/kulti/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Kulti",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-nizamabad/",
+    "toPath": "/transporter/nizamabad/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Nizamabad",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-khammam/",
+    "toPath": "/transporter/khammam/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Khammam",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-ozhukarai/",
+    "toPath": "/transporter/ozhukarai/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Ozhukarai",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-bihar-sharif/",
+    "toPath": "/transporter/bihar-sharif/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Bihar Sharif",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-darbhanga/",
+    "toPath": "/transporter/darbhanga/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Darbhanga",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-bally/",
+    "toPath": "/transporter/bally/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Bally",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-aizawl/",
+    "toPath": "/transporter/aizawl/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Aizawl",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-kirari-suleman-nagar/",
+    "toPath": "/transporter/kirari-suleman-nagar/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Kirari Suleman Nagar",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-barasat/",
+    "toPath": "/transporter/barasat/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Barasat",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-jehanabad/",
+    "toPath": "/transporter/jehanabad/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Jehanabad",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-buxar/",
+    "toPath": "/transporter/buxar/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Buxar",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-amaravati/",
+    "toPath": "/transporter/amaravati/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Amaravati",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-purnia-2/",
+    "toPath": "/transporter/purnia-2/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Purnia",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-tadepalligudem/",
+    "toPath": "/transporter/tadepalligudem/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Tadepalligudem",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-kavali/",
+    "toPath": "/transporter/kavali/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Kavali",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-durg/",
+    "toPath": "/transporter/durg/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Durg",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-arrah/",
+    "toPath": "/transporter/arrah/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Arrah",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-jamalpur/",
+    "toPath": "/transporter/jamalpur/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Jamalpur",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-karimnagar/",
+    "toPath": "/transporter/karimnagar/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Karimnagar",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-suryapet/",
+    "toPath": "/transporter/suryapet/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Suryapet",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-anantapur/",
+    "toPath": "/transporter/anantapur/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Anantapur",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-karaikudi/",
+    "toPath": "/transporter/karaikudi/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Karaikudi",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-ambernath/",
+    "toPath": "/transporter/ambernath/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Ambernath",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-baranagar/",
+    "toPath": "/transporter/baranagar/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Baranagar",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-kishanganj/",
+    "toPath": "/transporter/kishanganj/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Kishanganj",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-north-dumdum/",
+    "toPath": "/transporter/north-dumdum/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in North Dumdum",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-begusarai/",
+    "toPath": "/transporter/begusarai/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Begusarai",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-tadipatri/",
+    "toPath": "/transporter/tadipatri/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Tadipatri",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-miryalaguda/",
+    "toPath": "/transporter/miryalaguda/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Miryalaguda",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-tiruvottiyur/",
+    "toPath": "/transporter/tiruvottiyur/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Tiruvottiyur",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-thoothukudi/",
+    "toPath": "/transporter/thoothukudi/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Thoothukudi",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-bagaha/",
+    "toPath": "/transporter/bagaha/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Narasaraopet",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-mirzapur/",
+    "toPath": "/transporter/mirzapur/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Mirzapur",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-narasaraopet/",
+    "toPath": "/transporter/narasaraopet/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Narasaraopet",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-gudivada/",
+    "toPath": "/transporter/gudivada/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Gudivada",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-raichur/",
+    "toPath": "/transporter/raichur/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Raichur",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-ramagundam/",
+    "toPath": "/transporter/ramagundam/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Ramagundam",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-dharmavaram/",
+    "toPath": "/transporter/dharmavaram/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Dharmavaram",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-vijayanagaram/",
+    "toPath": "/transporter/vijayanagaram/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Vijayanagaram",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-katihar/",
+    "toPath": "/transporter/katihar/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Katihar",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-motihari/",
+    "toPath": "/transporter/motihari/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Motihari",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-nagercoil/",
+    "toPath": "/transporter/nagercoil/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Nagercoil",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-srikakulam/",
+    "toPath": "/transporter/srikakulam/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Srikakulam",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-karawal-nagar/",
+    "toPath": "/transporter/karawal-nagar/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Karawal Nagar",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-guntakal/",
+    "toPath": "/transporter/guntakal/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Guntakal",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-thanjavur/",
+    "toPath": "/transporter/thanjavur/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Thanjavur",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-bettiah/",
+    "toPath": "/transporter/bettiah/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Bettiah",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-uluberia/",
+    "toPath": "/transporter/uluberia/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Uluberia",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-siwan/",
+    "toPath": "/transporter/siwan/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Siwan",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-katni/",
+    "toPath": "/transporter/katni/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Katni",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-madanapalle/",
+    "toPath": "/transporter/madanapalle/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Madanapalle",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-sambhal/",
+    "toPath": "/transporter/sambhal/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Sambhal",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-dehri/",
+    "toPath": "/transporter/dehri/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Dehri",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-bhimavaram/",
+    "toPath": "/transporter/bhimavaram/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Bhimavaram",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-sasaram/",
+    "toPath": "/transporter/sasaram/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Sasaram",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-hajipur/",
+    "toPath": "/transporter/hajipur/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Hajipur",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-secunderabad/",
+    "toPath": "/transporter/secunderabad/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Secunderabad",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-hindupuram/",
+    "toPath": "/transporter/hindupuram/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Hindupuram",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-naihati/",
+    "toPath": "/transporter/naihati/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Naihati",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-saharsa/",
+    "toPath": "/transporter/saharsa/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Saharsa",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-proddatur/",
+    "toPath": "/transporter/proddatur/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Proddatur",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-tenali/",
+    "toPath": "/transporter/tenali/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Tenali",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-adoni/",
+    "toPath": "/transporter/adoni/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Adoni",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-machilipatnam/",
+    "toPath": "/transporter/machilipatnam/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Machilipatnam",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-kottayam/",
+    "toPath": "/transporter/kottayam/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Kottayam",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-alappuzha/",
+    "toPath": "/transporter/alappuzha/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Alappuzha",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-chinsurah/",
+    "toPath": "/transporter/chinsurah/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Chinsurah",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-hugli/",
+    "toPath": "/transporter/hugli/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Hugli",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-hugli-and-chinsurah/",
+    "toPath": "/transporter/hugli-and-chinsurah/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Hugli and Chinsurah",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-sultanpur-majra/",
+    "toPath": "/transporter/sultanpur-majra/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Sultanpur Majra",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-serampore/",
+    "toPath": "/transporter/serampore/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Serampore",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-danapur/",
+    "toPath": "/transporter/danapur/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Danapur",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-sirsa/",
+    "toPath": "/transporter/sirsa/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Sirsa",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-raiganj/",
+    "toPath": "/transporter/raiganj/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Raiganj",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-mehsana/",
+    "toPath": "/transporter/mehsana/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Mehsana",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-khora/",
+    "toPath": "/transporter/khora/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Khora",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-rae-bareli/",
+    "toPath": "/transporter/rae-bareli/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Rae Bareli",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-baharampur/",
+    "toPath": "/transporter/baharampur/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Baharampur",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-bhiwani/",
+    "toPath": "/transporter/bhiwani/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Bhiwani",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-madhyamgram/",
+    "toPath": "/transporter/madhyamgram/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Madhyamgram",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-bhalswa-jahangir-pur/",
+    "toPath": "/transporter/bhalswa-jahangir-pur/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Bhalswa Jahangir Pur",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-chittoor/",
+    "toPath": "/transporter/chittoor/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Chittoor",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-nandyal/",
+    "toPath": "/transporter/nandyal/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Nandyal",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-chapra/",
+    "toPath": "/transporter/chapra/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Chapra",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-deoghar/",
+    "toPath": "/transporter/deoghar/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Deoghar",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-nangloi-jat/",
+    "toPath": "/transporter/nangloi-jat/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Nangloi Jat",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-dindigul/",
+    "toPath": "/transporter/dindigul/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Dindigul",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-kharagpur/",
+    "toPath": "/transporter/kharagpur/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Kharagpur",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-raurkela-industrial-township/",
+    "toPath": "/transporter/raurkela-industrial-township/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Raurkela Industrial Township",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-burhanpur/",
+    "toPath": "/transporter/burhanpur/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Burhanpur",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-panchkula/",
+    "toPath": "/transporter/panchkula/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Panchkula",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-munger/",
+    "toPath": "/transporter/munger/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Munger",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-bidhan-nagar/",
+    "toPath": "/transporter/bidhan-nagar/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Bidhan Nagar",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-pallavaram/",
+    "toPath": "/transporter/pallavaram/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Pallavaram",
+    "isActive": true
+  },
+  {
+    "fromPath": "/transporter/transporter-in-bidar/",
+    "toPath": "/transporter/bidar/",
+    "type": "PERMANENT",
+    "description": "Transporter: Transporter in Bidar",
+    "isActive": true
+  },
+  {
+    "fromPath": "/one-way-taxi-cab/ahmedabad/",
+    "toPath": "/one-way-car-rental/ahmedabad/",
+    "type": "PERMANENT",
+    "description": "One Way: Ahmedabad",
+    "isActive": true
+  },
+  {
+    "fromPath": "/one-way-taxi-cab/vadodara/",
+    "toPath": "/one-way-car-rental/vadodara/",
+    "type": "PERMANENT",
+    "description": "One Way: Vadodara",
+    "isActive": true
+  },
+  {
+    "fromPath": "/one-way-taxi-cab/",
+    "toPath": "/one-way-car-rental/",
+    "type": "PERMANENT",
+    "description": "One Way: One Way Cab",
+    "isActive": true
+  },
+  {
+    "fromPath": "/one-way-taxi-cab/one-way-outstation-cab/",
+    "toPath": "/one-way-car-rental/one-way-outstation-cab/",
+    "type": "PERMANENT",
+    "description": "One Way: One Way Outstation Cab",
+    "isActive": true
+  },
+  {
+    "fromPath": "/one-way-taxi-cab/one-way-taxi-service/",
+    "toPath": "/one-way-car-rental/one-way-taxi-service/",
+    "type": "PERMANENT",
+    "description": "One Way: One Way Taxi Service",
+    "isActive": true
+  },
+  {
+    "fromPath": "/one-way-taxi-cab/one-way-drop-taxi/",
+    "toPath": "/one-way-car-rental/one-way-drop-taxi/",
+    "type": "PERMANENT",
+    "description": "One Way: One Way Drop Taxi",
+    "isActive": true
+  },
+  {
+    "fromPath": "/one-way-taxi-cab/one-way-cab-booking/",
+    "toPath": "/one-way-car-rental/one-way-cab-booking/",
+    "type": "PERMANENT",
+    "description": "One Way: One Way Cab booking",
+    "isActive": true
+  },
+  {
+    "fromPath": "/one-way-taxi-cab/one-way-taxi-service-near-me/",
+    "toPath": "/one-way-car-rental/one-way-taxi-service-near-me/",
+    "type": "PERMANENT",
+    "description": "One Way: one way taxi service near me",
+    "isActive": true
+  },
+  {
+    "fromPath": "/one-way-taxi-cab/ahmedabad-to-vadodara/",
+    "toPath": "/one-way-car-rental/ahmedabad-to-vadodara/",
+    "type": "PERMANENT",
+    "description": "One Way: One Way Cab Ahmedabad to Vadodara",
+    "isActive": true
+  },
+  {
+    "fromPath": "/one-way-taxi-cab/one-way-cab-ahmedabad-to-rajkot/",
+    "toPath": "/one-way-car-rental/one-way-cab-ahmedabad-to-rajkot/",
+    "type": "PERMANENT",
+    "description": "One Way: One Way Cab Ahmedabad to Rajkot",
+    "isActive": true
+  },
+  {
+    "fromPath": "/one-way-taxi-cab/surat-to-mumbai/",
+    "toPath": "/one-way-car-rental/surat-to-mumbai/",
+    "type": "PERMANENT",
+    "description": "One Way: One Way Cab From Surat to Mumbai",
+    "isActive": true
+  },
+  {
+    "fromPath": "/one-way-taxi-cab/ahmedabad-to-surat/",
+    "toPath": "/one-way-car-rental/ahmedabad-to-surat/",
+    "type": "PERMANENT",
+    "description": "One Way: One Way Cab Ahmedabad to Surat",
+    "isActive": true
+  },
+  {
+    "fromPath": "/one-way-taxi-cab/vadodara-to-ahmedabad-airport/",
+    "toPath": "/one-way-car-rental/vadodara-to-ahmedabad-airport/",
+    "type": "PERMANENT",
+    "description": "One Way: One Way Cab Vadodara to Ahmedabad Airport",
+    "isActive": true
+  },
+  {
+    "fromPath": "/one-way-taxi-cab/ahmedabad-to-udaipur/",
+    "toPath": "/one-way-car-rental/ahmedabad-to-udaipur/",
+    "type": "PERMANENT",
+    "description": "One Way: One Way Taxi Ahmedabad to Udaipur",
+    "isActive": true
+  },
+  {
+    "fromPath": "/one-way-taxi-cab/vadodara-to-ahmedabad/",
+    "toPath": "/one-way-car-rental/vadodara-to-ahmedabad/",
+    "type": "PERMANENT",
+    "description": "One Way: One Way Taxi Vadodara To Ahmedabad",
+    "isActive": true
+  },
+  {
+    "fromPath": "/one-way-taxi-cab/vadodara-to-surat/",
+    "toPath": "/one-way-car-rental/vadodara-to-surat/",
+    "type": "PERMANENT",
+    "description": "One Way: One Way Cab Vadodara to Surat",
+    "isActive": true
+  },
+  {
+    "fromPath": "/one-way-taxi-cab/vadodara-to-rajkot/",
+    "toPath": "/one-way-car-rental/vadodara-to-rajkot/",
+    "type": "PERMANENT",
+    "description": "One Way: One Way Cab Vadodara to Rajkot",
+    "isActive": true
+  },
+  {
+    "fromPath": "/one-way-taxi-cab/rajkot-to-ahmedabad/",
+    "toPath": "/one-way-car-rental/rajkot-to-ahmedabad/",
+    "type": "PERMANENT",
+    "description": "One Way: One Way Taxi Rajkot To Ahmedabad",
+    "isActive": true
+  },
+  {
+    "fromPath": "/one-way-taxi-cab/ahmedabad-to-mumbai/",
+    "toPath": "/one-way-car-rental/ahmedabad-to-mumbai/",
+    "type": "PERMANENT",
+    "description": "One Way: One Way Cab Ahmedabad to Mumbai",
+    "isActive": true
+  },
+  {
+    "fromPath": "/one-way-taxi-cab/gandhidham-to-ahmedabad/",
+    "toPath": "/one-way-car-rental/gandhidham-to-ahmedabad/",
+    "type": "PERMANENT",
+    "description": "One Way: One Way Cab Gandhidham to Ahmedabad",
+    "isActive": true
+  },
+  {
+    "fromPath": "/one-way-taxi-cab/vadodara-to-mumbai/",
+    "toPath": "/one-way-car-rental/vadodara-to-mumbai/",
+    "type": "PERMANENT",
+    "description": "One Way: One Way Cab Vadodara to Mumbai",
+    "isActive": true
+  },
+  {
+    "fromPath": "/one-way-taxi-cab/surat-to-vadodara/",
+    "toPath": "/one-way-car-rental/surat-to-vadodara/",
+    "type": "PERMANENT",
+    "description": "One Way: One Way Cab Surat to Vadodara",
+    "isActive": true
+  },
+  {
+    "fromPath": "/one-way-taxi-cab/chandigarh-to-delhi/",
+    "toPath": "/one-way-car-rental/chandigarh-to-delhi/",
+    "type": "PERMANENT",
+    "description": "One Way: One Way Cab Chandigarh to Delhi",
+    "isActive": true
+  },
+  {
+    "fromPath": "/one-way-taxi-cab/jaipur-to-delhi/",
+    "toPath": "/one-way-car-rental/jaipur-to-delhi/",
+    "type": "PERMANENT",
+    "description": "One Way: One Way Cab Jaipur to Delhi",
+    "isActive": true
+  },
+  {
+    "fromPath": "/one-way-taxi-cab/jalandhar-to-delhi/",
+    "toPath": "/one-way-car-rental/jalandhar-to-delhi/",
+    "type": "PERMANENT",
+    "description": "One Way: One Way Taxi Jalandhar to Delhi",
+    "isActive": true
+  },
+  {
+    "fromPath": "/one-way-taxi-cab/delhi-to-dehradun/",
+    "toPath": "/one-way-car-rental/delhi-to-dehradun/",
+    "type": "PERMANENT",
+    "description": "One Way: One Way Cab Delhi to Dehradun",
+    "isActive": true
+  },
+  {
+    "fromPath": "/one-way-taxi-cab/delhi-to-haridwar/",
+    "toPath": "/one-way-car-rental/delhi-to-haridwar/",
+    "type": "PERMANENT",
+    "description": "One Way: One Way Cab Delhi to Haridwar",
+    "isActive": true
+  },
+  {
+    "fromPath": "/one-way-taxi-cab/bangalore-to-chennai/",
+    "toPath": "/one-way-car-rental/bangalore-to-chennai/",
+    "type": "PERMANENT",
+    "description": "One Way: One Way Taxi Bangalore to Chennai",
+    "isActive": true
+  },
+  {
+    "fromPath": "/one-way-taxi-cab/nashik-to-pune/",
+    "toPath": "/one-way-car-rental/nashik-to-pune/",
+    "type": "PERMANENT",
+    "description": "One Way: One Way Taxi Nashik to Pune",
+    "isActive": true
+  },
+  {
+    "fromPath": "/one-way-taxi-cab/mumbai-to-goa/",
+    "toPath": "/one-way-car-rental/mumbai-to-goa/",
+    "type": "PERMANENT",
+    "description": "One Way: One Way Taxi Mumbai To Goa",
+    "isActive": true
+  },
+  {
+    "fromPath": "/one-way-taxi-cab/one-way-taxi-from-delhi-to-shimla/",
+    "toPath": "/one-way-car-rental/one-way-taxi-from-delhi-to-shimla/",
+    "type": "PERMANENT",
+    "description": "One Way: One Way Taxi from Delhi to Shimla",
+    "isActive": true
+  },
+  {
+    "fromPath": "/one-way-taxi-cab/bengaluru-to-chennai/",
+    "toPath": "/one-way-car-rental/bengaluru-to-chennai/",
+    "type": "PERMANENT",
+    "description": "One Way: One Way Taxi Bengaluru To Chennai",
+    "isActive": true
+  },
+  {
+    "fromPath": "/one-way-taxi-cab/pune-to-mahabaleshwar/",
+    "toPath": "/one-way-car-rental/pune-to-mahabaleshwar/",
+    "type": "PERMANENT",
+    "description": "One Way: One Way Taxi Pune To Mahabaleshwar",
+    "isActive": true
+  },
+  {
+    "fromPath": "/one-way-taxi-cab/mumbai-to-vadodara/",
+    "toPath": "/one-way-car-rental/mumbai-to-vadodara/",
+    "type": "PERMANENT",
+    "description": "One Way: One Way Cab Mumbai to Vadodara",
+    "isActive": true
+  },
+  {
+    "fromPath": "/one-way-taxi-cab/delhi-to-agra/",
+    "toPath": "/one-way-car-rental/delhi-to-agra/",
+    "type": "PERMANENT",
+    "description": "One Way: One Way Cab Delhi to Agra",
+    "isActive": true
+  },
+  {
+    "fromPath": "/one-way-taxi-cab/pune-to-nashik/",
+    "toPath": "/one-way-car-rental/pune-to-nashik/",
+    "type": "PERMANENT",
+    "description": "One Way: One Way Cab Pune to Nashik",
+    "isActive": true
+  },
+  {
+    "fromPath": "/one-way-taxi-cab/taxi-delhi-to-jaipur/",
+    "toPath": "/one-way-car-rental/taxi-delhi-to-jaipur/",
+    "type": "PERMANENT",
+    "description": "One Way: One Way Taxi Delhi to Jaipur",
+    "isActive": true
+  },
+  {
+    "fromPath": "/one-way-taxi-cab/jodhpur-to-jaipur/",
+    "toPath": "/one-way-car-rental/jodhpur-to-jaipur/",
+    "type": "PERMANENT",
+    "description": "One Way: One Way Taxi Jodhpur to Jaipur",
+    "isActive": true
+  },
+  {
+    "fromPath": "/one-way-taxi-cab/jaipur-to-ajmer/",
+    "toPath": "/one-way-car-rental/jaipur-to-ajmer/",
+    "type": "PERMANENT",
+    "description": "One Way: One Way Taxi Jaipur to Ajmer",
+    "isActive": true
+  },
+  {
+    "fromPath": "/one-way-taxi-cab/delhi-to-jalandhar/",
+    "toPath": "/one-way-car-rental/delhi-to-jalandhar/",
+    "type": "PERMANENT",
+    "description": "One Way: One Way Taxi Delhi to Jalandhar",
+    "isActive": true
+  },
+  {
+    "fromPath": "/one-way-taxi-cab/agra-to-delhi/",
+    "toPath": "/one-way-car-rental/agra-to-delhi/",
+    "type": "PERMANENT",
+    "description": "One Way: One Way Taxi Agra to Delhi",
+    "isActive": true
+  },
+  {
+    "fromPath": "/one-way-taxi-cab/delhi-to-ludhiana/",
+    "toPath": "/one-way-car-rental/delhi-to-ludhiana/",
+    "type": "PERMANENT",
+    "description": "One Way: One Way Taxi Delhi to Ludhiana",
+    "isActive": true
+  },
+  {
+    "fromPath": "/one-way-taxi-cab/chennai-to-trichy/",
+    "toPath": "/one-way-car-rental/chennai-to-trichy/",
+    "type": "PERMANENT",
+    "description": "One Way: One Way Taxi Chennai to Trichy",
+    "isActive": true
+  },
+  {
+    "fromPath": "/one-way-taxi-cab/jaipur-to-delhi-airport/",
+    "toPath": "/one-way-car-rental/jaipur-to-delhi-airport/",
+    "type": "PERMANENT",
+    "description": "One Way: One Way Taxi Jaipur to Delhi Airport",
+    "isActive": true
+  },
+  {
+    "fromPath": "/one-way-taxi-cab/chandigarh-to-shimla/",
+    "toPath": "/one-way-car-rental/chandigarh-to-shimla/",
+    "type": "PERMANENT",
+    "description": "One Way: One Way Taxi Chandigarh To Shimla",
+    "isActive": true
+  },
+  {
+    "fromPath": "/one-way-taxi-cab/ludhiana-to-delhi-airport/",
+    "toPath": "/one-way-car-rental/ludhiana-to-delhi-airport/",
+    "type": "PERMANENT",
+    "description": "One Way: One Way Taxi Ludhiana to Delhi Airport",
+    "isActive": true
+  },
+  {
+    "fromPath": "/one-way-taxi-cab/chandigarh-to-manali/",
+    "toPath": "/one-way-car-rental/chandigarh-to-manali/",
+    "type": "PERMANENT",
+    "description": "One Way: One Way Taxi Chandigarh To Manali",
+    "isActive": true
+  },
+  {
+    "fromPath": "/one-way-taxi-cab/lucknow-to-kanpur/",
+    "toPath": "/one-way-car-rental/lucknow-to-kanpur/",
+    "type": "PERMANENT",
+    "description": "One Way: One Way Taxi Lucknow To Kanpur",
+    "isActive": true
+  },
+  {
+    "fromPath": "/one-way-taxi-cab/mumbai-to-pune/",
+    "toPath": "/one-way-car-rental/mumbai-to-pune/",
+    "type": "PERMANENT",
+    "description": "One Way: One Way Taxi Mumbai To Pune",
+    "isActive": true
+  },
+  {
+    "fromPath": "/one-way-taxi-cab/pune-to-kolhapur/",
+    "toPath": "/one-way-car-rental/pune-to-kolhapur/",
+    "type": "PERMANENT",
+    "description": "One Way: One Way Taxi Pune To Kolhapur",
+    "isActive": true
+  },
+  {
+    "fromPath": "/one-way-taxi-cab/delhi-to-vrindavan/",
+    "toPath": "/one-way-car-rental/delhi-to-vrindavan/",
+    "type": "PERMANENT",
+    "description": "One Way: One Way Taxi from Delhi to Vrindavan",
+    "isActive": true
+  },
+  {
+    "fromPath": "/one-way-taxi-cab/one-way-taxi-pune-to-mumbai/",
+    "toPath": "/one-way-car-rental/one-way-taxi-pune-to-mumbai/",
+    "type": "PERMANENT",
+    "description": "One Way: One Way Taxi Pune To Mumbai",
+    "isActive": true
+  },
+  {
+    "fromPath": "/one-way-taxi-cab/bhubaneswar-to-puri/",
+    "toPath": "/one-way-car-rental/bhubaneswar-to-puri/",
+    "type": "PERMANENT",
+    "description": "One Way: One Way Taxi Bhubaneswar to Puri",
+    "isActive": true
+  },
+  {
+    "fromPath": "/one-way-taxi-cab/mumbai-to-surat/",
+    "toPath": "/one-way-car-rental/mumbai-to-surat/",
+    "type": "PERMANENT",
+    "description": "One Way: One Way Taxi Mumbai To Surat",
+    "isActive": true
+  },
+  {
+    "fromPath": "/one-way-taxi-cab/delhi-to-chandigarh/",
+    "toPath": "/one-way-car-rental/delhi-to-chandigarh/",
+    "type": "PERMANENT",
+    "description": "One Way: One Way Taxi Delhi To Chandigarh",
+    "isActive": true
+  },
+  {
+    "fromPath": "/one-way-taxi-cab/pune-to-goa/",
+    "toPath": "/one-way-car-rental/pune-to-goa/",
+    "type": "PERMANENT",
+    "description": "One Way: One Way Taxi Services Pune To Goa",
+    "isActive": true
+  },
+  {
+    "fromPath": "/one-way-taxi-cab/pune-to-shirdi/",
+    "toPath": "/one-way-car-rental/pune-to-shirdi/",
+    "type": "PERMANENT",
+    "description": "One Way: One Way Taxi Pune To Shirdi",
+    "isActive": true
+  },
+  {
+    "fromPath": "/one-way-taxi-cab/chennai-to-pondicherry/",
+    "toPath": "/one-way-car-rental/chennai-to-pondicherry/",
+    "type": "PERMANENT",
+    "description": "One Way: One Way Taxi Services Chennai To Pondicherry",
+    "isActive": true
+  },
+  {
+    "fromPath": "/one-way-taxi-cab/mumbai-to-nashik/",
+    "toPath": "/one-way-car-rental/mumbai-to-nashik/",
+    "type": "PERMANENT",
+    "description": "One Way: One Way Taxi Mumbai To Nashik",
+    "isActive": true
+  },
+  {
+    "fromPath": "/one-way-taxi-cab/dehradun-to-delhi-airport/",
+    "toPath": "/one-way-car-rental/dehradun-to-delhi-airport/",
+    "type": "PERMANENT",
+    "description": "One Way: One Way Taxi Dehradun To Delhi Airport",
+    "isActive": true
+  },
+  {
+    "fromPath": "/one-way-taxi-cab/nashik-to-mumbai/",
+    "toPath": "/one-way-car-rental/nashik-to-mumbai/",
+    "type": "PERMANENT",
+    "description": "One Way: One Way Taxi Nashik To Mumbai",
+    "isActive": true
+  },
+  {
+    "fromPath": "/one-way-taxi-cab/chandigarh-to-delhi-airport/",
+    "toPath": "/one-way-car-rental/chandigarh-to-delhi-airport/",
+    "type": "PERMANENT",
+    "description": "One Way: One Way Taxi Chandigarh To Delhi Airport",
+    "isActive": true
+  },
+  {
+    "fromPath": "/one-way-taxi-cab/mumbai-to-lonavala/",
+    "toPath": "/one-way-car-rental/mumbai-to-lonavala/",
+    "type": "PERMANENT",
+    "description": "One Way: One Way Taxi Mumbai To Lonavala",
+    "isActive": true
+  },
+  {
+    "fromPath": "/one-way-taxi-cab/udaipur-to-ahmedabad/",
+    "toPath": "/one-way-car-rental/udaipur-to-ahmedabad/",
+    "type": "PERMANENT",
+    "description": "One Way: One Way Taxi Udaipur To Ahmedabad",
+    "isActive": true
+  },
+  {
+    "fromPath": "/one-way-taxi-cab/lonavala-to-mumbai/",
+    "toPath": "/one-way-car-rental/lonavala-to-mumbai/",
+    "type": "PERMANENT",
+    "description": "One Way: One Way Taxi Lonavala To Mumbai",
+    "isActive": true
+  },
+  {
+    "fromPath": "/one-way-taxi-cab/html-site-map/",
+    "toPath": "/one-way-car-rental/html-site-map/",
+    "type": "PERMANENT",
+    "description": "One Way: One way taxi HTML Site_Map",
+    "isActive": true
+  },
+  {
+    "fromPath": "/airport-taxi/ahmedabad-airport-to-vadodara-cab/",
+    "toPath": "/airport-transfer/ahmedabad-airport-to-vadodara-cab/",
+    "type": "PERMANENT",
+    "description": "Airport Transfer: Ahmedabad Airport To Vadodara Cab",
+    "isActive": true
+  },
+  {
+    "fromPath": "/airport-taxi/ahmedabad-airport-to-surat-cab/",
+    "toPath": "/airport-transfer/ahmedabad-airport-to-surat-cab/",
+    "type": "PERMANENT",
+    "description": "Airport Transfer: Ahmedabad Airport To Surat Cab",
+    "isActive": true
+  },
+  {
+    "fromPath": "/airport-taxi/ahmedabad-airport-taxi/",
+    "toPath": "/airport-transfer/ahmedabad-airport-taxi/",
+    "type": "PERMANENT",
+    "description": "Airport Transfer: Ahmedabad Airport Taxi",
+    "isActive": true
+  },
+  {
+    "fromPath": "/airport-taxi/ahmedabad-airport-to-sanand-cab/",
+    "toPath": "/airport-transfer/ahmedabad-airport-to-sanand-cab/",
+    "type": "PERMANENT",
+    "description": "Airport Transfer: Ahmedabad Airport To Sanand Cab",
+    "isActive": true
+  },
+  {
+    "fromPath": "/airport-taxi/ahmedabad-airport-to-rajkot-taxi/",
+    "toPath": "/airport-transfer/ahmedabad-airport-to-rajkot-taxi/",
+    "type": "PERMANENT",
+    "description": "Airport Transfer: Ahmedabad Airport To Rajkot Taxi",
+    "isActive": true
+  },
+  {
+    "fromPath": "/airport-taxi/ahmedabad-airport-to-rajkot-cab/",
+    "toPath": "/airport-transfer/ahmedabad-airport-to-rajkot-cab/",
+    "type": "PERMANENT",
+    "description": "Airport Transfer: Ahmedabad Airport to Rajkot Cab",
+    "isActive": true
+  },
+  {
+    "fromPath": "/airport-taxi/ahmedabad-airport-to-surat-taxis/",
+    "toPath": "/airport-transfer/ahmedabad-airport-to-surat-taxis/",
+    "type": "PERMANENT",
+    "description": "Airport Transfer: Ahmedabad Airport to Surat Taxis",
+    "isActive": true
+  },
+  {
+    "fromPath": "/airport-taxi/ahmedabad-airport-to-ankleshwar-cab/",
+    "toPath": "/airport-transfer/ahmedabad-airport-to-ankleshwar-cab/",
+    "type": "PERMANENT",
+    "description": "Airport Transfer: Ahmedabad Airport to Ankleshwar Cab",
+    "isActive": true
+  },
+  {
+    "fromPath": "/airport-taxi/ahmedabad-airport-to-bhuj-cab/",
+    "toPath": "/airport-transfer/ahmedabad-airport-to-bhuj-cab/",
+    "type": "PERMANENT",
+    "description": "Airport Transfer: Ahmedabad Airport to Bhuj Cab",
+    "isActive": true
+  },
+  {
+    "fromPath": "/airport-taxi/ahmedabad-airport-to-daman-cab/",
+    "toPath": "/airport-transfer/ahmedabad-airport-to-daman-cab/",
+    "type": "PERMANENT",
+    "description": "Airport Transfer: Ahmedabad Airport to Daman Cab",
+    "isActive": true
+  },
+  {
+    "fromPath": "/airport-taxi/ahmedabad-airport-to-gandhidham-cab/",
+    "toPath": "/airport-transfer/ahmedabad-airport-to-gandhidham-cab/",
+    "type": "PERMANENT",
+    "description": "Airport Transfer: Ahmedabad Airport to Gandhidham Cab",
+    "isActive": true
+  },
+  {
+    "fromPath": "/airport-taxi/ahmedabad-airport-to-gandhinagar-cab/",
+    "toPath": "/airport-transfer/ahmedabad-airport-to-gandhinagar-cab/",
+    "type": "PERMANENT",
+    "description": "Airport Transfer: Ahmedabad Airport to Gandhinagar Cab",
+    "isActive": true
+  },
+  {
+    "fromPath": "/airport-taxi/ahmedabad-airport-to-khambhat-cab/",
+    "toPath": "/airport-transfer/ahmedabad-airport-to-khambhat-cab/",
+    "type": "PERMANENT",
+    "description": "Airport Transfer: Ahmedabad Airport to Khambhat Cab",
+    "isActive": true
+  },
+  {
+    "fromPath": "/airport-taxi/ahmedabad-airport-to-porbandar-cab/",
+    "toPath": "/airport-transfer/ahmedabad-airport-to-porbandar-cab/",
+    "type": "PERMANENT",
+    "description": "Airport Transfer: Ahmedabad Airport To Porbandar Cab",
+    "isActive": true
+  },
+  {
+    "fromPath": "/airport-taxi/ahmedabad-airport-to-patan-cab/",
+    "toPath": "/airport-transfer/ahmedabad-airport-to-patan-cab/",
+    "type": "PERMANENT",
+    "description": "Airport Transfer: Ahmedabad Airport To Patan Cab",
+    "isActive": true
+  },
+  {
+    "fromPath": "/airport-taxi/ahmedabad-airport-to-nadiad-cab/",
+    "toPath": "/airport-transfer/ahmedabad-airport-to-nadiad-cab/",
+    "type": "PERMANENT",
+    "description": "Airport Transfer: Ahmedabad Airport To Nadiad Cab",
+    "isActive": true
+  },
+  {
+    "fromPath": "/airport-taxi/ahmedabad-airport-to-mehsana-cab/",
+    "toPath": "/airport-transfer/ahmedabad-airport-to-mehsana-cab/",
+    "type": "PERMANENT",
+    "description": "Airport Transfer: Ahmedabad Airport to Mehsana Cab",
+    "isActive": true
+  },
+  {
+    "fromPath": "/airport-taxi/ahmedabad-airport-to-morbi-cab/",
+    "toPath": "/airport-transfer/ahmedabad-airport-to-morbi-cab/",
+    "type": "PERMANENT",
+    "description": "Airport Transfer: Ahmedabad Airport to Morbi Cab",
+    "isActive": true
+  },
+  {
+    "fromPath": "/airport-taxi/ahmedabad-airport-to-mumbai-cab/",
+    "toPath": "/airport-transfer/ahmedabad-airport-to-mumbai-cab/",
+    "type": "PERMANENT",
+    "description": "Airport Transfer: Ahmedabad Airport To Mumbai Cab",
+    "isActive": true
+  },
+  {
+    "fromPath": "/airport-taxi/ahmedabad-airport-to-mount-abu-cab/",
+    "toPath": "/airport-transfer/ahmedabad-airport-to-mount-abu-cab/",
+    "type": "PERMANENT",
+    "description": "Airport Transfer: Ahmedabad Airport To Mount Abu Cab",
+    "isActive": true
+  },
+  {
+    "fromPath": "/airport-taxi/",
+    "toPath": "/airport-transfer/",
+    "type": "PERMANENT",
+    "description": "Airport Transfer: Airport Taxi Service",
+    "isActive": true
+  },
+  {
+    "fromPath": "/airport-taxi/html-site-map/",
+    "toPath": "/airport-transfer/html-site-map/",
+    "type": "PERMANENT",
+    "description": "Airport Transfer: Airport Taxi HTML Sitemap",
+    "isActive": true
+  },
+  {
+    "fromPath": "/airport-taxi/surat-airport-taxi/",
+    "toPath": "/airport-transfer/surat-airport-taxi/",
+    "type": "PERMANENT",
+    "description": "Airport Transfer: Surat Airport Taxi",
+    "isActive": true
+  },
+  {
+    "fromPath": "/airport-taxi/dehradun-airport-taxi-services/",
+    "toPath": "/airport-transfer/dehradun-airport-taxi-services/",
+    "type": "PERMANENT",
+    "description": "Airport Transfer: Dehradun Airport Taxi",
+    "isActive": true
+  }
+]

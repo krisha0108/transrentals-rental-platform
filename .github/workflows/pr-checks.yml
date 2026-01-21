@@ -1,0 +1,290 @@
+name: 🛡️ PR Protection - Block Bad Code
+
+# CRITICAL: This workflow BLOCKS Pull Requests from merging if tests fail
+# This ensures ONLY working code can reach main branch
+
+on:
+  pull_request:
+    branches: [main, master]
+    types: [opened, synchronize, reopened]
+    paths-ignore:
+      - 'tr-app/**'
+      - 'tr-vendor-app/**'
+      - '**.md'
+      - 'docs/**'
+
+env:
+  NODE_VERSION: '20.x'
+
+jobs:
+  # ============================================
+  # CRITICAL: All checks must pass to merge
+  # ============================================
+
+  # 1. Lint Check - MUST PASS
+  lint:
+    name: 🔍 Lint Code (Required)
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: 📦 Install dependencies
+        run: npm ci
+
+      - name: 🔍 Run ESLint
+        run: npm run lint
+        # NO continue-on-error - must pass!
+
+  # 2. Type Check - MUST PASS
+  type-check:
+    name: 📝 Type Check (Required)
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: 📦 Install dependencies
+        run: npm ci
+
+      - name: 🔄 Generate Prisma Client
+        run: npx prisma generate
+        env:
+          DATABASE_URL: mysql://dummy:dummy@localhost:3306/dummy
+
+      - name: 📝 Run TypeScript check
+        run: npm run type-check
+        # NO continue-on-error - must pass!
+
+  # 3. Security Audit - MUST PASS
+  security:
+    name: 🔒 Security Check (Required)
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: 📦 Install dependencies
+        run: npm ci
+
+      - name: 🔒 Run npm audit (HIGH severity only)
+        run: npm audit --audit-level=high
+        # Will fail PR if HIGH vulnerabilities found
+
+      - name: 🛡️ Check for exposed secrets
+        run: |
+          echo "Checking for hardcoded secrets..."
+
+          # Check for .env files tracked in git
+          if git ls-files | grep -q "\.env$"; then
+            echo "❌ ERROR: .env file is tracked in git!"
+            exit 1
+          fi
+
+          # Check for hardcoded passwords
+          if grep -r "password.*=.*['\"]" src/ --include="*.ts" --include="*.tsx" | grep -v "password:" | grep -v "// " | grep -v "/\*"; then
+            echo "❌ ERROR: Possible hardcoded passwords found!"
+            exit 1
+          fi
+
+          echo "✅ No secrets exposed"
+
+  # 4. Database Schema Validation - MUST PASS
+  database-check:
+    name: 🗄️ Database Schema (Required)
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: 📦 Install dependencies
+        run: npm ci
+
+      - name: ✅ Validate Prisma Schema
+        run: npx prisma validate
+        env:
+          DATABASE_URL: mysql://dummy:dummy@localhost:3306/dummy
+        # Must pass - invalid schema blocks PR
+
+      - name: 🔄 Generate Prisma Client
+        run: npx prisma generate
+        env:
+          DATABASE_URL: mysql://dummy:dummy@localhost:3306/dummy
+
+  # 5. API Tests with Real Database - MUST PASS
+  api-tests:
+    name: 🧪 API Tests (Required)
+    runs-on: ubuntu-latest
+    needs: [database-check]
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: test_password
+          MYSQL_DATABASE: test_db
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: 📦 Install dependencies
+        run: npm ci
+
+      - name: 🗄️ Setup Test Database
+        env:
+          DATABASE_URL: mysql://root:test_password@localhost:3306/test_db
+        run: |
+          npx prisma generate
+          npx prisma migrate deploy
+
+      - name: 🧪 Run All Tests
+        env:
+          DATABASE_URL: mysql://root:test_password@localhost:3306/test_db
+          NEXTAUTH_SECRET: test-secret-key-for-pr-check
+          NEXTAUTH_URL: http://localhost:3000
+        run: npm run test:run
+        # Must pass - failing tests block PR
+
+  # 6. Build Test - MUST PASS
+  build-check:
+    name: 🏗️ Build Test (Required)
+    runs-on: ubuntu-latest
+    needs: [lint, type-check, security, database-check]
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: 📦 Install dependencies
+        run: npm ci
+
+      - name: 🔄 Generate Prisma Client
+        run: npx prisma generate
+        env:
+          DATABASE_URL: mysql://dummy:dummy@localhost:3306/dummy
+
+      - name: 🏗️ Build Application
+        run: npm run build
+        env:
+          SKIP_ENV_VALIDATION: "1"
+          DATABASE_URL: mysql://dummy:dummy@localhost:3306/dummy
+          NEXTAUTH_SECRET: build-test-secret
+          NEXTAUTH_URL: http://localhost:3000
+          NEXT_PUBLIC_APP_URL: http://localhost:3000
+        # Must build successfully - build failures block PR
+
+      - name: ✅ Verify Build Output
+        run: |
+          if [ ! -d ".next" ]; then
+            echo "❌ Build failed - no .next directory"
+            exit 1
+          fi
+          echo "✅ Build successful"
+
+  # 7. Docker Build Test - MUST PASS
+  docker-build:
+    name: 🐳 Docker Build (Required)
+    runs-on: ubuntu-latest
+    needs: [build-check]
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔧 Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: 🐳 Build Docker Image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          push: false
+          tags: transrentals:pr-${{ github.event.pull_request.number }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+        # Must build - Docker build failures block PR
+
+  # ============================================
+  # FINAL: All Checks Status
+  # ============================================
+  all-checks-passed:
+    name: ✅ All Checks Passed
+    runs-on: ubuntu-latest
+    needs: [lint, type-check, security, database-check, api-tests, build-check, docker-build]
+    if: success()
+    steps:
+      - name: 🎉 All Checks Passed
+        run: |
+          echo "================================================"
+          echo "✅ ALL PR CHECKS PASSED!"
+          echo "================================================"
+          echo "✓ Lint passed"
+          echo "✓ Type check passed"
+          echo "✓ Security audit passed"
+          echo "✓ Database schema valid"
+          echo "✓ All API tests passed"
+          echo "✓ Build successful"
+          echo "✓ Docker build successful"
+          echo "================================================"
+          echo "🎯 This PR is safe to merge!"
+          echo "================================================"
+
+  # Block merge if any check fails
+  pr-blocked:
+    name: ❌ PR Blocked - Fix Issues
+    runs-on: ubuntu-latest
+    needs: [lint, type-check, security, database-check, api-tests, build-check, docker-build]
+    if: failure()
+    steps:
+      - name: ❌ Checks Failed
+        run: |
+          echo "================================================"
+          echo "❌ PR CHECKS FAILED!"
+          echo "================================================"
+          echo "This PR cannot be merged until all checks pass."
+          echo "Please fix the failing checks and push again."
+          echo "================================================"
+          exit 1

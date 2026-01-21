@@ -1,0 +1,50 @@
+[
+  {
+    "id": "TR76057524",
+    "bookingType": "service",
+    "status": "PENDING",
+    "customerName": "Guest",
+    "customerEmail": "",
+    "customerPhone": "",
+    "bookingData": {
+      "service_id": 2,
+      "service_name": "Service",
+      "location_id": 1,
+      "location_name": "Ahmedabad",
+      "destination": "test",
+      "journey_datetime": "2025-12-03T17:17",
+      "return_datetime": null,
+      "name": "",
+      "email": "",
+      "phone": "",
+      "fleet": "Maruti Swift",
+      "bookingType": "service",
+      "endpoint": "/web/booking/bike"
+    },
+    "createdAt": "2025-12-02T11:47:37.524Z"
+  },
+  {
+    "id": "TR75457399",
+    "bookingType": "service",
+    "status": "PENDING",
+    "customerName": "Guest",
+    "customerEmail": "",
+    "customerPhone": "",
+    "bookingData": {
+      "service_id": 2,
+      "service_name": "Service",
+      "location_id": 1,
+      "location_name": "Ahmedabad",
+      "destination": "test",
+      "journey_datetime": "2025-12-03T17:07",
+      "return_datetime": null,
+      "name": "",
+      "email": "",
+      "phone": "",
+      "fleet": "Ktm Duke 390",
+      "bookingType": "service",
+      "endpoint": "/web/booking/bike"
+    },
+    "createdAt": "2025-12-02T11:37:37.399Z"
+  }
+]

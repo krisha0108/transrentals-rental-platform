@@ -1,0 +1,68 @@
+{
+  "project_info": {
+    "project_number": "915755914011",
+    "firebase_url": "https://tr-app-51375-default-rtdb.firebaseio.com",
+    "project_id": "tr-app-51375",
+    "storage_bucket": "tr-app-51375.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:915755914011:android:5bbee26b7aad2412d0b9be",
+        "android_client_info": {
+          "package_name": "com.notificationreactapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBul0l_DTNED7kXrCiwPUHQOydQEYKUYy8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:915755914011:android:e9088dd8198202b1d0b9be",
+        "android_client_info": {
+          "package_name": "com.transrentals.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBul0l_DTNED7kXrCiwPUHQOydQEYKUYy8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:915755914011:android:abe21f9e3266fc8bd0b9be",
+        "android_client_info": {
+          "package_name": "com.transrentalsvenderapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBul0l_DTNED7kXrCiwPUHQOydQEYKUYy8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

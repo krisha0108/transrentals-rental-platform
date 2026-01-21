@@ -1,0 +1,444 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { getVendorAuth } from '@/lib/auth/vendor-mobile-auth';
+import { prisma } from '@/lib/db/prisma';
+import { transformPrismaResponse } from '@/lib/utils/api-transform';
+
+
+
+import logger from '@/lib/security/logger';
+export const dynamic = 'force-dynamic';
+
+// GET - Get booking details
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ bookingNumber: string }> | { bookingNumber: string } }
+) {
+  try {
+    // Get current vendor session
+    const auth = await getVendorAuth(request);
+    if (!auth.authenticated || !auth.vendorId) {
+      return NextResponse.json(
+        { success: false, error: auth.error || 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    const vendorId = auth.vendorId;
+    const resolvedParams = 'then' in params ? await params : params;
+    const { bookingNumber } = resolvedParams;
+
+    const booking = await prisma.chauffeur_bookings.findUnique({
+      where: { bookingNumber },
+      include: {
+        locations: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+          },
+        },
+      },
+    });
+
+    if (!booking) {
+      return NextResponse.json(
+        { success: false, error: 'Booking not found' },
+        { status: 404 }
+      );
+    }
+
+    // Check if vendor can view this booking
+    // Can view if: booking is available (PENDING_VENDOR/BROADCASTED) OR vendor owns it
+    const isAvailable = ['PENDING_VENDOR', 'BROADCASTED'].includes(booking.status) && !booking.acceptedVendorId;
+    const isOwner = booking.acceptedVendorId === vendorId;
+
+    if (!isAvailable && !isOwner) {
+      return NextResponse.json(
+        { success: false, error: 'You do not have access to this booking' },
+        { status: 403 }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      booking: {
+        id: booking.id,
+        bookingNumber: booking.bookingNumber,
+        customerId: booking.customerId,
+        tripType: booking.tripType,
+        carCategory: booking.carCategory,
+        carCategoryName: booking.carCategoryName,
+        customerName: booking.customerName,
+        customerPhone: booking.customerPhone,
+        customerEmail: booking.customerEmail,
+        pickupCity: booking.pickupCity,
+        dropCity: booking.dropCity,
+        pickupAddress: booking.pickupAddress,
+        dropAddress: booking.dropAddress,
+        pickupDate: booking.pickupDate,
+        pickupTime: booking.pickupTime,
+        returnDate: booking.returnDate,
+        totalDays: booking.totalDays,
+        localPackageId: booking.localPackageId,
+        localPackageHours: booking.localPackageHours,
+        localPackageKm: booking.localPackageKm,
+        baseFare: booking.baseFare,
+        gstAmount: booking.gstAmount,
+        platformFee: booking.platformFee,
+        grandTotal: booking.grandTotal,
+        status: booking.status,
+        paymentStatus: booking.paymentStatus,
+        paidAmount: booking.paidAmount,
+        transactionId: booking.transactionId,
+        paymentMethod: booking.paymentMethod,
+        driverName: booking.driverName,
+        driverPhone: booking.driverPhone,
+        vehicleNumber: booking.vehicleNumber,
+        vehicleModel: booking.vehicleModel,
+        tripStartOtp: booking.tripStartOtp,
+        tripStartedAt: booking.tripStartedAt,
+        tripEndedAt: booking.tripEndedAt,
+        actualKmTravelled: booking.actualKmTravelled,
+        actualHours: booking.actualHours,
+        extraKmCharges: booking.extraKmCharges,
+        extraHourCharges: booking.extraHourCharges,
+        actualTollCharges: booking.actualTollCharges,
+        actualParkingCharges: booking.actualParkingCharges,
+        customerNotes: booking.customerNotes,
+        vendorNotes: booking.vendorNotes,
+        rating: booking.rating,
+        review: booking.review,
+        acceptedVendorId: booking.acceptedVendorId,
+        isOwnBooking: isOwner,
+        location: booking.locations,
+        createdAt: booking.createdAt,
+        updatedAt: booking.updatedAt,
+      },
+    });
+  } catch (error: any) {
+    logger.error('Failed to fetch booking', error);
+    return NextResponse.json(
+      { success: false, error: 'Failed to fetch booking', details: error?.message },
+      { status: 500 }
+    );
+  }
+}
+
+// PATCH - Update booking (accept, reject, assign driver, start trip, complete trip)
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ bookingNumber: string }> | { bookingNumber: string } }
+) {
+  try {
+    // Get current vendor session
+    const auth = await getVendorAuth(request);
+    if (!auth.authenticated || !auth.vendorId) {
+      return NextResponse.json(
+        { success: false, error: auth.error || 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    const vendorId = auth.vendorId;
+    const resolvedParams = 'then' in params ? await params : params;
+    const { bookingNumber } = resolvedParams;
+
+    const body = await request.json();
+    const { action, ...data } = body;
+
+    // Find the booking
+    const booking = await prisma.chauffeur_bookings.findUnique({
+      where: { bookingNumber },
+    });
+
+    if (!booking) {
+      return NextResponse.json(
+        { success: false, error: 'Booking not found' },
+        { status: 404 }
+      );
+    }
+
+    let updateData: any = {};
+    let message = '';
+
+    switch (action) {
+      case 'accept':
+        // Check if booking is available to accept
+        if (booking.status !== 'PENDING_VENDOR' && booking.status !== 'BROADCASTED') {
+          return NextResponse.json(
+            { success: false, error: 'Booking cannot be accepted in current status' },
+            { status: 400 }
+          );
+        }
+
+        // Check if already accepted by another vendor
+        if (booking.acceptedVendorId) {
+          return NextResponse.json(
+            { success: false, error: 'This booking has already been accepted by another vendor' },
+            { status: 400 }
+          );
+        }
+
+        console.log('Accept booking - vendorId from session:', vendorId);
+
+        // Use transaction to ensure atomic operation (prevent race condition)
+        const acceptResult = await prisma.$transaction(async (tx) => {
+          // Re-check in transaction
+          const currentBooking = await tx.chauffeur_bookings.findUnique({
+            where: { bookingNumber },
+          });
+
+          if (currentBooking?.acceptedVendorId) {
+            throw new Error('ALREADY_ACCEPTED');
+          }
+
+          // Accept the booking
+          return tx.chauffeur_bookings.update({
+            where: { bookingNumber },
+            data: {
+              status: 'ACCEPTED',
+              acceptedVendorId: vendorId,
+              acceptedAt: new Date(),
+            },
+          });
+        });
+
+        console.log('Accept booking result:', {
+          bookingNumber: acceptResult.bookingNumber,
+          status: acceptResult.status,
+          acceptedVendorId: acceptResult.acceptedVendorId,
+        });
+
+        return NextResponse.json({
+          success: true,
+          message: 'Booking accepted successfully! This booking is now assigned to you.',
+          booking: {
+            id: acceptResult.id,
+            bookingNumber: acceptResult.bookingNumber,
+            status: acceptResult.status,
+            acceptedVendorId: acceptResult.acceptedVendorId,
+          },
+        });
+
+      case 'reject':
+        // For reject, only check if booking was available (not already accepted by someone else)
+        if (booking.acceptedVendorId && booking.acceptedVendorId !== vendorId) {
+          return NextResponse.json(
+            { success: false, error: 'This booking belongs to another vendor' },
+            { status: 403 }
+          );
+        }
+
+        if (booking.status !== 'PENDING_VENDOR' && booking.status !== 'BROADCASTED') {
+          return NextResponse.json(
+            { success: false, error: 'Booking cannot be rejected in current status' },
+            { status: 400 }
+          );
+        }
+
+        // Track rejection
+        const rejectedBy = booking.rejectedByVendors || [];
+        const updatedRejections = [
+          ...(Array.isArray(rejectedBy) ? rejectedBy : []),
+          { vendorId, reason: data.reason || 'Rejected by vendor', rejectedAt: new Date() },
+        ];
+
+        updateData = {
+          rejectedByVendors: updatedRejections,
+          // If this vendor had accepted it, release it back
+          ...(booking.acceptedVendorId === vendorId
+            ? {
+                status: 'BROADCASTED',
+                acceptedVendorId: null,
+                acceptedAt: null,
+              }
+            : {}),
+        };
+        message = 'Booking rejected';
+        break;
+
+      case 'assign_driver':
+        // Only the vendor who accepted can assign driver
+        if (booking.acceptedVendorId !== vendorId) {
+          return NextResponse.json(
+            { success: false, error: 'You can only assign drivers to your own bookings' },
+            { status: 403 }
+          );
+        }
+
+        if (booking.status !== 'ACCEPTED') {
+          return NextResponse.json(
+            { success: false, error: 'Driver can only be assigned to accepted bookings' },
+            { status: 400 }
+          );
+        }
+
+        if (!data.driverName || !data.driverPhone || !data.vehicleNumber) {
+          return NextResponse.json(
+            { success: false, error: 'Driver name, phone and vehicle number are required' },
+            { status: 400 }
+          );
+        }
+
+        updateData = {
+          status: 'DRIVER_ASSIGNED',
+          driverName: data.driverName,
+          driverPhone: data.driverPhone,
+          vehicleNumber: data.vehicleNumber,
+          vehicleModel: data.vehicleModel || data.vehicle_models || null,
+          driverAssignedAt: new Date(),
+        };
+        message = 'Driver assigned successfully';
+        break;
+
+      case 'start_trip':
+        // Only the vendor who accepted can start trip
+        if (booking.acceptedVendorId !== vendorId) {
+          return NextResponse.json(
+            { success: false, error: 'You can only start trips for your own bookings' },
+            { status: 403 }
+          );
+        }
+
+        if (booking.status !== 'DRIVER_ASSIGNED') {
+          return NextResponse.json(
+            { success: false, error: 'Trip can only be started when driver is assigned' },
+            { status: 400 }
+          );
+        }
+
+        // Verify OTP if provided
+        if (data.otp && data.otp !== booking.tripStartOtp) {
+          return NextResponse.json(
+            { success: false, error: 'Invalid OTP' },
+            { status: 400 }
+          );
+        }
+
+        updateData = {
+          status: 'IN_PROGRESS',
+          tripStartedAt: new Date(),
+        };
+        message = 'Trip started successfully';
+        break;
+
+      case 'complete_trip':
+        // Only the vendor who accepted can complete trip
+        if (booking.acceptedVendorId !== vendorId) {
+          return NextResponse.json(
+            { success: false, error: 'You can only complete trips for your own bookings' },
+            { status: 403 }
+          );
+        }
+
+        if (booking.status !== 'IN_PROGRESS') {
+          return NextResponse.json(
+            { success: false, error: 'Only in-progress trips can be completed' },
+            { status: 400 }
+          );
+        }
+
+        // Calculate extra charges based on actual km travelled
+        let extraKmCharges = 0;
+
+        if (data.actualKmTravelled) {
+          const allowedKm = booking.localPackageKm || booking.estimatedDistance || 0;
+          if (data.actualKmTravelled > allowedKm) {
+            const extraKm = data.actualKmTravelled - allowedKm;
+            extraKmCharges = extraKm * (booking.perKmRate || 15); // Use per km rate from booking
+          }
+        }
+
+        updateData = {
+          status: 'COMPLETED',
+          tripEndedAt: new Date(),
+          actualKmTravelled: data.actualKmTravelled || null,
+          actualHours: data.actualHours || null,
+          extraKmCharges,
+          actualTollCharges: data.tollCharges || 0,
+          actualParkingCharges: data.parkingCharges || 0,
+        };
+        message = 'Trip completed successfully';
+        break;
+
+      case 'update_notes':
+        // Only the vendor who accepted can update notes
+        if (booking.acceptedVendorId !== vendorId) {
+          return NextResponse.json(
+            { success: false, error: 'You can only update notes for your own bookings' },
+            { status: 403 }
+          );
+        }
+
+        updateData = { vendorNotes: data.vendorNotes };
+        message = 'Notes updated successfully';
+        break;
+
+      case 'update_driver':
+        // Only the vendor who accepted can update driver
+        if (booking.acceptedVendorId !== vendorId) {
+          return NextResponse.json(
+            { success: false, error: 'You can only update drivers for your own bookings' },
+            { status: 403 }
+          );
+        }
+
+        if (!['ACCEPTED', 'DRIVER_ASSIGNED'].includes(booking.status)) {
+          return NextResponse.json(
+            { success: false, error: 'Driver details can only be updated before trip starts' },
+            { status: 400 }
+          );
+        }
+
+        updateData = {
+          driverName: data.driverName || booking.driverName,
+          driverPhone: data.driverPhone || booking.driverPhone,
+          vehicleNumber: data.vehicleNumber || booking.vehicleNumber,
+          vehicleModel: data.vehicleModel || data.vehicle_models || booking.vehicleModel,
+        };
+        message = 'Driver details updated successfully';
+        break;
+
+      default:
+        return NextResponse.json(
+          { success: false, error: 'Invalid action' },
+          { status: 400 }
+        );
+    }
+
+    const updatedBooking = await prisma.chauffeur_bookings.update({
+      where: { bookingNumber },
+      data: updateData,
+    });
+
+    return NextResponse.json({
+      success: true,
+      message,
+      booking: {
+        id: updatedBooking.id,
+        bookingNumber: updatedBooking.bookingNumber,
+        status: updatedBooking.status,
+        driverName: updatedBooking.driverName,
+        driverPhone: updatedBooking.driverPhone,
+        vehicleNumber: updatedBooking.vehicleNumber,
+        vehicleModel: updatedBooking.vehicleModel,
+        acceptedVendorId: updatedBooking.acceptedVendorId,
+      },
+    });
+  } catch (error: any) {
+    logger.error('Failed to update booking', error);
+
+    // Handle race condition error
+    if (error.message === 'ALREADY_ACCEPTED') {
+      return NextResponse.json(
+        { success: false, error: 'This booking has already been accepted by another vendor' },
+        { status: 400 }
+      );
+    }
+
+    return NextResponse.json(
+      { success: false, error: 'Failed to update booking', details: error?.message },
+      { status: 500 }
+    );
+  }
+}

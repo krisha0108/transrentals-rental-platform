@@ -1,0 +1,648 @@
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  TextInput,
+  ActivityIndicator,
+  Alert,
+  Image,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import Icon from 'react-native-vector-icons/Feather';
+import { Picker } from '@react-native-picker/picker';
+import { launchImageLibrary } from 'react-native-image-picker';
+import { addStaff, updateStaff } from '../../api/client';
+
+const C = {
+  bg: '#F7FAFC',
+  surface: '#FFFFFF',
+  text: '#0F172A',
+  muted: '#6B7280',
+  border: '#E5E7EB',
+  brand: '#22C55E',
+  blue: '#2563EB',
+  red: '#EF4444',
+};
+
+const ROLES = [
+  { label: 'Select Role', value: '' },
+  { label: 'Driver', value: 'DRIVER' },
+  { label: 'Helper', value: 'HELPER' },
+  { label: 'Mechanic', value: 'MECHANIC' },
+  { label: 'Supervisor', value: 'SUPERVISOR' },
+  { label: 'Office Staff', value: 'OFFICE_STAFF' },
+];
+
+const LICENSE_TYPES = [
+  { label: 'Select License Type', value: '' },
+  { label: 'LMV (Light Motor Vehicle)', value: 'LMV' },
+  { label: 'LMV-TR (LMV + Transport)', value: 'LMV-TR' },
+  { label: 'HMV (Heavy Motor Vehicle)', value: 'HMV' },
+  { label: 'HGMV (Heavy Goods Motor Vehicle)', value: 'HGMV' },
+  { label: 'HPMV (Heavy Passenger Motor Vehicle)', value: 'HPMV' },
+  { label: 'MCWG (Motorcycle with Gear)', value: 'MCWG' },
+  { label: 'MCWOG (Motorcycle without Gear)', value: 'MCWOG' },
+];
+
+const STATUS_OPTIONS = [
+  { label: 'Active', value: 'ACTIVE' },
+  { label: 'Inactive', value: 'INACTIVE' },
+];
+
+const INDIAN_STATES = [
+  'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chhattisgarh',
+  'Goa', 'Gujarat', 'Haryana', 'Himachal Pradesh', 'Jharkhand', 'Karnataka',
+  'Kerala', 'Madhya Pradesh', 'Maharashtra', 'Manipur', 'Meghalaya', 'Mizoram',
+  'Nagaland', 'Odisha', 'Punjab', 'Rajasthan', 'Sikkim', 'Tamil Nadu',
+  'Telangana', 'Tripura', 'Uttar Pradesh', 'Uttarakhand', 'West Bengal',
+  'Andaman and Nicobar Islands', 'Chandigarh', 'Dadra and Nagar Haveli and Daman and Diu',
+  'Delhi', 'Jammu and Kashmir', 'Ladakh', 'Lakshadweep', 'Puducherry'
+];
+
+export default function AddStaffScreen({ route, navigation }) {
+  const { staffId, staff: existingStaff } = route.params || {};
+  const isEditing = !!staffId;
+
+  const [loading, setLoading] = useState(false);
+  const [photo, setPhoto] = useState(null);
+  const [aadharDoc, setAadharDoc] = useState(null);
+  const [panDoc, setPanDoc] = useState(null);
+  const [licenseDoc, setLicenseDoc] = useState(null);
+  const [form, setForm] = useState({
+    // Personal Info
+    name: '',
+    phone: '',
+    email: '',
+    password: '',
+    address: '',
+    city: '',
+    state: '',
+    pincode: '',
+    dateOfBirth: '',
+
+    // Role & Status
+    role: '',
+    status: 'ACTIVE',
+
+    // Documents
+    aadharNumber: '',
+    panNumber: '',
+
+    // License (for drivers)
+    licenseNumber: '',
+    licenseType: '',
+    licenseExpiry: '',
+
+    // Bank Details
+    bankName: '',
+    accountNumber: '',
+    ifscCode: '',
+    accountHolderName: '',
+
+    // Employment
+    salary: '',
+    joiningDate: '',
+    emergencyContact: '',
+    emergencyPhone: '',
+  });
+
+  useEffect(() => {
+    if (existingStaff) {
+      setForm({
+        name: existingStaff.name || '',
+        phone: existingStaff.phone || '',
+        email: existingStaff.email || '',
+        password: '', // Don't load password for security
+        address: existingStaff.address || '',
+        city: existingStaff.city || '',
+        state: existingStaff.state || '',
+        pincode: existingStaff.pincode || '',
+        dateOfBirth: existingStaff.dateOfBirth || '',
+        role: existingStaff.role || '',
+        status: existingStaff.status || 'ACTIVE',
+        aadharNumber: existingStaff.aadharNumber || '',
+        panNumber: existingStaff.panNumber || '',
+        licenseNumber: existingStaff.licenseNumber || '',
+        licenseType: existingStaff.licenseType || '',
+        licenseExpiry: existingStaff.licenseExpiry || '',
+        bankName: existingStaff.bankName || '',
+        accountNumber: existingStaff.accountNumber || '',
+        ifscCode: existingStaff.ifscCode || '',
+        accountHolderName: existingStaff.accountHolderName || '',
+        salary: existingStaff.salary?.toString() || '',
+        joiningDate: existingStaff.joiningDate || '',
+        emergencyContact: existingStaff.emergencyContact || '',
+        emergencyPhone: existingStaff.emergencyPhone || '',
+      });
+      if (existingStaff.profilePhoto) {
+        setPhoto({ uri: existingStaff.profilePhoto, isExisting: true });
+      }
+      if (existingStaff.aadharDocument) {
+        setAadharDoc({ uri: existingStaff.aadharDocument, isExisting: true });
+      }
+      if (existingStaff.panDocument) {
+        setPanDoc({ uri: existingStaff.panDocument, isExisting: true });
+      }
+      if (existingStaff.licenseDocument) {
+        setLicenseDoc({ uri: existingStaff.licenseDocument, isExisting: true });
+      }
+    }
+  }, [existingStaff]);
+
+  const updateForm = (key, value) => {
+    setForm((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const pickPhoto = async () => {
+    const result = await launchImageLibrary({
+      mediaType: 'photo',
+      selectionLimit: 1,
+      quality: 0.8,
+    });
+
+    if (result.assets?.[0]) {
+      const asset = result.assets[0];
+      setPhoto({
+        uri: asset.uri,
+        type: asset.type,
+        name: asset.fileName,
+        isExisting: false,
+      });
+    }
+  };
+
+  const pickDocument = async (docType) => {
+    const result = await launchImageLibrary({
+      mediaType: 'photo',
+      selectionLimit: 1,
+      quality: 0.8,
+    });
+
+    if (result.assets?.[0]) {
+      const asset = result.assets[0];
+      const doc = {
+        uri: asset.uri,
+        type: asset.type,
+        name: asset.fileName,
+        isExisting: false,
+      };
+
+      if (docType === 'aadhar') setAadharDoc(doc);
+      else if (docType === 'pan') setPanDoc(doc);
+      else if (docType === 'license') setLicenseDoc(doc);
+    }
+  };
+
+  const validateForm = () => {
+    if (!form.name.trim()) {
+      Alert.alert('Error', 'Please enter staff name');
+      return false;
+    }
+    if (!form.phone.trim()) {
+      Alert.alert('Error', 'Please enter phone number');
+      return false;
+    }
+    if (!form.role) {
+      Alert.alert('Error', 'Please select role');
+      return false;
+    }
+
+    // For drivers, email and password are required (for driver app login)
+    if (form.role === 'DRIVER' && !isEditing) {
+      if (!form.email.trim()) {
+        Alert.alert('Error', 'Email is required for drivers (needed for app login)');
+        return false;
+      }
+      if (!form.password.trim()) {
+        Alert.alert('Error', 'Password is required for drivers (needed for app login)');
+        return false;
+      }
+      if (form.password.length < 6) {
+        Alert.alert('Error', 'Password must be at least 6 characters');
+        return false;
+      }
+    }
+
+    return true;
+  };
+
+  const handleSubmit = async () => {
+    if (!validateForm()) return;
+
+    setLoading(true);
+    try {
+      const formData = new FormData();
+
+      // Personal Info
+      formData.append('name', form.name);
+      formData.append('phone', form.phone);
+      formData.append('email', form.email || '');
+      if (form.password) formData.append('password', form.password);
+      formData.append('address', form.address || '');
+      formData.append('city', form.city || '');
+      formData.append('state', form.state || '');
+      formData.append('pincode', form.pincode || '');
+      formData.append('dateOfBirth', form.dateOfBirth || '');
+
+      // Role & Status
+      formData.append('role', form.role);
+      formData.append('status', form.status);
+
+      // Documents
+      formData.append('aadharNumber', form.aadharNumber || '');
+      formData.append('panNumber', form.panNumber || '');
+
+      // License
+      formData.append('licenseNumber', form.licenseNumber || '');
+      formData.append('licenseType', form.licenseType || '');
+      formData.append('licenseExpiry', form.licenseExpiry || '');
+
+      // Bank Details
+      formData.append('bankName', form.bankName || '');
+      formData.append('accountNumber', form.accountNumber || '');
+      formData.append('ifscCode', form.ifscCode || '');
+      formData.append('accountHolderName', form.accountHolderName || '');
+
+      // Employment
+      formData.append('salary', form.salary || '0');
+      formData.append('joiningDate', form.joiningDate || '');
+      formData.append('emergencyContact', form.emergencyContact || '');
+      formData.append('emergencyPhone', form.emergencyPhone || '');
+
+      // Files
+      if (photo && !photo.isExisting) {
+        formData.append('profilePhoto', {
+          uri: photo.uri,
+          type: photo.type || 'image/jpeg',
+          name: photo.name || 'profile.jpg',
+        });
+      }
+      if (aadharDoc && !aadharDoc.isExisting) {
+        formData.append('aadharDocument', {
+          uri: aadharDoc.uri,
+          type: aadharDoc.type || 'image/jpeg',
+          name: aadharDoc.name || 'aadhar.jpg',
+        });
+      }
+      if (panDoc && !panDoc.isExisting) {
+        formData.append('panDocument', {
+          uri: panDoc.uri,
+          type: panDoc.type || 'image/jpeg',
+          name: panDoc.name || 'pan.jpg',
+        });
+      }
+      if (licenseDoc && !licenseDoc.isExisting) {
+        formData.append('licenseDocument', {
+          uri: licenseDoc.uri,
+          type: licenseDoc.type || 'image/jpeg',
+          name: licenseDoc.name || 'license.jpg',
+        });
+      }
+
+      if (isEditing) {
+        await updateStaff(staffId, formData);
+        Alert.alert('Success', 'Staff updated successfully', [
+          { text: 'OK', onPress: () => navigation.goBack() },
+        ]);
+      } else {
+        await addStaff(formData);
+        Alert.alert('Success', 'Staff added successfully', [
+          { text: 'OK', onPress: () => navigation.goBack() },
+        ]);
+      }
+    } catch (error) {
+      console.log('Error saving staff:', error);
+      Alert.alert('Error', error?.response?.data?.error || 'Failed to save staff');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const isDriver = form.role === 'DRIVER';
+
+  return (
+    <SafeAreaView style={styles.safe}>
+      {/* Header */}
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+          <Icon name="arrow-left" size={20} color={C.text} />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>{isEditing ? 'Edit Staff' : 'Add Staff'}</Text>
+        <View style={{ width: 36 }} />
+      </View>
+
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Photo */}
+        <View style={styles.photoSection}>
+          <TouchableOpacity style={styles.photoContainer} onPress={pickPhoto}>
+            {photo ? (
+              <Image source={{ uri: photo.uri }} style={styles.photo} />
+            ) : (
+              <View style={styles.photoPlaceholder}>
+                <Icon name="camera" size={28} color={C.muted} />
+              </View>
+            )}
+            <View style={styles.editPhotoBtn}>
+              <Icon name="edit-2" size={12} color="#fff" />
+            </View>
+          </TouchableOpacity>
+          <Text style={styles.photoHint}>Tap to add photo</Text>
+        </View>
+
+        {/* Basic Info */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Basic Information</Text>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Full Name *</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Enter full name"
+              placeholderTextColor={C.muted}
+              value={form.name}
+              onChangeText={(v) => updateForm('name', v)}
+            />
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Phone Number *</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Enter phone number"
+              placeholderTextColor={C.muted}
+              value={form.phone}
+              onChangeText={(v) => updateForm('phone', v)}
+              keyboardType="phone-pad"
+            />
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Email</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Enter email address"
+              placeholderTextColor={C.muted}
+              value={form.email}
+              onChangeText={(v) => updateForm('email', v)}
+              keyboardType="email-address"
+              autoCapitalize="none"
+            />
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Role *</Text>
+            <View style={styles.pickerContainer}>
+              <Picker
+                selectedValue={form.role}
+                onValueChange={(v) => updateForm('role', v)}
+                style={styles.picker}
+              >
+                {ROLES.map((role) => (
+                  <Picker.Item key={role.value} label={role.label} value={role.value} />
+                ))}
+              </Picker>
+            </View>
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Address</Text>
+            <TextInput
+              style={[styles.input, styles.textArea]}
+              placeholder="Enter address"
+              placeholderTextColor={C.muted}
+              value={form.address}
+              onChangeText={(v) => updateForm('address', v)}
+              multiline
+              numberOfLines={3}
+            />
+          </View>
+        </View>
+
+        {/* Employment Details */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Employment Details</Text>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Monthly Salary</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Enter monthly salary"
+              placeholderTextColor={C.muted}
+              value={form.salary}
+              onChangeText={(v) => updateForm('salary', v)}
+              keyboardType="numeric"
+            />
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Joining Date</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="DD/MM/YYYY"
+              placeholderTextColor={C.muted}
+              value={form.joiningDate}
+              onChangeText={(v) => updateForm('joiningDate', v)}
+            />
+          </View>
+        </View>
+
+        {/* Driver License (Only for drivers) */}
+        {isDriver && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>License Details</Text>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>License Number</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Enter license number"
+                placeholderTextColor={C.muted}
+                value={form.licenseNumber}
+                onChangeText={(v) => updateForm('licenseNumber', v)}
+                autoCapitalize="characters"
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>License Expiry</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="DD/MM/YYYY"
+                placeholderTextColor={C.muted}
+                value={form.licenseExpiry}
+                onChangeText={(v) => updateForm('licenseExpiry', v)}
+              />
+            </View>
+          </View>
+        )}
+
+        {/* Submit Button */}
+        <TouchableOpacity
+          style={[styles.submitBtn, loading && styles.submitBtnDisabled]}
+          onPress={handleSubmit}
+          disabled={loading}
+        >
+          {loading ? (
+            <ActivityIndicator size="small" color="#fff" />
+          ) : (
+            <>
+              <Icon name="check" size={18} color="#fff" />
+              <Text style={styles.submitBtnText}>
+                {isEditing ? 'Update Staff' : 'Add Staff'}
+              </Text>
+            </>
+          )}
+        </TouchableOpacity>
+
+        <View style={{ height: 40 }} />
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  safe: {
+    flex: 1,
+    backgroundColor: C.bg,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: C.surface,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: C.border,
+  },
+  backBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: C.text,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    padding: 16,
+  },
+  photoSection: {
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  photoContainer: {
+    position: 'relative',
+  },
+  photo: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+  },
+  photoPlaceholder: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: C.surface,
+    borderWidth: 2,
+    borderColor: C.border,
+    borderStyle: 'dashed',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  editPhotoBtn: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: C.brand,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: '#fff',
+  },
+  photoHint: {
+    fontSize: 12,
+    color: C.muted,
+    marginTop: 8,
+  },
+  section: {
+    backgroundColor: C.surface,
+    borderRadius: 14,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: C.border,
+  },
+  sectionTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: C.text,
+    marginBottom: 16,
+  },
+  inputGroup: {
+    marginBottom: 16,
+  },
+  label: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: C.text,
+    marginBottom: 8,
+  },
+  input: {
+    backgroundColor: C.bg,
+    borderWidth: 1,
+    borderColor: C.border,
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 15,
+    color: C.text,
+  },
+  textArea: {
+    minHeight: 80,
+    textAlignVertical: 'top',
+  },
+  pickerContainer: {
+    backgroundColor: C.bg,
+    borderWidth: 1,
+    borderColor: C.border,
+    borderRadius: 10,
+    overflow: 'hidden',
+  },
+  picker: {
+    height: 50,
+  },
+  submitBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: C.brand,
+    paddingVertical: 16,
+    borderRadius: 12,
+    gap: 8,
+  },
+  submitBtnDisabled: {
+    backgroundColor: '#9CA3AF',
+  },
+  submitBtnText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#fff',
+  },
+});

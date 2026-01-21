@@ -1,0 +1,32 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dir /s /b \"C:\\\\Users\\\\Admin\\\\Music\\\\transrentals-new\\\\src\\\\app\\\\api\")",
+      "Bash(findstr:*)",
+      "Bash(npm install:*)",
+      "Bash(ipconfig:*)",
+      "Bash(npx next dev:*)",
+      "Bash(cat:*)",
+      "Bash(npx prisma:*)",
+      "Bash(curl:*)",
+      "Bash(npm uninstall:*)",
+      "Bash(./gradlew clean:*)",
+      "Bash(npx react-native run-android)",
+      "Bash(./gradlew app:installDebug:*)",
+      "Bash(tasklist:*)",
+      "Bash(netstat:*)",
+      "Bash(taskkill:*)",
+      "Bash(cmd /c \"taskkill /PID 7472 /F\")",
+      "Bash(powershell -Command \"Stop-Process -Id 7472 -Force\")",
+      "Bash(tree:*)",
+      "Bash(node fix-vendor-auth.js:*)",
+      "Bash(node:*)",
+      "Bash(del \"C:\\\\Users\\\\Admin\\\\Music\\\\transrentals-new\\\\fix-vendor-auth.js\")",
+      "Bash(dir:*)",
+      "Bash(git rm:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)"
+    ]
+  }
+}
