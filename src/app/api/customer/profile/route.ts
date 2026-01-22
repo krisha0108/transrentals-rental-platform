@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 import { transformPrismaResponse } from '@/lib/utils/api-transform';
 import logger from '@/lib/security/logger';
+import { generateCustomerId } from '@/lib/utils/id-generator';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -159,8 +160,10 @@ export async function PUT(request: NextRequest) {
       }
 
       isNew = true;
+      const customerId = await generateCustomerId();
       resultCustomer = await prisma.customers.create({
         data: {
+          id: customerId,
           name: customerData.name || 'Customer',
           phone: phone,
           email: customerData.email || null,

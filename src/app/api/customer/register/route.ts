@@ -7,6 +7,7 @@ import {
   RATE_LIMITS,
   logger,
 } from '@/lib/security';
+import { generateCustomerId } from '@/lib/utils/id-generator';
 
 export const dynamic = 'force-dynamic';
 
@@ -103,8 +104,10 @@ export async function POST(request: NextRequest) {
     const hashedPassword = await bcrypt.hash(password, 12);
 
     // Create customer
+    const customerId = await generateCustomerId();
     const customer = await prisma.customers.create({
       data: {
+        id: customerId,
         name,
         email: email.toLowerCase(),
         phone: phone || null,

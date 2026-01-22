@@ -220,15 +220,20 @@ export async function POST(
     await prisma.$transaction(async (tx) => {
       // Add new service locations
       if (toAdd.length > 0) {
-        // Get the last service_locations ID to generate sequential IDs
-        const lastSL = await tx.service_locations.findFirst({
-          orderBy: { id: 'desc' },
+        // Get ALL service_locations IDs to find the highest number
+        // (can't use orderBy: id DESC because it's alphabetical, not numeric)
+        const allSLIds = await tx.service_locations.findMany({
           where: { id: { startsWith: 'SL_' } },
+          select: { id: true },
         });
 
-        let nextIdNumber = lastSL
-          ? parseInt(lastSL.id.replace('SL_', '')) + 1
-          : 1;
+        // Find the highest numeric ID
+        const maxIdNumber = allSLIds.reduce((max, sl) => {
+          const num = parseInt(sl.id.replace('SL_', ''));
+          return num > max ? num : max;
+        }, 0);
+
+        let nextIdNumber = maxIdNumber + 1;
 
         await tx.service_locations.createMany({
           data: toAdd.map((locationId: string) => ({

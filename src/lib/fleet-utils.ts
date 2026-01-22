@@ -67,18 +67,18 @@ export async function getFleetByCategory(
         locationRates: locationSlug
           ? {
               where: {
-                location: { slug: locationSlug },
+                fleet_locations: { slug: locationSlug },
                 isActive: true,
               },
-              include: { location: true },
+              include: { fleet_locations: true },
             }
           : false,
         availability: locationSlug
           ? {
               where: {
-                location: { slug: locationSlug },
+                fleet_locations: { slug: locationSlug },
               },
-              include: { location: true },
+              include: { fleet_locations: true },
             }
           : false,
       },

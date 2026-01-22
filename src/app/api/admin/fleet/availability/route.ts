@@ -34,9 +34,9 @@ export async function GET(request: NextRequest) {
       where,
       include: {
         fleet: true,
-        location: true,
+        fleet_locations: true,
       },
-      orderBy: { location: { name: 'asc' } },
+      orderBy: { fleet_locations: { name: 'asc' } },
     });
 
     return NextResponse.json(availability);
@@ -87,7 +87,7 @@ export async function POST(request: NextRequest) {
             notes,
           },
           include: {
-            location: true,
+            fleet_locations: true,
           },
         });
       })

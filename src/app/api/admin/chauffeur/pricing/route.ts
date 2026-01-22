@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
       },
       orderBy: [
         { chauffeur_vehicle_categories: { displayOrder: 'asc' } },
-        { location: { name: 'asc' } },
+        { locations: { name: 'asc' } },
       ],
     });
 

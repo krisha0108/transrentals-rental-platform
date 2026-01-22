@@ -28,7 +28,7 @@ async function getCMSPage(slug: string) {
         status: 'PUBLISHED',
       },
       include: {
-        seoMeta: true,
+        seo_meta: true,
         author: {
           select: {
             name: true,
@@ -116,7 +116,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   return generatePageMetadata({
     title: page.title,
     description: page.excerpt || undefined,
-    seoData: page.seoMeta,
+    seoData: page.seo_meta,
     path: `/${page.slug}`,
   });
 }

@@ -15,6 +15,7 @@ import {
   logger,
 } from '@/lib/security';
 import { sendOTPEmail } from '@/lib/services/email-service';
+import { generateCustomerId } from '@/lib/utils/id-generator';
 
 // Helper to get client IP
 function getClientIP(request: NextRequest): string {
@@ -376,8 +377,10 @@ async function handleRegister(
   const hashedPassword = await bcrypt.hash(password, 12);
 
   // Create customer
+  const customerId = await generateCustomerId();
   const customer = await prisma.customers.create({
     data: {
+      id: customerId,
       name: name.trim(),
       email: normalizedEmail,
       phone: normalizedPhone,
@@ -571,8 +574,10 @@ async function handleVerifyOTP(
   }
 
   // Create customer (password is already hashed)
+  const customerId = await generateCustomerId();
   const customer = await prisma.customers.create({
     data: {
+      id: customerId,
       name: registrationData.name,
       email: registrationData.email,
       phone: registrationData.phone,
@@ -902,8 +907,10 @@ async function handleGoogleLogin(
       });
 
       // Create new customer from Google data
+      const customerId = await generateCustomerId();
       customer = await prisma.customers.create({
         data: {
+          id: customerId,
           name: name || email.split('@')[0],
           email: normalizedEmail,
           phone: null, // Google doesn't provide phone

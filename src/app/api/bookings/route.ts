@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 import { transformPrismaResponse } from '@/lib/utils/api-transform';
+import { generateCustomerId } from '@/lib/utils/id-generator';
 import {
   checkRateLimit,
   RATE_LIMITS,
@@ -59,8 +60,10 @@ async function getOrCreateCustomer(customerInfo: { name: string; email: string; 
       hashedPassword = await bcrypt.hash(customerInfo.password, 10);
     }
 
+    const customerId = await generateCustomerId();
     customer = await prisma.customers.create({
       data: {
+        id: customerId,
         name: customerInfo.name,
         email: customerInfo.email,
         phone: customerInfo.phone,

@@ -52,15 +52,15 @@ function convertPrismaBlogPost(post: any): BlogPost {
     excerpt: post.excerpt || '',
     content: post.content,
     featuredImage: normalizeImagePath(post.featuredImage),
-    category: post.category
+    category: post.blog_categories
       ? {
-        id: post.category.id,
-        name: post.category.name,
-        slug: post.category.slug,
-        description: post.category.description || '',
+        id: post.blog_categories.id,
+        name: post.blog_categories.name,
+        slug: post.blog_categories.slug,
+        description: post.blog_categories.description || '',
         postCount: 0, // Can be computed separately if needed
-        color: CATEGORY_METADATA[post.category.slug]?.color || '#3B82F6',
-        icon: CATEGORY_METADATA[post.category.slug]?.icon || '📝',
+        color: CATEGORY_METADATA[post.blog_categories.slug]?.color || '#3B82F6',
+        icon: CATEGORY_METADATA[post.blog_categories.slug]?.icon || '📝',
       }
       : {
         id: 'uncategorized',
@@ -94,12 +94,12 @@ function convertPrismaBlogPost(post: any): BlogPost {
     views: post.viewCount,
     readTime: post.readTime || Math.ceil(post.content.split(' ').length / 200),
     featured: false, // Can be added to schema if needed
-    seo: post.seoMeta
+    seo: post.seo_meta
       ? {
-        title: post.seoMeta.metaTitle || post.title,
-        description: post.seoMeta.metaDescription || post.excerpt || '',
-        keywords: post.seoMeta.metaKeywords?.split(',').map((k: string) => k.trim()) || [],
-        ogImage: post.seoMeta.ogImage || post.featuredImage || '',
+        title: post.seo_meta.metaTitle || post.title,
+        description: post.seo_meta.metaDescription || post.excerpt || '',
+        keywords: post.seo_meta.metaKeywords?.split(',').map((k: string) => k.trim()) || [],
+        ogImage: post.seo_meta.ogImage || post.featuredImage || '',
       }
       : {
         title: post.title,
@@ -136,7 +136,7 @@ export async function fetchBlogPostsPrisma(
 
     if (category) {
       andConditions.push({
-        category: {
+        blog_categories: {
           slug: category,
         },
       });
@@ -179,7 +179,7 @@ export async function fetchBlogPostsPrisma(
         where,
         orderBy,
         include: {
-          category: true,
+          blog_categories: true,
           author: {
             select: {
               id: true,
@@ -187,7 +187,7 @@ export async function fetchBlogPostsPrisma(
               email: true,
             },
           },
-          seoMeta: true,
+          seo_meta: true,
         },
       });
 
@@ -240,7 +240,7 @@ export async function fetchBlogPostsPrisma(
       skip: Math.max(0, (page - 1) * limit),
       take: limit,
       include: {
-        category: true,
+        blog_categories: true,
         author: {
           select: {
             id: true,
@@ -248,7 +248,7 @@ export async function fetchBlogPostsPrisma(
             email: true,
           },
         },
-        seoMeta: true,
+        seo_meta: true,
       },
     });
 
@@ -294,7 +294,7 @@ export async function fetchBlogPostPrisma(slug: string): Promise<BlogPost | null
         status: 'PUBLISHED',
       },
       include: {
-        category: true,
+        blog_categories: true,
         author: {
           select: {
             id: true,
@@ -302,7 +302,7 @@ export async function fetchBlogPostPrisma(slug: string): Promise<BlogPost | null
             email: true,
           },
         },
-        seoMeta: true,
+        seo_meta: true,
       },
     });
 
@@ -405,7 +405,7 @@ export async function fetchFeaturedPostsPrisma(limit: number = 3): Promise<BlogP
       orderBy: { viewCount: 'desc' }, // Most viewed = featured
       take: limit,
       include: {
-        category: true,
+        blog_categories: true,
         author: {
           select: {
             id: true,
@@ -413,7 +413,7 @@ export async function fetchFeaturedPostsPrisma(limit: number = 3): Promise<BlogP
             email: true,
           },
         },
-        seoMeta: true,
+        seo_meta: true,
       },
     });
 
@@ -439,13 +439,13 @@ export async function searchBlogPostsPrisma(query: string, limit: number = 10): 
           { content: { contains: query } },
           { excerpt: { contains: query } },
           // Also search in category name if it exists
-          { category: { name: { contains: query } } },
+          { blog_categories: { name: { contains: query } } },
         ],
       },
       orderBy: { publishedAt: 'desc' },
       take: limit,
       include: {
-        category: true,
+        blog_categories: true,
         author: {
           select: {
             id: true,
@@ -453,7 +453,7 @@ export async function searchBlogPostsPrisma(query: string, limit: number = 10): 
             email: true,
           },
         },
-        seoMeta: true,
+        seo_meta: true,
       },
     });
 
