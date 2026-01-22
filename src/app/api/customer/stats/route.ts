@@ -358,6 +358,76 @@ export async function GET(request: NextRequest) {
       statusMap[mappedStatus] += stat._count.status;
     }
 
+    // Get luxury quote request stats
+    let luxuryQuoteRequestStats: any[] = [];
+    try {
+      luxuryQuoteRequestStats = await (prisma.luxury_quote_requests.groupBy as any)({
+        by: ['status'],
+        where: {
+          OR: [
+            ...(customerId ? [{ customerId: customerId }] : []),
+            ...(identifier ? [{ customerPhone: identifier }] : []),
+            ...(normalizedPhone && normalizedPhone !== identifier ? [{ customerPhone: normalizedPhone }] : []),
+            ...(normalizedEmail ? [{ customerEmail: normalizedEmail }] : []),
+          ],
+        },
+        _count: { status: true },
+      });
+    } catch (e) {
+      logger.error('Error fetching luxury quote request stats', e);
+    }
+
+    // Get luxury booking stats
+    let luxuryBookingStats: any[] = [];
+    try {
+      luxuryBookingStats = await (prisma.luxury_bookings.groupBy as any)({
+        by: ['status'],
+        where: {
+          OR: [
+            ...(customerId ? [{ customerId: customerId }] : []),
+            ...(identifier ? [{ customerPhone: identifier }] : []),
+            ...(normalizedPhone && normalizedPhone !== identifier ? [{ customerPhone: normalizedPhone }] : []),
+            ...(normalizedEmail ? [{ customerEmail: normalizedEmail }] : []),
+          ],
+        },
+        _count: { status: true },
+      });
+    } catch (e) {
+      logger.error('Error fetching luxury booking stats', e);
+    }
+
+    // Luxury quote request status mappings (same as bus/truck)
+    const luxuryQuoteRequestMappings: Record<string, string> = {
+      PENDING: 'open',
+      QUOTES_RECEIVED: 'open',
+      QUOTE_ACCEPTED: 'confirmed',
+      BOOKING_CONFIRMED: 'confirmed',
+      CANCELLED: 'dropped',
+      EXPIRED: 'dropped',
+    };
+
+    // Luxury booking status mappings (same as bus)
+    const luxuryBookingMappings: Record<string, string> = {
+      PENDING_PAYMENT: 'open',
+      PAYMENT_SUBMITTED: 'open',
+      ADVANCE_PAID: 'confirmed',
+      CONFIRMED: 'confirmed',
+      DRIVER_ASSIGNED: 'confirmed',
+      IN_PROGRESS: 'ongoing',
+      COMPLETED: 'completed',
+      CANCELLED: 'dropped',
+    };
+
+    // Process luxury stats
+    for (const stat of luxuryQuoteRequestStats) {
+      const mappedStatus = luxuryQuoteRequestMappings[stat.status] || 'open';
+      statusMap[mappedStatus] += stat._count.status;
+    }
+    for (const stat of luxuryBookingStats) {
+      const mappedStatus = luxuryBookingMappings[stat.status] || 'open';
+      statusMap[mappedStatus] += stat._count.status;
+    }
+
     const total = Object.values(statusMap).reduce((sum, count) => sum + count, 0);
 
     return NextResponse.json({
