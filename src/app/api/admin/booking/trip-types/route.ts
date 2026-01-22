@@ -26,8 +26,8 @@ export async function GET(request: NextRequest) {
       include: {
         _count: {
           select: {
-            serviceTripTypes: true,
-            localPackages: true,
+            service_trip_types: true,
+            local_packages: true,
           },
         },
       },
