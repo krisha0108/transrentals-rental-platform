@@ -262,8 +262,8 @@ export default function ServiceSubServicesPage() {
     }
   };
 
-  const openEditModal = (services_vehicle_models_subServiceIdToservices: SubServiceItem) => {
-    setEditingSubService(sub_service);
+  const openEditModal = (subService: SubServiceItem) => {
+    setEditingSubService(subService);
     setShowEditModal(true);
   };
 

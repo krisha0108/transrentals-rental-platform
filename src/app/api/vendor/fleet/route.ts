@@ -423,6 +423,7 @@ export async function POST(request: NextRequest) {
                 const newTripType = await prisma.trip_types.upsert({
                   where: { slug: 'self-drive' },
                   create: {
+                    id: generateId(),
                     name: 'Self Drive',
                     slug: 'self-drive',
                     description: 'Self-drive car rental - drive yourself',
@@ -437,6 +438,7 @@ export async function POST(request: NextRequest) {
                 const newTripType = await prisma.trip_types.upsert({
                   where: { slug: 'bike-rental' },
                   create: {
+                    id: generateId(),
                     name: 'Bike Rental',
                     slug: 'bike-rental',
                     description: 'Bike rental - daily rental',
