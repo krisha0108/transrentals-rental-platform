@@ -41,8 +41,8 @@ interface AirportTransfer {
   nightSurcharge: number | null;
   isActive: boolean;
   chauffeur_vehicle_categories: { id: string; name: string; slug: string };
-  fromLocation: { id: string; name: string; slug: string };
-  toLocation: { id: string; name: string; slug: string };
+  locations_chauffeur_route_packages_fromLocationIdTolocations: { id: string; name: string; slug: string; type: string };
+  locations_chauffeur_route_packages_toLocationIdTolocations: { id: string; name: string; slug: string; type: string };
 }
 
 export default function AirportTransfersPage() {
@@ -293,7 +293,7 @@ export default function AirportTransfersPage() {
   // Group transfers by route (airport-city pair)
   const groupedTransfers: Record<string, AirportTransfer[]> = {};
   filteredTransfers.forEach(transfer => {
-    const key = `${transfer.fromLocation.name} → ${transfer.toLocation.name}`;
+    const key = `${transfer.locations_chauffeur_route_packages_fromLocationIdTolocations.name} → ${transfer.locations_chauffeur_route_packages_toLocationIdTolocations.name}`;
     if (!groupedTransfers[key]) {
       groupedTransfers[key] = [];
     }
@@ -540,7 +540,7 @@ export default function AirportTransfersPage() {
                       <tr key={transfer.id}>
                         {editingId === transfer.id ? (
                           <>
-                            <td className="px-4 py-2 font-medium">{transfer.vehicle_category.name}</td>
+                            <td className="px-4 py-2 font-medium">{transfer.chauffeur_vehicle_categories.name}</td>
                             <td className="px-4 py-2">
                               <input
                                 type="number"
@@ -603,7 +603,7 @@ export default function AirportTransfersPage() {
                           </>
                         ) : (
                           <>
-                            <td className="px-4 py-2 font-medium">{transfer.vehicle_category.name}</td>
+                            <td className="px-4 py-2 font-medium">{transfer.chauffeur_vehicle_categories.name}</td>
                             <td className="px-4 py-2">₹{transfer.basePrice.toLocaleString()}</td>
                             <td className="px-4 py-2">₹{(transfer.tollsEstimate || 0).toLocaleString()}</td>
                             <td className="px-4 py-2">₹{(transfer.airportSurcharge || 0).toLocaleString()}</td>

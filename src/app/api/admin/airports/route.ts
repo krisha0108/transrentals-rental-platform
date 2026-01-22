@@ -8,9 +8,9 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const serviceSlug = searchParams.get('serviceSlug');
 
-    // Build where clause - airports have airport codes (IATA codes)
+    // Build where clause - filter by type AIRPORT
     const whereClause: any = {
-      code: { not: null }, // Airports have airport codes
+      type: 'AIRPORT', // Only get locations with type AIRPORT
     };
 
     // If serviceSlug provided, filter by service
@@ -116,13 +116,13 @@ export async function POST(request: NextRequest) {
     }, 0);
     const nextId = `LOC_${maxLocId + 1}`;
 
-    // Create airport (stored as CITY type with airport code for compatibility)
+    // Create airport (stored as AIRPORT type)
     const airport = await prisma.locations.create({
       data: {
         id: nextId,
         name,
         slug,
-        type: 'CITY', // Airports are stored as CITY type with airport code
+        type: 'AIRPORT', // Airports are stored as AIRPORT type
         code: code.toUpperCase(),
         parentId,
         latitude: latitude || null,
