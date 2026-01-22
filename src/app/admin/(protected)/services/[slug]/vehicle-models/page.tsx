@@ -79,6 +79,8 @@ const FUEL_TYPES = ['Petrol', 'Diesel', 'Electric', 'Hybrid', 'CNG'];
 const TRANSMISSION_TYPES = ['Manual', 'Automatic', 'Semi-Automatic'];
 const TRUCK_BODY_TYPES = ['Open', 'Closed', 'Container', 'Flatbed', 'Tanker', 'Refrigerated'];
 const TRUCK_WHEEL_OPTIONS = ['4 Wheeler', '6 Wheeler', '10 Wheeler', '12 Wheeler', '14 Wheeler', '16 Wheeler', '18 Wheeler', '22 Wheeler'];
+const BUS_TYPES = ['AC Seater', 'Non-AC Seater', 'AC Sleeper', 'Non-AC Sleeper', 'Luxury Coach', 'Semi-Sleeper', 'Volvo', 'Mercedes'];
+const BUS_AC_OPTIONS = ['AC', 'Non-AC', 'Both'];
 
 // Service-specific field configurations
 const getServiceFields = (serviceSlug: string) => {
@@ -118,8 +120,7 @@ const getServiceFields = (serviceSlug: string) => {
         showBodyType: false,
         showWheels: false,
         showDimensions: false,
-        showAC: true,
-        showBusType: true,
+        showBusType: true, // Use bodyType field to store bus type
       };
     case 'bike-rental':
       return {
@@ -189,7 +190,7 @@ export default function ServiceVehicleModelsPage() {
     basePricePerDay: '',
     isActive: true,
     displayOrder: 0,
-    // Truck/Packers specific fields
+    // Truck/Packers/Bus specific fields
     loadCapacity: '',
     bodyType: '',
     wheels: '',
@@ -806,7 +807,12 @@ export default function ServiceVehicleModelsPage() {
                     name="name"
                     value={formData.name}
                     onChange={handleChange}
-                    placeholder="e.g., Activa 6G"
+                    placeholder={
+                      serviceSlug === 'bus-rental' ? 'e.g., Volvo 9600' :
+                      serviceSlug === 'truck-rental' ? 'e.g., Tata 407' :
+                      serviceSlug === 'bike-rental' ? 'e.g., Activa 6G' :
+                      'e.g., Ertiga'
+                    }
                     className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
                     required
                   />
@@ -882,9 +888,31 @@ export default function ServiceVehicleModelsPage() {
                       name="seatingCapacity"
                       value={formData.seatingCapacity}
                       onChange={handleChange}
-                      placeholder="e.g., 5"
+                      placeholder={serviceSlug === 'bus-rental' ? 'e.g., 50' : 'e.g., 5'}
                       className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
                     />
+                  </div>
+                )}
+
+                {/* Bus Type - for buses */}
+                {serviceFields.showBusType && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Bus Type
+                    </label>
+                    <select
+                      name="bodyType"
+                      value={formData.bodyType}
+                      onChange={handleChange}
+                      className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="">Select Bus Type</option>
+                      {BUS_TYPES.map((type) => (
+                        <option key={type} value={type}>
+                          {type}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                 )}
 
