@@ -426,6 +426,20 @@ export default function VendorTruckBookingDetailPage() {
             </div>
           </div>
 
+          {/* Actions */}
+          {canAssign && !booking.driverName && (
+            <div className="bg-white rounded-xl shadow-sm border p-6">
+              <h2 className="font-semibold text-gray-900 mb-4">Quick Actions</h2>
+              <Button
+                onClick={handleOpenAssignModal}
+                className="w-full bg-indigo-600 hover:bg-indigo-700 flex items-center justify-center gap-2"
+              >
+                <UserCheck className="w-4 h-4" />
+                Assign Driver & Vehicle
+              </Button>
+            </div>
+          )}
+
           {/* Booking Progress */}
           <div className="bg-white rounded-xl shadow-sm border p-6">
             <h2 className="font-semibold text-gray-900 mb-6 flex items-center gap-2">
@@ -676,7 +690,7 @@ export default function VendorTruckBookingDetailPage() {
                         <option value="">-- Select Vehicle --</option>
                         {vehicles.map((vehicle) => (
                           <option key={vehicle.id} value={vehicle.id}>
-                            {vehicle.registrationNumber || 'No Reg#'} - {vehicle.vehicle_models?.name || 'Unknown Model'}
+                            {vehicle.registrationNumber || 'No Reg#'} - {vehicle.vehicle_model?.name || 'Unknown Model'}
                           </option>
                         ))}
                       </select>
