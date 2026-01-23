@@ -198,6 +198,7 @@ jobs:
         run: npm run build
         env:
           SKIP_ENV_VALIDATION: "1"
+          SKIP_DATABASE_CALLS: "1"
           DATABASE_URL: mysql://root:test_password@127.0.0.1:3306/test_db
           NEXTAUTH_SECRET: ci-build-secret-key
           NEXTAUTH_URL: http://localhost:3000

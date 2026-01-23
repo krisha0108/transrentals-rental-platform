@@ -39,6 +39,10 @@ export async function getFleetByCategory(
   categorySlug: string,
   locationSlug?: string
 ): Promise<FleetVehicle[]> {
+  if (process.env.SKIP_DATABASE_CALLS === '1') {
+    return [];
+  }
+
   try {
     // Find the category
     const category = await prisma.fleet_categories.findFirst({
