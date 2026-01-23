@@ -86,6 +86,9 @@ const BUS_AC_OPTIONS = ['AC', 'Non-AC', 'Both'];
 const getServiceFields = (serviceSlug: string) => {
   switch (serviceSlug) {
     case 'truck-rental':
+    case 'transporter':
+    case 'truck-tempo-rental':
+    case 'mini-truck-rental':
       return {
         showSeating: false,
         showEngine: false,
@@ -809,7 +812,7 @@ export default function ServiceVehicleModelsPage() {
                     onChange={handleChange}
                     placeholder={
                       serviceSlug === 'bus-rental' ? 'e.g., Volvo 9600' :
-                      serviceSlug === 'truck-rental' ? 'e.g., Tata 407' :
+                      (serviceSlug === 'truck-rental' || serviceSlug === 'transporter' || serviceSlug === 'truck-tempo-rental') ? 'e.g., Tata 407' :
                       serviceSlug === 'bike-rental' ? 'e.g., Activa 6G' :
                       'e.g., Ertiga'
                     }
