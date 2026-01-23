@@ -50,6 +50,11 @@ export async function generateStaticParams() {
     slug: city.slug,
   }));
 
+  // Skip database calls during CI build
+  if (process.env.SKIP_DATABASE_CALLS === '1') {
+    return citySlugs;
+  }
+
   // Try to get CMS page slugs (may fail if DB not available at build time)
   let cmsSlugs: { slug: string }[] = [];
   try {

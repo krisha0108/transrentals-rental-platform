@@ -761,6 +761,9 @@ export async function fetchPopularCategories(limit: number = 6): Promise<Categor
  * Utility: Generate static params for blog posts (for static generation)
  */
 export async function getBlogPostSlugs(limit?: number): Promise<string[]> {
+  if (process.env.SKIP_DATABASE_CALLS === '1') {
+    return [];
+  }
   const posts = USE_MOCK_DATA ? blogPosts : await fetchBlogPosts({ limit: 100 }).then(res => res.posts);
   const slugs = posts.map((post) => post.slug);
   return limit ? slugs.slice(0, limit) : slugs;
@@ -770,6 +773,9 @@ export async function getBlogPostSlugs(limit?: number): Promise<string[]> {
  * Utility: Generate static params for categories
  */
 export async function getCategorySlugs(): Promise<string[]> {
+  if (process.env.SKIP_DATABASE_CALLS === '1') {
+    return [];
+  }
   const categories = await fetchCategories();
   // Limit to top 10 categories for static generation to reduce DB load
   return categories.slice(0, 10).map((cat) => cat.slug);
@@ -779,6 +785,9 @@ export async function getCategorySlugs(): Promise<string[]> {
  * Utility: Generate static params for tags
  */
 export async function getTagSlugs(): Promise<string[]> {
+  if (process.env.SKIP_DATABASE_CALLS === '1') {
+    return [];
+  }
   // Only generate pages for top 20 tags to save build time and DB load
   const tags = await fetchPopularTags(20);
   return tags.map((tag) => tag.slug);
@@ -788,6 +797,9 @@ export async function getTagSlugs(): Promise<string[]> {
  * Utility: Generate static params for authors
  */
 export async function getAuthorSlugs(): Promise<string[]> {
+  if (process.env.SKIP_DATABASE_CALLS === '1') {
+    return [];
+  }
   const authors = await fetchAuthors();
   // Limit to top 5 authors for static generation
   return authors.slice(0, 5).map((author) => author.slug);
