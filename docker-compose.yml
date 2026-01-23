@@ -1,35 +1,94 @@
-version: "3.8"
+version: '3.8'
 
 services:
-  transrentals-web:
-    image: ghcr.io/saurav1702/transrentals-new:latest
-    container_name: transrentals-web-docker
+  # MySQL Database
+  mysql:
+    image: mysql:8.0
+    container_name: transrentals-db
     restart: unless-stopped
-    ports:
-      - "3009:3000"  # Changed from 3006 to avoid PM2 conflict
     environment:
-      - DATABASE_URL=${DATABASE_URL}
-      - NEXTAUTH_URL=${NEXTAUTH_URL}
-      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
-      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
-      - NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL}
-      - NODE_ENV=production
-      - PORT=3000
-    env_file:
-      - .env.production
-    healthcheck:
-      test: ["CMD", "node", "-e", "fetch('http://localhost:3000').then(() => process.exit(0)).catch(() => process.exit(1))"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root_password_change_me}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-transrentals}
+      MYSQL_USER: ${MYSQL_USER:-transrentals_user}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-user_password_change_me}
+    ports:
+      - "${MYSQL_PORT:-3306}:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
     networks:
       - transrentals-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
     logging:
       driver: "json-file"
       options:
         max-size: "10m"
         max-file: "3"
+
+  # TransRentals Application (Local Build)
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_APP_NAME: ${NEXT_PUBLIC_APP_NAME:-TransRentals}
+        NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-http://localhost:3000}
+        NEXT_PUBLIC_CONTACT_EMAIL: ${NEXT_PUBLIC_CONTACT_EMAIL:-info@transrentals.com}
+    container_name: transrentals-app
+    restart: unless-stopped
+    ports:
+      - "${APP_PORT:-3000}:3000"
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-mysql://transrentals_user:user_password_change_me@mysql:3306/transrentals}
+      NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost:3000}
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:-change-this-to-a-random-32-character-string}
+      SEED_DATABASE: ${SEED_DATABASE:-false}
+      NODE_ENV: production
+      PORT: 3000
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - transrentals-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # TransRentals Application (From Registry - Alternative)
+  # Uncomment to use pre-built image instead of local build
+  # app-registry:
+  #   image: ghcr.io/saurav1702/transrentals-new:latest
+  #   container_name: transrentals-web-docker
+  #   restart: unless-stopped
+  #   ports:
+  #     - "3009:3000"
+  #   environment:
+  #     DATABASE_URL: ${DATABASE_URL}
+  #     NEXTAUTH_URL: ${NEXTAUTH_URL}
+  #     NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
+  #     NODE_ENV: production
+  #     PORT: 3000
+  #   networks:
+  #     - transrentals-network
+  #   depends_on:
+  #     mysql:
+  #       condition: service_healthy
+
+volumes:
+  mysql_data:
+    driver: local
 
 networks:
   transrentals-network:
