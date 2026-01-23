@@ -59,6 +59,7 @@ COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
 ENV SKIP_ENV_VALIDATION=1
+ENV SKIP_DATABASE_CALLS=1
 ENV DATABASE_URL="mysql://dummy:dummy@localhost:3306/dummy"
 ENV NEXTAUTH_URL=http://localhost:3000
 ENV NEXTAUTH_SECRET=build-time-secret-will-be-replaced

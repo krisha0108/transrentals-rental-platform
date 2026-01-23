@@ -286,6 +286,12 @@ function generateMainSitemap(currentDate: string): MetadataRoute.Sitemap {
 async function generateServiceLocationsSitemap(currentDate: string): Promise<MetadataRoute.Sitemap> {
   const routes: MetadataRoute.Sitemap = [];
 
+  // Skip database calls during CI/CD build
+  if (process.env.SKIP_DATABASE_CALLS === '1') {
+    console.log('[Sitemap] Skipping service locations - CI build');
+    return [];
+  }
+
   try {
     // Query ServiceLocation table - only get ACTIVE service+location combinations
     // Note: Location model doesn't have tier, so we check parent state for priority
@@ -380,6 +386,12 @@ async function generateServiceLocationsSitemap(currentDate: string): Promise<Met
 async function generateFleetSitemap(currentDate: string): Promise<MetadataRoute.Sitemap> {
   const routes: MetadataRoute.Sitemap = [];
 
+  // Skip database calls during CI/CD build
+  if (process.env.SKIP_DATABASE_CALLS === '1') {
+    console.log('[Sitemap] Skipping fleet sitemap - CI build');
+    return [];
+  }
+
   try {
     // Get all active fleet vehicles for main fleet pages
     const fleetVehicles = await prisma.fleet.findMany({
@@ -463,6 +475,12 @@ async function generateFleetSitemap(currentDate: string): Promise<MetadataRoute.
 // =============================================================================
 async function generateCityTagSitemap(currentDate: string): Promise<MetadataRoute.Sitemap> {
   const routes: MetadataRoute.Sitemap = [];
+
+  // Skip database calls during CI/CD build
+  if (process.env.SKIP_DATABASE_CALLS === '1') {
+    console.log('[Sitemap] Skipping city/tag sitemap - CI build');
+    return [];
+  }
 
   try {
     // Get active cities from database with parent state for priority
