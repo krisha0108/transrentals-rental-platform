@@ -537,7 +537,7 @@ const nextConfig = {
       },
     ];
   },
-  // output: "standalone", // Disabled temporarily due to disk space - Re-enable for Docker builds
+  output: "standalone",
   compress: true,
   poweredByHeader: false,
   generateEtags: true,
