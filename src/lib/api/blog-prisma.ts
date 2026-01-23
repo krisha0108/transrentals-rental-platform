@@ -116,6 +116,21 @@ function convertPrismaBlogPost(post: any): BlogPost {
 export async function fetchBlogPostsPrisma(
   filters: BlogFilters = {}
 ): Promise<BlogPostsResponse> {
+  // Skip database calls during CI build
+  if (process.env.SKIP_DATABASE_CALLS === '1') {
+    return {
+      posts: [],
+      meta: {
+        currentPage: 1,
+        totalPages: 0,
+        totalPosts: 0,
+        postsPerPage: filters.limit || 12,
+        hasNextPage: false,
+        hasPrevPage: false,
+      },
+    };
+  }
+
   try {
     const {
       page = 1,
@@ -287,6 +302,10 @@ export async function fetchBlogPostsPrisma(
  * Fetch single blog post by slug
  */
 export async function fetchBlogPostPrisma(slug: string): Promise<BlogPost | null> {
+  if (process.env.SKIP_DATABASE_CALLS === '1') {
+    return null;
+  }
+
   try {
     const post = await prisma.blog_posts.findFirst({
       where: {
@@ -327,6 +346,10 @@ export async function fetchBlogPostPrisma(slug: string): Promise<BlogPost | null
  * Fetch all categories with PUBLISHED post counts only
  */
 export async function fetchCategoriesPrisma(): Promise<Category[]> {
+  if (process.env.SKIP_DATABASE_CALLS === '1') {
+    return [];
+  }
+
   try {
     const categories = await prisma.blog_categories.findMany({
       orderBy: { name: 'asc' },
@@ -360,6 +383,10 @@ export async function fetchCategoriesPrisma(): Promise<Category[]> {
  * Fetch popular tags
  */
 export async function fetchPopularTagsPrisma(limit: number = 15): Promise<Tag[]> {
+  if (process.env.SKIP_DATABASE_CALLS === '1') {
+    return [];
+  }
+
   try {
     // Get all posts with tags
     const posts = await prisma.blog_posts.findMany({
@@ -399,6 +426,10 @@ export async function fetchPopularTagsPrisma(limit: number = 15): Promise<Tag[]>
  * Fetch featured posts
  */
 export async function fetchFeaturedPostsPrisma(limit: number = 3): Promise<BlogPost[]> {
+  if (process.env.SKIP_DATABASE_CALLS === '1') {
+    return [];
+  }
+
   try {
     const posts = await prisma.blog_posts.findMany({
       where: { status: 'PUBLISHED' },
@@ -429,6 +460,10 @@ export async function fetchFeaturedPostsPrisma(limit: number = 3): Promise<BlogP
  * Note: MySQL with utf8mb4_unicode_ci collation is case-insensitive by default
  */
 export async function searchBlogPostsPrisma(query: string, limit: number = 10): Promise<BlogPost[]> {
+  if (process.env.SKIP_DATABASE_CALLS === '1') {
+    return [];
+  }
+
   try {
     // Search in title, content, and excerpt
     const posts = await prisma.blog_posts.findMany({
