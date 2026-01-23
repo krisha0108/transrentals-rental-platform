@@ -13,11 +13,13 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     const { id } = params;
     const quote = await prisma.truck_quotes.findFirst({
       where: { id, vendorId: auth.vendorId },
-      include: { request: { select: { id: true, requestNumber: true, customerName: true, customerPhone: true, pickupCity: true, dropCity: true, pickupDate: true, goodsType: true, estimatedWeight: true, status: true } } },
+      include: { truck_quote_requests: { select: { id: true, requestNumber: true, customerName: true, customerPhone: true, pickupCity: true, dropCity: true, pickupDate: true, goodsType: true, estimatedWeight: true, status: true } } },
     });
     if (!quote) return NextResponse.json({ error: 'Quote not found' }, { status: 404 });
     const parseJson = (f: any) => { if (!f) return []; if (Array.isArray(f)) return f; try { return JSON.parse(f); } catch { return []; } };
-    return NextResponse.json({ success: true, quote: { ...quote, inclusions: parseJson(quote.inclusions), exclusions: parseJson(quote.exclusions), termsConditions: parseJson(quote.termsConditions) } });
+    // Transform response to maintain backward compatibility
+    const { truck_quote_requests, ...quoteData } = quote;
+    return NextResponse.json({ success: true, quote: { ...quoteData, request: truck_quote_requests, inclusions: parseJson(quote.inclusions), exclusions: parseJson(quote.exclusions), termsConditions: parseJson(quote.termsConditions) } });
   } catch (error: any) {
     logger.error('Failed to fetch truck quote', error);
     return NextResponse.json({ error: 'Failed to fetch quote', details: error?.message }, { status: 500 });

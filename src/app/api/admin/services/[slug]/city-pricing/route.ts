@@ -1,9 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 import { transformPrismaResponse } from '@/lib/utils/api-transform';
+import crypto from 'crypto';
 
 import logger from '@/lib/security/logger';
 export const dynamic = 'force-dynamic';
+
+// Helper to generate a unique ID
+function generateId(): string {
+  return 'c' + crypto.randomBytes(12).toString('base64url').toLowerCase().slice(0, 24);
+}
 
 // GET - List all city pricing configurations for a service
 export async function GET(
@@ -99,6 +105,7 @@ export async function POST(
         },
       },
       create: {
+        id: generateId(),
         vehicleCategoryId,
         locationId,
         baseKmRate,

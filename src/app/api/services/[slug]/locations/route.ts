@@ -17,7 +17,8 @@ export async function GET(
     // Get search query parameter
     const { searchParams } = new URL(request.url);
     const query = searchParams.get('q') || searchParams.get('query') || '';
-    const limit = parseInt(searchParams.get('limit') || '50');
+    const limitParam = searchParams.get('limit');
+    const limit = limitParam ? parseInt(limitParam) : undefined; // No limit if not specified
 
     // Find the service by slug
     const service = await prisma.services.findUnique({
@@ -78,7 +79,7 @@ export async function GET(
           },
         },
       },
-      take: limit,
+      ...(limit ? { take: limit } : {}), // Only apply limit if specified
     });
 
     // Filter only active locations and transform the response

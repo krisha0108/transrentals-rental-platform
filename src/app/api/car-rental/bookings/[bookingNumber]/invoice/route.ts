@@ -19,8 +19,8 @@ export async function GET(
     const booking = await prisma.chauffeur_bookings.findUnique({
       where: { bookingNumber },
       include: {
-        location: true,
-        acceptedVendor: {
+        locations: true,
+        vendors_chauffeur_bookings_acceptedVendorIdTovendors: {
           select: {
             businessName: true,
             phone: true,
