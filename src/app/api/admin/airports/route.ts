@@ -8,9 +8,9 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const serviceSlug = searchParams.get('serviceSlug');
 
-    // Build where clause - airports have airport codes (IATA codes)
+    // Build where clause - filter by type AIRPORT
     const whereClause: any = {
-      code: { not: null }, // Airports have airport codes
+      type: 'AIRPORT', // Only get locations with type AIRPORT
     };
 
     // If serviceSlug provided, filter by service
@@ -105,22 +105,24 @@ export async function POST(request: NextRequest) {
     // Generate slug
     const slug = `${parentCity.name.toLowerCase().replace(/\s+/g, '-')}-airport-${code.toLowerCase()}`;
 
-    // Get next location ID
-    const lastLocation = await prisma.locations.findFirst({
-      orderBy: { id: 'desc' },
+    // Get next location ID (fetch all and find max to avoid alphabetical ordering bug)
+    const allLocations = await prisma.locations.findMany({
       where: { id: { startsWith: 'LOC_' } },
+      select: { id: true },
     });
-    const nextId = lastLocation
-      ? `LOC_${parseInt(lastLocation.id.replace('LOC_', '')) + 1}`
-      : 'LOC_1';
+    const maxLocId = allLocations.reduce((max, loc) => {
+      const num = parseInt(loc.id.replace('LOC_', ''));
+      return num > max ? num : max;
+    }, 0);
+    const nextId = `LOC_${maxLocId + 1}`;
 
-    // Create airport (stored as CITY type with airport code for compatibility)
+    // Create airport (stored as AIRPORT type)
     const airport = await prisma.locations.create({
       data: {
         id: nextId,
         name,
         slug,
-        type: 'CITY', // Airports are stored as CITY type with airport code
+        type: 'AIRPORT', // Airports are stored as AIRPORT type
         code: code.toUpperCase(),
         parentId,
         latitude: latitude || null,
@@ -142,14 +144,16 @@ export async function POST(request: NextRequest) {
       });
 
       if (service) {
-        // Get next service location ID
-        const lastSL = await prisma.service_locations.findFirst({
-          orderBy: { id: 'desc' },
+        // Get next service location ID (fetch all and find max to avoid alphabetical ordering bug)
+        const allSLIds = await prisma.service_locations.findMany({
           where: { id: { startsWith: 'SL_' } },
+          select: { id: true },
         });
-        const nextSLId = lastSL
-          ? `SL_${parseInt(lastSL.id.replace('SL_', '')) + 1}`
-          : 'SL_1';
+        const maxSLId = allSLIds.reduce((max, sl) => {
+          const num = parseInt(sl.id.replace('SL_', ''));
+          return num > max ? num : max;
+        }, 0);
+        const nextSLId = `SL_${maxSLId + 1}`;
 
         await prisma.service_locations.create({
           data: {
@@ -202,12 +206,16 @@ async function createAirportTransferRoutes(
       'car-rental-luxury-suv': { perKm: 150, baseFare: 4999 },
     };
 
-    // Get next route ID
-    const lastRoute = await prisma.chauffeur_route_packages.findFirst({
-      orderBy: { id: 'desc' },
+    // Get next route ID (fetch all and find max to avoid alphabetical ordering bug)
+    const allRoutes = await prisma.chauffeur_route_packages.findMany({
       where: { id: { startsWith: 'CRP_' } },
+      select: { id: true },
     });
-    let nextRouteId = lastRoute ? parseInt(lastRoute.id.replace('CRP_', '')) + 1 : 1;
+    const maxRouteId = allRoutes.reduce((max, route) => {
+      const num = parseInt(route.id.replace('CRP_', ''));
+      return num > max ? num : max;
+    }, 0);
+    let nextRouteId = maxRouteId + 1;
 
     const duration = distanceKm < 20 ? '30-45 min' : distanceKm < 40 ? '45-60 min' : '1-1.5 hr';
 

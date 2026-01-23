@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 import { SignJWT } from 'jose';
 import logger from '@/lib/security/logger';
+import { generateCustomerId } from '@/lib/utils/id-generator';
 
 export const dynamic = 'force-dynamic';
 
@@ -231,8 +232,10 @@ export async function POST(request: NextRequest) {
 
     if (!customer) {
       // Create new customer (without password - they can set it later)
+      const customerId = await generateCustomerId();
       customer = await prisma.customers.create({
         data: {
+          id: customerId,
           name: customerName,
           email: customerEmail.toLowerCase(),
           phone: customerPhone,

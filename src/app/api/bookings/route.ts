@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 import { transformPrismaResponse } from '@/lib/utils/api-transform';
+import { generateCustomerId } from '@/lib/utils/id-generator';
 import {
   checkRateLimit,
   RATE_LIMITS,
@@ -59,8 +60,10 @@ async function getOrCreateCustomer(customerInfo: { name: string; email: string; 
       hashedPassword = await bcrypt.hash(customerInfo.password, 10);
     }
 
+    const customerId = await generateCustomerId();
     customer = await prisma.customers.create({
       data: {
+        id: customerId,
         name: customerInfo.name,
         email: customerInfo.email,
         phone: customerInfo.phone,
@@ -1151,7 +1154,20 @@ export async function GET(request: NextRequest) {
         case 'bus':
           data.requests = await prisma.bus_quote_requests.findMany({
             where: { customerId: customer.id },
-            include: { bus_quotes: { where: { status: { in: ['SENT', 'VIEWED'] } } } },
+            include: {
+              bus_quotes_bus_quotes_requestIdTobus_quote_requests: {
+                where: { status: { in: ['SENT', 'VIEWED'] } },
+                select: {
+                  id: true,
+                  quoteNumber: true,
+                  vendorId: true,
+                  totalAmount: true,
+                  status: true,
+                  validTill: true,
+                },
+                orderBy: { totalAmount: 'asc' },
+              }
+            },
             orderBy: { createdAt: 'desc' },
           });
           data.bookings = await prisma.bus_bookings.findMany({
@@ -1162,7 +1178,7 @@ export async function GET(request: NextRequest) {
         case 'luxury':
           data.bookings = await prisma.luxury_bookings.findMany({
             where: { customerId: customer.id },
-            include: { bids: { where: { status: 'PENDING' } } },
+            include: { luxury_bids: { where: { status: 'PENDING' } } },
             orderBy: { createdAt: 'desc' },
           });
           break;

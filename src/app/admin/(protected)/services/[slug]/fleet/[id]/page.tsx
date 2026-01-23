@@ -37,34 +37,34 @@ interface VehicleDetails {
   isActive: boolean;
   displayOrder: number;
   createdAt: string;
-  brand: {
+  brands?: {
     id: string;
     name: string;
     logo: string | null;
   };
-  service: {
+  services_vehicle_models_serviceIdToservices?: {
     id: string;
     name: string;
     slug: string;
   };
-  services_vehicle_models_subServiceIdToservices: {
+  services_vehicle_models_subServiceIdToservices?: {
     id: string;
     name: string;
     slug: string;
   } | null;
-  locations: Array<{
+  vehicle_model_locations?: Array<{
     id: string;
     basePricePerDay: number | null;
     isActive: boolean;
-    location: {
+    locations?: {
       id: string;
       name: string;
       slug: string;
     };
   }>;
-  vendorFleets: Array<{
+  vendor_fleets?: Array<{
     id: string;
-    vendors: {
+    vendors?: {
       id: string;
       businessName: string;
     };
@@ -150,7 +150,7 @@ export default function VehicleViewPage() {
             )}
             <div>
               <h1 className="text-2xl font-bold text-gray-900">{vehicle.name}</h1>
-              <p className="text-gray-600">{vehicle.brand.name} - {vehicle.service.name}</p>
+              <p className="text-gray-600">{vehicle.brands?.name || 'Unknown Brand'} - {vehicle.services_vehicle_models_serviceIdToservices?.name || 'Unknown Service'}</p>
             </div>
           </div>
         </div>
@@ -177,9 +177,9 @@ export default function VehicleViewPage() {
             Inactive
           </span>
         )}
-        {vehicle.sub_service && (
+        {vehicle.services_vehicle_models_subServiceIdToservices && (
           <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm">
-            {vehicle.sub_service.name}
+            {vehicle.services_vehicle_models_subServiceIdToservices.name}
           </span>
         )}
       </div>
@@ -259,21 +259,21 @@ export default function VehicleViewPage() {
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold text-gray-900">Assigned Locations</h2>
               <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-sm">
-                {vehicle.locations.length} locations
+                {vehicle.vehicle_model_locations?.length || 0} locations
               </span>
             </div>
-            {vehicle.locations.length === 0 ? (
+            {!vehicle.vehicle_model_locations || vehicle.vehicle_model_locations.length === 0 ? (
               <p className="text-gray-500 text-center py-4">No locations assigned yet</p>
             ) : (
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
-                {vehicle.locations.map((loc) => (
+                {vehicle.vehicle_model_locations.map((loc) => (
                   <div
                     key={loc.id}
                     className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg"
                   >
                     <MapPin className="w-4 h-4 text-blue-500 flex-shrink-0" />
                     <div className="min-w-0">
-                      <p className="font-medium text-sm truncate">{loc.location?.name || 'Unknown Location'}</p>
+                      <p className="font-medium text-sm truncate">{loc.locations?.name || 'Unknown Location'}</p>
                       {loc.basePricePerDay && (
                         <p className="text-xs text-green-600">₹{loc.basePricePerDay}/day</p>
                       )}
@@ -297,23 +297,23 @@ export default function VehicleViewPage() {
               </div>
               <div className="flex items-center justify-between py-2 border-b">
                 <span className="text-gray-600">Brand</span>
-                <span className="font-medium">{vehicle.brand.name}</span>
+                <span className="font-medium">{vehicle.brands?.name || 'Unknown'}</span>
               </div>
               <div className="flex items-center justify-between py-2 border-b">
                 <span className="text-gray-600">Service</span>
-                <span className="font-medium">{vehicle.service.name}</span>
+                <span className="font-medium">{vehicle.services_vehicle_models_serviceIdToservices?.name || 'Unknown'}</span>
               </div>
               <div className="flex items-center justify-between py-2 border-b">
                 <span className="text-gray-600">Category</span>
-                <span className="font-medium">{vehicle.sub_service?.name || 'Uncategorized'}</span>
+                <span className="font-medium">{vehicle.services_vehicle_models_subServiceIdToservices?.name || 'Uncategorized'}</span>
               </div>
               <div className="flex items-center justify-between py-2 border-b">
                 <span className="text-gray-600">Locations</span>
-                <span className="font-medium">{vehicle.locations.length}</span>
+                <span className="font-medium">{vehicle.vehicle_model_locations?.length || 0}</span>
               </div>
               <div className="flex items-center justify-between py-2 border-b">
                 <span className="text-gray-600">Vendors</span>
-                <span className="font-medium">{vehicle.vendorFleets.length}</span>
+                <span className="font-medium">{vehicle.vendor_fleets?.length || 0}</span>
               </div>
               <div className="flex items-center justify-between py-2">
                 <span className="text-gray-600">Display Order</span>
@@ -323,16 +323,16 @@ export default function VehicleViewPage() {
           </div>
 
           {/* Vendors */}
-          {vehicle.vendorFleets.length > 0 && (
+          {vehicle.vendor_fleets && vehicle.vendor_fleets.length > 0 && (
             <div className="bg-white rounded-xl p-6 border shadow-sm">
               <h2 className="text-lg font-semibold text-gray-900 mb-4">
-                Vendors ({vehicle.vendorFleets.length})
+                Vendors ({vehicle.vendor_fleets.length})
               </h2>
               <div className="space-y-2">
-                {vehicle.vendorFleets.map((vf) => (
+                {vehicle.vendor_fleets.map((vf) => (
                   <div key={vf.id} className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg">
                     <Building2 className="w-4 h-4 text-gray-500" />
-                    <span className="text-sm">{vf.vendor.businessName}</span>
+                    <span className="text-sm">{vf.vendors?.businessName || 'Unknown Vendor'}</span>
                   </div>
                 ))}
               </div>

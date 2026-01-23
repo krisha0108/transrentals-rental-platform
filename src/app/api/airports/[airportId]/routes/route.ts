@@ -16,7 +16,7 @@ export async function GET(
     // Verify airport exists
     const airport = await prisma.locations.findUnique({
       where: { id: params.airportId, type: 'AIRPORT' },
-      select: { id: true, name: true, code: true, parent: { select: { id: true, name: true } } },
+      select: { id: true, name: true, code: true, locations: { select: { id: true, name: true } } },
     });
 
     if (!airport) {

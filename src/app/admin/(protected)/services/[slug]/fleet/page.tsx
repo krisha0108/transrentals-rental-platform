@@ -187,7 +187,10 @@ export default function ServiceFleetPage() {
   // Helper to check if this is equipment rental service
   const isEquipmentService = slug === 'equipment-rental';
 
-  // Form state - includes both vehicle and equipment fields
+  // Helper to check if this is packers and movers service
+  const isPackersService = slug === 'packers-and-movers';
+
+  // Form state - includes vehicle, equipment, and packers fields
   const [formData, setFormData] = useState({
     name: '',
     slug: '',
@@ -205,6 +208,10 @@ export default function ServiceFleetPage() {
     operatorIncluded: false,
     securityDeposit: '',
     specifications: '',
+    // Packers-specific fields
+    vehicleCapacity: '',
+    teamSize: '',
+    registrationNumber: '',
     // Common pricing fields
     basePricePerDay: '',
     weeklyDiscount: '',
@@ -308,6 +315,10 @@ export default function ServiceFleetPage() {
       operatorIncluded: false,
       securityDeposit: '',
       specifications: '',
+      // Packers fields
+      vehicleCapacity: '',
+      teamSize: '',
+      registrationNumber: '',
       // Pricing
       basePricePerDay: '',
       weeklyDiscount: '',
@@ -339,6 +350,10 @@ export default function ServiceFleetPage() {
       operatorIncluded: vehicle.specs?.operatorIncluded === 'true' || String(vehicle.specs?.operatorIncluded) === 'true',
       securityDeposit: vehicle.specs?.securityDeposit || '',
       specifications: vehicle.specs?.specifications || '',
+      // Packers fields
+      vehicleCapacity: vehicle.specs?.vehicleCapacity || '',
+      teamSize: vehicle.specs?.teamSize || '',
+      registrationNumber: vehicle.specs?.registrationNumber || '',
       // Pricing
       basePricePerDay: vehicle.basePrice?.toString() || '',
       weeklyDiscount: vehicle.weeklyDiscount?.toString() || '',
@@ -506,8 +521,14 @@ export default function ServiceFleetPage() {
         requestBody.specifications = formData.specifications || null;
         requestBody.weeklyRate = formData.weeklyRate || null;
         requestBody.monthlyRate = formData.monthlyRate || null;
+      } else if (isPackersService) {
+        // Packers-specific fields
+        requestBody.vehicleCapacity = formData.vehicleCapacity || null;
+        requestBody.teamSize = formData.teamSize || null;
+        requestBody.registrationNumber = formData.registrationNumber || null;
+        requestBody.specifications = formData.specifications || null;
       } else {
-        // Vehicle-specific fields
+        // Vehicle-specific fields (car rental, bus rental, etc.)
         requestBody.fuelType = formData.fuelType || null;
         requestBody.transmission = formData.transmission || null;
         requestBody.seatingCapacity = formData.seatingCapacity || null;
@@ -529,11 +550,13 @@ export default function ServiceFleetPage() {
         window.location.reload();
       } else {
         const error = await res.json();
-        alert(error.error || `Failed to save ${isEquipmentService ? 'equipment' : 'vehicle'}`);
+        const itemType = isEquipmentService ? 'equipment' : isPackersService ? 'vehicle' : 'vehicle';
+        alert(error.error || `Failed to save ${itemType}`);
       }
     } catch (error) {
-      console.error(`Failed to save ${isEquipmentService ? 'equipment' : 'vehicle'}:`, error);
-      alert(`Failed to save ${isEquipmentService ? 'equipment' : 'vehicle'}`);
+      const itemType = isEquipmentService ? 'equipment' : isPackersService ? 'vehicle' : 'vehicle';
+      console.error(`Failed to save ${itemType}:`, error);
+      alert(`Failed to save ${itemType}`);
     } finally {
       setSaving(false);
     }
@@ -867,7 +890,7 @@ export default function ServiceFleetPage() {
             className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
           >
             <Plus className="w-4 h-4 mr-2" />
-            Add {isEquipmentService ? 'Equipment' : 'Vehicle'}
+            Add {isEquipmentService ? 'Equipment' : isPackersService ? 'Vehicle' : 'Vehicle'}
           </Button>
         </div>
       </div>
@@ -1062,8 +1085,8 @@ export default function ServiceFleetPage() {
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-xl font-bold text-gray-900">
                 {editingVehicle
-                  ? `Edit ${isEquipmentService ? 'Equipment' : 'Vehicle'}`
-                  : `Add New ${isEquipmentService ? 'Equipment' : 'Vehicle'}`}
+                  ? `Edit ${isEquipmentService ? 'Equipment' : isPackersService ? 'Moving Vehicle' : 'Vehicle'}`
+                  : `Add New ${isEquipmentService ? 'Equipment' : isPackersService ? 'Moving Vehicle' : 'Vehicle'}`}
               </h2>
               <button
                 onClick={() => setShowModal(false)}
@@ -1077,14 +1100,14 @@ export default function ServiceFleetPage() {
               {/* Name */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {isEquipmentService ? 'Equipment Name' : 'Vehicle Name'} *
+                  {isEquipmentService ? 'Equipment Name' : isPackersService ? 'Vehicle Name' : 'Vehicle Name'} *
                 </label>
                 <input
                   type="text"
                   name="name"
                   value={formData.name}
                   onChange={handleFormChange}
-                  placeholder={isEquipmentService ? 'e.g., JCB 3DX Backhoe Loader' : 'e.g., Maruti Swift VXI'}
+                  placeholder={isEquipmentService ? 'e.g., JCB 3DX Backhoe Loader' : isPackersService ? 'e.g., Tata 407 Mini Truck' : 'e.g., Maruti Swift VXI'}
                   className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
                   required
                 />
@@ -1100,23 +1123,23 @@ export default function ServiceFleetPage() {
                   name="slug"
                   value={formData.slug}
                   onChange={handleFormChange}
-                  placeholder={isEquipmentService ? 'e.g., jcb-3dx-backhoe-loader' : 'e.g., maruti-swift-vxi'}
+                  placeholder={isEquipmentService ? 'e.g., jcb-3dx-backhoe-loader' : isPackersService ? 'e.g., tata-407-mini-truck' : 'e.g., maruti-swift-vxi'}
                   className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
                   required
                 />
               </div>
 
-              {/* Brand - Optional for equipment */}
+              {/* Brand - Optional for equipment and packers */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Brand {isEquipmentService ? '(Optional)' : '*'}
+                  Brand {(isEquipmentService || isPackersService) ? '(Optional)' : '*'}
                 </label>
                 <select
                   name="brandId"
                   value={formData.brandId}
                   onChange={handleFormChange}
                   className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
-                  required={!isEquipmentService}
+                  required={!isEquipmentService && !isPackersService}
                 >
                   <option value="">Select Brand</option>
                   {brands.map((brand) => (
@@ -1225,9 +1248,73 @@ export default function ServiceFleetPage() {
                     />
                   </div>
                 </>
+              ) : isPackersService ? (
+                <>
+                  {/* Packers-specific fields */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Vehicle Capacity
+                      </label>
+                      <input
+                        type="text"
+                        name="vehicleCapacity"
+                        value={formData.vehicleCapacity}
+                        onChange={handleFormChange}
+                        placeholder="e.g., Mini, Small, Medium, Large"
+                        className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">Size category for moving capacity</p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Default Team Size
+                      </label>
+                      <input
+                        type="number"
+                        name="teamSize"
+                        value={formData.teamSize}
+                        onChange={handleFormChange}
+                        placeholder="e.g., 4"
+                        className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">Number of workers included</p>
+                    </div>
+                  </div>
+
+                  {/* Registration Number */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Vehicle Registration Number
+                    </label>
+                    <input
+                      type="text"
+                      name="registrationNumber"
+                      value={formData.registrationNumber}
+                      onChange={handleFormChange}
+                      placeholder="e.g., DL 01 AB 1234"
+                      className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+
+                  {/* Specifications */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Vehicle Details & Features
+                    </label>
+                    <textarea
+                      name="specifications"
+                      value={formData.specifications}
+                      onChange={handleFormChange}
+                      placeholder="Enter vehicle specifications, features, loading capacity, dimensions, etc."
+                      rows={4}
+                      className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                </>
               ) : (
                 <>
-                  {/* Vehicle-specific fields */}
+                  {/* Vehicle-specific fields (cars, bikes, buses) */}
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -1314,7 +1401,7 @@ export default function ServiceFleetPage() {
               {/* Image */}
               <div className="pt-4 border-t">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  {isEquipmentService ? 'Equipment Image' : 'Vehicle Image'}
+                  {isEquipmentService ? 'Equipment Image' : isPackersService ? 'Vehicle Image' : 'Vehicle Image'}
                 </label>
                 {formData.sideImage ? (
                   <div className="relative inline-block">
@@ -1403,6 +1490,26 @@ export default function ServiceFleetPage() {
                     <p className="text-xs text-gray-500 mt-2">
                       Set rental rates for different durations. You can override prices per location when assigning locations.
                     </p>
+                  </>
+                ) : isPackersService ? (
+                  <>
+                    {/* Packers pricing - Base rate only (quotes are dynamic) */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Base Rate (₹)
+                      </label>
+                      <input
+                        type="number"
+                        name="basePricePerDay"
+                        value={formData.basePricePerDay}
+                        onChange={handleFormChange}
+                        placeholder="e.g., 5000"
+                        className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        Base reference rate for this vehicle. Actual quotes will be generated based on distance, load, and requirements.
+                      </p>
+                    </div>
                   </>
                 ) : (
                   <>
@@ -1493,8 +1600,8 @@ export default function ServiceFleetPage() {
                   ) : (
                     <>
                       {editingVehicle
-                        ? `Update ${isEquipmentService ? 'Equipment' : 'Vehicle'}`
-                        : `Add ${isEquipmentService ? 'Equipment' : 'Vehicle'}`}
+                        ? `Update ${isEquipmentService ? 'Equipment' : isPackersService ? 'Vehicle' : 'Vehicle'}`
+                        : `Add ${isEquipmentService ? 'Equipment' : isPackersService ? 'Vehicle' : 'Vehicle'}`}
                     </>
                   )}
                 </Button>
@@ -1670,7 +1777,7 @@ export default function ServiceFleetPage() {
             {/* Header */}
             <div className="flex items-center justify-between p-4 border-b">
               <h2 className="text-lg font-bold text-gray-900">
-                Select {isEquipmentService ? 'Equipment' : 'Vehicle'} Image
+                Select {isEquipmentService ? 'Equipment' : isPackersService ? 'Vehicle' : 'Vehicle'} Image
               </h2>
               <button
                 onClick={() => setShowImagePicker(false)}

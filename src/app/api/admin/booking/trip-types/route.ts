@@ -4,8 +4,14 @@ import { authOptions } from '@/lib/auth/auth-options';
 import { prisma } from '@/lib/db/prisma';
 import { transformPrismaResponse } from '@/lib/utils/api-transform';
 import logger from '@/lib/security/logger';
+import crypto from 'crypto';
 
 export const dynamic = 'force-dynamic';
+
+// Helper to generate a unique ID
+function generateId(): string {
+  return 'c' + crypto.randomBytes(12).toString('base64url').toLowerCase().slice(0, 24);
+}
 
 // GET - List all trip types
 export async function GET(request: NextRequest) {
@@ -20,8 +26,8 @@ export async function GET(request: NextRequest) {
       include: {
         _count: {
           select: {
-            serviceTripTypes: true,
-            localPackages: true,
+            service_trip_types: true,
+            local_packages: true,
           },
         },
       },
@@ -78,6 +84,7 @@ export async function POST(request: NextRequest) {
 
     const tripType = await prisma.trip_types.create({
       data: {
+        id: generateId(),
         name,
         slug,
         description: description || null,

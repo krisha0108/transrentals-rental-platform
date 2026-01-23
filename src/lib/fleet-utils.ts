@@ -63,22 +63,22 @@ export async function getFleetByCategory(
         categoryId: category.id,
       },
       include: {
-        category: true,
-        locationRates: locationSlug
+        fleet_categories: true,
+        fleet_location_rates: locationSlug
           ? {
               where: {
-                location: { slug: locationSlug },
+                fleet_locations: { slug: locationSlug },
                 isActive: true,
               },
-              include: { location: true },
+              include: { fleet_locations: true },
             }
           : false,
-        availability: locationSlug
+        fleet_availability: locationSlug
           ? {
               where: {
-                location: { slug: locationSlug },
+                fleet_locations: { slug: locationSlug },
               },
-              include: { location: true },
+              include: { fleet_locations: true },
             }
           : false,
       },
@@ -89,15 +89,15 @@ export async function getFleetByCategory(
     return vehicles
       .filter((vehicle) => {
         // For SPECIFIC_LOCATIONS type, check if available in this location
-        if (vehicle.availabilityType === 'SPECIFIC_LOCATIONS' && locationSlug) {
-          const locationAvailability = vehicle.availability?.[0];
+        if (vehicle.fleet_availabilityType === 'SPECIFIC_LOCATIONS' && locationSlug) {
+          const locationAvailability = vehicle.fleet_availability?.[0];
           return locationAvailability?.isAvailable;
         }
         // ALL_INDIA vehicles are always available everywhere
         return true;
       })
       .map((vehicle) => {
-        const locationRate = vehicle.locationRates?.[0];
+        const locationRate = vehicle.fleet_location_rates?.[0];
         return {
           id: vehicle.id,
           name: vehicle.name,
@@ -109,7 +109,7 @@ export async function getFleetByCategory(
           features: parseJsonField<string[]>(vehicle.features, []),
           specs: parseJsonField<Record<string, string>>(vehicle.specs, {}),
           vehicleType: vehicle.vehicleType || '',
-          availabilityType: vehicle.availabilityType,
+          availabilityType: vehicle.fleet_availabilityType,
         };
       });
   } catch (error) {
@@ -195,7 +195,7 @@ export async function getAllIndiaFleet(
     const vehicles = await prisma.fleet.findMany({
       where: whereClause,
       include: {
-        category: true,
+        fleet_categories: true,
       },
       orderBy: [{ priority: 'desc' }, { name: 'asc' }],
     });
@@ -211,7 +211,7 @@ export async function getAllIndiaFleet(
       features: parseJsonField<string[]>(vehicle.features, []),
       specs: parseJsonField<Record<string, string>>(vehicle.specs, {}),
       vehicleType: vehicle.vehicleType || '',
-      availabilityType: vehicle.availabilityType,
+      availabilityType: vehicle.fleet_availabilityType,
     }));
   } catch (error) {
     console.error('Error fetching ALL_INDIA fleet:', error);

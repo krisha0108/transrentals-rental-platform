@@ -1,9 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 import { transformPrismaResponse } from '@/lib/utils/api-transform';
+import crypto from 'crypto';
 
 import logger from '@/lib/security/logger';
 export const dynamic = 'force-dynamic';
+
+// Helper to generate a unique ID
+function generateId(): string {
+  return 'c' + crypto.randomBytes(12).toString('base64url').toLowerCase().slice(0, 24);
+}
 
 // GET - List all city pricing configurations
 export async function GET(request: NextRequest) {
@@ -24,7 +30,7 @@ export async function GET(request: NextRequest) {
       },
       orderBy: [
         { chauffeur_vehicle_categories: { displayOrder: 'asc' } },
-        { location: { name: 'asc' } },
+        { locations: { name: 'asc' } },
       ],
     });
 
@@ -84,6 +90,7 @@ export async function POST(request: NextRequest) {
         },
       },
       create: {
+        id: generateId(),
         vehicleCategoryId,
         locationId,
         baseKmRate,

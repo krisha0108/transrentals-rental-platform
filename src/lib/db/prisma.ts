@@ -24,6 +24,8 @@ function createPrismaClient(): PrismaClient {
         : ["error"],
     });
 
+    // Note: Auto ID generation handled via helper functions (see src/lib/utils/id-generator.ts)
+    // Prisma 6.x extensions have connection pool issues with temp clients
     console.log("✅ Prisma Client instance created successfully");
     return client;
   } catch (error) {

@@ -28,6 +28,8 @@
     "db:reset": "npx prisma migrate reset",
     "db:update": "npx prisma generate && npx prisma migrate deploy",
     "post-pull": "npm install && npm run db:update",
+    "deploy": "npm install && npx prisma migrate deploy && npx prisma generate && npm run build",
+    "deploy:check": "npx prisma migrate status && npm run type-check",
     "audit": "node scripts/audit.js",
     "audit:verbose": "node scripts/audit.js --verbose",
     "audit:json": "node scripts/audit.js --json"

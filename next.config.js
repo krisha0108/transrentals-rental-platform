@@ -12,14 +12,13 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: skipTypeCheck,
   },
-  // CRITICAL: Exclude Prisma from Next.js bundling (fixes undefined methods in standalone builds)
-  serverComponentsExternalPackages: ['@prisma/client', 'prisma'],
-
 
   experimental: {
+    // CRITICAL: Exclude Prisma from Next.js bundling (fixes undefined methods in standalone builds)
+    serverComponentsExternalPackages: ['@prisma/client', 'prisma'],
     // Limit concurrency to prevent DB connection exhaustion during static generation
     workerThreads: false,
-    cpus: 1,
+    cpus: 4,
   },
   images: {
     remotePatterns: [
@@ -538,7 +537,7 @@ const nextConfig = {
       },
     ];
   },
-  output: "standalone", // Required for Docker builds
+  // output: "standalone", // Disabled temporarily due to disk space - Re-enable for Docker builds
   compress: true,
   poweredByHeader: false,
   generateEtags: true,

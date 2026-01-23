@@ -34,9 +34,9 @@ export async function GET(request: NextRequest) {
       where,
       include: {
         fleet: true,
-        location: true,
+        fleet_locations: true,
       },
-      orderBy: { location: { name: 'asc' } },
+      orderBy: { fleet_locations: { name: 'asc' } },
     });
 
     return NextResponse.json(rates);
@@ -95,7 +95,7 @@ export async function POST(request: NextRequest) {
             isActive: isActive !== false,
           },
           include: {
-            location: true,
+            fleet_locations: true,
           },
         });
       })

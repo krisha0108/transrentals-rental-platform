@@ -3,9 +3,15 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/auth-options';
 import { prisma } from '@/lib/db/prisma';
 import { transformPrismaResponse } from '@/lib/utils/api-transform';
+import crypto from 'crypto';
 
 import logger from '@/lib/security/logger';
 export const dynamic = 'force-dynamic';
+
+// Helper to generate a unique ID
+function generateId(): string {
+  return 'c' + crypto.randomBytes(12).toString('base64url').toLowerCase().slice(0, 24);
+}
 
 // GET - List all bank details
 export async function GET(request: NextRequest) {
@@ -30,7 +36,7 @@ export async function GET(request: NextRequest) {
     const bankDetails = await prisma.bank_details.findMany({
       where,
       include: {
-        service: {
+        services: {
           select: { id: true, name: true, slug: true },
         },
       },
@@ -101,6 +107,7 @@ export async function POST(request: NextRequest) {
 
     const bankDetail = await prisma.bank_details.create({
       data: {
+        id: generateId(),
         accountHolderName,
         accountNumber,
         ifscCode,
@@ -115,7 +122,7 @@ export async function POST(request: NextRequest) {
         serviceId: serviceId || null,
       },
       include: {
-        service: {
+        services: {
           select: { id: true, name: true, slug: true },
         },
       },

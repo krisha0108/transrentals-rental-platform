@@ -324,6 +324,7 @@ const adminItems: NavItem[] = [
     icon: Cog,
     children: [
       { name: 'Services', href: '/admin/services-management', icon: Layers },
+      { name: 'Trip Types', href: '/admin/booking/trip-types', icon: Route },
       { name: 'Brands', href: '/admin/booking/brands', icon: Tags },
       { name: 'Vehicle Models', href: '/admin/booking/models', icon: Car },
     ],

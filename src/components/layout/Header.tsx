@@ -128,6 +128,7 @@ export function Header() {
                 width={140}
                 height={28}
                 className="h-5 md:h-7 w-auto"
+                style={{ width: 'auto', height: 'auto' }}
               />
               <span className="text-xs text-gray-500 hidden md:block">
                 Vehicle Rental Marketplace

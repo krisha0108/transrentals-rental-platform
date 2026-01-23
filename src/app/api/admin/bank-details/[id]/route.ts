@@ -24,7 +24,7 @@ export async function GET(
     const bankDetail = await prisma.bank_details.findUnique({
       where: { id },
       include: {
-        service: {
+        services: {
           select: { id: true, name: true, slug: true },
         },
       },
@@ -122,7 +122,7 @@ export async function PUT(
         serviceId: serviceId !== undefined ? serviceId : existing.serviceId,
       },
       include: {
-        service: {
+        services: {
           select: { id: true, name: true, slug: true },
         },
       },

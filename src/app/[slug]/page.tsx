@@ -28,8 +28,8 @@ async function getCMSPage(slug: string) {
         status: 'PUBLISHED',
       },
       include: {
-        seoMeta: true,
-        author: {
+        seo_meta: true,
+        admin_users: {
           select: {
             name: true,
           },
@@ -116,7 +116,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   return generatePageMetadata({
     title: page.title,
     description: page.excerpt || undefined,
-    seoData: page.seoMeta,
+    seoData: page.seo_meta,
     path: `/${page.slug}`,
   });
 }
@@ -156,7 +156,7 @@ export default async function DynamicPage({ params }: PageProps) {
             )}
 
             <div className="flex items-center justify-center gap-4 text-sm text-gray-500">
-              <span>By {page.author.name}</span>
+              <span>By {page.admin_users.name}</span>
               <span>•</span>
               <time dateTime={page.publishedAt?.toISOString()}>
                 {page.publishedAt ? format(new Date(page.publishedAt), 'MMMM d, yyyy') : ''}
