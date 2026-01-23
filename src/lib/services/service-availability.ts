@@ -11,6 +11,11 @@ export async function isServiceAvailableInLocation(
   locationSlug: string
 ): Promise<boolean> {
   try {
+    // Skip database calls during CI/CD build
+    if (process.env.SKIP_DATABASE_CALLS === '1') {
+      return true;
+    }
+
     // During build time, prisma might be null - return true to render all pages
     if (!prisma) {
       console.log('Prisma client not available during build - returning true');
@@ -41,6 +46,11 @@ export async function getServiceWithLocationStatus(
   locationSlug: string
 ) {
   try {
+    // Skip database calls during CI/CD build
+    if (process.env.SKIP_DATABASE_CALLS === '1') {
+      return null;
+    }
+
     if (!prisma) {
       return null;
     }
@@ -83,6 +93,11 @@ export async function getServiceWithLocationStatus(
  */
 export async function getAvailableLocationsForService(serviceSlug: string) {
   try {
+    // Skip database calls during CI/CD build
+    if (process.env.SKIP_DATABASE_CALLS === '1') {
+      return [];
+    }
+
     if (!prisma) {
       return [];
     }
@@ -126,6 +141,11 @@ export async function getNearbyAvailableLocations(
   limit: number = 6
 ) {
   try {
+    // Skip database calls during CI/CD build
+    if (process.env.SKIP_DATABASE_CALLS === '1') {
+      return [];
+    }
+
     const availableLocations = await getAvailableLocationsForService(serviceSlug);
 
     // Filter out current location and limit results

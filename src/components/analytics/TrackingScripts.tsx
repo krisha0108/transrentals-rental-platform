@@ -16,6 +16,11 @@ interface TrackingSettings {
 }
 
 async function getTrackingSettings(): Promise<TrackingSettings> {
+  // Skip database calls during CI/CD build
+  if (process.env.SKIP_DATABASE_CALLS === '1') {
+    return {};
+  }
+
   try {
     const settings = await prisma.settings.findMany({
       where: {
@@ -195,6 +200,11 @@ export default async function TrackingScripts() {
 
 // Export verification codes for metadata
 export async function getVerificationCodes() {
+  // Skip database calls during CI/CD build
+  if (process.env.SKIP_DATABASE_CALLS === '1') {
+    return {};
+  }
+
   try {
     const settings = await prisma.settings.findMany({
       where: {
