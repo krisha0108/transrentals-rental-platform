@@ -1,24 +1,23 @@
 # ===========================================
 # TransRentals Production Dockerfile
-# Multi-stage build for optimized image size
+# Multi-stage build with Prisma auto-setup
 # ===========================================
 
 # Stage 1: Dependencies
 FROM node:20-alpine AS deps
 WORKDIR /app
 
-# Install dependencies needed for node-gyp
-RUN apk add --no-cache libc6-compat python3 make g++
+# Install dependencies for node-gyp and Prisma
+RUN apk add --no-cache libc6-compat python3 make g++ openssl
 
-# Copy package files
+# Copy package files and Prisma schema
 COPY package*.json ./
 COPY prisma ./prisma/
 
-# Set DATABASE_URL before npm ci (needed for postinstall prisma generate)
-ENV DATABASE_URL=mysql://dummy:dummy@localhost:3306/dummy
+# Dummy DATABASE_URL for build-time prisma generate
+ENV DATABASE_URL="mysql://dummy:dummy@localhost:3306/dummy"
 
-# Install dependencies with frozen lockfile
-# This will run postinstall script which runs prisma generate
+# Install dependencies (this will run postinstall which does prisma generate)
 RUN npm ci --prefer-offline --no-audit --progress=false && \
     npm cache clean --force
 
@@ -26,42 +25,45 @@ RUN npm ci --prefer-offline --no-audit --progress=false && \
 FROM node:20-alpine AS builder
 WORKDIR /app
 
-# Accept build arguments
-ARG NEXT_PUBLIC_APP_NAME
-ARG NEXT_PUBLIC_APP_URL
-ARG NEXT_PUBLIC_APP_DESCRIPTION
-ARG NEXT_PUBLIC_CONTACT_EMAIL
-ARG NEXT_PUBLIC_CONTACT_PHONE
-ARG NEXT_PUBLIC_WHATSAPP_NUMBER
-ARG NEXT_PUBLIC_ENABLE_BLOG
-ARG NEXT_PUBLIC_ENABLE_VENDOR_SIGNUP
-ARG NEXT_PUBLIC_BLOG_DATA_SOURCE
-ARG NEXT_PUBLIC_FACEBOOK_URL
-ARG NEXT_PUBLIC_INSTAGRAM_URL
-ARG NEXT_PUBLIC_TWITTER_URL
-ARG NEXT_PUBLIC_LINKEDIN_URL
-ARG NEXT_PUBLIC_ENABLE_REVIEWS
-ARG NEXT_PUBLIC_ENABLE_CHAT
-ARG NEXT_PUBLIC_ENABLE_NOTIFICATIONS
-ARG NEXT_PUBLIC_TWITTER_HANDLE
-ARG NEXT_PUBLIC_DEFAULT_OG_IMAGE
-ARG NEXT_PUBLIC_CUSTOMER_APP_ANDROID
-ARG NEXT_PUBLIC_VENDOR_APP_ANDROID
+# Install openssl for Prisma
+RUN apk add --no-cache openssl
 
-# Copy dependencies from deps stage
+# Accept build arguments for NEXT_PUBLIC_ vars
+ARG NEXT_PUBLIC_APP_NAME=TransRentals
+ARG NEXT_PUBLIC_APP_URL=https://transrentals.com
+ARG NEXT_PUBLIC_APP_DESCRIPTION="Book cars, bikes, buses & more"
+ARG NEXT_PUBLIC_CONTACT_EMAIL=info@transrentals.com
+ARG NEXT_PUBLIC_CONTACT_PHONE=+91-XXXXXXXXXX
+ARG NEXT_PUBLIC_WHATSAPP_NUMBER=91XXXXXXXXXX
+ARG NEXT_PUBLIC_ENABLE_BLOG=true
+ARG NEXT_PUBLIC_ENABLE_VENDOR_SIGNUP=true
+ARG NEXT_PUBLIC_BLOG_DATA_SOURCE=prisma
+ARG NEXT_PUBLIC_FACEBOOK_URL=https://facebook.com/transrentals
+ARG NEXT_PUBLIC_INSTAGRAM_URL=https://instagram.com/transrentals
+ARG NEXT_PUBLIC_TWITTER_URL=https://twitter.com/transrentals
+ARG NEXT_PUBLIC_LINKEDIN_URL=https://linkedin.com/company/transrentals
+ARG NEXT_PUBLIC_ENABLE_REVIEWS=true
+ARG NEXT_PUBLIC_ENABLE_CHAT=false
+ARG NEXT_PUBLIC_ENABLE_NOTIFICATIONS=true
+ARG NEXT_PUBLIC_TWITTER_HANDLE=@transrentals
+ARG NEXT_PUBLIC_DEFAULT_OG_IMAGE=/og-image.jpg
+ARG NEXT_PUBLIC_CUSTOMER_APP_ANDROID=https://play.google.com/store
+ARG NEXT_PUBLIC_VENDOR_APP_ANDROID=https://play.google.com/store
+
+# Copy dependencies and Prisma files from deps stage
 COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/prisma ./prisma
 COPY . .
 
 # Set build-time environment variables
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
 ENV SKIP_ENV_VALIDATION=1
-# Dummy env vars for build (will be replaced at runtime)
-ENV DATABASE_URL=mysql://dummy:dummy@localhost:3306/dummy
+ENV DATABASE_URL="mysql://dummy:dummy@localhost:3306/dummy"
 ENV NEXTAUTH_URL=http://localhost:3000
-ENV NEXTAUTH_SECRET=build-time-secret-will-be-replaced-at-runtime
+ENV NEXTAUTH_SECRET=build-time-secret-will-be-replaced
 
-# Set NEXT_PUBLIC_ variables from build args
+# Set NEXT_PUBLIC_ variables
 ENV NEXT_PUBLIC_APP_NAME=${NEXT_PUBLIC_APP_NAME}
 ENV NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL}
 ENV NEXT_PUBLIC_APP_DESCRIPTION=${NEXT_PUBLIC_APP_DESCRIPTION}
@@ -83,35 +85,105 @@ ENV NEXT_PUBLIC_DEFAULT_OG_IMAGE=${NEXT_PUBLIC_DEFAULT_OG_IMAGE}
 ENV NEXT_PUBLIC_CUSTOMER_APP_ANDROID=${NEXT_PUBLIC_CUSTOMER_APP_ANDROID}
 ENV NEXT_PUBLIC_VENDOR_APP_ANDROID=${NEXT_PUBLIC_VENDOR_APP_ANDROID}
 
-# Build the application with optimizations
-RUN npm run build && \
-    rm -rf .next/cache
+# Build the application
+RUN npm run build && rm -rf .next/cache
 
 # Stage 3: Runner
 FROM node:20-alpine AS runner
 WORKDIR /app
 
+# Install openssl and bash for Prisma and entrypoint script
+RUN apk add --no-cache openssl bash mysql-client
+
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3000
 
-RUN addgroup --system --gid 1001 nodejs &&     adduser --system --uid 1001 nextjs
+# Create non-root user
+RUN addgroup --system --gid 1001 nodejs && \
+    adduser --system --uid 1001 nextjs
 
-# Copy necessary files from builder
+# Copy built application
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/package.json ./package.json
-
-# Copy standalone build
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
-# Copy Prisma files
+# Copy Prisma files and generated client
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
+
+# Copy Prisma binary
+COPY --from=builder /app/node_modules/prisma ./node_modules/prisma
+
+# Create entrypoint script for Prisma commands
+RUN cat > /app/docker-entrypoint.sh << 'EOF'
+#!/bin/bash
+set -e
+
+echo "========================================"
+echo "🚀 TransRentals Starting..."
+echo "========================================"
+
+# Wait for database to be ready
+if [ ! -z "$DATABASE_URL" ]; then
+  echo "⏳ Waiting for database to be ready..."
+
+  # Extract database host and port from DATABASE_URL
+  DB_HOST=$(echo $DATABASE_URL | sed -e 's/.*@\([^:]*\):.*/\1/')
+  DB_PORT=$(echo $DATABASE_URL | sed -e 's/.*:\([0-9]*\)\/.*/\1/')
+
+  # Wait for MySQL to be ready
+  for i in {1..30}; do
+    if nc -z $DB_HOST $DB_PORT 2>/dev/null; then
+      echo "✅ Database is ready!"
+      break
+    fi
+    echo "Waiting for database... attempt $i/30"
+    sleep 2
+  done
+fi
+
+# Run Prisma commands
+echo "========================================"
+echo "🔧 Running Prisma Setup..."
+echo "========================================"
+
+# Generate Prisma Client
+echo "📦 Generating Prisma Client..."
+npx prisma generate
+
+# Run migrations
+echo "🗄️ Running database migrations..."
+npx prisma migrate deploy || {
+  echo "⚠️  Migration failed, but continuing..."
+  echo "Make sure your database is accessible and migrations are ready"
+}
+
+# Optional: Seed database if SEED_DATABASE=true
+if [ "$SEED_DATABASE" = "true" ]; then
+  echo "🌱 Seeding database..."
+  npm run seed || echo "⚠️  Seeding failed or not configured"
+fi
+
+echo "========================================"
+echo "✅ Prisma Setup Complete!"
+echo "========================================"
+echo "🚀 Starting Next.js Server on port $PORT..."
+echo "========================================"
+
+# Start the application
+exec node server.js
+EOF
+
+# Make entrypoint executable
+RUN chmod +x /app/docker-entrypoint.sh && \
+    chown nextjs:nodejs /app/docker-entrypoint.sh
 
 USER nextjs
 
 EXPOSE 3000
 
-CMD ["node", "server.js"]
+# Use entrypoint script
+ENTRYPOINT ["/app/docker-entrypoint.sh"]
