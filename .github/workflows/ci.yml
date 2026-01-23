@@ -8,6 +8,8 @@ on:
 
 env:
   NODE_VERSION: '20'
+  REGISTRY: ghcr.io
+  IMAGE_NAME: saurav1702/tran_stable
 
 jobs:
   backend-tests:
@@ -207,16 +209,19 @@ jobs:
       - name: Verify build output
         run: |
           if [ ! -d ".next" ]; then
-            echo "❌ Build failed - no .next directory"
+            echo "Build failed - no .next directory"
             exit 1
           fi
-          echo "✅ Build successful"
+          echo "Build successful"
 
-  docker-build:
-    name: Docker Build
+  docker-build-push:
+    name: Docker Build & Push
     runs-on: ubuntu-latest
     needs: [backend-tests, frontend-tests, security-scan, backend-linting, build]
-    if: github.event_name == 'push'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: read
+      packages: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -224,34 +229,40 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build Docker image
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=raw,value=latest
+            type=sha,prefix=
+
+      - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
           context: .
           file: ./Dockerfile
-          push: false
-          tags: transrentals:latest
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-
-  deploy-to-staging:
-    name: Deploy to Staging
-    runs-on: ubuntu-latest
-    needs: [docker-build]
-    if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
-    steps:
-      - name: Deploy to staging
-        run: |
-          echo "Deploying to staging environment..."
-          echo "Add your staging deployment commands here"
 
   deploy-to-production:
     name: Deploy to Production
     runs-on: ubuntu-latest
-    needs: [docker-build]
+    needs: [docker-build-push]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     steps:
-      - name: Deploy to production
+      - name: Deploy notification
         run: |
-          echo "Deploying to production environment..."
-          echo "Add your production deployment commands here"
+          echo "Docker image pushed to ghcr.io/saurav1702/tran_stable:latest"
+          echo "Ready for Coolify deployment"
