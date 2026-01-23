@@ -29,7 +29,7 @@ async function getCMSPage(slug: string) {
       },
       include: {
         seo_meta: true,
-        author: {
+        admin_users: {
           select: {
             name: true,
           },
@@ -156,7 +156,7 @@ export default async function DynamicPage({ params }: PageProps) {
             )}
 
             <div className="flex items-center justify-center gap-4 text-sm text-gray-500">
-              <span>By {page.author.name}</span>
+              <span>By {page.admin_users.name}</span>
               <span>•</span>
               <time dateTime={page.publishedAt?.toISOString()}>
                 {page.publishedAt ? format(new Date(page.publishedAt), 'MMMM d, yyyy') : ''}

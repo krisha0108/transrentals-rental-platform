@@ -416,7 +416,7 @@ async function generateFleetSitemap(currentDate: string): Promise<MetadataRoute.
             isActive: true,
           },
         },
-        location: {
+        fleet_locations: {
           select: {
             slug: true,
             tier: true,
@@ -428,18 +428,18 @@ async function generateFleetSitemap(currentDate: string): Promise<MetadataRoute.
 
     // Filter for active fleet and locations
     const activeFleetLocations = fleetLocationRates.filter(
-      (flr) => flr.fleet.isActive && flr.location.isActive
+      (flr) => flr.fleet.isActive && flr.fleet_locations.isActive
     );
 
     // Generate URLs for each fleet+location combination
     activeFleetLocations.forEach((flr) => {
       const vehicleSlug = flr.fleet.slug;
-      const locationSlug = flr.location.slug;
+      const locationSlug = flr.fleet_locations.slug;
 
       // Calculate combined priority
       let priority = 0.5;
-      if (flr.fleet.priority >= 9 && flr.location.tier === 1) priority = 0.7;
-      else if (flr.fleet.priority >= 7 || (flr.location.tier && flr.location.tier <= 2)) priority = 0.6;
+      if (flr.fleet.priority >= 9 && flr.fleet_locations.tier === 1) priority = 0.7;
+      else if (flr.fleet.priority >= 7 || (flr.fleet_locations.tier && flr.fleet_locations.tier <= 2)) priority = 0.6;
 
       routes.push({
         url: `${BASE_URL}/fleet/${vehicleSlug}/${locationSlug}`,
@@ -473,7 +473,7 @@ async function generateCityTagSitemap(currentDate: string): Promise<MetadataRout
       },
       select: {
         slug: true,
-        parent: {
+        locations: {
           select: {
             name: true,
           },
@@ -487,7 +487,7 @@ async function generateCityTagSitemap(currentDate: string): Promise<MetadataRout
         url: `${BASE_URL}/${city.slug}`,
         lastModified: currentDate,
         changeFrequency: 'weekly',
-        priority: getStatePriority(city.parent?.name || ''),
+        priority: getStatePriority(city.locations?.name || ''),
       });
     });
 

@@ -80,12 +80,12 @@ function convertPrismaBlogPost(post: any): BlogPost {
       }))
       : [],
     author: {
-      id: post.author.id,
-      name: post.author.name,
-      slug: post.author.email.split('@')[0],
-      email: post.author.email,
+      id: post.admin_users.id,
+      name: post.admin_users.name,
+      slug: post.admin_users.email.split('@')[0],
+      email: post.admin_users.email,
       bio: '',
-      avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(post.author.name)}`,
+      avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(post.admin_users.name)}`,
       socialLinks: {},
       postCount: 0,
     },
@@ -180,7 +180,7 @@ export async function fetchBlogPostsPrisma(
         orderBy,
         include: {
           blog_categories: true,
-          author: {
+          admin_users: {
             select: {
               id: true,
               name: true,
@@ -241,7 +241,7 @@ export async function fetchBlogPostsPrisma(
       take: limit,
       include: {
         blog_categories: true,
-        author: {
+        admin_users: {
           select: {
             id: true,
             name: true,
@@ -295,7 +295,7 @@ export async function fetchBlogPostPrisma(slug: string): Promise<BlogPost | null
       },
       include: {
         blog_categories: true,
-        author: {
+        admin_users: {
           select: {
             id: true,
             name: true,
@@ -333,7 +333,7 @@ export async function fetchCategoriesPrisma(): Promise<Category[]> {
       include: {
         _count: {
           select: {
-            posts: {
+            blog_posts: {
               where: { status: 'PUBLISHED' },
             },
           },
@@ -346,7 +346,7 @@ export async function fetchCategoriesPrisma(): Promise<Category[]> {
       name: cat.name,
       slug: cat.slug,
       description: cat.description || '',
-      postCount: cat._count.posts,
+      postCount: cat._count.blog_posts,
       color: CATEGORY_METADATA[cat.slug]?.color || '#3B82F6',
       icon: CATEGORY_METADATA[cat.slug]?.icon || '📝',
     }));
@@ -406,7 +406,7 @@ export async function fetchFeaturedPostsPrisma(limit: number = 3): Promise<BlogP
       take: limit,
       include: {
         blog_categories: true,
-        author: {
+        admin_users: {
           select: {
             id: true,
             name: true,
@@ -446,7 +446,7 @@ export async function searchBlogPostsPrisma(query: string, limit: number = 10): 
       take: limit,
       include: {
         blog_categories: true,
-        author: {
+        admin_users: {
           select: {
             id: true,
             name: true,
