@@ -109,29 +109,29 @@ export async function GET(
       ? { brands: { slug: brandSlug } }
       : {};
 
-    // Get all vehicle models for bikes with their vendor fleets at this location
+    // Check if bike rental service is available in this location
+    const serviceLocation = await prisma.service_locations.findFirst({
+      where: {
+        serviceId: bikeService.id,
+        locationId: locationData.id,
+        isActive: true,
+      },
+    });
+
+    if (!serviceLocation) {
+      return NextResponse.json(
+        { error: 'Bike rental service not available in this location' },
+        { status: 404 }
+      );
+    }
+
+    // Get all vehicle models for bikes (admin models) - no dependency on vendor fleets
     const vehicleModels = await prisma.vehicle_models.findMany({
       where: {
         serviceId: bikeService.id,
         isActive: true,
         ...categoryFilter,
         ...brandFilter,
-        // Has at least one vendor fleet at this location
-        vendor_fleets: {
-          some: {
-            isActive: true,
-            isAvailable: true,
-            vendors: {
-              status: 'APPROVED',
-            },
-            vendor_fleet_locations: {
-              some: {
-                locationId: locationData.id,
-                isActive: true,
-              },
-            },
-          },
-        },
       },
       include: {
         brands: {
@@ -158,75 +158,66 @@ export async function GET(
             basePricePerDay: true,
           }
         },
-        vendor_fleets: {
-          where: {
-            isActive: true,
-            isAvailable: true,
-            vendors: {
-              status: 'APPROVED',
-            },
-            vendor_fleet_locations: {
-              some: {
-                locationId: locationData.id,
-                isActive: true,
-              },
-            },
-          },
-          select: {
-            id: true,
-            isVerified: true,
-            vendors: {
-              select: {
-                id: true,
-                businessName: true,
-                rating: true,
-              },
-            },
-            fleet_pricing: {
-              select: {
-                perDayRate: true,
-                priceType: true,
-                deposit: true,
-              },
-            },
-          },
-        },
       },
+      orderBy: [{ displayOrder: 'asc' }, { name: 'asc' }],
     });
 
-    // Aggregate the data
+    // Aggregate the data from admin vehicle models
     const aggregatedBikes: AggregatedBike[] = [];
 
     for (const model of vehicleModels) {
-      const vendorPrices: VendorPrice[] = [];
+      // Use admin's pricing from vehicle_model_locations (if exists) or vehicle_models table
+      const locationSpecificPrice = model.vehicle_model_locations[0]?.basePricePerDay;
+      const basePrice = locationSpecificPrice || model.basePricePerDay || 0;
 
-      for (const fleet of model.vendor_fleets) {
-        // Get the first available pricing (fleet pricing is per vendor fleet, not per location)
-        const pricing = fleet.fleet_pricing[0];
-        const dailyRate = pricing?.perDayRate || 0;
-
-        if (dailyRate > 0) {
-          vendorPrices.push({
-            vendorId: fleet.vendors.id,
-            vendorName: fleet.vendors.businessName || 'Unknown Vendor',
-            vendorFleetId: fleet.id,
-            dailyRate,
-            deposit: pricing?.deposit || 0,
-            isVerified: fleet.isVerified || false,
-            rating: fleet.vendors.rating ?? undefined,
-          });
-        }
+      if (basePrice <= 0) {
+        console.log(`[Bikes API] Skipping ${model.name} - no base price set`);
+        continue;
       }
 
-      if (vendorPrices.length === 0) continue;
+      // Count how many vendors have added this bike model at this location
+      // (Only count, don't fetch pricing - we only show admin price)
+      const vendorFleetCount = await prisma.vendor_fleets.count({
+        where: {
+          vehicleModelId: model.id,
+          isActive: true,
+          isAvailable: true,
+          vendors: {
+            status: 'APPROVED', // Only count approved vendors
+          },
+          OR: [
+            {
+              vendor_fleet_locations: {
+                some: {
+                  locationId: locationData.id,
+                  isActive: true,
+                },
+              },
+            },
+            {
+              vendor_fleet_locations: {
+                none: {}, // Vendor available everywhere
+              },
+            },
+          ],
+        },
+      });
 
-      // Get Admin's display price for this location (from VehicleModelLocation or basePricePerDay)
-      const adminLocationPrice = (model as any).vehicle_model_locations?.[0]?.basePricePerDay;
-      const adminModelPrice = (model as any).basePricePerDay || 0;
-      const displayPrice = adminLocationPrice || adminModelPrice;
+      // Display vendor count: Minimum 1 (even if 0 vendors added)
+      // If 0 vendors added → show 1
+      // If 1 vendor added → show 1
+      // If 2 vendors added → show 2
+      const displayVendorCount = Math.max(1, vendorFleetCount);
 
-      // Sort by daily rate
-      vendorPrices.sort((a, b) => a.dailyRate - b.dailyRate);
+      // Only admin price is shown to customer (no vendor pricing)
+      const adminVendorPrice: VendorPrice = {
+        vendorId: 'admin',
+        vendorName: 'TransRentals',
+        vendorFleetId: model.id,
+        dailyRate: basePrice,
+        deposit: 0,
+        isVerified: true,
+      };
 
       aggregatedBikes.push({
         id: model.id,
@@ -244,10 +235,10 @@ export async function GET(
         mileage: model.mileage ?? undefined,
         features: parseJsonField<string[]>(model.features, []),
         specs: parseJsonField<Record<string, unknown>>(model.specs, {}),
-        lowestPrice: displayPrice > 0 ? displayPrice : (vendorPrices.length > 0 ? vendorPrices[0].dailyRate : 0),
-        highestPrice: displayPrice > 0 ? displayPrice : (vendorPrices.length > 0 ? vendorPrices[vendorPrices.length - 1].dailyRate : 0),
-        vendorCount: vendorPrices.length,
-        vendorPrices,
+        lowestPrice: basePrice, // Always admin's price
+        highestPrice: basePrice, // Always admin's price
+        vendorCount: displayVendorCount, // Minimum 1, or actual vendor count
+        vendorPrices: [adminVendorPrice], // Only admin price shown
       });
     }
 

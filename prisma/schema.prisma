@@ -40,7 +40,7 @@ model admin_users {
   role                     admin_users_role           @default(ADMIN)
   isActive                 Boolean                    @default(true)
   createdAt                DateTime                   @default(now())
-  updatedAt                DateTime @updatedAt
+  updatedAt                DateTime                   @updatedAt
   createdById              String?
   phone                    String?
   admin_users              admin_users?               @relation("admin_usersToadmin_users", fields: [createdById], references: [id])
@@ -114,7 +114,7 @@ model backlinks {
   lastChecked     DateTime?
   firstSeen       DateTime  @default(now())
   createdAt       DateTime  @default(now())
-  updatedAt       DateTime @updatedAt
+  updatedAt       DateTime  @updatedAt
 
   @@unique([sourceUrl, targetUrl])
   @@index([domainAuthority])
@@ -137,7 +137,7 @@ model bank_details {
   displayOrder      Int       @default(0)
   serviceId         String?
   createdAt         DateTime  @default(now())
-  updatedAt         DateTime @updatedAt
+  updatedAt         DateTime  @updatedAt
   services          services? @relation(fields: [serviceId], references: [id])
 
   @@index([isActive])
@@ -190,7 +190,7 @@ model bike_bookings {
   adminNotes                                      String?                     @db.Text
   cancellationReason                              String?                     @db.Text
   createdAt                                       DateTime                    @default(now())
-  updatedAt                                       DateTime @updatedAt
+  updatedAt                                       DateTime                    @updatedAt
   lastPaymentError                                String?                     @db.Text
   notifiedVendorIds                               String?                     @db.LongText
   paymentAttempts                                 Int                         @default(0)
@@ -273,7 +273,7 @@ model bike_quote_requests {
   requestNumber                                                String                     @unique
   totalDays                                                    Int
   totalQuotesReceived                                          Int                        @default(0)
-  updatedAt                                                    DateTime @updatedAt
+  updatedAt                                                    DateTime                   @updatedAt
   vehicleBrand                                                 String?
   vehicleCategory                                              String?
   vehicleCategoryName                                          String?
@@ -317,7 +317,7 @@ model bike_quotes {
   sentAt                                                               DateTime?
   termsConditions                                                      String?                @db.LongText
   totalAmount                                                          Float
-  updatedAt                                                            DateTime @updatedAt
+  updatedAt                                                            DateTime               @updatedAt
   validTill                                                            DateTime
   validityDays                                                         Int                    @default(3)
   vehicleBrand                                                         String?
@@ -356,7 +356,7 @@ model blog_categories {
   slug        String       @unique
   description String?      @db.Text
   createdAt   DateTime     @default(now())
-  updatedAt   DateTime @updatedAt
+  updatedAt   DateTime     @updatedAt
   blog_posts  blog_posts[]
 }
 
@@ -375,7 +375,7 @@ model blog_posts {
   authorId        String
   tags            String?           @db.LongText
   createdAt       DateTime          @default(now())
-  updatedAt       DateTime @updatedAt
+  updatedAt       DateTime          @updatedAt
   admin_users     admin_users       @relation(fields: [authorId], references: [id])
   blog_categories blog_categories?  @relation(fields: [categoryId], references: [id])
   seo_meta        seo_meta?
@@ -397,7 +397,7 @@ model brands {
   isActive                     Boolean                       @default(true)
   displayOrder                 Int                           @default(0)
   createdAt                    DateTime                      @default(now())
-  updatedAt                    DateTime @updatedAt
+  updatedAt                    DateTime                      @updatedAt
   serviceId                    String?
   vehicleCategoryId            String?
   services                     services?                     @relation(fields: [serviceId], references: [id], onDelete: Cascade)
@@ -481,7 +481,7 @@ model bus_bookings {
   confirmedAt            DateTime?
   completedAt            DateTime?
   createdAt              DateTime                   @default(now())
-  updatedAt              DateTime @updatedAt
+  updatedAt              DateTime                   @updatedAt
   advancePaymentDate     DateTime?
   advancePaymentProof    String?
   advancePaymentRef      String?
@@ -534,7 +534,7 @@ model bus_quote_requests {
   quotesViewed                                              Int                       @default(0)
   acceptedQuoteId                                           String?
   createdAt                                                 DateTime                  @default(now())
-  updatedAt                                                 DateTime @updatedAt
+  updatedAt                                                 DateTime                  @updatedAt
   bus_bookings                                              bus_bookings?
   bus_quotes_bus_quote_requests_acceptedQuoteIdTobus_quotes bus_quotes?               @relation("bus_quote_requests_acceptedQuoteIdTobus_quotes", fields: [acceptedQuoteId], references: [id])
   customers                                                 customers?                @relation(fields: [customerId], references: [id])
@@ -598,7 +598,7 @@ model bus_quotes {
   sentAt                                                            DateTime?
   respondedAt                                                       DateTime?
   createdAt                                                         DateTime              @default(now())
-  updatedAt                                                         DateTime @updatedAt
+  updatedAt                                                         DateTime              @updatedAt
   advanceAmount                                                     Float                 @default(0)
   advancePercent                                                    Int                   @default(30)
   bus_bookings                                                      bus_bookings?
@@ -683,7 +683,7 @@ model car_bookings {
   cancelledBy                                    String?
   completedAt                                    DateTime?
   createdAt                                      DateTime                   @default(now())
-  updatedAt                                      DateTime @updatedAt
+  updatedAt                                      DateTime                   @updatedAt
   advanceAmount                                  Float?
   advancePaymentDate                             DateTime?
   advancePaymentProof                            String?
@@ -733,7 +733,7 @@ model chat_conversations {
   lastMessageText String?         @db.Text
   lastSenderType  String?
   createdAt       DateTime        @default(now())
-  updatedAt       DateTime @updatedAt
+  updatedAt       DateTime        @updatedAt
   customers       customers?      @relation(fields: [customerId], references: [id])
   vendors         vendors         @relation(fields: [vendorId], references: [id], onDelete: Cascade)
   chat_messages   chat_messages[]
@@ -798,7 +798,7 @@ model chat_messages {
   isDeleted          Boolean            @default(false)
   deletedAt          DateTime?
   createdAt          DateTime           @default(now())
-  updatedAt          DateTime @updatedAt
+  updatedAt          DateTime           @updatedAt
   chat_conversations chat_conversations @relation(fields: [conversationId], references: [id], onDelete: Cascade)
 
   @@index([conversationId])
@@ -909,7 +909,7 @@ model chauffeur_bookings {
   refundTransactionId                                  String?
   completedAt                                          DateTime?
   createdAt                                            DateTime                         @default(now())
-  updatedAt                                            DateTime @updatedAt
+  updatedAt                                            DateTime                         @updatedAt
   vendors_chauffeur_bookings_acceptedVendorIdTovendors vendors?                         @relation("chauffeur_bookings_acceptedVendorIdTovendors", fields: [acceptedVendorId], references: [id])
   vendors_chauffeur_bookings_assignedVendorIdTovendors vendors?                         @relation("chauffeur_bookings_assignedVendorIdTovendors", fields: [assignedVendorId], references: [id])
   customers                                            customers?                       @relation(fields: [customerId], references: [id])
@@ -944,7 +944,7 @@ model chauffeur_city_pricing {
   parkingIncluded              Boolean                      @default(false)
   isActive                     Boolean                      @default(true)
   createdAt                    DateTime                     @default(now())
-  updatedAt                    DateTime @updatedAt
+  updatedAt                    DateTime                     @updatedAt
   locations                    locations                    @relation(fields: [locationId], references: [id], onDelete: Cascade)
   chauffeur_vehicle_categories chauffeur_vehicle_categories @relation(fields: [vehicleCategoryId], references: [id], onDelete: Cascade)
 
@@ -969,7 +969,7 @@ model chauffeur_local_packages {
   displayOrder                 Int                          @default(0)
   isActive                     Boolean                      @default(true)
   createdAt                    DateTime                     @default(now())
-  updatedAt                    DateTime @updatedAt
+  updatedAt                    DateTime                     @updatedAt
   locations                    locations?                   @relation(fields: [locationId], references: [id], onDelete: Cascade)
   chauffeur_vehicle_categories chauffeur_vehicle_categories @relation(fields: [vehicleCategoryId], references: [id], onDelete: Cascade)
 
@@ -996,7 +996,7 @@ model chauffeur_route_packages {
   displayOrder                                                 Int                          @default(0)
   isActive                                                     Boolean                      @default(true)
   createdAt                                                    DateTime                     @default(now())
-  updatedAt                                                    DateTime @updatedAt
+  updatedAt                                                    DateTime                     @updatedAt
   locations_chauffeur_route_packages_fromLocationIdTolocations locations                    @relation("chauffeur_route_packages_fromLocationIdTolocations", fields: [fromLocationId], references: [id], onDelete: Cascade)
   locations_chauffeur_route_packages_toLocationIdTolocations   locations                    @relation("chauffeur_route_packages_toLocationIdTolocations", fields: [toLocationId], references: [id], onDelete: Cascade)
   chauffeur_vehicle_categories                                 chauffeur_vehicle_categories @relation(fields: [vehicleCategoryId], references: [id], onDelete: Cascade)
@@ -1023,7 +1023,7 @@ model chauffeur_vehicle_categories {
   isPopular                Boolean                    @default(false)
   exampleVehicles          String?                    @db.LongText
   createdAt                DateTime                   @default(now())
-  updatedAt                DateTime @updatedAt
+  updatedAt                DateTime                   @updatedAt
   serviceId                String?
   bodyType                 String?
   heightFt                 Float?
@@ -1039,14 +1039,12 @@ model chauffeur_vehicle_categories {
   securityDeposit          Float?
   specifications           String?                    @db.Text
   weeklyRate               Float?
-  // Bus specific fields
   busType                  String?
   amenities                String?                    @db.Text
   hasPushbackSeats         Boolean?                   @default(false)
   hasTV                    Boolean?                   @default(false)
   hasCharging              Boolean?                   @default(false)
   hasWifi                  Boolean?                   @default(false)
-  // Bike specific fields
   engineCC                 String?
   bikeType                 String?
   mileage                  String?
@@ -1079,7 +1077,7 @@ model city_distance_matrix {
   lastUpdated                                              DateTime  @default(now())
   isActive                                                 Boolean   @default(true)
   createdAt                                                DateTime  @default(now())
-  updatedAt                                                DateTime @updatedAt
+  updatedAt                                                DateTime  @updatedAt
   locations_city_distance_matrix_fromLocationIdTolocations locations @relation("city_distance_matrix_fromLocationIdTolocations", fields: [fromLocationId], references: [id], onDelete: Cascade)
   locations_city_distance_matrix_toLocationIdTolocations   locations @relation("city_distance_matrix_toLocationIdTolocations", fields: [toLocationId], references: [id], onDelete: Cascade)
 
@@ -1129,7 +1127,7 @@ model competitor_tracking {
   lastChecked      DateTime?
   isActive         Boolean   @default(true)
   createdAt        DateTime  @default(now())
-  updatedAt        DateTime @updatedAt
+  updatedAt        DateTime  @updatedAt
 
   @@unique([competitorDomain, keyword])
   @@index([competitorDomain])
@@ -1201,7 +1199,7 @@ model customers {
   totalSpent                Float                       @default(0)
   lastLoginAt               DateTime?
   createdAt                 DateTime                    @default(now())
-  updatedAt                 DateTime @updatedAt
+  updatedAt                 DateTime                    @updatedAt
   bike_bookings             bike_bookings[]
   bike_quote_requests       bike_quote_requests[]
   bus_bookings              bus_bookings[]
@@ -1214,12 +1212,12 @@ model customers {
   helpdesk_tickets          helpdesk_tickets[]
   luxury_bookings           luxury_bookings[]
   luxury_quote_requests     luxury_quote_requests[]
+  notifications             notifications[]
   packers_bookings          packers_bookings[]
   packers_quote_requests    packers_quote_requests[]
   self_drive_quote_requests self_drive_quote_requests[]
   truck_bookings            truck_bookings[]
   truck_quote_requests      truck_quote_requests[]
-  notifications             notifications[]
 
   @@index([email])
   @@index([isActive])
@@ -1337,7 +1335,7 @@ model equipment_bookings {
   review                   String?                          @db.Text
   equipmentRating          Int?
   createdAt                DateTime                         @default(now())
-  updatedAt                DateTime @updatedAt
+  updatedAt                DateTime                         @updatedAt
   equipment_quotes         equipment_quotes                 @relation(fields: [acceptedQuoteId], references: [id])
   customers                customers?                       @relation(fields: [customerId], references: [id])
   equipment_quote_requests equipment_quote_requests         @relation(fields: [quoteRequestId], references: [id])
@@ -1382,7 +1380,7 @@ model equipment_quote_requests {
   quotesViewed        Int                             @default(0)
   acceptedQuoteId     String?
   createdAt           DateTime                        @default(now())
-  updatedAt           DateTime @updatedAt
+  updatedAt           DateTime                        @updatedAt
   equipment_bookings  equipment_bookings?
   customers           customers?                      @relation(fields: [customerId], references: [id])
   locations           locations?                      @relation(fields: [locationId], references: [id])
@@ -1424,7 +1422,7 @@ model equipment_quotes {
   viewedAt                   DateTime?
   viewCount                  Int                         @default(0)
   createdAt                  DateTime                    @default(now())
-  updatedAt                  DateTime @updatedAt
+  updatedAt                  DateTime                    @updatedAt
   fuelCharges                Float                       @default(0)
   notes                      String?                     @db.Text
   templateId                 String?
@@ -1464,7 +1462,7 @@ model fleet {
   viewCount            Int                    @default(0)
   bookingCount         Int                    @default(0)
   createdAt            DateTime               @default(now())
-  updatedAt            DateTime @updatedAt
+  updatedAt            DateTime               @updatedAt
   fleet_categories     fleet_categories       @relation(fields: [categoryId], references: [id])
   fleet_types          fleet_types?           @relation(fields: [typeId], references: [id])
   fleet_availability   fleet_availability[]
@@ -1485,7 +1483,7 @@ model fleet_availability {
   quantity        Int             @default(1)
   notes           String?         @db.Text
   createdAt       DateTime        @default(now())
-  updatedAt       DateTime @updatedAt
+  updatedAt       DateTime        @updatedAt
   fleet           fleet           @relation(fields: [fleetId], references: [id], onDelete: Cascade)
   fleet_locations fleet_locations @relation(fields: [locationId], references: [id], onDelete: Cascade)
 
@@ -1504,7 +1502,7 @@ model fleet_categories {
   isActive     Boolean       @default(true)
   specFields   String?       @db.LongText
   createdAt    DateTime      @default(now())
-  updatedAt    DateTime @updatedAt
+  updatedAt    DateTime      @updatedAt
   fleet        fleet[]
   fleet_types  fleet_types[]
 }
@@ -1521,7 +1519,7 @@ model fleet_location_rates {
   securityDeposit Float           @default(2000)
   isActive        Boolean         @default(true)
   createdAt       DateTime        @default(now())
-  updatedAt       DateTime @updatedAt
+  updatedAt       DateTime        @updatedAt
   fleet           fleet           @relation(fields: [fleetId], references: [id], onDelete: Cascade)
   fleet_locations fleet_locations @relation(fields: [locationId], references: [id], onDelete: Cascade)
 
@@ -1543,7 +1541,7 @@ model fleet_locations {
   longitude            Float?
   timezone             String?                @default("Asia/Kolkata")
   createdAt            DateTime               @default(now())
-  updatedAt            DateTime @updatedAt
+  updatedAt            DateTime               @updatedAt
   fleet_availability   fleet_availability[]
   fleet_location_rates fleet_location_rates[]
 
@@ -1572,7 +1570,7 @@ model fleet_pricing {
   minDays         Int?
   isActive        Boolean                 @default(true)
   createdAt       DateTime                @default(now())
-  updatedAt       DateTime @updatedAt
+  updatedAt       DateTime                @updatedAt
   locationId      String?
   local_packages  local_packages?         @relation(fields: [localPackageId], references: [id])
   locations       locations?              @relation(fields: [locationId], references: [id], onDelete: Cascade)
@@ -1595,7 +1593,7 @@ model fleet_types {
   displayOrder     Int              @default(0)
   isActive         Boolean          @default(true)
   createdAt        DateTime         @default(now())
-  updatedAt        DateTime @updatedAt
+  updatedAt        DateTime         @updatedAt
   fleet            fleet[]
   fleet_categories fleet_categories @relation(fields: [categoryId], references: [id], onDelete: Cascade)
 
@@ -1647,7 +1645,7 @@ model helpdesk_tickets {
   resolvedAt  DateTime?
   resolution  String?                 @db.Text
   createdAt   DateTime                @default(now())
-  updatedAt   DateTime @updatedAt
+  updatedAt   DateTime                @updatedAt
   customers   customers?              @relation(fields: [customerId], references: [id])
 
   @@index([createdAt])
@@ -1676,7 +1674,7 @@ model keyword_rankings {
   checkFrequency     String    @default("daily")
   rankHistory        String?   @db.LongText
   createdAt          DateTime  @default(now())
-  updatedAt          DateTime @updatedAt
+  updatedAt          DateTime  @updatedAt
 
   @@unique([keyword, pagePath, searchEngine])
   @@index([keyword])
@@ -1711,7 +1709,7 @@ model local_packages {
   isActive      Boolean         @default(true)
   displayOrder  Int             @default(0)
   createdAt     DateTime        @default(now())
-  updatedAt     DateTime @updatedAt
+  updatedAt     DateTime        @updatedAt
   fleet_pricing fleet_pricing[]
   services      services        @relation(fields: [serviceId], references: [id], onDelete: Cascade)
   trip_types    trip_types      @relation(fields: [tripTypeId], references: [id], onDelete: Cascade)
@@ -1738,7 +1736,7 @@ model locations {
   metaTitle                                                                   String?
   metaDescription                                                             String?                     @db.Text
   createdAt                                                                   DateTime                    @default(now())
-  updatedAt                                                                   DateTime @updatedAt
+  updatedAt                                                                   DateTime                    @updatedAt
   bike_bookings                                                               bike_bookings[]
   bike_quote_requests                                                         bike_quote_requests[]
   bus_quote_requests                                                          bus_quote_requests[]
@@ -1798,7 +1796,7 @@ model luxury_bids {
   status              String          @default("PENDING")
   viewedAt            DateTime?
   createdAt           DateTime        @default(now())
-  updatedAt           DateTime @updatedAt
+  updatedAt           DateTime        @updatedAt
   luxury_bookings     luxury_bookings @relation(fields: [bookingId], references: [id], onDelete: Cascade)
   vendors             vendors         @relation(fields: [vendorId], references: [id])
 
@@ -1878,7 +1876,7 @@ model luxury_bookings {
   vehicleRating                                     Int?
   acceptedAt                                        DateTime?
   createdAt                                         DateTime                      @default(now())
-  updatedAt                                         DateTime @updatedAt
+  updatedAt                                         DateTime                      @updatedAt
   acceptedQuoteId                                   String?                       @unique
   advanceAmount                                     Float                         @default(0)
   advancePaid                                       Float                         @default(0)
@@ -1953,7 +1951,7 @@ model luxury_quote_requests {
   quotesViewed        Int                          @default(0)
   acceptedQuoteId     String?                      @unique
   createdAt           DateTime                     @default(now())
-  updatedAt           DateTime @updatedAt
+  updatedAt           DateTime                     @updatedAt
   luxury_bookings     luxury_bookings?
   customers           customers?                   @relation(fields: [customerId], references: [id])
   locations           locations?                   @relation(fields: [locationId], references: [id])
@@ -2016,7 +2014,7 @@ model luxury_quotes {
   negotiationNotes        String?
   sentAt                  DateTime?
   createdAt               DateTime                 @default(now())
-  updatedAt               DateTime @updatedAt
+  updatedAt               DateTime                 @updatedAt
   luxury_bookings         luxury_bookings?
   vendor_fleets           vendor_fleets?           @relation(fields: [fleetId], references: [id])
   luxury_quote_requests   luxury_quote_requests    @relation(fields: [requestId], references: [id], onDelete: Cascade)
@@ -2051,7 +2049,7 @@ model luxury_vendor_rates {
   isActive        Boolean   @default(true)
   minBookingHours Int       @default(0)
   createdAt       DateTime  @default(now())
-  updatedAt       DateTime @updatedAt
+  updatedAt       DateTime  @updatedAt
   locations       locations @relation(fields: [locationId], references: [id], onDelete: Cascade)
   vendors         vendors   @relation(fields: [vendorId], references: [id], onDelete: Cascade)
 
@@ -2181,7 +2179,7 @@ model packers_bookings {
   teamRating             Int?
   packingRating          Int?
   createdAt              DateTime                       @default(now())
-  updatedAt              DateTime @updatedAt
+  updatedAt              DateTime                       @updatedAt
   deliveryOtpSent        Boolean                        @default(false)
   loadingOtpSent         Boolean                        @default(false)
   packingOtpSent         Boolean                        @default(false)
@@ -2243,7 +2241,7 @@ model packers_quote_requests {
   quotesViewed        Int                           @default(0)
   acceptedQuoteId     String?
   createdAt           DateTime                      @default(now())
-  updatedAt           DateTime @updatedAt
+  updatedAt           DateTime                      @updatedAt
   packers_bookings    packers_bookings?
   customers           customers?                    @relation(fields: [customerId], references: [id])
   locations           locations?                    @relation(fields: [locationId], references: [id])
@@ -2282,7 +2280,7 @@ model packers_quotes {
   viewedAt                 DateTime?
   viewCount                Int                       @default(0)
   createdAt                DateTime                  @default(now())
-  updatedAt                DateTime @updatedAt
+  updatedAt                DateTime                  @updatedAt
   templateId               String?
   packers_bookings         packers_bookings?
   packers_quote_requests   packers_quote_requests    @relation(fields: [requestId], references: [id])
@@ -2357,7 +2355,7 @@ model page_performance {
   exitRate      Float?
   lastMeasured  DateTime?
   createdAt     DateTime                       @default(now())
-  updatedAt     DateTime @updatedAt
+  updatedAt     DateTime                       @updatedAt
 
   @@index([overallStatus])
 }
@@ -2392,7 +2390,7 @@ model pages {
   status        pages_status @default(DRAFT)
   publishedAt   DateTime?
   createdAt     DateTime     @default(now())
-  updatedAt     DateTime @updatedAt
+  updatedAt     DateTime     @updatedAt
   authorId      String
   admin_users   admin_users  @relation(fields: [authorId], references: [id])
   seo_meta      seo_meta?
@@ -2418,7 +2416,7 @@ model redirects {
   description String?
   hitCount    Int            @default(0)
   createdAt   DateTime       @default(now())
-  updatedAt   DateTime @updatedAt
+  updatedAt   DateTime       @updatedAt
 
   @@index([fromPath])
 }
@@ -2435,7 +2433,7 @@ model route_pricing {
   estimatedTime                                     String?
   isActive                                          Boolean    @default(true)
   createdAt                                         DateTime   @default(now())
-  updatedAt                                         DateTime @updatedAt
+  updatedAt                                         DateTime   @updatedAt
   locations_route_pricing_fromLocationIdTolocations locations  @relation("route_pricing_fromLocationIdTolocations", fields: [fromLocationId], references: [id], onDelete: Cascade)
   services                                          services   @relation(fields: [serviceId], references: [id], onDelete: Cascade)
   locations_route_pricing_toLocationIdTolocations   locations  @relation("route_pricing_toLocationIdTolocations", fields: [toLocationId], references: [id], onDelete: Cascade)
@@ -2499,7 +2497,7 @@ model self_drive_quote_requests {
   requestNumber                                                                  String                           @unique
   totalDays                                                                      Int
   totalQuotesReceived                                                            Int                              @default(0)
-  updatedAt                                                                      DateTime @updatedAt
+  updatedAt                                                                      DateTime                         @updatedAt
   vehicleBrand                                                                   String?
   vehicleCategory                                                                String?
   vehicleCategoryName                                                            String?
@@ -2549,7 +2547,7 @@ model self_drive_quotes {
   securityDeposit                                                                        Float
   sentAt                                                                                 DateTime?
   termsConditions                                                                        String?                      @db.LongText
-  updatedAt                                                                              DateTime @updatedAt
+  updatedAt                                                                              DateTime                     @updatedAt
   validTill                                                                              DateTime
   validityDays                                                                           Int                          @default(3)
   vehicleBrand                                                                           String?
@@ -2653,7 +2651,7 @@ model seo_meta {
   pageId             String?     @unique
   blogPostId         String?     @unique
   createdAt          DateTime    @default(now())
-  updatedAt          DateTime @updatedAt
+  updatedAt          DateTime    @updatedAt
   blog_posts         blog_posts? @relation(fields: [blogPostId], references: [id], onDelete: Cascade)
   pages              pages?      @relation(fields: [pageId], references: [id], onDelete: Cascade)
 }
@@ -2665,7 +2663,7 @@ model service_locations {
   isActive          Boolean   @default(true)
   basePriceOverride Float?
   createdAt         DateTime  @default(now())
-  updatedAt         DateTime @updatedAt
+  updatedAt         DateTime  @updatedAt
   locations         locations @relation(fields: [locationId], references: [id], onDelete: Cascade)
   services          services  @relation(fields: [serviceId], references: [id], onDelete: Cascade)
 
@@ -2694,7 +2692,7 @@ model service_trip_types {
   tripTypeId String
   isActive   Boolean    @default(true)
   createdAt  DateTime   @default(now())
-  updatedAt  DateTime @updatedAt
+  updatedAt  DateTime   @updatedAt
   services   services   @relation(fields: [serviceId], references: [id], onDelete: Cascade)
   trip_types trip_types @relation(fields: [tripTypeId], references: [id], onDelete: Cascade)
 
@@ -2720,7 +2718,7 @@ model services {
   metaTitle                                            String?
   metaDescription                                      String?                        @db.Text
   createdAt                                            DateTime                       @default(now())
-  updatedAt                                            DateTime @updatedAt
+  updatedAt                                            DateTime                       @updatedAt
   bank_details                                         bank_details[]
   brands                                               brands[]
   chauffeur_vehicle_categories                         chauffeur_vehicle_categories[]
@@ -2743,7 +2741,7 @@ model services {
 }
 
 model settings {
-  id          String        @id
+  id          String        @id @default(cuid())
   key         String        @unique
   value       String        @db.Text
   type        settings_type @default(TEXT)
@@ -2751,7 +2749,7 @@ model settings {
   label       String?
   description String?
   createdAt   DateTime      @default(now())
-  updatedAt   DateTime @updatedAt
+  updatedAt   DateTime      @updatedAt
 
   @@index([group])
   @@index([key])
@@ -2770,7 +2768,7 @@ model staff_attendance {
   markedBy     String?
   markedAt     DateTime                @default(now())
   createdAt    DateTime                @default(now())
-  updatedAt    DateTime @updatedAt
+  updatedAt    DateTime                @updatedAt
   vendor_staff vendor_staff            @relation(fields: [staffId], references: [id], onDelete: Cascade)
 
   @@unique([staffId, date])
@@ -2791,7 +2789,7 @@ model trip_types {
   isActive             Boolean              @default(true)
   displayOrder         Int                  @default(0)
   createdAt            DateTime             @default(now())
-  updatedAt            DateTime @updatedAt
+  updatedAt            DateTime             @updatedAt
   fleet_pricing        fleet_pricing[]
   local_packages       local_packages[]
   route_pricing        route_pricing[]
@@ -2866,7 +2864,7 @@ model truck_bookings {
   review                 String?                      @db.Text
   driverRating           Int?
   createdAt              DateTime                     @default(now())
-  updatedAt              DateTime @updatedAt
+  updatedAt              DateTime                     @updatedAt
   advancePaymentDate     DateTime?
   advancePaymentProof    String?
   advancePaymentRef      String?
@@ -2930,7 +2928,7 @@ model truck_quote_requests {
   quotesViewed        Int                         @default(0)
   acceptedQuoteId     String?
   createdAt           DateTime                    @default(now())
-  updatedAt           DateTime @updatedAt
+  updatedAt           DateTime                    @updatedAt
   truck_bookings      truck_bookings?
   customers           customers?                  @relation(fields: [customerId], references: [id])
   locations           locations?                  @relation(fields: [locationId], references: [id])
@@ -2973,7 +2971,7 @@ model truck_quotes {
   viewedAt               DateTime?
   viewCount              Int                     @default(0)
   createdAt              DateTime                @default(now())
-  updatedAt              DateTime @updatedAt
+  updatedAt              DateTime                @updatedAt
   templateId             String?
   truck_bookings         truck_bookings?
   truck_quote_requests   truck_quote_requests    @relation(fields: [requestId], references: [id])
@@ -2993,7 +2991,7 @@ model vehicle_model_locations {
   isActive        Boolean        @default(true)
   basePricePerDay Float?
   createdAt       DateTime       @default(now())
-  updatedAt       DateTime @updatedAt
+  updatedAt       DateTime       @updatedAt
   locations       locations      @relation(fields: [locationId], references: [id], onDelete: Cascade)
   vehicle_models  vehicle_models @relation(fields: [vehicleModelId], references: [id], onDelete: Cascade)
 
@@ -3023,7 +3021,7 @@ model vehicle_models {
   isActive                                       Boolean                       @default(true)
   displayOrder                                   Int                           @default(0)
   createdAt                                      DateTime                      @default(now())
-  updatedAt                                      DateTime @updatedAt
+  updatedAt                                      DateTime                      @updatedAt
   basePricePerDay                                Float?
   monthlyDiscount                                Float?
   weeklyDiscount                                 Float?
@@ -3106,7 +3104,7 @@ model vendor_bike_templates {
   isDefault           Boolean       @default(false)
   usageCount          Int           @default(0)
   createdAt           DateTime      @default(now())
-  updatedAt           DateTime @updatedAt
+  updatedAt           DateTime      @updatedAt
   bike_quotes         bike_quotes[]
   vendors             vendors       @relation(fields: [vendorId], references: [id], onDelete: Cascade)
 
@@ -3132,7 +3130,7 @@ model vendor_bus_templates {
   isDefault       Boolean      @default(false)
   usageCount      Int          @default(0)
   createdAt       DateTime     @default(now())
-  updatedAt       DateTime @updatedAt
+  updatedAt       DateTime     @updatedAt
   bus_quotes      bus_quotes[]
   vendors         vendors      @relation(fields: [vendorId], references: [id], onDelete: Cascade)
 
@@ -3153,7 +3151,7 @@ model vendor_documents {
   verifiedById    String?
   rejectionReason String?                       @db.Text
   createdAt       DateTime                      @default(now())
-  updatedAt       DateTime @updatedAt
+  updatedAt       DateTime                      @updatedAt
   vendors         vendors                       @relation(fields: [vendorId], references: [id], onDelete: Cascade)
   admin_users     admin_users?                  @relation(fields: [verifiedById], references: [id])
 
@@ -3180,7 +3178,7 @@ model vendor_equipment_templates {
   isDefault        Boolean            @default(false)
   usageCount       Int                @default(0)
   createdAt        DateTime           @default(now())
-  updatedAt        DateTime @updatedAt
+  updatedAt        DateTime           @updatedAt
   equipment_quotes equipment_quotes[]
   vendors          vendors            @relation(fields: [vendorId], references: [id], onDelete: Cascade)
 
@@ -3195,7 +3193,7 @@ model vendor_fleet_locations {
   locationId    String
   isActive      Boolean       @default(true)
   createdAt     DateTime      @default(now())
-  updatedAt     DateTime @updatedAt
+  updatedAt     DateTime      @updatedAt
   locations     locations     @relation(fields: [locationId], references: [id], onDelete: Cascade)
   vendor_fleets vendor_fleets @relation(fields: [vendorFleetId], references: [id], onDelete: Cascade)
 
@@ -3220,7 +3218,7 @@ model vendor_fleets {
   isActive                     Boolean                       @default(true)
   isVerified                   Boolean                       @default(false)
   createdAt                    DateTime                      @default(now())
-  updatedAt                    DateTime @updatedAt
+  updatedAt                    DateTime                      @updatedAt
   brandId                      String?
   vehicleCategoryId            String?
   advanceBookingDays           Int?
@@ -3292,7 +3290,7 @@ model vendor_location_requests {
   reviewedById    String?
   rejectionReason String?                         @db.Text
   createdAt       DateTime                        @default(now())
-  updatedAt       DateTime @updatedAt
+  updatedAt       DateTime                        @updatedAt
   locations       locations                       @relation(fields: [locationId], references: [id], onDelete: Cascade)
   admin_users     admin_users?                    @relation(fields: [reviewedById], references: [id])
   vendors         vendors                         @relation(fields: [vendorId], references: [id], onDelete: Cascade)
@@ -3325,7 +3323,7 @@ model vendor_luxury_templates {
   tripTypes         String?         @db.LongText
   occasions         String?         @db.LongText
   createdAt         DateTime        @default(now())
-  updatedAt         DateTime @updatedAt
+  updatedAt         DateTime        @updatedAt
   luxury_quotes     luxury_quotes[]
   vendors           vendors         @relation(fields: [vendorId], references: [id], onDelete: Cascade)
 
@@ -3349,7 +3347,7 @@ model vendor_packers_templates {
   isDefault       Boolean          @default(false)
   usageCount      Int              @default(0)
   createdAt       DateTime         @default(now())
-  updatedAt       DateTime @updatedAt
+  updatedAt       DateTime         @updatedAt
   packers_quotes  packers_quotes[]
   vendors         vendors          @relation(fields: [vendorId], references: [id], onDelete: Cascade)
 
@@ -3376,7 +3374,7 @@ model vendor_self_drive_templates {
   isDefault           Boolean             @default(false)
   usageCount          Int                 @default(0)
   createdAt           DateTime            @default(now())
-  updatedAt           DateTime @updatedAt
+  updatedAt           DateTime            @updatedAt
   self_drive_quotes   self_drive_quotes[]
   vendors             vendors             @relation(fields: [vendorId], references: [id], onDelete: Cascade)
 
@@ -3396,7 +3394,7 @@ model vendor_service_requests {
   reviewedById    String?
   rejectionReason String?                        @db.Text
   createdAt       DateTime                       @default(now())
-  updatedAt       DateTime @updatedAt
+  updatedAt       DateTime                       @updatedAt
   admin_users     admin_users?                   @relation(fields: [reviewedById], references: [id])
   services        services                       @relation(fields: [serviceId], references: [id], onDelete: Cascade)
   vendors         vendors                        @relation(fields: [vendorId], references: [id], onDelete: Cascade)
@@ -3439,7 +3437,7 @@ model vendor_staff {
   emergencyContact  String?
   emergencyPhone    String?
   createdAt         DateTime            @default(now())
-  updatedAt         DateTime @updatedAt
+  updatedAt         DateTime            @updatedAt
   password          String?
   staff_attendance  staff_attendance[]
   truck_bookings    truck_bookings[]
@@ -3467,7 +3465,7 @@ model vendor_truck_templates {
   isDefault       Boolean        @default(false)
   usageCount      Int            @default(0)
   createdAt       DateTime       @default(now())
-  updatedAt       DateTime @updatedAt
+  updatedAt       DateTime       @updatedAt
   truck_quotes    truck_quotes[]
   vendors         vendors        @relation(fields: [vendorId], references: [id], onDelete: Cascade)
 
@@ -3507,7 +3505,7 @@ model vendors {
   totalRatings                                                    Int                           @default(0)
   lastLoginAt                                                     DateTime?
   createdAt                                                       DateTime                      @default(now())
-  updatedAt                                                       DateTime @updatedAt
+  updatedAt                                                       DateTime                      @updatedAt
   bike_bookings_bike_bookings_acceptedVendorIdTovendors           bike_bookings[]               @relation("bike_bookings_acceptedVendorIdTovendors")
   bike_bookings_bike_bookings_assignedVendorIdTovendors           bike_bookings[]               @relation("bike_bookings_assignedVendorIdTovendors")
   bike_quotes                                                     bike_quotes[]

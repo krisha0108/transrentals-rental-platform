@@ -120,7 +120,17 @@
       "Bash(npx tsx:*)",
       "Bash(git stash:*)",
       "Bash(git init:*)",
-      "Bash(git remote add:*)"
+      "Bash(git remote add:*)",
+      "WebFetch(domain:github.com)",
+      "Bash(git merge:*)",
+      "Bash(Get-Process)",
+      "Bash(Where-Object { $_ProcessName -like \"*node*\" -or $_ProcessName -like \"*next*\" })",
+      "Bash(Select-Object ProcessName,Id,Path)",
+      "Bash(while read file)",
+      "Bash(do if grep -q \"request\\\\.url\" \"$file\")",
+      "Bash(! grep -q \"export const dynamic\" \"$file\")",
+      "Bash(then echo \"$file\")",
+      "Bash(fi)"
     ],
     "deny": [],
     "ask": []
