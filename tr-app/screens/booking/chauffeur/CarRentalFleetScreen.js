@@ -583,9 +583,13 @@ export default function CarRentalFleetScreen({ navigation, route }) {
           </View>
         </View>
 
-        {vehicle.exampleVehicles?.length > 0 && (
+        {vehicle.exampleVehicles && (
           <Text style={styles.vehicleExamples}>
-            Example: {vehicle.exampleVehicles.join(', ')}
+            Example: {
+              Array.isArray(vehicle.exampleVehicles)
+                ? vehicle.exampleVehicles.join(', ')
+                : vehicle.exampleVehicles
+            }
           </Text>
         )}
 
