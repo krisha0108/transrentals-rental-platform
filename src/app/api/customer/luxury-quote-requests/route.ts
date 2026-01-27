@@ -107,7 +107,7 @@ export async function POST(request: NextRequest) {
         customerPhone,
         tripType: tripType || 'local',
         occasion: occasion || null,
-        vehicle_category,
+        vehicleCategory: vehicle_category,
         vehicleCategoryName: vehicleCategoryName || vehicle_category,
         passengers: passengers || 4,
         specificModel: specificModel || null,

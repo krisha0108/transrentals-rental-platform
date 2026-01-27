@@ -69,7 +69,7 @@ export async function GET(
           },
           orderBy: { totalAmount: 'asc' },
         },
-        location: {
+        locations: {
           select: {
             id: true,
             name: true,
@@ -112,7 +112,7 @@ export async function GET(
       customerPhone: quoteRequest.customerPhone,
       tripType: quoteRequest.tripType,
       occasion: quoteRequest.occasion,
-      chauffeur_vehicle_categories: quoteRequest.vehicle_category,
+      chauffeur_vehicle_categories: quoteRequest.vehicleCategory,
       vehicleCategoryName: quoteRequest.vehicleCategoryName,
       specificModel: quoteRequest.specificModel,
       passengers: quoteRequest.passengers,
@@ -137,16 +137,16 @@ export async function GET(
       status: quoteRequest.status,
       totalQuotesReceived: quoteRequest.totalQuotesReceived,
       quotesViewed: quoteRequest.luxury_quotes.length,
-      location: quoteRequest.location,
+      location: quoteRequest.locations,
       quotes: quoteRequest.luxury_quotes.map((q) => ({
         id: q.id,
         quoteNumber: q.quoteNumber,
         vendorId: q.vendorId,
-        vendor: q.vendor,
-        chauffeur_vehicle_categories: q.vehicle_category,
+        vendor: q.vendors,
+        chauffeur_vehicle_categories: q.vehicleCategory,
         vehicleName: q.vehicleName,
         vehicleNumber: q.vehicleNumber,
-        vehicle_models: q.vehicle_models,
+        vehicle_models: q.vehicleModel,
         vehicleYear: q.vehicleYear,
         vehicleFeatures: (() => {
           try {

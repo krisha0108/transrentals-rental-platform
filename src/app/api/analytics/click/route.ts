@@ -1,8 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { headers } from 'next/headers';
+import crypto from 'crypto';
 
 import logger from '@/lib/security/logger';
 export const dynamic = 'force-dynamic';
+
+// Helper to generate a cuid-like unique ID
+function generateId(): string {
+  return 'c' + crypto.randomBytes(12).toString('base64url').toLowerCase().slice(0, 24);
+}
 
 // Parse user agent helper
 function parseUserAgent(userAgent: string) {
@@ -66,6 +72,7 @@ export async function POST(request: NextRequest) {
 
     await prisma.click_events.create({
       data: {
+        id: generateId(),
         eventType: eventType || 'OTHER',
         elementId: elementId?.substring(0, 191) || null,
         elementClass: elementClass?.substring(0, 191) || null, // Truncate to fit DB column
@@ -138,6 +145,7 @@ export async function PUT(request: NextRequest) {
     // Create all events in batch
     await prisma.click_events.createMany({
       data: events.map((event: Record<string, unknown>) => ({
+        id: generateId(),
         eventType: (validEventTypes.includes(event.eventType as ClickType) ? event.eventType : 'OTHER') as ClickType,
         elementId: truncate(event.elementId, 191),
         elementClass: truncate(event.elementClass, 191),

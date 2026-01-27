@@ -248,7 +248,7 @@ export default function LuxuryCarRentalScreen() {
         customerId: customerData.id,
         tripType,
         occasion: occasion || null,
-        vehicleCategory,
+        vehicle_category: vehicleCategory,
         vehicleCategoryName: VEHICLE_CATEGORIES.find(v => v.id === vehicleCategory)?.label,
         passengers: parseInt(passengers) || 4,
         specificModel: specificModel.trim() || null,
