@@ -1,6 +1,6 @@
 # ===========================================
 # TransRentals Production Dockerfile
-# Multi-stage build with Prisma auto-setup
+# Multi-stage build with Prisma pre-generated
 # ===========================================
 
 # Stage 1: Dependencies
@@ -17,9 +17,11 @@ COPY prisma ./prisma/
 # Dummy DATABASE_URL for build-time prisma generate
 ENV DATABASE_URL="mysql://dummy:dummy@localhost:3306/dummy"
 
-# Install dependencies (this will run postinstall which does prisma generate)
-RUN npm ci --prefer-offline --no-audit --progress=false && \
-    npm cache clean --force
+# Install ALL dependencies (including dev for prisma CLI)
+RUN npm ci --prefer-offline --no-audit --progress=false
+
+# Explicitly generate Prisma client during build
+RUN npx prisma generate
 
 # Stage 2: Builder
 FROM node:20-alpine AS builder
@@ -65,26 +67,26 @@ ENV NEXTAUTH_URL=http://localhost:3000
 ENV NEXTAUTH_SECRET=build-time-secret-will-be-replaced
 
 # Set NEXT_PUBLIC_ variables
-ENV NEXT_PUBLIC_APP_NAME=${NEXT_PUBLIC_APP_NAME}
-ENV NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL}
-ENV NEXT_PUBLIC_APP_DESCRIPTION=${NEXT_PUBLIC_APP_DESCRIPTION}
-ENV NEXT_PUBLIC_CONTACT_EMAIL=${NEXT_PUBLIC_CONTACT_EMAIL}
-ENV NEXT_PUBLIC_CONTACT_PHONE=${NEXT_PUBLIC_CONTACT_PHONE}
-ENV NEXT_PUBLIC_WHATSAPP_NUMBER=${NEXT_PUBLIC_WHATSAPP_NUMBER}
-ENV NEXT_PUBLIC_ENABLE_BLOG=${NEXT_PUBLIC_ENABLE_BLOG}
-ENV NEXT_PUBLIC_ENABLE_VENDOR_SIGNUP=${NEXT_PUBLIC_ENABLE_VENDOR_SIGNUP}
-ENV NEXT_PUBLIC_BLOG_DATA_SOURCE=${NEXT_PUBLIC_BLOG_DATA_SOURCE}
-ENV NEXT_PUBLIC_FACEBOOK_URL=${NEXT_PUBLIC_FACEBOOK_URL}
-ENV NEXT_PUBLIC_INSTAGRAM_URL=${NEXT_PUBLIC_INSTAGRAM_URL}
-ENV NEXT_PUBLIC_TWITTER_URL=${NEXT_PUBLIC_TWITTER_URL}
-ENV NEXT_PUBLIC_LINKEDIN_URL=${NEXT_PUBLIC_LINKEDIN_URL}
-ENV NEXT_PUBLIC_ENABLE_REVIEWS=${NEXT_PUBLIC_ENABLE_REVIEWS}
-ENV NEXT_PUBLIC_ENABLE_CHAT=${NEXT_PUBLIC_ENABLE_CHAT}
-ENV NEXT_PUBLIC_ENABLE_NOTIFICATIONS=${NEXT_PUBLIC_ENABLE_NOTIFICATIONS}
-ENV NEXT_PUBLIC_TWITTER_HANDLE=${NEXT_PUBLIC_TWITTER_HANDLE}
-ENV NEXT_PUBLIC_DEFAULT_OG_IMAGE=${NEXT_PUBLIC_DEFAULT_OG_IMAGE}
-ENV NEXT_PUBLIC_CUSTOMER_APP_ANDROID=${NEXT_PUBLIC_CUSTOMER_APP_ANDROID}
-ENV NEXT_PUBLIC_VENDOR_APP_ANDROID=${NEXT_PUBLIC_VENDOR_APP_ANDROID}
+ENV NEXT_PUBLIC_APP_NAME=
+ENV NEXT_PUBLIC_APP_URL=
+ENV NEXT_PUBLIC_APP_DESCRIPTION=
+ENV NEXT_PUBLIC_CONTACT_EMAIL=
+ENV NEXT_PUBLIC_CONTACT_PHONE=
+ENV NEXT_PUBLIC_WHATSAPP_NUMBER=
+ENV NEXT_PUBLIC_ENABLE_BLOG=
+ENV NEXT_PUBLIC_ENABLE_VENDOR_SIGNUP=
+ENV NEXT_PUBLIC_BLOG_DATA_SOURCE=
+ENV NEXT_PUBLIC_FACEBOOK_URL=
+ENV NEXT_PUBLIC_INSTAGRAM_URL=
+ENV NEXT_PUBLIC_TWITTER_URL=
+ENV NEXT_PUBLIC_LINKEDIN_URL=
+ENV NEXT_PUBLIC_ENABLE_REVIEWS=
+ENV NEXT_PUBLIC_ENABLE_CHAT=
+ENV NEXT_PUBLIC_ENABLE_NOTIFICATIONS=
+ENV NEXT_PUBLIC_TWITTER_HANDLE=
+ENV NEXT_PUBLIC_DEFAULT_OG_IMAGE=
+ENV NEXT_PUBLIC_CUSTOMER_APP_ANDROID=
+ENV NEXT_PUBLIC_VENDOR_APP_ANDROID=
 
 # Build the application
 RUN npm run build && rm -rf .next/cache
@@ -93,16 +95,15 @@ RUN npm run build && rm -rf .next/cache
 FROM node:20-alpine AS runner
 WORKDIR /app
 
-# Install openssl and bash for Prisma and entrypoint script
-RUN apk add --no-cache openssl bash mysql-client
+# Install only openssl for Prisma runtime
+RUN apk add --no-cache openssl
 
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3000
 
 # Create non-root user
-RUN addgroup --system --gid 1001 nodejs && \
-    adduser --system --uid 1001 nextjs
+RUN addgroup --system --gid 1001 nodejs &&     adduser --system --uid 1001 nextjs
 
 # Copy built application
 COPY --from=builder /app/public ./public
@@ -110,81 +111,14 @@ COPY --from=builder /app/package.json ./package.json
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
-# Copy Prisma files and generated client
-COPY --from=builder /app/prisma ./prisma
+# Copy Prisma schema and pre-generated client (NO CLI needed at runtime)
+COPY --from=builder /app/prisma/schema.prisma ./prisma/schema.prisma
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
-
-# Copy Prisma binary
-COPY --from=builder /app/node_modules/prisma ./node_modules/prisma
-
-# Create entrypoint script for Prisma commands
-RUN cat > /app/docker-entrypoint.sh << 'EOF'
-#!/bin/bash
-set -e
-
-echo "========================================"
-echo "🚀 TransRentals Starting..."
-echo "========================================"
-
-# Wait for database to be ready
-if [ ! -z "$DATABASE_URL" ]; then
-  echo "⏳ Waiting for database to be ready..."
-
-  # Extract database host and port from DATABASE_URL
-  DB_HOST=$(echo $DATABASE_URL | sed -e 's/.*@\([^:]*\):.*/\1/')
-  DB_PORT=$(echo $DATABASE_URL | sed -e 's/.*:\([0-9]*\)\/.*/\1/')
-
-  # Wait for MySQL to be ready
-  for i in {1..30}; do
-    if nc -z $DB_HOST $DB_PORT 2>/dev/null; then
-      echo "✅ Database is ready!"
-      break
-    fi
-    echo "Waiting for database... attempt $i/30"
-    sleep 2
-  done
-fi
-
-# Run Prisma commands
-echo "========================================"
-echo "🔧 Running Prisma Setup..."
-echo "========================================"
-
-# Generate Prisma Client
-echo "📦 Generating Prisma Client..."
-npx prisma generate
-
-# Run migrations
-echo "🗄️ Running database migrations..."
-npx prisma migrate deploy || {
-  echo "⚠️  Migration failed, but continuing..."
-  echo "Make sure your database is accessible and migrations are ready"
-}
-
-# Optional: Seed database if SEED_DATABASE=true
-if [ "$SEED_DATABASE" = "true" ]; then
-  echo "🌱 Seeding database..."
-  npm run seed || echo "⚠️  Seeding failed or not configured"
-fi
-
-echo "========================================"
-echo "✅ Prisma Setup Complete!"
-echo "========================================"
-echo "🚀 Starting Next.js Server on port $PORT..."
-echo "========================================"
-
-# Start the application
-exec node server.js
-EOF
-
-# Make entrypoint executable
-RUN chmod +x /app/docker-entrypoint.sh && \
-    chown nextjs:nodejs /app/docker-entrypoint.sh
 
 USER nextjs
 
 EXPOSE 3000
 
-# Use entrypoint script
-ENTRYPOINT ["/app/docker-entrypoint.sh"]
+# Start directly - Prisma client is pre-generated during build
+CMD ["node", "server.js"]
