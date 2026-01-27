@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 import { transformPrismaResponse } from '@/lib/utils/api-transform';
 
+export const dynamic = 'force-dynamic';
+
 // GET /api/customer/notifications/unread-count - Get unread notification count
 export async function GET(request: NextRequest) {
   try {
