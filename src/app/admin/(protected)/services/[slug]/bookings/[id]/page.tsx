@@ -746,6 +746,30 @@ export default function BookingDetailPage() {
                       <span className="font-medium">₹{selectedQuote.driverAllowance.toLocaleString()}</span>
                     </div>
                   )}
+                  {selectedQuote.tollEstimate > 0 && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Toll Estimate</span>
+                      <span className="font-medium">₹{selectedQuote.tollEstimate.toLocaleString()}</span>
+                    </div>
+                  )}
+                  {selectedQuote.permitCharges > 0 && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Permit Charges</span>
+                      <span className="font-medium">₹{selectedQuote.permitCharges.toLocaleString()}</span>
+                    </div>
+                  )}
+                  {selectedQuote.parkingEstimate > 0 && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Parking Charges</span>
+                      <span className="font-medium">₹{selectedQuote.parkingEstimate.toLocaleString()}</span>
+                    </div>
+                  )}
+                  {selectedQuote.nightHaltCharges > 0 && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Night Halt Charges</span>
+                      <span className="font-medium">₹{selectedQuote.nightHaltCharges.toLocaleString()}</span>
+                    </div>
+                  )}
                   {selectedQuote.chauffeurCharges > 0 && (
                     <div className="flex justify-between">
                       <span className="text-gray-600">Chauffeur Charges</span>
@@ -768,6 +792,54 @@ export default function BookingDetailPage() {
                     <div className="flex justify-between">
                       <span className="text-gray-600">Unloading Charges</span>
                       <span className="font-medium">₹{selectedQuote.unloadingCharges.toLocaleString()}</span>
+                    </div>
+                  )}
+                  {selectedQuote.packingCharges > 0 && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Packing Charges</span>
+                      <span className="font-medium">₹{selectedQuote.packingCharges.toLocaleString()}</span>
+                    </div>
+                  )}
+                  {selectedQuote.transportCharges > 0 && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Transport Charges</span>
+                      <span className="font-medium">₹{selectedQuote.transportCharges.toLocaleString()}</span>
+                    </div>
+                  )}
+                  {selectedQuote.unpackingCharges > 0 && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Unpacking Charges</span>
+                      <span className="font-medium">₹{selectedQuote.unpackingCharges.toLocaleString()}</span>
+                    </div>
+                  )}
+                  {selectedQuote.storageCharges > 0 && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Storage Charges</span>
+                      <span className="font-medium">₹{selectedQuote.storageCharges.toLocaleString()}</span>
+                    </div>
+                  )}
+                  {selectedQuote.insuranceCharges > 0 && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Insurance Charges</span>
+                      <span className="font-medium">₹{selectedQuote.insuranceCharges.toLocaleString()}</span>
+                    </div>
+                  )}
+                  {selectedQuote.operatorCharges > 0 && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Operator Charges</span>
+                      <span className="font-medium">₹{selectedQuote.operatorCharges.toLocaleString()}</span>
+                    </div>
+                  )}
+                  {selectedQuote.installationCharges > 0 && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Installation Charges</span>
+                      <span className="font-medium">₹{selectedQuote.installationCharges.toLocaleString()}</span>
+                    </div>
+                  )}
+                  {selectedQuote.decorationCharges > 0 && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Decoration Charges</span>
+                      <span className="font-medium">₹{selectedQuote.decorationCharges.toLocaleString()}</span>
                     </div>
                   )}
                   {selectedQuote.securityDeposit > 0 && (
