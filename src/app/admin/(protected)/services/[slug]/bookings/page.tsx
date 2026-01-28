@@ -31,6 +31,7 @@ import {
   ChevronLeft,
   ChevronRight,
   IndianRupee,
+  FileText,
 } from 'lucide-react';
 import { FLOW_TYPE_CONFIG } from '@/lib/constants/booking-services';
 import { Button } from '@/components/ui/button';
@@ -68,11 +69,24 @@ const IconMap: Record<string, React.ComponentType<{ className?: string }>> = {
 const statusConfig: Record<string, { label: string; color: string; icon: React.ComponentType<{ className?: string }> }> = {
   PENDING: { label: 'Pending', color: 'bg-yellow-100 text-yellow-800', icon: Clock },
   PENDING_VENDOR: { label: 'Pending Vendor', color: 'bg-yellow-100 text-yellow-800', icon: Clock },
+  PENDING_PAYMENT: { label: 'Pending Payment', color: 'bg-yellow-100 text-yellow-800', icon: Clock },
+  PAYMENT_PENDING: { label: 'Payment Pending', color: 'bg-yellow-100 text-yellow-800', icon: Clock },
   BROADCASTED: { label: 'Broadcasted', color: 'bg-blue-100 text-blue-800', icon: AlertCircle },
+  QUOTES_RECEIVED: { label: 'Quotes Received', color: 'bg-blue-100 text-blue-800', icon: FileText },
+  QUOTE_ACCEPTED: { label: 'Quote Accepted', color: 'bg-green-100 text-green-800', icon: CheckCircle },
   ACCEPTED: { label: 'Accepted', color: 'bg-green-100 text-green-800', icon: CheckCircle },
   CONFIRMED: { label: 'Confirmed', color: 'bg-blue-100 text-blue-800', icon: CheckCircle },
+  BOOKING_CONFIRMED: { label: 'Booking Confirmed', color: 'bg-green-100 text-green-800', icon: CheckCircle },
+  ADVANCE_PAID: { label: 'Advance Paid', color: 'bg-green-100 text-green-800', icon: CheckCircle },
+  REMAINING_PAID: { label: 'Remaining Paid', color: 'bg-green-100 text-green-800', icon: CheckCircle },
+  DRIVER_ASSIGNED: { label: 'Driver Assigned', color: 'bg-blue-100 text-blue-800', icon: CheckCircle },
+  VEHICLE_ASSIGNED: { label: 'Vehicle Assigned', color: 'bg-blue-100 text-blue-800', icon: CheckCircle },
+  READY_FOR_TRIP: { label: 'Ready for Trip', color: 'bg-blue-100 text-blue-800', icon: CheckCircle },
+  TRIP_READY: { label: 'Trip Ready', color: 'bg-blue-100 text-blue-800', icon: CheckCircle },
+  READY: { label: 'Ready', color: 'bg-blue-100 text-blue-800', icon: CheckCircle },
   ONGOING: { label: 'Ongoing', color: 'bg-purple-100 text-purple-800', icon: Car },
   IN_PROGRESS: { label: 'In Progress', color: 'bg-purple-100 text-purple-800', icon: Car },
+  TRIP_STARTED: { label: 'Trip Started', color: 'bg-purple-100 text-purple-800', icon: Car },
   COMPLETED: { label: 'Completed', color: 'bg-green-100 text-green-800', icon: CheckCircle },
   CANCELLED: { label: 'Cancelled', color: 'bg-red-100 text-red-800', icon: XCircle },
   REJECTED: { label: 'Rejected', color: 'bg-red-100 text-red-800', icon: XCircle },
@@ -223,11 +237,39 @@ export default function ServiceBookingsPage() {
   const [stats, setStats] = useState({
     total: 0,
     pending: 0,
+    quotesReceived: 0,
     confirmed: 0,
     ongoing: 0,
     completed: 0,
+    cancelled: 0,
     totalRevenue: 0,
   });
+
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 20,
+    total: 0,
+    totalPages: 1,
+  });
+
+  // Fetch ALL stats once on mount (without filter)
+  useEffect(() => {
+    const fetchAllStats = async () => {
+      try {
+        const res = await fetch(`/api/admin/services/${slug}/bookings?page=1&limit=1&status=ALL`);
+        if (res.ok) {
+          const data = await res.json();
+          setStats(data.stats);
+        }
+      } catch (error) {
+        console.error('Failed to fetch stats:', error);
+      }
+    };
+
+    if (slug) {
+      fetchAllStats();
+    }
+  }, [slug]);
 
   useEffect(() => {
     const fetchBookings = async () => {
@@ -235,41 +277,54 @@ export default function ServiceBookingsPage() {
       try {
         const params = new URLSearchParams({
           page: page.toString(),
-          limit: '20',
+          limit: pagination.limit.toString(),
           status: statusFilter,
         });
         const res = await fetch(`/api/admin/services/${slug}/bookings?${params}`);
+        console.log('API Request:', `/api/admin/services/${slug}/bookings?${params}`);
         if (res.ok) {
           const data = await res.json();
+          console.log('API Response:', {
+            bookingsCount: data.bookings.length,
+            statuses: data.bookings.map((b: any) => b.status),
+            pagination: data.pagination
+          });
           setBookings(data.bookings.map((b: any) => ({
             ...b,
             startDate: new Date(b.startDate).toISOString().split('T')[0],
             endDate: new Date(b.endDate).toISOString().split('T')[0],
             createdAt: new Date(b.createdAt).toISOString().split('T')[0],
           })));
-          setStats(data.stats);
+          // Don't update stats - keep them fixed
+          setPagination(data.pagination);
         } else {
-          // Fallback to mock data
-          setBookings(mockBookings);
+          const errorData = await res.json();
+          console.error('API Error:', res.status, errorData);
+          // Show empty list instead of mock data
+          setBookings([]);
           setStats({
-            total: mockBookings.length,
-            pending: mockBookings.filter((b) => b.status === 'PENDING').length,
-            confirmed: mockBookings.filter((b) => b.status === 'CONFIRMED').length,
-            ongoing: mockBookings.filter((b) => b.status === 'ONGOING').length,
-            completed: mockBookings.filter((b) => b.status === 'COMPLETED').length,
-            totalRevenue: mockBookings.filter((b) => b.paymentStatus === 'PAID').reduce((acc, b) => acc + b.totalAmount, 0),
+            total: 0,
+            pending: 0,
+            quotesReceived: 0,
+            confirmed: 0,
+            ongoing: 0,
+            completed: 0,
+            cancelled: 0,
+            totalRevenue: 0,
           });
         }
       } catch (error) {
         console.error('Failed to fetch bookings:', error);
-        setBookings(mockBookings);
+        setBookings([]);
         setStats({
-          total: mockBookings.length,
-          pending: mockBookings.filter((b) => b.status === 'PENDING').length,
-          confirmed: mockBookings.filter((b) => b.status === 'CONFIRMED').length,
-          ongoing: mockBookings.filter((b) => b.status === 'ONGOING').length,
-          completed: mockBookings.filter((b) => b.status === 'COMPLETED').length,
-          totalRevenue: mockBookings.filter((b) => b.paymentStatus === 'PAID').reduce((acc, b) => acc + b.totalAmount, 0),
+          total: 0,
+          pending: 0,
+          quotesReceived: 0,
+          confirmed: 0,
+          ongoing: 0,
+          completed: 0,
+          cancelled: 0,
+          totalRevenue: 0,
         });
       } finally {
         setLoading(false);
@@ -279,16 +334,19 @@ export default function ServiceBookingsPage() {
     if (slug) {
       fetchBookings();
     }
-  }, [slug, page, statusFilter]);
+  }, [slug, page, statusFilter, pagination.limit]);
 
-  const filteredBookings = bookings.filter((booking) => {
-    const matchesSearch =
-      booking.bookingNo.toLowerCase().includes(search.toLowerCase()) ||
-      booking.customerName.toLowerCase().includes(search.toLowerCase()) ||
-      booking.customerPhone.includes(search) ||
-      booking.vehicleName.toLowerCase().includes(search.toLowerCase());
-    return matchesSearch;
-  });
+  // Use bookings directly from API - filtering happens server-side
+  const filteredBookings = search
+    ? bookings.filter((booking) => {
+        const matchesSearch =
+          booking.bookingNo.toLowerCase().includes(search.toLowerCase()) ||
+          booking.customerName.toLowerCase().includes(search.toLowerCase()) ||
+          booking.customerPhone.includes(search) ||
+          booking.vehicleName.toLowerCase().includes(search.toLowerCase());
+        return matchesSearch;
+      })
+    : bookings;
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-IN', {
@@ -353,26 +411,30 @@ export default function ServiceBookingsPage() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
         <div className="bg-white rounded-xl p-4 border shadow-sm">
-          <p className="text-xs text-gray-500 mb-1">Total Bookings</p>
+          <p className="text-xs text-gray-500 mb-1">Total</p>
           <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
         </div>
         <div className="bg-white rounded-xl p-4 border shadow-sm">
-          <p className="text-xs text-gray-500 mb-1">Pending</p>
+          <p className="text-xs text-gray-500 mb-1">Pending Quotes</p>
           <p className="text-2xl font-bold text-yellow-600">{stats.pending}</p>
         </div>
         <div className="bg-white rounded-xl p-4 border shadow-sm">
-          <p className="text-xs text-gray-500 mb-1">Confirmed</p>
-          <p className="text-2xl font-bold text-blue-600">{stats.confirmed}</p>
+          <p className="text-xs text-gray-500 mb-1">Quotes Received</p>
+          <p className="text-2xl font-bold text-blue-600">{stats.quotesReceived}</p>
         </div>
         <div className="bg-white rounded-xl p-4 border shadow-sm">
-          <p className="text-xs text-gray-500 mb-1">Ongoing</p>
-          <p className="text-2xl font-bold text-purple-600">{stats.ongoing}</p>
+          <p className="text-xs text-gray-500 mb-1">Advance Paid</p>
+          <p className="text-2xl font-bold text-green-600">{stats.advancePaid || 0}</p>
         </div>
         <div className="bg-white rounded-xl p-4 border shadow-sm">
           <p className="text-xs text-gray-500 mb-1">Completed</p>
           <p className="text-2xl font-bold text-green-600">{stats.completed}</p>
+        </div>
+        <div className="bg-white rounded-xl p-4 border shadow-sm">
+          <p className="text-xs text-gray-500 mb-1">Cancelled</p>
+          <p className="text-2xl font-bold text-red-600">{stats.cancelled}</p>
         </div>
         <div className="bg-white rounded-xl p-4 border shadow-sm">
           <p className="text-xs text-gray-500 mb-1">Revenue</p>
@@ -397,15 +459,31 @@ export default function ServiceBookingsPage() {
             <Filter className="w-5 h-5 text-gray-400" />
             <select
               value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
+              onChange={(e) => {
+                setStatusFilter(e.target.value);
+                setPage(1);
+              }}
               className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
             >
               <option value="ALL">All Status</option>
-              <option value="PENDING">Pending</option>
-              <option value="CONFIRMED">Confirmed</option>
-              <option value="ONGOING">Ongoing</option>
-              <option value="COMPLETED">Completed</option>
-              <option value="CANCELLED">Cancelled</option>
+              <optgroup label="Quote Stage">
+                <option value="PENDING">Pending</option>
+                <option value="PENDING_VENDOR">Pending Vendor</option>
+                <option value="BROADCASTED">Broadcasted</option>
+                <option value="QUOTES_RECEIVED">Quotes Received</option>
+                <option value="QUOTE_ACCEPTED">Quote Accepted</option>
+                <option value="ACCEPTED">Accepted</option>
+              </optgroup>
+              <optgroup label="Booking Stage">
+                <option value="CONFIRMED">Confirmed</option>
+                <option value="BOOKING_CONFIRMED">Booking Confirmed</option>
+                <option value="ONGOING">Ongoing</option>
+                <option value="IN_PROGRESS">In Progress</option>
+                <option value="COMPLETED">Completed</option>
+                <option value="CANCELLED">Cancelled</option>
+                <option value="REJECTED">Rejected</option>
+                <option value="EXPIRED">Expired</option>
+              </optgroup>
             </select>
           </div>
         </div>
@@ -515,15 +593,41 @@ export default function ServiceBookingsPage() {
         {/* Pagination */}
         {filteredBookings.length > 0 && (
           <div className="flex items-center justify-between px-6 py-4 border-t bg-gray-50">
-            <p className="text-sm text-gray-600">
-              Showing 1 to {filteredBookings.length} of {filteredBookings.length} bookings
-            </p>
+            <div className="flex items-center gap-4">
+              <p className="text-sm text-gray-600">
+                Showing {((pagination.page - 1) * pagination.limit) + 1} to {Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total} bookings
+              </p>
+              <select
+                value={pagination.limit}
+                onChange={(e) => {
+                  setPagination(prev => ({ ...prev, limit: Number(e.target.value) }));
+                  setPage(1);
+                }}
+                className="text-sm border rounded px-2 py-1"
+              >
+                <option value="20">20 per page</option>
+                <option value="50">50 per page</option>
+                <option value="100">100 per page</option>
+              </select>
+            </div>
             <div className="flex items-center gap-2">
-              <Button size="sm" variant="outline" disabled>
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={pagination.page === 1}
+                onClick={() => setPage(p => p - 1)}
+              >
                 <ChevronLeft className="w-4 h-4" />
               </Button>
-              <span className="px-3 py-1 text-sm">Page 1 of 1</span>
-              <Button size="sm" variant="outline" disabled>
+              <span className="px-3 py-1 text-sm">
+                Page {pagination.page} of {pagination.totalPages}
+              </span>
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={pagination.page >= pagination.totalPages}
+                onClick={() => setPage(p => p + 1)}
+              >
                 <ChevronRight className="w-4 h-4" />
               </Button>
             </div>

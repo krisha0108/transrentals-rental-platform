@@ -36,10 +36,206 @@ export async function GET(
     let booking = null;
     let quotes = [];
 
+    console.log('=== BOOKING DETAIL API ===');
+    console.log('Service slug:', slug);
+    console.log('Booking ID:', id);
+
     switch (slug) {
       case 'self-drive-car-rentals':
       case 'self-drive': {
-        // Fetch quote request with all related data
+        // Try to find in confirmed bookings first
+        let confirmedBooking = null;
+        try {
+          confirmedBooking = await prisma.self_drive_bookings.findUnique({
+            where: { id },
+            include: {
+              customers: {
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                  phone: true,
+                },
+              },
+              vendors_self_drive_bookings_acceptedVendorIdTovendors: {
+                select: {
+                  id: true,
+                  businessName: true,
+                  phone: true,
+                  email: true,
+                },
+              },
+              vendors_self_drive_bookings_assignedVendorIdTovendors: {
+                select: {
+                  id: true,
+                  businessName: true,
+                  phone: true,
+                  email: true,
+                },
+              },
+            },
+          });
+        } catch (error) {
+          logger.error('Error fetching self-drive booking:', error);
+        }
+
+        if (confirmedBooking) {
+          // This is a confirmed booking (SD-xxx)
+          // Fetch the related quote request separately
+          let quoteRequest = null;
+          if (confirmedBooking.quoteRequestId) {
+            quoteRequest = await prisma.self_drive_quote_requests.findUnique({
+              where: { id: confirmedBooking.quoteRequestId },
+              include: {
+                locations: true,
+                vehicle_models: {
+                  select: {
+                    id: true,
+                    name: true,
+                    brand: true,
+                    sideImage: true,
+                    images: true,
+                    specs: true,
+                  },
+                },
+              },
+            });
+          }
+
+          // Fetch the accepted quote if available
+          let acceptedQuote = null;
+          if (confirmedBooking.acceptedQuoteId) {
+            acceptedQuote = await prisma.self_drive_quotes.findUnique({
+              where: { id: confirmedBooking.acceptedQuoteId },
+              include: {
+                vendors: {
+                  select: {
+                    id: true,
+                    businessName: true,
+                    phone: true,
+                    email: true,
+                  },
+                },
+              },
+            });
+          }
+
+          return NextResponse.json({
+            success: true,
+            service: {
+              id: service.id,
+              name: service.name,
+              slug: service.slug,
+            },
+            booking: {
+              id: confirmedBooking.id,
+              bookingNo: confirmedBooking.bookingNumber,
+              type: 'CONFIRMED_BOOKING',
+              customerName: confirmedBooking.customerName,
+              customerPhone: confirmedBooking.customerPhone,
+              customerEmail: confirmedBooking.customerEmail,
+              customer: confirmedBooking.customers,
+              acceptedVendor: confirmedBooking.vendors_self_drive_bookings_acceptedVendorIdTovendors,
+              assignedVendor: confirmedBooking.vendors_self_drive_bookings_assignedVendorIdTovendors,
+              vendor: confirmedBooking.vendors_self_drive_bookings_acceptedVendorIdTovendors || confirmedBooking.vendors_self_drive_bookings_assignedVendorIdTovendors,
+              // Vehicle details
+              vehicleModelName: confirmedBooking.vehicleModelName || quoteRequest?.vehicle_modelsName,
+              vehicle_models: quoteRequest?.vehicle_models,
+              vehicleBrand: confirmedBooking.vehicleBrand || quoteRequest?.vehicleBrand,
+              chauffeur_vehicle_categories: confirmedBooking.vehicle_category || quoteRequest?.vehicle_category,
+              vehicleCategoryName: confirmedBooking.vehicleCategoryName || quoteRequest?.vehicleCategoryName,
+              vehicleType: confirmedBooking.vehicleType || quoteRequest?.vehicleType,
+              transmission: confirmedBooking.transmission || quoteRequest?.transmission,
+              fuelType: confirmedBooking.fuelType || quoteRequest?.fuelType,
+              minSeats: confirmedBooking.minSeats || quoteRequest?.minSeats,
+              // Location details
+              location: quoteRequest?.locations,
+              locationName: confirmedBooking.locationName || quoteRequest?.locationName,
+              pickupAddress: confirmedBooking.pickupAddress || quoteRequest?.pickupAddress,
+              dropAddress: confirmedBooking.dropAddress || quoteRequest?.dropAddress,
+              isDeliveryRequested: confirmedBooking.isDeliveryRequested || quoteRequest?.isDeliveryRequested,
+              // Date/Time details
+              pickupDate: confirmedBooking.pickupDate || quoteRequest?.pickupDate,
+              pickupTime: confirmedBooking.pickupTime || quoteRequest?.pickupTime,
+              dropDate: confirmedBooking.dropDate || quoteRequest?.dropDate,
+              dropTime: confirmedBooking.dropTime || quoteRequest?.dropTime,
+              totalDays: confirmedBooking.totalDays || quoteRequest?.totalDays,
+              // Notes
+              customerNotes: confirmedBooking.customerNotes || quoteRequest?.customerNotes,
+              licenseNumber: confirmedBooking.licenseNumber || quoteRequest?.licenseNumber,
+              // Driver details
+              driverName: confirmedBooking.driverName || acceptedQuote?.driverName,
+              driverPhone: confirmedBooking.driverPhone || acceptedQuote?.driverPhone,
+              // Vehicle details from booking or accepted quote
+              vehicleNumber: confirmedBooking.vehicleNumber || acceptedQuote?.vehicleNumber || acceptedQuote?.registrationNumber,
+              vehicleName: confirmedBooking.vehicleName || acceptedQuote?.vehicleName,
+              vehicleModel: confirmedBooking.vehicleModel || acceptedQuote?.vehicleModel,
+              status: confirmedBooking.status,
+              paymentStatus: confirmedBooking.paymentStatus,
+              totalAmount: confirmedBooking.totalAmount,
+              advanceAmount: confirmedBooking.advanceAmount,
+              advancePaid: confirmedBooking.advancePaid,
+              advancePaidAt: confirmedBooking.advancePaidAt,
+              advancePaymentRef: confirmedBooking.advancePaymentRef,
+              advancePaymentProof: confirmedBooking.advancePaymentProof,
+              advancePaymentDate: confirmedBooking.advancePaymentDate,
+              advancePaymentVerified: confirmedBooking.advancePaymentVerified,
+              remainingAmount: confirmedBooking.remainingAmount,
+              remainingPaid: confirmedBooking.remainingPaid,
+              remainingPaidAt: confirmedBooking.remainingPaidAt,
+              remainingPaymentRef: confirmedBooking.remainingPaymentRef,
+              remainingPaymentProof: confirmedBooking.remainingPaymentProof,
+              remainingPaymentDate: confirmedBooking.remainingPaymentDate,
+              remainingPaymentVerified: confirmedBooking.remainingPaymentVerified,
+              quoteRequestId: confirmedBooking.quoteRequestId,
+              acceptedQuoteId: confirmedBooking.acceptedQuoteId,
+              createdAt: confirmedBooking.createdAt,
+              updatedAt: confirmedBooking.updatedAt,
+            },
+            quotes: acceptedQuote ? [{
+              id: acceptedQuote.id,
+              quoteNumber: acceptedQuote.quoteNumber,
+              vendor: acceptedQuote.vendors,
+              vehicleName: acceptedQuote.vehicleName,
+              vehicleBrand: acceptedQuote.vehicleBrand,
+              chauffeur_vehicle_categories: acceptedQuote.vehicle_category,
+              vehicleType: acceptedQuote.vehicleType,
+              vehicleYear: acceptedQuote.vehicleYear,
+              vehicleImages: acceptedQuote.vehicleImages ? acceptedQuote.vehicleImages.split(',') : [],
+              vehicleFeatures: acceptedQuote.vehicleFeatures,
+              registrationNumber: acceptedQuote.registrationNumber,
+              transmission: acceptedQuote.transmission,
+              fuelType: acceptedQuote.fuelType,
+              seats: acceptedQuote.seats,
+              dailyRate: acceptedQuote.dailyRate,
+              baseAmount: acceptedQuote.baseAmount,
+              kmLimitPerDay: acceptedQuote.kmLimitPerDay,
+              extraKmRate: acceptedQuote.extraKmRate,
+              deliveryCharges: acceptedQuote.deliveryCharges,
+              pickupCharges: acceptedQuote.pickupCharges,
+              securityDeposit: acceptedQuote.securityDeposit,
+              gstAmount: acceptedQuote.gstAmount,
+              platformFee: acceptedQuote.platformFee,
+              grandTotal: acceptedQuote.grandTotal,
+              advanceAmount: acceptedQuote.advanceAmount,
+              advancePercent: acceptedQuote.advancePercent,
+              inclusions: acceptedQuote.inclusions,
+              exclusions: acceptedQuote.exclusions,
+              termsConditions: acceptedQuote.termsConditions,
+              vendorMessage: acceptedQuote.vendorMessage,
+              status: 'ACCEPTED',
+              validTill: acceptedQuote.validTill,
+              validityDays: acceptedQuote.validityDays,
+              viewCount: acceptedQuote.viewCount,
+              viewedAt: acceptedQuote.viewedAt,
+              sentAt: acceptedQuote.sentAt,
+              respondedAt: acceptedQuote.respondedAt,
+              createdAt: acceptedQuote.createdAt,
+            }] : [],
+          });
+        }
+
+        // Not found in confirmed bookings, try quote requests
         booking = await prisma.self_drive_quote_requests.findUnique({
           where: { id },
           include: {
@@ -284,6 +480,7 @@ export async function GET(
             // Vendor & Driver details
             assignedVendor: booking.vendors_chauffeur_bookings_assignedVendorIdTovendors,
             acceptedVendor: booking.vendors_chauffeur_bookings_acceptedVendorIdTovendors,
+            vendor: booking.vendors_chauffeur_bookings_acceptedVendorIdTovendors || booking.vendors_chauffeur_bookings_assignedVendorIdTovendors,
             driverName: booking.driverName,
             driverPhone: booking.driverPhone,
             driverPhoto: booking.driverPhoto,
@@ -361,7 +558,196 @@ export async function GET(
 
       case 'bike-on-rent':
       case 'bike-rental': {
-        // Fetch quote request with all related data
+        console.log('Searching for bike booking with ID:', id);
+
+        // Try to find in confirmed bookings first
+        let confirmedBooking = null;
+        try {
+          confirmedBooking = await prisma.bike_bookings.findUnique({
+            where: { id },
+            include: {
+              customers: {
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                  phone: true,
+                },
+              },
+              vendors_bike_bookings_acceptedVendorIdTovendors: {
+                select: {
+                  id: true,
+                  businessName: true,
+                  phone: true,
+                  email: true,
+                },
+              },
+              vendors_bike_bookings_assignedVendorIdTovendors: {
+                select: {
+                  id: true,
+                  businessName: true,
+                  phone: true,
+                  email: true,
+                },
+              },
+            },
+          });
+          console.log('Found confirmed bike booking:', confirmedBooking ? 'Yes' : 'No');
+        } catch (error) {
+          console.error('Error fetching bike booking:', error);
+          logger.error('Error fetching bike booking:', error);
+        }
+
+        if (confirmedBooking) {
+          // This is a confirmed booking (BK-xxx)
+          // Fetch the related quote request separately
+          let quoteRequest = null;
+          if (confirmedBooking.quoteRequestId) {
+            quoteRequest = await prisma.bike_quote_requests.findUnique({
+              where: { id: confirmedBooking.quoteRequestId },
+              include: {
+                locations: true,
+                vehicle_models: {
+                  select: {
+                    id: true,
+                    name: true,
+                    brandId: true,
+                    sideImage: true,
+                    images: true,
+                    specs: true,
+                    brands: {
+                      select: {
+                        id: true,
+                        name: true,
+                      },
+                    },
+                  },
+                },
+              },
+            });
+          }
+
+          // Fetch the accepted quote if available
+          let acceptedQuote = null;
+          if (confirmedBooking.acceptedQuoteId) {
+            acceptedQuote = await prisma.bike_quotes.findUnique({
+              where: { id: confirmedBooking.acceptedQuoteId },
+              include: {
+                vendors: {
+                  select: {
+                    id: true,
+                    businessName: true,
+                    phone: true,
+                    email: true,
+                  },
+                },
+              },
+            });
+          }
+
+          return NextResponse.json({
+            success: true,
+            service: {
+              id: service.id,
+              name: service.name,
+              slug: service.slug,
+            },
+            booking: {
+              id: confirmedBooking.id,
+              bookingNo: confirmedBooking.bookingNumber,
+              type: 'CONFIRMED_BOOKING',
+              customerName: confirmedBooking.customerName,
+              customerPhone: confirmedBooking.customerPhone,
+              customerEmail: confirmedBooking.customerEmail,
+              customer: confirmedBooking.customers,
+              acceptedVendor: confirmedBooking.vendors_bike_bookings_acceptedVendorIdTovendors,
+              assignedVendor: confirmedBooking.vendors_bike_bookings_assignedVendorIdTovendors,
+              vendor: confirmedBooking.vendors_bike_bookings_acceptedVendorIdTovendors || confirmedBooking.vendors_bike_bookings_assignedVendorIdTovendors,
+              // Vehicle details
+              vehicleModelName: confirmedBooking.vehicleModelName || quoteRequest?.vehicleModelName,
+              vehicle_models: quoteRequest?.vehicle_models,
+              vehicleBrand: confirmedBooking.vehicleBrand || quoteRequest?.vehicleBrand,
+              vehicleCategory: confirmedBooking.vehicleCategory || quoteRequest?.vehicleCategory,
+              vehicleCategoryName: confirmedBooking.vehicleCategoryName || quoteRequest?.vehicleCategoryName,
+              // Location details
+              location: quoteRequest?.locations,
+              locationName: confirmedBooking.locationName || quoteRequest?.locationName,
+              // Date/Time details
+              pickupDate: confirmedBooking.pickupDate || quoteRequest?.pickupDate,
+              pickupTime: confirmedBooking.pickupTime || quoteRequest?.pickupTime,
+              dropDate: confirmedBooking.dropDate || quoteRequest?.dropDate,
+              dropTime: confirmedBooking.dropTime || quoteRequest?.dropTime,
+              totalDays: confirmedBooking.totalDays || quoteRequest?.totalDays,
+              helmetsRequired: confirmedBooking.helmetsRequired || quoteRequest?.helmetsRequired,
+              // Notes
+              customerNotes: confirmedBooking.customerNotes || quoteRequest?.customerNotes,
+              // Driver details
+              driverName: confirmedBooking.driverName || acceptedQuote?.driverName,
+              driverPhone: confirmedBooking.driverPhone || acceptedQuote?.driverPhone,
+              // Vehicle details from booking or accepted quote
+              vehicleNumber: confirmedBooking.vehicleNumber || acceptedQuote?.vehicleNumber || acceptedQuote?.registrationNumber,
+              vehicleName: confirmedBooking.vehicleName || acceptedQuote?.vehicleName,
+              vehicleModel: confirmedBooking.vehicleModel || acceptedQuote?.vehicleModel,
+              status: confirmedBooking.status,
+              paymentStatus: confirmedBooking.paymentStatus,
+              totalAmount: confirmedBooking.totalAmount,
+              advanceAmount: confirmedBooking.advanceAmount,
+              advancePaid: confirmedBooking.advancePaid,
+              advancePaidAt: confirmedBooking.advancePaidAt,
+              advancePaymentRef: confirmedBooking.advancePaymentRef,
+              advancePaymentProof: confirmedBooking.advancePaymentProof,
+              advancePaymentDate: confirmedBooking.advancePaymentDate,
+              advancePaymentVerified: confirmedBooking.advancePaymentVerified,
+              remainingAmount: confirmedBooking.remainingAmount,
+              remainingPaid: confirmedBooking.remainingPaid,
+              remainingPaidAt: confirmedBooking.remainingPaidAt,
+              remainingPaymentRef: confirmedBooking.remainingPaymentRef,
+              remainingPaymentProof: confirmedBooking.remainingPaymentProof,
+              remainingPaymentDate: confirmedBooking.remainingPaymentDate,
+              remainingPaymentVerified: confirmedBooking.remainingPaymentVerified,
+              quoteRequestId: confirmedBooking.quoteRequestId,
+              acceptedQuoteId: confirmedBooking.acceptedQuoteId,
+              createdAt: confirmedBooking.createdAt,
+              updatedAt: confirmedBooking.updatedAt,
+            },
+            quotes: acceptedQuote ? [{
+              id: acceptedQuote.id,
+              quoteNumber: acceptedQuote.quoteNumber,
+              vendor: acceptedQuote.vendors,
+              vehicleName: acceptedQuote.vehicleName,
+              vehicleBrand: acceptedQuote.vehicleBrand,
+              vehicleCategory: acceptedQuote.vehicleCategory,
+              vehicleYear: acceptedQuote.vehicleYear,
+              vehicleImages: acceptedQuote.vehicleImages ? acceptedQuote.vehicleImages.split(',') : [],
+              vehicleFeatures: acceptedQuote.vehicleFeatures,
+              registrationNumber: acceptedQuote.registrationNumber,
+              dailyRate: acceptedQuote.dailyRate,
+              totalAmount: acceptedQuote.totalAmount,
+              kmLimitPerDay: acceptedQuote.kmLimitPerDay,
+              extraKmCharge: acceptedQuote.extraKmCharge,
+              securityDeposit: acceptedQuote.securityDeposit,
+              gstAmount: acceptedQuote.gstAmount,
+              grandTotal: acceptedQuote.grandTotal,
+              advanceAmount: acceptedQuote.advanceAmount,
+              advancePercent: acceptedQuote.advancePercent,
+              inclusions: acceptedQuote.inclusions,
+              exclusions: acceptedQuote.exclusions,
+              termsConditions: acceptedQuote.termsConditions,
+              vendorMessage: acceptedQuote.vendorMessage,
+              status: 'ACCEPTED',
+              validTill: acceptedQuote.validTill,
+              validityDays: acceptedQuote.validityDays,
+              viewCount: acceptedQuote.viewCount,
+              viewedAt: acceptedQuote.viewedAt,
+              sentAt: acceptedQuote.sentAt,
+              respondedAt: acceptedQuote.respondedAt,
+              createdAt: acceptedQuote.createdAt,
+            }] : [],
+          });
+        }
+
+        // Not found in confirmed bookings, try quote requests
+        console.log('Searching in bike_quote_requests with ID:', id);
         booking = await prisma.bike_quote_requests.findUnique({
           where: { id },
           include: {
@@ -392,8 +778,10 @@ export async function GET(
             },
           },
         });
+        console.log('Found in bike_quote_requests:', booking ? 'Yes' : 'No');
 
         if (!booking) {
+          console.log('Bike booking not found in either table for ID:', id);
           return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
         }
 
@@ -509,6 +897,163 @@ export async function GET(
 
       case 'bus-rental':
       case 'tempo-traveller': {
+        // Try to find in confirmed bookings first
+        let confirmedBooking = await prisma.bus_bookings.findUnique({
+          where: { id },
+          include: {
+            customers: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                phone: true,
+              },
+            },
+            vendors_bus_bookings_acceptedVendorIdTovendors: {
+              select: {
+                id: true,
+                businessName: true,
+                phone: true,
+                email: true,
+              },
+            },
+            vendors_bus_bookings_assignedVendorIdTovendors: {
+              select: {
+                id: true,
+                businessName: true,
+                phone: true,
+                email: true,
+              },
+            },
+            bus_quote_requests: {
+              include: {
+                locations: true,
+              },
+            },
+          },
+        });
+
+        if (confirmedBooking) {
+          // This is a confirmed booking (BB-xxx)
+          const quoteRequest = confirmedBooking.bus_quote_requests;
+
+          // Fetch the accepted quote if available
+          let acceptedQuote = null;
+          if (confirmedBooking.acceptedQuoteId) {
+            acceptedQuote = await prisma.bus_quotes.findUnique({
+              where: { id: confirmedBooking.acceptedQuoteId },
+              include: {
+                vendors: {
+                  select: {
+                    id: true,
+                    businessName: true,
+                    phone: true,
+                    email: true,
+                  },
+                },
+              },
+            });
+          }
+
+          return NextResponse.json({
+            success: true,
+            service: {
+              id: service.id,
+              name: service.name,
+              slug: service.slug,
+            },
+            booking: {
+              id: confirmedBooking.id,
+              bookingNo: confirmedBooking.bookingNumber,
+              type: 'CONFIRMED_BOOKING',
+              customerName: confirmedBooking.customerName,
+              customerPhone: confirmedBooking.customerPhone,
+              customerEmail: confirmedBooking.customerEmail,
+              customer: confirmedBooking.customers,
+              acceptedVendor: confirmedBooking.vendors_bus_bookings_acceptedVendorIdTovendors,
+              assignedVendor: confirmedBooking.vendors_bus_bookings_assignedVendorIdTovendors,
+              vendor: confirmedBooking.vendors_bus_bookings_acceptedVendorIdTovendors || confirmedBooking.vendors_bus_bookings_assignedVendorIdTovendors,
+              vehicleCategoryName: confirmedBooking.vehicleCategoryName || confirmedBooking.vehicle_category,
+              vehicleCategory: confirmedBooking.vehicle_category,
+              passengers: confirmedBooking.passengers || quoteRequest?.passengers,
+              tripType: confirmedBooking.tripType || quoteRequest?.tripType,
+              pickupCity: confirmedBooking.pickupCity || quoteRequest?.pickupCity,
+              pickupAddress: confirmedBooking.pickupAddress || quoteRequest?.pickupAddress,
+              pickupLocation: quoteRequest?.locations,
+              dropCity: confirmedBooking.dropCity || quoteRequest?.dropCity,
+              dropAddress: confirmedBooking.dropAddress || quoteRequest?.dropAddress,
+              pickupDate: confirmedBooking.pickupDate || quoteRequest?.pickupDate,
+              pickupTime: confirmedBooking.pickupTime || quoteRequest?.pickupTime,
+              returnDate: confirmedBooking.returnDate || quoteRequest?.returnDate,
+              tripDays: confirmedBooking.tripDays || quoteRequest?.tripDays,
+              requirements: confirmedBooking.requirements || quoteRequest?.requirements,
+              // Driver details
+              driverName: confirmedBooking.driverName || acceptedQuote?.driverName,
+              driverPhone: confirmedBooking.driverPhone || acceptedQuote?.driverPhone,
+              // Vehicle details from booking or accepted quote
+              vehicleNumber: confirmedBooking.vehicleNumber || acceptedQuote?.vehicleNumber || acceptedQuote?.registrationNumber,
+              vehicleName: confirmedBooking.vehicleName || acceptedQuote?.vehicleName,
+              vehicleBrand: confirmedBooking.vehicleBrand || acceptedQuote?.vehicleBrand,
+              vehicleModel: confirmedBooking.vehicleModel || acceptedQuote?.vehicleModel,
+              status: confirmedBooking.status,
+              paymentStatus: confirmedBooking.paymentStatus,
+              totalAmount: confirmedBooking.totalAmount,
+              advanceAmount: confirmedBooking.advanceAmount,
+              advancePaid: confirmedBooking.advancePaid,
+              advancePaidAt: confirmedBooking.advancePaidAt,
+              advancePaymentRef: confirmedBooking.advancePaymentRef,
+              advancePaymentProof: confirmedBooking.advancePaymentProof,
+              advancePaymentDate: confirmedBooking.advancePaymentDate,
+              advancePaymentVerified: confirmedBooking.advancePaymentVerified,
+              remainingAmount: confirmedBooking.remainingAmount,
+              remainingPaid: confirmedBooking.remainingPaid,
+              remainingPaidAt: confirmedBooking.remainingPaidAt,
+              remainingPaymentRef: confirmedBooking.remainingPaymentRef,
+              remainingPaymentProof: confirmedBooking.remainingPaymentProof,
+              remainingPaymentDate: confirmedBooking.remainingPaymentDate,
+              remainingPaymentVerified: confirmedBooking.remainingPaymentVerified,
+              quoteRequestId: confirmedBooking.quoteRequestId,
+              acceptedQuoteId: confirmedBooking.acceptedQuoteId,
+              createdAt: confirmedBooking.createdAt,
+              updatedAt: confirmedBooking.updatedAt,
+            },
+            quotes: acceptedQuote ? [{
+              id: acceptedQuote.id,
+              quoteNumber: acceptedQuote.quoteNumber,
+              vendor: acceptedQuote.vendors,
+              vehicleName: acceptedQuote.vehicleName,
+              vehicleBrand: acceptedQuote.vehicleBrand,
+              vehicleCategory: acceptedQuote.vehicleCategory,
+              vehicleYear: acceptedQuote.vehicleYear,
+              vehicleImages: acceptedQuote.vehicleImages ? acceptedQuote.vehicleImages.split(',') : [],
+              vehicleFeatures: acceptedQuote.vehicleFeatures,
+              registrationNumber: acceptedQuote.registrationNumber,
+              dailyRate: acceptedQuote.dailyRate,
+              totalAmount: acceptedQuote.totalAmount,
+              kmLimitPerDay: acceptedQuote.kmLimitPerDay,
+              extraKmCharge: acceptedQuote.extraKmCharge,
+              securityDeposit: acceptedQuote.securityDeposit,
+              gstAmount: acceptedQuote.gstAmount,
+              grandTotal: acceptedQuote.totalAmount,
+              advanceAmount: acceptedQuote.advanceAmount,
+              advancePercent: acceptedQuote.advancePercent,
+              inclusions: acceptedQuote.inclusions,
+              exclusions: acceptedQuote.exclusions,
+              termsConditions: acceptedQuote.termsConditions,
+              vendorMessage: acceptedQuote.vendorMessage,
+              status: 'ACCEPTED',
+              validTill: acceptedQuote.validTill,
+              validityDays: acceptedQuote.validityDays,
+              viewCount: acceptedQuote.viewCount,
+              viewedAt: acceptedQuote.viewedAt,
+              sentAt: acceptedQuote.sentAt,
+              respondedAt: acceptedQuote.respondedAt,
+              createdAt: acceptedQuote.createdAt,
+            }] : [],
+          });
+        }
+
+        // Not found in confirmed bookings, try quote requests
         booking = await prisma.bus_quote_requests.findUnique({
           where: { id },
           include: {
@@ -592,8 +1137,12 @@ export async function GET(
             baseAmount: q.baseAmount,
             perKmRate: q.perKmRate,
             driverAllowance: q.driverAllowance,
+            tollEstimate: q.tollEstimate,
+            permitCharges: q.permitCharges,
+            parkingEstimate: q.parkingEstimate,
+            nightHaltCharges: q.nightHaltCharges,
             gstAmount: q.gstAmount,
-            grandTotal: q.grandTotal,
+            grandTotal: q.totalAmount,
             inclusions: q.inclusions,
             exclusions: q.exclusions,
             termsConditions: q.termsConditions,
@@ -608,6 +1157,151 @@ export async function GET(
       case 'truck-rental':
       case 'truck-tempo-rental':
       case 'transporter': {
+        // Try to find in confirmed bookings first
+        let confirmedBooking = await prisma.truck_bookings.findUnique({
+          where: { id },
+          include: {
+            customers: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                phone: true,
+              },
+            },
+            vendors_truck_bookings_acceptedVendorIdTovendors: {
+              select: {
+                id: true,
+                businessName: true,
+                phone: true,
+                email: true,
+              },
+            },
+            vendors_truck_bookings_assignedVendorIdTovendors: {
+              select: {
+                id: true,
+                businessName: true,
+                phone: true,
+                email: true,
+              },
+            },
+            truck_quote_requests: {
+              include: {
+                locations: true,
+              },
+            },
+          },
+        });
+
+        if (confirmedBooking) {
+          // This is a confirmed booking (TB-xxx)
+          const quoteRequest = confirmedBooking.truck_quote_requests;
+
+          // Fetch the accepted quote if available
+          let acceptedQuote = null;
+          if (confirmedBooking.acceptedQuoteId) {
+            acceptedQuote = await prisma.truck_quotes.findUnique({
+              where: { id: confirmedBooking.acceptedQuoteId },
+              include: {
+                vendors: {
+                  select: {
+                    id: true,
+                    businessName: true,
+                    phone: true,
+                    email: true,
+                  },
+                },
+              },
+            });
+          }
+
+          return NextResponse.json({
+            success: true,
+            service: {
+              id: service.id,
+              name: service.name,
+              slug: service.slug,
+            },
+            booking: {
+              id: confirmedBooking.id,
+              bookingNo: confirmedBooking.bookingNumber,
+              type: 'CONFIRMED_BOOKING',
+              customerName: confirmedBooking.customerName,
+              customerPhone: confirmedBooking.customerPhone,
+              customerEmail: confirmedBooking.customerEmail,
+              customer: confirmedBooking.customers,
+              acceptedVendor: confirmedBooking.vendors_truck_bookings_acceptedVendorIdTovendors,
+              assignedVendor: confirmedBooking.vendors_truck_bookings_assignedVendorIdTovendors,
+              vendor: confirmedBooking.vendors_truck_bookings_acceptedVendorIdTovendors || confirmedBooking.vendors_truck_bookings_assignedVendorIdTovendors,
+              vehicleCategoryName: confirmedBooking.vehicleCategoryName || confirmedBooking.vehicle_category,
+              vehicleCategory: confirmedBooking.vehicle_category,
+              loadType: confirmedBooking.loadType || quoteRequest?.loadType,
+              pickupCity: confirmedBooking.pickupCity || quoteRequest?.pickupCity,
+              pickupAddress: confirmedBooking.pickupAddress || quoteRequest?.pickupAddress,
+              pickupLocation: quoteRequest?.locations,
+              dropCity: confirmedBooking.dropCity || quoteRequest?.dropCity,
+              dropAddress: confirmedBooking.dropAddress || quoteRequest?.dropAddress,
+              pickupDate: confirmedBooking.pickupDate || quoteRequest?.pickupDate,
+              estimatedWeight: confirmedBooking.estimatedWeight || quoteRequest?.estimatedWeight,
+              goodsType: confirmedBooking.goodsType || quoteRequest?.goodsType,
+              requirements: confirmedBooking.requirements || quoteRequest?.requirements,
+              // Driver details
+              driverName: confirmedBooking.driverName || acceptedQuote?.driverName,
+              driverPhone: confirmedBooking.driverPhone || acceptedQuote?.driverPhone,
+              // Vehicle details from booking or accepted quote
+              vehicleNumber: confirmedBooking.vehicleNumber || acceptedQuote?.vehicleNumber || acceptedQuote?.registrationNumber,
+              vehicleName: confirmedBooking.vehicleName || acceptedQuote?.vehicleName,
+              vehicleBrand: confirmedBooking.vehicleBrand || acceptedQuote?.vehicleBrand,
+              vehicleModel: confirmedBooking.vehicleModel || acceptedQuote?.vehicleModel,
+              status: confirmedBooking.status,
+              paymentStatus: confirmedBooking.paymentStatus,
+              totalAmount: confirmedBooking.totalAmount,
+              advanceAmount: confirmedBooking.advanceAmount,
+              advancePaid: confirmedBooking.advancePaid,
+              advancePaidAt: confirmedBooking.advancePaidAt,
+              advancePaymentRef: confirmedBooking.advancePaymentRef,
+              advancePaymentProof: confirmedBooking.advancePaymentProof,
+              advancePaymentDate: confirmedBooking.advancePaymentDate,
+              advancePaymentVerified: confirmedBooking.advancePaymentVerified,
+              remainingAmount: confirmedBooking.remainingAmount,
+              remainingPaid: confirmedBooking.remainingPaid,
+              remainingPaidAt: confirmedBooking.remainingPaidAt,
+              remainingPaymentRef: confirmedBooking.remainingPaymentRef,
+              remainingPaymentProof: confirmedBooking.remainingPaymentProof,
+              remainingPaymentDate: confirmedBooking.remainingPaymentDate,
+              remainingPaymentVerified: confirmedBooking.remainingPaymentVerified,
+              quoteRequestId: confirmedBooking.quoteRequestId,
+              acceptedQuoteId: confirmedBooking.acceptedQuoteId,
+              createdAt: confirmedBooking.createdAt,
+              updatedAt: confirmedBooking.updatedAt,
+            },
+            quotes: acceptedQuote ? [{
+              id: acceptedQuote.id,
+              quoteNumber: acceptedQuote.quoteNumber,
+              vendor: acceptedQuote.vendors,
+              vehicleName: acceptedQuote.vehicleName,
+              vehicleType: acceptedQuote.vehicleType,
+              vehicleCapacity: acceptedQuote.vehicleCapacity,
+              vehicleNumber: acceptedQuote.vehicleNumber,
+              vehicleImages: acceptedQuote.vehicleImages ? acceptedQuote.vehicleImages.split(',') : [],
+              baseAmount: acceptedQuote.baseAmount,
+              perKmRate: acceptedQuote.perKmRate,
+              loadingCharges: acceptedQuote.loadingCharges,
+              unloadingCharges: acceptedQuote.unloadingCharges,
+              gstAmount: acceptedQuote.gstAmount,
+              grandTotal: acceptedQuote.totalAmount,
+              inclusions: acceptedQuote.inclusions,
+              exclusions: acceptedQuote.exclusions,
+              termsConditions: acceptedQuote.termsConditions,
+              vendorMessage: acceptedQuote.vendorMessage,
+              status: 'ACCEPTED',
+              validTill: acceptedQuote.validTill,
+              createdAt: acceptedQuote.createdAt,
+            }] : [],
+          });
+        }
+
+        // Not found in confirmed bookings, try quote requests
         booking = await prisma.truck_quote_requests.findUnique({
           where: { id },
           include: {
@@ -693,7 +1387,7 @@ export async function GET(
             loadingCharges: q.loadingCharges,
             unloadingCharges: q.unloadingCharges,
             gstAmount: q.gstAmount,
-            grandTotal: q.grandTotal,
+            grandTotal: q.totalAmount,
             inclusions: q.inclusions,
             exclusions: q.exclusions,
             termsConditions: q.termsConditions,
@@ -707,6 +1401,159 @@ export async function GET(
 
       case 'luxury-car-rental':
       case 'luxury-cars': {
+        // Try to find in confirmed bookings first
+        let confirmedBooking = await prisma.luxury_bookings.findUnique({
+          where: { id },
+          include: {
+            customers: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                phone: true,
+              },
+            },
+            vendors_luxury_bookings_acceptedVendorIdTovendors: {
+              select: {
+                id: true,
+                businessName: true,
+                phone: true,
+                email: true,
+              },
+            },
+            vendors_luxury_bookings_assignedVendorIdTovendors: {
+              select: {
+                id: true,
+                businessName: true,
+                phone: true,
+                email: true,
+              },
+            },
+            luxury_quote_requests: {
+              include: {
+                locations: true,
+              },
+            },
+          },
+        });
+
+        if (confirmedBooking) {
+          // This is a confirmed booking (LB-xxx)
+          const quoteRequest = confirmedBooking.luxury_quote_requests;
+
+          // Fetch the accepted quote if available
+          let acceptedQuote = null;
+          if (confirmedBooking.acceptedQuoteId) {
+            acceptedQuote = await prisma.luxury_quotes.findUnique({
+              where: { id: confirmedBooking.acceptedQuoteId },
+              include: {
+                vendors: {
+                  select: {
+                    id: true,
+                    businessName: true,
+                    phone: true,
+                    email: true,
+                  },
+                },
+              },
+            });
+          }
+
+          return NextResponse.json({
+            success: true,
+            service: {
+              id: service.id,
+              name: service.name,
+              slug: service.slug,
+            },
+            booking: {
+              id: confirmedBooking.id,
+              bookingNo: confirmedBooking.bookingNumber,
+              type: 'CONFIRMED_BOOKING',
+              customerName: confirmedBooking.customerName,
+              customerPhone: confirmedBooking.customerPhone,
+              customerEmail: confirmedBooking.customerEmail,
+              customer: confirmedBooking.customers,
+              acceptedVendor: confirmedBooking.vendors_luxury_bookings_acceptedVendorIdTovendors,
+              assignedVendor: confirmedBooking.vendors_luxury_bookings_assignedVendorIdTovendors,
+              vendor: confirmedBooking.vendors_luxury_bookings_acceptedVendorIdTovendors || confirmedBooking.vendors_luxury_bookings_assignedVendorIdTovendors,
+              tripType: confirmedBooking.tripType || quoteRequest?.tripType,
+              occasion: confirmedBooking.occasion || quoteRequest?.occasion,
+              vehicleCategoryName: confirmedBooking.vehicleCategoryName || confirmedBooking.vehicle_category,
+              vehicleCategory: confirmedBooking.vehicle_category,
+              specificModel: confirmedBooking.specificModel || quoteRequest?.specificModel,
+              pickupCity: confirmedBooking.pickupCity || quoteRequest?.pickupCity,
+              pickupAddress: confirmedBooking.pickupAddress || quoteRequest?.pickupAddress,
+              pickupLocation: quoteRequest?.locations,
+              dropCity: confirmedBooking.dropCity || quoteRequest?.dropCity,
+              dropAddress: confirmedBooking.dropAddress || quoteRequest?.dropAddress,
+              pickupDate: confirmedBooking.pickupDate || quoteRequest?.pickupDate,
+              returnDate: confirmedBooking.returnDate || quoteRequest?.returnDate,
+              tripDays: confirmedBooking.tripDays || quoteRequest?.tripDays,
+              passengers: confirmedBooking.passengers || quoteRequest?.passengers,
+              needChauffeur: confirmedBooking.needChauffeur || quoteRequest?.needChauffeur,
+              needDecoration: confirmedBooking.needDecoration || quoteRequest?.needDecoration,
+              decorationType: confirmedBooking.decorationType || quoteRequest?.decorationType,
+              requirements: confirmedBooking.requirements || quoteRequest?.requirements,
+              // Driver details
+              driverName: confirmedBooking.driverName || acceptedQuote?.driverName,
+              driverPhone: confirmedBooking.driverPhone || acceptedQuote?.driverPhone,
+              // Vehicle details from booking or accepted quote
+              vehicleNumber: confirmedBooking.vehicleNumber || acceptedQuote?.vehicleNumber || acceptedQuote?.registrationNumber,
+              vehicleName: confirmedBooking.vehicleName || acceptedQuote?.vehicleName,
+              vehicleBrand: confirmedBooking.vehicleBrand || acceptedQuote?.vehicleBrand,
+              vehicleModel: confirmedBooking.vehicleModel || acceptedQuote?.vehicleModel,
+              status: confirmedBooking.status,
+              paymentStatus: confirmedBooking.paymentStatus,
+              totalAmount: confirmedBooking.totalAmount,
+              advanceAmount: confirmedBooking.advanceAmount,
+              advancePaid: confirmedBooking.advancePaid,
+              advancePaidAt: confirmedBooking.advancePaidAt,
+              advancePaymentRef: confirmedBooking.advancePaymentRef,
+              advancePaymentProof: confirmedBooking.advancePaymentProof,
+              advancePaymentDate: confirmedBooking.advancePaymentDate,
+              advancePaymentVerified: confirmedBooking.advancePaymentVerified,
+              remainingAmount: confirmedBooking.remainingAmount,
+              remainingPaid: confirmedBooking.remainingPaid,
+              remainingPaidAt: confirmedBooking.remainingPaidAt,
+              remainingPaymentRef: confirmedBooking.remainingPaymentRef,
+              remainingPaymentProof: confirmedBooking.remainingPaymentProof,
+              remainingPaymentDate: confirmedBooking.remainingPaymentDate,
+              remainingPaymentVerified: confirmedBooking.remainingPaymentVerified,
+              quoteRequestId: confirmedBooking.quoteRequestId,
+              acceptedQuoteId: confirmedBooking.acceptedQuoteId,
+              createdAt: confirmedBooking.createdAt,
+              updatedAt: confirmedBooking.updatedAt,
+            },
+            quotes: acceptedQuote ? [{
+              id: acceptedQuote.id,
+              quoteNumber: acceptedQuote.quoteNumber,
+              vendor: acceptedQuote.vendors,
+              vehicleName: acceptedQuote.vehicleName,
+              vehicleBrand: acceptedQuote.vehicleBrand,
+              vehicle_models: acceptedQuote.vehicle_models,
+              vehicleYear: acceptedQuote.vehicleYear,
+              vehicleColor: acceptedQuote.vehicleColor,
+              vehicleImages: acceptedQuote.vehicleImages ? acceptedQuote.vehicleImages.split(',') : [],
+              baseAmount: acceptedQuote.baseAmount,
+              baseRate: acceptedQuote.baseRate,
+              perKmRate: acceptedQuote.perKmRate,
+              chauffeurCharges: acceptedQuote.chauffeurCharges,
+              decorationCharges: acceptedQuote.decorationCharges,
+              gstAmount: acceptedQuote.gstAmount,
+              grandTotal: acceptedQuote.totalAmount,
+              inclusions: acceptedQuote.inclusions,
+              exclusions: acceptedQuote.exclusions,
+              termsConditions: acceptedQuote.termsConditions,
+              vendorMessage: acceptedQuote.vendorMessage,
+              status: 'ACCEPTED',
+              validTill: acceptedQuote.validTill,
+              createdAt: acceptedQuote.createdAt,
+            }] : [],
+          });
+        }
+
+        // Not found in confirmed bookings, try quote requests
         booking = await prisma.luxury_quote_requests.findUnique({
           where: { id },
           include: {
@@ -794,12 +1641,13 @@ export async function GET(
             vehicleYear: q.vehicleYear,
             vehicleColor: q.vehicleColor,
             vehicleImages: q.vehicleImages ? q.vehicleImages.split(',') : [],
+            baseAmount: q.baseAmount,
             baseRate: q.baseRate,
             perKmRate: q.perKmRate,
             chauffeurCharges: q.chauffeurCharges,
             decorationCharges: q.decorationCharges,
             gstAmount: q.gstAmount,
-            grandTotal: q.grandTotal,
+            grandTotal: q.totalAmount,
             inclusions: q.inclusions,
             exclusions: q.exclusions,
             termsConditions: q.termsConditions,
@@ -813,6 +1661,149 @@ export async function GET(
 
       case 'packers-and-movers':
       case 'packers-movers': {
+        // Try to find in confirmed bookings first
+        let confirmedBooking = await prisma.packers_bookings.findUnique({
+          where: { id },
+          include: {
+            customers: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                phone: true,
+              },
+            },
+            vendors_packers_bookings_acceptedVendorIdTovendors: {
+              select: {
+                id: true,
+                businessName: true,
+                phone: true,
+                email: true,
+              },
+            },
+            vendors_packers_bookings_assignedVendorIdTovendors: {
+              select: {
+                id: true,
+                businessName: true,
+                phone: true,
+                email: true,
+              },
+            },
+            packers_quote_requests: {
+              include: {
+                locations: true,
+              },
+            },
+          },
+        });
+
+        if (confirmedBooking) {
+          // This is a confirmed booking (PB-xxx)
+          const quoteRequest = confirmedBooking.packers_quote_requests;
+
+          // Fetch the accepted quote if available
+          let acceptedQuote = null;
+          if (confirmedBooking.acceptedQuoteId) {
+            acceptedQuote = await prisma.packers_quotes.findUnique({
+              where: { id: confirmedBooking.acceptedQuoteId },
+              include: {
+                vendors: {
+                  select: {
+                    id: true,
+                    businessName: true,
+                    phone: true,
+                    email: true,
+                  },
+                },
+              },
+            });
+          }
+
+          return NextResponse.json({
+            success: true,
+            service: {
+              id: service.id,
+              name: service.name,
+              slug: service.slug,
+            },
+            booking: {
+              id: confirmedBooking.id,
+              bookingNo: confirmedBooking.bookingNumber,
+              type: 'CONFIRMED_BOOKING',
+              customerName: confirmedBooking.customerName,
+              customerPhone: confirmedBooking.customerPhone,
+              customerEmail: confirmedBooking.customerEmail,
+              customer: confirmedBooking.customers,
+              acceptedVendor: confirmedBooking.vendors_packers_bookings_acceptedVendorIdTovendors,
+              assignedVendor: confirmedBooking.vendors_packers_bookings_assignedVendorIdTovendors,
+              vendor: confirmedBooking.vendors_packers_bookings_acceptedVendorIdTovendors || confirmedBooking.vendors_packers_bookings_assignedVendorIdTovendors,
+              serviceType: confirmedBooking.serviceType || quoteRequest?.serviceType,
+              shiftingType: confirmedBooking.shiftingType || quoteRequest?.shiftingType,
+              propertySize: confirmedBooking.propertySize || quoteRequest?.propertySize,
+              pickupCity: confirmedBooking.pickupCity || quoteRequest?.pickupCity,
+              pickupAddress: confirmedBooking.pickupAddress || quoteRequest?.pickupAddress,
+              pickupLocation: quoteRequest?.locations,
+              dropCity: confirmedBooking.dropCity || quoteRequest?.dropCity,
+              dropAddress: confirmedBooking.dropAddress || quoteRequest?.dropAddress,
+              preferredDate: confirmedBooking.preferredDate || quoteRequest?.preferredDate,
+              needPacking: confirmedBooking.needPacking || quoteRequest?.needPacking,
+              needUnpacking: confirmedBooking.needUnpacking || quoteRequest?.needUnpacking,
+              needStorage: confirmedBooking.needStorage || quoteRequest?.needStorage,
+              needInsurance: confirmedBooking.needInsurance || quoteRequest?.needInsurance,
+              requirements: confirmedBooking.requirements || quoteRequest?.requirements,
+              // Driver details
+              driverName: confirmedBooking.driverName || acceptedQuote?.driverName,
+              driverPhone: confirmedBooking.driverPhone || acceptedQuote?.driverPhone,
+              // Vehicle details from booking or accepted quote
+              vehicleNumber: confirmedBooking.vehicleNumber || acceptedQuote?.vehicleNumber || acceptedQuote?.registrationNumber,
+              vehicleName: confirmedBooking.vehicleName || acceptedQuote?.vehicleName,
+              vehicleBrand: confirmedBooking.vehicleBrand || acceptedQuote?.vehicleBrand,
+              vehicleModel: confirmedBooking.vehicleModel || acceptedQuote?.vehicleModel,
+              status: confirmedBooking.status,
+              paymentStatus: confirmedBooking.paymentStatus,
+              totalAmount: confirmedBooking.totalAmount,
+              advanceAmount: confirmedBooking.advanceAmount,
+              advancePaid: confirmedBooking.advancePaid,
+              advancePaidAt: confirmedBooking.advancePaidAt,
+              advancePaymentRef: confirmedBooking.advancePaymentRef,
+              advancePaymentProof: confirmedBooking.advancePaymentProof,
+              advancePaymentDate: confirmedBooking.advancePaymentDate,
+              advancePaymentVerified: confirmedBooking.advancePaymentVerified,
+              remainingAmount: confirmedBooking.remainingAmount,
+              remainingPaid: confirmedBooking.remainingPaid,
+              remainingPaidAt: confirmedBooking.remainingPaidAt,
+              remainingPaymentRef: confirmedBooking.remainingPaymentRef,
+              remainingPaymentProof: confirmedBooking.remainingPaymentProof,
+              remainingPaymentDate: confirmedBooking.remainingPaymentDate,
+              remainingPaymentVerified: confirmedBooking.remainingPaymentVerified,
+              quoteRequestId: confirmedBooking.quoteRequestId,
+              acceptedQuoteId: confirmedBooking.acceptedQuoteId,
+              createdAt: confirmedBooking.createdAt,
+              updatedAt: confirmedBooking.updatedAt,
+            },
+            quotes: acceptedQuote ? [{
+              id: acceptedQuote.id,
+              quoteNumber: acceptedQuote.quoteNumber,
+              vendor: acceptedQuote.vendors,
+              packingCharges: acceptedQuote.packingCharges,
+              transportCharges: acceptedQuote.transportCharges,
+              unpackingCharges: acceptedQuote.unpackingCharges,
+              storageCharges: acceptedQuote.storageCharges,
+              insuranceCharges: acceptedQuote.insuranceCharges,
+              gstAmount: acceptedQuote.gstAmount,
+              grandTotal: acceptedQuote.totalAmount,
+              inclusions: acceptedQuote.inclusions,
+              exclusions: acceptedQuote.exclusions,
+              termsConditions: acceptedQuote.termsConditions,
+              vendorMessage: acceptedQuote.vendorMessage,
+              status: 'ACCEPTED',
+              validTill: acceptedQuote.validTill,
+              createdAt: acceptedQuote.createdAt,
+            }] : [],
+          });
+        }
+
+        // Not found in confirmed bookings, try quote requests
         booking = await prisma.packers_quote_requests.findUnique({
           where: { id },
           include: {
@@ -898,7 +1889,7 @@ export async function GET(
             storageCharges: q.storageCharges,
             insuranceCharges: q.insuranceCharges,
             gstAmount: q.gstAmount,
-            grandTotal: q.grandTotal,
+            grandTotal: q.totalAmount,
             inclusions: q.inclusions,
             exclusions: q.exclusions,
             termsConditions: q.termsConditions,
@@ -911,6 +1902,160 @@ export async function GET(
       }
 
       case 'equipment-rental': {
+        // Try to find in confirmed bookings first
+        let confirmedBooking = await prisma.equipment_bookings.findUnique({
+          where: { id },
+          include: {
+            customers: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                phone: true,
+              },
+            },
+            vendors_equipment_bookings_acceptedVendorIdTovendors: {
+              select: {
+                id: true,
+                businessName: true,
+                phone: true,
+                email: true,
+              },
+            },
+            vendors_equipment_bookings_assignedVendorIdTovendors: {
+              select: {
+                id: true,
+                businessName: true,
+                phone: true,
+                email: true,
+              },
+            },
+            equipment_quote_requests: {
+              include: {
+                locations: true,
+              },
+            },
+          },
+        });
+
+        if (confirmedBooking) {
+          // This is a confirmed booking (EB-xxx)
+          const quoteRequest = confirmedBooking.equipment_quote_requests;
+
+          // Fetch the accepted quote if available
+          let acceptedQuote = null;
+          if (confirmedBooking.acceptedQuoteId) {
+            acceptedQuote = await prisma.equipment_quotes.findUnique({
+              where: { id: confirmedBooking.acceptedQuoteId },
+              include: {
+                vendors: {
+                  select: {
+                    id: true,
+                    businessName: true,
+                    phone: true,
+                    email: true,
+                  },
+                },
+              },
+            });
+          }
+
+          return NextResponse.json({
+            success: true,
+            service: {
+              id: service.id,
+              name: service.name,
+              slug: service.slug,
+            },
+            booking: {
+              id: confirmedBooking.id,
+              bookingNo: confirmedBooking.bookingNumber,
+              type: 'CONFIRMED_BOOKING',
+              customerName: confirmedBooking.customerName,
+              customerPhone: confirmedBooking.customerPhone,
+              customerEmail: confirmedBooking.customerEmail,
+              customer: confirmedBooking.customers,
+              acceptedVendor: confirmedBooking.vendors_equipment_bookings_acceptedVendorIdTovendors,
+              assignedVendor: confirmedBooking.vendors_equipment_bookings_assignedVendorIdTovendors,
+              vendor: confirmedBooking.vendors_equipment_bookings_acceptedVendorIdTovendors || confirmedBooking.vendors_equipment_bookings_assignedVendorIdTovendors,
+              equipmentCategory: confirmedBooking.equipmentCategory || quoteRequest?.equipmentCategory,
+              equipmentType: confirmedBooking.equipmentType || quoteRequest?.equipmentType,
+              equipmentName: confirmedBooking.equipmentName || quoteRequest?.equipmentName,
+              quantity: confirmedBooking.quantity || quoteRequest?.quantity,
+              deliveryCity: confirmedBooking.deliveryCity || quoteRequest?.deliveryCity,
+              deliveryAddress: confirmedBooking.deliveryAddress || quoteRequest?.deliveryAddress,
+              location: quoteRequest?.locations,
+              pickupLocation: quoteRequest?.locations,
+              // Map to frontend expected field names
+              pickupCity: confirmedBooking.deliveryCity || quoteRequest?.deliveryCity,
+              pickupAddress: confirmedBooking.deliveryAddress || quoteRequest?.deliveryAddress,
+              locationName: confirmedBooking.deliveryCity || quoteRequest?.deliveryCity,
+              startDate: confirmedBooking.startDate || quoteRequest?.startDate,
+              endDate: confirmedBooking.endDate || quoteRequest?.endDate,
+              pickupDate: confirmedBooking.startDate || quoteRequest?.startDate,
+              dropDate: confirmedBooking.endDate || quoteRequest?.endDate,
+              rentalDays: confirmedBooking.rentalDays || quoteRequest?.rentalDays,
+              needOperator: confirmedBooking.needOperator || quoteRequest?.needOperator,
+              needDelivery: confirmedBooking.needDelivery || quoteRequest?.needDelivery,
+              needInstallation: confirmedBooking.needInstallation || quoteRequest?.needInstallation,
+              requirements: confirmedBooking.requirements || quoteRequest?.requirements,
+              // Driver details
+              driverName: confirmedBooking.driverName || acceptedQuote?.driverName,
+              driverPhone: confirmedBooking.driverPhone || acceptedQuote?.driverPhone,
+              // Vehicle details from booking or accepted quote
+              vehicleNumber: confirmedBooking.vehicleNumber || acceptedQuote?.vehicleNumber || acceptedQuote?.registrationNumber,
+              vehicleName: confirmedBooking.vehicleName || acceptedQuote?.vehicleName,
+              vehicleBrand: confirmedBooking.vehicleBrand || acceptedQuote?.vehicleBrand,
+              vehicleModel: confirmedBooking.vehicleModel || acceptedQuote?.vehicleModel,
+              status: confirmedBooking.status,
+              paymentStatus: confirmedBooking.paymentStatus,
+              totalAmount: confirmedBooking.totalAmount,
+              advanceAmount: confirmedBooking.advanceAmount,
+              advancePaid: confirmedBooking.advancePaid,
+              advancePaidAt: confirmedBooking.advancePaidAt,
+              advancePaymentRef: confirmedBooking.advancePaymentRef,
+              advancePaymentProof: confirmedBooking.advancePaymentProof,
+              advancePaymentDate: confirmedBooking.advancePaymentDate,
+              advancePaymentVerified: confirmedBooking.advancePaymentVerified,
+              remainingAmount: confirmedBooking.remainingAmount,
+              remainingPaid: confirmedBooking.remainingPaid,
+              remainingPaidAt: confirmedBooking.remainingPaidAt,
+              remainingPaymentRef: confirmedBooking.remainingPaymentRef,
+              remainingPaymentProof: confirmedBooking.remainingPaymentProof,
+              remainingPaymentDate: confirmedBooking.remainingPaymentDate,
+              remainingPaymentVerified: confirmedBooking.remainingPaymentVerified,
+              quoteRequestId: confirmedBooking.quoteRequestId,
+              acceptedQuoteId: confirmedBooking.acceptedQuoteId,
+              createdAt: confirmedBooking.createdAt,
+              updatedAt: confirmedBooking.updatedAt,
+            },
+            quotes: acceptedQuote ? [{
+              id: acceptedQuote.id,
+              quoteNumber: acceptedQuote.quoteNumber,
+              vendor: acceptedQuote.vendors,
+              equipmentName: acceptedQuote.equipmentName,
+              equipmentModel: acceptedQuote.equipmentModel,
+              dailyRate: acceptedQuote.dailyRate,
+              weeklyRate: acceptedQuote.weeklyRate,
+              monthlyRate: acceptedQuote.monthlyRate,
+              operatorCharges: acceptedQuote.operatorCharges,
+              deliveryCharges: acceptedQuote.deliveryCharges,
+              installationCharges: acceptedQuote.installationCharges,
+              securityDeposit: acceptedQuote.securityDeposit,
+              gstAmount: acceptedQuote.gstAmount,
+              grandTotal: acceptedQuote.totalAmount,
+              inclusions: acceptedQuote.inclusions,
+              exclusions: acceptedQuote.exclusions,
+              termsConditions: acceptedQuote.termsConditions,
+              vendorMessage: acceptedQuote.vendorMessage,
+              status: 'ACCEPTED',
+              validTill: acceptedQuote.validTill,
+              createdAt: acceptedQuote.createdAt,
+            }] : [],
+          });
+        }
+
+        // Not found in confirmed bookings, try quote requests
         booking = await prisma.equipment_quote_requests.findUnique({
           where: { id },
           include: {
@@ -968,8 +2113,14 @@ export async function GET(
             location: booking.locations,
             deliveryCity: booking.deliveryCity,
             deliveryAddress: booking.deliveryAddress,
+            // Map to frontend expected field names
+            pickupCity: booking.deliveryCity,
+            pickupAddress: booking.deliveryAddress,
+            locationName: booking.deliveryCity,
             startDate: booking.startDate,
             endDate: booking.endDate,
+            pickupDate: booking.startDate,
+            dropDate: booking.endDate,
             rentalDays: booking.rentalDays,
             needOperator: booking.needOperator,
             needDelivery: booking.needDelivery,
@@ -1000,7 +2151,7 @@ export async function GET(
             installationCharges: q.installationCharges,
             securityDeposit: q.securityDeposit,
             gstAmount: q.gstAmount,
-            grandTotal: q.grandTotal,
+            grandTotal: q.totalAmount,
             inclusions: q.inclusions,
             exclusions: q.exclusions,
             termsConditions: q.termsConditions,
@@ -1013,7 +2164,8 @@ export async function GET(
       }
 
       default:
-        return NextResponse.json({ error: 'Service type not supported' }, { status: 400 });
+        console.log('UNMATCHED SLUG:', slug);
+        return NextResponse.json({ error: 'Service type not supported', slug }, { status: 400 });
     }
   } catch (error: any) {
     logger.error('Fetch booking details error', error);

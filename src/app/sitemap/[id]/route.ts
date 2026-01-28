@@ -501,7 +501,6 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     status: 200,
     headers: {
       'Content-Type': 'application/xml; charset=utf-8',
-      'X-Robots-Tag': 'noindex',
       'Cache-Control': 'public, max-age=3600, s-maxage=3600',
     },
   });
