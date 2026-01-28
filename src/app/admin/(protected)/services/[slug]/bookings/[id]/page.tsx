@@ -20,16 +20,8 @@ import {
   Package,
   FileText,
   Truck,
-  Navigation,
-  Fuel,
-  Settings,
-  Users,
-  CreditCard,
   MessageSquare,
-  Star,
   Download,
-  Edit,
-  MoreVertical,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -71,8 +63,11 @@ const statusConfig: Record<string, { label: string; color: string; icon: React.C
   PENDING_PAYMENT: { label: 'Pending Payment', color: 'bg-yellow-100 text-yellow-800 border-yellow-200', icon: Clock },
   PENDING_VENDOR: { label: 'Pending Vendor', color: 'bg-yellow-100 text-yellow-800 border-yellow-200', icon: Clock },
   BROADCASTED: { label: 'Broadcasted', color: 'bg-blue-100 text-blue-800 border-blue-200', icon: AlertCircle },
+  QUOTES_RECEIVED: { label: 'Quotes Received', color: 'bg-blue-100 text-blue-800 border-blue-200', icon: FileText },
+  QUOTE_ACCEPTED: { label: 'Quote Accepted', color: 'bg-green-100 text-green-800 border-green-200', icon: CheckCircle },
   ACCEPTED: { label: 'Accepted', color: 'bg-green-100 text-green-800 border-green-200', icon: CheckCircle },
   CONFIRMED: { label: 'Confirmed', color: 'bg-blue-100 text-blue-800 border-blue-200', icon: CheckCircle },
+  BOOKING_CONFIRMED: { label: 'Booking Confirmed', color: 'bg-green-100 text-green-800 border-green-200', icon: CheckCircle },
   ONGOING: { label: 'Ongoing', color: 'bg-purple-100 text-purple-800 border-purple-200', icon: Car },
   IN_PROGRESS: { label: 'In Progress', color: 'bg-purple-100 text-purple-800 border-purple-200', icon: Car },
   COMPLETED: { label: 'Completed', color: 'bg-green-100 text-green-800 border-green-200', icon: CheckCircle },
@@ -182,7 +177,31 @@ export default function BookingDetailPage() {
   const paymentInfo = booking.paymentStatus ? (paymentStatusConfig[booking.paymentStatus] || defaultPaymentConfig) : null;
 
   return (
-    <div className="space-y-6 pb-8">
+    <>
+      <style jsx global>{`
+        @media print {
+          body * {
+            visibility: hidden;
+          }
+          .print-area,
+          .print-area * {
+            visibility: visible;
+          }
+          .print-area {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+          }
+          .no-print {
+            display: none !important;
+          }
+          @page {
+            margin: 20mm;
+          }
+        }
+      `}</style>
+      <div className="space-y-6 pb-8 print-area">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
@@ -207,17 +226,14 @@ export default function BookingDetailPage() {
           </div>
           <p className="text-gray-600 mt-1">{service?.name}</p>
         </div>
-        <div className="flex items-center gap-3">
-          <Button variant="outline" size="sm">
+        <div className="flex items-center gap-3 no-print">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => window.print()}
+          >
             <Download className="w-4 h-4 mr-2" />
-            Download
-          </Button>
-          <Button variant="outline" size="sm">
-            <Edit className="w-4 h-4 mr-2" />
-            Edit
-          </Button>
-          <Button variant="outline" size="sm">
-            <MoreVertical className="w-4 h-4" />
+            Download PDF
           </Button>
         </div>
       </div>
@@ -633,7 +649,7 @@ export default function BookingDetailPage() {
 
       {/* Quote Details Modal */}
       {showQuoteModal && selectedQuote && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 no-print">
           <div className="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
             {/* Modal Header */}
             <div className="sticky top-0 bg-white border-b px-6 py-4 flex items-center justify-between">
@@ -1017,6 +1033,7 @@ export default function BookingDetailPage() {
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </>
   );
 }
