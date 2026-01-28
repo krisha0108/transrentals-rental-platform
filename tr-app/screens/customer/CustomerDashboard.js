@@ -248,7 +248,7 @@ export default function CustomerDashboard() {
         setUnreadCount(0);
       }
     } catch (err) {
-      console.error('[fetchUnreadNotificationCount] Error:', err.message);
+      console.log('[fetchUnreadNotificationCount] Error:', err.message);
       setUnreadCount(0);
     }
   };
@@ -297,9 +297,9 @@ export default function CustomerDashboard() {
         setDashboardStats({ active_bookings: 0, total_earnings: 0 });
       }
     } catch (err) {
-      console.error('[fetchDashboardStats] Error:', err.message);
+      console.log('[fetchDashboardStats] Error:', err.message);
       if (err.response) {
-        console.error('[fetchDashboardStats] Error Response:', err.response.data);
+        console.log('[fetchDashboardStats] Error Response:', err.response.data);
       }
       setDashboardStats({ active_bookings: 0, total_earnings: 0 });
     }
@@ -405,9 +405,9 @@ export default function CustomerDashboard() {
   //       console.log('[fetchVendors] 💬 Response:', data);
   //     }
   //   } catch (error) {
-  //     console.error('[fetchVendors] 🛑 Error fetching vendors:', error.message);
+  //     console.log('[fetchVendors] 🛑 Error fetching vendors:', error.message);
   //     if (error.response) {
-  //       console.error('[fetchVendors] 🔍 Error Response:', error.response.data);
+  //       console.log('[fetchVendors] 🔍 Error Response:', error.response.data);
   //     }
   //   }
   // };
@@ -461,9 +461,9 @@ export default function CustomerDashboard() {
         setRecentQuotes([]);
       }
     } catch (error) {
-      console.error('[fetchRecentQuotes] Error:', error.message);
+      console.log('[fetchRecentQuotes] Error:', error.message);
       if (error.response) {
-        console.error('[fetchRecentQuotes] Error Response:', error.response.data);
+        console.log('[fetchRecentQuotes] Error Response:', error.response.data);
       }
       setRecentQuotes([]);
     }
@@ -544,9 +544,9 @@ export default function CustomerDashboard() {
         console.warn('[fetchUpcomingBookings] API returned success: false');
       }
     } catch (error) {
-      console.error('[fetchUpcomingBookings] Error:', error.message);
+      console.log('[fetchUpcomingBookings] Error:', error.message);
       if (error.response) {
-        console.error('[fetchUpcomingBookings] Error Response:', error.response.data);
+        console.log('[fetchUpcomingBookings] Error Response:', error.response.data);
       }
     }
   };
@@ -563,7 +563,7 @@ export default function CustomerDashboard() {
       ]);
       console.log('[handleRefresh] Refresh completed successfully');
     } catch (e) {
-      console.error('[handleRefresh] Error:', e.message);
+      console.log('[handleRefresh] Error:', e.message);
     } finally {
       setIsRefreshing(false);
     }
@@ -600,7 +600,7 @@ export default function CustomerDashboard() {
 
       console.log('[initApp] All data fetched successfully');
     } catch (error) {
-      console.error('[initApp] Error:', error.message);
+      console.log('[initApp] Error:', error.message);
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
@@ -792,58 +792,67 @@ export default function CustomerDashboard() {
 
       <StatusBar barStyle="light-content" backgroundColor="#1C1C1C" />
 
-      {/* FIXED ANIMATED HEADER */}
+      {/* FIXED ANIMATED HEADER - REDESIGNED */}
       <Animated.View style={[styles.fixedHeader, { opacity: headerOpacity, transform: [{ scale: headerScale }] }]}>
-        <View style={styles.topBar}>
-          <View>
-            <TouchableOpacity onPress={() => navigation.navigate('SettingScreen')} style={styles.nameRow}>
-
-              {customerImage ? (
-                <Image source={{ uri: customerImage }} style={styles.headerAvatar} />
-              ) : (
-                <View style={styles.headerAvatarPlaceholder}>
-                  <Icon name="user" size={14} color="#4A5568" />
-                </View>
-              )}
-              <Text
-                style={[styles.greeting, { maxWidth: 150 }]} // you can adjust width
-                numberOfLines={1}
-                ellipsizeMode="tail"
-              >
-                <Text style={{ fontWeight: '800' }}>{userName}</Text>
-              </Text>
-            </TouchableOpacity>
-            {locationPermissionGranted && location && location !== 'Detecting...' && location !== 'Unknown' && (
-              <TouchableOpacity
-                style={styles.locationBox}
-                onPress={() => Alert.alert('Location', 'Pick on map')}
-              >
-                <Icon name="map-pin" size={wp('4%')} color={BRAND_TEAL} />
-                <Text style={styles.locationText}>{location}</Text>
-                <Icon name="chevron-down" size={wp('4%')} color={TEXT_SECONDARY} />
-              </TouchableOpacity>
-            )}
-          </View>
-          <TouchableOpacity style={styles.notifBtn} onPress={() => navigation.navigate('Notifications')}>
-            <Icon name="bell" size={wp('6.5%')} color={TEXT_PRIMARY} />
-            {unreadCount > 0 && (
-              <View style={styles.badge}>
-                <Text style={styles.badgeTxt}>{unreadCount}</Text>
+        {/* Top Row - Profile & Notification */}
+        <View style={styles.headerTopRow}>
+          {/* Profile Section */}
+          <TouchableOpacity
+            onPress={() => navigation.navigate('SettingScreen')}
+            style={styles.profileSection}
+            activeOpacity={0.8}
+          >
+            {customerImage ? (
+              <Image source={{ uri: customerImage }} style={styles.profileAvatar} />
+            ) : (
+              <View style={styles.profileAvatarPlaceholder}>
+                <Icon name="user" size={20} color={BRAND_TEAL} />
               </View>
             )}
+            <View style={styles.profileInfo}>
+              <Text style={styles.greetingLabel}>Welcome back,</Text>
+              <Text style={styles.userName} numberOfLines={1} ellipsizeMode="tail">
+                {userName}
+              </Text>
+            </View>
+          </TouchableOpacity>
+
+          {/* Notification Button */}
+          <TouchableOpacity
+            style={styles.notificationBtn}
+            onPress={() => navigation.navigate('Notifications')}
+            activeOpacity={0.7}
+          >
+            <View style={styles.notificationIconWrapper}>
+              <Icon name="bell" size={20} color={TEXT_PRIMARY} />
+              {unreadCount > 0 && (
+                <View style={styles.notificationBadge}>
+                  <Text style={styles.notificationBadgeText}>
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </Text>
+                </View>
+              )}
+            </View>
           </TouchableOpacity>
         </View>
+
+        {/* Location Row */}
+        {locationPermissionGranted && location && location !== 'Detecting...' && location !== 'Unknown' && (
+          <View style={styles.locationRow}>
+            <View style={styles.locationIconWrapper}>
+              <Icon name="map-pin" size={14} color={BRAND_TEAL} />
+            </View>
+            <Text style={styles.locationLabel} numberOfLines={1}>
+              {location}
+            </Text>
+          </View>
+        )}
       </Animated.View>
       {showSkeleton ? (
         <ScrollView
-          contentContainerStyle={{ paddingTop: hp('12%'), paddingBottom: hp('12%') }}
+          contentContainerStyle={{ paddingTop: hp('16%'), paddingBottom: hp('12%') }}
           showsVerticalScrollIndicator={false}
         >
-          {/* Hero Banner Skeleton */}
-          <View style={[styles.section, { marginTop: hp('1%') }]}>
-            <Animated.View style={[styles.skeletonHeroBanner, { opacity: skeletonOpacity }]} />
-          </View>
-
           {/* Category Skeleton */}
           <View style={styles.section}>
             <Animated.View style={[styles.skeletonTitle, { opacity: skeletonOpacity }]} />
@@ -906,7 +915,7 @@ export default function CustomerDashboard() {
             { useNativeDriver: false }
           )}
           scrollEventThrottle={16}
-          contentContainerStyle={{ paddingTop: hp('12%'), paddingBottom: hp('2%') }}
+          contentContainerStyle={{ paddingTop: hp('16%'), paddingBottom: hp('2%') }}
           refreshControl={
             <RefreshControl
               refreshing={isRefreshing}
@@ -914,32 +923,10 @@ export default function CustomerDashboard() {
               colors={[BRAND_TEAL]}
               tintColor={BRAND_TEAL}
               // 👇 push it a bit down, since you have a fixed header
-              progressViewOffset={hp('6%')}
+              progressViewOffset={hp('8%')}
             />
           }
         >
-
-          {/* HERO PROMOTIONAL BANNER */}
-          <View style={[styles.section, { marginTop: hp('1%') }]}>
-            <LinearGradient
-              colors={[BRAND_TEAL, BRAND_TEAL_DARK]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.heroBanner}
-            >
-              <View style={styles.heroContent}>
-                <Text style={styles.heroTitle}>Book Your Ride Today!</Text>
-                <Text style={styles.heroSubtitle}>Get instant quotes from verified vendors</Text>
-                <TouchableOpacity style={styles.heroButton} onPress={() => navigation.navigate('BikeRentalScreen')}>
-                  <Text style={styles.heroButtonText}>Explore Now</Text>
-                  <Icon name="arrow-right" size={16} color={BRAND_TEAL} />
-                </TouchableOpacity>
-              </View>
-              <View style={styles.heroIcon}>
-                <Icon name="zap" size={wp('12%')} color="rgba(255,255,255,0.3)" />
-              </View>
-            </LinearGradient>
-          </View>
 
           {/* CATEGORIES GRID */}
           <View style={styles.section}>
@@ -1189,7 +1176,7 @@ export default function CustomerDashboard() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: BG },
 
-  // Header (Premium Design)
+  // Header (Modern Redesigned)
   fixedHeader: {
     position: 'absolute',
     top: 0,
@@ -1197,71 +1184,125 @@ const styles = StyleSheet.create({
     right: 0,
     backgroundColor: CARD,
     zIndex: 10,
-    paddingTop: Platform.select({ ios: hp('2%'), android: (StatusBar.currentHeight ?? 0) + hp('0.5%') }),
-    paddingHorizontal: wp('5%'),
-    paddingBottom: hp('1.5%'),
-    borderBottomLeftRadius: 24,
-    borderBottomRightRadius: 24,
-    ...Platform.select({
-      ios: {
-        shadowColor: SHADOW_COLOR,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.1,
-        shadowRadius: 12,
-      },
-      android: {
-        elevation: 8,
-      },
+    paddingTop: Platform.select({
+      ios: hp('6%'),
+      android: (StatusBar.currentHeight ?? 0) + hp('2%')
     }),
+    paddingHorizontal: wp('4.5%'),
+    paddingBottom: hp('2%'),
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
   },
-  topBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: wp('0.5%') },
-  greeting: { fontSize: wp('5.8%'), fontWeight: '800', color: TEXT_PRIMARY, letterSpacing: -0.5 },
-  locationBox: {
+
+  // Header Top Row (Profile + Notification)
+  headerTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: hp('1.2%'),
+  },
+
+  // Profile Section
+  profileSection: {
     flexDirection: 'row',
     alignItems: 'center',
+    flex: 1,
+  },
+  profileAvatar: {
+    width: wp('12%'),
+    height: wp('12%'),
+    borderRadius: wp('6%'),
+    borderWidth: 2.5,
+    borderColor: BRAND_TEAL_LIGHT,
+    backgroundColor: '#F9FAFB',
+  },
+  profileAvatarPlaceholder: {
+    width: wp('12%'),
+    height: wp('12%'),
+    borderRadius: wp('6%'),
     backgroundColor: BRAND_TEAL_LIGHT,
-    paddingHorizontal: wp('3.5%'),
-    paddingVertical: hp('0.7%'),
-    borderRadius: 30,
-    marginTop: hp('1.2%'),
-    borderWidth: 1,
-    borderColor: BRAND_TEAL + '20',
-  },
-  locationText: {
-    marginLeft: wp('1.5%'),
-    fontSize: wp('3.5%'),
-    color: TEXT_PRIMARY,
-    fontWeight: '600',
-    flex: 1,
-  },
-  notifBtn: { padding: wp('1%') },
-  badge: { position: 'absolute', top: -wp('1%'), right: -wp('1%'), backgroundColor: RED, borderRadius: wp('3%'), minWidth: wp('5%'), height: wp('5%'), justifyContent: 'center', alignItems: 'center' },
-  badgeTxt: { color: '#fff', fontSize: wp('2.8%'), fontWeight: 'bold' },
-  leftHeader: {
-    flex: 1,
-  },
-  nameRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: wp('2%'), // RN 0.71+ supports gap; if not, use marginLeft
-  },
-  headerAvatar: {
-    width: wp('9%'),
-    height: wp('9%'),
-    borderRadius: wp('4.5%'),
-    marginLeft: wp('2%'),
-    borderWidth: 1,
-    borderColor: '#fff',
-    backgroundColor: '#E2E8F0',
-  },
-  headerAvatarPlaceholder: {
-    width: wp('9%'),
-    height: wp('9%'),
-    borderRadius: wp('4.5%'),
-    marginLeft: wp('2%'),
-    backgroundColor: '#E2E8F0',
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 2,
+    borderColor: BRAND_TEAL + '30',
+  },
+  profileInfo: {
+    marginLeft: wp('3%'),
+    flex: 1,
+  },
+  greetingLabel: {
+    fontSize: wp('3%'),
+    color: TEXT_LIGHT,
+    fontWeight: '500',
+    letterSpacing: 0.3,
+    marginBottom: hp('0.2%'),
+  },
+  userName: {
+    fontSize: wp('4.8%'),
+    fontWeight: '700',
+    color: TEXT_PRIMARY,
+    letterSpacing: -0.3,
+  },
+
+  // Notification Button
+  notificationBtn: {
+    marginLeft: wp('3%'),
+  },
+  notificationIconWrapper: {
+    width: wp('11%'),
+    height: wp('11%'),
+    borderRadius: wp('5.5%'),
+    backgroundColor: BG,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  notificationBadge: {
+    position: 'absolute',
+    top: -2,
+    right: -2,
+    backgroundColor: RED,
+    minWidth: wp('4.5%'),
+    height: wp('4.5%'),
+    borderRadius: wp('2.25%'),
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: CARD,
+  },
+  notificationBadgeText: {
+    color: '#fff',
+    fontSize: wp('2.3%'),
+    fontWeight: '700',
+  },
+
+  // Location Row
+  locationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: BG,
+    paddingHorizontal: wp('3%'),
+    paddingVertical: hp('0.8%'),
+    borderRadius: 10,
+    alignSelf: 'flex-start',
+  },
+  locationIconWrapper: {
+    width: wp('6%'),
+    height: wp('6%'),
+    borderRadius: wp('3%'),
+    backgroundColor: BRAND_TEAL_LIGHT,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: wp('2%'),
+  },
+  locationLabel: {
+    fontSize: wp('3.3%'),
+    color: TEXT_SECONDARY,
+    fontWeight: '600',
+    maxWidth: wp('70%'),
   },
   // Stories
   storiesWrap: { paddingLeft: wp('4%') },
@@ -1287,76 +1328,6 @@ const styles = StyleSheet.create({
     fontSize: wp('3.8%'),
     color: BRAND_TEAL,
     fontWeight: '700',
-  },
-
-  // Hero Banner (Premium Promotional Section)
-  heroBanner: {
-    borderRadius: 20,
-    padding: wp('6%'),
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    overflow: 'hidden',
-    minHeight: hp('16%'),
-    ...Platform.select({
-      ios: {
-        shadowColor: BRAND_TEAL,
-        shadowOffset: { width: 0, height: 6 },
-        shadowOpacity: 0.3,
-        shadowRadius: 12,
-      },
-      android: {
-        elevation: 8,
-      },
-    }),
-  },
-  heroContent: {
-    flex: 1,
-  },
-  heroTitle: {
-    fontSize: wp('5.5%'),
-    fontWeight: '800',
-    color: CARD,
-    marginBottom: hp('0.8%'),
-    letterSpacing: -0.5,
-  },
-  heroSubtitle: {
-    fontSize: wp('3.5%'),
-    color: 'rgba(255,255,255,0.9)',
-    marginBottom: hp('1.5%'),
-    fontWeight: '500',
-  },
-  heroButton: {
-    backgroundColor: CARD,
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: wp('4.5%'),
-    paddingVertical: hp('1.2%'),
-    borderRadius: 12,
-    alignSelf: 'flex-start',
-    ...Platform.select({
-      ios: {
-        shadowColor: SHADOW_COLOR,
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.15,
-        shadowRadius: 4,
-      },
-      android: {
-        elevation: 3,
-      },
-    }),
-  },
-  heroButtonText: {
-    color: BRAND_TEAL,
-    fontSize: wp('3.8%'),
-    fontWeight: '700',
-    marginRight: wp('1.5%'),
-  },
-  heroIcon: {
-    width: wp('20%'),
-    height: wp('20%'),
-    justifyContent: 'center',
-    alignItems: 'center',
   },
 
   // Upcoming Bookings Cards
@@ -1853,11 +1824,6 @@ const styles = StyleSheet.create({
   skeletonBase: {
     backgroundColor: '#E5E7EB',
     overflow: 'hidden',
-  },
-  skeletonHeroBanner: {
-    height: hp('16%'),
-    borderRadius: 20,
-    backgroundColor: '#E5E7EB',
   },
   skeletonTitle: {
     width: wp('45%'),

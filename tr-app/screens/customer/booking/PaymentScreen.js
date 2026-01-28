@@ -69,7 +69,7 @@ export default function PaymentScreen() {
         setPaymentDetails(response.data.primaryAccount);
       }
     } catch (err) {
-      console.error('Error fetching payment details:', err);
+      console.log('Error fetching payment details:', err);
     } finally {
       setLoadingPaymentDetails(false);
     }
@@ -101,7 +101,7 @@ export default function PaymentScreen() {
         setBooking(response.data.booking || response.data);
       }
     } catch (err) {
-      console.error('Error fetching booking:', err);
+      console.log('Error fetching booking:', err);
     } finally {
       setLoading(false);
     }
@@ -199,7 +199,7 @@ export default function PaymentScreen() {
         Alert.alert('Error', response.data?.message || 'Failed to submit payment');
       }
     } catch (err) {
-      console.error('Payment submission error:', err);
+      console.log('Payment submission error:', err);
       Alert.alert(
         'Error',
         err.response?.data?.message || 'Failed to submit payment. Please try again.'

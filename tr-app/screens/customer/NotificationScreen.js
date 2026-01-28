@@ -65,7 +65,7 @@ const NotificationScreen = () => {
         ]).start();
       }
     } catch (error) {
-      console.error('Failed to load notifications:', error);
+      console.log('Failed to load notifications:', error);
     } finally {
       if (!isRefresh) setLoading(false);
       setRefreshing(false);

@@ -48,7 +48,7 @@ export default function BookingChatScreen() {
         setCustomerName(customer.name || 'Customer');
       }
     } catch (error) {
-      console.error('Error loading customer data:', error);
+      console.log('Error loading customer data:', error);
     }
   };
 
@@ -60,7 +60,7 @@ export default function BookingChatScreen() {
         setVendor(response.vendor);
       }
     } catch (error) {
-      console.error('Error fetching messages:', error);
+      console.log('Error fetching messages:', error);
     } finally {
       setLoading(false);
     }

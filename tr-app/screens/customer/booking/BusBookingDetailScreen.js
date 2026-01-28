@@ -65,7 +65,7 @@ export default function BusBookingDetailScreen() {
         setBooking(response.data.booking);
       }
     } catch (error) {
-      console.error('Error fetching bus booking:', error);
+      console.log('Error fetching bus booking:', error);
       if (!isBackground) {
         Alert.alert('Error', 'Failed to load booking details');
       }
@@ -95,7 +95,7 @@ export default function BusBookingDetailScreen() {
         }
       })
       .catch((err) => {
-        console.error('Error calling driver:', err);
+        console.log('Error calling driver:', err);
         Alert.alert('Error', 'Failed to open phone dialer');
       });
   };
@@ -107,7 +107,7 @@ export default function BusBookingDetailScreen() {
     }
     const phoneUrl = `tel:${phoneNumber}`;
     Linking.openURL(phoneUrl).catch((err) => {
-      console.error('Error calling vendor:', err);
+      console.log('Error calling vendor:', err);
       Alert.alert('Error', 'Failed to open phone dialer');
     });
   };

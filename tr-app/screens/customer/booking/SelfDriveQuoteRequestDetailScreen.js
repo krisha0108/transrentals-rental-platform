@@ -56,7 +56,7 @@ export default function SelfDriveQuoteRequestDetailScreen() {
         }
       }
     } catch (err) {
-      console.error('Error fetching request:', err);
+      console.log('Error fetching request:', err);
       if (!refreshing) {
         Alert.alert('Error', 'Failed to load request details');
       }
@@ -105,7 +105,7 @@ export default function SelfDriveQuoteRequestDetailScreen() {
         setAcceptError(response.data?.message || 'Failed to accept quote. Please try again.');
       }
     } catch (err) {
-      console.error('Error accepting quote:', err);
+      console.log('Error accepting quote:', err);
 
       let errorMessage = 'Something went wrong. Please try again.';
 
@@ -129,14 +129,22 @@ export default function SelfDriveQuoteRequestDetailScreen() {
   const handleModalClose = () => {
     const successData = acceptSuccess;
 
+    // Reset states first
     setConfirmModalVisible(false);
+    const quoteData = selectedQuote; // Save quote data before resetting
     setSelectedQuote(null);
     setAcceptError(null);
     setAcceptSuccess(null);
 
+    // Navigate after state reset
     if (successData && successData.bookingId) {
-      // Use replace to go directly to booking detail (replaces current screen in stack)
-      navigation.replace('SelfDriveBookingDetail', { bookingId: successData.bookingId });
+      // Navigate to Payment Screen with advance amount
+      navigation.replace('PaymentScreen', {
+        bookingId: successData.bookingId,
+        bookingNumber: successData.bookingNumber,
+        bookingType: 'self-drive',
+        amount: quoteData?.advanceAmount || 0,
+      });
     }
   };
 
@@ -514,18 +522,18 @@ export default function SelfDriveQuoteRequestDetailScreen() {
                 <View style={styles.successIconContainer}>
                   <Ionicons name="checkmark-circle" size={70} color={GREEN} />
                 </View>
-                <Text style={styles.modalTitle}>Booking Confirmed!</Text>
+                <Text style={styles.modalTitle}>Booking Created!</Text>
                 <Text style={styles.successBookingNumber}>
                   #{acceptSuccess.bookingNumber}
                 </Text>
                 <Text style={styles.modalMessage}>
-                  Your booking has been created successfully. Proceed to payment to confirm your ride.
+                  Your booking has been created successfully. Pay advance to confirm your booking.
                 </Text>
                 <TouchableOpacity
                   style={styles.successBtn}
                   onPress={handleModalClose}
                 >
-                  <Text style={styles.successBtnText}>View Booking & Pay</Text>
+                  <Text style={styles.successBtnText}>Proceed to Payment</Text>
                   <Ionicons name="arrow-forward" size={18} color="#fff" />
                 </TouchableOpacity>
               </View>

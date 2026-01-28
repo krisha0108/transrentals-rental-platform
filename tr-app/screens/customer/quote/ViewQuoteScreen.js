@@ -825,7 +825,7 @@ export default function QuoteDetailScreen({ route, navigation }) {
         Alert.alert('Info', 'Quote not found');
       }
     } catch (err) {
-      console.error('fetchQuoteDetail err', err);
+      console.log('fetchQuoteDetail err', err);
       Alert.alert('Error', 'Unable to fetch quote details');
     } finally {
       setLoading(false);
@@ -873,7 +873,7 @@ export default function QuoteDetailScreen({ route, navigation }) {
         Alert.alert('Error', res.data.message || 'Payment failed');
       }
     } catch (err) {
-      console.error(err);
+      console.log(err);
       Alert.alert('Error', 'Payment request failed');
     } finally {
       setIsConfirmingPayment(false);

@@ -76,7 +76,7 @@ export default function ChatListScreen() {
         setCustomerData(JSON.parse(data));
       }
     } catch (error) {
-      console.error('Error loading customer data:', error);
+      console.log('Error loading customer data:', error);
     }
   };
 
@@ -100,7 +100,7 @@ export default function ChatListScreen() {
         setBookings(response.data.bookings || []);
       }
     } catch (error) {
-      console.error('Error fetching bookings:', error);
+      console.log('Error fetching bookings:', error);
       Alert.alert('Error', 'Failed to load chats');
     } finally {
       setLoading(false);

@@ -68,15 +68,15 @@ export default function BusQuoteRequestDetailScreen() {
             navigation.replace('BusBookingDetail', { bookingId: requestData.bookingId });
           }
         } else {
-          console.error('❌ No request data in response');
+          console.log('❌ No request data in response');
           Alert.alert('Error', 'No data found for this request');
         }
       } else {
-        console.error('❌ API returned success=false:', response.data);
+        console.log('❌ API returned success=false:', response.data);
         Alert.alert('Error', response.data.error || 'Failed to load request details');
       }
     } catch (err) {
-      console.error('❌ Error fetching request:', err);
+      console.log('❌ Error fetching request:', err);
       if (!refreshing) {
         Alert.alert('Error', 'Failed to load request details');
       }
@@ -126,7 +126,7 @@ export default function BusQuoteRequestDetailScreen() {
         setAcceptError(response.data?.message || 'Failed to accept quote. Please try again.');
       }
     } catch (err) {
-      console.error('Error accepting quote:', err);
+      console.log('Error accepting quote:', err);
 
       // Parse error message properly
       let errorMessage = 'Something went wrong. Please try again.';

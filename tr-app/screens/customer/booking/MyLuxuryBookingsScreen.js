@@ -45,7 +45,7 @@ export default function MyLuxuryBookingsScreen() {
         setBookings(response.bookings || []);
       }
     } catch (err) {
-      console.error('Error fetching luxury bookings:', err);
+      console.log('Error fetching luxury bookings:', err);
     } finally {
       setLoading(false);
       setRefreshing(false);

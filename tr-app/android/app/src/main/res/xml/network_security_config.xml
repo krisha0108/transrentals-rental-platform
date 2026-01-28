@@ -9,6 +9,7 @@
         <domain includeSubdomains="true">192.168.0.1</domain>
         <domain includeSubdomains="true">192.168.43.1</domain>
         <domain includeSubdomains="true">192.168.69.31</domain>
+        <domain includeSubdomains="true">192.168.29.68</domain>
     </domain-config>
 
     <!-- Base configuration for other domains -->

@@ -226,9 +226,11 @@ const fleetService = {
    * @returns {object} { bookings: [...] }
    */
   getSelfDriveBookings: async (params = {}) => {
+    console.log('🚗 getSelfDriveBookings called with:', params);
     const response = await api.get('/bookings', {
-      params: { ...params, serviceType: 'self-drive' }
+      params: { ...params, type: 'selfdrive' }  // Changed from serviceType to type
     });
+    console.log('🚗 Self-Drive Bookings Response:', response.data);
     return response.data;
   },
 

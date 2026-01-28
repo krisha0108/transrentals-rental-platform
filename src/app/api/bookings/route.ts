@@ -1090,13 +1090,25 @@ export async function GET(request: NextRequest) {
 
     // If type specified, fetch from local DB
     if (type && (phone || email || customerIdRes)) {
+      console.log('🔍 Bookings GET - Params:', { type, customerIdRes, phone, email });
+
       let customer;
       if (customerIdRes) {
         customer = await prisma.customers.findUnique({ where: { id: customerIdRes } });
-      } else {
-        const customerWhere = phone ? { phone } : { email: email! };
-        customer = await prisma.customers.findFirst({ where: customerWhere });
       }
+
+      // If customer not found by ID, try phone or email with OR logic
+      if (!customer && (phone || email)) {
+        const customerConditions: any[] = [];
+        if (phone) customerConditions.push({ phone });
+        if (email) customerConditions.push({ email });
+
+        customer = await prisma.customers.findFirst({
+          where: { OR: customerConditions }
+        });
+      }
+
+      console.log('🔍 Customer found:', customer ? `${customer.id} (${customer.name})` : 'NOT FOUND');
 
       if (!customer) {
         return NextResponse.json({ success: true, bookings: [], requests: [] });

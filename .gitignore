@@ -49,3 +49,8 @@ logs
 # Uploaded files (keep .gitkeep)
 /public/uploads/vendor/*
 !/public/uploads/.gitkeep
+# Mobile App Build Directories (tr-app & vendor-app build separately)
+tr-app/android/app/build/
+tr-app/ios/build/
+vendor-app/android/app/build/
+vendor-app/ios/build/

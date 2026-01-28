@@ -311,18 +311,34 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '20');
     const skip = (page - 1) * limit;
 
-    // Build where clause
+    // Build where clause with OR conditions (flexible matching)
     const whereClause: any = {};
+    const customerConditions: any[] = [];
 
+    console.log('🔍 Bike Bookings Query Params:', { customerId, customerEmail, customerPhone });
+
+    // Add all available identifiers to OR array
     if (customerId) {
-      whereClause.customerId = customerId;
-    } else if (customerEmail) {
-      whereClause.customerEmail = customerEmail;
-    } else if (customerPhone) {
-      whereClause.customerPhone = customerPhone;
-    } else if (session?.user?.email) {
-      whereClause.customerEmail = session.user.email;
+      customerConditions.push({ customerId: customerId });
     }
+    if (customerEmail) {
+      customerConditions.push({ customerEmail: customerEmail });
+    }
+    if (customerPhone) {
+      customerConditions.push({ customerPhone: customerPhone });
+    }
+    if (session?.user?.email && !customerEmail) {
+      customerConditions.push({ customerEmail: session.user.email });
+    }
+
+    // Use OR if multiple conditions, otherwise single condition
+    if (customerConditions.length > 1) {
+      whereClause.OR = customerConditions;
+    } else if (customerConditions.length === 1) {
+      Object.assign(whereClause, customerConditions[0]);
+    }
+
+    console.log('🔍 Where Clause:', JSON.stringify(whereClause, null, 2));
 
     // Status filter
     if (status && status !== 'all') {
@@ -352,6 +368,20 @@ export async function GET(request: NextRequest) {
       }),
       prisma.bike_bookings.count({ where: whereClause }),
     ]);
+
+    console.log('📊 Query Results:', { total, bookingsFound: bookings.length });
+    if (bookings.length > 0) {
+      console.log('📋 First Booking Details:', {
+        id: bookings[0].id,
+        customerId: bookings[0].customerId,
+        customerPhone: bookings[0].customerPhone,
+        customerEmail: bookings[0].customerEmail,
+      });
+    }
+
+    // Also check if there are ANY bike bookings in database
+    const allBookingsCount = await prisma.bike_bookings.count();
+    console.log('🔢 Total Bike Bookings in DB:', allBookingsCount);
 
     return NextResponse.json({
       success: true,

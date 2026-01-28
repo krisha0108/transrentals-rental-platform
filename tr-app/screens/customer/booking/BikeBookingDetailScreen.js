@@ -52,8 +52,9 @@ const BikeBookingDetailScreen = () => {
         setError('Failed to load booking details');
       }
     } catch (err) {
-      console.error('Error fetching booking:', err);
-      setError(err.response?.data?.error || 'Failed to load booking details');
+      console.log('Error fetching booking:', err?.message || 'Unknown error');
+      const errorMessage = err?.response?.data?.error || err?.response?.data?.message || err?.message || 'Failed to load booking details';
+      setError(errorMessage);
     } finally {
       setLoading(false);
       setRefreshing(false);

@@ -1,86 +1,91 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
-import { transformPrismaResponse } from '@/lib/utils/api-transform';
-
 import logger from '@/lib/security/logger';
+
 export const dynamic = 'force-dynamic';
 
-// GET - Get active bank details for payment (public API)
+/**
+ * GET /api/payment-details
+ * Public endpoint to fetch payment details for customers
+ * Query params:
+ *   - service: Service slug (e.g., 'self-drive', 'bike-rental', 'car-rental')
+ */
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const serviceSlug = searchParams.get('service');
+    const serviceParam = searchParams.get('service');
 
-    let serviceId: string | null = null;
+    // Build query to get active bank details
+    const where: any = {
+      isActive: true,
+    };
 
-    // If service slug provided, find the service
-    if (serviceSlug) {
-      const service = await prisma.services.findUnique({
-        where: { slug: serviceSlug },
+    // If service is specified, find the service and get its bank details
+    if (serviceParam) {
+      // Find the service by slug
+      const service = await prisma.services.findFirst({
+        where: { slug: serviceParam },
         select: { id: true },
       });
+
       if (service) {
-        serviceId = service.id;
+        // Get bank details for this specific service OR primary global account
+        const bankDetails = await prisma.bank_details.findMany({
+          where: {
+            isActive: true,
+            OR: [
+              { serviceId: service.id },
+              { isPrimary: true, serviceId: null }, // Global primary account as fallback
+            ],
+          },
+          orderBy: [
+            { serviceId: 'desc' }, // Service-specific first
+            { isPrimary: 'desc' }, // Then primary
+            { displayOrder: 'asc' },
+          ],
+          take: 1, // Get the first matching account
+        });
+
+        if (bankDetails.length > 0) {
+          return NextResponse.json({
+            success: true,
+            primaryAccount: bankDetails[0],
+          });
+        }
       }
     }
 
-    // Get active bank details
-    // First try service-specific, then fall back to global (null serviceId)
-    let bankDetails = await prisma.bank_details.findMany({
+    // Fallback: Get the primary global bank account
+    const primaryAccount = await prisma.bank_details.findFirst({
       where: {
         isActive: true,
-        serviceId: serviceId,
-      },
-      select: {
-        id: true,
-        accountHolderName: true,
-        accountNumber: true,
-        ifscCode: true,
-        bankName: true,
-        branchName: true,
-        accountType: true,
-        upiId: true,
-        upiQrCode: true,
         isPrimary: true,
       },
-      orderBy: [{ isPrimary: 'desc' }, { displayOrder: 'asc' }],
+      orderBy: { createdAt: 'desc' },
     });
 
-    // If no service-specific details found, get global ones
-    if (bankDetails.length === 0 && serviceId) {
-      bankDetails = await prisma.bank_details.findMany({
-        where: {
-          isActive: true,
-          serviceId: null,
+    if (!primaryAccount) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'No payment details configured. Please contact support.',
         },
-        select: {
-          id: true,
-          accountHolderName: true,
-          accountNumber: true,
-          ifscCode: true,
-          bankName: true,
-          branchName: true,
-          accountType: true,
-          upiId: true,
-          upiQrCode: true,
-          isPrimary: true,
-        },
-        orderBy: [{ isPrimary: 'desc' }, { displayOrder: 'asc' }],
-      });
+        { status: 404 }
+      );
     }
-
-    // Get primary account or first one
-    const primaryAccount = bankDetails.find(b => b.isPrimary) || bankDetails[0] || null;
 
     return NextResponse.json({
       success: true,
       primaryAccount,
-      allAccounts: bankDetails,
     });
   } catch (error: any) {
-    logger.error('Payment details error', error);
+    logger.error('Payment details fetch error', error);
     return NextResponse.json(
-      { error: 'Failed to fetch payment details' },
+      {
+        success: false,
+        error: 'Failed to fetch payment details',
+        details: error?.message,
+      },
       { status: 500 }
     );
   }
