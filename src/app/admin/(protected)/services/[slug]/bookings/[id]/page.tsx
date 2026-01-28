@@ -103,6 +103,8 @@ export default function BookingDetailPage() {
   const [booking, setBooking] = useState<BookingDetails | null>(null);
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [service, setService] = useState<any>(null);
+  const [selectedQuote, setSelectedQuote] = useState<Quote | null>(null);
+  const [showQuoteModal, setShowQuoteModal] = useState(false);
 
   useEffect(() => {
     const fetchBookingDetails = async () => {
@@ -479,16 +481,17 @@ export default function BookingDetailPage() {
                       )}
                     </div>
                     <div className="flex items-center gap-2">
-                      <Button size="sm" variant="outline">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          setSelectedQuote(quote);
+                          setShowQuoteModal(true);
+                        }}
+                      >
                         <FileText className="w-3 h-3 mr-1" />
                         View Details
                       </Button>
-                      {quote.status === 'SENT' && (
-                        <Button size="sm" variant="default">
-                          <CheckCircle className="w-3 h-3 mr-1" />
-                          Accept Quote
-                        </Button>
-                      )}
                     </div>
                   </div>
                 ))}
@@ -627,6 +630,321 @@ export default function BookingDetailPage() {
           )}
         </div>
       </div>
+
+      {/* Quote Details Modal */}
+      {showQuoteModal && selectedQuote && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            {/* Modal Header */}
+            <div className="sticky top-0 bg-white border-b px-6 py-4 flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-bold text-gray-900">Quote Details</h2>
+                <p className="text-sm text-gray-500 font-mono">{selectedQuote.quoteNumber}</p>
+              </div>
+              <button
+                onClick={() => {
+                  setShowQuoteModal(false);
+                  setSelectedQuote(null);
+                }}
+                className="p-2 hover:bg-gray-100 rounded-lg transition"
+              >
+                <XCircle className="w-5 h-5 text-gray-500" />
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="p-6 space-y-6">
+              {/* Vendor Info */}
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-4 border border-blue-100">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <p className="text-sm text-gray-600">Vendor</p>
+                    <p className="text-lg font-bold text-gray-900">{selectedQuote.vendor?.businessName || 'N/A'}</p>
+                    {selectedQuote.vendor?.phone && (
+                      <p className="text-sm text-gray-600 flex items-center gap-1 mt-1">
+                        <Phone className="w-3 h-3" />
+                        {selectedQuote.vendor.phone}
+                      </p>
+                    )}
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm text-gray-600">Total Amount</p>
+                    <p className="text-2xl font-bold text-green-600">
+                      ₹{selectedQuote.grandTotal?.toLocaleString() || 'N/A'}
+                    </p>
+                    {selectedQuote.validTill && (
+                      <p className="text-xs text-gray-500 mt-1">
+                        Valid till {formatDate(selectedQuote.validTill)}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Vehicle Info */}
+              {selectedQuote.vehicleName && (
+                <div>
+                  <h3 className="font-semibold text-gray-900 mb-2 flex items-center gap-2">
+                    <Car className="w-5 h-5 text-blue-500" />
+                    Vehicle Details
+                  </h3>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <p className="text-sm text-gray-500">Vehicle</p>
+                      <p className="font-medium text-gray-900">{selectedQuote.vehicleName}</p>
+                    </div>
+                    {selectedQuote.vehicleType && (
+                      <div>
+                        <p className="text-sm text-gray-500">Type</p>
+                        <p className="font-medium text-gray-900">{selectedQuote.vehicleType}</p>
+                      </div>
+                    )}
+                    {selectedQuote.vehicleNumber && (
+                      <div>
+                        <p className="text-sm text-gray-500">Vehicle Number</p>
+                        <p className="font-medium text-gray-900 font-mono">{selectedQuote.vehicleNumber}</p>
+                      </div>
+                    )}
+                    {selectedQuote.vehicleSeats && (
+                      <div>
+                        <p className="text-sm text-gray-500">Seats</p>
+                        <p className="font-medium text-gray-900">{selectedQuote.vehicleSeats} seats</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Pricing Breakdown */}
+              <div>
+                <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                  <IndianRupee className="w-5 h-5 text-green-500" />
+                  Pricing Breakdown
+                </h3>
+                <div className="bg-gray-50 rounded-lg p-4 space-y-2">
+                  {selectedQuote.baseAmount && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Base Amount</span>
+                      <span className="font-medium">₹{selectedQuote.baseAmount.toLocaleString()}</span>
+                    </div>
+                  )}
+                  {selectedQuote.dailyRate && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Daily Rate</span>
+                      <span className="font-medium">₹{selectedQuote.dailyRate.toLocaleString()}</span>
+                    </div>
+                  )}
+                  {selectedQuote.perKmRate && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Per KM Rate</span>
+                      <span className="font-medium">₹{selectedQuote.perKmRate.toLocaleString()}</span>
+                    </div>
+                  )}
+                  {selectedQuote.driverAllowance > 0 && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Driver Allowance</span>
+                      <span className="font-medium">₹{selectedQuote.driverAllowance.toLocaleString()}</span>
+                    </div>
+                  )}
+                  {selectedQuote.chauffeurCharges > 0 && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Chauffeur Charges</span>
+                      <span className="font-medium">₹{selectedQuote.chauffeurCharges.toLocaleString()}</span>
+                    </div>
+                  )}
+                  {selectedQuote.deliveryCharges > 0 && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Delivery Charges</span>
+                      <span className="font-medium">₹{selectedQuote.deliveryCharges.toLocaleString()}</span>
+                    </div>
+                  )}
+                  {selectedQuote.loadingCharges > 0 && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Loading Charges</span>
+                      <span className="font-medium">₹{selectedQuote.loadingCharges.toLocaleString()}</span>
+                    </div>
+                  )}
+                  {selectedQuote.unloadingCharges > 0 && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Unloading Charges</span>
+                      <span className="font-medium">₹{selectedQuote.unloadingCharges.toLocaleString()}</span>
+                    </div>
+                  )}
+                  {selectedQuote.securityDeposit > 0 && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Security Deposit</span>
+                      <span className="font-medium">₹{selectedQuote.securityDeposit.toLocaleString()}</span>
+                    </div>
+                  )}
+                  {selectedQuote.gstAmount > 0 && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">GST</span>
+                      <span className="font-medium">₹{selectedQuote.gstAmount.toLocaleString()}</span>
+                    </div>
+                  )}
+                  {selectedQuote.platformFee > 0 && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Platform Fee</span>
+                      <span className="font-medium">₹{selectedQuote.platformFee.toLocaleString()}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between pt-2 border-t-2 border-gray-300">
+                    <span className="font-bold text-gray-900">Grand Total</span>
+                    <span className="font-bold text-xl text-green-600">
+                      ₹{selectedQuote.grandTotal?.toLocaleString() || 'N/A'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Inclusions & Exclusions */}
+              {(selectedQuote.inclusions || selectedQuote.exclusions) && (
+                <div className="grid md:grid-cols-2 gap-4">
+                  {/* Inclusions */}
+                  {selectedQuote.inclusions && (
+                    <div>
+                      <h3 className="font-semibold text-gray-900 mb-2 flex items-center gap-2">
+                        <CheckCircle className="w-5 h-5 text-green-500" />
+                        Inclusions
+                      </h3>
+                      <div className="bg-green-50 rounded-lg p-3 border border-green-100">
+                        <ul className="space-y-1.5">
+                          {(() => {
+                            const inclusions = typeof selectedQuote.inclusions === 'string'
+                              ? selectedQuote.inclusions.split(',').map((s: string) => s.trim()).filter(Boolean)
+                              : Array.isArray(selectedQuote.inclusions)
+                              ? selectedQuote.inclusions
+                              : [];
+
+                            return inclusions.length > 0 ? (
+                              inclusions.map((item: string, idx: number) => (
+                                <li key={idx} className="flex items-start gap-2 text-sm text-gray-700">
+                                  <span className="text-green-600 mt-0.5">✓</span>
+                                  {item}
+                                </li>
+                              ))
+                            ) : (
+                              <li className="text-sm text-gray-400">No inclusions specified</li>
+                            );
+                          })()}
+                        </ul>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Exclusions */}
+                  {selectedQuote.exclusions && (
+                    <div>
+                      <h3 className="font-semibold text-gray-900 mb-2 flex items-center gap-2">
+                        <XCircle className="w-5 h-5 text-red-500" />
+                        Exclusions
+                      </h3>
+                      <div className="bg-red-50 rounded-lg p-3 border border-red-100">
+                        <ul className="space-y-1.5">
+                          {(() => {
+                            const exclusions = typeof selectedQuote.exclusions === 'string'
+                              ? selectedQuote.exclusions.split(',').map((s: string) => s.trim()).filter(Boolean)
+                              : Array.isArray(selectedQuote.exclusions)
+                              ? selectedQuote.exclusions
+                              : [];
+
+                            return exclusions.length > 0 ? (
+                              exclusions.map((item: string, idx: number) => (
+                                <li key={idx} className="flex items-start gap-2 text-sm text-gray-700">
+                                  <span className="text-red-600 mt-0.5">✗</span>
+                                  {item}
+                                </li>
+                              ))
+                            ) : (
+                              <li className="text-sm text-gray-400">No exclusions specified</li>
+                            );
+                          })()}
+                        </ul>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Terms & Conditions */}
+              {selectedQuote.termsConditions && (
+                <div>
+                  <h3 className="font-semibold text-gray-900 mb-2 flex items-center gap-2">
+                    <FileText className="w-5 h-5 text-blue-500" />
+                    Terms & Conditions
+                  </h3>
+                  <div className="bg-blue-50 rounded-lg p-4 border border-blue-100">
+                    <ol className="space-y-2">
+                      {(() => {
+                        const terms = typeof selectedQuote.termsConditions === 'string'
+                          ? selectedQuote.termsConditions.split(',').map((s: string) => s.trim()).filter(Boolean)
+                          : Array.isArray(selectedQuote.termsConditions)
+                          ? selectedQuote.termsConditions
+                          : [];
+
+                        return terms.length > 0 ? (
+                          terms.map((term: string, idx: number) => (
+                            <li key={idx} className="flex items-start gap-3 text-sm text-gray-700">
+                              <span className="font-bold text-blue-600 mt-0.5">{idx + 1}.</span>
+                              <span className="flex-1">{term}</span>
+                            </li>
+                          ))
+                        ) : (
+                          <li className="text-sm text-gray-400">No terms & conditions specified</li>
+                        );
+                      })()}
+                    </ol>
+                  </div>
+                </div>
+              )}
+
+              {/* Vendor Message */}
+              {selectedQuote.vendorMessage && (
+                <div>
+                  <h3 className="font-semibold text-gray-900 mb-2 flex items-center gap-2">
+                    <MessageSquare className="w-5 h-5 text-purple-500" />
+                    Vendor Message
+                  </h3>
+                  <div className="bg-purple-50 rounded-lg p-4 border border-purple-100">
+                    <p className="text-gray-700 text-sm">{selectedQuote.vendorMessage}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Status Badge */}
+              <div className="flex items-center justify-between pt-4 border-t">
+                <div>
+                  <p className="text-sm text-gray-500">Quote Status</p>
+                  <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium border mt-1 ${
+                    statusConfig[selectedQuote.status]?.color || 'bg-gray-100 text-gray-800'
+                  }`}>
+                    {selectedQuote.status}
+                  </span>
+                </div>
+                {selectedQuote.createdAt && (
+                  <div className="text-right">
+                    <p className="text-sm text-gray-500">Created At</p>
+                    <p className="text-sm font-medium text-gray-900">{formatDateTime(selectedQuote.createdAt)}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="sticky bottom-0 bg-gray-50 border-t px-6 py-4 flex justify-end gap-3">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowQuoteModal(false);
+                  setSelectedQuote(null);
+                }}
+              >
+                Close
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
