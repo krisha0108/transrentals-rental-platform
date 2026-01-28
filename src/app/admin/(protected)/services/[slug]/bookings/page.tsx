@@ -223,10 +223,19 @@ export default function ServiceBookingsPage() {
   const [stats, setStats] = useState({
     total: 0,
     pending: 0,
+    quotesReceived: 0,
     confirmed: 0,
     ongoing: 0,
     completed: 0,
+    cancelled: 0,
     totalRevenue: 0,
+  });
+
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 20,
+    total: 0,
+    totalPages: 1,
   });
 
   useEffect(() => {
@@ -235,7 +244,7 @@ export default function ServiceBookingsPage() {
       try {
         const params = new URLSearchParams({
           page: page.toString(),
-          limit: '20',
+          limit: pagination.limit.toString(),
           status: statusFilter,
         });
         const res = await fetch(`/api/admin/services/${slug}/bookings?${params}`);
@@ -248,15 +257,18 @@ export default function ServiceBookingsPage() {
             createdAt: new Date(b.createdAt).toISOString().split('T')[0],
           })));
           setStats(data.stats);
+          setPagination(data.pagination);
         } else {
           // Fallback to mock data
           setBookings(mockBookings);
           setStats({
             total: mockBookings.length,
             pending: mockBookings.filter((b) => b.status === 'PENDING').length,
+            quotesReceived: 0,
             confirmed: mockBookings.filter((b) => b.status === 'CONFIRMED').length,
             ongoing: mockBookings.filter((b) => b.status === 'ONGOING').length,
             completed: mockBookings.filter((b) => b.status === 'COMPLETED').length,
+            cancelled: mockBookings.filter((b) => b.status === 'CANCELLED').length,
             totalRevenue: mockBookings.filter((b) => b.paymentStatus === 'PAID').reduce((acc, b) => acc + b.totalAmount, 0),
           });
         }
@@ -266,9 +278,11 @@ export default function ServiceBookingsPage() {
         setStats({
           total: mockBookings.length,
           pending: mockBookings.filter((b) => b.status === 'PENDING').length,
+          quotesReceived: 0,
           confirmed: mockBookings.filter((b) => b.status === 'CONFIRMED').length,
           ongoing: mockBookings.filter((b) => b.status === 'ONGOING').length,
           completed: mockBookings.filter((b) => b.status === 'COMPLETED').length,
+          cancelled: mockBookings.filter((b) => b.status === 'CANCELLED').length,
           totalRevenue: mockBookings.filter((b) => b.paymentStatus === 'PAID').reduce((acc, b) => acc + b.totalAmount, 0),
         });
       } finally {
@@ -279,16 +293,19 @@ export default function ServiceBookingsPage() {
     if (slug) {
       fetchBookings();
     }
-  }, [slug, page, statusFilter]);
+  }, [slug, page, statusFilter, pagination.limit]);
 
-  const filteredBookings = bookings.filter((booking) => {
-    const matchesSearch =
-      booking.bookingNo.toLowerCase().includes(search.toLowerCase()) ||
-      booking.customerName.toLowerCase().includes(search.toLowerCase()) ||
-      booking.customerPhone.includes(search) ||
-      booking.vehicleName.toLowerCase().includes(search.toLowerCase());
-    return matchesSearch;
-  });
+  // Use bookings directly from API - filtering happens server-side
+  const filteredBookings = search
+    ? bookings.filter((booking) => {
+        const matchesSearch =
+          booking.bookingNo.toLowerCase().includes(search.toLowerCase()) ||
+          booking.customerName.toLowerCase().includes(search.toLowerCase()) ||
+          booking.customerPhone.includes(search) ||
+          booking.vehicleName.toLowerCase().includes(search.toLowerCase());
+        return matchesSearch;
+      })
+    : bookings;
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-IN', {
@@ -353,14 +370,18 @@ export default function ServiceBookingsPage() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
         <div className="bg-white rounded-xl p-4 border shadow-sm">
-          <p className="text-xs text-gray-500 mb-1">Total Bookings</p>
+          <p className="text-xs text-gray-500 mb-1">Total</p>
           <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
         </div>
         <div className="bg-white rounded-xl p-4 border shadow-sm">
-          <p className="text-xs text-gray-500 mb-1">Pending</p>
+          <p className="text-xs text-gray-500 mb-1">Pending Quotes</p>
           <p className="text-2xl font-bold text-yellow-600">{stats.pending}</p>
+        </div>
+        <div className="bg-white rounded-xl p-4 border shadow-sm">
+          <p className="text-xs text-gray-500 mb-1">Quotes Received</p>
+          <p className="text-2xl font-bold text-blue-600">{stats.quotesReceived}</p>
         </div>
         <div className="bg-white rounded-xl p-4 border shadow-sm">
           <p className="text-xs text-gray-500 mb-1">Confirmed</p>
@@ -373,6 +394,10 @@ export default function ServiceBookingsPage() {
         <div className="bg-white rounded-xl p-4 border shadow-sm">
           <p className="text-xs text-gray-500 mb-1">Completed</p>
           <p className="text-2xl font-bold text-green-600">{stats.completed}</p>
+        </div>
+        <div className="bg-white rounded-xl p-4 border shadow-sm">
+          <p className="text-xs text-gray-500 mb-1">Cancelled</p>
+          <p className="text-2xl font-bold text-red-600">{stats.cancelled}</p>
         </div>
         <div className="bg-white rounded-xl p-4 border shadow-sm">
           <p className="text-xs text-gray-500 mb-1">Revenue</p>
@@ -397,15 +422,29 @@ export default function ServiceBookingsPage() {
             <Filter className="w-5 h-5 text-gray-400" />
             <select
               value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
+              onChange={(e) => {
+                setStatusFilter(e.target.value);
+                setPage(1);
+              }}
               className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
             >
               <option value="ALL">All Status</option>
-              <option value="PENDING">Pending</option>
-              <option value="CONFIRMED">Confirmed</option>
-              <option value="ONGOING">Ongoing</option>
-              <option value="COMPLETED">Completed</option>
-              <option value="CANCELLED">Cancelled</option>
+              <optgroup label="Quote Stage">
+                <option value="PENDING">Pending</option>
+                <option value="PENDING_VENDOR">Pending Vendor</option>
+                <option value="BROADCASTED">Broadcasted</option>
+                <option value="QUOTES_RECEIVED">Quotes Received</option>
+                <option value="ACCEPTED">Quote Accepted</option>
+              </optgroup>
+              <optgroup label="Booking Stage">
+                <option value="CONFIRMED">Confirmed</option>
+                <option value="ONGOING">Ongoing</option>
+                <option value="IN_PROGRESS">In Progress</option>
+                <option value="COMPLETED">Completed</option>
+                <option value="CANCELLED">Cancelled</option>
+                <option value="REJECTED">Rejected</option>
+                <option value="EXPIRED">Expired</option>
+              </optgroup>
             </select>
           </div>
         </div>
@@ -515,15 +554,41 @@ export default function ServiceBookingsPage() {
         {/* Pagination */}
         {filteredBookings.length > 0 && (
           <div className="flex items-center justify-between px-6 py-4 border-t bg-gray-50">
-            <p className="text-sm text-gray-600">
-              Showing 1 to {filteredBookings.length} of {filteredBookings.length} bookings
-            </p>
+            <div className="flex items-center gap-4">
+              <p className="text-sm text-gray-600">
+                Showing {((pagination.page - 1) * pagination.limit) + 1} to {Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total} bookings
+              </p>
+              <select
+                value={pagination.limit}
+                onChange={(e) => {
+                  setPagination(prev => ({ ...prev, limit: Number(e.target.value) }));
+                  setPage(1);
+                }}
+                className="text-sm border rounded px-2 py-1"
+              >
+                <option value="20">20 per page</option>
+                <option value="50">50 per page</option>
+                <option value="100">100 per page</option>
+              </select>
+            </div>
             <div className="flex items-center gap-2">
-              <Button size="sm" variant="outline" disabled>
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={pagination.page === 1}
+                onClick={() => setPage(p => p - 1)}
+              >
                 <ChevronLeft className="w-4 h-4" />
               </Button>
-              <span className="px-3 py-1 text-sm">Page 1 of 1</span>
-              <Button size="sm" variant="outline" disabled>
+              <span className="px-3 py-1 text-sm">
+                Page {pagination.page} of {pagination.totalPages}
+              </span>
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={pagination.page >= pagination.totalPages}
+                onClick={() => setPage(p => p + 1)}
+              >
                 <ChevronRight className="w-4 h-4" />
               </Button>
             </div>
