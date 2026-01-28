@@ -1,8 +1,10 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
 import {
   ArrowLeft,
   Calendar,
@@ -17,9 +19,7 @@ import {
   XCircle,
   AlertCircle,
   Loader2,
-  Package,
   FileText,
-  Truck,
   MessageSquare,
   Download,
 } from 'lucide-react';
@@ -100,6 +100,8 @@ export default function BookingDetailPage() {
   const [service, setService] = useState<any>(null);
   const [selectedQuote, setSelectedQuote] = useState<Quote | null>(null);
   const [showQuoteModal, setShowQuoteModal] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
+  const printRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const fetchBookingDetails = async () => {
@@ -145,6 +147,65 @@ export default function BookingDetailPage() {
     });
   };
 
+  const handleDownloadPDF = async () => {
+    if (!printRef.current || isDownloading) return;
+
+    setIsDownloading(true);
+    try {
+      // Hide elements that shouldn't be in PDF
+      const elementsToHide = printRef.current.querySelectorAll('.no-print');
+      elementsToHide.forEach(el => {
+        (el as HTMLElement).style.display = 'none';
+      });
+
+      // Capture the content
+      const canvas = await html2canvas(printRef.current, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#ffffff',
+      });
+
+      // Restore hidden elements
+      elementsToHide.forEach(el => {
+        (el as HTMLElement).style.display = '';
+      });
+
+      // Create PDF
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4',
+      });
+
+      const imgWidth = 210; // A4 width in mm
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      let heightLeft = imgHeight;
+      let position = 0;
+
+      // Add first page
+      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+      heightLeft -= 297; // A4 height in mm
+
+      // Add additional pages if needed
+      while (heightLeft > 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+        heightLeft -= 297;
+      }
+
+      // Download PDF
+      pdf.save(`booking-${booking?.bookingNo || 'details'}.pdf`);
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      alert('Failed to generate PDF. Please try again.');
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -178,30 +239,7 @@ export default function BookingDetailPage() {
 
   return (
     <>
-      <style jsx global>{`
-        @media print {
-          body * {
-            visibility: hidden;
-          }
-          .print-area,
-          .print-area * {
-            visibility: visible;
-          }
-          .print-area {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 100%;
-          }
-          .no-print {
-            display: none !important;
-          }
-          @page {
-            margin: 20mm;
-          }
-        }
-      `}</style>
-      <div className="space-y-6 pb-8 print-area">
+      <div className="space-y-6 pb-8" ref={printRef}>
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
@@ -230,10 +268,20 @@ export default function BookingDetailPage() {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => window.print()}
+            onClick={handleDownloadPDF}
+            disabled={isDownloading}
           >
-            <Download className="w-4 h-4 mr-2" />
-            Download PDF
+            {isDownloading ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Generating...
+              </>
+            ) : (
+              <>
+                <Download className="w-4 h-4 mr-2" />
+                Download PDF
+              </>
+            )}
           </Button>
         </div>
       </div>
