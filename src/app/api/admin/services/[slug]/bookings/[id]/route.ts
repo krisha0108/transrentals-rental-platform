@@ -480,6 +480,7 @@ export async function GET(
             // Vendor & Driver details
             assignedVendor: booking.vendors_chauffeur_bookings_assignedVendorIdTovendors,
             acceptedVendor: booking.vendors_chauffeur_bookings_acceptedVendorIdTovendors,
+            vendor: booking.vendors_chauffeur_bookings_acceptedVendorIdTovendors || booking.vendors_chauffeur_bookings_assignedVendorIdTovendors,
             driverName: booking.driverName,
             driverPhone: booking.driverPhone,
             driverPhoto: booking.driverPhoto,
