@@ -263,31 +263,33 @@ export default function ServiceBookingsPage() {
           setStats(data.stats);
           setPagination(data.pagination);
         } else {
-          // Fallback to mock data
-          setBookings(mockBookings);
+          const errorData = await res.json();
+          console.error('API Error:', res.status, errorData);
+          // Show empty list instead of mock data
+          setBookings([]);
           setStats({
-            total: mockBookings.length,
-            pending: mockBookings.filter((b) => b.status === 'PENDING').length,
+            total: 0,
+            pending: 0,
             quotesReceived: 0,
-            confirmed: mockBookings.filter((b) => b.status === 'CONFIRMED').length,
-            ongoing: mockBookings.filter((b) => b.status === 'ONGOING').length,
-            completed: mockBookings.filter((b) => b.status === 'COMPLETED').length,
-            cancelled: mockBookings.filter((b) => b.status === 'CANCELLED').length,
-            totalRevenue: mockBookings.filter((b) => b.paymentStatus === 'PAID').reduce((acc, b) => acc + b.totalAmount, 0),
+            confirmed: 0,
+            ongoing: 0,
+            completed: 0,
+            cancelled: 0,
+            totalRevenue: 0,
           });
         }
       } catch (error) {
         console.error('Failed to fetch bookings:', error);
-        setBookings(mockBookings);
+        setBookings([]);
         setStats({
-          total: mockBookings.length,
-          pending: mockBookings.filter((b) => b.status === 'PENDING').length,
+          total: 0,
+          pending: 0,
           quotesReceived: 0,
-          confirmed: mockBookings.filter((b) => b.status === 'CONFIRMED').length,
-          ongoing: mockBookings.filter((b) => b.status === 'ONGOING').length,
-          completed: mockBookings.filter((b) => b.status === 'COMPLETED').length,
-          cancelled: mockBookings.filter((b) => b.status === 'CANCELLED').length,
-          totalRevenue: mockBookings.filter((b) => b.paymentStatus === 'PAID').reduce((acc, b) => acc + b.totalAmount, 0),
+          confirmed: 0,
+          ongoing: 0,
+          completed: 0,
+          cancelled: 0,
+          totalRevenue: 0,
         });
       } finally {
         setLoading(false);
