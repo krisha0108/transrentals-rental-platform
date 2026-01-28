@@ -22,9 +22,18 @@ async function getBookingsForService(
   switch (serviceSlug) {
     case 'bike-on-rent':
     case 'bike-rental': {
-      const where: any = {};
+      // Get all confirmed booking IDs
+      const confirmedBookings = await prisma.bike_bookings.findMany({
+        select: { quoteRequestId: true },
+      });
+      const confirmedQuoteIds = confirmedBookings.map(b => b.quoteRequestId).filter(Boolean);
+
+      // Fetch quote requests (exclude confirmed ones)
+      const quoteWhere: any = {
+        id: { notIn: confirmedQuoteIds },
+      };
       if (search) {
-        where.OR = [
+        quoteWhere.OR = [
           { requestNumber: { contains: search } },
           { customerName: { contains: search } },
           { customerPhone: { contains: search } },
@@ -32,25 +41,41 @@ async function getBookingsForService(
         ];
       }
       if (status && status !== 'ALL') {
-        where.status = status;
+        quoteWhere.status = status;
       }
 
-      const [bookings, total] = await Promise.all([
+      // Fetch confirmed bookings
+      const bookingWhere: any = {};
+      if (search) {
+        bookingWhere.OR = [
+          { bookingNumber: { contains: search } },
+          { customerName: { contains: search } },
+          { customerPhone: { contains: search } },
+          { customerEmail: { contains: search } },
+        ];
+      }
+      if (status && status !== 'ALL') {
+        bookingWhere.status = status;
+      }
+
+      const [quoteRequests, confirmedBikeBookings] = await Promise.all([
         prisma.bike_quote_requests.findMany({
-          where,
+          where: quoteWhere,
           include: {
             locations: { select: { name: true } },
             vehicle_models: { select: { name: true, sideImage: true, images: true } },
           },
           orderBy: { createdAt: 'desc' },
-          skip,
-          take: limit,
         }),
-        prisma.bike_quote_requests.count({ where }),
+        prisma.bike_bookings.findMany({
+          where: bookingWhere,
+          orderBy: { createdAt: 'desc' },
+        }),
       ]);
 
-      return {
-        bookings: bookings.map((b) => ({
+      // Merge and format both lists
+      const allBookings = [
+        ...quoteRequests.map((b) => ({
           id: b.id,
           bookingNo: b.requestNumber,
           customerName: b.customerName,
@@ -67,16 +92,55 @@ async function getBookingsForService(
           totalQuotesReceived: b.totalQuotesReceived,
           createdAt: b.createdAt,
           vehicleImage: b.vehicle_models?.sideImage || b.vehicle_models?.images?.split(',')[0] || '/images/fleet/default-bike.jpg',
+          type: 'QUOTE_REQUEST',
         })),
+        ...confirmedBikeBookings.map((b) => ({
+          id: b.id,
+          bookingNo: b.bookingNumber,
+          customerName: b.customerName,
+          customerPhone: b.customerPhone,
+          customerEmail: b.customerEmail,
+          vehicleName: b.vehicleModelName || b.vehicleCategoryName || 'Bike',
+          services_vehicle_models_subServiceIdToservices: b.vehicleCategoryName || 'Bike Rental',
+          pickupLocation: b.locationName,
+          startDate: b.pickupDate,
+          endDate: b.dropDate,
+          totalAmount: b.totalAmount || 0,
+          status: b.status,
+          paymentStatus: b.paymentStatus || 'PENDING',
+          createdAt: b.createdAt,
+          vehicleImage: '/images/fleet/default-bike.jpg',
+          type: 'CONFIRMED_BOOKING',
+        })),
+      ];
+
+      // Sort by createdAt desc
+      allBookings.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+      // Apply pagination
+      const total = allBookings.length;
+      const paginatedBookings = allBookings.slice(skip, skip + limit);
+
+      return {
+        bookings: paginatedBookings,
         total,
       };
     }
 
     case 'self-drive-car-rentals':
     case 'self-drive': {
-      const where: any = {};
+      // Get all confirmed booking IDs
+      const confirmedBookings = await prisma.self_drive_bookings.findMany({
+        select: { quoteRequestId: true },
+      });
+      const confirmedQuoteIds = confirmedBookings.map(b => b.quoteRequestId).filter(Boolean);
+
+      // Fetch quote requests (exclude confirmed ones)
+      const quoteWhere: any = {
+        id: { notIn: confirmedQuoteIds },
+      };
       if (search) {
-        where.OR = [
+        quoteWhere.OR = [
           { requestNumber: { contains: search } },
           { customerName: { contains: search } },
           { customerPhone: { contains: search } },
@@ -84,25 +148,41 @@ async function getBookingsForService(
         ];
       }
       if (status && status !== 'ALL') {
-        where.status = status;
+        quoteWhere.status = status;
       }
 
-      const [bookings, total] = await Promise.all([
+      // Fetch confirmed bookings
+      const bookingWhere: any = {};
+      if (search) {
+        bookingWhere.OR = [
+          { bookingNumber: { contains: search } },
+          { customerName: { contains: search } },
+          { customerPhone: { contains: search } },
+          { customerEmail: { contains: search } },
+        ];
+      }
+      if (status && status !== 'ALL') {
+        bookingWhere.status = status;
+      }
+
+      const [quoteRequests, confirmedSelfDriveBookings] = await Promise.all([
         prisma.self_drive_quote_requests.findMany({
-          where,
+          where: quoteWhere,
           include: {
             locations: { select: { name: true } },
             vehicle_models: { select: { name: true, sideImage: true, images: true } },
           },
           orderBy: { createdAt: 'desc' },
-          skip,
-          take: limit,
         }),
-        prisma.self_drive_quote_requests.count({ where }),
+        prisma.self_drive_bookings.findMany({
+          where: bookingWhere,
+          orderBy: { createdAt: 'desc' },
+        }),
       ]);
 
-      return {
-        bookings: bookings.map((b) => ({
+      // Merge and format both lists
+      const allBookings = [
+        ...quoteRequests.map((b) => ({
           id: b.id,
           bookingNo: b.requestNumber,
           customerName: b.customerName,
@@ -115,10 +195,40 @@ async function getBookingsForService(
           endDate: b.dropDate,
           totalAmount: b.budgetMax || 0,
           status: b.status,
-          paymentStatus: 'PENDING', // Quote requests don't have payment status yet
+          paymentStatus: 'PENDING',
           createdAt: b.createdAt,
           vehicleImage: b.vehicle_models?.sideImage || b.vehicle_models?.images?.split(',')[0] || '/images/fleet/default-car.jpg',
+          type: 'QUOTE_REQUEST',
         })),
+        ...confirmedSelfDriveBookings.map((b) => ({
+          id: b.id,
+          bookingNo: b.bookingNumber,
+          customerName: b.customerName,
+          customerPhone: b.customerPhone,
+          customerEmail: b.customerEmail,
+          vehicleName: b.vehicleModelName || b.vehicleCategoryName || 'Vehicle',
+          services_vehicle_models_subServiceIdToservices: b.vehicleCategoryName || 'Self Drive',
+          pickupLocation: b.locationName,
+          startDate: b.pickupDate,
+          endDate: b.dropDate,
+          totalAmount: b.totalAmount || 0,
+          status: b.status,
+          paymentStatus: b.paymentStatus || 'PENDING',
+          createdAt: b.createdAt,
+          vehicleImage: '/images/fleet/default-car.jpg',
+          type: 'CONFIRMED_BOOKING',
+        })),
+      ];
+
+      // Sort by createdAt desc
+      allBookings.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+      // Apply pagination
+      const total = allBookings.length;
+      const paginatedBookings = allBookings.slice(skip, skip + limit);
+
+      return {
+        bookings: paginatedBookings,
         total,
       };
     }
@@ -751,8 +861,7 @@ export async function GET(
         total,
         pending: bookings.filter(b => ['PENDING', 'PENDING_VENDOR', 'BROADCASTED'].includes(b.status)).length,
         quotesReceived: bookings.filter(b => b.status === 'QUOTES_RECEIVED').length,
-        confirmed: bookings.filter(b => ['CONFIRMED', 'ACCEPTED', 'BOOKING_CONFIRMED'].includes(b.status)).length,
-        ongoing: bookings.filter(b => ['ONGOING', 'IN_PROGRESS'].includes(b.status)).length,
+        advancePaid: bookings.filter(b => ['ADVANCE_PAID', 'DRIVER_ASSIGNED', 'VEHICLE_ASSIGNED', 'READY_FOR_TRIP', 'TRIP_READY', 'READY', 'ONGOING', 'IN_PROGRESS', 'TRIP_STARTED'].includes(b.status)).length,
         completed: bookings.filter(b => b.status === 'COMPLETED').length,
         cancelled: bookings.filter(b => ['CANCELLED', 'REJECTED', 'EXPIRED'].includes(b.status)).length,
         totalRevenue: bookings.filter(b => b.paymentStatus === 'PAID').reduce((sum, b) => sum + (b.totalAmount || 0), 0),

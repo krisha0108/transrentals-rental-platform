@@ -22,6 +22,7 @@ import {
   FileText,
   MessageSquare,
   Download,
+  Truck,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -68,8 +69,17 @@ const statusConfig: Record<string, { label: string; color: string; icon: React.C
   ACCEPTED: { label: 'Accepted', color: 'bg-green-100 text-green-800 border-green-200', icon: CheckCircle },
   CONFIRMED: { label: 'Confirmed', color: 'bg-blue-100 text-blue-800 border-blue-200', icon: CheckCircle },
   BOOKING_CONFIRMED: { label: 'Booking Confirmed', color: 'bg-green-100 text-green-800 border-green-200', icon: CheckCircle },
+  ADVANCE_PAID: { label: 'Advance Paid', color: 'bg-green-100 text-green-800 border-green-200', icon: CheckCircle },
+  REMAINING_PAID: { label: 'Remaining Paid', color: 'bg-green-100 text-green-800 border-green-200', icon: CheckCircle },
+  PAYMENT_PENDING: { label: 'Payment Pending', color: 'bg-yellow-100 text-yellow-800 border-yellow-200', icon: Clock },
+  DRIVER_ASSIGNED: { label: 'Driver Assigned', color: 'bg-blue-100 text-blue-800 border-blue-200', icon: CheckCircle },
+  VEHICLE_ASSIGNED: { label: 'Vehicle Assigned', color: 'bg-blue-100 text-blue-800 border-blue-200', icon: CheckCircle },
+  READY_FOR_TRIP: { label: 'Ready for Trip', color: 'bg-blue-100 text-blue-800 border-blue-200', icon: CheckCircle },
+  TRIP_READY: { label: 'Trip Ready', color: 'bg-blue-100 text-blue-800 border-blue-200', icon: CheckCircle },
+  READY: { label: 'Ready', color: 'bg-blue-100 text-blue-800 border-blue-200', icon: CheckCircle },
   ONGOING: { label: 'Ongoing', color: 'bg-purple-100 text-purple-800 border-purple-200', icon: Car },
   IN_PROGRESS: { label: 'In Progress', color: 'bg-purple-100 text-purple-800 border-purple-200', icon: Car },
+  TRIP_STARTED: { label: 'Trip Started', color: 'bg-purple-100 text-purple-800 border-purple-200', icon: Car },
   COMPLETED: { label: 'Completed', color: 'bg-green-100 text-green-800 border-green-200', icon: CheckCircle },
   CANCELLED: { label: 'Cancelled', color: 'bg-red-100 text-red-800 border-red-200', icon: XCircle },
   REJECTED: { label: 'Rejected', color: 'bg-red-100 text-red-800 border-red-200', icon: XCircle },
@@ -450,23 +460,29 @@ export default function BookingDetailPage() {
           </div>
 
           {/* Vendor & Driver Info (if available) */}
-          {(booking.acceptedVendor || booking.driverName) && (
+          {((booking.vendor || booking.acceptedVendor) || booking.driverName) && (
             <div className="bg-white rounded-xl p-6 border shadow-sm">
               <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
                 <Truck className="w-5 h-5" />
                 Vendor & Driver Information
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {booking.acceptedVendor && (
+                {(booking.vendor || booking.acceptedVendor) && (
                   <>
                     <div>
                       <p className="text-sm text-gray-500">Vendor</p>
-                      <p className="font-medium text-gray-900">{booking.acceptedVendor.businessName}</p>
+                      <p className="font-medium text-gray-900">{(booking.vendor || booking.acceptedVendor)?.businessName}</p>
                     </div>
                     <div>
                       <p className="text-sm text-gray-500">Vendor Phone</p>
-                      <p className="font-medium text-gray-900">{booking.acceptedVendor.phone}</p>
+                      <p className="font-medium text-gray-900">{(booking.vendor || booking.acceptedVendor)?.phone}</p>
                     </div>
+                    {(booking.vendor || booking.acceptedVendor)?.email && (
+                      <div>
+                        <p className="text-sm text-gray-500">Vendor Email</p>
+                        <p className="font-medium text-gray-900">{(booking.vendor || booking.acceptedVendor)?.email}</p>
+                      </div>
+                    )}
                   </>
                 )}
                 {booking.driverName && (
@@ -490,7 +506,7 @@ export default function BookingDetailPage() {
                 {booking.vehicle_models && (
                   <div>
                     <p className="text-sm text-gray-500">Vehicle Model</p>
-                    <p className="font-medium text-gray-900">{booking.vehicle_models}</p>
+                    <p className="font-medium text-gray-900">{typeof booking.vehicle_models === 'string' ? booking.vehicle_models : booking.vehicle_models?.name || 'N/A'}</p>
                   </div>
                 )}
               </div>

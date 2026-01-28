@@ -69,14 +69,24 @@ const IconMap: Record<string, React.ComponentType<{ className?: string }>> = {
 const statusConfig: Record<string, { label: string; color: string; icon: React.ComponentType<{ className?: string }> }> = {
   PENDING: { label: 'Pending', color: 'bg-yellow-100 text-yellow-800', icon: Clock },
   PENDING_VENDOR: { label: 'Pending Vendor', color: 'bg-yellow-100 text-yellow-800', icon: Clock },
+  PENDING_PAYMENT: { label: 'Pending Payment', color: 'bg-yellow-100 text-yellow-800', icon: Clock },
+  PAYMENT_PENDING: { label: 'Payment Pending', color: 'bg-yellow-100 text-yellow-800', icon: Clock },
   BROADCASTED: { label: 'Broadcasted', color: 'bg-blue-100 text-blue-800', icon: AlertCircle },
   QUOTES_RECEIVED: { label: 'Quotes Received', color: 'bg-blue-100 text-blue-800', icon: FileText },
   QUOTE_ACCEPTED: { label: 'Quote Accepted', color: 'bg-green-100 text-green-800', icon: CheckCircle },
   ACCEPTED: { label: 'Accepted', color: 'bg-green-100 text-green-800', icon: CheckCircle },
   CONFIRMED: { label: 'Confirmed', color: 'bg-blue-100 text-blue-800', icon: CheckCircle },
   BOOKING_CONFIRMED: { label: 'Booking Confirmed', color: 'bg-green-100 text-green-800', icon: CheckCircle },
+  ADVANCE_PAID: { label: 'Advance Paid', color: 'bg-green-100 text-green-800', icon: CheckCircle },
+  REMAINING_PAID: { label: 'Remaining Paid', color: 'bg-green-100 text-green-800', icon: CheckCircle },
+  DRIVER_ASSIGNED: { label: 'Driver Assigned', color: 'bg-blue-100 text-blue-800', icon: CheckCircle },
+  VEHICLE_ASSIGNED: { label: 'Vehicle Assigned', color: 'bg-blue-100 text-blue-800', icon: CheckCircle },
+  READY_FOR_TRIP: { label: 'Ready for Trip', color: 'bg-blue-100 text-blue-800', icon: CheckCircle },
+  TRIP_READY: { label: 'Trip Ready', color: 'bg-blue-100 text-blue-800', icon: CheckCircle },
+  READY: { label: 'Ready', color: 'bg-blue-100 text-blue-800', icon: CheckCircle },
   ONGOING: { label: 'Ongoing', color: 'bg-purple-100 text-purple-800', icon: Car },
   IN_PROGRESS: { label: 'In Progress', color: 'bg-purple-100 text-purple-800', icon: Car },
+  TRIP_STARTED: { label: 'Trip Started', color: 'bg-purple-100 text-purple-800', icon: Car },
   COMPLETED: { label: 'Completed', color: 'bg-green-100 text-green-800', icon: CheckCircle },
   CANCELLED: { label: 'Cancelled', color: 'bg-red-100 text-red-800', icon: XCircle },
   REJECTED: { label: 'Rejected', color: 'bg-red-100 text-red-800', icon: XCircle },
@@ -415,12 +425,8 @@ export default function ServiceBookingsPage() {
           <p className="text-2xl font-bold text-blue-600">{stats.quotesReceived}</p>
         </div>
         <div className="bg-white rounded-xl p-4 border shadow-sm">
-          <p className="text-xs text-gray-500 mb-1">Confirmed</p>
-          <p className="text-2xl font-bold text-blue-600">{stats.confirmed}</p>
-        </div>
-        <div className="bg-white rounded-xl p-4 border shadow-sm">
-          <p className="text-xs text-gray-500 mb-1">Ongoing</p>
-          <p className="text-2xl font-bold text-purple-600">{stats.ongoing}</p>
+          <p className="text-xs text-gray-500 mb-1">Advance Paid</p>
+          <p className="text-2xl font-bold text-green-600">{stats.advancePaid || 0}</p>
         </div>
         <div className="bg-white rounded-xl p-4 border shadow-sm">
           <p className="text-xs text-gray-500 mb-1">Completed</p>
