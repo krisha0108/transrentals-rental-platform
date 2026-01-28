@@ -242,6 +242,25 @@ export default function ServiceBookingsPage() {
     totalPages: 1,
   });
 
+  // Fetch ALL stats once on mount (without filter)
+  useEffect(() => {
+    const fetchAllStats = async () => {
+      try {
+        const res = await fetch(`/api/admin/services/${slug}/bookings?page=1&limit=1&status=ALL`);
+        if (res.ok) {
+          const data = await res.json();
+          setStats(data.stats);
+        }
+      } catch (error) {
+        console.error('Failed to fetch stats:', error);
+      }
+    };
+
+    if (slug) {
+      fetchAllStats();
+    }
+  }, [slug]);
+
   useEffect(() => {
     const fetchBookings = async () => {
       setLoading(true);
@@ -252,15 +271,21 @@ export default function ServiceBookingsPage() {
           status: statusFilter,
         });
         const res = await fetch(`/api/admin/services/${slug}/bookings?${params}`);
+        console.log('API Request:', `/api/admin/services/${slug}/bookings?${params}`);
         if (res.ok) {
           const data = await res.json();
+          console.log('API Response:', {
+            bookingsCount: data.bookings.length,
+            statuses: data.bookings.map((b: any) => b.status),
+            pagination: data.pagination
+          });
           setBookings(data.bookings.map((b: any) => ({
             ...b,
             startDate: new Date(b.startDate).toISOString().split('T')[0],
             endDate: new Date(b.endDate).toISOString().split('T')[0],
             createdAt: new Date(b.createdAt).toISOString().split('T')[0],
           })));
-          setStats(data.stats);
+          // Don't update stats - keep them fixed
           setPagination(data.pagination);
         } else {
           const errorData = await res.json();
