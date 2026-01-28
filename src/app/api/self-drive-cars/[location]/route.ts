@@ -106,36 +106,29 @@ export async function GET(
       ? { brands: { slug: brandSlug } }
       : {};
 
-    // Get all vehicle models for cars with their vendor fleets at this location
+    // Check if self-drive service is available in this location
+    const serviceLocation = await prisma.service_locations.findFirst({
+      where: {
+        serviceId: carService.id,
+        locationId: locationData.id,
+        isActive: true,
+      },
+    });
+
+    if (!serviceLocation) {
+      return NextResponse.json(
+        { error: 'Self-drive car rental service not available in this location' },
+        { status: 404 }
+      );
+    }
+
+    // Get all vehicle models for cars (admin models) - no dependency on vendor fleets
     const vehicleModels = await prisma.vehicle_models.findMany({
       where: {
         serviceId: carService.id,
         isActive: true,
         ...categoryFilter,
         ...brandFilter,
-        // Has at least one vendor fleet at this location
-        vendor_fleets: {
-          some: {
-            isActive: true,
-            isAvailable: true,
-            OR: [
-              {
-                vendor_fleet_locations: {
-                  some: {
-                    locationId: locationData.id,
-                    isActive: true,
-                  },
-                },
-              },
-              // Also include fleet with no location restrictions
-              {
-                vendor_fleet_locations: {
-                  none: {},
-                },
-              },
-            ],
-          },
-        },
       },
       include: {
         brands: {
@@ -153,110 +146,101 @@ export async function GET(
             slug: true,
           },
         },
-        vendor_fleets: {
+        vehicle_model_locations: {
           where: {
+            locationId: locationData.id,
             isActive: true,
-            isAvailable: true,
-            OR: [
-              {
-                vendor_fleet_locations: {
-                  some: {
-                    locationId: locationData.id,
-                    isActive: true,
-                  },
-                },
-              },
-              {
-                vendor_fleet_locations: {
-                  none: {},
-                },
-              },
-            ],
           },
-          include: {
-            vendors: {
-              select: {
-                id: true,
-                businessName: true,
-                status: true,
-              },
-            },
-            fleet_pricing: {
-              where: {
-                priceType: 'PER_DAY',
-              },
-              select: {
-                basePrice: true,
-                perDayRate: true,
-                kmLimitPerDay: true,
-                extraKmCharge: true,
-                deposit: true,
-              },
-            },
-          },
+          select: {
+            basePricePerDay: true,
+          }
         },
       },
+      orderBy: [{ displayOrder: 'asc' }, { name: 'asc' }],
     });
 
-    // Aggregate the data
-    const aggregatedCars: AggregatedCar[] = vehicleModels
-      .map((model) => {
-        const vendorPricesRaw = model.vendor_fleets
-          .map((fleet) => {
-            // Get the daily rate from pricing
-            const pricing = fleet.fleet_pricing[0];
-            const dailyRate = pricing?.perDayRate || pricing?.basePrice || 0;
+    // Aggregate the data from admin vehicle models
+    const aggregatedCars: AggregatedCar[] = [];
 
-            if (dailyRate <= 0) return null;
+    for (const model of vehicleModels) {
+      // Use admin's pricing from vehicle_model_locations (if exists) or vehicle_models table
+      const locationSpecificPrice = model.vehicle_model_locations[0]?.basePricePerDay;
+      const basePrice = locationSpecificPrice || model.basePricePerDay || 0;
 
-            const price: VendorPrice = {
-              vendorId: fleet.vendors.id,
-              vendorName: fleet.vendors.businessName || 'Unknown Vendor',
-              vendorFleetId: fleet.id,
-              dailyRate,
-              deposit: pricing?.deposit || 0,
-              isVerified: fleet.vendors.status === 'APPROVED',
-            };
-            if (pricing?.kmLimitPerDay) price.kmLimitPerDay = pricing.kmLimitPerDay;
-            if (pricing?.extraKmCharge) price.extraKmCharge = pricing.extraKmCharge;
-            return price;
-          });
+      if (basePrice <= 0) {
+        console.log(`[Self-Drive API] Skipping ${model.name} - no base price set`);
+        continue;
+      }
 
-        const vendorPrices = vendorPricesRaw
-          .filter((v): v is VendorPrice => v !== null)
-          .sort((a, b) => a.dailyRate - b.dailyRate);
+      // Count how many vendors have added this car model at this location
+      // (Only count, don't fetch pricing - we only show admin price)
+      const vendorFleetCount = await prisma.vendor_fleets.count({
+        where: {
+          vehicleModelId: model.id,
+          isActive: true,
+          isAvailable: true,
+          vendors: {
+            status: 'APPROVED', // Only count approved vendors
+          },
+          OR: [
+            {
+              vendor_fleet_locations: {
+                some: {
+                  locationId: locationData.id,
+                  isActive: true,
+                },
+              },
+            },
+            {
+              vendor_fleet_locations: {
+                none: {}, // Vendor available everywhere
+              },
+            },
+          ],
+        },
+      });
 
-        if (vendorPrices.length === 0) return null;
+      // Display vendor count: Minimum 1 (even if 0 vendors added)
+      // If 0 vendors added → show 1
+      // If 1 vendor added → show 1
+      // If 2 vendors added → show 2
+      const displayVendorCount = Math.max(1, vendorFleetCount);
 
-        const prices = vendorPrices.map((v) => v.dailyRate);
-        const lowestPrice = Math.min(...prices);
-        const highestPrice = Math.max(...prices);
+      // Only admin price is shown to customer (no vendor pricing)
+      const adminVendorPrice: VendorPrice = {
+        vendorId: 'admin',
+        vendorName: 'TransRentals',
+        vendorFleetId: model.id,
+        dailyRate: basePrice,
+        deposit: 0,
+        isVerified: true,
+      };
 
-        const car: AggregatedCar = {
-          id: model.id,
-          name: model.name,
-          slug: model.slug,
-          brandId: model.brands?.id || '',
-          brandName: model.brands?.name || 'Unknown',
-          lowestPrice,
-          highestPrice,
-          vendorCount: vendorPrices.length,
-          vendorPrices,
-        };
-        if (model.brands?.logo) car.brandLogo = model.brands.logo;
-        if (model.services_vehicle_models_subServiceIdToservices?.id) car.categoryId = model.services_vehicle_models_subServiceIdToservices.id;
-        if (model.services_vehicle_models_subServiceIdToservices?.name) car.categoryName = model.services_vehicle_models_subServiceIdToservices.name;
-        if (model.sideImage) car.sideImage = model.sideImage;
-        if (model.fuelType) car.fuelType = model.fuelType;
-        if (model.transmission) car.transmission = model.transmission;
-        if (model.engineCC) car.engineCC = model.engineCC;
-        if (model.mileage) car.mileage = model.mileage;
-        if (model.seatingCapacity) car.seatingCapacity = model.seatingCapacity;
-        if (model.features) car.features = parseJsonField<string[]>(model.features, []);
-        if (model.specs) car.specs = parseJsonField<Record<string, unknown>>(model.specs, {});
-        return car;
-      })
-      .filter((c): c is AggregatedCar => c !== null);
+      const car: AggregatedCar = {
+        id: model.id,
+        name: model.name,
+        slug: model.slug,
+        brandId: model.brands?.id || '',
+        brandName: model.brands?.name || 'Unknown',
+        lowestPrice: basePrice, // Always admin's price
+        highestPrice: basePrice, // Always admin's price
+        vendorCount: displayVendorCount, // Minimum 1, or actual vendor count
+        vendorPrices: [adminVendorPrice], // Only admin price shown
+      };
+      if (model.brands?.logo) car.brandLogo = model.brands.logo;
+      if (model.services_vehicle_models_subServiceIdToservices?.id) car.categoryId = model.services_vehicle_models_subServiceIdToservices.id;
+      if (model.services_vehicle_models_subServiceIdToservices?.name) car.categoryName = model.services_vehicle_models_subServiceIdToservices.name;
+      if (model.sideImage) car.sideImage = model.sideImage;
+      if (model.fuelType) car.fuelType = model.fuelType;
+      if (model.transmission) car.transmission = model.transmission;
+      if (model.engineCC) car.engineCC = model.engineCC;
+      if (model.mileage) car.mileage = model.mileage;
+      if (model.seatingCapacity) car.seatingCapacity = model.seatingCapacity;
+      if (model.features) car.features = parseJsonField<string[]>(model.features, []);
+      if (model.specs) car.specs = parseJsonField<Record<string, unknown>>(model.specs, {});
+
+      aggregatedCars.push(car);
+    }
 
     // Apply price filters
     let filteredCars = aggregatedCars;
