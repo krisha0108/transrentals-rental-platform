@@ -44,7 +44,7 @@ export default function MyTruckBookingsScreen() {
         setBookings(response.bookings || []);
       }
     } catch (err) {
-      console.error('Error fetching truck bookings:', err);
+      console.log('Error fetching truck bookings:', err);
     } finally {
       setLoading(false);
       setRefreshing(false);

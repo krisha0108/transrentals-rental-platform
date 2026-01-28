@@ -43,6 +43,12 @@ export default function MyBikeBookingsScreen() {
       const customerData = await AsyncStorage.getItem('customer');
       const customer = customerData ? JSON.parse(customerData) : {};
 
+      console.log('📱 Fetching with params:', {
+        customerId,
+        phone: customer.phone,
+        email: customer.email,
+      });
+
       // Fetch quote requests
       const quoteRes = await api.get('/bike-quote-requests', {
         params: { customerId, phone: customer.phone, email: customer.email }
@@ -55,11 +61,14 @@ export default function MyBikeBookingsScreen() {
       const bookingRes = await api.get('/bike-bookings', {
         params: { customerId, phone: customer.phone, email: customer.email }
       });
+      console.log('🚴 Bike Bookings Response:', bookingRes.data);
+      console.log('🚴 Bookings Array:', bookingRes.data.bookings);
+      console.log('🚴 Bookings Count:', bookingRes.data.bookings?.length || 0);
       if (bookingRes.data.success) {
         setBookings(bookingRes.data.bookings || []);
       }
     } catch (err) {
-      console.error('Error fetching data:', err);
+      console.log('Error fetching data:', err);
     } finally {
       setLoading(false);
       setRefreshing(false);

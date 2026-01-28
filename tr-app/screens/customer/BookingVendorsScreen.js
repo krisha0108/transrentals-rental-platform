@@ -18,7 +18,7 @@
 //       });
 //       setVendors(res.data);
 //     } catch (error) {
-//       console.error('Error fetching vendors:', error);
+//       console.log('Error fetching vendors:', error);
 //     }
 //   };
 
@@ -97,7 +97,7 @@ export default function BookingVendorsScreen({ route, navigation }) {
       setVendors(res.data);
       
     } catch (error) {
-      console.error('Error fetching vendors:', error);
+      console.log('Error fetching vendors:', error);
     } finally {
       setLoading(false);
     }

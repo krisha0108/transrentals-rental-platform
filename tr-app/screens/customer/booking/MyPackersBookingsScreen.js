@@ -44,7 +44,7 @@ export default function MyPackersBookingsScreen() {
         setBookings(response.bookings || []);
       }
     } catch (err) {
-      console.error('Error fetching packers bookings:', err);
+      console.log('Error fetching packers bookings:', err);
     } finally {
       setLoading(false);
       setRefreshing(false);

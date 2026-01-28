@@ -52,7 +52,7 @@
 //         flatListRef.current?.scrollToEnd({ animated: true });
 //       }, 100);
 //     } catch (error) {
-//       console.error('[fetchMessages] Error fetching messages:', error);
+//       console.log('[fetchMessages] Error fetching messages:', error);
 //     }
 //   };
 
@@ -88,7 +88,7 @@
 //               data = JSON.parse(event);
 //               console.log('[Pusher] Parsed event string JSON:', data);
 //             } catch (e) {
-//               console.error('[Pusher] Failed to parse event string:', e);
+//               console.log('[Pusher] Failed to parse event string:', e);
 //               return;
 //             }
 //           } else if (event.data) {
@@ -96,7 +96,7 @@
 //               data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
 //               console.log('[Pusher] Parsed event.data JSON:', data);
 //             } catch (e) {
-//               console.error('[Pusher] Failed to parse event.data:', e);
+//               console.log('[Pusher] Failed to parse event.data:', e);
 //               return;
 //             }
 //           } else {
@@ -123,7 +123,7 @@
 //       });
 //       console.log('[setupPusher] Subscribed to channel:', channel.channelName);
 //     } catch (error) {
-//       console.error('[setupPusher] Pusher setup error:', error);
+//       console.log('[setupPusher] Pusher setup error:', error);
 //     }
 //   };
 
@@ -151,7 +151,7 @@
 //       setInput('');
 //       flatListRef.current.scrollToEnd({ animated: true });
 //     } catch (error) {
-//       console.error('[sendMessage] Error sending message:', error);
+//       console.log('[sendMessage] Error sending message:', error);
 //     }
 //   };
 
@@ -346,7 +346,7 @@ export default function ChatScreen({ route, navigation }) {
         flatListRef.current?.scrollToEnd({ animated: true });
       }, 100);
     } catch (error) {
-      console.error('[fetchMessages] Error fetching messages:', error);
+      console.log('[fetchMessages] Error fetching messages:', error);
     } finally {
     setLoading(false); // ← Stop loading
   }
@@ -415,7 +415,7 @@ const SkeletonBubble = ({ isRight, index }) => {
               data = JSON.parse(event);
               console.log('[Pusher] Parsed event string JSON:', data);
             } catch (e) {
-              console.error('[Pusher] Failed to parse event string:', e);
+              console.log('[Pusher] Failed to parse event string:', e);
               return;
             }
           } else if (event.data) {
@@ -423,7 +423,7 @@ const SkeletonBubble = ({ isRight, index }) => {
               data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
               console.log('[Pusher] Parsed event.data JSON:', data);
             } catch (e) {
-              console.error('[Pusher] Failed to parse event.data:', e);
+              console.log('[Pusher] Failed to parse event.data:', e);
               return;
             }
           } else {
@@ -450,7 +450,7 @@ const SkeletonBubble = ({ isRight, index }) => {
       });
       console.log('[setupPusher] Subscribed to channel:', channel.channelName);
     } catch (error) {
-      console.error('[setupPusher] Pusher setup error:', error);
+      console.log('[setupPusher] Pusher setup error:', error);
     }
   };
 
@@ -478,7 +478,7 @@ const SkeletonBubble = ({ isRight, index }) => {
       setInput('');
       flatListRef.current.scrollToEnd({ animated: true });
     } catch (error) {
-      console.error('[sendMessage] Error sending message:', error);
+      console.log('[sendMessage] Error sending message:', error);
     }
   };
 

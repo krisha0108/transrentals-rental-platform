@@ -285,7 +285,7 @@ const BookingDetails = () => {
         }
       }
     } catch (err) {
-      console.error('❌ Booking fetch error:', err);
+      console.log('❌ Booking fetch error:', err);
     } finally {
       setLoading(false);
     }
@@ -340,7 +340,7 @@ const BookingDetails = () => {
         }
       })
       .catch((err) => {
-        console.error('Error calling driver:', err);
+        console.log('Error calling driver:', err);
         Alert.alert('Error', 'Failed to open phone dialer');
       });
   };
@@ -355,7 +355,7 @@ const BookingDetails = () => {
         title: 'TransRentals Booking'
       });
     } catch (error) {
-      console.error('Error sharing:', error);
+      console.log('Error sharing:', error);
     }
   };
 

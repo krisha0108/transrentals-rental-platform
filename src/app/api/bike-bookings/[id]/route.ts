@@ -36,7 +36,7 @@ export async function GET(
             phone: true,
           },
         },
-        acceptedQuote: {
+        bike_quotes: {
           select: {
             id: true,
             quoteNumber: true,
@@ -157,19 +157,19 @@ export async function GET(
           phone: booking.vendors_bike_bookings_assignedVendorIdTovendors.phone,
         } : null,
         // Quote details
-        quote: booking.acceptedQuote ? {
-          id: booking.acceptedQuote.id,
-          quoteNumber: booking.acceptedQuote.quoteNumber,
-          vehicleFeatures: booking.acceptedQuote.vehicleFeatures,
-          registrationNumber: booking.acceptedQuote.registrationNumber,
-          helmetsIncluded: booking.acceptedQuote.helmetsIncluded,
-          kmLimitPerDay: booking.acceptedQuote.kmLimitPerDay,
-          extraKmCharge: booking.acceptedQuote.extraKmCharge,
-          inclusions: booking.acceptedQuote.inclusions,
-          exclusions: booking.acceptedQuote.exclusions,
-          termsConditions: booking.acceptedQuote.termsConditions,
-          vendorMessage: booking.acceptedQuote.vendorMessage,
-          advancePercent: booking.acceptedQuote.advancePercent,
+        quote: booking.bike_quotes ? {
+          id: booking.bike_quotes.id,
+          quoteNumber: booking.bike_quotes.quoteNumber,
+          vehicleFeatures: booking.bike_quotes.vehicleFeatures,
+          registrationNumber: booking.bike_quotes.registrationNumber,
+          helmetsIncluded: booking.bike_quotes.helmetsIncluded,
+          kmLimitPerDay: booking.bike_quotes.kmLimitPerDay,
+          extraKmCharge: booking.bike_quotes.extraKmCharge,
+          inclusions: booking.bike_quotes.inclusions,
+          exclusions: booking.bike_quotes.exclusions,
+          termsConditions: booking.bike_quotes.termsConditions,
+          vendorMessage: booking.bike_quotes.vendorMessage,
+          advancePercent: booking.bike_quotes.advancePercent,
         } : null,
         responseDeadline: booking.responseDeadline,
         broadcastedAt: booking.broadcastedAt,

@@ -68,10 +68,10 @@
 //         setExpenses(res.data.expenses);
 //         setFilteredExpenses(res.data.expenses);
 //       } else {
-//         console.error('Error:', res.data.message);
+//         console.log('Error:', res.data.message);
 //       }
 //     } catch (error) {
-//       console.error('Error fetching expenses:', error);
+//       console.log('Error fetching expenses:', error);
 //     } finally {
 //       setLoading(false);
 //     }
@@ -661,10 +661,10 @@ export default function ExpensesScreen() {
         setExpenses(sortedExpenses);
         setFilteredExpenses(sortedExpenses);
       } else {
-        console.error('Error:', res.data.message);
+        console.log('Error:', res.data.message);
       }
     } catch (error) {
-      console.error('Error fetching expenses:', error);
+      console.log('Error fetching expenses:', error);
     } finally {
       setLoading(false);
     }

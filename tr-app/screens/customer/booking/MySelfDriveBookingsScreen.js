@@ -43,6 +43,12 @@ export default function MySelfDriveBookingsScreen() {
       const customerData = await AsyncStorage.getItem('customer');
       const customer = customerData ? JSON.parse(customerData) : {};
 
+      console.log('🚗 Fetching Self-Drive data with:', {
+        customerId,
+        phone: customer.phone,
+        email: customer.email,
+      });
+
       // Fetch quote requests
       const quoteRes = await fleetService.getSelfDriveQuoteRequests({
         customerId,
@@ -59,11 +65,16 @@ export default function MySelfDriveBookingsScreen() {
         phone: customer.phone,
         email: customer.email
       });
+      console.log('🚗 Self-Drive Bookings Result:', {
+        success: bookingRes.success,
+        bookingsCount: bookingRes.bookings?.length || 0,
+        bookings: bookingRes.bookings,
+      });
       if (bookingRes.success) {
         setBookings(bookingRes.bookings || []);
       }
     } catch (err) {
-      console.error('Error fetching data:', err);
+      console.log('Error fetching data:', err);
     } finally {
       setLoading(false);
       setRefreshing(false);

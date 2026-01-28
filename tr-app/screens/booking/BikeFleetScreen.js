@@ -383,9 +383,9 @@ const BikeFleetScreen = () => {
     return `${BASE_URL}${imagePath.startsWith('/') ? '' : '/'}${imagePath}`;
   };
 
-  const renderBikeCard = ({ item }) => (
+  const renderBikeCard = ({ item, index }) => (
     <TouchableOpacity
-      style={styles.bikeCard}
+      style={[styles.bikeCard, index % 2 === 0 ? styles.bikeCardLeft : styles.bikeCardRight]}
       onPress={() => openBookingModal(item)}
       activeOpacity={0.7}
     >
@@ -398,44 +398,39 @@ const BikeFleetScreen = () => {
           />
         ) : (
           <View style={styles.noImagePlaceholder}>
-            <Ionicons name="bicycle" size={60} color="#ccc" />
+            <Ionicons name="bicycle" size={50} color="#ccc" />
           </View>
         )}
         {item.vendorCount > 1 && (
           <View style={styles.vendorBadge}>
-            <Text style={styles.vendorBadgeText}>{item.vendorCount} Vendors</Text>
+            <Text style={styles.vendorBadgeText}>{item.vendorCount}</Text>
           </View>
         )}
       </View>
 
       <View style={styles.bikeInfo}>
-        <Text style={styles.bikeBrand}>{item.brandName}</Text>
-        <Text style={styles.bikeName}>{item.name}</Text>
+        <Text style={styles.bikeBrand} numberOfLines={1}>{item.brandName}</Text>
+        <Text style={styles.bikeName} numberOfLines={2}>{item.name}</Text>
 
         <View style={styles.bikeSpecs}>
           {item.engineCC && (
             <View style={styles.specItem}>
-              <Ionicons name="speedometer-outline" size={14} color="#666" />
+              <Ionicons name="speedometer-outline" size={12} color="#666" />
               <Text style={styles.specText}>{item.engineCC}cc</Text>
             </View>
           )}
           {item.fuelType && (
             <View style={styles.specItem}>
-              <Ionicons name="water-outline" size={14} color="#666" />
+              <Ionicons name="water-outline" size={12} color="#666" />
               <Text style={styles.specText}>{item.fuelType}</Text>
-            </View>
-          )}
-          {item.transmission && (
-            <View style={styles.specItem}>
-              <Ionicons name="cog-outline" size={14} color="#666" />
-              <Text style={styles.specText}>{item.transmission}</Text>
             </View>
           )}
         </View>
 
-        <View style={styles.priceRow}>
-          <Text style={styles.priceLabel}>Starting from</Text>
-          <Text style={styles.price}>₹{item.lowestPrice}/day</Text>
+        <View style={styles.priceContainer}>
+          <Text style={styles.priceLabel}>From</Text>
+          <Text style={styles.price}>₹{item.lowestPrice}</Text>
+          <Text style={styles.pricePer}>/day</Text>
         </View>
 
         <TouchableOpacity
@@ -644,7 +639,7 @@ const BikeFleetScreen = () => {
       <View style={styles.modalOverlay}>
         <View style={styles.bookingModal}>
           <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Book {selectedBike?.name}</Text>
+            <Text style={styles.modalTitle}>{selectedBike?.name}</Text>
             <TouchableOpacity onPress={() => setShowBookingModal(false)}>
               <Ionicons name="close" size={24} color="#333" />
             </TouchableOpacity>
@@ -672,6 +667,42 @@ const BikeFleetScreen = () => {
                 {selectedBike?.brandName} {selectedBike?.name}
               </Text>
 
+              {/* Bike Specifications */}
+              <View style={styles.modalSpecsContainer}>
+                {selectedBike?.engineCC && (
+                  <View style={styles.modalSpecCard}>
+                    <Ionicons name="speedometer-outline" size={24} color="#09B368" />
+                    <Text style={styles.modalSpecValue}>{selectedBike.engineCC}cc</Text>
+                    <Text style={styles.modalSpecLabel}>Engine</Text>
+                  </View>
+                )}
+                {selectedBike?.fuelType && (
+                  <View style={styles.modalSpecCard}>
+                    <Ionicons name="water-outline" size={24} color="#09B368" />
+                    <Text style={styles.modalSpecValue}>{selectedBike.fuelType}</Text>
+                    <Text style={styles.modalSpecLabel}>Fuel Type</Text>
+                  </View>
+                )}
+                {selectedBike?.transmission && (
+                  <View style={styles.modalSpecCard}>
+                    <Ionicons name="cog-outline" size={24} color="#09B368" />
+                    <Text style={styles.modalSpecValue}>{selectedBike.transmission}</Text>
+                    <Text style={styles.modalSpecLabel}>Transmission</Text>
+                  </View>
+                )}
+              </View>
+
+              {/* Price Info */}
+              <View style={styles.modalPriceCard}>
+                <Text style={styles.modalPriceLabel}>Starting Price</Text>
+                <Text style={styles.modalPrice}>₹{selectedBike?.lowestPrice}/day</Text>
+                <Text style={styles.modalPriceHint}>
+                  {selectedBike?.vendorCount || 0} vendor{selectedBike?.vendorCount > 1 ? 's' : ''} available
+                </Text>
+              </View>
+
+              {/* Rental Duration */}
+              <Text style={styles.sectionTitle}>Rental Duration</Text>
               <View style={styles.bookingDateRow}>
                 <View style={styles.bookingDateItem}>
                   <Ionicons name="calendar-outline" size={18} color="#09B368" />
@@ -689,86 +720,17 @@ const BikeFleetScreen = () => {
               </View>
 
               <View style={styles.durationBox}>
+                <Ionicons name="time-outline" size={16} color="#09B368" style={{ marginRight: 6 }} />
                 <Text style={styles.durationText}>
                   {calculateDays()} Day{calculateDays() > 1 ? 's' : ''} Rental
                 </Text>
               </View>
             </View>
-
-            {/* Vendor Selection */}
-            <Text style={styles.sectionTitle}>Select Vendor</Text>
-            {selectedBike?.vendorPrices?.map((vendor, index) => (
-              <TouchableOpacity
-                key={vendor.vendorId}
-                style={[
-                  styles.vendorCard,
-                  selectedVendor?.vendorId === vendor.vendorId && styles.vendorCardSelected,
-                ]}
-                onPress={() => setSelectedVendor(vendor)}
-              >
-                <View style={styles.vendorInfo}>
-                  <Text style={styles.vendorName}>{vendor.vendorName}</Text>
-                  {vendor.isVerified && (
-                    <View style={styles.verifiedBadge}>
-                      <Ionicons name="checkmark-circle" size={14} color="#09B368" />
-                      <Text style={styles.verifiedText}>Verified</Text>
-                    </View>
-                  )}
-                  {vendor.rating && (
-                    <View style={styles.ratingBadge}>
-                      <Ionicons name="star" size={12} color="#f39c12" />
-                      <Text style={styles.ratingText}>{vendor.rating.toFixed(1)}</Text>
-                    </View>
-                  )}
-                </View>
-                <View style={styles.vendorPriceInfo}>
-                  <Text style={styles.vendorPrice}>₹{vendor.dailyRate}/day</Text>
-                  {vendor.deposit > 0 && (
-                    <Text style={styles.depositText}>+ ₹{vendor.deposit} deposit</Text>
-                  )}
-                </View>
-                {index === 0 && (
-                  <View style={styles.lowestPriceBadge}>
-                    <Text style={styles.lowestPriceText}>Lowest Price</Text>
-                  </View>
-                )}
-              </TouchableOpacity>
-            ))}
-
-            {/* Price Breakdown */}
-            {selectedVendor && (
-              <View style={styles.priceBreakdown}>
-                <Text style={styles.sectionTitle}>Price Breakdown</Text>
-                <View style={styles.priceRow2}>
-                  <Text style={styles.priceLabel2}>
-                    ₹{selectedVendor.dailyRate} x {calculateDays()} days
-                  </Text>
-                  <Text style={styles.priceValue}>
-                    ₹{selectedVendor.dailyRate * calculateDays()}
-                  </Text>
-                </View>
-                {selectedVendor.deposit > 0 && (
-                  <View style={styles.priceRow2}>
-                    <Text style={styles.priceLabel2}>Security Deposit (Refundable)</Text>
-                    <Text style={styles.priceValue}>₹{selectedVendor.deposit}</Text>
-                  </View>
-                )}
-                <View style={[styles.priceRow2, styles.totalRow]}>
-                  <Text style={styles.totalLabel}>Total</Text>
-                  <Text style={styles.totalValue}>
-                    ₹{Math.round(
-                      selectedVendor.dailyRate * calculateDays() +
-                      (selectedVendor.deposit || 0)
-                    )}
-                  </Text>
-                </View>
-              </View>
-            )}
           </ScrollView>
 
           <View style={styles.bookingActions}>
             <Text style={styles.quoteHint}>
-              Vendors will send you quotes. You can compare and choose the best one.
+              Your request will be sent to all available vendors. They will send you quotes to compare.
             </Text>
             <TouchableOpacity
               style={[styles.confirmBookingBtn, bookingLoading && styles.disabledBtn]}
@@ -778,7 +740,10 @@ const BikeFleetScreen = () => {
               {bookingLoading ? (
                 <ActivityIndicator color="#fff" />
               ) : (
-                <Text style={styles.confirmBookingBtnText}>Request Quotes</Text>
+                <>
+                  <Ionicons name="paper-plane-outline" size={18} color="#fff" style={{ marginRight: 8 }} />
+                  <Text style={styles.confirmBookingBtnText}>Request Quotes from All Vendors</Text>
+                </>
               )}
             </TouchableOpacity>
           </View>
@@ -913,6 +878,7 @@ const BikeFleetScreen = () => {
               data={bikes}
               renderItem={renderBikeCard}
               keyExtractor={item => item.id}
+              numColumns={2}
               contentContainerStyle={styles.bikesList}
               showsVerticalScrollIndicator={false}
               refreshControl={
@@ -1069,16 +1035,23 @@ const styles = StyleSheet.create({
   bikeCard: {
     backgroundColor: '#fff',
     borderRadius: 12,
-    marginBottom: 16,
+    marginBottom: 12,
     overflow: 'hidden',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
+    shadowOpacity: 0.08,
     shadowRadius: 8,
-    elevation: 2,
+    elevation: 3,
+    flex: 1,
+  },
+  bikeCardLeft: {
+    marginRight: 6,
+  },
+  bikeCardRight: {
+    marginLeft: 6,
   },
   bikeImageContainer: {
-    height: 160,
+    height: 140,
     backgroundColor: '#f8f8f8',
     position: 'relative',
   },
@@ -1094,77 +1067,84 @@ const styles = StyleSheet.create({
   },
   vendorBadge: {
     position: 'absolute',
-    top: 10,
-    right: 10,
+    top: 8,
+    right: 8,
     backgroundColor: '#09B368',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: 10,
+    minWidth: 24,
+    alignItems: 'center',
   },
   vendorBadgeText: {
     color: '#fff',
-    fontSize: 11,
-    fontWeight: '600',
+    fontSize: 10,
+    fontWeight: '700',
   },
   bikeInfo: {
-    padding: 14,
+    padding: 10,
   },
   bikeBrand: {
-    fontSize: 12,
+    fontSize: 10,
     color: '#999',
     textTransform: 'uppercase',
-    letterSpacing: 1,
+    letterSpacing: 0.5,
   },
   bikeName: {
-    fontSize: 18,
+    fontSize: 14,
     fontWeight: '600',
     color: '#333',
     marginTop: 2,
+    minHeight: 36,
   },
   bikeSpecs: {
-    flexDirection: 'row',
-    marginTop: 8,
-    flexWrap: 'wrap',
+    flexDirection: 'column',
+    marginTop: 6,
+    marginBottom: 8,
   },
   specItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginRight: 12,
-    marginBottom: 4,
+    marginBottom: 3,
   },
   specText: {
-    fontSize: 12,
+    fontSize: 11,
     color: '#666',
     marginLeft: 4,
   },
-  priceRow: {
+  priceContainer: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: 12,
-    paddingTop: 12,
+    alignItems: 'baseline',
+    marginTop: 8,
+    paddingTop: 8,
     borderTopWidth: 1,
     borderTopColor: '#f0f0f0',
   },
   priceLabel: {
-    fontSize: 12,
+    fontSize: 10,
     color: '#999',
+    marginRight: 4,
   },
   price: {
-    fontSize: 20,
+    fontSize: 16,
     fontWeight: '700',
     color: '#09B368',
   },
+  pricePer: {
+    fontSize: 10,
+    color: '#999',
+    marginLeft: 2,
+  },
   bookBtn: {
     backgroundColor: '#09B368',
-    borderRadius: 8,
-    paddingVertical: 12,
+    borderRadius: 6,
+    paddingVertical: 8,
     alignItems: 'center',
-    marginTop: 12,
+    marginTop: 8,
   },
   bookBtnText: {
     color: '#fff',
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '600',
   },
   emptyState: {
@@ -1350,11 +1330,58 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 10,
     marginTop: 12,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
   },
   durationText: {
     color: '#09B368',
     fontWeight: '600',
+  },
+  modalSpecsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginVertical: 16,
+  },
+  modalSpecCard: {
+    alignItems: 'center',
+    backgroundColor: '#f8f8f8',
+    borderRadius: 10,
+    padding: 12,
+    minWidth: 90,
+  },
+  modalSpecValue: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#333',
+    marginTop: 6,
+  },
+  modalSpecLabel: {
+    fontSize: 11,
+    color: '#999',
+    marginTop: 2,
+  },
+  modalPriceCard: {
+    backgroundColor: '#e8f5e9',
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+    marginVertical: 12,
+  },
+  modalPriceLabel: {
+    fontSize: 12,
+    color: '#666',
+    marginBottom: 4,
+  },
+  modalPrice: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: '#09B368',
+  },
+  modalPriceHint: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 6,
   },
   sectionTitle: {
     fontSize: 16,
@@ -1482,11 +1509,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#09B368',
     borderRadius: 10,
     paddingVertical: 16,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
   },
   confirmBookingBtnText: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '600',
   },
   quoteHint: {

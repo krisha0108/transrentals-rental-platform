@@ -44,7 +44,7 @@ export default function MyEquipmentBookingsScreen() {
         setBookings(response.bookings || []);
       }
     } catch (err) {
-      console.error('Error fetching equipment bookings:', err);
+      console.log('Error fetching equipment bookings:', err);
     } finally {
       setLoading(false);
       setRefreshing(false);

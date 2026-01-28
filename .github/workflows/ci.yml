@@ -1,10 +1,24 @@
+# CI/CD Pipeline for TransRentals Web Backend
+# This pipeline builds and tests the Next.js backend application only.
+# Mobile apps (tr-app & vendor-app) are excluded and built separately.
+
 name: CI/CD Pipeline
 
 on:
   push:
     branches: [main, master, develop]
+    paths-ignore:
+      - 'tr-app/**'           # Ignore customer mobile app
+      - 'vendor-app/**'       # Ignore vendor mobile app
+      - '**.md'               # Ignore markdown files
+      - 'docs/**'             # Ignore documentation
   pull_request:
     branches: [main, master, develop]
+    paths-ignore:
+      - 'tr-app/**'           # Ignore customer mobile app
+      - 'vendor-app/**'       # Ignore vendor mobile app
+      - '**.md'               # Ignore markdown files
+      - 'docs/**'             # Ignore documentation
 
 env:
   NODE_VERSION: '20'

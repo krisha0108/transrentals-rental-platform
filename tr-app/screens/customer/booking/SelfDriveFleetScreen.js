@@ -252,7 +252,7 @@ const SelfDriveFleetScreen = () => {
         handleRequestQuote();
       }
     } catch (error) {
-      console.error('Phone update error:', error);
+      console.log('Phone update error:', error);
       Alert.alert('Error', error.response?.data?.error || 'Failed to update phone number. Please try again.');
     } finally {
       setPhoneLoading(false);

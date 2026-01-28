@@ -199,15 +199,30 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Build where clause with OR conditions for flexible customer matching
     const whereClause: any = {};
+    const customerConditions: any[] = [];
+
+    console.log('🔍 Self-Drive Quote Requests - Params:', { customerId, phone, email, status });
 
     if (customerId) {
-      whereClause.customerId = customerId;
-    } else if (phone) {
-      whereClause.customerPhone = phone;
-    } else if (email) {
-      whereClause.customerEmail = email;
+      customerConditions.push({ customerId: customerId });
     }
+    if (phone) {
+      customerConditions.push({ customerPhone: phone });
+    }
+    if (email) {
+      customerConditions.push({ customerEmail: email });
+    }
+
+    // Use OR if multiple conditions, otherwise single condition
+    if (customerConditions.length > 1) {
+      whereClause.OR = customerConditions;
+    } else if (customerConditions.length === 1) {
+      Object.assign(whereClause, customerConditions[0]);
+    }
+
+    console.log('🔍 Where Clause:', JSON.stringify(whereClause, null, 2));
 
     if (status && status !== 'all') {
       whereClause.status = status;

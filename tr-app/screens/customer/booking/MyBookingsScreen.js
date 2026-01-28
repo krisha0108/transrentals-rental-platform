@@ -74,7 +74,7 @@ const MyBookingsScreen = () => {
           setLoading(false);
         }
       } catch (error) {
-        console.error('Error loading customer:', error);
+        console.log('Error loading customer:', error);
         setLoading(false);
       }
     };
@@ -170,7 +170,7 @@ const MyBookingsScreen = () => {
         setStats({ total: 0, active: 0, completed: 0 });
       }
     } catch (error) {
-      console.error('Error fetching bookings:', error);
+      console.log('Error fetching bookings:', error);
       // Fallback to empty state
       setAllBookings([]);
       setStats({ total: 0, active: 0, completed: 0 });

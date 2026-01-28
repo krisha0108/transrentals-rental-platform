@@ -44,7 +44,7 @@ export default function MyBusBookingsScreen() {
         setBookings(response.bookings || []);
       }
     } catch (err) {
-      console.error('Error fetching bus bookings:', err);
+      console.log('Error fetching bus bookings:', err);
     } finally {
       setLoading(false);
       setRefreshing(false);

@@ -44,7 +44,7 @@ export default function MyCarBookingsScreen() {
         setBookings(response.bookings || []);
       }
     } catch (err) {
-      console.error('Error fetching car bookings:', err);
+      console.log('Error fetching car bookings:', err);
     } finally {
       setLoading(false);
       setRefreshing(false);
