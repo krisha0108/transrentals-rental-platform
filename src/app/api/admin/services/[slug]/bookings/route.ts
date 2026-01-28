@@ -218,16 +218,10 @@ async function getBookingsForService(
       const [quoteRequests, confirmedBusBookings] = await Promise.all([
         prisma.bus_quote_requests.findMany({
           where: quoteWhere,
-          include: {
-            locations: { select: { name: true } },
-          },
           orderBy: { createdAt: 'desc' },
         }),
         prisma.bus_bookings.findMany({
           where: bookingWhere,
-          include: {
-            locations: { select: { name: true } },
-          },
           orderBy: { createdAt: 'desc' },
         }),
       ]);
@@ -242,7 +236,7 @@ async function getBookingsForService(
           customerEmail: b.customerEmail,
           vehicleName: b.vehicleCategoryName || b.vehicle_category || 'Bus',
           services_vehicle_models_subServiceIdToservices: b.vehicleCategoryName || 'Bus Rental',
-          pickupLocation: b.locations?.name || b.pickupCity,
+          pickupLocation: b.pickupCity,
           dropLocation: b.dropCity,
           startDate: b.pickupDate,
           endDate: b.returnDate || b.pickupDate,
@@ -261,7 +255,7 @@ async function getBookingsForService(
           customerEmail: b.customerEmail,
           vehicleName: b.vehicleCategoryName || b.vehicle_category || 'Bus',
           services_vehicle_models_subServiceIdToservices: b.vehicleCategoryName || 'Bus Rental',
-          pickupLocation: b.locations?.name || b.pickupCity,
+          pickupLocation: b.pickupCity,
           dropLocation: b.dropCity,
           startDate: b.pickupDate,
           endDate: b.returnDate || b.pickupDate,
@@ -329,16 +323,10 @@ async function getBookingsForService(
       const [quoteRequests, confirmedTruckBookings] = await Promise.all([
         prisma.truck_quote_requests.findMany({
           where: quoteWhere,
-          include: {
-            locations: { select: { name: true } },
-          },
           orderBy: { createdAt: 'desc' },
         }),
         prisma.truck_bookings.findMany({
           where: bookingWhere,
-          include: {
-            locations: { select: { name: true } },
-          },
           orderBy: { createdAt: 'desc' },
         }),
       ]);
@@ -353,7 +341,7 @@ async function getBookingsForService(
           customerEmail: b.customerEmail,
           vehicleName: b.vehicleCategoryName || b.vehicle_category || 'Truck',
           services_vehicle_models_subServiceIdToservices: b.vehicleCategoryName || 'Truck Rental',
-          pickupLocation: b.locations?.name || b.pickupCity,
+          pickupLocation: b.pickupCity,
           dropLocation: b.dropCity,
           startDate: b.pickupDate,
           endDate: b.pickupDate,
@@ -372,7 +360,7 @@ async function getBookingsForService(
           customerEmail: b.customerEmail,
           vehicleName: b.vehicleCategoryName || b.vehicle_category || 'Truck',
           services_vehicle_models_subServiceIdToservices: b.vehicleCategoryName || 'Truck Rental',
-          pickupLocation: b.locations?.name || b.pickupCity,
+          pickupLocation: b.pickupCity,
           dropLocation: b.dropCity,
           startDate: b.pickupDate,
           endDate: b.pickupDate,
@@ -439,16 +427,10 @@ async function getBookingsForService(
       const [quoteRequests, confirmedLuxuryBookings] = await Promise.all([
         prisma.luxury_quote_requests.findMany({
           where: quoteWhere,
-          include: {
-            locations: { select: { name: true } },
-          },
           orderBy: { createdAt: 'desc' },
         }),
         prisma.luxury_bookings.findMany({
           where: bookingWhere,
-          include: {
-            locations: { select: { name: true } },
-          },
           orderBy: { createdAt: 'desc' },
         }),
       ]);
@@ -463,7 +445,7 @@ async function getBookingsForService(
           customerEmail: b.customerEmail,
           vehicleName: b.specificModel || b.vehicleCategoryName || 'Luxury Car',
           services_vehicle_models_subServiceIdToservices: b.vehicle_category || 'Luxury Car',
-          pickupLocation: b.locations?.name || b.pickupCity,
+          pickupLocation: b.pickupCity,
           dropLocation: b.dropCity,
           startDate: b.pickupDate,
           endDate: b.returnDate || b.pickupDate,
@@ -482,7 +464,7 @@ async function getBookingsForService(
           customerEmail: b.customerEmail,
           vehicleName: b.specificModel || b.vehicleCategoryName || 'Luxury Car',
           services_vehicle_models_subServiceIdToservices: b.vehicle_category || 'Luxury Car',
-          pickupLocation: b.locations?.name || b.pickupCity,
+          pickupLocation: b.pickupCity,
           dropLocation: b.dropCity,
           startDate: b.pickupDate,
           endDate: b.returnDate || b.pickupDate,
@@ -549,16 +531,10 @@ async function getBookingsForService(
       const [quoteRequests, confirmedPackersBookings] = await Promise.all([
         prisma.packers_quote_requests.findMany({
           where: quoteWhere,
-          include: {
-            locations: { select: { name: true } },
-          },
           orderBy: { createdAt: 'desc' },
         }),
         prisma.packers_bookings.findMany({
           where: bookingWhere,
-          include: {
-            locations: { select: { name: true } },
-          },
           orderBy: { createdAt: 'desc' },
         }),
       ]);
@@ -573,7 +549,7 @@ async function getBookingsForService(
           customerEmail: b.customerEmail,
           vehicleName: b.shiftingType || 'Packers & Movers',
           services_vehicle_models_subServiceIdToservices: b.serviceType || 'Moving Service',
-          pickupLocation: b.locations?.name || b.pickupCity,
+          pickupLocation: b.pickupCity,
           dropLocation: b.dropCity,
           startDate: b.preferredDate,
           endDate: b.preferredDate,
@@ -592,7 +568,7 @@ async function getBookingsForService(
           customerEmail: b.customerEmail,
           vehicleName: b.shiftingType || 'Packers & Movers',
           services_vehicle_models_subServiceIdToservices: b.serviceType || 'Moving Service',
-          pickupLocation: b.locations?.name || b.pickupCity,
+          pickupLocation: b.pickupCity,
           dropLocation: b.dropCity,
           startDate: b.preferredDate,
           endDate: b.preferredDate,
@@ -658,16 +634,10 @@ async function getBookingsForService(
       const [quoteRequests, confirmedEquipmentBookings] = await Promise.all([
         prisma.equipment_quote_requests.findMany({
           where: quoteWhere,
-          include: {
-            locations: { select: { name: true } },
-          },
           orderBy: { createdAt: 'desc' },
         }),
         prisma.equipment_bookings.findMany({
           where: bookingWhere,
-          include: {
-            locations: { select: { name: true } },
-          },
           orderBy: { createdAt: 'desc' },
         }),
       ]);
@@ -682,7 +652,7 @@ async function getBookingsForService(
           customerEmail: b.customerEmail,
           vehicleName: b.equipmentName || b.equipmentType || 'Equipment',
           services_vehicle_models_subServiceIdToservices: b.equipmentType || 'Equipment Rental',
-          pickupLocation: b.locations?.name || b.deliveryCity,
+          pickupLocation: b.deliveryCity,
           startDate: b.startDate,
           endDate: b.endDate || b.startDate,
           totalAmount: b.budgetMax || 0,
@@ -700,7 +670,7 @@ async function getBookingsForService(
           customerEmail: b.customerEmail,
           vehicleName: b.equipmentName || b.equipmentType || 'Equipment',
           services_vehicle_models_subServiceIdToservices: b.equipmentType || 'Equipment Rental',
-          pickupLocation: b.locations?.name || b.deliveryCity,
+          pickupLocation: b.deliveryCity,
           startDate: b.startDate,
           endDate: b.endDate || b.startDate,
           totalAmount: b.totalAmount || b.grandTotal || 0,
