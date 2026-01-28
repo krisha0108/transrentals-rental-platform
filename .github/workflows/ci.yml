@@ -56,6 +56,8 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+        env:
+          DATABASE_URL: mysql://root:test_password@127.0.0.1:3306/test_db
 
       - name: Generate Prisma Client
         run: npx prisma generate
@@ -104,6 +106,8 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+        env:
+          DATABASE_URL: mysql://root:test_password@127.0.0.1:3306/test_db
 
       - name: Generate Prisma Client
         run: npx prisma generate
@@ -137,6 +141,8 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+        env:
+          DATABASE_URL: mysql://root:test_password@127.0.0.1:3306/test_db
 
       - name: Run security audit
         run: npm audit --production --audit-level=high
@@ -157,6 +163,8 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+        env:
+          DATABASE_URL: mysql://root:test_password@127.0.0.1:3306/test_db
 
       - name: Generate Prisma Client
         run: npx prisma generate
@@ -198,6 +206,8 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+        env:
+          DATABASE_URL: mysql://root:test_password@127.0.0.1:3306/test_db
 
       - name: Generate Prisma Client
         run: npx prisma generate

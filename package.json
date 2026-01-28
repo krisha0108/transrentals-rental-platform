@@ -11,7 +11,7 @@
     "start:socket": "node dist/server.js",
     "security:audit": "bash scripts/security-audit.sh",
     "preinstall": "echo '🔒 Running security checks before install...'",
-    "postinstall": "node -e \"try{require('fs').rmSync('node_modules/.prisma',{recursive:true,force:true})}catch(e){}\" && prisma generate && npm audit --audit-level=high || echo 'Prisma generate skipped - will be run separately'",
+    "postinstall": "node -e \"try{require('fs').rmSync('node_modules/.prisma',{recursive:true,force:true})}catch(e){}\" && (prisma generate || echo 'Prisma generate skipped - will be run in build step') && (npm audit --audit-level=high || true)",
     "lint": "next lint",
     "type-check": "tsc --noEmit",
     "test": "vitest",
