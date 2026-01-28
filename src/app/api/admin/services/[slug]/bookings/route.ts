@@ -179,9 +179,18 @@ async function getBookingsForService(
 
     case 'bus-rental':
     case 'tempo-traveller': {
-      const where: any = {};
+      // Get all confirmed booking IDs (quoteRequestIds from bus_bookings)
+      const confirmedBookings = await prisma.bus_bookings.findMany({
+        select: { quoteRequestId: true },
+      });
+      const confirmedQuoteIds = confirmedBookings.map(b => b.quoteRequestId).filter(Boolean);
+
+      // Fetch quote requests (exclude confirmed ones)
+      const quoteWhere: any = {
+        id: { notIn: confirmedQuoteIds }, // Exclude confirmed bookings
+      };
       if (search) {
-        where.OR = [
+        quoteWhere.OR = [
           { requestNumber: { contains: search } },
           { customerName: { contains: search } },
           { customerPhone: { contains: search } },
@@ -189,24 +198,43 @@ async function getBookingsForService(
         ];
       }
       if (status && status !== 'ALL') {
-        where.status = status;
+        quoteWhere.status = status;
       }
 
-      const [bookings, total] = await Promise.all([
+      // Fetch confirmed bookings
+      const bookingWhere: any = {};
+      if (search) {
+        bookingWhere.OR = [
+          { bookingNumber: { contains: search } },
+          { customerName: { contains: search } },
+          { customerPhone: { contains: search } },
+          { customerEmail: { contains: search } },
+        ];
+      }
+      if (status && status !== 'ALL') {
+        bookingWhere.status = status;
+      }
+
+      const [quoteRequests, confirmedBusBookings] = await Promise.all([
         prisma.bus_quote_requests.findMany({
-          where,
+          where: quoteWhere,
           include: {
             locations: { select: { name: true } },
           },
           orderBy: { createdAt: 'desc' },
-          skip,
-          take: limit,
         }),
-        prisma.bus_quote_requests.count({ where }),
+        prisma.bus_bookings.findMany({
+          where: bookingWhere,
+          include: {
+            locations: { select: { name: true } },
+          },
+          orderBy: { createdAt: 'desc' },
+        }),
       ]);
 
-      return {
-        bookings: bookings.map((b) => ({
+      // Merge and format both lists
+      const allBookings = [
+        ...quoteRequests.map((b) => ({
           id: b.id,
           bookingNo: b.requestNumber,
           customerName: b.customerName,
@@ -223,7 +251,38 @@ async function getBookingsForService(
           paymentStatus: 'PENDING',
           createdAt: b.createdAt,
           vehicleImage: '/images/fleet/default-bus.jpg',
+          type: 'QUOTE_REQUEST',
         })),
+        ...confirmedBusBookings.map((b) => ({
+          id: b.id,
+          bookingNo: b.bookingNumber,
+          customerName: b.customerName,
+          customerPhone: b.customerPhone,
+          customerEmail: b.customerEmail,
+          vehicleName: b.vehicleCategoryName || b.vehicle_category || 'Bus',
+          services_vehicle_models_subServiceIdToservices: b.vehicleCategoryName || 'Bus Rental',
+          pickupLocation: b.locations?.name || b.pickupCity,
+          dropLocation: b.dropCity,
+          startDate: b.pickupDate,
+          endDate: b.returnDate || b.pickupDate,
+          totalAmount: b.totalAmount || b.grandTotal || 0,
+          status: b.status,
+          paymentStatus: b.paymentStatus || 'PENDING',
+          createdAt: b.createdAt,
+          vehicleImage: '/images/fleet/default-bus.jpg',
+          type: 'CONFIRMED_BOOKING',
+        })),
+      ];
+
+      // Sort by createdAt desc
+      allBookings.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+      // Apply pagination
+      const total = allBookings.length;
+      const paginatedBookings = allBookings.slice(skip, skip + limit);
+
+      return {
+        bookings: paginatedBookings,
         total,
       };
     }
