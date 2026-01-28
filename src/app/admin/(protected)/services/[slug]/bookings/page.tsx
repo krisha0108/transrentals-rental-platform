@@ -31,6 +31,7 @@ import {
   ChevronLeft,
   ChevronRight,
   IndianRupee,
+  FileText,
 } from 'lucide-react';
 import { FLOW_TYPE_CONFIG } from '@/lib/constants/booking-services';
 import { Button } from '@/components/ui/button';
@@ -69,8 +70,11 @@ const statusConfig: Record<string, { label: string; color: string; icon: React.C
   PENDING: { label: 'Pending', color: 'bg-yellow-100 text-yellow-800', icon: Clock },
   PENDING_VENDOR: { label: 'Pending Vendor', color: 'bg-yellow-100 text-yellow-800', icon: Clock },
   BROADCASTED: { label: 'Broadcasted', color: 'bg-blue-100 text-blue-800', icon: AlertCircle },
+  QUOTES_RECEIVED: { label: 'Quotes Received', color: 'bg-blue-100 text-blue-800', icon: FileText },
+  QUOTE_ACCEPTED: { label: 'Quote Accepted', color: 'bg-green-100 text-green-800', icon: CheckCircle },
   ACCEPTED: { label: 'Accepted', color: 'bg-green-100 text-green-800', icon: CheckCircle },
   CONFIRMED: { label: 'Confirmed', color: 'bg-blue-100 text-blue-800', icon: CheckCircle },
+  BOOKING_CONFIRMED: { label: 'Booking Confirmed', color: 'bg-green-100 text-green-800', icon: CheckCircle },
   ONGOING: { label: 'Ongoing', color: 'bg-purple-100 text-purple-800', icon: Car },
   IN_PROGRESS: { label: 'In Progress', color: 'bg-purple-100 text-purple-800', icon: Car },
   COMPLETED: { label: 'Completed', color: 'bg-green-100 text-green-800', icon: CheckCircle },
