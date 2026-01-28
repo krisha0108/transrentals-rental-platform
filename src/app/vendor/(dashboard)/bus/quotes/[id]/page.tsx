@@ -263,10 +263,10 @@ export default function VendorQuoteDetailPage() {
               <div>
                 <p className="text-sm text-gray-500">Route</p>
                 <p className="font-medium">
-                  {quote.request.pickupCity}
-                  {quote.request.dropCity && ` → ${quote.request.dropCity}`}
+                  {quote.request?.pickupCity || 'N/A'}
+                  {quote.request?.dropCity && ` → ${quote.request.dropCity}`}
                 </p>
-                {quote.request.pickupAddress && (
+                {quote.request?.pickupAddress && (
                   <p className="text-sm text-gray-500">{quote.request.pickupAddress}</p>
                 )}
               </div>
@@ -277,12 +277,12 @@ export default function VendorQuoteDetailPage() {
               <div>
                 <p className="text-sm text-gray-500">Travel Date</p>
                 <p className="font-medium">
-                  {new Date(quote.request.pickupDate).toLocaleDateString('en-IN', {
+                  {quote.request?.pickupDate ? new Date(quote.request.pickupDate).toLocaleDateString('en-IN', {
                     day: 'numeric',
                     month: 'short',
                     year: 'numeric',
-                  })}
-                  {quote.request.returnDate && (
+                  }) : 'N/A'}
+                  {quote.request?.returnDate && (
                     <span className="text-gray-500">
                       {' → '}
                       {new Date(quote.request.returnDate).toLocaleDateString('en-IN', {
@@ -292,7 +292,7 @@ export default function VendorQuoteDetailPage() {
                     </span>
                   )}
                 </p>
-                {quote.request.pickupTime && (
+                {quote.request?.pickupTime && (
                   <p className="text-sm text-gray-500">Pickup: {quote.request.pickupTime}</p>
                 )}
               </div>
@@ -303,7 +303,7 @@ export default function VendorQuoteDetailPage() {
               <div>
                 <p className="text-sm text-gray-500">Trip Type</p>
                 <p className="font-medium">
-                  {getTripTypeName(quote.request.tripType)} • {quote.request.passengers} passengers
+                  {quote.request?.tripType ? getTripTypeName(quote.request.tripType) : 'N/A'} • {quote.request?.passengers || 0} passengers
                 </p>
               </div>
             </div>
@@ -312,13 +312,13 @@ export default function VendorQuoteDetailPage() {
               <Phone className="w-5 h-5 text-orange-500 mt-0.5" />
               <div>
                 <p className="text-sm text-gray-500">Customer</p>
-                <p className="font-medium">{quote.request.customerName}</p>
-                <p className="text-sm text-gray-500">{quote.request.customerPhone}</p>
+                <p className="font-medium">{quote.request?.customerName || 'N/A'}</p>
+                <p className="text-sm text-gray-500">{quote.request?.customerPhone || 'N/A'}</p>
               </div>
             </div>
           </div>
 
-          {quote.request.requirements && (
+          {quote.request?.requirements && (
             <div className="mt-4 p-3 bg-gray-50 rounded-lg">
               <p className="text-sm text-gray-500">Special Requirements</p>
               <p className="text-gray-700">{quote.request.requirements}</p>
