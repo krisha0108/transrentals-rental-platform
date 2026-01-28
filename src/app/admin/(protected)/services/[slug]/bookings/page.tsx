@@ -465,10 +465,12 @@ export default function ServiceBookingsPage() {
                 <option value="PENDING_VENDOR">Pending Vendor</option>
                 <option value="BROADCASTED">Broadcasted</option>
                 <option value="QUOTES_RECEIVED">Quotes Received</option>
-                <option value="ACCEPTED">Quote Accepted</option>
+                <option value="QUOTE_ACCEPTED">Quote Accepted</option>
+                <option value="ACCEPTED">Accepted</option>
               </optgroup>
               <optgroup label="Booking Stage">
                 <option value="CONFIRMED">Confirmed</option>
+                <option value="BOOKING_CONFIRMED">Booking Confirmed</option>
                 <option value="ONGOING">Ongoing</option>
                 <option value="IN_PROGRESS">In Progress</option>
                 <option value="COMPLETED">Completed</option>
