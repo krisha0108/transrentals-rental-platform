@@ -53,7 +53,7 @@ export async function GET(request: NextRequest) {
       }));
 
     // Get vendor's approved locations
-    const approvedLocations = await prisma.vendor_approved_locations.findMany({
+    const approvedLocationsRaw = await prisma.vendor_approved_locations.findMany({
       where: { vendorId: vendorId, isActive: true },
       select: {
         id: true,
@@ -66,18 +66,35 @@ export async function GET(request: NextRequest) {
             slug: true,
             type: true,
             locations: {
-              select: { name: true },
+              select: { id: true, name: true },
             },
           },
         },
       },
     });
 
+    // Transform to match frontend expectations: locations -> location, nested locations -> parent
+    const approvedLocations = approvedLocationsRaw.map(item => ({
+      id: item.id,
+      isActive: item.isActive,
+      locationId: item.locationId,
+      location: item.locations ? {
+        id: item.locations.id,
+        name: item.locations.name,
+        slug: item.locations.slug,
+        type: item.locations.type,
+        parent: item.locations.locations ? {
+          id: item.locations.locations.id,
+          name: item.locations.locations.name,
+        } : null,
+      } : null,
+    }));
+
     // Get approved location IDs for quick lookup
     const approvedLocationIds = approvedLocations.map((l) => l.locationId);
 
     // Get vendor's pending requests
-    const pendingRequests = await prisma.vendor_location_requests.findMany({
+    const pendingRequestsRaw = await prisma.vendor_location_requests.findMany({
       where: { vendorId: vendorId },
       select: {
         id: true,
@@ -94,12 +111,33 @@ export async function GET(request: NextRequest) {
             slug: true,
             type: true,
             locations: {
-              select: { name: true },
+              select: { id: true, name: true },
             },
           },
         },
       },
     });
+
+    // Transform to match frontend expectations: locations -> location, nested locations -> parent
+    const pendingRequests = pendingRequestsRaw.map(req => ({
+      id: req.id,
+      locationId: req.locationId,
+      status: req.status,
+      message: req.message,
+      localAddress: req.localAddress,
+      rejectionReason: req.rejectionReason,
+      createdAt: req.createdAt,
+      location: req.locations ? {
+        id: req.locations.id,
+        name: req.locations.name,
+        slug: req.locations.slug,
+        type: req.locations.type,
+        parent: req.locations.locations ? {
+          id: req.locations.locations.id,
+          name: req.locations.locations.name,
+        } : null,
+      } : null,
+    }));
 
     return NextResponse.json({
       allLocations,

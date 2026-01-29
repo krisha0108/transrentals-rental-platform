@@ -62,8 +62,10 @@ export default function VendorLocationsScreen({ navigation }) {
       const flatCities = [];
 
       statesWithCities.forEach((state) => {
-        if (state.children && Array.isArray(state.children)) {
-          state.children.forEach((city) => {
+        // Backend returns 'cities' property (not 'children')
+        const cities = state.cities || state.children || [];
+        if (cities && Array.isArray(cities)) {
+          cities.forEach((city) => {
             flatCities.push({
               id: city.id,
               name: city.name,
