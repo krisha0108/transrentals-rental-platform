@@ -274,78 +274,58 @@ export default function AddStaffScreen({ route, navigation }) {
 
     setLoading(true);
     try {
-      const formData = new FormData();
+      // TEMPORARY FIX: Send as JSON instead of FormData (skip files for now)
+      // Files will be uploaded separately later
+      const staffData = {
+        name: form.name,
+        phone: form.phone,
+        email: form.email || '',
+        password: form.password || '',
+        address: form.address || '',
+        city: form.city || '',
+        state: form.state || '',
+        pincode: form.pincode || '',
+        dateOfBirth: form.dateOfBirth || '',
+        role: form.role,
+        status: form.status,
+        aadharNumber: form.aadharNumber || '',
+        panNumber: form.panNumber || '',
+        licenseNumber: form.licenseNumber || '',
+        licenseType: form.licenseType || '',
+        licenseExpiry: form.licenseExpiry || '',
+        bankName: form.bankName || '',
+        accountNumber: form.accountNumber || '',
+        ifscCode: form.ifscCode || '',
+        accountHolderName: form.accountHolderName || '',
+        salary: form.salary || '0',
+        joiningDate: form.joiningDate || '',
+        emergencyContact: form.emergencyContact || '',
+        emergencyPhone: form.emergencyPhone || '',
+        // Files skipped for now - will be added via separate upload endpoint
+        profilePhoto: null,
+        aadharDocument: null,
+        panDocument: null,
+        licenseDocument: null,
+      };
 
-      // All fields
-      formData.append('name', form.name);
-      formData.append('phone', form.phone);
-      formData.append('email', form.email || '');
-      if (form.password) formData.append('password', form.password);
-      formData.append('address', form.address || '');
-      formData.append('city', form.city || '');
-      formData.append('state', form.state || '');
-      formData.append('pincode', form.pincode || '');
-      formData.append('dateOfBirth', form.dateOfBirth || '');
-      formData.append('role', form.role);
-      formData.append('status', form.status);
-      formData.append('aadharNumber', form.aadharNumber || '');
-      formData.append('panNumber', form.panNumber || '');
-      formData.append('licenseNumber', form.licenseNumber || '');
-      formData.append('licenseType', form.licenseType || '');
-      formData.append('licenseExpiry', form.licenseExpiry || '');
-      formData.append('bankName', form.bankName || '');
-      formData.append('accountNumber', form.accountNumber || '');
-      formData.append('ifscCode', form.ifscCode || '');
-      formData.append('accountHolderName', form.accountHolderName || '');
-      formData.append('salary', form.salary || '0');
-      formData.append('joiningDate', form.joiningDate || '');
-      formData.append('emergencyContact', form.emergencyContact || '');
-      formData.append('emergencyPhone', form.emergencyPhone || '');
-
-      // Files
-      if (photo && !photo.isExisting) {
-        formData.append('profilePhoto', {
-          uri: photo.uri,
-          type: photo.type || 'image/jpeg',
-          name: photo.name || 'profile.jpg',
-        });
-      }
-      if (aadharDoc && !aadharDoc.isExisting) {
-        formData.append('aadharDocument', {
-          uri: aadharDoc.uri,
-          type: aadharDoc.type || 'image/jpeg',
-          name: aadharDoc.name || 'aadhar.jpg',
-        });
-      }
-      if (panDoc && !panDoc.isExisting) {
-        formData.append('panDocument', {
-          uri: panDoc.uri,
-          type: panDoc.type || 'image/jpeg',
-          name: panDoc.name || 'pan.jpg',
-        });
-      }
-      if (licenseDoc && !licenseDoc.isExisting) {
-        formData.append('licenseDocument', {
-          uri: licenseDoc.uri,
-          type: licenseDoc.type || 'image/jpeg',
-          name: licenseDoc.name || 'license.jpg',
-        });
-      }
+      console.log('[AddStaff] Submitting data:', { ...staffData, password: '***' });
 
       if (isEditing) {
-        await updateStaff(staffId, formData);
+        await updateStaff(staffId, staffData);
         Alert.alert('Success', 'Staff updated successfully', [
           { text: 'OK', onPress: () => navigation.goBack() },
         ]);
       } else {
-        await addStaff(formData);
+        await addStaff(staffData);
         Alert.alert('Success', 'Staff added successfully', [
           { text: 'OK', onPress: () => navigation.goBack() },
         ]);
       }
     } catch (error) {
-      console.log('Error saving staff:', error);
-      Alert.alert('Error', error?.response?.data?.error || 'Failed to save staff');
+      console.error('[AddStaff] Error saving staff:', error);
+      console.error('[AddStaff] Error response:', error?.response?.data);
+      console.error('[AddStaff] Error status:', error?.response?.status);
+      Alert.alert('Error', error?.response?.data?.error || error?.message || 'Failed to save staff');
     } finally {
       setLoading(false);
     }
