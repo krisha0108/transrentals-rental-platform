@@ -42,7 +42,22 @@ export async function GET(request: NextRequest) {
       prisma.vendor_fleets.findMany({
         where: { vendorId },
         include: {
-          vehicle_models: { include: { brands: true } },
+          vehicle_models: {
+            include: {
+              brands: true,
+              chauffeur_vehicle_categories: {
+                select: {
+                  id: true,
+                  name: true,
+                  slug: true,
+                  seatingCapacity: true,
+                  fuelType: true,
+                  acType: true,
+                  image: true,
+                },
+              },
+            },
+          },
           services: { select: { id: true, name: true, slug: true } },
           chauffeur_vehicle_categories: {
             select: {
@@ -514,7 +529,20 @@ export async function POST(request: NextRequest) {
       },
       include: {
         vehicle_models: {
-          include: { brands: true },
+          include: {
+            brands: true,
+            chauffeur_vehicle_categories: {
+              select: {
+                id: true,
+                name: true,
+                slug: true,
+                seatingCapacity: true,
+                fuelType: true,
+                acType: true,
+                image: true,
+              },
+            },
+          },
         },
         services: {
           select: { id: true, name: true, slug: true },

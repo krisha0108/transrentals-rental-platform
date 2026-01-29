@@ -68,13 +68,16 @@ export default function VehicleDetailScreen({ route, navigation }) {
 
           // Map backend field names to display-friendly names
           // Note: API returns vehicle_models, brands, chauffeur_vehicle_categories, services (snake_case)
+          // Category can come from two sources:
+          // 1. Direct category (car-rental, truck, equipment) - chauffeur_vehicle_categories
+          // 2. Through vehicle model (bike, self-drive, bus) - vehicle_models.chauffeur_vehicle_categories
           vehicleData.brandName = vehicleData.brands?.name || vehicleData.vehicle_models?.brands?.name || 'N/A';
           vehicleData.modelName = vehicleData.vehicle_models?.name || vehicleData.model || 'N/A';
           vehicleData.serviceName = vehicleData.services?.name || 'N/A';
-          vehicleData.categoryName = vehicleData.chauffeur_vehicle_categories?.name || 'N/A';
-          vehicleData.seatingCapacity = vehicleData.chauffeur_vehicle_categories?.seatingCapacity || vehicleData.seatingCapacity || vehicleData.vehicle_models?.seatingCapacity || '--';
-          vehicleData.fuelType = vehicleData.chauffeur_vehicle_categories?.fuelType || vehicleData.fuelType || vehicleData.vehicle_models?.fuelType || '--';
-          vehicleData.transmission = vehicleData.chauffeur_vehicle_categories?.acType || vehicleData.transmission || vehicleData.vehicle_models?.transmission || '--';
+          vehicleData.categoryName = vehicleData.chauffeur_vehicle_categories?.name || vehicleData.vehicle_models?.chauffeur_vehicle_categories?.name || 'N/A';
+          vehicleData.seatingCapacity = vehicleData.chauffeur_vehicle_categories?.seatingCapacity || vehicleData.vehicle_models?.chauffeur_vehicle_categories?.seatingCapacity || vehicleData.seatingCapacity || vehicleData.vehicle_models?.seatingCapacity || '--';
+          vehicleData.fuelType = vehicleData.chauffeur_vehicle_categories?.fuelType || vehicleData.vehicle_models?.chauffeur_vehicle_categories?.fuelType || vehicleData.fuelType || vehicleData.vehicle_models?.fuelType || '--';
+          vehicleData.transmission = vehicleData.chauffeur_vehicle_categories?.acType || vehicleData.vehicle_models?.chauffeur_vehicle_categories?.acType || vehicleData.transmission || vehicleData.vehicle_models?.transmission || '--';
           vehicleData.year = vehicleData.yearOfManufacture || vehicleData.year;
         }
 

@@ -32,7 +32,20 @@ export async function GET(
       where: { id, vendorId: auth.vendorId },
       include: {
         vehicle_models: {
-          include: { brands: true },
+          include: {
+            brands: true,
+            chauffeur_vehicle_categories: {
+              select: {
+                id: true,
+                name: true,
+                slug: true,
+                seatingCapacity: true,
+                fuelType: true,
+                acType: true,
+                image: true,
+              },
+            },
+          },
         },
         services: {
           select: { id: true, name: true, slug: true },
@@ -168,7 +181,20 @@ export async function PATCH(
       data: updateData,
       include: {
         vehicle_models: {
-          include: { brands: true },
+          include: {
+            brands: true,
+            chauffeur_vehicle_categories: {
+              select: {
+                id: true,
+                name: true,
+                slug: true,
+                seatingCapacity: true,
+                fuelType: true,
+                acType: true,
+                image: true,
+              },
+            },
+          },
         },
         services: {
           select: { id: true, name: true, slug: true },
@@ -361,7 +387,20 @@ export async function PUT(
       where: { id },
       include: {
         vehicle_models: {
-          include: { brands: true },
+          include: {
+            brands: true,
+            chauffeur_vehicle_categories: {
+              select: {
+                id: true,
+                name: true,
+                slug: true,
+                seatingCapacity: true,
+                fuelType: true,
+                acType: true,
+                image: true,
+              },
+            },
+          },
         },
         services: {
           select: { id: true, name: true, slug: true },
