@@ -119,7 +119,7 @@ export async function POST(request: NextRequest) {
     const formData = await request.formData();
     const files = formData.getAll('files') as File[];
     const file = formData.get('file') as File | null;
-    const folder = (formData.get('folder') as string) || 'uploads';
+    const folderParam = (formData.get('folder') as string) || '';
 
     // Handle both single file and multiple files
     const filesToProcess = file ? [file] : files;
@@ -129,6 +129,22 @@ export async function POST(request: NextRequest) {
         { error: 'No files provided' },
         { status: 400 }
       );
+    }
+
+    // FIXED: Handle folder path to avoid /uploads/uploads/ issue
+    // If no folder specified or folder is "uploads", put directly in /uploads/
+    // Otherwise put in /uploads/{folder}/
+    let folder = '';
+    let uploadDir = '';
+
+    if (!folderParam || folderParam === 'uploads') {
+      // No subfolder - directly in public/uploads/
+      folder = '';
+      uploadDir = path.join(process.cwd(), 'public', 'uploads');
+    } else {
+      // With subfolder - public/uploads/{folder}/
+      folder = folderParam;
+      uploadDir = path.join(process.cwd(), 'public', 'uploads', folder);
     }
 
     const uploadedMedia: any[] = [];
@@ -160,7 +176,6 @@ export async function POST(request: NextRequest) {
         const filename = `${baseName}-${timestamp}${ext}`;
 
         // Ensure upload directory exists
-        const uploadDir = path.join(process.cwd(), 'public', 'uploads', folder);
         if (!existsSync(uploadDir)) {
           await mkdir(uploadDir, { recursive: true });
         }
@@ -174,8 +189,8 @@ export async function POST(request: NextRequest) {
         let width: number | null = null;
         let height: number | null = null;
 
-        // Create URL
-        const url = `/uploads/${folder}/${filename}`;
+        // Create URL - avoid /uploads/uploads/
+        const url = folder ? `/uploads/${folder}/${filename}` : `/uploads/${filename}`;
 
         // Save to database
         const mediaRecord = await prisma.media.create({
@@ -186,7 +201,7 @@ export async function POST(request: NextRequest) {
             mimeType: fileItem.type,
             size: fileItem.size,
             url,
-            folder,
+            folder: folder || 'default', // Use 'default' if no folder specified
             width,
             height,
             alt: baseName.replace(/-/g, ' '),

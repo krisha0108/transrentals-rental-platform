@@ -104,7 +104,8 @@ export default function MediaPage() {
     Array.from(files).forEach((file) => {
       formData.append('files', file);
     });
-    formData.append('folder', selectedFolder || 'uploads');
+    // FIXED: Empty string default to avoid /uploads/uploads/ path
+    formData.append('folder', selectedFolder || '');
 
     try {
       const response = await fetch('/api/admin/media', {
@@ -411,7 +412,7 @@ export default function MediaPage() {
                     {item.mimeType.split('/')[1]?.toUpperCase()}
                   </td>
                   <td className="px-4 py-3 text-sm text-gray-600">{formatSize(item.size)}</td>
-                  <td className="px-4 py-3 text-sm text-gray-600">{item.folder || 'uploads'}</td>
+                  <td className="px-4 py-3 text-sm text-gray-600">{item.folder || 'default'}</td>
                   <td className="px-4 py-3 text-sm text-gray-600">{formatDate(item.createdAt)}</td>
                   <td className="px-4 py-3">
                     <div className="flex items-center justify-end gap-2">
