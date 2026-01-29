@@ -8,13 +8,11 @@ import {
   TextInput,
   ActivityIndicator,
   Alert,
-  Image,
   Modal,
   Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Feather';
-import { launchImageLibrary } from 'react-native-image-picker';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import { addStaff, updateStaff } from '../../api/client';
 
@@ -67,10 +65,6 @@ export default function AddStaffScreen({ route, navigation }) {
   const isEditing = !!staffId;
 
   const [loading, setLoading] = useState(false);
-  const [photo, setPhoto] = useState(null);
-  const [aadharDoc, setAadharDoc] = useState(null);
-  const [panDoc, setPanDoc] = useState(null);
-  const [licenseDoc, setLicenseDoc] = useState(null);
 
   // Modal states
   const [showStateModal, setShowStateModal] = useState(false);
@@ -149,55 +143,11 @@ export default function AddStaffScreen({ route, navigation }) {
         emergencyContact: existingStaff.emergencyContact || '',
         emergencyPhone: existingStaff.emergencyPhone || '',
       });
-      if (existingStaff.profilePhoto) setPhoto({ uri: existingStaff.profilePhoto, isExisting: true });
-      if (existingStaff.aadharDocument) setAadharDoc({ uri: existingStaff.aadharDocument, isExisting: true });
-      if (existingStaff.panDocument) setPanDoc({ uri: existingStaff.panDocument, isExisting: true });
-      if (existingStaff.licenseDocument) setLicenseDoc({ uri: existingStaff.licenseDocument, isExisting: true });
     }
   }, [existingStaff]);
 
   const updateForm = (key, value) => {
     setForm((prev) => ({ ...prev, [key]: value }));
-  };
-
-  const pickPhoto = async () => {
-    const result = await launchImageLibrary({
-      mediaType: 'photo',
-      selectionLimit: 1,
-      quality: 0.8,
-    });
-
-    if (result.assets?.[0]) {
-      const asset = result.assets[0];
-      setPhoto({
-        uri: asset.uri,
-        type: asset.type,
-        name: asset.fileName,
-        isExisting: false,
-      });
-    }
-  };
-
-  const pickDocument = async (docType) => {
-    const result = await launchImageLibrary({
-      mediaType: 'photo',
-      selectionLimit: 1,
-      quality: 0.8,
-    });
-
-    if (result.assets?.[0]) {
-      const asset = result.assets[0];
-      const doc = {
-        uri: asset.uri,
-        type: asset.type,
-        name: asset.fileName,
-        isExisting: false,
-      };
-
-      if (docType === 'aadhar') setAadharDoc(doc);
-      else if (docType === 'pan') setPanDoc(doc);
-      else if (docType === 'license') setLicenseDoc(doc);
-    }
   };
 
   // Date picker handlers
@@ -349,23 +299,6 @@ export default function AddStaffScreen({ route, navigation }) {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Photo */}
-        <View style={styles.photoSection}>
-          <TouchableOpacity style={styles.photoContainer} onPress={pickPhoto}>
-            {photo ? (
-              <Image source={{ uri: photo.uri }} style={styles.photo} />
-            ) : (
-              <View style={styles.photoPlaceholder}>
-                <Icon name="camera" size={28} color={C.muted} />
-              </View>
-            )}
-            <View style={styles.editPhotoBtn}>
-              <Icon name="edit-2" size={12} color="#fff" />
-            </View>
-          </TouchableOpacity>
-          <Text style={styles.photoHint}>Tap to add photo</Text>
-        </View>
-
         {/* Basic Info */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Personal Information</Text>
@@ -535,19 +468,6 @@ export default function AddStaffScreen({ route, navigation }) {
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Aadhar Document</Text>
-            <TouchableOpacity
-              style={styles.docButton}
-              onPress={() => pickDocument('aadhar')}
-            >
-              <Icon name={aadharDoc ? "check-circle" : "upload"} size={18} color={aadharDoc ? C.brand : C.blue} />
-              <Text style={aadharDoc ? styles.docButtonTextSuccess : styles.docButtonText}>
-                {aadharDoc ? 'Aadhar Uploaded' : 'Upload Aadhar'}
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.inputGroup}>
             <Text style={styles.label}>PAN Number</Text>
             <TextInput
               style={styles.input}
@@ -558,19 +478,6 @@ export default function AddStaffScreen({ route, navigation }) {
               autoCapitalize="characters"
               maxLength={10}
             />
-          </View>
-
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>PAN Document</Text>
-            <TouchableOpacity
-              style={styles.docButton}
-              onPress={() => pickDocument('pan')}
-            >
-              <Icon name={panDoc ? "check-circle" : "upload"} size={18} color={panDoc ? C.brand : C.blue} />
-              <Text style={panDoc ? styles.docButtonTextSuccess : styles.docButtonText}>
-                {panDoc ? 'PAN Uploaded' : 'Upload PAN'}
-              </Text>
-            </TouchableOpacity>
           </View>
         </View>
 
@@ -614,19 +521,6 @@ export default function AddStaffScreen({ route, navigation }) {
                   {form.licenseExpiry ? formatDateForDisplay(form.licenseExpiry) : 'Select Expiry Date'}
                 </Text>
                 <Icon name="calendar" size={18} color={C.muted} />
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>License Document</Text>
-              <TouchableOpacity
-                style={styles.docButton}
-                onPress={() => pickDocument('license')}
-              >
-                <Icon name={licenseDoc ? "check-circle" : "upload"} size={18} color={licenseDoc ? C.brand : C.blue} />
-                <Text style={licenseDoc ? styles.docButtonTextSuccess : styles.docButtonText}>
-                  {licenseDoc ? 'License Uploaded' : 'Upload License'}
-                </Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -953,47 +847,6 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: 16,
   },
-  photoSection: {
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  photoContainer: {
-    position: 'relative',
-  },
-  photo: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-  },
-  photoPlaceholder: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: C.surface,
-    borderWidth: 2,
-    borderColor: C.border,
-    borderStyle: 'dashed',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  editPhotoBtn: {
-    position: 'absolute',
-    bottom: 0,
-    right: 0,
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: C.brand,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: '#fff',
-  },
-  photoHint: {
-    fontSize: 12,
-    color: C.muted,
-    marginTop: 8,
-  },
   section: {
     backgroundColor: C.surface,
     borderRadius: 14,
@@ -1057,27 +910,6 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: C.muted,
     marginTop: 4,
-  },
-  docButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: C.bg,
-    borderWidth: 1,
-    borderColor: C.blue,
-    borderRadius: 10,
-    paddingVertical: 12,
-    gap: 8,
-  },
-  docButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: C.blue,
-  },
-  docButtonTextSuccess: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: C.brand,
   },
   submitBtn: {
     flexDirection: 'row',

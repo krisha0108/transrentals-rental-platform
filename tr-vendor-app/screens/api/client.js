@@ -35,10 +35,10 @@ export async function getBaseURL() {
     cachedBaseURL = ENV_URL;
     return cachedBaseURL;
   }
-  // 3) default - use prod unless in dev mode
-  cachedBaseURL = __DEV__ ? inferLocalBase() : DEFAULT_PROD;
+  // 3) default - use prod unless in dev mode (temporarily disabled due to firewall)
+  // cachedBaseURL = __DEV__ ? inferLocalBase() : DEFAULT_PROD;
   // 3) default - always use production URL (transrentals.in)
-  // cachedBaseURL = DEFAULT_PROD;
+  cachedBaseURL = DEFAULT_PROD;
   return cachedBaseURL;
 }
 
