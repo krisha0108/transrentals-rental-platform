@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
     const formData = await request.formData();
     const file = formData.get('file') as File | null;
     const files = formData.getAll('files') as File[];
-    const folder = (formData.get('folder') as string) || 'uploads';
+    const folderParam = (formData.get('folder') as string) || '';
 
     // Support both 'file' and 'files' field names
     const filesToUpload = file ? [file] : files;
@@ -29,8 +29,23 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No files provided' }, { status: 400 });
     }
 
+    // FIXED: Handle folder path to avoid /uploads/uploads/ issue
+    // If no folder specified or folder is "uploads", put directly in /uploads/
+    // Otherwise put in /uploads/{folder}/
+    let folder = '';
+    let uploadDir = '';
+
+    if (!folderParam || folderParam === 'uploads') {
+      // No subfolder - directly in public/uploads/
+      folder = '';
+      uploadDir = path.join(process.cwd(), 'public', 'uploads');
+    } else {
+      // With subfolder - public/uploads/{folder}/
+      folder = folderParam;
+      uploadDir = path.join(process.cwd(), 'public', 'uploads', folder);
+    }
+
     // Create upload directory if it doesn't exist
-    const uploadDir = path.join(process.cwd(), 'public', 'uploads', folder);
     await mkdir(uploadDir, { recursive: true });
 
     const uploadedFiles: { url: string; name: string }[] = [];
@@ -63,7 +78,8 @@ export async function POST(request: NextRequest) {
       await writeFile(filePath, buffer);
 
       // Generate public URL
-      const url = `/uploads/${folder}/${fileName}`;
+      // FIXED: Avoid /uploads/uploads/ - if folder is empty, URL is /uploads/file.png
+      const url = folder ? `/uploads/${folder}/${fileName}` : `/uploads/${fileName}`;
 
       // Save to Media table for gallery access
       try {
@@ -74,7 +90,7 @@ export async function POST(request: NextRequest) {
             mimeType: uploadFile.type,
             size: uploadFile.size,
             url,
-            folder,
+            folder: folder || 'default', // Use 'default' if no folder specified
             alt: baseName.replace(/-/g, ' '),
           },
         });
