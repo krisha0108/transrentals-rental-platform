@@ -127,6 +127,19 @@ export default function VendorServicesScreen({ navigation }) {
     }
   };
 
+  const getStatusText = (status) => {
+    switch (status) {
+      case 'APPROVED':
+        return 'Approved';
+      case 'REJECTED':
+        return 'Rejected';
+      case 'PENDING':
+        return 'Under Review';
+      default:
+        return status;
+    }
+  };
+
   const getRequestForService = (serviceId) => {
     return requests.find((r) => r.serviceId === serviceId);
   };
@@ -305,7 +318,7 @@ export default function VendorServicesScreen({ navigation }) {
                   <View style={[styles.statusPill, { backgroundColor: statusColors.bg }]}>
                     {getStatusIcon(request.status)}
                     <Text style={[styles.statusText, { color: statusColors.text }]}>
-                      {request.status}
+                      {getStatusText(request.status)}
                     </Text>
                   </View>
 
