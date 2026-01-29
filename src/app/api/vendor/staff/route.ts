@@ -127,7 +127,37 @@ export async function POST(request: NextRequest) {
     }
 
     const vendorId = auth.vendorId;
-    const body = await request.json();
+
+    // Handle both JSON and FormData (for mobile app compatibility)
+    let body: any = {};
+    const contentType = request.headers.get('content-type') || '';
+
+    try {
+      if (contentType.includes('multipart/form-data')) {
+        // Mobile app sends FormData
+        const formData = await request.formData();
+
+        // Convert FormData to plain object
+        formData.forEach((value, key) => {
+          // For now, we skip file uploads (they need separate handling)
+          // Files: profilePhoto, aadharDocument, panDocument, licenseDocument
+          if (typeof value === 'string') {
+            body[key] = value;
+          }
+        });
+
+        logger.info('[Staff] Received FormData from mobile app');
+      } else {
+        // Web sends JSON
+        body = await request.json();
+      }
+    } catch (parseError) {
+      logger.error('[Staff] Failed to parse request body', parseError);
+      return NextResponse.json(
+        { success: false, error: 'Invalid request format' },
+        { status: 400 }
+      );
+    }
 
     // Validate required fields
     if (!body.name || !body.phone) {
@@ -190,6 +220,24 @@ export async function POST(request: NextRequest) {
       hashedPassword = await bcrypt.hash(body.password, 10);
     }
 
+    // Helper to convert FormData string values to proper types
+    const parseValue = (value: any) => {
+      if (value === '' || value === 'null' || value === 'undefined') return null;
+      return value || null;
+    };
+
+    const parseSalary = (value: any): number => {
+      if (!value || value === '' || value === '0') return 0;
+      const parsed = parseFloat(value);
+      return isNaN(parsed) ? 0 : parsed;
+    };
+
+    const parseDate = (value: any): Date | null => {
+      if (!value || value === '') return null;
+      const date = new Date(value);
+      return isNaN(date.getTime()) ? null : date;
+    };
+
     // Create staff member
     const staff = await prisma.vendor_staff.create({
       data: {
@@ -197,32 +245,32 @@ export async function POST(request: NextRequest) {
         vendorId,
         name: body.name,
         phone: body.phone,
-        email: body.email || null,
+        email: parseValue(body.email),
         password: hashedPassword, // Store hashed password
-        address: body.address || null,
-        city: body.city || null,
-        state: body.state || null,
-        pincode: body.pincode || null,
-        dateOfBirth: body.dateOfBirth ? new Date(body.dateOfBirth) : null,
-        joiningDate: body.joiningDate ? new Date(body.joiningDate) : new Date(),
-        profilePhoto: body.profilePhoto || null,
+        address: parseValue(body.address),
+        city: parseValue(body.city),
+        state: parseValue(body.state),
+        pincode: parseValue(body.pincode),
+        dateOfBirth: parseDate(body.dateOfBirth),
+        joiningDate: parseDate(body.joiningDate) || new Date(),
+        profilePhoto: parseValue(body.profilePhoto),
         role: body.role || 'DRIVER',
         status: body.status || 'ACTIVE',
-        aadharNumber: body.aadharNumber || null,
-        aadharDocument: body.aadharDocument || null,
-        panNumber: body.panNumber || null,
-        panDocument: body.panDocument || null,
-        licenseNumber: body.licenseNumber || null,
-        licenseType: body.licenseType || null,
-        licenseExpiry: body.licenseExpiry ? new Date(body.licenseExpiry) : null,
-        licenseDocument: body.licenseDocument || null,
-        bankName: body.bankName || null,
-        accountNumber: body.accountNumber || null,
-        ifscCode: body.ifscCode || null,
-        accountHolderName: body.accountHolderName || null,
-        salary: body.salary || 0,
-        emergencyContact: body.emergencyContact || null,
-        emergencyPhone: body.emergencyPhone || null,
+        aadharNumber: parseValue(body.aadharNumber),
+        aadharDocument: parseValue(body.aadharDocument),
+        panNumber: parseValue(body.panNumber),
+        panDocument: parseValue(body.panDocument),
+        licenseNumber: parseValue(body.licenseNumber),
+        licenseType: parseValue(body.licenseType),
+        licenseExpiry: parseDate(body.licenseExpiry),
+        licenseDocument: parseValue(body.licenseDocument),
+        bankName: parseValue(body.bankName),
+        accountNumber: parseValue(body.accountNumber),
+        ifscCode: parseValue(body.ifscCode),
+        accountHolderName: parseValue(body.accountHolderName),
+        salary: parseSalary(body.salary),
+        emergencyContact: parseValue(body.emergencyContact),
+        emergencyPhone: parseValue(body.emergencyPhone),
       },
     });
 

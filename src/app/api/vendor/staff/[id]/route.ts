@@ -106,7 +106,36 @@ export async function PATCH(
     const vendorId = auth.vendorId;
     const resolvedParams = 'then' in params ? await params : params;
     const { id } = resolvedParams;
-    const body = await request.json();
+
+    // Handle both JSON and FormData (for mobile app compatibility)
+    let body: any = {};
+    const contentType = request.headers.get('content-type') || '';
+
+    try {
+      if (contentType.includes('multipart/form-data')) {
+        // Mobile app sends FormData
+        const formData = await request.formData();
+
+        // Convert FormData to plain object
+        formData.forEach((value, key) => {
+          // Skip file uploads for now
+          if (typeof value === 'string') {
+            body[key] = value;
+          }
+        });
+
+        logger.info('[Staff Update] Received FormData from mobile app');
+      } else {
+        // Web sends JSON
+        body = await request.json();
+      }
+    } catch (parseError) {
+      logger.error('[Staff Update] Failed to parse request body', parseError);
+      return NextResponse.json(
+        { success: false, error: 'Invalid request format' },
+        { status: 400 }
+      );
+    }
 
     // Check staff exists and belongs to vendor
     const existingStaff = await prisma.vendor_staff.findFirst({
@@ -139,47 +168,65 @@ export async function PATCH(
       }
     }
 
+    // Helper functions for parsing FormData values
+    const parseValue = (value: any) => {
+      if (value === '' || value === 'null' || value === 'undefined') return null;
+      return value || null;
+    };
+
+    const parseSalary = (value: any): number => {
+      if (!value || value === '' || value === '0') return 0;
+      const parsed = parseFloat(value);
+      return isNaN(parsed) ? 0 : parsed;
+    };
+
+    const parseDate = (value: any): Date | null => {
+      if (!value || value === '') return null;
+      const date = new Date(value);
+      return isNaN(date.getTime()) ? null : date;
+    };
+
     // Build update data
     const updateData: any = {};
 
     // Personal info
     if (body.name !== undefined) updateData.name = body.name;
     if (body.phone !== undefined) updateData.phone = body.phone;
-    if (body.email !== undefined) updateData.email = body.email || null;
-    if (body.address !== undefined) updateData.address = body.address || null;
-    if (body.city !== undefined) updateData.city = body.city || null;
-    if (body.state !== undefined) updateData.state = body.state || null;
-    if (body.pincode !== undefined) updateData.pincode = body.pincode || null;
-    if (body.dateOfBirth !== undefined) updateData.dateOfBirth = body.dateOfBirth ? new Date(body.dateOfBirth) : null;
-    if (body.joiningDate !== undefined) updateData.joiningDate = body.joiningDate ? new Date(body.joiningDate) : existingStaff.joiningDate;
-    if (body.profilePhoto !== undefined) updateData.profilePhoto = body.profilePhoto || null;
+    if (body.email !== undefined) updateData.email = parseValue(body.email);
+    if (body.address !== undefined) updateData.address = parseValue(body.address);
+    if (body.city !== undefined) updateData.city = parseValue(body.city);
+    if (body.state !== undefined) updateData.state = parseValue(body.state);
+    if (body.pincode !== undefined) updateData.pincode = parseValue(body.pincode);
+    if (body.dateOfBirth !== undefined) updateData.dateOfBirth = parseDate(body.dateOfBirth);
+    if (body.joiningDate !== undefined) updateData.joiningDate = parseDate(body.joiningDate) || existingStaff.joiningDate;
+    if (body.profilePhoto !== undefined) updateData.profilePhoto = parseValue(body.profilePhoto);
 
     // Role & Status
     if (body.role !== undefined) updateData.role = body.role;
     if (body.status !== undefined) updateData.status = body.status;
 
     // Documents
-    if (body.aadharNumber !== undefined) updateData.aadharNumber = body.aadharNumber || null;
-    if (body.aadharDocument !== undefined) updateData.aadharDocument = body.aadharDocument || null;
-    if (body.panNumber !== undefined) updateData.panNumber = body.panNumber || null;
-    if (body.panDocument !== undefined) updateData.panDocument = body.panDocument || null;
+    if (body.aadharNumber !== undefined) updateData.aadharNumber = parseValue(body.aadharNumber);
+    if (body.aadharDocument !== undefined) updateData.aadharDocument = parseValue(body.aadharDocument);
+    if (body.panNumber !== undefined) updateData.panNumber = parseValue(body.panNumber);
+    if (body.panDocument !== undefined) updateData.panDocument = parseValue(body.panDocument);
 
     // License
-    if (body.licenseNumber !== undefined) updateData.licenseNumber = body.licenseNumber || null;
-    if (body.licenseType !== undefined) updateData.licenseType = body.licenseType || null;
-    if (body.licenseExpiry !== undefined) updateData.licenseExpiry = body.licenseExpiry ? new Date(body.licenseExpiry) : null;
-    if (body.licenseDocument !== undefined) updateData.licenseDocument = body.licenseDocument || null;
+    if (body.licenseNumber !== undefined) updateData.licenseNumber = parseValue(body.licenseNumber);
+    if (body.licenseType !== undefined) updateData.licenseType = parseValue(body.licenseType);
+    if (body.licenseExpiry !== undefined) updateData.licenseExpiry = parseDate(body.licenseExpiry);
+    if (body.licenseDocument !== undefined) updateData.licenseDocument = parseValue(body.licenseDocument);
 
     // Bank details
-    if (body.bankName !== undefined) updateData.bankName = body.bankName || null;
-    if (body.accountNumber !== undefined) updateData.accountNumber = body.accountNumber || null;
-    if (body.ifscCode !== undefined) updateData.ifscCode = body.ifscCode || null;
-    if (body.accountHolderName !== undefined) updateData.accountHolderName = body.accountHolderName || null;
+    if (body.bankName !== undefined) updateData.bankName = parseValue(body.bankName);
+    if (body.accountNumber !== undefined) updateData.accountNumber = parseValue(body.accountNumber);
+    if (body.ifscCode !== undefined) updateData.ifscCode = parseValue(body.ifscCode);
+    if (body.accountHolderName !== undefined) updateData.accountHolderName = parseValue(body.accountHolderName);
 
     // Employment
-    if (body.salary !== undefined) updateData.salary = body.salary || 0;
-    if (body.emergencyContact !== undefined) updateData.emergencyContact = body.emergencyContact || null;
-    if (body.emergencyPhone !== undefined) updateData.emergencyPhone = body.emergencyPhone || null;
+    if (body.salary !== undefined) updateData.salary = parseSalary(body.salary);
+    if (body.emergencyContact !== undefined) updateData.emergencyContact = parseValue(body.emergencyContact);
+    if (body.emergencyPhone !== undefined) updateData.emergencyPhone = parseValue(body.emergencyPhone);
 
     // Password (for drivers)
     if (body.password && body.password.length >= 6) {
