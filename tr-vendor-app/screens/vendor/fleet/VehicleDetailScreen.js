@@ -67,13 +67,14 @@ export default function VehicleDetailScreen({ route, navigation }) {
           }
 
           // Map backend field names to display-friendly names
-          vehicleData.brandName = vehicleData.brand?.name || vehicleData.vehicleModel?.brand?.name || 'N/A';
-          vehicleData.modelName = vehicleData.vehicleModel?.name || vehicleData.model || 'N/A';
-          vehicleData.serviceName = vehicleData.service?.name || 'N/A';
-          vehicleData.categoryName = vehicleData.vehicleCategory?.name || 'N/A';
-          vehicleData.seatingCapacity = vehicleData.vehicleCategory?.seatingCapacity || vehicleData.seatingCapacity || vehicleData.vehicleModel?.seatingCapacity || '--';
-          vehicleData.fuelType = vehicleData.vehicleCategory?.fuelType || vehicleData.fuelType || vehicleData.vehicleModel?.fuelType || '--';
-          vehicleData.transmission = vehicleData.vehicleCategory?.acType || vehicleData.transmission || vehicleData.vehicleModel?.transmission || '--';
+          // Note: API returns vehicle_models, brands, chauffeur_vehicle_categories, services (snake_case)
+          vehicleData.brandName = vehicleData.brands?.name || vehicleData.vehicle_models?.brands?.name || 'N/A';
+          vehicleData.modelName = vehicleData.vehicle_models?.name || vehicleData.model || 'N/A';
+          vehicleData.serviceName = vehicleData.services?.name || 'N/A';
+          vehicleData.categoryName = vehicleData.chauffeur_vehicle_categories?.name || 'N/A';
+          vehicleData.seatingCapacity = vehicleData.chauffeur_vehicle_categories?.seatingCapacity || vehicleData.seatingCapacity || vehicleData.vehicle_models?.seatingCapacity || '--';
+          vehicleData.fuelType = vehicleData.chauffeur_vehicle_categories?.fuelType || vehicleData.fuelType || vehicleData.vehicle_models?.fuelType || '--';
+          vehicleData.transmission = vehicleData.chauffeur_vehicle_categories?.acType || vehicleData.transmission || vehicleData.vehicle_models?.transmission || '--';
           vehicleData.year = vehicleData.yearOfManufacture || vehicleData.year;
         }
 
