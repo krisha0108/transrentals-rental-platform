@@ -454,17 +454,25 @@ export async function uploadVendorDocument(formData) {
   while (retryCount <= maxRetries) {
     try {
       const api = await createInstance();
+      console.log('[Upload] Uploading document...');
+
+      // Don't set Content-Type manually - let axios handle it with boundary
       const res = await api.post('/vendor/documents', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
+        transformRequest: (data, headers) => {
+          // For FormData, don't transform and let browser/axios handle it
+          return data;
         },
       });
+
+      console.log('[Upload] Document uploaded successfully');
       return res.data;
     } catch (error) {
+      console.error('[Upload] Error:', error.message, error.code);
+
       // If 401 and we haven't retried yet, wait a bit and retry
       if (error.response?.status === 401 && retryCount < maxRetries) {
         retryCount++;
-        console.log(`Upload failed with 401, retrying... (${retryCount}/${maxRetries})`);
+        console.log(`[Upload] 401 error, retrying... (${retryCount}/${maxRetries})`);
         // Wait 500ms before retrying to allow token to be set
         await new Promise(resolve => setTimeout(resolve, 500));
         // Clear the cached instance to force recreation with fresh token
@@ -494,16 +502,24 @@ export async function uploadVendorLogo(formData) {
   while (retryCount <= maxRetries) {
     try {
       const api = await createInstance();
+      console.log('[Upload] Uploading logo...');
+
+      // Don't set Content-Type manually - let axios handle it with boundary
       const res = await api.post('/vendor/profile/upload-logo', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
+        transformRequest: (data, headers) => {
+          // For FormData, don't transform and let browser/axios handle it
+          return data;
         },
       });
+
+      console.log('[Upload] Logo uploaded successfully');
       return res.data;
     } catch (error) {
+      console.error('[Upload] Logo error:', error.message, error.code);
+
       if (error.response?.status === 401 && retryCount < maxRetries) {
         retryCount++;
-        console.log(`Logo upload failed with 401, retrying... (${retryCount}/${maxRetries})`);
+        console.log(`[Upload] 401 error, retrying... (${retryCount}/${maxRetries})`);
         await new Promise(resolve => setTimeout(resolve, 500));
         continue;
       }
