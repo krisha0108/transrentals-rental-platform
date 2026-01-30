@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { Suspense, useEffect } from 'react';
 import { usePathname, useSearchParams } from 'next/navigation';
 
 const GA_MEASUREMENT_ID = 'G-0G9KHF8ZKB'; // FINAL, ACTIVE Measurement ID
@@ -12,7 +12,7 @@ declare global {
   }
 }
 
-export default function PageViewTracker() {
+function PageViewTrackerInner() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
@@ -35,4 +35,12 @@ export default function PageViewTracker() {
   }, [pathname, searchParams]);
 
   return null;
+}
+
+export default function PageViewTracker() {
+  return (
+    <Suspense fallback={null}>
+      <PageViewTrackerInner />
+    </Suspense>
+  );
 }
