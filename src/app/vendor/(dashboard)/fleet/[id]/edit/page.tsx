@@ -13,6 +13,9 @@ import {
   Search,
   IndianRupee,
   Info,
+  Image as ImageIcon,
+  Upload,
+  X,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -22,7 +25,13 @@ interface FleetVehicle {
   registrationNumber?: string;
   yearOfManufacture?: number;
   color?: string;
-  images?: string[];
+  images?: {
+    front?: string;
+    back?: string;
+    leftSide?: string;
+    rightSide?: string;
+    inside?: string;
+  } | null;
   isActive: boolean;
   isAvailable: boolean;
   // For bike-rental
@@ -102,6 +111,13 @@ export default function EditVehiclePage() {
   const [color, setColor] = useState('');
   const [selectedLocations, setSelectedLocations] = useState<string[]>([]);
   const [locationSearch, setLocationSearch] = useState('');
+  const [vehicleImages, setVehicleImages] = useState<{
+    front?: string;
+    back?: string;
+    leftSide?: string;
+    rightSide?: string;
+    inside?: string;
+  }>({});
 
   // Bike pricing state
   const [perDayRate, setPerDayRate] = useState('');
@@ -129,6 +145,7 @@ export default function EditVehiclePage() {
           setRegistrationNumber(v.registrationNumber || '');
           setYearOfManufacture(v.yearOfManufacture?.toString() || '');
           setColor(v.color || '');
+          setVehicleImages(v.images || {});
 
           // Handle both API field names (vendor_fleet_locations vs fleetLocations)
           const locations = v.vendor_fleet_locations || v.fleetLocations || [];
@@ -175,6 +192,19 @@ export default function EditVehiclePage() {
 
   const isCarRental = service?.slug === 'car-rental' ||
     service?.name?.toLowerCase().includes('car rental');
+
+  const isSelfDrive = service?.slug === 'self-drive' ||
+    service?.name?.toLowerCase().includes('self-drive') ||
+    service?.name?.toLowerCase().includes('self drive');
+
+  const isBusRental = service?.slug === 'bus-rental' ||
+    service?.name?.toLowerCase().includes('bus');
+
+  const isLuxuryCar = service?.slug === 'luxury-car-rental' ||
+    service?.name?.toLowerCase().includes('luxury');
+
+  // Services that support vehicle image upload
+  const needsVehicleImages = isBikeService || isCarRental || isSelfDrive || isBusRental || isLuxuryCar;
 
   // Helper to get vehicle name (handles both bike-rental and car-rental)
   const getVehicleName = () => {
@@ -259,6 +289,10 @@ export default function EditVehiclePage() {
           color: color || undefined,
           locationIds: selectedLocations,
           pricing,
+          // Include vehicle images if any exist and service supports images
+          images: needsVehicleImages && Object.keys(vehicleImages).length > 0
+            ? JSON.stringify(vehicleImages)
+            : undefined,
         }),
       });
 
@@ -406,6 +440,116 @@ export default function EditVehiclePage() {
               />
             </div>
           </div>
+
+          {/* Vehicle Images Section - Only for specific services */}
+          {needsVehicleImages && (
+            <div className="mt-6 p-4 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl border border-blue-200">
+              <div className="flex items-center gap-2 mb-4">
+                <ImageIcon className="w-5 h-5 text-blue-600" />
+                <h3 className="font-semibold text-gray-900">Vehicle Images (Optional)</h3>
+              </div>
+              <p className="text-sm text-gray-600 mb-4">
+                Upload or update images of your vehicle from different angles. All images are optional.
+              </p>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {[
+                  { key: 'front', label: 'Front View', description: 'Front side of the vehicle' },
+                  { key: 'back', label: 'Back View', description: 'Rear side of the vehicle' },
+                  { key: 'leftSide', label: 'Left Side View', description: 'Left side of the vehicle' },
+                  { key: 'rightSide', label: 'Right Side View', description: 'Right side of the vehicle' },
+                  { key: 'inside', label: 'Interior View', description: 'Inside/dashboard view' },
+                ].map((imageType) => (
+                  <div key={imageType.key} className="relative">
+                    <div className="text-xs font-medium text-gray-700 mb-1">{imageType.label}</div>
+                    <div className="text-xs text-gray-500 mb-2">{imageType.description}</div>
+
+                    {vehicleImages[imageType.key as keyof typeof vehicleImages] ? (
+                      <div className="relative group">
+                        <img
+                          src={vehicleImages[imageType.key as keyof typeof vehicleImages]}
+                          alt={imageType.label}
+                          className="w-full h-32 object-cover rounded-lg border-2 border-green-200"
+                        />
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setVehicleImages(prev => {
+                              const updated = { ...prev };
+                              delete updated[imageType.key as keyof typeof vehicleImages];
+                              return updated;
+                            });
+                          }}
+                          className="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity z-10 cursor-pointer"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                        <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition rounded-lg flex items-center justify-center pointer-events-none">
+                          <span className="text-white text-xs opacity-0 group-hover:opacity-100">Click X to remove</span>
+                        </div>
+                      </div>
+                    ) : (
+                      <label className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center cursor-pointer hover:border-blue-400 hover:bg-white transition block">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              if (file.size > 5 * 1024 * 1024) {
+                                alert('Image size should be less than 5MB');
+                                e.target.value = '';
+                                return;
+                              }
+                              const reader = new FileReader();
+                              reader.onload = (event) => {
+                                const img = new Image();
+                                img.onload = () => {
+                                  const canvas = document.createElement('canvas');
+                                  const maxWidth = 1200;
+                                  const maxHeight = 1200;
+                                  let width = img.width;
+                                  let height = img.height;
+                                  if (width > height) {
+                                    if (width > maxWidth) {
+                                      height = (height * maxWidth) / width;
+                                      width = maxWidth;
+                                    }
+                                  } else {
+                                    if (height > maxHeight) {
+                                      width = (width * maxHeight) / height;
+                                      height = maxHeight;
+                                    }
+                                  }
+                                  canvas.width = width;
+                                  canvas.height = height;
+                                  const ctx = canvas.getContext('2d');
+                                  ctx?.drawImage(img, 0, 0, width, height);
+                                  const compressedBase64 = canvas.toDataURL('image/jpeg', 0.8);
+                                  setVehicleImages(prev => ({
+                                    ...prev,
+                                    [imageType.key]: compressedBase64
+                                  }));
+                                };
+                                img.src = event.target?.result as string;
+                              };
+                              reader.readAsDataURL(file);
+                            }
+                          }}
+                        />
+                        <Upload className="w-6 h-6 text-gray-400 mx-auto mb-1" />
+                        <div className="text-xs text-gray-500">Click to upload</div>
+                        <div className="text-xs text-gray-400 mt-1">Max 5MB</div>
+                      </label>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

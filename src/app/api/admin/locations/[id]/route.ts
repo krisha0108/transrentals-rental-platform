@@ -126,9 +126,14 @@ export async function PUT(
     });
 
     return NextResponse.json(location);
-  } catch (error) {
+  } catch (error: any) {
     logger.error('Location update error', error);
-    return NextResponse.json({ error: 'Failed to update location' }, { status: 500 });
+    console.error('Location update error details:', error);
+    return NextResponse.json({
+      error: 'Failed to update location',
+      details: error?.message || error?.toString(),
+      code: error?.code
+    }, { status: 500 });
   }
 }
 

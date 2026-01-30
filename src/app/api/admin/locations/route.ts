@@ -99,29 +99,25 @@ export async function GET(request: NextRequest) {
 
 // Helper function to generate next loc_<number> ID
 async function generateNextLocationId(): Promise<string> {
-  // Get all location IDs that match loc_<number> pattern
+  // Get ALL location IDs (both uppercase LOC_ and lowercase loc_)
   const locations = await prisma.locations.findMany({
-    select: { id: true },
-    where: {
-      id: {
-        startsWith: 'loc_'
-      }
-    }
+    select: { id: true }
   });
 
-  // Extract numbers and find the maximum
+  // Extract numbers from both LOC_<num> and loc_<num> patterns and find the maximum
   let maxNum = 0;
   for (const loc of locations) {
-    const match = loc.id.match(/^loc_(\d+)$/);
+    // Match both uppercase LOC_123 and lowercase loc_123
+    const match = loc.id.match(/^(loc|LOC)_(\d+)$/i);
     if (match) {
-      const num = parseInt(match[1], 10);
+      const num = parseInt(match[2], 10);
       if (num > maxNum) {
         maxNum = num;
       }
     }
   }
 
-  // Return next ID
+  // Return next ID with lowercase prefix
   return `loc_${maxNum + 1}`;
 }
 
@@ -208,8 +204,13 @@ export async function POST(request: NextRequest) {
     });
 
     return NextResponse.json(location, { status: 201 });
-  } catch (error) {
+  } catch (error: any) {
     logger.error('Location create error', error);
-    return NextResponse.json({ error: 'Failed to create location' }, { status: 500 });
+    console.error('Location create error details:', error);
+    return NextResponse.json({
+      error: 'Failed to create location',
+      details: error?.message || error?.toString(),
+      code: error?.code
+    }, { status: 500 });
   }
 }

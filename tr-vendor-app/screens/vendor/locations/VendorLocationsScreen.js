@@ -50,36 +50,51 @@ export default function VendorLocationsScreen({ navigation }) {
 
   const fetchLocations = useCallback(async () => {
     try {
-      // Fetch vendor's locations - API returns allLocations (states with children cities)
+      // Fetch vendor's locations - API returns allLocations (states + union territories with children cities)
       const vendorLocations = await getVendorLocations();
       setRequests(vendorLocations.requests || []);
       setApprovedLocations(vendorLocations.approvedLocations || []);
 
       // Flatten the hierarchical data: states -> cities with parent info
-      // API returns: [{ id, name, children: [{ id, name }] }]
-      // We need: [{ id, name, parent: { name } }]
-      const statesWithCities = vendorLocations.allLocations || [];
-      const flatCities = [];
+      // Also include Union Territories as direct locations
+      const statesAndUTs = vendorLocations.allLocations || [];
+      const flatLocations = [];
 
-      statesWithCities.forEach((state) => {
-        // Backend returns 'cities' property (not 'children')
-        const cities = state.cities || state.children || [];
-        if (cities && Array.isArray(cities)) {
+      statesAndUTs.forEach((location) => {
+        const cities = location.cities || location.children || [];
+
+        if (cities && Array.isArray(cities) && cities.length > 0) {
+          // This is a state with cities - add all cities
           cities.forEach((city) => {
-            flatCities.push({
+            flatLocations.push({
               id: city.id,
               name: city.name,
               slug: city.slug,
+              type: city.type || 'CITY',
               parent: {
-                id: state.id,
-                name: state.name,
+                id: location.id,
+                name: location.name,
+                type: location.type,
               },
             });
+          });
+        } else if (location.type === 'UNION_TERRITORY') {
+          // This is a Union Territory without children - add it directly
+          flatLocations.push({
+            id: location.id,
+            name: location.name,
+            slug: location.slug,
+            type: location.type,
+            parent: {
+              id: null,
+              name: 'Union Territory',
+              type: 'UNION_TERRITORY',
+            },
           });
         }
       });
 
-      setAllLocations(flatCities);
+      setAllLocations(flatLocations);
     } catch (error) {
       console.error('Failed to fetch locations:', error);
       setAllLocations([]);
@@ -534,7 +549,7 @@ export default function VendorLocationsScreen({ navigation }) {
                         </View>
                         {availableCitiesInState.length > 0 && (
                           <Text style={styles.stateCitiesCount}>
-                            {availableCitiesInState.length} cities
+                            {availableCitiesInState.length} {state === 'Union Territory' ? 'locations' : 'cities'}
                           </Text>
                         )}
                       </TouchableOpacity>

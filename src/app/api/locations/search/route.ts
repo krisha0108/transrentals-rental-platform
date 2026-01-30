@@ -21,6 +21,13 @@ export async function GET(request: NextRequest) {
       });
     }
 
+    // Build type filter - when searching for CITY, include UNION_TERRITORY too
+    const typeFilter = type === 'ALL'
+      ? {}
+      : type === 'CITY'
+        ? { type: { in: ['CITY', 'UNION_TERRITORY'] } }
+        : { type: type };
+
     // Search locations by name (MySQL is case-insensitive by default)
     const locations = await prisma.locations.findMany({
       where: {
@@ -33,7 +40,7 @@ export async function GET(request: NextRequest) {
               { code: { contains: query } },
             ],
           },
-          type === 'ALL' ? {} : { type: type },
+          typeFilter,
         ],
       },
       select: {

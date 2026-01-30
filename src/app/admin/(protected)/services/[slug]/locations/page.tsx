@@ -89,6 +89,7 @@ export default function ServiceLocationsPage() {
   const [serviceLoading, setServiceLoading] = useState(true);
   const [locationHierarchy, setLocationHierarchy] = useState<StateLocation[]>([]);
   const [flatLocations, setFlatLocations] = useState<FlatLocation[]>([]);
+  const [unionTerritories, setUnionTerritories] = useState<CityLocation[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState('');
@@ -142,6 +143,17 @@ export default function ServiceLocationsPage() {
               isEnabled: loc.isEnabled,
               vehicleCount: loc.vehicleCount || 0,
               vendorCount: loc.vendorCount || 0,
+            }))
+          );
+          // Set union territories
+          setUnionTerritories(
+            (data.unionTerritories || []).map((ut: any) => ({
+              id: ut.id,
+              name: ut.name,
+              slug: ut.slug,
+              isEnabled: ut.isEnabled,
+              vehicleCount: ut.vehicleCount || 0,
+              vendorCount: ut.vendorCount || 0,
             }))
           );
         } else {
@@ -228,6 +240,13 @@ export default function ServiceLocationsPage() {
     setLocationHierarchy((prev) => prev.map((state) => ({ ...state, isExpanded: true })));
   };
 
+  const toggleUnionTerritory = (utId: string) => {
+    setUnionTerritories((prev) =>
+      prev.map((ut) => (ut.id === utId ? { ...ut, isEnabled: !ut.isEnabled } : ut))
+    );
+    setHasChanges(true);
+  };
+
   const collapseAll = () => {
     setLocationHierarchy((prev) => prev.map((state) => ({ ...state, isExpanded: false })));
   };
@@ -241,6 +260,8 @@ export default function ServiceLocationsPage() {
       }))
     );
     setFlatLocations((prev) => prev.map((loc) => ({ ...loc, isEnabled: true })));
+    // Also select all union territories
+    setUnionTerritories((prev) => prev.map((ut) => ({ ...ut, isEnabled: true })));
     setHasChanges(true);
   };
 
@@ -253,6 +274,8 @@ export default function ServiceLocationsPage() {
       }))
     );
     setFlatLocations((prev) => prev.map((loc) => ({ ...loc, isEnabled: false })));
+    // Also clear all union territories
+    setUnionTerritories((prev) => prev.map((ut) => ({ ...ut, isEnabled: false })));
     setHasChanges(true);
   };
 
@@ -260,9 +283,17 @@ export default function ServiceLocationsPage() {
     setSaving(true);
     try {
       // Collect all enabled city IDs from hierarchy
-      const enabledIds = locationHierarchy.flatMap((state) =>
+      const enabledCityIds = locationHierarchy.flatMap((state) =>
         state.cities.filter((city) => city.isEnabled).map((city) => city.id)
       );
+
+      // Collect enabled union territory IDs
+      const enabledUTIds = unionTerritories
+        .filter((ut) => ut.isEnabled)
+        .map((ut) => ut.id);
+
+      // Combine both
+      const enabledIds = [...enabledCityIds, ...enabledUTIds];
 
       const res = await fetch(`/api/admin/services/${slug}/locations`, {
         method: 'POST',
@@ -357,7 +388,7 @@ export default function ServiceLocationsPage() {
         </div>
         <div className="flex items-center gap-3">
           <span className="text-sm text-gray-500">
-            {enabledCities} of {totalCities} cities enabled
+            {enabledCities + unionTerritories.filter(ut => ut.isEnabled).length} of {totalCities + unionTerritories.length} locations enabled
           </span>
           <Button
             disabled={!hasChanges || saving}
@@ -371,23 +402,29 @@ export default function ServiceLocationsPage() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <div className="bg-white rounded-xl p-4 border shadow-sm">
           <p className="text-xs text-gray-500 mb-1">Total States</p>
           <p className="text-2xl font-bold text-gray-900">{totalStates}</p>
+        </div>
+        <div className="bg-white rounded-xl p-4 border shadow-sm">
+          <p className="text-xs text-gray-500 mb-1">Union Territories</p>
+          <p className="text-2xl font-bold text-indigo-600">{unionTerritories.length}</p>
         </div>
         <div className="bg-white rounded-xl p-4 border shadow-sm">
           <p className="text-xs text-gray-500 mb-1">Total Cities</p>
           <p className="text-2xl font-bold text-gray-900">{totalCities}</p>
         </div>
         <div className="bg-white rounded-xl p-4 border shadow-sm">
-          <p className="text-xs text-gray-500 mb-1">Enabled Cities</p>
-          <p className="text-2xl font-bold text-green-600">{enabledCities}</p>
+          <p className="text-xs text-gray-500 mb-1">Enabled Locations</p>
+          <p className="text-2xl font-bold text-green-600">{enabledCities + unionTerritories.filter(ut => ut.isEnabled).length}</p>
         </div>
         <div className="bg-white rounded-xl p-4 border shadow-sm">
           <p className="text-xs text-gray-500 mb-1">Coverage</p>
           <p className="text-2xl font-bold text-blue-600">
-            {totalCities > 0 ? Math.round((enabledCities / totalCities) * 100) : 0}%
+            {(totalCities + unionTerritories.length) > 0
+              ? Math.round(((enabledCities + unionTerritories.filter(ut => ut.isEnabled).length) / (totalCities + unionTerritories.length)) * 100)
+              : 0}%
           </p>
         </div>
       </div>
@@ -559,6 +596,53 @@ export default function ServiceLocationsPage() {
               );
             })}
           </div>
+
+          {/* Union Territories Section */}
+          {unionTerritories.length > 0 && (
+            <div className="bg-gradient-to-r from-indigo-50 to-purple-50 border-2 border-indigo-200">
+              <div className="flex items-center bg-gradient-to-r from-indigo-100 to-purple-100 p-4">
+                <MapPin className="w-5 h-5 text-indigo-600 mr-3" />
+                <div className="flex-1">
+                  <span className="font-semibold text-gray-900">Union Territories</span>
+                  <span className="ml-2 text-sm text-gray-500">
+                    ({unionTerritories.filter(ut => ut.isEnabled).length}/{unionTerritories.length} enabled)
+                  </span>
+                </div>
+              </div>
+              <div className="p-4 bg-white">
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+                  {unionTerritories
+                    .filter(ut => !search || ut.name.toLowerCase().includes(search.toLowerCase()))
+                    .map((ut) => (
+                      <button
+                        key={ut.id}
+                        onClick={() => toggleUnionTerritory(ut.id)}
+                        className={`p-3 rounded-lg border-2 text-left transition ${
+                          ut.isEnabled
+                            ? 'border-indigo-500 bg-indigo-50'
+                            : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="font-medium text-gray-900 text-sm">{ut.name}</span>
+                          {ut.isEnabled && <Check className="w-4 h-4 text-indigo-600" />}
+                        </div>
+                        <div className="flex items-center gap-3 text-xs text-gray-400">
+                          <span className="flex items-center gap-1">
+                            <Car className="w-3 h-3" />
+                            {ut.vehicleCount}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <Building className="w-3 h-3" />
+                            {ut.vendorCount}
+                          </span>
+                        </div>
+                      </button>
+                    ))}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       ) : (
         // Grid View (by tier)

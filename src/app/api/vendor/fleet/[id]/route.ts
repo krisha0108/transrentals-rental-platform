@@ -109,7 +109,17 @@ export async function GET(
       );
     }
 
-    return NextResponse.json({ success: true, vehicle });
+    // Transform images from JSON string to object
+    const transformedVehicle = {
+      ...vehicle,
+      images: vehicle.images
+        ? (typeof vehicle.images === 'string'
+          ? (vehicle.images === 'null' ? null : JSON.parse(vehicle.images))
+          : vehicle.images)
+        : null,
+    };
+
+    return NextResponse.json({ success: true, vehicle: transformedVehicle });
   } catch (error: any) {
     logger.error('Get fleet vehicle error', error);
     return NextResponse.json(

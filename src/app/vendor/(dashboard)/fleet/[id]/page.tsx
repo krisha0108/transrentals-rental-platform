@@ -22,6 +22,8 @@ import {
   Trash2,
   ToggleLeft,
   ToggleRight,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -31,7 +33,13 @@ interface FleetVehicle {
   registrationNumber?: string;
   yearOfManufacture?: number;
   color?: string;
-  images?: string[];
+  images?: {
+    front?: string;
+    back?: string;
+    leftSide?: string;
+    rightSide?: string;
+    inside?: string;
+  } | null;
   isActive: boolean;
   isAvailable: boolean;
   isVerified: boolean;
@@ -121,6 +129,7 @@ export default function VehicleDetailPage() {
   const [error, setError] = useState('');
   const [updating, setUpdating] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
   useEffect(() => {
     const fetchVehicle = async () => {
@@ -244,15 +253,47 @@ export default function VehicleDetailPage() {
     return 'Unknown Vehicle';
   };
 
-  // Helper to get vehicle image
-  const getVehicleImage = () => {
-    if (!vehicle) return null;
-    if (vehicle.images && vehicle.images.length > 0) return vehicle.images[0];
-    if (vehicleModel?.sideImage) return vehicleModel.sideImage;
-    if (vehicleCategory?.image) return vehicleCategory.image;
-    if (brandData?.logo) return brandData.logo;
-    return null;
+  // Helper to get all images for slider (featured + vendor images)
+  const getAllImages = () => {
+    const images: { url: string; label: string; isFeatured?: boolean }[] = [];
+
+    // Add featured image first (admin's image from model/category)
+    if (!vehicle) return images;
+
+    let featuredImageUrl = null;
+    if (vehicleModel?.sideImage) featuredImageUrl = vehicleModel.sideImage;
+    else if (vehicleCategory?.image) featuredImageUrl = vehicleCategory.image;
+    else if (brandData?.logo) featuredImageUrl = brandData.logo;
+
+    if (featuredImageUrl) {
+      images.push({ url: featuredImageUrl, label: 'Featured Image', isFeatured: true });
+    }
+
+    // Add vendor-uploaded images
+    if (vehicle.images) {
+      if (vehicle.images.front) images.push({ url: vehicle.images.front, label: 'Front View' });
+      if (vehicle.images.back) images.push({ url: vehicle.images.back, label: 'Back View' });
+      if (vehicle.images.leftSide) images.push({ url: vehicle.images.leftSide, label: 'Left Side' });
+      if (vehicle.images.rightSide) images.push({ url: vehicle.images.rightSide, label: 'Right Side' });
+      if (vehicle.images.inside) images.push({ url: vehicle.images.inside, label: 'Interior' });
+    }
+
+    return images;
   };
+
+  const allImages = getAllImages();
+  const hasImages = allImages.length > 0;
+
+  // Auto-slide effect (3 seconds)
+  useEffect(() => {
+    if (allImages.length <= 1) return;
+
+    const interval = setInterval(() => {
+      setCurrentImageIndex((prev) => (prev === allImages.length - 1 ? 0 : prev + 1));
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [allImages.length]);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-IN', {
@@ -345,18 +386,80 @@ export default function VehicleDetailPage() {
       {/* Vehicle Card */}
       <div className="bg-white rounded-xl border shadow-sm overflow-hidden">
         <div className="flex flex-col lg:flex-row">
-          {/* Vehicle Image */}
-          <div className="w-full lg:w-80 h-56 bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
-            {getVehicleImage() ? (
-              <img
-                src={getVehicleImage()!}
-                alt={getVehicleName()}
-                className="w-full h-full object-contain p-4"
-              />
-            ) : isBikeService ? (
-              <Bike className="w-24 h-24 text-blue-300" />
+          {/* Vehicle Image Slider */}
+          <div className="w-full lg:w-96">
+            {hasImages ? (
+              <div className="relative bg-gradient-to-br from-blue-50 to-indigo-100">
+                <div className="w-full h-56 flex items-center justify-center">
+                  <img
+                    src={allImages[currentImageIndex].url}
+                    alt={allImages[currentImageIndex].label}
+                    className="w-full h-full object-contain p-4"
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none';
+                      const placeholder = isBikeService
+                        ? '<svg class="w-24 h-24 text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/></svg>'
+                        : '<svg class="w-24 h-24 text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2"/></svg>';
+                      e.currentTarget.parentElement!.innerHTML = `<div class="flex items-center justify-center w-full h-full">${placeholder}</div>`;
+                    }}
+                  />
+                </div>
+
+                {/* Featured Badge */}
+                {allImages[currentImageIndex].isFeatured && (
+                  <div className="absolute top-2 left-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-xs px-3 py-1 rounded-full shadow-lg flex items-center gap-1">
+                    <Star className="w-3 h-3 fill-white" />
+                    Featured
+                  </div>
+                )}
+
+                {/* Navigation Arrows */}
+                {allImages.length > 1 && (
+                  <>
+                    <button
+                      onClick={() => setCurrentImageIndex((prev) => (prev === 0 ? allImages.length - 1 : prev - 1))}
+                      className="absolute left-2 top-1/2 -translate-y-1/2 bg-white bg-opacity-80 hover:bg-opacity-100 rounded-full p-2 shadow-lg transition"
+                    >
+                      <ChevronLeft className="w-5 h-5 text-gray-700" />
+                    </button>
+                    <button
+                      onClick={() => setCurrentImageIndex((prev) => (prev === allImages.length - 1 ? 0 : prev + 1))}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 bg-white bg-opacity-80 hover:bg-opacity-100 rounded-full p-2 shadow-lg transition"
+                    >
+                      <ChevronRight className="w-5 h-5 text-gray-700" />
+                    </button>
+                  </>
+                )}
+
+                {/* Image Label & Counter */}
+                <div className="absolute bottom-2 left-1/2 -translate-x-1/2 bg-black bg-opacity-70 text-white text-xs px-3 py-1.5 rounded-full">
+                  {allImages[currentImageIndex].label} ({currentImageIndex + 1}/{allImages.length})
+                </div>
+
+                {/* Thumbnail Dots */}
+                {allImages.length > 1 && (
+                  <div className="absolute bottom-2 right-2 flex gap-1.5">
+                    {allImages.map((_, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => setCurrentImageIndex(idx)}
+                        className={cn(
+                          "w-2 h-2 rounded-full transition-all",
+                          idx === currentImageIndex ? "bg-white w-4" : "bg-white bg-opacity-50"
+                        )}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
             ) : (
-              <Car className="w-24 h-24 text-blue-300" />
+              <div className="w-full h-56 bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+                {isBikeService ? (
+                  <Bike className="w-24 h-24 text-blue-300" />
+                ) : (
+                  <Car className="w-24 h-24 text-blue-300" />
+                )}
+              </div>
             )}
           </div>
 

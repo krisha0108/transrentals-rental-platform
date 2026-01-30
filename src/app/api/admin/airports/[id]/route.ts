@@ -121,19 +121,19 @@ export async function DELETE(
     // Delete in order: routes, city pricing, service locations, distance matrix, then airport
     await prisma.$transaction(async (tx) => {
       // Delete route packages involving this airport
-      await tx.chauffeurRoutePackage.deleteMany({
+      await tx.chauffeur_route_packages.deleteMany({
         where: {
           OR: [{ fromLocationId: params.id }, { toLocationId: params.id }],
         },
       });
 
       // Delete city pricing for this airport
-      await tx.chauffeurCityPricing.deleteMany({
+      await tx.chauffeur_city_pricing.deleteMany({
         where: { locationId: params.id },
       });
 
       // Delete distance matrix entries
-      await tx.cityDistanceMatrix.deleteMany({
+      await tx.city_distance_matrix.deleteMany({
         where: {
           OR: [{ fromLocationId: params.id }, { toLocationId: params.id }],
         },
@@ -144,15 +144,43 @@ export async function DELETE(
         where: { locationId: params.id },
       });
 
+      // Delete bookings if any exist (these don't have CASCADE)
+      await tx.chauffeur_bookings.deleteMany({
+        where: { locationId: params.id },
+      });
+
       // Delete the airport
-      await tx.location.delete({
+      await tx.locations.delete({
         where: { id: params.id },
       });
     });
 
     return NextResponse.json({ success: true, message: 'Airport deleted successfully' });
-  } catch (error) {
-    console.error('Failed to delete airport:', error);
-    return NextResponse.json({ success: false, error: 'Failed to delete airport' }, { status: 500 });
+  } catch (error: any) {
+    console.error('Failed to delete airport - Full error:', error);
+
+    // Check for foreign key constraint errors
+    if (error.code === 'P2003') {
+      return NextResponse.json({
+        success: false,
+        error: 'Cannot delete airport: It has related bookings or data. Please remove all associated data first.',
+        details: error.meta?.field_name || 'Foreign key constraint violation'
+      }, { status: 400 });
+    }
+
+    // Check for other Prisma errors
+    if (error.code) {
+      return NextResponse.json({
+        success: false,
+        error: `Database error: ${error.message}`,
+        code: error.code
+      }, { status: 500 });
+    }
+
+    return NextResponse.json({
+      success: false,
+      error: error.message || 'Failed to delete airport',
+      details: error.toString()
+    }, { status: 500 });
   }
 }

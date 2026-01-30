@@ -27,7 +27,7 @@ interface Location {
   id: string;
   name: string;
   slug: string;
-  type: 'COUNTRY' | 'STATE' | 'CITY' | 'AREA' | 'AIRPORT';
+  type: 'COUNTRY' | 'STATE' | 'UNION_TERRITORY' | 'CITY' | 'AREA' | 'AIRPORT';
   parentId: string | null;
   code: string | null;
   image: string | null;
@@ -43,9 +43,10 @@ interface Location {
 const TYPE_CONFIG = {
   COUNTRY: { label: 'Country', icon: Globe, color: 'bg-blue-100 text-blue-700', order: 1 },
   STATE: { label: 'State', icon: Building2, color: 'bg-purple-100 text-purple-700', order: 2 },
-  CITY: { label: 'City', icon: Map, color: 'bg-green-100 text-green-700', order: 3 },
-  AREA: { label: 'Area', icon: Navigation, color: 'bg-amber-100 text-amber-700', order: 4 },
-  AIRPORT: { label: 'Airport', icon: Plane, color: 'bg-sky-100 text-sky-700', order: 5 },
+  UNION_TERRITORY: { label: 'Union Territory', icon: MapPin, color: 'bg-indigo-100 text-indigo-700', order: 3 },
+  CITY: { label: 'City', icon: Map, color: 'bg-green-100 text-green-700', order: 4 },
+  AREA: { label: 'Area', icon: Navigation, color: 'bg-amber-100 text-amber-700', order: 5 },
+  AIRPORT: { label: 'Airport', icon: Plane, color: 'bg-sky-100 text-sky-700', order: 6 },
 };
 
 export default function LocationsManagementPage() {
@@ -63,7 +64,7 @@ export default function LocationsManagementPage() {
   const [formData, setFormData] = useState({
     name: '',
     slug: '',
-    type: 'CITY' as 'COUNTRY' | 'STATE' | 'CITY' | 'AREA' | 'AIRPORT',
+    type: 'CITY' as 'COUNTRY' | 'STATE' | 'UNION_TERRITORY' | 'CITY' | 'AREA' | 'AIRPORT',
     parentId: '',
     code: '',
     image: '',
@@ -135,27 +136,34 @@ export default function LocationsManagementPage() {
   }, [viewMode, typeFilter]);
 
   const fetchParentOptions = async (type: string) => {
-    // Hierarchy: COUNTRY -> STATE -> CITY -> (AREA | AIRPORT)
+    // Hierarchy: COUNTRY -> (STATE | UNION_TERRITORY) -> CITY -> (AREA | AIRPORT)
     // STATE's parent is COUNTRY
-    // CITY's parent is STATE
+    // UNION_TERRITORY's parent is COUNTRY
+    // CITY's parent is STATE or UNION_TERRITORY
     // AREA's parent is CITY
     // AIRPORT's parent is CITY (airports are located in cities)
     // COUNTRY has no parent
-    let parentType: string | null = null;
-    if (type === 'STATE') parentType = 'COUNTRY';
-    else if (type === 'CITY') parentType = 'STATE';
-    else if (type === 'AREA' || type === 'AIRPORT') parentType = 'CITY';
+    let parentTypes: string[] = [];
+    if (type === 'STATE' || type === 'UNION_TERRITORY') parentTypes = ['COUNTRY'];
+    else if (type === 'CITY') parentTypes = ['STATE', 'UNION_TERRITORY'];
+    else if (type === 'AREA' || type === 'AIRPORT') parentTypes = ['CITY'];
 
-    if (!parentType) {
+    if (parentTypes.length === 0) {
       setParentOptions([]);
       return;
     }
 
     try {
-      const res = await fetch(`/api/admin/locations?flat=true&type=${parentType}`);
-      if (res.ok) {
-        setParentOptions(await res.json());
+      // Fetch locations for all parent types
+      const allParents: Location[] = [];
+      for (const parentType of parentTypes) {
+        const res = await fetch(`/api/admin/locations?flat=true&type=${parentType}`);
+        if (res.ok) {
+          const data = await res.json();
+          allParents.push(...data);
+        }
       }
+      setParentOptions(allParents);
     } catch (error) {
       console.error('Failed to fetch parent options:', error);
     }
@@ -268,7 +276,10 @@ export default function LocationsManagementPage() {
         fetchLocations();
       } else {
         const error = await res.json();
-        alert(error.error || 'Failed to save location');
+        const errorMessage = error.details
+          ? `${error.error}\n\nDetails: ${error.details}`
+          : error.error || 'Failed to save location';
+        alert(errorMessage);
       }
     } catch (error) {
       console.error('Failed to save location:', error);
@@ -309,16 +320,34 @@ export default function LocationsManagementPage() {
     });
   };
 
+  // Helper function to check if location or its children match search
+  const matchesSearch = (location: Location, searchTerm: string): boolean => {
+    const term = searchTerm.toLowerCase();
+    // Check if current location matches
+    if (location.name.toLowerCase().includes(term) ||
+        location.slug.toLowerCase().includes(term) ||
+        location.code?.toLowerCase().includes(term)) {
+      return true;
+    }
+    // Check if any children match
+    if (location.children && location.children.length > 0) {
+      return location.children.some(child => matchesSearch(child, searchTerm));
+    }
+    return false;
+  };
+
   const renderLocationTree = (locationList: Location[], level: number = 0) => {
     const filtered = search
-      ? locationList.filter(l => l.name.toLowerCase().includes(search.toLowerCase()))
+      ? locationList.filter(l => matchesSearch(l, search))
       : locationList;
 
     return filtered.map((location) => {
       const config = TYPE_CONFIG[location.type];
       const Icon = config.icon;
       const hasChildren = location.children && location.children.length > 0;
-      const isExpanded = expandedIds.has(location.id);
+      // Auto-expand if searching and has matching children
+      const shouldAutoExpand = search && hasChildren && location.children!.some(child => matchesSearch(child, search));
+      const isExpanded = expandedIds.has(location.id) || shouldAutoExpand;
 
       return (
         <div key={location.id}>
@@ -402,7 +431,13 @@ export default function LocationsManagementPage() {
 
   const renderFlatList = () => {
     const filtered = search
-      ? locations.filter(l => l.name.toLowerCase().includes(search.toLowerCase()))
+      ? locations.filter(l => {
+          const term = search.toLowerCase();
+          return l.name.toLowerCase().includes(term) ||
+                 l.slug.toLowerCase().includes(term) ||
+                 l.code?.toLowerCase().includes(term) ||
+                 l.parent?.name?.toLowerCase().includes(term);
+        })
       : locations;
 
     return (
@@ -499,6 +534,7 @@ export default function LocationsManagementPage() {
               <option value="">All Types</option>
               <option value="COUNTRY">Countries</option>
               <option value="STATE">States</option>
+              <option value="UNION_TERRITORY">Union Territories</option>
               <option value="CITY">Cities</option>
               <option value="AREA">Areas</option>
               <option value="AIRPORT">Airports</option>
@@ -574,10 +610,10 @@ export default function LocationsManagementPage() {
                     onChange={handleChange}
                     className="w-full px-4 py-2 border rounded-lg"
                     required
-                    disabled={!!editingLocation}
                   >
                     <option value="COUNTRY">Country</option>
                     <option value="STATE">State</option>
+                    <option value="UNION_TERRITORY">Union Territory</option>
                     <option value="CITY">City</option>
                     <option value="AREA">Area</option>
                     <option value="AIRPORT">Airport</option>
@@ -645,7 +681,7 @@ export default function LocationsManagementPage() {
                 </div>
               </div>
 
-              {(formData.type === 'CITY' || formData.type === 'AREA' || formData.type === 'STATE') && (
+              {(formData.type === 'CITY' || formData.type === 'AREA' || formData.type === 'STATE' || formData.type === 'UNION_TERRITORY') && (
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <label className="block text-sm font-medium text-gray-700">
