@@ -3670,6 +3670,7 @@ enum bike_quotes_status {
 enum locations_type {
   COUNTRY
   STATE
+  UNION_TERRITORY
   CITY
   AREA
   AIRPORT

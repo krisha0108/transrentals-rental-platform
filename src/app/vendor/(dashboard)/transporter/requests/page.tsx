@@ -287,7 +287,7 @@ export default function VendorTransporterRequestsPage() {
                     </Link>
                   ) : (
                     <Link
-                      href={`/vendor/transporter/quotes/${request.id}`}
+                      href={`/vendor/transporter/quotes/${request.myQuote?.id}`}
                       className="px-4 py-2 bg-green-100 text-green-700 text-sm font-semibold rounded-lg hover:bg-green-200 transition flex items-center gap-1"
                     >
                       <CheckCircle className="w-4 h-4" />

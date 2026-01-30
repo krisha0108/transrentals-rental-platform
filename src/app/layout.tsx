@@ -5,6 +5,8 @@ import { LocationProvider } from '@/contexts/LocationContext';
 import { LayoutWrapper } from '@/components/layout/LayoutWrapper';
 import VisitorTracker from '@/components/analytics/VisitorTracker';
 import TrackingScripts from '@/components/analytics/TrackingScripts';
+import GoogleAnalytics from '@/components/analytics/GoogleAnalytics';
+import PageViewTracker from '@/components/analytics/PageViewTracker';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -95,8 +97,14 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={`${inter.variable} ${poppins.variable}`}>
+      <head>
+        {/* Google Analytics 4 - Hardcoded with correct Measurement ID */}
+        <GoogleAnalytics />
+      </head>
       <body className="font-sans antialiased">
         <LocationProvider>
+          {/* Track SPA route changes */}
+          <PageViewTracker />
           <VisitorTracker />
           <TrackingScripts />
           <LayoutWrapper>{children}</LayoutWrapper>

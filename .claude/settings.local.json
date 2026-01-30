@@ -130,7 +130,9 @@
       "Bash(do if grep -q \"request\\\\.url\" \"$file\")",
       "Bash(! grep -q \"export const dynamic\" \"$file\")",
       "Bash(then echo \"$file\")",
-      "Bash(fi)"
+      "Bash(fi)",
+      "Bash(git grep:*)",
+      "Bash(npx ts-node:*)"
     ],
     "deny": [],
     "ask": []

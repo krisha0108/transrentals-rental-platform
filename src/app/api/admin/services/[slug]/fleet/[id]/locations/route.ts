@@ -73,9 +73,9 @@ export async function GET(
       assignedLocationIds = new Set(vehicle.vendor_fleet_locations.map((l: any) => l.locationId));
     }
 
-    // Get all locations with hierarchy (states and cities)
+    // Get all locations with hierarchy (states, union territories and cities)
     const states = await prisma.locations.findMany({
-      where: { type: 'STATE', isActive: true },
+      where: { type: { in: ['STATE', 'UNION_TERRITORY'] }, isActive: true },
       select: {
         id: true,
         name: true,

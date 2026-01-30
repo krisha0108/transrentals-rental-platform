@@ -11,6 +11,7 @@ import {
   Check,
   ChevronRight,
   Fuel,
+  Image as ImageIcon,
   Info,
   Layers,
   Loader2,
@@ -18,11 +19,13 @@ import {
   Plus,
   Search,
   Tag,
+  Upload,
   UserCheck,
   Truck,
   Wrench,
   Package,
   Crown,
+  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -131,6 +134,15 @@ export default function AddFleetVehiclePage() {
   const [color, setColor] = useState("");
   const [selectedLocations, setSelectedLocations] = useState<string[]>([]);
 
+  // Vehicle images (optional, for specific services)
+  const [vehicleImages, setVehicleImages] = useState<{
+    front?: string;
+    back?: string;
+    leftSide?: string;
+    rightSide?: string;
+    inside?: string;
+  }>({});
+
   // Bike pricing
   const [perDayRate, setPerDayRate] = useState("");
   const [kmPerDay, setKmPerDay] = useState("100");
@@ -219,6 +231,9 @@ export default function AddFleetVehiclePage() {
   const isPackersService = serviceType === "packers-movers";
   const isLuxuryService = serviceType === "luxury-car-rental";
   const isCarService = serviceType === "car-rental" || serviceType === "with-driver"; // your "car flow"
+
+  // Services that need vehicle image upload (5 specific services)
+  const needsVehicleImages = isLuxuryService || isSelfDriveService || isBusService || isCarService || isBikeService;
 
   // Bike, Self-drive, Bus, Luxury need model selection
   // Truck, Equipment, Packers only need category selection (no models)
@@ -507,6 +522,11 @@ export default function AddFleetVehiclePage() {
           color: color || undefined,
           locationIds: selectedLocations,
           pricing: finalPricing,
+
+          // Include vehicle images if any are uploaded
+          images: needsVehicleImages && Object.keys(vehicleImages).length > 0
+            ? JSON.stringify(vehicleImages)
+            : undefined,
         }),
       });
 
@@ -1313,6 +1333,125 @@ export default function AddFleetVehiclePage() {
                 />
               </div>
             </div>
+
+            {/* Vehicle Images Section - Only for specific services */}
+            {needsVehicleImages && (
+              <div className="mt-6 p-4 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl border border-blue-200">
+                <div className="flex items-center gap-2 mb-4">
+                  <ImageIcon className="w-5 h-5 text-blue-600" />
+                  <h3 className="font-semibold text-gray-900">Vehicle Images (Optional)</h3>
+                </div>
+                <p className="text-sm text-gray-600 mb-4">
+                  Upload images of your vehicle from different angles to help customers see your vehicle better. All images are optional.
+                </p>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {[
+                    { key: 'front', label: 'Front View', description: 'Front side of the vehicle' },
+                    { key: 'back', label: 'Back View', description: 'Rear side of the vehicle' },
+                    { key: 'leftSide', label: 'Left Side View', description: 'Left side of the vehicle' },
+                    { key: 'rightSide', label: 'Right Side View', description: 'Right side of the vehicle' },
+                    { key: 'inside', label: 'Interior View', description: 'Inside/dashboard view' },
+                  ].map((imageType) => (
+                    <div key={imageType.key} className="relative">
+                      <div className="text-xs font-medium text-gray-700 mb-1">{imageType.label}</div>
+                      <div className="text-xs text-gray-500 mb-2">{imageType.description}</div>
+
+                      {vehicleImages[imageType.key as keyof typeof vehicleImages] ? (
+                        <div className="relative group">
+                          <img
+                            src={vehicleImages[imageType.key as keyof typeof vehicleImages]}
+                            alt={imageType.label}
+                            className="w-full h-32 object-cover rounded-lg border-2 border-green-200"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setVehicleImages(prev => {
+                                const updated = { ...prev };
+                                delete updated[imageType.key as keyof typeof vehicleImages];
+                                return updated;
+                              });
+                            }}
+                            className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                          <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition rounded-lg flex items-center justify-center">
+                            <span className="text-white text-xs opacity-0 group-hover:opacity-100">Click X to remove</span>
+                          </div>
+                        </div>
+                      ) : (
+                        <label className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center cursor-pointer hover:border-blue-400 hover:bg-white transition block">
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                // Check file size (max 5MB)
+                                if (file.size > 5 * 1024 * 1024) {
+                                  alert('Image size should be less than 5MB. Please choose a smaller image.');
+                                  e.target.value = '';
+                                  return;
+                                }
+
+                                // Compress and resize image before converting to base64
+                                const reader = new FileReader();
+                                reader.onload = (event) => {
+                                  const img = new Image();
+                                  img.onload = () => {
+                                    // Create canvas to resize
+                                    const canvas = document.createElement('canvas');
+                                    const maxWidth = 1200;
+                                    const maxHeight = 1200;
+                                    let width = img.width;
+                                    let height = img.height;
+
+                                    // Calculate new dimensions
+                                    if (width > height) {
+                                      if (width > maxWidth) {
+                                        height = (height * maxWidth) / width;
+                                        width = maxWidth;
+                                      }
+                                    } else {
+                                      if (height > maxHeight) {
+                                        width = (width * maxHeight) / height;
+                                        height = maxHeight;
+                                      }
+                                    }
+
+                                    canvas.width = width;
+                                    canvas.height = height;
+
+                                    const ctx = canvas.getContext('2d');
+                                    ctx?.drawImage(img, 0, 0, width, height);
+
+                                    // Convert to base64 with compression (0.8 quality)
+                                    const compressedBase64 = canvas.toDataURL('image/jpeg', 0.8);
+
+                                    setVehicleImages(prev => ({
+                                      ...prev,
+                                      [imageType.key]: compressedBase64
+                                    }));
+                                  };
+                                  img.src = event.target?.result as string;
+                                };
+                                reader.readAsDataURL(file);
+                              }
+                            }}
+                          />
+                          <Upload className="w-6 h-6 text-gray-400 mx-auto mb-1" />
+                          <div className="text-xs text-gray-500">Click to upload</div>
+                          <div className="text-xs text-gray-400 mt-1">Max 5MB</div>
+                        </label>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="p-6 border-t bg-gray-50 flex justify-between">

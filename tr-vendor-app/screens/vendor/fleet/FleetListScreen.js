@@ -128,11 +128,11 @@ export default function FleetListScreen({ navigation }) {
       // Debug log for first vehicle with service info
       if (fleetData.length > 0) {
         fleetData.forEach((v, idx) => {
-          if (v.service) {
+          if (v.services) {
             console.log(`[Fleet] Vehicle ${idx}:`, {
-              name: v.vehicleModel?.name || v.vehicleCategory?.name || 'Unknown',
-              serviceSlug: v.service.slug,
-              serviceName: v.service.name,
+              name: v.vehicle_models?.name || v.chauffeur_vehicle_categories?.name || 'Unknown',
+              serviceSlug: v.services.slug,
+              serviceName: v.services.name,
               status: v.status,
             });
           }
@@ -181,10 +181,10 @@ export default function FleetListScreen({ navigation }) {
 
   // Get service config for a vehicle
   const getServiceConfig = (vehicle) => {
-    if (!vehicle?.service) return SERVICE_CONFIG.default;
+    if (!vehicle?.services) return SERVICE_CONFIG.default;
 
-    const serviceSlug = vehicle.service.slug?.toLowerCase() || '';
-    const serviceName = vehicle.service.name?.toLowerCase() || '';
+    const serviceSlug = vehicle.services.slug?.toLowerCase() || '';
+    const serviceName = vehicle.services.name?.toLowerCase() || '';
 
     // Debug log
     if (serviceName.includes('pack') || serviceName.includes('mover')) {
@@ -267,10 +267,10 @@ export default function FleetListScreen({ navigation }) {
 
   // Get normalized service slug for filtering
   const getNormalizedServiceSlug = (vehicle) => {
-    if (!vehicle?.service) return 'default';
+    if (!vehicle?.services) return 'default';
 
-    const slug = vehicle.service.slug?.toLowerCase() || '';
-    const name = vehicle.service.name?.toLowerCase() || '';
+    const slug = vehicle.services.slug?.toLowerCase() || '';
+    const name = vehicle.services.name?.toLowerCase() || '';
 
     // Use same logic as availableServices to normalize
     if (slug.includes('packer') || slug.includes('mover') || name.includes('packer') || name.includes('mover')) {
@@ -320,10 +320,10 @@ export default function FleetListScreen({ navigation }) {
     const servicesMap = new Map();
 
     vehicles.forEach((v) => {
-      if (v.service) {
+      if (v.services) {
         const config = getServiceConfig(v);
-        const slug = v.service.slug?.toLowerCase() || '';
-        const name = v.service.name?.toLowerCase() || '';
+        const slug = v.services.slug?.toLowerCase() || '';
+        const name = v.services.name?.toLowerCase() || '';
 
         // Map similar services together using same logic as getServiceConfig
         let normalizedSlug = 'default';
@@ -377,30 +377,31 @@ export default function FleetListScreen({ navigation }) {
     const serviceConfig = getServiceConfig(item);
 
     // Get vehicle name (brand + model or category name)
+    // Note: API returns vehicle_models, brands, chauffeur_vehicle_categories (snake_case)
     let vehicleName = 'Vehicle';
-    if (item.vehicleModel?.brand?.name && item.vehicleModel?.name) {
-      vehicleName = `${item.vehicleModel.brand.name} ${item.vehicleModel.name}`;
-    } else if (item.brand?.name && item.vehicleCategory?.name) {
-      vehicleName = `${item.brand.name} ${item.vehicleCategory.name}`;
-    } else if (item.vehicleCategory?.name) {
-      vehicleName = item.vehicleCategory.name;
-    } else if (item.brand?.name) {
-      vehicleName = item.brand.name;
+    if (item.vehicle_models?.brands?.name && item.vehicle_models?.name) {
+      vehicleName = `${item.vehicle_models.brands.name} ${item.vehicle_models.name}`;
+    } else if (item.brands?.name && item.chauffeur_vehicle_categories?.name) {
+      vehicleName = `${item.brands.name} ${item.chauffeur_vehicle_categories.name}`;
+    } else if (item.chauffeur_vehicle_categories?.name) {
+      vehicleName = item.chauffeur_vehicle_categories.name;
+    } else if (item.brands?.name) {
+      vehicleName = item.brands.name;
     }
 
     // Get image
-    const imageUri = item.images?.[0] || item.vehicleModel?.sideImage || item.vehicleCategory?.image;
+    const imageUri = item.images?.[0] || item.vehicle_models?.sideImage || item.chauffeur_vehicle_categories?.image;
 
     // Get seating capacity
     const seatingCapacity =
-      item.vehicleModel?.seatingCapacity ||
-      item.vehicleCategory?.seatingCapacity ||
+      item.vehicle_models?.seatingCapacity ||
+      item.chauffeur_vehicle_categories?.seatingCapacity ||
       item.seatingCapacity;
 
     // Get fuel type
     const fuelType =
-      item.vehicleModel?.fuelType ||
-      item.vehicleCategory?.fuelType ||
+      item.vehicle_models?.fuelType ||
+      item.chauffeur_vehicle_categories?.fuelType ||
       item.fuelType;
 
     return (

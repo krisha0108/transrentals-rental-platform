@@ -36,9 +36,9 @@ export async function getBaseURL() {
     return cachedBaseURL;
   }
   // 3) default - use prod unless in dev mode
-  // cachedBaseURL = __DEV__ ? inferLocalBase() : DEFAULT_PROD;
+  cachedBaseURL = __DEV__ ? inferLocalBase() : DEFAULT_PROD;
   // 3) default - always use production URL (transrentals.in)
-  cachedBaseURL = DEFAULT_PROD;
+  // cachedBaseURL = DEFAULT_PROD;
   return cachedBaseURL;
 }
 
@@ -145,6 +145,13 @@ async function createInstance() {
         console.log('[Auth] Vendor in storage:', vendorData ? 'Yes' : 'No');
         console.log('[Auth] Vendor ID:', vendorId);
       }
+
+      // IMPORTANT: For FormData, don't set Content-Type - let axios handle it
+      if (config.data instanceof FormData) {
+        console.log('[Auth] Detected FormData, removing Content-Type header');
+        delete config.headers['Content-Type'];
+      }
+
       return config;
     },
     (error) => {
@@ -153,12 +160,21 @@ async function createInstance() {
     }
   );
 
-  // Handle 401 responses
+  // Handle 401 responses and log errors
   instance.interceptors.response.use(
     (response) => response,
     async (error) => {
       const status = error.response?.status;
       const url = error.config?.url;
+
+      // Log all errors for debugging
+      console.error('[API Error]', {
+        url,
+        status,
+        message: error.message,
+        code: error.code,
+        data: error.response?.data,
+      });
 
       if (status === 401) {
         console.error('[Auth] 401 Unauthorized for:', url);
@@ -169,6 +185,16 @@ async function createInstance() {
           console.log('[Auth] Clearing session due to 401');
           await clearSession();
         }
+      }
+
+      // Network errors
+      if (error.code === 'ECONNABORTED' || error.message === 'Network Error') {
+        console.error('[Network] Connection issue:', {
+          baseURL: error.config?.baseURL,
+          url: error.config?.url,
+          method: error.config?.method,
+          timeout: error.config?.timeout,
+        });
       }
 
       return Promise.reject(error);
@@ -186,11 +212,45 @@ export async function apiGet(path, config = {}) {
 
 export async function apiPost(path, data, config = {}) {
   const api = await createInstance();
+
+  // If data is FormData, ensure Content-Type is set correctly
+  if (data instanceof FormData) {
+    console.log('[API] Sending FormData to:', path);
+    // Don't set Content-Type manually - let axios handle it with boundary
+    // But ensure we have the right transformers
+    config = {
+      ...config,
+      headers: {
+        ...config.headers,
+        // Remove any Content-Type to let axios auto-detect
+      },
+      transformRequest: (data, headers) => {
+        // For FormData, don't transform and let browser/axios handle it
+        return data;
+      },
+    };
+  }
+
   return api.post(path, data, config);
 }
 
 export async function apiPut(path, data, config = {}) {
   const api = await createInstance();
+
+  // If data is FormData, ensure Content-Type is set correctly
+  if (data instanceof FormData) {
+    console.log('[API] Sending FormData (PUT) to:', path);
+    config = {
+      ...config,
+      headers: {
+        ...config.headers,
+      },
+      transformRequest: (data, headers) => {
+        return data;
+      },
+    };
+  }
+
   return api.put(path, data, config);
 }
 
@@ -394,17 +454,25 @@ export async function uploadVendorDocument(formData) {
   while (retryCount <= maxRetries) {
     try {
       const api = await createInstance();
+      console.log('[Upload] Uploading document...');
+
+      // Don't set Content-Type manually - let axios handle it with boundary
       const res = await api.post('/vendor/documents', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
+        transformRequest: (data, headers) => {
+          // For FormData, don't transform and let browser/axios handle it
+          return data;
         },
       });
+
+      console.log('[Upload] Document uploaded successfully');
       return res.data;
     } catch (error) {
+      console.error('[Upload] Error:', error.message, error.code);
+
       // If 401 and we haven't retried yet, wait a bit and retry
       if (error.response?.status === 401 && retryCount < maxRetries) {
         retryCount++;
-        console.log(`Upload failed with 401, retrying... (${retryCount}/${maxRetries})`);
+        console.log(`[Upload] 401 error, retrying... (${retryCount}/${maxRetries})`);
         // Wait 500ms before retrying to allow token to be set
         await new Promise(resolve => setTimeout(resolve, 500));
         // Clear the cached instance to force recreation with fresh token
@@ -434,16 +502,24 @@ export async function uploadVendorLogo(formData) {
   while (retryCount <= maxRetries) {
     try {
       const api = await createInstance();
+      console.log('[Upload] Uploading logo...');
+
+      // Don't set Content-Type manually - let axios handle it with boundary
       const res = await api.post('/vendor/profile/upload-logo', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
+        transformRequest: (data, headers) => {
+          // For FormData, don't transform and let browser/axios handle it
+          return data;
         },
       });
+
+      console.log('[Upload] Logo uploaded successfully');
       return res.data;
     } catch (error) {
+      console.error('[Upload] Logo error:', error.message, error.code);
+
       if (error.response?.status === 401 && retryCount < maxRetries) {
         retryCount++;
-        console.log(`Logo upload failed with 401, retrying... (${retryCount}/${maxRetries})`);
+        console.log(`[Upload] 401 error, retrying... (${retryCount}/${maxRetries})`);
         await new Promise(resolve => setTimeout(resolve, 500));
         continue;
       }

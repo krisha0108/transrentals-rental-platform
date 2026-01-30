@@ -81,9 +81,9 @@ export async function GET(
       return NextResponse.json({ error: 'Service not found' }, { status: 404 });
     }
 
-    // Get total locations count
+    // Get total locations count (cities and union territories)
     const totalLocations = await prisma.locations.count({
-      where: { type: 'CITY', isActive: true },
+      where: { type: { in: ['CITY', 'UNION_TERRITORY'] }, isActive: true },
     });
 
     // Get booking stats based on service type

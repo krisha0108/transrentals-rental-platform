@@ -127,6 +127,19 @@ export default function VendorServicesScreen({ navigation }) {
     }
   };
 
+  const getStatusText = (status) => {
+    switch (status) {
+      case 'APPROVED':
+        return 'Approved';
+      case 'REJECTED':
+        return 'Rejected';
+      case 'PENDING':
+        return 'Under Review';
+      default:
+        return status;
+    }
+  };
+
   const getRequestForService = (serviceId) => {
     return requests.find((r) => r.serviceId === serviceId);
   };
@@ -293,10 +306,10 @@ export default function VendorServicesScreen({ navigation }) {
                 <View key={request.id} style={styles.requestItem}>
                   <View style={styles.requestLeft}>
                     <View style={[styles.serviceIcon, { backgroundColor: '#EFF6FF' }]}>
-                      <Ionicons name={getServiceIcon(request.service?.slug)} size={24} color={BRAND.blue} />
+                      <Ionicons name={getServiceIcon(request.services?.slug)} size={24} color={BRAND.blue} />
                     </View>
                     <View style={styles.requestInfo}>
-                      <Text style={styles.requestName}>{request.service?.name}</Text>
+                      <Text style={styles.requestName}>{request.services?.name}</Text>
                       <Text style={styles.requestDate}>
                         Requested on {new Date(request.createdAt).toLocaleDateString()}
                       </Text>
@@ -305,7 +318,7 @@ export default function VendorServicesScreen({ navigation }) {
                   <View style={[styles.statusPill, { backgroundColor: statusColors.bg }]}>
                     {getStatusIcon(request.status)}
                     <Text style={[styles.statusText, { color: statusColors.text }]}>
-                      {request.status}
+                      {getStatusText(request.status)}
                     </Text>
                   </View>
 

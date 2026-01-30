@@ -76,30 +76,11 @@ export default async function TrackingScripts() {
         />
       )}
 
-      {/* Google Analytics 4 */}
-      {settings.googleAnalyticsId && (
-        <>
-          <Script
-            src={`https://www.googletagmanager.com/gtag/js?id=${settings.googleAnalyticsId}`}
-            strategy="afterInteractive"
-          />
-          <Script
-            id="ga4-config"
-            strategy="afterInteractive"
-            dangerouslySetInnerHTML={{
-              __html: `
-                window.dataLayer = window.dataLayer || [];
-                function gtag(){dataLayer.push(arguments);}
-                gtag('js', new Date());
-                gtag('config', '${settings.googleAnalyticsId}', {
-                  page_path: window.location.pathname,
-                  send_page_view: true
-                });
-              `,
-            }}
-          />
-        </>
-      )}
+      {/*
+        REMOVED: Database-based Google Analytics 4
+        GA4 is now hardcoded in GoogleAnalytics.tsx with ID: G-0G9KHF8ZKB
+        This prevents data split across multiple properties/streams
+      */}
 
       {/* Google Ads Conversion Tracking */}
       {settings.googleAdsId && (

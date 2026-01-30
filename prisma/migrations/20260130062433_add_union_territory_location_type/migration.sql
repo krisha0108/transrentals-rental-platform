@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE `locations` MODIFY `type` ENUM('COUNTRY', 'STATE', 'UNION_TERRITORY', 'CITY', 'AREA', 'AIRPORT') NOT NULL;

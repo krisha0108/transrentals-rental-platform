@@ -32,7 +32,20 @@ export async function GET(
       where: { id, vendorId: auth.vendorId },
       include: {
         vehicle_models: {
-          include: { brands: true },
+          include: {
+            brands: true,
+            chauffeur_vehicle_categories: {
+              select: {
+                id: true,
+                name: true,
+                slug: true,
+                seatingCapacity: true,
+                fuelType: true,
+                acType: true,
+                image: true,
+              },
+            },
+          },
         },
         services: {
           select: { id: true, name: true, slug: true },
@@ -96,7 +109,17 @@ export async function GET(
       );
     }
 
-    return NextResponse.json({ success: true, vehicle });
+    // Transform images from JSON string to object
+    const transformedVehicle = {
+      ...vehicle,
+      images: vehicle.images
+        ? (typeof vehicle.images === 'string'
+          ? (vehicle.images === 'null' ? null : JSON.parse(vehicle.images))
+          : vehicle.images)
+        : null,
+    };
+
+    return NextResponse.json({ success: true, vehicle: transformedVehicle });
   } catch (error: any) {
     logger.error('Get fleet vehicle error', error);
     return NextResponse.json(
@@ -168,7 +191,20 @@ export async function PATCH(
       data: updateData,
       include: {
         vehicle_models: {
-          include: { brands: true },
+          include: {
+            brands: true,
+            chauffeur_vehicle_categories: {
+              select: {
+                id: true,
+                name: true,
+                slug: true,
+                seatingCapacity: true,
+                fuelType: true,
+                acType: true,
+                image: true,
+              },
+            },
+          },
         },
         services: {
           select: { id: true, name: true, slug: true },
@@ -361,7 +397,20 @@ export async function PUT(
       where: { id },
       include: {
         vehicle_models: {
-          include: { brands: true },
+          include: {
+            brands: true,
+            chauffeur_vehicle_categories: {
+              select: {
+                id: true,
+                name: true,
+                slug: true,
+                seatingCapacity: true,
+                fuelType: true,
+                acType: true,
+                image: true,
+              },
+            },
+          },
         },
         services: {
           select: { id: true, name: true, slug: true },

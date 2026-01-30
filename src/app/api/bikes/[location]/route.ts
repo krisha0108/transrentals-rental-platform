@@ -74,7 +74,7 @@ export async function GET(
           { name: { contains: location } }, // Partial match
         ],
         isActive: true,
-        type: 'CITY',
+        type: { in: ['CITY', 'UNION_TERRITORY'] },
       },
     });
 

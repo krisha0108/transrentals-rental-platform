@@ -37,7 +37,7 @@ export async function GET(
       },
     });
 
-    // Get all states with their child cities for hierarchical view
+    // Get all states with their child cities
     const states = await prisma.locations.findMany({
       where: {
         type: 'STATE',
@@ -54,6 +54,15 @@ export async function GET(
       orderBy: [{ displayOrder: 'asc' }, { name: 'asc' }],
     });
 
+    // Get union territories (as direct locations, not parents)
+    const unionTerritories = await prisma.locations.findMany({
+      where: {
+        type: 'UNION_TERRITORY',
+        isActive: true,
+      },
+      orderBy: [{ displayOrder: 'asc' }, { name: 'asc' }],
+    });
+
     // Flatten cities for backward compatibility
     const cities = states.flatMap((state) =>
       state.other_locations.map((city) => ({
@@ -61,6 +70,15 @@ export async function GET(
         locations: { name: state.name, code: state.code },
       }))
     );
+
+    // Add union territories to flat locations list
+    const allLocations = [
+      ...cities,
+      ...unionTerritories.map(ut => ({
+        ...ut,
+        locations: { name: 'Union Territory', code: null },
+      }))
+    ];
 
     // Get enabled location IDs for this service (empty if service doesn't exist yet)
     const enabledIds = service
@@ -96,19 +114,33 @@ export async function GET(
     }
 
     // Transform flat locations (for backward compatibility)
-    const locations = cities.map((city) => {
-      const stats = locationStats[city.id] || { vehicleCount: 0, vendorIds: new Set() };
+    const locations = allLocations.map((loc) => {
+      const stats = locationStats[loc.id] || { vehicleCount: 0, vendorIds: new Set() };
       return {
-        id: city.id,
-        name: city.name,
-        slug: city.slug,
-        state: city.parent?.name || '',
-        stateCode: city.parent?.code || '',
-        tier: getTierFromState(city.parent?.name || ''),
-        isEnabled: enabledIds.includes(city.id),
+        id: loc.id,
+        name: loc.name,
+        slug: loc.slug,
+        state: loc.locations?.name || '',
+        stateCode: loc.locations?.code || '',
+        tier: getTierFromState(loc.locations?.name || ''),
+        isEnabled: enabledIds.includes(loc.id),
         vehicleCount: stats.vehicleCount,
         vendorCount: stats.vendorIds.size,
-        isActive: city.isActive,
+        isActive: loc.isActive,
+      };
+    });
+
+    // Build union territories list
+    const unionTerritoriesList = unionTerritories.map((ut) => {
+      const stats = locationStats[ut.id] || { vehicleCount: 0, vendorIds: new Set() };
+      return {
+        id: ut.id,
+        name: ut.name,
+        slug: ut.slug,
+        code: ut.code,
+        isEnabled: enabledIds.includes(ut.id),
+        vehicleCount: stats.vehicleCount,
+        vendorCount: stats.vendorIds.size,
       };
     });
 
@@ -152,11 +184,14 @@ export async function GET(
           },
       locations,
       locationHierarchy,
+      unionTerritories: unionTerritoriesList,
       enabledIds,
       stats: {
         totalLocations: locations.length,
         enabledLocations: enabledIds.length,
         totalStates: locationHierarchy.length,
+        totalUnionTerritories: unionTerritoriesList.length,
+        enabledUnionTerritories: unionTerritoriesList.filter(ut => ut.isEnabled).length,
         tier1Count: locations.filter((l) => l.tier === 1).length,
         tier2Count: locations.filter((l) => l.tier === 2).length,
         tier3Count: locations.filter((l) => l.tier === 3).length,

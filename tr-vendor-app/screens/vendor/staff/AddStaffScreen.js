@@ -8,13 +8,11 @@ import {
   TextInput,
   ActivityIndicator,
   Alert,
-  Image,
   Modal,
   Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Feather';
-import { launchImageLibrary } from 'react-native-image-picker';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import { addStaff, updateStaff } from '../../api/client';
 
@@ -67,10 +65,6 @@ export default function AddStaffScreen({ route, navigation }) {
   const isEditing = !!staffId;
 
   const [loading, setLoading] = useState(false);
-  const [photo, setPhoto] = useState(null);
-  const [aadharDoc, setAadharDoc] = useState(null);
-  const [panDoc, setPanDoc] = useState(null);
-  const [licenseDoc, setLicenseDoc] = useState(null);
 
   // Modal states
   const [showStateModal, setShowStateModal] = useState(false);
@@ -149,55 +143,11 @@ export default function AddStaffScreen({ route, navigation }) {
         emergencyContact: existingStaff.emergencyContact || '',
         emergencyPhone: existingStaff.emergencyPhone || '',
       });
-      if (existingStaff.profilePhoto) setPhoto({ uri: existingStaff.profilePhoto, isExisting: true });
-      if (existingStaff.aadharDocument) setAadharDoc({ uri: existingStaff.aadharDocument, isExisting: true });
-      if (existingStaff.panDocument) setPanDoc({ uri: existingStaff.panDocument, isExisting: true });
-      if (existingStaff.licenseDocument) setLicenseDoc({ uri: existingStaff.licenseDocument, isExisting: true });
     }
   }, [existingStaff]);
 
   const updateForm = (key, value) => {
     setForm((prev) => ({ ...prev, [key]: value }));
-  };
-
-  const pickPhoto = async () => {
-    const result = await launchImageLibrary({
-      mediaType: 'photo',
-      selectionLimit: 1,
-      quality: 0.8,
-    });
-
-    if (result.assets?.[0]) {
-      const asset = result.assets[0];
-      setPhoto({
-        uri: asset.uri,
-        type: asset.type,
-        name: asset.fileName,
-        isExisting: false,
-      });
-    }
-  };
-
-  const pickDocument = async (docType) => {
-    const result = await launchImageLibrary({
-      mediaType: 'photo',
-      selectionLimit: 1,
-      quality: 0.8,
-    });
-
-    if (result.assets?.[0]) {
-      const asset = result.assets[0];
-      const doc = {
-        uri: asset.uri,
-        type: asset.type,
-        name: asset.fileName,
-        isExisting: false,
-      };
-
-      if (docType === 'aadhar') setAadharDoc(doc);
-      else if (docType === 'pan') setPanDoc(doc);
-      else if (docType === 'license') setLicenseDoc(doc);
-    }
   };
 
   // Date picker handlers
@@ -274,78 +224,58 @@ export default function AddStaffScreen({ route, navigation }) {
 
     setLoading(true);
     try {
-      const formData = new FormData();
+      // TEMPORARY FIX: Send as JSON instead of FormData (skip files for now)
+      // Files will be uploaded separately later
+      const staffData = {
+        name: form.name,
+        phone: form.phone,
+        email: form.email || '',
+        password: form.password || '',
+        address: form.address || '',
+        city: form.city || '',
+        state: form.state || '',
+        pincode: form.pincode || '',
+        dateOfBirth: form.dateOfBirth || '',
+        role: form.role,
+        status: form.status,
+        aadharNumber: form.aadharNumber || '',
+        panNumber: form.panNumber || '',
+        licenseNumber: form.licenseNumber || '',
+        licenseType: form.licenseType || '',
+        licenseExpiry: form.licenseExpiry || '',
+        bankName: form.bankName || '',
+        accountNumber: form.accountNumber || '',
+        ifscCode: form.ifscCode || '',
+        accountHolderName: form.accountHolderName || '',
+        salary: form.salary || '0',
+        joiningDate: form.joiningDate || '',
+        emergencyContact: form.emergencyContact || '',
+        emergencyPhone: form.emergencyPhone || '',
+        // Files skipped for now - will be added via separate upload endpoint
+        profilePhoto: null,
+        aadharDocument: null,
+        panDocument: null,
+        licenseDocument: null,
+      };
 
-      // All fields
-      formData.append('name', form.name);
-      formData.append('phone', form.phone);
-      formData.append('email', form.email || '');
-      if (form.password) formData.append('password', form.password);
-      formData.append('address', form.address || '');
-      formData.append('city', form.city || '');
-      formData.append('state', form.state || '');
-      formData.append('pincode', form.pincode || '');
-      formData.append('dateOfBirth', form.dateOfBirth || '');
-      formData.append('role', form.role);
-      formData.append('status', form.status);
-      formData.append('aadharNumber', form.aadharNumber || '');
-      formData.append('panNumber', form.panNumber || '');
-      formData.append('licenseNumber', form.licenseNumber || '');
-      formData.append('licenseType', form.licenseType || '');
-      formData.append('licenseExpiry', form.licenseExpiry || '');
-      formData.append('bankName', form.bankName || '');
-      formData.append('accountNumber', form.accountNumber || '');
-      formData.append('ifscCode', form.ifscCode || '');
-      formData.append('accountHolderName', form.accountHolderName || '');
-      formData.append('salary', form.salary || '0');
-      formData.append('joiningDate', form.joiningDate || '');
-      formData.append('emergencyContact', form.emergencyContact || '');
-      formData.append('emergencyPhone', form.emergencyPhone || '');
-
-      // Files
-      if (photo && !photo.isExisting) {
-        formData.append('profilePhoto', {
-          uri: photo.uri,
-          type: photo.type || 'image/jpeg',
-          name: photo.name || 'profile.jpg',
-        });
-      }
-      if (aadharDoc && !aadharDoc.isExisting) {
-        formData.append('aadharDocument', {
-          uri: aadharDoc.uri,
-          type: aadharDoc.type || 'image/jpeg',
-          name: aadharDoc.name || 'aadhar.jpg',
-        });
-      }
-      if (panDoc && !panDoc.isExisting) {
-        formData.append('panDocument', {
-          uri: panDoc.uri,
-          type: panDoc.type || 'image/jpeg',
-          name: panDoc.name || 'pan.jpg',
-        });
-      }
-      if (licenseDoc && !licenseDoc.isExisting) {
-        formData.append('licenseDocument', {
-          uri: licenseDoc.uri,
-          type: licenseDoc.type || 'image/jpeg',
-          name: licenseDoc.name || 'license.jpg',
-        });
-      }
+      console.log('[AddStaff] Submitting data:', { ...staffData, password: '***' });
 
       if (isEditing) {
-        await updateStaff(staffId, formData);
+        await updateStaff(staffId, staffData);
         Alert.alert('Success', 'Staff updated successfully', [
           { text: 'OK', onPress: () => navigation.goBack() },
         ]);
       } else {
-        await addStaff(formData);
+        await addStaff(staffData);
         Alert.alert('Success', 'Staff added successfully', [
           { text: 'OK', onPress: () => navigation.goBack() },
         ]);
       }
     } catch (error) {
-      console.log('Error saving staff:', error);
-      Alert.alert('Error', error?.response?.data?.error || 'Failed to save staff');
+      console.error('[AddStaff] Error saving staff:', error);
+      console.error('[AddStaff] Error response:', error?.response?.data);
+      console.error('[AddStaff] Error status:', error?.response?.status);
+      Alert.alert('Error', error?.response?.data?.error || error?.message || 'Failed to save staff');
     } finally {
       setLoading(false);
     }
@@ -369,23 +299,6 @@ export default function AddStaffScreen({ route, navigation }) {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Photo */}
-        <View style={styles.photoSection}>
-          <TouchableOpacity style={styles.photoContainer} onPress={pickPhoto}>
-            {photo ? (
-              <Image source={{ uri: photo.uri }} style={styles.photo} />
-            ) : (
-              <View style={styles.photoPlaceholder}>
-                <Icon name="camera" size={28} color={C.muted} />
-              </View>
-            )}
-            <View style={styles.editPhotoBtn}>
-              <Icon name="edit-2" size={12} color="#fff" />
-            </View>
-          </TouchableOpacity>
-          <Text style={styles.photoHint}>Tap to add photo</Text>
-        </View>
-
         {/* Basic Info */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Personal Information</Text>
@@ -555,19 +468,6 @@ export default function AddStaffScreen({ route, navigation }) {
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Aadhar Document</Text>
-            <TouchableOpacity
-              style={styles.docButton}
-              onPress={() => pickDocument('aadhar')}
-            >
-              <Icon name={aadharDoc ? "check-circle" : "upload"} size={18} color={aadharDoc ? C.brand : C.blue} />
-              <Text style={aadharDoc ? styles.docButtonTextSuccess : styles.docButtonText}>
-                {aadharDoc ? 'Aadhar Uploaded' : 'Upload Aadhar'}
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.inputGroup}>
             <Text style={styles.label}>PAN Number</Text>
             <TextInput
               style={styles.input}
@@ -578,19 +478,6 @@ export default function AddStaffScreen({ route, navigation }) {
               autoCapitalize="characters"
               maxLength={10}
             />
-          </View>
-
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>PAN Document</Text>
-            <TouchableOpacity
-              style={styles.docButton}
-              onPress={() => pickDocument('pan')}
-            >
-              <Icon name={panDoc ? "check-circle" : "upload"} size={18} color={panDoc ? C.brand : C.blue} />
-              <Text style={panDoc ? styles.docButtonTextSuccess : styles.docButtonText}>
-                {panDoc ? 'PAN Uploaded' : 'Upload PAN'}
-              </Text>
-            </TouchableOpacity>
           </View>
         </View>
 
@@ -634,19 +521,6 @@ export default function AddStaffScreen({ route, navigation }) {
                   {form.licenseExpiry ? formatDateForDisplay(form.licenseExpiry) : 'Select Expiry Date'}
                 </Text>
                 <Icon name="calendar" size={18} color={C.muted} />
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>License Document</Text>
-              <TouchableOpacity
-                style={styles.docButton}
-                onPress={() => pickDocument('license')}
-              >
-                <Icon name={licenseDoc ? "check-circle" : "upload"} size={18} color={licenseDoc ? C.brand : C.blue} />
-                <Text style={licenseDoc ? styles.docButtonTextSuccess : styles.docButtonText}>
-                  {licenseDoc ? 'License Uploaded' : 'Upload License'}
-                </Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -973,47 +847,6 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: 16,
   },
-  photoSection: {
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  photoContainer: {
-    position: 'relative',
-  },
-  photo: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-  },
-  photoPlaceholder: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: C.surface,
-    borderWidth: 2,
-    borderColor: C.border,
-    borderStyle: 'dashed',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  editPhotoBtn: {
-    position: 'absolute',
-    bottom: 0,
-    right: 0,
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: C.brand,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: '#fff',
-  },
-  photoHint: {
-    fontSize: 12,
-    color: C.muted,
-    marginTop: 8,
-  },
   section: {
     backgroundColor: C.surface,
     borderRadius: 14,
@@ -1077,27 +910,6 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: C.muted,
     marginTop: 4,
-  },
-  docButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: C.bg,
-    borderWidth: 1,
-    borderColor: C.blue,
-    borderRadius: 10,
-    paddingVertical: 12,
-    gap: 8,
-  },
-  docButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: C.blue,
-  },
-  docButtonTextSuccess: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: C.brand,
   },
   submitBtn: {
     flexDirection: 'row',

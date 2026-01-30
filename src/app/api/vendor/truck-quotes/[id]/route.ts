@@ -11,15 +11,65 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     const auth = await getVendorAuth(request);
     if (!auth.authenticated || !auth.vendorId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     const { id } = params;
+
     const quote = await prisma.truck_quotes.findFirst({
       where: { id, vendorId: auth.vendorId },
-      include: { truck_quote_requests: { select: { id: true, requestNumber: true, customerName: true, customerPhone: true, pickupCity: true, dropCity: true, pickupDate: true, goodsType: true, estimatedWeight: true, status: true } } },
+      include: {
+        truck_quote_requests: {
+          select: {
+            id: true,
+            requestNumber: true,
+            customerName: true,
+            customerPhone: true,
+            serviceType: true,
+            vehicleCategory: true,
+            vehicleCategoryName: true,
+            goodsType: true,
+            goodsDescription: true,
+            estimatedWeight: true,
+            estimatedVolume: true,
+            requiresLabour: true,
+            labourCount: true,
+            pickupCity: true,
+            pickupAddress: true,
+            pickupFloor: true,
+            hasPickupLift: true,
+            dropCity: true,
+            dropAddress: true,
+            dropFloor: true,
+            hasDropLift: true,
+            estimatedDistance: true,
+            pickupDate: true,
+            pickupTime: true,
+            isFlexibleDate: true,
+            requirements: true,
+            needInsurance: true,
+            needPackaging: true,
+            budgetMin: true,
+            budgetMax: true,
+            status: true
+          }
+        }
+      },
     });
     if (!quote) return NextResponse.json({ error: 'Quote not found' }, { status: 404 });
     const parseJson = (f: any) => { if (!f) return []; if (Array.isArray(f)) return f; try { return JSON.parse(f); } catch { return []; } };
-    // Transform response to maintain backward compatibility
+    // Transform to match frontend expectations
     const { truck_quote_requests, ...quoteData } = quote;
-    return NextResponse.json({ success: true, quote: { ...quoteData, request: truck_quote_requests, inclusions: parseJson(quote.inclusions), exclusions: parseJson(quote.exclusions), termsConditions: parseJson(quote.termsConditions) } });
+    const transformedRequest = truck_quote_requests ? {
+      ...truck_quote_requests,
+      chauffeur_vehicle_categories: truck_quote_requests.vehicleCategory
+    } : null;
+    return NextResponse.json({
+      success: true,
+      quote: {
+        ...quoteData,
+        request: transformedRequest,
+        inclusions: parseJson(quote.inclusions),
+        exclusions: parseJson(quote.exclusions),
+        termsConditions: parseJson(quote.termsConditions)
+      }
+    });
   } catch (error: any) {
     logger.error('Failed to fetch truck quote', error);
     return NextResponse.json({ error: 'Failed to fetch quote', details: error?.message }, { status: 500 });

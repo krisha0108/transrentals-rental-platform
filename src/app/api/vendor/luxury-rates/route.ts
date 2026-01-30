@@ -54,10 +54,10 @@ export async function GET(request: NextRequest) {
       ],
     });
 
-    // Also get available locations for the vendor
+    // Also get available locations for the vendor (cities and union territories)
     const locations = await prisma.locations.findMany({
       where: {
-        type: 'CITY',
+        type: { in: ['CITY', 'UNION_TERRITORY'] },
         isActive: true,
       },
       select: { id: true, name: true, slug: true },
