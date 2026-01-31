@@ -91,7 +91,7 @@ export async function PUT(
       engineCC,
       mileage,
       sideImage,
-      specs,
+      specs: bodySpecs,
       features,
       metaTitle,
       metaDescription,
@@ -100,6 +100,16 @@ export async function PUT(
       basePricePerDay,
       weeklyDiscount,
       monthlyDiscount,
+      powerCapacity,
+      loadCapacity,
+      operatorIncluded,
+      securityDeposit,
+      specifications,
+      weeklyRate,
+      monthlyRate,
+      vehicleCapacity,
+      teamSize,
+      registrationNumber,
     } = body;
 
     // Check if vehicle exists
@@ -124,23 +134,85 @@ export async function PUT(
       }
     }
 
-    // Validate subServiceId if provided - it must exist in services table (FK constraint)
+    // Validate subServiceId and get category info if provided
     let validSubServiceId = existing.subServiceId;
+    let categoryInfo: { id: string; name: string; slug: string } | null = null;
+
     if (subServiceId !== undefined) {
       if (!subServiceId || subServiceId === '') {
         validSubServiceId = null;
       } else {
-        // Check if it's a valid service ID (FK constraint only allows services)
-        const subService = await prisma.services.findUnique({ where: { id: subServiceId } });
-        if (subService) {
-          validSubServiceId = subServiceId;
+        // Check if it's a vehicle category ID
+        const vehicleCategory = await prisma.chauffeur_vehicle_categories.findFirst({
+          where: {
+            id: subServiceId,
+            serviceId: existing.serviceId,
+          },
+        });
+
+        if (vehicleCategory) {
+          categoryInfo = {
+            id: vehicleCategory.id,
+            name: vehicleCategory.name,
+            slug: vehicleCategory.slug,
+          };
+
+          // Try to find a corresponding service
+          const categoryService = await prisma.services.findFirst({
+            where: {
+              slug: vehicleCategory.slug,
+              parentId: existing.serviceId,
+            },
+          });
+          validSubServiceId = categoryService?.id || null;
         } else {
-          // Not a valid service ID, keep existing or set to null
-          console.log('Invalid subServiceId provided:', subServiceId, '- keeping existing value');
-          validSubServiceId = existing.subServiceId;
+          // Otherwise check if it's directly a service ID
+          const sub_service = await prisma.services.findUnique({
+            where: { id: subServiceId },
+          });
+          if (sub_service) {
+            validSubServiceId = subServiceId;
+            categoryInfo = {
+              id: sub_service.id,
+              name: sub_service.name,
+              slug: sub_service.slug,
+            };
+          } else {
+            console.log('Invalid subServiceId provided:', subServiceId);
+            validSubServiceId = null;
+          }
         }
       }
     }
+
+    // Build specs object to include category info and other fields
+    const specsData: any = { ...(existing.specs as any || {}), ...(bodySpecs || {}) };
+
+    // Store category info in specs if we have it
+    if (categoryInfo) {
+      specsData.categoryId = categoryInfo.id;
+      specsData.categoryName = categoryInfo.name;
+      specsData.categorySlug = categoryInfo.slug;
+    } else if (subServiceId === null || subServiceId === '') {
+      // Remove category from specs if explicitly cleared
+      delete specsData.categoryId;
+      delete specsData.categoryName;
+      delete specsData.categorySlug;
+    }
+
+    // Add service-specific fields to specs
+    if (powerCapacity !== undefined) specsData.powerCapacity = powerCapacity || null;
+    if (loadCapacity !== undefined) specsData.loadCapacity = loadCapacity || null;
+    if (operatorIncluded !== undefined) specsData.operatorIncluded = String(operatorIncluded);
+    if (securityDeposit !== undefined) specsData.securityDeposit = securityDeposit || null;
+    if (specifications !== undefined) specsData.specifications = specifications || null;
+    if (weeklyRate !== undefined) specsData.weeklyRate = weeklyRate || null;
+    if (monthlyRate !== undefined) specsData.monthlyRate = monthlyRate || null;
+    if (vehicleCapacity !== undefined) specsData.vehicleCapacity = vehicleCapacity || null;
+    if (teamSize !== undefined) specsData.teamSize = teamSize || null;
+    if (registrationNumber !== undefined) specsData.registrationNumber = registrationNumber || null;
+    if (engineCC !== undefined) specsData.engineCC = engineCC || null;
+    if (mileage !== undefined) specsData.mileage = mileage || null;
 
     console.log('Updating vehicle:', id, 'with data:', {
       name: name ?? existing.name,
@@ -162,6 +234,11 @@ export async function PUT(
       return isNaN(parsed) ? null : parsed;
     };
 
+    // Clean null values from specsData and convert to JSON string
+    const cleanSpecs = Object.fromEntries(
+      Object.entries(specsData).filter(([_, v]) => v !== null && v !== undefined)
+    );
+
     const vehicle = await prisma.vehicle_models.update({
       where: { id },
       data: {
@@ -175,7 +252,7 @@ export async function PUT(
         engineCC: engineCC !== undefined ? safeParseInt(engineCC) : existing.engineCC,
         mileage: mileage !== undefined ? mileage : existing.mileage,
         sideImage: sideImage !== undefined ? sideImage : existing.sideImage,
-        specs: specs !== undefined ? specs : existing.specs,
+        specs: Object.keys(cleanSpecs).length > 0 ? JSON.stringify(cleanSpecs) : (existing.specs || null),
         features: features !== undefined ? features : existing.features,
         metaTitle: metaTitle !== undefined ? metaTitle : existing.metaTitle,
         metaDescription: metaDescription !== undefined ? metaDescription : existing.metaDescription,

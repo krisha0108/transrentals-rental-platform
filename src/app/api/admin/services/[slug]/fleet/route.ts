@@ -108,33 +108,77 @@ export async function GET(
       prisma.vehicle_models.count({ where }),
     ]);
 
+    // Fetch category mapping for vehicles that have subServiceId
+    const vehicleIds = vehicles.map(v => v.id);
+    const categoryMappings = await prisma.chauffeur_vehicle_categories.findMany({
+      where: {
+        id: { in: vehicles.map(v => v.subServiceId).filter(Boolean) as string[] },
+        serviceId: service.id,
+      },
+      select: { id: true, name: true, slug: true },
+    });
+
+    // Create a category lookup map
+    const categoryMap = new Map(categoryMappings.map(c => [c.id, c]));
+
     // Transform data
-    const fleet = vehicles.map((v) => ({
-      id: v.id,
-      name: v.name,
-      slug: v.slug,
-      brand: v.brands?.name || 'Unknown',
-      brandId: v.brandId,
-      brandLogo: v.brands?.logo || null,
-      services_vehicle_models_subServiceIdToservices: v.services_vehicle_models_subServiceIdToservices?.name || 'Uncategorized',
-      subServiceId: v.subServiceId,
-      fuelType: v.fuelType,
-      transmission: v.transmission,
-      seatingCapacity: v.seatingCapacity,
-      engineCC: v.engineCC,
-      mileage: v.mileage,
-      sideImage: v.sideImage,
-      specs: v.specs,
-      features: v.features,
-      isActive: v.isActive,
-      displayOrder: v.displayOrder,
-      vendorCount: 0,
-      locationCount: v.vehicle_model_locations?.length || 0,
-      createdAt: v.createdAt,
-      basePricePerDay: (v as any).basePricePerDay || 0,
-      weeklyDiscount: (v as any).weeklyDiscount || 0,
-      monthlyDiscount: (v as any).monthlyDiscount || 0,
-    }));
+    const fleet = vehicles.map((v) => {
+      // Parse specs JSON string to object
+      let specsObj: any = null;
+      if (v.specs) {
+        try {
+          specsObj = typeof v.specs === 'string' ? JSON.parse(v.specs) : v.specs;
+        } catch (e) {
+          console.error('Failed to parse specs JSON:', e);
+          specsObj = null;
+        }
+      }
+
+      // Try to get category name from multiple sources
+      let categoryName = 'Uncategorized';
+      let categoryId = v.subServiceId;
+
+      // Priority 1: Check specs for stored category info
+      if (specsObj && specsObj.categoryName) {
+        categoryName = specsObj.categoryName;
+        categoryId = specsObj.categoryId || categoryId;
+      }
+      // Priority 2: Check service relation
+      else if (v.services_vehicle_models_subServiceIdToservices?.name) {
+        categoryName = v.services_vehicle_models_subServiceIdToservices.name;
+      }
+      // Priority 3: Check category mapping
+      else if (v.subServiceId && categoryMap.has(v.subServiceId)) {
+        categoryName = categoryMap.get(v.subServiceId)!.name;
+      }
+
+      return {
+        id: v.id,
+        name: v.name,
+        slug: v.slug,
+        brand: v.brands?.name || 'Unknown',
+        brandId: v.brandId,
+        brandLogo: v.brands?.logo || null,
+        services_vehicle_models_subServiceIdToservices: categoryName,
+        subServiceId: categoryId,
+        fuelType: v.fuelType,
+        transmission: v.transmission,
+        seatingCapacity: v.seatingCapacity,
+        engineCC: v.engineCC,
+        mileage: v.mileage,
+        sideImage: v.sideImage,
+        specs: specsObj,
+        features: v.features,
+        isActive: v.isActive,
+        displayOrder: v.displayOrder,
+        vendorCount: 0,
+        locationCount: v.vehicle_model_locations?.length || 0,
+        createdAt: v.createdAt,
+        basePricePerDay: (v as any).basePricePerDay || 0,
+        weeklyDiscount: (v as any).weeklyDiscount || 0,
+        monthlyDiscount: (v as any).monthlyDiscount || 0,
+      };
+    });
 
     return NextResponse.json({
       success: true,
@@ -207,7 +251,7 @@ export async function POST(
       engineCC,
       mileage,
       sideImage,
-      specs,
+      specs: bodySpecs,
       features,
       metaTitle,
       metaDescription,
@@ -216,6 +260,16 @@ export async function POST(
       basePricePerDay,
       weeklyDiscount,
       monthlyDiscount,
+      powerCapacity,
+      loadCapacity,
+      operatorIncluded,
+      securityDeposit,
+      specifications,
+      weeklyRate,
+      monthlyRate,
+      vehicleCapacity,
+      teamSize,
+      registrationNumber,
     } = body;
 
     // Validate required fields
@@ -238,18 +292,73 @@ export async function POST(
       );
     }
 
-    // Validate subServiceId if provided
+    // Validate subServiceId and get category info if provided
     let validSubServiceId: string | null = null;
+    let categoryInfo: { id: string; name: string; slug: string } | null = null;
+
     if (subServiceId) {
-      const sub_service = await prisma.services.findUnique({
-        where: { id: subServiceId },
+      // Check if it's a vehicle category ID (for services that use categories)
+      const vehicleCategory = await prisma.chauffeur_vehicle_categories.findFirst({
+        where: {
+          id: subServiceId,
+          serviceId: service.id,
+        },
       });
-      if (sub_service) {
-        validSubServiceId = subServiceId;
+
+      if (vehicleCategory) {
+        categoryInfo = {
+          id: vehicleCategory.id,
+          name: vehicleCategory.name,
+          slug: vehicleCategory.slug,
+        };
+
+        // Try to find a corresponding service
+        const categoryService = await prisma.services.findFirst({
+          where: {
+            slug: vehicleCategory.slug,
+            parentId: service.id,
+          },
+        });
+        validSubServiceId = categoryService?.id || null;
       } else {
-        console.log('SubService not found, ignoring:', subServiceId);
+        // Otherwise check if it's directly a service ID
+        const sub_service = await prisma.services.findUnique({
+          where: { id: subServiceId },
+        });
+        if (sub_service) {
+          validSubServiceId = subServiceId;
+          categoryInfo = {
+            id: sub_service.id,
+            name: sub_service.name,
+            slug: sub_service.slug,
+          };
+        }
       }
     }
+
+    // Build specs object to include category info and other fields
+    const specsData: any = bodySpecs || {};
+
+    // Store category info in specs if we have it
+    if (categoryInfo) {
+      specsData.categoryId = categoryInfo.id;
+      specsData.categoryName = categoryInfo.name;
+      specsData.categorySlug = categoryInfo.slug;
+    }
+
+    // Add service-specific fields to specs
+    if (powerCapacity) specsData.powerCapacity = powerCapacity;
+    if (loadCapacity) specsData.loadCapacity = loadCapacity;
+    if (operatorIncluded !== undefined) specsData.operatorIncluded = String(operatorIncluded);
+    if (securityDeposit) specsData.securityDeposit = securityDeposit;
+    if (specifications) specsData.specifications = specifications;
+    if (weeklyRate) specsData.weeklyRate = weeklyRate;
+    if (monthlyRate) specsData.monthlyRate = monthlyRate;
+    if (vehicleCapacity) specsData.vehicleCapacity = vehicleCapacity;
+    if (teamSize) specsData.teamSize = teamSize;
+    if (registrationNumber) specsData.registrationNumber = registrationNumber;
+    if (engineCC) specsData.engineCC = engineCC;
+    if (mileage) specsData.mileage = mileage;
 
     // Check if slug exists
     const existing = await prisma.vehicle_models.findFirst({
@@ -266,6 +375,11 @@ export async function POST(
       );
     }
 
+    // Clean null values from specsData and convert to JSON string
+    const cleanSpecs = Object.fromEntries(
+      Object.entries(specsData).filter(([_, v]) => v !== null && v !== undefined)
+    );
+
     // Create vehicle model with explicit ID
     const vehicle = await prisma.vehicle_models.create({
       data: {
@@ -281,7 +395,7 @@ export async function POST(
         engineCC: engineCC ? parseInt(String(engineCC)) : null,
         mileage: mileage || null,
         sideImage: sideImage || null,
-        specs: specs || null,
+        specs: Object.keys(cleanSpecs).length > 0 ? JSON.stringify(cleanSpecs) : null,
         features: features || null,
         metaTitle: metaTitle || null,
         metaDescription: metaDescription || null,
