@@ -27,6 +27,7 @@ import {
   TrendingDown,
   Users,
   CalendarCheck,
+  Calendar,
   Globe,
   Star,
   Activity,
@@ -112,6 +113,7 @@ export default function ServiceDashboardPage() {
   const [stats, setStats] = useState<ServiceStats | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [subServices, setSubServices] = useState<Array<{ id: string; name: string; slug: string }>>([]);
+  const [bookingsDateFilter, setBookingsDateFilter] = useState('ALL');
 
   const ServiceIcon = service ? IconMap[service.icon || ''] || Car : Car;
 
@@ -139,7 +141,10 @@ export default function ServiceDashboardPage() {
     const fetchStats = async () => {
       setLoading(true);
       try {
-        const res = await fetch(`/api/admin/services/${slug}/stats`);
+        const params = new URLSearchParams({
+          dateFilter: bookingsDateFilter,
+        });
+        const res = await fetch(`/api/admin/services/${slug}/stats?${params}`);
         if (res.ok) {
           const data = await res.json();
           setStats(data.stats);
@@ -156,7 +161,7 @@ export default function ServiceDashboardPage() {
     if (slug) {
       fetchStats();
     }
-  }, [slug]);
+  }, [slug, bookingsDateFilter]);
 
   // Fetch sub-services
   useEffect(() => {
@@ -251,6 +256,26 @@ export default function ServiceDashboardPage() {
         </div>
       ) : (
         <>
+          {/* Date Filter for Stats */}
+          <div className="bg-white rounded-xl p-4 border shadow-sm mb-4">
+            <div className="flex items-center gap-3">
+              <Calendar className="w-5 h-5 text-gray-400" />
+              <span className="text-sm font-medium text-gray-700">Filter Stats:</span>
+              <select
+                value={bookingsDateFilter}
+                onChange={(e) => setBookingsDateFilter(e.target.value)}
+                className="text-sm px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
+              >
+                <option value="ALL">All Time</option>
+                <option value="TODAY">Today</option>
+                <option value="YESTERDAY">Yesterday</option>
+                <option value="THIS_MONTH">This Month</option>
+                <option value="LAST_MONTH">Last Month</option>
+                <option value="THIS_YEAR">This Year</option>
+              </select>
+            </div>
+          </div>
+
           {/* Stats Grid */}
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
             <div className="bg-white rounded-xl p-4 border shadow-sm">

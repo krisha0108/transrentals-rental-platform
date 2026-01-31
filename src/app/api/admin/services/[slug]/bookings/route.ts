@@ -8,13 +8,73 @@ import { transformPrismaResponse } from '@/lib/utils/api-transform';
 import logger from '@/lib/security/logger';
 export const dynamic = 'force-dynamic';
 
+// Helper to calculate date range based on filter
+function getDateRange(dateFilter: string, customStart?: string, customEnd?: string): { startDate: Date | null; endDate: Date | null } {
+  const now = new Date();
+  let startDate: Date | null = null;
+  let endDate: Date | null = null;
+
+  switch (dateFilter) {
+    case 'TODAY': {
+      startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
+      endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
+      break;
+    }
+    case 'YESTERDAY': {
+      const yesterday = new Date(now);
+      yesterday.setDate(yesterday.getDate() - 1);
+      startDate = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), 0, 0, 0);
+      endDate = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), 23, 59, 59);
+      break;
+    }
+    case 'THIS_MONTH': {
+      startDate = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0);
+      endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+      break;
+    }
+    case 'LAST_MONTH': {
+      startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1, 0, 0, 0);
+      endDate = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
+      break;
+    }
+    case 'THIS_YEAR': {
+      startDate = new Date(now.getFullYear(), 0, 1, 0, 0, 0);
+      endDate = new Date(now.getFullYear(), 11, 31, 23, 59, 59);
+      break;
+    }
+    case 'LAST_YEAR': {
+      startDate = new Date(now.getFullYear() - 1, 0, 1, 0, 0, 0);
+      endDate = new Date(now.getFullYear() - 1, 11, 31, 23, 59, 59);
+      break;
+    }
+    case 'CUSTOM': {
+      if (customStart) {
+        startDate = new Date(customStart);
+        startDate.setHours(0, 0, 0, 0);
+      }
+      if (customEnd) {
+        endDate = new Date(customEnd);
+        endDate.setHours(23, 59, 59, 999);
+      }
+      break;
+    }
+    default:
+      // ALL - no date filter
+      break;
+  }
+
+  return { startDate, endDate };
+}
+
 // Helper to get booking model and query based on service type
 async function getBookingsForService(
   serviceSlug: string,
   page: number,
   limit: number,
   search: string,
-  status: string
+  status: string,
+  startDate: Date | null = null,
+  endDate: Date | null = null
 ) {
   const skip = (page - 1) * limit;
 
@@ -43,6 +103,12 @@ async function getBookingsForService(
       if (status && status !== 'ALL') {
         quoteWhere.status = status;
       }
+      // Add date filter
+      if (startDate || endDate) {
+        quoteWhere.createdAt = {};
+        if (startDate) quoteWhere.createdAt.gte = startDate;
+        if (endDate) quoteWhere.createdAt.lte = endDate;
+      }
 
       // Fetch confirmed bookings
       const bookingWhere: any = {};
@@ -56,6 +122,12 @@ async function getBookingsForService(
       }
       if (status && status !== 'ALL') {
         bookingWhere.status = status;
+      }
+      // Add date filter
+      if (startDate || endDate) {
+        bookingWhere.createdAt = {};
+        if (startDate) bookingWhere.createdAt.gte = startDate;
+        if (endDate) bookingWhere.createdAt.lte = endDate;
       }
 
       const [quoteRequests, confirmedBikeBookings] = await Promise.all([
@@ -129,8 +201,8 @@ async function getBookingsForService(
 
     case 'self-drive-car-rentals':
     case 'self-drive': {
-      // Get all confirmed booking IDs
-      const confirmedBookings = await prisma.self_drive_bookings.findMany({
+      // Get all confirmed booking IDs (self-drive bookings are stored in car_bookings table)
+      const confirmedBookings = await prisma.car_bookings.findMany({
         select: { quoteRequestId: true },
       });
       const confirmedQuoteIds = confirmedBookings.map(b => b.quoteRequestId).filter(Boolean);
@@ -150,6 +222,12 @@ async function getBookingsForService(
       if (status && status !== 'ALL') {
         quoteWhere.status = status;
       }
+      // Add date filter
+      if (startDate || endDate) {
+        quoteWhere.createdAt = {};
+        if (startDate) quoteWhere.createdAt.gte = startDate;
+        if (endDate) quoteWhere.createdAt.lte = endDate;
+      }
 
       // Fetch confirmed bookings
       const bookingWhere: any = {};
@@ -164,6 +242,12 @@ async function getBookingsForService(
       if (status && status !== 'ALL') {
         bookingWhere.status = status;
       }
+      // Add date filter
+      if (startDate || endDate) {
+        bookingWhere.createdAt = {};
+        if (startDate) bookingWhere.createdAt.gte = startDate;
+        if (endDate) bookingWhere.createdAt.lte = endDate;
+      }
 
       const [quoteRequests, confirmedSelfDriveBookings] = await Promise.all([
         prisma.self_drive_quote_requests.findMany({
@@ -174,7 +258,7 @@ async function getBookingsForService(
           },
           orderBy: { createdAt: 'desc' },
         }),
-        prisma.self_drive_bookings.findMany({
+        prisma.car_bookings.findMany({
           where: bookingWhere,
           orderBy: { createdAt: 'desc' },
         }),
@@ -206,12 +290,12 @@ async function getBookingsForService(
           customerName: b.customerName,
           customerPhone: b.customerPhone,
           customerEmail: b.customerEmail,
-          vehicleName: b.vehicleModelName || b.vehicleCategoryName || 'Vehicle',
-          services_vehicle_models_subServiceIdToservices: b.vehicleCategoryName || 'Self Drive',
+          vehicleName: b.assignedVehicleName || b.requestedVehicleName || 'Vehicle',
+          services_vehicle_models_subServiceIdToservices: b.requestedCategory || 'Self Drive',
           pickupLocation: b.locationName,
           startDate: b.pickupDate,
           endDate: b.dropDate,
-          totalAmount: b.totalAmount || 0,
+          totalAmount: b.grandTotal || 0,
           status: b.status,
           paymentStatus: b.paymentStatus || 'PENDING',
           createdAt: b.createdAt,
@@ -247,6 +331,12 @@ async function getBookingsForService(
       }
       if (status && status !== 'ALL') {
         where.status = status;
+      }
+      // Add date filter
+      if (startDate || endDate) {
+        where.createdAt = {};
+        if (startDate) where.createdAt.gte = startDate;
+        if (endDate) where.createdAt.lte = endDate;
       }
 
       const [bookings, total] = await Promise.all([
@@ -310,6 +400,12 @@ async function getBookingsForService(
       if (status && status !== 'ALL') {
         quoteWhere.status = status;
       }
+      // Add date filter
+      if (startDate || endDate) {
+        quoteWhere.createdAt = {};
+        if (startDate) quoteWhere.createdAt.gte = startDate;
+        if (endDate) quoteWhere.createdAt.lte = endDate;
+      }
 
       // Fetch confirmed bookings
       const bookingWhere: any = {};
@@ -323,6 +419,12 @@ async function getBookingsForService(
       }
       if (status && status !== 'ALL') {
         bookingWhere.status = status;
+      }
+      // Add date filter
+      if (startDate || endDate) {
+        bookingWhere.createdAt = {};
+        if (startDate) bookingWhere.createdAt.gte = startDate;
+        if (endDate) bookingWhere.createdAt.lte = endDate;
       }
 
       const [quoteRequests, confirmedBusBookings] = await Promise.all([
@@ -415,6 +517,12 @@ async function getBookingsForService(
       if (status && status !== 'ALL') {
         quoteWhere.status = status;
       }
+      // Add date filter
+      if (startDate || endDate) {
+        quoteWhere.createdAt = {};
+        if (startDate) quoteWhere.createdAt.gte = startDate;
+        if (endDate) quoteWhere.createdAt.lte = endDate;
+      }
 
       // Fetch confirmed bookings
       const bookingWhere: any = {};
@@ -428,6 +536,12 @@ async function getBookingsForService(
       }
       if (status && status !== 'ALL') {
         bookingWhere.status = status;
+      }
+      // Add date filter
+      if (startDate || endDate) {
+        bookingWhere.createdAt = {};
+        if (startDate) bookingWhere.createdAt.gte = startDate;
+        if (endDate) bookingWhere.createdAt.lte = endDate;
       }
 
       const [quoteRequests, confirmedTruckBookings] = await Promise.all([
@@ -519,6 +633,12 @@ async function getBookingsForService(
       if (status && status !== 'ALL') {
         quoteWhere.status = status;
       }
+      // Add date filter
+      if (startDate || endDate) {
+        quoteWhere.createdAt = {};
+        if (startDate) quoteWhere.createdAt.gte = startDate;
+        if (endDate) quoteWhere.createdAt.lte = endDate;
+      }
 
       // Fetch confirmed bookings
       const bookingWhere: any = {};
@@ -532,6 +652,12 @@ async function getBookingsForService(
       }
       if (status && status !== 'ALL') {
         bookingWhere.status = status;
+      }
+      // Add date filter
+      if (startDate || endDate) {
+        bookingWhere.createdAt = {};
+        if (startDate) bookingWhere.createdAt.gte = startDate;
+        if (endDate) bookingWhere.createdAt.lte = endDate;
       }
 
       const [quoteRequests, confirmedLuxuryBookings] = await Promise.all([
@@ -623,6 +749,12 @@ async function getBookingsForService(
       if (status && status !== 'ALL') {
         quoteWhere.status = status;
       }
+      // Add date filter
+      if (startDate || endDate) {
+        quoteWhere.createdAt = {};
+        if (startDate) quoteWhere.createdAt.gte = startDate;
+        if (endDate) quoteWhere.createdAt.lte = endDate;
+      }
 
       // Fetch confirmed bookings
       const bookingWhere: any = {};
@@ -636,6 +768,12 @@ async function getBookingsForService(
       }
       if (status && status !== 'ALL') {
         bookingWhere.status = status;
+      }
+      // Add date filter
+      if (startDate || endDate) {
+        bookingWhere.createdAt = {};
+        if (startDate) bookingWhere.createdAt.gte = startDate;
+        if (endDate) bookingWhere.createdAt.lte = endDate;
       }
 
       const [quoteRequests, confirmedPackersBookings] = await Promise.all([
@@ -726,6 +864,12 @@ async function getBookingsForService(
       if (status && status !== 'ALL') {
         quoteWhere.status = status;
       }
+      // Add date filter
+      if (startDate || endDate) {
+        quoteWhere.createdAt = {};
+        if (startDate) quoteWhere.createdAt.gte = startDate;
+        if (endDate) quoteWhere.createdAt.lte = endDate;
+      }
 
       // Fetch confirmed bookings
       const bookingWhere: any = {};
@@ -739,6 +883,12 @@ async function getBookingsForService(
       }
       if (status && status !== 'ALL') {
         bookingWhere.status = status;
+      }
+      // Add date filter
+      if (startDate || endDate) {
+        bookingWhere.createdAt = {};
+        if (startDate) bookingWhere.createdAt.gte = startDate;
+        if (endDate) bookingWhere.createdAt.lte = endDate;
       }
 
       const [quoteRequests, confirmedEquipmentBookings] = await Promise.all([
@@ -830,6 +980,12 @@ export async function GET(
     const limit = parseInt(searchParams.get('limit') || '20');
     const search = searchParams.get('search') || '';
     const status = searchParams.get('status') || '';
+    const dateFilter = searchParams.get('dateFilter') || 'ALL';
+    const customStartDate = searchParams.get('startDate') || '';
+    const customEndDate = searchParams.get('endDate') || '';
+
+    // Calculate date range based on filter
+    const { startDate, endDate } = getDateRange(dateFilter, customStartDate, customEndDate);
 
     // Find the service by slug
     const service = await prisma.services.findUnique({
@@ -846,7 +1002,9 @@ export async function GET(
       page,
       limit,
       search,
-      status
+      status,
+      startDate,
+      endDate
     );
 
     return NextResponse.json({

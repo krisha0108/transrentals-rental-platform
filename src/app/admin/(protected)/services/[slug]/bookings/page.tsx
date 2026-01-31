@@ -210,6 +210,9 @@ export default function ServiceBookingsPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
+  const [dateFilter, setDateFilter] = useState('ALL');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
   const [page, setPage] = useState(1);
 
   const ServiceIcon = service ? IconMap[service.icon || ''] || Car : Car;
@@ -279,7 +282,15 @@ export default function ServiceBookingsPage() {
           page: page.toString(),
           limit: pagination.limit.toString(),
           status: statusFilter,
+          dateFilter: dateFilter,
         });
+
+        // Add custom date range if provided
+        if (dateFilter === 'CUSTOM' && startDate && endDate) {
+          params.append('startDate', startDate);
+          params.append('endDate', endDate);
+        }
+
         const res = await fetch(`/api/admin/services/${slug}/bookings?${params}`);
         console.log('API Request:', `/api/admin/services/${slug}/bookings?${params}`);
         if (res.ok) {
@@ -334,7 +345,7 @@ export default function ServiceBookingsPage() {
     if (slug) {
       fetchBookings();
     }
-  }, [slug, page, statusFilter, pagination.limit]);
+  }, [slug, page, statusFilter, dateFilter, startDate, endDate, pagination.limit]);
 
   // Use bookings directly from API - filtering happens server-side
   const filteredBookings = search
@@ -444,47 +455,108 @@ export default function ServiceBookingsPage() {
 
       {/* Filters */}
       <div className="bg-white rounded-xl p-4 shadow-sm border">
-        <div className="flex flex-col md:flex-row gap-4">
-          <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search by booking ID, customer name, phone, vehicle..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
-            />
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search by booking ID, customer name, phone, vehicle..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <Filter className="w-5 h-5 text-gray-400" />
+              <select
+                value={statusFilter}
+                onChange={(e) => {
+                  setStatusFilter(e.target.value);
+                  setPage(1);
+                }}
+                className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="ALL">All Status</option>
+                <optgroup label="Quote Stage">
+                  <option value="PENDING">Pending</option>
+                  <option value="PENDING_VENDOR">Pending Vendor</option>
+                  <option value="BROADCASTED">Broadcasted</option>
+                  <option value="QUOTES_RECEIVED">Quotes Received</option>
+                  <option value="QUOTE_ACCEPTED">Quote Accepted</option>
+                  <option value="ACCEPTED">Accepted</option>
+                </optgroup>
+                <optgroup label="Booking Stage">
+                  <option value="CONFIRMED">Confirmed</option>
+                  <option value="BOOKING_CONFIRMED">Booking Confirmed</option>
+                  <option value="ONGOING">Ongoing</option>
+                  <option value="IN_PROGRESS">In Progress</option>
+                  <option value="COMPLETED">Completed</option>
+                  <option value="CANCELLED">Cancelled</option>
+                  <option value="REJECTED">Rejected</option>
+                  <option value="EXPIRED">Expired</option>
+                </optgroup>
+              </select>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Filter className="w-5 h-5 text-gray-400" />
-            <select
-              value={statusFilter}
-              onChange={(e) => {
-                setStatusFilter(e.target.value);
-                setPage(1);
-              }}
-              className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="ALL">All Status</option>
-              <optgroup label="Quote Stage">
-                <option value="PENDING">Pending</option>
-                <option value="PENDING_VENDOR">Pending Vendor</option>
-                <option value="BROADCASTED">Broadcasted</option>
-                <option value="QUOTES_RECEIVED">Quotes Received</option>
-                <option value="QUOTE_ACCEPTED">Quote Accepted</option>
-                <option value="ACCEPTED">Accepted</option>
-              </optgroup>
-              <optgroup label="Booking Stage">
-                <option value="CONFIRMED">Confirmed</option>
-                <option value="BOOKING_CONFIRMED">Booking Confirmed</option>
-                <option value="ONGOING">Ongoing</option>
-                <option value="IN_PROGRESS">In Progress</option>
-                <option value="COMPLETED">Completed</option>
-                <option value="CANCELLED">Cancelled</option>
-                <option value="REJECTED">Rejected</option>
-                <option value="EXPIRED">Expired</option>
-              </optgroup>
-            </select>
+
+          {/* Date Filter Row */}
+          <div className="flex flex-col md:flex-row gap-4 items-start md:items-end">
+            <div className="flex items-center gap-2">
+              <Calendar className="w-5 h-5 text-gray-400" />
+              <select
+                value={dateFilter}
+                onChange={(e) => {
+                  setDateFilter(e.target.value);
+                  setPage(1);
+                  // Reset custom dates when switching away from custom
+                  if (e.target.value !== 'CUSTOM') {
+                    setStartDate('');
+                    setEndDate('');
+                  }
+                }}
+                className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="ALL">All Bookings</option>
+                <option value="TODAY">Today</option>
+                <option value="YESTERDAY">Yesterday</option>
+                <option value="THIS_MONTH">This Month</option>
+                <option value="LAST_MONTH">Last Month</option>
+                <option value="THIS_YEAR">This Year</option>
+                <option value="LAST_YEAR">Last Year</option>
+                <option value="CUSTOM">Custom Date Range</option>
+              </select>
+            </div>
+
+            {/* Custom Date Range Inputs */}
+            {dateFilter === 'CUSTOM' && (
+              <div className="flex items-center gap-2">
+                <div className="flex flex-col">
+                  <label className="text-xs text-gray-500 mb-1">From Date</label>
+                  <input
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => {
+                      setStartDate(e.target.value);
+                      setPage(1);
+                    }}
+                    className="px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div className="flex flex-col">
+                  <label className="text-xs text-gray-500 mb-1">To Date</label>
+                  <input
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => {
+                      setEndDate(e.target.value);
+                      setPage(1);
+                    }}
+                    className="px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

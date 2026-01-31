@@ -909,15 +909,7 @@ export async function GET(
                 phone: true,
               },
             },
-            vendors_bus_bookings_acceptedVendorIdTovendors: {
-              select: {
-                id: true,
-                businessName: true,
-                phone: true,
-                email: true,
-              },
-            },
-            vendors_bus_bookings_assignedVendorIdTovendors: {
+            vendors: {
               select: {
                 id: true,
                 businessName: true,
@@ -970,9 +962,7 @@ export async function GET(
               customerPhone: confirmedBooking.customerPhone,
               customerEmail: confirmedBooking.customerEmail,
               customer: confirmedBooking.customers,
-              acceptedVendor: confirmedBooking.vendors_bus_bookings_acceptedVendorIdTovendors,
-              assignedVendor: confirmedBooking.vendors_bus_bookings_assignedVendorIdTovendors,
-              vendor: confirmedBooking.vendors_bus_bookings_acceptedVendorIdTovendors || confirmedBooking.vendors_bus_bookings_assignedVendorIdTovendors,
+              vendor: confirmedBooking.vendors,
               vehicleCategoryName: confirmedBooking.vehicleCategoryName || confirmedBooking.vehicle_category,
               vehicleCategory: confirmedBooking.vehicle_category,
               passengers: confirmedBooking.passengers || quoteRequest?.passengers,
@@ -1169,15 +1159,7 @@ export async function GET(
                 phone: true,
               },
             },
-            vendors_truck_bookings_acceptedVendorIdTovendors: {
-              select: {
-                id: true,
-                businessName: true,
-                phone: true,
-                email: true,
-              },
-            },
-            vendors_truck_bookings_assignedVendorIdTovendors: {
+            vendors: {
               select: {
                 id: true,
                 businessName: true,
@@ -1230,9 +1212,7 @@ export async function GET(
               customerPhone: confirmedBooking.customerPhone,
               customerEmail: confirmedBooking.customerEmail,
               customer: confirmedBooking.customers,
-              acceptedVendor: confirmedBooking.vendors_truck_bookings_acceptedVendorIdTovendors,
-              assignedVendor: confirmedBooking.vendors_truck_bookings_assignedVendorIdTovendors,
-              vendor: confirmedBooking.vendors_truck_bookings_acceptedVendorIdTovendors || confirmedBooking.vendors_truck_bookings_assignedVendorIdTovendors,
+              vendor: confirmedBooking.vendors,
               vehicleCategoryName: confirmedBooking.vehicleCategoryName || confirmedBooking.vehicle_category,
               vehicleCategory: confirmedBooking.vehicle_category,
               loadType: confirmedBooking.loadType || quoteRequest?.loadType,
@@ -1673,15 +1653,7 @@ export async function GET(
                 phone: true,
               },
             },
-            vendors_packers_bookings_acceptedVendorIdTovendors: {
-              select: {
-                id: true,
-                businessName: true,
-                phone: true,
-                email: true,
-              },
-            },
-            vendors_packers_bookings_assignedVendorIdTovendors: {
+            vendors: {
               select: {
                 id: true,
                 businessName: true,
@@ -1734,9 +1706,7 @@ export async function GET(
               customerPhone: confirmedBooking.customerPhone,
               customerEmail: confirmedBooking.customerEmail,
               customer: confirmedBooking.customers,
-              acceptedVendor: confirmedBooking.vendors_packers_bookings_acceptedVendorIdTovendors,
-              assignedVendor: confirmedBooking.vendors_packers_bookings_assignedVendorIdTovendors,
-              vendor: confirmedBooking.vendors_packers_bookings_acceptedVendorIdTovendors || confirmedBooking.vendors_packers_bookings_assignedVendorIdTovendors,
+              vendor: confirmedBooking.vendors,
               serviceType: confirmedBooking.serviceType || quoteRequest?.serviceType,
               shiftingType: confirmedBooking.shiftingType || quoteRequest?.shiftingType,
               propertySize: confirmedBooking.propertySize || quoteRequest?.propertySize,
@@ -1914,15 +1884,7 @@ export async function GET(
                 phone: true,
               },
             },
-            vendors_equipment_bookings_acceptedVendorIdTovendors: {
-              select: {
-                id: true,
-                businessName: true,
-                phone: true,
-                email: true,
-              },
-            },
-            vendors_equipment_bookings_assignedVendorIdTovendors: {
+            vendors: {
               select: {
                 id: true,
                 businessName: true,
@@ -1975,9 +1937,7 @@ export async function GET(
               customerPhone: confirmedBooking.customerPhone,
               customerEmail: confirmedBooking.customerEmail,
               customer: confirmedBooking.customers,
-              acceptedVendor: confirmedBooking.vendors_equipment_bookings_acceptedVendorIdTovendors,
-              assignedVendor: confirmedBooking.vendors_equipment_bookings_assignedVendorIdTovendors,
-              vendor: confirmedBooking.vendors_equipment_bookings_acceptedVendorIdTovendors || confirmedBooking.vendors_equipment_bookings_assignedVendorIdTovendors,
+              vendor: confirmedBooking.vendors,
               equipmentCategory: confirmedBooking.equipmentCategory || quoteRequest?.equipmentCategory,
               equipmentType: confirmedBooking.equipmentType || quoteRequest?.equipmentType,
               equipmentName: confirmedBooking.equipmentName || quoteRequest?.equipmentName,

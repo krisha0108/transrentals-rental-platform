@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
+import * as XLSX from 'xlsx';
 import {
   ArrowLeft,
   Car,
@@ -759,6 +760,86 @@ export default function ServiceFleetPage() {
     l.name.toLowerCase().includes(locationSearch.toLowerCase())
   );
 
+  const handleExport = () => {
+    if (fleet.length === 0) {
+      alert('No fleet data to export');
+      return;
+    }
+
+    // Prepare data for export
+    const exportData = fleet.map((item: any, index) => ({
+      'S.No': index + 1,
+      'Name': item.name,
+      'Brand': item.brand,
+      'Model': item.model,
+      'Category': item.sub_service || '-',
+      'Base Price (₹)': item.basePrice || 0,
+      ...(isEquipmentService
+        ? {
+            'Power Capacity': item.specs?.powerCapacity || '-',
+            'Load Capacity': item.specs?.loadCapacity || '-',
+            'Operator Included': item.specs?.operatorIncluded === 'true' ? 'Yes' : 'No',
+            'Security Deposit (₹)': item.specs?.securityDeposit || '-',
+            'Weekly Rate (₹)': item.specs?.weeklyRate || '-',
+            'Monthly Rate (₹)': item.specs?.monthlyRate || '-',
+          }
+        : isPackersService
+        ? {
+            'Vehicle Capacity': item.specs?.vehicleCapacity || '-',
+            'Team Size': item.specs?.teamSize || '-',
+            'Registration Number': item.specs?.registrationNumber || '-',
+          }
+        : {
+            'Fuel Type': item.fuelType || '-',
+            'Transmission': item.transmission || '-',
+            'Seating Capacity': item.seatingCapacity || '-',
+            'Engine (CC)': item.specs?.engineCC || '-',
+            'Mileage': item.specs?.mileage || '-',
+            'Weekly Discount (%)': item.weeklyDiscount || 0,
+            'Monthly Discount (%)': item.monthlyDiscount || 0,
+          }
+      ),
+      'Locations': `${item.locations} cities`,
+      'Status': item.isActive ? 'Active' : 'Inactive',
+      'Image URL': item.imageUrl || '-',
+    }));
+
+    // Create workbook and worksheet
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(exportData);
+
+    // Set column widths for better readability
+    const columnWidths = [
+      { wch: 6 },  // S.No
+      { wch: 25 }, // Name
+      { wch: 15 }, // Brand
+      { wch: 20 }, // Model
+      { wch: 15 }, // Category
+      { wch: 15 }, // Base Price
+      { wch: 15 }, // Additional fields
+      { wch: 15 },
+      { wch: 15 },
+      { wch: 15 },
+      { wch: 15 },
+      { wch: 12 }, // Locations
+      { wch: 10 }, // Status
+      { wch: 40 }, // Image URL
+    ];
+    ws['!cols'] = columnWidths;
+
+    // Add worksheet to workbook
+    const sheetName = isEquipmentService ? 'Equipment Fleet' : isPackersService ? 'Packers Fleet' : 'Vehicle Fleet';
+    XLSX.utils.book_append_sheet(wb, ws, sheetName);
+
+    // Generate filename with service name and current date
+    const serviceName = service?.name.replace(/[^a-zA-Z0-9]/g, '_') || 'fleet';
+    const date = new Date().toISOString().split('T')[0];
+    const filename = `${serviceName}_fleet_${date}.xlsx`;
+
+    // Download file
+    XLSX.writeFile(wb, filename);
+  };
+
   const fetchFleet = React.useCallback(async () => {
     setLoading(true);
     try {
@@ -778,7 +859,8 @@ export default function ServiceFleetPage() {
           brand: item.brand,
           brandId: item.brandId,
           model: item.slug,
-          services_vehicle_models_subServiceIdToservices: item.sub_service,
+          services_vehicle_models_subServiceIdToservices: item.services_vehicle_models_subServiceIdToservices,
+          sub_service: item.services_vehicle_models_subServiceIdToservices,
           subServiceId: item.subServiceId,
           basePrice: item.basePricePerDay || 0,
           weeklyDiscount: item.weeklyDiscount || 0,
@@ -789,6 +871,7 @@ export default function ServiceFleetPage() {
           fuelType: item.fuelType,
           transmission: item.transmission,
           seatingCapacity: item.seatingCapacity,
+          specs: item.specs,
         })));
       } else {
         console.error('Failed to fetch fleet from API');
@@ -877,11 +960,7 @@ export default function ServiceFleetPage() {
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <Button variant="outline" size="sm">
-            <Upload className="w-4 h-4 mr-2" />
-            Import
-          </Button>
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" onClick={handleExport}>
             <Download className="w-4 h-4 mr-2" />
             Export
           </Button>
