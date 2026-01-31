@@ -111,8 +111,8 @@ COPY --from=builder /app/package.json ./package.json
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
-# Copy Prisma schema and pre-generated client (NO CLI needed at runtime)
-COPY --from=builder /app/prisma/schema.prisma ./prisma/schema.prisma
+# Copy Prisma folder (schema + migrations) and pre-generated client (NO CLI needed at runtime)
+COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
 
