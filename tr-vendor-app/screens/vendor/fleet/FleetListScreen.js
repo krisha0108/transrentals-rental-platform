@@ -12,6 +12,7 @@ import {
   ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Feather';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { getVendorFleet, deleteVehicle } from '../../api/client';
@@ -150,6 +151,14 @@ export default function FleetListScreen({ navigation }) {
   useEffect(() => {
     fetchFleet();
   }, [fetchFleet]);
+
+  // Refetch when screen comes into focus (after adding/editing vehicle)
+  useFocusEffect(
+    useCallback(() => {
+      console.log('[Fleet] Screen focused, refreshing fleet...');
+      fetchFleet();
+    }, [fetchFleet])
+  );
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -389,8 +398,33 @@ export default function FleetListScreen({ navigation }) {
       vehicleName = item.brands.name;
     }
 
-    // Get image
-    const imageUri = item.images?.[0] || item.vehicle_models?.sideImage || item.chauffeur_vehicle_categories?.image;
+    // Get image - ONLY show featured admin image (NOT vendor images in list)
+    let imageUri = null;
+
+    // Helper function to convert relative paths to full URLs
+    const getFullImageUrl = (imagePath) => {
+      if (!imagePath) return null;
+
+      // If already a full URL or base64, return as is
+      if (imagePath.startsWith('http://') ||
+          imagePath.startsWith('https://') ||
+          imagePath.startsWith('data:')) {
+        return imagePath;
+      }
+
+      // If relative path, prepend base URL
+      // Use localhost in dev mode, production URL in prod
+      const baseUrl = __DEV__ ? 'http://192.168.29.31:3000' : 'https://transrentals.in';
+      return `${baseUrl}${imagePath.startsWith('/') ? '' : '/'}${imagePath}`;
+    };
+
+    // ONLY use featured admin image (model/category image)
+    // Do NOT use vendor uploaded images in list view
+    const featuredImage = item.vehicle_models?.sideImage ||
+                         item.chauffeur_vehicle_categories?.image;
+
+    imageUri = getFullImageUrl(featuredImage);
+    console.log('[FleetList] Featured imageUri:', imageUri ? 'Found' : 'None (will show placeholder)');
 
     // Get seating capacity
     const seatingCapacity =

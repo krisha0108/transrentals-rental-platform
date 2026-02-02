@@ -132,7 +132,11 @@
       "Bash(then echo \"$file\")",
       "Bash(fi)",
       "Bash(git grep:*)",
-      "Bash(npx ts-node:*)"
+      "Bash(npx ts-node:*)",
+      "Bash(gh run list:*)",
+      "Bash(for model in bike_bookings bus_bookings car_bookings chauffeur_bookings equipment_bookings luxury_bookings packers_bookings truck_bookings)",
+      "Bash(do echo \"=== $model ===\")",
+      "Bash(npm ls:*)"
     ],
     "deny": [],
     "ask": []

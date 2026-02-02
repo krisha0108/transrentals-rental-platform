@@ -248,11 +248,14 @@ export default function ServiceFleetPage() {
   // Fetch brands and subServices on mount
   useEffect(() => {
     const fetchBrands = async () => {
+      if (!slug) return;
       try {
-        const res = await fetch('/api/admin/brands');
+        // Fetch brands only for this specific service
+        const res = await fetch(`/api/admin/services/${slug}/brands`);
         if (res.ok) {
           const data = await res.json();
           setBrands(data.brands || []);
+          console.log(`[${slug}] Fetched ${data.brands?.length || 0} brands for this service`);
         }
       } catch (error) {
         console.error('Failed to fetch brands:', error);
@@ -272,8 +275,8 @@ export default function ServiceFleetPage() {
       }
     };
 
-    fetchBrands();
     if (slug) {
+      fetchBrands();
       fetchSubServices();
     }
   }, [slug]);
@@ -1361,20 +1364,22 @@ export default function ServiceFleetPage() {
                     </div>
                   </div>
 
-                  {/* Registration Number */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Vehicle Registration Number
-                    </label>
-                    <input
-                      type="text"
-                      name="registrationNumber"
-                      value={formData.registrationNumber}
-                      onChange={handleFormChange}
-                      placeholder="e.g., DL 01 AB 1234"
-                      className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
+                  {/* Registration Number - Hide for equipment and packers services */}
+                  {!isEquipmentService && !isPackersService && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Vehicle Registration Number
+                      </label>
+                      <input
+                        type="text"
+                        name="registrationNumber"
+                        value={formData.registrationNumber}
+                        onChange={handleFormChange}
+                        placeholder="e.g., DL 01 AB 1234"
+                        className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                  )}
 
                   {/* Specifications */}
                   <div>

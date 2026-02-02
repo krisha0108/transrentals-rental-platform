@@ -172,6 +172,16 @@ export default function AddFleetVehiclePage() {
           setTripTypes(data.tripTypes || []);
           setBrands(data.brands || []);
           setVehicleCategories(data.vehicleCategories || []);
+          console.log("Vehicle Models loaded:", data.vehicleModels?.length, "models");
+          // Debug: Check if sideImage is present in models
+          const modelsWithImages = data.vehicleModels?.filter((m: any) => m.sideImage);
+          console.log("Models with sideImage:", modelsWithImages?.length);
+          if (modelsWithImages?.length > 0) {
+            console.log("Sample image URLs:", modelsWithImages.slice(0, 3).map((m: any) => ({
+              name: m.name,
+              sideImage: m.sideImage
+            })));
+          }
         } else {
           console.error("Failed to fetch data:", data.error || data.details);
         }
@@ -235,11 +245,12 @@ export default function AddFleetVehiclePage() {
   // Services that need vehicle image upload (5 specific services)
   const needsVehicleImages = isLuxuryService || isSelfDriveService || isBusService || isCarService || isBikeService;
 
-  // Bike, Self-drive, Bus, Luxury need model selection
-  // Truck, Equipment, Packers only need category selection (no models)
-  const needsModelSelection = isBikeService || isSelfDriveService || isBusService || isLuxuryService;
-  // Truck, Equipment, Packers only need category selection
-  const needsCategoryOnly = isTruckService || isEquipmentService || isPackersService;
+  // ALL services now need model selection (including Truck, Equipment, Packers)
+  // Admin adds fleet models with images for all services
+  const needsModelSelection = isBikeService || isSelfDriveService || isBusService || isLuxuryService ||
+                              isTruckService || isEquipmentService || isPackersService;
+  // No service needs category-only anymore (all use models now)
+  const needsCategoryOnly = false;
   // Bike, Self-drive, and Bus need vendor pricing; Truck, Equipment, Packers, Luxury don't (quote-based)
   const needsPricing = isBikeService || isSelfDriveService || isBusService;
   // ONLY Bike and Self-drive need city-wise pricing overrides
@@ -1185,20 +1196,35 @@ export default function AddFleetVehiclePage() {
                       >
                         <div className="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden">
                           {model.sideImage ? (
-                            <img src={model.sideImage} alt={model.name} className="w-full h-full object-contain" />
+                            <img
+                              src={model.sideImage}
+                              alt={model.name}
+                              className="w-full h-full object-contain"
+                              onError={(e) => {
+                                console.error('Image failed to load:', model.sideImage);
+                                e.currentTarget.style.display = 'none';
+                              }}
+                              onLoad={() => console.log('Image loaded:', model.sideImage)}
+                            />
                           ) : isBikeService ? (
                             <Bike className="w-8 h-8 text-gray-400" />
                           ) : isBusService ? (
                             <Bus className="w-8 h-8 text-gray-400" />
                           ) : isLuxuryService ? (
                             <Crown className="w-8 h-8 text-gray-400" />
+                          ) : isTruckService ? (
+                            <Truck className="w-8 h-8 text-gray-400" />
+                          ) : isEquipmentService ? (
+                            <Wrench className="w-8 h-8 text-gray-400" />
+                          ) : isPackersService ? (
+                            <Package className="w-8 h-8 text-gray-400" />
                           ) : (
                             <CarFront className="w-8 h-8 text-gray-400" />
                           )}
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="font-semibold text-gray-900 truncate">{model.name}</p>
-                          <p className="text-sm text-gray-500">{model.brand?.name}</p>
+                          {model.brand?.name && <p className="text-sm text-gray-500">{model.brand.name}</p>}
                           <div className="flex items-center gap-3 mt-1 text-xs text-gray-400">
                             {model.fuelType ? (
                               <span className="flex items-center gap-1">

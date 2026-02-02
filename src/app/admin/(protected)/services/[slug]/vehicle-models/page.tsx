@@ -30,6 +30,7 @@ interface Brand {
   name: string;
   slug: string;
   logo: string | null;
+  serviceId?: string;
 }
 
 interface SubService {
@@ -242,7 +243,13 @@ export default function ServiceVehicleModelsPage() {
       const res = await fetch(`/api/admin/services/${serviceSlug}/brands`);
       if (res.ok) {
         const data = await res.json();
-        setBrands(data.brands || data);
+        const fetchedBrands = data.brands || data;
+        // Filter brands by current service ID to ensure only this service's brands are shown
+        const filteredBrands = fetchedBrands.filter((brand: Brand) =>
+          !brand.serviceId || brand.serviceId === service.id
+        );
+        setBrands(filteredBrands);
+        console.log(`[${serviceSlug}] Fetched ${filteredBrands.length} brands for service:`, service.id);
       }
     } catch (error) {
       console.error('Failed to fetch brands:', error);
@@ -438,7 +445,7 @@ export default function ServiceVehicleModelsPage() {
       const payload: any = {
         name: formData.name,
         slug: formData.slug,
-        brandId: formData.brandId,
+        brandId: formData.brandId || null,
         serviceId: service.id,
         subServiceId: formData.subServiceId || null,
         vehicleCategoryId: formData.vehicleCategoryId || null,
@@ -748,14 +755,14 @@ export default function ServiceVehicleModelsPage() {
                 {/* Brand */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Brand *
+                    Brand {(serviceSlug === 'equipment-rental' || serviceSlug === 'packers-and-movers') ? '(Optional)' : '*'}
                   </label>
                   <select
                     name="brandId"
                     value={formData.brandId}
                     onChange={handleChange}
                     className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
-                    required
+                    required={serviceSlug !== 'equipment-rental' && serviceSlug !== 'packers-and-movers'}
                   >
                     <option value="">Select Brand</option>
                     {brands.map((brand) => (

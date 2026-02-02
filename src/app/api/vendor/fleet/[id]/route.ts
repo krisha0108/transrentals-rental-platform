@@ -3,6 +3,8 @@ import { getVendorAuth } from '@/lib/auth/vendor-mobile-auth';
 import { prisma } from '@/lib/db/prisma';
 import { transformPrismaResponse } from '@/lib/utils/api-transform';
 import crypto from 'crypto';
+import fs from 'fs';
+import path from 'path';
 
 import logger from '@/lib/security/logger';
 
@@ -10,6 +12,79 @@ import logger from '@/lib/security/logger';
 function generateId(): string {
   return 'c' + crypto.randomBytes(12).toString('base64url').toLowerCase().slice(0, 24);
 }
+
+// Helper to process base64 images
+async function processVehicleImages(images: any): Promise<string | null> {
+  if (!images) return null;
+
+  // Parse if string
+  let imageData = images;
+  if (typeof images === 'string') {
+    try {
+      imageData = JSON.parse(images);
+    } catch (e) {
+      // If it's not valid JSON, return as-is
+      return images;
+    }
+  }
+
+  // If it's an object with image types (front, back, etc.)
+  if (typeof imageData === 'object' && !Array.isArray(imageData)) {
+    const processedImages: Record<string, string> = {};
+    const uploadDir = path.join(process.cwd(), 'public', 'uploads', 'fleet');
+
+    // Ensure upload directory exists
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+
+    for (const [key, value] of Object.entries(imageData)) {
+      if (value && typeof value === 'string') {
+        // Check if it's a base64 image
+        if (value.startsWith('data:image')) {
+          try {
+            // Extract base64 data
+            const matches = value.match(/^data:image\/(\w+);base64,(.+)$/);
+            if (matches) {
+              const extension = matches[1];
+              const base64Data = matches[2];
+
+              // Generate unique filename
+              const filename = `${Date.now()}-${crypto.randomBytes(8).toString('hex')}.${extension}`;
+              const filepath = path.join(uploadDir, filename);
+
+              // Write file
+              fs.writeFileSync(filepath, Buffer.from(base64Data, 'base64'));
+
+              // Store relative path
+              processedImages[key] = `/uploads/fleet/${filename}`;
+
+              logger.info(`Saved ${key} image: ${filename}`);
+            } else {
+              processedImages[key] = value; // Keep as-is if format doesn't match
+            }
+          } catch (error) {
+            logger.error(`Failed to process ${key} image`, error);
+            processedImages[key] = value; // Keep original on error
+          }
+        } else {
+          // Not base64, keep as-is (could be existing URL)
+          processedImages[key] = value;
+        }
+      }
+    }
+
+    return JSON.stringify(processedImages);
+  }
+
+  // If it's an array, return as-is (old format)
+  if (Array.isArray(imageData)) {
+    return JSON.stringify(imageData);
+  }
+
+  return null;
+}
+
 export const dynamic = 'force-dynamic';
 
 // GET - Get single fleet vehicle
@@ -177,12 +252,15 @@ export async function PATCH(
       isActive,
     } = body;
 
+    // Process images if provided (convert base64 to files)
+    const processedImages = images !== undefined ? await processVehicleImages(images) : undefined;
+
     // Build update data - only include fields that are provided
     const updateData: any = {};
     if (registrationNumber !== undefined) updateData.registrationNumber = registrationNumber;
     if (yearOfManufacture !== undefined) updateData.yearOfManufacture = yearOfManufacture;
     if (color !== undefined) updateData.color = color;
-    if (images !== undefined) updateData.images = images;
+    if (processedImages !== undefined) updateData.images = processedImages;
     if (isAvailable !== undefined) updateData.isAvailable = isAvailable;
     if (isActive !== undefined) updateData.isActive = isActive;
 
@@ -302,6 +380,9 @@ export async function PUT(
       pricing,
     } = body;
 
+    // Process images (convert base64 to files)
+    const processedImages = images !== undefined ? await processVehicleImages(images) : existing.images;
+
     // Update fleet vehicle
     const updated = await prisma.vendor_fleets.update({
       where: { id },
@@ -309,7 +390,7 @@ export async function PUT(
         registrationNumber: registrationNumber ?? existing.registrationNumber,
         yearOfManufacture: yearOfManufacture ?? existing.yearOfManufacture,
         color: color ?? existing.color,
-        images: images ?? existing.images,
+        images: processedImages,
         isAvailable: isAvailable ?? existing.isAvailable,
         isActive: isActive ?? existing.isActive,
       },

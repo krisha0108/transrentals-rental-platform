@@ -130,23 +130,36 @@ export async function POST(
       displayOrder,
     } = body;
 
-    if (!name || !modelSlug || !brandId) {
+    if (!name || !modelSlug) {
       return NextResponse.json(
-        { error: 'Name, slug, and brand are required' },
+        { error: 'Name and slug are required' },
         { status: 400 }
       );
     }
 
-    // Verify brand belongs to this service
-    const brand = await prisma.brands.findFirst({
-      where: { id: brandId, serviceId: service.id },
-    });
+    // Brand is optional for equipment-rental and packers-and-movers
+    const brandOptionalServices = ['equipment-rental', 'packers-and-movers'];
+    const isBrandOptional = brandOptionalServices.includes(slug);
 
-    if (!brand) {
+    if (!isBrandOptional && !brandId) {
       return NextResponse.json(
-        { error: 'Brand does not belong to this service' },
+        { error: 'Brand is required for this service' },
         { status: 400 }
       );
+    }
+
+    // Verify brand belongs to this service (if provided)
+    if (brandId) {
+      const brand = await prisma.brands.findFirst({
+        where: { id: brandId, serviceId: service.id },
+      });
+
+      if (!brand) {
+        return NextResponse.json(
+          { error: 'Brand does not belong to this service' },
+          { status: 400 }
+        );
+      }
     }
 
     // Check if slug already exists within this service

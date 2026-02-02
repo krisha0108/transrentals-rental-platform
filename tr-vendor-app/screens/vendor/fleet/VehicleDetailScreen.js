@@ -61,9 +61,16 @@ export default function VehicleDetailScreen({ route, navigation }) {
         const vehicleData = response.data?.vehicle || response.data;
 
         if (vehicleData) {
-          // Ensure images is always an array
-          if (!vehicleData.images || !Array.isArray(vehicleData.images)) {
-            vehicleData.images = [];
+          // Parse images properly - handle string, array, and object formats
+          if (vehicleData.images) {
+            if (typeof vehicleData.images === 'string') {
+              try {
+                vehicleData.images = JSON.parse(vehicleData.images);
+              } catch (e) {
+                console.log('Failed to parse images, keeping as is:', e);
+              }
+            }
+            // Keep images as is - can be array, object, or string
           }
 
           // Map backend field names to display-friendly names
@@ -71,14 +78,14 @@ export default function VehicleDetailScreen({ route, navigation }) {
           // Category can come from two sources:
           // 1. Direct category (car-rental, truck, equipment) - chauffeur_vehicle_categories
           // 2. Through vehicle model (bike, self-drive, bus) - vehicle_models.chauffeur_vehicle_categories
-          vehicleData.brandName = vehicleData.brands?.name || vehicleData.vehicle_models?.brands?.name || 'N/A';
-          vehicleData.modelName = vehicleData.vehicle_models?.name || vehicleData.model || 'N/A';
-          vehicleData.serviceName = vehicleData.services?.name || 'N/A';
-          vehicleData.categoryName = vehicleData.chauffeur_vehicle_categories?.name || vehicleData.vehicle_models?.chauffeur_vehicle_categories?.name || 'N/A';
-          vehicleData.seatingCapacity = vehicleData.chauffeur_vehicle_categories?.seatingCapacity || vehicleData.vehicle_models?.chauffeur_vehicle_categories?.seatingCapacity || vehicleData.seatingCapacity || vehicleData.vehicle_models?.seatingCapacity || '--';
-          vehicleData.fuelType = vehicleData.chauffeur_vehicle_categories?.fuelType || vehicleData.vehicle_models?.chauffeur_vehicle_categories?.fuelType || vehicleData.fuelType || vehicleData.vehicle_models?.fuelType || '--';
-          vehicleData.transmission = vehicleData.chauffeur_vehicle_categories?.acType || vehicleData.vehicle_models?.chauffeur_vehicle_categories?.acType || vehicleData.transmission || vehicleData.vehicle_models?.transmission || '--';
-          vehicleData.year = vehicleData.yearOfManufacture || vehicleData.year;
+          vehicleData.brandName = vehicleData.brands?.name || vehicleData.vehicle_models?.brands?.name || null;
+          vehicleData.modelName = vehicleData.vehicle_models?.name || vehicleData.model || null;
+          vehicleData.serviceName = vehicleData.services?.name || null;
+          vehicleData.categoryName = vehicleData.chauffeur_vehicle_categories?.name || vehicleData.vehicle_models?.chauffeur_vehicle_categories?.name || null;
+          vehicleData.seatingCapacity = vehicleData.chauffeur_vehicle_categories?.seatingCapacity || vehicleData.vehicle_models?.chauffeur_vehicle_categories?.seatingCapacity || vehicleData.seatingCapacity || vehicleData.vehicle_models?.seatingCapacity || null;
+          vehicleData.fuelType = vehicleData.chauffeur_vehicle_categories?.fuelType || vehicleData.vehicle_models?.chauffeur_vehicle_categories?.fuelType || vehicleData.fuelType || vehicleData.vehicle_models?.fuelType || null;
+          vehicleData.transmission = vehicleData.chauffeur_vehicle_categories?.acType || vehicleData.vehicle_models?.chauffeur_vehicle_categories?.acType || vehicleData.transmission || vehicleData.vehicle_models?.transmission || null;
+          vehicleData.year = vehicleData.yearOfManufacture || vehicleData.year || null;
         }
 
         setVehicle(vehicleData);
@@ -143,6 +150,27 @@ export default function VehicleDetailScreen({ route, navigation }) {
     }).format(amount);
   };
 
+  const hasValidValue = (value) => {
+    return value != null && value !== '' && value !== 'N/A' && value !== '--';
+  };
+
+  // Helper function to convert relative image paths to full URLs
+  const getFullImageUrl = (imagePath) => {
+    if (!imagePath) return null;
+
+    // If already a full URL or base64, return as is
+    if (imagePath.startsWith('http://') ||
+        imagePath.startsWith('https://') ||
+        imagePath.startsWith('data:')) {
+      return imagePath;
+    }
+
+    // If relative path, prepend base URL
+    // Use localhost in dev mode, production URL in prod
+    const baseUrl = __DEV__ ? 'http://192.168.29.31:3000' : 'https://transrentals.in';
+    return `${baseUrl}${imagePath.startsWith('/') ? '' : '/'}${imagePath}`;
+  };
+
   const getStatusColor = (status) => {
     switch (status?.toLowerCase()) {
       case 'active':
@@ -194,7 +222,102 @@ export default function VehicleDetailScreen({ route, navigation }) {
   }
 
   const statusColors = getStatusColor(vehicle.status);
-  const images = Array.isArray(vehicle.images) ? vehicle.images : [];
+
+  // Get all images for slider (featured admin image + vendor images)
+  const getAllImages = () => {
+    const imageList = [];
+
+    console.log('[VehicleDetail] Getting images for vehicle:', vehicle.id);
+    console.log('[VehicleDetail] Vehicle images:', vehicle.images);
+    console.log('[VehicleDetail] Model sideImage:', vehicle.vehicle_models?.sideImage);
+    console.log('[VehicleDetail] Category image:', vehicle.chauffeur_vehicle_categories?.image);
+
+    // 1. Add featured image first (admin's image from model/category ONLY)
+    // Featured image = Model's sideImage OR Category's image (admin-added)
+    // Do NOT use brand logos as featured image
+    let featuredImageUrl = null;
+    if (vehicle.vehicle_models?.sideImage) {
+      featuredImageUrl = vehicle.vehicle_models.sideImage;
+      console.log('[VehicleDetail] Using model sideImage as featured');
+    } else if (vehicle.chauffeur_vehicle_categories?.image) {
+      featuredImageUrl = vehicle.chauffeur_vehicle_categories.image;
+      console.log('[VehicleDetail] Using category image as featured');
+    }
+
+    if (featuredImageUrl) {
+      const fullUrl = getFullImageUrl(featuredImageUrl);
+      imageList.push({
+        url: fullUrl,
+        label: 'Featured Image',
+        isFeatured: true,
+      });
+      console.log('[VehicleDetail] Added featured image:', fullUrl);
+    }
+
+    // 2. Add vendor-uploaded images
+    if (vehicle.images) {
+      console.log('[VehicleDetail] Processing vendor images, type:', typeof vehicle.images);
+      // Handle both array format and object format
+      if (Array.isArray(vehicle.images)) {
+        console.log('[VehicleDetail] Images is array, length:', vehicle.images.length);
+        vehicle.images.forEach((imgUrl, index) => {
+          if (imgUrl) {
+            const fullUrl = getFullImageUrl(imgUrl);
+            imageList.push({
+              url: fullUrl,
+              label: `Image ${index + 1}`,
+              isFeatured: false,
+            });
+            console.log(`[VehicleDetail] Added vendor image ${index + 1}:`, fullUrl);
+          }
+        });
+      } else if (typeof vehicle.images === 'object' && vehicle.images !== null) {
+        console.log('[VehicleDetail] Images is object:', Object.keys(vehicle.images));
+        // Object format: { front, back, leftSide, rightSide, inside }
+        if (vehicle.images.front) {
+          const fullUrl = getFullImageUrl(vehicle.images.front);
+          imageList.push({ url: fullUrl, label: 'Front View', isFeatured: false });
+          console.log('[VehicleDetail] Added front view:', fullUrl);
+        }
+        if (vehicle.images.back) {
+          const fullUrl = getFullImageUrl(vehicle.images.back);
+          imageList.push({ url: fullUrl, label: 'Back View', isFeatured: false });
+          console.log('[VehicleDetail] Added back view:', fullUrl);
+        }
+        if (vehicle.images.leftSide) {
+          const fullUrl = getFullImageUrl(vehicle.images.leftSide);
+          imageList.push({ url: fullUrl, label: 'Left Side', isFeatured: false });
+          console.log('[VehicleDetail] Added left side:', fullUrl);
+        }
+        if (vehicle.images.rightSide) {
+          const fullUrl = getFullImageUrl(vehicle.images.rightSide);
+          imageList.push({ url: fullUrl, label: 'Right Side', isFeatured: false });
+          console.log('[VehicleDetail] Added right side:', fullUrl);
+        }
+        if (vehicle.images.inside) {
+          const fullUrl = getFullImageUrl(vehicle.images.inside);
+          imageList.push({ url: fullUrl, label: 'Interior', isFeatured: false });
+          console.log('[VehicleDetail] Added interior:', fullUrl);
+        }
+      } else if (typeof vehicle.images === 'string') {
+        console.log('[VehicleDetail] Images is string (single URL):', vehicle.images);
+        const fullUrl = getFullImageUrl(vehicle.images);
+        imageList.push({
+          url: fullUrl,
+          label: 'Vehicle Image',
+          isFeatured: false,
+        });
+      }
+    }
+
+    console.log('[VehicleDetail] Total images found:', imageList.length);
+    return imageList;
+  };
+
+  const allImages = getAllImages();
+  const images = allImages.map(img => img.url); // For backward compatibility with existing code
+  const hasImages = allImages.length > 0;
+
   const pricing = vehicle.fleetPricing?.[0] || {};
   const locations = vehicle.fleetLocations?.map(fl => fl.location).filter(Boolean) || [];
 
@@ -221,7 +344,7 @@ export default function VehicleDetailScreen({ route, navigation }) {
       >
         {/* Image Gallery */}
         <View style={styles.imageContainer}>
-          {images.length > 0 ? (
+          {hasImages ? (
             <>
               <ScrollView
                 horizontal
@@ -232,18 +355,32 @@ export default function VehicleDetailScreen({ route, navigation }) {
                   setActiveImageIndex(index);
                 }}
               >
-                {images.map((img, index) => (
-                  <Image
-                    key={index}
-                    source={{ uri: img }}
-                    style={styles.vehicleImage}
-                    resizeMode="cover"
-                  />
+                {allImages.map((img, index) => (
+                  <View key={index} style={styles.imageSlide}>
+                    <Image
+                      source={{ uri: img.url }}
+                      style={styles.vehicleImage}
+                      resizeMode="cover"
+                    />
+                    {/* Featured Badge */}
+                    {img.isFeatured && (
+                      <View style={styles.featuredBadge}>
+                        <Icon name="star" size={12} color="#FFA500" />
+                        <Text style={styles.featuredText}>Featured</Text>
+                      </View>
+                    )}
+                    {/* Image Label */}
+                    <View style={styles.imageLabel}>
+                      <Text style={styles.imageLabelText}>
+                        {img.label} ({index + 1}/{allImages.length})
+                      </Text>
+                    </View>
+                  </View>
                 ))}
               </ScrollView>
-              {images.length > 1 && (
+              {allImages.length > 1 && (
                 <View style={styles.imageDots}>
-                  {images.map((_, index) => (
+                  {allImages.map((_, index) => (
                     <View
                       key={index}
                       style={[
@@ -267,7 +404,7 @@ export default function VehicleDetailScreen({ route, navigation }) {
         <View style={styles.infoHeader}>
           <View style={styles.infoHeaderLeft}>
             <Text style={styles.vehicleName}>
-              {vehicle.brandName} {vehicle.modelName}
+              {[vehicle.brandName, vehicle.modelName, vehicle.categoryName].filter(hasValidValue).join(' ') || 'Vehicle'}
             </Text>
             <Text style={styles.regNumber}>
               {vehicle.registrationNumber || 'No Registration'}
@@ -305,48 +442,60 @@ export default function VehicleDetailScreen({ route, navigation }) {
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Specifications</Text>
           <View style={styles.specsGrid}>
-            <View style={styles.specItem}>
-              <View style={[styles.specIcon, { backgroundColor: C.blueLight }]}>
-                <MaterialCommunityIcons name="car" size={20} color={C.blue} />
+            {hasValidValue(vehicle.brandName) && (
+              <View style={styles.specItem}>
+                <View style={[styles.specIcon, { backgroundColor: C.blueLight }]}>
+                  <MaterialCommunityIcons name="car" size={20} color={C.blue} />
+                </View>
+                <Text style={styles.specLabel}>Brand</Text>
+                <Text style={styles.specValue}>{vehicle.brandName}</Text>
               </View>
-              <Text style={styles.specLabel}>Brand</Text>
-              <Text style={styles.specValue}>{vehicle.brandName}</Text>
-            </View>
-            <View style={styles.specItem}>
-              <View style={[styles.specIcon, { backgroundColor: '#F3E8FF' }]}>
-                <MaterialCommunityIcons name="car-side" size={20} color={C.purple} />
+            )}
+            {hasValidValue(vehicle.modelName) && (
+              <View style={styles.specItem}>
+                <View style={[styles.specIcon, { backgroundColor: '#F3E8FF' }]}>
+                  <MaterialCommunityIcons name="car-side" size={20} color={C.purple} />
+                </View>
+                <Text style={styles.specLabel}>Model</Text>
+                <Text style={styles.specValue}>{vehicle.modelName}</Text>
               </View>
-              <Text style={styles.specLabel}>Model</Text>
-              <Text style={styles.specValue}>{vehicle.modelName}</Text>
-            </View>
-            <View style={styles.specItem}>
-              <View style={[styles.specIcon, { backgroundColor: C.brandLight }]}>
-                <MaterialCommunityIcons name="seat" size={20} color={C.brand} />
+            )}
+            {hasValidValue(vehicle.seatingCapacity) && (
+              <View style={styles.specItem}>
+                <View style={[styles.specIcon, { backgroundColor: C.brandLight }]}>
+                  <MaterialCommunityIcons name="seat" size={20} color={C.brand} />
+                </View>
+                <Text style={styles.specLabel}>Seats</Text>
+                <Text style={styles.specValue}>{vehicle.seatingCapacity}</Text>
               </View>
-              <Text style={styles.specLabel}>Seats</Text>
-              <Text style={styles.specValue}>{vehicle.seatingCapacity}</Text>
-            </View>
-            <View style={styles.specItem}>
-              <View style={[styles.specIcon, { backgroundColor: '#FEF3C7' }]}>
-                <MaterialCommunityIcons name="gas-station" size={20} color={C.orange} />
+            )}
+            {hasValidValue(vehicle.fuelType) && (
+              <View style={styles.specItem}>
+                <View style={[styles.specIcon, { backgroundColor: '#FEF3C7' }]}>
+                  <MaterialCommunityIcons name="gas-station" size={20} color={C.orange} />
+                </View>
+                <Text style={styles.specLabel}>Fuel</Text>
+                <Text style={styles.specValue}>{vehicle.fuelType}</Text>
               </View>
-              <Text style={styles.specLabel}>Fuel</Text>
-              <Text style={styles.specValue}>{vehicle.fuelType}</Text>
-            </View>
-            <View style={styles.specItem}>
-              <View style={[styles.specIcon, { backgroundColor: '#FEE2E2' }]}>
-                <MaterialCommunityIcons name="car-shift-pattern" size={20} color={C.red} />
+            )}
+            {hasValidValue(vehicle.transmission) && (
+              <View style={styles.specItem}>
+                <View style={[styles.specIcon, { backgroundColor: '#FEE2E2' }]}>
+                  <MaterialCommunityIcons name="car-shift-pattern" size={20} color={C.red} />
+                </View>
+                <Text style={styles.specLabel}>Transmission</Text>
+                <Text style={styles.specValue}>{vehicle.transmission}</Text>
               </View>
-              <Text style={styles.specLabel}>Transmission</Text>
-              <Text style={styles.specValue}>{vehicle.transmission}</Text>
-            </View>
-            <View style={styles.specItem}>
-              <View style={[styles.specIcon, { backgroundColor: '#E0E7FF' }]}>
-                <MaterialCommunityIcons name="calendar" size={20} color="#4F46E5" />
+            )}
+            {hasValidValue(vehicle.year) && (
+              <View style={styles.specItem}>
+                <View style={[styles.specIcon, { backgroundColor: '#E0E7FF' }]}>
+                  <MaterialCommunityIcons name="calendar" size={20} color="#4F46E5" />
+                </View>
+                <Text style={styles.specLabel}>Year</Text>
+                <Text style={styles.specValue}>{vehicle.year}</Text>
               </View>
-              <Text style={styles.specLabel}>Year</Text>
-              <Text style={styles.specValue}>{vehicle.year || '--'}</Text>
-            </View>
+            )}
           </View>
         </View>
 
@@ -559,10 +708,48 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     overflow: 'hidden',
   },
+  imageSlide: {
+    width: width - 32,
+    height: 200,
+    position: 'relative',
+  },
   vehicleImage: {
     width: width - 32,
     height: 200,
     borderRadius: 14,
+  },
+  featuredBadge: {
+    position: 'absolute',
+    top: 12,
+    left: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 20,
+    gap: 4,
+  },
+  featuredText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#FFF',
+  },
+  imageLabel: {
+    position: 'absolute',
+    bottom: 12,
+    left: 12,
+    right: 12,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  imageLabelText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#FFF',
+    textAlign: 'center',
   },
   imagePlaceholder: {
     width: '100%',

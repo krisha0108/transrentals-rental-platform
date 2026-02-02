@@ -79,9 +79,9 @@ export async function GET(request: NextRequest) {
     const categoryFilter = hasCategoryFilter
       ? {
           OR: [
-            { chauffeur_vehicle_categories: null },
-            { chauffeur_vehicle_categories: { in: fleetCategorySlugs } },
-            { chauffeur_vehicle_categories: { in: fleetCategoryIds } },
+            { vehicleCategory: null },
+            { vehicleCategory: { in: fleetCategorySlugs } },
+            { vehicleCategory: { in: fleetCategoryIds } },
           ],
         }
       : {}; // No category filter if vendor has no fleet - show all requests

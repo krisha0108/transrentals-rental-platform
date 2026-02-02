@@ -99,9 +99,11 @@ export default function BikeSendQuoteScreen({ navigation, route }) {
       // Filter bike fleet
       const bikeFleet = (fleetsData.fleet || fleetsData.fleets || fleetsData.vehicles || []).filter(
         (v) =>
-          v.service?.slug === 'bike-on-rent' ||
-          v.service?.name?.toLowerCase().includes('bike')
+          v.services?.slug === 'bike-on-rent' ||
+          v.services?.name?.toLowerCase().includes('bike')
       );
+      console.log('[Bike Send Quote] Total fleet:', fleetsData.fleet?.length || 0);
+      console.log('[Bike Send Quote] Filtered bike fleet:', bikeFleet.length);
       setFleetVehicles(bikeFleet);
 
       // Handle templates data - ensure it's an array
@@ -136,14 +138,16 @@ export default function BikeSendQuoteScreen({ navigation, route }) {
     if (selectedVehicle) {
       let vName = '';
       let vBrand = '';
-      if (selectedVehicle.vehicleModel) {
-        vName = selectedVehicle.vehicleModel.name;
-        vBrand = selectedVehicle.vehicleModel.brand?.name || '';
-      } else if (selectedVehicle.vehicleCategory) {
-        vName = selectedVehicle.vehicleCategory.name;
+      // API returns vehicle_models (with underscore), not vehicleModel
+      if (selectedVehicle.vehicle_models) {
+        vName = selectedVehicle.vehicle_models.name;
+        vBrand = selectedVehicle.vehicle_models.brands?.name || '';
+      } else if (selectedVehicle.chauffeur_vehicle_categories) {
+        vName = selectedVehicle.chauffeur_vehicle_categories.name;
       }
-      if (selectedVehicle.brand) {
-        vBrand = selectedVehicle.brand.name;
+      // brands field (plural) for direct brand relation
+      if (selectedVehicle.brands) {
+        vBrand = selectedVehicle.brands.name;
       }
 
       setVehicleName(vName);

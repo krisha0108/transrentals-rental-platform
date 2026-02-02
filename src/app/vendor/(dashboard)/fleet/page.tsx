@@ -243,12 +243,10 @@ export default function VendorFleetPage() {
 
   const getVehicleImage = (vehicle: FleetVehicle) => {
     const { vehicleModel, vehicleCategory, brandData } = normalizeVehicle(vehicle);
-    if (vehicle.images && vehicle.images.length > 0) return vehicle.images[0];
-    // For bike-rental
+    // ONLY show featured image (admin's model/category image) in list view
+    // Do NOT show vendor uploaded images in list
     if (vehicleModel?.sideImage) return vehicleModel.sideImage;
-    // For car-rental - use category image or brand logo
     if (vehicleCategory?.image) return vehicleCategory.image;
-    if (brandData?.logo) return brandData.logo;
     return null;
   };
 
@@ -403,13 +401,15 @@ export default function VendorFleetPage() {
             >
               {/* Image */}
               <div className="relative h-48 bg-gray-100">
-                {getVehicleImage(vehicle) ? (
-                  <Image
+                {getVehicleImage(vehicle) && !getVehicleImage(vehicle)?.startsWith('file://') ? (
+                  <img
                     src={getVehicleImage(vehicle)!}
                     alt={getVehicleName(vehicle)}
-                    fill
-                    className="object-cover"
-                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      // Hide broken images
+                      e.currentTarget.style.display = 'none';
+                    }}
                   />
                 ) : (
                   <div className="flex items-center justify-center h-full">
