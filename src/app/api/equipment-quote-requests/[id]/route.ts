@@ -31,12 +31,6 @@ export async function GET(
           where: { status: { in: ['SENT', 'VIEWED', 'ACCEPTED'] } },
           include: {
             vendors: { select: { id: true, businessName: true, rating: true, phone: true } },
-            vendor_fleets: {
-              select: {
-                id: true,
-                images: true,
-              },
-            },
           },
           orderBy: { totalAmount: 'asc' },
         },
@@ -52,12 +46,6 @@ export async function GET(
             where: { status: { in: ['SENT', 'VIEWED', 'ACCEPTED'] } },
             include: {
               vendors: { select: { id: true, businessName: true, rating: true, phone: true } },
-              vendor_fleets: {
-                select: {
-                  id: true,
-                  images: true,
-                },
-              },
             },
             orderBy: { totalAmount: 'asc' },
           },
@@ -75,35 +63,7 @@ export async function GET(
       data: { status: 'VIEWED', viewedAt: new Date() },
     });
 
-    // Transform quotes to handle vehicle images
-    const transformedQuoteRequest = {
-      ...quoteRequest,
-      equipment_quotes: quoteRequest.equipment_quotes.map((q) => {
-        // Get vehicle images from fleet if available
-        let vehicleImages = q.vehicleImages;
-        if (q.vendor_fleets?.images) {
-          let fleetImages = typeof q.vendor_fleets.images === 'string'
-            ? (q.vendor_fleets.images === 'null' ? null : JSON.parse(q.vendor_fleets.images))
-            : q.vendor_fleets.images;
-
-          // Convert object to array
-          if (fleetImages && typeof fleetImages === 'object' && !Array.isArray(fleetImages)) {
-            vehicleImages = Object.values(fleetImages).filter(img => img);
-          } else if (Array.isArray(fleetImages)) {
-            vehicleImages = fleetImages;
-          } else {
-            vehicleImages = fleetImages;
-          }
-        }
-
-        return {
-          ...q,
-          vehicleImages: vehicleImages,
-        };
-      }),
-    };
-
-    return NextResponse.json({ success: true, quoteRequest: transformedQuoteRequest });
+    return NextResponse.json({ success: true, quoteRequest });
   } catch (error: any) {
     logger.error('Failed to fetch equipment quote request', error);
     return NextResponse.json({ error: 'Failed to fetch request', details: error?.message }, { status: 500 });

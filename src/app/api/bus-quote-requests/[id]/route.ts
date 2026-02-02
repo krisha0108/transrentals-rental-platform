@@ -48,12 +48,6 @@ export async function GET(
                   phone: true,
                 },
               },
-              vendor_fleets: {
-                select: {
-                  id: true,
-                  images: true,
-                },
-              },
             },
             orderBy: { totalAmount: 'asc' },
           },
@@ -168,32 +162,14 @@ export async function GET(
         expiresAt: quoteRequest.expiresAt,
         location: quoteRequest.locations?.name,
         createdAt: quoteRequest.createdAt,
-        quotes: quoteRequest.bus_quotes_bus_quotes_requestIdTobus_quote_requests.map((q) => {
-          // Get vehicle images from fleet if available, otherwise use quote's images
-          let vehicleImages = q.vehicleImages;
-          if (q.vendor_fleets?.images) {
-            let fleetImages = typeof q.vendor_fleets.images === 'string'
-              ? (q.vendor_fleets.images === 'null' ? null : JSON.parse(q.vendor_fleets.images))
-              : q.vendor_fleets.images;
-
-            // Convert object {front: "...", back: "..."} to array ["...", "..."]
-            if (fleetImages && typeof fleetImages === 'object' && !Array.isArray(fleetImages)) {
-              vehicleImages = Object.values(fleetImages).filter(img => img);
-            } else if (Array.isArray(fleetImages)) {
-              vehicleImages = fleetImages;
-            } else {
-              vehicleImages = fleetImages;
-            }
-          }
-
-          return {
-            id: q.id,
-            quoteNumber: q.quoteNumber,
-            vehicleName: q.vehicleName,
-            vehicleCategory: q.vehicleCategory,
-            seats: q.seats,
-            vehicleFeatures: q.vehicleFeatures,
-            vehicleImages: vehicleImages,
+        quotes: quoteRequest.bus_quotes_bus_quotes_requestIdTobus_quote_requests.map((q) => ({
+          id: q.id,
+          quoteNumber: q.quoteNumber,
+          vehicleName: q.vehicleName,
+          vehicleCategory: q.vehicleCategory,
+          seats: q.seats,
+          vehicleFeatures: q.vehicleFeatures,
+          vehicleImages: q.vehicleImages,
           baseAmount: q.baseAmount,
           driverAllowance: q.driverAllowance,
           nightHaltCharges: q.nightHaltCharges,
@@ -212,8 +188,7 @@ export async function GET(
             rating: q.vendors.rating,
             reviews: q.vendors.totalRatings,
           },
-          };
-        }),
+        })),
       },
     });
   } catch (error: any) {

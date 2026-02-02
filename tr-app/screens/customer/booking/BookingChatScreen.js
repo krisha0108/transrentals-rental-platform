@@ -10,6 +10,7 @@ import {
   Platform,
   ActivityIndicator,
   Alert,
+  Keyboard,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -31,6 +32,7 @@ export default function BookingChatScreen() {
   const [sending, setSending] = useState(false);
   const [messageText, setMessageText] = useState('');
   const [customerName, setCustomerName] = useState('');
+  const [showScrollButton, setShowScrollButton] = useState(false);
   const flatListRef = useRef(null);
 
   useEffect(() => {
@@ -66,6 +68,17 @@ export default function BookingChatScreen() {
     }
   };
 
+  const handleScroll = (event) => {
+    const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
+    const isAtBottom = contentOffset.y + layoutMeasurement.height >= contentSize.height - 50;
+    setShowScrollButton(!isAtBottom);
+  };
+
+  const scrollToBottom = () => {
+    flatListRef.current?.scrollToEnd({ animated: true });
+    setShowScrollButton(false);
+  };
+
   const sendMessage = async () => {
     if (!messageText.trim()) return;
 
@@ -80,7 +93,10 @@ export default function BookingChatScreen() {
       if (response.success) {
         setMessages([...messages, response]);
         setMessageText('');
-        setTimeout(() => flatListRef.current?.scrollToEnd(), 100);
+        setTimeout(() => {
+          flatListRef.current?.scrollToEnd();
+          setShowScrollButton(false);
+        }, 100);
       }
     } catch (error) {
       Alert.alert('Error', 'Failed to send message. Please try again.');
@@ -127,33 +143,53 @@ export default function BookingChatScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Messages */}
-      {loading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={GREEN} />
-        </View>
-      ) : (
-        <FlatList
-          ref={flatListRef}
-          data={messages}
-          keyExtractor={(item, index) => item.id || index.toString()}
-          renderItem={renderMessage}
-          contentContainerStyle={styles.messagesList}
-          onContentSizeChange={() => flatListRef.current?.scrollToEnd()}
-        />
-      )}
-
-      {/* Input */}
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 80 : 0}
       >
+        {/* Messages */}
+        {loading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={GREEN} />
+          </View>
+        ) : (
+          <FlatList
+            ref={flatListRef}
+            data={messages}
+            keyExtractor={(item, index) => item.id || index.toString()}
+            renderItem={renderMessage}
+            contentContainerStyle={styles.messagesList}
+            onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
+            onLayout={() => flatListRef.current?.scrollToEnd({ animated: false })}
+            onScroll={handleScroll}
+            scrollEventThrottle={16}
+          />
+        )}
+
+        {/* Floating Scroll Down Button */}
+        {showScrollButton && (
+          <TouchableOpacity
+            style={styles.scrollDownButton}
+            onPress={scrollToBottom}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="arrow-down" size={24} color="#fff" />
+          </TouchableOpacity>
+        )}
+
+        {/* Input */}
         <View style={styles.inputContainer}>
           <TextInput
             style={styles.input}
             placeholder="Type a message..."
             value={messageText}
             onChangeText={setMessageText}
+            onFocus={() => {
+              setTimeout(() => {
+                flatListRef.current?.scrollToEnd({ animated: true });
+              }, 100);
+            }}
             multiline
             maxLength={500}
           />
@@ -242,4 +278,20 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   sendBtnDisabled: { opacity: 0.5 },
+  scrollDownButton: {
+    position: 'absolute',
+    bottom: 80,
+    right: 20,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: GREEN,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+  },
 });
