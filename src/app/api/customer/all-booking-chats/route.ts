@@ -194,15 +194,15 @@ export async function GET(request: NextRequest) {
             bookingId: booking.id,
           },
           include: {
-            messages: {
+            chat_messages: {
               orderBy: { createdAt: 'desc' },
               take: 1,
             },
           },
         });
 
-        if (conversation && conversation.messages.length > 0) {
-          const lastMessage = conversation.messages[0];
+        if (conversation && conversation.chat_messages.length > 0) {
+          const lastMessage = conversation.chat_messages[0];
           return {
             ...booking,
             hasChat: true,
@@ -241,10 +241,11 @@ export async function GET(request: NextRequest) {
       bookings: bookingsWithChats,
       total: bookingsWithChats.length,
     });
-  } catch (error) {
-    logger.error('Get all booking chats error', error);
+  } catch (error: any) {
+    console.error('Get all booking chats error:', error);
+    logger.error('Get all booking chats error', { message: error?.message, stack: error?.stack?.toString() });
     return NextResponse.json(
-      { success: false, message: 'Failed to fetch bookings' },
+      { success: false, message: 'Failed to fetch bookings', error: error?.message },
       { status: 500 }
     );
   }

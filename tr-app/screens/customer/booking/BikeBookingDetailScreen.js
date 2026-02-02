@@ -15,7 +15,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useRoute, useNavigation, useFocusEffect } from '@react-navigation/native';
-import api, { BASE_URL } from '../../api';
+import api, { BASE_URL, IMAGE_BASE_URL } from '../../api';
 
 const GREEN = '#09B368';
 const BG = '#F5F5F7';
@@ -38,6 +38,13 @@ const BikeBookingDetailScreen = () => {
   useFocusEffect(
     useCallback(() => {
       fetchBookingDetails();
+
+      // Auto-refresh every 30 seconds
+      const interval = setInterval(() => {
+        fetchBookingDetails();
+      }, 30000);
+
+      return () => clearInterval(interval);
     }, [bookingId])
   );
 
@@ -610,6 +617,71 @@ const BikeBookingDetailScreen = () => {
                 {/* Overview Tab */}
                 {detailsTab === 'overview' && (
                   <View>
+                    {/* Vehicle Images */}
+                    {(() => {
+                      let vehicleImages = [];
+                      if (booking.quote.vehicleImages) {
+                        try {
+                          // Try to parse as JSON array
+                          vehicleImages = typeof booking.quote.vehicleImages === 'string'
+                            ? JSON.parse(booking.quote.vehicleImages)
+                            : booking.quote.vehicleImages;
+
+                          // Ensure it's an array
+                          if (!Array.isArray(vehicleImages)) {
+                            vehicleImages = [];
+                          }
+                        } catch (e) {
+                          // If JSON parse fails, try as comma-separated string
+                          if (typeof booking.quote.vehicleImages === 'string') {
+                            vehicleImages = booking.quote.vehicleImages.split(',').map(s => s.trim()).filter(Boolean);
+                          }
+                        }
+                      }
+
+                      return vehicleImages.length > 0 && (
+                        <View style={styles.quoteSection}>
+                          <View style={styles.quoteSectionHeader}>
+                            <Ionicons name="images" size={22} color={GREEN} />
+                            <Text style={styles.quoteSectionTitle}>Vehicle Images</Text>
+                          </View>
+                          <ScrollView
+                            horizontal
+                            showsHorizontalScrollIndicator={false}
+                            style={styles.quoteImageScroll}
+                          >
+                            {vehicleImages.map((img, idx) => {
+                              // Construct image URL - same logic as ViewQuoteScreen
+                              let imageUrl = img;
+                              if (!img.startsWith('http') && !img.startsWith('data:')) {
+                                const cleanPath = img.replace(/\\/g, '/').replace(/^\/+/, '');
+
+                                // If path already starts with 'uploads/', just prepend BASE_URL
+                                if (cleanPath.startsWith('uploads/')) {
+                                  imageUrl = `${BASE_URL}/${cleanPath}`;
+                                } else if (cleanPath.startsWith('storage/')) {
+                                  imageUrl = `${BASE_URL}/${cleanPath}`;
+                                } else {
+                                  // Otherwise, use IMAGE_BASE_URL (which already has /uploads)
+                                  imageUrl = `${IMAGE_BASE_URL}/${cleanPath}`;
+                                }
+                              }
+
+                              return (
+                                <View key={idx} style={styles.quoteImageContainer}>
+                                  <Image
+                                    source={{ uri: imageUrl }}
+                                    style={styles.quoteImage}
+                                    resizeMode="cover"
+                                  />
+                                </View>
+                              );
+                            })}
+                          </ScrollView>
+                        </View>
+                      );
+                    })()}
+
                     {/* Vehicle Features */}
                     {(() => {
                       const features = parseListData(booking.quote.vehicleFeatures);
@@ -1615,6 +1687,24 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#999',
     marginTop: 12,
+  },
+
+  // Vehicle Images
+  quoteImageScroll: {
+    marginTop: 12,
+  },
+  quoteImageContainer: {
+    marginRight: 12,
+    borderRadius: 12,
+    overflow: 'hidden',
+    backgroundColor: '#f5f5f5',
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+  },
+  quoteImage: {
+    width: 280,
+    height: 200,
+    borderRadius: 12,
   },
 });
 

@@ -9,11 +9,13 @@ import {
   ActivityIndicator,
   Modal,
   Alert,
+  Image,
+  Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useRoute, useNavigation, useFocusEffect, CommonActions } from '@react-navigation/native';
-import api from '../../api';
+import api, { BASE_URL, IMAGE_BASE_URL } from '../../api';
 
 const GREEN = '#09B368';
 const BG = '#F5F5F7';
@@ -39,6 +41,11 @@ export default function BikeQuoteRequestDetailScreen() {
   const [quoteDetailsVisible, setQuoteDetailsVisible] = useState(false);
   const [viewingQuote, setViewingQuote] = useState(null);
   const [detailsTab, setDetailsTab] = useState('overview'); // overview, inclusions, exclusions, terms
+
+  // Image Viewer Modal State
+  const [imageViewerVisible, setImageViewerVisible] = useState(false);
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [viewingImages, setViewingImages] = useState([]);
 
   // Refresh data when screen comes into focus
   useFocusEffect(
@@ -411,6 +418,37 @@ export default function BikeQuoteRequestDetailScreen() {
                   {/* Vehicle Offered */}
                   <View style={styles.quoteVehicle}>
                     <Text style={styles.quoteVehicleName}>{quote.vehicleName}</Text>
+
+                    {/* Vehicle Images */}
+                    {quote.vehicleImages && (() => {
+                      try {
+                        const images = typeof quote.vehicleImages === 'string'
+                          ? JSON.parse(quote.vehicleImages)
+                          : quote.vehicleImages;
+
+                        if (Array.isArray(images) && images.length > 0) {
+                          return (
+                            <ScrollView
+                              horizontal
+                              showsHorizontalScrollIndicator={false}
+                              style={styles.vehicleImagesContainer}
+                            >
+                              {images.map((imageUrl, imgIdx) => (
+                                <Image
+                                  key={imgIdx}
+                                  source={{ uri: imageUrl }}
+                                  style={styles.vehicleImage}
+                                  resizeMode="cover"
+                                />
+                              ))}
+                            </ScrollView>
+                          );
+                        }
+                      } catch (e) {
+                        console.log('Error parsing vehicle images:', e);
+                      }
+                      return null;
+                    })()}
                   </View>
 
                   {/* Price */}
@@ -810,6 +848,94 @@ export default function BikeQuoteRequestDetailScreen() {
                 {/* Overview Tab */}
                 {detailsTab === 'overview' && (
                   <View>
+                    {/* Vehicle Images */}
+                    {(() => {
+                      console.log('🖼️ Vehicle Images Debug:', viewingQuote?.vehicleImages);
+                      console.log('🖼️ Vehicle Images Type:', typeof viewingQuote?.vehicleImages);
+
+                      let vehicleImages = [];
+                      if (viewingQuote?.vehicleImages) {
+                        try {
+                          // Try to parse as JSON array
+                          vehicleImages = typeof viewingQuote.vehicleImages === 'string'
+                            ? JSON.parse(viewingQuote.vehicleImages)
+                            : viewingQuote.vehicleImages;
+
+                          // Ensure it's an array
+                          if (!Array.isArray(vehicleImages)) {
+                            vehicleImages = [];
+                          }
+
+                          console.log('✅ Parsed vehicle images:', vehicleImages);
+                        } catch (e) {
+                          console.log('⚠️ JSON parse failed, trying comma-separated:', e.message);
+                          // If JSON parse fails, try as comma-separated string
+                          if (typeof viewingQuote.vehicleImages === 'string') {
+                            vehicleImages = viewingQuote.vehicleImages.split(',').map(s => s.trim()).filter(Boolean);
+                            console.log('✅ Split vehicle images:', vehicleImages);
+                          }
+                        }
+                      } else {
+                        console.log('❌ No vehicleImages found in quote');
+                      }
+
+                      console.log('🖼️ Final vehicleImages array length:', vehicleImages.length);
+
+                      return vehicleImages.length > 0 && (
+                        <View style={styles.detailsSection}>
+                          <View style={styles.detailsSectionHeader}>
+                            <Ionicons name="images" size={22} color={GREEN} />
+                            <Text style={styles.detailsSectionTitle}>Vehicle Images</Text>
+                          </View>
+                          <ScrollView
+                            horizontal
+                            showsHorizontalScrollIndicator={false}
+                            style={styles.detailsImageScroll}
+                          >
+                            {vehicleImages.map((img, idx) => {
+                              // Construct image URL
+                              let imageUrl = img;
+                              if (!img.startsWith('http') && !img.startsWith('data:')) {
+                                const cleanPath = img.replace(/\\/g, '/').replace(/^\/+/, '');
+
+                                // If path already starts with 'uploads/', just prepend BASE_URL
+                                if (cleanPath.startsWith('uploads/')) {
+                                  imageUrl = `${BASE_URL}/${cleanPath}`;
+                                } else if (cleanPath.startsWith('storage/')) {
+                                  imageUrl = `${BASE_URL}/${cleanPath}`;
+                                } else {
+                                  // Otherwise, use IMAGE_BASE_URL (which already has /uploads)
+                                  imageUrl = `${IMAGE_BASE_URL}/${cleanPath}`;
+                                }
+                              }
+
+                              console.log(`🖼️ Image ${idx + 1} URL:`, imageUrl);
+
+                              return (
+                                <TouchableOpacity
+                                  key={idx}
+                                  style={styles.detailsImageContainer}
+                                  onPress={() => {
+                                    setViewingImages(vehicleImages);
+                                    setSelectedImageIndex(idx);
+                                    setImageViewerVisible(true);
+                                  }}
+                                >
+                                  <Image
+                                    source={{ uri: imageUrl }}
+                                    style={styles.detailsImage}
+                                    resizeMode="cover"
+                                    onError={(e) => console.log(`❌ Image ${idx + 1} failed to load:`, e.nativeEvent.error)}
+                                    onLoad={() => console.log(`✅ Image ${idx + 1} loaded successfully`)}
+                                  />
+                                </TouchableOpacity>
+                              );
+                            })}
+                          </ScrollView>
+                        </View>
+                      );
+                    })()}
+
                     {/* Vehicle Info */}
                     <View style={styles.detailsSection}>
                       <View style={styles.detailsSectionHeader}>
@@ -1115,6 +1241,67 @@ export default function BikeQuoteRequestDetailScreen() {
           )}
         </SafeAreaView>
       </Modal>
+
+      {/* Image Viewer Modal */}
+      <Modal
+        visible={imageViewerVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setImageViewerVisible(false)}
+      >
+        <View style={styles.imageViewerContainer}>
+          <TouchableOpacity
+            style={styles.imageViewerCloseButton}
+            onPress={() => setImageViewerVisible(false)}
+          >
+            <Ionicons name="close" size={32} color="#fff" />
+          </TouchableOpacity>
+
+          <ScrollView
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            style={styles.imageViewerScroll}
+            contentContainerStyle={{ width: Dimensions.get('window').width * viewingImages.length }}
+            scrollEnabled={true}
+            onMomentumScrollEnd={(event) => {
+              const index = Math.round(event.nativeEvent.contentOffset.x / Dimensions.get('window').width);
+              setSelectedImageIndex(index);
+            }}
+            contentOffset={{ x: selectedImageIndex * Dimensions.get('window').width, y: 0 }}
+          >
+            {viewingImages.map((img, idx) => {
+              let imageUrl = img;
+              if (!img.startsWith('http') && !img.startsWith('data:')) {
+                const cleanPath = img.replace(/\\/g, '/').replace(/^\/+/, '');
+                if (cleanPath.startsWith('uploads/')) {
+                  imageUrl = `${BASE_URL}/${cleanPath}`;
+                } else if (cleanPath.startsWith('storage/')) {
+                  imageUrl = `${BASE_URL}/${cleanPath}`;
+                } else {
+                  imageUrl = `${IMAGE_BASE_URL}/${cleanPath}`;
+                }
+              }
+
+              return (
+                <View key={idx} style={styles.imageViewerPage}>
+                  <Image
+                    source={{ uri: imageUrl }}
+                    style={styles.imageViewerImage}
+                    resizeMode="contain"
+                  />
+                </View>
+              );
+            })}
+          </ScrollView>
+
+          <View style={styles.imageViewerCounter}>
+            <Text style={styles.imageViewerCounterText}>
+              {selectedImageIndex + 1} / {viewingImages.length}
+            </Text>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -1399,6 +1586,19 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600',
     color: '#333',
+    marginBottom: 8,
+  },
+  vehicleImagesContainer: {
+    marginTop: 8,
+    marginHorizontal: -10,
+    paddingHorizontal: 10,
+  },
+  vehicleImage: {
+    width: 120,
+    height: 90,
+    borderRadius: 8,
+    marginRight: 8,
+    backgroundColor: '#e0e0e0',
   },
 
   // Quote Pricing
@@ -2266,5 +2466,68 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     marginLeft: 8,
+  },
+
+  // Vehicle Images
+  detailsImageScroll: {
+    marginTop: 12,
+  },
+  detailsImageContainer: {
+    marginRight: 12,
+    borderRadius: 12,
+    overflow: 'hidden',
+    backgroundColor: '#f5f5f5',
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+  },
+  detailsImage: {
+    width: 280,
+    height: 200,
+    borderRadius: 12,
+  },
+
+  // Image Viewer Modal
+  imageViewerContainer: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.95)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  imageViewerCloseButton: {
+    position: 'absolute',
+    top: 50,
+    right: 20,
+    zIndex: 10,
+    padding: 10,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    borderRadius: 25,
+  },
+  imageViewerScroll: {
+    flex: 1,
+    width: Dimensions.get('window').width,
+  },
+  imageViewerPage: {
+    width: Dimensions.get('window').width,
+    height: Dimensions.get('window').height,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  imageViewerImage: {
+    width: Dimensions.get('window').width,
+    height: Dimensions.get('window').height * 0.8,
+  },
+  imageViewerCounter: {
+    position: 'absolute',
+    bottom: 50,
+    alignSelf: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 20,
+  },
+  imageViewerCounterText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });

@@ -94,6 +94,7 @@ const MyBookingsScreen = () => {
         const transformed = response.data.bookings.map(b => {
           let serviceIcon = 'car';
           let serviceColor = '#34495e';
+          let iconLib = 'Ionicons';
 
           // Map unified service types to UI icons/colors
           switch (b.service_type) {
@@ -116,18 +117,26 @@ const MyBookingsScreen = () => {
             case 'truck':
               serviceIcon = 'truck';
               serviceColor = '#f39c12';
+              iconLib = 'MaterialCommunityIcons';
+              break;
+            case 'tempo':
+              serviceIcon = 'van-shuttle';
+              serviceColor = '#1abc9c';
+              iconLib = 'MaterialCommunityIcons';
               break;
             case 'chauffeur':
               serviceIcon = 'car';
               serviceColor = '#34495e';
               break;
             case 'packers':
-              serviceIcon = 'vignette';
+              serviceIcon = 'package-variant-closed';
               serviceColor = '#1abc9c';
+              iconLib = 'MaterialCommunityIcons';
               break;
             case 'equipment':
-              serviceIcon = 'construct';
+              serviceIcon = 'toolbox';
               serviceColor = '#7f8c8d';
+              iconLib = 'MaterialCommunityIcons';
               break;
             default:
               serviceIcon = 'apps';
@@ -141,6 +150,7 @@ const MyBookingsScreen = () => {
             serviceName: b.service_name,
             serviceIcon,
             serviceColor,
+            iconLib,
             displayName: b.vehicle_name || b.service_name || 'Rental',
             displayDate: b.journey_datetime,
             displayLocation: b.location_name,
@@ -253,7 +263,11 @@ const MyBookingsScreen = () => {
     if (booking.serviceType === 'self-drive') {
       navigation.navigate('SelfDriveBookingDetail', { bookingId: booking.id });
     } else if (booking.serviceType === 'bike') {
-      navigation.navigate('BikeBookingDetail', { bookingId: booking.id });
+      if (booking.is_quote_request) {
+        navigation.navigate('BikeQuoteRequestDetail', { requestId: booking.id });
+      } else {
+        navigation.navigate('BikeBookingDetail', { bookingId: booking.id });
+      }
     } else if (booking.serviceType === 'luxury') {
       // Check if it's a quote request or actual booking
       if (booking.is_quote_request) {
@@ -316,7 +330,7 @@ const MyBookingsScreen = () => {
       >
         {/* Service Badge */}
         <View style={[styles.serviceBadge, { backgroundColor: booking.serviceColor }]}>
-          {renderServiceIcon(booking.serviceIcon, null, '#fff', 14)}
+          {renderServiceIcon(booking.serviceIcon, booking.iconLib, '#fff', 14)}
           <Text style={styles.serviceBadgeText}>{booking.serviceName}</Text>
         </View>
 
@@ -324,7 +338,7 @@ const MyBookingsScreen = () => {
         <View style={styles.cardContent}>
           {/* Left - Icon Circle */}
           <View style={[styles.iconCircle, { backgroundColor: `${booking.serviceColor}15` }]}>
-            {renderServiceIcon(booking.serviceIcon, null, booking.serviceColor, 28)}
+            {renderServiceIcon(booking.serviceIcon, booking.iconLib, booking.serviceColor, 28)}
           </View>
 
           {/* Middle - Details */}

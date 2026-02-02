@@ -406,18 +406,44 @@ export default function PackersBookingDetailScreen() {
           </View>
         )}
 
-        {/* Trip OTP (if available) */}
-        {booking.tripStartOtp &&
-         !booking.tripOtpVerified &&
-         (booking.status === 'READY_FOR_PICKUP' || booking.status === 'IN_PROGRESS') && (
+        {/* Packing OTP */}
+        {booking.packingOtp && !booking.packingStartedAt && (
           <View style={styles.card}>
             <View style={styles.cardHeader}>
               <Ionicons name="key-outline" size={20} color={BRAND_TEAL} />
-              <Text style={styles.cardTitle}>Trip Start OTP</Text>
+              <Text style={styles.cardTitle}>Packing OTP</Text>
             </View>
             <View style={styles.otpBox}>
-              <Text style={styles.otpLabel}>Share this OTP with driver to start trip</Text>
-              <Text style={styles.otpValue}>{booking.tripStartOtp}</Text>
+              <Text style={styles.otpLabel}>Share this OTP with packing team</Text>
+              <Text style={styles.otpValue}>{booking.packingOtp}</Text>
+            </View>
+          </View>
+        )}
+
+        {/* Loading OTP */}
+        {booking.loadingOtp && !booking.loadingStartedAt && (
+          <View style={styles.card}>
+            <View style={styles.cardHeader}>
+              <Ionicons name="key-outline" size={20} color={BRAND_TEAL} />
+              <Text style={styles.cardTitle}>Loading OTP</Text>
+            </View>
+            <View style={styles.otpBox}>
+              <Text style={styles.otpLabel}>Share this OTP with loading team</Text>
+              <Text style={styles.otpValue}>{booking.loadingOtp}</Text>
+            </View>
+          </View>
+        )}
+
+        {/* Delivery OTP */}
+        {booking.deliveryOtp && booking.status !== 'COMPLETED' && (
+          <View style={styles.card}>
+            <View style={styles.cardHeader}>
+              <Ionicons name="key-outline" size={20} color={BRAND_TEAL} />
+              <Text style={styles.cardTitle}>Delivery OTP</Text>
+            </View>
+            <View style={styles.otpBox}>
+              <Text style={styles.otpLabel}>Share this OTP at delivery</Text>
+              <Text style={styles.otpValue}>{booking.deliveryOtp}</Text>
             </View>
           </View>
         )}
