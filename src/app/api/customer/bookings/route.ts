@@ -25,6 +25,13 @@ const chauffeurStatusMappings: Record<string, string[]> = {
   Dropped: ['CANCELLED', 'EXPIRED', 'REFUNDED'],
 };
 
+// Bike quote request status mappings
+const bikeQuoteRequestStatusMappings: Record<string, string[]> = {
+  Open: ['PENDING', 'QUOTES_RECEIVED'],
+  Confirmed: ['QUOTE_ACCEPTED', 'BOOKING_CONFIRMED'],
+  Dropped: ['CANCELLED', 'EXPIRED'],
+};
+
 // Bus booking status mappings
 const busBookingStatusMappings: Record<string, string[]> = {
   Open: ['PENDING_PAYMENT', 'PAYMENT_SUBMITTED'],
@@ -130,6 +137,7 @@ export async function GET(request: NextRequest) {
     // 'All' means no status filter
     const isAllStatus = requestedStatus === 'All' || requestedStatus === 'all';
     const bikeCarStatusArray = isAllStatus ? null : (bikeCarStatusMappings[requestedStatus] || bikeCarStatusMappings.Open);
+    const bikeQuoteRequestStatusArray = isAllStatus ? null : (bikeQuoteRequestStatusMappings[requestedStatus] || null);
     const chauffeurStatusArray = isAllStatus ? null : (chauffeurStatusMappings[requestedStatus] || chauffeurStatusMappings.Open);
     const busBookingStatusArray = isAllStatus ? null : (busBookingStatusMappings[requestedStatus] || null);
     const busQuoteRequestStatusArray = isAllStatus ? null : (busQuoteRequestStatusMappings[requestedStatus] || null);
@@ -193,6 +201,7 @@ export async function GET(request: NextRequest) {
     // PERFORMANCE: Execute all queries in parallel using Promise.all
     // This reduces response time from ~13x to ~1x single query time
     const [
+      bikeQuoteRequests,
       bikeBookings,
       carBookings,
       chauffeurBookings,
@@ -207,6 +216,18 @@ export async function GET(request: NextRequest) {
       luxuryQuoteRequests,
       luxuryBookings,
     ] = await Promise.all([
+      // Bike quote requests
+      (!bikeQuoteRequestStatusArray || bikeQuoteRequestStatusArray.length > 0)
+        ? prisma.bike_quote_requests.findMany({
+          where: {
+            ...quoteRequestFilter,
+            ...(bikeQuoteRequestStatusArray ? { status: { in: bikeQuoteRequestStatusArray as any } } : {}),
+          },
+          orderBy: { createdAt: 'desc' },
+          take: 50,
+        }).catch((e) => { logger.error('Error fetching bike quote requests', e); return []; })
+        : Promise.resolve([]),
+
       // Bike bookings
       prisma.bike_bookings.findMany({
         where: {
@@ -388,6 +409,27 @@ export async function GET(request: NextRequest) {
 
     // Transform to common format
     const transformedBookings = [
+      // Bike quote requests
+      ...bikeQuoteRequests.map((b) => ({
+        id: b.id,
+        booking_number: b.requestNumber,
+        service_name: 'Bike Rental',
+        service_type: 'bike',
+        location_name: b.locationName || '',
+        destination: null,
+        journey_datetime: b.pickupDate.toISOString(),
+        return_datetime: b.dropDate?.toISOString() || null,
+        status: mapBikeQuoteRequestStatus(b.status),
+        created_at: b.createdAt.toISOString(),
+        vehicle_name: b.requestedCategory || 'Bike',
+        brand: b.requestedBrand || null,
+        category: b.requestedCategory,
+        total_amount: null,
+        vendor: null,
+        quotations: [],
+        is_quote_request: true,
+      })),
+      // Bike bookings
       ...bikeBookings.map((b) => ({
         id: b.id,
         booking_number: b.bookingNumber,
@@ -406,7 +448,8 @@ export async function GET(request: NextRequest) {
         vendor: b.vendors_bike_bookings_assignedVendorIdTovendors
           ? { name: b.vendors_bike_bookings_assignedVendorIdTovendors.businessName, phone: b.vendors_bike_bookings_assignedVendorIdTovendors.phone }
           : null,
-        quotations: [], // TODO: Add quotations if needed
+        quotations: [],
+        is_quote_request: false,
       })),
       ...carBookings.map((b) => ({
         id: b.id,
@@ -726,6 +769,19 @@ function mapStatusToDisplay(status: string): string {
     CANCELLED: 'Dropped',
     EXPIRED: 'Dropped',
     REFUNDED: 'Dropped',
+  };
+  return displayMap[status] || 'Open';
+}
+
+// Helper function to map bike quote request status
+function mapBikeQuoteRequestStatus(status: string): string {
+  const displayMap: Record<string, string> = {
+    PENDING: 'Open',
+    QUOTES_RECEIVED: 'Open',
+    QUOTE_ACCEPTED: 'Confirmed',
+    BOOKING_CONFIRMED: 'Confirmed',
+    CANCELLED: 'Dropped',
+    EXPIRED: 'Dropped',
   };
   return displayMap[status] || 'Open';
 }
