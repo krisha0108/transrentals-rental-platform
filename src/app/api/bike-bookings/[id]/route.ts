@@ -79,7 +79,7 @@ export async function GET(
               phone: true,
             },
           },
-          acceptedQuote: {
+          bike_quotes: {
             select: {
               id: true,
               quoteNumber: true,
