@@ -47,7 +47,7 @@ export async function GET(request: NextRequest) {
             rating: true,
           },
         },
-        quoteRequest: {
+        bus_quote_requests: {
           select: {
             id: true,
             requestNumber: true,
@@ -100,7 +100,8 @@ export async function GET(request: NextRequest) {
               rating: b.vendor.rating,
             }
           : null,
-        quoteRequestId: b.quoteRequest?.id,
+        quoteRequestId: b.bus_quote_requests?.id,
+        quoteRequestNumber: b.bus_quote_requests?.requestNumber,
         createdAt: b.createdAt,
       })),
     });

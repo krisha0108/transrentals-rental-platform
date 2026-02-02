@@ -38,6 +38,13 @@ const BikeBookingDetailScreen = () => {
   useFocusEffect(
     useCallback(() => {
       fetchBookingDetails();
+
+      // Auto-refresh every 30 seconds
+      const interval = setInterval(() => {
+        fetchBookingDetails();
+      }, 30000);
+
+      return () => clearInterval(interval);
     }, [bookingId])
   );
 

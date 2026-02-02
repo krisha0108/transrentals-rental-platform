@@ -22,7 +22,7 @@ export async function GET(
     const busQuoteRequest = await prisma.bus_quote_requests.findUnique({
       where: { id },
       include: {
-        bus_quotes: {
+        bus_quotes_bus_quotes_requestIdTobus_quote_requests: {
           include: {
             vendors: {
               select: {
@@ -66,7 +66,7 @@ export async function GET(
           totalQuotesReceived: busQuoteRequest.totalQuotesReceived,
           expiresAt: busQuoteRequest.expiresAt,
           createdAt: busQuoteRequest.createdAt,
-          quotes: busQuoteRequest.bus_quotes.map((q) => ({
+          quotes: busQuoteRequest.bus_quotes_bus_quotes_requestIdTobus_quote_requests.map((q) => ({
             id: q.id,
             quoteNumber: q.quoteNumber,
             vehicleName: q.vehicleName,
@@ -93,7 +93,34 @@ export async function GET(
       });
     }
 
-    // 2. Try bus bookings
+    // 2. Try bike bookings
+    const bikeBooking = await prisma.bike_bookings.findUnique({
+      where: { id },
+      include: {
+        vendors_bike_bookings_acceptedVendorIdTovendors: {
+          select: {
+            businessName: true,
+            phone: true,
+          },
+        },
+        bike_quote_requests: {
+          select: {
+            requestNumber: true,
+          },
+        },
+      },
+    });
+
+    if (bikeBooking) {
+      return NextResponse.json({
+        success: true,
+        type: 'bike_booking',
+        booking: bikeBooking,
+        redirectTo: 'BikeBookingDetail',
+      });
+    }
+
+    // 3. Try bus bookings
     const busBooking = await prisma.bus_bookings.findUnique({
       where: { id },
       include: {
@@ -125,7 +152,7 @@ export async function GET(
             phone: true,
           },
         },
-        quoteRequest: {
+        truck_quote_requests: {
           select: {
             requestNumber: true,
           },
@@ -178,7 +205,7 @@ export async function GET(
             phone: true,
           },
         },
-        quoteRequest: {
+        equipment_quote_requests: {
           select: {
             requestNumber: true,
           },
@@ -231,7 +258,7 @@ export async function GET(
             phone: true,
           },
         },
-        quoteRequest: {
+        packers_quote_requests: {
           select: {
             requestNumber: true,
           },
@@ -271,6 +298,144 @@ export async function GET(
         type: 'packers_quote_request',
         quoteRequest: packersQuoteRequest,
         redirectTo: 'PackersQuoteRequestDetail',
+      });
+    }
+
+    // 9. Try chauffeur bookings
+    const chauffeurBooking = await prisma.chauffeur_bookings.findUnique({
+      where: { id },
+      include: {
+        vendors_chauffeur_bookings_acceptedVendorIdTovendors: {
+          select: {
+            businessName: true,
+            phone: true,
+          },
+        },
+      },
+    });
+
+    if (chauffeurBooking) {
+      return NextResponse.json({
+        success: true,
+        type: 'chauffeur_booking',
+        booking: chauffeurBooking,
+        redirectTo: 'ChauffeurBookingDetail',
+      });
+    }
+
+    // 10. Try luxury bookings
+    const luxuryBooking = await prisma.luxury_bookings.findUnique({
+      where: { id },
+      include: {
+        vendors_luxury_bookings_acceptedVendorIdTovendors: {
+          select: {
+            businessName: true,
+            phone: true,
+          },
+        },
+        luxury_quote_requests: {
+          select: {
+            requestNumber: true,
+          },
+        },
+      },
+    });
+
+    if (luxuryBooking) {
+      return NextResponse.json({
+        success: true,
+        type: 'luxury_booking',
+        booking: luxuryBooking,
+        redirectTo: 'LuxuryBookingDetail',
+      });
+    }
+
+    // 11. Try car bookings (self-drive)
+    const carBooking = await prisma.car_bookings.findUnique({
+      where: { id },
+      include: {
+        vendors_car_bookings_acceptedVendorIdTovendors: {
+          select: {
+            businessName: true,
+            phone: true,
+          },
+        },
+        self_drive_quote_requests: {
+          select: {
+            requestNumber: true,
+          },
+        },
+      },
+    });
+
+    if (carBooking) {
+      return NextResponse.json({
+        success: true,
+        type: 'car_booking',
+        booking: carBooking,
+        redirectTo: 'CarBookingDetail',
+      });
+    }
+
+    // 10. Try bike quote requests
+    const bikeQuoteRequest = await prisma.bike_quote_requests.findUnique({
+      where: { id },
+      include: {
+        bike_quotes_bike_quotes_requestIdTobike_quote_requests: {
+          include: {
+            vendors: {
+              select: {
+                businessName: true,
+                phone: true,
+                rating: true,
+                totalRatings: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (bikeQuoteRequest) {
+      return NextResponse.json({
+        success: true,
+        type: 'bike_quote_request',
+        quoteRequest: {
+          ...bikeQuoteRequest,
+          quotes: bikeQuoteRequest.bike_quotes_bike_quotes_requestIdTobike_quote_requests,
+        },
+        redirectTo: 'BikeQuoteRequestDetail',
+      });
+    }
+
+    // 11. Try self-drive quote requests
+    const selfDriveQuoteRequest = await prisma.self_drive_quote_requests.findUnique({
+      where: { id },
+      include: {
+        self_drive_quotes_self_drive_quotes_requestIdToself_drive_quote_requests: {
+          include: {
+            vendors: {
+              select: {
+                businessName: true,
+                phone: true,
+                rating: true,
+                totalRatings: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (selfDriveQuoteRequest) {
+      return NextResponse.json({
+        success: true,
+        type: 'self_drive_quote_request',
+        quoteRequest: {
+          ...selfDriveQuoteRequest,
+          quotes: selfDriveQuoteRequest.self_drive_quotes_self_drive_quotes_requestIdToself_drive_quote_requests,
+        },
+        redirectTo: 'SelfDriveQuoteRequestDetail',
       });
     }
 

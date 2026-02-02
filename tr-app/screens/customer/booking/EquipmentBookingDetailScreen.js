@@ -406,18 +406,30 @@ export default function EquipmentBookingDetailScreen() {
           </View>
         )}
 
-        {/* Trip OTP (if available) */}
-        {booking.tripStartOtp &&
-         !booking.tripOtpVerified &&
-         (booking.status === 'READY_FOR_PICKUP' || booking.status === 'IN_PROGRESS') && (
+        {/* Delivery OTP */}
+        {booking.deliveryOtp && !booking.deliveredAt2 && (
           <View style={styles.card}>
             <View style={styles.cardHeader}>
               <Ionicons name="key-outline" size={20} color={BRAND_TEAL} />
-              <Text style={styles.cardTitle}>Trip Start OTP</Text>
+              <Text style={styles.cardTitle}>Delivery OTP</Text>
             </View>
             <View style={styles.otpBox}>
-              <Text style={styles.otpLabel}>Share this OTP with driver to start trip</Text>
-              <Text style={styles.otpValue}>{booking.tripStartOtp}</Text>
+              <Text style={styles.otpLabel}>Share this OTP at equipment delivery</Text>
+              <Text style={styles.otpValue}>{booking.deliveryOtp}</Text>
+            </View>
+          </View>
+        )}
+
+        {/* Return OTP */}
+        {booking.returnOtp && booking.status !== 'COMPLETED' && (
+          <View style={styles.card}>
+            <View style={styles.cardHeader}>
+              <Ionicons name="key-outline" size={20} color={BRAND_TEAL} />
+              <Text style={styles.cardTitle}>Return OTP</Text>
+            </View>
+            <View style={styles.otpBox}>
+              <Text style={styles.otpLabel}>Share this OTP at equipment return</Text>
+              <Text style={styles.otpValue}>{booking.returnOtp}</Text>
             </View>
           </View>
         )}
