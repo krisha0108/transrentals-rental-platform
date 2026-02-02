@@ -26,7 +26,7 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
+import { cn, resolveAssetUrl } from '@/lib/utils';
 
 interface FleetVehicle {
   id: string;
@@ -266,16 +266,16 @@ export default function VehicleDetailPage() {
     else if (brandData?.logo) featuredImageUrl = brandData.logo;
 
     if (featuredImageUrl) {
-      images.push({ url: featuredImageUrl, label: 'Featured Image', isFeatured: true });
+      images.push({ url: resolveAssetUrl(featuredImageUrl), label: 'Featured Image', isFeatured: true });
     }
 
     // Add vendor-uploaded images
     if (vehicle.images) {
-      if (vehicle.images.front) images.push({ url: vehicle.images.front, label: 'Front View' });
-      if (vehicle.images.back) images.push({ url: vehicle.images.back, label: 'Back View' });
-      if (vehicle.images.leftSide) images.push({ url: vehicle.images.leftSide, label: 'Left Side' });
-      if (vehicle.images.rightSide) images.push({ url: vehicle.images.rightSide, label: 'Right Side' });
-      if (vehicle.images.inside) images.push({ url: vehicle.images.inside, label: 'Interior' });
+      if (vehicle.images.front) images.push({ url: resolveAssetUrl(vehicle.images.front), label: 'Front View' });
+      if (vehicle.images.back) images.push({ url: resolveAssetUrl(vehicle.images.back), label: 'Back View' });
+      if (vehicle.images.leftSide) images.push({ url: resolveAssetUrl(vehicle.images.leftSide), label: 'Left Side' });
+      if (vehicle.images.rightSide) images.push({ url: resolveAssetUrl(vehicle.images.rightSide), label: 'Right Side' });
+      if (vehicle.images.inside) images.push({ url: resolveAssetUrl(vehicle.images.inside), label: 'Interior' });
     }
 
     return images;
@@ -400,7 +400,11 @@ export default function VehicleDetailPage() {
                       const placeholder = isBikeService
                         ? '<svg class="w-24 h-24 text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/></svg>'
                         : '<svg class="w-24 h-24 text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2"/></svg>';
-                      e.currentTarget.parentElement!.innerHTML = `<div class="flex items-center justify-center w-full h-full">${placeholder}</div>`;
+
+                      // Null check before accessing parentElement
+                      if (e.currentTarget.parentElement) {
+                        e.currentTarget.parentElement.innerHTML = `<div class="flex items-center justify-center w-full h-full">${placeholder}</div>`;
+                      }
                     }}
                   />
                 </div>

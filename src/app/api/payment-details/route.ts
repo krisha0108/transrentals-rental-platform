@@ -56,13 +56,23 @@ export async function GET(request: NextRequest) {
     }
 
     // Fallback: Get the primary global bank account
-    const primaryAccount = await prisma.bank_details.findFirst({
+    let primaryAccount = await prisma.bank_details.findFirst({
       where: {
         isActive: true,
         isPrimary: true,
       },
       orderBy: { createdAt: 'desc' },
     });
+
+    // If no primary account found, get any active bank account
+    if (!primaryAccount) {
+      primaryAccount = await prisma.bank_details.findFirst({
+        where: {
+          isActive: true,
+        },
+        orderBy: { createdAt: 'desc' },
+      });
+    }
 
     if (!primaryAccount) {
       return NextResponse.json(
