@@ -10,7 +10,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
  */
 const DEFAULT_PROD = "https://transrentals.in";
 // For Android Emulator use 10.0.2.2, for Physical Device use your computer's IP
-const DEFAULT_DEV_ANDROID = "http://192.168.29.31:3000"; // Your computer's WiFi IP
+const DEFAULT_DEV_ANDROID = "http://192.168.1.3:3000"; // Your computer's WiFi IP
 const DEFAULT_DEV_IOS = "http://localhost:3000";
 
 function inferLocalBase() {

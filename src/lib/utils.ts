@@ -130,6 +130,13 @@ export function generateMetaDescription(content: string, maxLength = 160): strin
 
 export function resolveAssetUrl(path?: string): string {
   if (!path) return ASSET_BASE_URL;
+
+  // Return data URLs as-is (base64 encoded images)
+  if (path.startsWith('data:')) {
+    return path;
+  }
+
+  // Return absolute URLs as-is
   if (/^https?:\/\//i.test(path)) {
     return path;
   }
@@ -137,18 +144,22 @@ export function resolveAssetUrl(path?: string): string {
   // Remove 'public' prefix if present (Next.js serves from public as root)
   if (path.startsWith('public/')) path = path.replace('public/', '/');
   if (path.startsWith('/public/')) path = path.replace('/public/', '/');
+
   // If path already starts with /uploads or /images, use as is
   if (path.startsWith('/uploads/') || path.startsWith('/images/')) {
     return `${ASSET_BASE_URL}${path}`;
   }
+
   // If path starts with uploads/ (without leading slash), add it
   if (path.startsWith('uploads/')) {
     return `${ASSET_BASE_URL}/${path}`;
   }
+
   // If it's just a filename (no path separators at start), assume it's in uploads
   if (!path.startsWith('/')) {
     return `${ASSET_BASE_URL}/uploads/${path}`;
   }
+
   return `${ASSET_BASE_URL}${path}`;
 }
 

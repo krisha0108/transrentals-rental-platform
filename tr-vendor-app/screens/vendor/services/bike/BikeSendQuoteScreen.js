@@ -64,6 +64,7 @@ export default function BikeSendQuoteScreen({ navigation, route }) {
   const [vehicleName, setVehicleName] = useState('');
   const [vehicleBrand, setVehicleBrand] = useState('');
   const [registrationNumber, setRegistrationNumber] = useState('');
+  const [vehicleImages, setVehicleImages] = useState(null);
   const [dailyRate, setDailyRate] = useState('');
   const [securityDeposit, setSecurityDeposit] = useState('');
   const [helmetsIncluded, setHelmetsIncluded] = useState('1');
@@ -129,6 +130,7 @@ export default function BikeSendQuoteScreen({ navigation, route }) {
       setVehicleName('');
       setVehicleBrand('');
       setRegistrationNumber('');
+      setVehicleImages(null);
       return;
     }
 
@@ -149,6 +151,10 @@ export default function BikeSendQuoteScreen({ navigation, route }) {
       setVehicleName(vName);
       setVehicleBrand(vBrand);
       setRegistrationNumber(selectedVehicle.registrationNumber || '');
+
+      // Extract vehicle images
+      setVehicleImages(selectedVehicle.images || null);
+      console.log('[Bike Send Quote] Selected vehicle images:', selectedVehicle.images);
     }
   };
 
@@ -232,6 +238,7 @@ export default function BikeSendQuoteScreen({ navigation, route }) {
         vehicleBrand: vehicleBrand || null,
         vehicleCategory: request?.vehicleCategory || null,
         registrationNumber: registrationNumber || null,
+        vehicleImages: vehicleImages || null,
         dailyRate: parseFloat(dailyRate),
         securityDeposit: parseFloat(securityDeposit) || 0,
         helmetsIncluded: parseInt(helmetsIncluded) || 1,

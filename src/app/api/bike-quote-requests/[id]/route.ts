@@ -31,6 +31,12 @@ export async function GET(
                 logo: true,
               },
             },
+            vendor_fleets: {
+              select: {
+                id: true,
+                images: true,
+              },
+            },
           },
           orderBy: { grandTotal: 'asc' },
         },
@@ -91,37 +97,56 @@ export async function GET(
         expiresAt: quoteRequest.expiresAt,
         createdAt: quoteRequest.createdAt,
       },
-      quotes: quotes.map((q) => ({
-        id: q.id,
-        quoteNumber: q.quoteNumber,
-        vendorId: q.vendorId,
-        vehicleName: q.vehicleName,
-        vehicleBrand: q.vehicleBrand,
-        chauffeur_vehicle_categories: q.vehicle_category,
-        registrationNumber: q.registrationNumber,
-        vehicleImages: q.vehicleImages,
-        vehicleFeatures: q.vehicleFeatures,
-        dailyRate: q.dailyRate,
-        totalAmount: q.totalAmount,
-        gstAmount: q.gstAmount,
-        securityDeposit: q.securityDeposit,
-        grandTotal: q.grandTotal,
-        advancePercent: q.advancePercent,
-        advanceAmount: q.advanceAmount,
-        helmetsIncluded: q.helmetsIncluded,
-        kmLimitPerDay: q.kmLimitPerDay,
-        extraKmCharge: q.extraKmCharge,
-        inclusions: q.inclusions,
-        exclusions: q.exclusions,
-        termsConditions: q.termsConditions,
-        vendorMessage: q.vendorMessage,
-        validTill: q.validTill,
-        validityDays: q.validityDays,
-        viewCount: q.viewCount,
-        status: q.status,
-        vendors: q.vendors,
-        createdAt: q.createdAt,
-      })),
+      quotes: quotes.map((q) => {
+        // Get vehicle images from fleet if available, otherwise use quote's images
+        let vehicleImages = q.vehicleImages;
+        if (q.vendor_fleets?.images) {
+          let fleetImages = typeof q.vendor_fleets.images === 'string'
+            ? (q.vendor_fleets.images === 'null' ? null : JSON.parse(q.vendor_fleets.images))
+            : q.vendor_fleets.images;
+
+          // Convert object {front: "...", back: "..."} to array ["...", "..."]
+          if (fleetImages && typeof fleetImages === 'object' && !Array.isArray(fleetImages)) {
+            vehicleImages = Object.values(fleetImages).filter(img => img);
+          } else if (Array.isArray(fleetImages)) {
+            vehicleImages = fleetImages;
+          } else {
+            vehicleImages = fleetImages;
+          }
+        }
+
+        return {
+          id: q.id,
+          quoteNumber: q.quoteNumber,
+          vendorId: q.vendorId,
+          vehicleName: q.vehicleName,
+          vehicleBrand: q.vehicleBrand,
+          chauffeur_vehicle_categories: q.vehicle_category,
+          registrationNumber: q.registrationNumber,
+          vehicleImages: vehicleImages,
+          vehicleFeatures: q.vehicleFeatures,
+          dailyRate: q.dailyRate,
+          totalAmount: q.totalAmount,
+          gstAmount: q.gstAmount,
+          securityDeposit: q.securityDeposit,
+          grandTotal: q.grandTotal,
+          advancePercent: q.advancePercent,
+          advanceAmount: q.advanceAmount,
+          helmetsIncluded: q.helmetsIncluded,
+          kmLimitPerDay: q.kmLimitPerDay,
+          extraKmCharge: q.extraKmCharge,
+          inclusions: q.inclusions,
+          exclusions: q.exclusions,
+          termsConditions: q.termsConditions,
+          vendorMessage: q.vendorMessage,
+          validTill: q.validTill,
+          validityDays: q.validityDays,
+          viewCount: q.viewCount,
+          status: q.status,
+          vendors: q.vendors,
+          createdAt: q.createdAt,
+        };
+      }),
     });
   } catch (error: any) {
     logger.error('Failed to fetch bike quote request', error);

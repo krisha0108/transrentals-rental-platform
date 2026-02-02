@@ -21,6 +21,47 @@ const parseArrayField = (field: any): string[] => {
   return [];
 };
 
+// Helper function to parse vehicle images from quotes or fleet
+const parseVehicleImages = (vehicleImages: any, fleetImages: any): string[] => {
+  // First try to get images from the quote's vehicleImages field
+  if (vehicleImages) {
+    if (typeof vehicleImages === 'string') {
+      try {
+        const parsed = JSON.parse(vehicleImages);
+        if (Array.isArray(parsed)) {
+          return parsed.filter(item => item && typeof item === 'string');
+        }
+      } catch {
+        // If not valid JSON, try as comma-separated string
+        const imgArray = vehicleImages.split(',').map(s => s.trim()).filter(Boolean);
+        if (imgArray.length > 0) return imgArray;
+      }
+    } else if (Array.isArray(vehicleImages)) {
+      return vehicleImages.filter(item => item && typeof item === 'string');
+    }
+  }
+
+  // If no images from quote, try fleet images
+  if (fleetImages) {
+    if (typeof fleetImages === 'string') {
+      try {
+        const parsed = JSON.parse(fleetImages);
+        if (Array.isArray(parsed)) {
+          return parsed.filter(item => item && typeof item === 'string');
+        }
+      } catch {
+        // If not valid JSON, try as comma-separated string
+        const imgArray = fleetImages.split(',').map(s => s.trim()).filter(Boolean);
+        if (imgArray.length > 0) return imgArray;
+      }
+    } else if (Array.isArray(fleetImages)) {
+      return fleetImages.filter(item => item && typeof item === 'string');
+    }
+  }
+
+  return [];
+};
+
 /**
  * GET /api/quotation-detail/[id]
  * Backward-compatible endpoint for fetching quote details
@@ -84,10 +125,14 @@ export async function GET(
         validUntil: quote.validTill,
         status: quote.status,
         createdAt: quote.createdAt,
+        vehicleImages: quote.vehicleImages,
       }));
 
       // Get the first/best quote for display
       const firstQuote = quotes[0];
+
+      // Parse vehicle images
+      const vehicleImages = parseVehicleImages(firstQuote?.vehicleImages, null);
 
       return NextResponse.json({
         success: true,
@@ -125,7 +170,7 @@ export async function GET(
           },
         },
         quotes: quotes,
-        service_images: [],
+        service_images: vehicleImages,
       });
     }
 
@@ -141,6 +186,11 @@ export async function GET(
                 businessName: true,
                 rating: true,
                 phone: true,
+              },
+            },
+            vendor_fleets: {
+              select: {
+                images: true,
               },
             },
           },
@@ -168,9 +218,14 @@ export async function GET(
         validUntil: quote.validTill,
         status: quote.status,
         createdAt: quote.createdAt,
+        vehicleImages: quote.vehicleImages,
+        fleetImages: quote.vendor_fleets?.images,
       }));
 
       const firstQuote = quotes[0];
+
+      // Parse vehicle images - prefer vehicleImages, fallback to fleet images
+      const vehicleImages = parseVehicleImages(firstQuote?.vehicleImages, firstQuote?.fleetImages);
 
       return NextResponse.json({
         success: true,
@@ -209,7 +264,7 @@ export async function GET(
           },
         },
         quotes: quotes,
-        service_images: [],
+        service_images: vehicleImages,
       });
     }
 
@@ -330,9 +385,13 @@ export async function GET(
         validUntil: quote.validTill,
         status: quote.status,
         createdAt: quote.createdAt,
+        equipmentImages: quote.equipmentImages,
       }));
 
       const firstQuote = quotes[0];
+
+      // Parse equipment images
+      const equipmentImages = parseVehicleImages(firstQuote?.equipmentImages, null);
 
       return NextResponse.json({
         success: true,
@@ -368,7 +427,7 @@ export async function GET(
           },
         },
         quotes: quotes,
-        service_images: [],
+        service_images: equipmentImages,
       });
     }
 
@@ -465,6 +524,11 @@ export async function GET(
                 phone: true,
               },
             },
+            vendor_fleets: {
+              select: {
+                images: true,
+              },
+            },
           },
         },
       },
@@ -486,9 +550,14 @@ export async function GET(
         validUntil: quote.validTill,
         status: quote.status,
         createdAt: quote.createdAt,
+        vehicleImages: quote.vehicleImages,
+        fleetImages: quote.vendor_fleets?.images,
       }));
 
       const firstQuote = quotes[0];
+
+      // Parse vehicle images - prefer vehicleImages, fallback to fleet images
+      const vehicleImages = parseVehicleImages(firstQuote?.vehicleImages, firstQuote?.fleetImages);
 
       return NextResponse.json({
         success: true,
@@ -524,7 +593,7 @@ export async function GET(
           },
         },
         quotes: quotes,
-        service_images: [],
+        service_images: vehicleImages,
       });
     }
 
@@ -540,6 +609,11 @@ export async function GET(
                 businessName: true,
                 rating: true,
                 phone: true,
+              },
+            },
+            vendor_fleets: {
+              select: {
+                images: true,
               },
             },
           },
@@ -563,9 +637,14 @@ export async function GET(
         validUntil: quote.validTill,
         status: quote.status,
         createdAt: quote.createdAt,
+        vehicleImages: quote.vehicleImages,
+        fleetImages: quote.vendor_fleets?.images,
       }));
 
       const firstQuote = quotes[0];
+
+      // Parse vehicle images - prefer vehicleImages, fallback to fleet images
+      const vehicleImages = parseVehicleImages(firstQuote?.vehicleImages, firstQuote?.fleetImages);
 
       return NextResponse.json({
         success: true,
@@ -601,7 +680,7 @@ export async function GET(
           },
         },
         quotes: quotes,
-        service_images: [],
+        service_images: vehicleImages,
       });
     }
 
