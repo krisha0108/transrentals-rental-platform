@@ -257,7 +257,7 @@ export async function GET(request: NextRequest) {
     const requests = await prisma.bus_quote_requests.findMany({
       where: whereClause,
       include: {
-        bus_quotes: {
+        bus_quotes_bus_quotes_requestIdTobus_quote_requests: {
           where: { status: { in: ['SENT', 'VIEWED'] } },
           select: {
             id: true,
@@ -290,7 +290,7 @@ export async function GET(request: NextRequest) {
         tripDays: r.tripDays,
         status: r.status,
         totalQuotesReceived: r.totalQuotesReceived,
-        quotes: r.bus_quotes,
+        quotes: r.bus_quotes_bus_quotes_requestIdTobus_quote_requests,
         expiresAt: r.expiresAt,
         createdAt: r.createdAt,
       })),

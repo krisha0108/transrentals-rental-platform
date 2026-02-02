@@ -234,11 +234,16 @@ const bookingService = {
     const customerData = await AsyncStorage.getItem('customer');
     const customer = JSON.parse(customerData);
 
+    if (!customer) {
+      throw new Error('Customer not logged in');
+    }
+
     // Fetch both quote requests and bookings
     const [quoteResponse, bookingResponse] = await Promise.all([
       api.get('/bus-quote-requests', {
         params: {
           customerId: customer?.id,
+          phone: customer?.phone,
           email: customer?.email,
           status: status === 'all' ? undefined : status
         }
@@ -246,6 +251,7 @@ const bookingService = {
       api.get('/bus-bookings', {
         params: {
           customerId: customer?.id,
+          phone: customer?.phone,
           email: customer?.email,
           status: status === 'all' ? undefined : status
         }

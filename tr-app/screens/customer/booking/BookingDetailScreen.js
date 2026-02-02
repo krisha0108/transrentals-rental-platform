@@ -272,6 +272,22 @@ const BookingDetails = () => {
             } else if (data.redirectTo === 'LuxuryBookingDetail') {
               navigation.replace('LuxuryBookingDetail', { bookingId: bookingId });
               return;
+            } else if (data.redirectTo === 'BikeBookingDetail') {
+              navigation.replace('BikeBookingDetail', { bookingId: bookingId });
+              return;
+            } else if (data.redirectTo === 'BikeQuoteRequestDetail') {
+              navigation.replace('BikeQuoteRequestDetail', { requestId: bookingId });
+              return;
+            } else if (data.redirectTo === 'CarBookingDetail') {
+              navigation.replace('SelfDriveBookingDetail', { bookingId: bookingId });
+              return;
+            } else if (data.redirectTo === 'SelfDriveQuoteRequestDetail') {
+              navigation.replace('SelfDriveQuoteRequestDetail', { requestId: bookingId });
+              return;
+            } else if (data.redirectTo === 'ChauffeurBookingDetail') {
+              // For now, handle chauffeur bookings in the current screen
+              setBooking(data.booking);
+              return;
             }
           }
 

@@ -12,7 +12,7 @@ const dev = true; // ✅ LOCAL MODE - App will call http://localhost:3001/api
 const LOCAL_HOST = 'localhost'; // Physical Device -> Your PC's WiFi IP Address
 // const LOCAL_HOST = 'localhost'; // Using ADB Reverse (USB connection)
 // const LOCAL_HOST = '10.0.2.2'; // Android Emulator -> Use this for emulator
-const LOCAL_PORT = 3003; // Next.js dev server port (UPDATED - server running on 3003)
+const LOCAL_PORT = 3000; // Next.js dev server port (UPDATED - server running on 3003)
 
 // New Website API Base URL (transrentals-new backend)
 const API_BASE_URL = dev
