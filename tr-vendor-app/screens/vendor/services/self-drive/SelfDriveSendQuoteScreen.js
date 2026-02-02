@@ -100,10 +100,11 @@ export default function SelfDriveSendQuoteScreen({ navigation, route }) {
       // Filter self-drive fleet
       const selfDriveFleet = (fleetsData.fleet || fleetsData.fleets || fleetsData.vehicles || []).filter(
         (v) =>
-          v.service?.slug === 'self-drive-car-rental' ||
-          v.service?.name?.toLowerCase().includes('self-drive') ||
-          v.service?.name?.toLowerCase().includes('self drive')
+          v.services?.slug === 'self-drive-car-rental' ||
+          v.services?.name?.toLowerCase().includes('self-drive') ||
+          v.services?.name?.toLowerCase().includes('self drive')
       );
+      console.log('[SelfDrive] Total fleet:', fleetsData.fleet?.length || 0, 'Filtered:', selfDriveFleet.length);
       setFleetVehicles(selfDriveFleet);
 
       // Handle templates data - ensure it's an array
@@ -137,14 +138,14 @@ export default function SelfDriveSendQuoteScreen({ navigation, route }) {
     if (selectedVehicle) {
       let vName = '';
       let vBrand = '';
-      if (selectedVehicle.vehicleModel) {
-        vName = selectedVehicle.vehicleModel.name;
-        vBrand = selectedVehicle.vehicleModel.brand?.name || '';
-      } else if (selectedVehicle.vehicleCategory) {
-        vName = selectedVehicle.vehicleCategory.name;
+      if (selectedVehicle.vehicle_models) {
+        vName = selectedVehicle.vehicle_models.name;
+        vBrand = selectedVehicle.vehicle_models.brands?.name || '';
+      } else if (selectedVehicle.chauffeur_vehicle_categories) {
+        vName = selectedVehicle.chauffeur_vehicle_categories.name;
       }
-      if (selectedVehicle.brand) {
-        vBrand = selectedVehicle.brand.name;
+      if (selectedVehicle.brands) {
+        vBrand = selectedVehicle.brands.name;
       }
 
       setVehicleName(vName);

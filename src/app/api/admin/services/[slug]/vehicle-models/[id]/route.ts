@@ -127,6 +127,32 @@ export async function PUT(
       }
     }
 
+    // Brand validation - optional for equipment-rental and packers-and-movers
+    const brandOptionalServices = ['equipment-rental', 'packers-and-movers'];
+    const isBrandOptional = brandOptionalServices.includes(serviceSlug);
+
+    // If brandId is being updated and brand is not optional, it cannot be null
+    if (!isBrandOptional && brandId !== undefined && !brandId) {
+      return NextResponse.json(
+        { error: 'Brand is required for this service' },
+        { status: 400 }
+      );
+    }
+
+    // Verify brand belongs to this service (if provided and not null)
+    if (brandId && brandId !== existing.brandId) {
+      const brand = await prisma.brands.findFirst({
+        where: { id: brandId, serviceId: service.id },
+      });
+
+      if (!brand) {
+        return NextResponse.json(
+          { error: 'Brand does not belong to this service' },
+          { status: 400 }
+        );
+      }
+    }
+
     const model = await prisma.vehicle_models.update({
       where: { id },
       data: {

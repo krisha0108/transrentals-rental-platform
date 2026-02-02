@@ -103,8 +103,8 @@ export default function LuxurySendQuoteScreen({ navigation, route }) {
       // Filter luxury fleet
       const luxuryFleet = (fleetsData.fleet || fleetsData.fleets || fleetsData.vehicles || []).filter(
         (v) =>
-          v.service?.slug === 'luxury-car-rental' ||
-          v.service?.name?.toLowerCase().includes('luxury')
+          v.services?.slug === 'luxury-car-rental' ||
+          v.services?.name?.toLowerCase().includes('luxury')
       );
       setFleetVehicles(luxuryFleet);
 
@@ -157,13 +157,13 @@ export default function LuxurySendQuoteScreen({ navigation, route }) {
       let vName = '';
       let vBrand = '';
       if (selectedVehicle.vehicleModel) {
-        vName = selectedVehicle.vehicleModel.name;
-        vBrand = selectedVehicle.vehicleModel.brand?.name || '';
+        vName = selectedVehicle.vehicle_models.name;
+        vBrand = selectedVehicle.vehicle_models.brand?.name || '';
       } else if (selectedVehicle.vehicleCategory) {
-        vName = selectedVehicle.vehicleCategory.name;
+        vName = selectedVehicle.chauffeur_vehicle_categories.name;
       }
       if (selectedVehicle.brand) {
-        vBrand = selectedVehicle.brand.name;
+        vBrand = selectedVehicle.brands.name;
       }
 
       setVehicleName(vName);

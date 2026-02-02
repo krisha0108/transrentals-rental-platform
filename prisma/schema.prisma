@@ -3007,7 +3007,7 @@ model vehicle_models {
   slug                                           String
   serviceId                                      String
   subServiceId                                   String?
-  brandId                                        String
+  brandId                                        String?
   sideImage                                      String?
   fuelType                                       String?
   transmission                                   String?
@@ -3044,7 +3044,7 @@ model vehicle_models {
   self_drive_quote_requests                      self_drive_quote_requests[]
   self_drive_quotes                              self_drive_quotes[]
   vehicle_model_locations                        vehicle_model_locations[]
-  brands                                         brands                        @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  brands                                         brands?                       @relation(fields: [brandId], references: [id], onDelete: Cascade)
   services_vehicle_models_serviceIdToservices    services                      @relation("vehicle_models_serviceIdToservices", fields: [serviceId], references: [id], onDelete: Cascade)
   services_vehicle_models_subServiceIdToservices services?                     @relation("vehicle_models_subServiceIdToservices", fields: [subServiceId], references: [id])
   chauffeur_vehicle_categories                   chauffeur_vehicle_categories? @relation(fields: [vehicleCategoryId], references: [id])

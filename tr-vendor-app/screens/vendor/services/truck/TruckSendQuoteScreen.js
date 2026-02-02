@@ -103,9 +103,9 @@ export default function TruckSendQuoteScreen({ navigation, route }) {
       // Filter truck fleet
       const truckFleet = (fleetsData.fleet || fleetsData.fleets || fleetsData.vehicles || []).filter(
         (v) =>
-          v.service?.slug === 'truck-rental' ||
-          v.service?.name?.toLowerCase().includes('truck') ||
-          v.service?.name?.toLowerCase().includes('goods')
+          v.services?.slug === 'truck-rental' ||
+          v.services?.name?.toLowerCase().includes('truck') ||
+          v.services?.name?.toLowerCase().includes('goods')
       );
       setFleetVehicles(truckFleet);
 
@@ -167,13 +167,13 @@ export default function TruckSendQuoteScreen({ navigation, route }) {
       let vName = '';
       let vBrand = '';
       if (selectedVehicle.vehicleModel) {
-        vName = selectedVehicle.vehicleModel.name;
-        vBrand = selectedVehicle.vehicleModel.brand?.name || '';
+        vName = selectedVehicle.vehicle_models.name;
+        vBrand = selectedVehicle.vehicle_models.brand?.name || '';
       } else if (selectedVehicle.vehicleCategory) {
-        vName = selectedVehicle.vehicleCategory.name;
+        vName = selectedVehicle.chauffeur_vehicle_categories.name;
       }
       if (selectedVehicle.brand) {
-        vBrand = selectedVehicle.brand.name;
+        vBrand = selectedVehicle.brands.name;
       }
 
       setVehicleName(vName);

@@ -273,23 +273,44 @@ export async function POST(
     } = body;
 
     // Validate required fields
-    if (!name || !vehicleSlug || !brandId) {
+    if (!name || !vehicleSlug) {
       return NextResponse.json(
-        { error: 'Name, slug, and brand are required', received: { name, vehicleSlug, brandId } },
+        { error: 'Name and slug are required', received: { name, vehicleSlug } },
         { status: 400 }
       );
     }
 
-    // Check if brand exists
-    const brand = await prisma.brands.findUnique({
-      where: { id: brandId },
-    });
+    // Brand is optional for equipment-rental and packers-and-movers
+    const brandOptionalServices = ['equipment-rental', 'packers-and-movers'];
+    const isBrandOptional = brandOptionalServices.includes(slug);
 
-    if (!brand) {
+    if (!isBrandOptional && !brandId) {
       return NextResponse.json(
-        { error: 'Brand not found', brandId },
+        { error: 'Brand is required for this service', received: { name, vehicleSlug, brandId } },
         { status: 400 }
       );
+    }
+
+    // Check if brand exists (if provided)
+    if (brandId) {
+      const brand = await prisma.brands.findUnique({
+        where: { id: brandId },
+      });
+
+      if (!brand) {
+        return NextResponse.json(
+          { error: 'Brand not found', brandId },
+          { status: 400 }
+        );
+      }
+
+      // Verify brand belongs to this service
+      if (brand.serviceId !== service.id) {
+        return NextResponse.json(
+          { error: 'Brand does not belong to this service' },
+          { status: 400 }
+        );
+      }
     }
 
     // Validate subServiceId and get category info if provided
@@ -388,7 +409,7 @@ export async function POST(
         slug: vehicleSlug,
         serviceId: service.id,
         subServiceId: validSubServiceId,
-        brandId,
+        brandId: brandId || null,
         fuelType: fuelType || null,
         transmission: transmission || null,
         seatingCapacity: seatingCapacity ? parseInt(String(seatingCapacity)) : null,
@@ -406,7 +427,7 @@ export async function POST(
         monthlyDiscount: monthlyDiscount ? parseFloat(String(monthlyDiscount)) : null,
       },
       include: {
-        brands: true,
+        brands: brandId ? true : false, // Only include brands if brandId exists
         services_vehicle_models_subServiceIdToservices: true,
       },
     });

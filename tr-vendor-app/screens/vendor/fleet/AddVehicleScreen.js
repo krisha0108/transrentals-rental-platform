@@ -65,7 +65,14 @@ export default function AddVehicleScreen({ route, navigation }) {
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [selectedBrand, setSelectedBrand] = useState(null);
   const [selectedLocations, setSelectedLocations] = useState([]);
-  const [images, setImages] = useState([]);
+  // Change images to object with 5 specific types
+  const [vehicleImages, setVehicleImages] = useState({
+    front: null,
+    back: null,
+    leftSide: null,
+    rightSide: null,
+    inside: null,
+  });
   const [form, setForm] = useState({
     registrationNumber: '',
     yearOfManufacture: '',
@@ -90,6 +97,7 @@ export default function AddVehicleScreen({ route, navigation }) {
   const [showBrandModal, setShowBrandModal] = useState(false);
   const [showLocationModal, setShowLocationModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [locationSearch, setLocationSearch] = useState('');
 
   // Fetch data on mount
   useEffect(() => {
@@ -146,13 +154,41 @@ export default function AddVehicleScreen({ route, navigation }) {
         });
       }
 
-      // Set images
+      // Set images - handle array, string, and object formats
       if (existingVehicle.images) {
-        const imgs = typeof existingVehicle.images === 'string'
-          ? JSON.parse(existingVehicle.images)
-          : existingVehicle.images;
+        let imgs = existingVehicle.images;
+
+        // Parse if string
+        if (typeof imgs === 'string') {
+          try {
+            imgs = JSON.parse(imgs);
+          } catch (e) {
+            console.log('Failed to parse images:', e);
+            imgs = {};
+          }
+        }
+
+        // Convert to new object format
         if (Array.isArray(imgs)) {
-          setImages(imgs.map(uri => ({ uri, isExisting: true })));
+          // Old format: array of URIs - convert to object format
+          console.log('[AddVehicle] Converting old array format to new object format');
+          const imageObj = {};
+          const keys = ['front', 'back', 'leftSide', 'rightSide', 'inside'];
+          imgs.forEach((uri, index) => {
+            if (uri && index < keys.length) {
+              imageObj[keys[index]] = { uri, isExisting: true };
+            }
+          });
+          setVehicleImages(imageObj);
+        } else if (typeof imgs === 'object' && imgs !== null) {
+          // New format: { front, back, leftSide, rightSide, inside }
+          const imageObj = {};
+          Object.keys(imgs).forEach(key => {
+            if (imgs[key]) {
+              imageObj[key] = { uri: imgs[key], isExisting: true };
+            }
+          });
+          setVehicleImages(imageObj);
         }
       }
     }
@@ -162,11 +198,37 @@ export default function AddVehicleScreen({ route, navigation }) {
     try {
       const data = await getVendorFleet();
       setApprovedServices(data.approvedServices || []);
-      setVehicleModels(data.vehicleModels || []);
+
+      // Transform vehicle models to include full image URLs
+      const baseURL = await import('../../api/client').then(m => m.getBaseURL());
+      const transformedModels = (data.vehicleModels || []).map(model => {
+        if (model.sideImage && !model.sideImage.startsWith('http')) {
+          // Convert relative path to full URL
+          return {
+            ...model,
+            sideImage: `${baseURL}${model.sideImage}`
+          };
+        }
+        return model;
+      });
+
+      setVehicleModels(transformedModels);
       setBrands(data.brands || []);
       setVehicleCategories(data.vehicleCategories || []);
       setApprovedLocations(data.approvedLocations || []);
       setTripTypes(data.tripTypes || []);
+
+      // Debug: Check transformed URLs
+      console.log('[AddVehicle] Total vehicle models:', transformedModels.length);
+      const modelsWithImages = transformedModels.filter(m => m.sideImage);
+      console.log('[AddVehicle] Models with sideImage:', modelsWithImages.length);
+      if (modelsWithImages.length > 0) {
+        console.log('[AddVehicle] Sample transformed image URLs:', modelsWithImages.slice(0, 2).map(m => ({
+          name: m.name,
+          brand: m.brand?.name,
+          sideImage: m.sideImage
+        })));
+      }
     } catch (error) {
       console.log('Error fetching fleet data:', error);
       Alert.alert('Error', 'Failed to load data. Please try again.');
@@ -195,9 +257,12 @@ export default function AddVehicleScreen({ route, navigation }) {
   };
 
   const serviceType = getServiceType(selectedService);
-  const needsModel = ['self-drive', 'bike', 'bus', 'luxury'].includes(serviceType);
+  // ALL services now need model selection (including truck, equipment, packers)
+  const needsModel = ['self-drive', 'bike', 'bus', 'luxury', 'truck', 'equipment', 'packers'].includes(serviceType);
   const needsCategoryAndBrand = serviceType === 'car-rental';
-  const needsCategoryOnly = ['truck', 'equipment', 'packers'].includes(serviceType);
+  // No service needs category-only anymore (all use models now)
+  const needsCategoryOnly = false;
+  const needsVehicleImages = ['self-drive', 'bike', 'bus', 'car-rental', 'luxury'].includes(serviceType);
 
   // Filter models by selected service
   const filteredModels = useMemo(() => {
@@ -260,26 +325,34 @@ export default function AddVehicleScreen({ route, navigation }) {
     setPricing(prev => ({ ...prev, [key]: value }));
   };
 
-  const pickImages = async () => {
+  const pickImage = async (imageType) => {
     const result = await launchImageLibrary({
       mediaType: 'photo',
-      selectionLimit: 5 - images.length,
+      selectionLimit: 1,
       quality: 0.8,
+      includeBase64: true, // Include base64 for upload
     });
 
-    if (result.assets) {
-      const newImages = result.assets.map(asset => ({
-        uri: asset.uri,
-        type: asset.type,
-        name: asset.fileName,
-        isExisting: false,
+    if (result.assets && result.assets[0]) {
+      const asset = result.assets[0];
+      // Store both uri (for display) and base64 (for upload)
+      setVehicleImages(prev => ({
+        ...prev,
+        [imageType]: {
+          uri: asset.uri,
+          base64: `data:${asset.type};base64,${asset.base64}`,
+          type: asset.type,
+          name: asset.fileName,
+        }
       }));
-      setImages(prev => [...prev, ...newImages]);
     }
   };
 
-  const removeImage = (index) => {
-    setImages(prev => prev.filter((_, i) => i !== index));
+  const removeImage = (imageType) => {
+    setVehicleImages(prev => ({
+      ...prev,
+      [imageType]: null
+    }));
   };
 
   const toggleLocation = (location) => {
@@ -290,6 +363,14 @@ export default function AddVehicleScreen({ route, navigation }) {
       }
       return [...prev, location];
     });
+  };
+
+  const selectAllLocations = () => {
+    setSelectedLocations([...approvedLocations]);
+  };
+
+  const deselectAllLocations = () => {
+    setSelectedLocations([]);
   };
 
   const validateForm = () => {
@@ -326,6 +407,15 @@ export default function AddVehicleScreen({ route, navigation }) {
 
     setSubmitting(true);
     try {
+      // Build image object with base64 data for upload
+      const imageData = {};
+      Object.keys(vehicleImages).forEach(key => {
+        if (vehicleImages[key]) {
+          // Send base64 data for new images, or uri for existing images
+          imageData[key] = vehicleImages[key].base64 || vehicleImages[key].uri || vehicleImages[key];
+        }
+      });
+
       // Build request body
       const requestBody = {
         serviceId: selectedService.id,
@@ -333,7 +423,8 @@ export default function AddVehicleScreen({ route, navigation }) {
         yearOfManufacture: form.yearOfManufacture ? parseInt(form.yearOfManufacture) : null,
         color: form.color || null,
         locationIds: selectedLocations.map(l => l.id),
-        images: images.filter(img => img.isExisting).map(img => img.uri),
+        // Include vehicle images as stringified JSON (matching web app format)
+        images: Object.keys(imageData).length > 0 ? JSON.stringify(imageData) : null,
       };
 
       // Add model or category based on service type
@@ -518,7 +609,16 @@ export default function AddVehicleScreen({ route, navigation }) {
                 {selectedModel ? (
                   <View style={styles.selectedItem}>
                     {selectedModel.sideImage ? (
-                      <Image source={{ uri: selectedModel.sideImage }} style={styles.modelImage} />
+                      <Image
+                        source={{ uri: selectedModel.sideImage }}
+                        style={styles.modelImage}
+                        onError={(e) => {
+                          console.log(`[AddVehicle] Selected model image error for ${selectedModel.name}:`, e.nativeEvent?.error);
+                        }}
+                        onLoad={() => {
+                          console.log('[AddVehicle] Selected model image loaded:', selectedModel.name);
+                        }}
+                      />
                     ) : (
                       <View style={styles.selectedIcon}>
                         <Ionicons name="car" size={20} color={C.brand} />
@@ -650,29 +750,54 @@ export default function AddVehicleScreen({ route, navigation }) {
               </View>
             </View>
 
-            {/* Images */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Vehicle Images</Text>
-              <View style={styles.imagesContainer}>
-                {images.map((img, index) => (
-                  <View key={index} style={styles.imageWrapper}>
-                    <Image source={{ uri: img.uri }} style={styles.imagePreview} />
-                    <TouchableOpacity
-                      style={styles.removeImageBtn}
-                      onPress={() => removeImage(index)}
-                    >
-                      <Icon name="x" size={12} color="#fff" />
-                    </TouchableOpacity>
+            {/* Images - Only for specific services */}
+            {needsVehicleImages && (
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Vehicle Images (Optional)</Text>
+                <Text style={[styles.label, { fontSize: 12, fontWeight: '400', color: C.muted, marginBottom: 12 }]}>
+                  Upload images from different angles to help customers see your vehicle better
+                </Text>
+
+                {[
+                  { key: 'front', label: 'Front View', description: 'Front side of the vehicle' },
+                  { key: 'back', label: 'Back View', description: 'Rear side of the vehicle' },
+                  { key: 'leftSide', label: 'Left Side View', description: 'Left side of the vehicle' },
+                  { key: 'rightSide', label: 'Right Side View', description: 'Right side of the vehicle' },
+                  { key: 'inside', label: 'Interior View', description: 'Inside/dashboard view' },
+                ].map((imageType) => (
+                  <View key={imageType.key} style={styles.imageTypeContainer}>
+                    <View style={styles.imageTypeHeader}>
+                      <Text style={styles.imageTypeLabel}>{imageType.label}</Text>
+                      <Text style={styles.imageTypeDescription}>{imageType.description}</Text>
+                    </View>
+
+                    {vehicleImages[imageType.key] ? (
+                      <View style={styles.imagePreviewContainer}>
+                        <Image
+                          source={{ uri: vehicleImages[imageType.key].uri }}
+                          style={styles.imagePreviewLarge}
+                        />
+                        <TouchableOpacity
+                          style={styles.removeImageBtnLarge}
+                          onPress={() => removeImage(imageType.key)}
+                        >
+                          <Icon name="x" size={16} color="#fff" />
+                        </TouchableOpacity>
+                      </View>
+                    ) : (
+                      <TouchableOpacity
+                        style={styles.imageUploadBtn}
+                        onPress={() => pickImage(imageType.key)}
+                      >
+                        <Icon name="camera" size={24} color={C.muted} />
+                        <Text style={styles.imageUploadText}>Tap to upload</Text>
+                        <Text style={styles.imageUploadSubtext}>Max 5MB</Text>
+                      </TouchableOpacity>
+                    )}
                   </View>
                 ))}
-                {images.length < 5 && (
-                  <TouchableOpacity style={styles.addImageBtn} onPress={pickImages}>
-                    <Icon name="camera" size={20} color={C.muted} />
-                    <Text style={styles.addImageText}>Add</Text>
-                  </TouchableOpacity>
-                )}
               </View>
-            </View>
+            )}
           </View>
         )}
 
@@ -868,13 +993,20 @@ export default function AddVehicleScreen({ route, navigation }) {
           <TouchableOpacity
             style={[styles.modalItem, isSelected && styles.modalItemSelected]}
             onPress={() => {
+              console.log(`[AddVehicle] Model selected: ${item.name}, has image: ${!!item.sideImage}`);
               setSelectedModel(item);
               setShowModelModal(false);
               setSearchQuery('');
             }}
           >
             {item.sideImage ? (
-              <Image source={{ uri: item.sideImage }} style={styles.modalModelImage} />
+              <Image
+                source={{ uri: item.sideImage }}
+                style={styles.modalModelImage}
+                onError={(e) => {
+                  console.log(`[AddVehicle Modal] Image error for ${item.name}:`, item.sideImage);
+                }}
+              />
             ) : (
               <View style={[styles.modalItemIcon, isSelected && styles.modalItemIconSelected]}>
                 <Ionicons name="car" size={20} color={isSelected ? '#fff' : C.brand} />
@@ -981,17 +1113,52 @@ export default function AddVehicleScreen({ route, navigation }) {
               </TouchableOpacity>
             </View>
 
+            {/* Search Box */}
+            <View style={styles.searchBox}>
+              <Icon name="search" size={18} color={C.muted} />
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Search locations..."
+                placeholderTextColor={C.muted}
+                value={locationSearch}
+                onChangeText={setLocationSearch}
+              />
+              {locationSearch.length > 0 && (
+                <TouchableOpacity onPress={() => setLocationSearch('')}>
+                  <Icon name="x-circle" size={18} color={C.muted} />
+                </TouchableOpacity>
+              )}
+            </View>
+
+            {/* Select All / Deselect All */}
+            <View style={styles.bulkActionsRow}>
+              <TouchableOpacity
+                style={styles.bulkActionBtn}
+                onPress={selectAllLocations}
+              >
+                <Icon name="check-square" size={16} color={C.blue} />
+                <Text style={styles.bulkActionText}>Select All</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.bulkActionBtn}
+                onPress={deselectAllLocations}
+              >
+                <Icon name="square" size={16} color={C.muted} />
+                <Text style={[styles.bulkActionText, { color: C.muted }]}>Deselect All</Text>
+              </TouchableOpacity>
+            </View>
+
             {selectedLocations.length > 0 && (
               <View style={styles.selectedCountBar}>
                 <Text style={styles.selectedCountText}>{selectedLocations.length} selected</Text>
-                <TouchableOpacity onPress={() => setSelectedLocations([])}>
-                  <Text style={styles.clearAllText}>Clear all</Text>
-                </TouchableOpacity>
               </View>
             )}
 
             <FlatList
-              data={approvedLocations}
+              data={approvedLocations.filter(loc =>
+                locationSearch.trim() === '' ||
+                loc.name.toLowerCase().includes(locationSearch.toLowerCase())
+              )}
               keyExtractor={item => item.id}
               renderItem={({ item }) => {
                 const isSelected = selectedLocations.some(l => l.id === item.id);
@@ -1191,43 +1358,75 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
   },
 
-  // Images
-  imagesContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
+  // Images - New 5-type format
+  imageTypeContainer: {
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: C.border,
+    borderRadius: 12,
+    padding: 12,
+    backgroundColor: C.bg,
   },
-  imageWrapper: {
+  imageTypeHeader: {
+    marginBottom: 10,
+  },
+  imageTypeLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: C.text,
+    marginBottom: 2,
+  },
+  imageTypeDescription: {
+    fontSize: 12,
+    color: C.muted,
+  },
+  imagePreviewContainer: {
     position: 'relative',
+    width: '100%',
+    height: 150,
+    borderRadius: 10,
+    overflow: 'hidden',
   },
-  imagePreview: {
-    width: 70,
-    height: 70,
+  imagePreviewLarge: {
+    width: '100%',
+    height: '100%',
     borderRadius: 10,
   },
-  removeImageBtn: {
+  removeImageBtnLarge: {
     position: 'absolute',
-    top: -6,
-    right: -6,
-    width: 20,
-    height: 20,
-    borderRadius: 10,
+    top: 8,
+    right: 8,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     backgroundColor: C.red,
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 5,
   },
-  addImageBtn: {
-    width: 70,
-    height: 70,
+  imageUploadBtn: {
+    width: '100%',
+    height: 120,
     borderRadius: 10,
     borderWidth: 2,
     borderColor: C.border,
     borderStyle: 'dashed',
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: C.surface,
   },
-  addImageText: {
-    fontSize: 10,
+  imageUploadText: {
+    fontSize: 13,
+    color: C.muted,
+    marginTop: 6,
+    fontWeight: '500',
+  },
+  imageUploadSubtext: {
+    fontSize: 11,
     color: C.muted,
     marginTop: 2,
   },
@@ -1364,6 +1563,33 @@ const styles = StyleSheet.create({
   },
 
   // Location modal
+  bulkActionsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: C.border,
+    gap: 12,
+  },
+  bulkActionBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    backgroundColor: C.surface,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: C.border,
+    gap: 6,
+  },
+  bulkActionText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: C.blue,
+  },
   selectedCountBar: {
     flexDirection: 'row',
     justifyContent: 'space-between',

@@ -101,9 +101,10 @@ export default function BusSendQuoteScreen({ navigation, route }) {
       // Filter bus fleet
       const busFleet = (fleetsData.fleet || fleetsData.fleets || fleetsData.vehicles || []).filter(
         (v) =>
-          v.service?.slug === 'bus-rental' ||
-          v.service?.name?.toLowerCase().includes('bus')
+          v.services?.slug === 'bus-rental' ||
+          v.services?.name?.toLowerCase().includes('bus')
       );
+      console.log('[Bus] Total fleet:', fleetsData.fleet?.length || 0, 'Filtered:', busFleet.length);
       setFleetVehicles(busFleet);
 
       // Set active templates
@@ -162,15 +163,15 @@ export default function BusSendQuoteScreen({ navigation, route }) {
     if (selectedVehicle) {
       // Build vehicle name: Brand + Model or just Category
       let displayName = '';
-      if (selectedVehicle.vehicleModel) {
-        const brandName = selectedVehicle.vehicleModel.brand?.name || '';
+      if (selectedVehicle.vehicle_models) {
+        const brandName = selectedVehicle.vehicle_models.brands?.name || '';
         displayName = brandName
-          ? `${brandName} ${selectedVehicle.vehicleModel.name}`
-          : selectedVehicle.vehicleModel.name;
-      } else if (selectedVehicle.brand && selectedVehicle.vehicleCategory) {
-        displayName = `${selectedVehicle.brand.name} ${selectedVehicle.vehicleCategory.name}`;
-      } else if (selectedVehicle.vehicleCategory) {
-        displayName = selectedVehicle.vehicleCategory.name;
+          ? `${brandName} ${selectedVehicle.vehicle_models.name}`
+          : selectedVehicle.vehicle_models.name;
+      } else if (selectedVehicle.brands && selectedVehicle.chauffeur_vehicle_categories) {
+        displayName = `${selectedVehicle.brands.name} ${selectedVehicle.chauffeur_vehicle_categories.name}`;
+      } else if (selectedVehicle.chauffeur_vehicle_categories) {
+        displayName = selectedVehicle.chauffeur_vehicle_categories.name;
       }
 
       setVehicleName(displayName);
@@ -368,14 +369,14 @@ export default function BusSendQuoteScreen({ navigation, route }) {
               ...fleetVehicles.map((vehicle) => {
                 // Build display name like web app
                 let displayName = '';
-                if (vehicle.vehicleModel) {
-                  displayName = vehicle.vehicleModel.brand?.name
-                    ? `${vehicle.vehicleModel.brand.name} ${vehicle.vehicleModel.name}`
-                    : vehicle.vehicleModel.name;
-                } else if (vehicle.brand && vehicle.vehicleCategory) {
-                  displayName = `${vehicle.brand.name} ${vehicle.vehicleCategory.name}`;
-                } else if (vehicle.vehicleCategory) {
-                  displayName = vehicle.vehicleCategory.name;
+                if (vehicle.vehicle_models) {
+                  displayName = vehicle.vehicle_models.brands?.name
+                    ? `${vehicle.vehicle_models.brands.name} ${vehicle.vehicle_models.name}`
+                    : vehicle.vehicle_models.name;
+                } else if (vehicle.brands && vehicle.chauffeur_vehicle_categories) {
+                  displayName = `${vehicle.brands.name} ${vehicle.chauffeur_vehicle_categories.name}`;
+                } else if (vehicle.chauffeur_vehicle_categories) {
+                  displayName = vehicle.chauffeur_vehicle_categories.name;
                 }
                 const regNum = vehicle.registrationNumber ? ` (${vehicle.registrationNumber})` : '';
                 return {

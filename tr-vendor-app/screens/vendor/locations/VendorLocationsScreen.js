@@ -125,15 +125,15 @@ export default function VendorLocationsScreen({ navigation }) {
   };
 
   const isLocationApproved = (locationId) => {
-    return approvedLocations.some((al) => al.location?.id === locationId || al.locationId === locationId);
+    return approvedLocations.some((al) => al.locations?.id === locationId || al.locationId === locationId);
   };
 
   const hasLocationRequest = (locationId) => {
-    return requests.some((r) => r.location?.id === locationId || r.locationId === locationId);
+    return requests.some((r) => r.locations?.id === locationId || r.locationId === locationId);
   };
 
   const getLocationRequest = (locationId) => {
-    return requests.find((r) => r.location?.id === locationId || r.locationId === locationId);
+    return requests.find((r) => r.locations?.id === locationId || r.locationId === locationId);
   };
 
   const toggleLocationSelection = (location) => {
@@ -346,9 +346,9 @@ export default function VendorLocationsScreen({ navigation }) {
               {approvedLocations.map((item) => (
                 <View key={item.id} style={styles.locationChip}>
                   <Ionicons name="location" size={16} color={BRAND.green} />
-                  <Text style={styles.locationChipText}>{item.location?.name}</Text>
-                  {item.location?.parent && (
-                    <Text style={styles.locationChipParent}>({item.location.parent.name})</Text>
+                  <Text style={styles.locationChipText}>{item.locations?.name}</Text>
+                  {item.locations?.parent && (
+                    <Text style={styles.locationChipParent}>({item.locations.parent.name})</Text>
                   )}
                 </View>
               ))}
@@ -372,9 +372,9 @@ export default function VendorLocationsScreen({ navigation }) {
                   <Ionicons name="location" size={20} color={BRAND.yellow} />
                   <View style={styles.requestInfo}>
                     <Text style={styles.requestName}>
-                      {request.location?.name}
-                      {request.location?.parent && (
-                        <Text style={styles.requestParent}> ({request.location.parent.name})</Text>
+                      {request.locations?.name}
+                      {request.locations?.parent && (
+                        <Text style={styles.requestParent}> ({request.locations.parent.name})</Text>
                       )}
                     </Text>
                     <Text style={styles.requestDate}>
@@ -406,9 +406,9 @@ export default function VendorLocationsScreen({ navigation }) {
                   <Ionicons name="location" size={20} color={BRAND.error} />
                   <View style={styles.requestInfo}>
                     <Text style={styles.requestName}>
-                      {request.location?.name}
-                      {request.location?.parent && (
-                        <Text style={styles.requestParent}> ({request.location.parent.name})</Text>
+                      {request.locations?.name}
+                      {request.locations?.parent && (
+                        <Text style={styles.requestParent}> ({request.locations.parent.name})</Text>
                       )}
                     </Text>
                     {request.rejectionReason && (

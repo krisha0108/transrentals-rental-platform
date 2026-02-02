@@ -4,6 +4,8 @@ import { prisma } from '@/lib/db/prisma';
 import { transformPrismaResponse } from '@/lib/utils/api-transform';
 import { getVendorAuth } from '@/lib/auth/vendor-mobile-auth';
 import crypto from 'crypto';
+import fs from 'fs';
+import path from 'path';
 
 import logger from '@/lib/security/logger';
 export const dynamic = 'force-dynamic';
@@ -11,6 +13,78 @@ export const dynamic = 'force-dynamic';
 // Helper to generate a unique ID
 function generateId(): string {
   return 'c' + crypto.randomBytes(12).toString('base64url').toLowerCase().slice(0, 24);
+}
+
+// Helper to process base64 images
+async function processVehicleImages(images: any): Promise<string | null> {
+  if (!images) return null;
+
+  // Parse if string
+  let imageData = images;
+  if (typeof images === 'string') {
+    try {
+      imageData = JSON.parse(images);
+    } catch (e) {
+      // If it's not valid JSON, return as-is
+      return images;
+    }
+  }
+
+  // If it's an object with image types (front, back, etc.)
+  if (typeof imageData === 'object' && !Array.isArray(imageData)) {
+    const processedImages: Record<string, string> = {};
+    const uploadDir = path.join(process.cwd(), 'public', 'uploads', 'fleet');
+
+    // Ensure upload directory exists
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+
+    for (const [key, value] of Object.entries(imageData)) {
+      if (value && typeof value === 'string') {
+        // Check if it's a base64 image
+        if (value.startsWith('data:image')) {
+          try {
+            // Extract base64 data
+            const matches = value.match(/^data:image\/(\w+);base64,(.+)$/);
+            if (matches) {
+              const extension = matches[1];
+              const base64Data = matches[2];
+
+              // Generate unique filename
+              const filename = `${Date.now()}-${crypto.randomBytes(8).toString('hex')}.${extension}`;
+              const filepath = path.join(uploadDir, filename);
+
+              // Write file
+              fs.writeFileSync(filepath, Buffer.from(base64Data, 'base64'));
+
+              // Store relative path
+              processedImages[key] = `/uploads/fleet/${filename}`;
+
+              logger.info(`Saved ${key} image: ${filename}`);
+            } else {
+              processedImages[key] = value; // Keep as-is if format doesn't match
+            }
+          } catch (error) {
+            logger.error(`Failed to process ${key} image`, error);
+            processedImages[key] = value; // Keep original on error
+          }
+        } else {
+          // Not base64, keep as-is (could be existing URL)
+          processedImages[key] = value;
+        }
+      }
+    }
+
+    return JSON.stringify(processedImages);
+  }
+
+  // If it's an array, return as-is (old format)
+  if (Array.isArray(imageData)) {
+    return JSON.stringify(imageData);
+  }
+
+  return null;
 }
 
 // GET - Get vendor's fleet with all necessary data for the fleet page
@@ -156,7 +230,7 @@ export async function GET(request: NextRequest) {
     // Transform vehicle models - handle null brand gracefully and map service relation
     const vehicleModels = rawModels.map((model: any) => ({
       ...model,
-      brand: model.brands || { id: '', name: 'Unknown Brand', slug: '', logo: null },
+      brand: model.brands || { id: '', name: '', slug: '', logo: null }, // Blank instead of "Unknown Brand"
       service: model.services_vehicle_models_serviceIdToservices || null,
       vehicle_category: model.chauffeur_vehicle_categories || null,
     }));
@@ -271,7 +345,7 @@ export async function POST(request: NextRequest) {
     const isBikeRental = serviceSlug.includes('bike') || serviceName.includes('bike');
     const isBusRental = serviceSlug.includes('bus') || serviceName.includes('bus');
 
-    // Truck, Equipment, Packers - only need category (no model)
+    // Truck, Equipment, Packers - NOW need model selection (admin adds models with category)
     const isTruckRental = serviceSlug.includes('truck') || serviceName.includes('truck') ||
       serviceName.includes('transporter') || serviceSlug.includes('transporter');
     const isEquipmentRental = serviceSlug.includes('equipment') || serviceName.includes('equipment') ||
@@ -281,9 +355,6 @@ export async function POST(request: NextRequest) {
 
     // Luxury car rental - needs model selection (like bike/bus)
     const isLuxuryCarRental = serviceSlug.includes('luxury') || serviceName.includes('luxury');
-
-    // Category-only services: truck, equipment, packers (no model selection)
-    const isCategoryOnlyService = isTruckRental || isEquipmentRental || isPackersMovers;
 
     // Car rental (with driver) - only if NOT self-drive, NOT bike, and NOT luxury
     const isCarRental = !isSelfDrive && !isBikeRental && !isLuxuryCarRental && (
@@ -299,19 +370,19 @@ export async function POST(request: NextRequest) {
           { status: 400 }
         );
       }
-    } else if (isCategoryOnlyService) {
-      // Truck, Equipment, Packers only need category
-      if (!vehicleCategoryId) {
-        return NextResponse.json(
-          { success: false, error: 'Vehicle category is required' },
-          { status: 400 }
-        );
-      }
     } else {
-      // Bike rental, self-drive, bus, luxury need vehicle model
+      // All other services (bike, self-drive, bus, luxury, truck, equipment, packers) need vehicle model
       if (!vehicleModelId) {
         return NextResponse.json(
-          { success: false, error: `Vehicle model is required for ${isLuxuryCarRental ? 'luxury car rental' : isBikeRental ? 'bike rental' : isBusRental ? 'bus rental' : 'this service'}` },
+          { success: false, error: `Vehicle model is required for ${
+            isLuxuryCarRental ? 'luxury car rental' :
+            isBikeRental ? 'bike rental' :
+            isBusRental ? 'bus rental' :
+            isTruckRental ? 'truck rental' :
+            isEquipmentRental ? 'equipment rental' :
+            isPackersMovers ? 'packers and movers' :
+            'this service'
+          }` },
           { status: 400 }
         );
       }
@@ -334,8 +405,11 @@ export async function POST(request: NextRequest) {
     }
 
     // 5. Verify vehicle model or vehicle category exists
-    if (isCarRental || isCategoryOnlyService) {
-      // Verify vehicle category exists (for car rental, truck, equipment, packers)
+    let autoFetchedCategoryId = vehicleCategoryId;
+    let autoFetchedSubServiceId = subServiceId;
+
+    if (isCarRental) {
+      // Car rental needs category + brand
       const vehicle_category = await prisma.chauffeur_vehicle_categories.findUnique({
         where: { id: vehicleCategoryId },
       });
@@ -347,8 +421,8 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // Verify brand exists if provided (only for car rental)
-      if (isCarRental && brandId) {
+      // Verify brand exists if provided
+      if (brandId) {
         const brand = await prisma.brands.findUnique({
           where: { id: brandId },
         });
@@ -361,9 +435,12 @@ export async function POST(request: NextRequest) {
         }
       }
     } else {
-      // Verify vehicle model exists (for bike, self-drive, bus)
+      // All other services - verify vehicle model and auto-fetch category
       const vehicle_model = await prisma.vehicle_models.findUnique({
         where: { id: vehicleModelId },
+        include: {
+          chauffeur_vehicle_categories: true,
+        }
       });
 
       if (!vehicle_model) {
@@ -372,6 +449,10 @@ export async function POST(request: NextRequest) {
           { status: 400 }
         );
       }
+
+      // Auto-fetch category and subService from the model
+      autoFetchedCategoryId = vehicle_model.vehicleCategoryId || vehicleCategoryId;
+      autoFetchedSubServiceId = vehicle_model.subServiceId || subServiceId;
     }
 
     // 6. Verify locations are approved (if provided)
@@ -495,6 +576,9 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // 7. Process images (convert base64 to files)
+    const processedImages = await processVehicleImages(images);
+
     // 8. Create fleet entry
     const fleetVehicle = await prisma.vendor_fleets.create({
       data: {
@@ -502,13 +586,13 @@ export async function POST(request: NextRequest) {
         vendorId,
         vehicleModelId: vehicleModelId || null, // Optional for car-rental
         serviceId,
-        subServiceId: subServiceId || null,
-        vehicleCategoryId: vehicleCategoryId || null, // For car-rental
+        subServiceId: autoFetchedSubServiceId || null, // Auto-fetched from model
+        vehicleCategoryId: autoFetchedCategoryId || null, // Auto-fetched from model or provided for car-rental
         brandId: brandId || null, // For car-rental
         registrationNumber: registrationNumber || null,
         yearOfManufacture: yearOfManufacture ? parseInt(yearOfManufacture) : null,
         color: color || null,
-        images: Array.isArray(images) ? JSON.stringify(images) : (images || null),
+        images: processedImages,
         isActive: true,
         isAvailable: true,
         vendor_fleet_locations:
