@@ -380,6 +380,12 @@ export async function GET(
             },
           },
         },
+        locations: {
+          select: {
+            name: true,
+            slug: true,
+          },
+        },
       },
     });
 
@@ -416,11 +422,11 @@ export async function GET(
           customerName: equipmentQuote.customerName,
           customerPhone: equipmentQuote.customerPhone,
           customerEmail: equipmentQuote.customerEmail,
-          location: equipmentQuote.location,
+          location: equipmentQuote.deliveryCity,
           startDate: equipmentQuote.startDate,
           endDate: equipmentQuote.endDate,
           equipmentType: equipmentQuote.equipmentType,
-          location_name: equipmentQuote.location || equipmentQuote.locationName || 'N/A',
+          location_name: equipmentQuote.locations?.name || equipmentQuote.deliveryCity || 'N/A',
           status: equipmentQuote.status,
           createdAt: equipmentQuote.createdAt,
           service_name: firstQuote?.equipmentName || 'Equipment Rental',
@@ -437,8 +443,8 @@ export async function GET(
           not_included: firstQuote?.exclusions?.length > 0 ? firstQuote.exclusions.join(', ') : '',
           terms: firstQuote?.notes || '',
           booking: {
-            location_name: equipmentQuote.location || equipmentQuote.locationName || 'N/A',
-            destination: 'On-site',
+            location_name: equipmentQuote.locations?.name || equipmentQuote.deliveryCity || 'N/A',
+            destination: equipmentQuote.deliveryAddress || 'On-site',
             journey_datetime: equipmentQuote.startDate || null,
           },
         },
