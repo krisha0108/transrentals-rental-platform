@@ -889,7 +889,7 @@ export default function CarRentalFleetScreen({ navigation, route }) {
             <View style={styles.payViaButtons}>
               <TouchableOpacity style={styles.payViaBtn} onPress={() => handlePayVia('gpay')}>
                 <Image
-                  source={{ uri: 'https://upload.wikimedia.org/wikipedia/commons/f/f2/Google_Pay_Logo.svg' }}
+                  source={require('../../../assets/google-logo.png')}
                   style={styles.payViaIcon}
                   resizeMode="contain"
                 />
@@ -898,7 +898,7 @@ export default function CarRentalFleetScreen({ navigation, route }) {
 
               <TouchableOpacity style={styles.payViaBtn} onPress={() => handlePayVia('phonepe')}>
                 <Image
-                  source={{ uri: 'https://upload.wikimedia.org/wikipedia/commons/0/09/Phonepe-logo.svg' }}
+                  source={require('../../../assets/phonepe.png')}
                   style={styles.payViaIcon}
                   resizeMode="contain"
                 />
@@ -907,7 +907,7 @@ export default function CarRentalFleetScreen({ navigation, route }) {
 
               <TouchableOpacity style={styles.payViaBtn} onPress={() => handlePayVia('paytm')}>
                 <Image
-                  source={{ uri: 'https://upload.wikimedia.org/wikipedia/commons/2/24/Paytm_Logo_%28standalone%29.svg' }}
+                  source={require('../../../assets/paytm.jpg')}
                   style={styles.payViaIcon}
                   resizeMode="contain"
                 />

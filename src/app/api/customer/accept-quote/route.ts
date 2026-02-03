@@ -95,6 +95,15 @@ async function acceptTruckQuote(quoteRequestId: string, quoteId: string) {
     throw new Error('Quote does not belong to this request');
   }
 
+  // Check if a booking already exists for this quote request
+  const existingBooking = await prisma.truck_bookings.findFirst({
+    where: { quoteRequestId: quoteRequestId },
+  });
+
+  if (existingBooking) {
+    throw new Error('A booking already exists for this quote request');
+  }
+
   const bookingNumber = generateBookingNumber('TB');
 
   // Use transaction to ensure consistency
@@ -190,6 +199,15 @@ async function acceptPackersQuote(quoteRequestId: string, quoteId: string) {
     throw new Error('Quote does not belong to this request');
   }
 
+  // Check if a booking already exists for this quote request
+  const existingBooking = await prisma.packers_bookings.findFirst({
+    where: { quoteRequestId: quoteRequestId },
+  });
+
+  if (existingBooking) {
+    throw new Error('A booking already exists for this quote request');
+  }
+
   const bookingNumber = generateBookingNumber('PB');
 
   // Use transaction to ensure consistency
@@ -279,6 +297,15 @@ async function acceptEquipmentQuote(quoteRequestId: string, quoteId: string) {
 
   if (!request || quote.requestId !== quoteRequestId) {
     throw new Error('Quote does not belong to this request');
+  }
+
+  // Check if a booking already exists for this quote request
+  const existingBooking = await prisma.equipment_bookings.findFirst({
+    where: { quoteRequestId: quoteRequestId },
+  });
+
+  if (existingBooking) {
+    throw new Error('A booking already exists for this quote request');
   }
 
   const bookingNumber = generateBookingNumber('EB');
@@ -375,6 +402,15 @@ async function acceptBusQuote(quoteRequestId: string, quoteId: string) {
 
   if (!request || quote.requestId !== quoteRequestId) {
     throw new Error('Quote does not belong to this request');
+  }
+
+  // Check if a booking already exists for this quote request
+  const existingBooking = await prisma.bus_bookings.findFirst({
+    where: { quoteRequestId: quoteRequestId },
+  });
+
+  if (existingBooking) {
+    throw new Error('A booking already exists for this quote request');
   }
 
   const bookingNumber = generateBookingNumber('BB');
@@ -478,6 +514,15 @@ async function acceptBikeQuote(quoteRequestId: string, quoteId: string) {
     throw new Error('Quote does not belong to this request');
   }
 
+  // Check if a booking already exists for this quote request
+  const existingBooking = await prisma.bike_bookings.findFirst({
+    where: { quoteRequestId: quoteRequestId },
+  });
+
+  if (existingBooking) {
+    throw new Error('A booking already exists for this quote request');
+  }
+
   const bookingNumber = generateBookingNumber('BK');
 
   // Use transaction to ensure consistency
@@ -579,6 +624,15 @@ async function acceptSelfDriveQuote(quoteRequestId: string, quoteId: string) {
 
   if (!request || quote.requestId !== quoteRequestId) {
     throw new Error('Quote does not belong to this request');
+  }
+
+  // Check if a booking already exists for this quote request
+  const existingBooking = await prisma.car_bookings.findFirst({
+    where: { quoteRequestId: quoteRequestId },
+  });
+
+  if (existingBooking) {
+    throw new Error('A booking already exists for this quote request');
   }
 
   const bookingNumber = generateBookingNumber('SD');

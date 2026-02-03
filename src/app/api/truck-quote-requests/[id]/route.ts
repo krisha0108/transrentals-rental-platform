@@ -30,7 +30,15 @@ export async function GET(
         truck_quotes: {
           where: { status: { in: ['SENT', 'VIEWED', 'ACCEPTED'] } },
           include: {
-            vendors: { select: { id: true, businessName: true, rating: true, phone: true } },
+            vendors: {
+              select: {
+                id: true,
+                businessName: true,
+                rating: true,
+                phone: true,
+                totalRatings: true,
+              }
+            },
           },
           orderBy: { totalAmount: 'asc' },
         },
@@ -45,7 +53,15 @@ export async function GET(
           truck_quotes: {
             where: { status: { in: ['SENT', 'VIEWED', 'ACCEPTED'] } },
             include: {
-              vendors: { select: { id: true, businessName: true, rating: true, phone: true } },
+              vendors: {
+                select: {
+                  id: true,
+                  businessName: true,
+                  rating: true,
+                  phone: true,
+                  totalRatings: true,
+                }
+              },
             },
             orderBy: { totalAmount: 'asc' },
           },
@@ -63,7 +79,13 @@ export async function GET(
       data: { status: 'VIEWED', viewedAt: new Date() },
     });
 
-    return NextResponse.json({ success: true, quoteRequest });
+    // Add 'quotes' field for frontend compatibility
+    const responseData = {
+      ...quoteRequest,
+      quotes: quoteRequest.truck_quotes, // Map truck_quotes to quotes for frontend
+    };
+
+    return NextResponse.json({ success: true, quoteRequest: responseData });
   } catch (error: any) {
     logger.error('Failed to fetch truck quote request', error);
     return NextResponse.json({ error: 'Failed to fetch request', details: error?.message }, { status: 500 });

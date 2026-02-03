@@ -28,6 +28,7 @@ const { width, height } = Dimensions.get('window');
 const AMBER = '#F59E0B';
 const AMBER_DARK = '#D97706';
 const AMBER_LIGHT = '#FEF3C7';
+const LUXURY_GOLD = '#D4AF37';
 const BG = '#F9FAFB';
 const CARD_BG = '#FFFFFF';
 const TEXT_PRIMARY = '#111827';
@@ -413,12 +414,21 @@ export default function LuxuryQuoteDetailScreen() {
           </View>
 
           {!hasQuotes ? (
-            <View style={styles.noQuotesCard}>
-              <MaterialCommunityIcons name="clock-outline" size={48} color={TEXT_SECONDARY} />
-              <Text style={styles.noQuotesTitle}>Waiting for Quotes</Text>
-              <Text style={styles.noQuotesText}>
-                Vendors will send you quotes within 24-48 hours
+            <View style={styles.noQuotesContainer}>
+              <View style={styles.noQuotesIconCircle}>
+                <MaterialCommunityIcons name="receipt-text-outline" size={60} color={LUXURY_GOLD} />
+              </View>
+              <Text style={styles.noQuotesTitle}>No Quotations Yet</Text>
+              <Text style={styles.noQuotesMessage}>
+                Your request has been sent to vendors. They will review and send you competitive quotes soon.
               </Text>
+              <View style={styles.noQuotesInfoBox}>
+                <MaterialCommunityIcons name="clock-outline" size={20} color="#666" />
+                <Text style={styles.noQuotesInfoText}>
+                  Usually within 24-48 hours
+                </Text>
+              </View>
+              <Text style={styles.noQuotesPullRefresh}>Pull down to refresh</Text>
             </View>
           ) : (
             quoteRequest.quotes.map((quote, index) => (
@@ -1090,6 +1100,53 @@ const styles = StyleSheet.create({
     color: TEXT_SECONDARY,
     marginTop: 8,
     textAlign: 'center',
+  },
+  noQuotesContainer: {
+    backgroundColor: CARD_BG,
+    borderRadius: 20,
+    padding: 40,
+    alignItems: 'center',
+    marginVertical: 10,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  noQuotesIconCircle: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: '#FFF9E6',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
+  },
+  noQuotesMessage: {
+    fontSize: 14,
+    color: '#666',
+    textAlign: 'center',
+    lineHeight: 22,
+    paddingHorizontal: 10,
+    marginBottom: 20,
+  },
+  noQuotesInfoBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F5F5F5',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 20,
+    marginTop: 10,
+  },
+  noQuotesInfoText: {
+    fontSize: 13,
+    color: '#666',
+    marginLeft: 8,
+    fontWeight: '500',
+  },
+  noQuotesPullRefresh: {
+    fontSize: 12,
+    color: '#999',
+    marginTop: 16,
+    fontStyle: 'italic',
   },
   quoteCard: {
     backgroundColor: CARD_BG,

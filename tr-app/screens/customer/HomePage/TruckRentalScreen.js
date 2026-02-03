@@ -154,7 +154,10 @@ export default function TruckRentalScreen() {
 
   const [serviceType, setServiceType] = useState('personal');
   const [destination, setDestination] = useState('');
+  const [destinationQuery, setDestinationQuery] = useState('');
+  const [showDestinationSuggestions, setShowDestinationSuggestions] = useState(false);
   const dropdownRef = useRef(null);
+  const destinationDropdownRef = useRef(null);
 
   const [showTruckDropdown, setShowTruckDropdown] = useState(false);
   const [selectedTruckType, setSelectedTruckType] = useState(null);
@@ -210,6 +213,14 @@ export default function TruckRentalScreen() {
       )
     : allLocations.slice(0, 35);
 
+  const filteredDestinations = destinationQuery.length
+    ? allLocations.filter(
+        (l) =>
+          typeof l.name === 'string' &&
+          l.name.toLowerCase().includes(textSafe(destinationQuery)),
+      )
+    : allLocations.slice(0, 35);
+
   const handleInputChange = (text) => {
     setQuery(text);
     setPickupLocation(text);
@@ -224,9 +235,33 @@ export default function TruckRentalScreen() {
     setShowSuggestions(false);
   };
 
+  const handleDestinationInputChange = (text) => {
+    setDestinationQuery(text);
+    setDestination(text);
+    setShowDestinationSuggestions(text.length > 0);
+  };
+
+  const handleDestinationSelect = (loc) => {
+    setDestination(loc.name);
+    setDestinationQuery('');
+    setShowDestinationSuggestions(false);
+  };
+
+  const handleDestinationBlur = () => {
+    // When user finishes typing, hide suggestions and keep the typed value
+    setTimeout(() => {
+      setShowDestinationSuggestions(false);
+      setDestinationQuery('');
+    }, 200); // Small delay to allow dropdown click to register
+  };
+
 
 const handleOutsideClick = () => {
-  setShowSuggestions(false); 
+  setShowSuggestions(false);
+};
+
+const handleDestinationOutsideClick = () => {
+  setShowDestinationSuggestions(false);
 };
   const toggleFAQ = (i) => {
     setExpandedIndex((prev) => (prev === i ? null : i));
@@ -337,7 +372,7 @@ const handleOutsideClick = () => {
         customerEmail: customerData?.email || 'customer@transrentals.in',
         customerPhone: customerData?.phone || '',
         serviceType: serviceType === 'personal' ? 'personal' : 'commercial',
-        vehicleCategory: selectedTruckType,
+        vehicle_category: selectedTruckType,
         vehicleCategoryName: selectedTruckType,
         goodsType: selectedGoodsType,
         goodsDescription: otherDetails?.trim() || null,
@@ -504,9 +539,9 @@ const handleOutsideClick = () => {
             </TouchableOpacity>
           </View>
 
-          
+
+{/* Pickup Location Block */}
 <View style={styles.locationBlock}>
-  
   <Text style={styles.smallLabel}>Pickup Location</Text>
   <TouchableOpacity activeOpacity={0.9} style={styles.locationRow}>
     <Ionicons name="location-outline" size={18} color="#0F172A" />
@@ -530,55 +565,100 @@ const handleOutsideClick = () => {
     ) : null}
   </TouchableOpacity>
 
-     {showSuggestions && (
-               <>
-               
-                 <Pressable 
-                   style={styles.overlay}
-                   onPress={handleOutsideClick}
-                 />
-                 
-                 <View style={styles.suggestionBox} ref={dropdownRef}>
-                   <ScrollView
-                     style={styles.suggestionScrollView}
-                     showsVerticalScrollIndicator={true}
-                     persistentScrollbar={true}
-                     scrollEnabled={true}
-                     nestedScrollEnabled={true}
-                     keyboardShouldPersistTaps="handled"
-                     contentContainerStyle={styles.suggestionScrollContent}
-                   >
-                     {filteredLocations.length ? (
-                       filteredLocations.map((loc) => (
-                         <TouchableOpacity
-                           key={loc.id}
-                           style={styles.suggestionItem}
-                           onPress={() => handleLocationSelect(loc)}
-                         >
-                           <Text style={styles.suggestionText}>{loc.name}</Text>
-                         </TouchableOpacity>
-                       ))
-                     ) : (
-                       <Text style={styles.noResult}>No location found</Text>
-                     )}
-                   </ScrollView>
-                 </View>
-               </>
-             )}
+  {showSuggestions && (
+    <>
+      <Pressable
+        style={styles.overlay}
+        onPress={handleOutsideClick}
+      />
 
-  
-  <Text style={[styles.smallLabel, { marginTop: 14 }]}>Destination</Text>
+      <View style={styles.suggestionBox} ref={dropdownRef}>
+        <ScrollView
+          style={styles.suggestionScrollView}
+          showsVerticalScrollIndicator={true}
+          persistentScrollbar={true}
+          scrollEnabled={true}
+          nestedScrollEnabled={true}
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={styles.suggestionScrollContent}
+        >
+          {filteredLocations.length ? (
+            filteredLocations.map((loc) => (
+              <TouchableOpacity
+                key={loc.id}
+                style={styles.suggestionItem}
+                onPress={() => handleLocationSelect(loc)}
+              >
+                <Text style={styles.suggestionText}>{loc.name}</Text>
+              </TouchableOpacity>
+            ))
+          ) : (
+            <Text style={styles.noResult}>No location found</Text>
+          )}
+        </ScrollView>
+      </View>
+    </>
+  )}
+</View>
+
+{/* Destination Block - Separate container */}
+<View style={styles.locationBlock}>
+  <Text style={styles.smallLabel}>Destination</Text>
   <TouchableOpacity activeOpacity={0.9} style={styles.locationRow}>
     <Ionicons name="flag-outline" size={18} color="#0F172A" />
     <TextInput
-      value={destination}
-      onChangeText={setDestination}
+      value={destinationQuery.length ? destinationQuery : destination}
+      onChangeText={handleDestinationInputChange}
+      onBlur={handleDestinationBlur}
       placeholder="Enter destination location"
       placeholderTextColor="#94A3B8"
       style={styles.locationInput}
-       onFocus={() => setShowSuggestions(true)}  
     />
+    {destination ? (
+      <TouchableOpacity
+        onPress={() => {
+          setDestination('');
+          setDestinationQuery('');
+        }}
+      >
+        <Ionicons name="close-circle" size={24} color="#CBD5E1" />
+      </TouchableOpacity>
+    ) : null}
   </TouchableOpacity>
+
+  {/* Destination Suggestions Dropdown */}
+  {showDestinationSuggestions && destinationQuery && (
+    <>
+      <Pressable
+        style={styles.overlay}
+        onPress={handleDestinationOutsideClick}
+      />
+
+      <View style={styles.suggestionBox} ref={destinationDropdownRef}>
+        <ScrollView
+          style={styles.suggestionScrollView}
+          showsVerticalScrollIndicator={true}
+          nestedScrollEnabled={true}
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={styles.suggestionScrollContent}
+        >
+          {filteredDestinations.length > 0 ? (
+            filteredDestinations.map((loc, index) => (
+              <TouchableOpacity
+                key={loc.id || index}
+                style={styles.suggestionItem}
+                onPress={() => handleDestinationSelect(loc)}
+              >
+                <Text style={styles.suggestionText}>{loc.name}</Text>
+              </TouchableOpacity>
+            ))
+          ) : (
+            <Text style={styles.noResult}>No location found</Text>
+          )}
+        </ScrollView>
+      </View>
+    </>
+  )}
 </View>
 
         

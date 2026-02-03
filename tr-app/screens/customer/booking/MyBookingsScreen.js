@@ -261,7 +261,11 @@ const MyBookingsScreen = () => {
 
   const handleBookingPress = (booking) => {
     if (booking.serviceType === 'self-drive') {
-      navigation.navigate('SelfDriveBookingDetail', { bookingId: booking.id });
+      if (booking.is_quote_request) {
+        navigation.navigate('SelfDriveQuoteRequestDetail', { requestId: booking.id });
+      } else {
+        navigation.navigate('SelfDriveBookingDetail', { bookingId: booking.id });
+      }
     } else if (booking.serviceType === 'bike') {
       if (booking.is_quote_request) {
         navigation.navigate('BikeQuoteRequestDetail', { requestId: booking.id });

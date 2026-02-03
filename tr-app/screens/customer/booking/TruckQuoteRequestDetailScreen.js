@@ -44,6 +44,11 @@ export default function TruckQuoteRequestDetailScreen() {
   const [acceptError, setAcceptError] = useState(null);
   const [acceptSuccess, setAcceptSuccess] = useState(null);
 
+  // Quote Details Modal State
+  const [quoteDetailsVisible, setQuoteDetailsVisible] = useState(false);
+  const [viewingQuote, setViewingQuote] = useState(null);
+  const [detailsTab, setDetailsTab] = useState('overview'); // overview, inclusions, exclusions, terms
+
   useFocusEffect(
     useCallback(() => {
       fetchRequestDetails();
@@ -77,6 +82,52 @@ export default function TruckQuoteRequestDetailScreen() {
   const onRefresh = () => {
     setRefreshing(true);
     fetchRequestDetails();
+  };
+
+  // Show quote details modal
+  const handleViewQuoteDetails = (quote) => {
+    setViewingQuote(quote);
+    setDetailsTab('overview');
+    setQuoteDetailsVisible(true);
+  };
+
+  // Close quote details modal
+  const handleCloseQuoteDetails = () => {
+    setQuoteDetailsVisible(false);
+    setViewingQuote(null);
+  };
+
+  // Parse array data from API (handles both string and array formats)
+  const parseListData = (data) => {
+    if (!data) return [];
+
+    // If already an array, return it
+    if (Array.isArray(data)) {
+      return data.filter(item => item && item.trim());
+    }
+
+    // If it's a string that looks like JSON array, parse it
+    if (typeof data === 'string') {
+      // Try to parse as JSON first
+      if (data.trim().startsWith('[')) {
+        try {
+          const parsed = JSON.parse(data);
+          if (Array.isArray(parsed)) {
+            return parsed.filter(item => item && item.trim());
+          }
+        } catch (e) {
+          // If JSON parsing fails, continue to split method
+        }
+      }
+
+      // Split by newlines or commas
+      return data
+        .split(/\n|,/)
+        .map(item => item.trim())
+        .filter(item => item && item !== '');
+    }
+
+    return [];
   };
 
   // Show confirmation modal
@@ -324,7 +375,7 @@ export default function TruckQuoteRequestDetailScreen() {
                       <View style={styles.ratingRow}>
                         <Ionicons name="star" size={14} color="#F59E0B" />
                         <Text style={styles.ratingText}>
-                          {quote.vendor.rating.toFixed(1)} ({quote.vendor.totalReviews || 0} reviews)
+                          {quote.vendor.rating.toFixed(1)} ({quote.vendor.totalRatings || 0} reviews)
                         </Text>
                       </View>
                     )}
@@ -355,6 +406,16 @@ export default function TruckQuoteRequestDetailScreen() {
                     </View>
                   )}
                 </View>
+
+                {/* View Full Details Button */}
+                <TouchableOpacity
+                  style={styles.viewDetailsBtn}
+                  onPress={() => handleViewQuoteDetails(quote)}
+                >
+                  <Ionicons name="information-circle-outline" size={18} color={GREEN} />
+                  <Text style={styles.viewDetailsBtnText}>View Full Details</Text>
+                  <Ionicons name="chevron-forward" size={16} color={GREEN} />
+                </TouchableOpacity>
 
                 {quote.status === 'SENT' || quote.status === 'VIEWED' ? (
                   <TouchableOpacity
@@ -555,6 +616,391 @@ export default function TruckQuoteRequestDetailScreen() {
             )}
           </View>
         </View>
+      </Modal>
+
+      {/* Quote Details Modal with Tabs */}
+      <Modal
+        visible={quoteDetailsVisible}
+        transparent={false}
+        animationType="slide"
+        onRequestClose={handleCloseQuoteDetails}
+      >
+        <SafeAreaView style={styles.detailsModalContainer}>
+          {/* Header */}
+          <View style={styles.detailsHeader}>
+            <TouchableOpacity onPress={handleCloseQuoteDetails} style={styles.detailsCloseBtn}>
+              <Ionicons name="close" size={28} color="#333" />
+            </TouchableOpacity>
+            <Text style={styles.detailsHeaderTitle}>Quote Details</Text>
+            <View style={{ width: 40 }} />
+          </View>
+
+          {viewingQuote && (
+            <ScrollView style={styles.detailsContent} showsVerticalScrollIndicator={false}>
+              {/* Vendor Header */}
+              <View style={styles.detailsVendorCard}>
+                <View style={styles.detailsVendorRow}>
+                  <View style={styles.detailsVendorAvatar}>
+                    <Ionicons name="business" size={28} color={GREEN} />
+                  </View>
+                  <View style={styles.detailsVendorInfo}>
+                    <Text style={styles.detailsVendorName}>
+                      {viewingQuote.vendors?.businessName || viewingQuote.vendor?.businessName || 'Vendor'}
+                    </Text>
+                    {(viewingQuote.vendors?.rating || viewingQuote.vendor?.rating) && (
+                      <View style={styles.detailsRating}>
+                        <Ionicons name="star" size={16} color="#f39c12" />
+                        <Text style={styles.detailsRatingText}>
+                          {(viewingQuote.vendors?.rating || viewingQuote.vendor?.rating).toFixed(1)} Rating
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                </View>
+                {viewingQuote.quoteNumber && (
+                  <Text style={styles.detailsQuoteNumber}>#{viewingQuote.quoteNumber}</Text>
+                )}
+              </View>
+
+              {/* Tabs */}
+              <View style={styles.detailsTabs}>
+                <TouchableOpacity
+                  style={[styles.detailsTab, detailsTab === 'overview' && styles.detailsTabActive]}
+                  onPress={() => setDetailsTab('overview')}
+                >
+                  <Text style={[styles.detailsTabText, detailsTab === 'overview' && styles.detailsTabTextActive]}>
+                    Overview
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.detailsTab, detailsTab === 'inclusions' && styles.detailsTabActive]}
+                  onPress={() => setDetailsTab('inclusions')}
+                >
+                  <Text style={[styles.detailsTabText, detailsTab === 'inclusions' && styles.detailsTabTextActive]}>
+                    Inclusions
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.detailsTab, detailsTab === 'exclusions' && styles.detailsTabActive]}
+                  onPress={() => setDetailsTab('exclusions')}
+                >
+                  <Text style={[styles.detailsTabText, detailsTab === 'exclusions' && styles.detailsTabTextActive]}>
+                    Exclusions
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.detailsTab, detailsTab === 'terms' && styles.detailsTabActive]}
+                  onPress={() => setDetailsTab('terms')}
+                >
+                  <Text style={[styles.detailsTabText, detailsTab === 'terms' && styles.detailsTabTextActive]}>
+                    Terms
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Tab Content */}
+              <View style={styles.detailsTabContent}>
+                {/* Overview Tab */}
+                {detailsTab === 'overview' && (
+                  <View>
+                    {/* Vehicle Info */}
+                    <View style={styles.detailsSection}>
+                      <View style={styles.detailsSectionHeader}>
+                        <Ionicons name="car-outline" size={22} color={GREEN} />
+                        <Text style={styles.detailsSectionTitle}>Vehicle Details</Text>
+                      </View>
+                      <View style={styles.detailsVehicleCard}>
+                        <Text style={styles.detailsVehicleName}>{viewingQuote.vehicleName || 'Truck'}</Text>
+                        {(viewingQuote.vehicleNumber || viewingQuote.vehicle_number) && (
+                          <View style={styles.detailsRegRow}>
+                            <Ionicons name="card-outline" size={16} color="#666" />
+                            <Text style={styles.detailsRegNumber}>
+                              {viewingQuote.vehicleNumber || viewingQuote.vehicle_number}
+                            </Text>
+                          </View>
+                        )}
+                        {(viewingQuote.driverName || viewingQuote.driver_name) && (
+                          <View style={styles.detailsInfoRow}>
+                            <Ionicons name="person-outline" size={18} color="#666" />
+                            <Text style={styles.detailsInfoText}>
+                              Driver: {viewingQuote.driverName || viewingQuote.driver_name}
+                            </Text>
+                          </View>
+                        )}
+                        {(viewingQuote.driverPhone || viewingQuote.driver_phone) && (
+                          <View style={styles.detailsInfoRow}>
+                            <Ionicons name="call-outline" size={18} color="#666" />
+                            <Text style={styles.detailsInfoText}>
+                              {viewingQuote.driverPhone || viewingQuote.driver_phone}
+                            </Text>
+                          </View>
+                        )}
+                      </View>
+                    </View>
+
+                    {/* Pricing Details */}
+                    <View style={styles.detailsSection}>
+                      <View style={styles.detailsSectionHeader}>
+                        <Ionicons name="cash-outline" size={22} color={GREEN} />
+                        <Text style={styles.detailsSectionTitle}>Pricing Breakdown</Text>
+                      </View>
+                      <View style={styles.detailsPricingCard}>
+                        {(viewingQuote.baseAmount || viewingQuote.base_amount) > 0 && (
+                          <View style={styles.detailsPriceRow}>
+                            <Text style={styles.detailsPriceLabel}>Base Amount</Text>
+                            <Text style={styles.detailsPriceValue}>
+                              ₹{(viewingQuote.baseAmount || viewingQuote.base_amount)?.toLocaleString('en-IN') || '0'}
+                            </Text>
+                          </View>
+                        )}
+                        {(viewingQuote.loadingCharges || viewingQuote.loading_charges) > 0 && (
+                          <View style={styles.detailsPriceRow}>
+                            <Text style={styles.detailsPriceLabel}>Loading Charges</Text>
+                            <Text style={styles.detailsPriceValue}>
+                              ₹{(viewingQuote.loadingCharges || viewingQuote.loading_charges)?.toLocaleString('en-IN') || '0'}
+                            </Text>
+                          </View>
+                        )}
+                        {(viewingQuote.unloadingCharges || viewingQuote.unloading_charges) > 0 && (
+                          <View style={styles.detailsPriceRow}>
+                            <Text style={styles.detailsPriceLabel}>Unloading Charges</Text>
+                            <Text style={styles.detailsPriceValue}>
+                              ₹{(viewingQuote.unloadingCharges || viewingQuote.unloading_charges)?.toLocaleString('en-IN') || '0'}
+                            </Text>
+                          </View>
+                        )}
+                        {(viewingQuote.labourCharges || viewingQuote.labour_charges) > 0 && (
+                          <View style={styles.detailsPriceRow}>
+                            <Text style={styles.detailsPriceLabel}>
+                              Labour Charges{' '}
+                              {(viewingQuote.labourCount || viewingQuote.labour_count)
+                                ? `(${viewingQuote.labourCount || viewingQuote.labour_count} workers)`
+                                : ''}
+                            </Text>
+                            <Text style={styles.detailsPriceValue}>
+                              ₹{(viewingQuote.labourCharges || viewingQuote.labour_charges)?.toLocaleString('en-IN') || '0'}
+                            </Text>
+                          </View>
+                        )}
+                        {(viewingQuote.packagingCharges || viewingQuote.packaging_charges) > 0 && (
+                          <View style={styles.detailsPriceRow}>
+                            <Text style={styles.detailsPriceLabel}>Packaging Charges</Text>
+                            <Text style={styles.detailsPriceValue}>
+                              ₹{(viewingQuote.packagingCharges || viewingQuote.packaging_charges)?.toLocaleString('en-IN') || '0'}
+                            </Text>
+                          </View>
+                        )}
+                        {(viewingQuote.insuranceCharges || viewingQuote.insurance_charges) > 0 && (
+                          <View style={styles.detailsPriceRow}>
+                            <Text style={styles.detailsPriceLabel}>Insurance Charges</Text>
+                            <Text style={styles.detailsPriceValue}>
+                              ₹{(viewingQuote.insuranceCharges || viewingQuote.insurance_charges)?.toLocaleString('en-IN') || '0'}
+                            </Text>
+                          </View>
+                        )}
+                        {(viewingQuote.tollEstimate || viewingQuote.toll_estimate || viewingQuote.tollCharges || viewingQuote.toll_charges) > 0 && (
+                          <View style={styles.detailsPriceRow}>
+                            <Text style={styles.detailsPriceLabel}>Toll Charges (Estimate)</Text>
+                            <Text style={styles.detailsPriceValue}>
+                              ₹{(viewingQuote.tollEstimate || viewingQuote.toll_estimate || viewingQuote.tollCharges || viewingQuote.toll_charges)?.toLocaleString('en-IN') || '0'}
+                            </Text>
+                          </View>
+                        )}
+                        {(viewingQuote.gstAmount || viewingQuote.gst_amount) > 0 && (
+                          <View style={styles.detailsPriceRow}>
+                            <Text style={styles.detailsPriceLabel}>GST (18%)</Text>
+                            <Text style={styles.detailsPriceValue}>
+                              ₹{(viewingQuote.gstAmount || viewingQuote.gst_amount)?.toLocaleString('en-IN') || '0'}
+                            </Text>
+                          </View>
+                        )}
+                        <View style={[styles.detailsPriceRow, styles.detailsTotalRow]}>
+                          <Text style={styles.detailsTotalLabel}>Total Amount</Text>
+                          <Text style={styles.detailsTotalValue}>₹{viewingQuote.totalAmount?.toLocaleString('en-IN') || '0'}</Text>
+                        </View>
+                      </View>
+                    </View>
+
+                    {/* Additional Info */}
+                    {(viewingQuote.validTill || viewingQuote.notes || viewingQuote.vendorMessage) && (
+                      <View style={styles.detailsSection}>
+                        <View style={styles.detailsSectionHeader}>
+                          <Ionicons name="information-circle-outline" size={22} color={GREEN} />
+                          <Text style={styles.detailsSectionTitle}>Additional Information</Text>
+                        </View>
+                        <View style={styles.detailsInfoCard}>
+                          {viewingQuote.validTill && (
+                            <View style={styles.detailsInfoRow}>
+                              <Ionicons name="time-outline" size={20} color="#666" />
+                              <Text style={styles.detailsInfoText}>
+                                Valid till {formatDate(viewingQuote.validTill)}
+                              </Text>
+                            </View>
+                          )}
+                        </View>
+
+                        {/* Vendor Message */}
+                        {(viewingQuote.vendorMessage || viewingQuote.notes) && (
+                          <View style={styles.detailsVendorMessage}>
+                            <View style={styles.detailsMessageHeader}>
+                              <Ionicons name="chatbox-outline" size={18} color={GREEN} />
+                              <Text style={styles.detailsMessageTitle}>Message from Vendor</Text>
+                            </View>
+                            <Text style={styles.detailsMessageText}>
+                              {viewingQuote.vendorMessage || viewingQuote.notes}
+                            </Text>
+                          </View>
+                        )}
+                      </View>
+                    )}
+                  </View>
+                )}
+
+                {/* Inclusions Tab */}
+                {detailsTab === 'inclusions' && (
+                  <View style={styles.detailsSection}>
+                    <View style={styles.detailsSectionHeader}>
+                      <Ionicons name="checkmark-done-circle" size={22} color={GREEN} />
+                      <Text style={styles.detailsSectionTitle}>What's Included</Text>
+                    </View>
+                    {(() => {
+                      const inclusions = parseListData(viewingQuote.inclusions);
+                      return inclusions.length > 0 ? (
+                        <View style={styles.detailsListCard}>
+                          {inclusions.map((item, idx) => (
+                            <View
+                              key={idx}
+                              style={[
+                                styles.detailsListItem,
+                                idx === inclusions.length - 1 && styles.detailsListItemLast,
+                              ]}
+                            >
+                              <View style={styles.detailsListBullet}>
+                                <Ionicons name="checkmark" size={18} color={GREEN} />
+                              </View>
+                              <Text style={styles.detailsListText}>{item}</Text>
+                            </View>
+                          ))}
+                        </View>
+                      ) : (
+                        <View style={styles.detailsEmptyState}>
+                          <Ionicons name="document-text-outline" size={40} color="#ccc" />
+                          <Text style={styles.detailsEmptyText}>No inclusions specified</Text>
+                        </View>
+                      );
+                    })()}
+                  </View>
+                )}
+
+                {/* Exclusions Tab */}
+                {detailsTab === 'exclusions' && (
+                  <View style={styles.detailsSection}>
+                    <View style={styles.detailsSectionHeader}>
+                      <Ionicons name="close-circle" size={22} color="#e74c3c" />
+                      <Text style={styles.detailsSectionTitle}>What's Not Included</Text>
+                    </View>
+                    {(() => {
+                      const exclusions = parseListData(viewingQuote.exclusions);
+                      return exclusions.length > 0 ? (
+                        <View style={styles.detailsListCard}>
+                          {exclusions.map((item, idx) => (
+                            <View
+                              key={idx}
+                              style={[
+                                styles.detailsListItem,
+                                idx === exclusions.length - 1 && styles.detailsListItemLast,
+                              ]}
+                            >
+                              <View style={[styles.detailsListBullet, styles.detailsExclusionBullet]}>
+                                <Ionicons name="close" size={18} color="#e74c3c" />
+                              </View>
+                              <Text style={styles.detailsListText}>{item}</Text>
+                            </View>
+                          ))}
+                        </View>
+                      ) : (
+                        <View style={styles.detailsEmptyState}>
+                          <Ionicons name="document-text-outline" size={40} color="#ccc" />
+                          <Text style={styles.detailsEmptyText}>No exclusions specified</Text>
+                        </View>
+                      );
+                    })()}
+                  </View>
+                )}
+
+                {/* Terms Tab */}
+                {detailsTab === 'terms' && (
+                  <View style={styles.detailsSection}>
+                    <View style={styles.detailsSectionHeader}>
+                      <Ionicons name="document-text" size={22} color={GREEN} />
+                      <Text style={styles.detailsSectionTitle}>Terms & Conditions</Text>
+                    </View>
+                    {(() => {
+                      const terms = parseListData(viewingQuote.termsConditions || viewingQuote.terms);
+
+                      // If we got an array with multiple items, show as bullet points
+                      if (terms.length > 1) {
+                        return (
+                          <View style={styles.detailsListCard}>
+                            {terms.map((item, idx) => (
+                              <View
+                                key={idx}
+                                style={[
+                                  styles.detailsListItem,
+                                  idx === terms.length - 1 && styles.detailsListItemLast,
+                                ]}
+                              >
+                                <View style={styles.detailsTermsBullet}>
+                                  <Text style={styles.detailsTermsNumber}>{idx + 1}</Text>
+                                </View>
+                                <Text style={styles.detailsListText}>{item}</Text>
+                              </View>
+                            ))}
+                          </View>
+                        );
+                      }
+
+                      // If single item or plain text, show as paragraph
+                      if (terms.length === 1 || viewingQuote.termsConditions || viewingQuote.terms) {
+                        return (
+                          <View style={styles.detailsTermsCard}>
+                            <Text style={styles.detailsTermsText}>
+                              {terms.length === 1 ? terms[0] : (viewingQuote.termsConditions || viewingQuote.terms)}
+                            </Text>
+                          </View>
+                        );
+                      }
+
+                      // No terms
+                      return (
+                        <View style={styles.detailsEmptyState}>
+                          <Ionicons name="document-text-outline" size={40} color="#ccc" />
+                          <Text style={styles.detailsEmptyText}>No terms and conditions specified</Text>
+                        </View>
+                      );
+                    })()}
+                  </View>
+                )}
+              </View>
+
+              {/* Bottom Actions */}
+              <View style={styles.detailsActions}>
+                {request.status !== 'ACCEPTED' && viewingQuote.status !== 'ACCEPTED' && (
+                  <TouchableOpacity
+                    style={styles.detailsAcceptBtn}
+                    onPress={() => {
+                      handleCloseQuoteDetails();
+                      handleAcceptQuote(viewingQuote);
+                    }}
+                  >
+                    <Ionicons name="checkmark-circle" size={20} color="#fff" />
+                    <Text style={styles.detailsAcceptBtnText}>Accept This Quote</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            </ScrollView>
+          )}
+        </SafeAreaView>
       </Modal>
     </SafeAreaView>
   );
@@ -1115,5 +1561,362 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '700',
     color: '#fff',
+  },
+
+  // View Details Button
+  viewDetailsBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(9,179,104,0.08)',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 10,
+    marginBottom: 10,
+    gap: 6,
+  },
+  viewDetailsBtnText: {
+    color: GREEN,
+    fontSize: 14,
+    fontWeight: '600',
+    flex: 1,
+    textAlign: 'center',
+  },
+
+  // Quote Details Modal Styles
+  detailsModalContainer: {
+    flex: 1,
+    backgroundColor: BG,
+  },
+  detailsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  detailsCloseBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  detailsHeaderTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#333',
+  },
+  detailsContent: {
+    flex: 1,
+    padding: 16,
+  },
+  detailsVendorCard: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
+  },
+  detailsVendorRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  detailsVendorAvatar: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: 'rgba(9,179,104,0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  detailsVendorInfo: {
+    flex: 1,
+  },
+  detailsVendorName: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#333',
+    marginBottom: 4,
+  },
+  detailsRating: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  detailsRatingText: {
+    fontSize: 14,
+    color: '#f39c12',
+    fontWeight: '600',
+  },
+  detailsQuoteNumber: {
+    fontSize: 13,
+    color: '#666',
+    marginTop: 4,
+  },
+
+  // Tabs
+  detailsTabs: {
+    flexDirection: 'row',
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 4,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
+  },
+  detailsTab: {
+    flex: 1,
+    paddingVertical: 10,
+    paddingHorizontal: 8,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  detailsTabActive: {
+    backgroundColor: GREEN,
+  },
+  detailsTabText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#666',
+  },
+  detailsTabTextActive: {
+    color: '#fff',
+  },
+
+  // Tab Content
+  detailsTabContent: {
+    marginBottom: 20,
+  },
+  detailsSection: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
+  },
+  detailsSectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+    gap: 10,
+  },
+  detailsSectionTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#333',
+  },
+
+  // Vehicle Card
+  detailsVehicleCard: {
+    backgroundColor: '#f8f9fa',
+    borderRadius: 12,
+    padding: 16,
+  },
+  detailsVehicleName: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#333',
+    marginBottom: 8,
+  },
+  detailsRegRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 8,
+  },
+  detailsRegNumber: {
+    fontSize: 14,
+    color: '#666',
+    fontWeight: '600',
+  },
+  detailsInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginTop: 8,
+  },
+  detailsInfoText: {
+    fontSize: 14,
+    color: '#666',
+  },
+
+  // Pricing Card
+  detailsPricingCard: {
+    backgroundColor: '#f8f9fa',
+    borderRadius: 12,
+    padding: 16,
+  },
+  detailsPriceRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 8,
+  },
+  detailsPriceLabel: {
+    fontSize: 14,
+    color: '#666',
+    flex: 1,
+  },
+  detailsPriceValue: {
+    fontSize: 14,
+    color: '#333',
+    fontWeight: '600',
+  },
+  detailsTotalRow: {
+    paddingTop: 12,
+    marginTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#e5e5e5',
+  },
+  detailsTotalLabel: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#333',
+  },
+  detailsTotalValue: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: GREEN,
+  },
+
+  // Info Card
+  detailsInfoCard: {
+    backgroundColor: '#f8f9fa',
+    borderRadius: 12,
+    padding: 16,
+  },
+  detailsVendorMessage: {
+    backgroundColor: 'rgba(9,179,104,0.08)',
+    borderRadius: 12,
+    padding: 16,
+    marginTop: 12,
+  },
+  detailsMessageHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 8,
+  },
+  detailsMessageTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: GREEN,
+  },
+  detailsMessageText: {
+    fontSize: 14,
+    color: '#666',
+    lineHeight: 20,
+  },
+
+  // List Card (for Inclusions, Exclusions, Terms)
+  detailsListCard: {
+    backgroundColor: '#f8f9fa',
+    borderRadius: 12,
+    padding: 16,
+  },
+  detailsListItem: {
+    flexDirection: 'row',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e5e5',
+  },
+  detailsListItemLast: {
+    borderBottomWidth: 0,
+  },
+  detailsListBullet: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: 'rgba(9,179,104,0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  detailsExclusionBullet: {
+    backgroundColor: 'rgba(231,76,60,0.15)',
+  },
+  detailsListText: {
+    fontSize: 14,
+    color: '#333',
+    flex: 1,
+    lineHeight: 20,
+  },
+  detailsTermsBullet: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: GREEN,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  detailsTermsNumber: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#fff',
+  },
+  detailsTermsCard: {
+    backgroundColor: '#f8f9fa',
+    borderRadius: 12,
+    padding: 16,
+  },
+  detailsTermsText: {
+    fontSize: 14,
+    color: '#666',
+    lineHeight: 22,
+  },
+  detailsEmptyState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 40,
+  },
+  detailsEmptyText: {
+    fontSize: 14,
+    color: '#999',
+    marginTop: 12,
+  },
+
+  // Bottom Actions
+  detailsActions: {
+    padding: 16,
+    paddingBottom: 20,
+  },
+  detailsAcceptBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: GREEN,
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    gap: 8,
+    shadowColor: GREEN,
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 5,
+  },
+  detailsAcceptBtnText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '700',
   },
 });

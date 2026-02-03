@@ -381,12 +381,21 @@ export default function EquipmentQuoteRequestDetailScreen() {
             ))}
           </View>
         ) : (
-          <View style={styles.noQuotesCard}>
-            <Ionicons name="mail-outline" size={60} color="#ddd" />
-            <Text style={styles.noQuotesTitle}>No Quotes Yet</Text>
-            <Text style={styles.noQuotesText}>
-              Vendors are reviewing your request. You'll be notified when quotes arrive.
+          <View style={styles.noQuotesContainer}>
+            <View style={styles.noQuotesIconCircle}>
+              <Ionicons name="receipt-outline" size={60} color={GREEN} />
+            </View>
+            <Text style={styles.noQuotesTitle}>No Quotations Yet</Text>
+            <Text style={styles.noQuotesMessage}>
+              Your request has been sent to vendors. They will review and send you competitive quotes soon.
             </Text>
+            <View style={styles.noQuotesInfoBox}>
+              <Ionicons name="time-outline" size={20} color="#666" />
+              <Text style={styles.noQuotesInfoText}>
+                Usually within 24-48 hours
+              </Text>
+            </View>
+            <Text style={styles.noQuotesPullRefresh}>Pull down to refresh</Text>
           </View>
         )}
 
@@ -857,6 +866,51 @@ const styles = StyleSheet.create({
     color: '#999',
     marginTop: 8,
     textAlign: 'center',
+  },
+  noQuotesContainer: {
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    padding: 40,
+    alignItems: 'center',
+    marginVertical: 10,
+  },
+  noQuotesIconCircle: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: '#E8F9F1',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
+  },
+  noQuotesMessage: {
+    fontSize: 14,
+    color: '#666',
+    textAlign: 'center',
+    lineHeight: 22,
+    paddingHorizontal: 10,
+    marginBottom: 20,
+  },
+  noQuotesInfoBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F5F5F5',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 20,
+    marginTop: 10,
+  },
+  noQuotesInfoText: {
+    fontSize: 13,
+    color: '#666',
+    marginLeft: 8,
+    fontWeight: '500',
+  },
+  noQuotesPullRefresh: {
+    fontSize: 12,
+    color: '#999',
+    marginTop: 16,
+    fontStyle: 'italic',
   },
 
   // Modal Styles

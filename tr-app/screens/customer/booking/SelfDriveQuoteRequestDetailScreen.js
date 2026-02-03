@@ -9,11 +9,13 @@ import {
   ActivityIndicator,
   Modal,
   Alert,
+  Image,
+  Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useRoute, useNavigation, useFocusEffect, CommonActions } from '@react-navigation/native';
-import api from '../../api';
+import api, { BASE_URL, IMAGE_BASE_URL } from '../../api';
 
 const GREEN = '#09B368';
 const BG = '#F5F5F7';
@@ -35,6 +37,16 @@ export default function SelfDriveQuoteRequestDetailScreen() {
   const [acceptError, setAcceptError] = useState(null);
   const [acceptSuccess, setAcceptSuccess] = useState(null);
 
+  // Quote Details Modal State
+  const [quoteDetailsVisible, setQuoteDetailsVisible] = useState(false);
+  const [viewingQuote, setViewingQuote] = useState(null);
+  const [detailsTab, setDetailsTab] = useState('overview'); // overview, inclusions, exclusions, terms
+
+  // Image Viewer Modal State
+  const [imageViewerVisible, setImageViewerVisible] = useState(false);
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [viewingImages, setViewingImages] = useState([]);
+
   // Refresh data when screen comes into focus
   useFocusEffect(
     useCallback(() => {
@@ -48,10 +60,12 @@ export default function SelfDriveQuoteRequestDetailScreen() {
       if (response.data.success && response.data.request) {
         const requestData = response.data.request;
         setRequest(requestData);
+        // Quotes are returned as a separate array in the API response
         setQuotes(response.data.quotes || []);
 
         // If quote already accepted and booking created, redirect to booking detail
         if (requestData.status === 'ACCEPTED' && requestData.bookingId) {
+          // Replace current screen with booking detail to prevent going back
           navigation.replace('SelfDriveBookingDetail', { bookingId: requestData.bookingId });
         }
       }
@@ -79,6 +93,52 @@ export default function SelfDriveQuoteRequestDetailScreen() {
     setConfirmModalVisible(true);
   };
 
+  // Show quote details modal
+  const handleViewQuoteDetails = (quote) => {
+    setViewingQuote(quote);
+    setDetailsTab('overview');
+    setQuoteDetailsVisible(true);
+  };
+
+  // Close quote details modal
+  const handleCloseQuoteDetails = () => {
+    setQuoteDetailsVisible(false);
+    setViewingQuote(null);
+  };
+
+  // Parse array data from API (handles both string and array formats)
+  const parseListData = (data) => {
+    if (!data) return [];
+
+    // If already an array, return it
+    if (Array.isArray(data)) {
+      return data.filter(item => item && item.trim());
+    }
+
+    // If it's a string that looks like JSON array, parse it
+    if (typeof data === 'string') {
+      // Try to parse as JSON first
+      if (data.trim().startsWith('[')) {
+        try {
+          const parsed = JSON.parse(data);
+          if (Array.isArray(parsed)) {
+            return parsed.filter(item => item && item.trim());
+          }
+        } catch (e) {
+          // If JSON parsing fails, continue to split method
+        }
+      }
+
+      // Split by newlines or commas
+      return data
+        .split(/\n|,/)
+        .map(item => item.trim())
+        .filter(item => item && item !== '');
+    }
+
+    return [];
+  };
+
   // Confirm and process quote acceptance
   const confirmAcceptQuote = async () => {
     if (!selectedQuote) return;
@@ -87,6 +147,7 @@ export default function SelfDriveQuoteRequestDetailScreen() {
     setAcceptError(null);
 
     try {
+      // Call the correct API endpoint
       const response = await api.post('/customer/accept-quote', {
         serviceType: 'self-drive',
         quoteRequestId: requestId,
@@ -94,6 +155,7 @@ export default function SelfDriveQuoteRequestDetailScreen() {
       });
 
       if (response.data?.success) {
+        // Validate response has required data
         if (!response.data.bookingId) {
           throw new Error('Booking was created but ID is missing. Please check your bookings.');
         }
@@ -107,13 +169,16 @@ export default function SelfDriveQuoteRequestDetailScreen() {
     } catch (err) {
       console.log('Error accepting quote:', err);
 
+      // Parse error message properly
       let errorMessage = 'Something went wrong. Please try again.';
 
       if (err.response) {
+        // Server responded with error
         errorMessage = err.response.data?.message ||
                       err.response.data?.error ||
                       `Server error (${err.response.status})`;
       } else if (err.request) {
+        // Network error
         errorMessage = 'Network error. Please check your connection.';
       } else if (err.message) {
         errorMessage = err.message;
@@ -142,7 +207,7 @@ export default function SelfDriveQuoteRequestDetailScreen() {
       navigation.replace('PaymentScreen', {
         bookingId: successData.bookingId,
         bookingNumber: successData.bookingNumber,
-        bookingType: 'self-drive',
+        bookingType: 'car',
         amount: quoteData?.advanceAmount || 0,
       });
     }
@@ -223,6 +288,7 @@ export default function SelfDriveQuoteRequestDetailScreen() {
     );
   }
 
+  // quotes is now a separate state variable set from API response
   const hasQuotes = quotes.length > 0;
 
   return (
@@ -259,34 +325,14 @@ export default function SelfDriveQuoteRequestDetailScreen() {
         {/* Vehicle Card */}
         <View style={styles.card}>
           <View style={styles.cardHeader}>
-            <Ionicons name="car-sport" size={22} color={GREEN} />
+            <Ionicons name="bicycle" size={22} color={GREEN} />
             <Text style={styles.cardTitle}>Vehicle Request</Text>
           </View>
           <View style={styles.vehicleInfo}>
             <Text style={styles.vehicleBrand}>{request.vehicleBrand || 'Any Brand'}</Text>
             <Text style={styles.vehicleName}>
-              {request.vehicleModelName || request.vehicleCategoryName || 'Any Car'}
+              {request.vehicleModelName || request.vehicleCategoryName || 'Any Bike'}
             </Text>
-          </View>
-          <View style={styles.specsRow}>
-            {request.transmission && (
-              <View style={styles.specBadge}>
-                <Ionicons name="cog" size={14} color={GREEN} />
-                <Text style={styles.specBadgeText}>{request.transmission}</Text>
-              </View>
-            )}
-            {request.fuelType && (
-              <View style={styles.specBadge}>
-                <Ionicons name="water" size={14} color={GREEN} />
-                <Text style={styles.specBadgeText}>{request.fuelType}</Text>
-              </View>
-            )}
-            {request.minSeats && (
-              <View style={styles.specBadge}>
-                <Ionicons name="people" size={14} color={GREEN} />
-                <Text style={styles.specBadgeText}>{request.minSeats} Seats</Text>
-              </View>
-            )}
           </View>
         </View>
 
@@ -371,11 +417,48 @@ export default function SelfDriveQuoteRequestDetailScreen() {
 
                   {/* Vehicle Offered */}
                   <View style={styles.quoteVehicle}>
-                    <Ionicons name="car-sport" size={18} color="#666" />
                     <Text style={styles.quoteVehicleName}>{quote.vehicleName}</Text>
-                    {quote.transmission && (
-                      <Text style={styles.quoteVehicleSpec}> | {quote.transmission}</Text>
-                    )}
+
+                    {/* Vehicle Images */}
+                    {quote.vehicleImages && (() => {
+                      try {
+                        const images = typeof quote.vehicleImages === 'string'
+                          ? JSON.parse(quote.vehicleImages)
+                          : quote.vehicleImages;
+
+                        if (Array.isArray(images) && images.length > 0) {
+                          return (
+                            <ScrollView
+                              horizontal
+                              showsHorizontalScrollIndicator={false}
+                              style={styles.vehicleImagesContainer}
+                            >
+                              {images.map((imageUrl, imgIdx) => {
+                                // Construct proper image URL
+                                let finalImageUrl = imageUrl;
+                                if (imageUrl && !imageUrl.startsWith('http') && !imageUrl.startsWith('data:')) {
+                                  // Relative path - add base URL
+                                  const cleanPath = imageUrl.replace(/\\/g, '/').replace(/^\/+/, '');
+                                  finalImageUrl = `${BASE_URL}/${cleanPath}`;
+                                }
+
+                                return (
+                                  <Image
+                                    key={imgIdx}
+                                    source={{ uri: finalImageUrl }}
+                                    style={styles.vehicleImage}
+                                    resizeMode="cover"
+                                  />
+                                );
+                              })}
+                            </ScrollView>
+                          );
+                        }
+                      } catch (e) {
+                        console.log('Error parsing vehicle images:', e);
+                      }
+                      return null;
+                    })()}
                   </View>
 
                   {/* Price */}
@@ -384,18 +467,6 @@ export default function SelfDriveQuoteRequestDetailScreen() {
                       <Text style={styles.priceLabel}>Daily Rate</Text>
                       <Text style={styles.priceValue}>₹{quote.dailyRate}/day</Text>
                     </View>
-                    {quote.kmLimitPerDay && (
-                      <View style={styles.priceRow}>
-                        <Text style={styles.priceLabel}>KM Limit</Text>
-                        <Text style={styles.priceValue}>{quote.kmLimitPerDay} km/day</Text>
-                      </View>
-                    )}
-                    {quote.extraKmRate && (
-                      <View style={styles.priceRow}>
-                        <Text style={styles.priceLabel}>Extra KM</Text>
-                        <Text style={styles.priceValue}>₹{quote.extraKmRate}/km</Text>
-                      </View>
-                    )}
                     <View style={styles.priceRow}>
                       <Text style={styles.priceLabel}>
                         {request.totalDays} Day{request.totalDays > 1 ? 's' : ''} Total
@@ -422,6 +493,16 @@ export default function SelfDriveQuoteRequestDetailScreen() {
                       Valid till {formatDate(quote.validTill)}
                     </Text>
                   )}
+
+                  {/* View Details Button */}
+                  <TouchableOpacity
+                    style={styles.viewDetailsBtn}
+                    onPress={() => handleViewQuoteDetails(quote)}
+                  >
+                    <Ionicons name="information-circle-outline" size={18} color={GREEN} />
+                    <Text style={styles.viewDetailsBtnText}>View Full Details</Text>
+                    <Ionicons name="chevron-forward" size={16} color={GREEN} />
+                  </TouchableOpacity>
 
                   {/* Accept Button */}
                   {request.status !== 'ACCEPTED' && quote.status !== 'ACCEPTED' && (
@@ -460,7 +541,7 @@ export default function SelfDriveQuoteRequestDetailScreen() {
               </Text>
               <TouchableOpacity
                 style={styles.newRequestBtn}
-                onPress={() => navigation.navigate('SelfDriveScreen')}
+                onPress={() => navigation.navigate('BikeRentalScreen')}
               >
                 <Ionicons name="add-circle" size={20} color="#fff" />
                 <Text style={styles.newRequestBtnText}>Submit New Request</Text>
@@ -476,19 +557,28 @@ export default function SelfDriveQuoteRequestDetailScreen() {
               </Text>
               <TouchableOpacity
                 style={styles.viewBookingsBtn}
-                onPress={() => navigation.navigate('MySelfDriveBookings')}
+                onPress={() => navigation.navigate('MyBikeBookings')}
               >
                 <Ionicons name="list" size={20} color="#fff" />
                 <Text style={styles.newRequestBtnText}>View Bookings</Text>
               </TouchableOpacity>
             </View>
           ) : (
-            <View style={styles.noQuotes}>
-              <Ionicons name="hourglass-outline" size={50} color="#ddd" />
-              <Text style={styles.noQuotesText}>Waiting for vendor quotes...</Text>
-              <Text style={styles.noQuotesSubtext}>
-                Pull down to refresh
+            <View style={styles.noQuotesContainer}>
+              <View style={styles.noQuotesIconCircle}>
+                <Ionicons name="receipt-outline" size={60} color={GREEN} />
+              </View>
+              <Text style={styles.noQuotesTitle}>No Quotations Yet</Text>
+              <Text style={styles.noQuotesMessage}>
+                Your request has been sent to vendors. They will review and send you competitive quotes soon.
               </Text>
+              <View style={styles.noQuotesInfoBox}>
+                <Ionicons name="time-outline" size={20} color="#666" />
+                <Text style={styles.noQuotesInfoText}>
+                  Usually within 24-48 hours
+                </Text>
+              </View>
+              <Text style={styles.noQuotesPullRefresh}>Pull down to refresh</Text>
             </View>
           )}
         </View>
@@ -522,17 +612,18 @@ export default function SelfDriveQuoteRequestDetailScreen() {
                 <View style={styles.successIconContainer}>
                   <Ionicons name="checkmark-circle" size={70} color={GREEN} />
                 </View>
-                <Text style={styles.modalTitle}>Booking Created!</Text>
+                <Text style={styles.modalTitle}>Booking Confirmed!</Text>
                 <Text style={styles.successBookingNumber}>
                   #{acceptSuccess.bookingNumber}
                 </Text>
                 <Text style={styles.modalMessage}>
-                  Your booking has been created successfully. Pay advance to confirm your booking.
+                  Your booking has been created successfully. Please proceed to payment to confirm your booking.
                 </Text>
                 <TouchableOpacity
                   style={styles.successBtn}
                   onPress={handleModalClose}
                 >
+                  <Ionicons name="wallet-outline" size={20} color="#fff" />
                   <Text style={styles.successBtnText}>Proceed to Payment</Text>
                   <Ionicons name="arrow-forward" size={18} color="#fff" />
                 </TouchableOpacity>
@@ -556,7 +647,7 @@ export default function SelfDriveQuoteRequestDetailScreen() {
 
                 {/* Error Display */}
                 {acceptError && (
-                  <View style={styles.errorDisplayContainer}>
+                  <View style={styles.errorContainer}>
                     <View style={styles.errorIconWrap}>
                       <Ionicons name="alert-circle" size={50} color="#e74c3c" />
                     </View>
@@ -564,7 +655,7 @@ export default function SelfDriveQuoteRequestDetailScreen() {
                     <Text style={styles.errorMessage}>{acceptError}</Text>
                     <View style={styles.errorActions}>
                       <TouchableOpacity
-                        style={styles.retryBtnModal}
+                        style={styles.retryBtn}
                         onPress={confirmAcceptQuote}
                         disabled={!!acceptingQuote}
                       >
@@ -573,7 +664,7 @@ export default function SelfDriveQuoteRequestDetailScreen() {
                         ) : (
                           <>
                             <Ionicons name="refresh" size={18} color="#fff" />
-                            <Text style={styles.retryBtnTextModal}>Try Again</Text>
+                            <Text style={styles.retryBtnText}>Try Again</Text>
                           </>
                         )}
                       </TouchableOpacity>
@@ -581,7 +672,7 @@ export default function SelfDriveQuoteRequestDetailScreen() {
                         style={styles.checkBookingsBtn}
                         onPress={() => {
                           setConfirmModalVisible(false);
-                          navigation.navigate('MySelfDriveBookings');
+                          navigation.navigate('MyBikeBookings');
                         }}
                       >
                         <Ionicons name="list" size={18} color={GREEN} />
@@ -618,7 +709,7 @@ export default function SelfDriveQuoteRequestDetailScreen() {
                       </View>
 
                       <View style={styles.confirmVehicle}>
-                        <Ionicons name="car-sport" size={20} color="#666" />
+                        <Ionicons name="bicycle" size={20} color="#666" />
                         <Text style={styles.confirmVehicleName}>
                           {selectedQuote.vehicleName}
                         </Text>
@@ -687,6 +778,546 @@ export default function SelfDriveQuoteRequestDetailScreen() {
                 )}
               </View>
             )}
+          </View>
+        </View>
+      </Modal>
+
+      {/* Quote Details Modal */}
+      <Modal
+        visible={quoteDetailsVisible}
+        transparent={false}
+        animationType="slide"
+        onRequestClose={handleCloseQuoteDetails}
+      >
+        <SafeAreaView style={styles.detailsModalContainer}>
+          {/* Header */}
+          <View style={styles.detailsHeader}>
+            <TouchableOpacity onPress={handleCloseQuoteDetails} style={styles.detailsCloseBtn}>
+              <Ionicons name="close" size={28} color="#333" />
+            </TouchableOpacity>
+            <Text style={styles.detailsHeaderTitle}>Quote Details</Text>
+            <View style={{ width: 40 }} />
+          </View>
+
+          {viewingQuote && (
+            <ScrollView style={styles.detailsContent} showsVerticalScrollIndicator={false}>
+              {/* Vendor Header */}
+              <View style={styles.detailsVendorCard}>
+                <View style={styles.detailsVendorRow}>
+                  <View style={styles.detailsVendorAvatar}>
+                    <Ionicons name="storefront" size={28} color={GREEN} />
+                  </View>
+                  <View style={styles.detailsVendorInfo}>
+                    <Text style={styles.detailsVendorName}>
+                      {viewingQuote.vendor?.businessName || 'Vendor'}
+                    </Text>
+                    {viewingQuote.vendor?.rating && (
+                      <View style={styles.detailsRating}>
+                        <Ionicons name="star" size={16} color="#f39c12" />
+                        <Text style={styles.detailsRatingText}>
+                          {viewingQuote.vendor.rating.toFixed(1)} Rating
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                </View>
+                {viewingQuote.quoteNumber && (
+                  <Text style={styles.detailsQuoteNumber}>#{viewingQuote.quoteNumber}</Text>
+                )}
+              </View>
+
+              {/* Tabs */}
+              <View style={styles.detailsTabs}>
+                <TouchableOpacity
+                  style={[styles.detailsTab, detailsTab === 'overview' && styles.detailsTabActive]}
+                  onPress={() => setDetailsTab('overview')}
+                >
+                  <Text style={[styles.detailsTabText, detailsTab === 'overview' && styles.detailsTabTextActive]}>
+                    Overview
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.detailsTab, detailsTab === 'inclusions' && styles.detailsTabActive]}
+                  onPress={() => setDetailsTab('inclusions')}
+                >
+                  <Text style={[styles.detailsTabText, detailsTab === 'inclusions' && styles.detailsTabTextActive]}>
+                    Inclusions
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.detailsTab, detailsTab === 'exclusions' && styles.detailsTabActive]}
+                  onPress={() => setDetailsTab('exclusions')}
+                >
+                  <Text style={[styles.detailsTabText, detailsTab === 'exclusions' && styles.detailsTabTextActive]}>
+                    Exclusions
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.detailsTab, detailsTab === 'terms' && styles.detailsTabActive]}
+                  onPress={() => setDetailsTab('terms')}
+                >
+                  <Text style={[styles.detailsTabText, detailsTab === 'terms' && styles.detailsTabTextActive]}>
+                    Terms
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Tab Content */}
+              <View style={styles.detailsTabContent}>
+                {/* Overview Tab */}
+                {detailsTab === 'overview' && (
+                  <View>
+                    {/* Vehicle Images */}
+                    {(() => {
+                      console.log('🖼️ Vehicle Images Debug:', viewingQuote?.vehicleImages);
+                      console.log('🖼️ Vehicle Images Type:', typeof viewingQuote?.vehicleImages);
+
+                      let vehicleImages = [];
+                      if (viewingQuote?.vehicleImages) {
+                        try {
+                          // Try to parse as JSON array
+                          vehicleImages = typeof viewingQuote.vehicleImages === 'string'
+                            ? JSON.parse(viewingQuote.vehicleImages)
+                            : viewingQuote.vehicleImages;
+
+                          // Ensure it's an array
+                          if (!Array.isArray(vehicleImages)) {
+                            vehicleImages = [];
+                          }
+
+                          console.log('✅ Parsed vehicle images:', vehicleImages);
+                        } catch (e) {
+                          console.log('⚠️ JSON parse failed, trying comma-separated:', e.message);
+                          // If JSON parse fails, try as comma-separated string
+                          if (typeof viewingQuote.vehicleImages === 'string') {
+                            vehicleImages = viewingQuote.vehicleImages.split(',').map(s => s.trim()).filter(Boolean);
+                            console.log('✅ Split vehicle images:', vehicleImages);
+                          }
+                        }
+                      } else {
+                        console.log('❌ No vehicleImages found in quote');
+                      }
+
+                      console.log('🖼️ Final vehicleImages array length:', vehicleImages.length);
+
+                      return vehicleImages.length > 0 && (
+                        <View style={styles.detailsSection}>
+                          <View style={styles.detailsSectionHeader}>
+                            <Ionicons name="images" size={22} color={GREEN} />
+                            <Text style={styles.detailsSectionTitle}>Vehicle Images</Text>
+                          </View>
+                          <ScrollView
+                            horizontal
+                            showsHorizontalScrollIndicator={false}
+                            style={styles.detailsImageScroll}
+                          >
+                            {vehicleImages.map((img, idx) => {
+                              // Construct image URL
+                              let imageUrl = img;
+                              if (!img.startsWith('http') && !img.startsWith('data:')) {
+                                const cleanPath = img.replace(/\\/g, '/').replace(/^\/+/, '');
+
+                                // If path already starts with 'uploads/', just prepend BASE_URL
+                                if (cleanPath.startsWith('uploads/')) {
+                                  imageUrl = `${BASE_URL}/${cleanPath}`;
+                                } else if (cleanPath.startsWith('storage/')) {
+                                  imageUrl = `${BASE_URL}/${cleanPath}`;
+                                } else {
+                                  // Otherwise, use IMAGE_BASE_URL (which already has /uploads)
+                                  imageUrl = `${IMAGE_BASE_URL}/${cleanPath}`;
+                                }
+                              }
+
+                              console.log(`🖼️ Image ${idx + 1} URL:`, imageUrl);
+
+                              return (
+                                <TouchableOpacity
+                                  key={idx}
+                                  style={styles.detailsImageContainer}
+                                  onPress={() => {
+                                    setViewingImages(vehicleImages);
+                                    setSelectedImageIndex(idx);
+                                    setImageViewerVisible(true);
+                                  }}
+                                >
+                                  <Image
+                                    source={{ uri: imageUrl }}
+                                    style={styles.detailsImage}
+                                    resizeMode="cover"
+                                    onError={(e) => console.log(`❌ Image ${idx + 1} failed to load:`, e.nativeEvent.error)}
+                                    onLoad={() => console.log(`✅ Image ${idx + 1} loaded successfully`)}
+                                  />
+                                </TouchableOpacity>
+                              );
+                            })}
+                          </ScrollView>
+                        </View>
+                      );
+                    })()}
+
+                    {/* Vehicle Info */}
+                    <View style={styles.detailsSection}>
+                      <View style={styles.detailsSectionHeader}>
+                        <Ionicons name="bicycle" size={22} color={GREEN} />
+                        <Text style={styles.detailsSectionTitle}>Vehicle Details</Text>
+                      </View>
+                      <View style={styles.detailsVehicleCard}>
+                        <Text style={styles.detailsVehicleName}>{viewingQuote.vehicleName}</Text>
+                        {viewingQuote.vehicleBrand && (
+                          <Text style={styles.detailsVehicleBrand}>{viewingQuote.vehicleBrand}</Text>
+                        )}
+                        {viewingQuote.registrationNumber && (
+                          <View style={styles.detailsRegRow}>
+                            <Ionicons name="card-outline" size={16} color="#666" />
+                            <Text style={styles.detailsRegNumber}>{viewingQuote.registrationNumber}</Text>
+                          </View>
+                        )}
+                      </View>
+
+                      {/* Vehicle Features */}
+                      {(() => {
+                        const features = parseListData(viewingQuote.vehicleFeatures);
+                        return features.length > 0 && (
+                          <View style={styles.detailsFeaturesContainer}>
+                            <Text style={styles.detailsFeaturesTitle}>Features</Text>
+                            <View style={styles.detailsFeaturesList}>
+                              {features.map((feature, idx) => (
+                                <View
+                                  key={idx}
+                                  style={[
+                                    styles.detailsFeatureItem,
+                                    idx === features.length - 1 && styles.detailsFeatureItemLast,
+                                  ]}
+                                >
+                                  <Ionicons name="checkmark-circle" size={16} color={GREEN} />
+                                  <Text style={styles.detailsFeatureText}>{feature}</Text>
+                                </View>
+                              ))}
+                            </View>
+                          </View>
+                        );
+                      })()}
+                    </View>
+
+                    {/* Pricing Details */}
+                    <View style={styles.detailsSection}>
+                      <View style={styles.detailsSectionHeader}>
+                        <Ionicons name="cash-outline" size={22} color={GREEN} />
+                        <Text style={styles.detailsSectionTitle}>Pricing Breakdown</Text>
+                      </View>
+                      <View style={styles.detailsPricingCard}>
+                        <View style={styles.detailsPriceRow}>
+                          <Text style={styles.detailsPriceLabel}>Daily Rate</Text>
+                          <Text style={styles.detailsPriceValue}>₹{viewingQuote.dailyRate}</Text>
+                        </View>
+                        <View style={styles.detailsPriceRow}>
+                          <Text style={styles.detailsPriceLabel}>
+                            Total ({request?.totalDays || 1} days)
+                          </Text>
+                          <Text style={styles.detailsPriceValue}>₹{viewingQuote.totalAmount}</Text>
+                        </View>
+                        {viewingQuote.gstAmount > 0 && (
+                          <View style={styles.detailsPriceRow}>
+                            <Text style={styles.detailsPriceLabel}>GST</Text>
+                            <Text style={styles.detailsPriceValue}>₹{viewingQuote.gstAmount}</Text>
+                          </View>
+                        )}
+                        <View style={[styles.detailsPriceRow, styles.detailsTotalRow]}>
+                          <Text style={styles.detailsTotalLabel}>Grand Total</Text>
+                          <Text style={styles.detailsTotalValue}>₹{viewingQuote.grandTotal}</Text>
+                        </View>
+                        {viewingQuote.advanceAmount > 0 && (
+                          <View style={styles.detailsAdvanceCard}>
+                            <View style={styles.detailsAdvanceHeader}>
+                              <Ionicons name="wallet-outline" size={18} color={GREEN} />
+                              <Text style={styles.detailsAdvanceLabel}>
+                                Advance Payment ({viewingQuote.advancePercent || 30}%)
+                              </Text>
+                            </View>
+                            <Text style={styles.detailsAdvanceAmount}>₹{viewingQuote.advanceAmount}</Text>
+                          </View>
+                        )}
+                        {viewingQuote.securityDeposit > 0 && (
+                          <View style={styles.detailsDepositRow}>
+                            <View style={styles.detailsDepositLabel}>
+                              <Ionicons name="shield-checkmark-outline" size={16} color="#666" />
+                              <Text style={styles.detailsDepositText}>Security Deposit (Refundable)</Text>
+                            </View>
+                            <Text style={styles.detailsDepositAmount}>₹{viewingQuote.securityDeposit}</Text>
+                          </View>
+                        )}
+                      </View>
+                    </View>
+
+                    {/* Additional Info */}
+                    <View style={styles.detailsSection}>
+                      <View style={styles.detailsSectionHeader}>
+                        <Ionicons name="information-circle-outline" size={22} color={GREEN} />
+                        <Text style={styles.detailsSectionTitle}>Additional Information</Text>
+                      </View>
+                      <View style={styles.detailsInfoCard}>
+                        {viewingQuote.helmetsIncluded !== undefined && (
+                          <View style={styles.detailsInfoRow}>
+                            <Ionicons
+                              name={viewingQuote.helmetsIncluded ? 'checkmark-circle' : 'close-circle'}
+                              size={20}
+                              color={viewingQuote.helmetsIncluded ? GREEN : '#e74c3c'}
+                            />
+                            <Text style={styles.detailsInfoText}>
+                              Helmets {viewingQuote.helmetsIncluded ? 'Included' : 'Not Included'}
+                            </Text>
+                          </View>
+                        )}
+                        {viewingQuote.kmLimitPerDay && (
+                          <View style={styles.detailsInfoRow}>
+                            <Ionicons name="speedometer-outline" size={20} color="#666" />
+                            <Text style={styles.detailsInfoText}>
+                              {viewingQuote.kmLimitPerDay} KM per day limit
+                            </Text>
+                          </View>
+                        )}
+                        {viewingQuote.extraKmRate && (
+                          <View style={styles.detailsInfoRow}>
+                            <Ionicons name="cash-outline" size={20} color="#666" />
+                            <Text style={styles.detailsInfoText}>
+                              ₹{viewingQuote.extraKmRate} per extra KM
+                            </Text>
+                          </View>
+                        )}
+                        {viewingQuote.validTill && (
+                          <View style={styles.detailsInfoRow}>
+                            <Ionicons name="time-outline" size={20} color="#666" />
+                            <Text style={styles.detailsInfoText}>
+                              Valid till {formatDate(viewingQuote.validTill)}
+                            </Text>
+                          </View>
+                        )}
+                      </View>
+
+                      {/* Vendor Message */}
+                      {viewingQuote.vendorMessage && (
+                        <View style={styles.detailsVendorMessage}>
+                          <View style={styles.detailsMessageHeader}>
+                            <Ionicons name="chatbox-outline" size={18} color={GREEN} />
+                            <Text style={styles.detailsMessageTitle}>Message from Vendor</Text>
+                          </View>
+                          <Text style={styles.detailsMessageText}>
+                            {typeof viewingQuote.vendorMessage === 'string'
+                              ? viewingQuote.vendorMessage
+                              : JSON.stringify(viewingQuote.vendorMessage)}
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+                  </View>
+                )}
+
+                {/* Inclusions Tab */}
+                {detailsTab === 'inclusions' && (
+                  <View style={styles.detailsSection}>
+                    <View style={styles.detailsSectionHeader}>
+                      <Ionicons name="checkmark-done-circle" size={22} color={GREEN} />
+                      <Text style={styles.detailsSectionTitle}>What's Included</Text>
+                    </View>
+                    {(() => {
+                      const inclusions = parseListData(viewingQuote.inclusions);
+                      return inclusions.length > 0 ? (
+                        <View style={styles.detailsListCard}>
+                          {inclusions.map((item, idx) => (
+                            <View
+                              key={idx}
+                              style={[
+                                styles.detailsListItem,
+                                idx === inclusions.length - 1 && styles.detailsListItemLast,
+                              ]}
+                            >
+                              <View style={styles.detailsListBullet}>
+                                <Ionicons name="checkmark" size={18} color={GREEN} />
+                              </View>
+                              <Text style={styles.detailsListText}>{item}</Text>
+                            </View>
+                          ))}
+                        </View>
+                      ) : (
+                        <View style={styles.detailsEmptyState}>
+                          <Ionicons name="document-text-outline" size={40} color="#ccc" />
+                          <Text style={styles.detailsEmptyText}>No inclusions specified</Text>
+                        </View>
+                      );
+                    })()}
+                  </View>
+                )}
+
+                {/* Exclusions Tab */}
+                {detailsTab === 'exclusions' && (
+                  <View style={styles.detailsSection}>
+                    <View style={styles.detailsSectionHeader}>
+                      <Ionicons name="close-circle" size={22} color="#e74c3c" />
+                      <Text style={styles.detailsSectionTitle}>What's Not Included</Text>
+                    </View>
+                    {(() => {
+                      const exclusions = parseListData(viewingQuote.exclusions);
+                      return exclusions.length > 0 ? (
+                        <View style={styles.detailsListCard}>
+                          {exclusions.map((item, idx) => (
+                            <View
+                              key={idx}
+                              style={[
+                                styles.detailsListItem,
+                                idx === exclusions.length - 1 && styles.detailsListItemLast,
+                              ]}
+                            >
+                              <View style={[styles.detailsListBullet, styles.detailsExclusionBullet]}>
+                                <Ionicons name="close" size={18} color="#e74c3c" />
+                              </View>
+                              <Text style={styles.detailsListText}>{item}</Text>
+                            </View>
+                          ))}
+                        </View>
+                      ) : (
+                        <View style={styles.detailsEmptyState}>
+                          <Ionicons name="document-text-outline" size={40} color="#ccc" />
+                          <Text style={styles.detailsEmptyText}>No exclusions specified</Text>
+                        </View>
+                      );
+                    })()}
+                  </View>
+                )}
+
+                {/* Terms Tab */}
+                {detailsTab === 'terms' && (
+                  <View style={styles.detailsSection}>
+                    <View style={styles.detailsSectionHeader}>
+                      <Ionicons name="document-text" size={22} color={GREEN} />
+                      <Text style={styles.detailsSectionTitle}>Terms & Conditions</Text>
+                    </View>
+                    {(() => {
+                      const terms = parseListData(viewingQuote.termsConditions);
+
+                      // If we got an array with multiple items, show as bullet points
+                      if (terms.length > 1) {
+                        return (
+                          <View style={styles.detailsListCard}>
+                            {terms.map((item, idx) => (
+                              <View
+                                key={idx}
+                                style={[
+                                  styles.detailsListItem,
+                                  idx === terms.length - 1 && styles.detailsListItemLast,
+                                ]}
+                              >
+                                <View style={styles.detailsTermsBullet}>
+                                  <Text style={styles.detailsTermsNumber}>{idx + 1}</Text>
+                                </View>
+                                <Text style={styles.detailsListText}>{item}</Text>
+                              </View>
+                            ))}
+                          </View>
+                        );
+                      }
+
+                      // If single item or plain text, show as paragraph
+                      if (terms.length === 1 || viewingQuote.termsConditions) {
+                        return (
+                          <View style={styles.detailsTermsCard}>
+                            <Text style={styles.detailsTermsText}>
+                              {terms.length === 1 ? terms[0] : viewingQuote.termsConditions}
+                            </Text>
+                          </View>
+                        );
+                      }
+
+                      // No terms
+                      return (
+                        <View style={styles.detailsEmptyState}>
+                          <Ionicons name="document-text-outline" size={40} color="#ccc" />
+                          <Text style={styles.detailsEmptyText}>No terms and conditions specified</Text>
+                        </View>
+                      );
+                    })()}
+                  </View>
+                )}
+              </View>
+
+              {/* Bottom Actions */}
+              <View style={styles.detailsActions}>
+                {request.status !== 'ACCEPTED' && viewingQuote.status !== 'ACCEPTED' && (
+                  <TouchableOpacity
+                    style={styles.detailsAcceptBtn}
+                    onPress={() => {
+                      handleCloseQuoteDetails();
+                      setTimeout(() => handleAcceptQuote(viewingQuote), 300);
+                    }}
+                  >
+                    <Ionicons name="checkmark-circle" size={22} color="#fff" />
+                    <Text style={styles.detailsAcceptBtnText}>Accept & Book This Quote</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+
+              <View style={{ height: 40 }} />
+            </ScrollView>
+          )}
+        </SafeAreaView>
+      </Modal>
+
+      {/* Image Viewer Modal */}
+      <Modal
+        visible={imageViewerVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setImageViewerVisible(false)}
+      >
+        <View style={styles.imageViewerContainer}>
+          <TouchableOpacity
+            style={styles.imageViewerCloseButton}
+            onPress={() => setImageViewerVisible(false)}
+          >
+            <Ionicons name="close" size={32} color="#fff" />
+          </TouchableOpacity>
+
+          <ScrollView
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            style={styles.imageViewerScroll}
+            contentContainerStyle={{ width: Dimensions.get('window').width * viewingImages.length }}
+            scrollEnabled={true}
+            onMomentumScrollEnd={(event) => {
+              const index = Math.round(event.nativeEvent.contentOffset.x / Dimensions.get('window').width);
+              setSelectedImageIndex(index);
+            }}
+            contentOffset={{ x: selectedImageIndex * Dimensions.get('window').width, y: 0 }}
+          >
+            {viewingImages.map((img, idx) => {
+              let imageUrl = img;
+              if (!img.startsWith('http') && !img.startsWith('data:')) {
+                const cleanPath = img.replace(/\\/g, '/').replace(/^\/+/, '');
+                if (cleanPath.startsWith('uploads/')) {
+                  imageUrl = `${BASE_URL}/${cleanPath}`;
+                } else if (cleanPath.startsWith('storage/')) {
+                  imageUrl = `${BASE_URL}/${cleanPath}`;
+                } else {
+                  imageUrl = `${IMAGE_BASE_URL}/${cleanPath}`;
+                }
+              }
+
+              return (
+                <View key={idx} style={styles.imageViewerPage}>
+                  <Image
+                    source={{ uri: imageUrl }}
+                    style={styles.imageViewerImage}
+                    resizeMode="contain"
+                  />
+                </View>
+              );
+            })}
+          </ScrollView>
+
+          <View style={styles.imageViewerCounter}>
+            <Text style={styles.imageViewerCounterText}>
+              {selectedImageIndex + 1} / {viewingImages.length}
+            </Text>
           </View>
         </View>
       </Modal>
@@ -815,9 +1446,7 @@ const styles = StyleSheet.create({
   },
 
   // Vehicle
-  vehicleInfo: {
-    marginBottom: 12,
-  },
+  vehicleInfo: {},
   vehicleBrand: {
     fontSize: 12,
     color: '#999',
@@ -829,25 +1458,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#333',
     marginTop: 4,
-  },
-  specsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  specBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#e8f5e9',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 12,
-    gap: 4,
-  },
-  specBadgeText: {
-    fontSize: 12,
-    color: GREEN,
-    fontWeight: '500',
   },
 
   // Trip
@@ -943,7 +1553,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 12,
-    gap: 4,
   },
   bestDealText: {
     color: '#fff',
@@ -977,32 +1586,38 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginTop: 2,
-    gap: 4,
   },
   ratingText: {
     fontSize: 13,
     color: '#f39c12',
     fontWeight: '600',
+    marginLeft: 4,
   },
 
   // Quote Vehicle
   quoteVehicle: {
-    flexDirection: 'row',
-    alignItems: 'center',
     backgroundColor: '#f8f8f8',
     padding: 10,
     borderRadius: 10,
     marginBottom: 12,
-    gap: 6,
   },
   quoteVehicleName: {
     fontSize: 15,
     fontWeight: '600',
     color: '#333',
+    marginBottom: 8,
   },
-  quoteVehicleSpec: {
-    fontSize: 13,
-    color: '#666',
+  vehicleImagesContainer: {
+    marginTop: 8,
+    marginHorizontal: -10,
+    paddingHorizontal: 10,
+  },
+  vehicleImage: {
+    width: 120,
+    height: 90,
+    borderRadius: 8,
+    marginRight: 8,
+    backgroundColor: '#e0e0e0',
   },
 
   // Quote Pricing
@@ -1030,23 +1645,13 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: GREEN,
   },
-  advanceRow: {
-    backgroundColor: 'rgba(9,179,104,0.08)',
-    marginHorizontal: -12,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    marginTop: 8,
-    borderRadius: 8,
-  },
   advanceLabel: {
     fontSize: 13,
-    color: GREEN,
-    fontWeight: '500',
+    color: '#999',
   },
   advanceValue: {
-    fontSize: 14,
-    color: GREEN,
-    fontWeight: '600',
+    fontSize: 13,
+    color: '#666',
   },
   validTill: {
     fontSize: 12,
@@ -1064,12 +1669,12 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     borderRadius: 12,
     marginTop: 12,
-    gap: 8,
   },
   acceptBtnText: {
     color: '#fff',
     fontSize: 16,
     fontWeight: '700',
+    marginLeft: 8,
   },
   acceptedBadge: {
     flexDirection: 'row',
@@ -1079,7 +1684,6 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 12,
     marginTop: 12,
-    gap: 6,
   },
   acceptedText: {
     color: GREEN,
@@ -1107,6 +1711,58 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     paddingHorizontal: 10,
   },
+  noQuotesContainer: {
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    padding: 40,
+    alignItems: 'center',
+    marginVertical: 10,
+  },
+  noQuotesIconCircle: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: '#E8F9F1',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
+  },
+  noQuotesTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#333',
+    marginTop: 10,
+    marginBottom: 12,
+  },
+  noQuotesMessage: {
+    fontSize: 14,
+    color: '#666',
+    textAlign: 'center',
+    lineHeight: 22,
+    paddingHorizontal: 10,
+    marginBottom: 20,
+  },
+  noQuotesInfoBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F5F5F5',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 20,
+    marginTop: 10,
+  },
+  noQuotesInfoText: {
+    fontSize: 13,
+    color: '#666',
+    marginLeft: 8,
+    fontWeight: '500',
+  },
+  noQuotesPullRefresh: {
+    fontSize: 12,
+    color: '#999',
+    marginTop: 16,
+    fontStyle: 'italic',
+  },
   newRequestBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1116,12 +1772,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     borderRadius: 12,
     marginTop: 20,
-    gap: 8,
   },
   newRequestBtnText: {
     color: '#fff',
     fontSize: 14,
     fontWeight: '600',
+    marginLeft: 8,
   },
   viewBookingsBtn: {
     flexDirection: 'row',
@@ -1132,7 +1788,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     borderRadius: 12,
     marginTop: 20,
-    gap: 8,
+  },
+  advanceRow: {
+    backgroundColor: 'rgba(9,179,104,0.08)',
+    marginHorizontal: -12,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginTop: 8,
+    borderRadius: 8,
   },
 
   // Notes
@@ -1212,7 +1875,6 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     borderRadius: 14,
     marginTop: 20,
-    gap: 8,
   },
   successBtnText: {
     color: '#fff',
@@ -1221,7 +1883,7 @@ const styles = StyleSheet.create({
   },
 
   // Error State
-  errorDisplayContainer: {
+  errorContainer: {
     alignItems: 'center',
     paddingVertical: 10,
   },
@@ -1249,9 +1911,8 @@ const styles = StyleSheet.create({
   errorActions: {
     flexDirection: 'row',
     marginBottom: 12,
-    gap: 12,
   },
-  retryBtnModal: {
+  retryBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -1260,9 +1921,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     borderRadius: 12,
     flex: 1,
-    gap: 6,
+    marginRight: 6,
   },
-  retryBtnTextModal: {
+  retryBtnText: {
     color: '#fff',
     fontSize: 14,
     fontWeight: '600',
@@ -1278,7 +1939,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderRadius: 12,
     flex: 1,
-    gap: 6,
+    marginLeft: 6,
   },
   checkBookingsBtnText: {
     color: GREEN,
@@ -1325,12 +1986,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginTop: 4,
-    gap: 4,
   },
   confirmRatingText: {
     fontSize: 13,
     color: '#f39c12',
     fontWeight: '600',
+    marginLeft: 4,
   },
   confirmVehicle: {
     flexDirection: 'row',
@@ -1339,7 +2000,6 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 10,
     marginBottom: 14,
-    gap: 8,
   },
   confirmVehicleName: {
     fontSize: 15,
@@ -1386,7 +2046,6 @@ const styles = StyleSheet.create({
   confirmAdvanceLabel: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
   },
   confirmAdvanceLabelText: {
     fontSize: 14,
@@ -1407,7 +2066,6 @@ const styles = StyleSheet.create({
   },
   confirmActions: {
     flexDirection: 'row',
-    gap: 12,
   },
   cancelModalBtn: {
     flex: 1,
@@ -1416,6 +2074,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#f5f5f5',
     paddingVertical: 14,
     borderRadius: 12,
+    marginRight: 6,
   },
   cancelModalBtnText: {
     fontSize: 15,
@@ -1430,7 +2089,7 @@ const styles = StyleSheet.create({
     backgroundColor: GREEN,
     paddingVertical: 14,
     borderRadius: 12,
-    gap: 8,
+    marginLeft: 6,
   },
   confirmBtnDisabled: {
     opacity: 0.7,
@@ -1439,5 +2098,507 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '700',
     color: '#fff',
+  },
+
+  // View Details Button
+  viewDetailsBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(9,179,104,0.08)',
+    paddingVertical: 12,
+    borderRadius: 10,
+    marginTop: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(9,179,104,0.2)',
+  },
+  viewDetailsBtnText: {
+    color: GREEN,
+    fontSize: 14,
+    fontWeight: '600',
+    marginHorizontal: 6,
+  },
+
+  // ========== Quote Details Modal Styles ==========
+  detailsModalContainer: {
+    flex: 1,
+    backgroundColor: BG,
+  },
+  detailsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  detailsCloseBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  detailsHeaderTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#333',
+  },
+  detailsContent: {
+    flex: 1,
+  },
+
+  // Vendor Card
+  detailsVendorCard: {
+    backgroundColor: '#fff',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  detailsVendorRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  detailsVendorAvatar: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: 'rgba(9,179,104,0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  detailsVendorInfo: {
+    marginLeft: 14,
+    flex: 1,
+  },
+  detailsVendorName: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#333',
+  },
+  detailsRating: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  detailsRatingText: {
+    fontSize: 14,
+    color: '#f39c12',
+    fontWeight: '600',
+    marginLeft: 4,
+  },
+  detailsQuoteNumber: {
+    fontSize: 13,
+    color: '#999',
+    fontWeight: '500',
+  },
+
+  // Tabs
+  detailsTabs: {
+    flexDirection: 'row',
+    backgroundColor: '#fff',
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  detailsTab: {
+    flex: 1,
+    paddingVertical: 12,
+    alignItems: 'center',
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
+  },
+  detailsTabActive: {
+    borderBottomColor: GREEN,
+  },
+  detailsTabText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#999',
+  },
+  detailsTabTextActive: {
+    color: GREEN,
+  },
+
+  // Tab Content
+  detailsTabContent: {
+    padding: 16,
+  },
+  detailsSection: {
+    marginBottom: 20,
+  },
+  detailsSectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  detailsSectionTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: '#333',
+    marginLeft: 10,
+  },
+
+  // Vehicle Card
+  detailsVehicleCard: {
+    backgroundColor: '#fff',
+    padding: 16,
+    borderRadius: 14,
+    marginBottom: 12,
+  },
+  detailsVehicleName: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#333',
+    marginBottom: 4,
+  },
+  detailsVehicleBrand: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 8,
+  },
+  detailsRegRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f8f8f8',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    alignSelf: 'flex-start',
+  },
+  detailsRegNumber: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#666',
+    marginLeft: 6,
+  },
+
+  // Features
+  detailsFeaturesContainer: {
+    backgroundColor: '#fff',
+    padding: 16,
+    borderRadius: 14,
+  },
+  detailsFeaturesTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#333',
+    marginBottom: 14,
+  },
+  detailsFeaturesList: {},
+  detailsFeatureItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 12,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f8f8f8',
+  },
+  detailsFeatureText: {
+    fontSize: 14,
+    color: '#333',
+    marginLeft: 10,
+    flex: 1,
+    lineHeight: 20,
+    paddingTop: 1,
+  },
+  detailsFeatureItemLast: {
+    borderBottomWidth: 0,
+    marginBottom: 0,
+    paddingBottom: 0,
+  },
+
+  // Pricing Card
+  detailsPricingCard: {
+    backgroundColor: '#fff',
+    padding: 16,
+    borderRadius: 14,
+  },
+  detailsPriceRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  detailsPriceLabel: {
+    fontSize: 14,
+    color: '#666',
+  },
+  detailsPriceValue: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#333',
+  },
+  detailsTotalRow: {
+    borderTopWidth: 1,
+    borderTopColor: '#f0f0f0',
+    paddingTop: 12,
+    marginTop: 4,
+    marginBottom: 12,
+  },
+  detailsTotalLabel: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#333',
+  },
+  detailsTotalValue: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: GREEN,
+  },
+  detailsAdvanceCard: {
+    backgroundColor: 'rgba(9,179,104,0.08)',
+    padding: 14,
+    borderRadius: 10,
+    marginBottom: 10,
+  },
+  detailsAdvanceHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  detailsAdvanceLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: GREEN,
+    marginLeft: 6,
+  },
+  detailsAdvanceAmount: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: GREEN,
+  },
+  detailsDepositRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#f8f8f8',
+    padding: 12,
+    borderRadius: 10,
+  },
+  detailsDepositLabel: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  detailsDepositText: {
+    fontSize: 13,
+    color: '#666',
+    marginLeft: 6,
+  },
+  detailsDepositAmount: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#333',
+  },
+
+  // Info Card
+  detailsInfoCard: {
+    backgroundColor: '#fff',
+    padding: 16,
+    borderRadius: 14,
+    marginBottom: 12,
+  },
+  detailsInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  detailsInfoText: {
+    fontSize: 14,
+    color: '#666',
+    marginLeft: 10,
+    flex: 1,
+  },
+
+  // Vendor Message
+  detailsVendorMessage: {
+    backgroundColor: '#fff',
+    padding: 16,
+    borderRadius: 14,
+  },
+  detailsMessageHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  detailsMessageTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: GREEN,
+    marginLeft: 8,
+  },
+  detailsMessageText: {
+    fontSize: 14,
+    color: '#666',
+    lineHeight: 22,
+  },
+
+  // List Card (Inclusions/Exclusions)
+  detailsListCard: {
+    backgroundColor: '#fff',
+    padding: 16,
+    borderRadius: 14,
+  },
+  detailsListItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 16,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f5f5f5',
+  },
+  detailsListBullet: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: 'rgba(9,179,104,0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+    marginTop: 2,
+  },
+  detailsExclusionBullet: {
+    backgroundColor: 'rgba(231,76,60,0.1)',
+  },
+  detailsListText: {
+    fontSize: 15,
+    color: '#333',
+    lineHeight: 22,
+    flex: 1,
+    paddingTop: 3,
+  },
+  detailsListItemLast: {
+    borderBottomWidth: 0,
+    marginBottom: 0,
+    paddingBottom: 0,
+  },
+
+  // Terms Card
+  detailsTermsCard: {
+    backgroundColor: '#fff',
+    padding: 16,
+    borderRadius: 14,
+  },
+  detailsTermsText: {
+    fontSize: 14,
+    color: '#666',
+    lineHeight: 22,
+  },
+  detailsTermsBullet: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: 'rgba(9,179,104,0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  detailsTermsNumber: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: GREEN,
+  },
+
+  // Empty State
+  detailsEmptyState: {
+    backgroundColor: '#fff',
+    padding: 40,
+    borderRadius: 14,
+    alignItems: 'center',
+  },
+  detailsEmptyText: {
+    fontSize: 14,
+    color: '#999',
+    marginTop: 12,
+  },
+
+  // Bottom Actions
+  detailsActions: {
+    padding: 16,
+  },
+  detailsAcceptBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: GREEN,
+    paddingVertical: 16,
+    borderRadius: 14,
+    shadowColor: GREEN,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  detailsAcceptBtnText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '700',
+    marginLeft: 8,
+  },
+
+  // Vehicle Images
+  detailsImageScroll: {
+    marginTop: 12,
+  },
+  detailsImageContainer: {
+    marginRight: 12,
+    borderRadius: 12,
+    overflow: 'hidden',
+    backgroundColor: '#f5f5f5',
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+  },
+  detailsImage: {
+    width: 280,
+    height: 200,
+    borderRadius: 12,
+  },
+
+  // Image Viewer Modal
+  imageViewerContainer: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.95)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  imageViewerCloseButton: {
+    position: 'absolute',
+    top: 50,
+    right: 20,
+    zIndex: 10,
+    padding: 10,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    borderRadius: 25,
+  },
+  imageViewerScroll: {
+    flex: 1,
+    width: Dimensions.get('window').width,
+  },
+  imageViewerPage: {
+    width: Dimensions.get('window').width,
+    height: Dimensions.get('window').height,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  imageViewerImage: {
+    width: Dimensions.get('window').width,
+    height: Dimensions.get('window').height * 0.8,
+  },
+  imageViewerCounter: {
+    position: 'absolute',
+    bottom: 50,
+    alignSelf: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 20,
+  },
+  imageViewerCounterText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });

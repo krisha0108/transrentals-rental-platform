@@ -23,41 +23,47 @@ const parseArrayField = (field: any): string[] => {
 
 // Helper function to parse vehicle images from quotes or fleet
 const parseVehicleImages = (vehicleImages: any, fleetImages: any): string[] => {
-  // First try to get images from the quote's vehicleImages field
-  if (vehicleImages) {
-    if (typeof vehicleImages === 'string') {
+  // Helper function to extract images from various formats
+  const extractImages = (data: any): string[] => {
+    if (!data) return [];
+
+    // If it's a string, try to parse it as JSON
+    if (typeof data === 'string') {
       try {
-        const parsed = JSON.parse(vehicleImages);
+        const parsed = data === 'null' ? null : JSON.parse(data);
         if (Array.isArray(parsed)) {
           return parsed.filter(item => item && typeof item === 'string');
+        } else if (parsed && typeof parsed === 'object') {
+          // Handle object format like {front: "...", back: "...", ...}
+          return Object.values(parsed).filter(item => item && typeof item === 'string') as string[];
         }
       } catch {
         // If not valid JSON, try as comma-separated string
-        const imgArray = vehicleImages.split(',').map(s => s.trim()).filter(Boolean);
+        const imgArray = data.split(',').map((s: string) => s.trim()).filter(Boolean);
         if (imgArray.length > 0) return imgArray;
       }
-    } else if (Array.isArray(vehicleImages)) {
-      return vehicleImages.filter(item => item && typeof item === 'string');
     }
-  }
+
+    // If it's already an array
+    if (Array.isArray(data)) {
+      return data.filter(item => item && typeof item === 'string');
+    }
+
+    // If it's already an object
+    if (data && typeof data === 'object') {
+      return Object.values(data).filter(item => item && typeof item === 'string') as string[];
+    }
+
+    return [];
+  };
+
+  // First try to get images from the quote's vehicleImages field
+  const quotImages = extractImages(vehicleImages);
+  if (quotImages.length > 0) return quotImages;
 
   // If no images from quote, try fleet images
-  if (fleetImages) {
-    if (typeof fleetImages === 'string') {
-      try {
-        const parsed = JSON.parse(fleetImages);
-        if (Array.isArray(parsed)) {
-          return parsed.filter(item => item && typeof item === 'string');
-        }
-      } catch {
-        // If not valid JSON, try as comma-separated string
-        const imgArray = fleetImages.split(',').map(s => s.trim()).filter(Boolean);
-        if (imgArray.length > 0) return imgArray;
-      }
-    } else if (Array.isArray(fleetImages)) {
-      return fleetImages.filter(item => item && typeof item === 'string');
-    }
-  }
+  const flImages = extractImages(fleetImages);
+  if (flImages.length > 0) return flImages;
 
   return [];
 };
@@ -96,6 +102,11 @@ export async function GET(
                 phone: true,
               },
             },
+            vendor_fleets: {
+              select: {
+                images: true,
+              },
+            },
           },
         },
         customers: {
@@ -125,14 +136,14 @@ export async function GET(
         validUntil: quote.validTill,
         status: quote.status,
         createdAt: quote.createdAt,
-        vehicleImages: quote.vehicleImages,
+        vehicleImages: parseVehicleImages(quote.vehicleImages, quote.vendor_fleets?.images),
       }));
 
       // Get the first/best quote for display
       const firstQuote = quotes[0];
 
-      // Parse vehicle images
-      const vehicleImages = parseVehicleImages(firstQuote?.vehicleImages, null);
+      // Use already parsed vehicle images from first quote
+      const vehicleImages = firstQuote?.vehicleImages || [];
 
       return NextResponse.json({
         success: true,
@@ -153,6 +164,8 @@ export async function GET(
           // Add fields expected by ViewQuoteScreen
           service_name: firstQuote?.vehicleName || 'Bike Rental',
           price: firstQuote?.totalAmount || 0,
+          base_amount: firstQuote?.baseRate || 0,
+          security_deposit: firstQuote?.securityDeposit || 0,
           min_price: firstQuote?.totalAmount ? Math.round(firstQuote.totalAmount * 0.3) : 0,
           vendor: firstQuote?.vendorId ? {
             id: firstQuote.vendorId,
@@ -188,11 +201,6 @@ export async function GET(
                 phone: true,
               },
             },
-            vendor_fleets: {
-              select: {
-                images: true,
-              },
-            },
           },
         },
       },
@@ -219,13 +227,12 @@ export async function GET(
         status: quote.status,
         createdAt: quote.createdAt,
         vehicleImages: quote.vehicleImages,
-        fleetImages: quote.vendor_fleets?.images,
       }));
 
       const firstQuote = quotes[0];
 
-      // Parse vehicle images - prefer vehicleImages, fallback to fleet images
-      const vehicleImages = parseVehicleImages(firstQuote?.vehicleImages, firstQuote?.fleetImages);
+      // Parse vehicle images from quote
+      const vehicleImages = parseVehicleImages(firstQuote?.vehicleImages, null);
 
       return NextResponse.json({
         success: true,
@@ -248,6 +255,10 @@ export async function GET(
           createdAt: busQuote.createdAt,
           service_name: firstQuote?.vehicleName || 'Bus Rental',
           price: firstQuote?.totalAmount || 0,
+          base_amount: firstQuote?.baseRate || 0,
+          driver_allowance: firstQuote?.driverAllowance || 0,
+          toll_charges: firstQuote?.tollCharges || 0,
+          parking_charges: firstQuote?.parkingCharges || 0,
           min_price: firstQuote?.totalAmount ? Math.round(firstQuote.totalAmount * 0.3) : 0,
           vendor: firstQuote?.vendorId ? {
             id: firstQuote.vendorId,
@@ -264,7 +275,7 @@ export async function GET(
           },
         },
         quotes: quotes,
-        service_images: vehicleImages,
+        service_images: [], // No images for bus rental
       });
     }
 
@@ -330,6 +341,9 @@ export async function GET(
           createdAt: truckQuote.createdAt,
           service_name: firstQuote?.vehicleName || `Truck - ${truckQuote.vehicleCategory || 'Rental'}`,
           price: firstQuote?.totalAmount || 0,
+          base_amount: firstQuote?.baseRate || 0,
+          loading_charges: firstQuote?.loadingCharges || 0,
+          unloading_charges: firstQuote?.unloadingCharges || 0,
           min_price: firstQuote?.totalAmount ? Math.round(firstQuote.totalAmount * 0.3) : 0,
           vendor: firstQuote?.vendorId ? {
             id: firstQuote.vendorId,
@@ -354,7 +368,7 @@ export async function GET(
     const equipmentQuote = await prisma.equipment_quote_requests.findUnique({
       where: { id },
       include: {
-        equipment_quotes_equipment_quotes_requestIdToequipment_quote_requests: {
+        equipment_quotes: {
           include: {
             vendors: {
               select: {
@@ -370,7 +384,7 @@ export async function GET(
     });
 
     if (equipmentQuote) {
-      const quotes = (equipmentQuote.equipment_quotes_equipment_quotes_requestIdToequipment_quote_requests || []).map((quote) => ({
+      const quotes = (equipmentQuote.equipment_quotes || []).map((quote) => ({
         id: quote.id,
         vendorId: quote.vendorId,
         vendorName: quote.vendors?.businessName || 'Vendor',
@@ -411,6 +425,8 @@ export async function GET(
           createdAt: equipmentQuote.createdAt,
           service_name: firstQuote?.equipmentName || 'Equipment Rental',
           price: firstQuote?.totalAmount || 0,
+          daily_rate: firstQuote?.dailyRate || 0,
+          security_deposit: firstQuote?.securityDeposit || 0,
           min_price: firstQuote?.totalAmount ? Math.round(firstQuote.totalAmount * 0.3) : 0,
           vendor: firstQuote?.vendorId ? {
             id: firstQuote.vendorId,
@@ -435,7 +451,7 @@ export async function GET(
     const packersQuote = await prisma.packers_quote_requests.findUnique({
       where: { id },
       include: {
-        packers_quotes_packers_quotes_requestIdTopackers_quote_requests: {
+        packers_quotes: {
           include: {
             vendors: {
               select: {
@@ -451,7 +467,7 @@ export async function GET(
     });
 
     if (packersQuote) {
-      const quotes = (packersQuote.packers_quotes_packers_quotes_requestIdTopackers_quote_requests || []).map((quote) => ({
+      const quotes = (packersQuote.packers_quotes || []).map((quote) => ({
         id: quote.id,
         vendorId: quote.vendorId,
         vendorName: quote.vendors?.businessName || 'Vendor',
@@ -491,6 +507,12 @@ export async function GET(
           service_name: `Packers & Movers - ${packersQuote.shiftingType || 'Moving'}`,
           price: firstQuote?.totalAmount || 0,
           min_price: firstQuote?.totalAmount ? Math.round(firstQuote.totalAmount * 0.3) : 0,
+          // Price breakdown
+          packing_charges: firstQuote?.packingCharges || 0,
+          loading_charges: firstQuote?.loadingCharges || 0,
+          transport_charges: firstQuote?.transportCharges || 0,
+          unloading_charges: firstQuote?.unloadingCharges || 0,
+          unpacking_charges: firstQuote?.unpackingCharges || 0,
           vendor: firstQuote?.vendorId ? {
             id: firstQuote.vendorId,
             name: firstQuote.vendorName,
@@ -501,8 +523,8 @@ export async function GET(
           terms: firstQuote?.notes || '',
           booking: {
             location_name: packersQuote.pickupLocation || packersQuote.pickupCity || 'N/A',
-            destination: packersQuote.dropLocation || 'N/A',
-            journey_datetime: packersQuote.shiftingDate || null,
+            destination: packersQuote.dropLocation || packersQuote.dropCity || 'To be decided',
+            journey_datetime: packersQuote.shiftingDate || packersQuote.preferredDate || packersQuote.createdAt,
           },
         },
         quotes: quotes,
@@ -535,29 +557,55 @@ export async function GET(
     });
 
     if (selfDriveQuote) {
-      const quotes = (selfDriveQuote.self_drive_quotes_self_drive_quotes_requestIdToself_drive_quote_requests || []).map((quote) => ({
-        id: quote.id,
-        vendorId: quote.vendorId,
-        vendorName: quote.vendors?.businessName || 'Vendor',
-        vendorRating: quote.vendors?.rating || 0,
-        vehicleName: quote.vehicleName,
-        totalAmount: quote.totalAmount,
-        dailyRate: quote.dailyRate,
-        securityDeposit: quote.securityDeposit || 0,
-        inclusions: parseArrayField(quote.inclusions),
-        exclusions: parseArrayField(quote.exclusions),
-        notes: quote.vendorMessage,
-        validUntil: quote.validTill,
-        status: quote.status,
-        createdAt: quote.createdAt,
-        vehicleImages: quote.vehicleImages,
-        fleetImages: quote.vendor_fleets?.images,
-      }));
+      const quotes = (selfDriveQuote.self_drive_quotes_self_drive_quotes_requestIdToself_drive_quote_requests || [])
+        .map((quote) => {
+          // Parse images for this quote
+          const parsedImages = parseVehicleImages(quote.vehicleImages, quote.vendor_fleets?.images);
+
+          return {
+            id: quote.id,
+            vendorId: quote.vendorId,
+            vendorName: quote.vendors?.businessName || 'Vendor',
+            vendorRating: quote.vendors?.rating || 0,
+            vehicleName: quote.vehicleName,
+            vehicleType: quote.vehicleType,
+            vehicleBrand: quote.vehicleBrand,
+            vehicleCategory: quote.vehicleCategory,
+            vehicleYear: quote.vehicleYear,
+            registrationNumber: quote.registrationNumber,
+            transmission: quote.transmission,
+            fuelType: quote.fuelType,
+            seats: quote.seats,
+            vehicleFeatures: parseArrayField(quote.vehicleFeatures),
+            baseAmount: quote.baseAmount || 0,
+            dailyRate: quote.dailyRate || 0,
+            securityDeposit: quote.securityDeposit || 0,
+            extraKmRate: quote.extraKmRate || 0,
+            kmLimitPerDay: quote.kmLimitPerDay || 0,
+            pickupCharges: quote.pickupCharges || 0,
+            deliveryCharges: quote.deliveryCharges || 0,
+            platformFee: quote.platformFee || 0,
+            gstAmount: quote.gstAmount || 0,
+            totalAmount: quote.grandTotal || 0,
+            grandTotal: quote.grandTotal || 0,
+            advanceAmount: quote.advanceAmount || 0,
+            advancePercent: quote.advancePercent || 30,
+            inclusions: parseArrayField(quote.inclusions),
+            exclusions: parseArrayField(quote.exclusions),
+            notes: quote.termsConditions || quote.vendorMessage || '',
+            termsConditions: quote.termsConditions,
+            validUntil: quote.validTill,
+            status: quote.status,
+            createdAt: quote.createdAt,
+            vehicleImages: parsedImages,
+          };
+        })
+        .sort((a, b) => (a.grandTotal || 0) - (b.grandTotal || 0)); // Sort by price, cheapest first
 
       const firstQuote = quotes[0];
 
-      // Parse vehicle images - prefer vehicleImages, fallback to fleet images
-      const vehicleImages = parseVehicleImages(firstQuote?.vehicleImages, firstQuote?.fleetImages);
+      // Use first quote's images for service_images
+      const vehicleImages = firstQuote?.vehicleImages || [];
 
       return NextResponse.json({
         success: true,
@@ -576,8 +624,17 @@ export async function GET(
           status: selfDriveQuote.status,
           createdAt: selfDriveQuote.createdAt,
           service_name: firstQuote?.vehicleName || 'Self-Drive Car',
-          price: firstQuote?.totalAmount || 0,
-          min_price: firstQuote?.totalAmount ? Math.round(firstQuote.totalAmount * 0.3) : 0,
+          price: firstQuote?.grandTotal || firstQuote?.totalAmount || 0,
+          base_price: firstQuote?.baseAmount || 0,
+          daily_rate: firstQuote?.dailyRate || 0,
+          security_deposit: firstQuote?.securityDeposit || 0,
+          extra_km_rate: firstQuote?.extraKmRate || 0,
+          km_limit_per_day: firstQuote?.kmLimitPerDay || 0,
+          pickup_charges: firstQuote?.pickupCharges || 0,
+          delivery_charges: firstQuote?.deliveryCharges || 0,
+          platform_fee: firstQuote?.platformFee || 0,
+          gst_amount: firstQuote?.gstAmount || 0,
+          min_price: firstQuote?.advanceAmount || 0,
           vendor: firstQuote?.vendorId ? {
             id: firstQuote.vendorId,
             name: firstQuote.vendorName,
@@ -585,7 +642,19 @@ export async function GET(
           } : null,
           included: firstQuote?.inclusions?.length > 0 ? firstQuote.inclusions.join(', ') : '',
           not_included: firstQuote?.exclusions?.length > 0 ? firstQuote.exclusions.join(', ') : '',
-          terms: firstQuote?.notes || '',
+          terms: firstQuote?.termsConditions || firstQuote?.notes || '',
+          vehicle_details: {
+            name: firstQuote?.vehicleName,
+            type: firstQuote?.vehicleType,
+            brand: firstQuote?.vehicleBrand,
+            category: firstQuote?.vehicleCategory,
+            year: firstQuote?.vehicleYear,
+            registration: firstQuote?.registrationNumber,
+            transmission: firstQuote?.transmission,
+            fuel_type: firstQuote?.fuelType,
+            seats: firstQuote?.seats,
+            features: firstQuote?.vehicleFeatures || [],
+          },
           booking: {
             location_name: selfDriveQuote.pickupLocation || selfDriveQuote.locationName || 'N/A',
             destination: 'Self-Drive',
@@ -601,7 +670,7 @@ export async function GET(
     const luxuryQuote = await prisma.luxury_quote_requests.findUnique({
       where: { id },
       include: {
-        luxury_quotes_luxury_quotes_requestIdToluxury_quote_requests: {
+        luxury_quotes: {
           include: {
             vendors: {
               select: {
@@ -622,7 +691,7 @@ export async function GET(
     });
 
     if (luxuryQuote) {
-      const quotes = (luxuryQuote.luxury_quotes_luxury_quotes_requestIdToluxury_quote_requests || []).map((quote) => ({
+      const quotes = (luxuryQuote.luxury_quotes || []).map((quote) => ({
         id: quote.id,
         vendorId: quote.vendorId,
         vendorName: quote.vendors?.businessName || 'Vendor',
@@ -637,14 +706,13 @@ export async function GET(
         validUntil: quote.validTill,
         status: quote.status,
         createdAt: quote.createdAt,
-        vehicleImages: quote.vehicleImages,
-        fleetImages: quote.vendor_fleets?.images,
+        vehicleImages: parseVehicleImages(quote.vehicleImages, quote.vendor_fleets?.images),
       }));
 
       const firstQuote = quotes[0];
 
-      // Parse vehicle images - prefer vehicleImages, fallback to fleet images
-      const vehicleImages = parseVehicleImages(firstQuote?.vehicleImages, firstQuote?.fleetImages);
+      // Use already parsed vehicle images from first quote
+      const vehicleImages = firstQuote?.vehicleImages || [];
 
       return NextResponse.json({
         success: true,
@@ -664,6 +732,8 @@ export async function GET(
           createdAt: luxuryQuote.createdAt,
           service_name: firstQuote?.vehicleName || 'Luxury Car',
           price: firstQuote?.totalAmount || 0,
+          base_amount: firstQuote?.baseRate || 0,
+          driver_allowance: firstQuote?.driverAllowance || 0,
           min_price: firstQuote?.totalAmount ? Math.round(firstQuote.totalAmount * 0.3) : 0,
           vendor: firstQuote?.vendorId ? {
             id: firstQuote.vendorId,
