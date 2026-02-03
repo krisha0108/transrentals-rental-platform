@@ -17,7 +17,10 @@ function generateId(): string {
 // GET - Get vendor's packers quote templates
 export async function GET(request: NextRequest) {
   try {
+    console.log('[Packers Templates GET] Starting...');
     const auth = await getVendorAuth(request);
+    console.log('[Packers Templates GET] Auth:', { authenticated: auth.authenticated, vendorId: auth.vendorId });
+
     if (!auth.authenticated || !auth.vendorId) {
       return NextResponse.json({ error: auth.error || 'Unauthorized' }, { status: 401 });
     }
@@ -35,6 +38,7 @@ export async function GET(request: NextRequest) {
       whereClause.isActive = true;
     }
 
+    console.log('[Packers Templates GET] Fetching templates with where:', whereClause);
     const templates = await prisma.vendor_packers_templates.findMany({
       where: whereClause,
       orderBy: [
@@ -43,6 +47,7 @@ export async function GET(request: NextRequest) {
         { createdAt: 'desc' },
       ],
     });
+    console.log('[Packers Templates GET] Found templates:', templates.length);
 
     return NextResponse.json({
       success: true,
@@ -63,9 +68,10 @@ export async function GET(request: NextRequest) {
       })),
     });
   } catch (error: any) {
+    console.error('[Packers Templates GET] Error:', error);
     logger.error('Failed to fetch packers templates', error);
     return NextResponse.json(
-      { error: 'Failed to fetch templates', details: error?.message },
+      { success: false, error: 'Failed to fetch templates', details: error?.message },
       { status: 500 }
     );
   }

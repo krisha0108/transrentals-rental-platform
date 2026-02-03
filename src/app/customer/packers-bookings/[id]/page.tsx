@@ -21,6 +21,8 @@ import {
   FileText,
   Home,
   Truck,
+  Send,
+  X,
 } from 'lucide-react';
 import { PaymentConfirmation } from '@/components/bike/PaymentConfirmation';
 
@@ -34,6 +36,7 @@ interface Customer {
 interface PackersBooking {
   id: string;
   bookingNumber: string;
+  customerId?: string;
   serviceType: string;
   shiftingType: string;
   pickupCity: string;
@@ -79,6 +82,7 @@ interface PackersBooking {
   teamRating?: number;
   packingRating?: number;
   vendor?: {
+    id: string;
     name: string;
     phone: string;
     rating: number;
@@ -133,6 +137,11 @@ export default function CustomerPackersBookingDetailPage() {
   const [teamRating, setTeamRating] = useState(0);
   const [packingRating, setPackingRating] = useState(0);
   const [isSubmittingRating, setIsSubmittingRating] = useState(false);
+  const [showChat, setShowChat] = useState(false);
+  const [chatMessages, setChatMessages] = useState<any[]>([]);
+  const [newChatMessage, setNewChatMessage] = useState('');
+  const [isSendingMessage, setIsSendingMessage] = useState(false);
+  const [isLoadingMessages, setIsLoadingMessages] = useState(false);
 
   useEffect(() => {
     // Check authentication from localStorage
@@ -173,6 +182,62 @@ export default function CustomerPackersBookingDetailPage() {
 
     fetchBooking();
   }, [params.id, customer]);
+
+  const fetchChatMessages = async (showLoader = true) => {
+    if (!booking?.id || !booking?.vendor?.id) return;
+
+    try {
+      if (showLoader) setIsLoadingMessages(true);
+      const res = await fetch(
+        `/api/customer/booking/${booking.id}/chat/${booking.vendor.id}?customer_id=${booking.customerId || ''}`
+      );
+      const data = await res.json();
+
+      if (data.success) {
+        setChatMessages(data.messages || []);
+      }
+    } catch (err) {
+      console.error('Failed to fetch messages:', err);
+    } finally {
+      if (showLoader) setIsLoadingMessages(false);
+    }
+  };
+
+  const sendChatMessage = async () => {
+    if (!newChatMessage.trim() || !booking?.id || !booking?.vendor?.id) return;
+
+    try {
+      setIsSendingMessage(true);
+      const res = await fetch(`/api/customer/booking/${booking.id}/chat/${booking.vendor.id}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: newChatMessage.trim(),
+          customer_id: booking.customerId || '',
+          customer_name: customer?.name
+        }),
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        setNewChatMessage('');
+        fetchChatMessages(false);
+      }
+    } catch (err) {
+      console.error('Failed to send message:', err);
+    } finally {
+      setIsSendingMessage(false);
+    }
+  };
+
+  useEffect(() => {
+    if (showChat && booking?.id && booking?.vendor?.id) {
+      fetchChatMessages(true);
+      const interval = setInterval(() => fetchChatMessages(false), 5000);
+      return () => clearInterval(interval);
+    }
+  }, [showChat, booking?.id, booking?.vendor?.id]);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-IN', {
@@ -659,6 +724,16 @@ export default function CustomerPackersBookingDetailPage() {
 
         {/* Actions */}
         <div className="flex flex-col gap-3">
+          {booking.vendor && (
+            <button
+              onClick={() => setShowChat(true)}
+              className="w-full px-6 py-4 bg-gradient-to-r from-teal-500 to-cyan-500 text-white font-bold rounded-xl hover:from-teal-600 hover:to-cyan-600 transition flex items-center justify-center gap-2 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 active:translate-y-0"
+            >
+              <MessageCircle className="w-5 h-5" />
+              Chat with Vendor
+            </button>
+          )}
+
           {booking.status === 'COMPLETED' && !booking.rating && (
             <button
               onClick={() => setShowRateModal(true)}
@@ -805,6 +880,97 @@ export default function CustomerPackersBookingDetailPage() {
                   'Submit Review'
                 )}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Chat Modal */}
+      {showChat && booking?.vendor && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[80vh] flex flex-col">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-teal-500 to-cyan-500 text-white p-6 rounded-t-2xl flex items-center justify-between">
+              <div>
+                <h3 className="text-xl font-bold">{booking.vendor.name}</h3>
+                <p className="text-white/80 text-sm">Packers Booking #{booking.bookingNumber}</p>
+              </div>
+              <button
+                onClick={() => setShowChat(false)}
+                className="p-2 hover:bg-white/20 rounded-full transition"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            {/* Messages */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-4">
+              {isLoadingMessages ? (
+                <div className="flex justify-center items-center h-32">
+                  <Loader2 className="w-8 h-8 animate-spin text-teal-500" />
+                </div>
+              ) : chatMessages.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-32 text-gray-400">
+                  <MessageCircle className="w-12 h-12 mb-2" />
+                  <p>No messages yet. Start the conversation!</p>
+                </div>
+              ) : (
+                chatMessages.map((msg: any) => (
+                  <div
+                    key={msg.id}
+                    className={`flex ${msg.sender_type === 'customer' ? 'justify-end' : 'justify-start'}`}
+                  >
+                    <div
+                      className={`max-w-[70%] rounded-2xl px-4 py-3 ${
+                        msg.sender_type === 'customer'
+                          ? 'bg-gradient-to-r from-teal-500 to-cyan-500 text-white'
+                          : 'bg-gray-100 text-gray-800'
+                      }`}
+                    >
+                      <p className="text-sm break-words">{msg.message}</p>
+                      <p
+                        className={`text-xs mt-1 ${
+                          msg.sender_type === 'customer' ? 'text-white/70' : 'text-gray-500'
+                        }`}
+                      >
+                        {new Date(msg.created_at).toLocaleTimeString('en-IN', {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
+                      </p>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* Input */}
+            <div className="border-t p-4">
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={newChatMessage}
+                  onChange={(e) => setNewChatMessage(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && !isSendingMessage && sendChatMessage()}
+                  placeholder="Type your message..."
+                  className="flex-1 px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none"
+                  disabled={isSendingMessage}
+                />
+                <button
+                  onClick={sendChatMessage}
+                  disabled={!newChatMessage.trim() || isSendingMessage}
+                  className="px-6 py-3 bg-gradient-to-r from-teal-500 to-cyan-500 text-white rounded-xl hover:from-teal-600 hover:to-cyan-600 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {isSendingMessage ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : (
+                    <>
+                      <Send className="w-5 h-5" />
+                      Send
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         </div>

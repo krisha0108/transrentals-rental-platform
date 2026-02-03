@@ -111,11 +111,15 @@ export default function EquipmentSendQuoteScreen({ navigation, route }) {
       ]);
       setRequest(requestData.request || requestData);
 
-      // Filter equipment fleet
+      // Filter equipment fleet - support both singular and plural
       const equipmentFleet = (fleetsData.fleet || fleetsData.fleets || fleetsData.vehicles || []).filter(
-        (v) =>
-          v.service?.slug === 'equipment-rental' ||
-          v.service?.name?.toLowerCase().includes('equipment')
+        (v) => {
+          const service = v.services || v.service;
+          return (
+            service?.slug === 'equipment-rental' ||
+            service?.name?.toLowerCase().includes('equipment')
+          );
+        }
       );
       setFleetVehicles(equipmentFleet);
 
@@ -194,16 +198,38 @@ export default function EquipmentSendQuoteScreen({ navigation, route }) {
 
     const selectedEquip = fleetVehicles.find((v) => v.id === fleetId);
     if (selectedEquip) {
-      const brandName = selectedEquip.brand?.name || selectedEquip.vehicleModel?.brand?.name || '';
-      const modelName = selectedEquip.vehicleModel?.name || '';
+      let brandName = '';
+      let modelName = '';
+      let categoryName = '';
+      let categoryId = '';
+
+      // Check if vehicle has model (using ID field)
+      if (selectedEquip.vehicleModelId && selectedEquip.vehicle_models) {
+        modelName = selectedEquip.vehicle_models.name || '';
+        // Get brand from the model's brand relation
+        if (selectedEquip.vehicle_models.brands) {
+          brandName = selectedEquip.vehicle_models.brands.name || '';
+        }
+      }
+
+      // Check if vehicle has direct brand
+      if (selectedEquip.brandId && selectedEquip.brands) {
+        brandName = selectedEquip.brands.name || '';
+      }
+
+      // Check if vehicle has category
+      if (selectedEquip.vehicleCategoryId && selectedEquip.chauffeur_vehicle_categories) {
+        categoryName = selectedEquip.chauffeur_vehicle_categories.name || '';
+        categoryId = selectedEquip.chauffeur_vehicle_categories.id || '';
+      }
 
       // Combine brand and model for equipment name
-      const fullName = brandName && modelName ? `${brandName} ${modelName}` : brandName || modelName || selectedEquip.vehicleCategory?.name || '';
+      const fullName = brandName && modelName ? `${brandName} ${modelName}` : brandName || modelName || categoryName || '';
 
       setEquipmentName(fullName);
       // Use registration number for model/make field
       setEquipmentModel(selectedEquip.registrationNumber || '');
-      setEquipmentCategory(selectedEquip.vehicleCategory?.id || '');
+      setEquipmentCategory(categoryId || selectedEquip.vehicleCategoryId || '');
     }
   };
 

@@ -235,6 +235,8 @@ export default function BookingDetailScreen({ route, navigation }) {
     const fetchFleet = async () => {
       try {
         const response = await getFleetVehicles();
+        console.log('[Fleet Debug] Full response:', JSON.stringify(response, null, 2));
+
         if (response.success) {
           // Filter vehicles by service type
           const serviceSlugMap = {
@@ -248,9 +250,31 @@ export default function BookingDetailScreen({ route, navigation }) {
           };
 
           const serviceSlug = serviceSlugMap[serviceType] || serviceType;
+          console.log('[Fleet Debug] Service Type:', serviceType);
+          console.log('[Fleet Debug] Expected Service Slug:', serviceSlug);
+          console.log('[Fleet Debug] Total fleet count:', response.fleet?.length || 0);
+
+          // Log each vehicle's service slug
+          (response.fleet || []).forEach((v, index) => {
+            console.log(`[Fleet Debug] Vehicle ${index + 1}:`, {
+              id: v.id,
+              registrationNumber: v.registrationNumber,
+              serviceSlug: v.services?.slug || v.service?.slug,
+              serviceName: v.services?.name || v.service?.name,
+              isActive: v.isActive,
+              brand: v.brands?.name || v.brand?.name,
+              category: v.vehicleCategory?.name || v.chauffeur_vehicle_categories?.name,
+            });
+          });
+
           const filteredVehicles = (response.fleet || []).filter(
-            (v) => v.service?.slug === serviceSlug && v.isActive
+            (v) => {
+              const vehicleServiceSlug = v.services?.slug || v.service?.slug;
+              return vehicleServiceSlug === serviceSlug && v.isActive;
+            }
           );
+
+          console.log('[Fleet Debug] Filtered vehicles count:', filteredVehicles.length);
           setFleetVehicles(filteredVehicles);
         }
       } catch (error) {
@@ -926,7 +950,7 @@ export default function BookingDetailScreen({ route, navigation }) {
                           {selectedVehicle === 'manual'
                             ? 'Enter Manually'
                             : selectedVehicle
-                            ? `${selectedVehicle.brand?.name || ''} ${selectedVehicle.vehicleCategory?.name || ''} - ${selectedVehicle.registrationNumber || ''}`
+                            ? `${selectedVehicle.brands?.name || selectedVehicle.brand?.name || ''} ${selectedVehicle.vehicleCategory?.name || selectedVehicle.chauffeur_vehicle_categories?.name || ''} - ${selectedVehicle.registrationNumber || ''}`
                             : 'Select vehicle from fleet'}
                         </Text>
                         <Icon name="chevron-down" size={20} color={C.muted} />
@@ -1058,9 +1082,11 @@ export default function BookingDetailScreen({ route, navigation }) {
                                   onPress={() => {
                                     if (vehicle.isAvailable) {
                                       setSelectedVehicle(vehicle);
-                                      const vehicleModel = vehicle.brand?.name
-                                        ? `${vehicle.brand.name} ${vehicle.vehicleCategory?.name || ''}`
-                                        : vehicle.vehicleCategory?.name || '';
+                                      const brandName = vehicle.brands?.name || vehicle.brand?.name;
+                                      const categoryName = vehicle.vehicleCategory?.name || vehicle.chauffeur_vehicle_categories?.name;
+                                      const vehicleModel = brandName
+                                        ? `${brandName} ${categoryName || ''}`
+                                        : categoryName || '';
                                       setManualInput({
                                         ...manualInput,
                                         vehicleNumber: vehicle.registrationNumber || '',
@@ -1073,11 +1099,11 @@ export default function BookingDetailScreen({ route, navigation }) {
                                 >
                                   <View>
                                     <Text style={[styles.modalItemName, !vehicle.isAvailable && styles.modalItemTextDisabled]}>
-                                      {vehicle.brand?.name} {vehicle.vehicleCategory?.name}
+                                      {vehicle.brands?.name || vehicle.brand?.name} {vehicle.vehicleCategory?.name || vehicle.chauffeur_vehicle_categories?.name}
                                     </Text>
                                     <Text style={styles.modalItemPhone}>
                                       {vehicle.registrationNumber || 'No registration'}
-                                      {vehicle.vehicleCategory?.seatingCapacity ? ` • ${vehicle.vehicleCategory.seatingCapacity} Seater` : ''}
+                                      {(vehicle.vehicleCategory?.seatingCapacity || vehicle.chauffeur_vehicle_categories?.seatingCapacity) ? ` • ${vehicle.vehicleCategory?.seatingCapacity || vehicle.chauffeur_vehicle_categories?.seatingCapacity} Seater` : ''}
                                       {!vehicle.isAvailable ? ' • Unavailable' : ''}
                                     </Text>
                                   </View>

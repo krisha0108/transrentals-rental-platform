@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 import { transformPrismaResponse } from '@/lib/utils/api-transform';
 import { getVendorAuth } from '@/lib/auth/vendor-mobile-auth';
-
+import { sanitizeInput } from '@/lib/utils/sanitize';
+import { smartRateLimit, getClientIdentifier } from '@/lib/utils/smart-rate-limit';
 import logger from '@/lib/security/logger';
 export const dynamic = 'force-dynamic';
 
@@ -133,8 +134,22 @@ export async function PUT(request: NextRequest) {
     }
     const vendorId = auth.vendorId;
 
+    // ===== RATE LIMITING =====
+    const clientId = getClientIdentifier(request);
+    const rateLimitCheck = await smartRateLimit(clientId, true, {});
+    if (!rateLimitCheck.allowed) {
+      return NextResponse.json(
+        {
+          error: rateLimitCheck.error,
+          requiresCaptcha: rateLimitCheck.requiresCaptcha,
+          type: 'rate_limit',
+        },
+        { status: 429 }
+      );
+    }
+
     const body = await request.json();
-    const {
+    let {
       businessName,
       businessType,
       ownerName,
@@ -151,6 +166,23 @@ export async function PUT(request: NextRequest) {
       ifscCode,
       accountHolderName,
     } = body;
+
+    // ===== INPUT SANITIZATION =====
+    businessName = sanitizeInput(businessName);
+    businessType = sanitizeInput(businessType);
+    ownerName = sanitizeInput(ownerName);
+    gstNumber = sanitizeInput(gstNumber);
+    panNumber = sanitizeInput(panNumber);
+    address = sanitizeInput(address);
+    city = sanitizeInput(city);
+    state = sanitizeInput(state);
+    pincode = sanitizeInput(pincode);
+    description = sanitizeInput(description);
+    website = sanitizeInput(website);
+    bankName = sanitizeInput(bankName);
+    accountNumber = sanitizeInput(accountNumber);
+    ifscCode = sanitizeInput(ifscCode);
+    accountHolderName = sanitizeInput(accountHolderName);
 
     // Validate required fields
     if (businessName !== undefined && !businessName.trim()) {

@@ -83,20 +83,38 @@ export async function POST(
     const body = await request.json().catch(() => ({}));
     const { driverName, driverPhone, driverPhoto, vehicleNumber, vehicle_model } = body;
 
-    // Update booking
+    // Check if another vendor has already accepted
+    const currentBooking = await prisma.chauffeur_bookings.findUnique({
+      where: { id },
+      select: { status: true, acceptedVendorId: true }
+    });
+
+    if (currentBooking && currentBooking.acceptedVendorId && currentBooking.acceptedVendorId !== vendorId) {
+      return NextResponse.json(
+        {
+          error: 'Booking already taken',
+          message: 'This booking has already been accepted by another vendor.'
+        },
+        { status: 409 }
+      );
+    }
+
+    // Update booking using relation connect to avoid field sync issues
     const updatedBooking = await prisma.chauffeur_bookings.update({
       where: { id },
       data: {
         status: driverName ? 'DRIVER_ASSIGNED' : 'ACCEPTED',
-        acceptedVendorId: vendorId,
+        vendors_chauffeur_bookings_acceptedVendorIdTovendors: {
+          connect: { id: vendorId }
+        },
         driverName: driverName || null,
         driverPhone: driverPhone || null,
         driverPhoto: driverPhoto || null,
         vehicleNumber: vehicleNumber || null,
-        vehicle_models: vehicle_model || null,
+        vehicleModel: vehicle_model || null,
         driverAssignedAt: driverName ? new Date() : null,
         acceptedAt: new Date(),
-        responseDeadline: null, // Clear deadline after acceptance
+        responseDeadline: null,
       },
       include: {
         locations: { select: { name: true, slug: true } },
@@ -109,17 +127,17 @@ export async function POST(
         ? 'Car Booking accepted and driver assigned'
         : 'Car Booking accepted. Please assign a driver.',
       booking: {
-        id: updatedBooking.id,
-        bookingNumber: updatedBooking.bookingNumber,
-        status: updatedBooking.status,
-        tripType: updatedBooking.tripType,
-        carCategory: updatedBooking.carCategoryName,
-        grandTotal: updatedBooking.grandTotal,
-        acceptedAt: updatedBooking.acceptedAt,
-        driverName: updatedBooking.driverName,
-        vehicleNumber: updatedBooking.vehicleNumber,
-        tripStartOtp: updatedBooking.tripStartOtp,
-        location: updatedBooking.locations,
+        id: updatedBooking?.id,
+        bookingNumber: updatedBooking?.bookingNumber,
+        status: updatedBooking?.status,
+        tripType: updatedBooking?.tripType,
+        carCategory: updatedBooking?.carCategoryName,
+        grandTotal: updatedBooking?.grandTotal,
+        acceptedAt: updatedBooking?.acceptedAt,
+        driverName: updatedBooking?.driverName,
+        vehicleNumber: updatedBooking?.vehicleNumber,
+        tripStartOtp: updatedBooking?.tripStartOtp,
+        location: updatedBooking?.locations,
       },
     });
   } catch (error: any) {

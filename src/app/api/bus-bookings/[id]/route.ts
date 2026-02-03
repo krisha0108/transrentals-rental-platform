@@ -146,6 +146,7 @@ export async function GET(
       booking: {
         id: booking.id,
         bookingNumber: booking.bookingNumber,
+        customerId: booking.customerId,
         tripType: booking.tripType,
         vehicleCategory: booking.vehicleCategory,
         vehicleName: booking.vehicleName,

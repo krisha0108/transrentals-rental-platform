@@ -2,7 +2,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 import { transformPrismaResponse } from '@/lib/utils/api-transform';
-
+import { sanitizeInput, isValidEmail, isValidPhone, sanitizePhone } from '@/lib/utils/sanitize';
+import { smartRateLimit, detectDuplicate, getClientIdentifier, hashBookingData } from '@/lib/utils/smart-rate-limit';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth/auth-options';
 import logger from '@/lib/security/logger';
 export const dynamic = 'force-dynamic';
 
@@ -17,7 +20,38 @@ function generateRequestNumber(): string {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const {
+
+    // ===== RATE LIMITING =====
+    const clientId = getClientIdentifier(request);
+    const session = await getServerSession(authOptions);
+    const isAuthenticated = !!session?.user;
+
+    const rateLimitCheck = await smartRateLimit(clientId, isAuthenticated, body);
+    if (!rateLimitCheck.allowed) {
+      return NextResponse.json(
+        {
+          error: rateLimitCheck.error,
+          requiresCaptcha: rateLimitCheck.requiresCaptcha,
+          type: 'rate_limit',
+        },
+        { status: 429 }
+      );
+    }
+
+    // Check for duplicate bookings (bot detection)
+    const bookingHash = hashBookingData(body);
+    const duplicateCheck = await detectDuplicate(bookingHash);
+    if (duplicateCheck.isDuplicate) {
+      return NextResponse.json(
+        {
+          error: duplicateCheck.error,
+          type: 'duplicate_booking',
+        },
+        { status: 400 }
+      );
+    }
+
+    let {
       customerName, customerEmail, customerPhone, customerId,
       serviceType, shiftingType, propertySize,
       inventoryList, hasHeavyItems, heavyItemsDesc, hasFragileItems, fragileItemsDesc, hasVehicle, vehicleDetails,
@@ -28,11 +62,44 @@ export async function POST(request: NextRequest) {
       requirements, budgetMin, budgetMax,
     } = body;
 
+    // ===== INPUT SANITIZATION (XSS Protection) =====
+    customerName = sanitizeInput(customerName);
+    pickupCity = sanitizeInput(pickupCity);
+    pickupAddress = sanitizeInput(pickupAddress);
+    dropCity = sanitizeInput(dropCity);
+    dropAddress = sanitizeInput(dropAddress);
+    heavyItemsDesc = sanitizeInput(heavyItemsDesc);
+    fragileItemsDesc = sanitizeInput(fragileItemsDesc);
+    vehicleDetails = sanitizeInput(vehicleDetails);
+    requirements = sanitizeInput(requirements);
+    customerPhone = sanitizePhone(customerPhone);
+
     if (!customerName || !customerEmail || !customerPhone) {
       return NextResponse.json({ error: 'Customer details are required' }, { status: 400 });
     }
+
+    // ===== EMAIL & PHONE VALIDATION =====
+    if (customerEmail && !isValidEmail(customerEmail)) {
+      return NextResponse.json({ error: 'Invalid email format' }, { status: 400 });
+    }
+
+    if (customerPhone && !isValidPhone(customerPhone)) {
+      return NextResponse.json({ error: 'Invalid phone number. Must be 10 digits starting with 6-9' }, { status: 400 });
+    }
     if (!pickupCity || !dropCity || !pickupAddress || !dropAddress || !preferredDate || !shiftingType) {
       return NextResponse.json({ error: 'Location and shifting details are required' }, { status: 400 });
+    }
+
+    // ===== DATE VALIDATION =====
+    const preferred = new Date(preferredDate);
+    if (isNaN(preferred.getTime())) {
+      return NextResponse.json({ error: 'Invalid preferred date format. Please provide a valid date.' }, { status: 400 });
+    }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    if (preferred < today) {
+      return NextResponse.json({ error: 'Preferred date cannot be in the past' }, { status: 400 });
     }
 
     // MySQL is case-insensitive by default with utf8mb4_general_ci collation

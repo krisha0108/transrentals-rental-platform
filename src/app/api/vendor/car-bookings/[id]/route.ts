@@ -107,7 +107,7 @@ export async function GET(
         driverName: booking.driverName,
         driverPhone: booking.driverPhone,
         vehicleNumber: booking.vehicleNumber,
-        vehicle_models: booking.vehicle_models,
+        vehicleModel: booking.vehicleModel,
         tripStartOtp: booking.tripStartOtp,
         tripEndOtp: booking.tripEndOtp,
         tripStartedAt: booking.tripStartedAt,
@@ -229,7 +229,7 @@ export async function PATCH(
           return NextResponse.json({ error: 'Cannot assign driver in current status' }, { status: 400 });
         }
 
-        const { driverName, driverPhone, vehicleNumber, vehicle_model } = data;
+        const { driverName, driverPhone, vehicleNumber, vehicleModel } = data;
 
         const updatedBooking = await prisma.chauffeur_bookings.update({
           where: { id: booking.id },
@@ -238,7 +238,7 @@ export async function PATCH(
             driverName: driverName || null,
             driverPhone: driverPhone || null,
             vehicleNumber: vehicleNumber || null,
-            vehicle_models: vehicle_model || null,
+            vehicleModel: vehicleModel || null,
           },
         });
 

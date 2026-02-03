@@ -38,6 +38,8 @@ export default function ChatListScreen({ navigation }) {
   const fetchChats = useCallback(async () => {
     try {
       const response = await apiGet('/vendor/chats');
+      console.log('[ChatList] API Response:', response.data);
+      console.log('[ChatList] Chats:', response.data?.chats);
       setChats(response.data?.chats || []);
     } catch (error) {
       console.log('Error fetching chats:', error);
@@ -74,12 +76,16 @@ export default function ChatListScreen({ navigation }) {
   };
 
   const getBookingTypeBadge = (bookingType) => {
+    console.log('[ChatList] Booking Type:', bookingType);
     const types = {
-      bike: { label: 'Bike', color: C.orange, bg: '#FEF3C7' },
-      car: { label: 'Car', color: C.blue, bg: '#DBEAFE' },
-      bus: { label: 'Bus', color: C.purple, bg: '#F3E8FF' },
-      truck: { label: 'Truck', color: C.red, bg: '#FEE2E2' },
-      luxury: { label: 'Luxury', color: '#8B5CF6', bg: '#F3E8FF' },
+      bike: { label: 'Bike Rental', color: C.orange, bg: '#FEF3C7' },
+      car: { label: 'Self Drive', color: C.blue, bg: '#DBEAFE' },
+      bus: { label: 'Bus Rental', color: C.purple, bg: '#F3E8FF' },
+      truck: { label: 'Truck Rental', color: C.red, bg: '#FEE2E2' },
+      luxury: { label: 'Luxury Car', color: '#8B5CF6', bg: '#F3E8FF' },
+      chauffeur: { label: 'Car Rental', color: '#10B981', bg: '#D1FAE5' },
+      packers: { label: 'Packers', color: '#F59E0B', bg: '#FEF3C7' },
+      equipment: { label: 'Equipment', color: '#EF4444', bg: '#FEE2E2' },
     };
     return types[bookingType?.toLowerCase()] || { label: 'Other', color: C.muted, bg: '#F3F4F6' };
   };

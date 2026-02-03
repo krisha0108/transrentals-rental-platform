@@ -83,6 +83,81 @@ export async function GET(
       }
     }
 
+    // Try LuxuryBooking
+    if (!booking) {
+      const luxuryBooking = await prisma.luxury_bookings.findUnique({
+        where: { id: bookingId },
+        include: {
+          customers: { select: { id: true, name: true, email: true, phone: true } },
+        },
+      });
+      if (luxuryBooking) {
+        booking = luxuryBooking;
+        bookingType = 'luxury';
+        customerId = luxuryBooking.customerId;
+      }
+    }
+
+    // Try BusBooking
+    if (!booking) {
+      const busBooking = await prisma.bus_bookings.findUnique({
+        where: { id: bookingId },
+        include: {
+          customers: { select: { id: true, name: true, email: true, phone: true } },
+        },
+      });
+      if (busBooking) {
+        booking = busBooking;
+        bookingType = 'bus';
+        customerId = busBooking.customerId;
+      }
+    }
+
+    // Try PackersBooking
+    if (!booking) {
+      const packersBooking = await prisma.packers_bookings.findUnique({
+        where: { id: bookingId },
+        include: {
+          customers: { select: { id: true, name: true, email: true, phone: true } },
+        },
+      });
+      if (packersBooking) {
+        booking = packersBooking;
+        bookingType = 'packers';
+        customerId = packersBooking.customerId;
+      }
+    }
+
+    // Try TruckBooking
+    if (!booking) {
+      const truckBooking = await prisma.truck_bookings.findUnique({
+        where: { id: bookingId },
+        include: {
+          customers: { select: { id: true, name: true, email: true, phone: true } },
+        },
+      });
+      if (truckBooking) {
+        booking = truckBooking;
+        bookingType = 'truck';
+        customerId = truckBooking.customerId;
+      }
+    }
+
+    // Try EquipmentBooking
+    if (!booking) {
+      const equipmentBooking = await prisma.equipment_bookings.findUnique({
+        where: { id: bookingId },
+        include: {
+          customers: { select: { id: true, name: true, email: true, phone: true } },
+        },
+      });
+      if (equipmentBooking) {
+        booking = equipmentBooking;
+        bookingType = 'equipment';
+        customerId = equipmentBooking.customerId;
+      }
+    }
+
     if (!booking) {
       return NextResponse.json({
         success: true,
@@ -91,17 +166,27 @@ export async function GET(
       });
     }
 
-    // For guest bookings (no customerId), use a placeholder
-    const effectiveCustomerId = customerId || `guest-${bookingId}`;
+    // For guest bookings (no customerId), use null
+    const effectiveCustomerId = customerId || null;
+
+    console.log('[Vendor Chat GET] Looking for conversation with:', {
+      customerId: effectiveCustomerId,
+      vendorId,
+      bookingType,
+      bookingId,
+    });
 
     // Find or create conversation
     let conversation = await prisma.chat_conversations.findFirst({
       where: {
         customerId: effectiveCustomerId,
         vendorId,
+        bookingType,
         bookingId,
       },
     });
+
+    console.log('[Vendor Chat GET] Conversation found:', conversation ? conversation.id : 'NOT FOUND - will create new');
 
     if (!conversation) {
       // Create conversation if it doesn't exist
@@ -148,11 +233,12 @@ export async function GET(
       data: { vendorUnread: 0 },
     });
 
-    // Transform messages - return camelCase for mobile app
+    // Transform messages - return camelCase for mobile app, use display ID for frontend
+    const displayCustomerId = effectiveCustomerId || `guest-${bookingId}`;
     const transformedMessages = messages.map((msg) => ({
       id: msg.id,
       bookingId: bookingId,
-      customerId: effectiveCustomerId,
+      customerId: displayCustomerId,
       vendorId: vendorId,
       senderType: msg.senderType,
       message: msg.content,
@@ -160,7 +246,7 @@ export async function GET(
       createdAt: msg.createdAt.toISOString(),
       // Also include snake_case for backward compatibility with web
       booking_id: bookingId,
-      customer_id: effectiveCustomerId,
+      customer_id: displayCustomerId,
       vendor_id: vendorId,
       sender_type: msg.senderType,
       is_read: msg.status === 'READ',
@@ -177,7 +263,7 @@ export async function GET(
           image: null,
         }
       : {
-          id: effectiveCustomerId,
+          id: displayCustomerId,
           name: booking.customerName,
           email: booking.customerEmail,
           phone: booking.customerPhone,
@@ -271,6 +357,66 @@ export async function POST(
       }
     }
 
+    // Try LuxuryBooking
+    if (!booking) {
+      const luxuryBooking = await prisma.luxury_bookings.findUnique({
+        where: { id: bookingId },
+      });
+      if (luxuryBooking) {
+        booking = luxuryBooking;
+        bookingType = 'luxury';
+        customerId = luxuryBooking.customerId;
+      }
+    }
+
+    // Try BusBooking
+    if (!booking) {
+      const busBooking = await prisma.bus_bookings.findUnique({
+        where: { id: bookingId },
+      });
+      if (busBooking) {
+        booking = busBooking;
+        bookingType = 'bus';
+        customerId = busBooking.customerId;
+      }
+    }
+
+    // Try PackersBooking
+    if (!booking) {
+      const packersBooking = await prisma.packers_bookings.findUnique({
+        where: { id: bookingId },
+      });
+      if (packersBooking) {
+        booking = packersBooking;
+        bookingType = 'packers';
+        customerId = packersBooking.customerId;
+      }
+    }
+
+    // Try TruckBooking
+    if (!booking) {
+      const truckBooking = await prisma.truck_bookings.findUnique({
+        where: { id: bookingId },
+      });
+      if (truckBooking) {
+        booking = truckBooking;
+        bookingType = 'truck';
+        customerId = truckBooking.customerId;
+      }
+    }
+
+    // Try EquipmentBooking
+    if (!booking) {
+      const equipmentBooking = await prisma.equipment_bookings.findUnique({
+        where: { id: bookingId },
+      });
+      if (equipmentBooking) {
+        booking = equipmentBooking;
+        bookingType = 'equipment';
+        customerId = equipmentBooking.customerId;
+      }
+    }
+
     if (!booking) {
       return NextResponse.json(
         { success: false, message: 'Booking not found' },
@@ -278,17 +424,27 @@ export async function POST(
       );
     }
 
-    // For guest bookings (no customerId), use a placeholder
-    const effectiveCustomerId = customerId || `guest-${bookingId}`;
+    // For guest bookings (no customerId), use null
+    const effectiveCustomerId = customerId || null;
+
+    console.log('[Vendor Chat POST] Looking for conversation with:', {
+      customerId: effectiveCustomerId,
+      vendorId,
+      bookingType,
+      bookingId,
+    });
 
     // Find or create conversation
     let conversation = await prisma.chat_conversations.findFirst({
       where: {
         customerId: effectiveCustomerId,
         vendorId,
+        bookingType,
         bookingId,
       },
     });
+
+    console.log('[Vendor Chat POST] Conversation found:', conversation ? conversation.id : 'NOT FOUND - will create new');
 
     if (!conversation) {
       conversation = await prisma.chat_conversations.create({
@@ -329,11 +485,14 @@ export async function POST(
       },
     });
 
+    // Use display ID for frontend
+    const displayCustomerId = effectiveCustomerId || `guest-${bookingId}`;
+
     return NextResponse.json({
       success: true,
       id: chatMessage.id,
       bookingId: bookingId,
-      customerId: effectiveCustomerId,
+      customerId: displayCustomerId,
       vendorId: vendorId,
       senderType: 'vendor',
       message: chatMessage.content,
@@ -341,7 +500,7 @@ export async function POST(
       createdAt: chatMessage.createdAt.toISOString(),
       // Also include snake_case for backward compatibility
       booking_id: bookingId,
-      customer_id: effectiveCustomerId,
+      customer_id: displayCustomerId,
       vendor_id: vendorId,
       sender_type: 'vendor',
       is_read: false,

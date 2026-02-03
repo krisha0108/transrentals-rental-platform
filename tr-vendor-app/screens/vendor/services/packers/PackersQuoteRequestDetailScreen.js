@@ -137,7 +137,7 @@ export default function PackersQuoteRequestDetailScreen({ route, navigation }) {
   const customerPhone = request.customerPhone || request.customer_phone;
   const pickupLocation = request.pickupLocation || request.pickup_location || request.pickupCity || 'N/A';
   const dropLocation = request.dropLocation || request.drop_location || request.dropCity;
-  const pickupDate = request.pickupDate || request.pickup_date || request.startDate;
+  const pickupDate = request.pickupDate || request.pickup_date || request.startDate || request.preferredDate;
   const returnDate = request.returnDate || request.return_date || request.endDate;
   const serviceType = request.serviceType || request.service_type || request.vehicleType;
   const requestNumber = request.requestNumber || request.request_number || (request.id || request._id)?.toString().slice(-8);
