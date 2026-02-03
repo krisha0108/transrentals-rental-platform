@@ -433,14 +433,27 @@ export default function BikeQuoteRequestDetailScreen() {
                               showsHorizontalScrollIndicator={false}
                               style={styles.vehicleImagesContainer}
                             >
-                              {images.map((imageUrl, imgIdx) => (
-                                <Image
-                                  key={imgIdx}
-                                  source={{ uri: imageUrl }}
-                                  style={styles.vehicleImage}
-                                  resizeMode="cover"
-                                />
-                              ))}
+                              {images.map((imageUrl, imgIdx) => {
+                                // Construct proper image URL
+                                let finalImageUrl = imageUrl;
+                                if (imageUrl && !imageUrl.startsWith('http') && !imageUrl.startsWith('data:')) {
+                                  const cleanPath = imageUrl.replace(/\\/g, '/').replace(/^\/+/, '');
+                                  if (cleanPath.startsWith('uploads/') || cleanPath.startsWith('storage/')) {
+                                    finalImageUrl = `${BASE_URL}/${cleanPath}`;
+                                  } else {
+                                    finalImageUrl = `${IMAGE_BASE_URL}/${cleanPath}`;
+                                  }
+                                }
+
+                                return (
+                                  <Image
+                                    key={imgIdx}
+                                    source={{ uri: finalImageUrl }}
+                                    style={styles.vehicleImage}
+                                    resizeMode="cover"
+                                  />
+                                );
+                              })}
                             </ScrollView>
                           );
                         }
@@ -554,12 +567,21 @@ export default function BikeQuoteRequestDetailScreen() {
               </TouchableOpacity>
             </View>
           ) : (
-            <View style={styles.noQuotes}>
-              <Ionicons name="hourglass-outline" size={50} color="#ddd" />
-              <Text style={styles.noQuotesText}>Waiting for vendor quotes...</Text>
-              <Text style={styles.noQuotesSubtext}>
-                Pull down to refresh
+            <View style={styles.noQuotesContainer}>
+              <View style={styles.noQuotesIconCircle}>
+                <Ionicons name="receipt-outline" size={60} color={GREEN} />
+              </View>
+              <Text style={styles.noQuotesTitle}>No Quotations Yet</Text>
+              <Text style={styles.noQuotesMessage}>
+                Your request has been sent to vendors. They will review and send you competitive quotes soon.
               </Text>
+              <View style={styles.noQuotesInfoBox}>
+                <Ionicons name="time-outline" size={20} color="#666" />
+                <Text style={styles.noQuotesInfoText}>
+                  Usually within 24-48 hours
+                </Text>
+              </View>
+              <Text style={styles.noQuotesPullRefresh}>Pull down to refresh</Text>
             </View>
           )}
         </View>
@@ -1691,6 +1713,58 @@ const styles = StyleSheet.create({
     marginTop: 4,
     textAlign: 'center',
     paddingHorizontal: 10,
+  },
+  noQuotesContainer: {
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    padding: 40,
+    alignItems: 'center',
+    marginVertical: 10,
+  },
+  noQuotesIconCircle: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: '#E8F9F1',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
+  },
+  noQuotesTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#333',
+    marginTop: 10,
+    marginBottom: 12,
+  },
+  noQuotesMessage: {
+    fontSize: 14,
+    color: '#666',
+    textAlign: 'center',
+    lineHeight: 22,
+    paddingHorizontal: 10,
+    marginBottom: 20,
+  },
+  noQuotesInfoBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F5F5F5',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 20,
+    marginTop: 10,
+  },
+  noQuotesInfoText: {
+    fontSize: 13,
+    color: '#666',
+    marginLeft: 8,
+    fontWeight: '500',
+  },
+  noQuotesPullRefresh: {
+    fontSize: 12,
+    color: '#999',
+    marginTop: 16,
+    fontStyle: 'italic',
   },
   newRequestBtn: {
     flexDirection: 'row',

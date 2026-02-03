@@ -126,7 +126,7 @@ export async function POST(request: NextRequest) {
         customerId: customerId || null,
         customerName, customerEmail, customerPhone,
         serviceType: serviceType || 'intercity',
-        vehicle_category,
+        vehicleCategory: vehicle_category,
         vehicleCategoryName: vehicleCategoryName || vehicle_category,
         goodsType,
         goodsDescription: goodsDescription || null,

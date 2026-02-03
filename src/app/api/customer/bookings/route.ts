@@ -109,6 +109,13 @@ const luxuryBookingStatusMappings: Record<string, string[]> = {
   Dropped: ['CANCELLED'],
 };
 
+// Self-drive quote request status mappings
+const selfDriveQuoteRequestStatusMappings: Record<string, string[]> = {
+  Open: ['PENDING', 'QUOTES_RECEIVED'],
+  Confirmed: ['QUOTE_ACCEPTED', 'BOOKING_CONFIRMED'],
+  Dropped: ['CANCELLED', 'EXPIRED'],
+};
+
 /**
  * GET - Get customer bookings from local trans_cms database
  * Query params: identifier (phone or email), status
@@ -149,6 +156,7 @@ export async function GET(request: NextRequest) {
     const equipmentQuoteRequestStatusArray = isAllStatus ? null : (equipmentQuoteRequestStatusMappings[requestedStatus] || null);
     const luxuryBookingStatusArray = isAllStatus ? null : (luxuryBookingStatusMappings[requestedStatus] || null);
     const luxuryQuoteRequestStatusArray = isAllStatus ? null : (luxuryQuoteRequestStatusMappings[requestedStatus] || null);
+    const selfDriveQuoteRequestStatusArray = isAllStatus ? null : (selfDriveQuoteRequestStatusMappings[requestedStatus] || null);
 
     // Normalize phone number for search (remove spaces, keep +)
     const normalizedPhone = identifier ? identifier.replace(/\s+/g, '') : null;
@@ -204,6 +212,7 @@ export async function GET(request: NextRequest) {
       bikeQuoteRequests,
       bikeBookings,
       carBookings,
+      selfDriveQuoteRequests,
       chauffeurBookings,
       busQuoteRequests,
       busBookings,
@@ -255,6 +264,18 @@ export async function GET(request: NextRequest) {
         orderBy: { createdAt: 'desc' },
         take: 50,
       }).catch((e) => { logger.error('Error fetching car bookings', e); return []; }),
+
+      // Self-drive quote requests
+      (!selfDriveQuoteRequestStatusArray || selfDriveQuoteRequestStatusArray.length > 0)
+        ? prisma.self_drive_quote_requests.findMany({
+          where: {
+            ...quoteRequestFilter,
+            ...(selfDriveQuoteRequestStatusArray ? { status: { in: selfDriveQuoteRequestStatusArray as any } } : {}),
+          },
+          orderBy: { createdAt: 'desc' },
+          take: 50,
+        }).catch((e) => { logger.error('Error fetching self-drive quote requests', e); return []; })
+        : Promise.resolve([]),
 
       // Chauffeur bookings
       prisma.chauffeur_bookings.findMany({
@@ -451,25 +472,59 @@ export async function GET(request: NextRequest) {
         quotations: [],
         is_quote_request: false,
       })),
-      ...carBookings.map((b) => ({
+      ...carBookings.map((b) => {
+        // For self-drive, use location name as "from" and determine "to" based on delivery
+        const fromLocation = b.locationName || b.locations?.name || 'Location';
+        let toLocation = 'Same location';
+
+        // If delivery is requested and dropAddress exists, show it as destination
+        if (b.isDeliveryRequested && b.dropAddress) {
+          toLocation = b.dropAddress;
+        } else if (b.dropAddress && b.dropAddress !== b.pickupAddress) {
+          toLocation = b.dropAddress;
+        }
+
+        return {
+          id: b.id,
+          booking_number: b.bookingNumber,
+          service_name: 'Self-Drive Car',
+          service_type: 'car',
+          location_name: fromLocation,
+          destination: toLocation,
+          journey_datetime: b.pickupDate.toISOString(),
+          return_datetime: b.dropDate?.toISOString() || null,
+          status: mapStatusToDisplay(b.status),
+          created_at: b.createdAt.toISOString(),
+          vehicle_name: b.requestedVehicleName,
+          brand: b.requestedBrand,
+          category: b.requestedCategory,
+          total_amount: b.grandTotal,
+          vendor: b.vendors_car_bookings_assignedVendorIdTovendors
+            ? { name: b.vendors_car_bookings_assignedVendorIdTovendors.businessName, phone: b.vendors_car_bookings_assignedVendorIdTovendors.phone }
+            : null,
+          quotations: [],
+          is_quote_request: false,
+        };
+      }),
+      // Self-drive quote requests
+      ...selfDriveQuoteRequests.map((b) => ({
         id: b.id,
-        booking_number: b.bookingNumber,
+        booking_number: b.requestNumber,
         service_name: 'Self-Drive Car',
         service_type: 'car',
-        location_name: b.locationName || b.locations?.name || '',
-        destination: null,
+        location_name: b.pickupCity || '',
+        destination: b.dropCity || null,
         journey_datetime: b.pickupDate.toISOString(),
         return_datetime: b.dropDate?.toISOString() || null,
-        status: mapStatusToDisplay(b.status),
+        status: mapSelfDriveQuoteRequestStatus(b.status),
         created_at: b.createdAt.toISOString(),
-        vehicle_name: b.requestedVehicleName,
-        brand: b.requestedBrand,
-        category: b.requestedCategory,
-        total_amount: b.grandTotal,
-        vendor: b.vendors_car_bookings_assignedVendorIdTovendors
-          ? { name: b.vendors_car_bookings_assignedVendorIdTovendors.businessName, phone: b.vendors_car_bookings_assignedVendorIdTovendors.phone }
-          : null,
+        vehicle_name: b.vehicleCategoryName || b.specificModel || 'Car',
+        brand: b.specificBrand || null,
+        category: b.vehicleCategory,
+        total_amount: null,
+        vendor: null,
         quotations: [],
+        is_quote_request: true,
       })),
       ...chauffeurBookings.map((b) => ({
         id: b.id,
@@ -788,6 +843,19 @@ function mapBikeQuoteRequestStatus(status: string): string {
 
 // Helper function to map bus quote request status
 function mapBusQuoteRequestStatus(status: string): string {
+  const displayMap: Record<string, string> = {
+    PENDING: 'Open',
+    QUOTES_RECEIVED: 'Open',
+    QUOTE_ACCEPTED: 'Confirmed',
+    BOOKING_CONFIRMED: 'Confirmed',
+    CANCELLED: 'Dropped',
+    EXPIRED: 'Dropped',
+  };
+  return displayMap[status] || 'Open';
+}
+
+// Helper function to map self-drive quote request status
+function mapSelfDriveQuoteRequestStatus(status: string): string {
   const displayMap: Record<string, string> = {
     PENDING: 'Open',
     QUOTES_RECEIVED: 'Open',

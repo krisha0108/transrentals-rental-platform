@@ -104,21 +104,44 @@ export async function GET(
         createdAt: quoteRequest.createdAt,
       },
       quotes: quoteRequest.self_drive_quotes_self_drive_quotes_requestIdToself_drive_quote_requests.map((q) => {
-        // Get vehicle images from fleet if available
-        let vehicleImages = q.vehicleImages;
-        if (q.vendor_fleets?.images) {
-          let fleetImages = typeof q.vendor_fleets.images === 'string'
-            ? (q.vendor_fleets.images === 'null' ? null : JSON.parse(q.vendor_fleets.images))
-            : q.vendor_fleets.images;
+        // Helper function to extract images from various formats
+        const parseImages = (data: any): string[] => {
+          if (!data) return [];
 
-          // Convert object to array
-          if (fleetImages && typeof fleetImages === 'object' && !Array.isArray(fleetImages)) {
-            vehicleImages = Object.values(fleetImages).filter(img => img);
-          } else if (Array.isArray(fleetImages)) {
-            vehicleImages = fleetImages;
-          } else {
-            vehicleImages = fleetImages;
+          // If it's a string, try to parse it as JSON
+          if (typeof data === 'string') {
+            try {
+              const parsed = data === 'null' ? null : JSON.parse(data);
+              if (Array.isArray(parsed)) {
+                return parsed.filter(item => item && typeof item === 'string');
+              } else if (parsed && typeof parsed === 'object') {
+                // Handle object format like {front: "...", back: "...", ...}
+                return Object.values(parsed).filter(item => item && typeof item === 'string') as string[];
+              }
+            } catch {
+              // If not valid JSON, try as comma-separated string
+              const imgArray = data.split(',').map((s: string) => s.trim()).filter(Boolean);
+              if (imgArray.length > 0) return imgArray;
+            }
           }
+
+          // If it's already an array
+          if (Array.isArray(data)) {
+            return data.filter(item => item && typeof item === 'string');
+          }
+
+          // If it's already an object
+          if (data && typeof data === 'object') {
+            return Object.values(data).filter(item => item && typeof item === 'string') as string[];
+          }
+
+          return [];
+        };
+
+        // First try vehicleImages, then fall back to fleet images
+        let vehicleImages = parseImages(q.vehicleImages);
+        if (vehicleImages.length === 0 && q.vendor_fleets?.images) {
+          vehicleImages = parseImages(q.vendor_fleets.images);
         }
 
         return {
