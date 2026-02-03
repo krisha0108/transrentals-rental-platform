@@ -3,6 +3,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 import { transformPrismaResponse } from '@/lib/utils/api-transform';
 import { getVendorAuth } from '@/lib/auth/vendor-mobile-auth';
+import { sanitizeInput, sanitizePhone } from '@/lib/utils/sanitize';
+import { smartRateLimit, getClientIdentifier } from '@/lib/utils/smart-rate-limit';
 import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
@@ -295,6 +297,23 @@ export async function POST(request: NextRequest) {
 
     const vendorId = auth.vendorId;
 
+    // ===== RATE LIMITING =====
+    const clientId = getClientIdentifier(request);
+    const isAuthenticated = true; // Vendor is authenticated
+
+    const rateLimitCheck = await smartRateLimit(clientId, isAuthenticated, {});
+    if (!rateLimitCheck.allowed) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: rateLimitCheck.error,
+          requiresCaptcha: rateLimitCheck.requiresCaptcha,
+          type: 'rate_limit',
+        },
+        { status: 429 }
+      );
+    }
+
     // 2. Parse request body
     let body: any;
     try {
@@ -306,7 +325,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const {
+    let {
       vehicleModelId,
       serviceId,
       subServiceId,
@@ -319,6 +338,24 @@ export async function POST(request: NextRequest) {
       locationIds,
       pricing,
     } = body;
+
+    // ===== INPUT SANITIZATION (XSS Protection) =====
+    registrationNumber = sanitizeInput(registrationNumber);
+    color = sanitizeInput(color);
+
+    // ===== YEAR VALIDATION =====
+    if (yearOfManufacture) {
+      const year = parseInt(yearOfManufacture);
+      const currentYear = new Date().getFullYear();
+      const minYear = 1980; // Minimum reasonable year for vehicles
+
+      if (isNaN(year) || year < minYear || year > currentYear + 1) {
+        return NextResponse.json(
+          { success: false, error: `Invalid year of manufacture. Must be between ${minYear} and ${currentYear + 1}` },
+          { status: 400 }
+        );
+      }
+    }
 
     // 3. Validate required fields
     if (!serviceId) {

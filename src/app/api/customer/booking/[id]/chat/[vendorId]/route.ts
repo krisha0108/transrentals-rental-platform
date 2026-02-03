@@ -22,6 +22,8 @@ export async function GET(
     const { searchParams } = new URL(request.url);
     const customerId = searchParams.get('customer_id');
 
+    console.log('[Customer Chat GET] Params:', { bookingId, vendorId, customerId });
+
     if (!bookingId || !vendorId) {
       return NextResponse.json(
         { success: false, message: 'Booking ID and Vendor ID are required' },
@@ -30,6 +32,7 @@ export async function GET(
     }
 
     // Determine booking type by checking which table has this booking
+    console.log('[Customer Chat GET] Checking booking type...');
     let bookingType = 'general';
     const bikeBooking = await prisma.bike_bookings.findUnique({ where: { id: bookingId } });
     if (bikeBooking) bookingType = 'bike';
@@ -39,20 +42,52 @@ export async function GET(
       else {
         const chauffeurBooking = await prisma.chauffeur_bookings.findUnique({ where: { id: bookingId } });
         if (chauffeurBooking) bookingType = 'chauffeur';
+        else {
+          const luxuryBooking = await prisma.luxury_bookings.findUnique({ where: { id: bookingId } });
+          if (luxuryBooking) bookingType = 'luxury';
+          else {
+            const busBooking = await prisma.bus_bookings.findUnique({ where: { id: bookingId } });
+            if (busBooking) bookingType = 'bus';
+            else {
+              const packersBooking = await prisma.packers_bookings.findUnique({ where: { id: bookingId } });
+              if (packersBooking) bookingType = 'packers';
+              else {
+                const truckBooking = await prisma.truck_bookings.findUnique({ where: { id: bookingId } });
+                if (truckBooking) bookingType = 'truck';
+                else {
+                  const equipmentBooking = await prisma.equipment_bookings.findUnique({ where: { id: bookingId } });
+                  if (equipmentBooking) bookingType = 'equipment';
+                }
+              }
+            }
+          }
+        }
       }
     }
 
-    // For guest bookings (no customerId), use a placeholder
-    const effectiveCustomerId = customerId || `guest-${bookingId}`;
+    console.log('[Customer Chat GET] Booking type:', bookingType);
+
+    // For guest bookings (no customerId), use null
+    const effectiveCustomerId = customerId || null;
+    console.log('[Customer Chat GET] Effective customer ID:', effectiveCustomerId);
+    console.log('[Customer Chat GET] Looking for conversation with:', {
+      customerId: effectiveCustomerId,
+      vendorId,
+      bookingType,
+      bookingId,
+    });
 
     // Find or create conversation
     let conversation = await prisma.chat_conversations.findFirst({
       where: {
         customerId: effectiveCustomerId,
         vendorId,
+        bookingType,
         bookingId,
       },
     });
+
+    console.log('[Customer Chat GET] Conversation found:', conversation ? conversation.id : 'NOT FOUND - will create new');
 
     if (!conversation) {
       // Create conversation if it doesn't exist
@@ -99,11 +134,12 @@ export async function GET(
       data: { customerUnread: 0 },
     });
 
-    // Transform messages
+    // Transform messages - use display ID for frontend
+    const displayCustomerId = effectiveCustomerId || `guest-${bookingId}`;
     const transformedMessages = messages.map((msg) => ({
       id: msg.id,
       booking_id: bookingId,
-      customer_id: effectiveCustomerId,
+      customer_id: displayCustomerId,
       vendor_id: vendorId,
       sender_type: msg.senderType,
       message: msg.content,
@@ -115,10 +151,16 @@ export async function GET(
       success: true,
       messages: transformedMessages,
     });
-  } catch (error) {
+  } catch (error: any) {
     logger.error('Get chat messages error', error);
+    console.error('[Customer Chat GET Error]', error);
     return NextResponse.json(
-      { success: false, message: 'Failed to fetch messages' },
+      {
+        success: false,
+        message: 'Failed to fetch messages',
+        error: error?.message,
+        details: process.env.NODE_ENV === 'development' ? error?.stack : undefined
+      },
       { status: 500 }
     );
   }
@@ -150,8 +192,8 @@ export async function POST(
       );
     }
 
-    // For guest bookings (no customerId), use a placeholder
-    const effectiveCustomerId = customerId || `guest-${bookingId}`;
+    // For guest bookings (no customerId), use null
+    const effectiveCustomerId = customerId || null;
 
     // Determine booking type
     let bookingType = 'general';
@@ -163,17 +205,47 @@ export async function POST(
       else {
         const chauffeurBooking = await prisma.chauffeur_bookings.findUnique({ where: { id: bookingId } });
         if (chauffeurBooking) bookingType = 'chauffeur';
+        else {
+          const luxuryBooking = await prisma.luxury_bookings.findUnique({ where: { id: bookingId } });
+          if (luxuryBooking) bookingType = 'luxury';
+          else {
+            const busBooking = await prisma.bus_bookings.findUnique({ where: { id: bookingId } });
+            if (busBooking) bookingType = 'bus';
+            else {
+              const packersBooking = await prisma.packers_bookings.findUnique({ where: { id: bookingId } });
+              if (packersBooking) bookingType = 'packers';
+              else {
+                const truckBooking = await prisma.truck_bookings.findUnique({ where: { id: bookingId } });
+                if (truckBooking) bookingType = 'truck';
+                else {
+                  const equipmentBooking = await prisma.equipment_bookings.findUnique({ where: { id: bookingId } });
+                  if (equipmentBooking) bookingType = 'equipment';
+                }
+              }
+            }
+          }
+        }
       }
     }
+
+    console.log('[Customer Chat POST] Looking for conversation with:', {
+      customerId: effectiveCustomerId,
+      vendorId,
+      bookingType,
+      bookingId,
+    });
 
     // Find or create conversation
     let conversation = await prisma.chat_conversations.findFirst({
       where: {
         customerId: effectiveCustomerId,
         vendorId,
+        bookingType,
         bookingId,
       },
     });
+
+    console.log('[Customer Chat POST] Conversation found:', conversation ? conversation.id : 'NOT FOUND - will create new');
 
     if (!conversation) {
       conversation = await prisma.chat_conversations.create({
@@ -214,21 +286,30 @@ export async function POST(
       },
     });
 
+    // Use display ID for frontend
+    const displayCustomerId = effectiveCustomerId || `guest-${bookingId}`;
+
     return NextResponse.json({
       success: true,
       id: chatMessage.id,
       booking_id: bookingId,
-      customer_id: effectiveCustomerId,
+      customer_id: displayCustomerId,
       vendor_id: vendorId,
       sender_type: 'customer',
       message: chatMessage.content,
       is_read: false,
       created_at: chatMessage.createdAt.toISOString(),
     });
-  } catch (error) {
+  } catch (error: any) {
     logger.error('Send chat message error', error);
+    console.error('[Customer Chat POST Error]', error);
     return NextResponse.json(
-      { success: false, message: 'Failed to send message' },
+      {
+        success: false,
+        message: 'Failed to send message',
+        error: error?.message,
+        details: process.env.NODE_ENV === 'development' ? error?.stack : undefined
+      },
       { status: 500 }
     );
   }

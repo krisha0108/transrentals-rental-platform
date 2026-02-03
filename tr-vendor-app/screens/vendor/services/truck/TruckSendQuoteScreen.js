@@ -100,12 +100,16 @@ export default function TruckSendQuoteScreen({ navigation, route }) {
       ]);
       setRequest(requestData.request || requestData);
 
-      // Filter truck fleet
+      // Filter truck fleet - support both singular and plural
       const truckFleet = (fleetsData.fleet || fleetsData.fleets || fleetsData.vehicles || []).filter(
-        (v) =>
-          v.services?.slug === 'truck-rental' ||
-          v.services?.name?.toLowerCase().includes('truck') ||
-          v.services?.name?.toLowerCase().includes('goods')
+        (v) => {
+          const service = v.services || v.service;
+          return (
+            service?.slug === 'truck-rental' ||
+            service?.name?.toLowerCase().includes('truck') ||
+            service?.name?.toLowerCase().includes('goods')
+          );
+        }
       );
       setFleetVehicles(truckFleet);
 
@@ -166,14 +170,23 @@ export default function TruckSendQuoteScreen({ navigation, route }) {
     if (selectedVehicle) {
       let vName = '';
       let vBrand = '';
-      if (selectedVehicle.vehicleModel) {
-        vName = selectedVehicle.vehicle_models.name;
-        vBrand = selectedVehicle.vehicle_models.brand?.name || '';
-      } else if (selectedVehicle.vehicleCategory) {
-        vName = selectedVehicle.chauffeur_vehicle_categories.name;
+
+      // Check if vehicle has model (using ID field)
+      if (selectedVehicle.vehicleModelId && selectedVehicle.vehicle_models) {
+        vName = selectedVehicle.vehicle_models.name || '';
+        // Get brand from the model's brand relation
+        if (selectedVehicle.vehicle_models.brands) {
+          vBrand = selectedVehicle.vehicle_models.brands.name || '';
+        }
       }
-      if (selectedVehicle.brand) {
-        vBrand = selectedVehicle.brands.name;
+      // Check if vehicle has category
+      else if (selectedVehicle.vehicleCategoryId && selectedVehicle.chauffeur_vehicle_categories) {
+        vName = selectedVehicle.chauffeur_vehicle_categories.name || '';
+      }
+
+      // Check if vehicle has direct brand
+      if (selectedVehicle.brandId && selectedVehicle.brands) {
+        vBrand = selectedVehicle.brands.name || '';
       }
 
       setVehicleName(vName);

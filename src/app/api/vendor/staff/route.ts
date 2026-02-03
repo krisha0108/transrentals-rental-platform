@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 import { transformPrismaResponse } from '@/lib/utils/api-transform';
 import { getVendorAuth } from '@/lib/auth/vendor-mobile-auth';
+import { sanitizeInput, isValidEmail, isValidPhone, sanitizePhone } from '@/lib/utils/sanitize';
+import { smartRateLimit, getClientIdentifier } from '@/lib/utils/smart-rate-limit';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 
@@ -128,6 +130,23 @@ export async function POST(request: NextRequest) {
 
     const vendorId = auth.vendorId;
 
+    // ===== RATE LIMITING =====
+    const clientId = getClientIdentifier(request);
+    const isAuthenticated = true; // Vendor is authenticated
+
+    const rateLimitCheck = await smartRateLimit(clientId, isAuthenticated, {});
+    if (!rateLimitCheck.allowed) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: rateLimitCheck.error,
+          requiresCaptcha: rateLimitCheck.requiresCaptcha,
+          type: 'rate_limit',
+        },
+        { status: 429 }
+      );
+    }
+
     // Handle both JSON and FormData (for mobile app compatibility)
     let body: any = {};
     const contentType = request.headers.get('content-type') || '';
@@ -159,12 +178,38 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // ===== INPUT SANITIZATION (XSS Protection) =====
+    body.name = sanitizeInput(body.name);
+    body.address = sanitizeInput(body.address);
+    body.city = sanitizeInput(body.city);
+    body.state = sanitizeInput(body.state);
+    body.aadharNumber = sanitizeInput(body.aadharNumber);
+    body.panNumber = sanitizeInput(body.panNumber);
+    body.licenseNumber = sanitizeInput(body.licenseNumber);
+    body.licenseType = sanitizeInput(body.licenseType);
+    body.bankName = sanitizeInput(body.bankName);
+    body.accountNumber = sanitizeInput(body.accountNumber);
+    body.ifscCode = sanitizeInput(body.ifscCode);
+    body.accountHolderName = sanitizeInput(body.accountHolderName);
+    body.emergencyContact = sanitizeInput(body.emergencyContact);
+    body.phone = sanitizePhone(body.phone);
+    body.emergencyPhone = sanitizePhone(body.emergencyPhone);
+
     // Validate required fields
     if (!body.name || !body.phone) {
       return NextResponse.json(
         { success: false, error: 'Name and phone are required' },
         { status: 400 }
       );
+    }
+
+    // ===== PHONE VALIDATION =====
+    if (body.phone && !isValidPhone(body.phone)) {
+      return NextResponse.json({ success: false, error: 'Invalid phone number. Must be 10 digits starting with 6-9' }, { status: 400 });
+    }
+
+    if (body.emergencyPhone && !isValidPhone(body.emergencyPhone)) {
+      return NextResponse.json({ success: false, error: 'Invalid emergency phone number. Must be 10 digits starting with 6-9' }, { status: 400 });
     }
 
     // For drivers, email and password are required for app login
@@ -176,11 +221,22 @@ export async function POST(request: NextRequest) {
           { status: 400 }
         );
       }
+
+      // ===== EMAIL VALIDATION =====
+      if (body.email && !isValidEmail(body.email)) {
+        return NextResponse.json({ success: false, error: 'Invalid email format' }, { status: 400 });
+      }
+
       if (!body.password || body.password.length < 6) {
         return NextResponse.json(
           { success: false, error: 'Password is required for drivers (min 6 characters)' },
           { status: 400 }
         );
+      }
+    } else if (body.email) {
+      // Validate email format even for non-drivers if provided
+      if (!isValidEmail(body.email)) {
+        return NextResponse.json({ success: false, error: 'Invalid email format' }, { status: 400 });
       }
     }
 
@@ -237,6 +293,40 @@ export async function POST(request: NextRequest) {
       const date = new Date(value);
       return isNaN(date.getTime()) ? null : date;
     };
+
+    // ===== DATE VALIDATION =====
+    if (body.dateOfBirth) {
+      const dob = parseDate(body.dateOfBirth);
+      if (dob) {
+        const today = new Date();
+        const age = today.getFullYear() - dob.getFullYear();
+        if (age < 18 || age > 100) {
+          return NextResponse.json({ success: false, error: 'Invalid date of birth. Staff must be between 18-100 years old.' }, { status: 400 });
+        }
+      }
+    }
+
+    if (body.licenseExpiry) {
+      const expiry = parseDate(body.licenseExpiry);
+      if (expiry) {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        if (expiry < today) {
+          return NextResponse.json({ success: false, error: 'License expiry date cannot be in the past' }, { status: 400 });
+        }
+      }
+    }
+
+    if (body.joiningDate) {
+      const joining = parseDate(body.joiningDate);
+      if (joining) {
+        const futureLimit = new Date();
+        futureLimit.setFullYear(futureLimit.getFullYear() + 1);
+        if (joining > futureLimit) {
+          return NextResponse.json({ success: false, error: 'Joining date cannot be more than 1 year in the future' }, { status: 400 });
+        }
+      }
+    }
 
     // Create staff member
     const staff = await prisma.vendor_staff.create({

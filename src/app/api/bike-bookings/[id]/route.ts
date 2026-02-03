@@ -286,7 +286,8 @@ export async function PATCH(
 
     // Customer submits payment proof (screenshot/UTR)
     if (action === 'submit_payment') {
-      const { transactionId, paymentMethod, paymentProof } = body;
+      // ✅ FIXED: Use correct field name from database schema
+      const { transactionId, paymentMethod, advancePaymentProof, paymentProof } = body;
 
       if (booking.status !== 'PENDING_PAYMENT') {
         return NextResponse.json(
@@ -302,7 +303,9 @@ export async function PATCH(
           status: 'PAYMENT_SUBMITTED',
           transactionId: transactionId || null,
           paymentMethod: paymentMethod || 'UPI',
-          paymentProof: paymentProof || null,
+          // ✅ FIXED: Use correct database field name (backward compatible)
+          advancePaymentProof: advancePaymentProof || paymentProof || null,
+          advancePaymentDate: new Date(),
           paidAmount: booking.advanceAmount || Math.round((booking.grandTotal || 0) * 0.3),
           paymentSubmittedAt: new Date(),
         },

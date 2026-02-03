@@ -11,17 +11,26 @@ import logger from '@/lib/security/logger';
 import { validateFile, ALLOWED_MIME_TYPES, FILE_SIZE_LIMITS } from '@/lib/security/file-validation';
 export const dynamic = 'force-dynamic';
 
+// Increase body size limit for file uploads (10MB)
+export const runtime = 'nodejs';
+export const maxDuration = 60; // 60 seconds max execution time
+
 // POST - Upload vendor logo/profile image
 export async function POST(request: NextRequest) {
   try {
+    console.log('[Upload API] Received upload request');
     const auth = await getVendorAuth(request);
     if (!auth.authenticated || !auth.vendorId) {
+      console.log('[Upload API] Auth failed:', auth.error);
       return NextResponse.json({ error: auth.error || 'Unauthorized' }, { status: 401 });
     }
     const vendorId = auth.vendorId;
+    console.log('[Upload API] Vendor ID:', vendorId);
 
+    console.log('[Upload API] Parsing form data...');
     const formData = await request.formData();
     const file = formData.get('logo') as File;
+    console.log('[Upload API] File received:', file ? `${file.name} (${file.size} bytes)` : 'NO FILE');
 
     if (!file) {
       return NextResponse.json({ error: 'No file uploaded' }, { status: 400 });

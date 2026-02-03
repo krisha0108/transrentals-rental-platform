@@ -6,6 +6,8 @@ import { transformPrismaResponse } from '@/lib/utils/api-transform';
 import { authOptions } from '@/lib/auth/auth-options';
 import { emitNewBooking, BookingNotification } from '@/lib/socket';
 import logger from '@/lib/security/logger';
+import { sanitizeInput, isValidEmail, isValidPhone, sanitizePhone } from '@/lib/utils/sanitize';
+import { smartRateLimit, detectDuplicate, getClientIdentifier, hashBookingData } from '@/lib/utils/smart-rate-limit';
 
 export const dynamic = 'force-dynamic';
 
@@ -35,7 +37,47 @@ function calculateBookingAmount(dailyRate: number, totalDays: number, securityDe
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const {
+
+    // ✅ SMART RATE LIMITING (Customer Friendly)
+    const clientId = getClientIdentifier(request);
+    const session = await getServerSession(authOptions);
+    const isAuthenticated = !!session?.user;
+
+    // Check rate limit (10 for guests, 20 for authenticated)
+    const rateLimitCheck = await smartRateLimit(clientId, isAuthenticated, body);
+
+    if (!rateLimitCheck.allowed) {
+      return NextResponse.json(
+        {
+          error: rateLimitCheck.error,
+          requiresCaptcha: rateLimitCheck.requiresCaptcha,
+          type: 'rate_limit'
+        },
+        {
+          status: 429,
+          headers: {
+            'X-RateLimit-Remaining': '0',
+            'Retry-After': '60'
+          }
+        }
+      );
+    }
+
+    // ✅ DETECT DUPLICATE/BOT (Same booking data repeatedly)
+    const bookingHash = hashBookingData(body);
+    const duplicateCheck = await detectDuplicate(bookingHash);
+
+    if (duplicateCheck.isDuplicate) {
+      return NextResponse.json(
+        {
+          error: duplicateCheck.error,
+          type: 'duplicate_booking'
+        },
+        { status: 400 }
+      );
+    }
+
+    let {
       customerId,
       customerName,
       customerEmail,
@@ -60,6 +102,29 @@ export async function POST(request: NextRequest) {
       broadcastToAll = false, // NEW: Force broadcast to all vendors
     } = body;
 
+    // ✅ SANITIZE USER INPUTS (XSS Protection)
+    customerName = sanitizeInput(customerName);
+    vehicleName = sanitizeInput(vehicleName);
+    vehicleBrand = sanitizeInput(vehicleBrand);
+    customerNotes = sanitizeInput(customerNotes);
+    customerPhone = sanitizePhone(customerPhone);
+
+    // ✅ VALIDATE EMAIL FORMAT
+    if (customerEmail && !isValidEmail(customerEmail)) {
+      return NextResponse.json(
+        { error: 'Invalid email format' },
+        { status: 400 }
+      );
+    }
+
+    // ✅ VALIDATE PHONE NUMBER
+    if (customerPhone && !isValidPhone(customerPhone)) {
+      return NextResponse.json(
+        { error: 'Invalid phone number. Must be 10 digits starting with 6-9' },
+        { status: 400 }
+      );
+    }
+
     // Validate required fields
     if (!customerPhone || !vehicleName || !pickupDate || !dropDate) {
       return NextResponse.json(
@@ -68,9 +133,28 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Calculate total days
+    // Validate dates
     const pickup = new Date(pickupDate);
     const drop = new Date(dropDate);
+
+    // Check if dates are valid
+    if (isNaN(pickup.getTime()) || isNaN(drop.getTime())) {
+      return NextResponse.json(
+        { error: 'Invalid date format. Please provide valid dates.' },
+        { status: 400 }
+      );
+    }
+
+    // Check if drop date is before pickup date
+    // Allow same-day bookings (drop date = pickup date) as drop time will be later
+    if (drop < pickup) {
+      return NextResponse.json(
+        { error: 'Drop date cannot be before pickup date' },
+        { status: 400 }
+      );
+    }
+
+    // Calculate total days
     const totalDays = Math.max(1, Math.ceil((drop.getTime() - pickup.getTime()) / (1000 * 60 * 60 * 24)));
 
     // Calculate amounts

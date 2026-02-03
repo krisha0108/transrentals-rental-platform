@@ -58,7 +58,7 @@ export async function POST(
 
     // Parse request body for driver info
     const body = await request.json();
-    const { driverName, driverPhone, driverPhoto, vehicleNumber, vehicle_model } = body;
+    const { driverName, driverPhone, driverPhoto, vehicleNumber, vehicleModel } = body;
 
     if (!driverName || !driverPhone || !vehicleNumber) {
       return NextResponse.json(
@@ -76,7 +76,7 @@ export async function POST(
         driverPhone,
         driverPhoto: driverPhoto || null,
         vehicleNumber,
-        vehicle_models: vehicle_model || null,
+        vehicleModel: vehicleModel || null,
         driverAssignedAt: new Date(),
       },
     });
@@ -91,7 +91,7 @@ export async function POST(
         driverName: updatedBooking.driverName,
         driverPhone: updatedBooking.driverPhone,
         vehicleNumber: updatedBooking.vehicleNumber,
-        vehicle_models: updatedBooking.vehicle_models,
+        vehicleModel: updatedBooking.vehicleModel,
         // Note: OTP is not exposed to vendor - it will be sent to customer when driver starts trip
       },
     });

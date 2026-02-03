@@ -27,11 +27,16 @@ import {
   Wallet,
   Download,
   FileText,
+  Send,
+  X,
+  Loader2,
 } from 'lucide-react';
+// Chat will be inline - no external component needed
 
 interface BookingDetail {
   id: string;
   bookingNumber: string;
+  customerId?: string;
   tripType: string;
   occasion: string | null;
   carCategory: string;
@@ -193,6 +198,11 @@ function BookingDetailContent({ bookingId }: { bookingId: string }) {
   const [paymentMethod, setPaymentMethod] = useState('UPI');
   const [copied, setCopied] = useState('');
   const [paymentSettings, setPaymentSettings] = useState<PaymentSettings | null>(null);
+  const [showChat, setShowChat] = useState(false);
+  const [chatMessages, setChatMessages] = useState<any[]>([]);
+  const [newChatMessage, setNewChatMessage] = useState('');
+  const [isSendingMessage, setIsSendingMessage] = useState(false);
+  const [isLoadingMessages, setIsLoadingMessages] = useState(false);
 
   const fetchBooking = async () => {
     try {
@@ -226,10 +236,73 @@ function BookingDetailContent({ bookingId }: { bookingId: string }) {
     }
   };
 
+  const fetchChatMessages = async (showLoader = true) => {
+    if (!booking?.id || !booking?.vendor?.id) return;
+
+    try {
+      if (showLoader) setIsLoadingMessages(true);
+      console.log('[Customer Web] Fetching messages for:', {
+        bookingId: booking.id,
+        vendorId: booking.vendor.id,
+        customerId: booking.customerId || 'empty'
+      });
+      const res = await fetch(
+        `/api/customer/booking/${booking.id}/chat/${booking.vendor.id}?customer_id=${booking.customerId || ''}`
+      );
+      const data = await res.json();
+      console.log('[Customer Web] Messages received:', data.messages?.length || 0);
+
+      if (data.success) {
+        setChatMessages(data.messages || []);
+      }
+    } catch (err) {
+      console.error('Failed to fetch messages:', err);
+    } finally {
+      if (showLoader) setIsLoadingMessages(false);
+    }
+  };
+
+  const sendChatMessage = async () => {
+    if (!newChatMessage.trim() || !booking?.id || !booking?.vendor?.id) return;
+
+    try {
+      setIsSendingMessage(true);
+      const res = await fetch(`/api/customer/booking/${booking.id}/chat/${booking.vendor.id}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: newChatMessage.trim(),
+          customer_id: booking.customerId || '',
+          customer_name: booking.customerName
+        }),
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        setNewChatMessage('');
+        fetchChatMessages(); // Refresh messages
+      }
+    } catch (err) {
+      console.error('Failed to send message:', err);
+    } finally {
+      setIsSendingMessage(false);
+    }
+  };
+
   useEffect(() => {
     fetchBooking();
     fetchPaymentSettings();
   }, [bookingId]);
+
+  useEffect(() => {
+    if (showChat && booking?.id && booking?.vendor?.id) {
+      fetchChatMessages(true); // Show loader on initial load
+      // Poll for new messages every 5 seconds without showing loader
+      const interval = setInterval(() => fetchChatMessages(false), 5000);
+      return () => clearInterval(interval);
+    }
+  }, [showChat, booking?.id, booking?.vendor?.id]);
 
   const handleCopy = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
@@ -701,7 +774,7 @@ function BookingDetailContent({ bookingId }: { bookingId: string }) {
               </h3>
             </div>
             <div className="p-6">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between mb-4">
                 <div>
                   <p className="font-bold text-gray-900">{booking.vendor.businessName}</p>
                   {booking.vendor.rating && (
@@ -711,13 +784,23 @@ function BookingDetailContent({ bookingId }: { bookingId: string }) {
                     </p>
                   )}
                 </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
                 <a
                   href={`tel:${booking.vendor.phone}`}
-                  className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition flex items-center gap-2"
+                  className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition flex items-center justify-center gap-2 font-medium"
                 >
                   <Phone className="w-4 h-4" />
                   Call
                 </a>
+                <button
+                  onClick={() => setShowChat(true)}
+                  className="px-4 py-2 bg-amber-500 text-gray-900 rounded-lg hover:bg-amber-600 transition flex items-center justify-center gap-2 font-medium"
+                >
+                  <MessageCircle className="w-4 h-4" />
+                  Chat
+                </button>
               </div>
             </div>
           </div>
@@ -962,6 +1045,100 @@ function BookingDetailContent({ bookingId }: { bookingId: string }) {
               >
                 Cancel
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Chat Modal */}
+      {showChat && booking && booking.vendor && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[80vh] flex flex-col">
+            {/* Header */}
+            <div className="flex items-center justify-between p-4 border-b bg-gradient-to-r from-amber-500 to-yellow-500">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center">
+                  <Building2 className="w-5 h-5 text-amber-600" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-gray-900">{booking.vendor.businessName}</h3>
+                  <p className="text-sm text-gray-700">Luxury Booking #{booking.bookingNumber}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowChat(false)}
+                className="w-8 h-8 rounded-full bg-white bg-opacity-20 hover:bg-opacity-30 flex items-center justify-center transition"
+              >
+                <X className="w-5 h-5 text-gray-900" />
+              </button>
+            </div>
+
+            {/* Messages */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50">
+              {isLoadingMessages ? (
+                <div className="flex items-center justify-center h-full">
+                  <Loader2 className="w-8 h-8 text-amber-500 animate-spin" />
+                </div>
+              ) : chatMessages.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-full text-center">
+                  <MessageCircle className="w-12 h-12 text-gray-300 mb-2" />
+                  <p className="text-gray-500">No messages yet</p>
+                  <p className="text-sm text-gray-400">Start a conversation with your service provider</p>
+                </div>
+              ) : (
+                chatMessages.map((msg) => (
+                  <div
+                    key={msg.id}
+                    className={`flex ${msg.senderType === 'customer' || msg.sender_type === 'customer' ? 'justify-end' : 'justify-start'}`}
+                  >
+                    <div
+                      className={`max-w-[70%] rounded-2xl px-4 py-2 ${
+                        msg.senderType === 'customer' || msg.sender_type === 'customer'
+                          ? 'bg-amber-500 text-gray-900'
+                          : 'bg-white text-gray-900 border border-gray-200'
+                      }`}
+                    >
+                      <p className="text-sm whitespace-pre-wrap break-words">{msg.message || msg.content}</p>
+                      <p className={`text-xs mt-1 ${
+                        msg.senderType === 'customer' || msg.sender_type === 'customer'
+                          ? 'text-gray-700'
+                          : 'text-gray-500'
+                      }`}>
+                        {new Date(msg.createdAt || msg.created_at).toLocaleTimeString('en-IN', {
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
+                      </p>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* Input */}
+            <div className="p-4 border-t bg-white">
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={newChatMessage}
+                  onChange={(e) => setNewChatMessage(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && sendChatMessage()}
+                  placeholder="Type your message..."
+                  className="flex-1 px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                  disabled={isSendingMessage}
+                />
+                <button
+                  onClick={sendChatMessage}
+                  disabled={isSendingMessage || !newChatMessage.trim()}
+                  className="px-6 py-3 bg-gradient-to-r from-amber-500 to-yellow-500 text-gray-900 font-bold rounded-xl hover:from-amber-600 hover:to-yellow-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transition"
+                >
+                  {isSendingMessage ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : (
+                    <Send className="w-5 h-5" />
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         </div>

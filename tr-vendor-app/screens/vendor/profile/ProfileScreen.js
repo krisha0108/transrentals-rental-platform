@@ -112,13 +112,27 @@ export default function ProfileScreen({ navigation }) {
 
       setUploading(true);
 
+      console.log('[ProfileScreen] Starting upload process...');
+      console.log('[ProfileScreen] Asset details:', {
+        uri: asset.uri,
+        type: asset.type,
+        size: asset.fileSize,
+        name: asset.fileName,
+      });
+
       // Create FormData
       const formData = new FormData();
+
+      // For Android, ensure proper file URI format
+      const fileUri = Platform.OS === 'android' ? asset.uri : asset.uri.replace('file://', '');
+
       formData.append('logo', {
-        uri: Platform.OS === 'ios' ? asset.uri.replace('file://', '') : asset.uri,
+        uri: fileUri,
         type: asset.type || 'image/jpeg',
         name: asset.fileName || `logo-${Date.now()}.jpg`,
       });
+
+      console.log('[ProfileScreen] FormData created with file URI:', fileUri);
 
       // Upload
       const response = await uploadVendorLogo(formData);

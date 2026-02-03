@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
           });
           if (carBooking) {
             booking = carBooking;
-            customer = carBooking.customer;
+            customer = carBooking.customers;
           }
 
           // Try BikeBooking
@@ -57,7 +57,7 @@ export async function GET(request: NextRequest) {
             });
             if (bikeBooking) {
               booking = bikeBooking;
-              customer = bikeBooking.customer;
+              customer = bikeBooking.customers;
             }
           }
 
@@ -71,10 +71,83 @@ export async function GET(request: NextRequest) {
             });
             if (chauffeurBooking) {
               booking = chauffeurBooking;
-              customer = chauffeurBooking.customer;
+              customer = chauffeurBooking.customers;
+            }
+          }
+
+          // Try LuxuryBooking
+          if (!booking) {
+            const luxuryBooking = await prisma.luxury_bookings.findUnique({
+              where: { id: conv.bookingId },
+              include: {
+                customers: { select: { id: true, name: true, email: true, phone: true } },
+              },
+            });
+            if (luxuryBooking) {
+              booking = luxuryBooking;
+              customer = luxuryBooking.customers;
+            }
+          }
+
+          // Try BusBooking
+          if (!booking) {
+            const busBooking = await prisma.bus_bookings.findUnique({
+              where: { id: conv.bookingId },
+              include: {
+                customers: { select: { id: true, name: true, email: true, phone: true } },
+              },
+            });
+            if (busBooking) {
+              booking = busBooking;
+              customer = busBooking.customers;
+            }
+          }
+
+          // Try PackersBooking
+          if (!booking) {
+            const packersBooking = await prisma.packers_bookings.findUnique({
+              where: { id: conv.bookingId },
+              include: {
+                customers: { select: { id: true, name: true, email: true, phone: true } },
+              },
+            });
+            if (packersBooking) {
+              booking = packersBooking;
+              customer = packersBooking.customers;
+            }
+          }
+
+          // Try TruckBooking
+          if (!booking) {
+            const truckBooking = await prisma.truck_bookings.findUnique({
+              where: { id: conv.bookingId },
+              include: {
+                customers: { select: { id: true, name: true, email: true, phone: true } },
+              },
+            });
+            if (truckBooking) {
+              booking = truckBooking;
+              customer = truckBooking.customers;
+            }
+          }
+
+          // Try EquipmentBooking
+          if (!booking) {
+            const equipmentBooking = await prisma.equipment_bookings.findUnique({
+              where: { id: conv.bookingId },
+              include: {
+                customers: { select: { id: true, name: true, email: true, phone: true } },
+              },
+            });
+            if (equipmentBooking) {
+              booking = equipmentBooking;
+              customer = equipmentBooking.customers;
             }
           }
         }
+
+        // Use display ID for guest bookings
+        const displayCustomerId = conv.customerId || `guest-${conv.bookingId}`;
 
         return {
           id: conv.id,
@@ -82,16 +155,16 @@ export async function GET(request: NextRequest) {
           bookingNumber: booking?.bookingNumber || null,
           bookingType: conv.bookingType,
           subject: conv.subject,
-          customer: customer || {
-            id: conv.customerId,
-            name: booking?.customerName || 'Guest',
-            email: booking?.customerEmail,
-            phone: booking?.customerPhone,
-          },
+          customerId: displayCustomerId,
+          customerName: customer?.name || booking?.customerName || 'Guest Customer',
+          customerEmail: customer?.email || booking?.customerEmail,
+          customerPhone: customer?.phone || booking?.customerPhone,
+          customerAvatar: customer?.image || null,
           lastMessage: conv.lastMessageText,
           lastMessageAt: conv.lastMessageAt?.toISOString(),
           lastSenderType: conv.lastSenderType,
           unreadCount: conv.vendorUnread || 0,
+          isOnline: false,
           createdAt: conv.createdAt.toISOString(),
         };
       })

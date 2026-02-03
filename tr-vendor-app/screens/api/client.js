@@ -10,7 +10,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
  */
 const DEFAULT_PROD = "https://transrentals.in";
 // For Android Emulator use 10.0.2.2, for Physical Device use your computer's IP
-const DEFAULT_DEV_ANDROID = "http://192.168.1.3:3000"; // Your computer's WiFi IP
+const DEFAULT_DEV_ANDROID = "http://192.168.29.31:3000"; // Your computer's WiFi IP
 const DEFAULT_DEV_IOS = "http://localhost:3000";
 
 function inferLocalBase() {
@@ -445,42 +445,50 @@ export async function getVendorDocuments() {
 
 /**
  * Upload vendor document
- * Includes retry logic for 401 errors (token might not be set on first try)
+ * Uses fetch API for better React Native compatibility
  */
 export async function uploadVendorDocument(formData) {
-  let retryCount = 0;
-  const maxRetries = 2;
+  try {
+    console.log('[Upload] Starting document upload with fetch API...');
+    console.log('[Upload] FormData parts:', formData._parts);
 
-  while (retryCount <= maxRetries) {
-    try {
-      const api = await createInstance();
-      console.log('[Upload] Uploading document...');
+    const baseURL = await getBaseURL();
+    const sessionToken = await getSessionToken();
 
-      // Don't set Content-Type manually - let axios handle it with boundary
-      const res = await api.post('/vendor/documents', formData, {
-        transformRequest: (data, headers) => {
-          // For FormData, don't transform and let browser/axios handle it
-          return data;
-        },
-      });
-
-      console.log('[Upload] Document uploaded successfully');
-      return res.data;
-    } catch (error) {
-      console.error('[Upload] Error:', error.message, error.code);
-
-      // If 401 and we haven't retried yet, wait a bit and retry
-      if (error.response?.status === 401 && retryCount < maxRetries) {
-        retryCount++;
-        console.log(`[Upload] 401 error, retrying... (${retryCount}/${maxRetries})`);
-        // Wait 500ms before retrying to allow token to be set
-        await new Promise(resolve => setTimeout(resolve, 500));
-        // Clear the cached instance to force recreation with fresh token
-        continue;
-      }
-      // If not 401 or we've exhausted retries, throw the error
-      throw error;
+    if (!sessionToken) {
+      throw new Error('No session token found');
     }
+
+    console.log('[Upload] Making fetch request to:', `${baseURL}/api/vendor/documents`);
+
+    // Use fetch API instead of axios for better React Native compatibility
+    const response = await fetch(`${baseURL}/api/vendor/documents`, {
+      method: 'POST',
+      headers: {
+        'X-Session-Token': sessionToken,
+        // Don't set Content-Type - let fetch handle it for FormData
+      },
+      body: formData,
+    });
+
+    console.log('[Upload] Document response status:', response.status);
+
+    const data = await response.json();
+    console.log('[Upload] Document response data:', data);
+
+    if (!response.ok) {
+      throw new Error(data.error || data.message || 'Document upload failed');
+    }
+
+    console.log('[Upload] Document uploaded successfully');
+    return data;
+  } catch (error) {
+    console.error('[Upload] Document error:', error);
+    console.error('[Upload] Error details:', {
+      message: error.message,
+      name: error.name,
+    });
+    throw error;
   }
 }
 
@@ -496,35 +504,49 @@ export async function deleteVendorDocument(docId) {
  * Upload vendor logo/profile image
  */
 export async function uploadVendorLogo(formData) {
-  let retryCount = 0;
-  const maxRetries = 2;
+  try {
+    console.log('[Upload] Starting upload with fetch API...');
+    console.log('[Upload] FormData parts:', formData._parts);
 
-  while (retryCount <= maxRetries) {
-    try {
-      const api = await createInstance();
-      console.log('[Upload] Uploading logo...');
+    const baseURL = await getBaseURL();
+    const sessionToken = await getSessionToken();
 
-      // Don't set Content-Type manually - let axios handle it with boundary
-      const res = await api.post('/vendor/profile/upload-logo', formData, {
-        transformRequest: (data, headers) => {
-          // For FormData, don't transform and let browser/axios handle it
-          return data;
-        },
-      });
-
-      console.log('[Upload] Logo uploaded successfully');
-      return res.data;
-    } catch (error) {
-      console.error('[Upload] Logo error:', error.message, error.code);
-
-      if (error.response?.status === 401 && retryCount < maxRetries) {
-        retryCount++;
-        console.log(`[Upload] 401 error, retrying... (${retryCount}/${maxRetries})`);
-        await new Promise(resolve => setTimeout(resolve, 500));
-        continue;
-      }
-      throw error;
+    if (!sessionToken) {
+      throw new Error('No session token found');
     }
+
+    console.log('[Upload] Making fetch request to:', `${baseURL}/api/vendor/profile/upload-logo`);
+    console.log('[Upload] Session token (first 20):', sessionToken.substring(0, 20) + '...');
+
+    // Use fetch API instead of axios for better React Native compatibility
+    const response = await fetch(`${baseURL}/api/vendor/profile/upload-logo`, {
+      method: 'POST',
+      headers: {
+        'X-Session-Token': sessionToken,
+        // Don't set Content-Type - let fetch handle it for FormData
+      },
+      body: formData,
+    });
+
+    console.log('[Upload] Response status:', response.status);
+    console.log('[Upload] Response headers:', response.headers);
+
+    const data = await response.json();
+    console.log('[Upload] Response data:', data);
+
+    if (!response.ok) {
+      throw new Error(data.error || data.message || 'Upload failed');
+    }
+
+    return data;
+  } catch (error) {
+    console.error('[Upload] Error:', error);
+    console.error('[Upload] Error details:', {
+      message: error.message,
+      name: error.name,
+      stack: error.stack,
+    });
+    throw error;
   }
 }
 

@@ -102,10 +102,28 @@ export default function LuxurySendQuoteScreen({ navigation, route }) {
 
       // Filter luxury fleet
       const luxuryFleet = (fleetsData.fleet || fleetsData.fleets || fleetsData.vehicles || []).filter(
-        (v) =>
-          v.services?.slug === 'luxury-car-rental' ||
-          v.services?.name?.toLowerCase().includes('luxury')
+        (v) => {
+          const serviceSlug = v.services?.slug || v.service?.slug;
+          const serviceName = v.services?.name || v.service?.name;
+          return (
+            serviceSlug === 'luxury-car-rental' ||
+            serviceSlug === 'luxury-car' ||
+            serviceName?.toLowerCase().includes('luxury')
+          );
+        }
       );
+      console.log('[Luxury Fleet Debug] Total fleet:', fleetsData.fleet?.length || 0);
+      console.log('[Luxury Fleet Debug] Filtered luxury fleet:', luxuryFleet.length);
+      luxuryFleet.forEach((v, index) => {
+        console.log(`[Luxury Fleet ${index + 1}]`, {
+          id: v.id,
+          registrationNumber: v.registrationNumber,
+          serviceSlug: v.services?.slug || v.service?.slug,
+          vehicleModelId: v.vehicleModelId,
+          brandId: v.brandId,
+          vehicleCategoryId: v.vehicleCategoryId,
+        });
+      });
       setFleetVehicles(luxuryFleet);
 
       // Set templates (only active ones)
@@ -154,17 +172,38 @@ export default function LuxurySendQuoteScreen({ navigation, route }) {
 
     const selectedVehicle = fleetVehicles.find((v) => v.id === fleetId);
     if (selectedVehicle) {
+      console.log('[Fleet Selection Debug]', JSON.stringify(selectedVehicle, null, 2));
+
       let vName = '';
       let vBrand = '';
-      if (selectedVehicle.vehicleModel) {
-        vName = selectedVehicle.vehicle_models.name;
-        vBrand = selectedVehicle.vehicle_models.brand?.name || '';
-      } else if (selectedVehicle.vehicleCategory) {
-        vName = selectedVehicle.chauffeur_vehicle_categories.name;
+
+      // Check if vehicle has a model (bike, bus, luxury with model)
+      if (selectedVehicle.vehicleModelId && selectedVehicle.vehicle_models) {
+        vName = selectedVehicle.vehicle_models.name || '';
+        // Brand from vehicle model
+        if (selectedVehicle.vehicle_models.brands) {
+          vBrand = selectedVehicle.vehicle_models.brands.name || '';
+        }
+        // Category name from model
+        if (selectedVehicle.vehicle_models.chauffeur_vehicle_categories) {
+          const categoryName = selectedVehicle.vehicle_models.chauffeur_vehicle_categories.name;
+          vName = vBrand ? `${vBrand} ${categoryName}` : categoryName;
+        }
       }
-      if (selectedVehicle.brand) {
-        vBrand = selectedVehicle.brands.name;
+      // Check for car-rental style (category + brand directly)
+      else if (selectedVehicle.vehicleCategoryId || selectedVehicle.chauffeur_vehicle_categories) {
+        const categoryName = selectedVehicle.chauffeur_vehicle_categories?.name || '';
+        vName = categoryName;
+
+        // Brand directly on fleet vehicle (for car-rental)
+        if (selectedVehicle.brandId && selectedVehicle.brands) {
+          vBrand = selectedVehicle.brands.name || '';
+          vName = vBrand ? `${vBrand} ${categoryName}` : categoryName;
+        }
       }
+
+      console.log('[Fleet Selection] Vehicle Name:', vName);
+      console.log('[Fleet Selection] Vehicle Brand:', vBrand);
 
       setVehicleName(vName);
       setVehicleBrand(vBrand);

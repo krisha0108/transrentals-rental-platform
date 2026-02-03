@@ -2,9 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 import { transformPrismaResponse } from '@/lib/utils/api-transform';
 import { getVendorAuth } from '@/lib/auth/vendor-mobile-auth';
+import crypto from 'crypto';
 
 import logger from '@/lib/security/logger';
 export const dynamic = 'force-dynamic';
+
+function generateId(): string {
+  return 'vsr' + crypto.randomBytes(12).toString('base64url').toLowerCase().slice(0, 21);
+}
 
 // GET - Get vendor's services (approved + pending requests)
 export async function GET(request: NextRequest) {
@@ -134,6 +139,7 @@ export async function POST(request: NextRequest) {
         reviewedById: null,
       },
       create: {
+        id: generateId(),
         vendorId: vendorId,
         serviceId,
         message,

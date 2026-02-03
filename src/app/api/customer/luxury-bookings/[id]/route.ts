@@ -143,6 +143,7 @@ export async function GET(
     const response = {
       id: booking.id,
       bookingNumber: booking.bookingNumber,
+      customerId: booking.customerId,
       customerName: booking.customerName,
       customerEmail: booking.customerEmail,
       customerPhone: booking.customerPhone,

@@ -3,6 +3,10 @@ import { prisma } from '@/lib/db/prisma';
 import { SignJWT } from 'jose';
 import logger from '@/lib/security/logger';
 import { generateCustomerId } from '@/lib/utils/id-generator';
+import { sanitizeInput, isValidEmail, isValidPhone, sanitizePhone } from '@/lib/utils/sanitize';
+import { smartRateLimit, detectDuplicate, getClientIdentifier, hashBookingData } from '@/lib/utils/smart-rate-limit';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth/auth-options';
 
 export const dynamic = 'force-dynamic';
 
@@ -41,7 +45,39 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
 
-    const {
+    // ===== RATE LIMITING =====
+    const clientId = getClientIdentifier(request);
+    const session = await getServerSession(authOptions);
+    const isAuthenticated = !!session?.user;
+
+    const rateLimitCheck = await smartRateLimit(clientId, isAuthenticated, body);
+    if (!rateLimitCheck.allowed) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: rateLimitCheck.error,
+          requiresCaptcha: rateLimitCheck.requiresCaptcha,
+          type: 'rate_limit',
+        },
+        { status: 429 }
+      );
+    }
+
+    // Check for duplicate bookings (bot detection)
+    const bookingHash = hashBookingData(body);
+    const duplicateCheck = await detectDuplicate(bookingHash);
+    if (duplicateCheck.isDuplicate) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: duplicateCheck.error,
+          type: 'duplicate_booking',
+        },
+        { status: 400 }
+      );
+    }
+
+    let {
       tripType,
       carCategory,
       carCategoryName,
@@ -72,10 +108,35 @@ export async function POST(request: NextRequest) {
       paymentMethod,
     } = body;
 
+    // ===== INPUT SANITIZATION (XSS Protection) =====
+    customerName = sanitizeInput(customerName);
+    pickupCity = sanitizeInput(pickupCity);
+    dropCity = sanitizeInput(dropCity);
+    pickupAddress = sanitizeInput(pickupAddress);
+    dropAddress = sanitizeInput(dropAddress);
+    customerNotes = sanitizeInput(customerNotes);
+    carCategoryName = sanitizeInput(carCategoryName);
+    customerPhone = sanitizePhone(customerPhone);
+
     // Validate required fields
     if (!customerName || !customerPhone || !customerEmail) {
       return NextResponse.json(
         { success: false, error: 'Customer details are required' },
+        { status: 400 }
+      );
+    }
+
+    // ===== EMAIL & PHONE VALIDATION =====
+    if (customerEmail && !isValidEmail(customerEmail)) {
+      return NextResponse.json(
+        { success: false, error: 'Invalid email format' },
+        { status: 400 }
+      );
+    }
+
+    if (customerPhone && !isValidPhone(customerPhone)) {
+      return NextResponse.json(
+        { success: false, error: 'Invalid phone number. Must be 10 digits starting with 6-9' },
         { status: 400 }
       );
     }
@@ -85,6 +146,35 @@ export async function POST(request: NextRequest) {
         { success: false, error: 'Pickup details are required' },
         { status: 400 }
       );
+    }
+
+    // ===== DATE VALIDATION =====
+    if (pickupDate) {
+      const pickup = new Date(pickupDate);
+      if (isNaN(pickup.getTime())) {
+        return NextResponse.json(
+          { success: false, error: 'Invalid pickup date format. Please provide a valid date.' },
+          { status: 400 }
+        );
+      }
+
+      // For outstation roundtrip, validate return date
+      if (returnDate && (tripType === 'outstation' || mode === 'roundtrip')) {
+        const returnD = new Date(returnDate);
+        if (isNaN(returnD.getTime())) {
+          return NextResponse.json(
+            { success: false, error: 'Invalid return date format. Please provide a valid date.' },
+            { status: 400 }
+          );
+        }
+
+        if (returnD < pickup) {
+          return NextResponse.json(
+            { success: false, error: 'Return date cannot be before pickup date' },
+            { status: 400 }
+          );
+        }
+      }
     }
 
     if (!carCategory && !carCategoryName) {

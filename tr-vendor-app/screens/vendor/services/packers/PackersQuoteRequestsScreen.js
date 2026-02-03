@@ -124,7 +124,7 @@ export default function PackersQuoteRequestsScreen({ navigation }) {
     const customerName = item.customerName || item.customer_name || 'Customer';
     const pickupLocation = item.pickupLocation || item.pickup_location || item.pickupCity || 'N/A';
     const dropLocation = item.dropLocation || item.drop_location || item.dropCity;
-    const pickupDate = item.pickupDate || item.pickup_date || item.startDate;
+    const pickupDate = item.pickupDate || item.pickup_date || item.startDate || item.preferredDate;
     const returnDate = item.returnDate || item.return_date || item.endDate;
     const serviceType = item.serviceType || item.service_type || item.vehicleType;
 

@@ -2,8 +2,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 import { transformPrismaResponse } from '@/lib/utils/api-transform';
-
 import logger from '@/lib/security/logger';
+import { sanitizeInput, isValidEmail, isValidPhone, sanitizePhone } from '@/lib/utils/sanitize';
+import { smartRateLimit, detectDuplicate, getClientIdentifier, hashBookingData } from '@/lib/utils/smart-rate-limit';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth/auth-options';
+
 export const dynamic = 'force-dynamic';
 
 function generateBookingNumber(): string {
@@ -21,7 +25,38 @@ function generateOTP(): string {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const {
+
+    // ===== RATE LIMITING =====
+    const clientId = getClientIdentifier(request);
+    const session = await getServerSession(authOptions);
+    const isAuthenticated = !!session?.user;
+
+    const rateLimitCheck = await smartRateLimit(clientId, isAuthenticated, body);
+    if (!rateLimitCheck.allowed) {
+      return NextResponse.json(
+        {
+          error: rateLimitCheck.error,
+          requiresCaptcha: rateLimitCheck.requiresCaptcha,
+          type: 'rate_limit',
+        },
+        { status: 429 }
+      );
+    }
+
+    // Check for duplicate bookings (bot detection)
+    const bookingHash = hashBookingData(body);
+    const duplicateCheck = await detectDuplicate(bookingHash);
+    if (duplicateCheck.isDuplicate) {
+      return NextResponse.json(
+        {
+          error: duplicateCheck.error,
+          type: 'duplicate_booking',
+        },
+        { status: 400 }
+      );
+    }
+
+    let {
       customerName, customerEmail, customerPhone, customerId,
       vehicle_category, vehiclePreference, specificVehicle,
       serviceType, tripType, withChauffeur,
@@ -35,11 +70,53 @@ export async function POST(request: NextRequest) {
       budgetMin, budgetMax,
     } = body;
 
+    // ===== INPUT SANITIZATION (XSS Protection) =====
+    customerName = sanitizeInput(customerName);
+    vehiclePreference = sanitizeInput(vehiclePreference);
+    specificVehicle = sanitizeInput(specificVehicle);
+    pickupCity = sanitizeInput(pickupCity);
+    pickupAddress = sanitizeInput(pickupAddress);
+    pickupLandmark = sanitizeInput(pickupLandmark);
+    dropCity = sanitizeInput(dropCity);
+    dropAddress = sanitizeInput(dropAddress);
+    dropLandmark = sanitizeInput(dropLandmark);
+    specialRequests = sanitizeInput(specialRequests);
+    flightNumber = sanitizeInput(flightNumber);
+    decorationType = sanitizeInput(decorationType);
+    customerPhone = sanitizePhone(customerPhone);
+
     if (!customerName || !customerEmail || !customerPhone) {
       return NextResponse.json({ error: 'Customer details are required' }, { status: 400 });
     }
+
+    // ===== EMAIL & PHONE VALIDATION =====
+    if (customerEmail && !isValidEmail(customerEmail)) {
+      return NextResponse.json({ error: 'Invalid email format' }, { status: 400 });
+    }
+
+    if (customerPhone && !isValidPhone(customerPhone)) {
+      return NextResponse.json({ error: 'Invalid phone number. Must be 10 digits starting with 6-9' }, { status: 400 });
+    }
+
     if (!vehicle_category || !pickupCity || !pickupAddress || !pickupDate || !pickupTime) {
       return NextResponse.json({ error: 'Vehicle and pickup details are required' }, { status: 400 });
+    }
+
+    // ===== DATE VALIDATION =====
+    const pickup = new Date(pickupDate);
+    if (isNaN(pickup.getTime())) {
+      return NextResponse.json({ error: 'Invalid pickup date format. Please provide a valid date.' }, { status: 400 });
+    }
+
+    if (returnDate) {
+      const returnD = new Date(returnDate);
+      if (isNaN(returnD.getTime())) {
+        return NextResponse.json({ error: 'Invalid return date format. Please provide a valid date.' }, { status: 400 });
+      }
+
+      if (returnD < pickup) {
+        return NextResponse.json({ error: 'Return date cannot be before pickup date' }, { status: 400 });
+      }
     }
 
     // MySQL is case-insensitive by default with utf8mb4 collation
@@ -64,9 +141,9 @@ export async function POST(request: NextRequest) {
         customerEmail,
         customerPhone,
         // Customer relation (optional)
-        ...(customerId ? { customer: { connect: { id: customerId } } } : {}),
+        ...(customerId ? { customers: { connect: { id: customerId } } } : {}),
         // Location relation (optional)
-        ...(location?.id ? { location: { connect: { id: location.id } } } : {}),
+        ...(location?.id ? { locations: { connect: { id: location.id } } } : {}),
         locationName: location?.name || pickupCity,
         // Trip Details
         tripType: tripType || 'hourly',
