@@ -379,6 +379,9 @@ export async function GET(request: NextRequest) {
             ...quoteRequestFilter,
             ...(equipmentQuoteRequestStatusArray ? { status: { in: equipmentQuoteRequestStatusArray as any } } : {}),
           },
+          include: {
+            locations: { select: { name: true } },
+          },
           orderBy: { createdAt: 'desc' },
           take: 50,
         }).catch((e) => { logger.error('Error fetching equipment quote requests', e); return []; })
@@ -393,6 +396,7 @@ export async function GET(request: NextRequest) {
           },
           include: {
             vendors: { select: { businessName: true, phone: true } },
+            locations: { select: { name: true } },
           },
           orderBy: { createdAt: 'desc' },
           take: 50,
@@ -473,15 +477,17 @@ export async function GET(request: NextRequest) {
         is_quote_request: false,
       })),
       ...carBookings.map((b) => {
-        // For self-drive, use location name as "from" and determine "to" based on delivery
-        const fromLocation = b.locationName || b.locations?.name || 'Location';
-        let toLocation = 'Same location';
+        // For self-drive, use pickup location as "from"
+        const fromLocation = b.locations?.name || b.pickupAddress || b.pickupCity || 'Pickup Location';
 
-        // If delivery is requested and dropAddress exists, show it as destination
+        // Determine destination based on delivery and drop address
+        let toLocation = 'Same location';
         if (b.isDeliveryRequested && b.dropAddress) {
           toLocation = b.dropAddress;
         } else if (b.dropAddress && b.dropAddress !== b.pickupAddress) {
           toLocation = b.dropAddress;
+        } else if (b.dropCity && b.dropCity !== b.pickupCity) {
+          toLocation = b.dropCity;
         }
 
         return {
@@ -684,8 +690,8 @@ export async function GET(request: NextRequest) {
         booking_number: b.requestNumber,
         service_name: 'Equipment Rental',
         service_type: 'equipment',
-        location_name: (b as { city?: string }).city || '',
-        destination: null,
+        location_name: b.locations?.name || b.deliveryCity || '',
+        destination: b.deliveryAddress || null,
         journey_datetime: b.startDate.toISOString(),
         return_datetime: b.endDate?.toISOString() || null,
         status: mapQuoteRequestStatus(b.status),
@@ -704,8 +710,8 @@ export async function GET(request: NextRequest) {
         booking_number: b.bookingNumber,
         service_name: 'Equipment Rental',
         service_type: 'equipment',
-        location_name: (b as { city?: string }).city || '',
-        destination: null,
+        location_name: b.locations?.name || b.deliveryCity || '',
+        destination: b.deliveryAddress || null,
         journey_datetime: b.startDate.toISOString(),
         return_datetime: b.endDate?.toISOString() || null,
         status: mapEquipmentBookingStatus(b.status),
