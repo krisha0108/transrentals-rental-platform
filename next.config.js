@@ -1,5 +1,24 @@
 /** @type {import('next').NextConfig} */
 
+const withPWA = require('next-pwa')({
+  dest: 'public',
+  register: true,
+  skipWaiting: true,
+  disable: process.env.NODE_ENV === 'development',
+  runtimeCaching: [
+    {
+      urlPattern: /^https?.*/,
+      handler: 'NetworkFirst',
+      options: {
+        cacheName: 'offlineCache',
+        expiration: {
+          maxEntries: 200,
+        },
+      },
+    },
+  ],
+});
+
 // Enable type checking for production builds
 const skipTypeCheck = true;  // ENABLE type checking
 const skipLint = true;        // ENABLE linting
@@ -544,4 +563,4 @@ const nextConfig = {
   swcMinify: true,
 };
 
-module.exports = nextConfig;
+module.exports = withPWA(nextConfig);
