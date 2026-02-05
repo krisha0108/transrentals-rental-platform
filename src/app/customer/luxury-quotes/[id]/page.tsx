@@ -22,6 +22,7 @@ import {
   User,
   Phone,
 } from 'lucide-react';
+import VehicleImageGallery from '@/components/customer/VehicleImageGallery';
 
 const LUXURY_CATEGORIES: Record<string, string> = {
   luxury_sedan: 'Luxury Sedan',
@@ -75,6 +76,7 @@ interface VendorQuote {
   vehicleNumber: string;
   vehicle_models: string;
   vehicleYear: number;
+  vehicleImages?: string;
   vehicleFeatures: string[];
   baseAmount: number;
   chauffeurCharges: number;
@@ -380,12 +382,12 @@ export default function CustomerLuxuryQuoteDetailPage() {
                             <Crown className="w-6 h-6 text-amber-600" />
                           </div>
                           <div>
-                            <h3 className="font-bold text-gray-900">{quote.vendor.businessName}</h3>
+                            <h3 className="font-bold text-gray-900">{quote.vendors.businessName}</h3>
                             <div className="flex items-center gap-2 text-sm">
-                              {quote.vendor.rating ? (
+                              {quote.vendors.rating ? (
                                 <div className="flex items-center gap-1">
                                   <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
-                                  <span className="font-medium">{quote.vendor.rating}</span>
+                                  <span className="font-medium">{quote.vendors.rating}</span>
                                 </div>
                               ) : (
                                 <span className="text-gray-500">New Vendor</span>
@@ -458,6 +460,12 @@ export default function CustomerLuxuryQuoteDetailPage() {
                       {/* Expanded Details */}
                       {isExpanded && (
                         <div className="border-t pt-4 mt-4 space-y-4">
+                          {/* Vehicle Images */}
+                          <VehicleImageGallery
+                            vehicleImages={quote.vehicleImages}
+                            vehicleName={quote.vehicleName}
+                          />
+
                           {/* All Inclusions */}
                           {quote.inclusions && quote.inclusions.length > 0 && (
                             <div>
@@ -541,7 +549,7 @@ export default function CustomerLuxuryQuoteDetailPage() {
                               })}
                             </span>
                             <a
-                              href={`tel:${quote.vendor.phone}`}
+                              href={`tel:${quote.vendors.phone}`}
                               className="flex items-center gap-1 text-amber-600 hover:text-amber-700"
                             >
                               <Phone className="w-4 h-4" />

@@ -16,6 +16,8 @@ import {
   Clock,
 } from 'lucide-react';
 import { EQUIPMENT_CONFIG } from '@/lib/quote-services';
+import Pagination from '@/components/vendor/Pagination';
+import DateFilterDropdown from '@/components/vendor/DateFilterDropdown';
 
 interface EquipmentBooking {
   id: string;
@@ -65,19 +67,46 @@ export default function VendorEquipmentBookingsPage() {
   const [filter, setFilter] = useState('all');
   const [error, setError] = useState<string | null>(null);
 
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+
+  // Date filter state
+  const [dateFilter, setDateFilter] = useState<{ start: string | null; end: string | null }>({
+    start: null,
+    end: null,
+  });
+
   // Fetch bookings from API
   const fetchBookings = async (type?: string) => {
     try {
       setIsLoading(true);
-      const url = type && type !== 'all'
-        ? `/api/vendor/equipment-bookings?type=${type}`
-        : '/api/vendor/equipment-bookings';
+      const params = new URLSearchParams();
 
+      if (type && type !== 'all') {
+        params.set('type', type);
+      }
+
+      // PAGINATION PARAMS
+      params.set('page', currentPage.toString());
+      params.set('limit', '20');
+
+      // DATE FILTER PARAMS
+      if (dateFilter.start) params.set('startDate', dateFilter.start);
+      if (dateFilter.end) params.set('endDate', dateFilter.end);
+
+      const url = `/api/vendor/equipment-bookings?${params}`;
       const res = await fetch(url);
       const data = await res.json();
 
       if (data.success) {
         setBookings(data.bookings || []);
+        // Set pagination state
+        if (data.pagination) {
+          setTotalPages(data.pagination.totalPages);
+          setTotalItems(data.pagination.total);
+        }
       } else {
         setError(data.error || 'Failed to fetch bookings');
       }
@@ -105,7 +134,7 @@ export default function VendorEquipmentBookingsPage() {
   useEffect(() => {
     fetchBookings(filter);
     fetchStats();
-  }, [filter]);
+  }, [filter, currentPage, dateFilter]);
 
   // API already filters, so just use the bookings directly
   const filteredBookings = bookings;
@@ -183,7 +212,7 @@ export default function VendorEquipmentBookingsPage() {
         </div>
       </div>
 
-      <div className="flex gap-2 overflow-x-auto pb-2">
+      <div className="flex flex-wrap gap-2 overflow-x-auto pb-2 items-center">
         {[
           { value: 'active', label: 'Active' },
           { value: 'completed', label: 'Completed' },
@@ -191,7 +220,10 @@ export default function VendorEquipmentBookingsPage() {
         ].map((f) => (
           <button
             key={f.value}
-            onClick={() => setFilter(f.value)}
+            onClick={() => {
+              setFilter(f.value);
+              setCurrentPage(1); // Reset to page 1 when filter changes
+            }}
             className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition ${
               filter === f.value
                 ? 'bg-amber-100 text-amber-700'
@@ -201,6 +233,15 @@ export default function VendorEquipmentBookingsPage() {
             {f.label}
           </button>
         ))}
+
+        <DateFilterDropdown
+          onFilterChange={(start, end) => {
+            setDateFilter({ start, end });
+            setCurrentPage(1); // Reset to page 1 when filter changes
+          }}
+          initialStartDate={dateFilter.start || undefined}
+          initialEndDate={dateFilter.end || undefined}
+        />
       </div>
 
       <div className="space-y-4">
@@ -297,6 +338,17 @@ export default function VendorEquipmentBookingsPage() {
           })
         )}
       </div>
+
+      {/* Pagination */}
+      {bookings.length > 0 && (
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={totalItems}
+          itemsPerPage={20}
+          onPageChange={(page) => setCurrentPage(page)}
+        />
+      )}
     </div>
   );
 }

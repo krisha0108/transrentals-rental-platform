@@ -15,7 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Feather';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import { getVendorFleet, deleteVehicle } from '../../api/client';
+import { getVendorFleet, deleteVehicle, getBaseURL } from '../../api/client';
 
 const C = {
   bg: '#F7FAFC',
@@ -119,6 +119,7 @@ export default function FleetListScreen({ navigation }) {
   const [vehicles, setVehicles] = useState([]);
   const [statusFilter, setStatusFilter] = useState('all');
   const [serviceFilter, setServiceFilter] = useState('all');
+  const [baseURL, setBaseURL] = useState(null);
 
   const fetchFleet = useCallback(async () => {
     try {
@@ -151,6 +152,15 @@ export default function FleetListScreen({ navigation }) {
   useEffect(() => {
     fetchFleet();
   }, [fetchFleet]);
+
+  // Fetch base URL on mount
+  useEffect(() => {
+    const initBaseURL = async () => {
+      const url = await getBaseURL();
+      setBaseURL(url);
+    };
+    initBaseURL();
+  }, []);
 
   // Refetch when screen comes into focus (after adding/editing vehicle)
   useFocusEffect(
@@ -413,9 +423,9 @@ export default function FleetListScreen({ navigation }) {
       }
 
       // If relative path, prepend base URL
-      // Use localhost in dev mode, production URL in prod
-      const baseUrl = __DEV__ ? 'http://192.168.29.31:3000' : 'https://transrentals.in';
-      return `${baseUrl}${imagePath.startsWith('/') ? '' : '/'}${imagePath}`;
+      // Use the dynamically fetched base URL from API client
+      const url = baseURL || 'https://transrentals.in'; // Fallback to production if not loaded yet
+      return `${url}${imagePath.startsWith('/') ? '' : '/'}${imagePath}`;
     };
 
     // ONLY use featured admin image (model/category image)

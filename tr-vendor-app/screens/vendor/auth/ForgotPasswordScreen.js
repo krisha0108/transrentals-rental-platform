@@ -8,7 +8,7 @@ import Icon from "react-native-vector-icons/Ionicons";
 
 // Same URL config as screens/api/client.js
 const DEFAULT_PROD = "https://transrentals.in";
-const DEFAULT_DEV_ANDROID = "http://192.168.29.31:3000";
+const DEFAULT_DEV_ANDROID = "http://192.168.29.68:3000";
 const DEFAULT_DEV_IOS = "http://localhost:3000";
 
 function getBaseURL() {

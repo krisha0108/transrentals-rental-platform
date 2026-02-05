@@ -154,7 +154,11 @@
       "Bash(do curl -s -X POST http://localhost:3000/api/self-drive-bookings -H \"Content-Type: application/json\" -d \"{\"\"customerName\"\":\"\"Spam Test $i\"\",\"\"customerEmail\"\":\"\"spam$i@test.com\"\",\"\"customerPhone\"\":\"\"987654320$i\"\",\"\"locationId\"\":\"\"LOC_32\"\",\"\"locationName\"\":\"\"Delhi\"\",\"\"vehicleId\"\":\"\"SPAM_$i\"\",\"\"vehicleName\"\":\"\"Spam Car $i\"\",\"\"vehicleBrand\"\":\"\"Test\"\",\"\"vehicleType\"\":\"\"Sedan\"\",\"\"pickupDate\"\":\"\"2026-02-10\"\",\"\"pickupTime\"\":\"\"10:00 AM\"\",\"\"dropDate\"\":\"\"2026-02-15\"\",\"\"dropTime\"\":\"\"10:00 AM\"\",\"\"dailyRate\"\":2000}\")",
       "Bash(do curl -s -X POST http://localhost:3000/api/self-drive-bookings -H \"Content-Type: application/json\" -d \"{\"\"customerName\"\":\"\"Rate Test\"\",\"\"customerEmail\"\":\"\"rate$i@test.com\"\",\"\"customerPhone\"\":\"\"9876543210\"\",\"\"locationId\"\":\"\"LOC_32\"\",\"\"locationName\"\":\"\"Delhi\"\",\"\"vehicleId\"\":\"\"RATE_$i\"\",\"\"vehicleName\"\":\"\"Test Car\"\",\"\"vehicleBrand\"\":\"\"Test\"\",\"\"vehicleType\"\":\"\"Sedan\"\",\"\"pickupDate\"\":\"\"2026-02-10\"\",\"\"pickupTime\"\":\"\"10:00 AM\"\",\"\"dropDate\"\":\"\"2026-02-15\"\",\"\"dropTime\"\":\"\"10:00 AM\"\",\"\"dailyRate\"\":2000}\")",
       "Bash(do curl -s -X POST http://localhost:3000/api/bus-quote-requests -H \"Content-Type: application/json\" -d \"{\"\"customerName\"\":\"\"Dup Test\"\",\"\"customerEmail\"\":\"\"dup@test.com\"\",\"\"customerPhone\"\":\"\"8888888888\"\",\"\"tripType\"\":\"\"wedding\"\",\"\"vehicle_category\"\":\"\"ac-bus\"\",\"\"passengers\"\":50,\"\"pickupCity\"\":\"\"Mumbai\"\",\"\"pickupAddress\"\":\"\"Duplicate\"\",\"\"pickupDate\"\":\"\"2026-04-10\"\",\"\"pickupTime\"\":\"\"06:00 AM\"\"}\")",
-      "Bash(npx cross-env NODE_OPTIONS=--max-old-space-size=4096 next build:*)"
+      "Bash(npx cross-env NODE_OPTIONS=--max-old-space-size=4096 next build:*)",
+      "Bash(tail:*)",
+      "Bash(git diff:*)",
+      "Bash(do echo \"=== $table ===\")",
+      "Bash(npx kill-port 3000)"
     ],
     "deny": [],
     "ask": []

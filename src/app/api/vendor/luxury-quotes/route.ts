@@ -34,13 +34,33 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status');
+
+    // PAGINATION PARAMS
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '20');
     const skip = (page - 1) * limit;
 
+    // DATE FILTER PARAMS
+    const startDate = searchParams.get('startDate');
+    const endDate = searchParams.get('endDate');
+
     const whereClause: any = { vendorId: vendorId };
     if (status && status !== 'all') {
       whereClause.status = status;
+    }
+
+    // DATE FILTERING
+    if (startDate || endDate) {
+      whereClause.createdAt = {};
+      if (startDate) {
+        whereClause.createdAt.gte = new Date(startDate);
+      }
+      if (endDate) {
+        // Set to end of day (23:59:59)
+        const endDateTime = new Date(endDate);
+        endDateTime.setHours(23, 59, 59, 999);
+        whereClause.createdAt.lte = endDateTime;
+      }
     }
 
     const [quotes, total] = await Promise.all([
@@ -73,14 +93,50 @@ export async function GET(request: NextRequest) {
       quotes: quotes.map((q: any) => ({
         id: q.id,
         quoteNumber: q.quoteNumber,
-        vehicleName: q.vehicleName,
+        requestId: q.requestId,
+        vendorId: q.vendorId,
+        templateId: q.templateId,
+        fleetId: q.fleetId,
         vehicleCategory: q.vehicleCategory,
+        vehicleName: q.vehicleName,
+        vehicleNumber: q.vehicleNumber,
+        vehicleModel: q.vehicleModel,
+        vehicleYear: q.vehicleYear,
+        vehicleFeatures: q.vehicleFeatures,
+        vehicleImages: q.vehicleImages,
+        driverName: q.driverName,
+        driverPhone: q.driverPhone,
+        driverExperience: q.driverExperience,
+        baseAmount: q.baseAmount,
+        chauffeurCharges: q.chauffeurCharges,
+        decorationCharges: q.decorationCharges,
+        perKmRate: q.perKmRate,
+        perHourRate: q.perHourRate,
+        includedKm: q.includedKm,
+        includedHours: q.includedHours,
+        fuelCharges: q.fuelCharges,
+        tollEstimate: q.tollEstimate,
+        parkingEstimate: q.parkingEstimate,
+        nightHaltCharges: q.nightHaltCharges,
+        gstAmount: q.gstAmount,
         totalAmount: q.totalAmount,
-        status: q.status,
+        advanceAmount: q.advanceAmount,
+        advancePercent: q.advancePercent,
+        extraKmRate: q.extraKmRate,
+        extraHourRate: q.extraHourRate,
+        inclusions: q.inclusions,
+        exclusions: q.exclusions,
+        termsConditions: q.termsConditions,
+        vendorMessage: q.vendorMessage,
+        isNegotiable: q.isNegotiable,
         validTill: q.validTill,
+        validityDays: q.validityDays,
+        status: q.status,
+        sentAt: q.sentAt,
         viewCount: q.viewCount,
         request: q.luxury_quote_requests,
         createdAt: q.createdAt,
+        updatedAt: q.updatedAt,
       })),
       pagination: {
         page,
@@ -236,6 +292,53 @@ export async function POST(request: NextRequest) {
     const validTill = new Date();
     validTill.setDate(validTill.getDate() + validityDays);
 
+    // Fetch fleet vehicle images if fleetId is provided
+    let finalVehicleImages = vehicleImages; // Use provided images if any
+    if (fleetId && !vehicleImages) {
+      try {
+        const fleetVehicle = await prisma.vendor_fleets.findUnique({
+          where: { id: fleetId },
+          include: {
+            vehicle_models: {
+              select: {
+                sideImage: true, // Featured image from admin
+              },
+            },
+          },
+        });
+
+        if (fleetVehicle) {
+          const images: string[] = [];
+
+          // Add featured image from vehicle model (admin's image)
+          if (fleetVehicle.vehicle_models?.sideImage) {
+            images.push(fleetVehicle.vehicle_models.sideImage);
+          }
+
+          // Add vendor's fleet images (up to 5 more)
+          if (fleetVehicle.images) {
+            try {
+              const vendorImages = JSON.parse(fleetVehicle.images);
+              if (Array.isArray(vendorImages)) {
+                // Add up to 5 vendor images
+                images.push(...vendorImages.slice(0, 5));
+              }
+            } catch (e) {
+              logger.warn('Failed to parse vendor fleet images', e);
+            }
+          }
+
+          // Only set if we have at least one image
+          if (images.length > 0) {
+            finalVehicleImages = images;
+          }
+        }
+      } catch (error) {
+        logger.warn('Failed to fetch fleet vehicle images', error);
+        // Continue without images - don't fail the quote submission
+      }
+    }
+
     // Create the quote
     const quote = await prisma.luxury_quotes.create({
       data: {
@@ -251,7 +354,7 @@ export async function POST(request: NextRequest) {
         vehicleModel: vehicle_model || null,
         vehicleYear: vehicleYear || null,
         vehicleFeatures: vehicleFeatures || null,
-        vehicleImages: vehicleImages || null,
+        vehicleImages: finalVehicleImages || null,
         driverName: driverName || null,
         driverPhone: driverPhone || null,
         driverExperience: driverExperience || null,

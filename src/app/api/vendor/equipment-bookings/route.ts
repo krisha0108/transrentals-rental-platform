@@ -36,9 +36,15 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status'); // Mobile app status: 'all', 'pending', 'confirmed', 'ongoing', 'completed'
     const type = searchParams.get('type');
+
+    // PAGINATION PARAMS
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '20');
     const skip = (page - 1) * limit;
+
+    // DATE FILTER PARAMS
+    const startDate = searchParams.get('startDate');
+    const endDate = searchParams.get('endDate');
 
     let whereClause: any = { vendorId: vendor.id }; // Fixed: was vendorId instead of vendor.id
 
@@ -55,6 +61,20 @@ export async function GET(request: NextRequest) {
       whereClause.status = 'COMPLETED';
     } else if (type === 'pickup') {
       whereClause.status = 'PICKUP_SCHEDULED';
+    }
+
+    // DATE FILTERING
+    if (startDate || endDate) {
+      whereClause.createdAt = {};
+      if (startDate) {
+        whereClause.createdAt.gte = new Date(startDate);
+      }
+      if (endDate) {
+        // Set to end of day (23:59:59)
+        const endDateTime = new Date(endDate);
+        endDateTime.setHours(23, 59, 59, 999);
+        whereClause.createdAt.lte = endDateTime;
+      }
     }
 
     const [bookings, total] = await Promise.all([

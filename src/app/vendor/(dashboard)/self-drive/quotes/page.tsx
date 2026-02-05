@@ -16,6 +16,8 @@ import {
   Settings2,
   Fuel,
 } from 'lucide-react';
+import Pagination from '@/components/vendor/Pagination';
+import DateFilterDropdown from '@/components/vendor/DateFilterDropdown';
 
 interface Quote {
   id: string;
@@ -72,6 +74,17 @@ export default function VendorSelfDriveQuotesPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [filter, setFilter] = useState('all');
 
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+
+  // Date filter state
+  const [dateFilter, setDateFilter] = useState<{ start: string | null; end: string | null }>({
+    start: null,
+    end: null,
+  });
+
   const fetchQuotes = useCallback(async () => {
     setIsLoading(true);
     try {
@@ -80,12 +93,25 @@ export default function VendorSelfDriveQuotesPage() {
       else if (filter === 'accepted') status = 'ACCEPTED';
       else if (filter === 'expired') status = 'EXPIRED';
 
-      const response = await fetch(`/api/vendor/self-drive-quotes${status ? `?status=${status}` : ''}`);
+      const params = new URLSearchParams();
+      if (status) params.set('status', status);
+      params.set('page', currentPage.toString());
+      params.set('limit', '20');
+      if (dateFilter.start) params.set('startDate', dateFilter.start);
+      if (dateFilter.end) params.set('endDate', dateFilter.end);
+
+      const response = await fetch(`/api/vendor/self-drive-quotes?${params}`);
       const data = await response.json();
 
       if (data.success) {
         const allQuotes = data.quotes || [];
         setQuotes(allQuotes);
+
+        // Set pagination state
+        if (data.pagination) {
+          setTotalPages(data.pagination.totalPages);
+          setTotalItems(data.pagination.total);
+        }
 
         if (filter === 'all') {
           setStats({
@@ -101,7 +127,7 @@ export default function VendorSelfDriveQuotesPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [filter]);
+  }, [filter, currentPage, dateFilter]);
 
   useEffect(() => {
     fetchQuotes();
@@ -181,7 +207,10 @@ export default function VendorSelfDriveQuotesPage() {
         ].map((f) => (
           <button
             key={f.value}
-            onClick={() => setFilter(f.value)}
+            onClick={() => {
+              setFilter(f.value);
+              setCurrentPage(1);
+            }}
             className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition ${
               filter === f.value
                 ? 'bg-orange-100 text-orange-700'
@@ -191,6 +220,20 @@ export default function VendorSelfDriveQuotesPage() {
             {f.label}
           </button>
         ))}
+      </div>
+
+      {/* Date Filter */}
+      <div className="bg-white rounded-xl p-4 shadow-sm border">
+        <div className="flex flex-wrap gap-4 items-center">
+          <DateFilterDropdown
+            onFilterChange={(start, end) => {
+              setDateFilter({ start, end });
+              setCurrentPage(1);
+            }}
+            initialStartDate={dateFilter.start || undefined}
+            initialEndDate={dateFilter.end || undefined}
+          />
+        </div>
       </div>
 
       {/* Quotes List */}
@@ -358,6 +401,17 @@ export default function VendorSelfDriveQuotesPage() {
           })
         )}
       </div>
+
+      {/* Pagination */}
+      {filteredQuotes.length > 0 && (
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={totalItems}
+          itemsPerPage={20}
+          onPageChange={(page) => setCurrentPage(page)}
+        />
+      )}
     </div>
   );
 }

@@ -27,6 +27,15 @@ export async function GET(request: NextRequest) {
     const tripType = searchParams.get('tripType');
     const search = searchParams.get('search');
 
+    // PAGINATION PARAMS
+    const page = parseInt(searchParams.get('page') || '1');
+    const limit = parseInt(searchParams.get('limit') || '20');
+    const skip = (page - 1) * limit;
+
+    // DATE FILTER PARAMS
+    const startDate = searchParams.get('startDate');
+    const endDate = searchParams.get('endDate');
+
     // Build where conditions
     let whereConditions: any[] = [];
 
@@ -35,6 +44,20 @@ export async function GET(request: NextRequest) {
 
     if (tripType && tripType !== 'all') {
       baseFilters.tripType = tripType;
+    }
+
+    // DATE FILTERING - Add to base filters
+    if (startDate || endDate) {
+      baseFilters.createdAt = {};
+      if (startDate) {
+        baseFilters.createdAt.gte = new Date(startDate);
+      }
+      if (endDate) {
+        // Set to end of day (23:59:59)
+        const endDateTime = new Date(endDate);
+        endDateTime.setHours(23, 59, 59, 999);
+        baseFilters.createdAt.lte = endDateTime;
+      }
     }
 
     // Condition 1: Available bookings (PENDING_VENDOR/BROADCASTED with no acceptedVendorId)
@@ -87,46 +110,63 @@ export async function GET(request: NextRequest) {
       whereConditions = [availableCondition, ownBookingsCondition];
     }
 
-    // Fetch bookings
-    let bookings = await prisma.chauffeur_bookings.findMany({
-      where: {
-        OR: whereConditions,
-      },
-      orderBy: [
-        { createdAt: 'desc' },
-      ],
-      include: {
-        locations: {
-          select: {
-            id: true,
-            name: true,
-            slug: true,
+    // Fetch bookings with pagination
+    const [bookings, total] = await Promise.all([
+      prisma.chauffeur_bookings.findMany({
+        where: {
+          OR: whereConditions,
+        },
+        skip,
+        take: limit,
+        orderBy: [
+          { createdAt: 'desc' },
+        ],
+        include: {
+          locations: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+            },
           },
         },
-      },
-      take: 100,
-    });
+      }),
+      prisma.chauffeur_bookings.count({
+        where: {
+          OR: whereConditions,
+        },
+      }),
+    ]);
 
     // Apply search filter in memory (to avoid complex Prisma query issues)
+    let filteredBookings = [...bookings];
     if (search) {
       const searchLower = search.toLowerCase();
-      bookings = bookings.filter(b =>
+      filteredBookings = bookings.filter(b =>
         b.bookingNumber.toLowerCase().includes(searchLower) ||
         b.customerName.toLowerCase().includes(searchLower) ||
         b.customerPhone.includes(search)
       );
     }
 
-    // Calculate stats for this vendor
+    // Calculate stats for this vendor with date filters
+    const statsAvailableCondition = {
+      status: { in: ['PENDING_VENDOR', 'BROADCASTED'] },
+      acceptedVendorId: null,
+      ...(startDate || endDate ? { createdAt: baseFilters.createdAt } : {}),
+    };
+
+    const statsOwnCondition = {
+      acceptedVendorId: vendorId,
+      ...(startDate || endDate ? { createdAt: baseFilters.createdAt } : {}),
+    };
+
     const availableCount = await prisma.chauffeur_bookings.count({
-      where: {
-        status: { in: ['PENDING_VENDOR', 'BROADCASTED'] },
-        acceptedVendorId: null,
-      },
+      where: statsAvailableCondition,
     });
 
     const vendorBookings = await prisma.chauffeur_bookings.findMany({
-      where: { acceptedVendorId: vendorId },
+      where: statsOwnCondition,
       select: { status: true, grandTotal: true },
     });
 
@@ -152,7 +192,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      bookings: bookings.map((b) => ({
+      bookings: filteredBookings.map((b) => ({
         id: b.id,
         bookingNumber: b.bookingNumber,
         tripType: b.tripType,
@@ -195,6 +235,12 @@ export async function GET(request: NextRequest) {
         updatedAt: b.updatedAt,
       })),
       stats,
+      pagination: {
+        page,
+        limit,
+        total: search ? filteredBookings.length : total,
+        totalPages: Math.ceil((search ? filteredBookings.length : total) / limit),
+      },
       debug: {
         vendorId,
         availableCount,

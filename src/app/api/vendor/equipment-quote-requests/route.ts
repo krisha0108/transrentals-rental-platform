@@ -28,9 +28,15 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const type = searchParams.get('type');
     const category = searchParams.get('category');
+
+    // PAGINATION PARAMS
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '20');
     const skip = (page - 1) * limit;
+
+    // DATE FILTER PARAMS
+    const startDate = searchParams.get('startDate');
+    const endDate = searchParams.get('endDate');
 
     // Build where clause based on type
     let whereClause: any = {
@@ -60,6 +66,20 @@ export async function GET(request: NextRequest) {
 
     if (category) {
       whereClause.equipmentCategory = category;
+    }
+
+    // DATE FILTERING
+    if (startDate || endDate) {
+      whereClause.createdAt = {};
+      if (startDate) {
+        whereClause.createdAt.gte = new Date(startDate);
+      }
+      if (endDate) {
+        // Set to end of day (23:59:59)
+        const endDateTime = new Date(endDate);
+        endDateTime.setHours(23, 59, 59, 999);
+        whereClause.createdAt.lte = endDateTime;
+      }
     }
 
     if (type === 'quoted') {

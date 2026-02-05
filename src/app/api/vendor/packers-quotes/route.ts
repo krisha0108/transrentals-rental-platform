@@ -35,16 +35,36 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status');
+
+    // PAGINATION PARAMS
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '20');
     const skip = (page - 1) * limit;
+
+    // DATE FILTER PARAMS
+    const startDate = searchParams.get('startDate');
+    const endDate = searchParams.get('endDate');
 
     let whereClause: any = { vendorId: vendorId };
     if (status && status !== 'all') {
       whereClause.status = status.toUpperCase();
     }
 
-    logger.info('Query params', { status, page, limit, whereClause });
+    // DATE FILTERING - Add to where clause
+    if (startDate || endDate) {
+      whereClause.createdAt = {};
+      if (startDate) {
+        whereClause.createdAt.gte = new Date(startDate);
+      }
+      if (endDate) {
+        // Set to end of day (23:59:59)
+        const endDateTime = new Date(endDate);
+        endDateTime.setHours(23, 59, 59, 999);
+        whereClause.createdAt.lte = endDateTime;
+      }
+    }
+
+    logger.info('Query params', { status, page, limit, startDate, endDate, whereClause });
 
     let quotes, total;
     try {
@@ -89,7 +109,9 @@ export async function GET(request: NextRequest) {
       quotes: quotes.map((q: any) => ({
         id: q.id,
         quoteNumber: q.quoteNumber,
-        totalAmount: q.totalAmount,
+        requestId: q.requestId,
+        vendorId: q.vendorId,
+        vendorFleetId: q.vendorFleetId,
         packingCharges: q.packingCharges,
         loadingCharges: q.loadingCharges,
         transportCharges: q.transportCharges,
@@ -99,12 +121,21 @@ export async function GET(request: NextRequest) {
         insuranceCharges: q.insuranceCharges,
         materialCharges: q.materialCharges,
         gstAmount: q.gstAmount,
+        totalAmount: q.totalAmount,
         teamSize: q.teamSize,
-        estimatedDays: q.estimatedDays,
+        vehicleType: q.vehicleType,
+        vehicleImages: q.vehicleImages,
+        estimatedDuration: q.estimatedDuration,
+        packingMaterials: q.packingMaterials,
+        inclusions: q.inclusions,
+        exclusions: q.exclusions,
+        termsConditions: q.termsConditions,
         status: q.status,
         validTill: q.validTill,
+        validityDays: q.validityDays,
         request: q.packers_quote_requests,
         createdAt: q.createdAt,
+        updatedAt: q.updatedAt,
       })),
       pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
     });
@@ -157,6 +188,7 @@ export async function POST(request: NextRequest) {
       vehicleType,
       vehicleCount,
       fleetVehicleId,
+      vehicleImages,
       packingMaterials,
       inclusions,
       exclusions,
@@ -217,18 +249,62 @@ export async function POST(request: NextRequest) {
 
     // Get vehicle type from fleet if fleetVehicleId provided, otherwise use form value
     let finalVehicleType = vehicleType || '';
+    let finalVehicleImages = vehicleImages; // Use provided images if any
+
     if (fleetVehicleId) {
       const fleetVehicle = await prisma.vendor_fleets.findUnique({
         where: { id: fleetVehicleId },
         include: {
           chauffeur_vehicle_categories: { select: { name: true } },
+          vehicle_models: {
+            select: {
+              sideImage: true, // Featured image from admin
+            },
+          },
         },
       });
-      if (fleetVehicle?.vehicle_category?.name) {
-        const count = vehicleCount || 1;
-        finalVehicleType = count > 1
-          ? `${count} x ${fleetVehicle.vehicle_category.name}`
-          : fleetVehicle.vehicle_category.name;
+
+      if (fleetVehicle) {
+        // Set vehicle type from fleet
+        if (fleetVehicle.chauffeur_vehicle_categories?.name) {
+          const count = vehicleCount || 1;
+          finalVehicleType = count > 1
+            ? `${count} x ${fleetVehicle.chauffeur_vehicle_categories.name}`
+            : fleetVehicle.chauffeur_vehicle_categories.name;
+        }
+
+        // Fetch fleet vehicle images if no manual images provided
+        if (!vehicleImages) {
+          try {
+            const images: string[] = [];
+
+            // Add featured image from vehicle model (admin's image)
+            if (fleetVehicle.vehicle_models?.sideImage) {
+              images.push(fleetVehicle.vehicle_models.sideImage);
+            }
+
+            // Add vendor's fleet images (up to 5 more)
+            if (fleetVehicle.images) {
+              try {
+                const vendorImages = JSON.parse(fleetVehicle.images);
+                if (Array.isArray(vendorImages)) {
+                  // Add up to 5 vendor images
+                  images.push(...vendorImages.slice(0, 5));
+                }
+              } catch (e) {
+                logger.warn('Failed to parse vendor fleet images', e);
+              }
+            }
+
+            // Only set if we have at least one image
+            if (images.length > 0) {
+              finalVehicleImages = images;
+            }
+          } catch (error) {
+            logger.warn('Failed to fetch fleet vehicle images', error);
+            // Continue without images - don't fail the quote submission
+          }
+        }
       }
     }
 
@@ -249,6 +325,7 @@ export async function POST(request: NextRequest) {
           quoteNumber,
           requestId,
           vendorId: vendorId,
+          vendorFleetId: fleetVehicleId || null,
           packingCharges: packingCharges || 0,
           loadingCharges: loadingCharges || 0,
           transportCharges: transportCharges || 0,
@@ -261,6 +338,7 @@ export async function POST(request: NextRequest) {
           totalAmount,
           teamSize: teamSize || 3,
           vehicleType: finalVehicleType,
+          vehicleImages: finalVehicleImages ? JSON.stringify(finalVehicleImages) : null,
           estimatedDuration,
           packingMaterials: Array.isArray(packingMaterials) ? JSON.stringify(packingMaterials) : (packingMaterials && packingMaterials.trim() !== '' ? packingMaterials : '[]'),
           inclusions: Array.isArray(inclusions) ? JSON.stringify(inclusions) : (inclusions && inclusions.trim() !== '' ? inclusions : '[]'),

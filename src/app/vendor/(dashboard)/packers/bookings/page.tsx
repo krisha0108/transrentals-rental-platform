@@ -20,6 +20,8 @@ import {
   Loader2,
   Users,
 } from 'lucide-react';
+import Pagination from '@/components/vendor/Pagination';
+import DateFilterDropdown from '@/components/vendor/DateFilterDropdown';
 
 interface PackersBooking {
   id: string;
@@ -79,25 +81,50 @@ export default function VendorPackersBookingsPage() {
   const [error, setError] = useState('');
   const [filter, setFilter] = useState('upcoming');
 
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+
+  // Date filter state
+  const [dateFilter, setDateFilter] = useState<{ start: string | null; end: string | null }>({
+    start: null,
+    end: null,
+  });
+
   useEffect(() => {
     fetchBookings();
     fetchStats();
-  }, [filter]);
+  }, [filter, currentPage, dateFilter]);
 
   const fetchBookings = async () => {
     setIsLoading(true);
     try {
-      let typeParam = '';
-      if (filter === 'upcoming') typeParam = '?type=pending';
-      else if (filter === 'confirmed') typeParam = '?type=confirmed';
-      else if (filter === 'active') typeParam = '?type=active';
-      else if (filter === 'completed') typeParam = '?type=completed';
+      const params = new URLSearchParams();
 
-      const response = await fetch(`/api/vendor/packers-bookings${typeParam}`);
+      if (filter === 'upcoming') params.set('type', 'pending');
+      else if (filter === 'confirmed') params.set('type', 'confirmed');
+      else if (filter === 'active') params.set('type', 'active');
+      else if (filter === 'completed') params.set('type', 'completed');
+
+      // Pagination params
+      params.set('page', currentPage.toString());
+      params.set('limit', '20');
+
+      // Date filter params
+      if (dateFilter.start) params.set('startDate', dateFilter.start);
+      if (dateFilter.end) params.set('endDate', dateFilter.end);
+
+      const response = await fetch(`/api/vendor/packers-bookings?${params}`);
       const data = await response.json();
 
       if (data.success) {
         setBookings(data.bookings || []);
+        // Set pagination state
+        if (data.pagination) {
+          setTotalPages(data.pagination.totalPages);
+          setTotalItems(data.pagination.total);
+        }
       } else {
         setError(data.error || 'Failed to load bookings');
       }
@@ -186,26 +213,42 @@ export default function VendorPackersBookingsPage() {
       </div>
 
       {/* Filter */}
-      <div className="flex gap-2 overflow-x-auto pb-2">
-        {[
-          { value: 'upcoming', label: 'Upcoming' },
-          { value: 'confirmed', label: 'Confirmed' },
-          { value: 'active', label: 'In Progress' },
-          { value: 'completed', label: 'Completed' },
-          { value: 'all', label: 'All' },
-        ].map((f) => (
-          <button
-            key={f.value}
-            onClick={() => setFilter(f.value)}
-            className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition ${
-              filter === f.value
-                ? 'bg-blue-100 text-blue-700'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-            }`}
-          >
-            {f.label}
-          </button>
-        ))}
+      <div className="bg-white rounded-xl p-4 shadow-sm border">
+        <div className="flex flex-wrap gap-4 items-center">
+          <div className="flex gap-2 overflow-x-auto pb-2">
+            {[
+              { value: 'upcoming', label: 'Upcoming' },
+              { value: 'confirmed', label: 'Confirmed' },
+              { value: 'active', label: 'In Progress' },
+              { value: 'completed', label: 'Completed' },
+              { value: 'all', label: 'All' },
+            ].map((f) => (
+              <button
+                key={f.value}
+                onClick={() => {
+                  setFilter(f.value);
+                  setCurrentPage(1);
+                }}
+                className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition ${
+                  filter === f.value
+                    ? 'bg-blue-100 text-blue-700'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+
+          <DateFilterDropdown
+            onFilterChange={(start, end) => {
+              setDateFilter({ start, end });
+              setCurrentPage(1);
+            }}
+            initialStartDate={dateFilter.start || undefined}
+            initialEndDate={dateFilter.end || undefined}
+          />
+        </div>
       </div>
 
       {/* Bookings List */}
@@ -353,6 +396,17 @@ export default function VendorPackersBookingsPage() {
           })
         )}
       </div>
+
+      {/* Pagination */}
+      {bookings.length > 0 && (
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={totalItems}
+          itemsPerPage={20}
+          onPageChange={(page) => setCurrentPage(page)}
+        />
+      )}
     </div>
   );
 }

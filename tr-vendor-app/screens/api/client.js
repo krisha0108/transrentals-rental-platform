@@ -10,7 +10,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
  */
 const DEFAULT_PROD = "https://transrentals.in";
 // For Android Emulator use 10.0.2.2, for Physical Device use your computer's IP
-const DEFAULT_DEV_ANDROID = "http://192.168.29.31:3000"; // Your computer's WiFi IP
+const DEFAULT_DEV_ANDROID = "http://192.168.29.68:3000"; // Your computer's WiFi IP
 const DEFAULT_DEV_IOS = "http://localhost:3000";
 
 function inferLocalBase() {
@@ -638,17 +638,31 @@ export async function getBookingsByService(serviceType, params = {}) {
 /**
  * Simplified helper for getBookingsByService
  * Used by service-specific BookingsScreen components
+ * @param {string} serviceType - The service type (bike, bus, equipment, etc.)
+ * @param {object|string} filterOrParams - Either a filter string (legacy) or params object with pagination
  */
-export async function getBookings(serviceType, filter = null) {
+export async function getBookings(serviceType, filterOrParams = null) {
   try {
-    const params = filter ? { filter } : {};
+    let params = {};
+
+    // Support both legacy filter string and new params object
+    if (typeof filterOrParams === 'string') {
+      params = { filter: filterOrParams };
+    } else if (typeof filterOrParams === 'object' && filterOrParams !== null) {
+      params = filterOrParams;
+    }
+
     const response = await getBookingsByService(serviceType, params);
-    return { success: true, bookings: response.bookings || [] };
+    return {
+      success: true,
+      bookings: response.bookings || [],
+      pagination: response.pagination || null,
+    };
   } catch (error) {
     console.error(`Failed to fetch ${serviceType} bookings:`, error);
     console.error('Error response data:', error.response?.data);
     console.error('Error status:', error.response?.status);
-    return { success: false, bookings: [] };
+    return { success: false, bookings: [], pagination: null };
   }
 }
 

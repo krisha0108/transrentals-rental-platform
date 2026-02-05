@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -14,6 +14,8 @@ import Icon from 'react-native-vector-icons/Feather';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { getQuoteRequests } from '../../../api/client';
+import { useInfiniteScroll } from '../../../../hooks/useInfiniteScroll';
+import DateFilterModal from '../../../../components/DateFilterModal';
 
 const GREEN = '#09B368';
 const BG = '#F5F5F7';
@@ -29,48 +31,57 @@ const STATUS_COLORS = {
 };
 
 export default function LuxuryQuoteRequestsScreen({ navigation }) {
-  const [requests, setRequests] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
   const [statusFilter, setStatusFilter] = useState('ALL');
+  const [showDateFilter, setShowDateFilter] = useState(false);
 
-  const fetchRequests = useCallback(async () => {
-    try {
-      const response = await getQuoteRequests('luxury');
-      const allRequests = response.quoteRequests || response.requests || response.data || [];
-      // Filter out accepted/confirmed requests - they should only appear in bookings
-      const filteredRequests = allRequests.filter(req => {
-        const status = req.status?.toUpperCase();
-        return status !== 'QUOTE_ACCEPTED' && status !== 'BOOKING_CONFIRMED';
-      });
-      setRequests(filteredRequests);
-    } catch (error) {
-      console.error('Error fetching quote requests:', error);
-      setRequests([]);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, []);
+  const {
+    data: requests,
+    loading,
+    refreshing,
+    hasMore,
+    loadMore,
+    refresh,
+    initialLoad,
+    applyDateFilter,
+    dateFilter,
+    clearDateFilter,
+  } = useInfiniteScroll(getQuoteRequests, {
+    service: 'luxury',
+  });
+
+  useEffect(() => {
+    initialLoad();
+  }, [initialLoad]);
 
   // Filter requests based on selected status
   const filteredRequests = useMemo(() => {
+    // Filter out accepted/confirmed requests - they should only appear in bookings
+    const validRequests = requests.filter(req => {
+      const status = req.status?.toUpperCase();
+      return status !== 'QUOTE_ACCEPTED' && status !== 'BOOKING_CONFIRMED';
+    });
+
     if (statusFilter === 'ALL') {
-      return requests;
+      return validRequests;
     }
-    return requests.filter(req => req.status?.toUpperCase() === statusFilter);
+    return validRequests.filter(req => req.status?.toUpperCase() === statusFilter);
   }, [requests, statusFilter]);
 
   // Get count for each status
   const statusCounts = useMemo(() => {
+    const validRequests = requests.filter(req => {
+      const status = req.status?.toUpperCase();
+      return status !== 'QUOTE_ACCEPTED' && status !== 'BOOKING_CONFIRMED';
+    });
+
     const counts = {
-      ALL: requests.length,
+      ALL: validRequests.length,
       PENDING: 0,
       QUOTES_RECEIVED: 0,
       CANCELLED: 0,
       EXPIRED: 0,
     };
-    requests.forEach(req => {
+    validRequests.forEach(req => {
       const status = req.status?.toUpperCase();
       if (counts.hasOwnProperty(status)) {
         counts[status]++;
@@ -78,15 +89,6 @@ export default function LuxuryQuoteRequestsScreen({ navigation }) {
     });
     return counts;
   }, [requests]);
-
-  useEffect(() => {
-    fetchRequests();
-  }, [fetchRequests]);
-
-  const onRefresh = () => {
-    setRefreshing(true);
-    fetchRequests();
-  };
 
   const formatDate = (dateStr) => {
     if (!dateStr) return 'N/A';
@@ -229,7 +231,13 @@ export default function LuxuryQuoteRequestsScreen({ navigation }) {
           <Text style={styles.headerTitle}>Quote Requests</Text>
           <Text style={styles.headerSubtitle}>Luxury Rental</Text>
         </View>
-        <View style={{ width: 40 }} />
+        <TouchableOpacity
+          onPress={() => setShowDateFilter(true)}
+          style={styles.filterButton}
+        >
+          <Icon name="calendar" size={20} color={dateFilter.start ? GREEN : '#64748B'} />
+          {dateFilter.start && <View style={styles.activeFilterDot} />}
+        </TouchableOpacity>
       </View>
 
       {/* Filter Chips */}
@@ -289,7 +297,7 @@ export default function LuxuryQuoteRequestsScreen({ navigation }) {
       </ScrollView>
 
       {/* Content */}
-      {loading ? (
+      {loading && filteredRequests.length === 0 ? (
         <View style={styles.loaderWrap}>
           <ActivityIndicator size="large" color={GREEN} />
         </View>
@@ -300,12 +308,27 @@ export default function LuxuryQuoteRequestsScreen({ navigation }) {
           renderItem={renderRequestCard}
           contentContainerStyle={[styles.listContent, filteredRequests.length === 0 && { flexGrow: 1 }]}
           showsVerticalScrollIndicator={false}
+          onEndReached={loadMore}
+          onEndReachedThreshold={0.5}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[GREEN]} />
+            <RefreshControl refreshing={refreshing} onRefresh={refresh} colors={[GREEN]} />
           }
+          ListFooterComponent={loading && hasMore ? (
+            <View style={{ paddingVertical: 20 }}>
+              <ActivityIndicator size="small" color={GREEN} />
+            </View>
+          ) : null}
           ListEmptyComponent={renderEmptyState}
         />
       )}
+
+      <DateFilterModal
+        visible={showDateFilter}
+        onClose={() => setShowDateFilter(false)}
+        onApply={(start, end) => applyDateFilter(start, end)}
+        currentStartDate={dateFilter.start}
+        currentEndDate={dateFilter.end}
+      />
     </SafeAreaView>
   );
 }
@@ -473,5 +496,21 @@ const styles = StyleSheet.create({
   },
   filterCountTextActive: {
     color: '#fff',
+  },
+  filterButton: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
+  },
+  activeFilterDot: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: GREEN,
   },
 });

@@ -887,7 +887,7 @@ export default function CustomerSelfDriveBookingPage() {
             <CustomerBookingChat
               bookingId={id}
               customerName={booking?.customerName}
-              vendorName={booking?.vendor?.businessName}
+              vendorName={booking?.vendors?.businessName}
               vendorPhone={booking?.vendor?.phone}
               isOpen={showChat}
               onClose={() => setShowChat(false)}

@@ -15,7 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Feather';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import { apiGet, deleteVehicle, debugAuthState } from '../../api/client';
+import { apiGet, deleteVehicle, debugAuthState, getBaseURL } from '../../api/client';
 
 const C = {
   bg: '#F7FAFC',
@@ -40,6 +40,7 @@ export default function VehicleDetailScreen({ route, navigation }) {
   const [refreshing, setRefreshing] = useState(false);
   const [vehicle, setVehicle] = useState(null);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const [baseURL, setBaseURL] = useState(null);
 
   const fetchVehicle = useCallback(async () => {
     if (!vehicleId) return;
@@ -118,6 +119,15 @@ export default function VehicleDetailScreen({ route, navigation }) {
     fetchVehicle();
   }, [fetchVehicle]);
 
+  // Fetch base URL on mount
+  useEffect(() => {
+    const initBaseURL = async () => {
+      const url = await getBaseURL();
+      setBaseURL(url);
+    };
+    initBaseURL();
+  }, []);
+
   const onRefresh = () => {
     setRefreshing(true);
     fetchVehicle();
@@ -166,9 +176,9 @@ export default function VehicleDetailScreen({ route, navigation }) {
     }
 
     // If relative path, prepend base URL
-    // Use localhost in dev mode, production URL in prod
-    const baseUrl = __DEV__ ? 'http://192.168.29.31:3000' : 'https://transrentals.in';
-    return `${baseUrl}${imagePath.startsWith('/') ? '' : '/'}${imagePath}`;
+    // Use the dynamically fetched base URL from API client
+    const url = baseURL || 'https://transrentals.in'; // Fallback to production if not loaded yet
+    return `${url}${imagePath.startsWith('/') ? '' : '/'}${imagePath}`;
   };
 
   const getStatusColor = (status) => {

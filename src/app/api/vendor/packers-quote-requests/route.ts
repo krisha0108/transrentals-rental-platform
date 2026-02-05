@@ -27,9 +27,15 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const type = searchParams.get('type');
+
+    // PAGINATION PARAMS
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '20');
     const skip = (page - 1) * limit;
+
+    // DATE FILTER PARAMS
+    const startDate = searchParams.get('startDate');
+    const endDate = searchParams.get('endDate');
 
     // Build where clause based on type
     let whereClause: any = {
@@ -37,6 +43,20 @@ export async function GET(request: NextRequest) {
       quotesOpenTill: { gte: new Date() },
       expiresAt: { gte: new Date() },
     };
+
+    // DATE FILTERING - Add to where clause
+    if (startDate || endDate) {
+      whereClause.createdAt = {};
+      if (startDate) {
+        whereClause.createdAt.gte = new Date(startDate);
+      }
+      if (endDate) {
+        // Set to end of day (23:59:59)
+        const endDateTime = new Date(endDate);
+        endDateTime.setHours(23, 59, 59, 999);
+        whereClause.createdAt.lte = endDateTime;
+      }
+    }
 
     // Note: Showing all requests to vendors (no city filtering)
 
@@ -49,6 +69,8 @@ export async function GET(request: NextRequest) {
       whereClause = {
         id: { in: quotedRequestIds.map((q) => q.requestId) },
         status: { in: ['PENDING', 'QUOTES_RECEIVED', 'QUOTE_ACCEPTED'] },
+        // Re-apply date filters if they exist
+        ...(startDate || endDate ? { createdAt: whereClause.createdAt } : {}),
       };
     } else if (type === 'new') {
       // Exclude requests already quoted

@@ -33,15 +33,37 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const type = searchParams.get('type'); // 'open', 'quoted', 'won', 'lost'
+
+    // PAGINATION PARAMS
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '20');
     const skip = (page - 1) * limit;
+
+    // DATE FILTER PARAMS
+    const startDate = searchParams.get('startDate');
+    const endDate = searchParams.get('endDate');
+
+    // Build date filter
+    const dateFilter: any = {};
+    if (startDate || endDate) {
+      dateFilter.createdAt = {};
+      if (startDate) {
+        dateFilter.createdAt.gte = new Date(startDate);
+      }
+      if (endDate) {
+        // Set to end of day (23:59:59)
+        const endDateTime = new Date(endDate);
+        endDateTime.setHours(23, 59, 59, 999);
+        dateFilter.createdAt.lte = endDateTime;
+      }
+    }
 
     let whereClause: any = {};
 
     if (type === 'open') {
       // Open requests - vendor hasn't quoted yet
       whereClause = {
+        ...dateFilter,
         status: { in: ['PENDING', 'QUOTES_RECEIVED'] },
         quotesOpenTill: { gte: new Date() },
         OR: [
@@ -55,6 +77,7 @@ export async function GET(request: NextRequest) {
     } else if (type === 'quoted') {
       // Requests where vendor has submitted a quote
       whereClause = {
+        ...dateFilter,
         luxury_quotes: {
           some: {
             vendorId: vendorId,
@@ -65,6 +88,7 @@ export async function GET(request: NextRequest) {
     } else if (type === 'won') {
       // Requests where vendor's quote was accepted
       whereClause = {
+        ...dateFilter,
         luxury_quotes: {
           some: {
             vendorId: vendorId,
@@ -75,6 +99,7 @@ export async function GET(request: NextRequest) {
     } else if (type === 'lost') {
       // Requests where another vendor was chosen
       whereClause = {
+        ...dateFilter,
         status: 'QUOTE_ACCEPTED',
         luxury_quotes: {
           some: {
@@ -86,6 +111,7 @@ export async function GET(request: NextRequest) {
     } else {
       // All relevant requests
       whereClause = {
+        ...dateFilter,
         OR: [
           // Open requests in vendor's locations
           {

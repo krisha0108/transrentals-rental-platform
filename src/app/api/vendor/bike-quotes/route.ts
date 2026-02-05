@@ -38,9 +38,27 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '20');
     const skip = (page - 1) * limit;
 
+    // DATE FILTER PARAMS
+    const startDate = searchParams.get('startDate');
+    const endDate = searchParams.get('endDate');
+
     const whereClause: any = { vendorId: vendorId };
     if (status && status !== 'all') {
       whereClause.status = status;
+    }
+
+    // DATE FILTERING
+    if (startDate || endDate) {
+      whereClause.createdAt = {};
+      if (startDate) {
+        whereClause.createdAt.gte = new Date(startDate);
+      }
+      if (endDate) {
+        // Set to end of day (23:59:59)
+        const endDateTime = new Date(endDate);
+        endDateTime.setHours(23, 59, 59, 999);
+        whereClause.createdAt.lte = endDateTime;
+      }
     }
 
     const [quotes, total] = await Promise.all([
@@ -76,15 +94,32 @@ export async function GET(request: NextRequest) {
         vehicleName: q.vehicleName,
         vehicleBrand: q.vehicleBrand,
         vehicleCategory: q.vehicleCategory,
+        vehicleImages: q.vehicleImages,
+        vehicleFeatures: q.vehicleFeatures,
+        registrationNumber: q.registrationNumber,
+        vehicleYear: q.vehicleYear,
+        vendorFleetId: q.vendorFleetId,
         dailyRate: q.dailyRate,
+        totalAmount: q.totalAmount,
+        gstAmount: q.gstAmount,
+        securityDeposit: q.securityDeposit,
         grandTotal: q.grandTotal,
         advanceAmount: q.advanceAmount,
         advancePercent: q.advancePercent,
+        helmetsIncluded: q.helmetsIncluded,
+        kmLimitPerDay: q.kmLimitPerDay,
+        extraKmCharge: q.extraKmCharge,
+        inclusions: q.inclusions,
+        exclusions: q.exclusions,
+        termsConditions: q.termsConditions,
+        vendorMessage: q.vendorMessage,
         status: q.status,
         validTill: q.validTill,
+        validityDays: q.validityDays,
         viewCount: q.viewCount,
         request: q.bike_quote_requests_bike_quotes_requestIdTobike_quote_requests,
         createdAt: q.createdAt,
+        updatedAt: q.updatedAt,
       })),
       pagination: {
         page,
@@ -241,6 +276,53 @@ export async function POST(request: NextRequest) {
     const validTill = new Date();
     validTill.setDate(validTill.getDate() + validityDays);
 
+    // Fetch fleet vehicle images if vendorFleetId is provided
+    let finalVehicleImages = vehicleImages; // Use provided images if any
+    if (vendorFleetId && !vehicleImages) {
+      try {
+        const fleetVehicle = await prisma.vendor_fleets.findUnique({
+          where: { id: vendorFleetId },
+          include: {
+            vehicle_models: {
+              select: {
+                sideImage: true, // Featured image from admin
+              },
+            },
+          },
+        });
+
+        if (fleetVehicle) {
+          const images: string[] = [];
+
+          // Add featured image from vehicle model (admin's image)
+          if (fleetVehicle.vehicle_models?.sideImage) {
+            images.push(fleetVehicle.vehicle_models.sideImage);
+          }
+
+          // Add vendor's fleet images (up to 5 more)
+          if (fleetVehicle.images) {
+            try {
+              const vendorImages = JSON.parse(fleetVehicle.images);
+              if (Array.isArray(vendorImages)) {
+                // Add up to 5 vendor images
+                images.push(...vendorImages.slice(0, 5));
+              }
+            } catch (e) {
+              logger.warn('Failed to parse vendor fleet images', e);
+            }
+          }
+
+          // Only set if we have at least one image
+          if (images.length > 0) {
+            finalVehicleImages = images;
+          }
+        }
+      } catch (error) {
+        logger.warn('Failed to fetch fleet vehicle images', error);
+        // Continue without images - don't fail the quote submission
+      }
+    }
+
     // Create the quote
     const quote = await prisma.bike_quotes.create({
       data: {
@@ -255,7 +337,7 @@ export async function POST(request: NextRequest) {
         vehicleCategory: vehicle_category || quoteRequest.vehicleCategory || null,
         registrationNumber: registrationNumber || null,
         vehicleYear: vehicleYear || null,
-        vehicleImages: vehicleImages ? JSON.stringify(vehicleImages) : null,
+        vehicleImages: finalVehicleImages ? JSON.stringify(finalVehicleImages) : null,
         vehicleFeatures: vehicleFeatures ? JSON.stringify(vehicleFeatures) : null,
         dailyRate,
         totalAmount,

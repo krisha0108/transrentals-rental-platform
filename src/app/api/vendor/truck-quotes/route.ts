@@ -77,12 +77,33 @@ export async function GET(request: NextRequest) {
         quoteNumber: q.quoteNumber,
         vehicleName: q.vehicleName,
         vehicleCategory: q.vehicleCategory,
+        vehicleImages: q.vehicleImages,
+        vehicleNumber: q.vehicleNumber,
+        vehicleCapacity: q.vehicleCapacity,
+        vendorFleetId: q.vendorFleetId,
+        driverName: q.driverName,
+        driverPhone: q.driverPhone,
+        labourIncluded: q.labourIncluded,
+        labourCount: q.labourCount,
+        labourCharges: q.labourCharges,
+        baseAmount: q.baseAmount,
+        perKmRate: q.perKmRate,
+        loadingCharges: q.loadingCharges,
+        unloadingCharges: q.unloadingCharges,
+        packagingCharges: q.packagingCharges,
+        insuranceCharges: q.insuranceCharges,
+        tollEstimate: q.tollEstimate,
+        gstAmount: q.gstAmount,
         totalAmount: q.totalAmount,
+        inclusions: q.inclusions,
+        exclusions: q.exclusions,
+        termsConditions: q.termsConditions,
         status: q.status,
         validTill: q.validTill,
         viewCount: q.viewCount || 0,
         request: q.truck_quote_requests || null,
         createdAt: q.createdAt,
+        updatedAt: q.updatedAt,
       })),
       pagination: { page, limit, total, totalPages: Math.ceil(total / limit) || 1 },
     });
@@ -133,10 +154,10 @@ export async function POST(request: NextRequest) {
     console.log('vehicleName in body:', body.vehicleName);
 
     const {
-      requestId, vehicle_category, vehicleName, vehicleNumber, vehicleCapacity,
+      requestId, vendorFleetId, vehicle_category, vehicleName, vehicleNumber, vehicleCapacity,
       driverName, driverPhone, labourIncluded, labourCount, labourCharges,
       baseAmount, perKmRate, loadingCharges, unloadingCharges, packagingCharges,
-      insuranceCharges, tollEstimate, gstAmount, inclusions, exclusions, termsConditions,
+      insuranceCharges, tollEstimate, gstAmount, vehicleImages, inclusions, exclusions, termsConditions,
       validityDays = 3,
     } = body;
 
@@ -175,16 +196,65 @@ export async function POST(request: NextRequest) {
     const validTill = new Date();
     validTill.setDate(validTill.getDate() + validityDays);
 
+    // Fetch fleet vehicle images if vendorFleetId is provided and no manual images
+    let finalVehicleImages = vehicleImages; // Use provided images if any
+    if (vendorFleetId && !vehicleImages) {
+      try {
+        const fleetVehicle = await prisma.vendor_fleets.findUnique({
+          where: { id: vendorFleetId },
+          include: {
+            vehicle_models: {
+              select: {
+                sideImage: true, // Featured image from admin
+              },
+            },
+          },
+        });
+
+        if (fleetVehicle) {
+          const images: string[] = [];
+
+          // Add featured image from vehicle model (admin's image)
+          if (fleetVehicle.vehicle_models?.sideImage) {
+            images.push(fleetVehicle.vehicle_models.sideImage);
+          }
+
+          // Add vendor's fleet images (up to 5 more)
+          if (fleetVehicle.images) {
+            try {
+              const vendorImages = JSON.parse(fleetVehicle.images);
+              if (Array.isArray(vendorImages)) {
+                // Add up to 5 vendor images
+                images.push(...vendorImages.slice(0, 5));
+              }
+            } catch (e) {
+              logger.warn('Failed to parse vendor fleet images', e);
+            }
+          }
+
+          // Only set if we have at least one image
+          if (images.length > 0) {
+            finalVehicleImages = images;
+          }
+        }
+      } catch (error) {
+        logger.warn('Failed to fetch fleet vehicle images', error);
+        // Continue without images - don't fail the quote submission
+      }
+    }
+
     const quote = await prisma.truck_quotes.create({
       data: {
         id: generateId(),
         quoteNumber,
         requestId,
         vendorId: vendorId,
+        vendorFleetId: vendorFleetId || null,
         vehicleCategory: vehicle_category || quoteRequest.vehicleCategory,
         vehicleName,
         vehicleNumber: vehicleNumber || null,
         vehicleCapacity: vehicleCapacity || null,
+        vehicleImages: finalVehicleImages ? JSON.stringify(finalVehicleImages) : null,
         driverName: driverName || null,
         driverPhone: driverPhone || null,
         labourIncluded: labourIncluded || false,

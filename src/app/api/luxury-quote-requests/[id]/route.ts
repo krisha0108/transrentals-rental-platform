@@ -100,7 +100,7 @@ export async function GET(
 
         return {
           ...q,
-          vehicleImages: vehicleImages,
+          vehicleImages: vehicleImages ? JSON.stringify(vehicleImages) : null,
         };
       }),
     };

@@ -19,6 +19,7 @@ import {
   HardHat,
 } from 'lucide-react';
 import { useCustomerAuth } from '@/hooks/useCustomer';
+import VehicleImageGallery from '@/components/customer/VehicleImageGallery';
 
 interface QuoteRequest {
   id: string;
@@ -44,6 +45,7 @@ interface VendorQuote {
   vendorTotalRentals: number;
   equipmentModel: string;
   equipmentYear: number;
+  vehicleImages?: string;
   totalAmount: number;
   dailyRate: number;
   deliveryCharges: number;
@@ -389,6 +391,12 @@ export default function CustomerEquipmentQuoteDetailPage() {
                       {/* Expanded Details */}
                       {isExpanded && (
                         <div className="border-t pt-4 mt-4 space-y-4">
+                          {/* Vehicle Images */}
+                          <VehicleImageGallery
+                            vehicleImages={quote.vehicleImages}
+                            vehicleName={quote.equipmentModel}
+                          />
+
                           {/* All Inclusions */}
                           {quote.inclusions && quote.inclusions.length > 0 && (
                             <div>

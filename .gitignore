@@ -48,7 +48,18 @@ logs
 
 # Uploaded files (keep .gitkeep)
 /public/uploads/vendor/*
+/public/uploads/fleet/*
 !/public/uploads/.gitkeep
+
+# Claude Code local settings
+.claude/settings.local.json
+
+# PWA generated files
+public/sw.js
+public/workbox-*.js
+public/worker-*.js
+public/fallback-*.js
+
 # Mobile App Build Directories (tr-app & vendor-app build separately)
 tr-app/android/app/build/
 tr-app/ios/build/

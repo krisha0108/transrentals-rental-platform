@@ -19,6 +19,8 @@ import {
   Fuel,
   Users,
 } from 'lucide-react';
+import Pagination from '@/components/vendor/Pagination';
+import DateFilterDropdown from '@/components/vendor/DateFilterDropdown';
 
 interface QuoteRequest {
   id: string;
@@ -61,22 +63,45 @@ export default function VendorSelfDriveRequestsPage() {
   const [filter, setFilter] = useState('new');
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+
+  // Date filter state
+  const [dateFilter, setDateFilter] = useState<{ start: string | null; end: string | null }>({
+    start: null,
+    end: null,
+  });
+
   useEffect(() => {
     if (sessionStatus === 'loading') return;
     if (sessionStatus === 'unauthenticated') return;
 
     fetchRequests();
-  }, [sessionStatus, filter]);
+  }, [sessionStatus, filter, currentPage, dateFilter]);
 
   const fetchRequests = async () => {
     setIsLoading(true);
     try {
       const type = filter === 'new' ? 'open' : filter === 'quoted' ? 'quoted' : '';
-      const response = await fetch(`/api/vendor/self-drive-quote-requests?type=${type}`);
+      const params = new URLSearchParams();
+      if (type) params.set('type', type);
+      params.set('page', currentPage.toString());
+      params.set('limit', '20');
+      if (dateFilter.start) params.set('startDate', dateFilter.start);
+      if (dateFilter.end) params.set('endDate', dateFilter.end);
+
+      const response = await fetch(`/api/vendor/self-drive-quote-requests?${params}`);
       const data = await response.json();
 
       if (data.success) {
         setRequests(data.requests || []);
+        // Set pagination state
+        if (data.pagination) {
+          setTotalPages(data.pagination.totalPages);
+          setTotalItems(data.pagination.total);
+        }
       }
     } catch (error) {
       console.error('Failed to fetch requests:', error);
@@ -125,7 +150,10 @@ export default function VendorSelfDriveRequestsPage() {
           ].map((f) => (
             <button
               key={f.value}
-              onClick={() => setFilter(f.value)}
+              onClick={() => {
+                setFilter(f.value);
+                setCurrentPage(1);
+              }}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
                 filter === f.value
                   ? 'bg-white text-orange-600 shadow-sm'
@@ -135,6 +163,20 @@ export default function VendorSelfDriveRequestsPage() {
               {f.label}
             </button>
           ))}
+        </div>
+      </div>
+
+      {/* Date Filter */}
+      <div className="bg-white rounded-xl p-4 shadow-sm border">
+        <div className="flex flex-wrap gap-4 items-center">
+          <DateFilterDropdown
+            onFilterChange={(start, end) => {
+              setDateFilter({ start, end });
+              setCurrentPage(1);
+            }}
+            initialStartDate={dateFilter.start || undefined}
+            initialEndDate={dateFilter.end || undefined}
+          />
         </div>
       </div>
 
@@ -354,6 +396,17 @@ export default function VendorSelfDriveRequestsPage() {
           ))
         )}
       </div>
+
+      {/* Pagination */}
+      {filteredRequests.length > 0 && (
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={totalItems}
+          itemsPerPage={20}
+          onPageChange={(page) => setCurrentPage(page)}
+        />
+      )}
 
       {/* Info */}
       <div className="bg-orange-50 rounded-xl p-4 border border-orange-100">

@@ -67,7 +67,7 @@ export async function GET(request: NextRequest) {
           vendors: {
             select: { id: true, businessName: true, logo: true, phone: true },
           },
-          messages: {
+          chat_messages: {
             take: 1,
             orderBy: { createdAt: 'desc' },
             select: {
@@ -101,7 +101,7 @@ export async function GET(request: NextRequest) {
         subject: conv.subject,
         status: conv.status,
         unreadCount: isVendor ? conv.vendorUnread : conv.customerUnread,
-        lastMessage: conv.messages[0] || null,
+        lastMessage: conv.chat_messages[0] || null,
         lastMessageAt: conv.lastMessageAt,
         participant: isVendor
           ? {

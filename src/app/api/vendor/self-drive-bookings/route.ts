@@ -43,9 +43,30 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const type = searchParams.get('type'); // 'direct', 'open', 'accepted', 'completed', 'all'
     const status = searchParams.get('status'); // Mobile app status: 'all', 'pending', 'confirmed', 'ongoing', 'completed'
+
+    // PAGINATION PARAMS
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '20');
     const skip = (page - 1) * limit;
+
+    // DATE FILTER PARAMS
+    const startDate = searchParams.get('startDate');
+    const endDate = searchParams.get('endDate');
+
+    // Build date filter
+    const dateFilter: any = {};
+    if (startDate || endDate) {
+      dateFilter.createdAt = {};
+      if (startDate) {
+        dateFilter.createdAt.gte = new Date(startDate);
+      }
+      if (endDate) {
+        // Set to end of day (23:59:59)
+        const endDateTime = new Date(endDate);
+        endDateTime.setHours(23, 59, 59, 999);
+        dateFilter.createdAt.lte = endDateTime;
+      }
+    }
 
     let whereClause: any = {};
 
@@ -54,6 +75,7 @@ export async function GET(request: NextRequest) {
       const dbStatuses = mobileStatusMappings[status];
 
       whereClause = {
+        ...dateFilter,
         OR: [
           {
             acceptedVendorId: vendor.id,
@@ -76,29 +98,34 @@ export async function GET(request: NextRequest) {
     } else if (type === 'direct') {
       // Direct requests - booking was assigned to this vendor
       whereClause = {
+        ...dateFilter,
         assignedVendorId: vendor.id,
         status: 'PENDING_VENDOR',
       };
     } else if (type === 'open') {
       // Open/Broadcasted requests - available to all vendors in approved locations
       whereClause = {
+        ...dateFilter,
         status: 'BROADCASTED',
         locationId: { in: approvedLocationIds },
       };
     } else if (type === 'accepted') {
       // Accepted by this vendor
       whereClause = {
+        ...dateFilter,
         acceptedVendorId: vendor.id,
         status: { in: ['ACCEPTED', 'IN_PROGRESS'] },
       };
     } else if (type === 'completed') {
       whereClause = {
+        ...dateFilter,
         acceptedVendorId: vendor.id,
         status: 'COMPLETED',
       };
     } else {
       // All bookings related to this vendor (default for 'all' or no filter)
       whereClause = {
+        ...dateFilter,
         OR: [
           { acceptedVendorId: vendor.id },
           { assignedVendorId: vendor.id },

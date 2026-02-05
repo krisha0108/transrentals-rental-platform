@@ -14,6 +14,8 @@ import {
   Edit,
   IndianRupee,
 } from 'lucide-react';
+import Pagination from '@/components/vendor/Pagination';
+import DateFilterDropdown from '@/components/vendor/DateFilterDropdown';
 
 interface Quote {
   id: string;
@@ -65,15 +67,37 @@ export default function VendorBikeQuotesPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [filter, setFilter] = useState('all');
 
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+
+  // Date filter state
+  const [dateFilter, setDateFilter] = useState<{ start: string | null; end: string | null }>({
+    start: null,
+    end: null,
+  });
+
   const fetchQuotes = useCallback(async () => {
     setIsLoading(true);
     try {
+      const params = new URLSearchParams();
       let status = '';
       if (filter === 'active') status = 'SENT';
       else if (filter === 'accepted') status = 'ACCEPTED';
       else if (filter === 'expired') status = 'EXPIRED';
 
-      const response = await fetch(`/api/vendor/bike-quotes${status ? `?status=${status}` : ''}`);
+      if (status) params.set('status', status);
+
+      // PAGINATION PARAMS
+      params.set('page', currentPage.toString());
+      params.set('limit', '20');
+
+      // DATE FILTER PARAMS
+      if (dateFilter.start) params.set('startDate', dateFilter.start);
+      if (dateFilter.end) params.set('endDate', dateFilter.end);
+
+      const response = await fetch(`/api/vendor/bike-quotes?${params}`);
       const data = await response.json();
 
       if (data.success) {
@@ -88,13 +112,19 @@ export default function VendorBikeQuotesPage() {
             wonValue: allQuotes.filter((q: Quote) => q.status === 'ACCEPTED').reduce((sum: number, q: Quote) => sum + q.grandTotal, 0),
           });
         }
+
+        // Set pagination state from response
+        if (data.pagination) {
+          setTotalPages(data.pagination.totalPages);
+          setTotalItems(data.pagination.total);
+        }
       }
     } catch (error) {
       console.error('Failed to fetch quotes:', error);
     } finally {
       setIsLoading(false);
     }
-  }, [filter]);
+  }, [filter, currentPage, dateFilter]);
 
   useEffect(() => {
     fetchQuotes();
@@ -165,7 +195,7 @@ export default function VendorBikeQuotesPage() {
       </div>
 
       {/* Filter */}
-      <div className="flex gap-2 overflow-x-auto pb-2">
+      <div className="flex flex-wrap gap-2 overflow-x-auto pb-2">
         {[
           { value: 'all', label: 'All Quotes' },
           { value: 'active', label: 'Active' },
@@ -174,7 +204,10 @@ export default function VendorBikeQuotesPage() {
         ].map((f) => (
           <button
             key={f.value}
-            onClick={() => setFilter(f.value)}
+            onClick={() => {
+              setFilter(f.value);
+              setCurrentPage(1);
+            }}
             className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition ${
               filter === f.value
                 ? 'bg-orange-100 text-orange-700'
@@ -184,6 +217,15 @@ export default function VendorBikeQuotesPage() {
             {f.label}
           </button>
         ))}
+
+        <DateFilterDropdown
+          onFilterChange={(start, end) => {
+            setDateFilter({ start, end });
+            setCurrentPage(1); // Reset to page 1 when filter changes
+          }}
+          initialStartDate={dateFilter.start || undefined}
+          initialEndDate={dateFilter.end || undefined}
+        />
       </div>
 
       {/* Quotes List */}
@@ -334,6 +376,17 @@ export default function VendorBikeQuotesPage() {
           })
         )}
       </div>
+
+      {/* Pagination */}
+      {filteredQuotes.length > 0 && (
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={totalItems}
+          itemsPerPage={20}
+          onPageChange={(page) => setCurrentPage(page)}
+        />
+      )}
     </div>
   );
 }

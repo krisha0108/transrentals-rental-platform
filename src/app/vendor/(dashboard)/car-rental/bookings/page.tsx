@@ -20,6 +20,8 @@ import {
   RefreshCw,
   Eye,
 } from 'lucide-react';
+import Pagination from '@/components/vendor/Pagination';
+import DateFilterDropdown from '@/components/vendor/DateFilterDropdown';
 
 interface CarRentalBooking {
   id: string;
@@ -126,6 +128,17 @@ export default function VendorCarRentalBookingsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+
+  // Date filter state
+  const [dateFilter, setDateFilter] = useState<{ start: string | null; end: string | null }>({
+    start: null,
+    end: null,
+  });
+
   // Assign driver modal state
   const [showDriverModal, setShowDriverModal] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState<CarRentalBooking | null>(null);
@@ -150,6 +163,14 @@ export default function VendorCarRentalBookingsPage() {
       if (tripTypeFilter !== 'all') params.set('tripType', tripTypeFilter);
       if (searchQuery) params.set('search', searchQuery);
 
+      // PAGINATION PARAMS
+      params.set('page', currentPage.toString());
+      params.set('limit', '20');
+
+      // DATE FILTER PARAMS
+      if (dateFilter.start) params.set('startDate', dateFilter.start);
+      if (dateFilter.end) params.set('endDate', dateFilter.end);
+
       const response = await fetch(`/api/vendor/car-rental/bookings?${params}`);
       const data = await response.json();
 
@@ -165,6 +186,11 @@ export default function VendorCarRentalBookingsPage() {
       if (data.success) {
         setBookings(data.bookings);
         setStats(data.stats);
+        // Set pagination state
+        if (data.pagination) {
+          setTotalPages(data.pagination.totalPages);
+          setTotalItems(data.pagination.total);
+        }
       }
     } catch (error) {
       console.error('Failed to fetch bookings:', error);
@@ -207,7 +233,7 @@ export default function VendorCarRentalBookingsPage() {
     fetchBookings();
     fetchFleetVehicles();
     fetchStaffDrivers();
-  }, [statusFilter, tripTypeFilter]);
+  }, [statusFilter, tripTypeFilter, currentPage, dateFilter]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -431,6 +457,15 @@ export default function VendorCarRentalBookingsPage() {
               </option>
             ))}
           </select>
+
+          <DateFilterDropdown
+            onFilterChange={(start, end) => {
+              setDateFilter({ start, end });
+              setCurrentPage(1); // Reset to page 1 when filter changes
+            }}
+            initialStartDate={dateFilter.start || undefined}
+            initialEndDate={dateFilter.end || undefined}
+          />
 
           <form onSubmit={handleSearch} className="flex-1 min-w-[200px]">
             <div className="relative">
@@ -677,6 +712,17 @@ export default function VendorCarRentalBookingsPage() {
           })
         )}
       </div>
+
+      {/* Pagination */}
+      {bookings.length > 0 && (
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={totalItems}
+          itemsPerPage={20}
+          onPageChange={(page) => setCurrentPage(page)}
+        />
+      )}
 
       {/* Assign Driver Modal */}
       {showDriverModal && selectedBooking && (

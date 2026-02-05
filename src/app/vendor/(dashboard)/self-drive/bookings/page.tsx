@@ -15,6 +15,8 @@ import {
   Loader2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import Pagination from '@/components/vendor/Pagination';
+import DateFilterDropdown from '@/components/vendor/DateFilterDropdown';
 
 interface BookingStats {
   direct: number;
@@ -92,9 +94,20 @@ export default function VendorSelfDriveBookingsPage() {
   });
   const [recentBookings, setRecentBookings] = useState<Booking[]>([]);
 
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+
+  // Date filter state
+  const [dateFilter, setDateFilter] = useState<{ start: string | null; end: string | null }>({
+    start: null,
+    end: null,
+  });
+
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [currentPage, dateFilter]);
 
   const fetchData = async () => {
     try {
@@ -115,11 +128,23 @@ export default function VendorSelfDriveBookingsPage() {
         });
       }
 
-      // Fetch recent bookings (all types, limited to 5)
-      const bookingsRes = await fetch('/api/vendor/self-drive-bookings?type=all&limit=5');
+      // Fetch recent bookings with pagination and date filters
+      const params = new URLSearchParams();
+      params.set('type', 'all');
+      params.set('page', currentPage.toString());
+      params.set('limit', '20');
+      if (dateFilter.start) params.set('startDate', dateFilter.start);
+      if (dateFilter.end) params.set('endDate', dateFilter.end);
+
+      const bookingsRes = await fetch(`/api/vendor/self-drive-bookings?${params}`);
       const bookingsData = await bookingsRes.json();
       if (bookingsRes.ok && bookingsData.success) {
         setRecentBookings(bookingsData.bookings || []);
+        // Set pagination state
+        if (bookingsData.pagination) {
+          setTotalPages(bookingsData.pagination.totalPages);
+          setTotalItems(bookingsData.pagination.total);
+        }
       }
     } catch (error) {
       console.error('Failed to fetch data:', error);
@@ -266,6 +291,20 @@ export default function VendorSelfDriveBookingsPage() {
         </Link>
       </div>
 
+      {/* Filters */}
+      <div className="bg-white rounded-xl p-4 shadow-sm border">
+        <div className="flex flex-wrap gap-4 items-center">
+          <DateFilterDropdown
+            onFilterChange={(start, end) => {
+              setDateFilter({ start, end });
+              setCurrentPage(1);
+            }}
+            initialStartDate={dateFilter.start || undefined}
+            initialEndDate={dateFilter.end || undefined}
+          />
+        </div>
+      </div>
+
       {/* Recent Bookings */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100">
         <div className="p-6 border-b border-gray-100">
@@ -337,6 +376,17 @@ export default function VendorSelfDriveBookingsPage() {
           </div>
         )}
       </div>
+
+      {/* Pagination */}
+      {recentBookings.length > 0 && (
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={totalItems}
+          itemsPerPage={20}
+          onPageChange={(page) => setCurrentPage(page)}
+        />
+      )}
     </div>
   );
 }

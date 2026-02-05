@@ -23,6 +23,7 @@ import {
   Building,
   ArrowRight,
 } from 'lucide-react';
+import VehicleImageGallery from '@/components/customer/VehicleImageGallery';
 
 interface QuoteDetails {
   id: string;
@@ -31,6 +32,7 @@ interface QuoteDetails {
   vehicleName: string;
   vehicleNumber: string | null;
   vehicleCapacity: string | null;
+  vehicleImages?: string;
   driverName: string | null;
   driverPhone: string | null;
   labourIncluded: boolean;
@@ -305,6 +307,16 @@ export default function VendorQuoteDetailPage() {
               </div>
             )}
           </div>
+
+          {/* Vehicle Images */}
+          {quote.vehicleImages && (
+            <div className="bg-white rounded-xl shadow-sm border p-6">
+              <VehicleImageGallery
+                vehicleImages={quote.vehicleImages}
+                vehicleName={quote.vehicleName}
+              />
+            </div>
+          )}
 
           {/* Your Quote Details */}
           <div className="bg-white rounded-xl shadow-sm border p-6">

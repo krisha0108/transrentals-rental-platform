@@ -13,11 +13,11 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     const { id } = params;
     const quote = await prisma.packers_quotes.findFirst({
       where: { id, vendorId: auth.vendorId },
-      include: { request: { select: { id: true, requestNumber: true, customerName: true, customerPhone: true, fromCity: true, toCity: true, shiftingDate: true, shiftingType: true, status: true } } },
+      include: { packers_quote_requests: { select: { id: true, requestNumber: true, customerName: true, customerPhone: true, pickupCity: true, dropCity: true, preferredDate: true, shiftingType: true, status: true } } },
     });
     if (!quote) return NextResponse.json({ error: 'Quote not found' }, { status: 404 });
     const parseJson = (f: any) => { if (!f) return []; if (Array.isArray(f)) return f; try { return JSON.parse(f); } catch { return []; } };
-    return NextResponse.json({ success: true, quote: { ...quote, inclusions: parseJson(quote.inclusions), exclusions: parseJson(quote.exclusions), termsConditions: parseJson(quote.termsConditions) } });
+    return NextResponse.json({ success: true, quote: { ...quote, request: quote.packers_quote_requests, inclusions: parseJson(quote.inclusions), exclusions: parseJson(quote.exclusions), termsConditions: parseJson(quote.termsConditions) } });
   } catch (error: any) {
     logger.error('Failed to fetch packers quote', error);
     return NextResponse.json({ error: 'Failed to fetch quote', details: error?.message }, { status: 500 });

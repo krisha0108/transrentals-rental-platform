@@ -25,6 +25,7 @@ import {
   FileText,
   Loader2,
 } from 'lucide-react';
+import VehicleImageGallery from '@/components/customer/VehicleImageGallery';
 
 interface Quote {
   id: string;
@@ -41,6 +42,7 @@ interface Quote {
   totalAmount: number;
   teamSize: number;
   vehicleType: string;
+  vehicleImages?: string;
   estimatedDuration: string;
   packingMaterials: any;
   inclusions: string[];
@@ -325,6 +327,16 @@ export default function ViewPackersQuotePage() {
           </div>
         </div>
       </div>
+
+      {/* Vehicle Images */}
+      {quote.vehicleImages && (
+        <div className="bg-white rounded-xl shadow-sm border p-6">
+          <VehicleImageGallery
+            vehicleImages={quote.vehicleImages}
+            vehicleName={quote.vehicleType}
+          />
+        </div>
+      )}
 
       {/* Service Details */}
       <div className="bg-white rounded-xl shadow-sm border p-6">

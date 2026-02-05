@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -14,6 +14,8 @@ import Icon from 'react-native-vector-icons/Feather';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { getQuoteRequests } from '../../../api/client';
+import { useInfiniteScroll } from '../../../../hooks/useInfiniteScroll';
+import DateFilterModal from '../../../../components/DateFilterModal';
 
 const GREEN = '#09B368';
 const BG = '#F5F5F7';
@@ -29,47 +31,56 @@ const STATUS_COLORS = {
 };
 
 export default function TruckQuoteRequestsScreen({ navigation }) {
-  const [requests, setRequests] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
   const [statusFilter, setStatusFilter] = useState('ALL');
+  const [showDateFilter, setShowDateFilter] = useState(false);
 
-  const fetchRequests = useCallback(async () => {
-    try {
-      const response = await getQuoteRequests('truck');
-      const allRequests = response.quoteRequests || response.requests || response.data || [];
-      const filteredRequests = allRequests.filter(req => {
-        const status = req.status?.toUpperCase();
-        return status !== 'QUOTE_ACCEPTED' && status !== 'BOOKING_CONFIRMED';
-      });
-      setRequests(filteredRequests);
-    } catch (error) {
-      console.error('Error fetching quote requests:', error);
-      setRequests([]);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
+  const {
+    data: requests,
+    loading,
+    refreshing,
+    hasMore,
+    dateFilter,
+    loadMore,
+    refresh,
+    initialLoad,
+    applyDateFilter,
+  } = useInfiniteScroll(getQuoteRequests, {
+    service: 'truck',
+    pageSize: 20,
+  });
+
+  useEffect(() => {
+    initialLoad();
   }, []);
 
   // Filter requests based on selected status
   const filteredRequests = useMemo(() => {
+    const filtered = requests.filter(req => {
+      const status = req.status?.toUpperCase();
+      return status !== 'QUOTE_ACCEPTED' && status !== 'BOOKING_CONFIRMED';
+    });
+
     if (statusFilter === 'ALL') {
-      return requests;
+      return filtered;
     }
-    return requests.filter(req => req.status?.toUpperCase() === statusFilter);
+    return filtered.filter(req => req.status?.toUpperCase() === statusFilter);
   }, [requests, statusFilter]);
 
   // Get count for each status
   const statusCounts = useMemo(() => {
+    const filtered = requests.filter(req => {
+      const status = req.status?.toUpperCase();
+      return status !== 'QUOTE_ACCEPTED' && status !== 'BOOKING_CONFIRMED';
+    });
+
     const counts = {
-      ALL: requests.length,
+      ALL: filtered.length,
       PENDING: 0,
       QUOTES_RECEIVED: 0,
       CANCELLED: 0,
       EXPIRED: 0,
     };
-    requests.forEach(req => {
+    filtered.forEach(req => {
       const status = req.status?.toUpperCase();
       if (counts.hasOwnProperty(status)) {
         counts[status]++;
@@ -78,14 +89,11 @@ export default function TruckQuoteRequestsScreen({ navigation }) {
     return counts;
   }, [requests]);
 
-  useEffect(() => {
-    fetchRequests();
-  }, [fetchRequests]);
-
-  const onRefresh = () => {
-    setRefreshing(true);
-    fetchRequests();
+  const handleDateFilterApply = (startDate, endDate) => {
+    applyDateFilter(startDate, endDate);
   };
+
+  const hasActiveFilter = dateFilter.start || dateFilter.end;
 
   const formatDate = (dateStr) => {
     if (!dateStr) return 'N/A';
@@ -228,7 +236,13 @@ export default function TruckQuoteRequestsScreen({ navigation }) {
           <Text style={styles.headerTitle}>Quote Requests</Text>
           <Text style={styles.headerSubtitle}>Truck Rental</Text>
         </View>
-        <View style={{ width: 40 }} />
+        <TouchableOpacity
+          onPress={() => setShowDateFilter(true)}
+          style={styles.filterButton}
+        >
+          {hasActiveFilter && <View style={styles.activeFilterDot} />}
+          <Icon name="calendar" size={22} color={DARK} />
+        </TouchableOpacity>
       </View>
 
       {/* Filter Chips */}
@@ -300,11 +314,31 @@ export default function TruckQuoteRequestsScreen({ navigation }) {
           contentContainerStyle={[styles.listContent, filteredRequests.length === 0 && { flexGrow: 1 }]}
           showsVerticalScrollIndicator={false}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[GREEN]} />
+            <RefreshControl refreshing={refreshing} onRefresh={refresh} colors={[GREEN]} />
           }
+          onEndReached={loadMore}
+          onEndReachedThreshold={0.5}
+          ListFooterComponent={() => {
+            if (loading && filteredRequests.length > 0) {
+              return (
+                <View style={styles.footer}>
+                  <ActivityIndicator size="small" color={GREEN} />
+                </View>
+              );
+            }
+            return null;
+          }}
           ListEmptyComponent={renderEmptyState}
         />
       )}
+
+      <DateFilterModal
+        visible={showDateFilter}
+        onClose={() => setShowDateFilter(false)}
+        onApply={handleDateFilterApply}
+        currentStartDate={dateFilter.start}
+        currentEndDate={dateFilter.end}
+      />
     </SafeAreaView>
   );
 }
@@ -472,5 +506,29 @@ const styles = StyleSheet.create({
   },
   filterCountTextActive: {
     color: '#fff',
+  },
+
+  filterButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: BG,
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
+  },
+  activeFilterDot: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: GREEN,
+    zIndex: 1,
+  },
+  footer: {
+    paddingVertical: 20,
+    alignItems: 'center',
   },
 });

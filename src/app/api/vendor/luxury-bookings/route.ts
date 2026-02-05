@@ -44,12 +44,33 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status'); // Mobile app status: 'all', 'pending', 'confirmed', 'ongoing', 'completed'
     const type = searchParams.get('type') || (status && status !== 'all' ? status : 'all'); // Web dashboard type parameter
+
+    // PAGINATION PARAMS
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '20');
     const skip = (page - 1) * limit;
 
+    // DATE FILTER PARAMS
+    const startDate = searchParams.get('startDate');
+    const endDate = searchParams.get('endDate');
+
     let items: any[] = [];
     let total = 0;
+
+    // Build date filter
+    const dateFilter: any = {};
+    if (startDate || endDate) {
+      dateFilter.createdAt = {};
+      if (startDate) {
+        dateFilter.createdAt.gte = new Date(startDate);
+      }
+      if (endDate) {
+        // Set to end of day (23:59:59)
+        const endDateTime = new Date(endDate);
+        endDateTime.setHours(23, 59, 59, 999);
+        dateFilter.createdAt.lte = endDateTime;
+      }
+    }
 
     // Handle mobile app status parameter
     let effectiveType = type;
@@ -63,24 +84,35 @@ export async function GET(request: NextRequest) {
 
     if (effectiveType === 'open' || effectiveType === 'all') {
       // Fetch open quote requests in vendor's area (where vendor hasn't quoted yet)
-      const openRequests = await prisma.luxury_quote_requests.findMany({
-        where: {
-          status: { in: ['PENDING', 'QUOTES_RECEIVED'] },
-          quotesOpenTill: { gte: new Date() },
-          OR: [
-            { locationId: { in: approvedLocationIds } },
-            { locationId: null },
-          ],
-          luxury_quotes: {
-            none: { vendorId: vendor.id },
+      const openRequestsWhere = {
+        ...dateFilter,
+        status: { in: ['PENDING', 'QUOTES_RECEIVED'] },
+        quotesOpenTill: { gte: new Date() },
+        OR: [
+          { locationId: { in: approvedLocationIds } },
+          { locationId: null },
+        ],
+        luxury_quotes: {
+          none: { vendorId: vendor.id },
+        },
+      };
+
+      const [openRequests, openTotal] = await Promise.all([
+        prisma.luxury_quote_requests.findMany({
+          where: openRequestsWhere,
+          include: {
+            locations: { select: { name: true } },
           },
-        },
-        include: {
-          locations: { select: { name: true } },
-        },
-        orderBy: { quotesOpenTill: 'asc' },
-        take: effectiveType === 'open' ? limit : 10,
-      });
+          orderBy: { quotesOpenTill: 'asc' },
+          skip: effectiveType === 'open' ? skip : 0,
+          take: effectiveType === 'open' ? limit : 10,
+        }),
+        effectiveType === 'open' ? prisma.luxury_quote_requests.count({ where: openRequestsWhere }) : Promise.resolve(0),
+      ]);
+
+      if (effectiveType === 'open') {
+        total = openTotal;
+      }
 
       items.push(...openRequests.map((r) => ({
         id: r.id,
@@ -118,23 +150,34 @@ export async function GET(request: NextRequest) {
 
     if (effectiveType === 'quoted' || effectiveType === 'all') {
       // Fetch requests where vendor has submitted a quote (pending decision)
-      const quotedRequests = await prisma.luxury_quote_requests.findMany({
-        where: {
-          status: { in: ['PENDING', 'QUOTES_RECEIVED'] },
-          luxury_quotes: {
-            some: { vendorId: vendor.id, status: { in: ['SENT', 'VIEWED'] } },
-          },
+      const quotedRequestsWhere = {
+        ...dateFilter,
+        status: { in: ['PENDING', 'QUOTES_RECEIVED'] },
+        luxury_quotes: {
+          some: { vendorId: vendor.id, status: { in: ['SENT', 'VIEWED'] } },
         },
-        include: {
-          locations: { select: { name: true } },
-          luxury_quotes: {
-            where: { vendorId: vendor.id },
-            select: { id: true, quoteNumber: true, totalAmount: true, status: true },
+      };
+
+      const [quotedRequests, quotedTotal] = await Promise.all([
+        prisma.luxury_quote_requests.findMany({
+          where: quotedRequestsWhere,
+          include: {
+            locations: { select: { name: true } },
+            luxury_quotes: {
+              where: { vendorId: vendor.id },
+              select: { id: true, quoteNumber: true, totalAmount: true, status: true },
+            },
           },
-        },
-        orderBy: { createdAt: 'desc' },
-        take: effectiveType === 'quoted' ? limit : 10,
-      });
+          orderBy: { createdAt: 'desc' },
+          skip: effectiveType === 'quoted' ? skip : 0,
+          take: effectiveType === 'quoted' ? limit : 10,
+        }),
+        effectiveType === 'quoted' ? prisma.luxury_quote_requests.count({ where: quotedRequestsWhere }) : Promise.resolve(0),
+      ]);
+
+      if (effectiveType === 'quoted') {
+        total = quotedTotal;
+      }
 
       items.push(...quotedRequests.map((r) => ({
         id: r.id,
@@ -164,6 +207,7 @@ export async function GET(request: NextRequest) {
     if (effectiveType === 'confirmed' || effectiveType === 'active' || effectiveType === 'completed' || effectiveType === 'all') {
       // Fetch confirmed LuxuryBookings assigned to this vendor
       let bookingWhere: any = {
+        ...dateFilter,
         OR: [
           { assignedVendorId: vendor.id },
           { acceptedVendorId: vendor.id },
@@ -181,16 +225,24 @@ export async function GET(request: NextRequest) {
         bookingWhere.status = 'COMPLETED';
       }
 
-      const bookings = await prisma.luxury_bookings.findMany({
-        where: bookingWhere,
-        include: {
-          locations: { select: { name: true, slug: true } },
-          luxury_quote_requests: { select: { requestNumber: true, vehicleCategoryName: true } },
-          luxury_quotes: { select: { quoteNumber: true, vehicleName: true, totalAmount: true } },
-        },
-        orderBy: [{ pickupDate: 'asc' }, { createdAt: 'desc' }],
-        take: effectiveType === 'all' ? 20 : limit,
-      });
+      const [bookings, bookingsTotal] = await Promise.all([
+        prisma.luxury_bookings.findMany({
+          where: bookingWhere,
+          include: {
+            locations: { select: { name: true, slug: true } },
+            luxury_quote_requests: { select: { requestNumber: true, vehicleCategoryName: true } },
+            luxury_quotes: { select: { quoteNumber: true, vehicleName: true, totalAmount: true } },
+          },
+          orderBy: [{ pickupDate: 'asc' }, { createdAt: 'desc' }],
+          skip: effectiveType === 'all' ? 0 : skip,
+          take: effectiveType === 'all' ? 20 : limit,
+        }),
+        effectiveType !== 'all' ? prisma.luxury_bookings.count({ where: bookingWhere }) : Promise.resolve(0),
+      ]);
+
+      if (effectiveType !== 'all') {
+        total = bookingsTotal;
+      }
 
       items.push(...bookings.map((b) => ({
         id: b.id,
@@ -234,12 +286,18 @@ export async function GET(request: NextRequest) {
         if (a.type !== 'quote_request' && b.type === 'quote_request') return 1;
         return new Date(a.pickupDate).getTime() - new Date(b.pickupDate).getTime();
       });
+      total = items.length;
     }
 
     return NextResponse.json({
       success: true,
       bookings: items,
-      pagination: { page, limit, total: items.length, totalPages: 1 },
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
     });
   } catch (error: any) {
     logger.error('Failed to fetch vendor luxury bookings', error);
