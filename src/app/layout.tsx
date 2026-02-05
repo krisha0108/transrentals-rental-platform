@@ -7,6 +7,7 @@ import VisitorTracker from '@/components/analytics/VisitorTracker';
 import TrackingScripts from '@/components/analytics/TrackingScripts';
 import GoogleAnalytics from '@/components/analytics/GoogleAnalytics';
 import PageViewTracker from '@/components/analytics/PageViewTracker';
+import IOSInstallPrompt from '@/components/IOSInstallPrompt';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -88,6 +89,15 @@ export const metadata: Metadata = {
   verification: {
     google: 'your-google-verification-code',
   },
+  manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'TransRentals',
+  },
+  other: {
+    'mobile-web-app-capable': 'yes',
+  },
 };
 
 export default function RootLayout({
@@ -107,6 +117,8 @@ export default function RootLayout({
           <PageViewTracker />
           <VisitorTracker />
           <TrackingScripts />
+          {/* iOS PWA Install Prompt */}
+          <IOSInstallPrompt />
           <LayoutWrapper>{children}</LayoutWrapper>
         </LocationProvider>
       </body>

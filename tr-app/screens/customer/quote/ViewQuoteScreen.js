@@ -521,6 +521,19 @@ const ServicesDetailsSection = ({ quote }) => {
                 <Text style={styles.pricingLabel}>Daily Rate</Text>
                 <Text style={styles.pricingValue}>₹{quote.daily_rate}</Text>
               </View>
+              {/* Equipment Rental Calculation - Always show if rental_days exists */}
+              {quote.rental_days > 0 && (
+                <>
+                  <View style={styles.pricingRow}>
+                    <Text style={styles.pricingLabel}>Rental Duration</Text>
+                    <Text style={styles.pricingValue}>{quote.rental_days} days</Text>
+                  </View>
+                  <View style={styles.pricingRow}>
+                    <Text style={styles.pricingLabel}>Base Rental ({quote.daily_rate} × {quote.rental_days})</Text>
+                    <Text style={styles.pricingValue}>₹{(quote.daily_rate * quote.rental_days).toLocaleString('en-IN')}</Text>
+                  </View>
+                </>
+              )}
               {quote.km_limit_per_day > 0 && (
                 <View style={styles.pricingRow}>
                   <Text style={styles.pricingLabel}>KM Limit/Day</Text>
@@ -543,6 +556,31 @@ const ServicesDetailsSection = ({ quote }) => {
                 <View style={styles.pricingRow}>
                   <Text style={styles.pricingLabel}>Platform Fee</Text>
                   <Text style={styles.pricingValue}>₹{quote.platform_fee}</Text>
+                </View>
+              )}
+              {/* Equipment-specific charges - show all non-zero charges */}
+              {quote.operator_charges > 0 && (
+                <View style={styles.pricingRow}>
+                  <Text style={styles.pricingLabel}>Operator Charges</Text>
+                  <Text style={styles.pricingValue}>₹{quote.operator_charges}</Text>
+                </View>
+              )}
+              {quote.installation_charges > 0 && (
+                <View style={styles.pricingRow}>
+                  <Text style={styles.pricingLabel}>Installation Charges</Text>
+                  <Text style={styles.pricingValue}>₹{quote.installation_charges}</Text>
+                </View>
+              )}
+              {quote.pickup_charges > 0 && (
+                <View style={styles.pricingRow}>
+                  <Text style={styles.pricingLabel}>Pickup Charges</Text>
+                  <Text style={styles.pricingValue}>₹{quote.pickup_charges}</Text>
+                </View>
+              )}
+              {quote.fuel_charges > 0 && (
+                <View style={styles.pricingRow}>
+                  <Text style={styles.pricingLabel}>Fuel Charges</Text>
+                  <Text style={styles.pricingValue}>₹{quote.fuel_charges}</Text>
                 </View>
               )}
             </>
@@ -1409,6 +1447,37 @@ export default function QuoteDetailScreen({ route, navigation }) {
                           <View style={styles.priceRow}>
                             <Text style={styles.priceLabel}>Delivery Charges</Text>
                             <Text style={styles.priceValue}>₹{selectedQuote.deliveryCharge}</Text>
+                          </View>
+                        )}
+                        {/* Equipment-specific charges */}
+                        {selectedQuote.rentalDays > 0 && (
+                          <View style={styles.priceRow}>
+                            <Text style={styles.priceLabel}>Rental Duration</Text>
+                            <Text style={styles.priceValue}>{selectedQuote.rentalDays} days</Text>
+                          </View>
+                        )}
+                        {selectedQuote.operatorCharges > 0 && (
+                          <View style={styles.priceRow}>
+                            <Text style={styles.priceLabel}>Operator Charges</Text>
+                            <Text style={styles.priceValue}>₹{selectedQuote.operatorCharges}</Text>
+                          </View>
+                        )}
+                        {selectedQuote.installationCharges > 0 && (
+                          <View style={styles.priceRow}>
+                            <Text style={styles.priceLabel}>Installation Charges</Text>
+                            <Text style={styles.priceValue}>₹{selectedQuote.installationCharges}</Text>
+                          </View>
+                        )}
+                        {selectedQuote.pickupCharges > 0 && (
+                          <View style={styles.priceRow}>
+                            <Text style={styles.priceLabel}>Pickup Charges</Text>
+                            <Text style={styles.priceValue}>₹{selectedQuote.pickupCharges}</Text>
+                          </View>
+                        )}
+                        {selectedQuote.fuelCharges > 0 && (
+                          <View style={styles.priceRow}>
+                            <Text style={styles.priceLabel}>Fuel Charges</Text>
+                            <Text style={styles.priceValue}>₹{selectedQuote.fuelCharges}</Text>
                           </View>
                         )}
                       </>

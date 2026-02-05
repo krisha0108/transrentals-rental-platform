@@ -33,7 +33,9 @@ const SERVICES = [
   { key: 'bike', label: 'Bike', icon: 'bicycle', color: '#e74c3c' },
   { key: 'bus', label: 'Bus', icon: 'bus', color: '#9b59b6' },
   { key: 'truck', label: 'Truck', icon: 'truck', iconLib: 'MaterialCommunityIcons', color: '#f39c12' },
-  { key: 'tempo', label: 'Tempo', icon: 'van-shuttle', iconLib: 'MaterialCommunityIcons', color: '#1abc9c' },
+  { key: 'equipment', label: 'Equipment', icon: 'construct', iconLib: 'Ionicons', color: '#7f8c8d' },
+  { key: 'packers', label: 'Packers', icon: 'package-variant-closed', iconLib: 'MaterialCommunityIcons', color: '#1abc9c' },
+  { key: 'tempo', label: 'Tempo', icon: 'van-shuttle', iconLib: 'MaterialCommunityIcons', color: '#16a085' },
   { key: 'car', label: 'Car Rental', icon: 'car', color: '#34495e' },
 ];
 
