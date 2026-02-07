@@ -34,13 +34,33 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status');
+
+    // PAGINATION PARAMS
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '20');
     const skip = (page - 1) * limit;
 
+    // DATE FILTER PARAMS
+    const startDate = searchParams.get('startDate');
+    const endDate = searchParams.get('endDate');
+
     const whereClause: any = { vendorId: vendorId };
     if (status && status !== 'all') {
       whereClause.status = status;
+    }
+
+    // DATE FILTERING
+    if (startDate || endDate) {
+      whereClause.createdAt = {};
+      if (startDate) {
+        whereClause.createdAt.gte = new Date(startDate);
+      }
+      if (endDate) {
+        // Set to end of day (23:59:59)
+        const endDateTime = new Date(endDate);
+        endDateTime.setHours(23, 59, 59, 999);
+        whereClause.createdAt.lte = endDateTime;
+      }
     }
 
     const [quotes, total] = await Promise.all([
@@ -77,19 +97,38 @@ export async function GET(request: NextRequest) {
         vehicleName: q.vehicleName,
         vehicleBrand: q.vehicleBrand,
         vehicleCategory: q.vehicleCategory,
+        vehicleType: q.vehicleType,
+        vehicleImages: q.vehicleImages,
+        vehicleFeatures: q.vehicleFeatures,
+        registrationNumber: q.registrationNumber,
+        vehicleYear: q.vehicleYear,
+        vendorFleetId: q.vendorFleetId,
         transmission: q.transmission,
         fuelType: q.fuelType,
+        seats: q.seats,
         dailyRate: q.dailyRate,
+        baseAmount: q.baseAmount,
+        gstAmount: q.gstAmount,
+        platformFee: q.platformFee,
+        securityDeposit: q.securityDeposit,
+        deliveryCharges: q.deliveryCharges,
+        pickupCharges: q.pickupCharges,
         grandTotal: q.grandTotal,
         advanceAmount: q.advanceAmount,
         advancePercent: q.advancePercent,
         kmLimitPerDay: q.kmLimitPerDay,
         extraKmRate: q.extraKmRate,
+        inclusions: q.inclusions,
+        exclusions: q.exclusions,
+        termsConditions: q.termsConditions,
+        vendorMessage: q.vendorMessage,
         status: q.status,
         validTill: q.validTill,
+        validityDays: q.validityDays,
         viewCount: q.viewCount,
         request: q.self_drive_quote_requests_self_drive_quotes_requestIdToself_drive_quote_requests,
         createdAt: q.createdAt,
+        updatedAt: q.updatedAt,
       })),
       pagination: {
         page,
@@ -256,6 +295,53 @@ export async function POST(request: NextRequest) {
     const validTill = new Date();
     validTill.setDate(validTill.getDate() + validityDays);
 
+    // Fetch fleet vehicle images if vendorFleetId is provided
+    let finalVehicleImages = vehicleImages; // Use provided images if any
+    if (vendorFleetId && !vehicleImages) {
+      try {
+        const fleetVehicle = await prisma.vendor_fleets.findUnique({
+          where: { id: vendorFleetId },
+          include: {
+            vehicle_models: {
+              select: {
+                sideImage: true, // Featured image from admin
+              },
+            },
+          },
+        });
+
+        if (fleetVehicle) {
+          const images: string[] = [];
+
+          // Add featured image from vehicle model (admin's image)
+          if (fleetVehicle.vehicle_models?.sideImage) {
+            images.push(fleetVehicle.vehicle_models.sideImage);
+          }
+
+          // Add vendor's fleet images (up to 5 more)
+          if (fleetVehicle.images) {
+            try {
+              const vendorImages = JSON.parse(fleetVehicle.images);
+              if (Array.isArray(vendorImages)) {
+                // Add up to 5 vendor images
+                images.push(...vendorImages.slice(0, 5));
+              }
+            } catch (e) {
+              logger.warn('Failed to parse vendor fleet images', e);
+            }
+          }
+
+          // Only set if we have at least one image
+          if (images.length > 0) {
+            finalVehicleImages = images;
+          }
+        }
+      } catch (error) {
+        logger.warn('Failed to fetch fleet vehicle images', error);
+        // Continue without images - don't fail the quote submission
+      }
+    }
+
     // Create the quote
     const quote = await prisma.self_drive_quotes.create({
       data: {
@@ -274,7 +360,7 @@ export async function POST(request: NextRequest) {
         seats: seats || null,
         registrationNumber: registrationNumber || null,
         vehicleYear: vehicleYear || null,
-        vehicleImages: vehicleImages ? JSON.stringify(vehicleImages) : null,
+        vehicleImages: finalVehicleImages ? JSON.stringify(finalVehicleImages) : null,
         vehicleFeatures: vehicleFeatures ? JSON.stringify(vehicleFeatures) : null,
         dailyRate,
         baseAmount,
@@ -307,6 +393,24 @@ export async function POST(request: NextRequest) {
         totalQuotesReceived: { increment: 1 },
       },
     });
+
+    // Create notification for customer
+    try {
+      await prisma.notifications.create({
+        data: {
+          customerId: quoteRequest.customerId,
+          title: '🚗 New Self-Drive Quote Received!',
+          body: `${vendor.businessName} has sent you a quote for ${vehicleName}. Daily rate: ₹${dailyRate}. Total: ₹${grandTotal}. Valid till ${validTill.toLocaleDateString()}.`,
+          type: 'quote',
+          quoteId: quote.id,
+          isRead: false,
+        },
+      });
+      logger.info('Notification created for self-drive quote', { quoteId: quote.id, customerId: quoteRequest.customerId });
+    } catch (notifError) {
+      // Log but don't fail the request if notification creation fails
+      logger.error('Failed to create notification for self-drive quote', notifError);
+    }
 
     return NextResponse.json({
       success: true,

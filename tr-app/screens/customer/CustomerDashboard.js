@@ -518,26 +518,45 @@ export default function CustomerDashboard() {
       });
 
       console.log('[fetchUpcomingBookings] Response received');
+      console.log('[fetchUpcomingBookings] 📦 Raw Response:', JSON.stringify(response.data, null, 2));
 
       if (response.data?.success) {
         const bookings = response.data.bookings || [];
         console.log(`[fetchUpcomingBookings] Bookings received: ${bookings.length}`);
+        console.log('[fetchUpcomingBookings] 📋 All Bookings:', JSON.stringify(bookings, null, 2));
 
-        const formatted = bookings.slice(0, 5).map(b => ({
-          id: b.id?.toString() || b.booking_number,
-          from: b.location_name || 'N/A',
-          to: b.destination || 'N/A',
-          date: b.journey_datetime
-            ? new Date(b.journey_datetime).toLocaleDateString('en-IN', {
-              day: 'numeric',
-              month: 'short',
-            })
-            : 'N/A',
-          status: b.service_name || 'Booking',
-          driver: b.vendor?.name || 'Pending',
-          type: b.service_type || 'Unknown',
-        }));
+        const formatted = bookings.slice(0, 5).map((b, index) => {
+          console.log(`[fetchUpcomingBookings] 🔍 Booking ${index + 1}:`, {
+            id: b.id,
+            booking_number: b.booking_number,
+            service_type: b.service_type,
+            location_name: b.location_name,
+            locationName: b.locationName,
+            location: b.location,
+            pickupAddress: b.pickupAddress,
+            destination: b.destination,
+            journey_datetime: b.journey_datetime,
+            service_name: b.service_name,
+            vendor: b.vendor,
+          });
 
+          return {
+            id: b.id?.toString() || b.booking_number,
+            from: b.location_name || b.locationName || b.location?.name || b.pickupAddress || 'N/A',
+            to: b.destination || 'N/A',
+            date: b.journey_datetime
+              ? new Date(b.journey_datetime).toLocaleDateString('en-IN', {
+                day: 'numeric',
+                month: 'short',
+              })
+              : 'N/A',
+            status: b.service_name || 'Booking',
+            driver: b.vendor?.name || 'Pending',
+            type: b.service_type || 'Unknown',
+          };
+        });
+
+        console.log('[fetchUpcomingBookings] 📦 Formatted Trips:', JSON.stringify(formatted, null, 2));
         setUpcomingTrips(formatted);
         console.log('[fetchUpcomingBookings] Upcoming trips set successfully.');
       } else {
@@ -975,7 +994,11 @@ export default function CustomerDashboard() {
                         <Icon name="calendar" size={wp('5.5%')} color={BRAND_TEAL} />
                       </View>
                       <View style={{ flex: 1 }}>
-                        <Text style={styles.upcomingRoute}>{item.from} → {item.to}</Text>
+                        <Text style={styles.upcomingRoute}>
+                          {item.type === 'bike' || item.type === 'car' || item.type?.toLowerCase() === 'self-drive'
+                            ? item.from
+                            : `${item.from} → ${item.to}`}
+                        </Text>
                         <View style={styles.upcomingMeta}>
                           <Icon name="clock" size={14} color={TEXT_SECONDARY} />
                           <Text style={styles.upcomingDate}>{item.date}</Text>

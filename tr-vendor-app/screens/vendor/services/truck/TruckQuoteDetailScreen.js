@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -8,12 +8,18 @@ import {
   RefreshControl,
   ActivityIndicator,
   Alert,
+  Image,
+  Dimensions,
+  FlatList,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Feather';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { getVendorQuotes } from '../../../api/client';
+
+const { width } = Dimensions.get('window');
+const SLIDER_WIDTH = width - 32; // Full width with padding
 
 const GREEN = '#09B368';
 const BG = '#F5F5F7';
@@ -33,6 +39,8 @@ export default function TruckQuoteDetailScreen({ route, navigation }) {
   const [quote, setQuote] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const imageSliderRef = useRef(null);
 
   const fetchQuoteDetail = useCallback(async () => {
     if (!quoteId) {
@@ -141,10 +149,10 @@ export default function TruckQuoteDetailScreen({ route, navigation }) {
   const customerName = request.customerName || quote.customerName || 'Customer';
   const customerEmail = request.customerEmail || quote.customerEmail;
   const customerPhone = request.customerPhone || quote.customerPhone;
-  const pickupCity = request.pickupCity || quote.pickupCity || 'N/A';
+  const pickupCity = request.locationName || request.pickupCity || quote.pickupCity || 'N/A';
   const dropCity = request.dropCity || quote.dropCity;
   const pickupDate = request.pickupDate || quote.pickupDate || request.startDate;
-  const returnDate = request.returnDate || quote.returnDate || request.endDate;
+  const returnDate = request.returnDate || quote.returnDate || request.endDate || request.dropDate;
   const vehicleName = quote.vehicleName || quote.truckType || request.truckType;
   const vehicleBrand = quote.vehicleBrand || quote.truckBrand;
 
@@ -157,6 +165,54 @@ export default function TruckQuoteDetailScreen({ route, navigation }) {
   const quoteNumber = quote.quoteNumber || (quote.id || quote._id)?.toString().slice(-8);
   const requestNumber = request.requestNumber;
   const notes = quote.notes || quote.description || quote.additionalInfo;
+
+  // Helper to get full image URL
+  const getFullImageUrl = (path) => {
+    if (!path) return null;
+    if (path.startsWith('http')) return path;
+    const baseUrl = 'http://192.168.29.68:3000'; // Your dev URL
+    return `${baseUrl}${path}`;
+  };
+
+  // Parse JSON fields
+  const parseJSON = (field) => {
+    if (!field) return null;
+    if (Array.isArray(field)) return field;
+    if (typeof field === 'string') {
+      try {
+        const parsed = JSON.parse(field);
+        if (Array.isArray(parsed)) return parsed;
+        // Handle object format (like {front: "...", back: "..."})
+        if (typeof parsed === 'object' && parsed !== null) {
+          return Object.values(parsed).filter(Boolean);
+        }
+        return null;
+      } catch {
+        return null;
+      }
+    }
+    return null;
+  };
+
+  // Parse and convert image URLs
+  const rawImages = parseJSON(quote.vehicleImages);
+  const vehicleImages = rawImages?.map(img => getFullImageUrl(img)).filter(Boolean) || null;
+
+  const vehicleFeatures = parseJSON(quote.vehicleFeatures);
+  const inclusions = parseJSON(quote.inclusions);
+  const exclusions = parseJSON(quote.exclusions);
+  const termsConditions = parseJSON(quote.termsConditions);
+  const registrationNumber = quote.registrationNumber || quote.vehicleNumber;
+  const vehicleYear = quote.vehicleYear;
+
+  // Debug logging
+  console.log('Quote Data:', {
+    id: quote.id,
+    rawVehicleImages: quote.vehicleImages,
+    rawImages: rawImages,
+    finalImages: vehicleImages,
+    imagesLength: vehicleImages?.length,
+  });
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -192,6 +248,59 @@ export default function TruckQuoteDetailScreen({ route, navigation }) {
         </View>
 
         <View style={styles.content}>
+          {/* Vehicle Images Slider */}
+          {vehicleImages && vehicleImages.length > 0 && (
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <Ionicons name="images-outline" size={20} color="#64748B" />
+                <Text style={styles.sectionTitle}>Vehicle Images</Text>
+              </View>
+              <View style={styles.imageSliderContainer}>
+                <FlatList
+                  ref={imageSliderRef}
+                  data={vehicleImages}
+                  horizontal
+                  pagingEnabled
+                  showsHorizontalScrollIndicator={false}
+                  keyExtractor={(item, index) => index.toString()}
+                  onMomentumScrollEnd={(event) => {
+                    const index = Math.round(event.nativeEvent.contentOffset.x / SLIDER_WIDTH);
+                    setCurrentImageIndex(index);
+                  }}
+                  renderItem={({ item }) => (
+                    <View style={styles.imageSlide}>
+                      <Image
+                        source={{ uri: item }}
+                        style={styles.sliderImage}
+                        resizeMode="cover"
+                      />
+                    </View>
+                  )}
+                />
+                {/* Pagination Dots */}
+                {vehicleImages.length > 1 && (
+                  <View style={styles.paginationDots}>
+                    {vehicleImages.map((_, index) => (
+                      <View
+                        key={index}
+                        style={[
+                          styles.dot,
+                          index === currentImageIndex ? styles.activeDot : styles.inactiveDot,
+                        ]}
+                      />
+                    ))}
+                  </View>
+                )}
+                {/* Image Counter */}
+                <View style={styles.imageCounter}>
+                  <Text style={styles.imageCounterText}>
+                    {currentImageIndex + 1} / {vehicleImages.length}
+                  </Text>
+                </View>
+              </View>
+            </View>
+          )}
+
           {/* Request Reference */}
           {requestNumber && (
             <View style={styles.section}>
@@ -257,6 +366,35 @@ export default function TruckQuoteDetailScreen({ route, navigation }) {
                     )}
                   </View>
                 </View>
+                {registrationNumber && (
+                  <View style={styles.infoRow}>
+                    <Ionicons name="car" size={18} color="#64748B" />
+                    <View style={styles.infoContent}>
+                      <Text style={styles.infoLabel}>Registration Number</Text>
+                      <Text style={styles.infoValue}>{registrationNumber}</Text>
+                    </View>
+                  </View>
+                )}
+                {vehicleYear && (
+                  <View style={styles.infoRow}>
+                    <Ionicons name="calendar" size={18} color="#64748B" />
+                    <View style={styles.infoContent}>
+                      <Text style={styles.infoLabel}>Model Year</Text>
+                      <Text style={styles.infoValue}>{vehicleYear}</Text>
+                    </View>
+                  </View>
+                )}
+                {vehicleFeatures && vehicleFeatures.length > 0 && (
+                  <View style={styles.featuresWrap}>
+                    <Text style={styles.featuresTitle}>Features:</Text>
+                    {vehicleFeatures.map((feature, idx) => (
+                      <View key={idx} style={styles.featureItem}>
+                        <Ionicons name="checkmark-circle" size={16} color={GREEN} />
+                        <Text style={styles.featureText}>{feature}</Text>
+                      </View>
+                    ))}
+                  </View>
+                )}
               </View>
             </View>
           )}
@@ -303,6 +441,45 @@ export default function TruckQuoteDetailScreen({ route, navigation }) {
             </View>
           </View>
 
+          {/* Truck Details */}
+          {(quote.driverName || quote.labourIncluded || quote.vehicleCapacity) && (
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <MaterialCommunityIcons name="truck-outline" size={20} color="#64748B" />
+                <Text style={styles.sectionTitle}>Truck Details</Text>
+              </View>
+              <View style={styles.card}>
+                {quote.vehicleCapacity && (
+                  <View style={styles.infoRow}>
+                    <Ionicons name="cube-outline" size={18} color="#64748B" />
+                    <View style={styles.infoContent}>
+                      <Text style={styles.infoLabel}>Capacity</Text>
+                      <Text style={styles.infoValue}>{quote.vehicleCapacity}</Text>
+                    </View>
+                  </View>
+                )}
+                {quote.driverName && (
+                  <View style={styles.infoRow}>
+                    <Ionicons name="person" size={18} color="#64748B" />
+                    <View style={styles.infoContent}>
+                      <Text style={styles.infoLabel}>Driver</Text>
+                      <Text style={styles.infoValue}>{quote.driverName}{quote.driverPhone ? ` (${quote.driverPhone})` : ''}</Text>
+                    </View>
+                  </View>
+                )}
+                {quote.labourIncluded && (
+                  <View style={styles.infoRow}>
+                    <Ionicons name="people" size={18} color="#64748B" />
+                    <View style={styles.infoContent}>
+                      <Text style={styles.infoLabel}>Labour Included</Text>
+                      <Text style={styles.infoValue}>{quote.labourCount || 0} persons</Text>
+                    </View>
+                  </View>
+                )}
+              </View>
+            </View>
+          )}
+
           {/* Pricing Breakdown */}
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
@@ -316,13 +493,55 @@ export default function TruckQuoteDetailScreen({ route, navigation }) {
                   <Text style={styles.priceValue}>{formatCurrency(baseAmount)}</Text>
                 </View>
               )}
+              {quote.loadingCharges > 0 && (
+                <View style={styles.priceRow}>
+                  <Text style={styles.priceLabel}>Loading Charges</Text>
+                  <Text style={styles.priceValue}>{formatCurrency(quote.loadingCharges)}</Text>
+                </View>
+              )}
+              {quote.unloadingCharges > 0 && (
+                <View style={styles.priceRow}>
+                  <Text style={styles.priceLabel}>Unloading Charges</Text>
+                  <Text style={styles.priceValue}>{formatCurrency(quote.unloadingCharges)}</Text>
+                </View>
+              )}
+              {quote.labourCharges > 0 && (
+                <View style={styles.priceRow}>
+                  <Text style={styles.priceLabel}>Labour Charges</Text>
+                  <Text style={styles.priceValue}>{formatCurrency(quote.labourCharges)}</Text>
+                </View>
+              )}
+              {quote.packagingCharges > 0 && (
+                <View style={styles.priceRow}>
+                  <Text style={styles.priceLabel}>Packaging Charges</Text>
+                  <Text style={styles.priceValue}>{formatCurrency(quote.packagingCharges)}</Text>
+                </View>
+              )}
+              {quote.insuranceCharges > 0 && (
+                <View style={styles.priceRow}>
+                  <Text style={styles.priceLabel}>Insurance</Text>
+                  <Text style={styles.priceValue}>{formatCurrency(quote.insuranceCharges)}</Text>
+                </View>
+              )}
+              {quote.tollEstimate > 0 && (
+                <View style={styles.priceRow}>
+                  <Text style={styles.priceLabel}>Toll Estimate</Text>
+                  <Text style={styles.priceValue}>{formatCurrency(quote.tollEstimate)}</Text>
+                </View>
+              )}
               {securityDeposit > 0 && (
                 <View style={styles.priceRow}>
                   <Text style={styles.priceLabel}>Security Deposit</Text>
                   <Text style={styles.priceValue}>{formatCurrency(securityDeposit)}</Text>
                 </View>
               )}
-              {taxes > 0 && (
+              {quote.gstAmount > 0 && (
+                <View style={styles.priceRow}>
+                  <Text style={styles.priceLabel}>GST</Text>
+                  <Text style={styles.priceValue}>{formatCurrency(quote.gstAmount)}</Text>
+                </View>
+              )}
+              {taxes > 0 && !quote.gstAmount && (
                 <View style={styles.priceRow}>
                   <Text style={styles.priceLabel}>Taxes & GST</Text>
                   <Text style={styles.priceValue}>{formatCurrency(taxes)}</Text>
@@ -364,6 +583,60 @@ export default function TruckQuoteDetailScreen({ route, navigation }) {
               </View>
               <View style={styles.card}>
                 <Text style={styles.notesText}>{notes}</Text>
+              </View>
+            </View>
+          )}
+
+          {/* Inclusions */}
+          {inclusions && inclusions.length > 0 && (
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <Ionicons name="checkmark-circle-outline" size={20} color="#64748B" />
+                <Text style={styles.sectionTitle}>Inclusions</Text>
+              </View>
+              <View style={styles.card}>
+                {inclusions.map((item, idx) => (
+                  <View key={idx} style={styles.listItem}>
+                    <Ionicons name="checkmark-circle" size={16} color={GREEN} />
+                    <Text style={styles.listText}>{item}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          )}
+
+          {/* Exclusions */}
+          {exclusions && exclusions.length > 0 && (
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <Ionicons name="close-circle-outline" size={20} color="#64748B" />
+                <Text style={styles.sectionTitle}>Exclusions</Text>
+              </View>
+              <View style={styles.card}>
+                {exclusions.map((item, idx) => (
+                  <View key={idx} style={styles.listItem}>
+                    <Ionicons name="close-circle" size={16} color="#EF4444" />
+                    <Text style={styles.listText}>{item}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          )}
+
+          {/* Terms & Conditions */}
+          {termsConditions && termsConditions.length > 0 && (
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <Ionicons name="document-text-outline" size={20} color="#64748B" />
+                <Text style={styles.sectionTitle}>Terms & Conditions</Text>
+              </View>
+              <View style={styles.card}>
+                {termsConditions.map((item, idx) => (
+                  <View key={idx} style={styles.listItem}>
+                    <Text style={styles.listNumber}>{idx + 1}.</Text>
+                    <Text style={styles.listText}>{item}</Text>
+                  </View>
+                ))}
               </View>
             </View>
           )}
@@ -519,5 +792,103 @@ const styles = StyleSheet.create({
     marginTop: 8,
     textAlign: 'center',
     paddingHorizontal: 32,
+  },
+
+  // Image Slider styles
+  imageSliderContainer: {
+    position: 'relative',
+    backgroundColor: '#F5F5F7',
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  imageSlide: {
+    width: SLIDER_WIDTH,
+    height: 250,
+    backgroundColor: '#F5F5F7',
+  },
+  sliderImage: {
+    width: '100%',
+    height: '100%',
+  },
+  paginationDots: {
+    position: 'absolute',
+    bottom: 12,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 6,
+  },
+  dot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  activeDot: {
+    backgroundColor: GREEN,
+    width: 20,
+  },
+  inactiveDot: {
+    backgroundColor: 'rgba(255, 255, 255, 0.6)',
+  },
+  imageCounter: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  imageCounterText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+
+  // Feature styles
+  featuresWrap: {
+    marginTop: 8,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#E2E8F0',
+  },
+  featuresTitle: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: DARK,
+    marginBottom: 8,
+  },
+  featureItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 6,
+  },
+  featureText: {
+    fontSize: 13,
+    color: '#475569',
+    flex: 1,
+  },
+
+  // List styles
+  listItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    marginBottom: 8,
+  },
+  listText: {
+    fontSize: 13,
+    color: '#475569',
+    flex: 1,
+    lineHeight: 20,
+  },
+  listNumber: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#64748B',
+    width: 20,
   },
 });

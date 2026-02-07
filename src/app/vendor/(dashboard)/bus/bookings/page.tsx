@@ -20,6 +20,8 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { BUS_CATEGORIES, BUS_TRIP_TYPES } from '@/lib/bus-categories';
+import Pagination from '@/components/vendor/Pagination';
+import DateFilterDropdown from '@/components/vendor/DateFilterDropdown';
 
 interface BusBooking {
   id: string;
@@ -79,6 +81,17 @@ export default function VendorBusBookingsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [filter, setFilter] = useState('upcoming');
 
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+
+  // Date filter state
+  const [dateFilter, setDateFilter] = useState<{ start: string | null; end: string | null }>({
+    start: null,
+    end: null,
+  });
+
   const fetchBookings = useCallback(async () => {
     setIsLoading(true);
     try {
@@ -89,8 +102,19 @@ export default function VendorBusBookingsPage() {
       else if (filter === 'completed') type = 'completed';
       else if (filter === 'cancelled') type = 'cancelled';
 
+      const params = new URLSearchParams();
+      if (type) params.set('type', type);
+
+      // PAGINATION PARAMS
+      params.set('page', currentPage.toString());
+      params.set('limit', '20');
+
+      // DATE FILTER PARAMS
+      if (dateFilter.start) params.set('startDate', dateFilter.start);
+      if (dateFilter.end) params.set('endDate', dateFilter.end);
+
       const [bookingsRes, statsRes] = await Promise.all([
-        fetch(`/api/vendor/bus-bookings?type=${type}`),
+        fetch(`/api/vendor/bus-bookings?${params}`),
         fetch('/api/vendor/bus-bookings', { method: 'POST' }),
       ]);
 
@@ -99,6 +123,11 @@ export default function VendorBusBookingsPage() {
 
       if (bookingsData.success) {
         setBookings(bookingsData.bookings || []);
+        // Set pagination state from response
+        if (bookingsData.pagination) {
+          setTotalPages(bookingsData.pagination.totalPages);
+          setTotalItems(bookingsData.pagination.total);
+        }
       }
       if (statsData.success) {
         setStats(statsData.stats);
@@ -108,7 +137,7 @@ export default function VendorBusBookingsPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [filter]);
+  }, [filter, currentPage, dateFilter]);
 
   useEffect(() => {
     fetchBookings();
@@ -171,26 +200,40 @@ export default function VendorBusBookingsPage() {
       </div>
 
       {/* Filter */}
-      <div className="flex gap-2 overflow-x-auto pb-2">
-        {[
-          { value: 'upcoming', label: 'Upcoming' },
-          { value: 'active', label: 'In Progress' },
-          { value: 'completed', label: 'Completed' },
-          { value: 'cancelled', label: 'Cancelled' },
-          { value: 'all', label: 'All' },
-        ].map((f) => (
-          <button
-            key={f.value}
-            onClick={() => setFilter(f.value)}
-            className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition ${
-              filter === f.value
-                ? 'bg-orange-100 text-orange-700'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-            }`}
-          >
-            {f.label}
-          </button>
-        ))}
+      <div className="flex flex-wrap gap-2 items-center">
+        <div className="flex gap-2 overflow-x-auto pb-2">
+          {[
+            { value: 'upcoming', label: 'Upcoming' },
+            { value: 'active', label: 'In Progress' },
+            { value: 'completed', label: 'Completed' },
+            { value: 'cancelled', label: 'Cancelled' },
+            { value: 'all', label: 'All' },
+          ].map((f) => (
+            <button
+              key={f.value}
+              onClick={() => {
+                setFilter(f.value);
+                setCurrentPage(1);
+              }}
+              className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition ${
+                filter === f.value
+                  ? 'bg-orange-100 text-orange-700'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
+
+        <DateFilterDropdown
+          onFilterChange={(start, end) => {
+            setDateFilter({ start, end });
+            setCurrentPage(1);
+          }}
+          initialStartDate={dateFilter.start || undefined}
+          initialEndDate={dateFilter.end || undefined}
+        />
       </div>
 
       {/* Bookings List */}
@@ -349,6 +392,17 @@ export default function VendorBusBookingsPage() {
           })
         )}
       </div>
+
+      {/* Pagination */}
+      {filteredBookings.length > 0 && (
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={totalItems}
+          itemsPerPage={20}
+          onPageChange={(page) => setCurrentPage(page)}
+        />
+      )}
     </div>
   );
 }

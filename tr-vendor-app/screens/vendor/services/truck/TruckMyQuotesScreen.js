@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -12,6 +12,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Feather';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { getVendorQuotes } from '../../../api/client';
+import { useInfiniteScroll } from '../../../../hooks/useInfiniteScroll';
+import DateFilterModal from '../../../../components/DateFilterModal';
 
 const GREEN = '#09B368';
 const BG = '#F5F5F7';
@@ -34,32 +36,32 @@ const TABS = [
 
 export default function TruckMyQuotesScreen({ navigation }) {
   const [activeTab, setActiveTab] = useState('all');
-  const [quotes, setQuotes] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
+  const [showDateFilter, setShowDateFilter] = useState(false);
 
-  const fetchQuotes = useCallback(async () => {
-    try {
-      const params = activeTab !== 'all' ? { status: activeTab.toUpperCase() } : {};
-      const response = await getVendorQuotes('truck', params);
-      setQuotes(response.quotes || []);
-    } catch (error) {
-      console.error('Error fetching truck quotes:', error);
-      setQuotes([]);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, [activeTab]);
+  const {
+    data: quotes,
+    loading,
+    refreshing,
+    hasMore,
+    dateFilter,
+    loadMore,
+    refresh,
+    initialLoad,
+    applyDateFilter,
+  } = useInfiniteScroll(getVendorQuotes, {
+    service: 'truck',
+    pageSize: 20,
+  });
 
   useEffect(() => {
-    fetchQuotes();
-  }, [fetchQuotes]);
+    initialLoad();
+  }, []);
 
-  const onRefresh = () => {
-    setRefreshing(true);
-    fetchQuotes();
+  const handleDateFilterApply = (startDate, endDate) => {
+    applyDateFilter(startDate, endDate);
   };
+
+  const hasActiveFilter = dateFilter.start || dateFilter.end;
 
   const formatDate = (dateStr) => {
     if (!dateStr) return 'N/A';
@@ -229,7 +231,13 @@ export default function TruckMyQuotesScreen({ navigation }) {
           <Text style={styles.headerTitle}>My Quotes</Text>
           <Text style={styles.headerSubtitle}>Truck Rental</Text>
         </View>
-        <View style={{ width: 40 }} />
+        <TouchableOpacity
+          onPress={() => setShowDateFilter(true)}
+          style={styles.filterButton}
+        >
+          {hasActiveFilter && <View style={styles.activeFilterDot} />}
+          <Icon name="calendar" size={22} color={DARK} />
+        </TouchableOpacity>
       </View>
 
       {/* Tabs */}
@@ -266,11 +274,31 @@ export default function TruckMyQuotesScreen({ navigation }) {
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[GREEN]} />
+            <RefreshControl refreshing={refreshing} onRefresh={refresh} colors={[GREEN]} />
           }
+          onEndReached={loadMore}
+          onEndReachedThreshold={0.5}
+          ListFooterComponent={() => {
+            if (loading && quotes.length > 0) {
+              return (
+                <View style={styles.footer}>
+                  <ActivityIndicator size="small" color={GREEN} />
+                </View>
+              );
+            }
+            return null;
+          }}
           ListEmptyComponent={renderEmptyState}
         />
       )}
+
+      <DateFilterModal
+        visible={showDateFilter}
+        onClose={() => setShowDateFilter(false)}
+        onApply={handleDateFilterApply}
+        currentStartDate={dateFilter.start}
+        currentEndDate={dateFilter.end}
+      />
     </SafeAreaView>
   );
 }
@@ -397,4 +425,28 @@ const styles = StyleSheet.create({
   },
   emptyTitle: { fontSize: 18, fontWeight: '600', color: DARK, marginTop: 16 },
   emptySubtitle: { fontSize: 14, color: '#64748B', marginTop: 8, textAlign: 'center' },
+
+  filterButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: BG,
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
+  },
+  activeFilterDot: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: GREEN,
+    zIndex: 1,
+  },
+  footer: {
+    paddingVertical: 20,
+    alignItems: 'center',
+  },
 });

@@ -123,7 +123,7 @@ export async function GET(
           vehicleBrand: q.vehicleBrand,
           chauffeur_vehicle_categories: q.vehicle_category,
           registrationNumber: q.registrationNumber,
-          vehicleImages: vehicleImages,
+          vehicleImages: vehicleImages ? JSON.stringify(vehicleImages) : null,
           vehicleFeatures: q.vehicleFeatures,
           dailyRate: q.dailyRate,
           totalAmount: q.totalAmount,

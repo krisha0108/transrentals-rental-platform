@@ -25,7 +25,7 @@ export async function GET(
     }
 
     const resolvedParams = 'then' in params ? await params : params;
-    const { id: vehicleId } = resolvedParams;
+    const { slug: serviceSlug, id: vehicleId } = resolvedParams;
 
     let vehicle: any = null;
     let assignedLocationIds: Set<string>;
@@ -73,7 +73,31 @@ export async function GET(
       assignedLocationIds = new Set(vehicle.vendor_fleet_locations.map((l: any) => l.locationId));
     }
 
+    // Get service to filter locations
+    const service = await prisma.services.findUnique({
+      where: { slug: serviceSlug },
+      select: { id: true },
+    });
+
+    if (!service) {
+      return NextResponse.json({ error: 'Service not found' }, { status: 404 });
+    }
+
+    // Get locations that are configured for this service
+    const serviceLocations = await prisma.service_locations.findMany({
+      where: {
+        serviceId: service.id,
+        isActive: true,
+      },
+      select: {
+        locationId: true,
+      },
+    });
+
+    const serviceLocationIds = new Set(serviceLocations.map(sl => sl.locationId));
+
     // Get all locations with hierarchy (states, union territories and cities)
+    // but only include cities that are configured for this service
     const states = await prisma.locations.findMany({
       where: { type: { in: ['STATE', 'UNION_TERRITORY'] }, isActive: true },
       select: {
@@ -81,7 +105,11 @@ export async function GET(
         name: true,
         slug: true,
         other_locations: {
-          where: { type: 'CITY', isActive: true },
+          where: {
+            type: 'CITY',
+            isActive: true,
+            id: { in: Array.from(serviceLocationIds) }, // Only service-configured locations
+          },
           select: { id: true, name: true, slug: true },
           orderBy: { name: 'asc' },
         },
@@ -89,22 +117,24 @@ export async function GET(
       orderBy: { name: 'asc' },
     });
 
-    // Build hierarchical structure
-    const locationHierarchy = states.map(state => ({
-      id: state.id,
-      name: state.name,
-      slug: state.slug,
-      type: 'state' as const,
-      cities: state.other_locations.map(city => ({
-        id: city.id,
-        name: city.name,
-        slug: city.slug,
-        type: 'city' as const,
-        isAssigned: assignedLocationIds.has(city.id),
-      })),
-      assignedCount: state.other_locations.filter(c => assignedLocationIds.has(c.id)).length,
-      totalCount: state.other_locations.length,
-    }));
+    // Build hierarchical structure (filter out states with no cities for this service)
+    const locationHierarchy = states
+      .filter(state => state.other_locations.length > 0)
+      .map(state => ({
+        id: state.id,
+        name: state.name,
+        slug: state.slug,
+        type: 'state' as const,
+        cities: state.other_locations.map(city => ({
+          id: city.id,
+          name: city.name,
+          slug: city.slug,
+          type: 'city' as const,
+          isAssigned: assignedLocationIds.has(city.id),
+        })),
+        assignedCount: state.other_locations.filter(c => assignedLocationIds.has(c.id)).length,
+        totalCount: state.other_locations.length,
+      }));
 
     // Flat list of all cities for backward compatibility
     const allCities = states.flatMap(s => s.other_locations.map(c => ({
@@ -115,23 +145,27 @@ export async function GET(
       isAssigned: assignedLocationIds.has(c.id),
     })));
 
-    // Build assigned locations array
+    // Build assigned locations array (filter by service-specific locations only)
     const assignedLocations = isVendorFleet
-      ? vehicle.vendor_fleet_locations.map((l: any) => ({
-          id: l.id,
-          locationId: l.locationId,
-          locationName: l.locations.name,
-          locationSlug: l.locations.slug,
-          isActive: l.isActive,
-        }))
-      : vehicle.vehicle_model_locations.map((l: any) => ({
-          id: l.id,
-          locationId: l.locationId,
-          locationName: l.locations.name,
-          locationSlug: l.locations.slug,
-          isActive: l.isActive,
-          basePricePerDay: l.basePricePerDay,
-        }));
+      ? vehicle.vendor_fleet_locations
+          .filter((l: any) => serviceLocationIds.has(l.locationId)) // Only service-configured locations
+          .map((l: any) => ({
+            id: l.id,
+            locationId: l.locationId,
+            locationName: l.locations.name,
+            locationSlug: l.locations.slug,
+            isActive: l.isActive,
+          }))
+      : vehicle.vehicle_model_locations
+          .filter((l: any) => serviceLocationIds.has(l.locationId)) // Only service-configured locations
+          .map((l: any) => ({
+            id: l.id,
+            locationId: l.locationId,
+            locationName: l.locations.name,
+            locationSlug: l.locations.slug,
+            isActive: l.isActive,
+            basePricePerDay: l.basePricePerDay,
+          }));
 
     return NextResponse.json({
       success: true,

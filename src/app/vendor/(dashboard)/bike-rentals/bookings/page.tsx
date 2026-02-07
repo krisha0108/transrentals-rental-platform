@@ -30,6 +30,8 @@ import { useSession } from 'next-auth/react';
 import { NewBookingNotification } from '@/components/vendor/NewBookingNotification';
 import { AcceptBookingModal } from '@/components/vendor/AcceptBookingModal';
 import { BookingNotification } from '@/lib/socket/types';
+import Pagination from '@/components/vendor/Pagination';
+import DateFilterDropdown from '@/components/vendor/DateFilterDropdown';
 
 interface Booking {
   id: string;
@@ -132,6 +134,17 @@ export default function VendorBikeBookingsPage() {
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [soundEnabled, setSoundEnabled] = useState(true);
 
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+
+  // Date filter state
+  const [dateFilter, setDateFilter] = useState<{ start: string | null; end: string | null }>({
+    start: null,
+    end: null,
+  });
+
   // Fetch vendor info and bookings
   const fetchData = useCallback(async () => {
     try {
@@ -159,17 +172,33 @@ export default function VendorBikeBookingsPage() {
       }
 
       // Fetch bookings
-      const bookingsRes = await fetch('/api/vendor/bike-bookings');
+      const params = new URLSearchParams();
+
+      // PAGINATION PARAMS
+      params.set('page', currentPage.toString());
+      params.set('limit', '20');
+
+      // DATE FILTER PARAMS
+      if (dateFilter.start) params.set('startDate', dateFilter.start);
+      if (dateFilter.end) params.set('endDate', dateFilter.end);
+
+      const bookingsRes = await fetch(`/api/vendor/bike-bookings?${params}`);
       if (bookingsRes.ok) {
         const bookingsData = await bookingsRes.json();
         setBookings(bookingsData.bookings || []);
+
+        // Set pagination state from response
+        if (bookingsData.pagination) {
+          setTotalPages(bookingsData.pagination.totalPages);
+          setTotalItems(bookingsData.pagination.total);
+        }
       }
     } catch (error) {
       console.error('Failed to fetch data:', error);
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [currentPage, dateFilter]);
 
   useEffect(() => {
     fetchData();
@@ -531,7 +560,10 @@ export default function VendorBikeBookingsPage() {
             ].map((f) => (
               <button
                 key={f.value}
-                onClick={() => setFilter(f.value)}
+                onClick={() => {
+                  setFilter(f.value);
+                  setCurrentPage(1);
+                }}
                 className={cn(
                   'px-4 py-2 rounded-lg font-medium text-sm whitespace-nowrap transition-colors',
                   filter === f.value
@@ -543,6 +575,15 @@ export default function VendorBikeBookingsPage() {
               </button>
             ))}
           </div>
+
+          <DateFilterDropdown
+            onFilterChange={(start, end) => {
+              setDateFilter({ start, end });
+              setCurrentPage(1); // Reset to page 1 when filter changes
+            }}
+            initialStartDate={dateFilter.start || undefined}
+            initialEndDate={dateFilter.end || undefined}
+          />
         </div>
       </div>
 
@@ -668,6 +709,17 @@ export default function VendorBikeBookingsPage() {
           })
         )}
       </div>
+
+      {/* Pagination */}
+      {filteredBookings.length > 0 && (
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={totalItems}
+          itemsPerPage={20}
+          onPageChange={(page) => setCurrentPage(page)}
+        />
+      )}
     </div>
   );
 }

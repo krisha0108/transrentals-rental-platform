@@ -24,6 +24,8 @@ import {
   Gift,
 } from 'lucide-react';
 import Link from 'next/link';
+import Pagination from '@/components/vendor/Pagination';
+import DateFilterDropdown from '@/components/vendor/DateFilterDropdown';
 
 interface LuxuryItem {
   id: string;
@@ -114,13 +116,31 @@ export default function VendorLuxuryBookingsPage() {
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState('all');
 
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+
+  // Date filter state
+  const [dateFilter, setDateFilter] = useState<{ start: string | null; end: string | null }>({
+    start: null,
+    end: null,
+  });
+
   const fetchData = async () => {
     try {
       setIsLoading(true);
       setError(null);
 
+      const params = new URLSearchParams();
+      params.set('type', filter);
+      params.set('page', currentPage.toString());
+      params.set('limit', '20');
+      if (dateFilter.start) params.set('startDate', dateFilter.start);
+      if (dateFilter.end) params.set('endDate', dateFilter.end);
+
       const [bookingsRes, statsRes] = await Promise.all([
-        fetch(`/api/vendor/luxury-bookings?type=${filter}`),
+        fetch(`/api/vendor/luxury-bookings?${params}`),
         fetch('/api/vendor/luxury-bookings', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -133,6 +153,11 @@ export default function VendorLuxuryBookingsPage() {
 
       if (bookingsData.success) {
         setItems(bookingsData.bookings);
+        // Set pagination state
+        if (bookingsData.pagination) {
+          setTotalPages(bookingsData.pagination.totalPages);
+          setTotalItems(bookingsData.pagination.total);
+        }
       } else {
         setError(bookingsData.error || 'Failed to fetch data');
       }
@@ -149,7 +174,7 @@ export default function VendorLuxuryBookingsPage() {
 
   useEffect(() => {
     fetchData();
-  }, [filter]);
+  }, [filter, currentPage, dateFilter]);
 
   const getTimeRemaining = (quotesOpenTill: string) => {
     const now = new Date();
@@ -204,42 +229,60 @@ export default function VendorLuxuryBookingsPage() {
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
         <button
-          onClick={() => setFilter('open')}
+          onClick={() => {
+            setFilter('open');
+            setCurrentPage(1);
+          }}
           className={`p-3 rounded-xl text-left transition ${filter === 'open' ? 'ring-2 ring-amber-500' : ''} bg-gradient-to-br from-amber-500 to-yellow-500 text-white`}
         >
           <p className="text-2xl font-bold">{stats.openRequests}</p>
           <p className="text-xs opacity-80">New Requests</p>
         </button>
         <button
-          onClick={() => setFilter('quoted')}
+          onClick={() => {
+            setFilter('quoted');
+            setCurrentPage(1);
+          }}
           className={`p-3 rounded-xl text-left transition ${filter === 'quoted' ? 'ring-2 ring-blue-500' : ''} bg-white border shadow-sm`}
         >
           <p className="text-2xl font-bold text-blue-600">{stats.myQuotes}</p>
           <p className="text-xs text-gray-500">My Quotes</p>
         </button>
         <button
-          onClick={() => setFilter('confirmed')}
+          onClick={() => {
+            setFilter('confirmed');
+            setCurrentPage(1);
+          }}
           className={`p-3 rounded-xl text-left transition ${filter === 'confirmed' ? 'ring-2 ring-green-500' : ''} bg-white border shadow-sm`}
         >
           <p className="text-2xl font-bold text-green-600">{stats.pending + stats.confirmed}</p>
           <p className="text-xs text-gray-500">Confirmed</p>
         </button>
         <button
-          onClick={() => setFilter('active')}
+          onClick={() => {
+            setFilter('active');
+            setCurrentPage(1);
+          }}
           className={`p-3 rounded-xl text-left transition ${filter === 'active' ? 'ring-2 ring-purple-500' : ''} bg-white border shadow-sm`}
         >
           <p className="text-2xl font-bold text-purple-600">{stats.active}</p>
           <p className="text-xs text-gray-500">Active</p>
         </button>
         <button
-          onClick={() => setFilter('completed')}
+          onClick={() => {
+            setFilter('completed');
+            setCurrentPage(1);
+          }}
           className={`p-3 rounded-xl text-left transition ${filter === 'completed' ? 'ring-2 ring-gray-500' : ''} bg-white border shadow-sm`}
         >
           <p className="text-2xl font-bold text-gray-600">{stats.completed}</p>
           <p className="text-xs text-gray-500">Completed</p>
         </button>
         <button
-          onClick={() => setFilter('all')}
+          onClick={() => {
+            setFilter('all');
+            setCurrentPage(1);
+          }}
           className={`p-3 rounded-xl text-left transition ${filter === 'all' ? 'ring-2 ring-gray-900' : ''} bg-gray-900 text-white`}
         >
           <p className="text-2xl font-bold">{stats.openRequests + stats.myQuotes + stats.pending + stats.confirmed + stats.active}</p>
@@ -248,6 +291,20 @@ export default function VendorLuxuryBookingsPage() {
         <div className="p-3 rounded-xl bg-gradient-to-br from-green-500 to-emerald-500 text-white">
           <p className="text-2xl font-bold">₹{(stats.totalEarnings / 1000).toFixed(0)}K</p>
           <p className="text-xs opacity-80">Earned</p>
+        </div>
+      </div>
+
+      {/* Date Filter */}
+      <div className="bg-white rounded-xl p-4 shadow-sm border">
+        <div className="flex flex-wrap gap-4 items-center">
+          <DateFilterDropdown
+            onFilterChange={(start, end) => {
+              setDateFilter({ start, end });
+              setCurrentPage(1);
+            }}
+            initialStartDate={dateFilter.start || undefined}
+            initialEndDate={dateFilter.end || undefined}
+          />
         </div>
       </div>
 
@@ -478,6 +535,17 @@ export default function VendorLuxuryBookingsPage() {
           })
         )}
       </div>
+
+      {/* Pagination */}
+      {items.length > 0 && (
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={totalItems}
+          itemsPerPage={20}
+          onPageChange={(page) => setCurrentPage(page)}
+        />
+      )}
     </div>
   );
 }

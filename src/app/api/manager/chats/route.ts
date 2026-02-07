@@ -80,7 +80,7 @@ export async function GET(request: NextRequest) {
           select: { id: true, businessName: true, ownerName: true, phone: true },
         },
         _count: {
-          select: { messages: true },
+          select: { chat_messages: true },
         },
       },
       orderBy: { updatedAt: 'desc' },
@@ -130,7 +130,7 @@ export async function GET(request: NextRequest) {
           messageType: 'TEXT',
           createdAt: c.lastMessageAt,
         } : null,
-        messageCount: c._count.messages,
+        messageCount: c._count.chat_messages,
       })),
     });
   } catch (error: any) {

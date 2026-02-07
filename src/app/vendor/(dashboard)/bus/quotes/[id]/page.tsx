@@ -23,6 +23,7 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { BUS_CATEGORIES, BUS_TRIP_TYPES } from '@/lib/bus-categories';
+import VehicleImageGallery from '@/components/customer/VehicleImageGallery';
 
 interface QuoteDetails {
   id: string;
@@ -31,7 +32,9 @@ interface QuoteDetails {
   vehicleName: string;
   vehicleNumber?: string;
   vehicle_model?: string;
+  vehicle_category?: string;
   seats: number;
+  vehicleImages?: string;
   baseAmount: number;
   driverAllowance: number;
   tollEstimate: number;
@@ -325,6 +328,16 @@ export default function VendorQuoteDetailPage() {
             </div>
           )}
         </div>
+
+        {/* Vehicle Images */}
+        {quote.vehicleImages && (
+          <div className="p-6 border-b">
+            <VehicleImageGallery
+              vehicleImages={quote.vehicleImages}
+              vehicleName={quote.vehicleName}
+            />
+          </div>
+        )}
 
         {/* Pricing Breakdown */}
         <div className="p-6 border-b">

@@ -173,7 +173,7 @@ export default function BikeQuoteRequestDetailScreen({ route, navigation }) {
               <Text style={styles.requestNumberText}>Request #{requestNumber}</Text>
             </View>
           </View>
-          {status === 'PENDING' && (
+          {!request.hasQuoted && (status === 'PENDING' || status === 'QUOTES_RECEIVED') && (
             <TouchableOpacity style={styles.sendQuoteBtn} onPress={handleSendQuote}>
               <Ionicons name="paper-plane" size={16} color="#fff" />
               <Text style={styles.sendQuoteBtnText}>Send Quote</Text>
@@ -315,7 +315,7 @@ export default function BikeQuoteRequestDetailScreen({ route, navigation }) {
       </ScrollView>
 
       {/* Bottom Action Button */}
-      {status === 'PENDING' && (
+      {!request.hasQuoted && (status === 'PENDING' || status === 'QUOTES_RECEIVED') && (
         <View style={styles.bottomBar}>
           <TouchableOpacity style={styles.sendQuoteButton} onPress={handleSendQuote}>
             <Ionicons name="paper-plane" size={20} color="#fff" />

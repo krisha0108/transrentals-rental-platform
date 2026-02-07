@@ -16,6 +16,8 @@ import {
   AlertCircle,
   Loader2,
 } from 'lucide-react';
+import Pagination from '@/components/vendor/Pagination';
+import DateFilterDropdown from '@/components/vendor/DateFilterDropdown';
 
 interface Quote {
   id: string;
@@ -58,19 +60,46 @@ export default function VendorPackersQuotesPage() {
   const [error, setError] = useState('');
   const [filter, setFilter] = useState('all');
 
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+
+  // Date filter state
+  const [dateFilter, setDateFilter] = useState<{ start: string | null; end: string | null }>({
+    start: null,
+    end: null,
+  });
+
   useEffect(() => {
     fetchQuotes();
-  }, [filter]);
+  }, [filter, currentPage, dateFilter]);
 
   const fetchQuotes = async () => {
     setIsLoading(true);
     try {
-      const statusParam = filter !== 'all' ? `?status=${filter}` : '';
-      const response = await fetch(`/api/vendor/packers-quotes${statusParam}`);
+      const params = new URLSearchParams();
+
+      if (filter !== 'all') params.set('status', filter);
+
+      // Pagination params
+      params.set('page', currentPage.toString());
+      params.set('limit', '20');
+
+      // Date filter params
+      if (dateFilter.start) params.set('startDate', dateFilter.start);
+      if (dateFilter.end) params.set('endDate', dateFilter.end);
+
+      const response = await fetch(`/api/vendor/packers-quotes?${params}`);
       const data = await response.json();
 
       if (data.success) {
         setQuotes(data.quotes || []);
+        // Set pagination state
+        if (data.pagination) {
+          setTotalPages(data.pagination.totalPages);
+          setTotalItems(data.pagination.total);
+        }
       } else {
         setError(data.error || 'Failed to load quotes');
       }
@@ -161,26 +190,42 @@ export default function VendorPackersQuotesPage() {
       </div>
 
       {/* Filter */}
-      <div className="flex gap-2 overflow-x-auto pb-2">
-        {[
-          { value: 'all', label: 'All Quotes' },
-          { value: 'SENT', label: 'Sent' },
-          { value: 'VIEWED', label: 'Viewed' },
-          { value: 'ACCEPTED', label: 'Accepted' },
-          { value: 'REJECTED', label: 'Rejected' },
-        ].map((f) => (
-          <button
-            key={f.value}
-            onClick={() => setFilter(f.value)}
-            className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition ${
-              filter === f.value
-                ? 'bg-blue-100 text-blue-700'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-            }`}
-          >
-            {f.label}
-          </button>
-        ))}
+      <div className="bg-white rounded-xl p-4 shadow-sm border">
+        <div className="flex flex-wrap gap-4 items-center">
+          <div className="flex gap-2 overflow-x-auto pb-2">
+            {[
+              { value: 'all', label: 'All Quotes' },
+              { value: 'SENT', label: 'Sent' },
+              { value: 'VIEWED', label: 'Viewed' },
+              { value: 'ACCEPTED', label: 'Accepted' },
+              { value: 'REJECTED', label: 'Rejected' },
+            ].map((f) => (
+              <button
+                key={f.value}
+                onClick={() => {
+                  setFilter(f.value);
+                  setCurrentPage(1);
+                }}
+                className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition ${
+                  filter === f.value
+                    ? 'bg-blue-100 text-blue-700'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+
+          <DateFilterDropdown
+            onFilterChange={(start, end) => {
+              setDateFilter({ start, end });
+              setCurrentPage(1);
+            }}
+            initialStartDate={dateFilter.start || undefined}
+            initialEndDate={dateFilter.end || undefined}
+          />
+        </div>
       </div>
 
       {/* Quotes List */}
@@ -310,6 +355,17 @@ export default function VendorPackersQuotesPage() {
           })
         )}
       </div>
+
+      {/* Pagination */}
+      {quotes.length > 0 && (
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={totalItems}
+          itemsPerPage={20}
+          onPageChange={(page) => setCurrentPage(page)}
+        />
+      )}
     </div>
   );
 }

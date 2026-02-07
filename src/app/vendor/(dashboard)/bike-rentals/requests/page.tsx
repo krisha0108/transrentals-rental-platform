@@ -16,6 +16,8 @@ import {
   Eye,
   Phone,
 } from 'lucide-react';
+import Pagination from '@/components/vendor/Pagination';
+import DateFilterDropdown from '@/components/vendor/DateFilterDropdown';
 
 interface QuoteRequest {
   id: string;
@@ -52,22 +54,49 @@ export default function VendorBikeRequestsPage() {
   const [filter, setFilter] = useState('new');
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+
+  // Date filter state
+  const [dateFilter, setDateFilter] = useState<{ start: string | null; end: string | null }>({
+    start: null,
+    end: null,
+  });
+
   useEffect(() => {
     if (sessionStatus === 'loading') return;
     if (sessionStatus === 'unauthenticated') return;
 
     fetchRequests();
-  }, [sessionStatus, filter]);
+  }, [sessionStatus, filter, currentPage, dateFilter]);
 
   const fetchRequests = async () => {
     setIsLoading(true);
     try {
+      const params = new URLSearchParams();
       const type = filter === 'new' ? 'open' : filter === 'quoted' ? 'quoted' : '';
-      const response = await fetch(`/api/vendor/bike-quote-requests?type=${type}`);
+      if (type) params.set('type', type);
+
+      // PAGINATION PARAMS
+      params.set('page', currentPage.toString());
+      params.set('limit', '20');
+
+      // DATE FILTER PARAMS
+      if (dateFilter.start) params.set('startDate', dateFilter.start);
+      if (dateFilter.end) params.set('endDate', dateFilter.end);
+
+      const response = await fetch(`/api/vendor/bike-quote-requests?${params}`);
       const data = await response.json();
 
       if (data.success) {
         setRequests(data.requests || []);
+        // Set pagination state from response
+        if (data.pagination) {
+          setTotalPages(data.pagination.totalPages);
+          setTotalItems(data.pagination.total);
+        }
       }
     } catch (error) {
       console.error('Failed to fetch requests:', error);
@@ -108,24 +137,38 @@ export default function VendorBikeRequestsPage() {
           </div>
         </div>
 
-        <div className="flex items-center gap-2 bg-gray-100 rounded-lg p-1">
-          {[
-            { value: 'new', label: 'New Requests' },
-            { value: 'quoted', label: 'My Quotes' },
-            { value: 'all', label: 'All' },
-          ].map((f) => (
-            <button
-              key={f.value}
-              onClick={() => setFilter(f.value)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
-                filter === f.value
-                  ? 'bg-white text-orange-600 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              {f.label}
-            </button>
-          ))}
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center gap-2 bg-gray-100 rounded-lg p-1">
+            {[
+              { value: 'new', label: 'New Requests' },
+              { value: 'quoted', label: 'My Quotes' },
+              { value: 'all', label: 'All' },
+            ].map((f) => (
+              <button
+                key={f.value}
+                onClick={() => {
+                  setFilter(f.value);
+                  setCurrentPage(1);
+                }}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
+                  filter === f.value
+                    ? 'bg-white text-orange-600 shadow-sm'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+
+          <DateFilterDropdown
+            onFilterChange={(start, end) => {
+              setDateFilter({ start, end });
+              setCurrentPage(1); // Reset to page 1 when filter changes
+            }}
+            initialStartDate={dateFilter.start || undefined}
+            initialEndDate={dateFilter.end || undefined}
+          />
         </div>
       </div>
 
@@ -312,6 +355,17 @@ export default function VendorBikeRequestsPage() {
           ))
         )}
       </div>
+
+      {/* Pagination */}
+      {filteredRequests.length > 0 && (
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={totalItems}
+          itemsPerPage={20}
+          onPageChange={(page) => setCurrentPage(page)}
+        />
+      )}
 
       {/* Info */}
       <div className="bg-orange-50 rounded-xl p-4 border border-orange-100">

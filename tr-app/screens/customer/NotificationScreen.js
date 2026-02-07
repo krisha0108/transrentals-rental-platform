@@ -45,10 +45,16 @@ const NotificationScreen = () => {
     else setRefreshing(true);
 
     try {
+      console.log('[NotificationScreen] Fetching notifications...');
       const response = await notificationService.getNotifications();
+      console.log('[NotificationScreen] API Response:', JSON.stringify(response, null, 2));
 
       if (response.success) {
-        setNotifications(response.notifications || []);
+        const notifs = response.notifications || [];
+        console.log(`[NotificationScreen] Loaded ${notifs.length} notifications`);
+        console.log(`[NotificationScreen] Unread count: ${notifs.filter(n => !n.is_read).length}`);
+
+        setNotifications(notifs);
 
         Animated.parallel([
           Animated.timing(fadeAnim, {
@@ -63,9 +69,12 @@ const NotificationScreen = () => {
             useNativeDriver: true,
           }),
         ]).start();
+      } else {
+        console.log('[NotificationScreen] API returned success: false');
       }
     } catch (error) {
-      console.log('Failed to load notifications:', error);
+      console.log('[NotificationScreen] Failed to load notifications:', error);
+      console.log('[NotificationScreen] Error details:', error.message);
     } finally {
       if (!isRefresh) setLoading(false);
       setRefreshing(false);
@@ -172,34 +181,62 @@ const NotificationScreen = () => {
     }, []);
 
 
-const handlePress = () => {
-  // 1️⃣ Booking notification → open BookingDetail
-  if (item.booking_id && item.booking_id !== '' && item.booking_id !== 'null') {
-    navigation.navigate('BookingDetail', { bookingId: item.booking_id });
-    return;
-  }
+const handlePress = async () => {
+  try {
+    // Mark notification as read first
+    console.log(`[NotificationScreen] Marking notification ${item.id} as read`);
+    await notificationService.markAsRead(item.id);
 
-  // 2️⃣ Quotation notification → open ViewQuote
-  if (
-    item.quote_id &&
-    item.quote_id !== '' &&
-    item.quote_id !== 'null' &&
-    item.quote_id !== 0
-  ) {
-    navigation.navigate('ViewQuote', {
-      quoteId: item.quote_id,
-      bookingId: item.booking_id ? item.booking_id : null,
-      quoteType: 'vehicle',
-    });
-    return;
-  }
+    // Update local state to reflect read status
+    setNotifications(prevNotifications =>
+      prevNotifications.map(n =>
+        n.id === item.id ? { ...n, is_read: true } : n
+      )
+    );
 
-  // 3️⃣ No ID found → show alert popup
-  Alert.alert(
-    'Notification Info',
-    'No booking or quotation details available for this notification.',
-    [{ text: 'OK', style: 'default' }],
-  );
+    // 1️⃣ Booking notification → open BookingDetail
+    if (item.booking_id && item.booking_id !== '' && item.booking_id !== 'null') {
+      console.log(`[NotificationScreen] Navigating to BookingDetail: ${item.booking_id}`);
+      navigation.navigate('BookingDetail', { bookingId: item.booking_id });
+      return;
+    }
+
+    // 2️⃣ Quotation notification → open ViewQuote
+    if (
+      item.quote_id &&
+      item.quote_id !== '' &&
+      item.quote_id !== 'null' &&
+      item.quote_id !== 0
+    ) {
+      console.log(`[NotificationScreen] Navigating to ViewQuote: ${item.quote_id}`);
+      navigation.navigate('ViewQuote', {
+        quoteId: item.quote_id,
+        bookingId: item.booking_id ? item.booking_id : null,
+        quoteType: 'vehicle',
+      });
+      return;
+    }
+
+    // 3️⃣ No ID found → show alert popup
+    console.log('[NotificationScreen] No booking/quote ID found in notification');
+    Alert.alert(
+      'Notification Info',
+      'No booking or quotation details available for this notification.',
+      [{ text: 'OK', style: 'default' }],
+    );
+  } catch (error) {
+    console.log('[NotificationScreen] Error handling notification press:', error);
+    // Still navigate even if marking as read fails
+    if (item.booking_id && item.booking_id !== '' && item.booking_id !== 'null') {
+      navigation.navigate('BookingDetail', { bookingId: item.booking_id });
+    } else if (item.quote_id && item.quote_id !== '' && item.quote_id !== 'null' && item.quote_id !== 0) {
+      navigation.navigate('ViewQuote', {
+        quoteId: item.quote_id,
+        bookingId: item.booking_id ? item.booking_id : null,
+        quoteType: 'vehicle',
+      });
+    }
+  }
 };
 
     return (
@@ -207,6 +244,7 @@ const handlePress = () => {
         <Animated.View
           style={[
             styles.notificationCard,
+            !item.is_read && styles.unreadNotificationCard, // Add unread styling
             {
               opacity: fadeAnim,
               transform: [
@@ -222,13 +260,17 @@ const handlePress = () => {
           ]}
         >
           {/* Header */}
-          <View style={styles.cardHeader}>
+          <View style={[styles.cardHeader, !item.is_read && styles.unreadCardHeader]}>
             <View style={styles.headerLeft}>
-              <View style={styles.iconContainer}>
+              <View style={[styles.iconContainer, !item.is_read && styles.unreadIconContainer]}>
                 <MaterialIcons name="notifications" size={scaleWidth(18)} color="#FFFFFF" />
               </View>
               <Text style={styles.notificationTitle}>{item.title}</Text>
             </View>
+            {/* Unread indicator dot */}
+            {!item.is_read && (
+              <View style={styles.unreadDot} />
+            )}
           </View>
 
           {/* Dashed Divider */}
@@ -525,6 +567,31 @@ const styles = StyleSheet.create({
   },
   bookingIdLabel: { fontSize: moderateScale(11), fontWeight: '600', color: '#166534', marginRight: scaleWidth(4) },
   bookingIdValue: { fontSize: moderateScale(12), fontWeight: '700', color: '#065F46' },
+
+  // Unread notification styles
+  unreadNotificationCard: {
+    borderWidth: 2,
+    borderColor: '#10B981', // Green border for unread
+    backgroundColor: '#F0FDF4', // Light green background
+  },
+  unreadCardHeader: {
+    backgroundColor: '#ECFDF5', // Slightly darker green for header
+  },
+  unreadIconContainer: {
+    backgroundColor: '#10B981', // Brighter green for unread
+  },
+  unreadDot: {
+    width: scaleWidth(10),
+    height: scaleWidth(10),
+    borderRadius: scaleWidth(5),
+    backgroundColor: '#10B981',
+    marginLeft: scaleWidth(8),
+    shadowColor: '#10B981',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.4,
+    shadowRadius: 3,
+    elevation: 3,
+  },
 });
 
 export default NotificationScreen;

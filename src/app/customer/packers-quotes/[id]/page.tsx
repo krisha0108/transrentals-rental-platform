@@ -20,6 +20,7 @@ import {
   MessageSquare,
 } from 'lucide-react';
 import { useCustomerAuth } from '@/hooks/useCustomer';
+import VehicleImageGallery from '@/components/customer/VehicleImageGallery';
 
 interface QuoteRequest {
   id: string;
@@ -44,6 +45,7 @@ interface VendorQuote {
   vendorName: string;
   vendorRating: number;
   vendorTotalTrips: number;
+  vehicleImages?: string;
   totalAmount: number;
   packingCharges: number;
   transportCharges: number;
@@ -379,6 +381,12 @@ export default function CustomerPackersQuoteDetailPage() {
                       {/* Expanded Details */}
                       {isExpanded && (
                         <div className="border-t pt-4 mt-4 space-y-4">
+                          {/* Vehicle Images */}
+                          <VehicleImageGallery
+                            vehicleImages={quote.vehicleImages}
+                            vehicleName={quote.vehicleType}
+                          />
+
                           {/* All Inclusions */}
                           {quote.inclusions && quote.inclusions.length > 0 && (
                             <div>

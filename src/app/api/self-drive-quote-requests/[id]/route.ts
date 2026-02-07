@@ -155,7 +155,7 @@ export async function GET(
           fuelType: q.fuelType,
           seatingCapacity: q.seats,
           registrationNumber: q.registrationNumber,
-          vehicleImages: vehicleImages,
+          vehicleImages: vehicleImages ? JSON.stringify(vehicleImages) : null,
           vehicleFeatures: q.vehicleFeatures,
           dailyRate: q.dailyRate,
           totalAmount: q.baseAmount,

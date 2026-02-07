@@ -71,6 +71,10 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '20');
     const skip = (page - 1) * limit;
 
+    // DATE FILTER PARAMS
+    const startDate = searchParams.get('startDate');
+    const endDate = searchParams.get('endDate');
+
     let whereClause: any = {};
 
     // Build category filter - if vendor has no fleet, show all requests
@@ -86,6 +90,21 @@ export async function GET(request: NextRequest) {
         }
       : {}; // No category filter if vendor has no fleet - show all requests
 
+    // DATE FILTERING
+    const dateFilter: any = {};
+    if (startDate || endDate) {
+      dateFilter.createdAt = {};
+      if (startDate) {
+        dateFilter.createdAt.gte = new Date(startDate);
+      }
+      if (endDate) {
+        // Set to end of day (23:59:59)
+        const endDateTime = new Date(endDate);
+        endDateTime.setHours(23, 59, 59, 999);
+        dateFilter.createdAt.lte = endDateTime;
+      }
+    }
+
     if (type === 'open') {
       // Open requests - vendor hasn't quoted yet
       // Must match: location + (no category OR matching category if vendor has fleet)
@@ -94,6 +113,7 @@ export async function GET(request: NextRequest) {
         quotesOpenTill: { gte: new Date() },
         locationId: { in: approvedLocationIds },
         ...categoryFilter,
+        ...dateFilter,
         bike_quotes_bike_quotes_requestIdTobike_quote_requests: {
           none: { vendorId: vendorId },
         },
@@ -101,6 +121,7 @@ export async function GET(request: NextRequest) {
     } else if (type === 'quoted') {
       // Requests where vendor has submitted a quote
       whereClause = {
+        ...dateFilter,
         bike_quotes_bike_quotes_requestIdTobike_quote_requests: {
           some: {
             vendorId: vendorId,
@@ -111,6 +132,7 @@ export async function GET(request: NextRequest) {
     } else if (type === 'won') {
       // Requests where vendor's quote was accepted
       whereClause = {
+        ...dateFilter,
         bike_quotes_bike_quotes_requestIdTobike_quote_requests: {
           some: {
             vendorId: vendorId,
@@ -122,6 +144,7 @@ export async function GET(request: NextRequest) {
       // Requests where another vendor was chosen
       whereClause = {
         status: 'QUOTE_ACCEPTED',
+        ...dateFilter,
         bike_quotes_bike_quotes_requestIdTobike_quote_requests: {
           some: {
             vendorId: vendorId,
@@ -132,6 +155,7 @@ export async function GET(request: NextRequest) {
     } else {
       // All relevant requests
       whereClause = {
+        ...dateFilter,
         OR: [
           // Open requests in vendor's locations
           {

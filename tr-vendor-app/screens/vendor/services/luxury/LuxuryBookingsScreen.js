@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -11,6 +11,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Feather';
 import { getBookings } from '../../../api/client';
+import { useInfiniteScroll } from '../../../../hooks/useInfiniteScroll';
+import DateFilterModal from '../../../../components/DateFilterModal';
 
 const C = {
   bg: '#F7FAFC',
@@ -27,36 +29,27 @@ const C = {
 
 export default function LuxuryBookingsScreen({ navigation, route }) {
   const { filter } = route.params || {};
-  const [bookings, setBookings] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
+  const [showDateFilter, setShowDateFilter] = useState(false);
 
-  const fetchBookings = useCallback(async () => {
-    try {
-      const response = await getBookings('luxury', filter);
-      if (response.success) {
-        // Filter to show only actual bookings, not quote requests
-        const actualBookings = (response.bookings || []).filter(
-          (item) => item.type === 'booking'
-        );
-        setBookings(actualBookings);
-      }
-    } catch (error) {
-      console.error('Failed to fetch bookings:', error);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, [filter]);
+  const {
+    data: bookings,
+    loading,
+    refreshing,
+    hasMore,
+    loadMore,
+    refresh,
+    initialLoad,
+    applyDateFilter,
+    dateFilter,
+    clearDateFilter,
+  } = useInfiniteScroll(getBookings, {
+    service: 'luxury',
+    type: filter,
+  });
 
   useEffect(() => {
-    fetchBookings();
-  }, [fetchBookings]);
-
-  const onRefresh = () => {
-    setRefreshing(true);
-    fetchBookings();
-  };
+    initialLoad();
+  }, [initialLoad]);
 
   const getStatusBadge = (status) => {
     const statusConfig = {
@@ -134,14 +127,6 @@ export default function LuxuryBookingsScreen({ navigation, route }) {
     );
   };
 
-  if (loading) {
-    return (
-      <View style={styles.centered}>
-        <ActivityIndicator size="large" color={C.brand} />
-      </View>
-    );
-  }
-
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <View style={styles.header}>
@@ -149,23 +134,50 @@ export default function LuxuryBookingsScreen({ navigation, route }) {
           <Icon name="arrow-left" size={22} color={C.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Luxury Bookings</Text>
-        <View style={{ width: 40 }} />
+        <TouchableOpacity
+          onPress={() => setShowDateFilter(true)}
+          style={styles.filterButton}
+        >
+          <Icon name="calendar" size={20} color={dateFilter.start ? C.brand : C.muted} />
+          {dateFilter.start && <View style={styles.activeFilterDot} />}
+        </TouchableOpacity>
       </View>
 
-      <FlatList
-        data={bookings}
-        renderItem={renderBooking}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.list}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[C.brand]} />
-        }
-        ListEmptyComponent={
-          <View style={styles.empty}>
-            <Icon name="inbox" size={48} color={C.muted} />
-            <Text style={styles.emptyText}>No bookings found</Text>
-          </View>
-        }
+      {loading && bookings.length === 0 ? (
+        <View style={styles.centered}>
+          <ActivityIndicator size="large" color={C.brand} />
+        </View>
+      ) : (
+        <FlatList
+          data={bookings}
+          renderItem={renderBooking}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.list}
+          onEndReached={loadMore}
+          onEndReachedThreshold={0.5}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={refresh} colors={[C.brand]} />
+          }
+          ListFooterComponent={loading && hasMore ? (
+            <View style={{ paddingVertical: 20 }}>
+              <ActivityIndicator size="small" color={C.brand} />
+            </View>
+          ) : null}
+          ListEmptyComponent={
+            <View style={styles.empty}>
+              <Icon name="inbox" size={48} color={C.muted} />
+              <Text style={styles.emptyText}>No bookings found</Text>
+            </View>
+          }
+        />
+      )}
+
+      <DateFilterModal
+        visible={showDateFilter}
+        onClose={() => setShowDateFilter(false)}
+        onApply={(start, end) => applyDateFilter(start, end)}
+        currentStartDate={dateFilter.start}
+        currentEndDate={dateFilter.end}
       />
     </SafeAreaView>
   );
@@ -276,5 +288,21 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: C.muted,
     marginTop: 12,
+  },
+  filterButton: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
+  },
+  activeFilterDot: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: C.brand,
   },
 });

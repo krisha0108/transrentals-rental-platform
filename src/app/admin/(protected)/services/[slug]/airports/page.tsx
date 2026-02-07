@@ -20,6 +20,7 @@ import {
   ToggleRight,
   Navigation,
   DollarSign,
+  Download,
 } from 'lucide-react';
 
 interface Airport {
@@ -217,6 +218,55 @@ export default function ServiceAirportsPage() {
     }
   };
 
+  const handleExport = (exportFiltered = false) => {
+    const airportsToExport = exportFiltered ? filteredAirports : airports;
+
+    if (airportsToExport.length === 0) {
+      alert('No airports to export');
+      return;
+    }
+
+    // Create CSV headers
+    const headers = [
+      'Airport Name',
+      'IATA Code',
+      'City',
+      'Latitude',
+      'Longitude',
+      'Description',
+      'Is Active'
+    ];
+
+    // Convert airports to CSV rows
+    const rows = airportsToExport.map(airport => {
+      return [
+        airport.name,
+        airport.code || '',
+        airport.parent?.name || '',
+        airport.latitude || '',
+        airport.longitude || '',
+        airport.description || '',
+        airport.isActive
+      ].join(',');
+    });
+
+    // Combine headers and rows
+    const csvContent = [headers.join(','), ...rows].join('\n');
+
+    // Create and download file
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    const timestamp = new Date().toISOString().split('T')[0];
+    const suffix = exportFiltered ? 'filtered' : 'all';
+    a.download = `${serviceSlug}-airports-${suffix}-${timestamp}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+  };
+
   const filteredAirports = airports.filter(
     (airport) =>
       airport.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -254,13 +304,38 @@ export default function ServiceAirportsPage() {
             Manage airports and airport transfer routes for {serviceTitle}
           </p>
         </div>
-        <button
-          onClick={handleCreate}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-        >
-          <Plus className="w-5 h-5" />
-          Add Airport
-        </button>
+        <div className="flex items-center gap-3">
+          {/* Export Buttons */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => handleExport(false)}
+              disabled={airports.length === 0}
+              className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+              title={airports.length === 0 ? 'No airports to export' : 'Export all airports to CSV'}
+            >
+              <Download className="w-5 h-5" />
+              Export All
+            </button>
+            {searchTerm && filteredAirports.length > 0 && filteredAirports.length < airports.length && (
+              <button
+                onClick={() => handleExport(true)}
+                className="flex items-center gap-2 px-3 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 text-sm"
+                title={`Export ${filteredAirports.length} filtered airport(s)`}
+              >
+                <Download className="w-4 h-4" />
+                Export Filtered ({filteredAirports.length})
+              </button>
+            )}
+          </div>
+
+          <button
+            onClick={handleCreate}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          >
+            <Plus className="w-5 h-5" />
+            Add Airport
+          </button>
+        </div>
       </div>
 
       {/* Info Banner */}

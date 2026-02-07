@@ -13,9 +13,14 @@ const notificationService = {
     const customerData = await AsyncStorage.getItem('customer');
     const customer = JSON.parse(customerData);
 
-    const response = await api.get('/customer/notifications', {
-      params: { customer_id: customer?.id }
-    });
+    console.log('[notificationService] Customer data:', customer);
+    console.log('[notificationService] Customer ID:', customer?.id);
+
+    // Manually construct URL with query params (workaround for axios params issue)
+    const url = `/customer/notifications?customer_id=${customer?.id}`;
+    console.log('[notificationService] Calling URL:', url);
+
+    const response = await api.get(url);
     return response.data;
   },
 
@@ -26,9 +31,9 @@ const notificationService = {
     const customerData = await AsyncStorage.getItem('customer');
     const customer = JSON.parse(customerData);
 
-    const response = await api.get('/customer/notifications/unread-count', {
-      params: { customer_id: customer?.id }
-    });
+    // Manually construct URL with query params
+    const url = `/customer/notifications/unread-count?customer_id=${customer?.id}`;
+    const response = await api.get(url);
     return response.data;
   },
 

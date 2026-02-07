@@ -7,6 +7,15 @@ import VisitorTracker from '@/components/analytics/VisitorTracker';
 import TrackingScripts from '@/components/analytics/TrackingScripts';
 import GoogleAnalytics from '@/components/analytics/GoogleAnalytics';
 import PageViewTracker from '@/components/analytics/PageViewTracker';
+// import dynamic from 'next/dynamic';
+
+// Dynamic imports with SSR disabled to prevent webpack errors
+// const IOSInstallPrompt = dynamic(() => import('@/components/IOSInstallPrompt'), {
+//   ssr: false,
+// });
+// const AppInstallBanner = dynamic(() => import('@/components/AppInstallBanner'), {
+//   ssr: false,
+// });
 
 const inter = Inter({
   subsets: ['latin'],
@@ -88,6 +97,15 @@ export const metadata: Metadata = {
   verification: {
     google: 'your-google-verification-code',
   },
+  manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'TransRentals',
+  },
+  other: {
+    'mobile-web-app-capable': 'yes',
+  },
 };
 
 export default function RootLayout({
@@ -107,6 +125,10 @@ export default function RootLayout({
           <PageViewTracker />
           <VisitorTracker />
           <TrackingScripts />
+          {/* iOS PWA Install Prompt */}
+          {/* <IOSInstallPrompt /> */}
+          {/* Smart App Install Banner for Android & iOS */}
+          {/* <AppInstallBanner /> */}
           <LayoutWrapper>{children}</LayoutWrapper>
         </LocationProvider>
       </body>

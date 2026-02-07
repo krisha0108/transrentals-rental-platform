@@ -13,6 +13,7 @@ import {
   IndianRupee,
   Settings2,
   ArrowLeft,
+  Download,
 } from 'lucide-react';
 
 interface VehicleCategory {
@@ -176,6 +177,70 @@ export default function ServiceCityPricingPage() {
     setShowForm(true);
   };
 
+  const handleExport = (exportFiltered = false) => {
+    const pricingToExport = exportFiltered ? filteredPricing : pricing;
+
+    if (pricingToExport.length === 0) {
+      alert('No pricing data to export');
+      return;
+    }
+
+    // Create CSV headers
+    const headers = [
+      'Vehicle Category (slug)',
+      'City (slug)',
+      'Per Km Rate',
+      'Min Km Per Day',
+      'Driver Day Allowance',
+      'Driver Night Allowance',
+      'Night Surcharge',
+      'Airport Surcharge',
+      'Min Outstation Days',
+      'Tolls Included',
+      'State Permit Included',
+      'Parking Included',
+      'Is Active'
+    ];
+
+    // Convert pricing to CSV rows
+    const rows = pricingToExport.map(p => {
+      const categorySlug = p.chauffeur_vehicle_categories?.slug || '';
+      const locationSlug = p.locations?.slug || '';
+
+      return [
+        categorySlug,
+        locationSlug,
+        p.baseKmRate,
+        p.minKmPerDay,
+        p.driverDayAllowance,
+        p.driverNightAllowance,
+        p.nightSurcharge || 0,
+        p.airportSurcharge || 0,
+        p.outstationMinDays,
+        p.tollsIncluded,
+        p.statePermitIncluded,
+        p.parkingIncluded,
+        p.isActive
+      ].join(',');
+    });
+
+    // Combine headers and rows
+    const csvContent = [headers.join(','), ...rows].join('\n');
+
+    // Create and download file
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    const timestamp = new Date().toISOString().split('T')[0];
+    const suffix = exportFiltered ? 'filtered' : 'all';
+    a.download = `${serviceSlug}-city-pricing-${suffix}-${timestamp}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+  };
+
   const filteredPricing = pricing.filter((p) => {
     if (filterCategory && p.vehicleCategoryId !== filterCategory) return false;
     if (filterLocation && p.locationId !== filterLocation) return false;
@@ -219,30 +284,55 @@ export default function ServiceCityPricingPage() {
             Set per-km rates for each vehicle category in each city
           </p>
         </div>
-        <button
-          onClick={() => {
-            setFormData({
-              vehicleCategoryId: categories[0]?.id || '',
-              locationId: locations[0]?.id || '',
-              baseKmRate: serviceSlug === 'luxury-car-rental' ? 25 : 12,
-              minKmPerDay: 250,
-              driverDayAllowance: serviceSlug === 'luxury-car-rental' ? 500 : 300,
-              driverNightAllowance: serviceSlug === 'luxury-car-rental' ? 400 : 250,
-              nightSurcharge: 0,
-              airportSurcharge: 0,
-              outstationMinDays: 1,
-              tollsIncluded: false,
-              statePermitIncluded: false,
-              parkingIncluded: false,
-              isActive: true,
-            });
-            setShowForm(true);
-          }}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-        >
-          <Plus className="w-5 h-5" />
-          Add Pricing
-        </button>
+        <div className="flex items-center gap-3">
+          {/* Export Buttons */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => handleExport(false)}
+              disabled={pricing.length === 0}
+              className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+              title={pricing.length === 0 ? 'No pricing data to export' : 'Export all pricing to CSV'}
+            >
+              <Download className="w-5 h-5" />
+              Export All
+            </button>
+            {(filterCategory || filterLocation) && filteredPricing.length > 0 && (
+              <button
+                onClick={() => handleExport(true)}
+                className="flex items-center gap-2 px-3 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 text-sm"
+                title={`Export ${filteredPricing.length} filtered pricing(s)`}
+              >
+                <Download className="w-4 h-4" />
+                Export Filtered ({filteredPricing.length})
+              </button>
+            )}
+          </div>
+
+          <button
+            onClick={() => {
+              setFormData({
+                vehicleCategoryId: categories[0]?.id || '',
+                locationId: locations[0]?.id || '',
+                baseKmRate: serviceSlug === 'luxury-car-rental' ? 25 : 12,
+                minKmPerDay: 250,
+                driverDayAllowance: serviceSlug === 'luxury-car-rental' ? 500 : 300,
+                driverNightAllowance: serviceSlug === 'luxury-car-rental' ? 400 : 250,
+                nightSurcharge: 0,
+                airportSurcharge: 0,
+                outstationMinDays: 1,
+                tollsIncluded: false,
+                statePermitIncluded: false,
+                parkingIncluded: false,
+                isActive: true,
+              });
+              setShowForm(true);
+            }}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          >
+            <Plus className="w-5 h-5" />
+            Add Pricing
+          </button>
+        </div>
       </div>
 
       {/* Filters */}

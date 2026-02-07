@@ -2282,15 +2282,19 @@ model packers_quotes {
   createdAt                DateTime                  @default(now())
   updatedAt                DateTime                  @updatedAt
   templateId               String?
+  vendorFleetId            String?
+  vehicleImages            String?                   @db.LongText
   packers_bookings         packers_bookings?
   packers_quote_requests   packers_quote_requests    @relation(fields: [requestId], references: [id])
   vendor_packers_templates vendor_packers_templates? @relation(fields: [templateId], references: [id])
   vendors                  vendors                   @relation(fields: [vendorId], references: [id])
+  vendor_fleets            vendor_fleets?            @relation(fields: [vendorFleetId], references: [id])
 
   @@index([requestId])
   @@index([status])
   @@index([templateId])
   @@index([vendorId])
+  @@index([vendorFleetId])
 }
 
 model page_analytics {
@@ -2973,15 +2977,19 @@ model truck_quotes {
   createdAt              DateTime                @default(now())
   updatedAt              DateTime                @updatedAt
   templateId             String?
+  vendorFleetId          String?
+  vehicleImages          String?                 @db.LongText
   truck_bookings         truck_bookings?
   truck_quote_requests   truck_quote_requests    @relation(fields: [requestId], references: [id])
   vendor_truck_templates vendor_truck_templates? @relation(fields: [templateId], references: [id])
   vendors                vendors                 @relation(fields: [vendorId], references: [id])
+  vendor_fleets          vendor_fleets?          @relation(fields: [vendorFleetId], references: [id])
 
   @@index([requestId])
   @@index([status])
   @@index([templateId])
   @@index([vendorId])
+  @@index([vendorFleetId])
 }
 
 model vehicle_model_locations {
@@ -3261,8 +3269,10 @@ model vendor_fleets {
   bike_quotes                  bike_quotes[]
   fleet_pricing                fleet_pricing[]
   luxury_quotes                luxury_quotes[]
+  packers_quotes               packers_quotes[]
   self_drive_quotes            self_drive_quotes[]
   truck_bookings               truck_bookings[]
+  truck_quotes                 truck_quotes[]
   vendor_fleet_locations       vendor_fleet_locations[]
   brands                       brands?                       @relation(fields: [brandId], references: [id])
   services                     services                      @relation(fields: [serviceId], references: [id], onDelete: Cascade)

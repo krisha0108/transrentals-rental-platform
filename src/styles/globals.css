@@ -269,3 +269,49 @@
 .category-scrollbar::-webkit-scrollbar-thumb:hover {
   background: rgba(148, 163, 184, 0.7);
 }
+
+/* PWA Support - iOS Safe Areas & Standalone Mode */
+@supports (padding: max(0px)) {
+  body {
+    padding-left: max(0px, env(safe-area-inset-left));
+    padding-right: max(0px, env(safe-area-inset-right));
+  }
+}
+
+/* iOS PWA - Hide status bar when in standalone mode */
+@media (display-mode: standalone) {
+  body {
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  
+  /* Smooth scrolling for PWA */
+  html {
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* iOS PWA - Fixed bottom navigation support */
+.mb-safe {
+  margin-bottom: env(safe-area-inset-bottom);
+}
+
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.h-safe {
+  height: env(safe-area-inset-bottom);
+}
+
+/* iOS PWA - Pull to refresh disable */
+@media (display-mode: standalone) {
+  body {
+    overscroll-behavior-y: contain;
+  }
+}
+
+/* iOS PWA - Touch action optimization */
+button, a {
+  -webkit-tap-highlight-color: transparent;
+}

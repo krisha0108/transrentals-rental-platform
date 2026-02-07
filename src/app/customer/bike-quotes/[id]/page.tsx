@@ -20,6 +20,7 @@ import {
   Gauge,
 } from 'lucide-react';
 import { useCustomerAuth } from '@/hooks/useCustomer';
+import VehicleImageGallery from '@/components/customer/VehicleImageGallery';
 
 interface QuoteRequest {
   id: string;
@@ -343,20 +344,20 @@ export default function CustomerBikeQuoteDetailPage() {
                           </div>
                           <div>
                             <h3 className="font-bold text-gray-900">
-                              {quote.vendor?.businessName || 'Vendor'}
+                              {(quote as any).vendor?.businessName || quote.vendors?.businessName || 'Vendor'}
                             </h3>
                             <div className="flex items-center gap-2 text-sm">
                               <div className="flex items-center gap-1">
                                 <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
                                 <span className="font-medium">
-                                  {quote.vendor?.rating?.toFixed(1) || 'New'}
+                                  {((quote as any).vendor?.rating || quote.vendors?.rating)?.toFixed(1) || 'New'}
                                 </span>
                               </div>
-                              {quote.vendor?.totalTrips && quote.vendor.totalTrips > 0 && (
+                              {(((quote as any).vendor?.totalTrips || quote.vendors?.totalTrips) || 0) > 0 && (
                                 <>
                                   <span className="text-gray-400">•</span>
                                   <span className="text-gray-500">
-                                    {quote.vendor.totalTrips} trips
+                                    {(quote as any).vendor?.totalTrips || quote.vendors?.totalTrips} trips
                                   </span>
                                 </>
                               )}
@@ -452,6 +453,12 @@ export default function CustomerBikeQuoteDetailPage() {
                               </div>
                             </div>
                           </div>
+
+                          {/* Vehicle Images */}
+                          <VehicleImageGallery
+                            vehicleImages={quote.vehicleImages}
+                            vehicleName={quote.vehicleName}
+                          />
 
                           {/* All Inclusions */}
                           {inclusions.length > 0 && (
@@ -579,7 +586,10 @@ export default function CustomerBikeQuoteDetailPage() {
           <div className="container mx-auto flex items-center justify-between gap-4">
             <div>
               <p className="font-semibold text-gray-900">
-                {quotes.find((q) => q.id === selectedQuote)?.vendor?.businessName}
+                {(() => {
+                  const q = quotes.find((q) => q.id === selectedQuote);
+                  return (q as any)?.vendor?.businessName || q?.vendors?.businessName;
+                })()}
               </p>
               <p className="text-lg font-bold text-emerald-600">
                 ₹{quotes.find((q) => q.id === selectedQuote)?.grandTotal.toLocaleString()}

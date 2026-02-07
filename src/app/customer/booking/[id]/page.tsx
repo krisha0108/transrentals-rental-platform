@@ -937,12 +937,12 @@ export default function BookingDetailsPage() {
                         <div className="flex items-start justify-between">
                           <div className="flex items-start gap-4">
                             <div className="w-14 h-14 bg-gradient-to-br from-green-400 to-emerald-600 rounded-xl flex items-center justify-center text-white font-bold text-xl flex-shrink-0">
-                              {quote.vendor?.name?.charAt(0) || quote.vendor?.company_name?.charAt(0) || 'V'}
+                              {quote.vendors?.name?.charAt(0) || quote.vendors?.company_name?.charAt(0) || 'V'}
                             </div>
                             <div>
                               <div className="flex items-center gap-2 mb-1 flex-wrap">
                                 <h3 className="font-semibold text-gray-900 text-lg">
-                                  {quote.vendor?.company_name || quote.vendor?.name || `Vendor ${index + 1}`}
+                                  {quote.vendors?.company_name || quote.vendors?.name || `Vendor ${index + 1}`}
                                 </h3>
                                 {isConfirmed && (
                                   <span className="bg-green-100 text-green-700 text-xs px-2 py-0.5 rounded-full font-medium flex items-center gap-1">
@@ -951,12 +951,12 @@ export default function BookingDetailsPage() {
                                   </span>
                                 )}
                               </div>
-                              {quote.vendor?.rating && (
+                              {quote.vendors?.rating && (
                                 <div className="flex items-center gap-1 text-sm mb-1">
                                   <Star className="h-4 w-4 text-yellow-500 fill-current" />
-                                  <span className="font-medium">{quote.vendor.rating}</span>
-                                  {quote.vendor.total_reviews && (
-                                    <span className="text-gray-500">({quote.vendor.total_reviews} reviews)</span>
+                                  <span className="font-medium">{quote.vendors.rating}</span>
+                                  {quote.vendors.total_reviews && (
+                                    <span className="text-gray-500">({quote.vendors.total_reviews} reviews)</span>
                                   )}
                                 </div>
                               )}
@@ -1191,17 +1191,17 @@ export default function BookingDetailsPage() {
                                   <MessageCircle className="h-4 w-4" />
                                   Chat
                                 </button>
-                                {quote.vendor.phone && (
+                                {quote.vendors.phone && (
                                   <>
                                     <a
-                                      href={`tel:${quote.vendor.phone}`}
+                                      href={`tel:${quote.vendors.phone}`}
                                       className="flex items-center gap-2 bg-green-600 text-white px-5 py-3 rounded-xl font-medium hover:bg-green-700 transition"
                                     >
                                       <Phone className="h-4 w-4" />
                                       Call
                                     </a>
                                     <a
-                                      href={`https://wa.me/91${quote.vendor.phone.replace(/\D/g, '').slice(-10)}`}
+                                      href={`https://wa.me/91${quote.vendors.phone.replace(/\D/g, '').slice(-10)}`}
                                       target="_blank"
                                       rel="noopener noreferrer"
                                       className="flex items-center gap-2 bg-emerald-500 text-white px-5 py-3 rounded-xl font-medium hover:bg-emerald-600 transition"

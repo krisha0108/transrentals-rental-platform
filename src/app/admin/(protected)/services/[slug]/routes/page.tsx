@@ -15,6 +15,7 @@ import {
   Settings2,
   MapPin,
   ArrowLeft,
+  Download,
 } from 'lucide-react';
 
 interface VehicleCategory {
@@ -195,6 +196,75 @@ export default function ServiceRoutesPage() {
     }
   };
 
+  const handleExport = (exportFiltered = false) => {
+    const routesToExport = exportFiltered ? filteredRoutes : routes;
+
+    if (routesToExport.length === 0) {
+      alert('No routes to export');
+      return;
+    }
+
+    // Create CSV headers
+    const headers = [
+      'Vehicle Category (slug)',
+      'From City (slug)',
+      'To City (slug)',
+      'Estimated Km',
+      'Estimated Duration',
+      'One-way Price',
+      'Return Multiplier',
+      'Toll Estimate',
+      'State Permit Charge',
+      'Night Surcharge',
+      'Airport Surcharge',
+      'Is Popular',
+      'Display Order',
+      'Is Active',
+      'Route Description'
+    ];
+
+    // Convert routes to CSV rows
+    const rows = routesToExport.map(r => {
+      const categorySlug = r.chauffeur_vehicle_categories?.slug || '';
+      const fromSlug = r.fromLocation?.slug || '';
+      const toSlug = r.toLocation?.slug || '';
+
+      return [
+        categorySlug,
+        fromSlug,
+        toSlug,
+        r.estimatedKm,
+        r.estimatedDuration || '',
+        r.basePrice,
+        r.returnMultiplier,
+        r.tollsEstimate || 0,
+        r.statePermitCharge || 0,
+        r.nightSurcharge || 0,
+        r.airportSurcharge || 0,
+        r.isPopular,
+        r.displayOrder,
+        r.isActive,
+        r.routeDescription || ''
+      ].join(',');
+    });
+
+    // Combine headers and rows
+    const csvContent = [headers.join(','), ...rows].join('\n');
+
+    // Create and download file
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    const timestamp = new Date().toISOString().split('T')[0];
+    const suffix = exportFiltered ? 'filtered' : 'all';
+    a.download = `${serviceSlug}-routes-${suffix}-${timestamp}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+  };
+
   const filteredRoutes = routes.filter((r) => {
     if (filterCategory && r.vehicleCategoryId !== filterCategory) return false;
     if (filterFrom && r.fromLocationId !== filterFrom) return false;
@@ -238,13 +308,38 @@ export default function ServiceRoutesPage() {
             Configure fixed-price routes like Delhi - Jaipur, Mumbai - Pune
           </p>
         </div>
-        <button
-          onClick={handleCreate}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-        >
-          <Plus className="w-5 h-5" />
-          Add Route
-        </button>
+        <div className="flex items-center gap-3">
+          {/* Export Buttons */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => handleExport(false)}
+              disabled={routes.length === 0}
+              className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+              title={routes.length === 0 ? 'No routes to export' : 'Export all routes to CSV'}
+            >
+              <Download className="w-5 h-5" />
+              Export All
+            </button>
+            {(filterCategory || filterFrom) && filteredRoutes.length > 0 && (
+              <button
+                onClick={() => handleExport(true)}
+                className="flex items-center gap-2 px-3 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 text-sm"
+                title={`Export ${filteredRoutes.length} filtered route(s)`}
+              >
+                <Download className="w-4 h-4" />
+                Export Filtered ({filteredRoutes.length})
+              </button>
+            )}
+          </div>
+
+          <button
+            onClick={handleCreate}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          >
+            <Plus className="w-5 h-5" />
+            Add Route
+          </button>
+        </div>
       </div>
 
       {/* Filters */}

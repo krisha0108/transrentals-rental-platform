@@ -21,6 +21,7 @@ import {
   Sparkles,
   Users,
 } from 'lucide-react';
+import VehicleImageGallery from '@/components/customer/VehicleImageGallery';
 
 interface Quote {
   id: string;
@@ -296,6 +297,16 @@ export default function VendorLuxuryQuoteDetailPage() {
                   </div>
                 )}
               </div>
+            </div>
+          )}
+
+          {/* Vehicle Images */}
+          {quote.vehicleImages && (
+            <div className="bg-white rounded-xl border p-6">
+              <VehicleImageGallery
+                vehicleImages={quote.vehicleImages}
+                vehicleName={quote.vehicleName}
+              />
             </div>
           )}
 

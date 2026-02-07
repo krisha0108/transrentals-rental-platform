@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -12,6 +12,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Feather';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { getVendorQuotes } from '../../../api/client';
+import { useInfiniteScroll } from '../../../../hooks/useInfiniteScroll';
+import DateFilterModal from '../../../../components/DateFilterModal';
 
 const GREEN = '#09B368';
 const BG = '#F5F5F7';
@@ -34,32 +36,27 @@ const TABS = [
 
 export default function SelfDriveMyQuotesScreen({ navigation }) {
   const [activeTab, setActiveTab] = useState('all');
-  const [quotes, setQuotes] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
+  const [showDateFilter, setShowDateFilter] = useState(false);
 
-  const fetchQuotes = useCallback(async () => {
-    try {
-      const params = activeTab !== 'all' ? { status: activeTab.toUpperCase() } : {};
-      const response = await getVendorQuotes('self-drive', params);
-      setQuotes(response.quotes || []);
-    } catch (error) {
-      console.error('Error fetching self-drive quotes:', error);
-      setQuotes([]);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, [activeTab]);
+  const {
+    data: quotes,
+    loading,
+    refreshing,
+    hasMore,
+    loadMore,
+    refresh,
+    initialLoad,
+    applyDateFilter,
+    dateFilter,
+    clearDateFilter,
+  } = useInfiniteScroll(getVendorQuotes, {
+    service: 'self-drive',
+    type: activeTab !== 'all' ? activeTab.toUpperCase() : null,
+  });
 
   useEffect(() => {
-    fetchQuotes();
-  }, [fetchQuotes]);
-
-  const onRefresh = () => {
-    setRefreshing(true);
-    fetchQuotes();
-  };
+    initialLoad();
+  }, [initialLoad]);
 
   const formatDate = (dateStr) => {
     if (!dateStr) return 'N/A';
@@ -229,7 +226,13 @@ export default function SelfDriveMyQuotesScreen({ navigation }) {
           <Text style={styles.headerTitle}>My Quotes</Text>
           <Text style={styles.headerSubtitle}>Self Drive Car Rental</Text>
         </View>
-        <View style={{ width: 40 }} />
+        <TouchableOpacity
+          onPress={() => setShowDateFilter(true)}
+          style={styles.filterButton}
+        >
+          <Icon name="calendar" size={20} color={dateFilter.start ? GREEN : '#64748B'} />
+          {dateFilter.start && <View style={styles.activeFilterDot} />}
+        </TouchableOpacity>
       </View>
 
       {/* Tabs */}
@@ -254,7 +257,7 @@ export default function SelfDriveMyQuotesScreen({ navigation }) {
       </View>
 
       {/* Content */}
-      {loading ? (
+      {loading && quotes.length === 0 ? (
         <View style={styles.loaderWrap}>
           <ActivityIndicator size="large" color={GREEN} />
         </View>
@@ -265,12 +268,27 @@ export default function SelfDriveMyQuotesScreen({ navigation }) {
           renderItem={renderQuoteCard}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
+          onEndReached={loadMore}
+          onEndReachedThreshold={0.5}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[GREEN]} />
+            <RefreshControl refreshing={refreshing} onRefresh={refresh} colors={[GREEN]} />
           }
+          ListFooterComponent={loading && hasMore ? (
+            <View style={{ paddingVertical: 20 }}>
+              <ActivityIndicator size="small" color={GREEN} />
+            </View>
+          ) : null}
           ListEmptyComponent={renderEmptyState}
         />
       )}
+
+      <DateFilterModal
+        visible={showDateFilter}
+        onClose={() => setShowDateFilter(false)}
+        onApply={(start, end) => applyDateFilter(start, end)}
+        currentStartDate={dateFilter.start}
+        currentEndDate={dateFilter.end}
+      />
     </SafeAreaView>
   );
 }
@@ -397,4 +415,20 @@ const styles = StyleSheet.create({
   },
   emptyTitle: { fontSize: 18, fontWeight: '600', color: DARK, marginTop: 16 },
   emptySubtitle: { fontSize: 14, color: '#64748B', marginTop: 8, textAlign: 'center' },
+  filterButton: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
+  },
+  activeFilterDot: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: GREEN,
+  },
 });

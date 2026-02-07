@@ -2,7 +2,7 @@
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const dev = true; // ✅ LOCAL MODE - App will call http://localhost:3001/api
+const dev = true; // ✅ LOCAL MODE - App will call http://localhost:3003/api
 
 // For Android Emulator: Use 10.0.2.2 (this is the host machine's localhost)
 // For Physical Device: Use your computer's IP address
@@ -12,7 +12,7 @@ const dev = true; // ✅ LOCAL MODE - App will call http://localhost:3001/api
 const LOCAL_HOST = 'localhost'; // Physical Device -> Your PC's WiFi IP Address
 // const LOCAL_HOST = 'localhost'; // Using ADB Reverse (USB connection)
 // const LOCAL_HOST = '10.0.2.2'; // Android Emulator -> Use this for emulator
-const LOCAL_PORT = 3000; // Next.js dev server port (UPDATED - server running on 3003)
+const LOCAL_PORT = 3000; // Next.js dev server port
 
 // New Website API Base URL (transrentals-new backend)
 const API_BASE_URL = dev
@@ -39,6 +39,7 @@ api.interceptors.request.use(
       if (dev) {
         console.log(`📡 API Call: ${config.method?.toUpperCase()} ${config.url}`);
         console.log(`📡 Full URL: ${config.baseURL}${config.url}`);
+        console.log(`📡 Params:`, JSON.stringify(config.params));
         console.log(`📡 Data:`, JSON.stringify(config.data));
       }
     } catch (error) {
@@ -100,6 +101,6 @@ console.log('   API URL:', API_BASE_URL);
 console.log('   Images:', IMAGE_BASE_URL);
 if (dev) {
   console.log('   ⚠️  Make sure backend is running: npm run dev');
-  console.log('   ⚠️  Make sure ADB reverse: adb reverse tcp:3001 tcp:3001');
+  console.log('   ⚠️  Make sure ADB reverse: adb reverse tcp:3003 tcp:3003');
 }
 console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
