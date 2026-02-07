@@ -8,6 +8,7 @@ import TrackingScripts from '@/components/analytics/TrackingScripts';
 import GoogleAnalytics from '@/components/analytics/GoogleAnalytics';
 import PageViewTracker from '@/components/analytics/PageViewTracker';
 import IOSInstallPrompt from '@/components/IOSInstallPrompt';
+import AppInstallBanner from '@/components/AppInstallBanner';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -119,6 +120,8 @@ export default function RootLayout({
           <TrackingScripts />
           {/* iOS PWA Install Prompt */}
           <IOSInstallPrompt />
+          {/* Smart App Install Banner for Android & iOS */}
+          <AppInstallBanner />
           <LayoutWrapper>{children}</LayoutWrapper>
         </LocationProvider>
       </body>
