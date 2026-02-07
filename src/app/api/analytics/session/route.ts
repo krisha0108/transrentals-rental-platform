@@ -1,8 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { headers } from 'next/headers';
+import crypto from 'crypto';
 
 import logger from '@/lib/security/logger';
 export const dynamic = 'force-dynamic';
+
+// Helper to generate a cuid-like unique ID
+function generateId(): string {
+  return 'c' + crypto.randomBytes(12).toString('base64url').toLowerCase().slice(0, 24);
+}
 
 // Parse user agent helper
 function parseUserAgent(userAgent: string) {
@@ -96,6 +102,7 @@ export async function POST(request: NextRequest) {
     } else {
       await prisma.active_sessions.create({
         data: {
+          id: generateId(),
           sessionId: normalizedSessionId,
           currentPage: currentPage || '/',
           pageTitle: pageTitle || null,

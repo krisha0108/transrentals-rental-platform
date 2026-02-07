@@ -297,8 +297,8 @@ const SelfDriveBookingScreen = () => {
         customer_id: customerId,
         service_id: 2, // Replace this with actual service_id if needed
         service_name: "Selfdrive Car",
-        location_id: pickupLocationId, // Pickup location ID
-        location_name: pickupLocation, // Pickup location name
+        locationId: pickupLocationId, // Pickup location ID (camelCase)
+        locationName: pickupLocation, // Pickup location name (camelCase)
         destination, // User's destination
         journey_datetime: startDate.toISOString(), // Start date and time
         return_datetime: returnDate.toISOString(),

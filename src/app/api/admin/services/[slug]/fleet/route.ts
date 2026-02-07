@@ -62,6 +62,18 @@ export async function GET(
       orderBy: { displayOrder: 'asc' },
     });
 
+    // Get service-configured location IDs
+    const serviceLocations = await prisma.service_locations.findMany({
+      where: {
+        serviceId: service.id,
+        isActive: true,
+      },
+      select: {
+        locationId: true,
+      },
+    });
+    const serviceLocationIds = serviceLocations.map(sl => sl.locationId);
+
     // Build where clause for vehicle models
     const where: any = {
       serviceId: service.id,
@@ -97,7 +109,10 @@ export async function GET(
             select: { id: true, name: true, slug: true },
           },
           vehicle_model_locations: {
-            where: { isActive: true },
+            where: {
+              isActive: true,
+              locationId: { in: serviceLocationIds }, // Only count service-configured locations
+            },
             select: { id: true },
           },
         },
@@ -284,14 +299,44 @@ export async function POST(
     const brandOptionalServices = ['equipment-rental', 'packers-and-movers'];
     const isBrandOptional = brandOptionalServices.includes(slug);
 
-    if (!isBrandOptional && !brandId) {
+    // Ensure we have a brandId (create default if needed for optional services)
+    let finalBrandId = brandId;
+
+    if (!brandId && isBrandOptional) {
+      // Create or find a default "Generic" brand for this service
+      let defaultBrand = await prisma.brands.findFirst({
+        where: {
+          serviceId: service.id,
+          slug: 'generic',
+        },
+      });
+
+      if (!defaultBrand) {
+        // Create default brand
+        defaultBrand = await prisma.brands.create({
+          data: {
+            id: generateId(),
+            name: 'Generic',
+            slug: 'generic',
+            serviceId: service.id,
+            isActive: true,
+            displayOrder: 9999,
+          },
+        });
+        console.log('Created default brand for', slug, ':', defaultBrand.id);
+      }
+
+      finalBrandId = defaultBrand.id;
+    }
+
+    if (!isBrandOptional && !finalBrandId) {
       return NextResponse.json(
         { error: 'Brand is required for this service', received: { name, vehicleSlug, brandId } },
         { status: 400 }
       );
     }
 
-    // Check if brand exists (if provided)
+    // Check if brand exists (if provided by user)
     if (brandId) {
       const brand = await prisma.brands.findUnique({
         where: { id: brandId },
@@ -409,7 +454,7 @@ export async function POST(
         slug: vehicleSlug,
         serviceId: service.id,
         subServiceId: validSubServiceId,
-        brandId: brandId || null,
+        brandId: finalBrandId,
         fuelType: fuelType || null,
         transmission: transmission || null,
         seatingCapacity: seatingCapacity ? parseInt(String(seatingCapacity)) : null,
@@ -427,7 +472,7 @@ export async function POST(
         monthlyDiscount: monthlyDiscount ? parseFloat(String(monthlyDiscount)) : null,
       },
       include: {
-        brands: brandId ? true : false, // Only include brands if brandId exists
+        brands: true,
         services_vehicle_models_subServiceIdToservices: true,
       },
     });

@@ -389,6 +389,23 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    // Create notification for customer
+    try {
+      await prisma.notifications.create({
+        data: {
+          customerId: quoteRequest.customerId,
+          title: '🚌 New Bus Rental Quote Received!',
+          body: `${vendor.businessName} has sent you a quote for ${vehicleName || 'bus rental'}. Total: ₹${totalAmount}. Valid till ${validTill.toLocaleDateString()}.`,
+          type: 'quote',
+          quoteId: quote.id,
+          isRead: false,
+        },
+      });
+      logger.info('Notification created for bus quote', { quoteId: quote.id, customerId: quoteRequest.customerId });
+    } catch (notifError) {
+      logger.error('Failed to create notification for bus quote', notifError);
+    }
+
     return NextResponse.json({
       success: true,
       message: 'Quote submitted successfully',

@@ -361,6 +361,23 @@ export async function POST(request: NextRequest) {
       return newQuote;
     });
 
+    // Create notification for customer (outside transaction)
+    try {
+      await prisma.notifications.create({
+        data: {
+          customerId: quoteRequest.customerId,
+          title: '📦 New Packers & Movers Quote Received!',
+          body: `${vendor.businessName} has sent you a quote for moving from ${quoteRequest.fromLocation} to ${quoteRequest.toLocation}. Total: ₹${totalAmount}. Valid till ${validTill.toLocaleDateString()}.`,
+          type: 'quote',
+          quoteId: quote.id,
+          isRead: false,
+        },
+      });
+      logger.info('Notification created for packers quote', { quoteId: quote.id, customerId: quoteRequest.customerId });
+    } catch (notifError) {
+      logger.error('Failed to create notification for packers quote', notifError);
+    }
+
     return NextResponse.json({
       success: true,
       message: 'Quote submitted successfully',

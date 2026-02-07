@@ -282,6 +282,23 @@ export async function POST(request: NextRequest) {
       data: { status: 'QUOTES_RECEIVED', totalQuotesReceived: { increment: 1 } },
     });
 
+    // Create notification for customer
+    try {
+      await prisma.notifications.create({
+        data: {
+          customerId: quoteRequest.customerId,
+          title: '🚛 New Truck Rental Quote Received!',
+          body: `${vendor.businessName} has sent you a quote for ${vehicleName}. Total: ₹${totalAmount}. Valid till ${validTill.toLocaleDateString()}.`,
+          type: 'quote',
+          quoteId: quote.id,
+          isRead: false,
+        },
+      });
+      logger.info('Notification created for truck quote', { quoteId: quote.id, customerId: quoteRequest.customerId });
+    } catch (notifError) {
+      logger.error('Failed to create notification for truck quote', notifError);
+    }
+
     return NextResponse.json({
       success: true,
       message: 'Quote submitted successfully',

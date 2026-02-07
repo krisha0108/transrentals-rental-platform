@@ -6,8 +6,16 @@ import { X, Share, Plus } from 'lucide-react';
 export default function IOSInstallPrompt() {
   const [showPrompt, setShowPrompt] = useState(false);
   const [dismissed, setDismissed] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  // Ensure component is mounted on client side
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
+    if (!mounted) return;
+
     // Check if user is on iOS
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
 
@@ -26,25 +34,26 @@ export default function IOSInstallPrompt() {
 
       return () => clearTimeout(timer);
     }
-  }, [dismissed]);
+  }, [dismissed, mounted]);
 
   const handleDismiss = () => {
     setShowPrompt(false);
     setDismissed(true);
-    localStorage.setItem('ios-install-dismissed', 'true');
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('ios-install-dismissed', 'true');
+    }
   };
 
   const handleRemindLater = () => {
     setShowPrompt(false);
-    // Don't set dismissed to true, so it can show again later
   };
 
-  if (!showPrompt) return null;
+  // Don't render anything until mounted on client
+  if (!mounted || !showPrompt) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 backdrop-blur-sm animate-in fade-in duration-300">
       <div className="relative w-full max-w-md m-4 mb-safe bg-white rounded-3xl shadow-2xl animate-in slide-in-from-bottom duration-500">
-        {/* Close button */}
         <button
           onClick={handleDismiss}
           className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-600 transition-colors"
@@ -53,9 +62,7 @@ export default function IOSInstallPrompt() {
           <X className="w-5 h-5" />
         </button>
 
-        {/* Content */}
         <div className="p-6 pt-8">
-          {/* App Icon */}
           <div className="flex justify-center mb-4">
             <div className="w-20 h-20 bg-gradient-to-br from-[#09B368] to-[#078A52] rounded-2xl flex items-center justify-center shadow-lg">
               <svg className="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -64,17 +71,14 @@ export default function IOSInstallPrompt() {
             </div>
           </div>
 
-          {/* Title */}
           <h3 className="text-2xl font-bold text-center text-gray-900 mb-2">
             Install TransRentals App
           </h3>
 
-          {/* Description */}
           <p className="text-center text-gray-600 mb-6">
             Get instant access to vehicle rentals with our app. Works offline and loads faster!
           </p>
 
-          {/* Instructions */}
           <div className="bg-gray-50 rounded-2xl p-4 mb-6 space-y-3">
             <div className="flex items-start gap-3">
               <div className="flex-shrink-0 w-8 h-8 bg-[#09B368] rounded-full flex items-center justify-center text-white font-semibold text-sm">
@@ -96,7 +100,7 @@ export default function IOSInstallPrompt() {
                 2
               </div>
               <div className="flex-1">
-                <p className="text-sm font-medium text-gray-900">Select "Add to Home Screen"</p>
+                <p className="text-sm font-medium text-gray-900">Select &quot;Add to Home Screen&quot;</p>
                 <div className="flex items-center gap-2 mt-1">
                   <div className="px-2 py-1 bg-gray-200 rounded flex items-center justify-center">
                     <Plus className="w-4 h-4 text-gray-700" />
@@ -111,13 +115,12 @@ export default function IOSInstallPrompt() {
                 3
               </div>
               <div className="flex-1">
-                <p className="text-sm font-medium text-gray-900">Tap "Add" to confirm</p>
+                <p className="text-sm font-medium text-gray-900">Tap &quot;Add&quot; to confirm</p>
                 <span className="text-xs text-gray-500">The app will appear on your home screen</span>
               </div>
             </div>
           </div>
 
-          {/* Actions */}
           <div className="space-y-2">
             <button
               onClick={handleRemindLater}
@@ -129,12 +132,11 @@ export default function IOSInstallPrompt() {
               onClick={handleDismiss}
               className="w-full py-3 px-4 text-gray-600 font-medium hover:text-gray-900 transition-colors"
             >
-              Don't show again
+              Don&apos;t show again
             </button>
           </div>
         </div>
 
-        {/* Bottom safe area for iPhone notch */}
         <div className="h-safe" />
       </div>
     </div>

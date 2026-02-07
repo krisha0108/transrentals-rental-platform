@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
+import { Download } from 'lucide-react';
 
 interface Airport {
   id: string;
@@ -269,6 +270,63 @@ export default function AirportTransfersPage() {
     }
   }
 
+  function handleExport(exportFiltered = false) {
+    const transfersToExport = exportFiltered ? filteredTransfers : transfers;
+
+    if (transfersToExport.length === 0) {
+      alert('No airport transfers to export');
+      return;
+    }
+
+    // Create CSV headers
+    const headers = [
+      'From Location',
+      'To Location',
+      'Vehicle Category',
+      'Estimated Km',
+      'Estimated Duration',
+      'Base Price',
+      'Return Multiplier',
+      'Toll Estimate',
+      'Airport Surcharge',
+      'Night Surcharge',
+      'Is Active'
+    ];
+
+    // Convert transfers to CSV rows
+    const rows = transfersToExport.map(transfer => {
+      return [
+        transfer.locations_chauffeur_route_packages_fromLocationIdTolocations.name,
+        transfer.locations_chauffeur_route_packages_toLocationIdTolocations.name,
+        transfer.chauffeur_vehicle_categories.name,
+        transfer.estimatedKm,
+        transfer.estimatedDuration || '',
+        transfer.basePrice,
+        transfer.returnMultiplier,
+        transfer.tollsEstimate || 0,
+        transfer.airportSurcharge || 0,
+        transfer.nightSurcharge || 0,
+        transfer.isActive
+      ].join(',');
+    });
+
+    // Combine headers and rows
+    const csvContent = [headers.join(','), ...rows].join('\n');
+
+    // Create and download file
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    const timestamp = new Date().toISOString().split('T')[0];
+    const suffix = exportFiltered ? 'filtered' : 'all';
+    a.download = `${serviceSlug}-airport-transfers-${suffix}-${timestamp}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+  }
+
   function startEditing(transfer: AirportTransfer) {
     setEditingId(transfer.id);
     setEditForm({
@@ -492,20 +550,45 @@ export default function AirportTransfersPage() {
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold text-gray-900">Existing Airport Transfers</h2>
 
-          <div className="flex items-center gap-2">
-            <label className="text-sm text-gray-600">Filter by Airport:</label>
-            <select
-              value={filterAirport}
-              onChange={(e) => setFilterAirport(e.target.value)}
-              className="border rounded-lg p-2"
-            >
-              <option value="">All Airports</option>
-              {airports.map((airport) => (
-                <option key={airport.id} value={airport.id}>
-                  {airport.code} - {airport.name}
-                </option>
-              ))}
-            </select>
+          <div className="flex items-center gap-4">
+            {/* Export Buttons */}
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => handleExport(false)}
+                disabled={transfers.length === 0}
+                className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-sm"
+                title={transfers.length === 0 ? 'No transfers to export' : 'Export all airport transfers to CSV'}
+              >
+                <Download className="w-4 h-4" />
+                Export All
+              </button>
+              {filterAirport && filteredTransfers.length > 0 && filteredTransfers.length < transfers.length && (
+                <button
+                  onClick={() => handleExport(true)}
+                  className="flex items-center gap-2 px-3 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 text-sm"
+                  title={`Export ${filteredTransfers.length} filtered transfer(s)`}
+                >
+                  <Download className="w-4 h-4" />
+                  Export Filtered ({filteredTransfers.length})
+                </button>
+              )}
+            </div>
+
+            <div className="flex items-center gap-2">
+              <label className="text-sm text-gray-600">Filter by Airport:</label>
+              <select
+                value={filterAirport}
+                onChange={(e) => setFilterAirport(e.target.value)}
+                className="border rounded-lg p-2"
+              >
+                <option value="">All Airports</option>
+                {airports.map((airport) => (
+                  <option key={airport.id} value={airport.id}>
+                    {airport.code} - {airport.name}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
         </div>
 

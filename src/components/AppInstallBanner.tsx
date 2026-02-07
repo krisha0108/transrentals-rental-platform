@@ -8,28 +8,38 @@ export default function AppInstallBanner() {
   const [showBanner, setShowBanner] = useState(false);
   const [platform, setPlatform] = useState<'android' | 'ios' | 'other'>('other');
   const [isLoading, setIsLoading] = useState(false);
-  const [showIOSInstallGuide, setShowIOSInstallGuide] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  // Ensure component is mounted on client side
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
+    if (!mounted || typeof window === 'undefined') return;
+
     // Detect platform
     const userAgent = navigator.userAgent.toLowerCase();
     const isAndroid = /android/.test(userAgent);
     const isIOS = /iphone|ipad|ipod/.test(userAgent);
 
-    // Check if iOS PWA is already installed (running in standalone mode)
+    // Check if iOS PWA is already installed
     const isIOSPWAInstalled = window.matchMedia('(display-mode: standalone)').matches ||
                               (window.navigator as any).standalone === true;
 
+    let detectedPlatform: 'android' | 'ios' | 'other' = 'other';
+
     if (isAndroid) {
-      setPlatform('android');
-    } else if (isIOS) {
-      // Don't show banner if iOS PWA is already installed
-      if (isIOSPWAInstalled) {
-        return;
-      }
-      setPlatform('ios');
-    } else {
-      setPlatform('other');
+      detectedPlatform = 'android';
+    } else if (isIOS && !isIOSPWAInstalled) {
+      detectedPlatform = 'ios';
+    }
+
+    setPlatform(detectedPlatform);
+
+    // Don't show banner for desktop
+    if (detectedPlatform === 'other') {
+      return;
     }
 
     // Check if already dismissed
@@ -37,8 +47,8 @@ export default function AppInstallBanner() {
     const lastDismissed = dismissed ? parseInt(dismissed) : 0;
     const oneDayInMs = 24 * 60 * 60 * 1000;
 
-    // Don't show banner for desktop or if dismissed recently
-    if (platform === 'other' || (Date.now() - lastDismissed < oneDayInMs)) {
+    // Don't show if dismissed recently
+    if (Date.now() - lastDismissed < oneDayInMs) {
       return;
     }
 
@@ -48,12 +58,13 @@ export default function AppInstallBanner() {
     }, 2500);
 
     return () => clearTimeout(timer);
-  }, [platform]);
+  }, [mounted]);
 
   const handleContinueInWeb = () => {
     setShowBanner(false);
-    // Store dismissal with timestamp
-    localStorage.setItem('app-banner-dismissed', Date.now().toString());
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('app-banner-dismissed', Date.now().toString());
+    }
   };
 
   const handleOpenInApp = async () => {
@@ -61,31 +72,22 @@ export default function AppInstallBanner() {
 
     try {
       if (platform === 'android') {
-        // Android: Try intent URL first (more reliable), then deep link
         const intentUrl = APP_LINKS.android.intentUrl;
-        const deepLink = APP_LINKS.android.deepLink;
         const playStoreLink = APP_LINKS.android.playStoreUrl;
 
-        // Try intent URL first (works better on Android)
         try {
           window.location.href = intentUrl;
-          // If intent URL works, app will open. If not, it redirects to Play Store
         } catch {
-          // Fallback to deep link method
-          const appOpened = await tryOpenApp(deepLink, playStoreLink);
+          const appOpened = await tryOpenApp(APP_LINKS.android.deepLink, playStoreLink);
           if (!appOpened) {
             window.location.href = playStoreLink;
           }
         }
       } else if (platform === 'ios') {
-        // iOS: Show PWA install guide instead of App Store
-        // Close main banner and trigger iOS install prompt
         setShowBanner(false);
-        setShowIOSInstallGuide(true);
-
-        // Trigger the IOSInstallPrompt to show
-        // The IOSInstallPrompt component will automatically show installation steps
-        localStorage.removeItem('ios-install-dismissed'); // Reset so it can show again
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('ios-install-dismissed');
+        }
       }
     } catch (error) {
       console.error('Error opening app:', error);
@@ -94,40 +96,34 @@ export default function AppInstallBanner() {
     }
   };
 
-  // Function to check if app is installed and open it
   const tryOpenApp = (deepLink: string, storeLink: string): Promise<boolean> => {
     return new Promise((resolve) => {
       let appOpened = false;
       const startTime = Date.now();
 
-      // Try to open the app
       window.location.href = deepLink;
 
-      // Check if app was opened
       const checkInterval = setInterval(() => {
         const elapsedTime = Date.now() - startTime;
 
-        // If page is still visible after 2 seconds, app probably didn't open
         if (elapsedTime > 2000) {
           clearInterval(checkInterval);
           if (!document.hidden && !appOpened) {
-            resolve(false); // App not installed
+            resolve(false);
           }
         }
       }, 500);
 
-      // If page becomes hidden, app likely opened
       const visibilityHandler = () => {
         if (document.hidden) {
           appOpened = true;
           clearInterval(checkInterval);
-          resolve(true); // App opened
+          resolve(true);
         }
       };
 
       document.addEventListener('visibilitychange', visibilityHandler);
 
-      // Cleanup after 3 seconds
       setTimeout(() => {
         document.removeEventListener('visibilitychange', visibilityHandler);
         clearInterval(checkInterval);
@@ -138,14 +134,14 @@ export default function AppInstallBanner() {
     });
   };
 
-  if (!showBanner || platform === 'other') {
+  // Don't render until mounted on client
+  if (!mounted || !showBanner || platform === 'other') {
     return null;
   }
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
       <div className="relative w-full max-w-md mx-4 mb-4 sm:mb-0 bg-white rounded-3xl shadow-2xl animate-in slide-in-from-bottom sm:slide-in-from-bottom-0 duration-500 overflow-hidden">
-        {/* Close button */}
         <button
           onClick={handleContinueInWeb}
           className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-600 transition-colors z-10"
@@ -154,9 +150,7 @@ export default function AppInstallBanner() {
           <X className="w-5 h-5" />
         </button>
 
-        {/* Content */}
         <div className="p-6 pt-8">
-          {/* App Icon and Info */}
           <div className="flex items-start gap-4 mb-6">
             <div className="flex-shrink-0">
               <div className="w-16 h-16 bg-gradient-to-br from-[#09B368] to-[#078A52] rounded-2xl flex items-center justify-center shadow-lg">
@@ -185,7 +179,6 @@ export default function AppInstallBanner() {
             </div>
           </div>
 
-          {/* Features */}
           <div className="bg-gradient-to-br from-blue-50 to-green-50 rounded-2xl p-4 mb-6">
             <p className="text-sm font-semibold text-gray-900 mb-3">
               Why use our app?
@@ -200,7 +193,6 @@ export default function AppInstallBanner() {
             </div>
           </div>
 
-          {/* Platform Badge */}
           <div className="flex items-center justify-center gap-2 mb-6">
             <div className="px-3 py-1.5 bg-gray-100 rounded-full flex items-center gap-2">
               {platform === 'android' ? (
@@ -221,7 +213,6 @@ export default function AppInstallBanner() {
             </div>
           </div>
 
-          {/* Action Buttons */}
           <div className="space-y-3">
             <button
               onClick={handleOpenInApp}
@@ -251,7 +242,6 @@ export default function AppInstallBanner() {
             </button>
           </div>
 
-          {/* Footer Note */}
           <p className="text-center text-xs text-gray-500 mt-4">
             {platform === 'android'
               ? 'Will redirect to Play Store if app is not installed'

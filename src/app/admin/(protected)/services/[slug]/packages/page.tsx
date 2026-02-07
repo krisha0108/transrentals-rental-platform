@@ -13,6 +13,7 @@ import {
   Car,
   Star,
   MapPin,
+  Download,
 } from 'lucide-react';
 
 interface VehicleCategory {
@@ -82,6 +83,8 @@ export default function ServicePackagesPage() {
   const [error, setError] = useState('');
   const [formData, setFormData] = useState(defaultFormData);
   const [filterCategory, setFilterCategory] = useState('');
+  const [filterLocation, setFilterLocation] = useState('');
+  const [filterPackageType, setFilterPackageType] = useState('');
 
   const fetchData = async () => {
     try {
@@ -190,9 +193,95 @@ export default function ServicePackagesPage() {
     }
   };
 
-  const filteredPackages = filterCategory
-    ? packages.filter((p) => p.vehicleCategoryId === filterCategory)
-    : packages;
+  const handleExport = (exportFiltered = false) => {
+    const packagesToExport = exportFiltered ? filteredPackages : packages;
+
+    if (packagesToExport.length === 0) {
+      alert('No packages to export');
+      return;
+    }
+
+    // Create CSV headers
+    const headers = [
+      'Vehicle Category (slug)',
+      'Location (slug or empty)',
+      'Name',
+      'Hours',
+      'Kilometers',
+      'Base Price',
+      'Extra Km Charge',
+      'Extra Hour Charge',
+      'Night Charges Apply (true/false)',
+      'Night Charge Amount',
+      'Is Popular (true/false)',
+      'Is Active (true/false)',
+      'Display Order'
+    ];
+
+    // Convert packages to CSV rows
+    const rows = packagesToExport.map(pkg => {
+      const categorySlug = pkg.chauffeur_vehicle_categories?.slug || '';
+      const locationSlug = pkg.location?.slug || '';
+
+      return [
+        categorySlug,
+        locationSlug,
+        pkg.name,
+        pkg.hours,
+        pkg.kms,
+        pkg.basePrice,
+        pkg.extraKmCharge,
+        pkg.extraHourCharge,
+        pkg.nightChargesApply,
+        pkg.nightChargeAmount || '',
+        pkg.isPopular,
+        pkg.isActive,
+        pkg.displayOrder
+      ].join(',');
+    });
+
+    // Combine headers and rows
+    const csvContent = [headers.join(','), ...rows].join('\n');
+
+    // Create and download file
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    const timestamp = new Date().toISOString().split('T')[0];
+    const suffix = exportFiltered ? 'filtered' : 'all';
+    a.download = `${serviceSlug}-packages-${suffix}-${timestamp}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+  };
+
+  // Apply multiple filters
+  const filteredPackages = packages.filter((p) => {
+    // Filter by category
+    if (filterCategory && p.vehicleCategoryId !== filterCategory) return false;
+
+    // Filter by location
+    if (filterLocation) {
+      if (filterLocation === 'all-cities') {
+        // Show packages that apply to all cities (locationId is null)
+        if (p.locationId !== null) return false;
+      } else {
+        // Show packages for specific location
+        if (p.locationId !== filterLocation) return false;
+      }
+    }
+
+    // Filter by package type (hours)
+    if (filterPackageType && p.hours !== parseInt(filterPackageType)) return false;
+
+    return true;
+  });
+
+  // Get unique package types (hours) for filter
+  const uniquePackageTypes = Array.from(new Set(packages.map((p) => p.hours)))
+    .sort((a, b) => a - b);
 
   // Group packages by vehicle category
   const groupedByCategory: Record<string, LocalPackage[]> = {};
@@ -217,29 +306,141 @@ export default function ServicePackagesPage() {
           <h1 className="text-2xl font-bold text-gray-900">Local Packages</h1>
           <p className="text-gray-600">Configure hourly packages like 4hr/40km, 8hr/80km for {serviceName}</p>
         </div>
-        <button
-          onClick={handleCreate}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-        >
-          <Plus className="w-5 h-5" />
-          Add Package
-        </button>
+        <div className="flex items-center gap-3">
+          {/* Export Buttons */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => handleExport(false)}
+              disabled={packages.length === 0}
+              className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+              title={packages.length === 0 ? 'No packages to export' : 'Export all packages to CSV'}
+            >
+              <Download className="w-5 h-5" />
+              Export All
+            </button>
+            {(filterCategory || filterLocation || filterPackageType) && filteredPackages.length > 0 && (
+              <button
+                onClick={() => handleExport(true)}
+                className="flex items-center gap-2 px-3 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 text-sm"
+                title={`Export ${filteredPackages.length} filtered package(s)`}
+              >
+                <Download className="w-4 h-4" />
+                Export Filtered ({filteredPackages.length})
+              </button>
+            )}
+          </div>
+
+          <button
+            onClick={handleCreate}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          >
+            <Plus className="w-5 h-5" />
+            Add Package
+          </button>
+        </div>
       </div>
 
-      {/* Filter */}
-      <div className="mb-6">
-        <select
-          value={filterCategory}
-          onChange={(e) => setFilterCategory(e.target.value)}
-          className="px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
-        >
-          <option value="">All Vehicle Categories</option>
-          {categories.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-            </option>
-          ))}
-        </select>
+      {/* Filters */}
+      <div className="mb-6 bg-white rounded-xl border p-4">
+        <div className="flex flex-wrap gap-3">
+          {/* Vehicle Category Filter */}
+          <div className="flex-1 min-w-[200px]">
+            <label className="block text-xs font-medium text-gray-600 mb-1">
+              Vehicle Category
+            </label>
+            <select
+              value={filterCategory}
+              onChange={(e) => setFilterCategory(e.target.value)}
+              className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">All Categories</option>
+              {categories.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Location/City Filter */}
+          <div className="flex-1 min-w-[200px]">
+            <label className="block text-xs font-medium text-gray-600 mb-1">
+              City/Location
+            </label>
+            <select
+              value={filterLocation}
+              onChange={(e) => setFilterLocation(e.target.value)}
+              className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">All Locations</option>
+              <option value="all-cities">Default (All Cities)</option>
+              {locations.map((l) => (
+                <option key={l.id} value={l.id}>
+                  {l.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Package Type Filter */}
+          <div className="flex-1 min-w-[200px]">
+            <label className="block text-xs font-medium text-gray-600 mb-1">
+              Package Type
+            </label>
+            <select
+              value={filterPackageType}
+              onChange={(e) => setFilterPackageType(e.target.value)}
+              className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">All Package Types</option>
+              {uniquePackageTypes.map((hours) => (
+                <option key={hours} value={hours}>
+                  {hours} Hour{hours !== 1 ? 's' : ''}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Clear Filters Button */}
+          {(filterCategory || filterLocation || filterPackageType) && (
+            <div className="flex items-end">
+              <button
+                onClick={() => {
+                  setFilterCategory('');
+                  setFilterLocation('');
+                  setFilterPackageType('');
+                }}
+                className="px-4 py-2 text-sm text-blue-600 hover:bg-blue-50 rounded-lg border border-blue-200"
+              >
+                Clear Filters
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Active Filters Summary */}
+        {(filterCategory || filterLocation || filterPackageType) && (
+          <div className="mt-3 pt-3 border-t flex items-center gap-2 text-sm text-gray-600">
+            <span className="font-medium">Active filters:</span>
+            {filterCategory && (
+              <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded">
+                {categories.find((c) => c.id === filterCategory)?.name}
+              </span>
+            )}
+            {filterLocation && (
+              <span className="bg-green-100 text-green-700 px-2 py-1 rounded">
+                {filterLocation === 'all-cities'
+                  ? 'Default (All Cities)'
+                  : locations.find((l) => l.id === filterLocation)?.name}
+              </span>
+            )}
+            {filterPackageType && (
+              <span className="bg-purple-100 text-purple-700 px-2 py-1 rounded">
+                {filterPackageType} Hour{filterPackageType !== '1' ? 's' : ''}
+              </span>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Form Modal */}

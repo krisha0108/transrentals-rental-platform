@@ -1045,10 +1045,21 @@ export default function QuoteDetailScreen({ route, navigation }) {
 
     // Navigate to payment if successful
     if (successData && successData.bookingId) {
+      // Map quote type to booking type for PaymentScreen
+      let bookingType = quote?.type || 'bike';
+      // Normalize type names (remove '-quote' suffix if present)
+      if (bookingType.includes('self-drive')) bookingType = 'self-drive';
+      else if (bookingType.includes('bike')) bookingType = 'bike';
+      else if (bookingType.includes('bus')) bookingType = 'bus';
+      else if (bookingType.includes('equipment')) bookingType = 'equipment';
+      else if (bookingType.includes('luxury')) bookingType = 'luxury';
+      else if (bookingType.includes('packers')) bookingType = 'packers';
+      else if (bookingType.includes('truck')) bookingType = 'truck';
+
       navigation.replace('PaymentScreen', {
         bookingId: successData.bookingId,
         bookingNumber: successData.bookingNumber,
-        serviceType: quote?.type || 'general',
+        bookingType: bookingType,  // ✅ Fixed: use bookingType instead of serviceType
         amount: selectedQuote?.totalAmount || 0,
         advanceAmount: selectedQuote?.advanceAmount || Math.round((selectedQuote?.totalAmount || 0) * 0.3),
       });

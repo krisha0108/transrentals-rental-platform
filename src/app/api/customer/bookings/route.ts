@@ -477,8 +477,8 @@ export async function GET(request: NextRequest) {
         is_quote_request: false,
       })),
       ...carBookings.map((b) => {
-        // For self-drive, use pickup location as "from"
-        const fromLocation = b.locations?.name || b.pickupAddress || b.pickupCity || 'Pickup Location';
+        // For self-drive, use location name from relation or locationName field
+        const fromLocation = b.locations?.name || b.locationName || b.pickupAddress || 'Pickup Location';
 
         // Determine destination based on delivery and drop address
         let toLocation = 'Same location';
@@ -486,8 +486,6 @@ export async function GET(request: NextRequest) {
           toLocation = b.dropAddress;
         } else if (b.dropAddress && b.dropAddress !== b.pickupAddress) {
           toLocation = b.dropAddress;
-        } else if (b.dropCity && b.dropCity !== b.pickupCity) {
-          toLocation = b.dropCity;
         }
 
         return {
@@ -518,8 +516,8 @@ export async function GET(request: NextRequest) {
         booking_number: b.requestNumber,
         service_name: 'Self-Drive Car',
         service_type: 'car',
-        location_name: b.pickupCity || '',
-        destination: b.dropCity || null,
+        location_name: b.locationName || b.pickupCity || '',
+        destination: b.dropCity || b.dropAddress || null,
         journey_datetime: b.pickupDate.toISOString(),
         return_datetime: b.dropDate?.toISOString() || null,
         status: mapSelfDriveQuoteRequestStatus(b.status),

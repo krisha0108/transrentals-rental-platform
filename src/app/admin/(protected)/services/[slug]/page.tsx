@@ -392,7 +392,20 @@ export default function ServiceDashboardPage() {
           </div>
 
           {/* Secondary Actions */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <Link
+              href={`/admin/services/${slug}/location-inventory`}
+              className="bg-white rounded-xl p-5 border shadow-sm hover:shadow-md transition"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <BarChart3 className="w-5 h-5 text-emerald-600" />
+                  <span className="font-medium text-gray-900">Location Inventory</span>
+                </div>
+                <span className="text-sm text-gray-500">View details</span>
+              </div>
+            </Link>
+
             <Link
               href={`/admin/services/${slug}/bookings`}
               className="bg-white rounded-xl p-5 border shadow-sm hover:shadow-md transition"

@@ -369,6 +369,23 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    // Create notification for customer
+    try {
+      await prisma.notifications.create({
+        data: {
+          customerId: quoteRequest.customerId,
+          title: '🏍️ New Bike Quote Received!',
+          body: `${vendor.businessName} has sent you a quote for ${vehicleName}. Daily rate: ₹${dailyRate}. Total: ₹${grandTotal}. Valid till ${validTill.toLocaleDateString()}.`,
+          type: 'quote',
+          quoteId: quote.id,
+          isRead: false,
+        },
+      });
+      logger.info('Notification created for bike quote', { quoteId: quote.id, customerId: quoteRequest.customerId });
+    } catch (notifError) {
+      logger.error('Failed to create notification for bike quote', notifError);
+    }
+
     return NextResponse.json({
       success: true,
       message: 'Quote submitted successfully',
