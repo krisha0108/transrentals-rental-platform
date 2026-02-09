@@ -97,12 +97,14 @@ export function RoundTripRouteBookingHeroWithForm({
       try {
         setLoadingData(true);
         const response = await fetch(
-          `/api/services/one-way-cab/route-packages?from=${fromSlug}&to=${toSlug}`
+          `/api/services/round-trip/route-packages?from=${fromSlug}&to=${toSlug}`
         );
         const data = await response.json();
 
         if (data.success && data.packages) {
           setVehiclePackages(data.packages);
+        } else {
+          console.error('Failed to fetch packages:', data.error);
         }
       } catch (error) {
         console.error('Failed to fetch vehicles:', error);
