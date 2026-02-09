@@ -4,7 +4,7 @@ import { prisma } from '@/lib/db/prisma';
 import { RouteOverview } from '@/components/routes/RouteOverview';
 import { RouteFAQs } from '@/components/routes/RouteFAQs';
 import { RouteNotAvailable } from '@/components/routes/RouteNotAvailable';
-import { RoundTripBookingHero } from '@/components/round-trip/RoundTripBookingHero';
+import { RoundTripRouteBookingHeroWithForm } from '@/components/round-trip/RoundTripRouteBookingHeroWithForm';
 
 interface PageProps {
   params: {
@@ -311,17 +311,17 @@ export default async function RoundTripRoutePage({ params }: PageProps) {
           </div>
         </div>
 
-        {/* Booking Hero */}
-        <RoundTripBookingHero
+        {/* Booking Hero with Form */}
+        <RoundTripRouteBookingHeroWithForm
           fromCity={fromLocation.name}
           fromSlug={fromLocation.slug}
+          fromRegion={fromState}
           toCity={toLocation.name}
           toSlug={toLocation.slug}
+          toRegion={toState}
           distance={routePackage.estimatedKm}
           estimatedTime={routePackage.estimatedDuration}
-          roundTripPrice={roundTripPrice}
-          perKmRate={perKmRate}
-          vehicleCategory={routePackage.chauffeur_vehicle_categories.name}
+          minPrice={roundTripPrice}
         />
 
         {/* Route Overview */}
@@ -334,6 +334,7 @@ export default async function RoundTripRoutePage({ params }: PageProps) {
           estimatedTime={routePackage.estimatedDuration}
           tollCharges={routePackage.tollsEstimate}
           routeDescription={routePackage.routeDescription}
+          routeType="round-trip"
         />
 
         {/* Why Round Trip */}
