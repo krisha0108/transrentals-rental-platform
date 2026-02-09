@@ -5,7 +5,6 @@ import Link from 'next/link';
 import {
   Facebook,
   Instagram,
-  Twitter,
   Linkedin,
   Mail,
   Phone,
@@ -32,7 +31,6 @@ export function Footer() {
     contactPhone: process.env.NEXT_PUBLIC_CONTACT_PHONE || '',
     facebookUrl: process.env.NEXT_PUBLIC_FACEBOOK_URL || '',
     instagramUrl: process.env.NEXT_PUBLIC_INSTAGRAM_URL || '',
-    twitterUrl: process.env.NEXT_PUBLIC_TWITTER_URL || '',
     linkedinUrl: process.env.NEXT_PUBLIC_LINKEDIN_URL || '',
   });
 
@@ -50,7 +48,6 @@ export function Footer() {
               contactPhone: data.settings.contactPhone || prev.contactPhone,
               facebookUrl: data.settings.facebookUrl || prev.facebookUrl,
               instagramUrl: data.settings.instagramUrl || prev.instagramUrl,
-              twitterUrl: data.settings.twitterUrl || prev.twitterUrl,
               linkedinUrl: data.settings.linkedinUrl || prev.linkedinUrl,
             }));
           }
@@ -206,17 +203,6 @@ export function Footer() {
                   aria-label="Instagram"
                 >
                   <Instagram className="w-4 h-4" />
-                </a>
-              )}
-              {contactSettings.twitterUrl && (
-                <a
-                  href={contactSettings.twitterUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-9 h-9 rounded-full bg-gray-800 flex items-center justify-center hover:bg-primary transition-colors"
-                  aria-label="Twitter"
-                >
-                  <Twitter className="w-4 h-4" />
                 </a>
               )}
               {contactSettings.linkedinUrl && (
