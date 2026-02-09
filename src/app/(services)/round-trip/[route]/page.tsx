@@ -46,10 +46,27 @@ export async function generateStaticParams() {
       return [];
     }
 
-    // Fetch ALL active routes from database (no isPopular filter, no limit)
+    // Fetch ALL active city-to-city routes (EXCLUDE airport routes)
     const routes = await prisma.chauffeur_route_packages.findMany({
       where: {
         isActive: true,
+        // Only city-to-city routes, NO airport routes
+        AND: [
+          {
+            locations_chauffeur_route_packages_fromLocationIdTolocations: {
+              type: {
+                not: 'AIRPORT',
+              },
+            },
+          },
+          {
+            locations_chauffeur_route_packages_toLocationIdTolocations: {
+              type: {
+                not: 'AIRPORT',
+              },
+            },
+          },
+        ],
       },
       include: {
         locations_chauffeur_route_packages_fromLocationIdTolocations: {
@@ -80,7 +97,7 @@ export async function generateStaticParams() {
       return { route: seoSlug };
     });
 
-    console.log(`[round-trip] Generating ALL ${routeParams.length} round trip route pages at build time`);
+    console.log(`[round-trip] Generating ${routeParams.length} city-to-city round trip pages (airports excluded)`);
     return routeParams;
   } catch (error) {
     console.error('[round-trip] Error fetching routes:', error);

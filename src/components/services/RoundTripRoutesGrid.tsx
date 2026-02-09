@@ -9,11 +9,28 @@ function generateSEOSlug(fromLocation: any, toLocation: any): string {
 
 export async function RoundTripRoutesGrid() {
   try {
-    // Fetch popular round trip routes from database
+    // Fetch popular round trip routes from database (EXCLUDE airport routes)
     const routes = await prisma.chauffeur_route_packages.findMany({
       where: {
         isActive: true,
         isPopular: true, // Show only popular routes on main page
+        // Exclude routes where either location is an AIRPORT
+        AND: [
+          {
+            locations_chauffeur_route_packages_fromLocationIdTolocations: {
+              type: {
+                not: 'AIRPORT',
+              },
+            },
+          },
+          {
+            locations_chauffeur_route_packages_toLocationIdTolocations: {
+              type: {
+                not: 'AIRPORT',
+              },
+            },
+          },
+        ],
       },
       include: {
         locations_chauffeur_route_packages_fromLocationIdTolocations: {
