@@ -43,9 +43,9 @@ export function Footer() {
       icon: '🚗',
       base_url: '/car-rental',
       subServices: [
-        { name: 'Round Trip', url: '/car-rental' },
-        { name: 'One Way', url: '/car-rental/one-way' },
-        { name: 'Airport Transfer', url: '/car-rental/airport-transfer' },
+        { name: 'Round Trip', url: '/round-trip' },
+        { name: 'One Way Cab', url: '/one-way-cab' },
+        { name: 'Airport Transfer', url: '/airport-transfer' },
         { name: 'Self Drive', url: '/self-drive-car-rentals' },
         { name: 'Luxury Cars', url: '/luxury-car-rental' },
       ],
