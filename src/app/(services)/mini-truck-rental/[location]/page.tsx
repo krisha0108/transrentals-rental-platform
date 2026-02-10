@@ -6,7 +6,8 @@ import { FAQSection } from '@/components/services/FAQSection';
 import { NearbyLocations } from '@/components/location/NearbyLocations';
 import { ServiceComingSoon } from '@/components/location/ServiceComingSoon';
 import { capitalize } from '@/lib/utils';
-import { ALL_CITIES, STATIC_CITIES } from '@/data/indian-cities';
+import { getCityBySlug } from '@/data/indian-cities';
+import { getServiceLocations } from '@/lib/services/service-locations';;
 import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
 import { isServiceAvailableInLocation, getNearbyAvailableLocations } from '@/lib/services/service-availability';
 
@@ -17,11 +18,16 @@ interface PageProps {
 }
 
 // Generate static params for ALL locations - GOD LEVEL SEO
+// Generate static params from DATABASE - Only locations where transporter is available
 export async function generateStaticParams() {
-  return STATIC_CITIES.map((city) => ({
-    location: city.slug,
-  }));
+  return getServiceLocations('transporter');
 }
+
+// Enable ISR - Revalidate every hour
+export const revalidate = 3600;
+
+// Allow dynamic params for new cities without rebuild
+export const dynamicParams = true;
 
 // Generate metadata for each location
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {

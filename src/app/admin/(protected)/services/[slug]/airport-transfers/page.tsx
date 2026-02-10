@@ -41,6 +41,7 @@ interface AirportTransfer {
   airportSurcharge: number | null;
   nightSurcharge: number | null;
   isActive: boolean;
+  isPopular: boolean;
   chauffeur_vehicle_categories: { id: string; name: string; slug: string };
   locations_chauffeur_route_packages_fromLocationIdTolocations: { id: string; name: string; slug: string; type: string };
   locations_chauffeur_route_packages_toLocationIdTolocations: { id: string; name: string; slug: string; type: string };
@@ -63,6 +64,7 @@ export default function AirportTransfersPage() {
   const [transferType, setTransferType] = useState<'from_airport' | 'to_airport'>('from_airport');
   const [estimatedKm, setEstimatedKm] = useState(25);
   const [estimatedDuration, setEstimatedDuration] = useState('45 mins');
+  const [isPopular, setIsPopular] = useState(false);
 
   // Pricing per category
   const [categoryPrices, setCategoryPrices] = useState<Record<string, {
@@ -181,6 +183,7 @@ export default function AirportTransfersPage() {
               airportSurcharge: price.airportSurcharge,
               nightSurcharge: price.nightSurcharge,
               isActive: true,
+              isPopular: isPopular,
             }),
           });
 
@@ -204,6 +207,7 @@ export default function AirportTransfersPage() {
       // Reset form
       setSelectedAirport('');
       setSelectedCity('');
+      setIsPopular(false);
       const resetPrices: Record<string, any> = {};
       vehicleCategories.forEach((cat) => {
         resetPrices[cat.id] = {
@@ -290,7 +294,8 @@ export default function AirportTransfersPage() {
       'Toll Estimate',
       'Airport Surcharge',
       'Night Surcharge',
-      'Is Active'
+      'Is Active',
+      'Is Popular (SEO)'
     ];
 
     // Convert transfers to CSV rows
@@ -306,7 +311,8 @@ export default function AirportTransfersPage() {
         transfer.tollsEstimate || 0,
         transfer.airportSurcharge || 0,
         transfer.nightSurcharge || 0,
-        transfer.isActive
+        transfer.isActive,
+        transfer.isPopular
       ].join(',');
     });
 
@@ -338,6 +344,7 @@ export default function AirportTransfersPage() {
       airportSurcharge: transfer.airportSurcharge,
       nightSurcharge: transfer.nightSurcharge,
       isActive: transfer.isActive,
+      isPopular: transfer.isPopular,
     });
   }
 
@@ -534,6 +541,28 @@ export default function AirportTransfersPage() {
           </table>
         </div>
 
+        {/* SEO Settings */}
+        <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+          <div className="flex items-start gap-3">
+            <input
+              type="checkbox"
+              id="isPopular"
+              checked={isPopular}
+              onChange={(e) => setIsPopular(e.target.checked)}
+              className="mt-1 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+            />
+            <div className="flex-1">
+              <label htmlFor="isPopular" className="font-semibold text-gray-900 cursor-pointer">
+                Mark as Popular Route (SEO Boost 🚀)
+              </label>
+              <p className="text-sm text-gray-600 mt-1">
+                Popular routes are pre-built at build time for faster loading and better SEO ranking.
+                Enable this for high-traffic airport routes (Delhi, Mumbai, Bangalore, etc.)
+              </p>
+            </div>
+          </div>
+        </div>
+
         <div className="mt-6 flex justify-end">
           <button
             onClick={handleBulkCreate}
@@ -615,6 +644,7 @@ export default function AirportTransfersPage() {
                       <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Airport</th>
                       <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Night</th>
                       <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">SEO</th>
                       <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
                     </tr>
                   </thead>
@@ -667,6 +697,15 @@ export default function AirportTransfersPage() {
                               </select>
                             </td>
                             <td className="px-4 py-2">
+                              <input
+                                type="checkbox"
+                                checked={editForm.isPopular || false}
+                                onChange={(e) => setEditForm(prev => ({ ...prev, isPopular: e.target.checked }))}
+                                className="w-4 h-4 text-blue-600 border-gray-300 rounded"
+                                title="Mark as popular for SEO"
+                              />
+                            </td>
+                            <td className="px-4 py-2">
                               <div className="flex gap-2">
                                 <button
                                   onClick={() => handleUpdateTransfer(transfer.id)}
@@ -695,6 +734,17 @@ export default function AirportTransfersPage() {
                               <span className={`px-2 py-1 rounded-full text-xs ${transfer.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
                                 {transfer.isActive ? 'Active' : 'Inactive'}
                               </span>
+                            </td>
+                            <td className="px-4 py-2">
+                              {transfer.isPopular ? (
+                                <span className="px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-800 font-medium" title="Pre-built at build time for better SEO">
+                                  🚀 Popular
+                                </span>
+                              ) : (
+                                <span className="px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-600" title="Generated on-demand">
+                                  Regular
+                                </span>
+                              )}
                             </td>
                             <td className="px-4 py-2">
                               <div className="flex gap-2">
@@ -733,6 +783,7 @@ export default function AirportTransfersPage() {
           <li>• <strong>Base Price:</strong> Fixed price for the transfer (one-way)</li>
           <li>• <strong>Airport Surcharge:</strong> Extra charges for airport parking/entry fees</li>
           <li>• <strong>Night Surcharge:</strong> Additional charge for transfers between 10 PM - 6 AM</li>
+          <li>• <strong>🚀 Popular Routes (SEO):</strong> Mark high-traffic routes (Delhi, Mumbai, Bangalore, etc.) as popular to pre-build them at build time for faster loading and better Google rankings</li>
           <li>• Prices entered here will show when customers select airport transfers in booking form</li>
         </ul>
       </div>

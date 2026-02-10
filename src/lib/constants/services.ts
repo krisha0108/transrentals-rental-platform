@@ -155,6 +155,22 @@ export const SERVICES: Service[] = [
   },
   {
     id: 20,
+    name: 'One Way Cab',
+    slug: 'one-way-cab',
+    description: 'One-way taxi with no return charges',
+    icon: '➡️',
+    base_url: '/one-way-cab',
+  },
+  {
+    id: 21,
+    name: 'Round Trip Cab',
+    slug: 'round-trip',
+    description: 'Round trip outstation packages',
+    icon: '🔄',
+    base_url: '/round-trip',
+  },
+  {
+    id: 22,
     name: 'Activa on Rent',
     slug: 'activa-on-rent',
     description: 'Rent scooters for easy city rides',
@@ -162,7 +178,7 @@ export const SERVICES: Service[] = [
     base_url: '/activa-on-rent',
   },
   {
-    id: 21,
+    id: 23,
     name: 'Royal Enfield on Rent',
     slug: 'royal-enfield-on-rent',
     description: 'Classic bikes for road trips',
@@ -170,7 +186,7 @@ export const SERVICES: Service[] = [
     base_url: '/royal-enfield-on-rent',
   },
   {
-    id: 22,
+    id: 24,
     name: 'Wedding Bus Rental',
     slug: 'wedding-bus-rental',
     description: 'Luxury buses for marriage guests',
@@ -178,7 +194,7 @@ export const SERVICES: Service[] = [
     base_url: '/wedding-bus-rental',
   },
   {
-    id: 23,
+    id: 25,
     name: 'Corporate Bus Rental',
     slug: 'corporate-bus-rental',
     description: 'Employee & event transportation',
@@ -186,7 +202,7 @@ export const SERVICES: Service[] = [
     base_url: '/corporate-bus-rental',
   },
   {
-    id: 24,
+    id: 26,
     name: 'Mini Truck Rental',
     slug: 'mini-truck-rental',
     description: 'Tata Ace for city deliveries',
@@ -194,7 +210,7 @@ export const SERVICES: Service[] = [
     base_url: '/mini-truck-rental',
   },
   {
-    id: 25,
+    id: 27,
     name: 'JCB on Rent',
     slug: 'jcb-on-rent',
     description: 'Backhoe loaders for construction',
@@ -202,7 +218,7 @@ export const SERVICES: Service[] = [
     base_url: '/jcb-on-rent',
   },
   {
-    id: 26,
+    id: 28,
     name: 'Outstation Car Rental',
     slug: 'outstation-car-rental',
     description: 'Intercity car hire for long trips',

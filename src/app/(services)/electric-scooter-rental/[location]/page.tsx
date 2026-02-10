@@ -1,7 +1,8 @@
 import React from 'react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { ALL_CITIES, STATIC_CITIES, getCityBySlug } from '@/data/indian-cities';
+import { getCityBySlug } from '@/data/indian-cities';
+import { getServiceLocations } from '@/lib/services/service-locations';;
 import { capitalize } from '@/lib/utils';
 import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
 import { FAQSection } from '@/components/services/FAQSection';
@@ -13,11 +14,16 @@ interface PageProps {
   };
 }
 
+// Generate static params from DATABASE - Only locations where bike-on-rent is available
 export async function generateStaticParams() {
-  return STATIC_CITIES.map((city) => ({
-    location: city.slug,
-  }));
+  return getServiceLocations('bike-on-rent');
 }
+
+// Enable ISR - Revalidate every hour
+export const revalidate = 3600;
+
+// Allow dynamic params for new cities without rebuild
+export const dynamicParams = true;
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const city = getCityBySlug(params.location);

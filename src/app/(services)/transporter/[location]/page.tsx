@@ -11,6 +11,7 @@ import { ALL_CITIES, STATIC_CITIES } from '@/data/indian-cities';
 import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
 import { getAllIndiaFleet } from '@/lib/fleet-utils';
 import { isServiceAvailableInLocation, getNearbyAvailableLocations } from '@/lib/services/service-availability';
+import { prisma } from '@/lib/db/prisma';
 
 interface PageProps {
   params: {
@@ -18,13 +19,53 @@ interface PageProps {
   };
 }
 
-// Generate static params for ALL cities - GOD LEVEL SEO
+// Generate static params from DATABASE - Only enabled locations
 export async function generateStaticParams() {
-  // Generate pages for ALL 206 cities across India
-  return STATIC_CITIES.map((city) => ({
-    location: city.slug,
-  }));
+  try {
+    // Skip database calls during CI/CD build
+    if (process.env.SKIP_DATABASE_CALLS === '1') {
+      console.log('[transporter] Skipping database calls during build');
+      return [];
+    }
+
+    // Fetch enabled locations from database
+    const service = await prisma.services.findUnique({
+      where: { slug: 'transporter' },
+      include: {
+        service_locations: {
+          where: { isActive: true },
+          include: {
+            locations: {
+              select: { slug: true, name: true }
+            }
+          }
+        }
+      }
+    });
+
+    if (!service) {
+      console.log('[transporter] Service not found in database');
+      return [];
+    }
+
+    const locations = service.service_locations.map((sl) => ({
+      location: sl.locations.slug,
+    }));
+
+    console.log(`[transporter] Generating ${locations.length} location pages from database`);
+    return locations;
+  } catch (error) {
+    console.error('[transporter] Error fetching locations:', error);
+    // Fallback to empty array if database error
+    return [];
+  }
 }
+
+// Enable ISR - Revalidate every hour
+export const revalidate = 3600;
+
+// Allow dynamic params for new cities without rebuild
+export const dynamicParams = true;
 
 // Generate metadata for each location
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {

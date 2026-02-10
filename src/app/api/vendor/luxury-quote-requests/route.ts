@@ -111,7 +111,6 @@ export async function GET(request: NextRequest) {
     } else {
       // All relevant requests
       whereClause = {
-        ...dateFilter,
         OR: [
           // Open requests in vendor's locations
           {
@@ -121,9 +120,11 @@ export async function GET(request: NextRequest) {
               { locationId: { in: approvedLocationIds } },
               { locationId: null },
             ],
+            ...dateFilter, // ✅ Add date filter
           },
           // Requests vendor has quoted on
           {
+            ...dateFilter, // ✅ Add date filter
             luxury_quotes: {
               some: { vendorId: vendorId },
             },

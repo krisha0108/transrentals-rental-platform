@@ -254,9 +254,10 @@ export default function BikeBookingsScreen({ navigation, route }) {
       <DateFilterModal
         visible={showDateFilter}
         onClose={() => setShowDateFilter(false)}
-        onApply={(start, end) => applyDateFilter(start, end)}
+        onApply={(start, end, filterType) => applyDateFilter(start, end, filterType)}
         currentStartDate={dateFilter.start}
         currentEndDate={dateFilter.end}
+        currentFilterType={dateFilter.type}
       />
     </SafeAreaView>
   );

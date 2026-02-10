@@ -32,7 +32,7 @@ const serviceCategories = [
     name: 'Taxi & Cab Services',
     description: 'Reliable cab services across India',
     services: SERVICES.filter(s =>
-      ['outstation-cab', 'local-taxi', 'airport-transfer', 'chauffeur-service'].includes(s.slug)
+      ['one-way-cab', 'round-trip', 'airport-transfer', 'outstation-cab', 'local-taxi', 'chauffeur-service'].includes(s.slug)
     ),
   },
   {

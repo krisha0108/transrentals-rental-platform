@@ -1,6 +1,7 @@
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { ALL_CITIES, STATIC_CITIES } from '@/data/indian-cities';
+import { getCityBySlug } from '@/data/indian-cities';
+import { getServiceLocations } from '@/lib/services/service-locations';;
 import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
 
 interface PageProps {
@@ -9,16 +10,20 @@ interface PageProps {
   };
 }
 
+// Generate static params from DATABASE - Only locations where car-rental is available
 export async function generateStaticParams() {
-  return ALL_CITIES
-    .filter(city => city.priority >= 7)
-    .map((city) => ({
-      location: city.slug,
-    }));
+  return getServiceLocations('car-rental');
 }
 
+// Enable ISR - Revalidate every hour
+export const revalidate = 3600;
+
+// Allow dynamic params for new cities without rebuild
+export const dynamicParams = true;
+
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const city = ALL_CITIES.find(c => c.slug === params.location);
+  const city = getCityBySlug(params.location);
+  // Fallback: getAllCities().find(c => c.slug === params.location);
 
   if (!city) {
     return { title: 'Wedding Car Rental | TransRentals' };
@@ -28,7 +33,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   return {
     title: `Wedding Car Rental ${locationName} | Shadi Car Hire @₹2999 | Baraat Car`,
-    description: `Book wedding cars in ${locationName}, ${city.state}. Baraat car rental, bride/groom car, vintage cars. Professional decoration & chauffeur. Starting @₹2999.`,
+    description: `Book wedding cars in ${locationName}. Baraat car rental, bride/groom car, vintage cars. Professional decoration & chauffeur. Starting @₹2999.`,
     keywords: [
       `wedding car rental ${locationName.toLowerCase()}`,
       `shadi car ${locationName.toLowerCase()}`,
@@ -40,7 +45,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       `marriage car booking ${locationName.toLowerCase()}`,
       `vintage wedding car ${locationName.toLowerCase()}`,
       `luxury wedding car ${locationName.toLowerCase()}`,
-      ...city.keywords.map(k => `wedding car ${k}`),
+      ...(city.keywords || []).map(k => `wedding car ${k}`),
     ],
     openGraph: {
       title: `Wedding Car Rental in ${locationName} - Shadi Car @₹2999`,
@@ -54,7 +59,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 }
 
 export default function WeddingCarRentalLocationPage({ params }: PageProps) {
-  const city = ALL_CITIES.find(c => c.slug === params.location);
+  const city = getCityBySlug(params.location);
+  // Fallback: getAllCities().find(c => c.slug === params.location);
 
   if (!city) {
     notFound();

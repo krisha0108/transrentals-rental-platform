@@ -1,6 +1,7 @@
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { ALL_CITIES, STATIC_CITIES } from '@/data/indian-cities';
+import { getCityBySlug } from '@/data/indian-cities';
+import { getServiceLocations } from '@/lib/services/service-locations';;
 import { CarRentalBookingHero } from '@/components/car-rental/CarRentalBookingHero';
 import { ServiceComingSoon } from '@/components/location/ServiceComingSoon';
 import { isServiceAvailableInLocation, getNearbyAvailableLocations } from '@/lib/services/service-availability';
@@ -11,16 +12,20 @@ interface PageProps {
   };
 }
 
+// Generate static params from DATABASE - Only locations where car-rental is available
 export async function generateStaticParams() {
-  return ALL_CITIES
-    .filter(city => city.priority >= 7)
-    .map((city) => ({
-      location: city.slug,
-    }));
+  return getServiceLocations('car-rental');
 }
 
+// Enable ISR - Revalidate every hour
+export const revalidate = 3600;
+
+// Allow dynamic params for new cities without rebuild
+export const dynamicParams = true;
+
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const city = ALL_CITIES.find(c => c.slug === params.location);
+  const city = getCityBySlug(params.location);
+  // Fallback: getAllCities().find(c => c.slug === params.location);
 
   if (!city) {
     return { title: 'Chauffeur Service | TransRentals' };
@@ -30,7 +35,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   return {
     title: `Chauffeur Service ${locationName} | Driver on Hire @₹599 | Car Driver`,
-    description: `Hire professional chauffeur in ${locationName}, ${city.state}. Driver on hire for daily use, outstation. Verified car drivers @₹599/day.`,
+    description: `Hire professional chauffeur in ${locationName}. Driver on hire for daily use, outstation. Verified car drivers @₹599/day.`,
     keywords: [
       `chauffeur service ${locationName.toLowerCase()}`,
       `driver on hire ${locationName.toLowerCase()}`,
@@ -39,7 +44,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       `personal driver ${locationName.toLowerCase()}`,
       `driver booking ${locationName.toLowerCase()}`,
       `chauffeur ${locationName.toLowerCase()}`,
-      ...city.keywords.map(k => `chauffeur service ${k}`),
+      ...(city.keywords || []).map(k => `chauffeur service ${k}`),
     ],
     openGraph: {
       title: `Chauffeur Service in ${locationName} - Driver on Hire @₹599`,
@@ -53,7 +58,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 }
 
 export default async function ChauffeurServiceLocationPage({ params }: PageProps) {
-  const city = ALL_CITIES.find(c => c.slug === params.location);
+  const city = getCityBySlug(params.location);
+  // Fallback: getAllCities().find(c => c.slug === params.location);
 
   if (!city) {
     notFound();

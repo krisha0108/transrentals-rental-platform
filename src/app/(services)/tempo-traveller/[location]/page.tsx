@@ -1,11 +1,12 @@
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { ALL_CITIES, STATIC_CITIES } from '@/data/indian-cities';
+import { ALL_CITIES, STATIC_CITIES, getCityBySlug } from '@/data/indian-cities';
 import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
 import { VehicleGrid } from '@/components/location/VehicleGrid';
 import { getAllIndiaFleet } from '@/lib/fleet-utils';
 import { ServiceComingSoon } from '@/components/location/ServiceComingSoon';
 import { isServiceAvailableInLocation, getNearbyAvailableLocations } from '@/lib/services/service-availability';
+import { prisma } from '@/lib/db/prisma';
 
 interface PageProps {
   params: {
@@ -13,16 +14,56 @@ interface PageProps {
   };
 }
 
+// Generate static params from DATABASE - Only enabled locations
 export async function generateStaticParams() {
-  return ALL_CITIES
-    .filter(city => city.priority >= 7)
-    .map((city) => ({
-      location: city.slug,
+  try {
+    // Skip database calls during CI/CD build
+    if (process.env.SKIP_DATABASE_CALLS === '1') {
+      console.log('[tempo-traveller] Skipping database calls during build');
+      return [];
+    }
+
+    // Fetch enabled locations from database
+    const service = await prisma.services.findUnique({
+      where: { slug: 'tempo-traveller' },
+      include: {
+        service_locations: {
+          where: { isActive: true },
+          include: {
+            locations: {
+              select: { slug: true, name: true }
+            }
+          }
+        }
+      }
+    });
+
+    if (!service) {
+      console.log('[tempo-traveller] Service not found in database');
+      return [];
+    }
+
+    const locations = service.service_locations.map((sl) => ({
+      location: sl.locations.slug,
     }));
+
+    console.log(`[tempo-traveller] Generating ${locations.length} location pages from database`);
+    return locations;
+  } catch (error) {
+    console.error('[tempo-traveller] Error fetching locations:', error);
+    // Fallback to empty array if database error
+    return [];
+  }
 }
 
+// Enable ISR - Revalidate every hour
+export const revalidate = 3600;
+
+// Allow dynamic params for new cities without rebuild
+export const dynamicParams = true;
+
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const city = ALL_CITIES.find(c => c.slug === params.location);
+  const city = getCityBySlug(params.location);
 
   if (!city) {
     return { title: 'Tempo Traveller on Rent | TransRentals' };
@@ -32,7 +73,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   return {
     title: `Tempo Traveller ${locationName} | 12-17 Seater @₹18/Km | Force Traveller`,
-    description: `Rent Tempo Traveller in ${locationName}, ${city.state}. 12, 17, 20 seater AC tempo. Group travel, family trips, corporate events. Book online @₹18/km.`,
+    description: `Rent Tempo Traveller in ${locationName}. 12, 17, 20 seater AC tempo. Group travel, family trips, corporate events. Book online @₹18/km.`,
     keywords: [
       `tempo traveller ${locationName.toLowerCase()}`,
       `12 seater tempo ${locationName.toLowerCase()}`,
@@ -43,7 +84,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       `group travel ${locationName.toLowerCase()}`,
       `traveller hire ${locationName.toLowerCase()}`,
       `tempo for outstation ${locationName.toLowerCase()}`,
-      ...city.keywords.map(k => `tempo traveller ${k}`),
+      ...(city.keywords || []).map(k => `tempo traveller ${k}`),
     ],
     openGraph: {
       title: `Tempo Traveller in ${locationName} - 12-17 Seater @₹18/Km`,
@@ -57,7 +98,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 }
 
 export default async function TempoTravellerLocationPage({ params }: PageProps) {
-  const city = ALL_CITIES.find(c => c.slug === params.location);
+  const city = getCityBySlug(params.location);
 
   if (!city) {
     notFound();

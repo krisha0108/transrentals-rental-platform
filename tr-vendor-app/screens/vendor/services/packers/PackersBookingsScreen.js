@@ -194,6 +194,7 @@ export default function PackersBookingsScreen({ navigation, route }) {
         onApply={handleDateFilterApply}
         currentStartDate={dateFilter.start}
         currentEndDate={dateFilter.end}
+        currentFilterType={dateFilter.type}
       />
     </SafeAreaView>
   );

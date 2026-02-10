@@ -1,6 +1,7 @@
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { ALL_CITIES, STATIC_CITIES } from '@/data/indian-cities';
+import { getCityBySlug } from '@/data/indian-cities';
+import { getServiceLocations } from '@/lib/services/service-locations';;
 import { CarRentalBookingHero } from '@/components/car-rental/CarRentalBookingHero';
 import { PopularRoutes } from '@/components/location/PopularRoutes';
 
@@ -10,16 +11,20 @@ interface PageProps {
   };
 }
 
+// Generate static params from DATABASE - Only locations where car-rental is available
 export async function generateStaticParams() {
-  return ALL_CITIES
-    .filter(city => city.priority >= 7)
-    .map((city) => ({
-      location: city.slug,
-    }));
+  return getServiceLocations('car-rental');
 }
 
+// Enable ISR - Revalidate every hour
+export const revalidate = 3600;
+
+// Allow dynamic params for new cities without rebuild
+export const dynamicParams = true;
+
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const city = ALL_CITIES.find(c => c.slug === params.location);
+  const city = getCityBySlug(params.location);
+  // Fallback: getAllCities().find(c => c.slug === params.location);
 
   if (!city) {
     return { title: 'Outstation Cab | TransRentals' };
@@ -29,7 +34,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   return {
     title: `Outstation Cab ${locationName} | Intercity Taxi @₹12/Km | Round Trip`,
-    description: `Book outstation cab from ${locationName}, ${city.state}. Intercity taxi, round trip & one-way cabs. Sedan, SUV available. Station taxi @₹12/km.`,
+    description: `Book outstation cab from ${locationName}. Intercity taxi, round trip & one-way cabs. Sedan, SUV available. Station taxi @₹12/km.`,
     keywords: [
       `outstation cab ${locationName.toLowerCase()}`,
       `outstation taxi ${locationName.toLowerCase()}`,
@@ -39,7 +44,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       `outstation car rental ${locationName.toLowerCase()}`,
       `intercity travel ${locationName.toLowerCase()}`,
       `one way cab ${locationName.toLowerCase()}`,
-      ...city.keywords.map(k => `outstation cab ${k}`),
+      ...(city.keywords || []).map(k => `outstation cab ${k}`),
     ],
     openGraph: {
       title: `Outstation Cab from ${locationName} - Intercity Taxi @₹12/Km`,
@@ -53,7 +58,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 }
 
 export default function OutstationCabLocationPage({ params }: PageProps) {
-  const city = ALL_CITIES.find(c => c.slug === params.location);
+  const city = getCityBySlug(params.location);
+  // Fallback: getAllCities().find(c => c.slug === params.location);
 
   if (!city) {
     notFound();

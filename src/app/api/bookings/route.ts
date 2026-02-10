@@ -992,7 +992,7 @@ export async function POST(request: NextRequest) {
       result = await handleBikeBooking(customerInfo, bookingData);
     }
     // CAR SERVICES (with driver)
-    else if (bookingType === 'car-roundtrip' || bookingType === 'car-oneway' || bookingType === 'car-airport' || bookingType === 'car') {
+    else if (bookingType === 'car-roundtrip' || bookingType === 'car-oneway' || bookingType === 'car-airport' || bookingType === 'car' || bookingType === 'one-way-cab') {
       result = await handleCarBooking(customerInfo, bookingData);
     }
     // SELF-DRIVE CAR
@@ -1125,6 +1125,7 @@ export async function GET(request: NextRequest) {
           break;
         case 'car':
         case 'selfdrive':
+        case 'one-way-cab':
           data.bookings = await prisma.car_bookings.findMany({
             where: { customerId: customer.id },
             orderBy: { createdAt: 'desc' },

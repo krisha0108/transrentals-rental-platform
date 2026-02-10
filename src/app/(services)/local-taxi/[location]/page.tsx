@@ -1,6 +1,7 @@
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { ALL_CITIES, STATIC_CITIES } from '@/data/indian-cities';
+import { getCityBySlug } from '@/data/indian-cities';
+import { getServiceLocations } from '@/lib/services/service-locations';;
 import { CarRentalBookingHero } from '@/components/car-rental/CarRentalBookingHero';
 
 interface PageProps {
@@ -9,16 +10,20 @@ interface PageProps {
   };
 }
 
+// Generate static params from DATABASE - Only locations where car-rental is available
 export async function generateStaticParams() {
-  return ALL_CITIES
-    .filter(city => city.priority >= 7)
-    .map((city) => ({
-      location: city.slug,
-    }));
+  return getServiceLocations('car-rental');
 }
 
+// Enable ISR - Revalidate every hour
+export const revalidate = 3600;
+
+// Allow dynamic params for new cities without rebuild
+export const dynamicParams = true;
+
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const city = ALL_CITIES.find(c => c.slug === params.location);
+  const city = getCityBySlug(params.location);
+  // Fallback: getAllCities().find(c => c.slug === params.location);
 
   if (!city) {
     return { title: 'Local Taxi | TransRentals' };
@@ -28,7 +33,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   return {
     title: `Local Taxi ${locationName} | Hourly Cab @₹399 | 4 Hour 8 Hour Package`,
-    description: `Book local taxi in ${locationName}, ${city.state}. Hourly cab rental - 4hr, 8hr, 12hr packages. City taxi service. AC sedan, SUV @₹399.`,
+    description: `Book local taxi in ${locationName}. Hourly cab rental - 4hr, 8hr, 12hr packages. City taxi service. AC sedan, SUV @₹399.`,
     keywords: [
       `local taxi ${locationName.toLowerCase()}`,
       `hourly taxi ${locationName.toLowerCase()}`,
@@ -38,7 +43,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       `city taxi ${locationName.toLowerCase()}`,
       `hourly cab ${locationName.toLowerCase()}`,
       `local car rental ${locationName.toLowerCase()}`,
-      ...city.keywords.map(k => `local taxi ${k}`),
+      ...(city.keywords || []).map(k => `local taxi ${k}`),
     ],
     openGraph: {
       title: `Local Taxi in ${locationName} - Hourly Cab @₹399`,
@@ -52,7 +57,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 }
 
 export default function LocalTaxiLocationPage({ params }: PageProps) {
-  const city = ALL_CITIES.find(c => c.slug === params.location);
+  const city = getCityBySlug(params.location);
+  // Fallback: getAllCities().find(c => c.slug === params.location);
 
   if (!city) {
     notFound();

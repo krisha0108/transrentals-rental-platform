@@ -18,13 +18,53 @@ interface PageProps {
   };
 }
 
-// Generate static params for ALL cities - GOD LEVEL SEO
+// Generate static params from DATABASE - Only enabled locations
 export async function generateStaticParams() {
-  // Generate pages for ALL 206 cities across India
-  return STATIC_CITIES.map((city) => ({
-    location: city.slug,
-  }));
+  try {
+    // Skip database calls during CI/CD build
+    if (process.env.SKIP_DATABASE_CALLS === '1') {
+      console.log('[bus-rental] Skipping database calls during build');
+      return [];
+    }
+
+    // Fetch enabled locations from database
+    const service = await prisma.services.findUnique({
+      where: { slug: 'bus-rental' },
+      include: {
+        service_locations: {
+          where: { isActive: true },
+          include: {
+            locations: {
+              select: { slug: true, name: true }
+            }
+          }
+        }
+      }
+    });
+
+    if (!service) {
+      console.log('[bus-rental] Service not found in database');
+      return [];
+    }
+
+    const locations = service.service_locations.map((sl) => ({
+      location: sl.locations.slug,
+    }));
+
+    console.log(`[bus-rental] Generating ${locations.length} location pages from database`);
+    return locations;
+  } catch (error) {
+    console.error('[bus-rental] Error fetching locations:', error);
+    // Fallback to empty array if database error
+    return [];
+  }
 }
+
+// Enable ISR - Revalidate every hour
+export const revalidate = 3600;
+
+// Allow dynamic params for new cities without rebuild
+export const dynamicParams = true;
 
 // Generate metadata for each location
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {

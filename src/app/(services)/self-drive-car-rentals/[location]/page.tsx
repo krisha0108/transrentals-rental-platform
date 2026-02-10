@@ -1,10 +1,11 @@
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { ALL_CITIES, STATIC_CITIES } from '@/data/indian-cities';
+import { ALL_CITIES, STATIC_CITIES, getCityBySlug } from '@/data/indian-cities';
 import { CarSearchHero } from '@/components/car';
 import { ServiceComingSoon } from '@/components/location/ServiceComingSoon';
 import { ServiceFleetDisplay } from '@/components/services/ServiceFleetDisplay';
 import { isServiceAvailableInLocation, getNearbyAvailableLocations } from '@/lib/services/service-availability';
+import { prisma } from '@/lib/db/prisma';
 
 interface PageProps {
   params: {
@@ -12,16 +13,56 @@ interface PageProps {
   };
 }
 
-// Generate static params for ALL cities - GOD LEVEL SEO
+// Generate static params from DATABASE - Only enabled locations
 export async function generateStaticParams() {
-  // Generate pages for ALL 206 cities across India
-  return STATIC_CITIES.map((city) => ({
-    location: city.slug,
-  }));
+  try {
+    // Skip database calls during CI/CD build
+    if (process.env.SKIP_DATABASE_CALLS === '1') {
+      console.log('[self-drive-car-rentals] Skipping database calls during build');
+      return [];
+    }
+
+    // Fetch enabled locations from database
+    const service = await prisma.services.findUnique({
+      where: { slug: 'self-drive-car-rentals' },
+      include: {
+        service_locations: {
+          where: { isActive: true },
+          include: {
+            locations: {
+              select: { slug: true, name: true }
+            }
+          }
+        }
+      }
+    });
+
+    if (!service) {
+      console.log('[self-drive-car-rentals] Service not found in database');
+      return [];
+    }
+
+    const locations = service.service_locations.map((sl) => ({
+      location: sl.locations.slug,
+    }));
+
+    console.log(`[self-drive-car-rentals] Generating ${locations.length} location pages from database`);
+    return locations;
+  } catch (error) {
+    console.error('[self-drive-car-rentals] Error fetching locations:', error);
+    // Fallback to empty array if database error
+    return [];
+  }
 }
 
+// Enable ISR - Revalidate every hour
+export const revalidate = 3600;
+
+// Allow dynamic params for new cities without rebuild
+export const dynamicParams = true;
+
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const city = ALL_CITIES.find(c => c.slug === params.location);
+  const city = getCityBySlug(params.location);
 
   if (!city) {
     return { title: 'Self Drive Car Rental | TransRentals' };
@@ -31,14 +72,14 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   return {
     title: `Self Drive Car Rental in ${locationName} | No Driver @₹899/Day | TransRentals`,
-    description: `Rent self-drive cars in ${locationName}, ${city.state}. Drive yourself without driver. Hatchbacks, sedans, SUVs available. Book online. Flexible hours. 24/7 support.`,
+    description: `Rent self-drive cars in ${locationName}. Drive yourself without driver. Hatchbacks, sedans, SUVs available. Book online. Flexible hours. 24/7 support.`,
     keywords: [
       `self drive car rental ${locationName.toLowerCase()}`,
       `self drive cars ${locationName.toLowerCase()}`,
       `car rental without driver ${locationName.toLowerCase()}`,
       `self drive car hire ${locationName.toLowerCase()}`,
       `drive yourself car ${locationName.toLowerCase()}`,
-      ...city.keywords.map(k => `self drive car ${k}`),
+      ...(city.keywords || []).map(k => `self drive car ${k}`),
     ],
     openGraph: {
       title: `Self Drive Car Rental in ${locationName} - Starting @₹899/Day`,
@@ -52,7 +93,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 }
 
 export default async function SelfDriveCarRentalLocationPage({ params }: PageProps) {
-  const city = ALL_CITIES.find(c => c.slug === params.location);
+  const city = getCityBySlug(params.location);
 
   if (!city) {
     notFound();
