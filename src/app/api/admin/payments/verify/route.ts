@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 import { transformPrismaResponse } from '@/lib/utils/api-transform';
+import { prepareNotificationData } from '@/lib/utils/notification-helper';
+import { sendFCMNotification } from '@/lib/utils/fcm-helper';
 
 import logger from '@/lib/security/logger';
 export const dynamic = 'force-dynamic';
@@ -54,6 +56,39 @@ export async function POST(request: NextRequest) {
           },
         });
 
+        // ⭐ Send notification to customer - Payment Approved
+        try {
+          const notifTitle = '✅ Payment Approved!';
+          const notifBody = `Your bike booking payment of ₹${bikeBooking.advanceAmount || bikeBooking.grandTotal} has been approved.`;
+
+          // Save to database
+          await prisma.notifications.create({
+            data: prepareNotificationData({
+              customerId: bikeBooking.customerId,
+              title: notifTitle,
+              body: notifBody,
+              type: 'payment',
+              serviceType: 'bike',
+              bookingId: bookingId,
+              quoteId: null,
+            }),
+          });
+
+          // Send FCM push notification
+          await sendFCMNotification({
+            customerId: bikeBooking.customerId,
+            title: notifTitle,
+            body: notifBody,
+            data: {
+              type: 'payment',
+              serviceType: 'bike',
+              bookingId: bookingId,
+            },
+          });
+        } catch (notifError) {
+          logger.error('Failed to create/send payment notification', notifError);
+        }
+
         return NextResponse.json({
           success: true,
           message: hasAcceptedVendor
@@ -71,6 +106,39 @@ export async function POST(request: NextRequest) {
               : bikeBooking.customerNotes,
           },
         });
+
+        // ⭐ Send notification to customer - Payment Rejected
+        try {
+          const notifTitle = '❌ Payment Rejected';
+          const notifBody = `Your bike booking payment was rejected. ${notes || 'Please contact support.'}`;
+
+          // Save to database
+          await prisma.notifications.create({
+            data: prepareNotificationData({
+              customerId: bikeBooking.customerId,
+              title: notifTitle,
+              body: notifBody,
+              type: 'payment',
+              serviceType: 'bike',
+              bookingId: bookingId,
+              quoteId: null,
+            }),
+          });
+
+          // Send FCM push notification
+          await sendFCMNotification({
+            customerId: bikeBooking.customerId,
+            title: notifTitle,
+            body: notifBody,
+            data: {
+              type: 'payment',
+              serviceType: 'bike',
+              bookingId: bookingId,
+            },
+          });
+        } catch (notifError) {
+          logger.error('Failed to create/send payment rejection notification', notifError);
+        }
 
         return NextResponse.json({
           success: true,
@@ -120,6 +188,23 @@ export async function POST(request: NextRequest) {
           },
         });
 
+        // ⭐ Send notification - Payment Approved
+        try {
+          await prisma.notifications.create({
+            data: prepareNotificationData({
+              customerId: carBooking.customerId,
+              title: '✅ Payment Approved!',
+              body: `Your self-drive car booking payment of ₹${carBooking.advanceAmount || carBooking.grandTotal} has been approved.`,
+              type: 'payment',
+              serviceType: 'self-drive',
+              bookingId: bookingId,
+              quoteId: null,
+            }),
+          });
+        } catch (notifError) {
+          logger.error('Failed to create notification', notifError);
+        }
+
         return NextResponse.json({
           success: true,
           message: hasAcceptedVendor
@@ -137,6 +222,23 @@ export async function POST(request: NextRequest) {
               : 'Payment verification failed',
           },
         });
+
+        // ⭐ Send notification - Payment Rejected
+        try {
+          await prisma.notifications.create({
+            data: prepareNotificationData({
+              customerId: carBooking.customerId,
+              title: '❌ Payment Rejected',
+              body: `Your self-drive car booking payment was rejected. ${notes || 'Please contact support.'}`,
+              type: 'payment',
+              serviceType: 'self-drive',
+              bookingId: bookingId,
+              quoteId: null,
+            }),
+          });
+        } catch (notifError) {
+          logger.error('Failed to create notification', notifError);
+        }
 
         return NextResponse.json({
           success: true,
@@ -177,6 +279,21 @@ export async function POST(request: NextRequest) {
           },
         });
 
+        // ⭐ Notification
+        try {
+          await prisma.notifications.create({
+            data: prepareNotificationData({
+              customerId: busBooking.customerId,
+              title: '✅ Payment Approved!',
+              body: `Your bus booking payment of ₹${busBooking.advanceAmount || 0} has been approved.`,
+              type: 'payment',
+              serviceType: 'bus',
+              bookingId: bookingId,
+              quoteId: null,
+            }),
+          });
+        } catch (e) { logger.error('Notification error', e); }
+
         return NextResponse.json({
           success: true,
           message: 'Bus booking payment verified successfully.',
@@ -191,6 +308,21 @@ export async function POST(request: NextRequest) {
             adminNotes: notes ? `Payment rejected: ${notes}` : 'Payment verification failed',
           },
         });
+
+        // ⭐ Notification
+        try {
+          await prisma.notifications.create({
+            data: prepareNotificationData({
+              customerId: busBooking.customerId,
+              title: '❌ Payment Rejected',
+              body: `Your bus booking payment was rejected. ${notes || 'Please contact support.'}`,
+              type: 'payment',
+              serviceType: 'bus',
+              bookingId: bookingId,
+              quoteId: null,
+            }),
+          });
+        } catch (e) { logger.error('Notification error', e); }
 
         return NextResponse.json({
           success: true,
@@ -230,6 +362,23 @@ export async function POST(request: NextRequest) {
           },
         });
 
+        // ⭐ Send notification - Payment Approved
+        try {
+          await prisma.notifications.create({
+            data: prepareNotificationData({
+              customerId: truckBooking.customerId,
+              title: '✅ Payment Approved!',
+              body: `Your truck booking payment of ₹${truckBooking.advanceAmount || 0} has been approved.`,
+              type: 'payment',
+              serviceType: 'truck',
+              bookingId: bookingId,
+              quoteId: null,
+            }),
+          });
+        } catch (notifError) {
+          logger.error('Failed to create notification', notifError);
+        }
+
         return NextResponse.json({
           success: true,
           message: 'Truck booking payment verified successfully.',
@@ -244,6 +393,23 @@ export async function POST(request: NextRequest) {
             vendorNotes: notes ? `Payment rejected: ${notes}` : 'Payment verification failed',
           },
         });
+
+        // ⭐ Send notification - Payment Rejected
+        try {
+          await prisma.notifications.create({
+            data: prepareNotificationData({
+              customerId: truckBooking.customerId,
+              title: '❌ Payment Rejected',
+              body: `Your truck booking payment was rejected. ${notes || 'Please contact support.'}`,
+              type: 'payment',
+              serviceType: 'truck',
+              bookingId: bookingId,
+              quoteId: null,
+            }),
+          });
+        } catch (notifError) {
+          logger.error('Failed to create notification', notifError);
+        }
 
         return NextResponse.json({
           success: true,
@@ -281,6 +447,23 @@ export async function POST(request: NextRequest) {
           },
         });
 
+        // ⭐ Send notification - Payment Approved
+        try {
+          await prisma.notifications.create({
+            data: prepareNotificationData({
+              customerId: equipmentBooking.customerId,
+              title: '✅ Payment Approved!',
+              body: `Your equipment booking payment of ₹${equipmentBooking.advanceAmount || 0} has been approved.`,
+              type: 'payment',
+              serviceType: 'equipment',
+              bookingId: bookingId,
+              quoteId: null,
+            }),
+          });
+        } catch (notifError) {
+          logger.error('Failed to create notification', notifError);
+        }
+
         return NextResponse.json({
           success: true,
           message: 'Equipment booking payment verified successfully.',
@@ -295,6 +478,23 @@ export async function POST(request: NextRequest) {
             advancePaidAt: null,
           },
         });
+
+        // ⭐ Send notification - Payment Rejected
+        try {
+          await prisma.notifications.create({
+            data: prepareNotificationData({
+              customerId: equipmentBooking.customerId,
+              title: '❌ Payment Rejected',
+              body: `Your equipment booking payment was rejected. ${notes || 'Please contact support.'}`,
+              type: 'payment',
+              serviceType: 'equipment',
+              bookingId: bookingId,
+              quoteId: null,
+            }),
+          });
+        } catch (notifError) {
+          logger.error('Failed to create notification', notifError);
+        }
 
         return NextResponse.json({
           success: true,
@@ -332,6 +532,23 @@ export async function POST(request: NextRequest) {
           },
         });
 
+        // ⭐ Send notification - Payment Approved
+        try {
+          await prisma.notifications.create({
+            data: prepareNotificationData({
+              customerId: packersBooking.customerId,
+              title: '✅ Payment Approved!',
+              body: `Your packers & movers booking payment of ₹${packersBooking.advanceAmount || 0} has been approved.`,
+              type: 'payment',
+              serviceType: 'packers',
+              bookingId: bookingId,
+              quoteId: null,
+            }),
+          });
+        } catch (notifError) {
+          logger.error('Failed to create notification', notifError);
+        }
+
         return NextResponse.json({
           success: true,
           message: 'Packers & Movers booking payment verified successfully.',
@@ -347,6 +564,23 @@ export async function POST(request: NextRequest) {
             vendorNotes: notes ? `Payment rejected: ${notes}` : 'Payment verification failed',
           },
         });
+
+        // ⭐ Send notification - Payment Rejected
+        try {
+          await prisma.notifications.create({
+            data: prepareNotificationData({
+              customerId: packersBooking.customerId,
+              title: '❌ Payment Rejected',
+              body: `Your packers & movers booking payment was rejected. ${notes || 'Please contact support.'}`,
+              type: 'payment',
+              serviceType: 'packers',
+              bookingId: bookingId,
+              quoteId: null,
+            }),
+          });
+        } catch (notifError) {
+          logger.error('Failed to create notification', notifError);
+        }
 
         return NextResponse.json({
           success: true,
@@ -384,6 +618,23 @@ export async function POST(request: NextRequest) {
           },
         });
 
+        // ⭐ Send notification - Payment Approved
+        try {
+          await prisma.notifications.create({
+            data: prepareNotificationData({
+              customerId: luxuryBooking.customerId,
+              title: '✅ Payment Approved!',
+              body: `Your luxury car booking payment of ₹${luxuryBooking.advanceAmount || 0} has been approved.`,
+              type: 'payment',
+              serviceType: 'luxury',
+              bookingId: bookingId,
+              quoteId: null,
+            }),
+          });
+        } catch (notifError) {
+          logger.error('Failed to create notification', notifError);
+        }
+
         return NextResponse.json({
           success: true,
           message: 'Luxury Car booking payment verified successfully.',
@@ -398,6 +649,23 @@ export async function POST(request: NextRequest) {
             advancePaidAt: null,
           },
         });
+
+        // ⭐ Send notification - Payment Rejected
+        try {
+          await prisma.notifications.create({
+            data: prepareNotificationData({
+              customerId: luxuryBooking.customerId,
+              title: '❌ Payment Rejected',
+              body: `Your luxury car booking payment was rejected. ${notes || 'Please contact support.'}`,
+              type: 'payment',
+              serviceType: 'luxury',
+              bookingId: bookingId,
+              quoteId: null,
+            }),
+          });
+        } catch (notifError) {
+          logger.error('Failed to create notification', notifError);
+        }
 
         return NextResponse.json({
           success: true,
@@ -445,6 +713,23 @@ export async function POST(request: NextRequest) {
         },
       });
 
+      // ⭐ Send notification - Payment Approved
+      try {
+        await prisma.notifications.create({
+          data: prepareNotificationData({
+            customerId: booking.customerId,
+            title: '✅ Payment Approved!',
+            body: `Your chauffeur car booking payment of ₹${advanceAmount} has been approved.`,
+            type: 'payment',
+            serviceType: 'car',
+            bookingId: bookingId,
+            quoteId: null,
+          }),
+        });
+      } catch (notifError) {
+        logger.error('Failed to create notification', notifError);
+      }
+
       return NextResponse.json({
         success: true,
         message: isSingleVendor
@@ -460,6 +745,23 @@ export async function POST(request: NextRequest) {
           adminNotes: notes || 'Payment verification failed',
         },
       });
+
+      // ⭐ Send notification - Payment Rejected
+      try {
+        await prisma.notifications.create({
+          data: prepareNotificationData({
+            customerId: booking.customerId,
+            title: '❌ Payment Rejected',
+            body: `Your chauffeur car booking payment was rejected. ${notes || 'Please contact support.'}`,
+            type: 'payment',
+            serviceType: 'car',
+            bookingId: bookingId,
+            quoteId: null,
+          }),
+        });
+      } catch (notifError) {
+        logger.error('Failed to create notification', notifError);
+      }
 
       return NextResponse.json({
         success: true,

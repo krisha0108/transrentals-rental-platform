@@ -3,6 +3,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getVendorAuth } from '@/lib/auth/vendor-mobile-auth';
 import { prisma } from '@/lib/db/prisma';
 import { transformPrismaResponse } from '@/lib/utils/api-transform';
+import { prepareNotificationData } from '@/lib/utils/notification-helper';
+import { sendFCMNotification } from '@/lib/utils/fcm-helper';
 import crypto from 'crypto';
 
 import logger from '@/lib/security/logger';
@@ -391,19 +393,37 @@ export async function POST(request: NextRequest) {
 
     // Create notification for customer
     try {
+      const notifTitle = '🚌 New Bus Rental Quote Received!';
+      const notifBody = `${vendor.businessName} has sent you a quote for ${vehicleName || 'bus rental'}. Total: ₹${totalAmount}.`;
+
+      // Save to database
       await prisma.notifications.create({
-        data: {
+        data: prepareNotificationData({
           customerId: quoteRequest.customerId,
-          title: '🚌 New Bus Rental Quote Received!',
-          body: `${vendor.businessName} has sent you a quote for ${vehicleName || 'bus rental'}. Total: ₹${totalAmount}. Valid till ${validTill.toLocaleDateString()}.`,
+          title: notifTitle,
+          body: notifBody,
           type: 'quote',
+          serviceType: 'bus',
           quoteId: quote.id,
-          isRead: false,
+          bookingId: null,
+        }),
+      });
+
+      // Send FCM push notification ⭐
+      await sendFCMNotification({
+        customerId: quoteRequest.customerId,
+        title: notifTitle,
+        body: notifBody,
+        data: {
+          type: 'quote',
+          serviceType: 'bus',
+          quoteId: quote.id,
         },
       });
-      logger.info('Notification created for bus quote', { quoteId: quote.id, customerId: quoteRequest.customerId });
+
+      logger.info('Notification created and sent for bus quote', { quoteId: quote.id, customerId: quoteRequest.customerId });
     } catch (notifError) {
-      logger.error('Failed to create notification for bus quote', notifError);
+      logger.error('Failed to create/send notification for bus quote', notifError);
     }
 
     return NextResponse.json({

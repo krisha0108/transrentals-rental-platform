@@ -3,6 +3,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getVendorAuth } from '@/lib/auth/vendor-mobile-auth';
 import { prisma } from '@/lib/db/prisma';
 import { transformPrismaResponse } from '@/lib/utils/api-transform';
+import { prepareNotificationData } from '@/lib/utils/notification-helper';
+import { sendFCMNotification } from '@/lib/utils/fcm-helper';
 import crypto from 'crypto';
 
 import logger from '@/lib/security/logger';
@@ -371,19 +373,37 @@ export async function POST(request: NextRequest) {
 
     // Create notification for customer
     try {
+      const notifTitle = '🏍️ New Bike Quote Received!';
+      const notifBody = `${vendor.businessName} has sent you a quote for ${vehicleName}. Daily rate: ₹${dailyRate}. Total: ₹${grandTotal}.`;
+
+      // Save to database
       await prisma.notifications.create({
-        data: {
+        data: prepareNotificationData({
           customerId: quoteRequest.customerId,
-          title: '🏍️ New Bike Quote Received!',
-          body: `${vendor.businessName} has sent you a quote for ${vehicleName}. Daily rate: ₹${dailyRate}. Total: ₹${grandTotal}. Valid till ${validTill.toLocaleDateString()}.`,
+          title: notifTitle,
+          body: notifBody,
           type: 'quote',
-          quoteId: quote.id,
-          isRead: false,
+          serviceType: 'bike',
+          quoteId: requestId,
+          bookingId: null,
+        }),
+      });
+
+      // Send FCM push notification ⭐
+      await sendFCMNotification({
+        customerId: quoteRequest.customerId,
+        title: notifTitle,
+        body: notifBody,
+        data: {
+          type: 'quote',
+          serviceType: 'bike',
+          quoteId: requestId,
         },
       });
-      logger.info('Notification created for bike quote', { quoteId: quote.id, customerId: quoteRequest.customerId });
+
+      logger.info('Notification created and sent for bike quote', { quoteId: requestId, customerId: quoteRequest.customerId });
     } catch (notifError) {
-      logger.error('Failed to create notification for bike quote', notifError);
+      logger.error('Failed to create/send notification for bike quote', notifError);
     }
 
     return NextResponse.json({

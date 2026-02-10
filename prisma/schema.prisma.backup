@@ -1,0 +1,4146 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "windows"]
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model active_sessions {
+  id               String   @id
+  sessionId        String   @unique
+  currentPage      String
+  pageTitle        String?
+  startTime        DateTime @default(now())
+  lastActivity     DateTime @default(now())
+  pageCount        Int      @default(1)
+  device           String?
+  browser          String?
+  os               String?
+  country          String?
+  city             String?
+  referrer         String?
+  utmSource        String?
+  utmMedium        String?
+  hasInteracted    Boolean  @default(false)
+  hasChatted       Boolean  @default(false)
+  hasSubmittedForm Boolean  @default(false)
+
+  @@index([lastActivity])
+  @@index([sessionId])
+}
+
+model admin_users {
+  id                       String                     @id
+  email                    String                     @unique
+  password                 String
+  name                     String
+  role                     admin_users_role           @default(ADMIN)
+  isActive                 Boolean                    @default(true)
+  createdAt                DateTime                   @default(now())
+  updatedAt                DateTime                   @updatedAt
+  createdById              String?
+  phone                    String?
+  admin_users              admin_users?               @relation("admin_usersToadmin_users", fields: [createdById], references: [id])
+  other_admin_users        admin_users[]              @relation("admin_usersToadmin_users")
+  blog_posts               blog_posts[]
+  manager_locations        manager_locations[]
+  manager_services         manager_services[]
+  pages                    pages[]
+  vendor_documents         vendor_documents[]
+  vendor_location_requests vendor_location_requests[]
+  vendor_service_requests  vendor_service_requests[]
+  vendors                  vendors[]
+
+  @@index([createdById], map: "admin_users_createdById_fkey")
+}
+
+model analytics_summary {
+  id                   String   @id
+  date                 DateTime @unique @db.Date
+  totalPageViews       Int      @default(0)
+  uniqueVisitors       Int      @default(0)
+  newVisitors          Int      @default(0)
+  returningVisitors    Int      @default(0)
+  avgSessionDuration   Int      @default(0)
+  avgPagesPerSession   Float    @default(0)
+  bounceRate           Float    @default(0)
+  totalFormViews       Int      @default(0)
+  totalFormStarts      Int      @default(0)
+  totalFormSubmissions Int      @default(0)
+  formConversionRate   Float    @default(0)
+  totalChatSessions    Int      @default(0)
+  totalChatMessages    Int      @default(0)
+  chatBookings         Int      @default(0)
+  chatConversionRate   Float    @default(0)
+  totalClicks          Int      @default(0)
+  ctaClicks            Int      @default(0)
+  phoneClicks          Int      @default(0)
+  avgLcp               Float?
+  avgFid               Float?
+  avgCls               Float?
+  pagesWithIssues      Int      @default(0)
+  topPages             String?  @db.LongText
+  topReferrers         String?  @db.LongText
+  topFormPages         String?  @db.LongText
+  topChatPages         String?  @db.LongText
+  mobileVisitors       Int      @default(0)
+  desktopVisitors      Int      @default(0)
+  tabletVisitors       Int      @default(0)
+  directTraffic        Int      @default(0)
+  organicTraffic       Int      @default(0)
+  referralTraffic      Int      @default(0)
+  socialTraffic        Int      @default(0)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  @@index([date])
+}
+
+model backlinks {
+  id              String    @id
+  sourceUrl       String
+  sourceDomain    String
+  targetUrl       String
+  anchorText      String?
+  isDoFollow      Boolean   @default(true)
+  isNoFollow      Boolean   @default(false)
+  domainAuthority Int?
+  pageAuthority   Int?
+  spamScore       Int?
+  isActive        Boolean   @default(true)
+  lastChecked     DateTime?
+  firstSeen       DateTime  @default(now())
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@unique([sourceUrl, targetUrl])
+  @@index([domainAuthority])
+  @@index([sourceDomain])
+  @@index([targetUrl])
+}
+
+model bank_details {
+  id                String    @id
+  accountHolderName String
+  accountNumber     String
+  ifscCode          String
+  bankName          String
+  branchName        String?
+  accountType       String    @default("SAVINGS")
+  upiId             String?
+  upiQrCode         String?
+  isActive          Boolean   @default(true)
+  isPrimary         Boolean   @default(false)
+  displayOrder      Int       @default(0)
+  serviceId         String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  services          services? @relation(fields: [serviceId], references: [id])
+
+  @@index([isActive])
+  @@index([isPrimary])
+  @@index([serviceId])
+}
+
+model bike_bookings {
+  id                                              String                      @id @default(cuid())
+  bookingNumber                                   String                      @unique
+  customerId                                      String?
+  customerName                                    String
+  customerEmail                                   String
+  customerPhone                                   String
+  locationId                                      String
+  locationName                                    String
+  requestedVehicleId                              String?
+  requestedVehicleName                            String
+  requestedBrand                                  String?
+  requestedCategory                               String?
+  pickupDate                                      DateTime
+  pickupTime                                      String
+  dropDate                                        DateTime
+  dropTime                                        String
+  totalDays                                       Int
+  assignedVendorId                                String?
+  acceptedVendorId                                String?
+  acceptedVehicleId                               String?
+  acceptedVehicleName                             String?
+  rejectedByVendors                               String?                     @db.LongText
+  responseDeadline                                DateTime?
+  broadcastedAt                                   DateTime?
+  acceptedAt                                      DateTime?
+  pickedUpAt                                      DateTime?
+  returnedAt                                      DateTime?
+  status                                          bike_bookings_status        @default(PENDING_PAYMENT)
+  dailyRate                                       Float
+  totalAmount                                     Float
+  gstAmount                                       Float
+  securityDeposit                                 Float
+  grandTotal                                      Float
+  paymentStatus                                   bike_bookings_paymentStatus @default(PENDING)
+  paidAmount                                      Float                       @default(0)
+  paymentMethod                                   String?
+  transactionId                                   String?
+  helmetsRequired                                 Int                         @default(1)
+  addons                                          String?                     @db.LongText
+  customerNotes                                   String?                     @db.Text
+  vendorNotes                                     String?                     @db.Text
+  adminNotes                                      String?                     @db.Text
+  cancellationReason                              String?                     @db.Text
+  createdAt                                       DateTime                    @default(now())
+  updatedAt                                       DateTime                    @updatedAt
+  lastPaymentError                                String?                     @db.Text
+  notifiedVendorIds                               String?                     @db.LongText
+  paymentAttempts                                 Int                         @default(0)
+  razorpayOrderId                                 String?
+  razorpayPaymentId                               String?
+  razorpaySignature                               String?
+  requestedModelId                                String?
+  version                                         Int                         @default(0)
+  actualReturnDate                                DateTime?
+  advanceAmount                                   Float?
+  advancePaymentDate                              DateTime?
+  advancePaymentProof                             String?
+  advancePaymentRef                               String?
+  advancePaymentVerified                          Boolean                     @default(false)
+  advanceVerifiedAt                               DateTime?
+  advanceVerifiedBy                               String?
+  damageCharges                                   Float?
+  finalPaymentAmount                              Float?
+  finalPaymentAt                                  DateTime?
+  finalPaymentMethod                              String?
+  finalPaymentRef                                 String?
+  finalPaymentVerified                            Boolean                     @default(false)
+  lateFeeAmount                                   Float?
+  refundAmount                                    Float?
+  tripEndOtp                                      String?
+  tripEndVerifiedAt                               DateTime?
+  tripOtpVerified                                 Boolean                     @default(false)
+  tripOtpVerifiedAt                               DateTime?
+  tripStartOtp                                    String?
+  tripStartOtpExpiry                              DateTime?
+  tripStartOtpSentAt                              DateTime?
+  advancePercentage                               Float?
+  platformFee                                     Float                       @default(0)
+  acceptedQuoteId                                 String?                     @unique
+  quoteRequestId                                  String?                     @unique
+  bike_quotes                                     bike_quotes?                @relation(fields: [acceptedQuoteId], references: [id])
+  vendors_bike_bookings_acceptedVendorIdTovendors vendors?                    @relation("bike_bookings_acceptedVendorIdTovendors", fields: [acceptedVendorId], references: [id])
+  vendors_bike_bookings_assignedVendorIdTovendors vendors?                    @relation("bike_bookings_assignedVendorIdTovendors", fields: [assignedVendorId], references: [id])
+  customers                                       customers?                  @relation(fields: [customerId], references: [id])
+  locations                                       locations                   @relation(fields: [locationId], references: [id])
+  bike_quote_requests                             bike_quote_requests?        @relation(fields: [quoteRequestId], references: [id])
+  vehicle_models                                  vehicle_models?             @relation(fields: [requestedModelId], references: [id])
+
+  @@index([acceptedVendorId])
+  @@index([assignedVendorId])
+  @@index([bookingNumber])
+  @@index([createdAt])
+  @@index([customerEmail])
+  @@index([customerId])
+  @@index([customerPhone])
+  @@index([locationId])
+  @@index([pickupDate])
+  @@index([requestedModelId])
+  @@index([status])
+  @@index([version])
+}
+
+model bike_quote_requests {
+  id                                                           String                     @id @default(cuid())
+  status                                                       bike_quote_requests_status @default(PENDING)
+  acceptedQuoteId                                              String?
+  budgetMax                                                    Float?
+  budgetMin                                                    Float?
+  createdAt                                                    DateTime                   @default(now())
+  customerEmail                                                String
+  customerId                                                   String?
+  customerName                                                 String
+  customerNotes                                                String?                    @db.Text
+  customerPhone                                                String
+  dropDate                                                     DateTime
+  dropTime                                                     String
+  expiresAt                                                    DateTime
+  helmetsRequired                                              Int                        @default(1)
+  locationId                                                   String
+  locationName                                                 String
+  pickupDate                                                   DateTime
+  pickupTime                                                   String
+  quotesOpenTill                                               DateTime?
+  quotesViewed                                                 Int                        @default(0)
+  requestNumber                                                String                     @unique
+  totalDays                                                    Int
+  totalQuotesReceived                                          Int                        @default(0)
+  updatedAt                                                    DateTime                   @updatedAt
+  vehicleBrand                                                 String?
+  vehicleCategory                                              String?
+  vehicleCategoryName                                          String?
+  vehicleModelId                                               String?
+  vehicleModelName                                             String?
+  bike_bookings                                                bike_bookings?
+  bike_quotes_bike_quote_requests_acceptedQuoteIdTobike_quotes bike_quotes?               @relation("bike_quote_requests_acceptedQuoteIdTobike_quotes", fields: [acceptedQuoteId], references: [id])
+  customers                                                    customers?                 @relation(fields: [customerId], references: [id])
+  locations                                                    locations                  @relation(fields: [locationId], references: [id])
+  vehicle_models                                               vehicle_models?            @relation(fields: [vehicleModelId], references: [id])
+  bike_quotes_bike_quotes_requestIdTobike_quote_requests       bike_quotes[]              @relation("bike_quotes_requestIdTobike_quote_requests")
+
+  @@index([acceptedQuoteId], map: "bike_quote_requests_acceptedQuoteId_fkey")
+  @@index([createdAt])
+  @@index([customerId])
+  @@index([locationId])
+  @@index([pickupDate])
+  @@index([status])
+  @@index([vehicleModelId])
+}
+
+model bike_quotes {
+  id                                                                   String                 @id
+  inclusions                                                           String?                @db.LongText
+  exclusions                                                           String?                @db.LongText
+  status                                                               bike_quotes_status     @default(DRAFT)
+  advanceAmount                                                        Float
+  advancePercent                                                       Int                    @default(30)
+  createdAt                                                            DateTime               @default(now())
+  dailyRate                                                            Float
+  extraKmCharge                                                        Float?
+  grandTotal                                                           Float
+  gstAmount                                                            Float                  @default(0)
+  helmetsIncluded                                                      Int                    @default(1)
+  kmLimitPerDay                                                        Int?
+  quoteNumber                                                          String                 @unique
+  registrationNumber                                                   String?
+  requestId                                                            String
+  respondedAt                                                          DateTime?
+  securityDeposit                                                      Float
+  sentAt                                                               DateTime?
+  termsConditions                                                      String?                @db.LongText
+  totalAmount                                                          Float
+  updatedAt                                                            DateTime               @updatedAt
+  validTill                                                            DateTime
+  validityDays                                                         Int                    @default(3)
+  vehicleBrand                                                         String?
+  vehicleCategory                                                      String?
+  vehicleFeatures                                                      String?                @db.LongText
+  vehicleImages                                                        String?                @db.LongText
+  vehicleModelId                                                       String?
+  vehicleName                                                          String
+  vehicleYear                                                          Int?
+  vendorFleetId                                                        String?
+  vendorId                                                             String
+  vendorMessage                                                        String?                @db.Text
+  viewCount                                                            Int                    @default(0)
+  viewedAt                                                             DateTime?
+  templateId                                                           String?
+  bike_bookings                                                        bike_bookings?
+  bike_quote_requests_bike_quote_requests_acceptedQuoteIdTobike_quotes bike_quote_requests[]  @relation("bike_quote_requests_acceptedQuoteIdTobike_quotes")
+  bike_quote_requests_bike_quotes_requestIdTobike_quote_requests       bike_quote_requests    @relation("bike_quotes_requestIdTobike_quote_requests", fields: [requestId], references: [id], onDelete: Cascade)
+  vendor_bike_templates                                                vendor_bike_templates? @relation(fields: [templateId], references: [id])
+  vehicle_models                                                       vehicle_models?        @relation(fields: [vehicleModelId], references: [id])
+  vendor_fleets                                                        vendor_fleets?         @relation(fields: [vendorFleetId], references: [id])
+  vendors                                                              vendors                @relation(fields: [vendorId], references: [id])
+
+  @@index([createdAt])
+  @@index([requestId])
+  @@index([status])
+  @@index([templateId])
+  @@index([vehicleModelId], map: "bike_quotes_vehicleModelId_fkey")
+  @@index([vendorFleetId])
+  @@index([vendorId])
+}
+
+model blog_categories {
+  id          String       @id
+  name        String
+  slug        String       @unique
+  description String?      @db.Text
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  blog_posts  blog_posts[]
+}
+
+model blog_posts {
+  id              String            @id
+  title           String
+  slug            String            @unique
+  content         String            @db.Text
+  excerpt         String?           @db.Text
+  featuredImage   String?
+  status          blog_posts_status @default(DRAFT)
+  publishedAt     DateTime?
+  viewCount       Int               @default(0)
+  readTime        Int?
+  categoryId      String?
+  authorId        String
+  tags            String?           @db.LongText
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  admin_users     admin_users       @relation(fields: [authorId], references: [id])
+  blog_categories blog_categories?  @relation(fields: [categoryId], references: [id])
+  seo_meta        seo_meta?
+
+  @@index([authorId], map: "blog_posts_authorId_fkey")
+  @@index([categoryId], map: "blog_posts_categoryId_fkey")
+  @@index([publishedAt])
+  @@index([slug])
+  @@index([status])
+}
+
+model brands {
+  id                           String                        @id
+  name                         String
+  slug                         String
+  logo                         String?
+  description                  String?                       @db.Text
+  country                      String?
+  isActive                     Boolean                       @default(true)
+  displayOrder                 Int                           @default(0)
+  createdAt                    DateTime                      @default(now())
+  updatedAt                    DateTime                      @updatedAt
+  serviceId                    String?
+  vehicleCategoryId            String?
+  services                     services?                     @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  chauffeur_vehicle_categories chauffeur_vehicle_categories? @relation(fields: [vehicleCategoryId], references: [id])
+  vehicle_models               vehicle_models[]
+  vendor_fleets                vendor_fleets[]
+
+  @@unique([serviceId, slug])
+  @@index([name])
+  @@index([serviceId])
+  @@index([vehicleCategoryId])
+}
+
+model bus_bookings {
+  id                     String                     @id @default(cuid())
+  bookingNumber          String                     @unique
+  quoteRequestId         String                     @unique
+  acceptedQuoteId        String                     @unique
+  vendorId               String
+  customerId             String?
+  customerName           String
+  customerEmail          String
+  customerPhone          String
+  tripType               String
+  vehicleCategory        String
+  vehicleName            String
+  passengers             Int
+  pickupCity             String
+  pickupAddress          String?                    @db.Text
+  dropCity               String?
+  dropAddress            String?                    @db.Text
+  routeDetails           String?                    @db.Text
+  pickupDate             DateTime
+  pickupTime             String
+  returnDate             DateTime?
+  returnTime             String?
+  tripDays               Int                        @default(1)
+  assignedVehicleId      String?
+  vehicleNumber          String?
+  vehicleModel           String?
+  driverName             String?
+  driverPhone            String?
+  driverPhoto            String?
+  baseAmount             Float
+  additionalCharges      Float                      @default(0)
+  gstAmount              Float                      @default(0)
+  totalAmount            Float
+  advanceAmount          Float                      @default(0)
+  advancePaid            Float                      @default(0)
+  advancePaidAt          DateTime?
+  balanceAmount          Float                      @default(0)
+  balancePaid            Float                      @default(0)
+  balancePaidAt          DateTime?
+  paymentStatus          bus_bookings_paymentStatus @default(PENDING)
+  paymentMethod          String?
+  transactionIds         String?                    @db.LongText
+  status                 bus_bookings_status        @default(PENDING_PAYMENT)
+  tripStartOtp           String?
+  tripEndOtp             String?
+  tripStartedAt          DateTime?
+  tripEndedAt            DateTime?
+  actualKmTravelled      Int?
+  actualDays             Int?
+  extraKmCharges         Float                      @default(0)
+  extraDayCharges        Float                      @default(0)
+  tollCharges            Float                      @default(0)
+  parkingCharges         Float                      @default(0)
+  otherCharges           Float                      @default(0)
+  finalAmount            Float?
+  customerNotes          String?                    @db.Text
+  vendorNotes            String?                    @db.Text
+  adminNotes             String?                    @db.Text
+  cancelledAt            DateTime?
+  cancelledBy            String?
+  cancellationReason     String?                    @db.Text
+  refundAmount           Float?
+  rating                 Int?
+  review                 String?                    @db.Text
+  driverRating           Int?
+  vehicleRating          Int?
+  confirmedAt            DateTime?
+  completedAt            DateTime?
+  createdAt              DateTime                   @default(now())
+  updatedAt              DateTime                   @updatedAt
+  advancePaymentDate     DateTime?
+  advancePaymentProof    String?
+  advancePaymentRef      String?
+  advancePaymentVerified Boolean                    @default(false)
+  bus_quotes             bus_quotes                 @relation(fields: [acceptedQuoteId], references: [id])
+  customers              customers?                 @relation(fields: [customerId], references: [id])
+  bus_quote_requests     bus_quote_requests         @relation(fields: [quoteRequestId], references: [id])
+  vendors                vendors                    @relation(fields: [vendorId], references: [id])
+
+  @@index([createdAt])
+  @@index([customerId])
+  @@index([pickupDate])
+  @@index([status])
+  @@index([vendorId])
+}
+
+model bus_quote_requests {
+  id                                                        String                    @id @default(cuid())
+  requestNumber                                             String                    @unique
+  customerId                                                String?
+  customerName                                              String
+  customerEmail                                             String
+  customerPhone                                             String
+  tripType                                                  String
+  vehicleCategory                                           String
+  vehicleCategoryName                                       String
+  passengers                                                Int
+  pickupCity                                                String
+  pickupAddress                                             String?                   @db.Text
+  dropCity                                                  String?
+  dropAddress                                               String?                   @db.Text
+  routeDetails                                              String?                   @db.Text
+  stops                                                     String?                   @db.LongText
+  pickupDate                                                DateTime
+  pickupTime                                                String
+  returnDate                                                DateTime?
+  returnTime                                                String?
+  tripDays                                                  Int                       @default(1)
+  requirements                                              String?                   @db.Text
+  needAC                                                    Boolean                   @default(true)
+  needLuxury                                                Boolean                   @default(false)
+  needSleeper                                               Boolean                   @default(false)
+  budgetMin                                                 Float?
+  budgetMax                                                 Float?
+  locationId                                                String?
+  status                                                    bus_quote_requests_status @default(PENDING)
+  expiresAt                                                 DateTime
+  quotesOpenTill                                            DateTime?
+  totalQuotesReceived                                       Int                       @default(0)
+  quotesViewed                                              Int                       @default(0)
+  acceptedQuoteId                                           String?
+  createdAt                                                 DateTime                  @default(now())
+  updatedAt                                                 DateTime                  @updatedAt
+  bus_bookings                                              bus_bookings?
+  bus_quotes_bus_quote_requests_acceptedQuoteIdTobus_quotes bus_quotes?               @relation("bus_quote_requests_acceptedQuoteIdTobus_quotes", fields: [acceptedQuoteId], references: [id])
+  customers                                                 customers?                @relation(fields: [customerId], references: [id])
+  locations                                                 locations?                @relation(fields: [locationId], references: [id])
+  bus_quotes_bus_quotes_requestIdTobus_quote_requests       bus_quotes[]              @relation("bus_quotes_requestIdTobus_quote_requests")
+
+  @@index([acceptedQuoteId], map: "bus_quote_requests_acceptedQuoteId_fkey")
+  @@index([createdAt])
+  @@index([customerId])
+  @@index([locationId])
+  @@index([pickupDate])
+  @@index([status])
+  @@index([tripType])
+  @@index([vehicleCategory])
+}
+
+model bus_quotes {
+  id                                                                String                @id
+  fleetId                                                           String?
+  quoteNumber                                                       String                @unique
+  requestId                                                         String
+  vendorId                                                          String
+  templateId                                                        String?
+  vehicleCategory                                                   String
+  vehicleName                                                       String
+  vehicleNumber                                                     String?
+  vehicleModel                                                      String?
+  vehicleYear                                                       Int?
+  seats                                                             Int
+  vehicleFeatures                                                   String?               @db.LongText
+  vehicleImages                                                     String?               @db.LongText
+  driverName                                                        String?
+  driverPhone                                                       String?
+  driverExperience                                                  Int?
+  baseAmount                                                        Float
+  perKmRate                                                         Float?
+  perDayRate                                                        Float?
+  includedKm                                                        Int?
+  includedHours                                                     Int?
+  driverAllowance                                                   Float                 @default(0)
+  nightHaltCharges                                                  Float                 @default(0)
+  tollEstimate                                                      Float                 @default(0)
+  permitCharges                                                     Float                 @default(0)
+  parkingEstimate                                                   Float                 @default(0)
+  gstAmount                                                         Float                 @default(0)
+  totalAmount                                                       Float
+  extraKmRate                                                       Float?
+  extraHourRate                                                     Float?
+  inclusions                                                        String                @db.LongText
+  exclusions                                                        String                @db.LongText
+  termsConditions                                                   String                @db.LongText
+  validTill                                                         DateTime
+  status                                                            bus_quotes_status     @default(DRAFT)
+  viewedAt                                                          DateTime?
+  viewCount                                                         Int                   @default(0)
+  vendorMessage                                                     String?               @db.Text
+  customerResponse                                                  String?               @db.Text
+  isNegotiable                                                      Boolean               @default(true)
+  negotiatedAmount                                                  Float?
+  negotiationNotes                                                  String?               @db.LongText
+  sentAt                                                            DateTime?
+  respondedAt                                                       DateTime?
+  createdAt                                                         DateTime              @default(now())
+  updatedAt                                                         DateTime              @updatedAt
+  advanceAmount                                                     Float                 @default(0)
+  advancePercent                                                    Int                   @default(30)
+  bus_bookings                                                      bus_bookings?
+  bus_quote_requests_bus_quote_requests_acceptedQuoteIdTobus_quotes bus_quote_requests[]  @relation("bus_quote_requests_acceptedQuoteIdTobus_quotes")
+  bus_quote_requests_bus_quotes_requestIdTobus_quote_requests       bus_quote_requests    @relation("bus_quotes_requestIdTobus_quote_requests", fields: [requestId], references: [id], onDelete: Cascade)
+  vendor_bus_templates                                              vendor_bus_templates? @relation(fields: [templateId], references: [id])
+  vendors                                                           vendors               @relation(fields: [vendorId], references: [id])
+
+  @@index([createdAt])
+  @@index([requestId])
+  @@index([status])
+  @@index([templateId])
+  @@index([vendorId])
+}
+
+model car_bookings {
+  id                                             String                     @id @default(cuid())
+  bookingNumber                                  String                     @unique
+  customerId                                     String?
+  customerName                                   String
+  customerEmail                                  String
+  customerPhone                                  String
+  locationId                                     String
+  locationName                                   String
+  requestedVehicleId                             String?
+  requestedVehicleName                           String
+  requestedBrand                                 String?
+  requestedCategory                              String?
+  requestedVehicleType                           String?
+  requestedTransmission                          String?
+  requestedFuelType                              String?
+  requestedSeats                                 Int?
+  pickupDate                                     DateTime
+  pickupTime                                     String
+  dropDate                                       DateTime
+  dropTime                                       String
+  totalDays                                      Int
+  pickupAddress                                  String?                    @db.Text
+  dropAddress                                    String?                    @db.Text
+  isDeliveryRequested                            Boolean                    @default(false)
+  assignedVendorId                               String?
+  acceptedVendorId                               String?
+  assignedVehicleId                              String?
+  assignedVehicleName                            String?
+  rejectedByVendors                              String?                    @db.LongText
+  responseDeadline                               DateTime?
+  broadcastedAt                                  DateTime?
+  acceptedAt                                     DateTime?
+  pickedUpAt                                     DateTime?
+  returnedAt                                     DateTime?
+  status                                         car_bookings_status        @default(PENDING_PAYMENT)
+  dailyRate                                      Float
+  baseAmount                                     Float
+  gstAmount                                      Float
+  platformFee                                    Float                      @default(99)
+  securityDeposit                                Float
+  grandTotal                                     Float
+  kmLimitPerDay                                  Int                        @default(200)
+  extraKmRate                                    Float                      @default(10)
+  odometerStart                                  Int?
+  odometerEnd                                    Int?
+  extraKmCharges                                 Float                      @default(0)
+  paymentStatus                                  car_bookings_paymentStatus @default(PENDING)
+  paidAmount                                     Float                      @default(0)
+  paymentMethod                                  String?
+  transactionId                                  String?
+  refundAmount                                   Float?
+  refundTransactionId                            String?
+  withFuelIncluded                               Boolean                    @default(false)
+  fuelLevel                                      String?
+  returnFuelLevel                                String?
+  addons                                         String?                    @db.LongText
+  licenseNumber                                  String?
+  licenseVerified                                Boolean                    @default(false)
+  customerNotes                                  String?                    @db.Text
+  vendorNotes                                    String?                    @db.Text
+  adminNotes                                     String?                    @db.Text
+  cancellationReason                             String?                    @db.Text
+  rating                                         Int?
+  review                                         String?                    @db.Text
+  cancelledAt                                    DateTime?
+  cancelledBy                                    String?
+  completedAt                                    DateTime?
+  createdAt                                      DateTime                   @default(now())
+  updatedAt                                      DateTime                   @updatedAt
+  advanceAmount                                  Float?
+  advancePaymentDate                             DateTime?
+  advancePaymentProof                            String?
+  advancePaymentRef                              String?
+  advancePaymentVerified                         Boolean                    @default(false)
+  notifiedVendorIds                              String?                    @db.LongText
+  tripOtpVerified                                Boolean                    @default(false)
+  tripOtpVerifiedAt                              DateTime?
+  tripStartOtp                                   String?
+  tripStartOtpExpiry                             DateTime?
+  tripStartOtpSentAt                             DateTime?
+  version                                        Int                        @default(0)
+  advancePercentage                              Float?
+  acceptedQuoteId                                String?                    @unique
+  quoteRequestId                                 String?                    @unique
+  self_drive_quotes                              self_drive_quotes?         @relation(fields: [acceptedQuoteId], references: [id])
+  vendors_car_bookings_acceptedVendorIdTovendors vendors?                   @relation("car_bookings_acceptedVendorIdTovendors", fields: [acceptedVendorId], references: [id])
+  vendors_car_bookings_assignedVendorIdTovendors vendors?                   @relation("car_bookings_assignedVendorIdTovendors", fields: [assignedVendorId], references: [id])
+  customers                                      customers?                 @relation(fields: [customerId], references: [id])
+  locations                                      locations                  @relation(fields: [locationId], references: [id])
+  self_drive_quote_requests                      self_drive_quote_requests? @relation(fields: [quoteRequestId], references: [id])
+
+  @@index([acceptedVendorId])
+  @@index([assignedVendorId])
+  @@index([bookingNumber])
+  @@index([createdAt])
+  @@index([customerEmail])
+  @@index([customerId])
+  @@index([customerPhone])
+  @@index([locationId])
+  @@index([pickupDate])
+  @@index([status])
+}
+
+model chat_conversations {
+  id              String          @id
+  customerId      String?
+  vendorId        String
+  bookingType     String
+  bookingId       String?
+  quoteId         String?
+  subject         String?
+  status          String          @default("ACTIVE")
+  customerUnread  Int             @default(0)
+  vendorUnread    Int             @default(0)
+  lastMessageAt   DateTime?
+  lastMessageText String?         @db.Text
+  lastSenderType  String?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  customers       customers?      @relation(fields: [customerId], references: [id])
+  vendors         vendors         @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  chat_messages   chat_messages[]
+
+  @@unique([customerId, vendorId, bookingType, bookingId])
+  @@index([bookingType])
+  @@index([customerId])
+  @@index([lastMessageAt])
+  @@index([status])
+  @@index([vendorId])
+}
+
+model chat_interactions {
+  id              String                            @id
+  sessionId       String
+  interactionType chat_interactions_interactionType
+  userMessage     String?                           @db.Text
+  botResponse     String?                           @db.Text
+  pagePath        String
+  pageTitle       String?
+  serviceType     String?
+  serviceName     String?
+  bookingStep     String?
+  kbArticleId     String?
+  kbSearchQuery   String?
+  kbMatchScore    Float?
+  outcome         chat_interactions_outcome         @default(IN_PROGRESS)
+  device          String?
+  browser         String?
+  responseTime    Int?
+  createdAt       DateTime                          @default(now())
+
+  @@index([createdAt])
+  @@index([interactionType])
+  @@index([outcome])
+  @@index([pagePath])
+  @@index([sessionId])
+}
+
+model chat_messages {
+  id                 String             @id
+  conversationId     String
+  senderType         String
+  senderId           String?
+  senderName         String?
+  messageType        String             @default("TEXT")
+  content            String             @db.Text
+  attachmentUrl      String?
+  attachmentName     String?
+  attachmentSize     Int?
+  attachmentType     String?
+  latitude           Float?
+  longitude          Float?
+  locationName       String?
+  quickReplyId       String?
+  status             String             @default("SENT")
+  deliveredAt        DateTime?
+  readAt             DateTime?
+  metadata           String?            @db.LongText
+  isEdited           Boolean            @default(false)
+  editedAt           DateTime?
+  isDeleted          Boolean            @default(false)
+  deletedAt          DateTime?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+  chat_conversations chat_conversations @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId])
+  @@index([createdAt])
+  @@index([senderType])
+  @@index([status])
+}
+
+model chat_quick_replies {
+  id           String   @id
+  vendorId     String?
+  title        String
+  message      String   @db.Text
+  category     String?
+  usageCount   Int      @default(0)
+  isActive     Boolean  @default(true)
+  displayOrder Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  vendors      vendors? @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+
+  @@index([category])
+  @@index([isActive])
+  @@index([vendorId])
+}
+
+model chauffeur_bookings {
+  id                                                   String                           @id @default(cuid())
+  bookingNumber                                        String                           @unique
+  customerId                                           String?
+  customerName                                         String
+  customerEmail                                        String
+  customerPhone                                        String
+  locationId                                           String
+  locationName                                         String
+  tripType                                             chauffeur_bookings_tripType      @default(LOCAL)
+  localPackageId                                       String?
+  localPackageHours                                    Int?
+  localPackageKm                                       Int?
+  pickupCity                                           String
+  dropCity                                             String?
+  pickupAddress                                        String?                          @db.Text
+  dropAddress                                          String?                          @db.Text
+  estimatedDistance                                    Int?
+  airportName                                          String?
+  flightNumber                                         String?
+  terminalNumber                                       String?
+  carCategory                                          String
+  carCategoryName                                      String
+  pickupDate                                           DateTime
+  pickupTime                                           String
+  returnDate                                           DateTime?
+  returnTime                                           String?
+  totalDays                                            Int                              @default(1)
+  totalHours                                           Int?
+  assignedVendorId                                     String?
+  acceptedVendorId                                     String?
+  driverName                                           String?
+  driverPhone                                          String?
+  driverPhoto                                          String?
+  vehicleNumber                                        String?
+  vehicleModel                                         String?
+  rejectedByVendors                                    String?                          @db.LongText
+  responseDeadline                                     DateTime?
+  broadcastedAt                                        DateTime?
+  acceptedAt                                           DateTime?
+  driverAssignedAt                                     DateTime?
+  tripStartedAt                                        DateTime?
+  tripEndedAt                                          DateTime?
+  status                                               chauffeur_bookings_status        @default(PENDING_PAYMENT)
+  baseFare                                             Float
+  perKmRate                                            Float
+  chargeableKm                                         Int?
+  kmCharges                                            Float                            @default(0)
+  driverBatta                                          Float                            @default(0)
+  nightCharges                                         Float                            @default(0)
+  waitingCharges                                       Float                            @default(0)
+  extraHourCharges                                     Float                            @default(0)
+  extraKmCharges                                       Float                            @default(0)
+  tollCharges                                          Float                            @default(0)
+  statePermitCharges                                   Float                            @default(0)
+  gstAmount                                            Float
+  platformFee                                          Float                            @default(99)
+  grandTotal                                           Float
+  actualKmTravelled                                    Int?
+  actualHours                                          Int?
+  actualTollCharges                                    Float?
+  actualParkingCharges                                 Float?
+  paymentStatus                                        chauffeur_bookings_paymentStatus @default(PENDING)
+  paidAmount                                           Float                            @default(0)
+  paymentMethod                                        String?
+  transactionId                                        String?
+  partialPayment                                       Float?
+  remainingPayment                                     Float?
+  tripStartOtp                                         String?
+  tripEndOtp                                           String?
+  customerNotes                                        String?                          @db.Text
+  vendorNotes                                          String?                          @db.Text
+  adminNotes                                           String?                          @db.Text
+  cancellationReason                                   String?                          @db.Text
+  rating                                               Int?
+  review                                               String?                          @db.Text
+  driverRating                                         Int?
+  driverReview                                         String?                          @db.Text
+  cancelledAt                                          DateTime?
+  cancelledBy                                          String?
+  refundAmount                                         Float?
+  refundTransactionId                                  String?
+  completedAt                                          DateTime?
+  createdAt                                            DateTime                         @default(now())
+  updatedAt                                            DateTime                         @updatedAt
+  vendors_chauffeur_bookings_acceptedVendorIdTovendors vendors?                         @relation("chauffeur_bookings_acceptedVendorIdTovendors", fields: [acceptedVendorId], references: [id])
+  vendors_chauffeur_bookings_assignedVendorIdTovendors vendors?                         @relation("chauffeur_bookings_assignedVendorIdTovendors", fields: [assignedVendorId], references: [id])
+  customers                                            customers?                       @relation(fields: [customerId], references: [id])
+  locations                                            locations                        @relation(fields: [locationId], references: [id])
+
+  @@index([acceptedVendorId])
+  @@index([assignedVendorId])
+  @@index([bookingNumber])
+  @@index([createdAt])
+  @@index([customerEmail])
+  @@index([customerId])
+  @@index([customerPhone])
+  @@index([locationId])
+  @@index([pickupDate])
+  @@index([status])
+  @@index([tripType])
+}
+
+model chauffeur_city_pricing {
+  id                           String                       @id
+  vehicleCategoryId            String
+  locationId                   String
+  baseKmRate                   Float
+  minKmPerDay                  Int                          @default(250)
+  driverDayAllowance           Float                        @default(300)
+  driverNightAllowance         Float                        @default(250)
+  nightSurcharge               Float?                       @default(0)
+  airportSurcharge             Float?                       @default(0)
+  outstationMinDays            Int                          @default(1)
+  tollsIncluded                Boolean                      @default(false)
+  statePermitIncluded          Boolean                      @default(false)
+  parkingIncluded              Boolean                      @default(false)
+  isActive                     Boolean                      @default(true)
+  createdAt                    DateTime                     @default(now())
+  updatedAt                    DateTime                     @updatedAt
+  locations                    locations                    @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  chauffeur_vehicle_categories chauffeur_vehicle_categories @relation(fields: [vehicleCategoryId], references: [id], onDelete: Cascade)
+
+  @@unique([vehicleCategoryId, locationId])
+  @@index([locationId])
+  @@index([vehicleCategoryId])
+}
+
+model chauffeur_local_packages {
+  id                           String                       @id
+  vehicleCategoryId            String
+  locationId                   String?
+  name                         String
+  hours                        Int
+  kms                          Int
+  basePrice                    Float
+  extraKmCharge                Float
+  extraHourCharge              Float
+  nightChargesApply            Boolean                      @default(true)
+  nightChargeAmount            Float?                       @default(150)
+  isPopular                    Boolean                      @default(false)
+  displayOrder                 Int                          @default(0)
+  isActive                     Boolean                      @default(true)
+  createdAt                    DateTime                     @default(now())
+  updatedAt                    DateTime                     @updatedAt
+  locations                    locations?                   @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  chauffeur_vehicle_categories chauffeur_vehicle_categories @relation(fields: [vehicleCategoryId], references: [id], onDelete: Cascade)
+
+  @@unique([vehicleCategoryId, locationId, hours, kms])
+  @@index([locationId])
+  @@index([vehicleCategoryId])
+}
+
+model chauffeur_route_packages {
+  id                                                           String                       @id
+  vehicleCategoryId                                            String
+  fromLocationId                                               String
+  toLocationId                                                 String
+  estimatedKm                                                  Int
+  estimatedDuration                                            String?
+  routeDescription                                             String?
+  basePrice                                                    Float
+  returnMultiplier                                             Float                        @default(1.8)
+  tollsEstimate                                                Float?
+  statePermitCharge                                            Float?
+  nightSurcharge                                               Float?                       @default(0)
+  airportSurcharge                                             Float?                       @default(0)
+  isPopular                                                    Boolean                      @default(false)
+  displayOrder                                                 Int                          @default(0)
+  isActive                                                     Boolean                      @default(true)
+  createdAt                                                    DateTime                     @default(now())
+  updatedAt                                                    DateTime                     @updatedAt
+  locations_chauffeur_route_packages_fromLocationIdTolocations locations                    @relation("chauffeur_route_packages_fromLocationIdTolocations", fields: [fromLocationId], references: [id], onDelete: Cascade)
+  locations_chauffeur_route_packages_toLocationIdTolocations   locations                    @relation("chauffeur_route_packages_toLocationIdTolocations", fields: [toLocationId], references: [id], onDelete: Cascade)
+  chauffeur_vehicle_categories                                 chauffeur_vehicle_categories @relation(fields: [vehicleCategoryId], references: [id], onDelete: Cascade)
+
+  @@unique([vehicleCategoryId, fromLocationId, toLocationId])
+  @@index([fromLocationId])
+  @@index([toLocationId])
+  @@index([vehicleCategoryId])
+}
+
+model chauffeur_vehicle_categories {
+  id                       String                     @id
+  name                     String
+  slug                     String
+  description              String?                    @db.Text
+  seatingCapacity          Int                        @default(4)
+  luggageCapacity          String?
+  acType                   String?
+  fuelType                 String?
+  image                    String?
+  icon                     String?
+  displayOrder             Int                        @default(0)
+  isActive                 Boolean                    @default(true)
+  isPopular                Boolean                    @default(false)
+  exampleVehicles          String?                    @db.LongText
+  createdAt                DateTime                   @default(now())
+  updatedAt                DateTime                   @updatedAt
+  serviceId                String?
+  bodyType                 String?
+  heightFt                 Float?
+  lengthFt                 Float?
+  loadCapacity             Float?
+  wheels                   String?
+  widthFt                  Float?
+  dailyRate                Float?
+  equipmentFuelType        String?
+  monthlyRate              Float?
+  operatorIncluded         Boolean?                   @default(false)
+  powerCapacity            String?
+  securityDeposit          Float?
+  specifications           String?                    @db.Text
+  weeklyRate               Float?
+  busType                  String?
+  amenities                String?                    @db.Text
+  hasPushbackSeats         Boolean?                   @default(false)
+  hasTV                    Boolean?                   @default(false)
+  hasCharging              Boolean?                   @default(false)
+  hasWifi                  Boolean?                   @default(false)
+  engineCC                 String?
+  bikeType                 String?
+  mileage                  String?
+  topSpeed                 String?
+  brands                   brands[]
+  chauffeur_city_pricing   chauffeur_city_pricing[]
+  chauffeur_local_packages chauffeur_local_packages[]
+  chauffeur_route_packages chauffeur_route_packages[]
+  services                 services?                  @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  vehicle_models           vehicle_models[]
+  vendor_fleets            vendor_fleets[]
+
+  @@unique([serviceId, name])
+  @@unique([serviceId, slug])
+  @@index([serviceId])
+}
+
+model city_distance_matrix {
+  id                                                       String    @id
+  fromLocationId                                           String
+  toLocationId                                             String
+  distanceKm                                               Int
+  durationMinutes                                          Int?
+  durationText                                             String?
+  routeVia                                                 String?
+  tollEstimate                                             Float?
+  statePermit                                              Boolean   @default(false)
+  isVerified                                               Boolean   @default(false)
+  source                                                   String?
+  lastUpdated                                              DateTime  @default(now())
+  isActive                                                 Boolean   @default(true)
+  createdAt                                                DateTime  @default(now())
+  updatedAt                                                DateTime  @updatedAt
+  locations_city_distance_matrix_fromLocationIdTolocations locations @relation("city_distance_matrix_fromLocationIdTolocations", fields: [fromLocationId], references: [id], onDelete: Cascade)
+  locations_city_distance_matrix_toLocationIdTolocations   locations @relation("city_distance_matrix_toLocationIdTolocations", fields: [toLocationId], references: [id], onDelete: Cascade)
+
+  @@unique([fromLocationId, toLocationId])
+  @@index([fromLocationId])
+  @@index([toLocationId])
+}
+
+model click_events {
+  id           String                 @id
+  eventType    click_events_eventType
+  elementId    String?
+  elementClass String?
+  elementText  String?
+  pagePath     String
+  pageTitle    String?
+  sectionId    String?
+  targetUrl    String?
+  isExternal   Boolean                @default(false)
+  sessionId    String?
+  positionX    Int?
+  positionY    Int?
+  scrollDepth  Int?
+  device       String?
+  browser      String?
+  utmSource    String?
+  utmMedium    String?
+  utmCampaign  String?
+  createdAt    DateTime               @default(now())
+
+  @@index([createdAt])
+  @@index([eventType])
+  @@index([pagePath])
+  @@index([sessionId])
+}
+
+model competitor_tracking {
+  id               String    @id
+  competitorDomain String
+  competitorName   String?
+  keyword          String
+  position         Int?
+  previousPosition Int?
+  ourPosition      Int?
+  ourPage          String?
+  positionGap      Int?
+  lastChecked      DateTime?
+  isActive         Boolean   @default(true)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@unique([competitorDomain, keyword])
+  @@index([competitorDomain])
+  @@index([keyword])
+}
+
+model contact_inquiries {
+  id        String   @id
+  name      String
+  phone     String
+  email     String
+  subject   String
+  message   String   @db.Text
+  createdAt DateTime @default(now())
+}
+
+model crawl_data {
+  id                    String   @id
+  crawlDate             DateTime @default(now())
+  totalPages            Int      @default(0)
+  indexedPages          Int      @default(0)
+  nonIndexedPages       Int      @default(0)
+  errorPages            Int      @default(0)
+  htmlPages             Int      @default(0)
+  pdfPages              Int      @default(0)
+  imagePages            Int      @default(0)
+  status200             Int      @default(0)
+  status301             Int      @default(0)
+  status302             Int      @default(0)
+  status404             Int      @default(0)
+  status500             Int      @default(0)
+  duplicateTitles       Int      @default(0)
+  duplicateDescriptions Int      @default(0)
+  missingTitles         Int      @default(0)
+  missingDescriptions   Int      @default(0)
+  missingH1             Int      @default(0)
+  brokenLinks           Int      @default(0)
+  slowPages             Int      @default(0)
+  issues                String?  @db.LongText
+  createdAt             DateTime @default(now())
+
+  @@index([crawlDate])
+}
+
+model customers {
+  id                        String                      @id
+  email                     String                      @unique
+  password                  String?
+  phone                     String                      @unique
+  name                      String
+  avatar                    String?                     @db.LongText
+  dateOfBirth               DateTime?
+  gender                    String?
+  address                   String?                     @db.Text
+  city                      String?
+  state                     String?
+  pincode                   String?
+  isEmailVerified           Boolean                     @default(false)
+  isPhoneVerified           Boolean                     @default(false)
+  drivingLicenseNumber      String?
+  drivingLicenseExpiry      DateTime?
+  drivingLicenseImage       String?                     @db.LongText
+  aadharNumber              String?
+  aadharImage               String?                     @db.LongText
+  isActive                  Boolean                     @default(true)
+  isBanned                  Boolean                     @default(false)
+  banReason                 String?                     @db.Text
+  totalBookings             Int                         @default(0)
+  totalSpent                Float                       @default(0)
+  lastLoginAt               DateTime?
+  createdAt                 DateTime                    @default(now())
+  updatedAt                 DateTime                    @updatedAt
+  bike_bookings             bike_bookings[]
+  bike_quote_requests       bike_quote_requests[]
+  bus_bookings              bus_bookings[]
+  bus_quote_requests        bus_quote_requests[]
+  car_bookings              car_bookings[]
+  chat_conversations        chat_conversations[]
+  chauffeur_bookings        chauffeur_bookings[]
+  equipment_bookings        equipment_bookings[]
+  equipment_quote_requests  equipment_quote_requests[]
+  helpdesk_tickets          helpdesk_tickets[]
+  luxury_bookings           luxury_bookings[]
+  luxury_quote_requests     luxury_quote_requests[]
+  notifications             notifications[]
+  packers_bookings          packers_bookings[]
+  packers_quote_requests    packers_quote_requests[]
+  self_drive_quote_requests self_drive_quote_requests[]
+  truck_bookings            truck_bookings[]
+  truck_quote_requests      truck_quote_requests[]
+
+  @@index([email])
+  @@index([isActive])
+  @@index([phone])
+}
+
+model notifications {
+  id         String    @id @default(cuid())
+  customerId String
+  title      String
+  body       String    @db.Text
+  image      String?   @db.Text
+  bookingId  String?
+  quoteId    String?
+  type       String?
+  isRead     Boolean   @default(false)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  customers  customers @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([customerId])
+  @@index([isRead])
+  @@index([createdAt])
+}
+
+model daily_analytics {
+  id               String   @id
+  date             DateTime @unique @db.Date
+  totalViews       Int      @default(0)
+  uniqueVisitors   Int      @default(0)
+  newVisitors      Int      @default(0)
+  avgDuration      Int      @default(0)
+  bounceRate       Float    @default(0)
+  topPages         String?  @db.LongText
+  topReferrers     String?  @db.LongText
+  deviceBreakdown  String?  @db.LongText
+  countryBreakdown String?  @db.LongText
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([date])
+}
+
+model equipment_bookings {
+  id                       String                           @id @default(cuid())
+  bookingNumber            String                           @unique
+  quoteRequestId           String                           @unique
+  acceptedQuoteId          String                           @unique
+  vendorId                 String
+  customerId               String?
+  customerName             String
+  customerEmail            String
+  customerPhone            String
+  companyName              String?
+  equipmentCategory        String
+  equipmentType            String
+  equipmentName            String
+  equipmentModel           String?
+  quantity                 Int                              @default(1)
+  startDate                DateTime
+  endDate                  DateTime
+  rentalDays               Int
+  actualReturnDate         DateTime?
+  deliveryCity             String
+  deliveryAddress          String                           @db.Text
+  deliveredAt              DateTime?
+  deliveryNotes            String?
+  operatorName             String?
+  operatorPhone            String?
+  baseAmount               Float
+  operatorCharges          Float                            @default(0)
+  deliveryCharges          Float                            @default(0)
+  pickupCharges            Float                            @default(0)
+  installationCharges      Float                            @default(0)
+  securityDeposit          Float                            @default(0)
+  gstAmount                Float                            @default(0)
+  totalAmount              Float
+  advanceAmount            Float                            @default(0)
+  advancePaid              Float                            @default(0)
+  advancePaidAt            DateTime?
+  depositPaid              Float                            @default(0)
+  depositPaidAt            DateTime?
+  balanceAmount            Float                            @default(0)
+  balancePaid              Float                            @default(0)
+  balancePaidAt            DateTime?
+  depositRefunded          Float                            @default(0)
+  depositRefundedAt        DateTime?
+  paymentStatus            equipment_bookings_paymentStatus @default(PENDING)
+  status                   equipment_bookings_status        @default(PENDING_PAYMENT)
+  deliveryOtp              String?
+  returnOtp                String?
+  scheduledDelivery        DateTime?
+  deliveredAt2             DateTime?
+  inUseFrom                DateTime?
+  scheduledPickup          DateTime?
+  returnedAt               DateTime?
+  completedAt              DateTime?
+  isExtended               Boolean                          @default(false)
+  extensionDays            Int?
+  extensionCharges         Float?
+  damageReported           Boolean                          @default(false)
+  damageDescription        String?                          @db.Text
+  damagePhotos             String?                          @db.LongText
+  damageDeduction          Float                            @default(0)
+  extraUsageCharges        Float                            @default(0)
+  lateReturnCharges        Float                            @default(0)
+  finalAmount              Float?
+  customerNotes            String?                          @db.Text
+  vendorNotes              String?                          @db.Text
+  cancelledAt              DateTime?
+  cancelledBy              String?
+  cancellationReason       String?                          @db.Text
+  refundAmount             Float?
+  rating                   Int?
+  review                   String?                          @db.Text
+  equipmentRating          Int?
+  createdAt                DateTime                         @default(now())
+  updatedAt                DateTime                         @updatedAt
+  equipment_quotes         equipment_quotes                 @relation(fields: [acceptedQuoteId], references: [id])
+  customers                customers?                       @relation(fields: [customerId], references: [id])
+  equipment_quote_requests equipment_quote_requests         @relation(fields: [quoteRequestId], references: [id])
+  vendors                  vendors                          @relation(fields: [vendorId], references: [id])
+
+  @@index([customerId])
+  @@index([startDate])
+  @@index([status])
+  @@index([vendorId])
+}
+
+model equipment_quote_requests {
+  id                  String                          @id @default(cuid())
+  requestNumber       String                          @unique
+  customerId          String?
+  customerName        String
+  customerEmail       String
+  customerPhone       String
+  companyName         String?
+  equipmentCategory   String
+  equipmentType       String
+  equipmentName       String?
+  quantity            Int                             @default(1)
+  rentalDuration      String
+  rentalDays          Int
+  startDate           DateTime
+  endDate             DateTime
+  deliveryCity        String
+  deliveryAddress     String                          @db.Text
+  siteType            String?
+  needOperator        Boolean                         @default(false)
+  needDelivery        Boolean                         @default(true)
+  needInstallation    Boolean                         @default(false)
+  requirements        String?                         @db.Text
+  budgetMin           Float?
+  budgetMax           Float?
+  locationId          String?
+  status              equipment_quote_requests_status @default(PENDING)
+  expiresAt           DateTime
+  quotesOpenTill      DateTime?
+  totalQuotesReceived Int                             @default(0)
+  quotesViewed        Int                             @default(0)
+  acceptedQuoteId     String?
+  createdAt           DateTime                        @default(now())
+  updatedAt           DateTime                        @updatedAt
+  equipment_bookings  equipment_bookings?
+  customers           customers?                      @relation(fields: [customerId], references: [id])
+  locations           locations?                      @relation(fields: [locationId], references: [id])
+  equipment_quotes    equipment_quotes[]
+
+  @@index([customerId])
+  @@index([locationId])
+  @@index([startDate])
+  @@index([status])
+}
+
+model equipment_quotes {
+  id                         String                      @id
+  quoteNumber                String                      @unique
+  requestId                  String
+  vendorId                   String
+  equipmentName              String
+  equipmentModel             String?
+  equipmentYear              Int?
+  equipmentCondition         String?
+  equipmentImages            String?                     @db.LongText
+  specifications             String?                     @db.LongText
+  dailyRate                  Float?
+  weeklyRate                 Float?
+  monthlyRate                Float?
+  baseAmount                 Float                       @default(0)
+  operatorCharges            Float                       @default(0)
+  deliveryCharges            Float                       @default(0)
+  pickupCharges              Float                       @default(0)
+  installationCharges        Float                       @default(0)
+  securityDeposit            Float                       @default(0)
+  gstAmount                  Float                       @default(0)
+  totalAmount                Float
+  inclusions                 String?                     @db.LongText
+  exclusions                 String?                     @db.LongText
+  termsConditions            String?                     @db.LongText
+  validTill                  DateTime
+  status                     equipment_quotes_status     @default(DRAFT)
+  viewedAt                   DateTime?
+  viewCount                  Int                         @default(0)
+  createdAt                  DateTime                    @default(now())
+  updatedAt                  DateTime                    @updatedAt
+  fuelCharges                Float                       @default(0)
+  notes                      String?                     @db.Text
+  templateId                 String?
+  equipment_bookings         equipment_bookings?
+  equipment_quote_requests   equipment_quote_requests    @relation(fields: [requestId], references: [id])
+  vendor_equipment_templates vendor_equipment_templates? @relation(fields: [templateId], references: [id])
+  vendors                    vendors                     @relation(fields: [vendorId], references: [id])
+
+  @@index([requestId])
+  @@index([status])
+  @@index([templateId])
+  @@index([vendorId])
+}
+
+model fleet {
+  id                   String                 @id
+  name                 String
+  slug                 String                 @unique
+  brand                String
+  categoryId           String
+  typeId               String?
+  vehicleType          String
+  basePrice            Float
+  description          String?                @db.Text
+  shortDesc            String?
+  specs                String?                @db.LongText
+  features             String?                @db.LongText
+  primaryImage         String?
+  images               String?                @db.LongText
+  availabilityType     fleet_availabilityType @default(ALL_INDIA)
+  seoKeywords          String?                @db.LongText
+  metaTitle            String?
+  metaDescription      String?                @db.Text
+  isActive             Boolean                @default(true)
+  isFeatured           Boolean                @default(false)
+  priority             Int                    @default(5)
+  viewCount            Int                    @default(0)
+  bookingCount         Int                    @default(0)
+  createdAt            DateTime               @default(now())
+  updatedAt            DateTime               @updatedAt
+  fleet_categories     fleet_categories       @relation(fields: [categoryId], references: [id])
+  fleet_types          fleet_types?           @relation(fields: [typeId], references: [id])
+  fleet_availability   fleet_availability[]
+  fleet_location_rates fleet_location_rates[]
+
+  @@index([categoryId])
+  @@index([isActive])
+  @@index([isFeatured])
+  @@index([slug])
+  @@index([typeId])
+}
+
+model fleet_availability {
+  id              String          @id
+  fleetId         String
+  locationId      String
+  isAvailable     Boolean         @default(true)
+  quantity        Int             @default(1)
+  notes           String?         @db.Text
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  fleet           fleet           @relation(fields: [fleetId], references: [id], onDelete: Cascade)
+  fleet_locations fleet_locations @relation(fields: [locationId], references: [id], onDelete: Cascade)
+
+  @@unique([fleetId, locationId])
+  @@index([fleetId])
+  @@index([locationId])
+}
+
+model fleet_categories {
+  id           String        @id
+  name         String        @unique
+  slug         String        @unique
+  description  String?       @db.Text
+  icon         String?
+  displayOrder Int           @default(0)
+  isActive     Boolean       @default(true)
+  specFields   String?       @db.LongText
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  fleet        fleet[]
+  fleet_types  fleet_types[]
+}
+
+model fleet_location_rates {
+  id              String          @id
+  fleetId         String
+  locationId      String
+  dailyRate       Float
+  weeklyRate      Float?
+  monthlyRate     Float?
+  kmLimit         Int             @default(100)
+  extraKmRate     Float           @default(5)
+  securityDeposit Float           @default(2000)
+  isActive        Boolean         @default(true)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  fleet           fleet           @relation(fields: [fleetId], references: [id], onDelete: Cascade)
+  fleet_locations fleet_locations @relation(fields: [locationId], references: [id], onDelete: Cascade)
+
+  @@unique([fleetId, locationId])
+  @@index([fleetId])
+  @@index([locationId])
+}
+
+model fleet_locations {
+  id                   String                 @id
+  name                 String
+  slug                 String                 @unique
+  state                String
+  stateCode            String?
+  tier                 Int                    @default(2)
+  isActive             Boolean                @default(true)
+  displayOrder         Int                    @default(0)
+  latitude             Float?
+  longitude            Float?
+  timezone             String?                @default("Asia/Kolkata")
+  createdAt            DateTime               @default(now())
+  updatedAt            DateTime               @updatedAt
+  fleet_availability   fleet_availability[]
+  fleet_location_rates fleet_location_rates[]
+
+  @@index([slug])
+  @@index([state])
+  @@index([tier])
+}
+
+model fleet_pricing {
+  id              String                  @id
+  vendorFleetId   String
+  tripTypeId      String
+  localPackageId  String?
+  priceType       fleet_pricing_priceType @default(PER_DAY)
+  basePrice       Float
+  perKmRate       Float?
+  perHourRate     Float?
+  perDayRate      Float?
+  kmLimitPerDay   Int?
+  extraKmCharge   Float?
+  extraHourCharge Float?
+  driverAllowance Float?
+  nightCharges    Float?
+  deposit         Float?
+  minKm           Int?
+  minDays         Int?
+  isActive        Boolean                 @default(true)
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
+  locationId      String?
+  local_packages  local_packages?         @relation(fields: [localPackageId], references: [id])
+  locations       locations?              @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  trip_types      trip_types              @relation(fields: [tripTypeId], references: [id], onDelete: Cascade)
+  vendor_fleets   vendor_fleets           @relation(fields: [vendorFleetId], references: [id], onDelete: Cascade)
+
+  @@unique([vendorFleetId, tripTypeId, localPackageId, locationId])
+  @@index([localPackageId])
+  @@index([locationId], map: "fleet_pricing_locationId_fkey")
+  @@index([tripTypeId])
+  @@index([vendorFleetId])
+}
+
+model fleet_types {
+  id               String           @id
+  name             String
+  slug             String
+  categoryId       String
+  description      String?
+  displayOrder     Int              @default(0)
+  isActive         Boolean          @default(true)
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  fleet            fleet[]
+  fleet_categories fleet_categories @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@unique([slug, categoryId])
+  @@index([categoryId])
+}
+
+model form_submissions {
+  id             String                    @id
+  formType       form_submissions_formType
+  formName       String
+  pagePath       String
+  pageTitle      String?
+  sessionId      String?
+  serviceType    String?
+  pickupLocation String?
+  dropLocation   String?
+  status         form_submissions_status   @default(SUBMITTED)
+  errorMessage   String?                   @db.Text
+  device         String?
+  browser        String?
+  os             String?
+  referrer       String?
+  utmSource      String?
+  utmMedium      String?
+  utmCampaign    String?
+  timeToFill     Int?
+  createdAt      DateTime                  @default(now())
+
+  @@index([createdAt])
+  @@index([formType])
+  @@index([pagePath])
+  @@index([sessionId])
+  @@index([status])
+}
+
+model helpdesk_tickets {
+  id          String                  @id
+  ticketNo    String                  @unique
+  customerId  String?
+  heading     String
+  problem     String                  @db.Text
+  bookingId   String?
+  bookingType String?
+  status      helpdesk_tickets_status @default(OPEN)
+  priority    String                  @default("NORMAL")
+  images      String?                 @db.Text
+  resolvedBy  String?
+  resolvedAt  DateTime?
+  resolution  String?                 @db.Text
+  createdAt   DateTime                @default(now())
+  updatedAt   DateTime                @updatedAt
+  customers   customers?              @relation(fields: [customerId], references: [id])
+
+  @@index([createdAt])
+  @@index([customerId])
+  @@index([status])
+}
+
+model keyword_rankings {
+  id                 String    @id
+  keyword            String
+  pagePath           String
+  position           Int?
+  previousPosition   Int?
+  bestPosition       Int?
+  searchEngine       String    @default("google")
+  searchVolume       Int?
+  difficulty         Int?
+  cpc                Float?
+  hasFeaturedSnippet Boolean   @default(false)
+  hasLocalPack       Boolean   @default(false)
+  hasImagePack       Boolean   @default(false)
+  hasVideoPack       Boolean   @default(false)
+  hasPeopleAlsoAsk   Boolean   @default(false)
+  isTracking         Boolean   @default(true)
+  lastChecked        DateTime?
+  checkFrequency     String    @default("daily")
+  rankHistory        String?   @db.LongText
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  @@unique([keyword, pagePath, searchEngine])
+  @@index([keyword])
+  @@index([pagePath])
+  @@index([position])
+}
+
+model knowledge_base {
+  id        String   @id
+  category  String
+  question  String   @db.Text
+  answer    String   @db.Text
+  keywords  String?  @db.LongText
+  isActive  Boolean  @default(true)
+  priority  Int      @default(0)
+  useCount  Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([category])
+  @@index([isActive])
+}
+
+model local_packages {
+  id            String          @id
+  serviceId     String
+  tripTypeId    String
+  name          String
+  hours         Int
+  kms           Int
+  description   String?
+  isActive      Boolean         @default(true)
+  displayOrder  Int             @default(0)
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  fleet_pricing fleet_pricing[]
+  services      services        @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  trip_types    trip_types      @relation(fields: [tripTypeId], references: [id], onDelete: Cascade)
+
+  @@unique([serviceId, hours, kms])
+  @@index([serviceId])
+  @@index([tripTypeId])
+}
+
+model locations {
+  id                                                                          String                      @id
+  name                                                                        String
+  slug                                                                        String                      @unique
+  type                                                                        locations_type
+  parentId                                                                    String?
+  code                                                                        String?
+  image                                                                       String?
+  description                                                                 String?                     @db.Text
+  latitude                                                                    Float?
+  longitude                                                                   Float?
+  timezone                                                                    String?                     @default("Asia/Kolkata")
+  isActive                                                                    Boolean                     @default(true)
+  displayOrder                                                                Int                         @default(0)
+  metaTitle                                                                   String?
+  metaDescription                                                             String?                     @db.Text
+  createdAt                                                                   DateTime                    @default(now())
+  updatedAt                                                                   DateTime                    @updatedAt
+  bike_bookings                                                               bike_bookings[]
+  bike_quote_requests                                                         bike_quote_requests[]
+  bus_quote_requests                                                          bus_quote_requests[]
+  car_bookings                                                                car_bookings[]
+  chauffeur_bookings                                                          chauffeur_bookings[]
+  chauffeur_city_pricing                                                      chauffeur_city_pricing[]
+  chauffeur_local_packages                                                    chauffeur_local_packages[]
+  chauffeur_route_packages_chauffeur_route_packages_fromLocationIdTolocations chauffeur_route_packages[]  @relation("chauffeur_route_packages_fromLocationIdTolocations")
+  chauffeur_route_packages_chauffeur_route_packages_toLocationIdTolocations   chauffeur_route_packages[]  @relation("chauffeur_route_packages_toLocationIdTolocations")
+  city_distance_matrix_city_distance_matrix_fromLocationIdTolocations         city_distance_matrix[]      @relation("city_distance_matrix_fromLocationIdTolocations")
+  city_distance_matrix_city_distance_matrix_toLocationIdTolocations           city_distance_matrix[]      @relation("city_distance_matrix_toLocationIdTolocations")
+  equipment_quote_requests                                                    equipment_quote_requests[]
+  fleet_pricing                                                               fleet_pricing[]
+  locations                                                                   locations?                  @relation("locationsTolocations", fields: [parentId], references: [id], onDelete: Cascade)
+  other_locations                                                             locations[]                 @relation("locationsTolocations")
+  luxury_bookings                                                             luxury_bookings[]
+  luxury_quote_requests                                                       luxury_quote_requests[]
+  luxury_vendor_rates                                                         luxury_vendor_rates[]
+  manager_locations                                                           manager_locations[]
+  packers_quote_requests                                                      packers_quote_requests[]
+  route_pricing_route_pricing_fromLocationIdTolocations                       route_pricing[]             @relation("route_pricing_fromLocationIdTolocations")
+  route_pricing_route_pricing_toLocationIdTolocations                         route_pricing[]             @relation("route_pricing_toLocationIdTolocations")
+  self_drive_quote_requests                                                   self_drive_quote_requests[]
+  service_locations                                                           service_locations[]
+  truck_quote_requests                                                        truck_quote_requests[]
+  vehicle_model_locations                                                     vehicle_model_locations[]
+  vendor_approved_locations                                                   vendor_approved_locations[]
+  vendor_fleet_locations                                                      vendor_fleet_locations[]
+  vendor_location_requests                                                    vendor_location_requests[]
+
+  @@index([isActive])
+  @@index([parentId])
+  @@index([type])
+}
+
+model luxury_bids {
+  id                  String          @id
+  bidNumber           String          @unique
+  bookingId           String
+  vendorId            String
+  vehicleName         String
+  vehicleNumber       String?
+  vehicleYear         Int?
+  vehicleColor        String?
+  vehicleImages       String?         @db.LongText
+  baseRate            Float           @default(0)
+  perKmRate           Float           @default(0)
+  driverAllowance     Float           @default(0)
+  decorationCharges   Float           @default(0)
+  photographerCharges Float           @default(0)
+  gstAmount           Float           @default(0)
+  totalAmount         Float
+  inclusions          String?         @db.LongText
+  exclusions          String?         @db.LongText
+  termsConditions     String?         @db.Text
+  notes               String?         @db.Text
+  status              String          @default("PENDING")
+  viewedAt            DateTime?
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+  luxury_bookings     luxury_bookings @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  vendors             vendors         @relation(fields: [vendorId], references: [id])
+
+  @@index([bookingId])
+  @@index([status])
+  @@index([vendorId])
+}
+
+model luxury_bookings {
+  id                                                String                        @id @default(cuid())
+  bookingNumber                                     String                        @unique
+  customerId                                        String?
+  customerName                                      String
+  customerEmail                                     String
+  customerPhone                                     String
+  locationId                                        String?
+  locationName                                      String?
+  tripType                                          String
+  eventType                                         String?
+  occasion                                          String?
+  carCategory                                       String
+  carCategoryName                                   String?
+  preferredBrands                                   String?                       @db.LongText
+  preferredModels                                   String?                       @db.LongText
+  pickupCity                                        String
+  pickupAddress                                     String?                       @db.Text
+  dropCity                                          String?
+  dropAddress                                       String?                       @db.Text
+  venueName                                         String?
+  pickupDate                                        DateTime
+  pickupTime                                        String
+  returnDate                                        DateTime?
+  returnTime                                        String?
+  totalHours                                        Int?
+  totalDays                                         Int                           @default(1)
+  needDecoration                                    Boolean                       @default(false)
+  decorationType                                    String?
+  needChauffeur                                     Boolean                       @default(true)
+  chauffeurAttire                                   String?
+  customerNotes                                     String?                       @db.Text
+  baseFare                                          Float
+  decorationCharges                                 Float                         @default(0)
+  chauffeurCharges                                  Float                         @default(0)
+  extraHourRate                                     Float?
+  gstAmount                                         Float                         @default(0)
+  platformFee                                       Float                         @default(0)
+  grandTotal                                        Float
+  assignedVendorId                                  String?
+  acceptedVendorId                                  String?
+  vehicleNumber                                     String?
+  vehicleModel                                      String?
+  vehicleBrand                                      String?
+  vehicleColor                                      String?
+  vehicleImages                                     String?                       @db.LongText
+  driverName                                        String?
+  driverPhone                                       String?
+  driverPhoto                                       String?
+  status                                            luxury_bookings_status        @default(PENDING_PAYMENT)
+  paymentStatus                                     luxury_bookings_paymentStatus @default(PENDING)
+  broadcastedAt                                     DateTime?
+  responseDeadline                                  DateTime?
+  rejectedByVendors                                 String?                       @db.LongText
+  tripStartOtp                                      String?
+  tripEndOtp                                        String?
+  tripStartedAt                                     DateTime?
+  tripEndedAt                                       DateTime?
+  actualHours                                       Int?
+  extraHourCharges                                  Float                         @default(0)
+  completedAt                                       DateTime?
+  finalAmount                                       Float?
+  cancelledAt                                       DateTime?
+  cancelledBy                                       String?
+  cancellationReason                                String?                       @db.Text
+  rating                                            Int?
+  review                                            String?                       @db.Text
+  driverRating                                      Int?
+  vehicleRating                                     Int?
+  acceptedAt                                        DateTime?
+  createdAt                                         DateTime                      @default(now())
+  updatedAt                                         DateTime                      @updatedAt
+  acceptedQuoteId                                   String?                       @unique
+  advanceAmount                                     Float                         @default(0)
+  advancePaid                                       Float                         @default(0)
+  advancePaidAt                                     DateTime?
+  advancePaymentDate                                DateTime?
+  advancePaymentMethod                              String?
+  advancePaymentProof                               String?
+  advancePaymentRef                                 String?
+  advancePaymentVerified                            Boolean                       @default(false)
+  advancePercent                                    Int                           @default(30)
+  advanceVerifiedAt                                 DateTime?
+  advanceVerifiedBy                                 String?
+  paymentMethod                                     String?
+  paymentProof                                      String?
+  paymentSubmittedAt                                DateTime?
+  paymentTransactionId                              String?
+  quoteRequestId                                    String?                       @unique
+  refundAmount                                      Float?
+  luxury_bids                                       luxury_bids[]
+  luxury_quotes                                     luxury_quotes?                @relation(fields: [acceptedQuoteId], references: [id])
+  vendors_luxury_bookings_acceptedVendorIdTovendors vendors?                      @relation("luxury_bookings_acceptedVendorIdTovendors", fields: [acceptedVendorId], references: [id])
+  vendors_luxury_bookings_assignedVendorIdTovendors vendors?                      @relation("luxury_bookings_assignedVendorIdTovendors", fields: [assignedVendorId], references: [id])
+  customers                                         customers?                    @relation(fields: [customerId], references: [id])
+  locations                                         locations?                    @relation(fields: [locationId], references: [id])
+  luxury_quote_requests                             luxury_quote_requests?        @relation(fields: [quoteRequestId], references: [id])
+
+  @@index([acceptedVendorId])
+  @@index([assignedVendorId])
+  @@index([customerId])
+  @@index([locationId])
+  @@index([pickupDate])
+  @@index([quoteRequestId])
+  @@index([status])
+}
+
+model luxury_quote_requests {
+  id                  String                       @id @default(cuid())
+  requestNumber       String                       @unique
+  customerId          String?
+  customerName        String
+  customerEmail       String
+  customerPhone       String
+  tripType            String
+  occasion            String?
+  vehicleCategory     String
+  vehicleCategoryName String?
+  passengers          Int                          @default(4)
+  specificModel       String?
+  pickupCity          String
+  pickupAddress       String?                      @db.Text
+  dropCity            String?
+  dropAddress         String?                      @db.Text
+  routeDetails        String?                      @db.Text
+  pickupDate          DateTime
+  pickupTime          String                       @default("10:00")
+  returnDate          DateTime?
+  returnTime          String?
+  tripDays            Int                          @default(1)
+  tripHours           Int?
+  packageType         String?
+  requirements        String?                      @db.Text
+  needChauffeur       Boolean                      @default(true)
+  needDecoration      Boolean                      @default(false)
+  decorationType      String?
+  budgetMin           Int?
+  budgetMax           Int?
+  locationId          String?
+  status              luxury_quote_requests_status @default(PENDING)
+  expiresAt           DateTime
+  quotesOpenTill      DateTime
+  totalQuotesReceived Int                          @default(0)
+  quotesViewed        Int                          @default(0)
+  acceptedQuoteId     String?                      @unique
+  createdAt           DateTime                     @default(now())
+  updatedAt           DateTime                     @updatedAt
+  luxury_bookings     luxury_bookings?
+  customers           customers?                   @relation(fields: [customerId], references: [id])
+  locations           locations?                   @relation(fields: [locationId], references: [id])
+  luxury_quotes       luxury_quotes[]
+
+  @@index([customerEmail])
+  @@index([customerId])
+  @@index([customerPhone])
+  @@index([expiresAt])
+  @@index([locationId])
+  @@index([pickupDate])
+  @@index([status])
+}
+
+model luxury_quotes {
+  id                      String                   @id
+  quoteNumber             String                   @unique
+  requestId               String
+  vendorId                String
+  vehicleCategory         String
+  vehicleName             String
+  vehicleNumber           String?
+  vehicleModel            String?
+  vehicleYear             Int?
+  vehicleFeatures         String?                  @db.LongText
+  vehicleImages           String?                  @db.LongText
+  driverName              String?
+  driverPhone             String?
+  driverExperience        Int?
+  baseAmount              Int
+  chauffeurCharges        Int                      @default(0)
+  decorationCharges       Int                      @default(0)
+  perKmRate               Int?
+  perHourRate             Int?
+  includedKm              Int?
+  includedHours           Int?
+  fuelCharges             Int                      @default(0)
+  tollEstimate            Int                      @default(0)
+  parkingEstimate         Int                      @default(0)
+  nightHaltCharges        Int                      @default(0)
+  gstAmount               Int                      @default(0)
+  totalAmount             Int
+  advanceAmount           Int?
+  advancePercent          Int                      @default(30)
+  extraKmRate             Int?
+  extraHourRate           Int?
+  inclusions              String?                  @db.LongText
+  exclusions              String?                  @db.LongText
+  termsConditions         String?                  @db.LongText
+  validTill               DateTime
+  validityDays            Int                      @default(3)
+  status                  luxury_quotes_status     @default(DRAFT)
+  viewedAt                DateTime?
+  viewCount               Int                      @default(0)
+  templateId              String?
+  fleetId                 String?
+  vendorMessage           String?                  @db.Text
+  isNegotiable            Boolean                  @default(false)
+  negotiatedAmount        Int?
+  negotiationNotes        String?
+  sentAt                  DateTime?
+  createdAt               DateTime                 @default(now())
+  updatedAt               DateTime                 @updatedAt
+  luxury_bookings         luxury_bookings?
+  vendor_fleets           vendor_fleets?           @relation(fields: [fleetId], references: [id])
+  luxury_quote_requests   luxury_quote_requests    @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  vendor_luxury_templates vendor_luxury_templates? @relation(fields: [templateId], references: [id])
+  vendors                 vendors                  @relation(fields: [vendorId], references: [id])
+
+  @@unique([requestId, vendorId])
+  @@index([fleetId], map: "luxury_quotes_fleetId_fkey")
+  @@index([requestId])
+  @@index([status])
+  @@index([templateId], map: "luxury_quotes_templateId_fkey")
+  @@index([validTill])
+  @@index([vendorId])
+}
+
+model luxury_vendor_rates {
+  id              String    @id
+  vendorId        String    @db.VarChar(50)
+  locationId      String    @db.VarChar(50)
+  carCategory     String    @db.VarChar(50)
+  packageType     String    @db.VarChar(30)
+  packageHours    Int
+  packageKm       Int
+  basePrice       Float
+  extraKmRate     Float     @default(0)
+  extraHourRate   Float     @default(0)
+  vehicleName     String?
+  vehicleNumber   String?
+  vehicleYear     Int?
+  vehicleColor    String?
+  vehicleImages   String?   @db.LongText
+  isActive        Boolean   @default(true)
+  minBookingHours Int       @default(0)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  locations       locations @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  vendors         vendors   @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+
+  @@unique([vendorId, locationId, carCategory, packageType])
+  @@index([carCategory])
+  @@index([isActive])
+  @@index([locationId])
+  @@index([vendorId])
+}
+
+model manager_locations {
+  id          String      @id
+  managerId   String
+  locationId  String
+  createdAt   DateTime    @default(now())
+  locations   locations   @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  admin_users admin_users @relation(fields: [managerId], references: [id], onDelete: Cascade)
+
+  @@unique([managerId, locationId])
+  @@index([locationId], map: "manager_locations_locationId_fkey")
+}
+
+model manager_services {
+  id          String      @id
+  managerId   String
+  serviceId   String
+  createdAt   DateTime    @default(now())
+  admin_users admin_users @relation(fields: [managerId], references: [id], onDelete: Cascade)
+  services    services    @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  @@unique([managerId, serviceId])
+  @@index([serviceId], map: "manager_services_serviceId_fkey")
+}
+
+model media {
+  id           String   @id
+  filename     String
+  originalName String
+  mimeType     String
+  size         Int
+  url          String
+  thumbnailUrl String?
+  alt          String?
+  caption      String?
+  width        Int?
+  height       Int?
+  folder       String?  @default("uploads")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  vendorId     String?
+  vendors      vendors? @relation(fields: [vendorId], references: [id])
+
+  @@index([folder])
+  @@index([mimeType])
+  @@index([vendorId])
+}
+
+model packers_bookings {
+  id                     String                         @id @default(cuid())
+  bookingNumber          String                         @unique
+  quoteRequestId         String                         @unique
+  acceptedQuoteId        String                         @unique
+  vendorId               String
+  customerId             String?
+  customerName           String
+  customerEmail          String
+  customerPhone          String
+  serviceType            String
+  shiftingType           String
+  pickupCity             String
+  pickupAddress          String                         @db.Text
+  pickupFloor            Int?
+  dropCity               String
+  dropAddress            String                         @db.Text
+  dropFloor              Int?
+  scheduledDate          DateTime
+  scheduledTime          String?
+  teamLeaderName         String?
+  teamLeaderPhone        String?
+  teamSize               Int?
+  vehicleNumbers         String?                        @db.LongText
+  packingCharges         Float                          @default(0)
+  loadingCharges         Float                          @default(0)
+  transportCharges       Float
+  unloadingCharges       Float                          @default(0)
+  unpackingCharges       Float                          @default(0)
+  storageCharges         Float                          @default(0)
+  insuranceCharges       Float                          @default(0)
+  materialCharges        Float                          @default(0)
+  gstAmount              Float                          @default(0)
+  totalAmount            Float
+  advanceAmount          Float                          @default(0)
+  advancePaid            Float                          @default(0)
+  advancePaidAt          DateTime?
+  balanceAmount          Float                          @default(0)
+  balancePaid            Float                          @default(0)
+  balancePaidAt          DateTime?
+  paymentStatus          packers_bookings_paymentStatus @default(PENDING)
+  status                 packers_bookings_status        @default(PENDING_PAYMENT)
+  packingOtp             String?
+  loadingOtp             String?
+  deliveryOtp            String?
+  packingStartedAt       DateTime?
+  packingEndedAt         DateTime?
+  loadingStartedAt       DateTime?
+  loadingEndedAt         DateTime?
+  transitStartedAt       DateTime?
+  transitEndedAt         DateTime?
+  unloadingStartedAt     DateTime?
+  unloadingEndedAt       DateTime?
+  unpackingStartedAt     DateTime?
+  completedAt            DateTime?
+  itemsPacked            Int?
+  itemsDelivered         Int?
+  damagedItems           String?                        @db.LongText
+  extraCharges           Float                          @default(0)
+  extraChargesReason     String?
+  finalAmount            Float?
+  customerNotes          String?                        @db.Text
+  vendorNotes            String?                        @db.Text
+  cancelledAt            DateTime?
+  cancelledBy            String?
+  cancellationReason     String?                        @db.Text
+  refundAmount           Float?
+  rating                 Int?
+  review                 String?                        @db.Text
+  teamRating             Int?
+  packingRating          Int?
+  createdAt              DateTime                       @default(now())
+  updatedAt              DateTime                       @updatedAt
+  deliveryOtpSent        Boolean                        @default(false)
+  loadingOtpSent         Boolean                        @default(false)
+  packingOtpSent         Boolean                        @default(false)
+  packers_quotes         packers_quotes                 @relation(fields: [acceptedQuoteId], references: [id])
+  customers              customers?                     @relation(fields: [customerId], references: [id])
+  packers_quote_requests packers_quote_requests         @relation(fields: [quoteRequestId], references: [id])
+  vendors                vendors                        @relation(fields: [vendorId], references: [id])
+
+  @@index([customerId])
+  @@index([scheduledDate])
+  @@index([status])
+  @@index([vendorId])
+}
+
+model packers_quote_requests {
+  id                  String                        @id @default(cuid())
+  requestNumber       String                        @unique
+  customerId          String?
+  customerName        String
+  customerEmail       String
+  customerPhone       String
+  serviceType         String
+  shiftingType        String
+  propertySize        String?
+  inventoryList       String?                       @db.LongText
+  hasHeavyItems       Boolean                       @default(false)
+  heavyItemsDesc      String?                       @db.Text
+  hasFragileItems     Boolean                       @default(false)
+  fragileItemsDesc    String?                       @db.Text
+  hasVehicle          Boolean                       @default(false)
+  vehicleDetails      String?
+  pickupCity          String
+  pickupAddress       String                        @db.Text
+  pickupFloor         Int?
+  hasPickupLift       Boolean                       @default(false)
+  pickupParkingDist   String?
+  dropCity            String
+  dropAddress         String                        @db.Text
+  dropFloor           Int?
+  hasDropLift         Boolean                       @default(false)
+  dropParkingDist     String?
+  preferredDate       DateTime
+  isFlexibleDate      Boolean                       @default(false)
+  flexibleDateRange   String?
+  needPacking         Boolean                       @default(true)
+  needUnpacking       Boolean                       @default(false)
+  needStorage         Boolean                       @default(false)
+  storageDays         Int?
+  needInsurance       Boolean                       @default(false)
+  insuranceValue      Float?
+  requirements        String?                       @db.Text
+  budgetMin           Float?
+  budgetMax           Float?
+  locationId          String?
+  status              packers_quote_requests_status @default(PENDING)
+  expiresAt           DateTime
+  quotesOpenTill      DateTime?
+  totalQuotesReceived Int                           @default(0)
+  quotesViewed        Int                           @default(0)
+  acceptedQuoteId     String?
+  createdAt           DateTime                      @default(now())
+  updatedAt           DateTime                      @updatedAt
+  packers_bookings    packers_bookings?
+  customers           customers?                    @relation(fields: [customerId], references: [id])
+  locations           locations?                    @relation(fields: [locationId], references: [id])
+  packers_quotes      packers_quotes[]
+
+  @@index([customerId])
+  @@index([locationId])
+  @@index([preferredDate])
+  @@index([status])
+}
+
+model packers_quotes {
+  id                       String                    @id
+  quoteNumber              String                    @unique
+  requestId                String
+  vendorId                 String
+  vehicleType              String
+  teamSize                 Int
+  estimatedDuration        String
+  packingCharges           Float                     @default(0)
+  loadingCharges           Float                     @default(0)
+  transportCharges         Float
+  unloadingCharges         Float                     @default(0)
+  unpackingCharges         Float                     @default(0)
+  storageCharges           Float                     @default(0)
+  insuranceCharges         Float                     @default(0)
+  gstAmount                Float                     @default(0)
+  totalAmount              Float
+  packingMaterials         String?                   @db.LongText
+  materialCharges          Float                     @default(0)
+  inclusions               String                    @db.LongText
+  exclusions               String                    @db.LongText
+  termsConditions          String                    @db.LongText
+  validTill                DateTime
+  status                   packers_quotes_status     @default(DRAFT)
+  viewedAt                 DateTime?
+  viewCount                Int                       @default(0)
+  createdAt                DateTime                  @default(now())
+  updatedAt                DateTime                  @updatedAt
+  templateId               String?
+  vendorFleetId            String?
+  vehicleImages            String?                   @db.LongText
+  packers_bookings         packers_bookings?
+  packers_quote_requests   packers_quote_requests    @relation(fields: [requestId], references: [id])
+  vendor_packers_templates vendor_packers_templates? @relation(fields: [templateId], references: [id])
+  vendors                  vendors                   @relation(fields: [vendorId], references: [id])
+  vendor_fleets            vendor_fleets?            @relation(fields: [vendorFleetId], references: [id])
+
+  @@index([requestId])
+  @@index([status])
+  @@index([templateId])
+  @@index([vendorId])
+  @@index([vendorFleetId])
+}
+
+model page_analytics {
+  id              String   @id
+  pagePath        String
+  date            DateTime @db.Date
+  pageViews       Int      @default(0)
+  uniqueVisitors  Int      @default(0)
+  entrances       Int      @default(0)
+  exits           Int      @default(0)
+  bounces         Int      @default(0)
+  avgTimeOnPage   Float?
+  scrollDepth25   Int      @default(0)
+  scrollDepth50   Int      @default(0)
+  scrollDepth75   Int      @default(0)
+  scrollDepth100  Int      @default(0)
+  formStarts      Int      @default(0)
+  formSubmissions Int      @default(0)
+  chatOpened      Int      @default(0)
+  chatBookings    Int      @default(0)
+  ctaClicks       Int      @default(0)
+  phoneClicks     Int      @default(0)
+  directTraffic   Int      @default(0)
+  organicTraffic  Int      @default(0)
+  referralTraffic Int      @default(0)
+  socialTraffic   Int      @default(0)
+  mobileViews     Int      @default(0)
+  desktopViews    Int      @default(0)
+  tabletViews     Int      @default(0)
+  createdAt       DateTime @default(now())
+
+  @@unique([pagePath, date])
+  @@index([date])
+  @@index([pagePath])
+  @@index([pageViews])
+}
+
+model page_performance {
+  id            String                         @id
+  pagePath      String                         @unique
+  pageTitle     String?
+  totalViews    Int                            @default(0)
+  avgLcp        Float?
+  avgFid        Float?
+  avgCls        Float?
+  avgFcp        Float?
+  avgTtfb       Float?
+  avgInp        Float?
+  lcpGood       Int                            @default(0)
+  lcpNeedsWork  Int                            @default(0)
+  lcpPoor       Int                            @default(0)
+  fidGood       Int                            @default(0)
+  fidNeedsWork  Int                            @default(0)
+  fidPoor       Int                            @default(0)
+  clsGood       Int                            @default(0)
+  clsNeedsWork  Int                            @default(0)
+  clsPoor       Int                            @default(0)
+  overallStatus page_performance_overallStatus @default(UNKNOWN)
+  issues        String?                        @db.LongText
+  bounceRate    Float?
+  avgTimeOnPage Int?
+  exitRate      Float?
+  lastMeasured  DateTime?
+  createdAt     DateTime                       @default(now())
+  updatedAt     DateTime                       @updatedAt
+
+  @@index([overallStatus])
+}
+
+model page_views {
+  id        String   @id @default(cuid())
+  path      String
+  referrer  String?
+  userAgent String?  @db.Text
+  ipAddress String?
+  country   String?
+  city      String?
+  device    String?
+  browser   String?
+  os        String?
+  sessionId String?
+  duration  Int?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([path])
+  @@index([sessionId])
+}
+
+model pages {
+  id            String       @id
+  title         String
+  slug          String       @unique
+  content       String       @db.Text
+  excerpt       String?      @db.Text
+  featuredImage String?
+  status        pages_status @default(DRAFT)
+  publishedAt   DateTime?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  authorId      String
+  admin_users   admin_users  @relation(fields: [authorId], references: [id])
+  seo_meta      seo_meta?
+
+  @@index([authorId], map: "pages_authorId_fkey")
+}
+
+model payment_settings {
+  id                     String   @id
+  defaultGst             Float    @default(18)
+  defaultPlatformFee     Float    @default(99)
+  defaultAdvance         Float    @default(20)
+  defaultSecurityDeposit Float    @default(2000)
+  updatedAt              DateTime @updatedAt
+}
+
+model redirects {
+  id          String         @id
+  fromPath    String         @unique
+  toPath      String
+  type        redirects_type @default(PERMANENT)
+  isActive    Boolean        @default(true)
+  description String?
+  hitCount    Int            @default(0)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@index([fromPath])
+}
+
+model route_pricing {
+  id                                                String     @id
+  serviceId                                         String     @db.VarChar(50)
+  subServiceId                                      String?    @db.VarChar(50)
+  tripTypeId                                        String     @db.VarChar(50)
+  fromLocationId                                    String     @db.VarChar(50)
+  toLocationId                                      String     @db.VarChar(50)
+  basePrice                                         Float
+  estimatedKm                                       Int?
+  estimatedTime                                     String?
+  isActive                                          Boolean    @default(true)
+  createdAt                                         DateTime   @default(now())
+  updatedAt                                         DateTime   @updatedAt
+  locations_route_pricing_fromLocationIdTolocations locations  @relation("route_pricing_fromLocationIdTolocations", fields: [fromLocationId], references: [id], onDelete: Cascade)
+  services                                          services   @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  locations_route_pricing_toLocationIdTolocations   locations  @relation("route_pricing_toLocationIdTolocations", fields: [toLocationId], references: [id], onDelete: Cascade)
+  trip_types                                        trip_types @relation(fields: [tripTypeId], references: [id], onDelete: Cascade)
+
+  @@unique([serviceId, subServiceId, tripTypeId, fromLocationId, toLocationId])
+  @@index([fromLocationId])
+  @@index([serviceId])
+  @@index([toLocationId])
+  @@index([tripTypeId], map: "route_pricing_tripTypeId_fkey")
+}
+
+model search_queries {
+  id          String   @id
+  query       String
+  pagePath    String
+  impressions Int      @default(0)
+  clicks      Int      @default(0)
+  ctr         Float?
+  avgPosition Float?
+  date        DateTime @db.Date
+  device      String?
+  country     String?
+  createdAt   DateTime @default(now())
+
+  @@unique([query, pagePath, date, device])
+  @@index([clicks])
+  @@index([date])
+  @@index([pagePath])
+  @@index([query])
+}
+
+model self_drive_quote_requests {
+  id                                                                             String                           @id @default(cuid())
+  transmission                                                                   String?
+  status                                                                         self_drive_quote_requests_status @default(PENDING)
+  acceptedQuoteId                                                                String?
+  budgetMax                                                                      Float?
+  budgetMin                                                                      Float?
+  createdAt                                                                      DateTime                         @default(now())
+  customerEmail                                                                  String
+  customerId                                                                     String?
+  customerName                                                                   String
+  customerNotes                                                                  String?                          @db.Text
+  customerPhone                                                                  String
+  dropAddress                                                                    String?                          @db.Text
+  dropDate                                                                       DateTime
+  dropTime                                                                       String
+  expiresAt                                                                      DateTime
+  fuelType                                                                       String?
+  isDeliveryRequested                                                            Boolean                          @default(false)
+  licenseNumber                                                                  String?
+  locationId                                                                     String
+  locationName                                                                   String
+  minSeats                                                                       Int?
+  pickupAddress                                                                  String?                          @db.Text
+  pickupDate                                                                     DateTime
+  pickupTime                                                                     String
+  quotesOpenTill                                                                 DateTime?
+  quotesViewed                                                                   Int                              @default(0)
+  requestNumber                                                                  String                           @unique
+  totalDays                                                                      Int
+  totalQuotesReceived                                                            Int                              @default(0)
+  updatedAt                                                                      DateTime                         @updatedAt
+  vehicleBrand                                                                   String?
+  vehicleCategory                                                                String?
+  vehicleCategoryName                                                            String?
+  vehicleModelId                                                                 String?
+  vehicleModelName                                                               String?
+  vehicleType                                                                    String?
+  car_bookings                                                                   car_bookings?
+  self_drive_quotes_self_drive_quote_requests_acceptedQuoteIdToself_drive_quotes self_drive_quotes?               @relation("self_drive_quote_requests_acceptedQuoteIdToself_drive_quotes", fields: [acceptedQuoteId], references: [id])
+  customers                                                                      customers?                       @relation(fields: [customerId], references: [id])
+  locations                                                                      locations                        @relation(fields: [locationId], references: [id])
+  vehicle_models                                                                 vehicle_models?                  @relation(fields: [vehicleModelId], references: [id])
+  self_drive_quotes_self_drive_quotes_requestIdToself_drive_quote_requests       self_drive_quotes[]              @relation("self_drive_quotes_requestIdToself_drive_quote_requests")
+
+  @@index([acceptedQuoteId], map: "self_drive_quote_requests_acceptedQuoteId_fkey")
+  @@index([createdAt])
+  @@index([customerId])
+  @@index([locationId])
+  @@index([pickupDate])
+  @@index([status])
+  @@index([vehicleModelId])
+}
+
+model self_drive_quotes {
+  id                                                                                     String                       @id
+  transmission                                                                           String?
+  seats                                                                                  Int?
+  inclusions                                                                             String?                      @db.LongText
+  exclusions                                                                             String?                      @db.LongText
+  status                                                                                 self_drive_quotes_status     @default(DRAFT)
+  advanceAmount                                                                          Float
+  advancePercent                                                                         Int                          @default(30)
+  baseAmount                                                                             Float
+  createdAt                                                                              DateTime                     @default(now())
+  dailyRate                                                                              Float
+  deliveryCharges                                                                        Float                        @default(0)
+  extraKmRate                                                                            Float                        @default(10)
+  fuelType                                                                               String?
+  grandTotal                                                                             Float
+  gstAmount                                                                              Float                        @default(0)
+  kmLimitPerDay                                                                          Int                          @default(200)
+  pickupCharges                                                                          Float                        @default(0)
+  platformFee                                                                            Float                        @default(99)
+  quoteNumber                                                                            String                       @unique
+  registrationNumber                                                                     String?
+  requestId                                                                              String
+  respondedAt                                                                            DateTime?
+  securityDeposit                                                                        Float
+  sentAt                                                                                 DateTime?
+  termsConditions                                                                        String?                      @db.LongText
+  updatedAt                                                                              DateTime                     @updatedAt
+  validTill                                                                              DateTime
+  validityDays                                                                           Int                          @default(3)
+  vehicleBrand                                                                           String?
+  vehicleCategory                                                                        String?
+  vehicleFeatures                                                                        String?                      @db.LongText
+  vehicleImages                                                                          String?                      @db.LongText
+  vehicleModelId                                                                         String?
+  vehicleName                                                                            String
+  vehicleType                                                                            String?
+  vehicleYear                                                                            Int?
+  vendorFleetId                                                                          String?
+  vendorId                                                                               String
+  vendorMessage                                                                          String?                      @db.Text
+  viewCount                                                                              Int                          @default(0)
+  viewedAt                                                                               DateTime?
+  templateId                                                                             String?
+  car_bookings                                                                           car_bookings?
+  self_drive_quote_requests_self_drive_quote_requests_acceptedQuoteIdToself_drive_quotes self_drive_quote_requests[]  @relation("self_drive_quote_requests_acceptedQuoteIdToself_drive_quotes")
+  self_drive_quote_requests_self_drive_quotes_requestIdToself_drive_quote_requests       self_drive_quote_requests    @relation("self_drive_quotes_requestIdToself_drive_quote_requests", fields: [requestId], references: [id], onDelete: Cascade)
+  vendor_self_drive_templates                                                            vendor_self_drive_templates? @relation(fields: [templateId], references: [id])
+  vehicle_models                                                                         vehicle_models?              @relation(fields: [vehicleModelId], references: [id])
+  vendor_fleets                                                                          vendor_fleets?               @relation(fields: [vendorFleetId], references: [id])
+  vendors                                                                                vendors                      @relation(fields: [vendorId], references: [id])
+
+  @@index([createdAt])
+  @@index([requestId])
+  @@index([status])
+  @@index([templateId])
+  @@index([vehicleModelId], map: "self_drive_quotes_vehicleModelId_fkey")
+  @@index([vendorFleetId])
+  @@index([vendorId])
+}
+
+model seo_audits {
+  id                  String   @id
+  pagePath            String   @unique
+  pageTitle           String?
+  lastAuditDate       DateTime @default(now())
+  overallScore        Int      @default(0)
+  technicalScore      Int      @default(0)
+  contentScore        Int      @default(0)
+  onPageScore         Int      @default(0)
+  hasTitle            Boolean  @default(false)
+  titleLength         Int?
+  titleIssue          String?
+  hasMetaDesc         Boolean  @default(false)
+  metaDescLength      Int?
+  metaDescIssue       String?
+  hasCanonical        Boolean  @default(false)
+  canonicalUrl        String?
+  hasH1               Boolean  @default(false)
+  h1Count             Int      @default(0)
+  h1Text              String?
+  h2Count             Int      @default(0)
+  h3Count             Int      @default(0)
+  wordCount           Int      @default(0)
+  readingTime         Int?
+  hasImages           Boolean  @default(false)
+  imageCount          Int      @default(0)
+  imagesWithAlt       Int      @default(0)
+  imagesMissingAlt    Int      @default(0)
+  internalLinks       Int      @default(0)
+  externalLinks       Int      @default(0)
+  brokenLinks         Int      @default(0)
+  isIndexable         Boolean  @default(true)
+  hasRobotsMeta       String?
+  hasStructuredData   Boolean  @default(false)
+  structuredDataTypes String?  @db.LongText
+  hasOpenGraph        Boolean  @default(false)
+  hasTwitterCard      Boolean  @default(false)
+  isMobileFriendly    Boolean  @default(true)
+  viewportMeta        Boolean  @default(false)
+  pageSize            Int?
+  loadTime            Float?
+  issues              String?  @db.LongText
+  warnings            String?  @db.LongText
+  passed              String?  @db.LongText
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@index([lastAuditDate])
+  @@index([overallScore])
+}
+
+model seo_meta {
+  id                 String      @id
+  metaTitle          String?
+  metaDescription    String?     @db.Text
+  metaKeywords       String?     @db.Text
+  ogTitle            String?
+  ogDescription      String?     @db.Text
+  ogImage            String?
+  ogType             String?     @default("website")
+  twitterCard        String?     @default("summary_large_image")
+  twitterTitle       String?
+  twitterDescription String?     @db.Text
+  twitterImage       String?
+  canonicalUrl       String?
+  noindex            Boolean     @default(false)
+  nofollow           Boolean     @default(false)
+  pageId             String?     @unique
+  blogPostId         String?     @unique
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
+  blog_posts         blog_posts? @relation(fields: [blogPostId], references: [id], onDelete: Cascade)
+  pages              pages?      @relation(fields: [pageId], references: [id], onDelete: Cascade)
+}
+
+model service_locations {
+  id                String    @id
+  serviceId         String
+  locationId        String
+  isActive          Boolean   @default(true)
+  basePriceOverride Float?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  locations         locations @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  services          services  @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  @@unique([serviceId, locationId])
+  @@index([locationId])
+  @@index([serviceId])
+}
+
+model service_payment_configs {
+  id                String   @id
+  serviceId         String   @unique
+  serviceName       String
+  gst               Float?
+  platformFee       Float?
+  advancePercentage Float?
+  securityDeposit   Float?
+  minBookingDays    Int?     @default(1)
+  maxBookingDays    Int?     @default(30)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+model service_trip_types {
+  id         String     @id
+  serviceId  String
+  tripTypeId String
+  isActive   Boolean    @default(true)
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+  services   services   @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  trip_types trip_types @relation(fields: [tripTypeId], references: [id], onDelete: Cascade)
+
+  @@unique([serviceId, tripTypeId])
+  @@index([serviceId])
+  @@index([tripTypeId])
+}
+
+model services {
+  id                                                   String                         @id
+  name                                                 String
+  slug                                                 String                         @unique
+  parentId                                             String?
+  description                                          String?                        @db.Text
+  shortDesc                                            String?
+  icon                                                 String?
+  image                                                String?
+  flowType                                             services_flowType              @default(QUOTE_BASED)
+  config                                               String?                        @db.LongText
+  formFields                                           String?                        @db.LongText
+  isActive                                             Boolean                        @default(true)
+  displayOrder                                         Int                            @default(0)
+  metaTitle                                            String?
+  metaDescription                                      String?                        @db.Text
+  createdAt                                            DateTime                       @default(now())
+  updatedAt                                            DateTime                       @updatedAt
+  bank_details                                         bank_details[]
+  brands                                               brands[]
+  chauffeur_vehicle_categories                         chauffeur_vehicle_categories[]
+  local_packages                                       local_packages[]
+  manager_services                                     manager_services[]
+  route_pricing                                        route_pricing[]
+  service_locations                                    service_locations[]
+  service_trip_types                                   service_trip_types[]
+  services                                             services?                      @relation("servicesToservices", fields: [parentId], references: [id], onDelete: Cascade)
+  other_services                                       services[]                     @relation("servicesToservices")
+  vehicle_models_vehicle_models_serviceIdToservices    vehicle_models[]               @relation("vehicle_models_serviceIdToservices")
+  vehicle_models_vehicle_models_subServiceIdToservices vehicle_models[]               @relation("vehicle_models_subServiceIdToservices")
+  vendor_approved_services                             vendor_approved_services[]
+  vendor_fleets                                        vendor_fleets[]
+  vendor_service_requests                              vendor_service_requests[]
+
+  @@index([flowType])
+  @@index([isActive])
+  @@index([parentId])
+}
+
+model settings {
+  id          String        @id @default(cuid())
+  key         String        @unique
+  value       String        @db.Text
+  type        settings_type @default(TEXT)
+  group       String?
+  label       String?
+  description String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@index([group])
+  @@index([key])
+}
+
+model staff_attendance {
+  id           String                  @id
+  staffId      String
+  date         DateTime                @db.Date
+  status       staff_attendance_status @default(PRESENT)
+  checkIn      String?
+  checkOut     String?
+  leaveType    String?
+  leaveReason  String?                 @db.Text
+  notes        String?                 @db.Text
+  markedBy     String?
+  markedAt     DateTime                @default(now())
+  createdAt    DateTime                @default(now())
+  updatedAt    DateTime                @updatedAt
+  vendor_staff vendor_staff            @relation(fields: [staffId], references: [id], onDelete: Cascade)
+
+  @@unique([staffId, date])
+  @@index([date])
+  @@index([staffId])
+  @@index([status])
+}
+
+model trip_types {
+  id                   String               @id
+  name                 String               @unique
+  slug                 String               @unique
+  description          String?              @db.Text
+  icon                 String?
+  requiresFromLocation Boolean              @default(true)
+  requiresToLocation   Boolean              @default(false)
+  requiresReturnDate   Boolean              @default(false)
+  isActive             Boolean              @default(true)
+  displayOrder         Int                  @default(0)
+  createdAt            DateTime             @default(now())
+  updatedAt            DateTime             @updatedAt
+  fleet_pricing        fleet_pricing[]
+  local_packages       local_packages[]
+  route_pricing        route_pricing[]
+  service_trip_types   service_trip_types[]
+}
+
+model truck_bookings {
+  id                     String                       @id @default(cuid())
+  bookingNumber          String                       @unique
+  quoteRequestId         String                       @unique
+  acceptedQuoteId        String                       @unique
+  vendorId               String
+  customerId             String?
+  customerName           String
+  customerEmail          String
+  customerPhone          String
+  serviceType            String
+  vehicleCategory        String
+  vehicleName            String
+  goodsType              String
+  goodsDescription       String?                      @db.Text
+  pickupCity             String
+  pickupAddress          String?                      @db.Text
+  pickupFloor            Int?
+  dropCity               String
+  dropAddress            String?                      @db.Text
+  dropFloor              Int?
+  estimatedDistance      Float?
+  pickupDate             DateTime
+  pickupTime             String
+  vehicleNumber          String?
+  driverName             String?
+  driverPhone            String?
+  labourCount            Int?
+  labourNames            String?                      @db.LongText
+  baseAmount             Float
+  labourCharges          Float                        @default(0)
+  loadingCharges         Float                        @default(0)
+  unloadingCharges       Float                        @default(0)
+  packagingCharges       Float                        @default(0)
+  insuranceCharges       Float                        @default(0)
+  tollCharges            Float                        @default(0)
+  gstAmount              Float                        @default(0)
+  totalAmount            Float
+  advanceAmount          Float                        @default(0)
+  advancePaid            Float                        @default(0)
+  advancePaidAt          DateTime?
+  balanceAmount          Float                        @default(0)
+  balancePaid            Float                        @default(0)
+  balancePaidAt          DateTime?
+  paymentStatus          truck_bookings_paymentStatus @default(PENDING)
+  status                 truck_bookings_status        @default(PENDING_PAYMENT)
+  loadingOtp             String?
+  deliveryOtp            String?
+  loadingStartedAt       DateTime?
+  loadingEndedAt         DateTime?
+  transitStartedAt       DateTime?
+  transitEndedAt         DateTime?
+  unloadingStartedAt     DateTime?
+  completedAt            DateTime?
+  actualDistance         Float?
+  extraCharges           Float                        @default(0)
+  extraChargesReason     String?
+  finalAmount            Float?
+  customerNotes          String?                      @db.Text
+  vendorNotes            String?                      @db.Text
+  cancelledAt            DateTime?
+  cancelledBy            String?
+  cancellationReason     String?                      @db.Text
+  refundAmount           Float?
+  rating                 Int?
+  review                 String?                      @db.Text
+  driverRating           Int?
+  createdAt              DateTime                     @default(now())
+  updatedAt              DateTime                     @updatedAt
+  advancePaymentDate     DateTime?
+  advancePaymentProof    String?
+  advancePaymentRef      String?
+  advancePaymentVerified Boolean                      @default(false)
+  assignedDriverId       String?
+  assignedVehicleId      String?
+  paymentMethod          String?
+  truck_quotes           truck_quotes                 @relation(fields: [acceptedQuoteId], references: [id])
+  vendor_staff           vendor_staff?                @relation(fields: [assignedDriverId], references: [id])
+  vendor_fleets          vendor_fleets?               @relation(fields: [assignedVehicleId], references: [id])
+  customers              customers?                   @relation(fields: [customerId], references: [id])
+  truck_quote_requests   truck_quote_requests         @relation(fields: [quoteRequestId], references: [id])
+  vendors                vendors                      @relation(fields: [vendorId], references: [id])
+
+  @@index([assignedDriverId])
+  @@index([assignedVehicleId])
+  @@index([customerId])
+  @@index([pickupDate])
+  @@index([status])
+  @@index([vendorId])
+}
+
+model truck_quote_requests {
+  id                  String                      @id @default(cuid())
+  requestNumber       String                      @unique
+  customerId          String?
+  customerName        String
+  customerEmail       String
+  customerPhone       String
+  serviceType         String
+  vehicleCategory     String
+  vehicleCategoryName String
+  goodsType           String
+  goodsDescription    String?                     @db.Text
+  estimatedWeight     Float?
+  estimatedVolume     String?
+  requiresLabour      Boolean                     @default(false)
+  labourCount         Int?
+  pickupCity          String
+  pickupAddress       String?                     @db.Text
+  pickupFloor         Int?
+  hasPickupLift       Boolean                     @default(false)
+  dropCity            String
+  dropAddress         String?                     @db.Text
+  dropFloor           Int?
+  hasDropLift         Boolean                     @default(false)
+  estimatedDistance   Float?
+  pickupDate          DateTime
+  pickupTime          String
+  isFlexibleDate      Boolean                     @default(false)
+  requirements        String?                     @db.Text
+  needInsurance       Boolean                     @default(false)
+  needPackaging       Boolean                     @default(false)
+  budgetMin           Float?
+  budgetMax           Float?
+  locationId          String?
+  status              truck_quote_requests_status @default(PENDING)
+  expiresAt           DateTime
+  quotesOpenTill      DateTime?
+  totalQuotesReceived Int                         @default(0)
+  quotesViewed        Int                         @default(0)
+  acceptedQuoteId     String?
+  createdAt           DateTime                    @default(now())
+  updatedAt           DateTime                    @updatedAt
+  truck_bookings      truck_bookings?
+  customers           customers?                  @relation(fields: [customerId], references: [id])
+  locations           locations?                  @relation(fields: [locationId], references: [id])
+  truck_quotes        truck_quotes[]
+
+  @@index([customerId])
+  @@index([locationId])
+  @@index([pickupDate])
+  @@index([status])
+}
+
+model truck_quotes {
+  id                     String                  @id
+  quoteNumber            String                  @unique
+  requestId              String
+  vendorId               String
+  vehicleCategory        String
+  vehicleName            String
+  vehicleNumber          String?
+  vehicleCapacity        String?
+  driverName             String?
+  driverPhone            String?
+  labourIncluded         Boolean                 @default(false)
+  labourCount            Int?
+  labourCharges          Float                   @default(0)
+  baseAmount             Float
+  perKmRate              Float?
+  loadingCharges         Float                   @default(0)
+  unloadingCharges       Float                   @default(0)
+  packagingCharges       Float                   @default(0)
+  insuranceCharges       Float                   @default(0)
+  tollEstimate           Float                   @default(0)
+  gstAmount              Float                   @default(0)
+  totalAmount            Float
+  inclusions             String                  @db.LongText
+  exclusions             String                  @db.LongText
+  termsConditions        String                  @db.LongText
+  validTill              DateTime
+  status                 truck_quotes_status     @default(DRAFT)
+  viewedAt               DateTime?
+  viewCount              Int                     @default(0)
+  createdAt              DateTime                @default(now())
+  updatedAt              DateTime                @updatedAt
+  templateId             String?
+  vendorFleetId          String?
+  vehicleImages          String?                 @db.LongText
+  truck_bookings         truck_bookings?
+  truck_quote_requests   truck_quote_requests    @relation(fields: [requestId], references: [id])
+  vendor_truck_templates vendor_truck_templates? @relation(fields: [templateId], references: [id])
+  vendors                vendors                 @relation(fields: [vendorId], references: [id])
+  vendor_fleets          vendor_fleets?          @relation(fields: [vendorFleetId], references: [id])
+
+  @@index([requestId])
+  @@index([status])
+  @@index([templateId])
+  @@index([vendorId])
+  @@index([vendorFleetId])
+}
+
+model vehicle_model_locations {
+  id              String         @id
+  vehicleModelId  String
+  locationId      String
+  isActive        Boolean        @default(true)
+  basePricePerDay Float?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  locations       locations      @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  vehicle_models  vehicle_models @relation(fields: [vehicleModelId], references: [id], onDelete: Cascade)
+
+  @@unique([vehicleModelId, locationId])
+  @@index([isActive])
+  @@index([locationId])
+  @@index([vehicleModelId])
+}
+
+model vehicle_models {
+  id                                             String                        @id
+  name                                           String
+  slug                                           String
+  serviceId                                      String
+  subServiceId                                   String?
+  brandId                                        String?
+  sideImage                                      String?
+  fuelType                                       String?
+  transmission                                   String?
+  seatingCapacity                                Int?
+  engineCC                                       Int?
+  mileage                                        String?
+  specs                                          String?                       @db.LongText
+  features                                       String?                       @db.LongText
+  metaTitle                                      String?
+  metaDescription                                String?                       @db.Text
+  isActive                                       Boolean                       @default(true)
+  displayOrder                                   Int                           @default(0)
+  createdAt                                      DateTime                      @default(now())
+  updatedAt                                      DateTime                      @updatedAt
+  basePricePerDay                                Float?
+  monthlyDiscount                                Float?
+  weeklyDiscount                                 Float?
+  vehicleCategoryId                              String?
+  bodyType                                       String?
+  heightFt                                       Float?
+  lengthFt                                       Float?
+  loadCapacity                                   Float?
+  wheels                                         String?
+  widthFt                                        Float?
+  highlight                                      String?
+  horsepower                                     String?
+  images                                         String?                       @db.LongText
+  isPopular                                      Boolean                       @default(false)
+  rating                                         Float?                        @default(4.9)
+  tagline                                        String?
+  bike_bookings                                  bike_bookings[]
+  bike_quote_requests                            bike_quote_requests[]
+  bike_quotes                                    bike_quotes[]
+  self_drive_quote_requests                      self_drive_quote_requests[]
+  self_drive_quotes                              self_drive_quotes[]
+  vehicle_model_locations                        vehicle_model_locations[]
+  brands                                         brands?                       @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  services_vehicle_models_serviceIdToservices    services                      @relation("vehicle_models_serviceIdToservices", fields: [serviceId], references: [id], onDelete: Cascade)
+  services_vehicle_models_subServiceIdToservices services?                     @relation("vehicle_models_subServiceIdToservices", fields: [subServiceId], references: [id])
+  chauffeur_vehicle_categories                   chauffeur_vehicle_categories? @relation(fields: [vehicleCategoryId], references: [id])
+  vendor_fleets                                  vendor_fleets[]
+
+  @@unique([serviceId, slug])
+  @@index([brandId])
+  @@index([isActive])
+  @@index([serviceId])
+  @@index([subServiceId])
+  @@index([vehicleCategoryId])
+}
+
+model vendor_approved_locations {
+  id         String    @id
+  vendorId   String
+  locationId String
+  isActive   Boolean   @default(true)
+  approvedAt DateTime  @default(now())
+  locations  locations @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  vendors    vendors   @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+
+  @@unique([vendorId, locationId])
+  @@index([locationId])
+  @@index([vendorId])
+}
+
+model vendor_approved_services {
+  id         String   @id
+  vendorId   String
+  serviceId  String
+  isActive   Boolean  @default(true)
+  approvedAt DateTime @default(now())
+  services   services @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  vendors    vendors  @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+
+  @@unique([vendorId, serviceId])
+  @@index([serviceId])
+  @@index([vendorId])
+}
+
+model vendor_bike_templates {
+  id                  String        @id
+  vendorId            String
+  name                String
+  category            String
+  description         String?       @db.Text
+  bikeTypes           String?       @db.LongText
+  inclusions          String        @db.LongText
+  exclusions          String        @db.LongText
+  termsConditions     String        @db.LongText
+  dailyRateHint       Float?
+  weeklyRateHint      Float?
+  monthlyRateHint     Float?
+  securityDepositHint Float?
+  isActive            Boolean       @default(true)
+  isDefault           Boolean       @default(false)
+  usageCount          Int           @default(0)
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+  bike_quotes         bike_quotes[]
+  vendors             vendors       @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+
+  @@index([category])
+  @@index([isActive])
+  @@index([vendorId])
+}
+
+model vendor_bus_templates {
+  id              String       @id
+  vendorId        String
+  name            String
+  category        String
+  description     String?      @db.Text
+  vehicleTypes    String?      @db.LongText
+  inclusions      String       @db.LongText
+  exclusions      String       @db.LongText
+  termsConditions String       @db.LongText
+  baseRateHint    Float?
+  perKmRateHint   Float?
+  perDayRateHint  Float?
+  isActive        Boolean      @default(true)
+  isDefault       Boolean      @default(false)
+  usageCount      Int          @default(0)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  bus_quotes      bus_quotes[]
+  vendors         vendors      @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+
+  @@index([category])
+  @@index([isActive])
+  @@index([vendorId])
+}
+
+model vendor_documents {
+  id              String                        @id
+  vendorId        String
+  documentType    vendor_documents_documentType
+  documentName    String
+  documentUrl     String
+  documentNumber  String?
+  status          vendor_documents_status       @default(PENDING)
+  verifiedAt      DateTime?
+  verifiedById    String?
+  rejectionReason String?                       @db.Text
+  createdAt       DateTime                      @default(now())
+  updatedAt       DateTime                      @updatedAt
+  vendors         vendors                       @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  admin_users     admin_users?                  @relation(fields: [verifiedById], references: [id])
+
+  @@index([documentType])
+  @@index([status])
+  @@index([vendorId])
+  @@index([verifiedById], map: "vendor_documents_verifiedById_fkey")
+}
+
+model vendor_equipment_templates {
+  id               String             @id
+  vendorId         String
+  name             String
+  category         String
+  description      String?            @db.Text
+  equipmentTypes   String?            @db.LongText
+  inclusions       String             @db.LongText
+  exclusions       String             @db.LongText
+  termsConditions  String             @db.LongText
+  dailyRateHint    Float?
+  weeklyRateHint   Float?
+  monthlyRateHint  Float?
+  isActive         Boolean            @default(true)
+  isDefault        Boolean            @default(false)
+  usageCount       Int                @default(0)
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  equipment_quotes equipment_quotes[]
+  vendors          vendors            @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+
+  @@index([category])
+  @@index([isActive])
+  @@index([vendorId])
+}
+
+model vendor_fleet_locations {
+  id            String        @id
+  vendorFleetId String
+  locationId    String
+  isActive      Boolean       @default(true)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  locations     locations     @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  vendor_fleets vendor_fleets @relation(fields: [vendorFleetId], references: [id], onDelete: Cascade)
+
+  @@unique([vendorFleetId, locationId])
+  @@index([locationId])
+  @@index([vendorFleetId])
+}
+
+model vendor_fleets {
+  id                           String                        @id
+  vendorId                     String
+  vehicleModelId               String?
+  serviceId                    String
+  subServiceId                 String?
+  registrationNumber           String?
+  yearOfManufacture            Int?
+  color                        String?
+  images                       String?                       @db.LongText
+  isAvailable                  Boolean                       @default(true)
+  availableFrom                DateTime?
+  availableTo                  DateTime?
+  isActive                     Boolean                       @default(true)
+  isVerified                   Boolean                       @default(false)
+  createdAt                    DateTime                      @default(now())
+  updatedAt                    DateTime                      @updatedAt
+  brandId                      String?
+  vehicleCategoryId            String?
+  advanceBookingDays           Int?
+  amenities                    String?                       @db.LongText
+  availableForAirport          Boolean                       @default(true)
+  availableForCorporate        Boolean                       @default(true)
+  availableForLocal            Boolean                       @default(true)
+  availableForOutstation       Boolean                       @default(true)
+  availableForPhotoshoot       Boolean                       @default(true)
+  availableForWedding          Boolean                       @default(true)
+  avgRating                    Float?                        @default(4.5)
+  baseLocation                 String?
+  cancellationPolicy           String?
+  chauffeurIncluded            Boolean                       @default(true)
+  chauffeurLanguages           String?                       @db.LongText
+  chauffeurName                String?
+  chauffeurPhone               String?
+  chauffeurPhoto               String?
+  fitnessValidity              DateTime?
+  fuelType                     String?
+  insuranceProvider            String?
+  insuranceValidity            DateTime?
+  interiorColor                String?
+  lastServiceDate              DateTime?
+  luggageCapacity              Int?
+  luxuryCertified              Boolean                       @default(false)
+  luxuryFeatures               String?                       @db.LongText
+  minimumBookingHours          Int?
+  operatingCities              String?                       @db.LongText
+  parkingCity                  String?
+  permitType                   String?
+  safetyFeatures               String?                       @db.LongText
+  seatingCapacity              Int?
+  totalRatings                 Int?                          @default(0)
+  totalTrips                   Int?                          @default(0)
+  transmission                 String?
+  vehicleCondition             String?
+  vehicleDescription           String?                       @db.Text
+  vehicleName                  String?
+  bike_quotes                  bike_quotes[]
+  fleet_pricing                fleet_pricing[]
+  luxury_quotes                luxury_quotes[]
+  packers_quotes               packers_quotes[]
+  self_drive_quotes            self_drive_quotes[]
+  truck_bookings               truck_bookings[]
+  truck_quotes                 truck_quotes[]
+  vendor_fleet_locations       vendor_fleet_locations[]
+  brands                       brands?                       @relation(fields: [brandId], references: [id])
+  services                     services                      @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  chauffeur_vehicle_categories chauffeur_vehicle_categories? @relation(fields: [vehicleCategoryId], references: [id])
+  vehicle_models               vehicle_models?               @relation(fields: [vehicleModelId], references: [id], onDelete: Cascade)
+  vendors                      vendors                       @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+
+  @@index([brandId])
+  @@index([isActive])
+  @@index([isAvailable])
+  @@index([serviceId])
+  @@index([vehicleCategoryId])
+  @@index([vehicleModelId])
+  @@index([vendorId])
+}
+
+model vendor_location_requests {
+  id              String                          @id
+  vendorId        String
+  locationId      String
+  message         String?                         @db.Text
+  localAddress    String?                         @db.Text
+  status          vendor_location_requests_status @default(PENDING)
+  reviewedAt      DateTime?
+  reviewedById    String?
+  rejectionReason String?                         @db.Text
+  createdAt       DateTime                        @default(now())
+  updatedAt       DateTime                        @updatedAt
+  locations       locations                       @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  admin_users     admin_users?                    @relation(fields: [reviewedById], references: [id])
+  vendors         vendors                         @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+
+  @@unique([vendorId, locationId])
+  @@index([locationId])
+  @@index([reviewedById], map: "vendor_location_requests_reviewedById_fkey")
+  @@index([status])
+  @@index([vendorId])
+}
+
+model vendor_luxury_templates {
+  id                String          @id
+  vendorId          String
+  name              String
+  category          String
+  baseAmount        Int
+  chauffeurCharges  Int             @default(0)
+  decorationCharges Int             @default(0)
+  perKmRate         Int?
+  perHourRate       Int?
+  includedKm        Int?
+  includedHours     Int?
+  extraKmRate       Int?
+  extraHourRate     Int?
+  inclusions        String?         @db.LongText
+  exclusions        String?         @db.LongText
+  termsConditions   String?         @db.LongText
+  isActive          Boolean         @default(true)
+  tripTypes         String?         @db.LongText
+  occasions         String?         @db.LongText
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  luxury_quotes     luxury_quotes[]
+  vendors           vendors         @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+
+  @@index([category])
+  @@index([isActive])
+  @@index([vendorId])
+}
+
+model vendor_packers_templates {
+  id              String           @id
+  vendorId        String
+  name            String
+  category        String
+  description     String?          @db.Text
+  shiftingTypes   String?          @db.LongText
+  inclusions      String           @db.LongText
+  exclusions      String           @db.LongText
+  termsConditions String           @db.LongText
+  baseRateHint    Float?
+  isActive        Boolean          @default(true)
+  isDefault       Boolean          @default(false)
+  usageCount      Int              @default(0)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  packers_quotes  packers_quotes[]
+  vendors         vendors          @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+
+  @@index([category])
+  @@index([isActive])
+  @@index([vendorId])
+}
+
+model vendor_self_drive_templates {
+  id                  String              @id
+  vendorId            String
+  name                String
+  category            String
+  description         String?             @db.Text
+  vehicleTypes        String?             @db.LongText
+  inclusions          String              @db.LongText
+  exclusions          String              @db.LongText
+  termsConditions     String              @db.LongText
+  dailyRateHint       Float?
+  kmLimitPerDayHint   Int?
+  extraKmRateHint     Float?
+  securityDepositHint Float?
+  isActive            Boolean             @default(true)
+  isDefault           Boolean             @default(false)
+  usageCount          Int                 @default(0)
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+  self_drive_quotes   self_drive_quotes[]
+  vendors             vendors             @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+
+  @@index([category])
+  @@index([isActive])
+  @@index([vendorId])
+}
+
+model vendor_service_requests {
+  id              String                         @id
+  vendorId        String
+  serviceId       String
+  message         String?                        @db.Text
+  experience      String?                        @db.Text
+  status          vendor_service_requests_status @default(PENDING)
+  reviewedAt      DateTime?
+  reviewedById    String?
+  rejectionReason String?                        @db.Text
+  createdAt       DateTime                       @default(now())
+  updatedAt       DateTime                       @updatedAt
+  admin_users     admin_users?                   @relation(fields: [reviewedById], references: [id])
+  services        services                       @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  vendors         vendors                        @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+
+  @@unique([vendorId, serviceId])
+  @@index([reviewedById], map: "vendor_service_requests_reviewedById_fkey")
+  @@index([serviceId])
+  @@index([status])
+  @@index([vendorId])
+}
+
+model vendor_staff {
+  id                String              @id
+  vendorId          String
+  name              String
+  phone             String
+  email             String?             @unique
+  address           String?             @db.Text
+  city              String?
+  state             String?
+  pincode           String?
+  dateOfBirth       DateTime?
+  joiningDate       DateTime            @default(now())
+  profilePhoto      String?
+  role              vendor_staff_role   @default(DRIVER)
+  status            vendor_staff_status @default(ACTIVE)
+  aadharNumber      String?
+  aadharDocument    String?
+  panNumber         String?
+  panDocument       String?
+  licenseNumber     String?
+  licenseType       String?
+  licenseExpiry     DateTime?
+  licenseDocument   String?
+  bankName          String?
+  accountNumber     String?
+  ifscCode          String?
+  accountHolderName String?
+  salary            Float               @default(0)
+  emergencyContact  String?
+  emergencyPhone    String?
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  password          String?
+  staff_attendance  staff_attendance[]
+  truck_bookings    truck_bookings[]
+  vendors           vendors             @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+
+  @@unique([vendorId, phone])
+  @@index([email])
+  @@index([role])
+  @@index([status])
+  @@index([vendorId])
+}
+
+model vendor_truck_templates {
+  id              String         @id
+  vendorId        String
+  name            String
+  category        String
+  description     String?        @db.Text
+  truckTypes      String?        @db.LongText
+  inclusions      String         @db.LongText
+  exclusions      String         @db.LongText
+  termsConditions String         @db.LongText
+  ratePerKm       Float?
+  isActive        Boolean        @default(true)
+  isDefault       Boolean        @default(false)
+  usageCount      Int            @default(0)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  truck_quotes    truck_quotes[]
+  vendors         vendors        @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+
+  @@index([category])
+  @@index([isActive])
+  @@index([vendorId])
+}
+
+model vendors {
+  id                                                              String                        @id
+  email                                                           String                        @unique
+  password                                                        String
+  phone                                                           String                        @unique
+  businessName                                                    String
+  businessType                                                    String?
+  ownerName                                                       String
+  gstNumber                                                       String?
+  panNumber                                                       String?
+  address                                                         String?                       @db.Text
+  city                                                            String?
+  state                                                           String?
+  pincode                                                         String?
+  logo                                                            String?
+  description                                                     String?                       @db.Text
+  website                                                         String?
+  bankName                                                        String?
+  accountNumber                                                   String?
+  ifscCode                                                        String?
+  accountHolderName                                               String?
+  status                                                          vendors_status                @default(PENDING)
+  isEmailVerified                                                 Boolean                       @default(false)
+  isPhoneVerified                                                 Boolean                       @default(false)
+  approvedAt                                                      DateTime?
+  approvedById                                                    String?
+  rejectionReason                                                 String?                       @db.Text
+  rating                                                          Float?                        @default(0)
+  totalRatings                                                    Int                           @default(0)
+  lastLoginAt                                                     DateTime?
+  createdAt                                                       DateTime                      @default(now())
+  updatedAt                                                       DateTime                      @updatedAt
+  bike_bookings_bike_bookings_acceptedVendorIdTovendors           bike_bookings[]               @relation("bike_bookings_acceptedVendorIdTovendors")
+  bike_bookings_bike_bookings_assignedVendorIdTovendors           bike_bookings[]               @relation("bike_bookings_assignedVendorIdTovendors")
+  bike_quotes                                                     bike_quotes[]
+  bus_bookings                                                    bus_bookings[]
+  bus_quotes                                                      bus_quotes[]
+  car_bookings_car_bookings_acceptedVendorIdTovendors             car_bookings[]                @relation("car_bookings_acceptedVendorIdTovendors")
+  car_bookings_car_bookings_assignedVendorIdTovendors             car_bookings[]                @relation("car_bookings_assignedVendorIdTovendors")
+  chat_conversations                                              chat_conversations[]
+  chat_quick_replies                                              chat_quick_replies[]
+  chauffeur_bookings_chauffeur_bookings_acceptedVendorIdTovendors chauffeur_bookings[]          @relation("chauffeur_bookings_acceptedVendorIdTovendors")
+  chauffeur_bookings_chauffeur_bookings_assignedVendorIdTovendors chauffeur_bookings[]          @relation("chauffeur_bookings_assignedVendorIdTovendors")
+  equipment_bookings                                              equipment_bookings[]
+  equipment_quotes                                                equipment_quotes[]
+  luxury_bids                                                     luxury_bids[]
+  luxury_bookings_luxury_bookings_acceptedVendorIdTovendors       luxury_bookings[]             @relation("luxury_bookings_acceptedVendorIdTovendors")
+  luxury_bookings_luxury_bookings_assignedVendorIdTovendors       luxury_bookings[]             @relation("luxury_bookings_assignedVendorIdTovendors")
+  luxury_quotes                                                   luxury_quotes[]
+  luxury_vendor_rates                                             luxury_vendor_rates[]
+  media                                                           media[]
+  packers_bookings                                                packers_bookings[]
+  packers_quotes                                                  packers_quotes[]
+  self_drive_quotes                                               self_drive_quotes[]
+  truck_bookings                                                  truck_bookings[]
+  truck_quotes                                                    truck_quotes[]
+  vendor_approved_locations                                       vendor_approved_locations[]
+  vendor_approved_services                                        vendor_approved_services[]
+  vendor_bike_templates                                           vendor_bike_templates[]
+  vendor_bus_templates                                            vendor_bus_templates[]
+  vendor_documents                                                vendor_documents[]
+  vendor_equipment_templates                                      vendor_equipment_templates[]
+  vendor_fleets                                                   vendor_fleets[]
+  vendor_location_requests                                        vendor_location_requests[]
+  vendor_luxury_templates                                         vendor_luxury_templates[]
+  vendor_packers_templates                                        vendor_packers_templates[]
+  vendor_self_drive_templates                                     vendor_self_drive_templates[]
+  vendor_service_requests                                         vendor_service_requests[]
+  vendor_staff                                                    vendor_staff[]
+  vendor_truck_templates                                          vendor_truck_templates[]
+  admin_users                                                     admin_users?                  @relation(fields: [approvedById], references: [id])
+
+  @@index([approvedById], map: "vendors_approvedById_fkey")
+  @@index([email])
+  @@index([phone])
+  @@index([status])
+}
+
+model web_vitals {
+  id             String                @id
+  pagePath       String
+  pageTitle      String?
+  lcp            Float?
+  fid            Float?
+  cls            Float?
+  fcp            Float?
+  ttfb           Float?
+  inp            Float?
+  domLoad        Float?
+  windowLoad     Float?
+  resourceCount  Int?
+  resourceSize   Int?
+  connectionType String?
+  effectiveType  String?
+  downlink       Float?
+  rtt            Int?
+  device         String?
+  browser        String?
+  browserVersion String?
+  os             String?
+  screenWidth    Int?
+  screenHeight   Int?
+  sessionId      String?
+  lcpRating      web_vitals_lcpRating?
+  fidRating      web_vitals_fidRating?
+  clsRating      web_vitals_clsRating?
+  fcpRating      web_vitals_fcpRating?
+  inpRating      web_vitals_inpRating?
+  createdAt      DateTime              @default(now())
+
+  @@index([createdAt])
+  @@index([lcpRating])
+  @@index([pagePath])
+}
+
+enum bike_quote_requests_status {
+  PENDING
+  QUOTES_RECEIVED
+  QUOTE_ACCEPTED
+  BOOKING_CONFIRMED
+  CANCELLED
+  EXPIRED
+}
+
+enum click_events_eventType {
+  BUTTON_CLICK
+  LINK_CLICK
+  CTA_CLICK
+  NAV_CLICK
+  FORM_SUBMIT
+  CHAT_OPEN
+  PHONE_CLICK
+  EMAIL_CLICK
+  SOCIAL_CLICK
+  DOWNLOAD_CLICK
+  VIDEO_PLAY
+  IMAGE_CLICK
+  SCROLL_DEPTH
+  OTHER
+}
+
+enum form_submissions_formType {
+  BOOKING
+  CONTACT
+  CUSTOM_BOOKING
+  NEWSLETTER
+  CALLBACK
+  VENDOR
+  OTHER
+}
+
+enum chat_interactions_interactionType {
+  CHAT_OPENED
+  CHAT_CLOSED
+  MESSAGE_SENT
+  OPTION_SELECTED
+  BOOKING_STARTED
+  BOOKING_COMPLETED
+  KB_QUERY
+  HELP_REQUESTED
+}
+
+enum self_drive_quote_requests_status {
+  PENDING
+  QUOTES_RECEIVED
+  QUOTE_ACCEPTED
+  BOOKING_CONFIRMED
+  CANCELLED
+  EXPIRED
+}
+
+enum vendor_documents_documentType {
+  GST_CERTIFICATE
+  PAN_CARD
+  BUSINESS_REGISTRATION
+  ADDRESS_PROOF
+  BANK_DETAILS
+  CANCELLED_CHEQUE
+  OWNER_AADHAAR
+  OWNER_PAN
+  OTHER
+}
+
+enum bike_quotes_status {
+  DRAFT
+  SENT
+  VIEWED
+  ACCEPTED
+  REJECTED
+  EXPIRED
+  WITHDRAWN
+}
+
+enum locations_type {
+  COUNTRY
+  STATE
+  UNION_TERRITORY
+  CITY
+  AREA
+  AIRPORT
+}
+
+enum redirects_type {
+  PERMANENT
+  TEMPORARY
+}
+
+enum settings_type {
+  TEXT
+  TEXTAREA
+  NUMBER
+  BOOLEAN
+  JSON
+  URL
+  EMAIL
+}
+
+enum staff_attendance_status {
+  PRESENT
+  ABSENT
+  LEAVE
+  HALF_DAY
+}
+
+enum admin_users_role {
+  SUPER_ADMIN
+  ADMIN
+  SUB_ADMIN
+  MANAGER
+  EDITOR
+}
+
+enum fleet_pricing_priceType {
+  FIXED
+  PER_KM
+  PER_HOUR
+  PER_DAY
+}
+
+enum self_drive_quotes_status {
+  DRAFT
+  SENT
+  VIEWED
+  ACCEPTED
+  REJECTED
+  EXPIRED
+  WITHDRAWN
+}
+
+enum vendor_location_requests_status {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum vendor_service_requests_status {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum blog_posts_status {
+  DRAFT
+  PUBLISHED
+  SCHEDULED
+  ARCHIVED
+}
+
+enum pages_status {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum vendor_documents_status {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum helpdesk_tickets_status {
+  OPEN
+  PENDING
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+enum chauffeur_bookings_tripType {
+  LOCAL
+  OUTSTATION_ONEWAY
+  OUTSTATION_ROUNDTRIP
+  AIRPORT_PICKUP
+  AIRPORT_DROP
+}
+
+enum services_flowType {
+  BROWSE_FIRST
+  TRIP_FIRST
+  QUOTE_BASED
+}
+
+enum form_submissions_status {
+  SUBMITTED
+  FAILED
+  PENDING
+  CONVERTED
+}
+
+enum vendor_staff_role {
+  DRIVER
+  HELPER
+  MECHANIC
+  SUPERVISOR
+  OFFICE_STAFF
+}
+
+enum chat_interactions_outcome {
+  IN_PROGRESS
+  BOOKING_SUBMITTED
+  CONTACT_INFO_SHARED
+  ABANDONED
+  RESOLVED
+  ESCALATED
+}
+
+enum vendor_staff_status {
+  ACTIVE
+  ON_LEAVE
+  INACTIVE
+  TERMINATED
+}
+
+enum fleet_availabilityType {
+  ALL_INDIA
+  SPECIFIC_LOCATIONS
+}
+
+enum page_performance_overallStatus {
+  HEALTHY
+  NEEDS_IMPROVEMENT
+  POOR
+  UNKNOWN
+}
+
+enum vendors_status {
+  PENDING
+  DOCUMENTS_PENDING
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
+  SUSPENDED
+  BLOCKED
+}
+
+enum packers_quotes_status {
+  DRAFT
+  SENT
+  VIEWED
+  ACCEPTED
+  REJECTED
+  EXPIRED
+  WITHDRAWN
+}
+
+enum web_vitals_lcpRating {
+  GOOD
+  NEEDS_IMPROVEMENT
+  POOR
+}
+
+enum equipment_quotes_status {
+  DRAFT
+  SENT
+  VIEWED
+  ACCEPTED
+  REJECTED
+  EXPIRED
+  WITHDRAWN
+}
+
+enum equipment_quote_requests_status {
+  PENDING
+  QUOTES_RECEIVED
+  QUOTE_ACCEPTED
+  BOOKING_CONFIRMED
+  CANCELLED
+  EXPIRED
+}
+
+enum web_vitals_fidRating {
+  GOOD
+  NEEDS_IMPROVEMENT
+  POOR
+}
+
+enum truck_quotes_status {
+  DRAFT
+  SENT
+  VIEWED
+  ACCEPTED
+  REJECTED
+  EXPIRED
+  WITHDRAWN
+}
+
+enum web_vitals_clsRating {
+  GOOD
+  NEEDS_IMPROVEMENT
+  POOR
+}
+
+enum bike_bookings_status {
+  PENDING_PAYMENT
+  PAYMENT_SUBMITTED
+  PAYMENT_VERIFIED
+  PENDING_VENDOR
+  BROADCASTED
+  ACCEPTED
+  READY_FOR_PICKUP
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  EXPIRED
+  REFUNDED
+}
+
+enum web_vitals_fcpRating {
+  GOOD
+  NEEDS_IMPROVEMENT
+  POOR
+}
+
+enum bus_quote_requests_status {
+  PENDING
+  QUOTES_RECEIVED
+  QUOTE_ACCEPTED
+  BOOKING_CONFIRMED
+  CANCELLED
+  EXPIRED
+}
+
+enum web_vitals_inpRating {
+  GOOD
+  NEEDS_IMPROVEMENT
+  POOR
+}
+
+enum luxury_quote_requests_status {
+  PENDING
+  QUOTES_RECEIVED
+  QUOTE_ACCEPTED
+  BOOKING_CONFIRMED
+  CANCELLED
+  EXPIRED
+}
+
+enum bike_bookings_paymentStatus {
+  PENDING
+  SUBMITTED
+  PARTIAL
+  PAID
+  REFUNDED
+  FAILED
+}
+
+enum truck_quote_requests_status {
+  PENDING
+  QUOTES_RECEIVED
+  QUOTE_ACCEPTED
+  BOOKING_CONFIRMED
+  CANCELLED
+  EXPIRED
+}
+
+enum car_bookings_status {
+  PENDING_PAYMENT
+  PAYMENT_SUBMITTED
+  PENDING_VENDOR
+  BROADCASTED
+  ACCEPTED
+  READY_FOR_PICKUP
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  EXPIRED
+  REFUNDED
+}
+
+enum bus_quotes_status {
+  DRAFT
+  SENT
+  VIEWED
+  ACCEPTED
+  REJECTED
+  EXPIRED
+  WITHDRAWN
+}
+
+enum luxury_quotes_status {
+  DRAFT
+  SENT
+  VIEWED
+  ACCEPTED
+  REJECTED
+  EXPIRED
+  WITHDRAWN
+}
+
+enum bus_bookings_paymentStatus {
+  PENDING
+  SUBMITTED
+  PARTIAL
+  PAID
+  REFUNDED
+  FAILED
+}
+
+enum packers_bookings_paymentStatus {
+  PENDING
+  SUBMITTED
+  PARTIAL
+  PAID
+  REFUNDED
+  FAILED
+}
+
+enum packers_quote_requests_status {
+  PENDING
+  QUOTES_RECEIVED
+  QUOTE_ACCEPTED
+  BOOKING_CONFIRMED
+  CANCELLED
+  EXPIRED
+}
+
+enum packers_bookings_status {
+  PENDING_PAYMENT
+  PAYMENT_SUBMITTED
+  ADVANCE_PAID
+  CONFIRMED
+  TEAM_ASSIGNED
+  PACKING
+  LOADING
+  IN_TRANSIT
+  UNLOADING
+  UNPACKING
+  COMPLETED
+  CANCELLED
+}
+
+enum bus_bookings_status {
+  PENDING_PAYMENT
+  PAYMENT_SUBMITTED
+  ADVANCE_PAID
+  CONFIRMED
+  VEHICLE_ASSIGNED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum chauffeur_bookings_status {
+  PENDING_PAYMENT
+  PENDING_VENDOR
+  BROADCASTED
+  ACCEPTED
+  DRIVER_ASSIGNED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  EXPIRED
+  REFUNDED
+}
+
+enum equipment_bookings_paymentStatus {
+  PENDING
+  SUBMITTED
+  PARTIAL
+  PAID
+  REFUNDED
+  FAILED
+}
+
+enum truck_bookings_paymentStatus {
+  PENDING
+  SUBMITTED
+  PARTIAL
+  PAID
+  REFUNDED
+  FAILED
+}
+
+enum equipment_bookings_status {
+  PENDING_PAYMENT
+  PAYMENT_SUBMITTED
+  ADVANCE_PAID
+  CONFIRMED
+  DELIVERED
+  IN_USE
+  PICKUP_SCHEDULED
+  RETURNED
+  COMPLETED
+  CANCELLED
+}
+
+enum truck_bookings_status {
+  PENDING_PAYMENT
+  PAYMENT_SUBMITTED
+  ADVANCE_PAID
+  CONFIRMED
+  VEHICLE_ASSIGNED
+  LOADING
+  IN_TRANSIT
+  UNLOADING
+  COMPLETED
+  CANCELLED
+}
+
+enum car_bookings_paymentStatus {
+  PENDING
+  SUBMITTED
+  PARTIAL
+  PAID
+  REFUNDED
+  FAILED
+}
+
+enum luxury_bookings_status {
+  PENDING_PAYMENT
+  ADVANCE_PAID
+  CONFIRMED
+  PENDING_VENDOR
+  BROADCASTED
+  ACCEPTED
+  PAYMENT_SUBMITTED
+  DRIVER_ASSIGNED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  EXPIRED
+}
+
+enum luxury_bookings_paymentStatus {
+  PENDING
+  SUBMITTED
+  PARTIAL
+  PAID
+  REFUNDED
+  FAILED
+}
+
+enum chauffeur_bookings_paymentStatus {
+  PENDING
+  SUBMITTED
+  PARTIAL
+  PAID
+  REFUNDED
+  FAILED
+}

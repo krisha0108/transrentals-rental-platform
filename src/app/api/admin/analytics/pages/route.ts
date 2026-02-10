@@ -17,6 +17,8 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const range = searchParams.get('range') || '30d';
+    const page = parseInt(searchParams.get('page') || '1');
+    const limit = parseInt(searchParams.get('limit') || '20');
 
     // Calculate date range
     const now = new Date();
@@ -305,6 +307,13 @@ export async function GET(request: NextRequest) {
       errors: crawlData?.errorPages || pages.filter(p => p.status === 'error').length,
     };
 
+    // Pagination
+    const startIndex = (page - 1) * limit;
+    const endIndex = startIndex + limit;
+    const paginatedPages = pages.slice(startIndex, endIndex);
+    const totalRecords = pages.length;
+    const totalPagesCount = Math.ceil(totalRecords / limit);
+
     return NextResponse.json({
       overview: {
         totalPages,
@@ -314,7 +323,14 @@ export async function GET(request: NextRequest) {
         indexedPages: crawlStatus.indexed,
         errorPages: crawlStatus.errors,
       },
-      pages: pages.slice(0, 50), // Limit to top 50 pages
+      pages: paginatedPages,
+      pagination: {
+        currentPage: page,
+        totalPages: totalPagesCount,
+        totalRecords,
+        limit,
+        hasMore: page < totalPagesCount,
+      },
       trends: trends.length > 0 ? trends : generateMockTrends(),
       entryPages: entryPages.length > 0 ? entryPages : generateMockEntryPages(),
       exitPages: exitPages.length > 0 ? exitPages : generateMockExitPages(),

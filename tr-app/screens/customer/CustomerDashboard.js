@@ -34,7 +34,7 @@ import Icon from 'react-native-vector-icons/Feather';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import LinearGradient from 'react-native-linear-gradient';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { WebView } from 'react-native-webview';
 import VendorCard from '../../components/VendorCard'; // update path accordingly
 import Geolocation from 'react-native-geolocation-service';
@@ -489,6 +489,14 @@ export default function CustomerDashboard() {
     })();
 
   }, []);
+
+  // ────── REFRESH NOTIFICATION COUNT ON SCREEN FOCUS ──────
+  useFocusEffect(
+    React.useCallback(() => {
+      // Refresh notification count when screen comes into focus
+      fetchUnreadNotificationCount();
+    }, [])
+  );
 
   const fetchUpcomingBookings = async () => {
     console.log('[fetchUpcomingBookings] Starting...');

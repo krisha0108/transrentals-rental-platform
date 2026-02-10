@@ -105,27 +105,46 @@ import EarnBackrTasksScreen from './screens/customer/EarnBackrTasksScreen';
 import ServiceDetails from './screens/customer/ServiceDetails';
 import messaging from '@react-native-firebase/messaging';
 import notifee, { AndroidStyle,AndroidImportance } from '@notifee/react-native';
+import { NotificationProvider, useInAppNotification } from './contexts/NotificationContext';
+import { AppState } from 'react-native';
+import { BASE_URL } from './screens/api';
+
 let badgeCount = 0;
 LogBox.ignoreLogs(['useInsertionEffect must not schedule updates']);
 
 // Background notification handler (must be outside component)
 messaging().setBackgroundMessageHandler(async remoteMessage => {
-  // const { title, body, image } = remoteMessage.data;
-const image = remoteMessage?.data?.image || remoteMessage?.notification?.android?.imageUrl || null;
+  console.log('Background message received:', remoteMessage);
+
+  const image = remoteMessage?.data?.image || remoteMessage?.notification?.android?.imageUrl || null;
+  const notifType = remoteMessage?.data?.type || 'general';
+
+  // Select channel based on notification type
+  let channelId = 'default';
+  if (notifType === 'quote') channelId = 'quote';
+  else if (notifType === 'payment') channelId = 'payment';
+  else if (notifType === 'booking') channelId = 'booking';
+
+  console.log(`🔔 Using channel: ${channelId} for type: ${notifType}`);
+
   await notifee.displayNotification({
+    id: remoteMessage.messageId,
     title: remoteMessage.notification?.title || 'New Message',
     body: remoteMessage.notification?.body || '',
+    data: remoteMessage.data,
     android: {
-      channelId: 'default',
+      channelId: channelId, // Use correct channel for sound
       smallIcon: 'ic_launcher',
       importance: AndroidImportance.HIGH,
-      sound: 'default', 
+      pressAction: {
+        id: 'default',
+      },
       style: image && image !== 'null'
-  ? {
-      type: AndroidStyle.BIGPICTURE,
-      picture: image,
-    }
-  : undefined,
+        ? {
+            type: AndroidStyle.BIGPICTURE,
+            picture: image,
+          }
+        : undefined,
     },
   });
 });
@@ -210,7 +229,12 @@ function SplashScreenWrapper() {
   return <SplashScreen onFinish={handleFinish} />;
 }
 
-export default function App() {
+// Main App Content with Navigation
+function AppContent() {
+  const navigation = useNavigation();
+  const { showNotification } = useInAppNotification();
+  const appState = React.useRef(AppState.currentState);
+
   useEffect(() => {
     async function setupNotifications() {
       console.log('Requesting permissions...');
@@ -232,61 +256,119 @@ export default function App() {
           return;
         }
       }
-console.log('Creating channel...');
+
+      console.log('Creating notification channels...');
+
+      // All channels use the same custom sound
+      const customSound = 'notification_sound'; // Single sound file for all
+
       await notifee.createChannel({
         id: 'default',
-        name: 'Default Channel',
+        name: 'General Notifications',
         importance: AndroidImportance.HIGH,
-        badge: true, 
+        badge: true,
+        sound: customSound,
       });
+
+      await notifee.createChannel({
+        id: 'quote',
+        name: 'Quote Notifications',
+        importance: AndroidImportance.HIGH,
+        badge: true,
+        sound: customSound, // Same sound
+      });
+
+      await notifee.createChannel({
+        id: 'payment',
+        name: 'Payment Notifications',
+        importance: AndroidImportance.HIGH,
+        badge: true,
+        sound: customSound, // Same sound
+      });
+
+      await notifee.createChannel({
+        id: 'booking',
+        name: 'Booking Notifications',
+        importance: AndroidImportance.HIGH,
+        badge: true,
+        sound: customSound, // Same sound
+      });
+
+      console.log('✅ All notification channels created with same custom sound');
 
       const fcmToken = await messaging().getToken();
       console.log('FCM Token:', fcmToken);
-      // TODO: Send this token to your backend here
 
-     const unsubscribe = messaging().onMessage(async remoteMessage => {
-  console.log('Received foreground message:', remoteMessage);
-badgeCount += 1; // increase badge count
-  await notifee.setBadgeCount(badgeCount); // ✅ set on icon
+      // ⭐ Save FCM token to backend
+      try {
+        const customerData = await AsyncStorage.getItem('customer');
+        if (customerData) {
+          const customer = JSON.parse(customerData);
+          const response = await fetch(`${BASE_URL}/api/customer/fcm-token`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              customer_id: customer.id,
+              fcm_token: fcmToken,
+            }),
+          });
+          const result = await response.json();
+          if (result.success) {
+            console.log('✅ FCM token saved to backend');
+          } else {
+            console.error('❌ Failed to save FCM token:', result.message);
+          }
+        }
+      } catch (error) {
+        console.error('Error saving FCM token:', error);
+      }
 
-  // const { title, body, image } = remoteMessage.data;
-const image = remoteMessage?.data?.image || remoteMessage?.notification?.android?.imageUrl || null;
-  await notifee.displayNotification({
-    title: remoteMessage.notification?.title || 'New Message',
-    body: remoteMessage.notification?.body || '',
-    android: {
-      channelId: 'default',
-      smallIcon: 'ic_launcher',
-      badgeIconType: 1, 
-      importance: AndroidImportance.HIGH,
-      style: image && image !== 'null'
-  ? {
-      type: AndroidStyle.BIGPICTURE,
-      picture: image,
-    }
-  : undefined,
-    },
-  });
-});
+      // ⭐ Foreground message handler - Show IN-APP notification
+      const unsubscribe = messaging().onMessage(async remoteMessage => {
+        console.log('📱 Foreground message received:', remoteMessage);
+        badgeCount += 1;
+        await notifee.setBadgeCount(badgeCount);
 
+        // Show in-app notification (faded overlay style)
+        const notificationData = {
+          title: remoteMessage.notification?.title || 'New Notification',
+          body: remoteMessage.notification?.body || '',
+          type: remoteMessage.data?.type || 'general',
+          serviceType: remoteMessage.data?.serviceType,
+          bookingId: remoteMessage.data?.bookingId,
+          quoteId: remoteMessage.data?.quoteId,
+          data: remoteMessage.data,
+        };
+
+        showNotification(notificationData);
+      });
+
+      // Handle notification opened app from background state
+      messaging().onNotificationOpenedApp(async remoteMessage => {
+        console.log('🔔 Notification opened app from background:', remoteMessage);
+        // Navigation will be handled by NotificationScreen logic
+      });
+
+      // Check if app was opened from a notification (killed state)
+      messaging().getInitialNotification().then(async remoteMessage => {
+        if (remoteMessage) {
+          console.log('💀 Notification opened app from killed state:', remoteMessage);
+          // Navigation will be handled by NotificationScreen logic
+        }
+      });
 
       return unsubscribe;
-    } 
-const testBadge = async () => {
-    await notifee.setBadgeCount(5);
-  };
-  testBadge();
+    }
 
     const unsubscribePromise = setupNotifications();
 
     return () => {
       unsubscribePromise.then(unsubscribe => unsubscribe && unsubscribe());
     };
-  }, []);
+  }, [showNotification, navigation]);
 
   return (
-    <NavigationContainer>
-      <Stack.Navigator initialRouteName="Splash" screenOptions={{ headerShown: false }}>
+    <Stack.Navigator initialRouteName="Splash" screenOptions={{ headerShown: false }}>
         <Stack.Screen name="Splash" component={SplashScreenWrapper} />
         <Stack.Screen name="Onboarding" component={OnboardingScreen} />
         <Stack.Screen name="Login" component={LoginScreen} />
@@ -373,6 +455,25 @@ const testBadge = async () => {
 
 
       </Stack.Navigator>
+  );
+}
+
+// Wrapper to provide navigation to NotificationProvider
+function AppWithNotifications() {
+  const navigation = useNavigation();
+
+  return (
+    <NotificationProvider navigation={navigation}>
+      <AppContent />
+    </NotificationProvider>
+  );
+}
+
+// Main App wrapper
+export default function App() {
+  return (
+    <NavigationContainer>
+      <AppWithNotifications />
     </NavigationContainer>
   );
 }
