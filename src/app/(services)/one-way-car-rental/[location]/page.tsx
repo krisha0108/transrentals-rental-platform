@@ -1,6 +1,7 @@
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { ALL_CITIES, STATIC_CITIES } from '@/data/indian-cities';
+import { getCityBySlug } from '@/data/indian-cities';
+import { getServiceLocations } from '@/lib/services/service-locations';;
 import { CarRentalBookingHero } from '@/components/car-rental/CarRentalBookingHero';
 
 interface PageProps {
@@ -10,15 +11,19 @@ interface PageProps {
 }
 
 // Generate static params for ALL cities - GOD LEVEL SEO
+// Generate static params from DATABASE - Only locations where car-rental is available
 export async function generateStaticParams() {
-  // Generate pages for ALL 206 cities across India
-  return STATIC_CITIES.map((city) => ({
-    location: city.slug,
-  }));
+  return getServiceLocations('car-rental');
 }
 
+// Enable ISR - Revalidate every hour
+export const revalidate = 3600;
+
+// Allow dynamic params for new cities without rebuild
+export const dynamicParams = true;
+
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const city = ALL_CITIES.find(c => c.slug === params.location);
+  const city = getCityBySlug(params.location);
 
   if (!city) {
     return { title: 'One Way Car Rental | TransRentals' };
@@ -28,14 +33,14 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   return {
     title: `One Way Car Rental from ${locationName} | Drop at Different City @₹1299 | TransRentals`,
-    description: `One-way car rental from ${locationName}, ${city.state}. Drop car at different city. No return trip needed. Convenient intercity travel. Book online instantly.`,
+    description: `One-way car rental from ${locationName}. Drop car at different city. No return trip needed. Convenient intercity travel. Book online instantly.`,
     keywords: [
       `one way car rental ${locationName.toLowerCase()}`,
       `one way car hire ${locationName.toLowerCase()}`,
       `${locationName.toLowerCase()} to other cities cab`,
       `drop car different city ${locationName.toLowerCase()}`,
       `intercity car rental ${locationName.toLowerCase()}`,
-      ...city.keywords.map(k => `one way car ${k}`),
+      ...(city.keywords || []).map(k => `one way car ${k}`),
     ],
     openGraph: {
       title: `One Way Car Rental from ${locationName} - Starting @₹1299`,
@@ -49,7 +54,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 }
 
 export default function OneWayCarRentalLocationPage({ params }: PageProps) {
-  const city = ALL_CITIES.find(c => c.slug === params.location);
+  const city = getCityBySlug(params.location);
 
   if (!city) {
     notFound();

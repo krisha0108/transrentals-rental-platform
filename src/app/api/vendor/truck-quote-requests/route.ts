@@ -32,26 +32,71 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '20');
     const skip = (page - 1) * limit;
 
+    // DATE FILTER PARAMS
+    const startDate = searchParams.get('startDate');
+    const endDate = searchParams.get('endDate');
+
+    // Build date filter
+    const dateFilter: any = {};
+    if (startDate || endDate) {
+      dateFilter.createdAt = {};
+      if (startDate) {
+        dateFilter.createdAt.gte = new Date(startDate);
+      }
+      if (endDate) {
+        // Set to end of day (23:59:59)
+        const endDateTime = new Date(endDate);
+        endDateTime.setHours(23, 59, 59, 999);
+        dateFilter.createdAt.lte = endDateTime;
+      }
+    }
+
     let whereClause: any = {};
 
     if (type === 'open') {
       // Show all open requests (location filter relaxed for development)
       // TODO: Re-enable location filter for production: OR: [{ locationId: { in: approvedLocationIds } }, { locationId: null }],
       whereClause = {
+        ...dateFilter,
         status: { in: ['PENDING', 'QUOTES_RECEIVED'] },
         quotesOpenTill: { gte: new Date() },
         truck_quotes: { none: { vendorId: vendorId } },
       };
     } else if (type === 'quoted') {
-      whereClause = { truck_quotes: { some: { vendorId: vendorId, status: { in: ['SENT', 'VIEWED'] } } } };
+      whereClause = {
+        ...dateFilter,
+        truck_quotes: { some: { vendorId: vendorId, status: { in: ['SENT', 'VIEWED'] } } },
+      };
     } else if (type === 'won') {
-      whereClause = { truck_quotes: { some: { vendorId: vendorId, status: 'ACCEPTED' } } };
+      whereClause = {
+        ...dateFilter,
+        truck_quotes: { some: { vendorId: vendorId, status: 'ACCEPTED' } },
+      };
+    } else if (type === 'lost') {
+      // Requests where another vendor was chosen
+      whereClause = {
+        ...dateFilter,
+        status: 'QUOTE_ACCEPTED',
+        truck_quotes: {
+          some: {
+            vendorId: vendorId,
+            status: 'REJECTED',
+          },
+        },
+      };
     } else {
       // Show all requests (location filter relaxed for development)
       whereClause = {
         OR: [
-          { status: { in: ['PENDING', 'QUOTES_RECEIVED'] }, quotesOpenTill: { gte: new Date() } },
-          { truck_quotes: { some: { vendorId: vendorId } } },
+          {
+            ...dateFilter,
+            status: { in: ['PENDING', 'QUOTES_RECEIVED'] },
+            quotesOpenTill: { gte: new Date() },
+          },
+          {
+            ...dateFilter,
+            truck_quotes: { some: { vendorId: vendorId } },
+          },
         ],
       };
     }

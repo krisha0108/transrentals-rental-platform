@@ -49,18 +49,35 @@ export async function generateStaticParams() {
       return [];
     }
 
-    // Fetch popular routes from database
+    // Fetch popular routes from database (EXCLUDE airport routes)
     const routes = await prisma.chauffeur_route_packages.findMany({
       where: {
         isActive: true,
         isPopular: true, // Only generate static pages for popular routes
+        // EXCLUDE airport routes - those belong to /airport-transfer
+        AND: [
+          {
+            locations_chauffeur_route_packages_fromLocationIdTolocations: {
+              type: {
+                not: 'AIRPORT',
+              },
+            },
+          },
+          {
+            locations_chauffeur_route_packages_toLocationIdTolocations: {
+              type: {
+                not: 'AIRPORT',
+              },
+            },
+          },
+        ],
       },
       include: {
         locations_chauffeur_route_packages_fromLocationIdTolocations: {
-          select: { slug: true, name: true }
+          select: { slug: true, name: true, type: true }
         },
         locations_chauffeur_route_packages_toLocationIdTolocations: {
-          select: { slug: true, name: true }
+          select: { slug: true, name: true, type: true }
         }
       },
       distinct: ['fromLocationId', 'toLocationId'], // Unique routes only
@@ -71,7 +88,7 @@ export async function generateStaticParams() {
       route: `${route.locations_chauffeur_route_packages_fromLocationIdTolocations.slug}-to-${route.locations_chauffeur_route_packages_toLocationIdTolocations.slug}`,
     }));
 
-    console.log(`[one-way-cab routes] Generating ${routeParams.length} route pages from database`);
+    console.log(`[one-way-cab routes] Generating ${routeParams.length} city-to-city route pages (airports excluded)`);
     return routeParams;
   } catch (error) {
     console.error('[one-way-cab routes] Error fetching routes:', error);

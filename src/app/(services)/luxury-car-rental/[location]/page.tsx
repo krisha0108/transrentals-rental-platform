@@ -1,11 +1,12 @@
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import { ALL_CITIES, STATIC_CITIES } from '@/data/indian-cities';
+import { ALL_CITIES, STATIC_CITIES, getCityBySlug } from '@/data/indian-cities';
 import { Crown, Star, Shield, Clock, Phone } from 'lucide-react';
 import { LuxuryBookingHero } from '@/components/luxury';
 import { ServiceComingSoon } from '@/components/location/ServiceComingSoon';
 import { isServiceAvailableInLocation, getNearbyAvailableLocations } from '@/lib/services/service-availability';
+import { prisma } from '@/lib/db/prisma';
 
 interface PageProps {
   params: {
@@ -13,15 +14,56 @@ interface PageProps {
   };
 }
 
-// Generate static params for ALL cities - GOD LEVEL SEO
+// Generate static params from DATABASE - Only enabled locations
 export async function generateStaticParams() {
-  return STATIC_CITIES.map((city) => ({
-    location: city.slug,
-  }));
+  try {
+    // Skip database calls during CI/CD build
+    if (process.env.SKIP_DATABASE_CALLS === '1') {
+      console.log('[luxury-car-rental] Skipping database calls during build');
+      return [];
+    }
+
+    // Fetch enabled locations from database
+    const service = await prisma.services.findUnique({
+      where: { slug: 'luxury-car-rental' },
+      include: {
+        service_locations: {
+          where: { isActive: true },
+          include: {
+            locations: {
+              select: { slug: true, name: true }
+            }
+          }
+        }
+      }
+    });
+
+    if (!service) {
+      console.log('[luxury-car-rental] Service not found in database');
+      return [];
+    }
+
+    const locations = service.service_locations.map((sl) => ({
+      location: sl.locations.slug,
+    }));
+
+    console.log(`[luxury-car-rental] Generating ${locations.length} location pages from database`);
+    return locations;
+  } catch (error) {
+    console.error('[luxury-car-rental] Error fetching locations:', error);
+    // Fallback to empty array if database error
+    return [];
+  }
 }
 
+// Enable ISR - Revalidate every hour
+export const revalidate = 3600;
+
+// Allow dynamic params for new cities without rebuild
+export const dynamicParams = true;
+
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const city = ALL_CITIES.find(c => c.slug === params.location);
+  const city = getCityBySlug(params.location);
 
   if (!city) {
     return { title: 'Luxury Car Rental | TransRentals' };
@@ -31,7 +73,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   return {
     title: `Luxury Car Rental in ${locationName} | BMW, Mercedes, Audi, Ferrari | TransRentals`,
-    description: `Rent luxury & exotic cars in ${locationName}, ${city.state}. BMW, Mercedes, Audi, Jaguar, Range Rover, Ferrari, Lamborghini. Premium car hire with professional chauffeur. Wedding, corporate events.`,
+    description: `Rent luxury & exotic cars in ${locationName}. BMW, Mercedes, Audi, Jaguar, Range Rover, Ferrari, Lamborghini. Premium car hire with professional chauffeur. Wedding, corporate events.`,
     keywords: [
       `luxury car rental ${locationName.toLowerCase()}`,
       `exotic car hire ${locationName.toLowerCase()}`,
@@ -39,7 +81,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       `Mercedes rental ${locationName.toLowerCase()}`,
       `Ferrari rental ${locationName.toLowerCase()}`,
       `wedding car ${locationName.toLowerCase()}`,
-      ...city.keywords.map(k => `luxury car ${k}`),
+      ...(city.keywords || []).map(k => `luxury car ${k}`),
     ],
     openGraph: {
       title: `Luxury Car Rental in ${locationName} - BMW, Mercedes, Audi, Ferrari`,
@@ -54,7 +96,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 
 export default async function LuxuryCarRentalLocationPage({ params }: PageProps) {
-  const city = ALL_CITIES.find(c => c.slug === params.location);
+  const city = getCityBySlug(params.location);
 
   if (!city) {
     notFound();

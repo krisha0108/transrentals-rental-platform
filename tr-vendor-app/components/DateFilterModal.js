@@ -97,8 +97,7 @@ const formatDateForDisplay = (date) => {
   });
 };
 
-const DateFilterModal = ({ visible, onClose, onApply, currentStartDate, currentEndDate }) => {
-  console.log('DateFilterModal visible:', visible);
+const DateFilterModal = ({ visible, onClose, onApply, currentStartDate, currentEndDate, currentFilterType }) => {
 
   const [customStartInput, setCustomStartInput] = useState('');
   const [customEndInput, setCustomEndInput] = useState('');
@@ -119,7 +118,7 @@ const DateFilterModal = ({ visible, onClose, onApply, currentStartDate, currentE
     if (range) {
       const formattedStart = formatDateForAPI(range.startDate);
       const formattedEnd = formatDateForAPI(range.endDate);
-      onApply(formattedStart, formattedEnd);
+      onApply(formattedStart, formattedEnd, filterType); // Pass filterType
       onClose();
     }
   };
@@ -156,7 +155,7 @@ const DateFilterModal = ({ visible, onClose, onApply, currentStartDate, currentE
     }
 
     setError(null);
-    onApply(customStartInput, customEndInput);
+    onApply(customStartInput, customEndInput, 'custom'); // Pass 'custom' as filterType
     onClose();
     setShowCustomInputs(false);
     setCustomStartInput('');
@@ -204,26 +203,48 @@ const DateFilterModal = ({ visible, onClose, onApply, currentStartDate, currentE
               <View style={styles.section}>
                 <Text style={styles.sectionTitle}>Quick Filters</Text>
                 <View style={styles.quickFiltersGrid}>
-                  {quickFilters.map((filter) => (
-                    <TouchableOpacity
-                      key={filter.value}
-                      style={styles.quickFilterButton}
-                      onPress={() => handleQuickFilter(filter.value)}
-                      activeOpacity={0.7}
-                    >
-                      <Icon name={filter.icon} size={18} color={C.brand} />
-                      <Text style={styles.quickFilterText}>{filter.label}</Text>
-                    </TouchableOpacity>
-                  ))}
+                  {quickFilters.map((filter) => {
+                    const isActive = currentFilterType === filter.value;
+                    return (
+                      <TouchableOpacity
+                        key={filter.value}
+                        style={[
+                          styles.quickFilterButton,
+                          isActive && styles.activeFilterButton,
+                        ]}
+                        onPress={() => handleQuickFilter(filter.value)}
+                        activeOpacity={0.7}
+                      >
+                        <Icon name={filter.icon} size={18} color={isActive ? '#FFFFFF' : C.brand} />
+                        <Text style={[styles.quickFilterText, isActive && styles.activeFilterText]}>
+                          {filter.label}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
 
                   {/* Custom Range Button */}
                   <TouchableOpacity
-                    style={[styles.quickFilterButton, styles.customButton]}
+                    style={[
+                      styles.quickFilterButton,
+                      currentFilterType === 'custom' ? styles.activeFilterButton : styles.customButton,
+                    ]}
                     onPress={handleCustomRange}
                     activeOpacity={0.7}
                   >
-                    <Icon name="edit-3" size={18} color={C.brand} />
-                    <Text style={styles.quickFilterText}>Custom Range</Text>
+                    <Icon
+                      name="edit-3"
+                      size={18}
+                      color={currentFilterType === 'custom' ? '#FFFFFF' : C.brand}
+                    />
+                    <Text
+                      style={[
+                        styles.quickFilterText,
+                        currentFilterType === 'custom' && styles.activeFilterText,
+                      ]}
+                    >
+                      Custom Range
+                    </Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -377,6 +398,14 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '500',
     color: C.text,
+  },
+  activeFilterButton: {
+    backgroundColor: C.brand,
+    borderColor: C.brand,
+  },
+  activeFilterText: {
+    color: '#FFFFFF',
+    fontWeight: '600',
   },
   backButton: {
     flexDirection: 'row',

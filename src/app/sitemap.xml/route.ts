@@ -25,9 +25,8 @@ import { NextRequest, NextResponse } from 'next/server';
  * - sitemap/1.xml: Service + location combinations (DB)
  * - sitemap/2.xml: Fleet pages (DB)
  * - sitemap/3.xml: City homepages (DB)
- * - sitemap/4.xml: Vehicle models + locations (DB)
- * - sitemap/5.xml: Airport transfer routes (DB)
- * - sitemap/6.xml: Brands, CMS pages, misc (DB)
+ * - sitemap/4.xml: One-way cab routes (DB)
+ * - sitemap/5.xml: Round-trip & airport transfer routes (DB)
  *
  * =============================================================================
  */
@@ -42,7 +41,7 @@ export async function GET(request: NextRequest) {
   // Get current date in ISO format (NEVER future dates)
   const currentDate = new Date().toISOString().split('T')[0];
 
-  // Generate sitemap index XML with 4 working sitemaps (no 404s)
+  // Generate sitemap index XML with 6 comprehensive sitemaps
   const sitemapIndex = `<?xml version="1.0" encoding="UTF-8"?>
 <sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <sitemap>
@@ -59,6 +58,14 @@ export async function GET(request: NextRequest) {
   </sitemap>
   <sitemap>
     <loc>${BASE_URL}/sitemap/3.xml</loc>
+    <lastmod>${currentDate}</lastmod>
+  </sitemap>
+  <sitemap>
+    <loc>${BASE_URL}/sitemap/4.xml</loc>
+    <lastmod>${currentDate}</lastmod>
+  </sitemap>
+  <sitemap>
+    <loc>${BASE_URL}/sitemap/5.xml</loc>
     <lastmod>${currentDate}</lastmod>
   </sitemap>
 </sitemapindex>`;

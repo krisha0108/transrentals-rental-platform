@@ -50,8 +50,10 @@ export default function SelfDriveQuoteRequestsScreen({ navigation }) {
   });
 
   useEffect(() => {
+    console.log('🚀 [SelfDriveRequests] Component mounted, loading initial data...');
     initialLoad();
-  }, [initialLoad]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Empty deps - only run on mount
 
   // Filter requests based on selected status
   const filteredRequests = useMemo(() => {
@@ -133,9 +135,15 @@ export default function SelfDriveQuoteRequestsScreen({ navigation }) {
     return (
       <TouchableOpacity
         style={styles.card}
-        onPress={() => navigation.navigate('SelfDriveQuoteRequestDetail', {
-          requestId: item.id || item._id
-        })}
+        onPress={() => {
+          const requestId = item.id || item._id;
+          console.log('🖱️ [SelfDriveRequests] Card clicked:', {
+            requestId,
+            itemId: item.id,
+            item_Id: item._id,
+          });
+          navigation.navigate('SelfDriveQuoteRequestDetail', { requestId });
+        }}
         activeOpacity={0.7}
       >
         {/* Header */}
@@ -325,9 +333,10 @@ export default function SelfDriveQuoteRequestsScreen({ navigation }) {
       <DateFilterModal
         visible={showDateFilter}
         onClose={() => setShowDateFilter(false)}
-        onApply={(start, end) => applyDateFilter(start, end)}
+        onApply={(start, end, filterType) => applyDateFilter(start, end, filterType)}
         currentStartDate={dateFilter.start}
         currentEndDate={dateFilter.end}
+        currentFilterType={dateFilter.type}
       />
     </SafeAreaView>
   );

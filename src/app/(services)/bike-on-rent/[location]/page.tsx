@@ -9,6 +9,7 @@ import { capitalize } from '@/lib/utils';
 import { ALL_CITIES, STATIC_CITIES, getCityBySlug } from '@/data/indian-cities';
 import { BikeServiceSchema } from '@/components/seo/schemas';
 import { isServiceAvailableInLocation, getNearbyAvailableLocations } from '@/lib/services/service-availability';
+import { prisma } from '@/lib/db/prisma';
 
 interface PageProps {
   params: {
@@ -16,12 +17,53 @@ interface PageProps {
   };
 }
 
-// Generate static params for ALL locations - GOD LEVEL SEO
+// Generate static params from DATABASE - Only enabled locations
 export async function generateStaticParams() {
-  return STATIC_CITIES.map((city) => ({
-    location: city.slug,
-  }));
+  try {
+    // Skip database calls during CI/CD build
+    if (process.env.SKIP_DATABASE_CALLS === '1') {
+      console.log('[bike-on-rent] Skipping database calls during build');
+      return [];
+    }
+
+    // Fetch enabled locations from database
+    const service = await prisma.services.findUnique({
+      where: { slug: 'bike-on-rent' },
+      include: {
+        service_locations: {
+          where: { isActive: true },
+          include: {
+            locations: {
+              select: { slug: true, name: true }
+            }
+          }
+        }
+      }
+    });
+
+    if (!service) {
+      console.log('[bike-on-rent] Service not found in database');
+      return [];
+    }
+
+    const locations = service.service_locations.map((sl) => ({
+      location: sl.locations.slug,
+    }));
+
+    console.log(`[bike-on-rent] Generating ${locations.length} location pages from database`);
+    return locations;
+  } catch (error) {
+    console.error('[bike-on-rent] Error fetching locations:', error);
+    // Fallback to empty array if database error
+    return [];
+  }
 }
+
+// Enable ISR - Revalidate every hour
+export const revalidate = 3600;
+
+// Allow dynamic params for new cities without rebuild
+export const dynamicParams = true;
 
 // Generate metadata for each location
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {

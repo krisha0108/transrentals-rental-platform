@@ -1227,5 +1227,4 @@ console.log(`
 - Buses: ${FLEET_STATS.buses} models
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 TOTAL: ${FLEET_STATS.total} vehicle models ready!
-Each vehicle × 287 cities = ${FLEET_STATS.total * 287} potential SEO pages!
 `);

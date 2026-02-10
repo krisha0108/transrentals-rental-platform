@@ -155,7 +155,6 @@ export async function GET(request: NextRequest) {
     } else {
       // All relevant requests
       whereClause = {
-        ...dateFilter,
         OR: [
           // Open requests in vendor's locations
           {
@@ -163,9 +162,11 @@ export async function GET(request: NextRequest) {
             quotesOpenTill: { gte: new Date() },
             locationId: { in: approvedLocationIds },
             ...categoryFilter,
+            ...dateFilter, // ✅ Add date filter here
           },
           // Requests vendor has quoted on
           {
+            ...dateFilter, // ✅ Add date filter here
             bike_quotes_bike_quotes_requestIdTobike_quote_requests: {
               some: { vendorId: vendorId },
             },

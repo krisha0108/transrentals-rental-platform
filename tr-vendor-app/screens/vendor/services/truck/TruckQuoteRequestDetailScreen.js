@@ -35,21 +35,53 @@ export default function TruckQuoteRequestDetailScreen({ route, navigation }) {
 
   const fetchRequestDetail = useCallback(async () => {
     if (!requestId) {
+      console.log('❌ [TruckRequestDetail] Request ID is missing');
       Alert.alert('Error', 'Request ID is missing');
       navigation.goBack();
       return;
     }
 
-    try {
-      const response = await getQuoteRequests('truck', {});
-      const requests = response.quoteRequests || response.requests || response.data || [];
-      const foundRequest = requests.find(r => (r.id || r._id) === requestId);
+    console.log('🔍 [TruckRequestDetail] Fetching request with ID:', requestId);
 
-      if (foundRequest) {
-        setRequest(foundRequest);
-      } else {
-        Alert.alert('Error', 'Request not found');
+    try {
+      // FIX: Fetch ALL pages to find the request
+      let allRequests = [];
+      let page = 1;
+      let hasMore = true;
+
+      while (hasMore && page <= 10) { // Max 10 pages to prevent infinite loop
+        console.log(`📄 [TruckRequestDetail] Fetching page ${page}...`);
+        const response = await getQuoteRequests('truck', { page, limit: 20 });
+        const pageRequests = response.quoteRequests || response.requests || response.data || [];
+
+        allRequests = [...allRequests, ...pageRequests];
+
+        // Check if we found the request
+        const found = pageRequests.find(r => {
+          const itemId = (r.id || r._id)?.toString();
+          const searchId = requestId?.toString();
+          return itemId === searchId;
+        });
+
+        if (found) {
+          console.log('✅ [TruckRequestDetail] Request found on page', page);
+          setRequest(found);
+          setLoading(false);
+          setRefreshing(false);
+          return;
+        }
+
+        // Check if there are more pages
+        const pagination = response.pagination || {};
+        hasMore = page < (pagination.totalPages || 1);
+        page++;
       }
+
+      // If we reach here, request was not found
+      console.log('❌ [TruckRequestDetail] Request not found after checking all pages');
+      console.log('Total requests checked:', allRequests.length);
+      Alert.alert('Error', 'Request not found');
+
     } catch (error) {
       console.error('Error fetching request detail:', error);
       Alert.alert('Error', 'Failed to load request details');

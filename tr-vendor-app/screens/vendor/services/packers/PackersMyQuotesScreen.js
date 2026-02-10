@@ -298,6 +298,7 @@ export default function PackersMyQuotesScreen({ navigation }) {
         onApply={handleDateFilterApply}
         currentStartDate={dateFilter.start}
         currentEndDate={dateFilter.end}
+        currentFilterType={dateFilter.type}
       />
     </SafeAreaView>
   );

@@ -1,6 +1,7 @@
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { ALL_CITIES, STATIC_CITIES } from '@/data/indian-cities';
+import { getCityBySlug } from '@/data/indian-cities';
+import { getServiceLocations } from '@/lib/services/service-locations';;
 import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
 
 interface PageProps {
@@ -9,16 +10,20 @@ interface PageProps {
   };
 }
 
+// Generate static params from DATABASE - Only locations where car-rental is available
 export async function generateStaticParams() {
-  return ALL_CITIES
-    .filter(city => city.priority >= 7)
-    .map((city) => ({
-      location: city.slug,
-    }));
+  return getServiceLocations('car-rental');
 }
 
+// Enable ISR - Revalidate every hour
+export const revalidate = 3600;
+
+// Allow dynamic params for new cities without rebuild
+export const dynamicParams = true;
+
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const city = ALL_CITIES.find(c => c.slug === params.location);
+  const city = getCityBySlug(params.location);
+  // Fallback: getAllCities().find(c => c.slug === params.location);
 
   if (!city) {
     return { title: 'Sports Car Rental | TransRentals' };
@@ -28,7 +33,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   return {
     title: `Sports Car Rental ${locationName} | Supercar Hire @₹25k | Ferrari Lamborghini`,
-    description: `Rent sports cars in ${locationName}, ${city.state}. Ferrari, Lamborghini, Porsche available. Luxury supercar hire @₹25000/day. Self-drive & chauffeur.`,
+    description: `Rent sports cars in ${locationName}. Ferrari, Lamborghini, Porsche available. Luxury supercar hire @₹25000/day. Self-drive & chauffeur.`,
     keywords: [
       `sports car rental ${locationName.toLowerCase()}`,
       `supercar rental ${locationName.toLowerCase()}`,
@@ -36,7 +41,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       `Lamborghini ${locationName.toLowerCase()}`,
       `sports car hire ${locationName.toLowerCase()}`,
       `luxury car ${locationName.toLowerCase()}`,
-      ...city.keywords.map(k => `sports car ${k}`),
+      ...(city.keywords || []).map(k => `sports car ${k}`),
     ],
     openGraph: {
       title: `Sports Car Rental in ${locationName} - Ferrari, Lamborghini @₹25k`,
@@ -50,7 +55,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 }
 
 export default function SportsCarRentalLocationPage({ params }: PageProps) {
-  const city = ALL_CITIES.find(c => c.slug === params.location);
+  const city = getCityBySlug(params.location);
+  // Fallback: getAllCities().find(c => c.slug === params.location);
 
   if (!city) {
     notFound();

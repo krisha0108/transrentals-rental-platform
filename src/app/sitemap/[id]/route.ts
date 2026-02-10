@@ -12,17 +12,13 @@ import { blogTags } from '@/data/blog-posts';
  * FULLY DATABASE-DRIVEN - Automatically updates when new data is added
  * VALIDATED - Only includes URLs that actually exist (NO 404 ERRORS)
  *
- * SITEMAP BREAKDOWN (4 sitemaps - all URLs verified working):
+ * SITEMAP BREAKDOWN (6 sitemaps - all URLs verified working):
  * - /sitemap/0.xml: Static pages, services, blog posts/categories/authors
  * - /sitemap/1.xml: Service + location combinations (with /book, /cars, /bikes subpages)
  * - /sitemap/2.xml: Fleet pages (main + location combinations)
  * - /sitemap/3.xml: City homepages + CMS pages + blog tags
- *
- * REMOVED (these URLs don't exist and would return 404):
- * - Vehicle model pages (/{service}/{model}) - no page route exists
- * - Airport FROM-TO routes (/airport-transfer/{from}-to-{to}) - no page route exists
- * - Brand pages (/brands/{slug}) - no public brand pages
- * - Chauffeur packages - no /packages or from-to routes
+ * - /sitemap/4.xml: One-way cab routes (/one-way-cab/{from}-to-{to})
+ * - /sitemap/5.xml: Round-trip & airport transfer routes (dynamic route pages)
  *
  * REQUIREMENTS MET:
  * ✓ Proper XML declaration
@@ -468,6 +464,214 @@ async function generateCityTagSitemap(currentDate: string): Promise<SitemapUrl[]
   return urls;
 }
 
+// =============================================================================
+// SITEMAP 4: One-Way Cab Routes (DATABASE)
+// =============================================================================
+async function generateOneWayCabRoutesSitemap(currentDate: string): Promise<SitemapUrl[]> {
+  const urls: SitemapUrl[] = [];
+
+  if (process.env.SKIP_DATABASE_CALLS === '1') {
+    console.log('[Sitemap 4] Skipping - CI build');
+    return [];
+  }
+
+  try {
+    // Fetch one-way cab routes from database (EXCLUDE airport routes)
+    const oneWayRoutes = await prisma.chauffeur_route_packages.findMany({
+      where: {
+        isActive: true,
+        // EXCLUDE airport routes - those belong to /airport-transfer sitemap
+        AND: [
+          {
+            locations_chauffeur_route_packages_fromLocationIdTolocations: {
+              type: {
+                not: 'AIRPORT',
+              },
+            },
+          },
+          {
+            locations_chauffeur_route_packages_toLocationIdTolocations: {
+              type: {
+                not: 'AIRPORT',
+              },
+            },
+          },
+        ],
+      },
+      include: {
+        locations_chauffeur_route_packages_fromLocationIdTolocations: {
+          select: { slug: true, isActive: true, type: true },
+        },
+        locations_chauffeur_route_packages_toLocationIdTolocations: {
+          select: { slug: true, isActive: true, type: true },
+        },
+      },
+      distinct: ['fromLocationId', 'toLocationId'],
+      orderBy: [{ isPopular: 'desc' }, { displayOrder: 'asc' }],
+    });
+
+    // Generate URLs for one-way cab routes
+    oneWayRoutes.forEach((route) => {
+      const fromLocation = route.locations_chauffeur_route_packages_fromLocationIdTolocations;
+      const toLocation = route.locations_chauffeur_route_packages_toLocationIdTolocations;
+
+      if (!fromLocation || !toLocation || !fromLocation.isActive || !toLocation.isActive) {
+        return;
+      }
+
+      const routeSlug = `${fromLocation.slug}-to-${toLocation.slug}`;
+      const priority = route.isPopular ? 0.8 : 0.7;
+
+      // One-way cab route page
+      urls.push({
+        url: `${BASE_URL}/one-way-cab/${routeSlug}`,
+        lastModified: currentDate,
+        changeFrequency: 'weekly',
+        priority,
+      });
+    });
+
+    console.log(`[Sitemap 4] ${urls.length} one-way cab route URLs (airports excluded)`);
+  } catch (error) {
+    console.error('[Sitemap 4] Error:', error);
+  }
+
+  return urls;
+}
+
+// =============================================================================
+// SITEMAP 5: Round-Trip & Airport Transfer Routes (DATABASE)
+// =============================================================================
+async function generateRoundTripAirportSitemap(currentDate: string): Promise<SitemapUrl[]> {
+  const urls: SitemapUrl[] = [];
+
+  if (process.env.SKIP_DATABASE_CALLS === '1') {
+    console.log('[Sitemap 5] Skipping - CI build');
+    return [];
+  }
+
+  try {
+    // Fetch round-trip routes (EXCLUDE airport routes)
+    const roundTripRoutes = await prisma.chauffeur_route_packages.findMany({
+      where: {
+        isActive: true,
+        // EXCLUDE airport routes - those belong to /airport-transfer
+        AND: [
+          {
+            locations_chauffeur_route_packages_fromLocationIdTolocations: {
+              type: {
+                not: 'AIRPORT',
+              },
+            },
+          },
+          {
+            locations_chauffeur_route_packages_toLocationIdTolocations: {
+              type: {
+                not: 'AIRPORT',
+              },
+            },
+          },
+        ],
+      },
+      include: {
+        locations_chauffeur_route_packages_fromLocationIdTolocations: {
+          select: { slug: true, isActive: true, type: true },
+        },
+        locations_chauffeur_route_packages_toLocationIdTolocations: {
+          select: { slug: true, isActive: true, type: true },
+        },
+      },
+      distinct: ['fromLocationId', 'toLocationId'],
+      orderBy: [{ isPopular: 'desc' }, { displayOrder: 'asc' }],
+    });
+
+    // Generate round-trip route URLs
+    roundTripRoutes.forEach((route) => {
+      const fromLocation = route.locations_chauffeur_route_packages_fromLocationIdTolocations;
+      const toLocation = route.locations_chauffeur_route_packages_toLocationIdTolocations;
+
+      if (!fromLocation || !toLocation || !fromLocation.isActive || !toLocation.isActive) {
+        return;
+      }
+
+      const routeSlug = `${fromLocation.slug}-to-${toLocation.slug}`;
+      const priority = route.isPopular ? 0.8 : 0.7;
+
+      // Round-trip route page
+      urls.push({
+        url: `${BASE_URL}/round-trip/${routeSlug}`,
+        lastModified: currentDate,
+        changeFrequency: 'weekly',
+        priority,
+      });
+    });
+
+    // Fetch airport transfer routes
+    const airportRoutes = await prisma.chauffeur_route_packages.findMany({
+      where: {
+        isActive: true,
+        // Filter for airport routes - adjust based on your schema
+        // You might need to check if routeType or some field indicates airport
+      },
+      include: {
+        locations_chauffeur_route_packages_fromLocationIdTolocations: {
+          select: { slug: true, type: true, isActive: true },
+        },
+        locations_chauffeur_route_packages_toLocationIdTolocations: {
+          select: { slug: true, type: true, isActive: true },
+        },
+      },
+    });
+
+    // Generate airport transfer URLs
+    airportRoutes.forEach((route) => {
+      const fromLocation = route.locations_chauffeur_route_packages_fromLocationIdTolocations;
+      const toLocation = route.locations_chauffeur_route_packages_toLocationIdTolocations;
+
+      if (!fromLocation || !toLocation || !fromLocation.isActive || !toLocation.isActive) {
+        return;
+      }
+
+      // Check if either location is an airport
+      const isAirportRoute =
+        fromLocation.type === 'AIRPORT' ||
+        toLocation.type === 'AIRPORT' ||
+        fromLocation.slug.includes('airport') ||
+        toLocation.slug.includes('airport');
+
+      if (isAirportRoute) {
+        // Generate airport route slug
+        let airportSlug = '';
+
+        if (fromLocation.type === 'AIRPORT' || fromLocation.slug.includes('airport')) {
+          // Airport pickup
+          airportSlug = `${fromLocation.slug}-to-${toLocation.slug}`;
+        } else if (toLocation.type === 'AIRPORT' || toLocation.slug.includes('airport')) {
+          // Airport drop
+          airportSlug = `${fromLocation.slug}-to-${toLocation.slug}`;
+        }
+
+        if (airportSlug) {
+          const priority = route.isPopular ? 0.8 : 0.7;
+
+          urls.push({
+            url: `${BASE_URL}/airport-transfer/${airportSlug}`,
+            lastModified: currentDate,
+            changeFrequency: 'weekly',
+            priority,
+          });
+        }
+      }
+    });
+
+    console.log(`[Sitemap 5] ${urls.length} round-trip (city-to-city) & airport transfer route URLs`);
+  } catch (error) {
+    console.error('[Sitemap 5] Error:', error);
+  }
+
+  return urls;
+}
+
 
 // =============================================================================
 // ROUTE HANDLER
@@ -490,6 +694,12 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       break;
     case 3:
       urls = await generateCityTagSitemap(currentDate);
+      break;
+    case 4:
+      urls = await generateOneWayCabRoutesSitemap(currentDate);
+      break;
+    case 5:
+      urls = await generateRoundTripAirportSitemap(currentDate);
       break;
     default:
       return new NextResponse('Sitemap not found', { status: 404 });
