@@ -1,34 +1,38 @@
+export const dynamic = 'force-dynamic';
+
 import { NextRequest, NextResponse } from 'next/server';
-import logger from '@/lib/security/logger';
+import { prisma } from '@/lib/db/prisma';
 
-/**
- * POST - Store customer FCM token for push notifications
- */
+// POST /api/customer/fcm-token - Save FCM token for push notifications
 export async function POST(request: NextRequest) {
-    try {
-        const body = await request.json();
-        const { customer_id, token, fcm_token, platform } = body;
+  try {
+    const body = await request.json();
+    const { customer_id, fcm_token } = body;
 
-        // Support both 'token' and 'fcm_token' parameter names
-        const finalToken = token || fcm_token;
-
-        if (!customer_id || !finalToken) {
-            return NextResponse.json({ error: 'customer_id and token required' }, { status: 400 });
-        }
-
-        // Placeholder: In a real app, we would store this in the database
-        // For now, just log it and return success
-        logger.info(`Received FCM token for customer ${customer_id}: ${finalToken} (${platform})`);
-
-        return NextResponse.json({
-            success: true,
-            message: 'FCM token updated successfully'
-        });
-    } catch (error) {
-        logger.error('FCM token POST error', error);
-        return NextResponse.json(
-            { success: false, error: 'Failed to update FCM token' },
-            { status: 500 }
-        );
+    if (!customer_id || !fcm_token) {
+      return NextResponse.json(
+        { success: false, message: 'Customer ID and FCM token are required' },
+        { status: 400 }
+      );
     }
+
+    // Update customer's FCM token
+    await prisma.customers.update({
+      where: { id: customer_id },
+      data: { fcmToken: fcm_token },
+    });
+
+    console.log(`✅ FCM token saved for customer: ${customer_id}`);
+
+    return NextResponse.json({
+      success: true,
+      message: 'FCM token saved successfully',
+    });
+  } catch (error: any) {
+    console.error('Error saving FCM token:', error);
+    return NextResponse.json(
+      { success: false, message: 'Failed to save FCM token' },
+      { status: 500 }
+    );
+  }
 }

@@ -1,6 +1,6 @@
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { ALL_CITIES, STATIC_CITIES } from '@/data/indian-cities';
+import { ALL_CITIES, STATIC_CITIES, getCityBySlug } from '@/data/indian-cities';
 import { CarRentalBookingHero } from '@/components/car-rental/CarRentalBookingHero';
 import { PopularRoutes } from '@/components/location/PopularRoutes';
 import { PackagesGrid } from '@/components/location/PackagesGrid';
@@ -17,17 +17,57 @@ interface PageProps {
   };
 }
 
-// Generate static params for ALL cities - GOD LEVEL SEO
+// Generate static params from DATABASE - Only enabled locations
 export async function generateStaticParams() {
-  // Generate pages for ALL 206 cities across India
-  return STATIC_CITIES.map((city) => ({
-    location: city.slug,
-  }));
+  try {
+    // Skip database calls during CI/CD build
+    if (process.env.SKIP_DATABASE_CALLS === '1') {
+      console.log('[car-rental] Skipping database calls during build');
+      return [];
+    }
+
+    // Fetch enabled locations from database
+    const service = await prisma.services.findUnique({
+      where: { slug: 'car-rental' },
+      include: {
+        service_locations: {
+          where: { isActive: true },
+          include: {
+            locations: {
+              select: { slug: true, name: true }
+            }
+          }
+        }
+      }
+    });
+
+    if (!service) {
+      console.log('[car-rental] Service not found in database');
+      return [];
+    }
+
+    const locations = service.service_locations.map((sl) => ({
+      location: sl.locations.slug,
+    }));
+
+    console.log(`[car-rental] Generating ${locations.length} location pages from database`);
+    return locations;
+  } catch (error) {
+    console.error('[car-rental] Error fetching locations:', error);
+    // Fallback to empty array if database error
+    return [];
+  }
 }
+
+// Enable ISR - Revalidate every hour
+export const revalidate = 3600;
+
+// Allow dynamic params for new cities without rebuild
+export const dynamicParams = true;
 
 // Generate metadata for SEO
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const city = ALL_CITIES.find(c => c.slug === params.location);
+  const city = getCityBySlug(params.location);
 
   if (!city) {
     return {
@@ -39,14 +79,14 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   return {
     title: `Car Rental in ${locationName} | Self Drive Cars @₹999/Day | TransRentals`,
-    description: `Rent cars in ${locationName}, ${city.state}. Self-drive cars, SUVs, sedans, hatchbacks available. Book online. Best prices guaranteed. 24/7 support. Verified vendors.`,
+    description: `Rent cars in ${locationName}. Self-drive cars, SUVs, sedans, hatchbacks available. Book online. Best prices guaranteed. 24/7 support. Verified vendors.`,
     keywords: [
       `car rental ${locationName.toLowerCase()}`,
       `car on rent in ${locationName.toLowerCase()}`,
       `self drive car ${locationName.toLowerCase()}`,
       `rent a car ${locationName.toLowerCase()}`,
       `car hire ${locationName.toLowerCase()}`,
-      ...city.keywords.map(k => `car rental ${k}`),
+      ...(city.keywords || []).map(k => `car rental ${k}`),
     ],
     openGraph: {
       title: `Car Rental in ${locationName} - Starting @₹999/Day`,
@@ -141,7 +181,7 @@ async function getPackagesForLocation(locationSlug: string) {
 }
 
 export default async function CarRentalLocationPage({ params }: PageProps) {
-  const city = ALL_CITIES.find(c => c.slug === params.location);
+  const city = getCityBySlug(params.location);
 
   if (!city) {
     notFound();

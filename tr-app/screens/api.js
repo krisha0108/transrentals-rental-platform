@@ -9,8 +9,8 @@ const dev = true; // ✅ LOCAL MODE - App will call http://localhost:3003/api
 // To find your IP: Run "ipconfig" in CMD and look for IPv4 Address
 
 // CHANGE THIS BASED ON YOUR SETUP:
-const LOCAL_HOST = 'localhost'; // Physical Device -> Your PC's WiFi IP Address
-// const LOCAL_HOST = 'localhost'; // Using ADB Reverse (USB connection)
+// const LOCAL_HOST = '192.168.29.144'; // Physical Device -> Your PC's WiFi IP Address
+const LOCAL_HOST = 'localhost'; // Using ADB Reverse (USB connection) ✅
 // const LOCAL_HOST = '10.0.2.2'; // Android Emulator -> Use this for emulator
 const LOCAL_PORT = 3000; // Next.js dev server port
 

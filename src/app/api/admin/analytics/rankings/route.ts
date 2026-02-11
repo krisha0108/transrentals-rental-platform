@@ -200,13 +200,13 @@ export async function GET(request: NextRequest) {
       overview,
       keywords,
       positionDistribution,
-      historicalTrends: historicalTrends.length > 0 ? historicalTrends : generateMockTrends(overview.avgPosition, overview.top10),
+      historicalTrends, // Real data only - no mock
       competitors: competitorStats,
       topMovers,
     });
   } catch (error) {
     logger.error('Error fetching rankings', error);
-    // Return default data on error
+    // Return empty data on error - no mock
     return NextResponse.json({
       overview: {
         totalKeywords: 0,
@@ -226,7 +226,7 @@ export async function GET(request: NextRequest) {
         { range: '21-50', count: 0 },
         { range: '51-100', count: 0 },
       ],
-      historicalTrends: generateMockTrends(15, 5),
+      historicalTrends: [], // Empty - no mock
       competitors: [],
       topMovers: { gainers: [], losers: [] },
     });
@@ -265,11 +265,4 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// Helper to generate mock trends when no data
-function generateMockTrends(avgPosition: number, top10Count: number) {
-  return Array.from({ length: 30 }, (_, i) => ({
-    date: new Date(Date.now() - (29 - i) * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-    avgPosition: avgPosition > 0 ? avgPosition + (Math.random() * 2 - 1) : 15 + (Math.random() * 2 - 1),
-    top10Count: top10Count > 0 ? top10Count + Math.floor(Math.random() * 3 - 1) : Math.floor(10 + Math.random() * 5),
-  }));
-}
+// Mock trends removed - using real data only

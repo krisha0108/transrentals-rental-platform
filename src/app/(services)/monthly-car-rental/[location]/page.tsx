@@ -1,6 +1,7 @@
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { ALL_CITIES, STATIC_CITIES } from '@/data/indian-cities';
+import { getCityBySlug } from '@/data/indian-cities';
+import { getServiceLocations } from '@/lib/services/service-locations';;
 import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
 
 interface PageProps {
@@ -9,16 +10,20 @@ interface PageProps {
   };
 }
 
+// Generate static params from DATABASE - Only locations where car-rental is available
 export async function generateStaticParams() {
-  return ALL_CITIES
-    .filter(city => city.priority >= 7)
-    .map((city) => ({
-      location: city.slug,
-    }));
+  return getServiceLocations('car-rental');
 }
 
+// Enable ISR - Revalidate every hour
+export const revalidate = 3600;
+
+// Allow dynamic params for new cities without rebuild
+export const dynamicParams = true;
+
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const city = ALL_CITIES.find(c => c.slug === params.location);
+  const city = getCityBySlug(params.location);
+  // Fallback: getAllCities().find(c => c.slug === params.location);
 
   if (!city) {
     return { title: 'Monthly Car Rental | TransRentals' };
@@ -28,7 +33,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   return {
     title: `Monthly Car Rental ${locationName} | Car Subscription @₹12k | Long Term Lease`,
-    description: `Rent car monthly in ${locationName}, ${city.state}. Car subscription service. Long term rental @₹12000/month. Self-drive & chauffeur options.`,
+    description: `Rent car monthly in ${locationName}. Car subscription service. Long term rental @₹12000/month. Self-drive & chauffeur options.`,
     keywords: [
       `monthly car rental ${locationName.toLowerCase()}`,
       `car subscription ${locationName.toLowerCase()}`,
@@ -36,7 +41,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       `long term car rental ${locationName.toLowerCase()}`,
       `monthly car lease ${locationName.toLowerCase()}`,
       `monthly self drive ${locationName.toLowerCase()}`,
-      ...city.keywords.map(k => `monthly car ${k}`),
+      ...(city.keywords || []).map(k => `monthly car ${k}`),
     ],
     openGraph: {
       title: `Monthly Car Rental in ${locationName} - Car Subscription @₹12k`,
@@ -50,7 +55,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 }
 
 export default function MonthlyCarRentalLocationPage({ params }: PageProps) {
-  const city = ALL_CITIES.find(c => c.slug === params.location);
+  const city = getCityBySlug(params.location);
+  // Fallback: getAllCities().find(c => c.slug === params.location);
 
   if (!city) {
     notFound();

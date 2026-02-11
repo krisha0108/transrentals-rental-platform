@@ -1,6 +1,7 @@
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { ALL_CITIES, STATIC_CITIES } from '@/data/indian-cities';
+import { getCityBySlug } from '@/data/indian-cities';
+import { getServiceLocations } from '@/lib/services/service-locations';;
 import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
 
 interface PageProps {
@@ -9,16 +10,20 @@ interface PageProps {
   };
 }
 
+// Generate static params from DATABASE - Only locations where car-rental is available
 export async function generateStaticParams() {
-  return ALL_CITIES
-    .filter(city => city.priority >= 7)
-    .map((city) => ({
-      location: city.slug,
-    }));
+  return getServiceLocations('car-rental');
 }
 
+// Enable ISR - Revalidate every hour
+export const revalidate = 3600;
+
+// Allow dynamic params for new cities without rebuild
+export const dynamicParams = true;
+
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const city = ALL_CITIES.find(c => c.slug === params.location);
+  const city = getCityBySlug(params.location);
+  // Fallback: getAllCities().find(c => c.slug === params.location);
 
   if (!city) {
     return { title: 'Corporate Car Rental | TransRentals' };
@@ -28,7 +33,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   return {
     title: `Corporate Car Rental ${locationName} | Employee Transport @₹15k | Business Taxi`,
-    description: `Corporate car rental in ${locationName}, ${city.state}. Employee transport, business meetings, fleet management. Professional service @₹15000/month.`,
+    description: `Corporate car rental in ${locationName}. Employee transport, business meetings, fleet management. Professional service @₹15000/month.`,
     keywords: [
       `corporate car rental ${locationName.toLowerCase()}`,
       `corporate taxi ${locationName.toLowerCase()}`,
@@ -36,7 +41,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       `business car rental ${locationName.toLowerCase()}`,
       `company car lease ${locationName.toLowerCase()}`,
       `office cab ${locationName.toLowerCase()}`,
-      ...city.keywords.map(k => `corporate car ${k}`),
+      ...(city.keywords || []).map(k => `corporate car ${k}`),
     ],
     openGraph: {
       title: `Corporate Car Rental in ${locationName} - Employee Transport @₹15k`,
@@ -50,7 +55,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 }
 
 export default function CorporateCarRentalLocationPage({ params }: PageProps) {
-  const city = ALL_CITIES.find(c => c.slug === params.location);
+  const city = getCityBySlug(params.location);
+  // Fallback: getAllCities().find(c => c.slug === params.location);
 
   if (!city) {
     notFound();

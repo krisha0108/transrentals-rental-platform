@@ -73,6 +73,25 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '20');
     const skip = (page - 1) * limit;
 
+    // DATE FILTER PARAMS
+    const startDate = searchParams.get('startDate');
+    const endDate = searchParams.get('endDate');
+
+    // Build date filter
+    const dateFilter: any = {};
+    if (startDate || endDate) {
+      dateFilter.createdAt = {};
+      if (startDate) {
+        dateFilter.createdAt.gte = new Date(startDate);
+      }
+      if (endDate) {
+        // Set to end of day (23:59:59)
+        const endDateTime = new Date(endDate);
+        endDateTime.setHours(23, 59, 59, 999);
+        dateFilter.createdAt.lte = endDateTime;
+      }
+    }
+
     let whereClause: any = {};
 
     if (type === 'open') {
@@ -81,6 +100,7 @@ export async function GET(request: NextRequest) {
       // Note: We don't strictly filter by vehicle category to allow vendors flexibility
       // in quoting on requests even if their fleet categories don't exactly match
       whereClause = {
+        ...dateFilter,
         status: { in: ['PENDING', 'QUOTES_RECEIVED'] },
         quotesOpenTill: { gte: new Date() },
         locationId: { in: approvedLocationIds },
@@ -94,6 +114,7 @@ export async function GET(request: NextRequest) {
     } else if (type === 'quoted') {
       // Requests where vendor has submitted a quote
       whereClause = {
+        ...dateFilter,
         self_drive_quotes_self_drive_quotes_requestIdToself_drive_quote_requests: {
           some: {
             vendorId: vendorId,
@@ -104,6 +125,7 @@ export async function GET(request: NextRequest) {
     } else if (type === 'won') {
       // Requests where vendor's quote was accepted
       whereClause = {
+        ...dateFilter,
         self_drive_quotes_self_drive_quotes_requestIdToself_drive_quote_requests: {
           some: {
             vendorId: vendorId,
@@ -114,6 +136,7 @@ export async function GET(request: NextRequest) {
     } else if (type === 'lost') {
       // Requests where another vendor was chosen
       whereClause = {
+        ...dateFilter,
         status: 'QUOTE_ACCEPTED',
         self_drive_quotes_self_drive_quotes_requestIdToself_drive_quote_requests: {
           some: {
@@ -128,6 +151,7 @@ export async function GET(request: NextRequest) {
         status: { in: ['PENDING', 'QUOTES_RECEIVED'] },
         quotesOpenTill: { gte: new Date() },
         locationId: { in: approvedLocationIds },
+        ...dateFilter, // ✅ Add date filter
       };
 
       // Category filtering disabled to fix issue with mismatched category IDs
@@ -139,6 +163,7 @@ export async function GET(request: NextRequest) {
           openRequestsFilter,
           // Requests vendor has quoted on
           {
+            ...dateFilter, // ✅ Add date filter
             self_drive_quotes_self_drive_quotes_requestIdToself_drive_quote_requests: {
               some: { vendorId: vendorId },
             },

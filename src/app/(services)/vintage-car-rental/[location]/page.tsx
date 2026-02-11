@@ -1,6 +1,7 @@
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { ALL_CITIES, STATIC_CITIES } from '@/data/indian-cities';
+import { getCityBySlug } from '@/data/indian-cities';
+import { getServiceLocations } from '@/lib/services/service-locations';;
 import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
 
 interface PageProps {
@@ -9,16 +10,20 @@ interface PageProps {
   };
 }
 
+// Generate static params from DATABASE - Only locations where car-rental is available
 export async function generateStaticParams() {
-  return ALL_CITIES
-    .filter(city => city.priority >= 7)
-    .map((city) => ({
-      location: city.slug,
-    }));
+  return getServiceLocations('car-rental');
 }
 
+// Enable ISR - Revalidate every hour
+export const revalidate = 3600;
+
+// Allow dynamic params for new cities without rebuild
+export const dynamicParams = true;
+
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const city = ALL_CITIES.find(c => c.slug === params.location);
+  const city = getCityBySlug(params.location);
+  // Fallback: getAllCities().find(c => c.slug === params.location);
 
   if (!city) {
     return { title: 'Vintage Car Rental | TransRentals' };
@@ -28,7 +33,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   return {
     title: `Vintage Car Rental ${locationName} | Classic Car Wedding @₹8999 | Ambassador`,
-    description: `Rent vintage cars in ${locationName}, ${city.state}. Classic Ambassador, retro cars for weddings. Heritage car booking @₹8999. Photo shoot ready.`,
+    description: `Rent vintage cars in ${locationName}. Classic Ambassador, retro cars for weddings. Heritage car booking @₹8999. Photo shoot ready.`,
     keywords: [
       `vintage car rental ${locationName.toLowerCase()}`,
       `vintage car wedding ${locationName.toLowerCase()}`,
@@ -36,7 +41,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       `ambassador car ${locationName.toLowerCase()}`,
       `vintage car hire ${locationName.toLowerCase()}`,
       `retro car ${locationName.toLowerCase()}`,
-      ...city.keywords.map(k => `vintage car ${k}`),
+      ...(city.keywords || []).map(k => `vintage car ${k}`),
     ],
     openGraph: {
       title: `Vintage Car Rental in ${locationName} - Classic Cars @₹8999`,
@@ -50,7 +55,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 }
 
 export default function VintageCarRentalLocationPage({ params }: PageProps) {
-  const city = ALL_CITIES.find(c => c.slug === params.location);
+  const city = getCityBySlug(params.location);
+  // Fallback: getAllCities().find(c => c.slug === params.location);
 
   if (!city) {
     notFound();

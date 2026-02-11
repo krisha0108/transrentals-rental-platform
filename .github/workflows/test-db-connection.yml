@@ -1,0 +1,74 @@
+# Test Database Connection for CI/CD
+# This workflow tests if GitHub Actions can connect to production database
+# Run manually from Actions tab to verify setup
+
+name: Test Database Connection
+
+on:
+  workflow_dispatch:  # Manual trigger only
+
+jobs:
+  test-connection:
+    name: Test Production DB Connection
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+        env:
+          DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
+
+      - name: Generate Prisma Client
+        run: npx prisma generate
+        env:
+          DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
+
+      - name: Test Database Connection
+        run: |
+          echo "Testing database connection..."
+          npx prisma db execute --stdin <<EOF
+          SELECT 'Database connection successful!' as status,
+                 COUNT(*) as location_count
+          FROM locations
+          LIMIT 1;
+          EOF
+        env:
+          DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
+        continue-on-error: true
+
+      - name: Count Routes for Static Generation
+        run: |
+          echo "Counting routes that will be generated..."
+          npx prisma db execute --stdin <<EOF
+          SELECT
+            'Airport Transfer Routes' as type,
+            COUNT(*) as count
+          FROM airport_transfer_routes
+          UNION ALL
+          SELECT
+            'One Way Cab Routes' as type,
+            COUNT(*) as count
+          FROM one_way_cab_routes
+          UNION ALL
+          SELECT
+            'Locations' as type,
+            COUNT(*) as count
+          FROM locations;
+          EOF
+        env:
+          DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
+
+      - name: Summary
+        run: |
+          echo "✅ Database connection test completed!"
+          echo "If you see route counts above, connection is working."
+          echo "Now the main CI/CD pipeline can build all static pages."

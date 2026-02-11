@@ -38,6 +38,7 @@ import {
   FolderOpen,
   Link as LinkIcon,
   Check,
+  ChevronLeft,
 } from 'lucide-react';
 import { FLOW_TYPE_CONFIG } from '@/lib/constants/booking-services';
 import { Button } from '@/components/ui/button';
@@ -155,6 +156,16 @@ export default function ServiceFleetPage() {
   const [search, setSearch] = useState('');
   const [subServiceFilter, setSubServiceFilter] = useState('ALL');
   const [statusFilter, setStatusFilter] = useState('ALL');
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(20);
+  const [pagination, setPagination] = useState<{
+    page: number;
+    limit: number;
+    total: number;
+    pages: number;
+  } | null>(null);
 
   // Modal state
   const [showModal, setShowModal] = useState(false);
@@ -847,8 +858,8 @@ export default function ServiceFleetPage() {
     setLoading(true);
     try {
       const params = new URLSearchParams();
-      params.append('page', '1');
-      params.append('limit', '50');
+      params.append('page', currentPage.toString());
+      params.append('limit', itemsPerPage.toString());
       if (search) params.append('search', search);
       if (subServiceFilter !== 'ALL') params.append('subServiceId', subServiceFilter);
       if (statusFilter !== 'ALL') params.append('status', statusFilter.toLowerCase());
@@ -856,6 +867,7 @@ export default function ServiceFleetPage() {
       const res = await fetch(`/api/admin/services/${slug}/fleet?${params}`);
       if (res.ok) {
         const data = await res.json();
+        setPagination(data.pagination);
         setFleet(data.fleet.map((item: any) => ({
           id: item.id,
           name: item.name,
@@ -886,7 +898,7 @@ export default function ServiceFleetPage() {
     } finally {
       setLoading(false);
     }
-  }, [slug, search, subServiceFilter, statusFilter]);
+  }, [slug, search, subServiceFilter, statusFilter, currentPage, itemsPerPage]);
 
   useEffect(() => {
     if (slug) {
@@ -1156,6 +1168,80 @@ export default function ServiceFleetPage() {
                 ))}
               </tbody>
             </table>
+          </div>
+        )}
+
+        {/* Pagination */}
+        {!loading && pagination && pagination.pages > 1 && (
+          <div className="flex items-center justify-between px-6 py-4 border-t border-gray-200">
+            <div className="flex items-center gap-4">
+              <p className="text-sm text-gray-600">
+                Showing {((pagination.page - 1) * pagination.limit) + 1} to{' '}
+                {Math.min(pagination.page * pagination.limit, pagination.total)} of{' '}
+                {pagination.total} results
+              </p>
+              <select
+                value={itemsPerPage}
+                onChange={(e) => {
+                  setItemsPerPage(Number(e.target.value));
+                  setCurrentPage(1);
+                }}
+                className="px-3 py-1 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="10">10 per page</option>
+                <option value="20">20 per page</option>
+                <option value="50">50 per page</option>
+                <option value="100">100 per page</option>
+              </select>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                disabled={currentPage === 1}
+                className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+
+              {/* Page numbers */}
+              <div className="flex items-center gap-1">
+                {Array.from({ length: Math.min(5, pagination.pages) }, (_, i) => {
+                  let pageNum;
+                  if (pagination!.pages <= 5) {
+                    pageNum = i + 1;
+                  } else if (currentPage <= 3) {
+                    pageNum = i + 1;
+                  } else if (currentPage >= pagination!.pages - 2) {
+                    pageNum = pagination!.pages - 4 + i;
+                  } else {
+                    pageNum = currentPage - 2 + i;
+                  }
+
+                  return (
+                    <button
+                      key={pageNum}
+                      onClick={() => setCurrentPage(pageNum)}
+                      className={`px-3 py-1 rounded-lg text-sm font-medium transition ${
+                        currentPage === pageNum
+                          ? 'bg-blue-600 text-white'
+                          : 'border border-gray-300 hover:bg-gray-50'
+                      }`}
+                    >
+                      {pageNum}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <button
+                onClick={() => setCurrentPage(prev => Math.min(pagination!.pages, prev + 1))}
+                disabled={currentPage === pagination.pages}
+                className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
           </div>
         )}
       </div>

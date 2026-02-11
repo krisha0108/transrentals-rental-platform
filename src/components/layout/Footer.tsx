@@ -5,7 +5,6 @@ import Link from 'next/link';
 import {
   Facebook,
   Instagram,
-  Twitter,
   Linkedin,
   Mail,
   Phone,
@@ -26,6 +25,42 @@ export function Footer() {
   const currentYear = new Date().getFullYear();
   const [openService, setOpenService] = useState<string | null>(null);
 
+  // Settings from database (with fallback to env)
+  const [contactSettings, setContactSettings] = useState({
+    contactEmail: process.env.NEXT_PUBLIC_CONTACT_EMAIL || '',
+    contactPhone: process.env.NEXT_PUBLIC_CONTACT_PHONE || '',
+    facebookUrl: process.env.NEXT_PUBLIC_FACEBOOK_URL || '',
+    instagramUrl: process.env.NEXT_PUBLIC_INSTAGRAM_URL || '',
+    linkedinUrl: process.env.NEXT_PUBLIC_LINKEDIN_URL || '',
+  });
+
+  // Fetch settings from database on mount
+  React.useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const response = await fetch('/api/settings/public');
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && data.settings) {
+            // Update only if database has non-null values, otherwise keep env fallback
+            setContactSettings((prev) => ({
+              contactEmail: data.settings.contactEmail || prev.contactEmail,
+              contactPhone: data.settings.contactPhone || prev.contactPhone,
+              facebookUrl: data.settings.facebookUrl || prev.facebookUrl,
+              instagramUrl: data.settings.instagramUrl || prev.instagramUrl,
+              linkedinUrl: data.settings.linkedinUrl || prev.linkedinUrl,
+            }));
+          }
+        }
+      } catch (error) {
+        // Silently fail and keep env variables as fallback
+        console.error('Failed to fetch contact settings:', error);
+      }
+    };
+
+    fetchSettings();
+  }, []);
+
   const popularLocations = [
     { name: 'Goa', slug: 'goa' },
     { name: 'Manali', slug: 'manali' },
@@ -43,9 +78,9 @@ export function Footer() {
       icon: '🚗',
       base_url: '/car-rental',
       subServices: [
-        { name: 'Round Trip', url: '/car-rental' },
-        { name: 'One Way', url: '/car-rental/one-way' },
-        { name: 'Airport Transfer', url: '/car-rental/airport-transfer' },
+        { name: 'Round Trip', url: '/round-trip' },
+        { name: 'One Way Cab', url: '/one-way-cab' },
+        { name: 'Airport Transfer', url: '/airport-transfer' },
         { name: 'Self Drive', url: '/self-drive-car-rentals' },
         { name: 'Luxury Cars', url: '/luxury-car-rental' },
       ],
@@ -148,42 +183,39 @@ export function Footer() {
               with verified vendors across 150+ cities.
             </p>
             <div className="flex gap-3">
-              <a
-                href={process.env.NEXT_PUBLIC_FACEBOOK_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-9 h-9 rounded-full bg-gray-800 flex items-center justify-center hover:bg-primary transition-colors"
-                aria-label="Facebook"
-              >
-                <Facebook className="w-4 h-4" />
-              </a>
-              <a
-                href={process.env.NEXT_PUBLIC_INSTAGRAM_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-9 h-9 rounded-full bg-gray-800 flex items-center justify-center hover:bg-primary transition-colors"
-                aria-label="Instagram"
-              >
-                <Instagram className="w-4 h-4" />
-              </a>
-              {/* <a
-                href={process.env.NEXT_PUBLIC_TWITTER_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-9 h-9 rounded-full bg-gray-800 flex items-center justify-center hover:bg-primary transition-colors"
-                aria-label="Twitter"
-              >
-                <Twitter className="w-4 h-4" />
-              </a> */}
-              <a
-                href={process.env.NEXT_PUBLIC_LINKEDIN_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-9 h-9 rounded-full bg-gray-800 flex items-center justify-center hover:bg-primary transition-colors"
-                aria-label="LinkedIn"
-              >
-                <Linkedin className="w-4 h-4" />
-              </a>
+              {contactSettings.facebookUrl && (
+                <a
+                  href={contactSettings.facebookUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-9 h-9 rounded-full bg-gray-800 flex items-center justify-center hover:bg-primary transition-colors"
+                  aria-label="Facebook"
+                >
+                  <Facebook className="w-4 h-4" />
+                </a>
+              )}
+              {contactSettings.instagramUrl && (
+                <a
+                  href={contactSettings.instagramUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-9 h-9 rounded-full bg-gray-800 flex items-center justify-center hover:bg-primary transition-colors"
+                  aria-label="Instagram"
+                >
+                  <Instagram className="w-4 h-4" />
+                </a>
+              )}
+              {contactSettings.linkedinUrl && (
+                <a
+                  href={contactSettings.linkedinUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-9 h-9 rounded-full bg-gray-800 flex items-center justify-center hover:bg-primary transition-colors"
+                  aria-label="LinkedIn"
+                >
+                  <Linkedin className="w-4 h-4" />
+                </a>
+              )}
             </div>
           </div>
 
@@ -253,24 +285,28 @@ export function Footer() {
               Contact Us
             </h3>
             <ul className="space-y-3">
-              <li>
-                <a
-                  href={`tel:${process.env.NEXT_PUBLIC_CONTACT_PHONE}`}
-                  className="flex items-center gap-2 text-sm hover:text-primary transition-colors"
-                >
-                  <Phone className="w-4 h-4 flex-shrink-0" />
-                  <span>{process.env.NEXT_PUBLIC_CONTACT_PHONE}</span>
-                </a>
-              </li>
-              <li>
-                <a
-                  href={`mailto:${process.env.NEXT_PUBLIC_CONTACT_EMAIL}`}
-                  className="flex items-center gap-2 text-sm hover:text-primary transition-colors"
-                >
-                  <Mail className="w-4 h-4 flex-shrink-0" />
-                  <span>{process.env.NEXT_PUBLIC_CONTACT_EMAIL}</span>
-                </a>
-              </li>
+              {contactSettings.contactPhone && (
+                <li>
+                  <a
+                    href={`tel:${contactSettings.contactPhone}`}
+                    className="flex items-center gap-2 text-sm hover:text-primary transition-colors"
+                  >
+                    <Phone className="w-4 h-4 flex-shrink-0" />
+                    <span>{contactSettings.contactPhone}</span>
+                  </a>
+                </li>
+              )}
+              {contactSettings.contactEmail && (
+                <li>
+                  <a
+                    href={`mailto:${contactSettings.contactEmail}`}
+                    className="flex items-center gap-2 text-sm hover:text-primary transition-colors"
+                  >
+                    <Mail className="w-4 h-4 flex-shrink-0" />
+                    <span>{contactSettings.contactEmail}</span>
+                  </a>
+                </li>
+              )}
               <li>
                 <a
                   href={WHATSAPP_LINK ?? '/contact'}

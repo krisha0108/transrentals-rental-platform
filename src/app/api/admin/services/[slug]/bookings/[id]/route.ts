@@ -43,199 +43,12 @@ export async function GET(
     switch (slug) {
       case 'self-drive-car-rentals':
       case 'self-drive': {
-        // Try to find in confirmed bookings first
-        let confirmedBooking = null;
-        try {
-          confirmedBooking = await prisma.self_drive_bookings.findUnique({
-            where: { id },
-            include: {
-              customers: {
-                select: {
-                  id: true,
-                  name: true,
-                  email: true,
-                  phone: true,
-                },
-              },
-              vendors_self_drive_bookings_acceptedVendorIdTovendors: {
-                select: {
-                  id: true,
-                  businessName: true,
-                  phone: true,
-                  email: true,
-                },
-              },
-              vendors_self_drive_bookings_assignedVendorIdTovendors: {
-                select: {
-                  id: true,
-                  businessName: true,
-                  phone: true,
-                  email: true,
-                },
-              },
-            },
-          });
-        } catch (error) {
-          logger.error('Error fetching self-drive booking:', error);
-        }
+        // NOTE: Self-drive service doesn't have separate bookings table
+        // All bookings (pending SDQ-xxx & completed SD-xxx) are in self_drive_quote_requests table
+        // The bookingNumber/requestNumber changes from SDQ-xxx to SD-xxx when booking is confirmed
 
-        if (confirmedBooking) {
-          // This is a confirmed booking (SD-xxx)
-          // Fetch the related quote request separately
-          let quoteRequest = null;
-          if (confirmedBooking.quoteRequestId) {
-            quoteRequest = await prisma.self_drive_quote_requests.findUnique({
-              where: { id: confirmedBooking.quoteRequestId },
-              include: {
-                locations: true,
-                vehicle_models: {
-                  select: {
-                    id: true,
-                    name: true,
-                    brand: true,
-                    sideImage: true,
-                    images: true,
-                    specs: true,
-                  },
-                },
-              },
-            });
-          }
-
-          // Fetch the accepted quote if available
-          let acceptedQuote = null;
-          if (confirmedBooking.acceptedQuoteId) {
-            acceptedQuote = await prisma.self_drive_quotes.findUnique({
-              where: { id: confirmedBooking.acceptedQuoteId },
-              include: {
-                vendors: {
-                  select: {
-                    id: true,
-                    businessName: true,
-                    phone: true,
-                    email: true,
-                  },
-                },
-              },
-            });
-          }
-
-          return NextResponse.json({
-            success: true,
-            service: {
-              id: service.id,
-              name: service.name,
-              slug: service.slug,
-            },
-            booking: {
-              id: confirmedBooking.id,
-              bookingNo: confirmedBooking.bookingNumber,
-              type: 'CONFIRMED_BOOKING',
-              customerName: confirmedBooking.customerName,
-              customerPhone: confirmedBooking.customerPhone,
-              customerEmail: confirmedBooking.customerEmail,
-              customer: confirmedBooking.customers,
-              acceptedVendor: confirmedBooking.vendors_self_drive_bookings_acceptedVendorIdTovendors,
-              assignedVendor: confirmedBooking.vendors_self_drive_bookings_assignedVendorIdTovendors,
-              vendor: confirmedBooking.vendors_self_drive_bookings_acceptedVendorIdTovendors || confirmedBooking.vendors_self_drive_bookings_assignedVendorIdTovendors,
-              // Vehicle details
-              vehicleModelName: confirmedBooking.vehicleModelName || quoteRequest?.vehicle_modelsName,
-              vehicle_models: quoteRequest?.vehicle_models,
-              vehicleBrand: confirmedBooking.vehicleBrand || quoteRequest?.vehicleBrand,
-              chauffeur_vehicle_categories: confirmedBooking.vehicle_category || quoteRequest?.vehicle_category,
-              vehicleCategoryName: confirmedBooking.vehicleCategoryName || quoteRequest?.vehicleCategoryName,
-              vehicleType: confirmedBooking.vehicleType || quoteRequest?.vehicleType,
-              transmission: confirmedBooking.transmission || quoteRequest?.transmission,
-              fuelType: confirmedBooking.fuelType || quoteRequest?.fuelType,
-              minSeats: confirmedBooking.minSeats || quoteRequest?.minSeats,
-              // Location details
-              location: quoteRequest?.locations,
-              locationName: confirmedBooking.locationName || quoteRequest?.locationName,
-              pickupAddress: confirmedBooking.pickupAddress || quoteRequest?.pickupAddress,
-              dropAddress: confirmedBooking.dropAddress || quoteRequest?.dropAddress,
-              isDeliveryRequested: confirmedBooking.isDeliveryRequested || quoteRequest?.isDeliveryRequested,
-              // Date/Time details
-              pickupDate: confirmedBooking.pickupDate || quoteRequest?.pickupDate,
-              pickupTime: confirmedBooking.pickupTime || quoteRequest?.pickupTime,
-              dropDate: confirmedBooking.dropDate || quoteRequest?.dropDate,
-              dropTime: confirmedBooking.dropTime || quoteRequest?.dropTime,
-              totalDays: confirmedBooking.totalDays || quoteRequest?.totalDays,
-              // Notes
-              customerNotes: confirmedBooking.customerNotes || quoteRequest?.customerNotes,
-              licenseNumber: confirmedBooking.licenseNumber || quoteRequest?.licenseNumber,
-              // Driver details
-              driverName: confirmedBooking.driverName || acceptedQuote?.driverName,
-              driverPhone: confirmedBooking.driverPhone || acceptedQuote?.driverPhone,
-              // Vehicle details from booking or accepted quote
-              vehicleNumber: confirmedBooking.vehicleNumber || acceptedQuote?.vehicleNumber || acceptedQuote?.registrationNumber,
-              vehicleName: confirmedBooking.vehicleName || acceptedQuote?.vehicleName,
-              vehicleModel: confirmedBooking.vehicleModel || acceptedQuote?.vehicleModel,
-              status: confirmedBooking.status,
-              paymentStatus: confirmedBooking.paymentStatus,
-              totalAmount: confirmedBooking.totalAmount,
-              advanceAmount: confirmedBooking.advanceAmount,
-              advancePaid: confirmedBooking.advancePaid,
-              advancePaidAt: confirmedBooking.advancePaidAt,
-              advancePaymentRef: confirmedBooking.advancePaymentRef,
-              advancePaymentProof: confirmedBooking.advancePaymentProof,
-              advancePaymentDate: confirmedBooking.advancePaymentDate,
-              advancePaymentVerified: confirmedBooking.advancePaymentVerified,
-              remainingAmount: confirmedBooking.remainingAmount,
-              remainingPaid: confirmedBooking.remainingPaid,
-              remainingPaidAt: confirmedBooking.remainingPaidAt,
-              remainingPaymentRef: confirmedBooking.remainingPaymentRef,
-              remainingPaymentProof: confirmedBooking.remainingPaymentProof,
-              remainingPaymentDate: confirmedBooking.remainingPaymentDate,
-              remainingPaymentVerified: confirmedBooking.remainingPaymentVerified,
-              quoteRequestId: confirmedBooking.quoteRequestId,
-              acceptedQuoteId: confirmedBooking.acceptedQuoteId,
-              createdAt: confirmedBooking.createdAt,
-              updatedAt: confirmedBooking.updatedAt,
-            },
-            quotes: acceptedQuote ? [{
-              id: acceptedQuote.id,
-              quoteNumber: acceptedQuote.quoteNumber,
-              vendor: acceptedQuote.vendors,
-              vehicleName: acceptedQuote.vehicleName,
-              vehicleBrand: acceptedQuote.vehicleBrand,
-              chauffeur_vehicle_categories: acceptedQuote.vehicle_category,
-              vehicleType: acceptedQuote.vehicleType,
-              vehicleYear: acceptedQuote.vehicleYear,
-              vehicleImages: acceptedQuote.vehicleImages ? acceptedQuote.vehicleImages.split(',') : [],
-              vehicleFeatures: acceptedQuote.vehicleFeatures,
-              registrationNumber: acceptedQuote.registrationNumber,
-              transmission: acceptedQuote.transmission,
-              fuelType: acceptedQuote.fuelType,
-              seats: acceptedQuote.seats,
-              dailyRate: acceptedQuote.dailyRate,
-              baseAmount: acceptedQuote.baseAmount,
-              kmLimitPerDay: acceptedQuote.kmLimitPerDay,
-              extraKmRate: acceptedQuote.extraKmRate,
-              deliveryCharges: acceptedQuote.deliveryCharges,
-              pickupCharges: acceptedQuote.pickupCharges,
-              securityDeposit: acceptedQuote.securityDeposit,
-              gstAmount: acceptedQuote.gstAmount,
-              platformFee: acceptedQuote.platformFee,
-              grandTotal: acceptedQuote.grandTotal,
-              advanceAmount: acceptedQuote.advanceAmount,
-              advancePercent: acceptedQuote.advancePercent,
-              inclusions: acceptedQuote.inclusions,
-              exclusions: acceptedQuote.exclusions,
-              termsConditions: acceptedQuote.termsConditions,
-              vendorMessage: acceptedQuote.vendorMessage,
-              status: 'ACCEPTED',
-              validTill: acceptedQuote.validTill,
-              validityDays: acceptedQuote.validityDays,
-              viewCount: acceptedQuote.viewCount,
-              viewedAt: acceptedQuote.viewedAt,
-              sentAt: acceptedQuote.sentAt,
-              respondedAt: acceptedQuote.respondedAt,
-              createdAt: acceptedQuote.createdAt,
-            }] : [],
-          });
-        }
-
-        // Not found in confirmed bookings, try quote requests
+        // Try to find in quote_requests first (for pending bookings SDQ-xxx)
+        console.log('🔍 Searching for booking in self_drive_quote_requests with ID:', id);
         booking = await prisma.self_drive_quote_requests.findUnique({
           where: { id },
           include: {
@@ -244,10 +57,16 @@ export async function GET(
               select: {
                 id: true,
                 name: true,
-                brand: true,
+                brandId: true,
                 sideImage: true,
                 images: true,
                 specs: true,
+                brands: {
+                  select: {
+                    id: true,
+                    name: true,
+                  },
+                },
               },
             },
             customers: {
@@ -258,10 +77,151 @@ export async function GET(
                 phone: true,
               },
             },
+            // Include car_bookings for completed bookings (SD-xxx)
+            car_bookings: {
+              include: {
+                vendors_car_bookings_assignedVendorIdTovendors: {
+                  select: {
+                    id: true,
+                    businessName: true,
+                    phone: true,
+                    email: true,
+                  },
+                },
+                vendors_car_bookings_acceptedVendorIdTovendors: {
+                  select: {
+                    id: true,
+                    businessName: true,
+                    phone: true,
+                    email: true,
+                  },
+                },
+              },
+            },
           },
         });
 
+        console.log('Quote request found?', !!booking);
+        if (booking) {
+          console.log('✅ Found quote request:', {
+            id: booking.id,
+            requestNumber: booking.requestNumber,
+            status: booking.status,
+          });
+        }
+
+        // If not found in quote_requests, try car_bookings table (for completed bookings)
+        let carBookingDirect = null;
         if (!booking) {
+          console.log('🔍 Not found in quote_requests, trying car_bookings table...');
+          carBookingDirect = await prisma.car_bookings.findUnique({
+            where: { id },
+            include: {
+              vendors_car_bookings_assignedVendorIdTovendors: {
+                select: {
+                  id: true,
+                  businessName: true,
+                  phone: true,
+                  email: true,
+                },
+              },
+              vendors_car_bookings_acceptedVendorIdTovendors: {
+                select: {
+                  id: true,
+                  businessName: true,
+                  phone: true,
+                  email: true,
+                },
+              },
+              self_drive_quote_requests: {
+                include: {
+                  locations: true,
+                  vehicle_models: {
+                    select: {
+                      id: true,
+                      name: true,
+                      brandId: true,
+                      sideImage: true,
+                      images: true,
+                      specs: true,
+                      brands: {
+                        select: {
+                          id: true,
+                          name: true,
+                        },
+                      },
+                    },
+                  },
+                  customers: {
+                    select: {
+                      id: true,
+                      name: true,
+                      email: true,
+                      phone: true,
+                    },
+                  },
+                },
+              },
+            },
+          });
+
+          if (carBookingDirect) {
+            console.log('✅ Found in car_bookings:', {
+              id: carBookingDirect.id,
+              bookingNumber: carBookingDirect.bookingNumber,
+              status: carBookingDirect.status,
+              hasQuoteRequest: !!carBookingDirect.self_drive_quote_requests,
+            });
+
+            // If car_booking has related quote_request, use that
+            if (carBookingDirect.self_drive_quote_requests) {
+              booking = carBookingDirect.self_drive_quote_requests;
+              booking.car_bookings = carBookingDirect;
+            } else {
+              // Car booking exists but no related quote_request
+              // Build a minimal booking object from car_bookings data
+              console.log('⚠️ Car booking found but no related quote_request, using car_bookings data only');
+              booking = {
+                id: carBookingDirect.id,
+                requestNumber: carBookingDirect.bookingNumber,
+                customerName: carBookingDirect.customerName,
+                customerPhone: carBookingDirect.customerPhone,
+                customerEmail: carBookingDirect.customerEmail,
+                customerId: carBookingDirect.customerId,
+                locationId: carBookingDirect.locationId,
+                locationName: carBookingDirect.locationName,
+                pickupDate: carBookingDirect.pickupDate,
+                pickupTime: carBookingDirect.pickupTime,
+                dropDate: carBookingDirect.dropDate,
+                dropTime: carBookingDirect.dropTime,
+                totalDays: carBookingDirect.totalDays,
+                pickupAddress: carBookingDirect.pickupAddress,
+                dropAddress: carBookingDirect.dropAddress,
+                isDeliveryRequested: carBookingDirect.isDeliveryRequested,
+                vehicleBrand: carBookingDirect.requestedBrand,
+                vehicle_category: carBookingDirect.requestedCategory,
+                vehicleCategoryName: carBookingDirect.requestedCategory,
+                vehicleType: carBookingDirect.requestedVehicleType,
+                transmission: carBookingDirect.requestedTransmission,
+                fuelType: carBookingDirect.requestedFuelType,
+                minSeats: carBookingDirect.requestedSeats,
+                vehicle_modelsName: carBookingDirect.requestedVehicleName,
+                licenseNumber: carBookingDirect.licenseNumber,
+                customerNotes: carBookingDirect.customerNotes,
+                status: carBookingDirect.status,
+                createdAt: carBookingDirect.createdAt,
+                updatedAt: carBookingDirect.updatedAt,
+                car_bookings: carBookingDirect,
+                customers: null,
+                locations: null,
+                vehicle_models: null,
+              };
+            }
+          }
+        }
+
+        if (!booking) {
+          console.log('❌ Booking not found in either table. ID:', id);
           return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
         }
 
@@ -281,6 +241,10 @@ export async function GET(
           orderBy: { createdAt: 'desc' },
         });
 
+        // Check if this is a completed booking (has car_bookings record)
+        const carBooking = booking.car_bookings;
+        const isCompleted = !!carBooking;
+
         return NextResponse.json({
           success: true,
           service: {
@@ -290,14 +254,19 @@ export async function GET(
           },
           booking: {
             id: booking.id,
-            bookingNo: booking.requestNumber,
-            type: 'QUOTE_REQUEST',
+            bookingNo: carBooking?.bookingNumber || booking.requestNumber,
+            type: isCompleted ? 'COMPLETED_BOOKING' : 'QUOTE_REQUEST',
 
             // Customer details
             customerName: booking.customerName,
             customerPhone: booking.customerPhone,
             customerEmail: booking.customerEmail,
             customer: booking.customers,
+
+            // Vendor details (from car_bookings if completed)
+            assignedVendor: carBooking?.vendors_car_bookings_assignedVendorIdTovendors,
+            acceptedVendor: carBooking?.vendors_car_bookings_acceptedVendorIdTovendors,
+            vendor: carBooking?.vendors_car_bookings_acceptedVendorIdTovendors || carBooking?.vendors_car_bookings_assignedVendorIdTovendors,
 
             // Vehicle details
             vehicleModelName: booking.vehicle_modelsName,
@@ -309,6 +278,10 @@ export async function GET(
             transmission: booking.transmission,
             fuelType: booking.fuelType,
             minSeats: booking.minSeats,
+
+            // Assigned vehicle details (from car_bookings if completed)
+            assignedVehicleName: carBooking?.assignedVehicleName,
+            assignedVehicleId: carBooking?.assignedVehicleId,
 
             // Location details
             location: booking.locations,
@@ -324,16 +297,48 @@ export async function GET(
             dropTime: booking.dropTime,
             totalDays: booking.totalDays,
 
-            // Budget
+            // Budget (quote request) or Pricing (completed booking)
             budgetMin: booking.budgetMin,
             budgetMax: booking.budgetMax,
+            dailyRate: carBooking?.dailyRate,
+            baseAmount: carBooking?.baseAmount,
+            gstAmount: carBooking?.gstAmount,
+            platformFee: carBooking?.platformFee,
+            securityDeposit: carBooking?.securityDeposit,
+            grandTotal: carBooking?.grandTotal,
+            kmLimitPerDay: carBooking?.kmLimitPerDay,
+            extraKmRate: carBooking?.extraKmRate,
+
+            // Payment details (only for completed bookings)
+            paymentStatus: carBooking?.paymentStatus,
+            paidAmount: carBooking?.paidAmount,
+            paymentMethod: carBooking?.paymentMethod,
+            transactionId: carBooking?.transactionId,
+            advanceAmount: carBooking?.advanceAmount,
+            advancePaymentDate: carBooking?.advancePaymentDate,
+            advancePaymentRef: carBooking?.advancePaymentRef,
+            advancePaymentProof: carBooking?.advancePaymentProof,
+            advancePaymentVerified: carBooking?.advancePaymentVerified,
 
             // Status
-            status: booking.status,
+            status: carBooking?.status || booking.status,
+            bookingStatus: carBooking?.status,
+            quoteRequestStatus: booking.status,
 
             // Notes
             customerNotes: booking.customerNotes,
-            licenseNumber: booking.licenseNumber,
+            licenseNumber: carBooking?.licenseNumber || booking.licenseNumber,
+            licenseVerified: carBooking?.licenseVerified,
+            vendorNotes: carBooking?.vendorNotes,
+            adminNotes: carBooking?.adminNotes,
+
+            // Trip details (only for completed bookings)
+            odometerStart: carBooking?.odometerStart,
+            odometerEnd: carBooking?.odometerEnd,
+            extraKmCharges: carBooking?.extraKmCharges,
+            pickedUpAt: carBooking?.pickedUpAt,
+            returnedAt: carBooking?.returnedAt,
+            completedAt: carBooking?.completedAt,
 
             // Quote stats
             totalQuotesReceived: booking.totalQuotesReceived,

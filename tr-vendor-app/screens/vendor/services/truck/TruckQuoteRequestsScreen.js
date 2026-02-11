@@ -138,9 +138,15 @@ export default function TruckQuoteRequestsScreen({ navigation }) {
     return (
       <TouchableOpacity
         style={styles.card}
-        onPress={() => navigation.navigate('TruckQuoteRequestDetail', {
-          requestId: item.id || item._id
-        })}
+        onPress={() => {
+          const requestId = item.id || item._id;
+          console.log('🖱️ [TruckRequests] Card clicked:', {
+            requestId,
+            itemId: item.id,
+            item_Id: item._id,
+          });
+          navigation.navigate('TruckQuoteRequestDetail', { requestId });
+        }}
         activeOpacity={0.7}
       >
         {/* Header */}
@@ -338,6 +344,7 @@ export default function TruckQuoteRequestsScreen({ navigation }) {
         onApply={handleDateFilterApply}
         currentStartDate={dateFilter.start}
         currentEndDate={dateFilter.end}
+        currentFilterType={dateFilter.type}
       />
     </SafeAreaView>
   );

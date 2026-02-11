@@ -13,6 +13,8 @@ import {
   CheckCircle,
   Smartphone,
   Monitor,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import {
   AreaChart,
@@ -57,6 +59,13 @@ interface PageData {
     mobileScore: number;
     desktopScore: number;
   }>;
+  pagination?: {
+    currentPage: number;
+    totalPages: number;
+    totalRecords: number;
+    limit: number;
+    hasMore: boolean;
+  };
   trends: Array<{
     date: string;
     pageViews: number;
@@ -92,15 +101,17 @@ export default function PagesAnalyticsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<'views' | 'time' | 'bounce'>('views');
   const [filterStatus, setFilterStatus] = useState('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(20);
 
   useEffect(() => {
     fetchPageData();
-  }, [dateRange]);
+  }, [dateRange, currentPage, itemsPerPage]);
 
   const fetchPageData = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`/api/admin/analytics/pages?range=${dateRange}`);
+      const response = await fetch(`/api/admin/analytics/pages?range=${dateRange}&page=${currentPage}&limit=${itemsPerPage}`);
       if (response.ok) {
         const result = await response.json();
         setData(result);
@@ -510,6 +521,80 @@ export default function PagesAnalyticsPage() {
             </tbody>
           </table>
         </div>
+
+        {/* Pagination */}
+        {data.pagination && data.pagination.totalPages > 1 && (
+          <div className="flex items-center justify-between mt-6 pt-4 border-t border-gray-200">
+            <div className="flex items-center gap-4">
+              <p className="text-sm text-gray-600">
+                Showing {((data.pagination.currentPage - 1) * data.pagination.limit) + 1} to{' '}
+                {Math.min(data.pagination.currentPage * data.pagination.limit, data.pagination.totalRecords)} of{' '}
+                {data.pagination.totalRecords} results
+              </p>
+              <select
+                value={itemsPerPage}
+                onChange={(e) => {
+                  setItemsPerPage(Number(e.target.value));
+                  setCurrentPage(1);
+                }}
+                className="px-3 py-1 border border-gray-300 rounded-lg text-sm"
+              >
+                <option value="10">10 per page</option>
+                <option value="20">20 per page</option>
+                <option value="50">50 per page</option>
+                <option value="100">100 per page</option>
+              </select>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                disabled={currentPage === 1}
+                className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+
+              {/* Page numbers */}
+              <div className="flex items-center gap-1">
+                {Array.from({ length: Math.min(5, data.pagination.totalPages) }, (_, i) => {
+                  let pageNum;
+                  if (data.pagination!.totalPages <= 5) {
+                    pageNum = i + 1;
+                  } else if (currentPage <= 3) {
+                    pageNum = i + 1;
+                  } else if (currentPage >= data.pagination!.totalPages - 2) {
+                    pageNum = data.pagination!.totalPages - 4 + i;
+                  } else {
+                    pageNum = currentPage - 2 + i;
+                  }
+
+                  return (
+                    <button
+                      key={pageNum}
+                      onClick={() => setCurrentPage(pageNum)}
+                      className={`px-3 py-1 rounded-lg text-sm font-medium ${
+                        currentPage === pageNum
+                          ? 'bg-blue-600 text-white'
+                          : 'border border-gray-300 hover:bg-gray-50'
+                      }`}
+                    >
+                      {pageNum}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <button
+                onClick={() => setCurrentPage(prev => Math.min(data.pagination!.totalPages, prev + 1))}
+                disabled={currentPage === data.pagination.totalPages}
+                className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -27,6 +27,8 @@ export async function GET(
     const { slug } = await params;
     const { searchParams } = new URL(request.url);
     const brandId = searchParams.get('brandId');
+    const page = parseInt(searchParams.get('page') || '1');
+    const limit = parseInt(searchParams.get('limit') || '20');
 
     // Find the service by slug
     const service = await prisma.services.findUnique({
@@ -46,10 +48,13 @@ export async function GET(
       where.brandId = brandId;
     }
 
-    const models = await prisma.vehicle_models.findMany({
-      where,
-      orderBy: [{ displayOrder: 'asc' }, { name: 'asc' }],
-      include: {
+    const [models, total] = await Promise.all([
+      prisma.vehicle_models.findMany({
+        where,
+        orderBy: [{ displayOrder: 'asc' }, { name: 'asc' }],
+        skip: (page - 1) * limit,
+        take: limit,
+        include: {
         brands: {
           select: { id: true, name: true, slug: true, logo: true },
         },
@@ -63,7 +68,9 @@ export async function GET(
           select: { vendor_fleets: true },
         },
       },
-    });
+      }),
+      prisma.vehicle_models.count({ where }),
+    ]);
 
     // Map models - handle null brand gracefully
     const mappedModels = models.map(model => ({
@@ -71,7 +78,15 @@ export async function GET(
       brand: model.brands || { id: '', name: 'Unknown Brand', slug: '', logo: null },
     }));
 
-    return NextResponse.json(mappedModels);
+    return NextResponse.json({
+      models: mappedModels,
+      pagination: {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit),
+      },
+    });
   } catch (error: any) {
     logger.error('Vehicle models list error', error);
     return NextResponse.json(

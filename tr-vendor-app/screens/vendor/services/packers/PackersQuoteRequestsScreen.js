@@ -138,9 +138,15 @@ export default function PackersQuoteRequestsScreen({ navigation }) {
     return (
       <TouchableOpacity
         style={styles.card}
-        onPress={() => navigation.navigate('PackersQuoteRequestDetail', {
-          requestId: item.id || item._id
-        })}
+        onPress={() => {
+          const requestId = item.id || item._id;
+          console.log('🖱️ [PackersRequests] Card clicked:', {
+            requestId,
+            itemId: item.id,
+            item_Id: item._id,
+          });
+          navigation.navigate('PackersQuoteRequestDetail', { requestId });
+        }}
         activeOpacity={0.7}
       >
         {/* Header */}
@@ -338,6 +344,7 @@ export default function PackersQuoteRequestsScreen({ navigation }) {
         onApply={handleDateFilterApply}
         currentStartDate={dateFilter.start}
         currentEndDate={dateFilter.end}
+        currentFilterType={dateFilter.type}
       />
     </SafeAreaView>
   );

@@ -50,8 +50,10 @@ export default function BusQuoteRequestsScreen({ navigation }) {
   });
 
   useEffect(() => {
+    console.log('🚀 [BusRequests] Component mounted, loading initial data...');
     initialLoad();
-  }, [initialLoad]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Empty deps - only run on mount
 
   // Filter out accepted/confirmed requests - they should only appear in bookings
   const requests = useMemo(() => {
@@ -130,9 +132,15 @@ export default function BusQuoteRequestsScreen({ navigation }) {
     return (
       <TouchableOpacity
         style={styles.card}
-        onPress={() => navigation.navigate('BusQuoteRequestDetail', {
-          requestId: item.id || item._id
-        })}
+        onPress={() => {
+          const requestId = item.id || item._id;
+          console.log('🖱️ [BusRequests] Card clicked:', {
+            requestId,
+            itemId: item.id,
+            item_Id: item._id,
+          });
+          navigation.navigate('BusQuoteRequestDetail', { requestId });
+        }}
         activeOpacity={0.7}
       >
         {/* Header */}
@@ -322,9 +330,10 @@ export default function BusQuoteRequestsScreen({ navigation }) {
       <DateFilterModal
         visible={showDateFilter}
         onClose={() => setShowDateFilter(false)}
-        onApply={(start, end) => applyDateFilter(start, end)}
+        onApply={(start, end, filterType) => applyDateFilter(start, end, filterType)}
         currentStartDate={dateFilter.start}
         currentEndDate={dateFilter.end}
+        currentFilterType={dateFilter.type}
       />
     </SafeAreaView>
   );

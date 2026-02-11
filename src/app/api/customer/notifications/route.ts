@@ -61,6 +61,7 @@ export async function GET(request: NextRequest) {
         booking_id: notification.bookingId,
         quote_id: notification.quoteId,
         type: notification.type,
+        service_type: notification.serviceType, // ⭐ Add service type
         is_read: notification.isRead,
         created_at: notification.createdAt,
         relative_time: relativeTime,
