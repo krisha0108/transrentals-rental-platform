@@ -315,3 +315,23 @@
 button, a {
   -webkit-tap-highlight-color: transparent;
 }
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Prevent scroll when modal is open */
+body.modal-open {
+  overflow: hidden;
+  position: fixed;
+  width: 100%;
+}
+
+/* Mobile modal improvements */
+@media (max-width: 1023px) {
+  /* Prevent background scroll on mobile modals */
+  body:has(.mobile-modal-open) {
+    overflow: hidden;
+  }
+}

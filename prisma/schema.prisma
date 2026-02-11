@@ -2335,7 +2335,7 @@ model page_analytics {
 }
 
 model page_performance {
-  id            String                         @id
+  id            String                         @id @default(cuid())
   pagePath      String                         @unique
   pageTitle     String?
   totalViews    Int                            @default(0)

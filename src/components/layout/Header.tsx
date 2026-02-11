@@ -8,6 +8,7 @@ import { Menu, X, Phone, User, MapPin, ChevronDown, LogOut } from 'lucide-react'
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { LocationSelector } from '@/components/LocationSelector';
+import { MobileLocationButton } from '@/components/MobileLocationButton';
 
 interface Customer {
   id: number;
@@ -128,7 +129,7 @@ export function Header() {
                 width={140}
                 height={28}
                 className="h-5 md:h-7 w-auto"
-                style={{ width: 'auto', height: 'auto' }}
+                priority
               />
               <span className="text-xs text-gray-500 hidden md:block">
                 Vehicle Rental Marketplace
@@ -251,6 +252,17 @@ export function Header() {
                 <Menu className="w-6 h-6" />
               )}
             </button>
+          </div>
+        </div>
+
+        {/* Mobile Location Bar - Below Logo */}
+        <div className="lg:hidden border-t border-gray-100 py-2">
+          <div className="flex items-center justify-between px-4">
+            <div className="flex items-center gap-2 text-sm text-gray-600">
+              <MapPin className="w-4 h-4 text-primary" />
+              <span className="font-medium">Select Location:</span>
+            </div>
+            <MobileLocationButton />
           </div>
         </div>
       </div>
