@@ -176,67 +176,182 @@ jobs:
         continue-on-error: true
 
   build:
-    name: Build Application
+    name: Build Application with Production Database
     runs-on: ubuntu-latest
-    needs: [backend-tests, frontend-tests, backend-linting]
-
-    services:
-      mysql:
-        image: mysql:8.0
-        env:
-          MYSQL_ROOT_PASSWORD: test_password
-          MYSQL_DATABASE: test_db
-        ports:
-          - 3306:3306
-        options: >-
-          --health-cmd="mysqladmin ping -h localhost"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=5
+    timeout-minutes: 120
 
     steps:
-      - name: Checkout code
+      # Step 1: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v4
 
+      # Step 2: Setup Node.js
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
 
-      - name: Install dependencies
-        run: npm ci
-        env:
-          DATABASE_URL: mysql://root:test_password@127.0.0.1:3306/test_db
-
-      - name: Generate Prisma Client
-        run: npx prisma generate
-        env:
-          DATABASE_URL: mysql://root:test_password@127.0.0.1:3306/test_db
-
-      - name: Run Migrations
-        run: npx prisma migrate deploy
-        env:
-          DATABASE_URL: mysql://root:test_password@127.0.0.1:3306/test_db
-        continue-on-error: true
-
-      - name: Build application
-        run: npm run build
-        env:
-          SKIP_ENV_VALIDATION: "1"
-          SKIP_DATABASE_CALLS: "1"
-          DATABASE_URL: mysql://root:test_password@127.0.0.1:3306/test_db
-          NEXTAUTH_SECRET: ci-build-secret-key
-          NEXTAUTH_URL: http://localhost:3000
-          NEXT_PUBLIC_APP_URL: http://localhost:3000
-
-      - name: Verify build output
+      # Step 3: Setup SSH Tunnel (SECURE DATABASE ACCESS)
+      - name: Setup SSH Tunnel to Production Database
         run: |
-          if [ ! -d ".next" ]; then
-            echo "Build failed - no .next directory"
+          # Create SSH directory
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+
+          # Add private key
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/github_key
+          chmod 600 ~/.ssh/github_key
+
+          # Add server to known_hosts (security)
+          ssh-keyscan -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
+          chmod 644 ~/.ssh/known_hosts
+
+          echo "🔑 SSH key configured"
+
+          # Start SSH tunnel in background
+          # Local port 3307 -> Remote MySQL port 3306
+          ssh -i ~/.ssh/github_key \
+              -L 3307:localhost:3306 \
+              -o StrictHostKeyChecking=no \
+              -o ServerAliveInterval=60 \
+              -o ServerAliveCountMax=3 \
+              -o ExitOnForwardFailure=yes \
+              -f \
+              -N \
+              ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
+              -p ${{ secrets.SSH_PORT }}
+
+          # Verify tunnel is running
+          sleep 5
+          if pgrep -f "ssh.*3307:localhost:3306" > /dev/null; then
+            echo "✅ SSH tunnel established successfully"
+            echo "🔌 Tunnel: localhost:3307 -> ${{ secrets.SSH_HOST }}:3306"
+          else
+            echo "❌ SSH tunnel failed to start"
             exit 1
           fi
-          echo "Build successful"
+
+      # Step 4: Install dependencies
+      - name: Install dependencies
+        run: |
+          echo "📦 Installing dependencies..."
+          npm ci
+
+      # Step 5: Generate Prisma Client
+      - name: Generate Prisma Client
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          echo "🔧 Generating Prisma Client..."
+          npx prisma generate
+          echo "✅ Prisma Client generated"
+
+      # Step 6: Test Database Connection
+      - name: Test Database Connection
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          echo "🔍 Testing database connection through SSH tunnel..."
+
+          # Create a simple test script
+          cat > test-db.js << 'EOF'
+          const { PrismaClient } = require('@prisma/client');
+          const prisma = new PrismaClient();
+
+          async function testConnection() {
+            try {
+              const result = await prisma.$queryRaw`SELECT 1 as connection_test`;
+              console.log('✅ Database connection successful:', result);
+
+              const tables = await prisma.$queryRaw`
+                SELECT COUNT(*) as table_count
+                FROM information_schema.tables
+                WHERE table_schema = DATABASE()
+              `;
+              console.log('📊 Database tables accessible:', tables[0].table_count);
+
+              await prisma.$disconnect();
+              process.exit(0);
+            } catch (error) {
+              console.error('❌ Database connection failed:', error.message);
+              await prisma.$disconnect();
+              process.exit(1);
+            }
+          }
+
+          testConnection();
+          EOF
+
+          node test-db.js
+
+      # Step 7: Build Application (with database access)
+      - name: Build Application
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
+          NEXTAUTH_URL: ${{ secrets.NEXTAUTH_URL }}
+          NEXT_PUBLIC_APP_URL: ${{ secrets.NEXT_PUBLIC_APP_URL }}
+          NODE_ENV: production
+        run: |
+          echo "🚀 Starting build with database access..."
+          echo "📊 Database: Connected via SSH tunnel"
+          echo "🌐 Domain: $NEXT_PUBLIC_APP_URL"
+
+          npm run build
+
+          echo "✅ Build completed successfully"
+
+      # Step 8: Show Build Statistics
+      - name: Build Statistics
+        run: |
+          echo "📊 Build Statistics:"
+          echo "================================"
+
+          if [ -d ".next" ]; then
+            echo "📁 .next directory size:"
+            du -sh .next
+
+            echo ""
+            echo "📄 Total HTML pages generated:"
+            find .next -name "*.html" | wc -l
+
+            echo ""
+            echo "🗂️  Server pages:"
+            find .next/server/pages -type f | wc -l
+
+            echo ""
+            echo "📦 Build artifacts:"
+            ls -lh .next/ | head -20
+          else
+            echo "⚠️  .next directory not found"
+          fi
+
+      # Step 9: Cleanup SSH Tunnel
+      - name: Cleanup SSH Tunnel
+        if: always()
+        run: |
+          echo "🧹 Cleaning up SSH tunnel..."
+
+          # Kill SSH tunnel process
+          pkill -f "ssh.*3307:localhost:3306" || true
+
+          # Remove SSH key
+          rm -f ~/.ssh/github_key
+
+          echo "✅ SSH tunnel closed and cleaned up"
+
+      # Step 10: Upload Build Artifacts (Optional)
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: nextjs-build
+          path: |
+            .next
+            !.next/cache
+          retention-days: 7
+
 
   docker-build-push:
     name: Docker Build & Push
