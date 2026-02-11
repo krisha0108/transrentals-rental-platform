@@ -3454,9 +3454,9 @@ Ready to confirm?
             animate={{ scale: 1 }}
             exit={{ scale: 0 }}
             onClick={() => setIsOpen(true)}
-            className="fixed bottom-6 right-6 z-50 w-16 h-16 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full shadow-2xl flex items-center justify-center hover:scale-110 transition-transform group"
+            className="fixed bottom-20 right-4 lg:bottom-6 lg:right-6 z-50 w-14 h-14 lg:w-16 lg:h-16 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full shadow-2xl flex items-center justify-center hover:scale-110 transition-transform group"
           >
-            <MessageCircle className="w-8 h-8 text-white" />
+            <MessageCircle className="w-6 h-6 lg:w-8 lg:h-8 text-white" />
             <span className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white animate-pulse"></span>
 
             <div className="absolute right-full mr-3 bg-gray-900 text-white px-4 py-2 rounded-lg text-sm whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
@@ -3473,8 +3473,8 @@ Ready to confirm?
             initial={{ opacity: 0, y: 100, scale: 0.8 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 100, scale: 0.8 }}
-            className="fixed bottom-6 right-6 z-50 w-full max-w-md h-[600px] bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden"
-            style={{ maxHeight: 'calc(100vh - 48px)' }}
+            className="fixed bottom-20 right-2 lg:bottom-6 lg:right-6 z-50 w-[calc(100%-1rem)] max-w-md h-[calc(100vh-160px)] lg:h-[600px] bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden"
+            style={{ maxHeight: 'calc(100vh - 160px)' }}
           >
             {/* Header */}
             <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-4 flex items-center justify-between">
