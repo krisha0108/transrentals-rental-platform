@@ -1198,6 +1198,7 @@ model customers {
   totalBookings             Int                         @default(0)
   totalSpent                Float                       @default(0)
   lastLoginAt               DateTime?
+  fcmToken                  String?                     @db.Text
   createdAt                 DateTime                    @default(now())
   updatedAt                 DateTime                    @updatedAt
   bike_bookings             bike_bookings[]
@@ -1225,18 +1226,19 @@ model customers {
 }
 
 model notifications {
-  id         String    @id @default(cuid())
-  customerId String
-  title      String
-  body       String    @db.Text
-  image      String?   @db.Text
-  bookingId  String?
-  quoteId    String?
-  type       String?
-  isRead     Boolean   @default(false)
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
-  customers  customers @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  id          String    @id @default(cuid())
+  customerId  String
+  title       String
+  body        String    @db.Text
+  image       String?   @db.Text
+  bookingId   String?
+  quoteId     String?
+  type        String?
+  serviceType String?   // Service type: bike, bus, truck, equipment, packers, self-drive, luxury
+  isRead      Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  customers   customers @relation(fields: [customerId], references: [id], onDelete: Cascade)
 
   @@index([customerId])
   @@index([isRead])
@@ -2333,7 +2335,7 @@ model page_analytics {
 }
 
 model page_performance {
-  id            String                         @id
+  id            String                         @id @default(cuid())
   pagePath      String                         @unique
   pageTitle     String?
   totalViews    Int                            @default(0)
@@ -2448,6 +2450,21 @@ model route_pricing {
   @@index([serviceId])
   @@index([toLocationId])
   @@index([tripTypeId], map: "route_pricing_tripTypeId_fkey")
+}
+
+model integration_settings {
+  id           String    @id
+  service      String    @unique
+  accessToken  String?   @db.Text
+  refreshToken String?   @db.Text
+  expiresAt    DateTime?
+  isActive     Boolean   @default(false)
+  config       Json?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([service])
+  @@index([isActive])
 }
 
 model search_queries {
@@ -3597,6 +3614,184 @@ model web_vitals {
   @@index([createdAt])
   @@index([lcpRating])
   @@index([pagePath])
+}
+
+
+// ==================== CONVERSION TRACKING & ANALYTICS ====================
+
+// Track conversion funnel events
+model conversion_events {
+  id              String   @id
+  sessionId       String
+  eventType       conversion_events_eventType
+  eventData       Json?    // Flexible storage for event-specific data
+  pagePath        String
+  pageTitle       String?
+  
+  // Attribution
+  source          String?  // organic, direct, social, referral, paid
+  medium          String?  // google, facebook, email, etc.
+  campaign        String?  
+  keyword         String?  // Search keyword that brought user
+  landingPage     String?  // First page user visited
+  referrer        String?
+  
+  // User context
+  device          String?
+  browser         String?
+  os              String?
+  country         String?
+  city            String?
+  
+  // Booking reference (if converted)
+  bookingId       String?
+  bookingType     String?  // bike, car, bus, truck, equipment, packers
+  bookingValue    Float?
+  
+  timestamp       DateTime @default(now())
+  
+  @@index([sessionId])
+  @@index([eventType])
+  @@index([timestamp])
+  @@index([bookingId])
+  @@index([keyword])
+  @@index([source])
+}
+
+// Track booking attribution - which source led to booking
+model booking_attribution {
+  id              String   @id
+  bookingId       String   @unique
+  bookingType     String   // bike, car, bus, truck, equipment, packers
+  sessionId       String
+  
+  // Attribution
+  firstSource     String?  // First touch attribution
+  firstMedium     String?
+  firstKeyword    String?
+  firstLandingPage String?
+  firstVisit      DateTime?
+  
+  lastSource      String?  // Last touch attribution
+  lastMedium      String?
+  lastKeyword     String?
+  lastLandingPage String?
+  lastVisit       DateTime?
+  
+  // Journey
+  totalSessions   Int      @default(1)
+  totalPageViews  Int      @default(0)
+  timeToConvert   Int?     // Seconds from first visit to booking
+  touchpoints     Json?    // Array of all touchpoints
+  
+  // Value
+  bookingValue    Float?
+  commission      Float?
+  
+  createdAt       DateTime @default(now())
+  
+  @@index([bookingId])
+  @@index([bookingType])
+  @@index([firstSource])
+  @@index([lastSource])
+  @@index([createdAt])
+}
+
+// Track user flow/journey
+model user_flow {
+  id              String   @id
+  sessionId       String
+  fromPage        String
+  toPage          String
+  timestamp       DateTime @default(now())
+  device          String?
+  source          String?
+  timeOnPage      Int?     // Seconds spent on fromPage
+  
+  @@index([sessionId])
+  @@index([fromPage])
+  @@index([toPage])
+  @@index([timestamp])
+}
+
+// Track keyword performance
+model keyword_performance {
+  id              String   @id
+  keyword         String
+  date            DateTime @default(now())
+  
+  // Traffic
+  impressions     Int      @default(0)
+  clicks          Int      @default(0)
+  visitors        Int      @default(0)
+  
+  // Engagement
+  avgTimeOnSite   Int?     // Seconds
+  bounceRate      Float?   // Percentage
+  pagesPerSession Float?
+  
+  // Conversion
+  conversions     Int      @default(0)
+  conversionRate  Float?   // Percentage
+  revenue         Float?
+  
+  // SEO
+  avgPosition     Float?
+  topPage         String?
+  
+  updatedAt       DateTime @updatedAt
+  
+  @@unique([keyword, date])
+  @@index([keyword])
+  @@index([date])
+  @@index([conversions])
+}
+
+// Funnel analytics - aggregated stats per funnel step
+model funnel_analytics {
+  id              String   @id
+  funnelName      String   // e.g., "bike-rental-funnel", "self-drive-funnel"
+  step            String   // landing, search, quote_view, quote_request, booking
+  stepOrder       Int
+  date            DateTime @default(now())
+  
+  // Metrics
+  visitors        Int      @default(0)
+  conversions     Int      @default(0)  // Moved to next step
+  dropOffs        Int      @default(0)
+  conversionRate  Float?   // Percentage
+  avgTimeInStep   Int?     // Seconds
+  
+  // Attribution
+  topSource       String?
+  topKeyword      String?
+  
+  updatedAt       DateTime @updatedAt
+  
+  @@unique([funnelName, step, date])
+  @@index([funnelName])
+  @@index([date])
+  @@index([stepOrder])
+}
+
+
+// Enums for conversion tracking
+enum conversion_events_eventType {
+  PAGE_VISIT
+  SEARCH
+  FILTER_APPLIED
+  QUOTE_VIEW
+  QUOTE_REQUEST
+  QUOTE_RECEIVED
+  BOOKING_INITIATED
+  BOOKING_COMPLETED
+  PAYMENT_INITIATED
+  PAYMENT_COMPLETED
+  FORM_SUBMITTED
+  CTA_CLICKED
+  CHAT_OPENED
+  PHONE_CLICKED
+  EMAIL_CLICKED
 }
 
 enum bike_quote_requests_status {

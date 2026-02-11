@@ -3,6 +3,7 @@
 import { usePathname } from 'next/navigation';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
+import { MobileBottomNav } from '@/components/layout/MobileBottomNav';
 import { SmartShivi } from '@/components/chatbot/SmartShivi';
 
 // Routes that should NOT show the default header/footer
@@ -28,7 +29,7 @@ export function LayoutWrapper({ children }: { children: React.ReactNode }) {
   );
 
   if (hideDefaultLayout) {
-    // Customer pages - no default header/footer, no SmartShivi
+    // Customer pages - no default header/footer, no SmartShivi, no bottom nav
     return (
       <div className="flex flex-col min-h-screen">
         <main className="flex-1">{children}</main>
@@ -36,12 +37,13 @@ export function LayoutWrapper({ children }: { children: React.ReactNode }) {
     );
   }
 
-  // Default layout with Header, Footer, and SmartShivi
+  // Default layout with Header, Footer, MobileBottomNav, and SmartShivi
   return (
     <div className="flex flex-col min-h-screen">
       <Header />
-      <main className="flex-1 pt-16 md:pt-[88px]">{children}</main>
+      <main className="flex-1 pt-16 md:pt-[88px] pb-16 lg:pb-0">{children}</main>
       <Footer />
+      <MobileBottomNav />
       <SmartShivi />
     </div>
   );

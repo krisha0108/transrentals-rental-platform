@@ -194,48 +194,71 @@ const handlePress = async () => {
       )
     );
 
-    // 1️⃣ Booking notification → open BookingDetail
-    if (item.booking_id && item.booking_id !== '' && item.booking_id !== 'null') {
-      console.log(`[NotificationScreen] Navigating to BookingDetail: ${item.booking_id}`);
-      navigation.navigate('BookingDetail', { bookingId: item.booking_id });
+    // Determine service type from title (temporary until DB has serviceType)
+    const title = (item.title || '').toLowerCase();
+    let serviceType = item.service_type;
+
+    if (!serviceType || serviceType === 'general') {
+      if (title.includes('bike') || title.includes('🏍')) serviceType = 'bike';
+      else if (title.includes('self-drive') || title.includes('self drive')) serviceType = 'self-drive';
+      else if (title.includes('luxury') || title.includes('💎')) serviceType = 'luxury';
+      else if (title.includes('bus') || title.includes('🚌')) serviceType = 'bus';
+      else if (title.includes('truck') || title.includes('🚚')) serviceType = 'truck';
+      else if (title.includes('equipment') || title.includes('🏗')) serviceType = 'equipment';
+      else if (title.includes('packers') || title.includes('movers') || title.includes('📦')) serviceType = 'packers';
+      else if (title.includes('car') || title.includes('🚗')) serviceType = 'car';
+      else {
+        // Can't determine - go to MyBookings
+        console.log('[NotificationScreen] Cannot determine service type, going to MyBookings');
+        navigation.navigate('MyBookings');
+        return;
+      }
+    }
+
+    // Determine if it's a quote request or booking
+    const isQuoteRequest = item.type === 'quote' || (item.quote_id && !item.booking_id);
+    const itemId = isQuoteRequest ? item.quote_id : item.booking_id;
+
+    // Validate ID
+    if (!itemId || itemId === 'null' || itemId.length < 10 || itemId.endsWith('-')) {
+      console.log('[NotificationScreen] Invalid ID:', itemId);
+      navigation.navigate('MyBookings');
       return;
     }
 
-    // 2️⃣ Quotation notification → open ViewQuote
-    if (
-      item.quote_id &&
-      item.quote_id !== '' &&
-      item.quote_id !== 'null' &&
-      item.quote_id !== 0
-    ) {
-      console.log(`[NotificationScreen] Navigating to ViewQuote: ${item.quote_id}`);
-      navigation.navigate('ViewQuote', {
-        quoteId: item.quote_id,
-        bookingId: item.booking_id ? item.booking_id : null,
-        quoteType: 'vehicle',
-      });
-      return;
+    console.log(`[NotificationScreen] Service: ${serviceType}, IsQuote: ${isQuoteRequest}, ID: ${itemId}`);
+
+    // Navigate using same logic as MyBookingsScreen.handleBookingPress
+    if (serviceType === 'self-drive') {
+      navigation.navigate(isQuoteRequest ? 'SelfDriveQuoteRequestDetail' : 'SelfDriveBookingDetail',
+        isQuoteRequest ? { requestId: itemId } : { bookingId: itemId });
+    } else if (serviceType === 'bike') {
+      navigation.navigate(isQuoteRequest ? 'BikeQuoteRequestDetail' : 'BikeBookingDetail',
+        isQuoteRequest ? { requestId: itemId } : { bookingId: itemId });
+    } else if (serviceType === 'luxury') {
+      navigation.navigate(isQuoteRequest ? 'LuxuryQuoteDetail' : 'LuxuryBookingDetail',
+        isQuoteRequest ? { requestId: itemId } : { bookingId: itemId });
+    } else if (serviceType === 'bus') {
+      navigation.navigate(isQuoteRequest ? 'BusQuoteRequestDetail' : 'BusBookingDetail',
+        isQuoteRequest ? { requestId: itemId } : { bookingId: itemId });
+    } else if (serviceType === 'truck') {
+      navigation.navigate(isQuoteRequest ? 'TruckQuoteRequestDetail' : 'TruckBookingDetail',
+        isQuoteRequest ? { requestId: itemId } : { bookingId: itemId });
+    } else if (serviceType === 'packers') {
+      navigation.navigate(isQuoteRequest ? 'PackersQuoteRequestDetail' : 'PackersBookingDetail',
+        isQuoteRequest ? { requestId: itemId } : { bookingId: itemId });
+    } else if (serviceType === 'equipment') {
+      navigation.navigate(isQuoteRequest ? 'EquipmentQuoteRequestDetail' : 'EquipmentBookingDetail',
+        isQuoteRequest ? { requestId: itemId } : { bookingId: itemId });
+    } else if (serviceType === 'car') {
+      navigation.navigate('BookingDetail', { bookingId: itemId, bookingType: 'car' });
+    } else {
+      navigation.navigate('MyBookings');
     }
 
-    // 3️⃣ No ID found → show alert popup
-    console.log('[NotificationScreen] No booking/quote ID found in notification');
-    Alert.alert(
-      'Notification Info',
-      'No booking or quotation details available for this notification.',
-      [{ text: 'OK', style: 'default' }],
-    );
   } catch (error) {
-    console.log('[NotificationScreen] Error handling notification press:', error);
-    // Still navigate even if marking as read fails
-    if (item.booking_id && item.booking_id !== '' && item.booking_id !== 'null') {
-      navigation.navigate('BookingDetail', { bookingId: item.booking_id });
-    } else if (item.quote_id && item.quote_id !== '' && item.quote_id !== 'null' && item.quote_id !== 0) {
-      navigation.navigate('ViewQuote', {
-        quoteId: item.quote_id,
-        bookingId: item.booking_id ? item.booking_id : null,
-        quoteType: 'vehicle',
-      });
-    }
+    console.log('[NotificationScreen] Error:', error);
+    navigation.navigate('MyBookings');
   }
 };
 

@@ -114,10 +114,10 @@ async function getChauffeurInventory(serviceId: string, serviceSlug: string) {
           select: { id: true, name: true },
         },
         locations_chauffeur_route_packages_fromLocationIdTolocations: {
-          select: { id: true, name: true },
+          select: { id: true, name: true, type: true },
         },
         locations_chauffeur_route_packages_toLocationIdTolocations: {
-          select: { id: true, name: true },
+          select: { id: true, name: true, type: true },
         },
       },
     });
@@ -132,10 +132,14 @@ async function getChauffeurInventory(serviceId: string, serviceSlug: string) {
       cityPricing: any[];
       routesFrom: any[];
       routesTo: any[];
+      airportRoutesFrom: any[];
+      airportRoutesTo: any[];
       totalLocalPackages: number;
       totalCityPricing: number;
       totalRoutesFrom: number;
       totalRoutesTo: number;
+      totalAirportRoutesFrom: number;
+      totalAirportRoutesTo: number;
     }>();
 
     // Initialize with all locations
@@ -149,10 +153,14 @@ async function getChauffeurInventory(serviceId: string, serviceSlug: string) {
         cityPricing: [],
         routesFrom: [],
         routesTo: [],
+        airportRoutesFrom: [],
+        airportRoutesTo: [],
         totalLocalPackages: 0,
         totalCityPricing: 0,
         totalRoutesFrom: 0,
         totalRoutesTo: 0,
+        totalAirportRoutesFrom: 0,
+        totalAirportRoutesTo: 0,
       });
     });
 
@@ -184,30 +192,48 @@ async function getChauffeurInventory(serviceId: string, serviceSlug: string) {
       }
     });
 
-    // Add route packages
+    // Add route packages (separate regular routes and airport routes)
     routePackages.forEach(route => {
+      const fromLocType = route.locations_chauffeur_route_packages_fromLocationIdTolocations?.type;
+      const toLocType = route.locations_chauffeur_route_packages_toLocationIdTolocations?.type;
+      const isAirportRoute = fromLocType === 'AIRPORT' || toLocType === 'AIRPORT';
+
       // Add to "from" location
       const fromLocation = inventoryMap.get(route.fromLocationId);
       if (fromLocation) {
-        fromLocation.routesFrom.push({
+        const routeData = {
           id: route.id,
           to: route.locations_chauffeur_route_packages_toLocationIdTolocations?.name || 'Unknown',
+          toType: toLocType,
           category: route.chauffeur_vehicle_categories?.name || 'Unknown',
           basePrice: route.basePrice,
           estimatedKm: route.estimatedKm,
-        });
+        };
+
+        if (isAirportRoute) {
+          fromLocation.airportRoutesFrom.push(routeData);
+        } else {
+          fromLocation.routesFrom.push(routeData);
+        }
       }
 
       // Add to "to" location
       const toLocation = inventoryMap.get(route.toLocationId);
       if (toLocation) {
-        toLocation.routesTo.push({
+        const routeData = {
           id: route.id,
           from: route.locations_chauffeur_route_packages_fromLocationIdTolocations?.name || 'Unknown',
+          fromType: fromLocType,
           category: route.chauffeur_vehicle_categories?.name || 'Unknown',
           basePrice: route.basePrice,
           estimatedKm: route.estimatedKm,
-        });
+        };
+
+        if (isAirportRoute) {
+          toLocation.airportRoutesTo.push(routeData);
+        } else {
+          toLocation.routesTo.push(routeData);
+        }
       }
     });
 
@@ -219,12 +245,16 @@ async function getChauffeurInventory(serviceId: string, serviceSlug: string) {
         totalCityPricing: item.cityPricing.length,
         totalRoutesFrom: item.routesFrom.length,
         totalRoutesTo: item.routesTo.length,
+        totalAirportRoutesFrom: item.airportRoutesFrom.length,
+        totalAirportRoutesTo: item.airportRoutesTo.length,
       }))
       .filter(item =>
         item.totalLocalPackages > 0 ||
         item.totalCityPricing > 0 ||
         item.totalRoutesFrom > 0 ||
-        item.totalRoutesTo > 0
+        item.totalRoutesTo > 0 ||
+        item.totalAirportRoutesFrom > 0 ||
+        item.totalAirportRoutesTo > 0
       );
 
     return NextResponse.json({
@@ -236,6 +266,7 @@ async function getChauffeurInventory(serviceId: string, serviceSlug: string) {
         totalLocalPackages: inventory.reduce((sum, item) => sum + item.totalLocalPackages, 0),
         totalCityPricing: inventory.reduce((sum, item) => sum + item.totalCityPricing, 0),
         totalRoutes: inventory.reduce((sum, item) => sum + item.totalRoutesFrom, 0),
+        totalAirportRoutes: inventory.reduce((sum, item) => sum + item.totalAirportRoutesFrom, 0),
       },
       vehicleCategories,
     });
