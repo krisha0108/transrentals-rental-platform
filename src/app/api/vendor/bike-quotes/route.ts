@@ -175,6 +175,7 @@ export async function POST(request: NextRequest) {
 
       // Pricing
       dailyRate,
+      totalPrice,
       securityDeposit,
       gstPercent = 18,
 
@@ -342,6 +343,7 @@ export async function POST(request: NextRequest) {
         vehicleImages: finalVehicleImages ? JSON.stringify(finalVehicleImages) : null,
         vehicleFeatures: vehicleFeatures ? JSON.stringify(vehicleFeatures) : null,
         dailyRate,
+        totalPrice: totalPrice || null,
         totalAmount,
         gstAmount,
         securityDeposit,

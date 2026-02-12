@@ -65,7 +65,7 @@ export default function BikeSendQuoteScreen({ navigation, route }) {
   const [vehicleBrand, setVehicleBrand] = useState('');
   const [registrationNumber, setRegistrationNumber] = useState('');
   const [vehicleImages, setVehicleImages] = useState(null);
-  const [dailyRate, setDailyRate] = useState('');
+  const [totalPrice, setTotalPrice] = useState('');
   const [securityDeposit, setSecurityDeposit] = useState('');
   const [helmetsIncluded, setHelmetsIncluded] = useState('1');
   const [kmLimitPerDay, setKmLimitPerDay] = useState('100');
@@ -170,7 +170,12 @@ export default function BikeSendQuoteScreen({ navigation, route }) {
       const template = await getTemplateById('bike', templateId);
 
       // Auto-fill form fields from template
-      if (template.dailyRateHint) setDailyRate(template.dailyRateHint.toString());
+      if (template.dailyRateHint) {
+        // Template has daily rate hint, calculate total from it
+        const days = request?.totalDays || 1;
+        const estimatedTotal = template.dailyRateHint * days;
+        setTotalPrice(estimatedTotal.toString());
+      }
       if (template.securityDepositHint) setSecurityDeposit(template.securityDepositHint.toString());
       if (template.inclusions && template.inclusions.length > 0) setInclusions([...template.inclusions]);
       if (template.exclusions && template.exclusions.length > 0) setExclusions([...template.exclusions]);
@@ -211,14 +216,14 @@ export default function BikeSendQuoteScreen({ navigation, route }) {
     setEditList(editList.filter((i) => i !== item));
   };
 
-  const calculateTotal = () => {
-    const rate = parseFloat(dailyRate) || 0;
+  const calculateDailyRate = () => {
+    const total = parseFloat(totalPrice) || 0;
     const days = request?.totalDays || 1;
-    return rate * days;
+    return total / days;
   };
 
   const calculateAdvance = () => {
-    const total = calculateTotal();
+    const total = parseFloat(totalPrice) || 0;
     const percent = parseInt(advancePercent) || 30;
     return Math.round((total * percent) / 100);
   };
@@ -228,13 +233,14 @@ export default function BikeSendQuoteScreen({ navigation, route }) {
       Alert.alert('Error', 'Please enter vehicle name or select from fleet');
       return;
     }
-    if (!dailyRate || parseFloat(dailyRate) <= 0) {
-      Alert.alert('Error', 'Please enter valid daily rate');
+    if (!totalPrice || parseFloat(totalPrice) <= 0) {
+      Alert.alert('Error', 'Please enter valid total price');
       return;
     }
 
     try {
       setSubmitting(true);
+      const calculatedDailyRate = calculateDailyRate();
       await submitQuote('bike', {
         requestId: requestId,
         vendorFleetId: selectedFleetId || null,
@@ -243,7 +249,8 @@ export default function BikeSendQuoteScreen({ navigation, route }) {
         vehicleCategory: request?.vehicleCategory || null,
         registrationNumber: registrationNumber || null,
         vehicleImages: vehicleImages || null,
-        dailyRate: parseFloat(dailyRate),
+        dailyRate: calculatedDailyRate,
+        totalPrice: parseFloat(totalPrice),
         securityDeposit: parseFloat(securityDeposit) || 0,
         helmetsIncluded: parseInt(helmetsIncluded) || 1,
         kmLimitPerDay: parseInt(kmLimitPerDay) || null,
@@ -276,8 +283,9 @@ export default function BikeSendQuoteScreen({ navigation, route }) {
     );
   }
 
-  const total = calculateTotal();
+  const total = parseFloat(totalPrice) || 0;
   const advance = calculateAdvance();
+  const dailyRate = calculateDailyRate();
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -407,12 +415,12 @@ export default function BikeSendQuoteScreen({ navigation, route }) {
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Pricing Details</Text>
 
-          <Text style={styles.inputLabel}>Daily Rate (₹) *</Text>
+          <Text style={styles.inputLabel}>Total Price (₹) *</Text>
           <TextInput
             style={styles.input}
-            value={dailyRate}
-            onChangeText={setDailyRate}
-            placeholder="e.g., 800"
+            value={totalPrice}
+            onChangeText={setTotalPrice}
+            placeholder={`e.g., ${(request?.totalDays || 1) * 800} (for ${request?.totalDays || 1} days)`}
             keyboardType="decimal-pad"
             placeholderTextColor={C.muted}
           />
@@ -473,11 +481,11 @@ export default function BikeSendQuoteScreen({ navigation, route }) {
         </View>
 
         {/* Quote Summary */}
-        {dailyRate && parseFloat(dailyRate) > 0 && (
+        {totalPrice && parseFloat(totalPrice) > 0 && (
           <View style={[styles.card, { backgroundColor: '#F0F9FF', borderColor: '#BAE6FD' }]}>
             <Text style={[styles.cardTitle, { color: '#0369A1' }]}>Quote Summary</Text>
             <View style={styles.row}>
-              <Text style={styles.summaryLabel}>Total ({request?.totalDays} days)</Text>
+              <Text style={styles.summaryLabel}>Total Price ({request?.totalDays} days)</Text>
               <Text style={styles.summaryValue}>₹{total.toFixed(0)}</Text>
             </View>
             <View style={styles.divider} />

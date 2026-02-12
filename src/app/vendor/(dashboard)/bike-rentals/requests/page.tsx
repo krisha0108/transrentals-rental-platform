@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import Pagination from '@/components/vendor/Pagination';
 import DateFilterDropdown from '@/components/vendor/DateFilterDropdown';
+import { formatBookingDuration } from '@/lib/utils/duration';
 
 interface QuoteRequest {
   id: string;
@@ -250,7 +251,7 @@ export default function VendorBikeRequestsPage() {
                   <div className="text-right">
                     <div className="flex items-center gap-1 text-orange-600 font-semibold">
                       <Calendar className="w-4 h-4" />
-                      {request.totalDays} {request.totalDays === 1 ? 'day' : 'days'}
+                      {formatBookingDuration(request)}
                     </div>
                     {request.budgetMax && (
                       <span className="text-xs text-gray-500">

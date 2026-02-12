@@ -1,32 +1,42 @@
-import admin from 'firebase-admin';
 import { prisma } from '@/lib/db/prisma';
 import logger from '@/lib/security/logger';
 import * as fs from 'fs';
 import * as path from 'path';
 
-// Initialize Firebase Admin SDK (only once)
-if (!admin.apps.length) {
+// Lazy import firebase-admin to avoid build errors if not installed
+let admin: any = null;
+let firebaseInitialized = false;
+
+function initFirebase() {
+  if (firebaseInitialized) return;
+
   try {
-    const serviceAccountPath = process.env.FIREBASE_SERVICE_ACCOUNT_PATH;
+    // Dynamic import for firebase-admin
+    admin = require('firebase-admin');
 
-    if (serviceAccountPath) {
-      // Resolve path from project root
-      const fullPath = path.resolve(process.cwd(), serviceAccountPath);
+    if (!admin.apps.length) {
+      const serviceAccountPath = process.env.FIREBASE_SERVICE_ACCOUNT_PATH;
 
-      // Read and parse the service account JSON file
-      const serviceAccountJson = fs.readFileSync(fullPath, 'utf8');
-      const serviceAccount = JSON.parse(serviceAccountJson);
+      if (serviceAccountPath) {
+        // Resolve path from project root
+        const fullPath = path.resolve(process.cwd(), serviceAccountPath);
 
-      admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount),
-      });
-      console.log('✅ Firebase Admin initialized successfully');
-    } else {
-      console.warn('⚠️ FIREBASE_SERVICE_ACCOUNT_PATH not found in .env');
+        // Read and parse the service account JSON file
+        const serviceAccountJson = fs.readFileSync(fullPath, 'utf8');
+        const serviceAccount = JSON.parse(serviceAccountJson);
+
+        admin.initializeApp({
+          credential: admin.credential.cert(serviceAccount),
+        });
+        console.log('✅ Firebase Admin initialized successfully');
+      } else {
+        console.warn('⚠️ FIREBASE_SERVICE_ACCOUNT_PATH not found in .env');
+      }
     }
+    firebaseInitialized = true;
   } catch (error: any) {
-    console.error('❌ Firebase Admin initialization failed:', error.message);
-    console.error('   Make sure firebase-service-account.json exists in project root');
+    console.warn('⚠️ Firebase Admin not available:', error.message);
+    admin = null;
   }
 }
 
@@ -45,6 +55,15 @@ interface SendNotificationParams {
  */
 export async function sendFCMNotification(params: SendNotificationParams): Promise<boolean> {
   const { customerId, title, body, data = {}, image } = params;
+
+  // Initialize Firebase if not already done
+  initFirebase();
+
+  // If Firebase is not available, skip notification
+  if (!admin) {
+    logger.warn('FCM notification skipped - Firebase Admin not available');
+    return false;
+  }
 
   try {
     // Get customer's FCM token

@@ -7,6 +7,7 @@ import { sanitizeInput, isValidEmail, isValidPhone, sanitizePhone } from '@/lib/
 import { smartRateLimit, detectDuplicate, getClientIdentifier, hashBookingData } from '@/lib/utils/smart-rate-limit';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/auth-options';
+import { calculateRentalDuration, calculateTotalDays } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,7 +18,7 @@ const JWT_SECRET = new TextEncoder().encode(
 
 // Generate a human-readable booking number
 function generateBookingNumber(): string {
-  const prefix = 'CR'; // CR for Car Rental
+  const prefix = 'CB'; // CB for Car Booking (Chauffeur)
   const year = new Date().getFullYear();
   const random = Math.random().toString(36).substring(2, 8).toUpperCase();
   return `${prefix}-${year}-${random}`;
@@ -224,12 +225,21 @@ export async function POST(request: NextRequest) {
     const locationId = location.id;
     const locationName = location.name;
 
-    // Calculate days for outstation
+    // Calculate days with proper time precision
     let totalDays = 1;
-    if (tripType === 'outstation' && returnDate) {
-      const start = new Date(pickupDate);
-      const end = new Date(returnDate);
-      totalDays = Math.max(1, Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)));
+    let totalHours = 0;
+    let durationFormatted = '1 day';
+
+    if (tripType === 'outstation' && returnDate && pickupTime) {
+      const duration = calculateRentalDuration(
+        pickupDate,
+        pickupTime,
+        returnDate,
+        pickupTime // Use same pickup time as return time if not specified
+      );
+      totalDays = duration.totalDays;
+      totalHours = duration.totalHours;
+      durationFormatted = duration.formatted;
     }
 
     // Map trip type to enum value
@@ -271,6 +281,7 @@ export async function POST(request: NextRequest) {
       pickupTime,
       returnDate: returnDate ? new Date(returnDate) : null,
       totalDays,
+      totalHours: tripType === 'outstation' ? totalHours : null,
 
       // Pricing
       baseFare: baseFare || 0,

@@ -20,6 +20,7 @@ import {
   Gauge,
 } from 'lucide-react';
 import { useCustomerAuth } from '@/hooks/useCustomer';
+import { formatBookingDuration } from '@/lib/utils/duration';
 import VehicleImageGallery from '@/components/customer/VehicleImageGallery';
 
 interface QuoteRequest {
@@ -277,7 +278,7 @@ export default function CustomerBikeQuoteDetailPage() {
             </div>
             <div className="flex items-center gap-2 text-sm">
               <Clock className="w-4 h-4 text-emerald-500" />
-              <span>{request.totalDays} {request.totalDays === 1 ? 'day' : 'days'}</span>
+              <span>{formatBookingDuration(request)}</span>
               {request.pickupTime && <span className="text-gray-400">• {request.pickupTime}</span>}
             </div>
             {request.helmetsRequired && (
@@ -370,7 +371,7 @@ export default function CustomerBikeQuoteDetailPage() {
                             ₹{quote.grandTotal.toLocaleString()}
                           </p>
                           <p className="text-xs text-gray-500">
-                            ₹{quote.dailyRate}/day × {request.totalDays} days
+                            for {request.totalDays} days
                           </p>
                           {isExpiringSoon && (
                             <p className="text-xs text-red-500 mt-1">Expires soon!</p>
@@ -432,7 +433,7 @@ export default function CustomerBikeQuoteDetailPage() {
                             <h4 className="font-medium text-gray-900 mb-2">Price Breakdown</h4>
                             <div className="space-y-1 text-sm">
                               <div className="flex justify-between">
-                                <span>Daily Rate × {request.totalDays} days</span>
+                                <span>Rental ({request.totalDays} days)</span>
                                 <span>₹{quote.totalAmount.toLocaleString()}</span>
                               </div>
                               <div className="flex justify-between">

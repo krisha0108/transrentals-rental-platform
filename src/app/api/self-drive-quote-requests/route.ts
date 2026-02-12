@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 import { transformPrismaResponse } from '@/lib/utils/api-transform';
-
+import { calculateRentalDuration } from '@/lib/utils';
 import logger from '@/lib/security/logger';
 export const dynamic = 'force-dynamic';
 
@@ -114,10 +114,15 @@ export async function POST(request: NextRequest) {
     // Calculate total days
     const pickupDateTime = new Date(pickupDate);
     const dropDateTime = new Date(dropDate);
-    const totalDays = Math.max(
-      1,
-      Math.ceil((dropDateTime.getTime() - pickupDateTime.getTime()) / (1000 * 60 * 60 * 24))
+    // Calculate duration with proper time precision
+    const duration = calculateRentalDuration(
+      pickupDate,
+      pickupTime || '10:00',
+      dropDate,
+      dropTime || pickupTime || '10:00'
     );
+    const totalDays = duration.totalDays;
+    const totalHours = duration.totalHours;
 
     // Create the quote request
     const quoteRequest = await prisma.self_drive_quote_requests.create({

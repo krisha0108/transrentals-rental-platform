@@ -58,7 +58,7 @@ type CarBookingStatus =
 // Mock single booking data
 const MOCK_BOOKING = {
   id: '1',
-  bookingNumber: 'CR-2024-089',
+  bookingNumber: 'CB-2024-089',
   vehicleName: 'Hyundai Creta',
   vehicleType: 'SUV',
   vehicleImage: '/images/fleet/creta.jpg',

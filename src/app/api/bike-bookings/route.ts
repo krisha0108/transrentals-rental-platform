@@ -8,6 +8,7 @@ import { emitNewBooking, BookingNotification } from '@/lib/socket';
 import logger from '@/lib/security/logger';
 import { sanitizeInput, isValidEmail, isValidPhone, sanitizePhone } from '@/lib/utils/sanitize';
 import { smartRateLimit, detectDuplicate, getClientIdentifier, hashBookingData } from '@/lib/utils/smart-rate-limit';
+import { calculateRentalDuration } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -154,8 +155,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Calculate total days
-    const totalDays = Math.max(1, Math.ceil((drop.getTime() - pickup.getTime()) / (1000 * 60 * 60 * 24)));
+    // Calculate duration with proper time precision
+    const duration = calculateRentalDuration(
+      pickup,
+      pickupTime || '10:00',
+      drop,
+      dropTime || pickupTime || '10:00'
+    );
+    const totalDays = duration.totalDays;
+    const totalHours = duration.totalHours;
 
     // Calculate amounts
     const amounts = calculateBookingAmount(dailyRate || 299, totalDays, securityDeposit);

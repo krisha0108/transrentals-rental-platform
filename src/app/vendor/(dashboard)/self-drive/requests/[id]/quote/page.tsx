@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
+import { formatBookingDuration } from '@/lib/utils/duration';
 import Link from 'next/link';
 import {
   Car,
@@ -128,7 +129,7 @@ export default function SendSelfDriveQuotePage() {
   const [fuelType, setFuelType] = useState('');
   const [seats, setSeats] = useState('');
   const [registrationNumber, setRegistrationNumber] = useState('');
-  const [dailyRate, setDailyRate] = useState('');
+  const [totalPrice, setTotalPrice] = useState('');
   const [securityDeposit, setSecurityDeposit] = useState('');
   const [kmLimitPerDay, setKmLimitPerDay] = useState('200');
   const [extraKmRate, setExtraKmRate] = useState('10');
@@ -207,8 +208,12 @@ export default function SendSelfDriveQuotePage() {
       setExclusions(selectedTemplate.exclusions);
       setTermsConditions(selectedTemplate.termsConditions);
 
-      // Load rate hints
-      if (selectedTemplate.dailyRateHint) setDailyRate(selectedTemplate.dailyRateHint.toString());
+      // Load rate hints - calculate total from daily rate hint
+      if (selectedTemplate.dailyRateHint) {
+        const days = request?.totalDays || 1;
+        const estimatedTotal = selectedTemplate.dailyRateHint * days;
+        setTotalPrice(estimatedTotal.toString());
+      }
       if (selectedTemplate.kmLimitPerDayHint) setKmLimitPerDay(selectedTemplate.kmLimitPerDayHint.toString());
       if (selectedTemplate.extraKmRateHint) setExtraKmRate(selectedTemplate.extraKmRateHint.toString());
       if (selectedTemplate.securityDepositHint) setSecurityDeposit(selectedTemplate.securityDepositHint.toString());
@@ -264,13 +269,17 @@ export default function SendSelfDriveQuotePage() {
     setList(list.filter((i) => i !== item));
   };
 
-  const calculateTotal = () => {
-    const daily = parseFloat(dailyRate) || 0;
+  const calculateDailyRate = () => {
+    const baseTotal = parseFloat(totalPrice) || 0;
     const days = request?.totalDays || 1;
-    const baseAmount = daily * days;
+    return baseTotal / days;
+  };
+
+  const calculateTotal = () => {
+    const baseTotal = parseFloat(totalPrice) || 0;
     const delivery = parseFloat(deliveryCharges) || 0;
     const pickup = parseFloat(pickupCharges) || 0;
-    return baseAmount + delivery + pickup;
+    return baseTotal + delivery + pickup;
   };
 
   const calculateAdvance = () => {
@@ -284,6 +293,7 @@ export default function SendSelfDriveQuotePage() {
     setIsSubmitting(true);
 
     try {
+      const calculatedDailyRate = calculateDailyRate();
       const response = await fetch('/api/vendor/self-drive-quotes', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -298,7 +308,8 @@ export default function SendSelfDriveQuotePage() {
           fuelType: fuelType || null,
           seats: seats ? parseInt(seats) : null,
           registrationNumber: registrationNumber || null,
-          dailyRate: parseFloat(dailyRate) || 0,
+          dailyRate: calculatedDailyRate,
+          totalPrice: parseFloat(totalPrice),
           securityDeposit: parseFloat(securityDeposit) || 0,
           kmLimitPerDay: parseInt(kmLimitPerDay) || 200,
           extraKmRate: parseFloat(extraKmRate) || 10,
@@ -368,7 +379,7 @@ export default function SendSelfDriveQuotePage() {
               </p>
               <p className="text-sm text-gray-600">
                 {request.vehicleBrand && `${request.vehicleBrand} • `}
-                {request.totalDays} {request.totalDays === 1 ? 'day' : 'days'}
+                {formatBookingDuration(request)}
               </p>
             </div>
           </div>
@@ -607,19 +618,22 @@ export default function SendSelfDriveQuotePage() {
           <div className="grid md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Daily Rate *
+                Total Price (for {request.totalDays} days) *
               </label>
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">₹</span>
                 <input
                   type="number"
-                  value={dailyRate}
-                  onChange={(e) => setDailyRate(e.target.value)}
-                  placeholder="1500"
+                  value={totalPrice}
+                  onChange={(e) => setTotalPrice(e.target.value)}
+                  placeholder={`${(request.totalDays || 1) * 2500}`}
                   className="w-full pl-8 pr-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500"
                   required
                 />
               </div>
+              <p className="text-xs text-gray-500 mt-1">
+                Enter your total quote price for the entire rental period
+              </p>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -742,13 +756,13 @@ export default function SendSelfDriveQuotePage() {
           {/* Total */}
           <div className="mt-6 p-4 bg-orange-50 rounded-lg border border-orange-100">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-gray-600">Daily Rate × {request.totalDays} days</span>
-              <span className="text-gray-900">
-                ₹{((parseFloat(dailyRate) || 0) * request.totalDays).toLocaleString()}
+              <span className="text-gray-600">Base Price ({request.totalDays} days)</span>
+              <span className="text-gray-900 font-semibold">
+                ₹{(parseFloat(totalPrice) || 0).toLocaleString()}
               </span>
             </div>
             {(parseFloat(deliveryCharges) > 0 || parseFloat(pickupCharges) > 0) && (
-              <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center justify-between mb-2 text-sm">
                 <span className="text-gray-600">Delivery + Pickup</span>
                 <span className="text-gray-900">
                   ₹{((parseFloat(deliveryCharges) || 0) + (parseFloat(pickupCharges) || 0)).toLocaleString()}
@@ -968,7 +982,7 @@ export default function SendSelfDriveQuotePage() {
           </Link>
           <button
             type="submit"
-            disabled={isSubmitting || !dailyRate || !securityDeposit || !vehicleName}
+            disabled={isSubmitting || !totalPrice || !securityDeposit || !vehicleName}
             className="flex-1 py-3 bg-orange-600 text-white font-bold rounded-lg hover:bg-orange-700 transition disabled:opacity-50 flex items-center justify-center gap-2"
           >
             {isSubmitting ? (

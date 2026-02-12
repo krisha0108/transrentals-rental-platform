@@ -23,6 +23,7 @@ import { Button } from '@/components/ui/button';
 import { useBookingSubmission } from '@/components/booking/useBookingSubmission';
 import { useCustomerAuth } from '@/hooks/useCustomer';
 import { capitalize } from '@/lib/utils';
+import { calculateRentalDuration } from '@/lib/utils/duration';
 
 function SelfDriveBookingPageContent() {
   const searchParams = useSearchParams();
@@ -76,17 +77,16 @@ function SelfDriveBookingPageContent() {
     }
   }, [isAuthenticated, customer]);
 
-  // Calculate duration
+  // Calculate duration with time precision
   const calculateDuration = () => {
-    if (!pickupDate || !pickupTime || !dropDate || !dropTime) return { hours: 24, days: 1 };
-    const pickup = new Date(`${pickupDate}T${pickupTime}`);
-    const drop = new Date(`${dropDate}T${dropTime}`);
-    const hours = Math.ceil((drop.getTime() - pickup.getTime()) / (1000 * 60 * 60));
-    const days = Math.ceil(hours / 24);
-    return { hours, days: days || 1 };
+    if (!pickupDate || !pickupTime || !dropDate || !dropTime) {
+      return { hours: 24, days: 1, totalDays: 1, totalHours: 24, formatted: '1 day' };
+    }
+    return calculateRentalDuration(pickupDate, pickupTime, dropDate, dropTime);
   };
 
   const duration = calculateDuration();
+  const durationText = duration.formatted;
 
   // Format helpers
   const formatDate = (dateStr: string) => {
@@ -447,7 +447,7 @@ function SelfDriveBookingPageContent() {
 
                 <div className="bg-blue-50 px-3 py-2 rounded-lg">
                   <p className="font-semibold text-blue-700">
-                    Duration: {duration.days} Day{duration.days > 1 ? 's' : ''}
+                    Duration: {durationText}
                   </p>
                 </div>
               </div>
