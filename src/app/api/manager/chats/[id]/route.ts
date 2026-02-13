@@ -52,7 +52,7 @@ export async function GET(
             },
           },
         },
-        messages: {
+        chat_messages: {
           orderBy: { createdAt: 'asc' },
           select: {
             id: true,
@@ -190,14 +190,14 @@ export async function GET(
         createdAt: conversation.createdAt,
         updatedAt: conversation.updatedAt,
         customer: conversation.customers,
-        vendors: {
-          id: conversation.vendors?.id,
-          businessName: conversation.vendors?.businessName,
-          ownerName: conversation.vendors?.ownerName,
-          phone: conversation.vendors?.phone,
-          locations: conversation.vendors?.vendor_approved_locations.map((al) => al.locations.name) || [],
-        },
-        messages: conversation.messages.map((m) => ({
+        vendor: conversation.vendors ? {
+          id: conversation.vendors.id,
+          businessName: conversation.vendors.businessName,
+          ownerName: conversation.vendors.ownerName,
+          phone: conversation.vendors.phone,
+          locations: conversation.vendors.vendor_approved_locations.map((al) => al.locations.name),
+        } : null,
+        messages: conversation.chat_messages.map((m) => ({
           id: m.id,
           content: m.content,
           senderType: m.senderType,
@@ -207,7 +207,7 @@ export async function GET(
           isRead: m.status === 'READ' || !!m.readAt,
           createdAt: m.createdAt,
         })),
-        messageCount: conversation.messages.length,
+        messageCount: conversation.chat_messages.length,
       },
       bookingDetails,
     });

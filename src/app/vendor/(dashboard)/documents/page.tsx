@@ -41,6 +41,8 @@ export default function VendorDocumentsPage() {
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState<string | null>(null);
   const [showUploadModal, setShowUploadModal] = useState(false);
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
+  const [previewDocument, setPreviewDocument] = useState<Document | null>(null);
   const [selectedDocType, setSelectedDocType] = useState<string | null>(null);
   const [documentNumber, setDocumentNumber] = useState('');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -165,6 +167,11 @@ export default function VendorDocumentsPage() {
     }
   };
 
+  const openPreviewModal = (doc: Document) => {
+    setPreviewDocument(doc);
+    setShowPreviewModal(true);
+  };
+
   const allRequiredUploaded = documentTypes
     .filter((dt) => dt.required)
     .every((dt) => getDocumentByType(dt.type));
@@ -255,15 +262,13 @@ export default function VendorDocumentsPage() {
                           {uploadedDoc.status}
                         </span>
                         <div className="flex items-center gap-2">
-                          <a
-                            href={uploadedDoc.documentUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
+                          <button
+                            onClick={() => openPreviewModal(uploadedDoc)}
                             className="p-2 hover:bg-gray-100 rounded-lg"
                             title="View"
                           >
                             <Eye className="w-4 h-4 text-gray-500" />
-                          </a>
+                          </button>
                           {uploadedDoc.status !== 'APPROVED' && (
                             <button
                               onClick={() => handleDelete(uploadedDoc.id)}
@@ -400,6 +405,70 @@ export default function VendorDocumentsPage() {
                       Upload Document
                     </>
                   )}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Document Preview Modal */}
+      {showPreviewModal && previewDocument && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4" onClick={() => setShowPreviewModal(false)}>
+          <div className="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-4 border-b">
+              <div>
+                <h2 className="text-xl font-bold text-gray-900">{previewDocument.documentName}</h2>
+                <p className="text-sm text-gray-500">
+                  {documentTypes.find((d) => d.type === previewDocument.documentType)?.name}
+                </p>
+              </div>
+              <button
+                onClick={() => setShowPreviewModal(false)}
+                className="p-2 hover:bg-gray-100 rounded-lg transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Body - Document Preview */}
+            <div className="flex-1 overflow-auto p-4 bg-gray-50">
+              {previewDocument.documentUrl.toLowerCase().endsWith('.pdf') ? (
+                <iframe
+                  src={previewDocument.documentUrl}
+                  className="w-full h-full min-h-[600px] rounded-lg border"
+                  title="Document Preview"
+                />
+              ) : (
+                <div className="flex items-center justify-center h-full">
+                  <img
+                    src={previewDocument.documentUrl}
+                    alt={previewDocument.documentName}
+                    className="max-w-full max-h-full object-contain rounded-lg"
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="flex items-center justify-between p-4 border-t bg-white">
+              <div className="flex items-center gap-2">
+                {getStatusIcon(previewDocument.status)}
+                <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusBadge(previewDocument.status)}`}>
+                  {previewDocument.status}
+                </span>
+              </div>
+              <div className="flex gap-2">
+                <a
+                  href={previewDocument.documentUrl}
+                  download
+                  className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium transition"
+                >
+                  Download
+                </a>
+                <Button onClick={() => setShowPreviewModal(false)}>
+                  Close
                 </Button>
               </div>
             </div>

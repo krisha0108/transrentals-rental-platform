@@ -20,12 +20,12 @@ export async function GET(request: NextRequest) {
       include: {
         manager_locations: {
           include: {
-            location: true,
+            locations: true,
           },
         },
         manager_services: {
           include: {
-            service: true,
+            services: true,
           },
         },
       },
@@ -159,7 +159,7 @@ export async function GET(request: NextRequest) {
                   isActive: true,
                 },
                 include: {
-                  location: {
+                  locations: {
                     select: { id: true, name: true },
                   },
                 },
