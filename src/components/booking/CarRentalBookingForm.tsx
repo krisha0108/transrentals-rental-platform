@@ -221,15 +221,14 @@ export function CarRentalBookingForm() {
         {/* Progress Line */}
         <div className="absolute top-5 left-0 right-0 h-1 bg-gray-200 -z-10"></div>
         <div className={`absolute top-5 left-0 h-1 bg-primary transition-all -z-10`}
-             style={{ width: `${((currentStep - 1) / 2) * 100}%` }}></div>
+          style={{ width: `${((currentStep - 1) / 2) * 100}%` }}></div>
 
         {/* Steps */}
         <div className="flex items-start justify-between">
           {[1, 2, 3].map((step) => (
             <div key={step} className="flex flex-col items-center" style={{ width: '33.33%' }}>
-              <div className={`flex items-center justify-center w-10 h-10 rounded-full font-bold transition-all ${
-                currentStep >= step ? 'bg-primary text-white' : 'bg-gray-200 text-gray-500'
-              }`}>
+              <div className={`flex items-center justify-center w-10 h-10 rounded-full font-bold transition-all ${currentStep >= step ? 'bg-primary text-white' : 'bg-gray-200 text-gray-500'
+                }`}>
                 {currentStep > step ? <Check className="w-5 h-5" /> : step}
               </div>
               <span className={`text-sm mt-2 text-center ${currentStep >= step ? 'text-primary font-medium' : 'text-gray-500'}`}>
@@ -255,9 +254,8 @@ export function CarRentalBookingForm() {
               <div className="grid grid-cols-3 gap-3">
                 {TRIP_TYPES.map((trip) => (
                   <button key={trip.id} type="button" onClick={() => updateFormData('tripType', trip.id)}
-                    className={`p-4 border-2 rounded-xl text-center transition-all ${
-                      formData.tripType === trip.id ? 'border-primary bg-primary/5 shadow-md' : 'border-gray-200 hover:border-primary/50'
-                    }`}>
+                    className={`p-4 border-2 rounded-xl text-center transition-all ${formData.tripType === trip.id ? 'border-primary bg-primary/5 shadow-md' : 'border-gray-200 hover:border-primary/50'
+                      }`}>
                     <div className="text-2xl mb-2">{trip.icon}</div>
                     <div className="font-semibold text-gray-900 text-sm">{trip.name}</div>
                     <div className="text-xs text-gray-500">{trip.description}</div>
@@ -273,9 +271,8 @@ export function CarRentalBookingForm() {
                 <div className="grid grid-cols-2 gap-3">
                   {AIRPORT_TYPES.map((type) => (
                     <button key={type.id} type="button" onClick={() => updateFormData('airportType', type.id)}
-                      className={`p-4 border-2 rounded-xl text-center transition-all ${
-                        formData.airportType === type.id ? 'border-primary bg-primary/5 shadow-md' : 'border-gray-200 hover:border-primary/50'
-                      }`}>
+                      className={`p-4 border-2 rounded-xl text-center transition-all ${formData.airportType === type.id ? 'border-primary bg-primary/5 shadow-md' : 'border-gray-200 hover:border-primary/50'
+                        }`}>
                       <div className="text-2xl mb-2">{type.icon}</div>
                       <div className="font-semibold text-gray-900 text-sm">{type.name}</div>
                     </button>
@@ -326,9 +323,8 @@ export function CarRentalBookingForm() {
               <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
                 {VEHICLE_TYPES.map((vehicle) => (
                   <button key={vehicle.id} type="button" onClick={() => updateFormData('vehicleType', vehicle.id)}
-                    className={`p-4 border-2 rounded-xl text-center transition-all ${
-                      formData.vehicleType === vehicle.id ? 'border-primary bg-primary/5 shadow-md' : 'border-gray-200 hover:border-primary/50'
-                    }`}>
+                    className={`p-4 border-2 rounded-xl text-center transition-all ${formData.vehicleType === vehicle.id ? 'border-primary bg-primary/5 shadow-md' : 'border-gray-200 hover:border-primary/50'
+                      }`}>
                     <div className="text-2xl mb-2">{vehicle.icon}</div>
                     <div className="font-semibold text-gray-900 text-sm">{vehicle.name}</div>
                     <div className="text-xs text-gray-500">{vehicle.description}</div>
@@ -436,9 +432,8 @@ export function CarRentalBookingForm() {
                   value={formData.name}
                   onChange={(e) => updateFormData('name', e.target.value)}
                   placeholder="Enter your full name"
-                  className={`w-full px-4 py-3 border-2 rounded-lg focus:border-primary focus:outline-none ${
-                    isAuthenticated ? 'bg-green-50 border-green-200' : 'border-gray-200'
-                  }`}
+                  className={`w-full px-4 py-3 border-2 rounded-lg focus:border-primary focus:outline-none ${isAuthenticated ? 'bg-green-50 border-green-200' : 'border-gray-200'
+                    }`}
                   required
                 />
               </div>
@@ -451,9 +446,8 @@ export function CarRentalBookingForm() {
                   value={formData.email}
                   onChange={(e) => updateFormData('email', e.target.value)}
                   placeholder="your.email@example.com"
-                  className={`w-full px-4 py-3 border-2 rounded-lg focus:border-primary focus:outline-none ${
-                    isAuthenticated ? 'bg-green-50 border-green-200' : 'border-gray-200'
-                  }`}
+                  className={`w-full px-4 py-3 border-2 rounded-lg focus:border-primary focus:outline-none ${isAuthenticated ? 'bg-green-50 border-green-200' : 'border-gray-200'
+                    }`}
                   required
                 />
               </div>
@@ -465,10 +459,9 @@ export function CarRentalBookingForm() {
                   type="tel"
                   value={formData.phone}
                   onChange={(e) => updateFormData('phone', e.target.value)}
-                  placeholder="+91 98765 43210"
-                  className={`w-full px-4 py-3 border-2 rounded-lg focus:border-primary focus:outline-none ${
-                    isAuthenticated ? 'bg-green-50 border-green-200' : 'border-gray-200'
-                  }`}
+                  placeholder="+91 9737965551"
+                  className={`w-full px-4 py-3 border-2 rounded-lg focus:border-primary focus:outline-none ${isAuthenticated ? 'bg-green-50 border-green-200' : 'border-gray-200'
+                    }`}
                   required
                 />
               </div>

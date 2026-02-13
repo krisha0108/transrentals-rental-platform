@@ -34,7 +34,7 @@ export function CarRentalServiceHero() {
             Book Your Car Rental
             <br />
             <span className="bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
-              Starting @₹999/Day
+              Starting from ₹999
             </span>
           </h1>
 

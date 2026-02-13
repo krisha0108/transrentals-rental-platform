@@ -6,70 +6,70 @@ export const dynamic = 'force-dynamic';
 
 // GET - Generate invoice HTML for Equipment Booking
 export async function GET(
-    request: NextRequest,
-    { params }: { params: Promise<{ id: string }> }
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
 ) {
-    try {
-        const { id } = await params;
+  try {
+    const { id } = await params;
 
-        // Try to find by ID or booking number
-        let booking = await prisma.equipment_bookings.findUnique({
-            where: { id },
-            include: {
-                vendors: {
-                    select: {
-                        businessName: true,
-                        phone: true,
-                        email: true,
-                        address: true,
-                        gstNumber: true,
-                    },
-                },
+    // Try to find by ID or booking number
+    let booking = await prisma.equipment_bookings.findUnique({
+      where: { id },
+      include: {
+        vendors: {
+          select: {
+            businessName: true,
+            phone: true,
+            email: true,
+            address: true,
+            gstNumber: true,
+          },
+        },
+      },
+    });
+
+    if (!booking) {
+      booking = await prisma.equipment_bookings.findUnique({
+        where: { bookingNumber: id },
+        include: {
+          vendors: {
+            select: {
+              businessName: true,
+              phone: true,
+              email: true,
+              address: true,
+              gstNumber: true,
             },
-        });
+          },
+        },
+      });
+    }
 
-        if (!booking) {
-            booking = await prisma.equipment_bookings.findUnique({
-                where: { bookingNumber: id },
-                include: {
-                    vendors: {
-                        select: {
-                            businessName: true,
-                            phone: true,
-                            email: true,
-                            address: true,
-                            gstNumber: true,
-                        },
-                    },
-                },
-            });
-        }
+    if (!booking) {
+      return NextResponse.json(
+        { success: false, error: 'Booking not found' },
+        { status: 404 }
+      );
+    }
 
-        if (!booking) {
-            return NextResponse.json(
-                { success: false, error: 'Booking not found' },
-                { status: 404 }
-            );
-        }
+    const formatDate = (date: Date) => {
+      return new Date(date).toLocaleDateString('en-IN', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+      });
+    };
 
-        const formatDate = (date: Date) => {
-            return new Date(date).toLocaleDateString('en-IN', {
-                day: '2-digit',
-                month: 'short',
-                year: 'numeric',
-            });
-        };
+    const formatCurrency = (amount: number) => {
+      return new Intl.NumberFormat('en-IN', {
+        style: 'currency',
+        currency: 'INR',
+        maximumFractionDigits: 0,
+      }).format(amount || 0);
+    };
 
-        const formatCurrency = (amount: number) => {
-            return new Intl.NumberFormat('en-IN', {
-                style: 'currency',
-                currency: 'INR',
-                maximumFractionDigits: 0,
-            }).format(amount || 0);
-        };
-
-        // Generate HTML Invoice
-        const invoiceHtml = `
+    // Generate HTML Invoice
+    const invoiceHtml = `
 <!DOCTYPE html>
 <html>
 <head>
@@ -132,10 +132,10 @@ export async function GET(
         <label>Booking Status</label>
         <p>
           <span class="status ${booking.status === 'COMPLETED' ? 'status-completed' :
-                booking.status === 'CANCELLED' ? 'status-cancelled' :
-                    ['CONFIRMED', 'EQUIPMENT_DEPLOYED', 'IN_USE', 'ADVANCE_PAID'].includes(booking.status) ? 'status-confirmed' :
-                        'status-pending'
-            }">
+        booking.status === 'CANCELLED' ? 'status-cancelled' :
+          ['CONFIRMED', 'EQUIPMENT_DEPLOYED', 'IN_USE', 'ADVANCE_PAID'].includes(booking.status) ? 'status-confirmed' :
+            'status-pending'
+      }">
             ${booking.status.replace(/_/g, ' ')}
           </span>
         </p>
@@ -288,7 +288,7 @@ export async function GET(
 
     <div class="footer">
       <p style="margin-bottom: 10px;">Thank you for choosing TransRentals!</p>
-      <p>For support, contact us at support@transrentals.in | +91 9876543210</p>
+      <p>For support, contact us at support@transrentals.in | +91 9737965551</p>
       <p style="margin-top: 15px; font-size: 11px; color: #999;">
         This is a computer-generated invoice and does not require a signature.
       </p>
@@ -304,16 +304,16 @@ export async function GET(
 </html>
     `;
 
-        return new NextResponse(invoiceHtml, {
-            headers: {
-                'Content-Type': 'text/html',
-            },
-        });
-    } catch (error: any) {
-        logger.error('Failed to generate equipment invoice', error);
-        return NextResponse.json(
-            { success: false, error: 'Failed to generate invoice', details: error?.message },
-            { status: 500 }
-        );
-    }
+    return new NextResponse(invoiceHtml, {
+      headers: {
+        'Content-Type': 'text/html',
+      },
+    });
+  } catch (error: any) {
+    logger.error('Failed to generate equipment invoice', error);
+    return NextResponse.json(
+      { success: false, error: 'Failed to generate invoice', details: error?.message },
+      { status: 500 }
+    );
+  }
 }

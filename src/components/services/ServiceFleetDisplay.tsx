@@ -108,11 +108,10 @@ export function ServiceFleetDisplay({
           <div className="flex flex-wrap justify-center gap-2 mb-8">
             <button
               onClick={() => setSelectedCategory('')}
-              className={`px-4 py-2 rounded-full text-sm font-medium transition ${
-                selectedCategory === ''
+              className={`px-4 py-2 rounded-full text-sm font-medium transition ${selectedCategory === ''
                   ? 'bg-blue-600 text-white'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
+                }`}
             >
               All
             </button>
@@ -120,11 +119,10 @@ export function ServiceFleetDisplay({
               <button
                 key={category.id}
                 onClick={() => setSelectedCategory(category.slug)}
-                className={`px-4 py-2 rounded-full text-sm font-medium transition ${
-                  selectedCategory === category.slug
+                className={`px-4 py-2 rounded-full text-sm font-medium transition ${selectedCategory === category.slug
                     ? 'bg-blue-600 text-white'
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
+                  }`}
               >
                 {category.icon && <span className="mr-1">{category.icon}</span>}
                 {category.name}
@@ -206,10 +204,10 @@ export function ServiceFleetDisplay({
                 {vehicle.basePricePerDay && (
                   <div className="flex items-center justify-between border-t pt-3">
                     <div>
+                      <p className="text-xs text-gray-500 font-medium mb-0.5">Starting from</p>
                       <span className="text-2xl font-bold text-blue-600">
                         ₹{vehicle.basePricePerDay.toLocaleString()}
                       </span>
-                      <span className="text-sm text-gray-500">{priceUnit}</span>
                     </div>
                     <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-blue-600 transition" />
                   </div>

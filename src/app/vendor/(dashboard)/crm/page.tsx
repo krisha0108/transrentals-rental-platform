@@ -32,7 +32,7 @@ const mockCustomers = [
   {
     id: '1',
     name: 'Rahul Sharma',
-    phone: '+91 98765 43210',
+    phone: '+91 9737965551',
     email: 'rahul.sharma@email.com',
     type: 'individual',
     tags: ['VIP', 'Frequent'],
@@ -49,7 +49,7 @@ const mockCustomers = [
   {
     id: '2',
     name: 'TechCorp Solutions Pvt Ltd',
-    phone: '+91 98765 43211',
+    phone: '+91 9737965551',
     email: 'travel@techcorp.com',
     type: 'corporate',
     tags: ['Corporate', 'Monthly Contract'],
@@ -292,7 +292,7 @@ export default function CRMPage() {
                     <p className="font-medium text-gray-900">{customer.name}</p>
                     <p className="text-sm text-pink-600">
                       {getDaysTillBirthday(customer.birthday!) === 0 ? 'Today!' :
-                       `In ${getDaysTillBirthday(customer.birthday!)} days`}
+                        `In ${getDaysTillBirthday(customer.birthday!)} days`}
                     </p>
                   </div>
                 </div>
@@ -357,9 +357,8 @@ export default function CRMPage() {
                 <tr key={customer.id} className="hover:bg-gray-50">
                   <td className="px-4 py-4">
                     <div className="flex items-center gap-3">
-                      <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold ${
-                        customer.type === 'corporate' ? 'bg-purple-500' : 'bg-blue-500'
-                      }`}>
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold ${customer.type === 'corporate' ? 'bg-purple-500' : 'bg-blue-500'
+                        }`}>
                         {customer.type === 'corporate' ? <Building2 className="w-5 h-5" /> : customer.name.charAt(0)}
                       </div>
                       <div>
@@ -441,9 +440,8 @@ export default function CRMPage() {
             <div className="p-6 border-b border-gray-200">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                  <div className={`w-14 h-14 rounded-full flex items-center justify-center text-white font-bold text-xl ${
-                    selectedCustomer.type === 'corporate' ? 'bg-purple-500' : 'bg-blue-500'
-                  }`}>
+                  <div className={`w-14 h-14 rounded-full flex items-center justify-center text-white font-bold text-xl ${selectedCustomer.type === 'corporate' ? 'bg-purple-500' : 'bg-blue-500'
+                    }`}>
                     {selectedCustomer.type === 'corporate' ? <Building2 className="w-7 h-7" /> : selectedCustomer.name.charAt(0)}
                   </div>
                   <div>

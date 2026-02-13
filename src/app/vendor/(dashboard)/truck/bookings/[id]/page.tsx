@@ -551,7 +551,7 @@ export default function VendorTruckBookingDetailPage() {
                             value={assignForm.driverPhone}
                             onChange={(e) => setAssignForm({ ...assignForm, driverPhone: e.target.value })}
                             className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"
-                            placeholder="9876543210"
+                            placeholder="9737965551"
                           />
                         </div>
                       </div>

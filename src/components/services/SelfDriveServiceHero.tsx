@@ -19,7 +19,7 @@ export function SelfDriveServiceHero() {
           </div>
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 mb-4">
             Drive Yourself - No Driver Needed<br />
-            <span className="bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">Starting @₹899/Day</span>
+            <span className="bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">Starting from ₹899</span>
           </h1>
           <p className="text-lg md:text-xl text-gray-600 max-w-3xl mx-auto mb-8">
             Complete freedom to drive. Choose from Automatic & Manual transmission cars.

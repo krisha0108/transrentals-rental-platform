@@ -63,7 +63,7 @@ const mockFastagCards: FastagCard[] = [
     id: 'FT001',
     vehicleNumber: 'KA-01-AB-1234',
     vehicleName: 'Toyota Innova',
-    fastagId: 'FASTAG-9876543210',
+    fastagId: 'FASTAG-9737965551',
     bankName: 'ICICI Bank',
     balance: 2450,
     status: 'active',
@@ -113,7 +113,7 @@ const mockFastagCards: FastagCard[] = [
 const mockTransactions: TollTransaction[] = [
   {
     id: 'TT001',
-    vehicle: { name: 'Toyota Innova', number: 'KA-01-AB-1234', fastagId: 'FASTAG-9876543210' },
+    vehicle: { name: 'Toyota Innova', number: 'KA-01-AB-1234', fastagId: 'FASTAG-9737965551' },
     tollPlaza: 'Attibele Toll Plaza',
     location: 'Bangalore-Hosur Highway',
     lane: 'ETC Lane 3',
@@ -127,7 +127,7 @@ const mockTransactions: TollTransaction[] = [
   },
   {
     id: 'TT002',
-    vehicle: { name: 'Toyota Innova', number: 'KA-01-AB-1234', fastagId: 'FASTAG-9876543210' },
+    vehicle: { name: 'Toyota Innova', number: 'KA-01-AB-1234', fastagId: 'FASTAG-9737965551' },
     tollPlaza: 'Online Recharge',
     location: '-',
     lane: '-',
@@ -299,11 +299,10 @@ export default function TollManagementPage() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as typeof activeTab)}
-                className={`flex items-center gap-2 px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
-                  activeTab === tab.id
+                className={`flex items-center gap-2 px-6 py-4 text-sm font-medium border-b-2 transition-colors ${activeTab === tab.id
                     ? 'border-blue-600 text-blue-600'
                     : 'border-transparent text-gray-500 hover:text-gray-700'
-                }`}
+                  }`}
               >
                 <tab.icon className="w-4 h-4" />
                 {tab.label}
@@ -407,10 +406,9 @@ export default function TollManagementPage() {
                       {txn.transactionType === 'recharge' ? '+' : '-'}₹{txn.amount}
                     </p>
                     <p className="text-sm text-gray-500">Bal: ₹{txn.balanceAfter}</p>
-                    <span className={`text-xs px-2 py-0.5 rounded ${
-                      txn.status === 'success' ? 'bg-green-100 text-green-700' :
-                      txn.status === 'failed' ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700'
-                    }`}>
+                    <span className={`text-xs px-2 py-0.5 rounded ${txn.status === 'success' ? 'bg-green-100 text-green-700' :
+                        txn.status === 'failed' ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700'
+                      }`}>
                       {txn.status}
                     </span>
                   </div>

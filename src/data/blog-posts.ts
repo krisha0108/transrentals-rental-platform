@@ -155,7 +155,7 @@ Ready to embark on the journey of a lifetime? Book your Royal Enfield or adventu
 - Detailed route maps
 - 24/7 customer support
 
-**Call us:** +91-XXXXXXXXXX | **Book Online:** www.transrentals.com
+**Call us:** +91 9737965551 | **Book Online:** www.transrentals.com
 
 *Make your Leh Ladakh dream a reality with India's most trusted bike rental service!*
     `,
@@ -353,7 +353,7 @@ The Manali to Leh highway is one of the most spectacular road trips in the world
 
 Turn your Himalayan dream into reality! Book your SUV or car rental with TransRentals.
 
-**Call:** +91-XXXXXXXXXX | **WhatsApp:** +91-XXXXXXXXXX
+**Call:** +91 9737965551 | **WhatsApp:** +91 9737965551
 
 *Experience the journey of a lifetime with India's trusted car rental partner!*
     `,
@@ -700,8 +700,8 @@ Your wedding day deserves to be perfect in every way, and choosing the right wed
 
 Make your wedding entry unforgettable with TransRentals' premium wedding car collection.
 
-**Call Now:** +91-XXXXXXXXXX
-**WhatsApp:** +91-XXXXXXXXXX
+**Call Now:** +91 9737965551
+**WhatsApp:** +91 9737965551
 **Email:** weddings@transrentals.com
 
 ### Special Wedding Season Offer:
@@ -1133,7 +1133,7 @@ Ready to explore Goa in style? Book your bike with TransRentals and get:
 - 24/7 roadside assistance
 - Best price guarantee
 
-**Call/WhatsApp:** +91-XXXXXXXXXX
+**Call/WhatsApp:** +91 9737965551
 **Website:** www.transrentals.com/goa-bike-rental
 **Email:** goa@transrentals.com
 
@@ -1674,7 +1674,7 @@ A: Background verification, training, performance monitoring.
 Transform your corporate transportation with TransRentals' smart fleet solutions.
 
 ### Schedule a Consultation:
-**Call:** +91-XXXXXXXXXX
+**Call:** +91 9737965551
 **Email:** corporate@transrentals.com
 **Website:** www.transrentals.com/corporate
 
@@ -2081,7 +2081,7 @@ export const getRelatedPosts = (postId: string, limit: number = 3): BlogPost[] =
     .filter((post) =>
       post.id !== postId &&
       (post.category.id === currentPost.category.id ||
-       post.tags.some((tag) => currentPost.tags.some((t) => t.id === tag.id)))
+        post.tags.some((tag) => currentPost.tags.some((t) => t.id === tag.id)))
     )
     .slice(0, limit);
 };
@@ -2142,7 +2142,7 @@ export const getPostsByCity = (citySlug: string, limit: number = 6): BlogPost[] 
   const cityPosts = blogPosts.filter((post) => {
     const searchText = `${post.title} ${post.excerpt} ${post.content}`.toLowerCase();
     return searchText.includes(citySlug.toLowerCase()) ||
-           searchText.includes(cityName.toLowerCase());
+      searchText.includes(cityName.toLowerCase());
   });
 
   // If we have city-specific posts, return them

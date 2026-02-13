@@ -112,19 +112,19 @@ export default function VendorSupportPage() {
           </div>
           <h3 className="font-semibold text-gray-900">Call Us</h3>
           <p className="text-sm text-gray-500 mt-1">Mon-Sat, 9AM-7PM</p>
-          <a href="tel:+919876543210" className="text-blue-600 font-medium mt-2 block hover:underline">
-            +91 98765 43210
+          <a href="tel:+919737965551" className="text-blue-600 font-medium mt-2 block hover:underline">
+            +91 9737965551
           </a>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm border p-5 hover:shadow-md transition">
-          <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center mb-3">
+        <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm flex flex-col items-center text-center">
+          <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mb-4">
             <MessageSquare className="w-6 h-6 text-green-600" />
           </div>
           <h3 className="font-semibold text-gray-900">WhatsApp</h3>
-          <p className="text-sm text-gray-500 mt-1">Quick responses</p>
+          <p className="text-sm text-gray-500 mt-1">Direct support chat</p>
           <a
-            href="https://wa.me/919876543210"
+            href="https://wa.me/919737965551"
             target="_blank"
             rel="noopener noreferrer"
             className="text-green-600 font-medium mt-2 block hover:underline"
@@ -150,22 +150,20 @@ export default function VendorSupportPage() {
         <div className="flex border-b">
           <button
             onClick={() => setActiveTab('faq')}
-            className={`flex-1 px-4 py-3 text-sm font-medium transition ${
-              activeTab === 'faq'
+            className={`flex-1 px-4 py-3 text-sm font-medium transition ${activeTab === 'faq'
                 ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50/50'
                 : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-            }`}
+              }`}
           >
             <BookOpen className="w-4 h-4 inline mr-2" />
             FAQs
           </button>
           <button
             onClick={() => setActiveTab('ticket')}
-            className={`flex-1 px-4 py-3 text-sm font-medium transition ${
-              activeTab === 'ticket'
+            className={`flex-1 px-4 py-3 text-sm font-medium transition ${activeTab === 'ticket'
                 ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50/50'
                 : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-            }`}
+              }`}
           >
             <FileText className="w-4 h-4 inline mr-2" />
             Raise Ticket

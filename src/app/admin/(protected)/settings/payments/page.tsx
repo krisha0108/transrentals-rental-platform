@@ -167,7 +167,7 @@ export default function PaymentSettingsPage() {
                 placeholder="yourname@upi"
                 className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
               />
-              <p className="text-xs text-gray-500 mt-1">e.g., transrentals@ybl, 9876543210@paytm</p>
+              <p className="text-xs text-gray-500 mt-1">e.g., transrentals@ybl, 9737965551@paytm</p>
             </div>
 
             <div>

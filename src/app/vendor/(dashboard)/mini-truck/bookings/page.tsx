@@ -56,7 +56,7 @@ const SAMPLE_BOOKINGS: MiniTruckBooking[] = [
     pickupDate: new Date(Date.now() + 1 * 86400000).toISOString(),
     pickupTime: '10:00',
     customerName: 'Rahul Sharma',
-    customerPhone: '9876543210',
+    customerPhone: '9737965551',
     totalAmount: 1500,
     status: 'DRIVER_ASSIGNED',
     driverName: 'Raju',
@@ -160,9 +160,8 @@ export default function VendorMiniTruckBookingsPage() {
           <button
             key={f.value}
             onClick={() => setFilter(f.value)}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
-              filter === f.value ? 'bg-orange-100 text-orange-700' : 'bg-gray-100 text-gray-600'
-            }`}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition ${filter === f.value ? 'bg-orange-100 text-orange-700' : 'bg-gray-100 text-gray-600'
+              }`}
           >
             {f.label}
           </button>

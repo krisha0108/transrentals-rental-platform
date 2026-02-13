@@ -58,7 +58,7 @@ const SAMPLE_BOOKINGS: JCBBooking[] = [
     siteLocation: 'Plot No. 45, Industrial Area',
     city: 'Faridabad',
     customerName: 'ABC Builders',
-    customerPhone: '9876543210',
+    customerPhone: '9737965551',
     totalAmount: 84000,
     advancePaid: 42000,
     balanceAmount: 42000,
@@ -162,9 +162,8 @@ export default function VendorJCBBookingsPage() {
           <button
             key={f.value}
             onClick={() => setFilter(f.value)}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
-              filter === f.value ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-600'
-            }`}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition ${filter === f.value ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-600'
+              }`}
           >
             {f.label}
           </button>

@@ -32,7 +32,7 @@ export function OutstationCarRentalServiceHero() {
               </h1>
 
               <p className="text-xl md:text-2xl mb-8 text-pink-100">
-                Starting @₹10/km
+                Starting from ₹10/km
               </p>
 
               <div className="space-y-4 mb-8">

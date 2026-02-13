@@ -32,7 +32,7 @@ export function MiniTruckRentalServiceHero() {
               </h1>
 
               <p className="text-xl md:text-2xl mb-8 text-blue-100">
-                Starting @₹799/day
+                Starting from ₹799
               </p>
 
               <div className="space-y-4 mb-8">

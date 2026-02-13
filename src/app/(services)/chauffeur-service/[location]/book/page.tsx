@@ -201,10 +201,10 @@ function BookingContent({ location }: { location: string }) {
                     <div className="font-semibold text-gray-900">
                       {pickupDate
                         ? new Date(pickupDate).toLocaleDateString('en-IN', {
-                            weekday: 'short',
-                            day: 'numeric',
-                            month: 'short',
-                          })
+                          weekday: 'short',
+                          day: 'numeric',
+                          month: 'short',
+                        })
                         : '-'}{' '}
                       at {pickupTime}
                     </div>
@@ -476,10 +476,10 @@ function BookingContent({ location }: { location: string }) {
               <div className="mt-6 pt-6 border-t text-center">
                 <p className="text-sm text-gray-500">Need help?</p>
                 <a
-                  href="tel:+919876543210"
+                  href="tel:+919737965551"
                   className="text-emerald-600 font-medium hover:underline"
                 >
-                  Call +91 98765 43210
+                  Call +91 9737965551
                 </a>
               </div>
             </div>

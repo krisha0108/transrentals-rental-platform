@@ -86,9 +86,8 @@ export function SearchableSelect({
             {selectedOption ? selectedOption.label : placeholder}
           </span>
           <ChevronDown
-            className={`absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 transition ${
-              isOpen ? 'rotate-180' : ''
-            }`}
+            className={`absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 transition ${isOpen ? 'rotate-180' : ''
+              }`}
           />
         </div>
 
@@ -104,7 +103,7 @@ export function SearchableSelect({
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search..."
-                  className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-md focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                  className="w-full pl-9 pr-3 py-2 text-sm text-gray-900 border border-gray-200 rounded-md focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
                   onClick={(e) => e.stopPropagation()}
                   autoFocus
                 />
@@ -122,9 +121,8 @@ export function SearchableSelect({
                   <button
                     key={option.id}
                     onClick={() => handleSelect(option.id)}
-                    className={`w-full px-4 py-3 text-left hover:bg-amber-50 transition flex items-center justify-between ${
-                      value === option.id ? 'bg-amber-50' : ''
-                    }`}
+                    className={`w-full px-4 py-3 text-left hover:bg-amber-50 transition flex items-center justify-between ${value === option.id ? 'bg-amber-50' : ''
+                      }`}
                   >
                     <div className="flex-1 min-w-0">
                       <div className="font-medium text-gray-900 truncate">

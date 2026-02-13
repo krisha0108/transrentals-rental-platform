@@ -191,16 +191,14 @@ export default function VendorRegisterPage() {
         {/* Progress Steps */}
         <div className="flex items-center justify-center gap-4 mb-8">
           <div className={`flex items-center gap-2 ${step >= 1 ? 'text-blue-600' : 'text-gray-400'}`}>
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-              step >= 1 ? 'bg-blue-600 text-white' : 'bg-gray-200'
-            }`}>1</div>
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${step >= 1 ? 'bg-blue-600 text-white' : 'bg-gray-200'
+              }`}>1</div>
             <span className="hidden sm:block font-medium">Basic Info</span>
           </div>
           <div className={`w-12 h-0.5 ${step >= 2 ? 'bg-blue-600' : 'bg-gray-200'}`} />
           <div className={`flex items-center gap-2 ${step >= 2 ? 'text-blue-600' : 'text-gray-400'}`}>
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-              step >= 2 ? 'bg-blue-600 text-white' : 'bg-gray-200'
-            }`}>2</div>
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${step >= 2 ? 'bg-blue-600 text-white' : 'bg-gray-200'
+              }`}>2</div>
             <span className="hidden sm:block font-medium">Business Details</span>
           </div>
         </div>
@@ -298,7 +296,7 @@ export default function VendorRegisterPage() {
                       name="phone"
                       value={formData.phone}
                       onChange={handleChange}
-                      placeholder="9876543210"
+                      placeholder="9737965551"
                       maxLength={10}
                       className="w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500"
                       required

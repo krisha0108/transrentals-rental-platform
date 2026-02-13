@@ -62,30 +62,64 @@ export async function GET(
         services_vehicle_models_subServiceIdToservices: {
           select: { id: true, name: true, slug: true },
         },
+        chauffeur_vehicle_categories: {
+          select: { id: true, name: true, slug: true },
+        },
       },
       orderBy: [{ displayOrder: 'asc' }, { name: 'asc' }],
       take: limit,
     });
 
     // Transform data for public consumption
-    const fleet = vehicles.map((v) => ({
-      id: v.id,
-      name: v.name,
-      slug: v.slug,
-      brand: v.brands?.name || 'Unknown',
-      brandLogo: v.brands?.logo || null,
-      category: v.services_vehicle_models_subServiceIdToservices?.name || 'Uncategorized',
-      categorySlug: v.services_vehicle_models_subServiceIdToservices?.slug || null,
-      fuelType: v.fuelType,
-      transmission: v.transmission,
-      seatingCapacity: v.seatingCapacity,
-      engineCC: v.engineCC,
-      mileage: v.mileage,
-      image: v.sideImage,
-      specs: v.specs,
-      features: v.features,
-      basePricePerDay: (v as any).basePricePerDay || null,
-    }));
+    const fleet = vehicles.map((v) => {
+      // Logic for category name:
+      // 1. subService (linked from CRM)
+      // 2. chauffeur category (linked from local DB)
+      // 3. bodyType
+      // 4. Fallback to 'Uncategorized'
+      let categoryName = 'Uncategorized';
+      let categorySlug = null;
+
+      if (v.services_vehicle_models_subServiceIdToservices) {
+        categoryName = v.services_vehicle_models_subServiceIdToservices.name;
+        categorySlug = v.services_vehicle_models_subServiceIdToservices.slug;
+      } else if (v.chauffeur_vehicle_categories) {
+        // Only use if not dummy data (check for random strings)
+        const name = v.chauffeur_vehicle_categories.name;
+        if (name && name.length > 3 && !/^[a-z0-9]+$/i.test(name)) {
+          categoryName = name;
+          categorySlug = v.chauffeur_vehicle_categories.slug;
+        } else if (v.bodyType) {
+          categoryName = v.bodyType;
+          categorySlug = v.bodyType.toLowerCase().replace(/\s+/g, '-');
+        } else if (name) {
+          categoryName = name;
+          categorySlug = v.chauffeur_vehicle_categories.slug;
+        }
+      } else if (v.bodyType) {
+        categoryName = v.bodyType;
+        categorySlug = v.bodyType.toLowerCase().replace(/\s+/g, '-');
+      }
+
+      return {
+        id: v.id,
+        name: v.name,
+        slug: v.slug,
+        brand: v.brands?.name || 'Unknown',
+        brandLogo: v.brands?.logo || null,
+        category: categoryName,
+        categorySlug: categorySlug,
+        fuelType: v.fuelType,
+        transmission: v.transmission,
+        seatingCapacity: v.seatingCapacity,
+        engineCC: v.engineCC,
+        mileage: v.mileage,
+        image: v.sideImage,
+        specs: v.specs,
+        features: v.features,
+        basePricePerDay: (v as any).basePricePerDay || null,
+      };
+    });
 
     // Get categories (sub-services) for this service
     const categories = service.other_services.map((c) => ({
