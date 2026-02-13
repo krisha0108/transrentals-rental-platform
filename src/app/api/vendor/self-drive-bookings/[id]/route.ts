@@ -45,15 +45,17 @@ export async function GET(
     // Check if this booking is relevant to this vendor
     // Allow viewing if:
     // 1. Vendor is assigned or accepted
-    // 2. Booking is broadcasted and vendor is in the location
+    // 2. Booking is in a viewable status
     // 3. Vendor is in notifiedVendorIds
     const isAssigned = booking.assignedVendorId === vendor.id;
     const isAccepted = booking.acceptedVendorId === vendor.id;
-    const isBroadcasted = booking.status === 'BROADCASTED';
     const isNotified = Array.isArray(booking.notifiedVendorIds) &&
       (booking.notifiedVendorIds as string[]).includes(vendor.id);
 
-    if (!isAssigned && !isAccepted && !isBroadcasted && !isNotified) {
+    const viewableStatuses = ['PENDING_PAYMENT', 'PAYMENT_SUBMITTED', 'PAYMENT_VERIFIED', 'PENDING_VENDOR', 'BROADCASTED', 'ACCEPTED', 'CONFIRMED', 'READY_FOR_PICKUP', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED', 'EXPIRED', 'REFUNDED'];
+    const isViewableStatus = viewableStatuses.includes(booking.status);
+
+    if (!isAssigned && !isAccepted && !isNotified && !isViewableStatus) {
       return NextResponse.json(
         { error: 'You are not authorized to view this booking' },
         { status: 403 }

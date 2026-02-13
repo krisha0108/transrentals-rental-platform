@@ -18,8 +18,17 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const booking = await prisma.packers_bookings.findUnique({
-      where: { id },
+    const vendor = await prisma.vendors.findFirst({
+      where: { id: auth.vendorId },
+      select: { id: true },
+    });
+
+    if (!vendor) {
+      return NextResponse.json({ error: 'Vendor not found' }, { status: 404 });
+    }
+
+    const booking = await prisma.packers_bookings.findFirst({
+      where: { id, vendorId: vendor.id },
       include: {
         packers_quote_requests: {
           select: {
