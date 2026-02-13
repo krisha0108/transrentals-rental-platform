@@ -28,6 +28,8 @@
     "db:reset": "npx prisma migrate reset",
     "db:update": "npx prisma generate && npx prisma migrate deploy",
     "post-pull": "npm install && npm run db:update",
+    "cleanup:notifications": "tsx scripts/cleanup-notifications.ts",
+    "cleanup:notifications:watch": "nodemon --watch src/lib/cleanup --exec tsx scripts/cleanup-notifications.ts",
     "deploy": "npm install && npx prisma migrate deploy && npx prisma generate && npm run build",
     "deploy:check": "npx prisma migrate status && npm run type-check",
     "audit": "node scripts/audit.js",

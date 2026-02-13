@@ -4,6 +4,8 @@ import { getVendorAuth } from '@/lib/auth/vendor-mobile-auth';
 import { prisma } from '@/lib/db/prisma';
 import { transformPrismaResponse } from '@/lib/utils/api-transform';
 import logger from '@/lib/security/logger';
+import { prepareNotificationData } from '@/lib/utils/notification-helper';
+import { sendNotificationToCustomer } from '@/lib/services/push-notification-service';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,8 +20,17 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const booking = await prisma.packers_bookings.findUnique({
-      where: { id },
+    const vendor = await prisma.vendors.findFirst({
+      where: { id: auth.vendorId },
+      select: { id: true },
+    });
+
+    if (!vendor) {
+      return NextResponse.json({ error: 'Vendor not found' }, { status: 404 });
+    }
+
+    const booking = await prisma.packers_bookings.findFirst({
+      where: { id, vendorId: vendor.id },
       include: {
         packers_quote_requests: {
           select: {
@@ -188,6 +199,67 @@ export async function PATCH(
             where: { id },
             data: updateData,
         });
+
+        // Send notification to customer based on action
+        try {
+            let notificationTitle = '';
+            let notificationBody = '';
+
+            switch (action) {
+                case 'assign_driver':
+                    notificationTitle = '👷 Team Assigned!';
+                    notificationBody = `Your team leader ${data.operatorName} has been assigned for booking #${booking.bookingNumber}. Team will contact you soon.`;
+                    break;
+
+                case 'accept':
+                    notificationTitle = '✅ Booking Accepted!';
+                    notificationBody = `Your packers & movers booking #${booking.bookingNumber} has been accepted by the vendor. We'll notify you once the team is assigned.`;
+                    break;
+
+                case 'reject':
+                    notificationTitle = '❌ Booking Cancelled';
+                    notificationBody = `Your packers & movers booking #${booking.bookingNumber} has been cancelled. ${data.reason ? 'Reason: ' + data.reason : ''}`;
+                    break;
+            }
+
+            if (notificationTitle && notificationBody) {
+                // Save in-app notification
+                await prisma.notifications.create({
+                    data: prepareNotificationData({
+                        customerId: booking.customerId,
+                        title: notificationTitle,
+                        body: notificationBody,
+                        type: 'booking',
+                        serviceType: 'packers',
+                        bookingId: booking.id,
+                        quoteId: null,
+                    }),
+                });
+
+                // Send push notification
+                await sendNotificationToCustomer(
+                    booking.customerId,
+                    {
+                        title: notificationTitle,
+                        body: notificationBody,
+                    },
+                    {
+                        type: 'booking',
+                        bookingId: booking.id,
+                        serviceType: 'packers',
+                    }
+                );
+
+                logger.info('Packers booking notification sent', {
+                    action,
+                    bookingId: booking.id,
+                    customerId: booking.customerId,
+                });
+            }
+        } catch (notifError) {
+            // Log but don't fail the request if notification fails
+            logger.error('Failed to send packers booking notification', notifError);
+        }
 
         return NextResponse.json({
             success: true,

@@ -5,6 +5,7 @@ import { VendorSidebar } from './VendorSidebar';
 import { Menu, Loader2, AlertTriangle } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { useRouter, usePathname } from 'next/navigation';
+import { ToastProvider } from '@/components/ui/toast';
 
 interface VendorLayoutProps {
   children: React.ReactNode;
@@ -137,30 +138,32 @@ export function VendorLayout({ children }: VendorLayoutProps) {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <VendorSidebar
-        isOpen={sidebarOpen}
-        onClose={() => setSidebarOpen(false)}
-        vendorStatus={vendorStatus ?? undefined}
-        approvedServiceIds={approvedServiceIds}
-        approvedServiceSlugs={approvedServiceSlugs}
-      />
+    <ToastProvider>
+      <div className="min-h-screen bg-gray-50">
+        <VendorSidebar
+          isOpen={sidebarOpen}
+          onClose={() => setSidebarOpen(false)}
+          vendorStatus={vendorStatus ?? undefined}
+          approvedServiceIds={approvedServiceIds}
+          approvedServiceSlugs={approvedServiceSlugs}
+        />
 
-      <div className="lg:pl-64">
-        {/* Mobile menu button only */}
-        <div className="lg:hidden sticky top-0 z-30 bg-white border-b border-gray-200 px-4 py-3">
-          <button
-            onClick={() => setSidebarOpen(true)}
-            className="p-2 hover:bg-gray-100 rounded-lg transition"
-          >
-            <Menu className="w-6 h-6 text-gray-700" />
-          </button>
+        <div className="lg:pl-64">
+          {/* Mobile menu button only */}
+          <div className="lg:hidden sticky top-0 z-30 bg-white border-b border-gray-200 px-4 py-3">
+            <button
+              onClick={() => setSidebarOpen(true)}
+              className="p-2 hover:bg-gray-100 rounded-lg transition"
+            >
+              <Menu className="w-6 h-6 text-gray-700" />
+            </button>
+          </div>
+
+          <main className="p-6">
+            {children}
+          </main>
         </div>
-
-        <main className="p-6">
-          {children}
-        </main>
       </div>
-    </div>
+    </ToastProvider>
   );
 }

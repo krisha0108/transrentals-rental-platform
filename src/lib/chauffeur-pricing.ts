@@ -1,6 +1,8 @@
 // Chauffeur/Car Rental with Driver Pricing Configuration
 // Savaari-style pricing model
 
+import { calculateTotalDays } from './utils';
+
 export type TripType = 'local' | 'outstation' | 'airport';
 export type OutstationMode = 'one-way' | 'round-trip';
 export type AirportMode = 'pickup' | 'drop';
@@ -214,14 +216,16 @@ export function calculateOutstationFare(
   mode: OutstationMode,
   distance: number,
   pickupDate: Date,
-  returnDate?: Date
+  returnDate?: Date,
+  pickupTime?: string,
+  returnTime?: string
 ): OutstationFareResult | null {
   const car = CAR_CATEGORIES.find((c) => c.id === carId);
   if (!car) return null;
 
-  // Calculate days
-  const days = returnDate
-    ? Math.max(1, Math.ceil((returnDate.getTime() - pickupDate.getTime()) / (1000 * 60 * 60 * 24)))
+  // Calculate days with proper time precision
+  const days = returnDate && pickupTime
+    ? calculateTotalDays(pickupDate, pickupTime, returnDate, returnTime || pickupTime)
     : 1;
 
   // Calculate total km

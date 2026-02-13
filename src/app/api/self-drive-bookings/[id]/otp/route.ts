@@ -1,6 +1,8 @@
 // @ts-nocheck
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
+import { sendNotificationToCustomer } from '@/lib/services/push-notification-service';
+import crypto from 'crypto';
 
 import logger from '@/lib/security/logger';
 export const dynamic = 'force-dynamic';
@@ -73,8 +75,48 @@ async function generateAndSendOTP(booking: any) {
     },
   });
 
-  // TODO: Send OTP via SMS to customer
-  // await sendSMS(booking.customerPhone, `Your OTP for car pickup is: ${otp}`);
+  // Send OTP notification to customer
+  try {
+    const notificationId = 'NOTIF_' + crypto.randomBytes(8).toString('hex');
+    await prisma.notifications.create({
+      data: {
+        id: notificationId,
+        customerId: booking.customerId,
+        title: '🔑 Trip Start OTP',
+        body: `Your OTP for car pickup is: ${otp}. Valid for 15 minutes.`,
+        type: 'booking',
+        serviceType: 'self-drive',
+        bookingId: booking.id,
+        isRead: false,
+      },
+    });
+    console.log('✅ Self-drive OTP in-app notification created:', notificationId);
+
+    console.log('📤 Sending self-drive OTP push notification to customer:', booking.customerId);
+    const pushResult = await sendNotificationToCustomer(
+      booking.customerId,
+      {
+        title: '🔑 Trip Start OTP',
+        body: `Your OTP for car pickup is: ${otp}. Valid for 15 minutes.`,
+      },
+      {
+        type: 'otp',
+        serviceType: 'self-drive',
+        bookingId: booking.id,
+        otp: otp,
+        expiresAt: otpExpiry.toISOString(),
+      }
+    );
+
+    if (pushResult.success) {
+      console.log('✅ Self-drive OTP push notification sent successfully:', pushResult.messageId);
+    } else {
+      console.error('❌ Self-drive OTP push notification failed:', pushResult.error);
+    }
+  } catch (notificationError: any) {
+    console.error('❌ Self-drive OTP notification error:', notificationError);
+    logger.error('Failed to send self-drive OTP notification', notificationError);
+  }
 
   return NextResponse.json({
     success: true,
@@ -153,6 +195,48 @@ export async function POST(
         },
       });
 
+      // Send trip started notification
+      try {
+        const notificationId = 'NOTIF_' + crypto.randomBytes(8).toString('hex');
+        await prisma.notifications.create({
+          data: {
+            id: notificationId,
+            customerId: booking.customerId,
+            title: '🚗 Trip Started!',
+            body: `Your self-drive car rental has started! Enjoy your ride and drive safe! 🛣️`,
+            type: 'booking',
+            serviceType: 'self-drive',
+            bookingId: booking.id,
+            isRead: false,
+          },
+        });
+        console.log('✅ Self-drive trip started in-app notification created:', notificationId);
+
+        console.log('📤 Sending self-drive trip started push notification to customer:', booking.customerId);
+        const pushResult = await sendNotificationToCustomer(
+          booking.customerId,
+          {
+            title: '🚗 Trip Started!',
+            body: `Your self-drive car rental has started! Enjoy your ride and drive safe! 🛣️`,
+          },
+          {
+            type: 'trip_started',
+            serviceType: 'self-drive',
+            bookingId: booking.id,
+            bookingNumber: updatedBooking.bookingNumber || '',
+          }
+        );
+
+        if (pushResult.success) {
+          console.log('✅ Self-drive trip started push notification sent successfully:', pushResult.messageId);
+        } else {
+          console.error('❌ Self-drive trip started push notification failed:', pushResult.error);
+        }
+      } catch (notificationError: any) {
+        console.error('❌ Self-drive trip started notification error:', notificationError);
+        logger.error('Failed to send self-drive trip started notification', notificationError);
+      }
+
       return NextResponse.json({
         success: true,
         message: 'Trip started successfully',
@@ -211,6 +295,48 @@ export async function POST(
         where: { id: booking.id },
         data: updateData,
       });
+
+      // Send trip completion notification
+      try {
+        const notificationId = 'NOTIF_' + crypto.randomBytes(8).toString('hex');
+        await prisma.notifications.create({
+          data: {
+            id: notificationId,
+            customerId: booking.customerId,
+            title: '🎉 Trip Completed Successfully!',
+            body: `Your self-drive rental is complete! Hope you enjoyed the journey! 🚗 Book again for your next trip! ✨`,
+            type: 'booking',
+            serviceType: 'self-drive',
+            bookingId: booking.id,
+            isRead: false,
+          },
+        });
+        console.log('✅ Self-drive trip completed in-app notification created:', notificationId);
+
+        console.log('📤 Sending self-drive trip completed push notification to customer:', booking.customerId);
+        const pushResult = await sendNotificationToCustomer(
+          booking.customerId,
+          {
+            title: '🎉 Trip Completed Successfully!',
+            body: `Your self-drive rental is complete! Hope you enjoyed the journey! 🚗 Book again for your next trip! ✨`,
+          },
+          {
+            type: 'trip_completed',
+            serviceType: 'self-drive',
+            bookingId: booking.id,
+            bookingNumber: updatedBooking.bookingNumber || '',
+          }
+        );
+
+        if (pushResult.success) {
+          console.log('✅ Self-drive trip completed push notification sent successfully:', pushResult.messageId);
+        } else {
+          console.error('❌ Self-drive trip completed push notification failed:', pushResult.error);
+        }
+      } catch (notificationError: any) {
+        console.error('❌ Self-drive trip completed notification error:', notificationError);
+        logger.error('Failed to send self-drive trip completed notification', notificationError);
+      }
 
       return NextResponse.json({
         success: true,

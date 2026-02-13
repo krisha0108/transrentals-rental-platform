@@ -62,7 +62,7 @@ export async function GET(
     const hasApprovedLocation = approvedLocationIds.includes(booking.locationId);
 
     // Statuses that allow vendor viewing with approved location
-    const viewableStatuses = ['BROADCASTED', 'PENDING_VENDOR', 'PAYMENT_VERIFIED', 'ACCEPTED', 'READY_FOR_PICKUP', 'IN_PROGRESS', 'COMPLETED'];
+    const viewableStatuses = ['PENDING_PAYMENT', 'PAYMENT_SUBMITTED', 'PAYMENT_VERIFIED', 'PENDING_VENDOR', 'BROADCASTED', 'ACCEPTED', 'CONFIRMED', 'READY_FOR_PICKUP', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED', 'EXPIRED', 'REFUNDED'];
 
     // Vendor can view if:
     // 1. They are the assigned vendor

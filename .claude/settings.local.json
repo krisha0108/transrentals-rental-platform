@@ -158,7 +158,14 @@
       "Bash(tail:*)",
       "Bash(git diff:*)",
       "Bash(do echo \"=== $table ===\")",
-      "Bash(npx kill-port 3000)"
+      "Bash(npx kill-port 3000)",
+      "Bash(do)",
+      "Bash(if grep -q \"from ''@/lib/utils/duration''\" \"$file\")",
+      "Bash(then)",
+      "Bash(else)",
+      "Bash(file=\"src/app/api/$api-quote-requests/route.ts\")",
+      "Bash(if grep -q \"Math.ceil.*getTime.*60.*24\" \"$file\")",
+      "Bash(__NEW_LINE_39814c82807ef28d__ if grep -q \"from ''@/lib/utils/duration''\" \"$file\")"
     ],
     "deny": [],
     "ask": []

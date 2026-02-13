@@ -1324,23 +1324,6 @@ export default function BookingDetailScreen({ route, navigation }) {
         {/* Trip Management Actions - For Car Rental */}
         {serviceType === 'car' && (
           <>
-            {/* Start Trip Button */}
-            {booking.status === 'DRIVER_ASSIGNED' && booking.driverName && (
-              <View style={styles.card}>
-                <TouchableOpacity
-                  style={[styles.actionButton, styles.startTripButton]}
-                  onPress={() => setShowStartTripModal(true)}
-                  disabled={actionLoading}
-                >
-                  <Icon name="play-circle" size={20} color="#fff" />
-                  <Text style={styles.actionButtonText}>Start Trip</Text>
-                </TouchableOpacity>
-                <Text style={styles.otpHintText}>
-                  Ask customer for the Start Trip OTP before beginning the journey
-                </Text>
-              </View>
-            )}
-
             {/* End Trip Button */}
             {booking.status === 'IN_PROGRESS' && (
               <View style={styles.card}>
@@ -1394,66 +1377,6 @@ export default function BookingDetailScreen({ route, navigation }) {
 
         <View style={{ height: 40 }} />
       </ScrollView>
-
-      {/* Start Trip OTP Modal */}
-      <Modal
-        visible={showStartTripModal}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setShowStartTripModal(false)}
-      >
-        <View style={styles.otpModalOverlay}>
-          <View style={styles.otpModalContent}>
-            <View style={styles.otpModalHeader}>
-              <Text style={styles.otpModalTitle}>Start Trip</Text>
-              <TouchableOpacity onPress={() => setShowStartTripModal(false)}>
-                <Icon name="x" size={24} color={C.text} />
-              </TouchableOpacity>
-            </View>
-
-            <Text style={styles.otpModalDescription}>
-              Ask the customer for the Start Trip OTP to begin the journey
-            </Text>
-
-            <View style={styles.otpInputContainer}>
-              <Text style={styles.manualInputLabel}>Enter OTP *</Text>
-              <TextInput
-                style={styles.otpInput}
-                placeholder="Enter 6-digit OTP"
-                value={startTripOtp}
-                onChangeText={setStartTripOtp}
-                keyboardType="number-pad"
-                maxLength={6}
-                autoFocus={true}
-              />
-            </View>
-
-            <View style={styles.otpModalActions}>
-              <TouchableOpacity
-                style={[styles.formButton, styles.cancelButton]}
-                onPress={() => {
-                  setShowStartTripModal(false);
-                  setStartTripOtp('');
-                }}
-              >
-                <Text style={styles.cancelButtonText}>Cancel</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.formButton, styles.submitButton, { flex: 1 }]}
-                onPress={handleStartTrip}
-                disabled={actionLoading || startTripOtp.length !== 6}
-              >
-                {actionLoading ? (
-                  <ActivityIndicator size="small" color="#fff" />
-                ) : (
-                  <Text style={styles.submitButtonText}>Start Trip</Text>
-                )}
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
 
       {/* End Trip Modal */}
       <Modal

@@ -4,6 +4,8 @@ import { getVendorAuth } from '@/lib/auth/vendor-mobile-auth';
 import { prisma } from '@/lib/db/prisma';
 import { transformPrismaResponse } from '@/lib/utils/api-transform';
 import logger from '@/lib/security/logger';
+import { prepareNotificationData } from '@/lib/utils/notification-helper';
+import { sendNotificationToCustomer } from '@/lib/services/push-notification-service';
 
 export const dynamic = 'force-dynamic';
 
@@ -83,6 +85,49 @@ export async function POST(
         teamLeaderPhone,
       },
     });
+
+    // Send notification to customer
+    try {
+      const vehicleInfo = vehicleNumbers || vehicleNumber ? ` Vehicle: ${vehicleNumbers || vehicleNumber}.` : '';
+      const notificationTitle = '👷 Team Assigned!';
+      const notificationBody = `Your team leader ${teamLeaderName} has been assigned for booking #${booking.bookingNumber}.${vehicleInfo} Team will contact you soon.`;
+
+      // Save in-app notification
+      await prisma.notifications.create({
+        data: prepareNotificationData({
+          customerId: booking.customerId,
+          title: notificationTitle,
+          body: notificationBody,
+          type: 'booking',
+          serviceType: 'packers',
+          bookingId: booking.id,
+          quoteId: null,
+        }),
+      });
+
+      // Send push notification
+      await sendNotificationToCustomer(
+        booking.customerId,
+        {
+          title: notificationTitle,
+          body: notificationBody,
+        },
+        {
+          type: 'booking',
+          bookingId: booking.id,
+          serviceType: 'packers',
+        }
+      );
+
+      logger.info('Team assignment notification sent', {
+        bookingId: booking.id,
+        customerId: booking.customerId,
+        teamLeader: teamLeaderName,
+      });
+    } catch (notifError) {
+      // Log but don't fail the request if notification fails
+      logger.error('Failed to send team assignment notification', notifError);
+    }
 
     return NextResponse.json({
       success: true,

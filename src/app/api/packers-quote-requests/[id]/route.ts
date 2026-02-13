@@ -63,7 +63,13 @@ export async function GET(
       data: { status: 'VIEWED', viewedAt: new Date() },
     });
 
-    return NextResponse.json({ success: true, quoteRequest });
+    // Map packers_quotes to quotes for React Native compatibility
+    const formattedQuoteRequest = {
+      ...quoteRequest,
+      quotes: quoteRequest.packers_quotes || [],
+    };
+
+    return NextResponse.json({ success: true, quoteRequest: formattedQuoteRequest });
   } catch (error: any) {
     logger.error('Failed to fetch packers quote request', error);
     return NextResponse.json({ error: 'Failed to fetch request', details: error?.message }, { status: 500 });

@@ -116,17 +116,17 @@ export default function VendorNotificationsPage() {
   const getTypeIcon = (type: string) => {
     switch (type) {
       case 'booking':
-        return <Calendar className="w-5 h-5 text-blue-600" />;
+        return <Calendar className="w-9 h-9 text-blue-600" />;
       case 'review':
-        return <Star className="w-5 h-5 text-yellow-500" />;
+        return <Star className="w-9 h-9 text-yellow-500" />;
       case 'payment':
-        return <CreditCard className="w-5 h-5 text-green-600" />;
+        return <CreditCard className="w-9 h-9 text-green-600" />;
       case 'payout':
-        return <CreditCard className="w-5 h-5 text-purple-600" />;
+        return <CreditCard className="w-9 h-9 text-purple-600" />;
       case 'system':
-        return <Settings className="w-5 h-5 text-gray-600" />;
+        return <Settings className="w-9 h-9 text-gray-600" />;
       default:
-        return <Bell className="w-5 h-5 text-gray-600" />;
+        return <Bell className="w-9 h-9 text-gray-600" />;
     }
   };
 
@@ -179,29 +179,29 @@ export default function VendorNotificationsPage() {
   }
 
   return (
-    <div className="p-6 max-w-4xl mx-auto">
+    <div className="p-6 max-w-5xl mx-auto">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Notifications</h1>
-          <p className="text-gray-600 mt-1">
+          <h1 className="text-4xl font-bold text-gray-900 mb-2">Notifications</h1>
+          <p className="text-lg text-gray-600">
             {unreadCount > 0
               ? `You have ${unreadCount} unread notification${unreadCount > 1 ? 's' : ''}`
-              : 'All caught up!'}
+              : 'All caught up! 🎉'}
           </p>
         </div>
         <button
           onClick={fetchNotifications}
-          className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition"
+          className="p-3 text-gray-600 hover:bg-gray-100 rounded-xl transition shadow-sm"
           title="Refresh"
         >
-          <RefreshCw className="w-5 h-5" />
+          <RefreshCw className="w-6 h-6" />
         </button>
       </div>
 
       {/* Filter Bar */}
-      <div className="flex items-center justify-between mb-6 bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-        <div className="flex flex-wrap gap-2">
+      <div className="flex items-center justify-between mb-8 bg-white rounded-2xl shadow-md border border-gray-200 p-6">
+        <div className="flex flex-wrap gap-3">
           {[
             { id: 'all', label: 'All' },
             { id: 'unread', label: 'Unread' },
@@ -213,15 +213,15 @@ export default function VendorNotificationsPage() {
             <button
               key={f.id}
               onClick={() => setFilter(f.id)}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition ${
+              className={`px-5 py-2.5 rounded-xl text-base font-semibold transition-all ${
                 filter === f.id
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md transform scale-105'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200 hover:scale-105'
               }`}
             >
               {f.label}
               {f.id === 'unread' && unreadCount > 0 && (
-                <span className="ml-1.5 px-1.5 py-0.5 bg-white/20 rounded text-xs">
+                <span className="ml-2 px-2 py-1 bg-white/30 rounded-lg text-sm font-bold">
                   {unreadCount}
                 </span>
               )}
@@ -231,9 +231,9 @@ export default function VendorNotificationsPage() {
         {unreadCount > 0 && (
           <button
             onClick={handleMarkAllRead}
-            className="text-sm text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1"
+            className="text-base text-blue-600 hover:text-blue-700 font-semibold flex items-center gap-2 hover:scale-105 transition-transform"
           >
-            <CheckCheck className="w-4 h-4" />
+            <CheckCheck className="w-5 h-5" />
             Mark all read
           </button>
         )}
@@ -269,14 +269,16 @@ export default function VendorNotificationsPage() {
       )}
 
       {/* Notifications List */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+      <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
         {filteredNotifications.length === 0 ? (
-          <div className="p-12 text-center">
-            <Bell className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900">No notifications</h3>
-            <p className="text-gray-500">
+          <div className="p-16 text-center">
+            <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
+              <Bell className="w-14 h-14 text-gray-400" />
+            </div>
+            <h3 className="text-2xl font-bold text-gray-900 mb-2">No notifications</h3>
+            <p className="text-lg text-gray-500">
               {filter === 'all'
-                ? "You're all caught up!"
+                ? "You're all caught up! 🎉"
                 : `No ${filter} notifications`}
             </p>
           </div>
@@ -296,63 +298,61 @@ export default function VendorNotificationsPage() {
             </div>
 
             {/* Notification Items */}
-            <div className="divide-y divide-gray-100">
+            <div className="divide-y divide-gray-200">
               {filteredNotifications.map(notification => (
                 <div
                   key={notification.id}
-                  className={`p-4 hover:bg-gray-50 transition ${
-                    !notification.read ? 'bg-blue-50/50' : ''
+                  className={`p-7 hover:bg-gray-50 transition-all duration-200 ${
+                    !notification.read ? 'bg-gradient-to-r from-blue-50 to-indigo-50 border-l-[6px] border-blue-600 shadow-sm' : ''
                   }`}
                 >
-                  <div className="flex items-start gap-4">
-                    <label className="flex items-center cursor-pointer pt-1">
+                  <div className="flex items-start gap-6">
+                    <label className="flex items-center cursor-pointer pt-3">
                       <input
                         type="checkbox"
                         checked={selectedIds.includes(notification.id)}
                         onChange={() => toggleSelect(notification.id)}
-                        className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                       />
                     </label>
                     <div
-                      className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${getTypeBgColor(
+                      className={`w-20 h-20 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-md ${getTypeBgColor(
                         notification.type
-                      )}`}
+                      )} ${!notification.read ? 'ring-2 ring-blue-400 ring-offset-2' : ''}`}
                     >
                       {getTypeIcon(notification.type)}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between gap-4">
-                        <div>
-                          <h4
-                            className={`font-medium ${
-                              !notification.read ? 'text-gray-900' : 'text-gray-700'
-                            }`}
-                          >
-                            {notification.title}
-                            {!notification.read && (
-                              <span className="ml-2 inline-block w-2 h-2 bg-blue-600 rounded-full"></span>
-                            )}
-                          </h4>
-                          <p className="text-sm text-gray-600 mt-0.5">
-                            {notification.message}
-                          </p>
-                        </div>
-                        <span className="text-xs text-gray-500 whitespace-nowrap">
+                      <div className="flex items-start justify-between gap-4 mb-3">
+                        <h4
+                          className={`text-2xl font-bold leading-tight ${
+                            !notification.read ? 'text-gray-900' : 'text-gray-700'
+                          }`}
+                        >
+                          {notification.title}
+                          {!notification.read && (
+                            <span className="ml-3 inline-block w-3 h-3 bg-blue-600 rounded-full animate-pulse shadow-lg"></span>
+                          )}
+                        </h4>
+                        <span className="text-base text-gray-500 whitespace-nowrap font-semibold bg-gray-100 px-3 py-1 rounded-full">
                           {getRelativeTime(notification.createdAt)}
                         </span>
                       </div>
+                      <p className="text-lg text-gray-700 leading-relaxed line-clamp-3 mb-4">
+                        {notification.message}
+                      </p>
                       {(notification.bookingId || notification.reviewId) && (
-                        <div className="mt-2">
+                        <div className="mt-4">
                           <a
                             href={
                               notification.bookingId
                                 ? `/vendor/bookings?id=${notification.bookingId}`
                                 : `/vendor/reviews`
                             }
-                            className="text-sm text-blue-600 hover:text-blue-700 font-medium inline-flex items-center gap-1"
+                            className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white text-base font-semibold rounded-xl transition-all shadow-md hover:shadow-lg transform hover:scale-105"
                           >
                             View details
-                            <ChevronRight className="w-4 h-4" />
+                            <ChevronRight className="w-5 h-5" />
                           </a>
                         </div>
                       )}

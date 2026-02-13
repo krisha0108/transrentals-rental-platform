@@ -1,6 +1,8 @@
 // Luxury Car Rental Pricing Configuration
 // Premium chauffeur-driven luxury vehicles
 
+import { calculateTotalDays } from './utils';
+
 export type TripType = 'local' | 'outstation' | 'airport';
 export type OutstationMode = 'one-way' | 'round-trip';
 export type AirportMode = 'pickup' | 'drop';
@@ -247,13 +249,16 @@ export function calculateLuxuryOutstationFare(
   mode: OutstationMode,
   distance: number,
   pickupDate: Date,
-  returnDate?: Date
+  returnDate?: Date,
+  pickupTime?: string,
+  returnTime?: string
 ): LuxuryOutstationFareResult | null {
   const car = LUXURY_CAR_CATEGORIES.find((c) => c.id === carId);
   if (!car) return null;
 
-  const days = returnDate
-    ? Math.max(1, Math.ceil((returnDate.getTime() - pickupDate.getTime()) / (1000 * 60 * 60 * 24)))
+  // Calculate days with proper time precision
+  const days = returnDate && pickupTime
+    ? calculateTotalDays(pickupDate, pickupTime, returnDate, returnTime || pickupTime)
     : 1;
 
   const totalKm = mode === 'round-trip' ? distance * 2 : distance;

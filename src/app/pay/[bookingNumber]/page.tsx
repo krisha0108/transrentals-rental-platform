@@ -76,21 +76,13 @@ export default function PaymentPage() {
       let bookingData = null;
       let bookingType: 'car' | 'chauffeur' = 'chauffeur';
 
-      if (bookingNumber.startsWith('CR-')) {
+      // Support both CR (old) and CB (new) prefixes for backward compatibility
+      if (bookingNumber.startsWith('CR-') || bookingNumber.startsWith('CB-')) {
         const carRentalRes = await fetch(`/api/car-rental/bookings/${bookingNumber}`);
         const carRentalData = await carRentalRes.json();
         if (carRentalData.success) {
           bookingData = carRentalData;
           bookingType = 'chauffeur';
-        }
-      } else {
-        const carRes = await fetch(`/api/car-bookings/${bookingNumber}`);
-        if (carRes.ok) {
-          const carData = await carRes.json();
-          if (carData.success) {
-            bookingData = carData;
-            bookingType = 'car';
-          }
         }
       }
 
@@ -157,8 +149,9 @@ export default function PaymentPage() {
     setError('');
 
     try {
+      // Support both CR (old) and CB (new) prefixes for backward compatibility
       let apiUrl: string;
-      if (bookingNumber.startsWith('CR-')) {
+      if (bookingNumber.startsWith('CR-') || bookingNumber.startsWith('CB-')) {
         apiUrl = `/api/car-rental/bookings/${bookingNumber}/payment`;
       } else {
         apiUrl = `/api/car-bookings/${bookingNumber}/payment`;

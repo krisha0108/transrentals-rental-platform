@@ -362,7 +362,7 @@ export async function POST(request: NextRequest) {
       return newQuote;
     });
 
-    // Create notification for customer (outside transaction)
+    // Create notification for customer (outside transaction) - Store requestId so customer can fetch request details
     try {
       await prisma.notifications.create({
         data: {
@@ -370,11 +370,12 @@ export async function POST(request: NextRequest) {
           title: '🏗️ New Equipment Quote Received!',
           body: `${vendor.businessName} has sent you a quote for ${equipmentName}. Total: ₹${totalAmount}. Valid till ${validTill.toLocaleDateString()}.`,
           type: 'quote',
-          quoteId: quote.id,
+          serviceType: 'equipment',
+          quoteId: requestId, // Use requestId for navigation
           isRead: false,
         },
       });
-      logger.info('Notification created for equipment quote', { quoteId: quote.id, customerId: quoteRequest.customerId });
+      logger.info('Notification created for equipment quote', { requestId, quoteId: quote.id, customerId: quoteRequest.customerId });
     } catch (notifError) {
       logger.error('Failed to create notification for equipment quote', notifError);
     }

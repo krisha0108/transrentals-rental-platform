@@ -186,6 +186,7 @@ export async function POST(request: NextRequest) {
 
       // Pricing
       dailyRate,
+      totalPrice,
       securityDeposit,
       platformFee = 0, // Removed platform fee
       gstPercent = 0,  // Removed GST
@@ -363,6 +364,7 @@ export async function POST(request: NextRequest) {
         vehicleImages: finalVehicleImages ? JSON.stringify(finalVehicleImages) : null,
         vehicleFeatures: vehicleFeatures ? JSON.stringify(vehicleFeatures) : null,
         dailyRate,
+        totalPrice: totalPrice || null,
         baseAmount,
         gstAmount: 0,
         platformFee: 0,
@@ -394,7 +396,7 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Create notification for customer
+    // Create notification for customer - Store requestId so customer can fetch request details
     try {
       await prisma.notifications.create({
         data: {
@@ -402,11 +404,12 @@ export async function POST(request: NextRequest) {
           title: '🚗 New Self-Drive Quote Received!',
           body: `${vendor.businessName} has sent you a quote for ${vehicleName}. Daily rate: ₹${dailyRate}. Total: ₹${grandTotal}. Valid till ${validTill.toLocaleDateString()}.`,
           type: 'quote',
-          quoteId: quote.id,
+          serviceType: 'self-drive',
+          quoteId: requestId, // Use requestId for navigation
           isRead: false,
         },
       });
-      logger.info('Notification created for self-drive quote', { quoteId: quote.id, customerId: quoteRequest.customerId });
+      logger.info('Notification created for self-drive quote', { requestId, quoteId: quote.id, customerId: quoteRequest.customerId });
     } catch (notifError) {
       // Log but don't fail the request if notification creation fails
       logger.error('Failed to create notification for self-drive quote', notifError);

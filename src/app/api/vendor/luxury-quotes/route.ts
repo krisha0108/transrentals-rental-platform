@@ -3,6 +3,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getVendorAuth } from '@/lib/auth/vendor-mobile-auth';
 import { prisma } from '@/lib/db/prisma';
 import { transformPrismaResponse } from '@/lib/utils/api-transform';
+import { prepareNotificationData } from '@/lib/utils/notification-helper';
+import { sendNotificationToCustomer } from '@/lib/services/push-notification-service';
 import crypto from 'crypto';
 
 import logger from '@/lib/security/logger';
@@ -396,21 +398,46 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Create notification for customer
+    // Send notification to customer
     try {
+      const notificationTitle = '🚗 New Luxury Car Quote Received!';
+      const notificationBody = `${vendor.businessName} has sent you a quote for ${vehicleName}. Total: ₹${totalAmount.toLocaleString()}. Valid till ${validTill.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}. View now!`;
+
+      // Save in-app notification
+      // NOTE: Store requestId in quoteId field so customer app can navigate to request details page
       await prisma.notifications.create({
-        data: {
+        data: prepareNotificationData({
           customerId: quoteRequest.customerId,
-          title: '🚗 New Luxury Car Quote Received!',
-          body: `${vendor.businessName} has sent you a quote for ${vehicleName}. Total: ₹${totalAmount}. Valid till ${validTill.toLocaleDateString()}.`,
+          title: notificationTitle,
+          body: notificationBody,
           type: 'quote',
-          quoteId: quote.id,
-          isRead: false,
-        },
+          serviceType: 'luxury',
+          quoteId: requestId, // Store request ID so customer can fetch request details
+          bookingId: null,
+        }),
       });
-      logger.info('Notification created for luxury quote', { quoteId: quote.id, customerId: quoteRequest.customerId });
+
+      // Send push notification
+      await sendNotificationToCustomer(
+        quoteRequest.customerId,
+        {
+          title: notificationTitle,
+          body: notificationBody,
+        },
+        {
+          type: 'quote',
+          requestId: requestId, // Request ID for navigation
+          quoteId: quote.id, // Actual quote ID for reference
+          quoteNumber: quote.quoteNumber,
+          action: 'quote_received',
+          vehicleName,
+        }
+      );
+
+      logger.info(`Notification sent for luxury quote - Quote: ${quote.quoteNumber}, Request: ${requestId}, Customer: ${quoteRequest.customerId}`);
     } catch (notifError) {
-      logger.error('Failed to create notification for luxury quote', notifError);
+      // Log error but don't fail the request
+      logger.error('Failed to send luxury quote notification', notifError);
     }
 
     return NextResponse.json({

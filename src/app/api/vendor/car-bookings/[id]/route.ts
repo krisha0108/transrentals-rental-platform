@@ -51,15 +51,19 @@ export async function GET(
     // Check if vendor is authorized to view this booking
     const isAssigned = booking.assignedVendorId === vendor.id;
     const isAccepted = booking.acceptedVendorId === vendor.id;
+    const notifiedVendors = (booking.notifiedVendorIds as string[] | null) || [];
+    const isNotified = notifiedVendors.includes(vendor.id);
 
-    // For car rental (chauffeur), allow viewing of broadcasted bookings
-    const isBroadcasted = ['BROADCASTED', 'PENDING_VENDOR'].includes(booking.status) && !booking.acceptedVendorId;
+    // Statuses that allow vendor viewing
+    const viewableStatuses = ['PENDING_PAYMENT', 'PAYMENT_SUBMITTED', 'PAYMENT_VERIFIED', 'PENDING_VENDOR', 'BROADCASTED', 'ACCEPTED', 'CONFIRMED', 'READY_FOR_PICKUP', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED', 'EXPIRED', 'REFUNDED'];
+    const isViewableStatus = viewableStatuses.includes(booking.status);
 
     // Vendor can view if:
     // 1. They are the assigned vendor
     // 2. They accepted the booking
-    // 3. Booking is broadcasted (open for all)
-    const canView = isAssigned || isAccepted || isBroadcasted;
+    // 3. They were notified about the booking
+    // 4. Booking is in a viewable status
+    const canView = isAssigned || isAccepted || isNotified || isViewableStatus;
 
     if (!canView) {
       return NextResponse.json(

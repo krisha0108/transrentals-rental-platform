@@ -45,14 +45,14 @@ const NotificationScreen = () => {
     else setRefreshing(true);
 
     try {
-      console.log('[NotificationScreen] Fetching notifications...');
+      // console.log('[NotificationScreen] Fetching notifications...');
       const response = await notificationService.getNotifications();
-      console.log('[NotificationScreen] API Response:', JSON.stringify(response, null, 2));
+      // console.log('[NotificationScreen] API Response:', JSON.stringify(response, null, 2));
 
       if (response.success) {
         const notifs = response.notifications || [];
-        console.log(`[NotificationScreen] Loaded ${notifs.length} notifications`);
-        console.log(`[NotificationScreen] Unread count: ${notifs.filter(n => !n.is_read).length}`);
+        // console.log(`[NotificationScreen] Loaded ${notifs.length} notifications`);
+        // console.log(`[NotificationScreen] Unread count: ${notifs.filter(n => !n.is_read).length}`);
 
         setNotifications(notifs);
 
@@ -70,11 +70,11 @@ const NotificationScreen = () => {
           }),
         ]).start();
       } else {
-        console.log('[NotificationScreen] API returned success: false');
+        // console.log('[NotificationScreen] API returned success: false');
       }
     } catch (error) {
-      console.log('[NotificationScreen] Failed to load notifications:', error);
-      console.log('[NotificationScreen] Error details:', error.message);
+      // console.log('[NotificationScreen] Failed to load notifications:', error);
+      // console.log('[NotificationScreen] Error details:', error.message);
     } finally {
       if (!isRefresh) setLoading(false);
       setRefreshing(false);
@@ -184,7 +184,7 @@ const NotificationScreen = () => {
 const handlePress = async () => {
   try {
     // Mark notification as read first
-    console.log(`[NotificationScreen] Marking notification ${item.id} as read`);
+    // console.log(`[NotificationScreen] Marking notification ${item.id} as read`);
     await notificationService.markAsRead(item.id);
 
     // Update local state to reflect read status
@@ -196,20 +196,22 @@ const handlePress = async () => {
 
     // Determine service type from title (temporary until DB has serviceType)
     const title = (item.title || '').toLowerCase();
+    const body = (item.body || '').toLowerCase();
     let serviceType = item.service_type;
 
     if (!serviceType || serviceType === 'general') {
-      if (title.includes('bike') || title.includes('🏍')) serviceType = 'bike';
-      else if (title.includes('self-drive') || title.includes('self drive')) serviceType = 'self-drive';
-      else if (title.includes('luxury') || title.includes('💎')) serviceType = 'luxury';
-      else if (title.includes('bus') || title.includes('🚌')) serviceType = 'bus';
-      else if (title.includes('truck') || title.includes('🚚')) serviceType = 'truck';
-      else if (title.includes('equipment') || title.includes('🏗')) serviceType = 'equipment';
-      else if (title.includes('packers') || title.includes('movers') || title.includes('📦')) serviceType = 'packers';
-      else if (title.includes('car') || title.includes('🚗')) serviceType = 'car';
+      if (title.includes('bike') || title.includes('🏍') || body.includes('bike')) serviceType = 'bike';
+      else if (title.includes('self-drive') || title.includes('self drive') || body.includes('self-drive')) serviceType = 'self-drive';
+      else if (title.includes('luxury') || title.includes('💎') || body.includes('luxury')) serviceType = 'luxury';
+      else if (title.includes('bus') || title.includes('🚌') || body.includes('bus')) serviceType = 'bus';
+      else if (title.includes('truck') || title.includes('🚚') || body.includes('truck')) serviceType = 'truck';
+      else if (title.includes('equipment') || title.includes('🏗') || body.includes('equipment')) serviceType = 'equipment';
+      else if (title.includes('packers') || title.includes('movers') || title.includes('📦') || body.includes('packers') || body.includes('movers')) serviceType = 'packers';
+      else if (title.includes('chauffeur') || title.includes('driver') || title.includes('👨‍✈️') || body.includes('chauffeur') || body.includes('driver assigned')) serviceType = 'chauffeur-service';
+      else if (title.includes('car') || title.includes('🚗') || body.includes('car rental')) serviceType = 'car';
       else {
         // Can't determine - go to MyBookings
-        console.log('[NotificationScreen] Cannot determine service type, going to MyBookings');
+        // console.log('[NotificationScreen] Cannot determine service type, going to MyBookings');
         navigation.navigate('MyBookings');
         return;
       }
@@ -221,12 +223,12 @@ const handlePress = async () => {
 
     // Validate ID
     if (!itemId || itemId === 'null' || itemId.length < 10 || itemId.endsWith('-')) {
-      console.log('[NotificationScreen] Invalid ID:', itemId);
+      // console.log('[NotificationScreen] Invalid ID:', itemId);
       navigation.navigate('MyBookings');
       return;
     }
 
-    console.log(`[NotificationScreen] Service: ${serviceType}, IsQuote: ${isQuoteRequest}, ID: ${itemId}`);
+    // console.log(`[NotificationScreen] Service: ${serviceType}, IsQuote: ${isQuoteRequest}, ID: ${itemId}`);
 
     // Navigate using same logic as MyBookingsScreen.handleBookingPress
     if (serviceType === 'self-drive') {
@@ -250,14 +252,15 @@ const handlePress = async () => {
     } else if (serviceType === 'equipment') {
       navigation.navigate(isQuoteRequest ? 'EquipmentQuoteRequestDetail' : 'EquipmentBookingDetail',
         isQuoteRequest ? { requestId: itemId } : { bookingId: itemId });
-    } else if (serviceType === 'car') {
+    } else if (serviceType === 'chauffeur-service' || serviceType === 'car') {
+      // Handle chauffeur service (car rental with driver) bookings
       navigation.navigate('BookingDetail', { bookingId: itemId, bookingType: 'car' });
     } else {
       navigation.navigate('MyBookings');
     }
 
   } catch (error) {
-    console.log('[NotificationScreen] Error:', error);
+    // console.log('[NotificationScreen] Error:', error);
     navigation.navigate('MyBookings');
   }
 };
