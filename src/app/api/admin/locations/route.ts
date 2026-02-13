@@ -17,13 +17,18 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const type = searchParams.get('type'); // COUNTRY, STATE, CITY, AREA
+    const types = searchParams.get('types'); // Comma-separated types: CITY,UNION_TERRITORY
     const parentId = searchParams.get('parentId');
     const isActive = searchParams.get('isActive');
     const flat = searchParams.get('flat') === 'true'; // Get flat list without hierarchy
 
     const where: any = {};
 
-    if (type) {
+    if (types) {
+      // Multiple types (comma-separated)
+      where.type = { in: types.split(',').map(t => t.trim()) };
+    } else if (type) {
+      // Single type
       where.type = type;
     }
 

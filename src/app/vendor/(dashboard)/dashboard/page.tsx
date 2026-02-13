@@ -17,6 +17,7 @@ import {
   Settings,
   FileText
 } from 'lucide-react';
+import VendorOnboarding from '@/components/vendor/onboarding/VendorOnboarding';
 
 interface VendorProfile {
   id: string;
@@ -25,6 +26,10 @@ interface VendorProfile {
   status: string;
   approvedServicesCount: number;
   approvedLocationsCount: number;
+  documentsCount?: number;
+  serviceRequestsCount?: number;
+  locationRequestsCount?: number;
+  approvedServiceSlugs?: string[];
 }
 
 interface Stats {
@@ -93,8 +98,124 @@ export default function VendorDashboard() {
     );
   }
 
+  // Show onboarding if vendor is not approved
+  if (profile && profile.status !== 'APPROVED') {
+    return (
+      <VendorOnboarding
+        vendorStatus={profile.status}
+        documentsCount={profile.documentsCount || 0}
+        locationRequestsCount={profile.locationRequestsCount || 0}
+        serviceRequestsCount={profile.serviceRequestsCount || 0}
+      />
+    );
+  }
+
   const currentMonth = new Date().toLocaleString('default', { month: 'long', year: 'numeric' });
   const greeting = new Date().getHours() < 12 ? 'Good Morning' : new Date().getHours() < 18 ? 'Good Afternoon' : 'Good Evening';
+
+  // Service mappings with multiple slug variations
+  const allServices = [
+    {
+      slugs: ['bike-rental', 'bike', 'bike-rentals', 'two-wheeler'],
+      name: 'Bike Rentals',
+      description: 'Requests & Bookings',
+      icon: '🏍️',
+      href: '/vendor/bike-rentals/requests',
+      color: 'from-blue-100 to-blue-200',
+      hoverColor: 'from-blue-500 to-indigo-500',
+      textColor: 'blue',
+    },
+    {
+      slugs: ['chauffeur-driven-car-rental', 'chauffeur', 'car-rental', 'car-with-driver'],
+      name: 'Car Rentals',
+      description: 'With Driver',
+      icon: '🚗',
+      href: '/vendor/car-rental/bookings',
+      color: 'from-purple-100 to-purple-200',
+      hoverColor: 'from-purple-500 to-pink-500',
+      textColor: 'purple',
+    },
+    {
+      slugs: ['self-drive-car-rental', 'self-drive', 'car-rental-self-drive', 'self-driven'],
+      name: 'Self-Drive',
+      description: 'Without Driver',
+      icon: '🔑',
+      href: '/vendor/self-drive/requests',
+      color: 'from-indigo-100 to-indigo-200',
+      hoverColor: 'from-indigo-500 to-blue-500',
+      textColor: 'indigo',
+    },
+    {
+      slugs: ['bus-rental', 'bus', 'bus-on-rent', 'coach-rental'],
+      name: 'Bus Rentals',
+      description: 'Requests & Bookings',
+      icon: '🚌',
+      href: '/vendor/bus/requests',
+      color: 'from-orange-100 to-orange-200',
+      hoverColor: 'from-orange-500 to-red-500',
+      textColor: 'orange',
+    },
+    {
+      slugs: ['luxury-car-rental', 'luxury', 'premium-car', 'luxury-cars'],
+      name: 'Luxury Cars',
+      description: 'Premium Service',
+      icon: '💎',
+      href: '/vendor/luxury/requests',
+      color: 'from-pink-100 to-pink-200',
+      hoverColor: 'from-pink-500 to-rose-500',
+      textColor: 'pink',
+    },
+    {
+      slugs: ['packers-and-movers', 'packers-movers', 'relocation', 'home-shifting'],
+      name: 'Packers & Movers',
+      description: 'Relocation Service',
+      icon: '📦',
+      href: '/vendor/packers/requests',
+      color: 'from-amber-100 to-amber-200',
+      hoverColor: 'from-amber-500 to-yellow-500',
+      textColor: 'amber',
+    },
+    {
+      slugs: ['truck-transport', 'truck', 'goods-transport', 'cargo'],
+      name: 'Truck Transport',
+      description: 'Cargo Service',
+      icon: '🚚',
+      href: '/vendor/truck/requests',
+      color: 'from-slate-100 to-slate-200',
+      hoverColor: 'from-slate-500 to-gray-500',
+      textColor: 'slate',
+    },
+    {
+      slugs: ['equipment-rental', 'equipment', 'construction-equipment', 'machinery'],
+      name: 'Equipment Rental',
+      description: 'Construction Equipment',
+      icon: '⚙️',
+      href: '/vendor/equipment/requests',
+      color: 'from-teal-100 to-teal-200',
+      hoverColor: 'from-teal-500 to-cyan-500',
+      textColor: 'teal',
+    },
+  ];
+
+  // Debug: Log approved service slugs
+  console.log('Approved Service Slugs:', profile?.approvedServiceSlugs);
+  console.log('All Services Slugs:', allServices.map(s => s.slugs));
+
+  // Filter services based on approved services (check against all slug variations)
+  const approvedServices = profile?.approvedServiceSlugs
+    ? allServices.filter((service) => {
+        // Check if any of this service's slug variations match any approved slug
+        return service.slugs.some((serviceSlug) =>
+          profile.approvedServiceSlugs!.some((approvedSlug) =>
+            approvedSlug === serviceSlug ||
+            approvedSlug.includes(serviceSlug) ||
+            serviceSlug.includes(approvedSlug)
+          )
+        );
+      })
+    : [];
+
+  console.log('Filtered Approved Services:', approvedServices.map(s => s.name));
 
   return (
     <div className="space-y-6">
@@ -211,150 +332,36 @@ export default function VendorDashboard() {
       </div>
 
       {/* Quick Actions */}
-      <div>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-bold text-gray-900">Quick Actions</h2>
-          <span className="text-sm text-gray-500">Navigate to services</span>
+      {approvedServices.length > 0 && (
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-bold text-gray-900">Quick Actions</h2>
+            <span className="text-sm text-gray-500">Navigate to services</span>
+          </div>
+
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            {approvedServices.map((service) => (
+              <Link
+                key={service.slugs[0]}
+                href={service.href}
+                className="group bg-white hover:bg-gradient-to-br hover:from-blue-50 hover:to-indigo-50 rounded-xl p-6 shadow-md hover:shadow-xl transition-all duration-300 border border-gray-100 hover:border-blue-200"
+              >
+                <div className="flex flex-col items-center text-center space-y-3">
+                  <div className={`w-14 h-14 bg-gradient-to-br ${service.color} group-hover:${service.hoverColor} rounded-2xl flex items-center justify-center transition-all duration-300 group-hover:scale-110`}>
+                    <span className="text-3xl group-hover:scale-110 transition-transform">{service.icon}</span>
+                  </div>
+                  <div>
+                    <p className={`font-semibold text-gray-900 group-hover:text-${service.textColor}-600 transition-colors`}>
+                      {service.name}
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">{service.description}</p>
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
         </div>
-
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <Link
-            href="/vendor/bike-rentals/requests"
-            className="group bg-white hover:bg-gradient-to-br hover:from-blue-50 hover:to-indigo-50 rounded-xl p-6 shadow-md hover:shadow-xl transition-all duration-300 border border-gray-100 hover:border-blue-200"
-          >
-            <div className="flex flex-col items-center text-center space-y-3">
-              <div className="w-14 h-14 bg-gradient-to-br from-blue-100 to-blue-200 group-hover:from-blue-500 group-hover:to-indigo-500 rounded-2xl flex items-center justify-center transition-all duration-300 group-hover:scale-110">
-                <span className="text-3xl group-hover:scale-110 transition-transform">🏍️</span>
-              </div>
-              <div>
-                <p className="font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">
-                  Bike Rentals
-                </p>
-                <p className="text-xs text-gray-500 mt-1">Requests & Bookings</p>
-              </div>
-            </div>
-          </Link>
-
-          <Link
-            href="/vendor/car-rental/bookings"
-            className="group bg-white hover:bg-gradient-to-br hover:from-blue-50 hover:to-indigo-50 rounded-xl p-6 shadow-md hover:shadow-xl transition-all duration-300 border border-gray-100 hover:border-blue-200"
-          >
-            <div className="flex flex-col items-center text-center space-y-3">
-              <div className="w-14 h-14 bg-gradient-to-br from-purple-100 to-purple-200 group-hover:from-purple-500 group-hover:to-pink-500 rounded-2xl flex items-center justify-center transition-all duration-300 group-hover:scale-110">
-                <span className="text-3xl group-hover:scale-110 transition-transform">🚗</span>
-              </div>
-              <div>
-                <p className="font-semibold text-gray-900 group-hover:text-purple-600 transition-colors">
-                  Car Rentals
-                </p>
-                <p className="text-xs text-gray-500 mt-1">With Driver</p>
-              </div>
-            </div>
-          </Link>
-
-          <Link
-            href="/vendor/self-drive/requests"
-            className="group bg-white hover:bg-gradient-to-br hover:from-blue-50 hover:to-indigo-50 rounded-xl p-6 shadow-md hover:shadow-xl transition-all duration-300 border border-gray-100 hover:border-blue-200"
-          >
-            <div className="flex flex-col items-center text-center space-y-3">
-              <div className="w-14 h-14 bg-gradient-to-br from-indigo-100 to-indigo-200 group-hover:from-indigo-500 group-hover:to-blue-500 rounded-2xl flex items-center justify-center transition-all duration-300 group-hover:scale-110">
-                <span className="text-3xl group-hover:scale-110 transition-transform">🔑</span>
-              </div>
-              <div>
-                <p className="font-semibold text-gray-900 group-hover:text-indigo-600 transition-colors">
-                  Self-Drive
-                </p>
-                <p className="text-xs text-gray-500 mt-1">Without Driver</p>
-              </div>
-            </div>
-          </Link>
-
-          <Link
-            href="/vendor/bus/requests"
-            className="group bg-white hover:bg-gradient-to-br hover:from-blue-50 hover:to-indigo-50 rounded-xl p-6 shadow-md hover:shadow-xl transition-all duration-300 border border-gray-100 hover:border-blue-200"
-          >
-            <div className="flex flex-col items-center text-center space-y-3">
-              <div className="w-14 h-14 bg-gradient-to-br from-orange-100 to-orange-200 group-hover:from-orange-500 group-hover:to-red-500 rounded-2xl flex items-center justify-center transition-all duration-300 group-hover:scale-110">
-                <span className="text-3xl group-hover:scale-110 transition-transform">🚌</span>
-              </div>
-              <div>
-                <p className="font-semibold text-gray-900 group-hover:text-orange-600 transition-colors">
-                  Bus Rentals
-                </p>
-                <p className="text-xs text-gray-500 mt-1">Requests & Bookings</p>
-              </div>
-            </div>
-          </Link>
-
-          <Link
-            href="/vendor/luxury/requests"
-            className="group bg-white hover:bg-gradient-to-br hover:from-blue-50 hover:to-indigo-50 rounded-xl p-6 shadow-md hover:shadow-xl transition-all duration-300 border border-gray-100 hover:border-blue-200"
-          >
-            <div className="flex flex-col items-center text-center space-y-3">
-              <div className="w-14 h-14 bg-gradient-to-br from-pink-100 to-pink-200 group-hover:from-pink-500 group-hover:to-rose-500 rounded-2xl flex items-center justify-center transition-all duration-300 group-hover:scale-110">
-                <span className="text-3xl group-hover:scale-110 transition-transform">💎</span>
-              </div>
-              <div>
-                <p className="font-semibold text-gray-900 group-hover:text-pink-600 transition-colors">
-                  Luxury Cars
-                </p>
-                <p className="text-xs text-gray-500 mt-1">Premium Service</p>
-              </div>
-            </div>
-          </Link>
-
-          <Link
-            href="/vendor/packers/requests"
-            className="group bg-white hover:bg-gradient-to-br hover:from-blue-50 hover:to-indigo-50 rounded-xl p-6 shadow-md hover:shadow-xl transition-all duration-300 border border-gray-100 hover:border-blue-200"
-          >
-            <div className="flex flex-col items-center text-center space-y-3">
-              <div className="w-14 h-14 bg-gradient-to-br from-amber-100 to-amber-200 group-hover:from-amber-500 group-hover:to-yellow-500 rounded-2xl flex items-center justify-center transition-all duration-300 group-hover:scale-110">
-                <span className="text-3xl group-hover:scale-110 transition-transform">📦</span>
-              </div>
-              <div>
-                <p className="font-semibold text-gray-900 group-hover:text-amber-600 transition-colors">
-                  Packers & Movers
-                </p>
-                <p className="text-xs text-gray-500 mt-1">Relocation Service</p>
-              </div>
-            </div>
-          </Link>
-
-          <Link
-            href="/vendor/truck/requests"
-            className="group bg-white hover:bg-gradient-to-br hover:from-blue-50 hover:to-indigo-50 rounded-xl p-6 shadow-md hover:shadow-xl transition-all duration-300 border border-gray-100 hover:border-blue-200"
-          >
-            <div className="flex flex-col items-center text-center space-y-3">
-              <div className="w-14 h-14 bg-gradient-to-br from-slate-100 to-slate-200 group-hover:from-slate-500 group-hover:to-gray-500 rounded-2xl flex items-center justify-center transition-all duration-300 group-hover:scale-110">
-                <span className="text-3xl group-hover:scale-110 transition-transform">🚚</span>
-              </div>
-              <div>
-                <p className="font-semibold text-gray-900 group-hover:text-slate-600 transition-colors">
-                  Truck Transport
-                </p>
-                <p className="text-xs text-gray-500 mt-1">Cargo Service</p>
-              </div>
-            </div>
-          </Link>
-
-          <Link
-            href="/vendor/equipment/requests"
-            className="group bg-white hover:bg-gradient-to-br hover:from-blue-50 hover:to-indigo-50 rounded-xl p-6 shadow-md hover:shadow-xl transition-all duration-300 border border-gray-100 hover:border-blue-200"
-          >
-            <div className="flex flex-col items-center text-center space-y-3">
-              <div className="w-14 h-14 bg-gradient-to-br from-teal-100 to-teal-200 group-hover:from-teal-500 group-hover:to-cyan-500 rounded-2xl flex items-center justify-center transition-all duration-300 group-hover:scale-110">
-                <span className="text-3xl group-hover:scale-110 transition-transform">⚙️</span>
-              </div>
-              <div>
-                <p className="font-semibold text-gray-900 group-hover:text-teal-600 transition-colors">
-                  Equipment Rental
-                </p>
-                <p className="text-xs text-gray-500 mt-1">Construction Equipment</p>
-              </div>
-            </div>
-          </Link>
-        </div>
-      </div>
+      )}
 
       {/* Service Performance */}
       {stats?.serviceBreakdown && stats.serviceBreakdown.length > 0 && (

@@ -160,7 +160,7 @@ export default function ManagerDashboard() {
             My Assigned Locations
           </h2>
           {managerInfo?.assignedLocations && managerInfo.assignedLocations.length > 0 ? (
-            <div className="space-y-2">
+            <div className="max-h-[400px] overflow-y-auto space-y-2 pr-2">
               {managerInfo.assignedLocations.map((loc) => (
                 <div key={loc.id} className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
                   <MapPin className="w-4 h-4 text-gray-400" />
@@ -185,7 +185,7 @@ export default function ManagerDashboard() {
             My Assigned Services
           </h2>
           {managerInfo?.assignedServices && managerInfo.assignedServices.length > 0 ? (
-            <div className="space-y-2">
+            <div className="max-h-[400px] overflow-y-auto space-y-2 pr-2">
               {managerInfo.assignedServices.map((svc) => (
                 <div key={svc.id} className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
                   <Briefcase className="w-4 h-4 text-gray-400" />

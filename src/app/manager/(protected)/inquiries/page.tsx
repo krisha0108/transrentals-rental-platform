@@ -19,6 +19,7 @@ import {
   CheckCircle2,
   XCircle,
   IndianRupee,
+  ChevronLeft,
 } from 'lucide-react';
 
 interface Inquiry {
@@ -80,6 +81,16 @@ const STATUS_CONFIG: Record<string, { bg: string; text: string; label: string; d
   },
 };
 
+type DateFilter = 'today' | 'yesterday' | 'thisMonth' | 'lastMonth' | 'all';
+
+const DATE_FILTERS: { value: DateFilter; label: string }[] = [
+  { value: 'today', label: 'Today' },
+  { value: 'yesterday', label: 'Yesterday' },
+  { value: 'thisMonth', label: 'This Month' },
+  { value: 'lastMonth', label: 'Last Month' },
+  { value: 'all', label: 'All Bookings' },
+];
+
 export default function ManagerInquiriesPage() {
   const [inquiries, setInquiries] = useState<Inquiry[]>([]);
   const [filteredInquiries, setFilteredInquiries] = useState<Inquiry[]>([]);
@@ -87,7 +98,10 @@ export default function ManagerInquiriesPage() {
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [dateFilter, setDateFilter] = useState<DateFilter>('all');
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10);
   const [stats, setStats] = useState({
     pendingPayment: 0,
     paymentSubmitted: 0,
@@ -136,8 +150,40 @@ export default function ManagerInquiriesPage() {
     fetchInquiries();
   }, []);
 
+  // Filter by date
+  const filterByDate = (inquiry: Inquiry, filter: DateFilter): boolean => {
+    if (filter === 'all') return true;
+
+    const inquiryDate = new Date(inquiry.createdAt);
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    switch (filter) {
+      case 'today':
+        return inquiryDate >= today;
+      case 'yesterday':
+        const tomorrowOfYesterday = new Date(yesterday);
+        tomorrowOfYesterday.setDate(tomorrowOfYesterday.getDate() + 1);
+        return inquiryDate >= yesterday && inquiryDate < tomorrowOfYesterday;
+      case 'thisMonth':
+        const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+        return inquiryDate >= thisMonthStart;
+      case 'lastMonth':
+        const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
+        return inquiryDate >= lastMonthStart && inquiryDate <= lastMonthEnd;
+      default:
+        return true;
+    }
+  };
+
   useEffect(() => {
     let filtered = inquiries;
+
+    // Apply date filter
+    filtered = filtered.filter((i) => filterByDate(i, dateFilter));
 
     // Apply status filter
     if (statusFilter !== 'all') {
@@ -157,7 +203,14 @@ export default function ManagerInquiriesPage() {
     }
 
     setFilteredInquiries(filtered);
-  }, [searchTerm, statusFilter, inquiries]);
+    setCurrentPage(1); // Reset to first page when filters change
+  }, [searchTerm, statusFilter, dateFilter, inquiries]);
+
+  // Pagination
+  const totalPages = Math.ceil(filteredInquiries.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentInquiries = filteredInquiries.slice(startIndex, endIndex);
 
   const handleRefresh = () => {
     setIsRefreshing(true);
@@ -256,58 +309,85 @@ export default function ManagerInquiriesPage() {
 
       {/* Filters */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
-        <div className="flex flex-col sm:flex-row gap-4">
-          {/* Search */}
-          <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search by booking #, customer, phone, location..."
-              className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-            />
+        <div className="flex flex-col gap-4">
+          {/* Date Filter Buttons */}
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-sm font-medium text-gray-700 mr-2">📅 Period:</span>
+            {DATE_FILTERS.map((filter) => (
+              <button
+                key={filter.value}
+                onClick={() => setDateFilter(filter.value)}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
+                  dateFilter === filter.value
+                    ? 'bg-green-600 text-white'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                {filter.label}
+              </button>
+            ))}
           </div>
 
-          {/* Status Filter */}
-          <div className="relative">
-            <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="pl-10 pr-8 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent appearance-none bg-white min-w-[180px]"
-            >
-              <option value="all">All Inquiries ({stats.total})</option>
-              <option value="PAYMENT_SUBMITTED">Payment Submitted ({stats.paymentSubmitted})</option>
-              <option value="PENDING_PAYMENT">Pending Payment ({stats.pendingPayment})</option>
-              <option value="PAYMENT_VERIFIED">Payment Verified ({stats.paymentVerified})</option>
-              <option value="PENDING_VENDOR">Pending Vendor ({stats.pendingVendor})</option>
-              <option value="BROADCASTED">Broadcasted ({stats.broadcasted})</option>
-            </select>
+          <div className="flex flex-col sm:flex-row gap-4">
+            {/* Search */}
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Search by booking #, customer, phone, location..."
+                className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              />
+            </div>
+
+            {/* Status Filter */}
+            <div className="relative">
+              <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="pl-10 pr-8 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent appearance-none bg-white min-w-[180px]"
+              >
+                <option value="all">All Inquiries ({stats.total})</option>
+                <option value="PAYMENT_SUBMITTED">Payment Submitted ({stats.paymentSubmitted})</option>
+                <option value="PENDING_PAYMENT">Pending Payment ({stats.pendingPayment})</option>
+                <option value="PAYMENT_VERIFIED">Payment Verified ({stats.paymentVerified})</option>
+                <option value="PENDING_VENDOR">Pending Vendor ({stats.pendingVendor})</option>
+                <option value="BROADCASTED">Broadcasted ({stats.broadcasted})</option>
+              </select>
+            </div>
           </div>
         </div>
       </div>
 
       {/* Results count */}
-      <p className="text-sm text-gray-500">
-        Showing {filteredInquiries.length} of {inquiries.length} inquiries
-      </p>
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-gray-500">
+          Showing {startIndex + 1}-{Math.min(endIndex, filteredInquiries.length)} of {filteredInquiries.length} inquiries
+        </p>
+        {totalPages > 1 && (
+          <p className="text-sm text-gray-500">
+            Page {currentPage} of {totalPages}
+          </p>
+        )}
+      </div>
 
       {/* Inquiries List */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-        {filteredInquiries.length === 0 ? (
+        {currentInquiries.length === 0 ? (
           <div className="p-12 text-center">
             <FileText className="w-12 h-12 text-gray-300 mx-auto mb-4" />
             <h3 className="text-lg font-semibold text-gray-900 mb-2">No inquiries found</h3>
             <p className="text-gray-500">
-              {searchTerm || statusFilter !== 'all'
+              {searchTerm || statusFilter !== 'all' || dateFilter !== 'all'
                 ? 'Try adjusting your search or filters'
                 : 'All caught up! No pending inquiries at the moment.'}
             </p>
           </div>
         ) : (
           <div className="divide-y divide-gray-100">
-            {filteredInquiries.map((inquiry) => {
+            {currentInquiries.map((inquiry) => {
               const statusConfig = STATUS_CONFIG[inquiry.status] || STATUS_CONFIG.PENDING_PAYMENT;
               const needsAttention = inquiry.status === 'PAYMENT_SUBMITTED';
 
@@ -420,6 +500,59 @@ export default function ManagerInquiriesPage() {
           </div>
         )}
       </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-2">
+          <button
+            onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+            disabled={currentPage === 1}
+            className="p-2 rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <ChevronLeft className="w-5 h-5" />
+          </button>
+
+          <div className="flex items-center gap-1">
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
+              // Show first page, last page, current page, and pages around current
+              if (
+                page === 1 ||
+                page === totalPages ||
+                (page >= currentPage - 1 && page <= currentPage + 1)
+              ) {
+                return (
+                  <button
+                    key={page}
+                    onClick={() => setCurrentPage(page)}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
+                      currentPage === page
+                        ? 'bg-green-600 text-white'
+                        : 'border border-gray-200 hover:bg-gray-50'
+                    }`}
+                  >
+                    {page}
+                  </button>
+                );
+              } else if (page === currentPage - 2 || page === currentPage + 2) {
+                return (
+                  <span key={page} className="px-2 text-gray-400">
+                    ...
+                  </span>
+                );
+              }
+              return null;
+            })}
+          </div>
+
+          <button
+            onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+            disabled={currentPage === totalPages}
+            className="p-2 rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <ChevronRight className="w-5 h-5" />
+          </button>
+        </div>
+      )}
     </div>
   );
 }
