@@ -1,24 +1,17 @@
 import React from 'react';
 import { prisma } from '@/lib/db/prisma';
 import {
-  FileText,
-  FileEdit,
   ArrowRightLeft,
   Image,
-  MapPin,
   TrendingUp,
   BarChart3,
-  Car,
-  BookOpen,
-  Settings,
-  Layers,
 } from 'lucide-react';
-import { CITY_STATS, ALL_CITIES } from '@/data/indian-cities';
+import { CITY_STATS } from '@/data/indian-cities';
 import { FLEET_STATS } from '@/data/fleet';
 import { blogPosts } from '@/data/blog-posts';
-import { SERVICES as PREDEFINED_SERVICES } from '@/lib/constants/services';
 import Link from 'next/link';
 import AnalyticsDashboard from '@/components/admin/AnalyticsDashboard';
+import EnhancedDashboard from '@/components/admin/EnhancedDashboard';
 
 // Count of static redirects defined in next.config.js
 const STATIC_REDIRECTS_COUNT = 72; // Approximate count from next.config.js redirects array
@@ -161,59 +154,11 @@ export default async function AdminDashboardPage() {
       {/* Page Header */}
       <div>
         <h1 className="text-3xl font-bold text-gray-900 mb-2">Dashboard</h1>
-        <p className="text-gray-600">Comprehensive overview of your website</p>
+        <p className="text-gray-600">Comprehensive overview of your website and bookings</p>
       </div>
 
-      {/* Main Stats Grid - Database Counts (Real Data) */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Fleet Vehicles - Database */}
-        <Link href="/admin/fleet" className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-xl p-5 border-2 border-white shadow-lg hover:shadow-xl transition">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-lg flex items-center justify-center">
-              <Car className="w-5 h-5 text-white" />
-            </div>
-          </div>
-          <p className="text-sm font-medium text-gray-600">Fleet Vehicles</p>
-          <p className="text-2xl font-bold text-gray-900">{stats.totalVehicles}</p>
-          <p className="text-xs text-gray-500 mt-1">{stats.activeVehicles} active in database</p>
-        </Link>
-
-        {/* Locations - Database */}
-        <Link href="/admin/fleet/locations" className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-5 border-2 border-white shadow-lg hover:shadow-xl transition">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-500 rounded-lg flex items-center justify-center">
-              <MapPin className="w-5 h-5 text-white" />
-            </div>
-          </div>
-          <p className="text-sm font-medium text-gray-600">Locations</p>
-          <p className="text-2xl font-bold text-gray-900">{stats.totalLocations}</p>
-          <p className="text-xs text-gray-500 mt-1">{stats.activeLocations} active / {ALL_CITIES.length} predefined</p>
-        </Link>
-
-        {/* Categories - Database */}
-        <Link href="/admin/fleet/categories" className="bg-gradient-to-br from-violet-50 to-purple-50 rounded-xl p-5 border-2 border-white shadow-lg hover:shadow-xl transition">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-violet-500 to-purple-500 rounded-lg flex items-center justify-center">
-              <Layers className="w-5 h-5 text-white" />
-            </div>
-          </div>
-          <p className="text-sm font-medium text-gray-600">Categories</p>
-          <p className="text-2xl font-bold text-gray-900">{stats.totalCategories}</p>
-          <p className="text-xs text-gray-500 mt-1">{stats.activeCategories} active / {PREDEFINED_SERVICES.length} predefined</p>
-        </Link>
-
-        {/* Blog Posts - Database + Static */}
-        <Link href="/admin/blog" className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl p-5 border-2 border-white shadow-lg hover:shadow-xl transition">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
-              <BookOpen className="w-5 h-5 text-white" />
-            </div>
-          </div>
-          <p className="text-sm font-medium text-gray-600">Blog Posts</p>
-          <p className="text-2xl font-bold text-gray-900">{stats.totalBlogPosts}</p>
-          <p className="text-xs text-gray-500 mt-1">{stats.publishedBlogPosts} published + {blogPosts.length} static</p>
-        </Link>
-      </div>
+      {/* Enhanced Dashboard with Bookings & Quotes */}
+      <EnhancedDashboard />
 
       {/* Visitor Analytics */}
       <AnalyticsDashboard />
@@ -326,44 +271,6 @@ export default async function AdminDashboardPage() {
               <span className="font-semibold text-green-900">{STATIC_PAGES_COUNT.staticBlogPosts}</span>
             </div>
           </div>
-        </div>
-      </div>
-
-      {/* Quick Actions */}
-      <div className="bg-white rounded-xl p-6 shadow-md border border-gray-200">
-        <h2 className="text-lg font-bold text-gray-900 mb-4">Quick Actions</h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Link
-            href="/admin/pages/new"
-            className="flex flex-col items-center p-4 border-2 border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition text-center"
-          >
-            <FileText className="w-8 h-8 text-blue-600 mb-2" />
-            <span className="text-sm font-medium text-gray-900">New Page</span>
-          </Link>
-
-          <Link
-            href="/admin/blog/new"
-            className="flex flex-col items-center p-4 border-2 border-gray-200 rounded-lg hover:border-purple-500 hover:bg-purple-50 transition text-center"
-          >
-            <FileEdit className="w-8 h-8 text-purple-600 mb-2" />
-            <span className="text-sm font-medium text-gray-900">New Blog Post</span>
-          </Link>
-
-          <Link
-            href="/admin/redirects/new"
-            className="flex flex-col items-center p-4 border-2 border-gray-200 rounded-lg hover:border-amber-500 hover:bg-amber-50 transition text-center"
-          >
-            <ArrowRightLeft className="w-8 h-8 text-amber-600 mb-2" />
-            <span className="text-sm font-medium text-gray-900">New Redirect</span>
-          </Link>
-
-          <Link
-            href="/admin/settings"
-            className="flex flex-col items-center p-4 border-2 border-gray-200 rounded-lg hover:border-gray-500 hover:bg-gray-50 transition text-center"
-          >
-            <Settings className="w-8 h-8 text-gray-600 mb-2" />
-            <span className="text-sm font-medium text-gray-900">Settings</span>
-          </Link>
         </div>
       </div>
     </div>
