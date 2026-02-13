@@ -21,6 +21,7 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import { SelfDriveQuoteRequestModal } from './SelfDriveQuoteRequestModal';
+import { calculateRentalDuration } from '@/lib/utils/duration';
 
 interface VendorPrice {
   vendorId: string;
@@ -110,14 +111,16 @@ export function CarFleetGridMultiVendor({
   const [selectedCar, setSelectedCar] = useState<AggregatedCar | null>(null);
 
   // Calculate rental duration
-  const rentalDays = useMemo(() => {
-    if (!pickupDate || !dropDate) return 1;
-    const start = new Date(pickupDate);
-    const end = new Date(dropDate);
-    const diffTime = Math.abs(end.getTime() - start.getTime());
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return diffDays || 1;
-  }, [pickupDate, dropDate]);
+  // Calculate rental duration with time precision
+  const rentalDuration = useMemo(() => {
+    if (!pickupDate || !dropDate || !pickupTime || !dropTime) {
+      return { formatted: '1 day', totalDays: 1 };
+    }
+    return calculateRentalDuration(pickupDate, pickupTime, dropDate, dropTime);
+  }, [pickupDate, dropDate, pickupTime, dropTime]);
+
+  const rentalDays = rentalDuration.totalDays; // For pricing
+  const durationText = rentalDuration.formatted; // For display
 
   // Get unique brands from data
   const availableBrands = useMemo(() => {
@@ -250,7 +253,7 @@ export function CarFleetGridMultiVendor({
                     {formatDate(dropDate)} {formatTime(dropTime)}
                   </span>
                   <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">
-                    {rentalDays} Day{rentalDays > 1 ? 's' : ''}
+                    {durationText}
                   </span>
                 </div>
               </div>

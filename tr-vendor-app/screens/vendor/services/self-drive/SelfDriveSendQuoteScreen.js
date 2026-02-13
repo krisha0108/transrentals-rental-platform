@@ -66,7 +66,7 @@ export default function SelfDriveSendQuoteScreen({ navigation, route }) {
   const [vehicleName, setVehicleName] = useState('');
   const [vehicleBrand, setVehicleBrand] = useState('');
   const [registrationNumber, setRegistrationNumber] = useState('');
-  const [dailyRate, setDailyRate] = useState('');
+  const [totalPrice, setTotalPrice] = useState('');
   const [securityDeposit, setSecurityDeposit] = useState('');
   const [kmLimitPerDay, setKmLimitPerDay] = useState('250');
   const [extraKmRate, setExtraKmRate] = useState('12');
@@ -162,7 +162,12 @@ export default function SelfDriveSendQuoteScreen({ navigation, route }) {
       const template = await getTemplateById('self-drive', templateId);
 
       // Auto-fill form fields from template
-      if (template.dailyRateHint) setDailyRate(template.dailyRateHint.toString());
+      if (template.dailyRateHint) {
+        // Template has daily rate hint, calculate total from it
+        const days = request?.totalDays || 1;
+        const estimatedTotal = template.dailyRateHint * days;
+        setTotalPrice(estimatedTotal.toString());
+      }
       if (template.kmLimitPerDay) setKmLimitPerDay(template.kmLimitPerDay.toString());
       if (template.extraKmRateHint) setExtraKmRate(template.extraKmRateHint.toString());
       if (template.securityDepositHint) setSecurityDeposit(template.securityDepositHint.toString());
@@ -205,14 +210,14 @@ export default function SelfDriveSendQuoteScreen({ navigation, route }) {
     setEditList(editList.filter((i) => i !== item));
   };
 
-  const calculateTotal = () => {
-    const rate = parseFloat(dailyRate) || 0;
+  const calculateDailyRate = () => {
+    const total = parseFloat(totalPrice) || 0;
     const days = request?.totalDays || 1;
-    return rate * days;
+    return total / days;
   };
 
   const calculateAdvance = () => {
-    const total = calculateTotal();
+    const total = parseFloat(totalPrice) || 0;
     const percent = parseInt(advancePercent) || 30;
     return Math.round((total * percent) / 100);
   };
@@ -222,13 +227,14 @@ export default function SelfDriveSendQuoteScreen({ navigation, route }) {
       Alert.alert('Error', 'Please enter vehicle name or select from fleet');
       return;
     }
-    if (!dailyRate || parseFloat(dailyRate) <= 0) {
-      Alert.alert('Error', 'Please enter valid daily rate');
+    if (!totalPrice || parseFloat(totalPrice) <= 0) {
+      Alert.alert('Error', 'Please enter valid total price');
       return;
     }
 
     try {
       setSubmitting(true);
+      const calculatedDailyRate = calculateDailyRate();
       await submitQuote('self-drive', {
         requestId: requestId,
         vendorFleetId: selectedFleetId || null,
@@ -236,7 +242,8 @@ export default function SelfDriveSendQuoteScreen({ navigation, route }) {
         vehicleBrand: vehicleBrand || null,
         vehicleCategory: request?.vehicleCategory || null,
         registrationNumber: registrationNumber || null,
-        dailyRate: parseFloat(dailyRate),
+        dailyRate: calculatedDailyRate,
+        totalPrice: parseFloat(totalPrice),
         securityDeposit: parseFloat(securityDeposit) || 0,
         kmLimitPerDay: parseInt(kmLimitPerDay) || null,
         extraKmCharge: parseFloat(extraKmRate) || null,
@@ -268,8 +275,9 @@ export default function SelfDriveSendQuoteScreen({ navigation, route }) {
     );
   }
 
-  const total = calculateTotal();
+  const total = parseFloat(totalPrice) || 0;
   const advance = calculateAdvance();
+  const dailyRate = calculateDailyRate();
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -393,12 +401,12 @@ export default function SelfDriveSendQuoteScreen({ navigation, route }) {
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Pricing Details</Text>
 
-          <Text style={styles.inputLabel}>Daily Rate (₹) *</Text>
+          <Text style={styles.inputLabel}>Total Price (₹) *</Text>
           <TextInput
             style={styles.input}
-            value={dailyRate}
-            onChangeText={setDailyRate}
-            placeholder="e.g., 2500"
+            value={totalPrice}
+            onChangeText={setTotalPrice}
+            placeholder={`e.g., ${(request?.totalDays || 1) * 2500} (for ${request?.totalDays || 1} days)`}
             keyboardType="decimal-pad"
             placeholderTextColor={C.muted}
           />
@@ -449,11 +457,11 @@ export default function SelfDriveSendQuoteScreen({ navigation, route }) {
         </View>
 
         {/* Quote Summary */}
-        {dailyRate && parseFloat(dailyRate) > 0 && (
+        {totalPrice && parseFloat(totalPrice) > 0 && (
           <View style={[styles.card, { backgroundColor: '#F0F9FF', borderColor: '#BAE6FD' }]}>
             <Text style={[styles.cardTitle, { color: '#0369A1' }]}>Quote Summary</Text>
             <View style={styles.row}>
-              <Text style={styles.summaryLabel}>Total ({request?.totalDays} days)</Text>
+              <Text style={styles.summaryLabel}>Total Price ({request?.totalDays} days)</Text>
               <Text style={styles.summaryValue}>₹{total.toFixed(0)}</Text>
             </View>
             <View style={styles.divider} />

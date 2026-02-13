@@ -19,6 +19,7 @@ import { Button } from '@/components/ui/button';
 import { useBookingSubmission } from '@/components/booking/useBookingSubmission';
 import { useCustomerAuth } from '@/hooks/useCustomer';
 import { capitalize } from '@/lib/utils';
+import { calculateRentalDuration } from '@/lib/utils/duration';
 
 function BikeBookingPageContent() {
   const searchParams = useSearchParams();
@@ -68,17 +69,16 @@ function BikeBookingPageContent() {
     }
   }, [isAuthenticated, customer]);
 
-  // Calculate duration
+  // Calculate duration with time precision
   const calculateDuration = () => {
-    if (!pickupDate || !dropDate) return 1;
-    const start = new Date(pickupDate);
-    const end = new Date(dropDate);
-    const diffTime = Math.abs(end.getTime() - start.getTime());
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return diffDays || 1;
+    if (!pickupDate || !dropDate || !pickupTime || !dropTime) {
+      return { formatted: '1 day', totalDays: 1 };
+    }
+    return calculateRentalDuration(pickupDate, pickupTime, dropDate, dropTime);
   };
 
   const duration = calculateDuration();
+  const durationText = duration.formatted;
 
   // Format helpers
   const formatDate = (dateStr: string) => {
@@ -345,7 +345,7 @@ function BikeBookingPageContent() {
 
                 <div className="bg-emerald-50 px-3 py-2 rounded-lg">
                   <p className="font-semibold text-emerald-700">
-                    Duration: {duration} Day{duration > 1 ? 's' : ''}
+                    Duration: {durationText}
                   </p>
                 </div>
               </div>

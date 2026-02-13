@@ -33,7 +33,7 @@ const TRANSACTIONS = [
   {
     id: '1',
     type: 'earning',
-    bookingNumber: 'CR-2024-001',
+    bookingNumber: 'CB-2024-001',
     customerName: 'Amit Kumar',
     vehicleName: 'Hyundai Creta',
     amount: 6720,
@@ -45,7 +45,7 @@ const TRANSACTIONS = [
   {
     id: '2',
     type: 'earning',
-    bookingNumber: 'CR-2024-002',
+    bookingNumber: 'CB-2024-002',
     customerName: 'Priya Sharma',
     vehicleName: 'Honda City',
     amount: 2998,
@@ -66,7 +66,7 @@ const TRANSACTIONS = [
   {
     id: '4',
     type: 'earning',
-    bookingNumber: 'CR-2024-003',
+    bookingNumber: 'CB-2024-003',
     customerName: 'Rahul Verma',
     vehicleName: 'Maruti Swift',
     amount: 2697,
@@ -78,7 +78,7 @@ const TRANSACTIONS = [
   {
     id: '5',
     type: 'earning',
-    bookingNumber: 'CR-2024-004',
+    bookingNumber: 'CB-2024-004',
     customerName: 'Vikram Singh',
     vehicleName: 'Toyota Fortuner',
     amount: 19996,

@@ -304,6 +304,7 @@ model bike_quotes {
   advancePercent                                                       Int                    @default(30)
   createdAt                                                            DateTime               @default(now())
   dailyRate                                                            Float
+  totalPrice                                                           Float?
   extraKmCharge                                                        Float?
   grandTotal                                                           Float
   gstAmount                                                            Float                  @default(0)
@@ -2553,6 +2554,7 @@ model self_drive_quotes {
   baseAmount                                                                             Float
   createdAt                                                                              DateTime                     @default(now())
   dailyRate                                                                              Float
+  totalPrice                                                                             Float?
   deliveryCharges                                                                        Float                        @default(0)
   extraKmRate                                                                            Float                        @default(10)
   fuelType                                                                               String?

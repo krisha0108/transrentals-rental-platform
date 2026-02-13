@@ -20,6 +20,7 @@ import {
   Users,
 } from 'lucide-react';
 import { useCustomerAuth } from '@/hooks/useCustomer';
+import { formatBookingDuration } from '@/lib/utils/duration';
 
 interface QuoteRequest {
   id: string;
@@ -221,7 +222,7 @@ export default function CustomerSelfDriveQuotesPage() {
                           </h3>
                           <p className="text-sm text-gray-500">
                             {request.vehicleBrand && `${request.vehicleBrand} • `}
-                            {request.totalDays} {request.totalDays === 1 ? 'day' : 'days'}
+                            {formatBookingDuration(request)}
                           </p>
                         </div>
                       </div>

@@ -19,8 +19,17 @@ export async function GET(
       return NextResponse.json({ error: auth.error || 'Unauthorized' }, { status: 401 });
     }
 
-    const booking = await prisma.truck_bookings.findUnique({
-      where: { id },
+    const vendor = await prisma.vendors.findFirst({
+      where: { id: auth.vendorId },
+      select: { id: true },
+    });
+
+    if (!vendor) {
+      return NextResponse.json({ error: 'Vendor not found' }, { status: 404 });
+    }
+
+    const booking = await prisma.truck_bookings.findFirst({
+      where: { id, vendorId: vendor.id },
       include: {
         truck_quote_requests: {
           select: {

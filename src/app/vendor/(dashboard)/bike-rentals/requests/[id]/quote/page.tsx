@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
+import { formatBookingDuration } from '@/lib/utils/duration';
 import Link from 'next/link';
 import {
   Bike,
@@ -115,7 +116,7 @@ export default function SendBikeQuotePage() {
   const [vehicleBrand, setVehicleBrand] = useState('');
   const [registrationNumber, setRegistrationNumber] = useState('');
   const [vehicleImages, setVehicleImages] = useState<any>(null);
-  const [dailyRate, setDailyRate] = useState('');
+  const [totalPrice, setTotalPrice] = useState('');
   const [securityDeposit, setSecurityDeposit] = useState('');
   const [helmetsIncluded, setHelmetsIncluded] = useState('1');
   const [kmLimitPerDay, setKmLimitPerDay] = useState('');
@@ -192,8 +193,12 @@ export default function SendBikeQuotePage() {
       setExclusions(selectedTemplate.exclusions);
       setTermsConditions(selectedTemplate.termsConditions);
 
-      // Load rate hints
-      if (selectedTemplate.dailyRateHint) setDailyRate(selectedTemplate.dailyRateHint.toString());
+      // Load rate hints - calculate total from daily rate hint
+      if (selectedTemplate.dailyRateHint) {
+        const days = request?.totalDays || 1;
+        const estimatedTotal = selectedTemplate.dailyRateHint * days;
+        setTotalPrice(estimatedTotal.toString());
+      }
       if (selectedTemplate.securityDepositHint) setSecurityDeposit(selectedTemplate.securityDepositHint.toString());
     }
   };
@@ -249,14 +254,14 @@ export default function SendBikeQuotePage() {
     setList(list.filter((i) => i !== item));
   };
 
-  const calculateTotal = () => {
-    const daily = parseFloat(dailyRate) || 0;
+  const calculateDailyRate = () => {
+    const total = parseFloat(totalPrice) || 0;
     const days = request?.totalDays || 1;
-    return daily * days;
+    return total / days;
   };
 
   const calculateAdvance = () => {
-    const total = calculateTotal();
+    const total = parseFloat(totalPrice) || 0;
     const percent = parseInt(advancePercent) || 30;
     return Math.round((total * percent) / 100);
   };
@@ -266,6 +271,7 @@ export default function SendBikeQuotePage() {
     setIsSubmitting(true);
 
     try {
+      const calculatedDailyRate = calculateDailyRate();
       const response = await fetch('/api/vendor/bike-quotes', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -277,7 +283,8 @@ export default function SendBikeQuotePage() {
           chauffeur_vehicle_categories: request?.vehicle_category || null,
           registrationNumber: registrationNumber || null,
           vehicleImages: vehicleImages || null,
-          dailyRate: parseFloat(dailyRate) || 0,
+          dailyRate: calculatedDailyRate,
+          totalPrice: parseFloat(totalPrice),
           securityDeposit: parseFloat(securityDeposit) || 0,
           helmetsIncluded: parseInt(helmetsIncluded) || 1,
           kmLimitPerDay: kmLimitPerDay ? parseInt(kmLimitPerDay) : null,
@@ -346,7 +353,7 @@ export default function SendBikeQuotePage() {
               </p>
               <p className="text-sm text-gray-600">
                 {request.vehicleBrand && `${request.vehicleBrand} • `}
-                {request.totalDays} {request.totalDays === 1 ? 'day' : 'days'}
+                {formatBookingDuration(request)}
               </p>
             </div>
           </div>
@@ -535,19 +542,22 @@ export default function SendBikeQuotePage() {
           <div className="grid md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Daily Rate *
+                Total Price (for {request.totalDays} days) *
               </label>
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">₹</span>
                 <input
                   type="number"
-                  value={dailyRate}
-                  onChange={(e) => setDailyRate(e.target.value)}
-                  placeholder="500"
+                  value={totalPrice}
+                  onChange={(e) => setTotalPrice(e.target.value)}
+                  placeholder={`${(request.totalDays || 1) * 800}`}
                   className="w-full pl-8 pr-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500"
                   required
                 />
               </div>
+              <p className="text-xs text-gray-500 mt-1">
+                Enter your total quote price for the entire rental period
+              </p>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -634,19 +644,13 @@ export default function SendBikeQuotePage() {
           {/* Total */}
           <div className="mt-6 p-4 bg-orange-50 rounded-lg border border-orange-100">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-gray-600">Daily Rate × {request.totalDays} days</span>
-              <span className="text-gray-900">
-                ₹{((parseFloat(dailyRate) || 0) * request.totalDays).toLocaleString()}
+              <span className="text-gray-600">Total Price ({request.totalDays} days)</span>
+              <span className="text-2xl font-bold text-orange-600">
+                ₹{(parseFloat(totalPrice) || 0).toLocaleString()}
               </span>
             </div>
             <div className="flex items-center justify-between border-t pt-2 mt-2">
-              <span className="font-semibold text-orange-800">Total Amount</span>
-              <span className="text-2xl font-bold text-orange-600">
-                ₹{calculateTotal().toLocaleString()}
-              </span>
-            </div>
-            <div className="flex items-center justify-between text-sm mt-2">
-              <span className="text-orange-700">Advance ({advancePercent}%)</span>
+              <span className="font-semibold text-orange-800">Advance ({advancePercent}%)</span>
               <span className="font-semibold text-orange-600">
                 ₹{calculateAdvance().toLocaleString()}
               </span>
@@ -849,7 +853,7 @@ export default function SendBikeQuotePage() {
           </Link>
           <button
             type="submit"
-            disabled={isSubmitting || !dailyRate || !securityDeposit || !vehicleName}
+            disabled={isSubmitting || !totalPrice || !securityDeposit || !vehicleName}
             className="flex-1 py-3 bg-orange-600 text-white font-bold rounded-lg hover:bg-orange-700 transition disabled:opacity-50 flex items-center justify-center gap-2"
           >
             {isSubmitting ? (
@@ -860,7 +864,7 @@ export default function SendBikeQuotePage() {
             ) : (
               <>
                 <Send className="w-5 h-5" />
-                Send Quote (₹{calculateTotal().toLocaleString()})
+                Send Quote (₹{(parseFloat(totalPrice) || 0).toLocaleString()})
               </>
             )}
           </button>

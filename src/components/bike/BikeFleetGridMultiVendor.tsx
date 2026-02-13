@@ -19,6 +19,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { BikeQuoteRequestModal } from './BikeQuoteRequestModal';
+import { calculateRentalDuration } from '@/lib/utils/duration';
 
 interface VendorPrice {
   vendorId: string;
@@ -103,15 +104,16 @@ export function BikeFleetGridMultiVendor({
   const [selectedBike, setSelectedBike] = useState<AggregatedBike | null>(null);
   const [showQuoteModal, setShowQuoteModal] = useState(false);
 
-  // Calculate rental duration
-  const rentalDays = useMemo(() => {
-    if (!pickupDate || !dropDate) return 1;
-    const start = new Date(pickupDate);
-    const end = new Date(dropDate);
-    const diffTime = Math.abs(end.getTime() - start.getTime());
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return diffDays || 1;
-  }, [pickupDate, dropDate]);
+  // Calculate rental duration with time precision
+  const rentalDuration = useMemo(() => {
+    if (!pickupDate || !dropDate || !pickupTime || !dropTime) {
+      return { formatted: '1 day', totalDays: 1 };
+    }
+    return calculateRentalDuration(pickupDate, pickupTime, dropDate, dropTime);
+  }, [pickupDate, dropDate, pickupTime, dropTime]);
+
+  const rentalDays = rentalDuration.totalDays; // For pricing calculation
+  const durationText = rentalDuration.formatted; // For display
 
   // Filter and sort bikes
   const filteredBikes = useMemo(() => {
@@ -210,7 +212,7 @@ export function BikeFleetGridMultiVendor({
               </div>
               <div className="bg-blue-50 px-3 py-1 rounded-full">
                 <span className="text-blue-700 font-medium">
-                  {rentalDays} Day{rentalDays > 1 ? 's' : ''}
+                  {durationText}
                 </span>
               </div>
             </div>

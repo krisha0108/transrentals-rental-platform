@@ -464,12 +464,8 @@ export default function SelfDriveQuoteRequestDetailScreen() {
                   {/* Price */}
                   <View style={styles.quotePricing}>
                     <View style={styles.priceRow}>
-                      <Text style={styles.priceLabel}>Daily Rate</Text>
-                      <Text style={styles.priceValue}>₹{quote.dailyRate}/day</Text>
-                    </View>
-                    <View style={styles.priceRow}>
                       <Text style={styles.priceLabel}>
-                        {request.totalDays} Day{request.totalDays > 1 ? 's' : ''} Total
+                        Total Price ({request.totalDays} Day{request.totalDays > 1 ? 's' : ''})
                       </Text>
                       <Text style={styles.totalPrice}>₹{quote.grandTotal}</Text>
                     </View>
@@ -717,14 +713,8 @@ export default function SelfDriveQuoteRequestDetailScreen() {
 
                       <View style={styles.confirmPriceSection}>
                         <View style={styles.confirmPriceRow}>
-                          <Text style={styles.confirmPriceLabel}>Daily Rate</Text>
-                          <Text style={styles.confirmPriceValue}>
-                            ₹{selectedQuote.dailyRate}/day
-                          </Text>
-                        </View>
-                        <View style={styles.confirmPriceRow}>
                           <Text style={styles.confirmPriceLabel}>
-                            {request?.totalDays || 1} Day{(request?.totalDays || 1) > 1 ? 's' : ''} Total
+                            Total Price ({request?.totalDays || 1} Day{(request?.totalDays || 1) > 1 ? 's' : ''})
                           </Text>
                           <Text style={styles.confirmTotal}>₹{selectedQuote.grandTotal}</Text>
                         </View>
@@ -1007,12 +997,8 @@ export default function SelfDriveQuoteRequestDetailScreen() {
                       </View>
                       <View style={styles.detailsPricingCard}>
                         <View style={styles.detailsPriceRow}>
-                          <Text style={styles.detailsPriceLabel}>Daily Rate</Text>
-                          <Text style={styles.detailsPriceValue}>₹{viewingQuote.dailyRate}</Text>
-                        </View>
-                        <View style={styles.detailsPriceRow}>
                           <Text style={styles.detailsPriceLabel}>
-                            Total ({request?.totalDays || 1} days)
+                            Rental ({request?.totalDays || 1} days)
                           </Text>
                           <Text style={styles.detailsPriceValue}>₹{viewingQuote.totalAmount}</Text>
                         </View>

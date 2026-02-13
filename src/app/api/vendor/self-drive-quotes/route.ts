@@ -186,6 +186,7 @@ export async function POST(request: NextRequest) {
 
       // Pricing
       dailyRate,
+      totalPrice,
       securityDeposit,
       platformFee = 0, // Removed platform fee
       gstPercent = 0,  // Removed GST
@@ -363,6 +364,7 @@ export async function POST(request: NextRequest) {
         vehicleImages: finalVehicleImages ? JSON.stringify(finalVehicleImages) : null,
         vehicleFeatures: vehicleFeatures ? JSON.stringify(vehicleFeatures) : null,
         dailyRate,
+        totalPrice: totalPrice || null,
         baseAmount,
         gstAmount: 0,
         platformFee: 0,
