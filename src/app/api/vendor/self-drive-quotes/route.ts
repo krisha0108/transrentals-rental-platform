@@ -394,7 +394,7 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Create notification for customer
+    // Create notification for customer - Store requestId so customer can fetch request details
     try {
       await prisma.notifications.create({
         data: {
@@ -402,11 +402,12 @@ export async function POST(request: NextRequest) {
           title: '🚗 New Self-Drive Quote Received!',
           body: `${vendor.businessName} has sent you a quote for ${vehicleName}. Daily rate: ₹${dailyRate}. Total: ₹${grandTotal}. Valid till ${validTill.toLocaleDateString()}.`,
           type: 'quote',
-          quoteId: quote.id,
+          serviceType: 'self-drive',
+          quoteId: requestId, // Use requestId for navigation
           isRead: false,
         },
       });
-      logger.info('Notification created for self-drive quote', { quoteId: quote.id, customerId: quoteRequest.customerId });
+      logger.info('Notification created for self-drive quote', { requestId, quoteId: quote.id, customerId: quoteRequest.customerId });
     } catch (notifError) {
       // Log but don't fail the request if notification creation fails
       logger.error('Failed to create notification for self-drive quote', notifError);

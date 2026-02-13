@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getVendorAuth } from '@/lib/auth/vendor-mobile-auth';
 import { prisma } from '@/lib/db/prisma';
 import { transformPrismaResponse } from '@/lib/utils/api-transform';
-
-
+import { sendNotificationToCustomer } from '@/lib/services/push-notification-service';
+import crypto from 'crypto';
 
 import logger from '@/lib/security/logger';
 export const dynamic = 'force-dynamic';
@@ -209,6 +209,56 @@ export async function PATCH(
           acceptedVendorId: acceptResult.acceptedVendorId,
         });
 
+        // Send booking accepted notification to customer
+        try {
+          // Get vendor name
+          const vendor = await prisma.vendors.findUnique({
+            where: { id: vendorId },
+            select: { businessName: true },
+          });
+
+          const vendorName = vendor?.businessName || 'our vendor';
+          const notificationId = 'NOTIF_' + crypto.randomBytes(8).toString('hex');
+
+          await prisma.notifications.create({
+            data: {
+              id: notificationId,
+              customerId: acceptResult.customerId,
+              title: '✅ Booking Accepted!',
+              body: `Your booking has been accepted by ${vendorName}! A driver will be assigned to you soon. 🚗`,
+              type: 'booking',
+              serviceType: 'chauffeur-service',
+              bookingId: acceptResult.id,
+              isRead: false,
+            },
+          });
+          console.log('✅ Booking accepted in-app notification created:', notificationId);
+
+          console.log('📤 Sending booking accepted push notification to customer:', acceptResult.customerId);
+          const pushResult = await sendNotificationToCustomer(
+            acceptResult.customerId,
+            {
+              title: '✅ Booking Accepted!',
+              body: `Your booking has been accepted by ${vendorName}! A driver will be assigned to you soon. 🚗`,
+            },
+            {
+              type: 'booking_accepted',
+              serviceType: 'chauffeur-service',
+              bookingId: acceptResult.id,
+              bookingNumber: acceptResult.bookingNumber || '',
+            }
+          );
+
+          if (pushResult.success) {
+            console.log('✅ Booking accepted push notification sent successfully:', pushResult.messageId);
+          } else {
+            console.error('❌ Booking accepted push notification failed:', pushResult.error);
+          }
+        } catch (notificationError: any) {
+          console.error('❌ Booking accepted notification error:', notificationError);
+          logger.error('Failed to send booking accepted notification', notificationError);
+        }
+
         return NextResponse.json({
           success: true,
           message: 'Booking accepted successfully! This booking is now assigned to you.',
@@ -255,6 +305,58 @@ export async function PATCH(
             : {}),
         };
         message = 'Booking rejected';
+
+        // Send booking rejected notification to customer (only if vendor had accepted it)
+        if (booking.acceptedVendorId === vendorId) {
+          try {
+            const vendor = await prisma.vendors.findUnique({
+              where: { id: vendorId },
+              select: { businessName: true },
+            });
+
+            const vendorName = vendor?.businessName || 'the vendor';
+            const notificationId = 'NOTIF_' + crypto.randomBytes(8).toString('hex');
+
+            await prisma.notifications.create({
+              data: {
+                id: notificationId,
+                customerId: booking.customerId,
+                title: '❌ Booking Rejected',
+                body: `Sorry! Your booking has been rejected by ${vendorName}. We're finding another vendor for you. 🔄`,
+                type: 'booking',
+                serviceType: 'chauffeur-service',
+                bookingId: booking.id,
+                isRead: false,
+              },
+            });
+            console.log('✅ Booking rejected in-app notification created:', notificationId);
+
+            console.log('📤 Sending booking rejected push notification to customer:', booking.customerId);
+            const pushResult = await sendNotificationToCustomer(
+              booking.customerId,
+              {
+                title: '❌ Booking Rejected',
+                body: `Sorry! Your booking has been rejected by ${vendorName}. We're finding another vendor for you. 🔄`,
+              },
+              {
+                type: 'booking_rejected',
+                serviceType: 'chauffeur-service',
+                bookingId: booking.id,
+                bookingNumber: booking.bookingNumber || '',
+              }
+            );
+
+            if (pushResult.success) {
+              console.log('✅ Booking rejected push notification sent successfully:', pushResult.messageId);
+            } else {
+              console.error('❌ Booking rejected push notification failed:', pushResult.error);
+            }
+          } catch (notificationError: any) {
+            console.error('❌ Booking rejected notification error:', notificationError);
+            logger.error('Failed to send booking rejected notification', notificationError);
+          }
+        }
+
         break;
 
       case 'assign_driver':
@@ -410,6 +512,54 @@ export async function PATCH(
       where: { bookingNumber },
       data: updateData,
     });
+
+    // Send driver assigned notification
+    if (action === 'assign_driver') {
+      try {
+        const notificationId = 'NOTIF_' + crypto.randomBytes(8).toString('hex');
+
+        await prisma.notifications.create({
+          data: {
+            id: notificationId,
+            customerId: updatedBooking.customerId,
+            title: '👨‍✈️ Driver Assigned!',
+            body: `Great news! ${updatedBooking.driverName} has been assigned as your driver. Vehicle: ${updatedBooking.vehicleNumber}. Get ready for your trip! 🚗`,
+            type: 'booking',
+            serviceType: 'chauffeur-service',
+            bookingId: updatedBooking.id,
+            isRead: false,
+          },
+        });
+        console.log('✅ Driver assigned in-app notification created:', notificationId);
+
+        console.log('📤 Sending driver assigned push notification to customer:', updatedBooking.customerId);
+        const pushResult = await sendNotificationToCustomer(
+          updatedBooking.customerId,
+          {
+            title: '👨‍✈️ Driver Assigned!',
+            body: `Great news! ${updatedBooking.driverName} has been assigned as your driver. Vehicle: ${updatedBooking.vehicleNumber}. Get ready for your trip! 🚗`,
+          },
+          {
+            type: 'driver_assigned',
+            serviceType: 'chauffeur-service',
+            bookingId: updatedBooking.id,
+            bookingNumber: updatedBooking.bookingNumber || '',
+            driverName: updatedBooking.driverName || '',
+            driverPhone: updatedBooking.driverPhone || '',
+            vehicleNumber: updatedBooking.vehicleNumber || '',
+          }
+        );
+
+        if (pushResult.success) {
+          console.log('✅ Driver assigned push notification sent successfully:', pushResult.messageId);
+        } else {
+          console.error('❌ Driver assigned push notification failed:', pushResult.error);
+        }
+      } catch (notificationError: any) {
+        console.error('❌ Driver assigned notification error:', notificationError);
+        logger.error('Failed to send driver assigned notification', notificationError);
+      }
+    }
 
     return NextResponse.json({
       success: true,

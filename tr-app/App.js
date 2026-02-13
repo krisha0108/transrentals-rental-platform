@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, Platform, Clipboard } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -112,6 +112,36 @@ import { BASE_URL } from './screens/api';
 let badgeCount = 0;
 LogBox.ignoreLogs(['useInsertionEffect must not schedule updates']);
 
+// Notifee event handler for notification actions (Copy OTP button)
+notifee.onBackgroundEvent(async ({ type, detail }) => {
+  const { notification, pressAction } = detail;
+
+  // Handle Copy OTP action
+  if (pressAction?.id === 'copy_otp') {
+    const messageBody = notification?.body || '';
+    const otpMatch = messageBody.match(/\b\d{6}\b/);
+    if (otpMatch) {
+      Clipboard.setString(otpMatch[0]);
+      console.log('✅ OTP copied to clipboard:', otpMatch[0]);
+
+      // Show toast notification
+      await notifee.displayNotification({
+        title: '✅ OTP Copied!',
+        body: `OTP ${otpMatch[0]} copied to clipboard`,
+        android: {
+          channelId: 'transrentals_notifications',
+          smallIcon: 'ic_notification',
+          largeIcon: require('./assets/logp-1.png'),
+          color: '#4CAF50', // Green
+          importance: AndroidImportance.LOW,
+          autoCancel: true,
+          timeoutAfter: 3000, // Auto dismiss after 3 seconds
+        },
+      });
+    }
+  }
+});
+
 // Background notification handler (must be outside component)
 messaging().setBackgroundMessageHandler(async remoteMessage => {
   console.log('Background message received:', remoteMessage);
@@ -134,7 +164,8 @@ messaging().setBackgroundMessageHandler(async remoteMessage => {
     data: remoteMessage.data,
     android: {
       channelId: channelId, // Use correct channel for sound
-      smallIcon: 'ic_launcher',
+      smallIcon: 'ic_notification',
+      largeIcon: require('./assets/logp-1.png'),
       importance: AndroidImportance.HIGH,
       pressAction: {
         id: 'default',
@@ -323,7 +354,7 @@ function AppContent() {
         console.error('Error saving FCM token:', error);
       }
 
-      // ⭐ Foreground message handler - Show IN-APP notification
+      // ⭐ Foreground message handler - Show IN-APP and ANDROID notification
       const unsubscribe = messaging().onMessage(async remoteMessage => {
         console.log('📱 Foreground message received:', remoteMessage);
         badgeCount += 1;
@@ -341,6 +372,64 @@ function AppContent() {
         };
 
         showNotification(notificationData);
+
+        // ALSO display Android system notification using notifee
+        try {
+          const channelId = await notifee.createChannel({
+            id: 'transrentals_notifications',
+            name: 'TransRentals Notifications',
+            sound: 'default',
+            importance: AndroidImportance.HIGH,
+          });
+
+          // Extract OTP from message if present
+          const messageBody = remoteMessage.notification?.body || '';
+          const otpMatch = messageBody.match(/\b\d{6}\b/); // Find 6-digit OTP
+          const otp = otpMatch ? otpMatch[0] : null;
+          const notificationType = remoteMessage.data?.type || 'general';
+
+          // Build notification config
+          const notificationConfig = {
+            title: remoteMessage.notification?.title || 'New Notification',
+            body: messageBody,
+            android: {
+              channelId,
+              smallIcon: 'ic_notification',
+              largeIcon: require('./assets/logp-1.png'),
+              importance: AndroidImportance.HIGH,
+              color: '#FF6B35', // TransRentals brand color (orange)
+              pressAction: {
+                id: 'default',
+              },
+              // Use BigText style for better formatting
+              style: {
+                type: AndroidStyle.BIGTEXT,
+                text: messageBody,
+              },
+            },
+            data: remoteMessage.data,
+          };
+
+          // If OTP notification, add copy action button
+          if (otp && (notificationType === 'otp' || notificationType === 'trip_end_otp')) {
+            notificationConfig.android.actions = [
+              {
+                title: '📋 Copy OTP',
+                pressAction: {
+                  id: 'copy_otp',
+                },
+              },
+            ];
+
+            // Highlight OTP in bigger text
+            notificationConfig.android.style.text = `🔑 Your OTP:\n\n${otp}\n\n${messageBody.replace(otp, '')}`;
+          }
+
+          await notifee.displayNotification(notificationConfig);
+          console.log('✅ Android system notification displayed with enhanced styling');
+        } catch (error) {
+          console.error('❌ Failed to display Android notification:', error);
+        }
       });
 
       // Handle notification opened app from background state

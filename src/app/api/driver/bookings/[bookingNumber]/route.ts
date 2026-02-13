@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 import { getDriver } from '@/lib/auth/driver-auth';
+import { sendNotificationToCustomer } from '@/lib/services/push-notification-service';
+import crypto from 'crypto';
 
 import logger from '@/lib/security/logger';
 export const dynamic = 'force-dynamic';
@@ -537,7 +539,61 @@ export async function PATCH(
         data: updateData,
       });
 
-      // TODO: Send OTP to customer via SMS
+      // Send OTP notification to customer
+      try {
+        const notificationId = 'NOTIF_' + crypto.randomBytes(8).toString('hex');
+
+        // Map service types to display names
+        const serviceTypeMap: any = {
+          car: 'chauffeur-service',
+          bus: 'bus-rental',
+          truck: 'truck-rental',
+          packers: 'packers-and-movers',
+          equipment: 'equipment-rental',
+          luxury: 'luxury-car-rental',
+        };
+
+        const serviceTypeName = serviceTypeMap[serviceType] || serviceType;
+
+        await prisma.notifications.create({
+          data: {
+            id: notificationId,
+            customerId: booking.customerId,
+            title: `🔑 ${otpType} OTP`,
+            body: `Your OTP for ${otpType.toLowerCase()} is: ${newOtp}. Valid for verification.`,
+            type: 'booking',
+            serviceType: serviceTypeName,
+            bookingId: booking.id,
+            isRead: false,
+          },
+        });
+        console.log(`✅ Driver ${otpType} OTP in-app notification created:`, notificationId);
+
+        console.log(`📤 Sending ${otpType} OTP push notification to customer:`, booking.customerId);
+        const pushResult = await sendNotificationToCustomer(
+          booking.customerId,
+          {
+            title: `🔑 ${otpType} OTP`,
+            body: `Your OTP for ${otpType.toLowerCase()} is: ${newOtp}. Valid for verification.`,
+          },
+          {
+            type: 'otp',
+            serviceType: serviceTypeName,
+            bookingId: booking.id,
+            otp: newOtp,
+          }
+        );
+
+        if (pushResult.success) {
+          console.log(`✅ ${otpType} OTP push notification sent successfully:`, pushResult.messageId);
+        } else {
+          console.error(`❌ ${otpType} OTP push notification failed:`, pushResult.error);
+        }
+      } catch (notificationError: any) {
+        console.error(`❌ ${otpType} OTP notification error:`, notificationError);
+        logger.error(`Failed to send ${otpType} OTP notification`, notificationError);
+      }
+
       console.log(`[OTP] Booking ${bookingNumber}: ${otpType} OTP ${newOtp} sent to customer ${booking.customerPhone}`);
 
       return NextResponse.json({
@@ -605,6 +661,76 @@ export async function PATCH(
         where: { bookingNumber },
         data: updateData,
       });
+
+      // Send trip started notification to customer
+      try {
+        const notificationId = 'NOTIF_' + crypto.randomBytes(8).toString('hex');
+
+        // Map service types to display names
+        const serviceTypeMap: any = {
+          car: 'chauffeur-service',
+          bus: 'bus-rental',
+          truck: 'truck-rental',
+          packers: 'packers-and-movers',
+          equipment: 'equipment-rental',
+          luxury: 'luxury-car-rental',
+        };
+
+        const serviceTypeName = serviceTypeMap[serviceType] || serviceType;
+
+        // Determine notification title and body based on service type
+        let notificationTitle = '🚗 Trip Started!';
+        let notificationBody = 'Your trip has started! Enjoy your ride and stay safe! 🛣️';
+
+        if (isTruck) {
+          notificationTitle = '📦 Loading Started!';
+          notificationBody = 'Loading of your goods has started! We will notify you when transit begins. 🚛';
+        } else if (isPackers) {
+          notificationTitle = '📦 Packing Started!';
+          notificationBody = 'Packing of your belongings has started! We will keep you updated. 📦';
+        } else if (isEquipment) {
+          notificationTitle = '✅ Equipment Delivered!';
+          notificationBody = 'Your equipment has been delivered successfully! 🎉';
+        }
+
+        await prisma.notifications.create({
+          data: {
+            id: notificationId,
+            customerId: booking.customerId,
+            title: notificationTitle,
+            body: notificationBody,
+            type: 'booking',
+            serviceType: serviceTypeName,
+            bookingId: booking.id,
+            isRead: false,
+          },
+        });
+        console.log('✅ Driver trip started in-app notification created:', notificationId);
+
+        console.log('📤 Sending trip started push notification to customer:', booking.customerId);
+        const pushResult = await sendNotificationToCustomer(
+          booking.customerId,
+          {
+            title: notificationTitle,
+            body: notificationBody,
+          },
+          {
+            type: 'trip_started',
+            serviceType: serviceTypeName,
+            bookingId: booking.id,
+            bookingNumber: updatedBooking.bookingNumber || '',
+          }
+        );
+
+        if (pushResult.success) {
+          console.log('✅ Trip started push notification sent successfully:', pushResult.messageId);
+        } else {
+          console.error('❌ Trip started push notification failed:', pushResult.error);
+        }
+      } catch (notificationError: any) {
+        console.error('❌ Trip started notification error:', notificationError);
+        logger.error('Failed to send trip started notification', notificationError);
+      }
 
       // Determine success message
       let message = 'Trip started successfully!';
@@ -1188,6 +1314,61 @@ export async function PATCH(
         where: { bookingNumber },
         data: updateData,
       });
+
+      // Send trip completion notification to customer
+      try {
+        const notificationId = 'NOTIF_' + crypto.randomBytes(8).toString('hex');
+
+        // Map service types to display names
+        const serviceTypeMap: any = {
+          car: 'chauffeur-service',
+          bus: 'bus-rental',
+          truck: 'truck-rental',
+          packers: 'packers-and-movers',
+          equipment: 'equipment-rental',
+          luxury: 'luxury-car-rental',
+        };
+
+        const serviceTypeName = serviceTypeMap[serviceType] || serviceType;
+
+        await prisma.notifications.create({
+          data: {
+            id: notificationId,
+            customerId: booking.customerId,
+            title: '🎉 Trip Completed Successfully!',
+            body: `Your trip is complete! Hope you enjoyed the ride! 🚗 Book again for your next journey! ✨`,
+            type: 'booking',
+            serviceType: serviceTypeName,
+            bookingId: booking.id,
+            isRead: false,
+          },
+        });
+        console.log('✅ Driver trip completed in-app notification created:', notificationId);
+
+        console.log('📤 Sending trip completed push notification to customer:', booking.customerId);
+        const pushResult = await sendNotificationToCustomer(
+          booking.customerId,
+          {
+            title: '🎉 Trip Completed Successfully!',
+            body: `Your trip is complete! Hope you enjoyed the ride! 🚗 Book again for your next journey! ✨`,
+          },
+          {
+            type: 'trip_completed',
+            serviceType: serviceTypeName,
+            bookingId: booking.id,
+            bookingNumber: updatedBooking.bookingNumber || '',
+          }
+        );
+
+        if (pushResult.success) {
+          console.log('✅ Trip completed push notification sent successfully:', pushResult.messageId);
+        } else {
+          console.error('❌ Trip completed push notification failed:', pushResult.error);
+        }
+      } catch (notificationError: any) {
+        console.error('❌ Trip completed notification error:', notificationError);
+        logger.error('Failed to send trip completed notification', notificationError);
+      }
 
       return NextResponse.json({
         success: true,

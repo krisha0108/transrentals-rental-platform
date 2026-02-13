@@ -3,6 +3,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getVendorAuth } from '@/lib/auth/vendor-mobile-auth';
 import { prisma } from '@/lib/db/prisma';
 import { transformPrismaResponse } from '@/lib/utils/api-transform';
+import { prepareNotificationData } from '@/lib/utils/notification-helper';
+import { sendNotificationToCustomer } from '@/lib/services/push-notification-service';
 import crypto from 'crypto';
 
 import logger from '@/lib/security/logger';
@@ -361,21 +363,44 @@ export async function POST(request: NextRequest) {
       return newQuote;
     });
 
-    // Create notification for customer (outside transaction)
+    // Send notification to customer - Store requestId so customer can fetch request details
     try {
+      const notificationTitle = '📦 New Packers & Movers Quote Received!';
+      const notificationBody = `${vendor.businessName} has sent you a quote for moving from ${quoteRequest.fromLocation} to ${quoteRequest.toLocation}. Total: ₹${totalAmount.toLocaleString()}. Valid till ${validTill.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}. View now!`;
+
+      // Save in-app notification
       await prisma.notifications.create({
-        data: {
+        data: prepareNotificationData({
           customerId: quoteRequest.customerId,
-          title: '📦 New Packers & Movers Quote Received!',
-          body: `${vendor.businessName} has sent you a quote for moving from ${quoteRequest.fromLocation} to ${quoteRequest.toLocation}. Total: ₹${totalAmount}. Valid till ${validTill.toLocaleDateString()}.`,
+          title: notificationTitle,
+          body: notificationBody,
           type: 'quote',
-          quoteId: quote.id,
-          isRead: false,
-        },
+          serviceType: 'packers',
+          quoteId: requestId, // Use requestId for navigation
+          bookingId: null,
+        }),
       });
-      logger.info('Notification created for packers quote', { quoteId: quote.id, customerId: quoteRequest.customerId });
+
+      // Send push notification
+      await sendNotificationToCustomer(
+        quoteRequest.customerId,
+        {
+          title: notificationTitle,
+          body: notificationBody,
+        },
+        {
+          type: 'quote',
+          requestId: requestId,
+          quoteId: quote.id,
+          quoteNumber: quote.quoteNumber,
+          action: 'quote_received',
+        }
+      );
+
+      logger.info(`Notification sent for packers quote - Quote: ${quote.quoteNumber}, Request: ${requestId}, Customer: ${quoteRequest.customerId}`);
     } catch (notifError) {
-      logger.error('Failed to create notification for packers quote', notifError);
+      // Log error but don't fail the request
+      logger.error('Failed to send packers quote notification', notifError);
     }
 
     return NextResponse.json({

@@ -4,6 +4,8 @@ import { getVendorAuth } from '@/lib/auth/vendor-mobile-auth';
 
 import { prisma } from '@/lib/db/prisma';
 import { transformPrismaResponse } from '@/lib/utils/api-transform';
+import { sendNotificationToCustomer } from '@/lib/services/push-notification-service';
+import crypto from 'crypto';
 
 import logger from '@/lib/security/logger';
 export const dynamic = 'force-dynamic';
@@ -113,6 +115,48 @@ export async function POST(
         locations: { select: { name: true, slug: true } },
       },
     });
+
+    // Send trip completion notification
+    try {
+      const notificationId = 'NOTIF_' + crypto.randomBytes(8).toString('hex');
+      await prisma.notifications.create({
+        data: {
+          id: notificationId,
+          customerId: booking.customerId,
+          title: '🎉 Trip Completed Successfully!',
+          body: `Your self-drive rental is complete! Hope you enjoyed the journey! 🚗 Book again for your next trip! ✨`,
+          type: 'booking',
+          serviceType: 'self-drive',
+          bookingId: booking.id,
+          isRead: false,
+        },
+      });
+      console.log('✅ Self-drive trip completed in-app notification created:', notificationId);
+
+      console.log('📤 Sending self-drive trip completed push notification to customer:', booking.customerId);
+      const pushResult = await sendNotificationToCustomer(
+        booking.customerId,
+        {
+          title: '🎉 Trip Completed Successfully!',
+          body: `Your self-drive rental is complete! Hope you enjoyed the journey! 🚗 Book again for your next trip! ✨`,
+        },
+        {
+          type: 'trip_completed',
+          serviceType: 'self-drive',
+          bookingId: booking.id,
+          bookingNumber: updatedBooking.bookingNumber || '',
+        }
+      );
+
+      if (pushResult.success) {
+        console.log('✅ Self-drive trip completed push notification sent successfully:', pushResult.messageId);
+      } else {
+        console.error('❌ Self-drive trip completed push notification failed:', pushResult.error);
+      }
+    } catch (notificationError: any) {
+      console.error('❌ Self-drive trip completed notification error:', notificationError);
+      logger.error('Failed to send self-drive trip completed notification', notificationError);
+    }
 
     // Calculate total km driven
     const totalKmDriven = odometerEnd && booking.odometerStart

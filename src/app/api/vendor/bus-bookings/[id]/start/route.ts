@@ -4,6 +4,8 @@ import { getVendorAuth } from '@/lib/auth/vendor-mobile-auth';
 
 import { prisma } from '@/lib/db/prisma';
 import { transformPrismaResponse } from '@/lib/utils/api-transform';
+import { prepareNotificationData } from '@/lib/utils/notification-helper';
+import { sendNotificationToCustomer } from '@/lib/services/push-notification-service';
 
 import logger from '@/lib/security/logger';
 export const dynamic = 'force-dynamic';
@@ -83,6 +85,45 @@ export async function POST(
         tripStartedAt: new Date(),
       },
     });
+
+    // Send notification to customer
+    try {
+      const notificationTitle = '🚀 Trip Started!';
+      const notificationBody = `Your bus trip has started! Booking #${booking.bookingNumber}. Driver ${booking.driverName} is on the way. Have a safe journey!`;
+
+      // Save in-app notification
+      await prisma.notifications.create({
+        data: prepareNotificationData({
+          customerId: booking.customerId,
+          title: notificationTitle,
+          body: notificationBody,
+          type: 'booking',
+          serviceType: 'bus',
+          bookingId: booking.id,
+          quoteId: null,
+        }),
+      });
+
+      // Send push notification
+      await sendNotificationToCustomer(
+        booking.customerId,
+        {
+          title: notificationTitle,
+          body: notificationBody,
+        },
+        {
+          type: 'booking',
+          bookingId: booking.id,
+          bookingNumber: booking.bookingNumber,
+          action: 'trip_started',
+        }
+      );
+
+      logger.info(`Notification sent for trip start - Booking: ${booking.bookingNumber}`);
+    } catch (notifError) {
+      // Log error but don't fail the request
+      logger.error('Failed to send trip start notification', notifError);
+    }
 
     return NextResponse.json({
       success: true,

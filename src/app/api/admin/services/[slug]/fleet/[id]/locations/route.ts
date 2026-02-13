@@ -104,6 +104,7 @@ export async function GET(
         id: true,
         name: true,
         slug: true,
+        type: true, // Include type to distinguish STATE vs UNION_TERRITORY
         other_locations: {
           where: {
             type: 'CITY',
@@ -117,24 +118,38 @@ export async function GET(
       orderBy: { name: 'asc' },
     });
 
-    // Build hierarchical structure (filter out states with no cities for this service)
+    // Build hierarchical structure
+    // Include states/UTs that either:
+    // 1. Have child cities enabled for this service, OR
+    // 2. Are themselves enabled as locations (UTs can be leaf locations)
     const locationHierarchy = states
-      .filter(state => state.other_locations.length > 0)
-      .map(state => ({
-        id: state.id,
-        name: state.name,
-        slug: state.slug,
-        type: 'state' as const,
-        cities: state.other_locations.map(city => ({
-          id: city.id,
-          name: city.name,
-          slug: city.slug,
-          type: 'city' as const,
-          isAssigned: assignedLocationIds.has(city.id),
-        })),
-        assignedCount: state.other_locations.filter(c => assignedLocationIds.has(c.id)).length,
-        totalCount: state.other_locations.length,
-      }));
+      .filter(state => {
+        const hasEnabledChildren = state.other_locations.length > 0;
+        const isEnabledItself = serviceLocationIds.has(state.id);
+        return hasEnabledChildren || isEnabledItself;
+      })
+      .map(state => {
+        const isLeafLocation = serviceLocationIds.has(state.id) && state.other_locations.length === 0;
+
+        return {
+          id: state.id,
+          name: state.name,
+          slug: state.slug,
+          type: state.type === 'UNION_TERRITORY' ? 'union_territory' as const : 'state' as const,
+          isLeafLocation, // Flag to indicate this UT/state itself is a location
+          cities: state.other_locations.map(city => ({
+            id: city.id,
+            name: city.name,
+            slug: city.slug,
+            type: 'city' as const,
+            isAssigned: assignedLocationIds.has(city.id),
+          })),
+          assignedCount: isLeafLocation
+            ? (assignedLocationIds.has(state.id) ? 1 : 0)
+            : state.other_locations.filter(c => assignedLocationIds.has(c.id)).length,
+          totalCount: isLeafLocation ? 1 : state.other_locations.length,
+        };
+      });
 
     // Flat list of all cities for backward compatibility
     const allCities = states.flatMap(s => s.other_locations.map(c => ({

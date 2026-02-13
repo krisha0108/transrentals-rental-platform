@@ -220,10 +220,10 @@ export default function CustomerDashboard() {
   }, []);
   const fetchUnreadNotificationCount = async () => {
     try {
-      console.log('[fetchUnreadNotificationCount] Starting...');
+// console.log('[fetchUnreadNotificationCount] Starting...');
       const customerData = await AsyncStorage.getItem('customer');
       if (!customerData) {
-        console.log('[fetchUnreadNotificationCount] No customer data found');
+// console.log('[fetchUnreadNotificationCount] No customer data found');
         setUnreadCount(0);
         return;
       }
@@ -231,7 +231,7 @@ export default function CustomerDashboard() {
       const customer = JSON.parse(customerData);
       const customerId = customer?.id;
       if (!customerId) {
-        console.log('[fetchUnreadNotificationCount] No customer ID found');
+// console.log('[fetchUnreadNotificationCount] No customer ID found');
         setUnreadCount(0);
         return;
       }
@@ -241,24 +241,24 @@ export default function CustomerDashboard() {
         const response = await notificationService.getUnreadCount(customerId);
         const count = response?.total_unread ?? 0;
         setUnreadCount(count);
-        console.log(`[fetchUnreadNotificationCount] Success: ${count} unread notifications`);
+// console.log(`[fetchUnreadNotificationCount] Success: ${count} unread notifications`);
       } catch (e) {
         // Notification endpoint may not exist, just set to 0
-        console.log('[fetchUnreadNotificationCount] Service error, setting to 0:', e.message);
+// console.log('[fetchUnreadNotificationCount] Service error, setting to 0:', e.message);
         setUnreadCount(0);
       }
     } catch (err) {
-      console.log('[fetchUnreadNotificationCount] Error:', err.message);
+// console.log('[fetchUnreadNotificationCount] Error:', err.message);
       setUnreadCount(0);
     }
   };
 
   const fetchDashboardStats = async () => {
     try {
-      console.log('[fetchDashboardStats] Starting...');
+// console.log('[fetchDashboardStats] Starting...');
       const customerData = await AsyncStorage.getItem('customer');
       if (!customerData) {
-        console.log('[fetchDashboardStats] No customer data in AsyncStorage');
+// console.log('[fetchDashboardStats] No customer data in AsyncStorage');
         setDashboardStats({ active_bookings: 0, total_earnings: 0 });
         return;
       }
@@ -266,12 +266,12 @@ export default function CustomerDashboard() {
       const customer = JSON.parse(customerData);
       const identifier = customer?.id || customer?.email || customer?.phone;
       if (!identifier) {
-        console.log('[fetchDashboardStats] No valid customer identifier found');
+// console.log('[fetchDashboardStats] No valid customer identifier found');
         setDashboardStats({ active_bookings: 0, total_earnings: 0 });
         return;
       }
 
-      console.log('[fetchDashboardStats] Requesting stats with identifier:', identifier);
+// console.log('[fetchDashboardStats] Requesting stats with identifier:', identifier);
 
       // Use the correct customer stats endpoint
       const response = await api.get('/customer/stats', {
@@ -281,7 +281,7 @@ export default function CustomerDashboard() {
         }
       });
 
-      console.log('[fetchDashboardStats] Response:', response.data);
+// console.log('[fetchDashboardStats] Response:', response.data);
 
       if (response.data?.success) {
         const stats = response.data.stats || {};
@@ -291,15 +291,15 @@ export default function CustomerDashboard() {
           active_bookings: activeCount,
           total_earnings: 0,
         });
-        console.log(`[fetchDashboardStats] Success: ${activeCount} active bookings`);
+// console.log(`[fetchDashboardStats] Success: ${activeCount} active bookings`);
       } else {
         console.warn('[fetchDashboardStats] API returned success: false');
         setDashboardStats({ active_bookings: 0, total_earnings: 0 });
       }
     } catch (err) {
-      console.log('[fetchDashboardStats] Error:', err.message);
+// console.log('[fetchDashboardStats] Error:', err.message);
       if (err.response) {
-        console.log('[fetchDashboardStats] Error Response:', err.response.data);
+// console.log('[fetchDashboardStats] Error Response:', err.response.data);
       }
       setDashboardStats({ active_bookings: 0, total_earnings: 0 });
     }
@@ -348,7 +348,7 @@ export default function CustomerDashboard() {
         setLocation(`${response.data.city}, ${response.data.state}`);
       }
     } catch (error) {
-      console.log('Error getting address', error);
+// console.log('Error getting address', error);
       setLocation('Unknown');
     }
   };
@@ -374,11 +374,11 @@ export default function CustomerDashboard() {
 
           }
         } catch (err) {
-          console.log('Backend update error:', err);
+// console.log('Backend update error:', err);
         }
       },
       (error) => {
-        console.log('Location fetch error:', error);
+// console.log('Location fetch error:', error);
       },
       { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
     );
@@ -414,10 +414,10 @@ export default function CustomerDashboard() {
 
   const fetchRecentQuotes = async () => {
     try {
-      console.log('[fetchRecentQuotes] Starting...');
+// console.log('[fetchRecentQuotes] Starting...');
       const customerData = await AsyncStorage.getItem('customer');
       if (!customerData) {
-        console.log('[fetchRecentQuotes] No customer data found');
+// console.log('[fetchRecentQuotes] No customer data found');
         setRecentQuotes([]);
         return;
       }
@@ -425,7 +425,7 @@ export default function CustomerDashboard() {
       const customer = JSON.parse(customerData);
       const identifier = customer?.id || customer?.email || customer?.phone;
       if (!identifier) {
-        console.log('[fetchRecentQuotes] No valid customer identifier found');
+// console.log('[fetchRecentQuotes] No valid customer identifier found');
         setRecentQuotes([]);
         return;
       }
@@ -439,7 +439,7 @@ export default function CustomerDashboard() {
         }
       });
 
-      console.log('[fetchRecentQuotes] Response:', response.data);
+// console.log('[fetchRecentQuotes] Response:', response.data);
 
       if (response.data?.success) {
         // Filter for quote requests and take recent ones
@@ -455,15 +455,15 @@ export default function CustomerDashboard() {
             status: q.status,
           }));
         setRecentQuotes(quotes);
-        console.log(`[fetchRecentQuotes] Success: ${quotes.length} quotes found`);
+// console.log(`[fetchRecentQuotes] Success: ${quotes.length} quotes found`);
       } else {
         console.warn('[fetchRecentQuotes] API returned success: false');
         setRecentQuotes([]);
       }
     } catch (error) {
-      console.log('[fetchRecentQuotes] Error:', error.message);
+// console.log('[fetchRecentQuotes] Error:', error.message);
       if (error.response) {
-        console.log('[fetchRecentQuotes] Error Response:', error.response.data);
+// console.log('[fetchRecentQuotes] Error Response:', error.response.data);
       }
       setRecentQuotes([]);
     }
@@ -499,7 +499,7 @@ export default function CustomerDashboard() {
   );
 
   const fetchUpcomingBookings = async () => {
-    console.log('[fetchUpcomingBookings] Starting...');
+// console.log('[fetchUpcomingBookings] Starting...');
 
     try {
       const customerData = await AsyncStorage.getItem('customer');
@@ -525,28 +525,16 @@ export default function CustomerDashboard() {
         }
       });
 
-      console.log('[fetchUpcomingBookings] Response received');
-      console.log('[fetchUpcomingBookings] 📦 Raw Response:', JSON.stringify(response.data, null, 2));
+// console.log('[fetchUpcomingBookings] Response received');
+// console.log('[fetchUpcomingBookings] 📦 Raw Response:', JSON.stringify(response.data, null, 2));
 
       if (response.data?.success) {
         const bookings = response.data.bookings || [];
-        console.log(`[fetchUpcomingBookings] Bookings received: ${bookings.length}`);
-        console.log('[fetchUpcomingBookings] 📋 All Bookings:', JSON.stringify(bookings, null, 2));
+// console.log(`[fetchUpcomingBookings] Bookings received: ${bookings.length}`);
+// console.log('[fetchUpcomingBookings] 📋 All Bookings:', JSON.stringify(bookings, null, 2));
 
         const formatted = bookings.slice(0, 5).map((b, index) => {
-          console.log(`[fetchUpcomingBookings] 🔍 Booking ${index + 1}:`, {
-            id: b.id,
-            booking_number: b.booking_number,
-            service_type: b.service_type,
-            location_name: b.location_name,
-            locationName: b.locationName,
-            location: b.location,
-            pickupAddress: b.pickupAddress,
-            destination: b.destination,
-            journey_datetime: b.journey_datetime,
-            service_name: b.service_name,
-            vendor: b.vendor,
-          });
+          // console.log(`[fetchUpcomingBookings] 🔍 Booking ${index + 1}:`, b);
 
           return {
             id: b.id?.toString() || b.booking_number,
@@ -564,21 +552,21 @@ export default function CustomerDashboard() {
           };
         });
 
-        console.log('[fetchUpcomingBookings] 📦 Formatted Trips:', JSON.stringify(formatted, null, 2));
+// console.log('[fetchUpcomingBookings] 📦 Formatted Trips:', JSON.stringify(formatted, null, 2));
         setUpcomingTrips(formatted);
-        console.log('[fetchUpcomingBookings] Upcoming trips set successfully.');
+// console.log('[fetchUpcomingBookings] Upcoming trips set successfully.');
       } else {
         console.warn('[fetchUpcomingBookings] API returned success: false');
       }
     } catch (error) {
-      console.log('[fetchUpcomingBookings] Error:', error.message);
+// console.log('[fetchUpcomingBookings] Error:', error.message);
       if (error.response) {
-        console.log('[fetchUpcomingBookings] Error Response:', error.response.data);
+// console.log('[fetchUpcomingBookings] Error Response:', error.response.data);
       }
     }
   };
   const handleRefresh = async () => {
-    console.log('[handleRefresh] Starting refresh...');
+// console.log('[handleRefresh] Starting refresh...');
     setIsRefreshing(true);
     try {
       // Refresh fast-changing data with proper error handling
@@ -588,9 +576,9 @@ export default function CustomerDashboard() {
         fetchRecentQuotes(),
         fetchUnreadNotificationCount(),
       ]);
-      console.log('[handleRefresh] Refresh completed successfully');
+// console.log('[handleRefresh] Refresh completed successfully');
     } catch (e) {
-      console.log('[handleRefresh] Error:', e.message);
+// console.log('[handleRefresh] Error:', e.message);
     } finally {
       setIsRefreshing(false);
     }
@@ -625,9 +613,9 @@ export default function CustomerDashboard() {
         fetchUnreadNotificationCount(),
       ]);
 
-      console.log('[initApp] All data fetched successfully');
+// console.log('[initApp] All data fetched successfully');
     } catch (error) {
-      console.log('[initApp] Error:', error.message);
+// console.log('[initApp] Error:', error.message);
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);

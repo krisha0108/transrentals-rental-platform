@@ -22,8 +22,6 @@ export async function POST(request: NextRequest) {
       data: { fcmToken: fcm_token },
     });
 
-    console.log(`✅ FCM token saved for customer: ${customer_id}`);
-
     return NextResponse.json({
       success: true,
       message: 'FCM token saved successfully',

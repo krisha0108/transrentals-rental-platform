@@ -104,7 +104,8 @@ interface StateLocation {
   id: string;
   name: string;
   slug: string;
-  type: 'state';
+  type: 'state' | 'union_territory';
+  isLeafLocation?: boolean; // True if this UT/state itself is a location (no child cities)
   cities: CityItem[];
   assignedCount: number;
   totalCount: number;
@@ -688,16 +689,26 @@ export default function ServiceFleetPage() {
           // Update local fleet state
           updateFleetLocationCount(selectedVehicle.id, assignedLocations.length - 1);
 
-          // Update hierarchy
-          setLocationHierarchy(prev => prev.map(state => ({
-            ...state,
-            cities: state.cities.map(city =>
-              city.id === locationId ? { ...city, isAssigned: false } : city
-            ),
-            assignedCount: state.cities.filter(c =>
-              c.id === locationId ? false : c.isAssigned
-            ).length,
-          })));
+          // Update hierarchy (handle both cities and leaf locations)
+          setLocationHierarchy(prev => prev.map(state => {
+            // If this is a leaf location being toggled
+            if (state.id === locationId && state.isLeafLocation) {
+              return {
+                ...state,
+                assignedCount: 0,
+              };
+            }
+            // Otherwise update cities
+            return {
+              ...state,
+              cities: state.cities.map(city =>
+                city.id === locationId ? { ...city, isAssigned: false } : city
+              ),
+              assignedCount: state.cities.filter(c =>
+                c.id === locationId ? false : c.isAssigned
+              ).length,
+            };
+          }));
         }
       } else {
         // Add location
@@ -707,13 +718,29 @@ export default function ServiceFleetPage() {
           body: JSON.stringify({ locationIds: [locationId] }),
         });
         if (res.ok) {
-          const location = allLocations.find(l => l.id === locationId);
+          // Find location - could be in allLocations (city) or in hierarchy (leaf UT)
+          let location = allLocations.find(l => l.id === locationId);
+          let locationName = '';
+          let locationSlug = '';
+
           if (location) {
+            locationName = location.name;
+            locationSlug = location.slug;
+          } else {
+            // Check if it's a leaf location in hierarchy
+            const leafLocation = locationHierarchy.find(h => h.id === locationId && h.isLeafLocation);
+            if (leafLocation) {
+              locationName = leafLocation.name;
+              locationSlug = leafLocation.slug;
+            }
+          }
+
+          if (locationName) {
             setAssignedLocations(prev => [...prev, {
               id: `new-${locationId}`,
               locationId,
-              locationName: location.name,
-              locationSlug: location.slug,
+              locationName,
+              locationSlug,
               isActive: true,
               basePricePerDay: null,
             }]);
@@ -723,16 +750,26 @@ export default function ServiceFleetPage() {
             // Update local fleet state
             updateFleetLocationCount(selectedVehicle.id, assignedLocations.length + 1);
 
-            // Update hierarchy
-            setLocationHierarchy(prev => prev.map(state => ({
-              ...state,
-              cities: state.cities.map(city =>
-                city.id === locationId ? { ...city, isAssigned: true } : city
-              ),
-              assignedCount: state.cities.filter(c =>
-                c.id === locationId ? true : c.isAssigned
-              ).length,
-            })));
+            // Update hierarchy (handle both cities and leaf locations)
+            setLocationHierarchy(prev => prev.map(state => {
+              // If this is a leaf location being toggled
+              if (state.id === locationId && state.isLeafLocation) {
+                return {
+                  ...state,
+                  assignedCount: 1,
+                };
+              }
+              // Otherwise update cities
+              return {
+                ...state,
+                cities: state.cities.map(city =>
+                  city.id === locationId ? { ...city, isAssigned: true } : city
+                ),
+                assignedCount: state.cities.filter(c =>
+                  c.id === locationId ? true : c.isAssigned
+                ).length,
+              };
+            }));
           }
         }
       }
@@ -1804,7 +1841,10 @@ export default function ServiceFleetPage() {
                 {assignedLocations.length} cities assigned
               </div>
               <div className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm">
-                {locationHierarchy.length} states
+                {locationHierarchy.filter(l => l.type === 'state').length} states
+              </div>
+              <div className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm">
+                {locationHierarchy.filter(l => l.type === 'union_territory').length} union territories
               </div>
               <Button
                 variant="outline"
@@ -1841,91 +1881,239 @@ export default function ServiceFleetPage() {
                   <p>No locations found</p>
                 </div>
               ) : (
-                <div className="space-y-2">
-                  {locationHierarchy
-                    .filter(state =>
-                      !locationSearch ||
-                      state.name.toLowerCase().includes(locationSearch.toLowerCase()) ||
-                      state.cities.some(c => c.name.toLowerCase().includes(locationSearch.toLowerCase()))
-                    )
-                    .map((state) => {
-                      const filteredCities = locationSearch
-                        ? state.cities.filter(c => c.name.toLowerCase().includes(locationSearch.toLowerCase()))
-                        : state.cities;
-                      const allCitiesAssigned = state.cities.length > 0 && state.cities.every(c => c.isAssigned);
-                      const someCitiesAssigned = state.cities.some(c => c.isAssigned);
-
-                      return (
-                        <div key={state.id} className="border rounded-lg overflow-hidden">
-                          {/* State Header */}
-                          <div className="flex items-center bg-gray-50 hover:bg-gray-100 transition-colors">
-                            <button
-                              onClick={() => toggleStateExpanded(state.id)}
-                              className="flex-1 flex items-center gap-2 p-3 text-left"
-                            >
-                              {state.isExpanded ? (
-                                <ChevronDown className="w-4 h-4 text-gray-500" />
-                              ) : (
-                                <ChevronRight className="w-4 h-4 text-gray-500" />
-                              )}
-                              <span className="font-medium text-gray-900">{state.name}</span>
-                              <span className="text-sm text-gray-500 ml-auto mr-3">
-                                {state.assignedCount}/{state.totalCount} cities
-                              </span>
-                            </button>
-                            <button
-                              onClick={() => toggleStateAllCities(state)}
-                              disabled={savingLocations || state.cities.length === 0}
-                              className="p-3 hover:bg-gray-200 rounded transition-colors"
-                              title={allCitiesAssigned ? "Deselect all cities" : "Select all cities"}
-                            >
-                              {allCitiesAssigned ? (
-                                <CheckSquare className="w-5 h-5 text-blue-600" />
-                              ) : someCitiesAssigned ? (
-                                <MinusSquare className="w-5 h-5 text-blue-400" />
-                              ) : (
-                                <Square className="w-5 h-5 text-gray-400" />
-                              )}
-                            </button>
-                          </div>
-
-                          {/* Cities List */}
-                          {state.isExpanded && filteredCities.length > 0 && (
-                            <div className="border-t bg-white p-3">
-                              <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                                {filteredCities.map((city) => (
-                                  <button
-                                    key={city.id}
-                                    onClick={() => toggleLocation(city.id, city.isAssigned)}
-                                    disabled={savingLocations}
-                                    className={`p-2 rounded-lg border text-left transition-all text-sm ${city.isAssigned
-                                      ? 'bg-blue-50 border-blue-300 text-blue-700'
-                                      : 'bg-white border-gray-200 hover:border-gray-300 text-gray-700'
-                                      }`}
-                                  >
-                                    <div className="flex items-center justify-between gap-2">
-                                      <span className="truncate">{city.name}</span>
-                                      {city.isAssigned ? (
-                                        <CheckCircle className="w-4 h-4 text-blue-500 flex-shrink-0" />
-                                      ) : (
-                                        <div className="w-4 h-4 border-2 border-gray-300 rounded-full flex-shrink-0" />
-                                      )}
-                                    </div>
-                                  </button>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Show when expanded but no cities match search */}
-                          {state.isExpanded && filteredCities.length === 0 && locationSearch && (
-                            <div className="border-t bg-white p-3 text-center text-sm text-gray-500">
-                              No cities match your search
-                            </div>
-                          )}
-                        </div>
+                <div className="space-y-4">
+                  {/* States Section */}
+                  {(() => {
+                    const states = locationHierarchy
+                      .filter(l => l.type === 'state')
+                      .filter(state =>
+                        !locationSearch ||
+                        state.name.toLowerCase().includes(locationSearch.toLowerCase()) ||
+                        state.cities.some(c => c.name.toLowerCase().includes(locationSearch.toLowerCase()))
                       );
-                    })}
+
+                    return states.length > 0 && (
+                      <>
+                        <div className="sticky top-0 bg-white py-2 border-b">
+                          <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">States</h3>
+                        </div>
+                        <div className="space-y-2">
+                          {states.map((state) => {
+                            const filteredCities = locationSearch
+                              ? state.cities.filter(c => c.name.toLowerCase().includes(locationSearch.toLowerCase()))
+                              : state.cities;
+                            const allCitiesAssigned = state.cities.length > 0 && state.cities.every(c => c.isAssigned);
+                            const someCitiesAssigned = state.cities.some(c => c.isAssigned);
+
+                            return (
+                              <div key={state.id} className="border rounded-lg overflow-hidden">
+                                {/* State Header */}
+                                <div className="flex items-center bg-gray-50 hover:bg-gray-100 transition-colors">
+                                  <button
+                                    onClick={() => toggleStateExpanded(state.id)}
+                                    className="flex-1 flex items-center gap-2 p-3 text-left"
+                                  >
+                                    {state.isExpanded ? (
+                                      <ChevronDown className="w-4 h-4 text-gray-500" />
+                                    ) : (
+                                      <ChevronRight className="w-4 h-4 text-gray-500" />
+                                    )}
+                                    <span className="font-medium text-gray-900">{state.name}</span>
+                                    <span className="text-sm text-gray-500 ml-auto mr-3">
+                                      {state.assignedCount}/{state.totalCount} cities
+                                    </span>
+                                  </button>
+                                  <button
+                                    onClick={() => toggleStateAllCities(state)}
+                                    disabled={savingLocations || state.cities.length === 0}
+                                    className="p-3 hover:bg-gray-200 rounded transition-colors"
+                                    title={allCitiesAssigned ? "Deselect all cities" : "Select all cities"}
+                                  >
+                                    {allCitiesAssigned ? (
+                                      <CheckSquare className="w-5 h-5 text-blue-600" />
+                                    ) : someCitiesAssigned ? (
+                                      <MinusSquare className="w-5 h-5 text-blue-400" />
+                                    ) : (
+                                      <Square className="w-5 h-5 text-gray-400" />
+                                    )}
+                                  </button>
+                                </div>
+
+                                {/* Cities List */}
+                                {state.isExpanded && filteredCities.length > 0 && (
+                                  <div className="border-t bg-white p-3">
+                                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                                      {filteredCities.map((city) => (
+                                        <button
+                                          key={city.id}
+                                          onClick={() => toggleLocation(city.id, city.isAssigned)}
+                                          disabled={savingLocations}
+                                          className={`p-2 rounded-lg border text-left transition-all text-sm ${city.isAssigned
+                                            ? 'bg-blue-50 border-blue-300 text-blue-700'
+                                            : 'bg-white border-gray-200 hover:border-gray-300 text-gray-700'
+                                            }`}
+                                        >
+                                          <div className="flex items-center justify-between gap-2">
+                                            <span className="truncate">{city.name}</span>
+                                            {city.isAssigned ? (
+                                              <CheckCircle className="w-4 h-4 text-blue-500 flex-shrink-0" />
+                                            ) : (
+                                              <div className="w-4 h-4 border-2 border-gray-300 rounded-full flex-shrink-0" />
+                                            )}
+                                          </div>
+                                        </button>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+
+                                {/* Show when expanded but no cities match search */}
+                                {state.isExpanded && filteredCities.length === 0 && locationSearch && (
+                                  <div className="border-t bg-white p-3 text-center text-sm text-gray-500">
+                                    No cities match your search
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </>
+                    );
+                  })()}
+
+                  {/* Union Territories Section */}
+                  {(() => {
+                    const unionTerritories = locationHierarchy
+                      .filter(l => l.type === 'union_territory')
+                      .filter(ut =>
+                        !locationSearch ||
+                        ut.name.toLowerCase().includes(locationSearch.toLowerCase()) ||
+                        ut.cities.some(c => c.name.toLowerCase().includes(locationSearch.toLowerCase()))
+                      );
+
+                    return unionTerritories.length > 0 && (
+                      <>
+                        <div className="sticky top-0 bg-white py-2 border-b">
+                          <h3 className="text-sm font-semibold text-purple-700 uppercase tracking-wide">Union Territories</h3>
+                        </div>
+                        <div className="space-y-2">
+                          {unionTerritories.map((ut) => {
+                            const filteredCities = locationSearch
+                              ? ut.cities.filter(c => c.name.toLowerCase().includes(locationSearch.toLowerCase()))
+                              : ut.cities;
+                            const allCitiesAssigned = ut.cities.length > 0 && ut.cities.every(c => c.isAssigned);
+                            const someCitiesAssigned = ut.cities.some(c => c.isAssigned);
+
+                            // Check if this leaf location is assigned
+                            const isLeafAssigned = ut.isLeafLocation && assignedLocations.some(al => al.locationId === ut.id);
+
+                            return (
+                              <div key={ut.id} className="border border-purple-200 rounded-lg overflow-hidden">
+                                {/* Union Territory Header */}
+                                <div className="flex items-center bg-purple-50 hover:bg-purple-100 transition-colors">
+                                  {ut.isLeafLocation ? (
+                                    // Leaf location - UT itself is a location (no child cities)
+                                    <button
+                                      onClick={() => toggleLocation(ut.id, isLeafAssigned)}
+                                      disabled={savingLocations}
+                                      className={`flex-1 flex items-center gap-2 p-3 text-left transition-all ${
+                                        isLeafAssigned
+                                          ? 'bg-purple-100 border-l-4 border-purple-600'
+                                          : 'bg-purple-50 hover:bg-purple-100'
+                                      }`}
+                                    >
+                                      {isLeafAssigned ? (
+                                        <CheckCircle className="w-5 h-5 text-purple-600 flex-shrink-0" />
+                                      ) : (
+                                        <div className="w-5 h-5 border-2 border-purple-400 rounded-full flex-shrink-0" />
+                                      )}
+                                      <span className={`font-medium ${isLeafAssigned ? 'text-purple-900' : 'text-gray-900'}`}>
+                                        {ut.name}
+                                      </span>
+                                      <span className={`text-xs ml-auto px-2 py-1 rounded ${
+                                        isLeafAssigned
+                                          ? 'bg-purple-200 text-purple-800'
+                                          : 'bg-purple-100 text-purple-600'
+                                      }`}>
+                                        {isLeafAssigned ? '✓ Assigned' : 'Location'}
+                                      </span>
+                                    </button>
+                                  ) : (
+                                    // Parent location - has child cities
+                                    <>
+                                      <button
+                                        onClick={() => toggleStateExpanded(ut.id)}
+                                        className="flex-1 flex items-center gap-2 p-3 text-left"
+                                      >
+                                        {ut.isExpanded ? (
+                                          <ChevronDown className="w-4 h-4 text-purple-600" />
+                                        ) : (
+                                          <ChevronRight className="w-4 h-4 text-purple-600" />
+                                        )}
+                                        <span className="font-medium text-gray-900">{ut.name}</span>
+                                        <span className="text-sm text-purple-600 ml-auto mr-3">
+                                          {ut.assignedCount}/{ut.totalCount} cities
+                                        </span>
+                                      </button>
+                                      <button
+                                        onClick={() => toggleStateAllCities(ut)}
+                                        disabled={savingLocations || ut.cities.length === 0}
+                                        className="p-3 hover:bg-purple-200 rounded transition-colors"
+                                        title={allCitiesAssigned ? "Deselect all cities" : "Select all cities"}
+                                      >
+                                        {allCitiesAssigned ? (
+                                          <CheckSquare className="w-5 h-5 text-purple-600" />
+                                        ) : someCitiesAssigned ? (
+                                          <MinusSquare className="w-5 h-5 text-purple-400" />
+                                        ) : (
+                                          <Square className="w-5 h-5 text-gray-400" />
+                                        )}
+                                      </button>
+                                    </>
+                                  )}
+                                </div>
+
+                                {/* Cities List - Only show for parent locations (not leaf locations) */}
+                                {!ut.isLeafLocation && ut.isExpanded && filteredCities.length > 0 && (
+                                  <div className="border-t bg-white p-3">
+                                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                                      {filteredCities.map((city) => (
+                                        <button
+                                          key={city.id}
+                                          onClick={() => toggleLocation(city.id, city.isAssigned)}
+                                          disabled={savingLocations}
+                                          className={`p-2 rounded-lg border text-left transition-all text-sm ${city.isAssigned
+                                            ? 'bg-purple-50 border-purple-300 text-purple-700'
+                                            : 'bg-white border-gray-200 hover:border-gray-300 text-gray-700'
+                                            }`}
+                                        >
+                                          <div className="flex items-center justify-between gap-2">
+                                            <span className="truncate">{city.name}</span>
+                                            {city.isAssigned ? (
+                                              <CheckCircle className="w-4 h-4 text-purple-500 flex-shrink-0" />
+                                            ) : (
+                                              <div className="w-4 h-4 border-2 border-gray-300 rounded-full flex-shrink-0" />
+                                            )}
+                                          </div>
+                                        </button>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+
+                                {/* Show when expanded but no cities match search */}
+                                {!ut.isLeafLocation && ut.isExpanded && filteredCities.length === 0 && locationSearch && (
+                                  <div className="border-t bg-white p-3 text-center text-sm text-gray-500">
+                                    No cities match your search
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </>
+                    );
+                  })()}
                 </div>
               )}
             </div>

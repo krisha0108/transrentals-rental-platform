@@ -396,7 +396,7 @@ export async function POST(request: NextRequest) {
       const notifTitle = '🚌 New Bus Rental Quote Received!';
       const notifBody = `${vendor.businessName} has sent you a quote for ${vehicleName || 'bus rental'}. Total: ₹${totalAmount}.`;
 
-      // Save to database
+      // Save to database - Store requestId so customer can fetch request details
       await prisma.notifications.create({
         data: prepareNotificationData({
           customerId: quoteRequest.customerId,
@@ -404,7 +404,7 @@ export async function POST(request: NextRequest) {
           body: notifBody,
           type: 'quote',
           serviceType: 'bus',
-          quoteId: quote.id,
+          quoteId: requestId, // Use requestId for navigation
           bookingId: null,
         }),
       });
@@ -417,11 +417,11 @@ export async function POST(request: NextRequest) {
         data: {
           type: 'quote',
           serviceType: 'bus',
-          quoteId: quote.id,
+          quoteId: requestId, // Use requestId for navigation
         },
       });
 
-      logger.info('Notification created and sent for bus quote', { quoteId: quote.id, customerId: quoteRequest.customerId });
+      logger.info('Notification created and sent for bus quote', { requestId, quoteId: quote.id, customerId: quoteRequest.customerId });
     } catch (notifError) {
       logger.error('Failed to create/send notification for bus quote', notifError);
     }
