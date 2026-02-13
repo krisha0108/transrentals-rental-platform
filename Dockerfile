@@ -116,6 +116,9 @@ COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
 
+# Copy Firebase service account for push notifications
+COPY --from=builder /app/firebase-service-account.json ./firebase-service-account.json
+
 USER nextjs
 
 EXPOSE 3000
