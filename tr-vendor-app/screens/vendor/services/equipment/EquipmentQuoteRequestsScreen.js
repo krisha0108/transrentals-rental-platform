@@ -30,6 +30,29 @@ const STATUS_COLORS = {
   EXPIRED: '#6B7280',
 };
 
+// Equipment Type Mapping (matches customer app)
+const EQUIPMENT_TYPE_MAP = {
+  '1': 'Grove crane',
+  '2': 'Truck mounted crane',
+  '3': 'Tower crane',
+  '4': 'Telescopic crane',
+  '5': 'Rough terrain crane',
+  '6': 'Overhead crane',
+  '7': 'Bulldozer',
+  '8': 'Dumper',
+  '9': 'Loader',
+  '10': 'Excavators',
+  '11': 'Backhoe loader',
+};
+
+// Job Duration Mapping (matches customer app)
+const JOB_DURATION_MAP = {
+  '1': '1 to 5 Days',
+  '2': '6 to 15 Days',
+  '3': '16 to 30 Days',
+  '4': 'More than 30 Days',
+};
+
 export default function EquipmentQuoteRequestsScreen({ navigation }) {
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [showDateFilter, setShowDateFilter] = useState(false);
@@ -123,11 +146,15 @@ export default function EquipmentQuoteRequestsScreen({ navigation }) {
     const statusColor = STATUS_COLORS[status] || '#6B7280';
 
     const customerName = item.customerName || item.customer_name || 'Customer';
-    const pickupLocation = item.pickupLocation || item.pickup_location || item.pickupCity || 'N/A';
-    const dropLocation = item.dropLocation || item.drop_location || item.dropCity;
-    const pickupDate = item.pickupDate || item.pickup_date || item.startDate;
-    const returnDate = item.returnDate || item.return_date || item.endDate;
-    const equipmentType = item.equipmentType || item.equipment_type || item.vehicleType;
+    const pickupLocation = item.pickupLocation || item.pickup_location || item.deliveryCity || item.pickupCity || item.locationName || 'N/A';
+    const startDate = item.startDate || item.start_date || item.pickupDate;
+    const equipmentCategory = item.equipmentCategory || item.equipment_category;
+    const equipmentTypeRaw = item.equipmentType || item.equipment_type;
+    const equipmentType = EQUIPMENT_TYPE_MAP[equipmentTypeRaw] || equipmentTypeRaw;
+    const equipmentName = item.equipmentName || item.equipment_name || item.specificModel;
+    const quantity = item.quantity || 1;
+    const jobDurationRaw = item.jobDuration || item.job_duration || item.rentalDuration;
+    const jobDuration = JOB_DURATION_MAP[jobDurationRaw] || jobDurationRaw;
 
     return (
       <TouchableOpacity
@@ -163,41 +190,67 @@ export default function EquipmentQuoteRequestsScreen({ navigation }) {
           <Text style={styles.infoText}>{customerName}</Text>
         </View>
 
-        {/* Location */}
-        <View style={styles.locationRow}>
-          <View style={styles.locationItem}>
-            <Ionicons name="location" size={16} color={GREEN} />
-            <Text style={styles.locationText} numberOfLines={1}>
-              {pickupLocation}
-            </Text>
+        {/* Equipment Type - Prominent Display */}
+        <View style={styles.equipmentSection}>
+          <View style={styles.equipmentIconWrapper}>
+            <MaterialCommunityIcons name="hammer-wrench" size={24} color="#F59E0B" />
           </View>
-          {dropLocation && (
-            <>
-              <Icon name="arrow-right" size={14} color="#94A3B8" />
-              <View style={styles.locationItem}>
-                <Ionicons name="location" size={16} color="#EF4444" />
-                <Text style={styles.locationText} numberOfLines={1}>
-                  {dropLocation}
+          <View style={styles.equipmentDetails}>
+            {equipmentName ? (
+              <>
+                <Text style={styles.equipmentType} numberOfLines={1}>
+                  {equipmentName}
                 </Text>
+                {(equipmentCategory || equipmentType) && (
+                  <Text style={styles.equipmentSubtext} numberOfLines={1}>
+                    {[equipmentCategory, equipmentType].filter(Boolean).join(' • ')}
+                  </Text>
+                )}
+              </>
+            ) : equipmentType ? (
+              <>
+                <Text style={styles.equipmentType} numberOfLines={1}>
+                  {equipmentType}
+                </Text>
+                {equipmentCategory && (
+                  <Text style={styles.equipmentSubtext} numberOfLines={1}>
+                    {equipmentCategory}
+                  </Text>
+                )}
+              </>
+            ) : (
+              <Text style={styles.equipmentType} numberOfLines={1}>
+                {equipmentCategory || 'Equipment'}
+              </Text>
+            )}
+            <View style={styles.equipmentMeta}>
+              <View style={styles.quantityBadge}>
+                <Text style={styles.quantityText}>Qty: {quantity}</Text>
               </View>
-            </>
-          )}
+              {jobDuration && (
+                <View style={styles.durationBadge}>
+                  <Text style={styles.durationText}>{jobDuration}</Text>
+                </View>
+              )}
+            </View>
+          </View>
         </View>
 
-        {/* Date Range */}
+        {/* Location */}
         <View style={styles.infoRow}>
-          <Ionicons name="calendar-outline" size={16} color="#64748B" />
-          <Text style={styles.infoText}>
-            {formatDate(pickupDate)}
-            {returnDate && ` - ${formatDate(returnDate)}`}
+          <Ionicons name="location" size={16} color={GREEN} />
+          <Text style={styles.infoText} numberOfLines={1}>
+            {pickupLocation}
           </Text>
         </View>
 
-        {/* Bike Type */}
-        {equipmentType && (
+        {/* Start Date */}
+        {startDate && (
           <View style={styles.infoRow}>
-            <MaterialCommunityIcons name="hammer-wrench" size={16} color="#64748B" />
-            <Text style={styles.infoText}>{equipmentType}</Text>
+            <Ionicons name="calendar-outline" size={16} color="#64748B" />
+            <Text style={styles.infoText}>
+              {formatDate(startDate)}
+            </Text>
           </View>
         )}
 
@@ -439,6 +492,74 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   locationText: { fontSize: 13, color: '#475569', flex: 1 },
+
+  // Equipment Section Styles
+  equipmentSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FEF3C7',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  equipmentIconWrapper: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#fff',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  equipmentDetails: {
+    flex: 1,
+  },
+  equipmentType: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#0F172A',
+    marginBottom: 4,
+  },
+  equipmentSubtext: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#64748B',
+    marginBottom: 6,
+  },
+  equipmentMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flexWrap: 'wrap',
+  },
+  quantityBadge: {
+    backgroundColor: '#F59E0B',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+  },
+  quantityText: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: '#fff',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  durationBadge: {
+    backgroundColor: '#78350F',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+  },
+  durationText: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: '#fff',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
 
   cardFooter: {
     flexDirection: 'row',

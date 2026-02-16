@@ -27,6 +27,29 @@ const STATUS_COLORS = {
   EXPIRED: '#6B7280',
 };
 
+// Equipment Type Mapping (matches customer app)
+const EQUIPMENT_TYPE_MAP = {
+  '1': 'Grove crane',
+  '2': 'Truck mounted crane',
+  '3': 'Tower crane',
+  '4': 'Telescopic crane',
+  '5': 'Rough terrain crane',
+  '6': 'Overhead crane',
+  '7': 'Bulldozer',
+  '8': 'Dumper',
+  '9': 'Loader',
+  '10': 'Excavators',
+  '11': 'Backhoe loader',
+};
+
+// Job Duration Mapping (matches customer app)
+const JOB_DURATION_MAP = {
+  '1': '1 to 5 Days',
+  '2': '6 to 15 Days',
+  '3': '16 to 30 Days',
+  '4': 'More than 30 Days',
+};
+
 export default function EquipmentQuoteRequestDetailScreen({ route, navigation }) {
   const { requestId } = route.params || {};
   const [request, setRequest] = useState(null);
@@ -110,6 +133,19 @@ export default function EquipmentQuoteRequestDetailScreen({ route, navigation })
     });
   };
 
+  const formatTime = (timeStr) => {
+    if (!timeStr) return 'N/A';
+    // Handle both HH:MM and HH:MM:SS formats
+    const timeParts = timeStr.split(':');
+    let hours = parseInt(timeParts[0], 10);
+    const minutes = timeParts[1] || '00';
+
+    const period = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12 || 12; // Convert 0 to 12 for 12 AM
+
+    return `${hours}:${minutes} ${period}`;
+  };
+
   const getStatusIcon = (status) => {
     switch (status?.toUpperCase()) {
       case 'PENDING':
@@ -164,16 +200,41 @@ export default function EquipmentQuoteRequestDetailScreen({ route, navigation })
   const status = request.status?.toUpperCase() || 'PENDING';
   const statusColor = STATUS_COLORS[status] || '#6B7280';
 
+  // Customer Information
   const customerName = request.customerName || request.customer_name || 'Customer';
   const customerEmail = request.customerEmail || request.customer_email;
   const customerPhone = request.customerPhone || request.customer_phone;
-  const pickupLocation = request.pickupLocation || request.pickup_location || request.pickupCity || 'N/A';
-  const dropLocation = request.dropLocation || request.drop_location || request.dropCity;
-  const pickupDate = request.pickupDate || request.pickup_date || request.startDate;
-  const returnDate = request.returnDate || request.return_date || request.endDate;
-  const equipmentType = request.equipmentType || request.equipment_type || request.vehicleType;
+
+  // Equipment Details
+  const equipmentCategory = request.equipmentCategory || request.equipment_category;
+  const equipmentTypeRaw = request.equipmentType || request.equipment_type;
+  const equipmentType = EQUIPMENT_TYPE_MAP[equipmentTypeRaw] || equipmentTypeRaw;
+  const equipmentName = request.equipmentName || request.equipment_name || request.specificModel || request.specific_model;
+  const companyName = request.companyName || request.company_name;
+  const quantity = request.quantity || 1;
+  const rentalDays = request.rentalDays || request.rental_days;
+  const jobDurationRaw = request.jobDuration || request.job_duration || request.rentalDuration || request.rental_duration;
+  const jobDuration = JOB_DURATION_MAP[jobDurationRaw] || jobDurationRaw;
+
+  // Location Details
+  const deliveryCity = request.deliveryCity || request.delivery_city || request.pickupCity;
+  const deliveryAddress = request.deliveryAddress || request.delivery_address;
+  const siteType = request.siteType || request.site_type;
+
+  // Date Details
+  const startDate = request.startDate || request.start_date || request.pickupDate;
+  const endDate = request.endDate || request.end_date;
+
+  // Service Requirements
+  const needOperator = request.needOperator || request.need_operator;
+  const needDelivery = request.needDelivery || request.need_delivery;
+  const needInstallation = request.needInstallation || request.need_installation;
+
+  // Customer Notes
+  const notes = request.requirements || request.customerNotes || request.customer_notes || request.notes || request.description;
+
+  // Request Metadata
   const requestNumber = request.requestNumber || request.request_number || (request.id || request._id)?.toString().slice(-8);
-  const notes = request.notes || request.description || request.additionalInfo || request.specialRequirements;
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -249,70 +310,190 @@ export default function EquipmentQuoteRequestDetailScreen({ route, navigation })
             </View>
           </View>
 
-          {/* Vehicle Information */}
-          {equipmentType && (
-            <View style={styles.section}>
-              <View style={styles.sectionHeader}>
-                <MaterialCommunityIcons name="toolbox" size={20} color="#64748B" />
-                <Text style={styles.sectionTitle}>Vehicle Requested</Text>
-              </View>
-              <View style={styles.card}>
-                <View style={styles.vehicleInfo}>
-                  <MaterialCommunityIcons name="toolbox" size={32} color={GREEN} />
-                  <Text style={styles.vehicleName}>{equipmentType}</Text>
-                </View>
-              </View>
-            </View>
-          )}
-
-          {/* Booking Details */}
+          {/* Equipment Details */}
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <Ionicons name="calendar-outline" size={20} color="#64748B" />
-              <Text style={styles.sectionTitle}>Booking Details</Text>
+              <MaterialCommunityIcons name="hammer-wrench" size={20} color="#64748B" />
+              <Text style={styles.sectionTitle}>Equipment Details</Text>
             </View>
             <View style={styles.card}>
-              <View style={styles.infoRow}>
-                <Ionicons name="location" size={18} color={GREEN} />
-                <View style={styles.infoContent}>
-                  <Text style={styles.infoLabel}>Pickup Location</Text>
-                  <Text style={styles.infoValue}>{pickupLocation}</Text>
-                </View>
-              </View>
-              {dropLocation && (
+              {equipmentCategory && (
                 <View style={styles.infoRow}>
-                  <Ionicons name="location" size={18} color="#EF4444" />
+                  <MaterialCommunityIcons name="shape-outline" size={18} color="#64748B" />
                   <View style={styles.infoContent}>
-                    <Text style={styles.infoLabel}>Drop Location</Text>
-                    <Text style={styles.infoValue}>{dropLocation}</Text>
+                    <Text style={styles.infoLabel}>Category</Text>
+                    <Text style={styles.infoValue}>{equipmentCategory}</Text>
+                  </View>
+                </View>
+              )}
+              {equipmentType && (
+                <View style={styles.infoRow}>
+                  <MaterialCommunityIcons name="tag-outline" size={18} color="#64748B" />
+                  <View style={styles.infoContent}>
+                    <Text style={styles.infoLabel}>Equipment Type</Text>
+                    <Text style={styles.infoValue}>{equipmentType}</Text>
+                  </View>
+                </View>
+              )}
+              {equipmentName && (
+                <View style={styles.infoRow}>
+                  <MaterialCommunityIcons name="hammer-wrench" size={18} color={GREEN} />
+                  <View style={styles.infoContent}>
+                    <Text style={styles.infoLabel}>Model / Name</Text>
+                    <Text style={styles.infoValue}>{equipmentName}</Text>
                   </View>
                 </View>
               )}
               <View style={styles.infoRow}>
-                <Ionicons name="calendar" size={18} color="#64748B" />
+                <Ionicons name="layers-outline" size={18} color="#64748B" />
                 <View style={styles.infoContent}>
-                  <Text style={styles.infoLabel}>Pickup Date</Text>
-                  <Text style={styles.infoValue}>{formatDate(pickupDate)}</Text>
+                  <Text style={styles.infoLabel}>Quantity</Text>
+                  <Text style={styles.infoValue}>{quantity}</Text>
                 </View>
               </View>
-              {returnDate && (
+              {rentalDays && (
                 <View style={styles.infoRow}>
-                  <Ionicons name="calendar" size={18} color="#64748B" />
+                  <Ionicons name="calendar-outline" size={18} color="#64748B" />
                   <View style={styles.infoContent}>
-                    <Text style={styles.infoLabel}>Return Date</Text>
-                    <Text style={styles.infoValue}>{formatDate(returnDate)}</Text>
+                    <Text style={styles.infoLabel}>Rental Days</Text>
+                    <Text style={styles.infoValue}>{rentalDays} days</Text>
+                  </View>
+                </View>
+              )}
+              {jobDuration && (
+                <View style={styles.infoRow}>
+                  <Ionicons name="time-outline" size={18} color="#64748B" />
+                  <View style={styles.infoContent}>
+                    <Text style={styles.infoLabel}>Duration</Text>
+                    <Text style={styles.infoValue}>{jobDuration}</Text>
+                  </View>
+                </View>
+              )}
+              {companyName && (
+                <View style={styles.infoRow}>
+                  <Ionicons name="business-outline" size={18} color="#64748B" />
+                  <View style={styles.infoContent}>
+                    <Text style={styles.infoLabel}>Company Name</Text>
+                    <Text style={styles.infoValue}>{companyName}</Text>
                   </View>
                 </View>
               )}
             </View>
           </View>
 
-          {/* Additional Notes */}
+          {/* Delivery Location */}
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Ionicons name="location-outline" size={20} color="#64748B" />
+              <Text style={styles.sectionTitle}>Delivery Location</Text>
+            </View>
+            <View style={styles.card}>
+              {deliveryCity && (
+                <View style={styles.infoRow}>
+                  <Ionicons name="location" size={18} color={GREEN} />
+                  <View style={styles.infoContent}>
+                    <Text style={styles.infoLabel}>City</Text>
+                    <Text style={styles.infoValue}>{deliveryCity}</Text>
+                  </View>
+                </View>
+              )}
+              {deliveryAddress && (
+                <View style={styles.infoRow}>
+                  <Ionicons name="navigate" size={18} color="#64748B" />
+                  <View style={styles.infoContent}>
+                    <Text style={styles.infoLabel}>Address</Text>
+                    <Text style={styles.infoValue}>{deliveryAddress}</Text>
+                  </View>
+                </View>
+              )}
+              {siteType && (
+                <View style={styles.infoRow}>
+                  <MaterialCommunityIcons name="home-city-outline" size={18} color="#64748B" />
+                  <View style={styles.infoContent}>
+                    <Text style={styles.infoLabel}>Site Type</Text>
+                    <Text style={styles.infoValue}>{siteType}</Text>
+                  </View>
+                </View>
+              )}
+            </View>
+          </View>
+
+          {/* Rental Period */}
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Ionicons name="calendar-outline" size={20} color="#64748B" />
+              <Text style={styles.sectionTitle}>Rental Period</Text>
+            </View>
+            <View style={styles.card}>
+              {startDate && (
+                <View style={styles.infoRow}>
+                  <Ionicons name="calendar" size={18} color={GREEN} />
+                  <View style={styles.infoContent}>
+                    <Text style={styles.infoLabel}>Start Date</Text>
+                    <Text style={styles.infoValue}>{formatDate(startDate)}</Text>
+                  </View>
+                </View>
+              )}
+              {endDate && (
+                <View style={styles.infoRow}>
+                  <Ionicons name="calendar" size={18} color="#EF4444" />
+                  <View style={styles.infoContent}>
+                    <Text style={styles.infoLabel}>End Date</Text>
+                    <Text style={styles.infoValue}>{formatDate(endDate)}</Text>
+                  </View>
+                </View>
+              )}
+            </View>
+          </View>
+
+          {/* Service Requirements */}
+          {(needOperator || needDelivery || needInstallation) && (
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <Ionicons name="settings-outline" size={20} color="#64748B" />
+                <Text style={styles.sectionTitle}>Service Requirements</Text>
+              </View>
+              <View style={styles.card}>
+                {needOperator !== undefined && (
+                  <View style={styles.requirementRow}>
+                    <Ionicons
+                      name={needOperator ? "checkmark-circle" : "close-circle"}
+                      size={20}
+                      color={needOperator ? GREEN : "#EF4444"}
+                    />
+                    <Text style={styles.requirementText}>Operator Required</Text>
+                  </View>
+                )}
+                {needDelivery !== undefined && (
+                  <View style={styles.requirementRow}>
+                    <Ionicons
+                      name={needDelivery ? "checkmark-circle" : "close-circle"}
+                      size={20}
+                      color={needDelivery ? GREEN : "#EF4444"}
+                    />
+                    <Text style={styles.requirementText}>Delivery Required</Text>
+                  </View>
+                )}
+                {needInstallation !== undefined && (
+                  <View style={styles.requirementRow}>
+                    <Ionicons
+                      name={needInstallation ? "checkmark-circle" : "close-circle"}
+                      size={20}
+                      color={needInstallation ? GREEN : "#EF4444"}
+                    />
+                    <Text style={styles.requirementText}>Installation Required</Text>
+                  </View>
+                )}
+              </View>
+            </View>
+          )}
+
+          {/* Customer Notes */}
           {notes && (
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
                 <Ionicons name="chatbox-outline" size={20} color="#64748B" />
-                <Text style={styles.sectionTitle}>Special Requirements</Text>
+                <Text style={styles.sectionTitle}>Customer Notes</Text>
               </View>
               <View style={styles.card}>
                 <Text style={styles.notesText}>{notes}</Text>
@@ -447,8 +628,22 @@ const styles = StyleSheet.create({
   infoLabel: { fontSize: 12, color: '#64748B', marginBottom: 2 },
   infoValue: { fontSize: 14, color: DARK, fontWeight: '600' },
 
-  vehicleInfo: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  vehicleName: { fontSize: 16, fontWeight: '700', color: DARK, flex: 1 },
+  equipmentInfo: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
+  equipmentName: { fontSize: 16, fontWeight: '700', color: DARK },
+  equipmentMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 6,
+    flexWrap: 'wrap',
+  },
+  metaBadge: {
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  metaText: { fontSize: 11, fontWeight: '600', color: '#92400E' },
 
   notesText: { fontSize: 14, color: '#475569', lineHeight: 20 },
 
@@ -458,6 +653,18 @@ const styles = StyleSheet.create({
     gap: 8
   },
   timelineText: { fontSize: 13, color: '#64748B' },
+
+  requirementRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 4,
+  },
+  requirementText: {
+    fontSize: 14,
+    color: DARK,
+    fontWeight: '500',
+  },
 
   bottomBar: {
     position: 'absolute',

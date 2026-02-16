@@ -65,14 +65,14 @@ export default async function JCBLocationPage({ params }: PageProps) {
       {
         id: 1,
         name: 'JCB 3DX',
-        image: '/images/equipment/jcb-3dx.jpg',
+        image: '/images/locations/default.jpg', // Placeholder - replace with actual image
         price: 2999,
         rating: 4.8,
       },
       {
         id: 2,
         name: 'JCB 3DX Super',
-        image: '/images/equipment/jcb-3dx-super.jpg',
+        image: '/images/locations/default.jpg', // Placeholder - replace with actual image
         price: 3499,
         rating: 4.9,
       },

@@ -110,6 +110,19 @@ export default function BusQuoteRequestDetailScreen({ route, navigation }) {
     });
   };
 
+  const formatTime = (timeStr) => {
+    if (!timeStr) return 'N/A';
+    // Handle both HH:MM and HH:MM:SS formats
+    const timeParts = timeStr.split(':');
+    let hours = parseInt(timeParts[0], 10);
+    const minutes = timeParts[1] || '00';
+
+    const period = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12 || 12; // Convert 0 to 12 for 12 AM
+
+    return `${hours}:${minutes} ${period}`;
+  };
+
   const getStatusIcon = (status) => {
     switch (status?.toUpperCase()) {
       case 'PENDING':
@@ -164,16 +177,34 @@ export default function BusQuoteRequestDetailScreen({ route, navigation }) {
   const status = request.status?.toUpperCase() || 'PENDING';
   const statusColor = STATUS_COLORS[status] || '#6B7280';
 
+  // Customer Information
   const customerName = request.customerName || request.customer_name || 'Customer';
   const customerEmail = request.customerEmail || request.customer_email;
   const customerPhone = request.customerPhone || request.customer_phone;
+
+  // Service Type (API returns tripType: "outstation" or "local")
+  const tripType = request.tripType || request.trip_type || request.serviceType || request.service_type;
+  const serviceType = tripType === 'outstation' || tripType === '1' ? 'Outstation' : tripType === 'local' || tripType === '2' ? 'Local' : tripType;
+
+  // Location Details
   const pickupLocation = request.pickupLocation || request.pickup_location || request.pickupCity || 'N/A';
-  const dropLocation = request.dropLocation || request.drop_location || request.dropCity;
+  const destination = request.destination || request.dropLocation || request.drop_location || request.dropCity;
+
+  // Date & Time Details
   const pickupDate = request.pickupDate || request.pickup_date || request.startDate;
+  const pickupTime = request.pickupTime || request.pickup_time || '10:00';
   const returnDate = request.returnDate || request.return_date || request.endDate;
+  const returnTime = request.returnTime || request.return_time || '10:00';
+
+  // Vehicle Details
   const busType = request.busType || request.bus_type || request.vehicleType;
+
+  // Requirements
+  const passengers = request.passengers || request.passenger_count;
+  const notes = request.customerNotes || request.customer_notes || request.notes || request.description || request.additionalInfo || request.specialRequirements;
+
+  // Request Metadata
   const requestNumber = request.requestNumber || request.request_number || (request.id || request._id)?.toString().slice(-8);
-  const notes = request.notes || request.description || request.additionalInfo || request.specialRequirements;
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -249,6 +280,33 @@ export default function BusQuoteRequestDetailScreen({ route, navigation }) {
             </View>
           </View>
 
+          {/* Service Type */}
+          {serviceType && (
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <MaterialCommunityIcons name="bus-multiple" size={20} color="#64748B" />
+                <Text style={styles.sectionTitle}>Service Type</Text>
+              </View>
+              <View style={styles.card}>
+                <View style={styles.infoRow}>
+                  <Ionicons
+                    name={serviceType?.toLowerCase() === 'outstation' ? 'navigate-circle' : 'location-sharp'}
+                    size={24}
+                    color={GREEN}
+                  />
+                  <View style={styles.infoContent}>
+                    <Text style={styles.infoLabel}>Type</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                      <Text style={styles.infoValue}>
+                        {serviceType?.toLowerCase() === 'outstation' ? '🛣️ Outstation' : '🏙️ Local'}
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+              </View>
+            </View>
+          )}
+
           {/* Vehicle Information */}
           {busType && (
             <View style={styles.section}>
@@ -265,11 +323,11 @@ export default function BusQuoteRequestDetailScreen({ route, navigation }) {
             </View>
           )}
 
-          {/* Booking Details */}
+          {/* Trip Details */}
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <Ionicons name="calendar-outline" size={20} color="#64748B" />
-              <Text style={styles.sectionTitle}>Booking Details</Text>
+              <Text style={styles.sectionTitle}>Trip Details</Text>
             </View>
             <View style={styles.card}>
               <View style={styles.infoRow}>
@@ -279,40 +337,77 @@ export default function BusQuoteRequestDetailScreen({ route, navigation }) {
                   <Text style={styles.infoValue}>{pickupLocation}</Text>
                 </View>
               </View>
-              {dropLocation && (
+              {destination && (
                 <View style={styles.infoRow}>
                   <Ionicons name="location" size={18} color="#EF4444" />
                   <View style={styles.infoContent}>
-                    <Text style={styles.infoLabel}>Drop Location</Text>
-                    <Text style={styles.infoValue}>{dropLocation}</Text>
+                    <Text style={styles.infoLabel}>Destination</Text>
+                    <Text style={styles.infoValue}>{destination}</Text>
                   </View>
                 </View>
               )}
-              <View style={styles.infoRow}>
-                <Ionicons name="calendar" size={18} color="#64748B" />
-                <View style={styles.infoContent}>
-                  <Text style={styles.infoLabel}>Pickup Date</Text>
-                  <Text style={styles.infoValue}>{formatDate(pickupDate)}</Text>
+              <View style={styles.dateTimeRow}>
+                <View style={styles.dateTimeItem}>
+                  <Ionicons name="calendar" size={16} color="#64748B" />
+                  <View style={styles.dateTimeContent}>
+                    <Text style={styles.infoLabel}>Pickup Date</Text>
+                    <Text style={styles.dateTimeValue}>{formatDate(pickupDate)}</Text>
+                  </View>
+                </View>
+                <View style={styles.dateTimeItem}>
+                  <Ionicons name="time" size={16} color="#64748B" />
+                  <View style={styles.dateTimeContent}>
+                    <Text style={styles.infoLabel}>Time</Text>
+                    <Text style={styles.dateTimeValue}>{formatTime(pickupTime)}</Text>
+                  </View>
                 </View>
               </View>
               {returnDate && (
-                <View style={styles.infoRow}>
-                  <Ionicons name="calendar" size={18} color="#64748B" />
-                  <View style={styles.infoContent}>
-                    <Text style={styles.infoLabel}>Return Date</Text>
-                    <Text style={styles.infoValue}>{formatDate(returnDate)}</Text>
+                <View style={styles.dateTimeRow}>
+                  <View style={styles.dateTimeItem}>
+                    <Ionicons name="calendar" size={16} color="#64748B" />
+                    <View style={styles.dateTimeContent}>
+                      <Text style={styles.infoLabel}>Return Date</Text>
+                      <Text style={styles.dateTimeValue}>{formatDate(returnDate)}</Text>
+                    </View>
+                  </View>
+                  <View style={styles.dateTimeItem}>
+                    <Ionicons name="time" size={16} color="#64748B" />
+                    <View style={styles.dateTimeContent}>
+                      <Text style={styles.infoLabel}>Time</Text>
+                      <Text style={styles.dateTimeValue}>{formatTime(returnTime)}</Text>
+                    </View>
                   </View>
                 </View>
               )}
             </View>
           </View>
 
-          {/* Additional Notes */}
+          {/* Passengers */}
+          {passengers && (
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <Ionicons name="people-outline" size={20} color="#64748B" />
+                <Text style={styles.sectionTitle}>Passengers</Text>
+              </View>
+              <View style={styles.card}>
+                <View style={styles.infoRow}>
+                  <Ionicons name="people" size={18} color="#64748B" />
+                  <View style={styles.infoContent}>
+                    <Text style={styles.infoLabel}>Number of Passengers</Text>
+                    <Text style={styles.infoValue}>{passengers} {passengers === 1 ? 'Passenger' : 'Passengers'}</Text>
+                  </View>
+                </View>
+              </View>
+            </View>
+          )}
+
+          {/* Customer Notes */}
           {notes && (
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
                 <Ionicons name="chatbox-outline" size={20} color="#64748B" />
-                <Text style={styles.sectionTitle}>Special Requirements</Text>
+                <Text style={styles.sectionTitle}>Customer Notes</Text>
               </View>
               <View style={styles.card}>
                 <Text style={styles.notesText}>{notes}</Text>
@@ -447,8 +542,31 @@ const styles = StyleSheet.create({
   infoLabel: { fontSize: 12, color: '#64748B', marginBottom: 2 },
   infoValue: { fontSize: 14, color: DARK, fontWeight: '600' },
 
-  vehicleInfo: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  vehicleInfo: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
   vehicleName: { fontSize: 16, fontWeight: '700', color: DARK, flex: 1 },
+  categoryBadge: {
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+    alignSelf: 'flex-start',
+    marginTop: 6,
+  },
+  categoryText: { fontSize: 11, fontWeight: '600', color: '#92400E' },
+
+  dateTimeRow: {
+    flexDirection: 'row',
+    gap: 12,
+    paddingTop: 8,
+  },
+  dateTimeItem: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+  },
+  dateTimeContent: { flex: 1 },
+  dateTimeValue: { fontSize: 13, fontWeight: '600', color: DARK, marginTop: 2 },
 
   notesText: { fontSize: 14, color: '#475569', lineHeight: 20 },
 

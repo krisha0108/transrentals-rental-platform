@@ -129,11 +129,11 @@ export default function PackersQuoteRequestsScreen({ navigation }) {
     const statusColor = STATUS_COLORS[status] || '#6B7280';
 
     const customerName = item.customerName || item.customer_name || 'Customer';
-    const pickupLocation = item.pickupLocation || item.pickup_location || item.pickupCity || 'N/A';
-    const dropLocation = item.dropLocation || item.drop_location || item.dropCity;
-    const pickupDate = item.pickupDate || item.pickup_date || item.startDate || item.preferredDate;
-    const returnDate = item.returnDate || item.return_date || item.endDate;
-    const serviceType = item.serviceType || item.service_type || item.vehicleType;
+    const fromAddress = item.fromAddress || item.from_address || item.pickupLocation || item.pickup_location || item.pickupCity || 'N/A';
+    const toAddress = item.toAddress || item.to_address || item.dropLocation || item.drop_location || item.dropCity;
+    const movingDate = item.movingDate || item.moving_date || item.pickupDate || item.pickup_date || item.startDate;
+    const shiftingType = item.shiftingType || item.shifting_type;
+    const specificType = item.specificType || item.specific_type;
 
     return (
       <TouchableOpacity
@@ -152,7 +152,7 @@ export default function PackersQuoteRequestsScreen({ navigation }) {
         {/* Header */}
         <View style={styles.cardHeader}>
           <View style={styles.headerLeft}>
-            <MaterialCommunityIcons name="package-variant" size={24} color={GREEN} />
+            <MaterialCommunityIcons name="truck-fast" size={24} color={GREEN} />
             <Text style={styles.requestNumber}>
               #{item.requestNumber || item.request_number || (item.id || item._id)?.toString().slice(-8) || 'N/A'}
             </Text>
@@ -169,43 +169,59 @@ export default function PackersQuoteRequestsScreen({ navigation }) {
           <Text style={styles.infoText}>{customerName}</Text>
         </View>
 
+        {/* Shifting Type - Prominent Display */}
+        {(shiftingType || specificType) && (
+          <View style={styles.shiftingSection}>
+            <View style={styles.shiftingIconWrapper}>
+              <MaterialCommunityIcons
+                name={shiftingType?.toLowerCase() === 'office' ? 'office-building' : 'home'}
+                size={24}
+                color="#22C55E"
+              />
+            </View>
+            <View style={styles.shiftingDetails}>
+              {shiftingType && (
+                <Text style={styles.shiftingTypeText} numberOfLines={1}>
+                  {shiftingType.charAt(0).toUpperCase() + shiftingType.slice(1)} Shifting
+                </Text>
+              )}
+              {specificType && (
+                <View style={styles.specificTypeBadge}>
+                  <Text style={styles.specificTypeBadgeText}>{specificType}</Text>
+                </View>
+              )}
+            </View>
+          </View>
+        )}
+
         {/* Location */}
         <View style={styles.locationRow}>
           <View style={styles.locationItem}>
             <Ionicons name="location" size={16} color={GREEN} />
             <Text style={styles.locationText} numberOfLines={1}>
-              {pickupLocation}
+              {fromAddress}
             </Text>
           </View>
-          {dropLocation && (
+          {toAddress && (
             <>
               <Icon name="arrow-right" size={14} color="#94A3B8" />
               <View style={styles.locationItem}>
                 <Ionicons name="location" size={16} color="#EF4444" />
                 <Text style={styles.locationText} numberOfLines={1}>
-                  {dropLocation}
+                  {toAddress}
                 </Text>
               </View>
             </>
           )}
         </View>
 
-        {/* Date Range */}
+        {/* Moving Date */}
         <View style={styles.infoRow}>
           <Ionicons name="calendar-outline" size={16} color="#64748B" />
           <Text style={styles.infoText}>
-            {formatDate(pickupDate)}
-            {returnDate && ` - ${formatDate(returnDate)}`}
+            {formatDate(movingDate)}
           </Text>
         </View>
-
-        {/* Bike Type */}
-        {serviceType && (
-          <View style={styles.infoRow}>
-            <MaterialCommunityIcons name="package-variant" size={16} color="#64748B" />
-            <Text style={styles.infoText}>{serviceType}</Text>
-          </View>
-        )}
 
         {/* Footer */}
         <View style={styles.cardFooter}>
@@ -434,6 +450,50 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   locationText: { fontSize: 13, color: '#475569', flex: 1 },
+
+  // Shifting Type Styles
+  shiftingSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F0FDF4',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#BBF7D0',
+  },
+  shiftingIconWrapper: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#fff',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  shiftingDetails: {
+    flex: 1,
+  },
+  shiftingTypeText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#0F172A',
+    marginBottom: 4,
+  },
+  specificTypeBadge: {
+    backgroundColor: '#22C55E',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+    alignSelf: 'flex-start',
+  },
+  specificTypeBadgeText: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: '#fff',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
 
   cardFooter: {
     flexDirection: 'row',

@@ -128,21 +128,21 @@ export default async function EquipmentLocationPage({ params }: PageProps) {
       {
         id: 1,
         name: 'DJ Sound System',
-        image: '/images/equipment/dj-system.jpg',
+        image: '/images/locations/default.jpg', // Placeholder - replace with actual image
         price: 1499,
         rating: 4.8,
       },
       {
         id: 2,
         name: '10 KVA Generator',
-        image: '/images/equipment/generator.jpg',
+        image: '/images/locations/default.jpg', // Placeholder - replace with actual image
         price: 2499,
         rating: 4.7,
       },
       {
         id: 3,
         name: 'Excavator',
-        image: '/images/equipment/excavator.jpg',
+        image: '/images/locations/default.jpg', // Placeholder - replace with actual image
         price: 4999,
         rating: 4.9,
       },

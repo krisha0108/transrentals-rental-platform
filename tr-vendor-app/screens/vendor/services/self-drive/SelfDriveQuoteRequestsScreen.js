@@ -130,7 +130,19 @@ export default function SelfDriveQuoteRequestsScreen({ navigation }) {
     const dropLocation = item.dropLocation || item.drop_location || item.dropCity;
     const pickupDate = item.pickupDate || item.pickup_date || item.startDate;
     const returnDate = item.returnDate || item.return_date || item.endDate;
-    const vehicleType = item.vehicleType || item.vehicle_type || item.vehicleType;
+    const vehicleModelName = item.vehicleModelName || item.vehicle_model_name;
+    const vehicleBrand = item.vehicleBrand || item.vehicle_brand;
+    const vehicleType = item.vehicleType || item.vehicle_type;
+    const vehicleCategoryName = item.vehicleCategoryName || item.vehicle_category_name;
+
+    // Map vehicleType to display name
+    const vehicleTypeDisplay =
+      vehicleType === '1' || vehicleType === 1 ? 'Hatchback' :
+      vehicleType === '2' || vehicleType === 2 ? 'Sedan' :
+      vehicleType === '3' || vehicleType === 3 ? 'MUV' :
+      vehicleType === '4' || vehicleType === 4 ? 'SUV' :
+      vehicleType === '5' || vehicleType === 5 ? 'Luxury' :
+      vehicleCategoryName || vehicleType;
 
     return (
       <TouchableOpacity
@@ -196,11 +208,29 @@ export default function SelfDriveQuoteRequestsScreen({ navigation }) {
           </Text>
         </View>
 
-        {/* Bike Type */}
-        {vehicleType && (
-          <View style={styles.infoRow}>
+        {/* Vehicle Info */}
+        {(vehicleModelName || vehicleBrand || vehicleTypeDisplay) && (
+          <View style={styles.vehicleInfoRow}>
             <MaterialCommunityIcons name="car" size={16} color="#64748B" />
-            <Text style={styles.infoText}>{vehicleType}</Text>
+            <View style={styles.vehicleDetails}>
+              {vehicleModelName ? (
+                <>
+                  <Text style={styles.vehicleModelText}>{vehicleModelName}</Text>
+                  {vehicleBrand && (
+                    <Text style={styles.vehicleBrandText}>{vehicleBrand}</Text>
+                  )}
+                </>
+              ) : (
+                <>
+                  {vehicleTypeDisplay && (
+                    <Text style={styles.vehicleModelText}>{vehicleTypeDisplay}</Text>
+                  )}
+                  {vehicleBrand && (
+                    <Text style={styles.vehicleBrandText}>{vehicleBrand}</Text>
+                  )}
+                </>
+              )}
+            </View>
           </View>
         )}
 
@@ -412,6 +442,26 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   infoText: { fontSize: 14, color: '#334155', flex: 1 },
+
+  vehicleInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    marginBottom: 8,
+  },
+  vehicleDetails: {
+    flex: 1,
+  },
+  vehicleModelText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: DARK,
+  },
+  vehicleBrandText: {
+    fontSize: 13,
+    color: '#64748B',
+    marginTop: 2,
+  },
 
   locationRow: {
     flexDirection: 'row',

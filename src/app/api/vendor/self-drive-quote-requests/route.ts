@@ -199,7 +199,7 @@ export async function GET(request: NextRequest) {
       requests: requests.map((r) => ({
         id: r.id,
         requestNumber: r.requestNumber,
-        vehicleModelName: r.vehicle_modelsName,
+        vehicleModelName: r.vehicleModelName,
         vehicleBrand: r.vehicleBrand,
         chauffeur_vehicle_categories: r.vehicle_category,
         vehicleCategoryName: r.vehicleCategoryName,
