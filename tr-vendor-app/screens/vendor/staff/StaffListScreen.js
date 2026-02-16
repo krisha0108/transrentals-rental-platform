@@ -192,23 +192,25 @@ export default function StaffListScreen({ navigation }) {
       </View>
 
       {/* Filters */}
-      <FlatList
-        horizontal
-        data={filters}
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.filtersContent}
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            style={[styles.filterChip, filter === item.key && styles.filterChipActive]}
-            onPress={() => setFilter(item.key)}
-          >
-            <Text style={[styles.filterText, filter === item.key && styles.filterTextActive]}>
-              {item.label}
-            </Text>
-          </TouchableOpacity>
-        )}
-        keyExtractor={(item) => item.key}
-      />
+      <View style={styles.filtersContainer}>
+        <FlatList
+          horizontal
+          data={filters}
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.filtersContent}
+          renderItem={({ item }) => (
+            <TouchableOpacity
+              style={[styles.filterChip, filter === item.key && styles.filterChipActive]}
+              onPress={() => setFilter(item.key)}
+            >
+              <Text style={[styles.filterText, filter === item.key && styles.filterTextActive]}>
+                {item.label}
+              </Text>
+            </TouchableOpacity>
+          )}
+          keyExtractor={(item) => item.key}
+        />
+      </View>
 
       {/* Staff List */}
       {filteredStaff.length === 0 ? (
@@ -315,10 +317,14 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: C.muted,
   },
+  filtersContainer: {
+    height: 56,
+    marginTop: 12,
+  },
   filtersContent: {
     paddingHorizontal: 16,
-    paddingVertical: 12,
-    gap: 8,
+    paddingVertical: 10,
+    alignItems: 'center',
   },
   filterChip: {
     paddingHorizontal: 14,
@@ -328,6 +334,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: C.border,
     marginRight: 8,
+    height: 36,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   filterChipActive: {
     backgroundColor: '#DCFCE7',

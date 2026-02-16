@@ -374,11 +374,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderBottomWidth: 1,
     borderBottomColor: '#E5E7EB',
+    maxHeight: 60,
   },
   filterContainer: {
     paddingHorizontal: 16,
     paddingVertical: 12,
-    gap: 8,
+    alignItems: 'center',
   },
   filterChip: {
     paddingHorizontal: 16,
@@ -386,6 +387,9 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     backgroundColor: '#F3F4F6',
     marginRight: 8,
+    height: 36,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   filterChipActive: {
     backgroundColor: SERVICE_COLOR,

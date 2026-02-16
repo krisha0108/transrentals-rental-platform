@@ -13,7 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Feather';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import api from '../../../../lib/api';
+import { getTemplates, deleteTemplate, updateTemplate } from '../../../api/client';
 
 const C = {
   bg: '#F7FAFC',
@@ -36,9 +36,9 @@ export default function EquipmentTemplatesScreen({ navigation }) {
 
   const fetchTemplates = useCallback(async () => {
     try {
-      const response = await api.get('/vendor/equipment-templates');
-      if (response.data.success) {
-        setTemplates(response.data.templates || []);
+      const data = await getTemplates('equipment');
+      if (data && data.templates) {
+        setTemplates(data.templates);
       }
     } catch (error) {
       console.error('Error fetching templates:', error);
@@ -65,7 +65,7 @@ export default function EquipmentTemplatesScreen({ navigation }) {
         isActive: !template.isActive,
       });
 
-      if (response.data.success) {
+      if (data && data.templates) {
         setTemplates(prev =>
           prev.map(t => t.id === template.id ? { ...t, isActive: !t.isActive } : t)
         );
@@ -90,7 +90,7 @@ export default function EquipmentTemplatesScreen({ navigation }) {
             setActionLoading(template.id);
             try {
               const response = await api.delete(`/vendor/equipment-templates/${template.id}`);
-              if (response.data.success) {
+              if (data && data.templates) {
                 fetchTemplates();
               }
             } catch (error) {

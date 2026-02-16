@@ -127,10 +127,20 @@ export default function LuxuryQuoteRequestsScreen({ navigation }) {
 
     const customerName = item.customerName || item.customer_name || 'Customer';
     const pickupLocation = item.pickupLocation || item.pickup_location || item.pickupCity || 'N/A';
-    const dropLocation = item.dropLocation || item.drop_location || item.dropCity;
+    const dropLocation = item.dropLocation || item.drop_location || item.dropCity || item.destination;
     const pickupDate = item.pickupDate || item.pickup_date || item.startDate;
     const returnDate = item.returnDate || item.return_date || item.endDate;
-    const vehicleType = item.vehicleType || item.vehicle_type || item.vehicleType;
+
+    // Booking Type & Package
+    const bookingType = item.bookingType || item.booking_type;
+    const packageType = item.packageType || item.package_type;
+
+    // Extract vehicle information
+    const vehicleModelName = item.vehicleModelName || item.vehicle_model_name || item.specificModel || item.specific_model;
+    const vehicleBrand = item.vehicleBrand || item.vehicle_brand;
+    const vehicleCategoryName = item.vehicleCategoryName || item.vehicle_category_name ||
+                                item.vehicleCategory || item.chauffeur_vehicle_categories?.name ||
+                                item.chauffeur_vehicle_categories;
 
     return (
       <TouchableOpacity
@@ -149,7 +159,7 @@ export default function LuxuryQuoteRequestsScreen({ navigation }) {
         {/* Header */}
         <View style={styles.cardHeader}>
           <View style={styles.headerLeft}>
-            <MaterialCommunityIcons name="car-sport" size={24} color={GREEN} />
+            <MaterialCommunityIcons name="car-sports" size={24} color={GREEN} />
             <Text style={styles.requestNumber}>
               #{item.requestNumber || item.request_number || (item.id || item._id)?.toString().slice(-8) || 'N/A'}
             </Text>
@@ -196,11 +206,54 @@ export default function LuxuryQuoteRequestsScreen({ navigation }) {
           </Text>
         </View>
 
-        {/* Bike Type */}
-        {vehicleType && (
-          <View style={styles.infoRow}>
-            <MaterialCommunityIcons name="car-sport" size={16} color="#64748B" />
-            <Text style={styles.infoText}>{vehicleType}</Text>
+        {/* Booking Type & Package */}
+        {(bookingType || packageType) && (
+          <View style={styles.bookingTypeRow}>
+            {bookingType && (
+              <View style={styles.bookingTypeBadge}>
+                <Ionicons name="timer-outline" size={12} color="#3B82F6" />
+                <Text style={styles.bookingTypeText}>{bookingType}</Text>
+              </View>
+            )}
+            {packageType && (
+              <View style={styles.packageBadge}>
+                <Ionicons name="cube-outline" size={12} color="#8B5CF6" />
+                <Text style={styles.packageText}>{packageType}</Text>
+              </View>
+            )}
+          </View>
+        )}
+
+        {/* Vehicle Information - Enhanced Display */}
+        {(vehicleModelName || vehicleBrand || vehicleCategoryName) && (
+          <View style={styles.vehicleSection}>
+            <View style={styles.vehicleIconWrapper}>
+              <MaterialCommunityIcons name="car-sports" size={24} color="#22C55E" />
+            </View>
+            <View style={styles.vehicleDetails}>
+              {/* Model Name - Primary */}
+              {vehicleModelName ? (
+                <Text style={styles.vehicleModel} numberOfLines={1}>
+                  {vehicleModelName}
+                </Text>
+              ) : vehicleBrand ? (
+                <Text style={styles.vehicleModel} numberOfLines={1}>
+                  {vehicleBrand}
+                </Text>
+              ) : null}
+
+              {/* Brand & Category - Secondary */}
+              <View style={styles.vehicleMeta}>
+                {vehicleBrand && vehicleModelName && (
+                  <Text style={styles.vehicleBrand}>{vehicleBrand}</Text>
+                )}
+                {vehicleCategoryName && (
+                  <View style={styles.categoryBadge}>
+                    <Text style={styles.categoryBadgeText}>{vehicleCategoryName}</Text>
+                  </View>
+                )}
+              </View>
+            </View>
           </View>
         )}
 
@@ -426,6 +479,96 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   locationText: { fontSize: 13, color: '#475569', flex: 1 },
+
+  bookingTypeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 8,
+    flexWrap: 'wrap',
+  },
+  bookingTypeBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#DBEAFE',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  bookingTypeText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#3B82F6',
+  },
+  packageBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#EDE9FE',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  packageText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#8B5CF6',
+  },
+
+  // Vehicle Information Styles
+  vehicleSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F0FDF4',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#BBF7D0',
+  },
+  vehicleIconWrapper: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#fff',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  vehicleDetails: {
+    flex: 1,
+  },
+  vehicleModel: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#0F172A',
+    marginBottom: 4,
+  },
+  vehicleMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flexWrap: 'wrap',
+  },
+  vehicleBrand: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#166534',
+  },
+  categoryBadge: {
+    backgroundColor: '#22C55E',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+  },
+  categoryBadgeText: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: '#fff',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
 
   cardFooter: {
     flexDirection: 'row',

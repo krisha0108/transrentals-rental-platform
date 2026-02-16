@@ -16,7 +16,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Feather';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import { getVendorQuotes } from '../../../api/client';
+import { getVendorQuotes, getBaseURL } from '../../../api/client';
 
 const { width } = Dimensions.get('window');
 const SLIDER_WIDTH = width - 32; // Full width with padding
@@ -41,6 +41,15 @@ export default function BikeQuoteDetailScreen({ route, navigation }) {
   const [refreshing, setRefreshing] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const imageSliderRef = useRef(null);
+  const [baseUrl, setBaseUrl] = useState('');
+
+  // Get base URL on mount
+  useEffect(() => {
+    getBaseURL().then(url => {
+      console.log('🌐 [Image Debug] Base URL:', url);
+      setBaseUrl(url);
+    });
+  }, []);
 
   const fetchQuoteDetail = useCallback(async () => {
     if (!quoteId) {
@@ -168,10 +177,20 @@ export default function BikeQuoteDetailScreen({ route, navigation }) {
 
   // Helper to get full image URL
   const getFullImageUrl = (path) => {
-    if (!path) return null;
-    if (path.startsWith('http')) return path;
-    const baseUrl = 'http://192.168.29.68:3000'; // Your dev URL
-    return `${baseUrl}${path}`;
+    console.log('🖼️ [Image Debug] Processing path:', path);
+    if (!path) {
+      console.log('❌ [Image Debug] Path is null/undefined');
+      return null;
+    }
+    if (path.startsWith('http')) {
+      console.log('✅ [Image Debug] Already full URL:', path);
+      return path;
+    }
+    const fullUrl = `${baseUrl}${path}`;
+    console.log('🔗 [Image Debug] Constructed URL:', fullUrl);
+    console.log('   Base URL:', baseUrl);
+    console.log('   Path:', path);
+    return fullUrl;
   };
 
   // Parse JSON fields
@@ -206,13 +225,19 @@ export default function BikeQuoteDetailScreen({ route, navigation }) {
   const vehicleYear = quote.vehicleYear;
 
   // Debug logging
-  console.log('Quote Data:', {
-    id: quote.id,
-    rawVehicleImages: quote.vehicleImages,
-    rawImages: rawImages,
-    finalImages: vehicleImages,
-    imagesLength: vehicleImages?.length,
-  });
+  console.log('📊 [Image Debug] ==================== QUOTE DATA ====================');
+  console.log('📊 [Image Debug] Quote ID:', quote.id);
+  console.log('📊 [Image Debug] Raw vehicleImages from API:', quote.vehicleImages);
+  console.log('📊 [Image Debug] Type of vehicleImages:', typeof quote.vehicleImages);
+  console.log('📊 [Image Debug] Parsed rawImages:', rawImages);
+  console.log('📊 [Image Debug] Final vehicleImages array:', vehicleImages);
+  console.log('📊 [Image Debug] Images count:', vehicleImages?.length || 0);
+  if (vehicleImages && vehicleImages.length > 0) {
+    vehicleImages.forEach((img, index) => {
+      console.log(`   Image ${index + 1}:`, img);
+    });
+  }
+  console.log('📊 [Image Debug] ====================================================');
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>

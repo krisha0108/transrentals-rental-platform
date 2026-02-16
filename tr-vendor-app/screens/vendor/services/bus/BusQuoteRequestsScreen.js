@@ -123,6 +123,8 @@ export default function BusQuoteRequestsScreen({ navigation }) {
     const statusColor = STATUS_COLORS[status] || '#6B7280';
 
     const customerName = item.customerName || item.customer_name || 'Customer';
+    const tripType = item.tripType || item.trip_type || item.serviceType || item.service_type;
+    const serviceType = tripType === 'outstation' || tripType === '1' ? 'Outstation' : tripType === 'local' || tripType === '2' ? 'Local' : tripType;
     const pickupLocation = item.pickupLocation || item.pickup_location || item.pickupCity || 'N/A';
     const dropLocation = item.dropLocation || item.drop_location || item.dropCity;
     const pickupDate = item.pickupDate || item.pickup_date || item.startDate;
@@ -162,6 +164,16 @@ export default function BusQuoteRequestsScreen({ navigation }) {
           <Ionicons name="person-circle-outline" size={18} color="#64748B" />
           <Text style={styles.infoText}>{customerName}</Text>
         </View>
+
+        {/* Service Type */}
+        {serviceType && (
+          <View style={styles.infoRow}>
+            <MaterialCommunityIcons name="bus" size={16} color="#64748B" />
+            <View style={styles.serviceBadge}>
+              <Text style={styles.serviceText}>{serviceType}</Text>
+            </View>
+          </View>
+        )}
 
         {/* Location */}
         <View style={styles.locationRow}>
@@ -518,5 +530,17 @@ const styles = StyleSheet.create({
   },
   filterCountTextActive: {
     color: '#fff',
+  },
+
+  serviceBadge: {
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  serviceText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#92400E',
   },
 });

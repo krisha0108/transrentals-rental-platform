@@ -36,9 +36,9 @@ export async function getBaseURL() {
     return cachedBaseURL;
   }
   // 3) default - use prod unless in dev mode
-  cachedBaseURL = __DEV__ ? inferLocalBase() : DEFAULT_PROD;
+  // cachedBaseURL = __DEV__ ? inferLocalBase() : DEFAULT_PROD;
   // 3) default - always use production URL (transrentals.in)
-  // cachedBaseURL = DEFAULT_PROD;
+  cachedBaseURL = DEFAULT_PROD;
   return cachedBaseURL;
 }
 
@@ -866,7 +866,7 @@ export async function addStaff(staffData) {
  * Update staff member
  */
 export async function updateStaff(staffId, staffData) {
-  const res = await apiPut(`/vendor/staff/${staffId}`, staffData);
+  const res = await apiPatch(`/vendor/staff/${staffId}`, staffData);
   return res.data;
 }
 

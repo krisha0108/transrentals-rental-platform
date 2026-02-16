@@ -110,6 +110,19 @@ export default function PackersQuoteRequestDetailScreen({ route, navigation }) {
     });
   };
 
+  const formatTime = (timeStr) => {
+    if (!timeStr) return 'N/A';
+    // Handle both HH:MM and HH:MM:SS formats
+    const timeParts = timeStr.split(':');
+    let hours = parseInt(timeParts[0], 10);
+    const minutes = timeParts[1] || '00';
+
+    const period = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12 || 12; // Convert 0 to 12 for 12 AM
+
+    return `${hours}:${minutes} ${period}`;
+  };
+
   const getStatusIcon = (status) => {
     switch (status?.toUpperCase()) {
       case 'PENDING':
@@ -164,16 +177,28 @@ export default function PackersQuoteRequestDetailScreen({ route, navigation }) {
   const status = request.status?.toUpperCase() || 'PENDING';
   const statusColor = STATUS_COLORS[status] || '#6B7280';
 
+  // Customer Information
   const customerName = request.customerName || request.customer_name || 'Customer';
   const customerEmail = request.customerEmail || request.customer_email;
   const customerPhone = request.customerPhone || request.customer_phone;
-  const pickupLocation = request.pickupLocation || request.pickup_location || request.pickupCity || 'N/A';
-  const dropLocation = request.dropLocation || request.drop_location || request.dropCity;
-  const pickupDate = request.pickupDate || request.pickup_date || request.startDate || request.preferredDate;
-  const returnDate = request.returnDate || request.return_date || request.endDate;
-  const serviceType = request.serviceType || request.service_type || request.vehicleType;
+
+  // Shifting Details
+  const shiftingType = request.shiftingType || request.shifting_type; // home/office
+  const specificType = request.specificType || request.specific_type; // 1BHK, 2BHK, etc.
+
+  // Location Details
+  const fromAddress = request.fromAddress || request.from_address || request.pickupLocation || request.pickup_location || 'N/A';
+  const toAddress = request.toAddress || request.to_address || request.dropLocation || request.drop_location || request.dropCity;
+
+  // Date & Time Details
+  const movingDate = request.movingDate || request.moving_date || request.pickupDate || request.pickup_date || request.startDate;
+  const movingTime = request.movingTime || request.moving_time || request.pickupTime || request.pickup_time;
+
+  // Customer Notes
+  const customerNotes = request.customerNotes || request.customer_notes || request.notes || request.description || request.additionalInfo || request.specialRequirements;
+
+  // Request Metadata
   const requestNumber = request.requestNumber || request.request_number || (request.id || request._id)?.toString().slice(-8);
-  const notes = request.notes || request.description || request.additionalInfo || request.specialRequirements;
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -249,73 +274,100 @@ export default function PackersQuoteRequestDetailScreen({ route, navigation }) {
             </View>
           </View>
 
-          {/* Vehicle Information */}
-          {serviceType && (
+          {/* Shifting Details */}
+          {(shiftingType || specificType) && (
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
-                <MaterialCommunityIcons name="dolly" size={20} color="#64748B" />
-                <Text style={styles.sectionTitle}>Vehicle Requested</Text>
+                <MaterialCommunityIcons name="home-switch-outline" size={20} color="#64748B" />
+                <Text style={styles.sectionTitle}>Shifting Details</Text>
               </View>
               <View style={styles.card}>
-                <View style={styles.vehicleInfo}>
-                  <MaterialCommunityIcons name="dolly" size={32} color={GREEN} />
-                  <Text style={styles.vehicleName}>{serviceType}</Text>
+                <View style={styles.shiftingInfo}>
+                  <MaterialCommunityIcons
+                    name={shiftingType?.toLowerCase() === 'office' ? 'office-building' : 'home'}
+                    size={32}
+                    color={GREEN}
+                  />
+                  <View style={{ flex: 1 }}>
+                    {shiftingType && (
+                      <Text style={styles.shiftingType}>
+                        {shiftingType.charAt(0).toUpperCase() + shiftingType.slice(1)} Shifting
+                      </Text>
+                    )}
+                    {specificType && (
+                      <View style={styles.specificTypeBadge}>
+                        <Text style={styles.specificTypeText}>{specificType}</Text>
+                      </View>
+                    )}
+                  </View>
                 </View>
               </View>
             </View>
           )}
 
-          {/* Booking Details */}
+          {/* Address Details */}
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <Ionicons name="calendar-outline" size={20} color="#64748B" />
-              <Text style={styles.sectionTitle}>Booking Details</Text>
+              <Ionicons name="location-outline" size={20} color="#64748B" />
+              <Text style={styles.sectionTitle}>Address Details</Text>
             </View>
             <View style={styles.card}>
               <View style={styles.infoRow}>
                 <Ionicons name="location" size={18} color={GREEN} />
                 <View style={styles.infoContent}>
-                  <Text style={styles.infoLabel}>Pickup Location</Text>
-                  <Text style={styles.infoValue}>{pickupLocation}</Text>
+                  <Text style={styles.infoLabel}>From (Pickup)</Text>
+                  <Text style={styles.infoValue}>{fromAddress}</Text>
                 </View>
               </View>
-              {dropLocation && (
+              {toAddress && (
                 <View style={styles.infoRow}>
                   <Ionicons name="location" size={18} color="#EF4444" />
                   <View style={styles.infoContent}>
-                    <Text style={styles.infoLabel}>Drop Location</Text>
-                    <Text style={styles.infoValue}>{dropLocation}</Text>
-                  </View>
-                </View>
-              )}
-              <View style={styles.infoRow}>
-                <Ionicons name="calendar" size={18} color="#64748B" />
-                <View style={styles.infoContent}>
-                  <Text style={styles.infoLabel}>Pickup Date</Text>
-                  <Text style={styles.infoValue}>{formatDate(pickupDate)}</Text>
-                </View>
-              </View>
-              {returnDate && (
-                <View style={styles.infoRow}>
-                  <Ionicons name="calendar" size={18} color="#64748B" />
-                  <View style={styles.infoContent}>
-                    <Text style={styles.infoLabel}>Return Date</Text>
-                    <Text style={styles.infoValue}>{formatDate(returnDate)}</Text>
+                    <Text style={styles.infoLabel}>To (Destination)</Text>
+                    <Text style={styles.infoValue}>{toAddress}</Text>
                   </View>
                 </View>
               )}
             </View>
           </View>
 
-          {/* Additional Notes */}
-          {notes && (
+          {/* Moving Date & Time */}
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Ionicons name="calendar-outline" size={20} color="#64748B" />
+              <Text style={styles.sectionTitle}>Moving Date</Text>
+            </View>
+            <View style={styles.card}>
+              <View style={styles.dateTimeRow}>
+                <View style={styles.dateTimeItem}>
+                  <Ionicons name="calendar" size={16} color="#64748B" />
+                  <View style={styles.dateTimeContent}>
+                    <Text style={styles.infoLabel}>Date</Text>
+                    <Text style={styles.dateTimeValue}>{formatDate(movingDate)}</Text>
+                  </View>
+                </View>
+                {movingTime && (
+                  <View style={styles.dateTimeItem}>
+                    <Ionicons name="time" size={16} color="#64748B" />
+                    <View style={styles.dateTimeContent}>
+                      <Text style={styles.infoLabel}>Time</Text>
+                      <Text style={styles.dateTimeValue}>{formatTime(movingTime)}</Text>
+                    </View>
+                  </View>
+                )}
+              </View>
+            </View>
+          </View>
+
+          {/* Customer Notes */}
+          {customerNotes && (
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
                 <Ionicons name="chatbox-outline" size={20} color="#64748B" />
-                <Text style={styles.sectionTitle}>Special Requirements</Text>
+                <Text style={styles.sectionTitle}>Customer Notes</Text>
               </View>
               <View style={styles.card}>
-                <Text style={styles.notesText}>{notes}</Text>
+                <Text style={styles.notesText}>{customerNotes}</Text>
               </View>
             </View>
           )}
@@ -447,8 +499,30 @@ const styles = StyleSheet.create({
   infoLabel: { fontSize: 12, color: '#64748B', marginBottom: 2 },
   infoValue: { fontSize: 14, color: DARK, fontWeight: '600' },
 
-  vehicleInfo: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  vehicleName: { fontSize: 16, fontWeight: '700', color: DARK, flex: 1 },
+  shiftingInfo: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
+  shiftingType: { fontSize: 16, fontWeight: '700', color: DARK },
+  specificTypeBadge: {
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+    alignSelf: 'flex-start',
+    marginTop: 6,
+  },
+  specificTypeText: { fontSize: 11, fontWeight: '600', color: '#92400E' },
+
+  dateTimeRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  dateTimeItem: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+  },
+  dateTimeContent: { flex: 1 },
+  dateTimeValue: { fontSize: 13, fontWeight: '600', color: DARK, marginTop: 2 },
 
   notesText: { fontSize: 14, color: '#475569', lineHeight: 20 },
 

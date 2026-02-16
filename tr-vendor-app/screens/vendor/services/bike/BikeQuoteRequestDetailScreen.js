@@ -112,6 +112,19 @@ export default function BikeQuoteRequestDetailScreen({ route, navigation }) {
     });
   };
 
+  const formatTime = (timeStr) => {
+    if (!timeStr) return 'N/A';
+    // Handle both HH:MM and HH:MM:SS formats
+    const timeParts = timeStr.split(':');
+    let hours = parseInt(timeParts[0], 10);
+    const minutes = timeParts[1] || '00';
+
+    const period = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12 || 12; // Convert 0 to 12 for 12 AM
+
+    return `${hours}:${minutes} ${period}`;
+  };
+
   const getStatusIcon = (status) => {
     switch (status?.toUpperCase()) {
       case 'PENDING':
@@ -166,16 +179,38 @@ export default function BikeQuoteRequestDetailScreen({ route, navigation }) {
   const status = request.status?.toUpperCase() || 'PENDING';
   const statusColor = STATUS_COLORS[status] || '#6B7280';
 
+  // Customer Information
   const customerName = request.customerName || request.customer_name || 'Customer';
   const customerEmail = request.customerEmail || request.customer_email;
   const customerPhone = request.customerPhone || request.customer_phone;
+
+  // Vehicle Details
+  const vehicleModelName = request.vehicleModelName || request.vehicle_model_name;
+  const vehicleBrand = request.vehicleBrand || request.vehicle_brand;
+  const vehicleCategory = request.vehicleCategory || request.vehicle_category;
+  const vehicleCategoryName = request.vehicleCategoryName || request.vehicle_category_name || vehicleCategory;
+  const bikeType = request.bikeType || request.bike_type || request.vehicleType || vehicleModelName;
+
+  // Location Details
   const pickupLocation = request.pickupLocation || request.pickup_location || request.pickupCity || request.locationName || 'N/A';
   const dropLocation = request.dropLocation || request.drop_location || request.dropCity;
+
+  // Date & Time Details
   const pickupDate = request.pickupDate || request.pickup_date || request.startDate;
-  const returnDate = request.returnDate || request.return_date || request.endDate;
-  const bikeType = request.bikeType || request.bike_type || request.vehicleType;
+  const pickupTime = request.pickupTime || request.pickup_time || '10:00';
+  const returnDate = request.returnDate || request.return_date || request.endDate || request.dropDate;
+  const dropTime = request.dropTime || request.drop_time || request.return_time || '10:00';
+
+  // Requirements
+  const helmetsRequired = request.helmetsRequired || request.helmets_required || 1;
+  const notes = request.customerNotes || request.customer_notes || request.notes || request.description || request.additionalInfo || request.specialRequirements;
+
+  // Budget Information
+  const budgetMin = request.budgetMin || request.budget_min;
+  const budgetMax = request.budgetMax || request.budget_max;
+
+  // Request Metadata
   const requestNumber = request.requestNumber || request.request_number || (request.id || request._id)?.toString().slice(-8);
-  const notes = request.notes || request.description || request.additionalInfo || request.specialRequirements;
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -252,16 +287,28 @@ export default function BikeQuoteRequestDetailScreen({ route, navigation }) {
           </View>
 
           {/* Vehicle Information */}
-          {bikeType && (
+          {(bikeType || vehicleModelName || vehicleCategoryName) && (
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
                 <MaterialCommunityIcons name="motorbike" size={20} color="#64748B" />
-                <Text style={styles.sectionTitle}>Vehicle Requested</Text>
+                <Text style={styles.sectionTitle}>Vehicle Preference</Text>
               </View>
               <View style={styles.card}>
                 <View style={styles.vehicleInfo}>
                   <MaterialCommunityIcons name="motorbike" size={32} color={GREEN} />
-                  <Text style={styles.vehicleName}>{bikeType}</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.vehicleName}>
+                      {vehicleModelName || bikeType || 'Any Bike'}
+                    </Text>
+                    {vehicleBrand && (
+                      <Text style={styles.vehicleBrand}>{vehicleBrand}</Text>
+                    )}
+                    {vehicleCategoryName && (
+                      <View style={styles.categoryBadge}>
+                        <Text style={styles.categoryText}>{vehicleCategoryName}</Text>
+                      </View>
+                    )}
+                  </View>
                 </View>
               </View>
             </View>
@@ -271,7 +318,7 @@ export default function BikeQuoteRequestDetailScreen({ route, navigation }) {
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <Ionicons name="calendar-outline" size={20} color="#64748B" />
-              <Text style={styles.sectionTitle}>Booking Details</Text>
+              <Text style={styles.sectionTitle}>Rental Details</Text>
             </View>
             <View style={styles.card}>
               <View style={styles.infoRow}>
@@ -281,40 +328,92 @@ export default function BikeQuoteRequestDetailScreen({ route, navigation }) {
                   <Text style={styles.infoValue}>{pickupLocation}</Text>
                 </View>
               </View>
-              {dropLocation && (
-                <View style={styles.infoRow}>
-                  <Ionicons name="location" size={18} color="#EF4444" />
-                  <View style={styles.infoContent}>
-                    <Text style={styles.infoLabel}>Drop Location</Text>
-                    <Text style={styles.infoValue}>{dropLocation}</Text>
+              <View style={styles.dateTimeRow}>
+                <View style={styles.dateTimeItem}>
+                  <Ionicons name="calendar" size={16} color="#64748B" />
+                  <View style={styles.dateTimeContent}>
+                    <Text style={styles.infoLabel}>Pickup Date</Text>
+                    <Text style={styles.dateTimeValue}>{formatDate(pickupDate)}</Text>
                   </View>
                 </View>
-              )}
-              <View style={styles.infoRow}>
-                <Ionicons name="calendar" size={18} color="#64748B" />
-                <View style={styles.infoContent}>
-                  <Text style={styles.infoLabel}>Pickup Date</Text>
-                  <Text style={styles.infoValue}>{formatDate(pickupDate)}</Text>
+                <View style={styles.dateTimeItem}>
+                  <Ionicons name="time" size={16} color="#64748B" />
+                  <View style={styles.dateTimeContent}>
+                    <Text style={styles.infoLabel}>Time</Text>
+                    <Text style={styles.dateTimeValue}>{formatTime(pickupTime)}</Text>
+                  </View>
                 </View>
               </View>
               {returnDate && (
-                <View style={styles.infoRow}>
-                  <Ionicons name="calendar" size={18} color="#64748B" />
-                  <View style={styles.infoContent}>
-                    <Text style={styles.infoLabel}>Return Date</Text>
-                    <Text style={styles.infoValue}>{formatDate(returnDate)}</Text>
+                <View style={styles.dateTimeRow}>
+                  <View style={styles.dateTimeItem}>
+                    <Ionicons name="calendar" size={16} color="#64748B" />
+                    <View style={styles.dateTimeContent}>
+                      <Text style={styles.infoLabel}>Return Date</Text>
+                      <Text style={styles.dateTimeValue}>{formatDate(returnDate)}</Text>
+                    </View>
+                  </View>
+                  <View style={styles.dateTimeItem}>
+                    <Ionicons name="time" size={16} color="#64748B" />
+                    <View style={styles.dateTimeContent}>
+                      <Text style={styles.infoLabel}>Time</Text>
+                      <Text style={styles.dateTimeValue}>{formatTime(dropTime)}</Text>
+                    </View>
                   </View>
                 </View>
               )}
             </View>
           </View>
 
-          {/* Additional Notes */}
+          {/* Requirements */}
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <MaterialCommunityIcons name="shield-check" size={20} color="#64748B" />
+              <Text style={styles.sectionTitle}>Requirements</Text>
+            </View>
+            <View style={styles.card}>
+              <View style={styles.infoRow}>
+                <MaterialCommunityIcons name="helmet-safety" size={18} color="#F59E0B" />
+                <View style={styles.infoContent}>
+                  <Text style={styles.infoLabel}>Helmets Required</Text>
+                  <Text style={styles.infoValue}>{helmetsRequired} {helmetsRequired === 1 ? 'Helmet' : 'Helmets'}</Text>
+                </View>
+              </View>
+            </View>
+          </View>
+
+          {/* Budget Range */}
+          {(budgetMin || budgetMax) && (
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <Ionicons name="wallet-outline" size={20} color="#64748B" />
+                <Text style={styles.sectionTitle}>Budget Range</Text>
+              </View>
+              <View style={styles.card}>
+                <View style={styles.budgetRow}>
+                  {budgetMin && (
+                    <View style={styles.budgetItem}>
+                      <Text style={styles.budgetLabel}>Minimum</Text>
+                      <Text style={styles.budgetValue}>₹{budgetMin?.toLocaleString()}</Text>
+                    </View>
+                  )}
+                  {budgetMax && (
+                    <View style={styles.budgetItem}>
+                      <Text style={styles.budgetLabel}>Maximum</Text>
+                      <Text style={styles.budgetValue}>₹{budgetMax?.toLocaleString()}</Text>
+                    </View>
+                  )}
+                </View>
+              </View>
+            </View>
+          )}
+
+          {/* Customer Notes */}
           {notes && (
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
                 <Ionicons name="chatbox-outline" size={20} color="#64748B" />
-                <Text style={styles.sectionTitle}>Special Requirements</Text>
+                <Text style={styles.sectionTitle}>Customer Notes</Text>
               </View>
               <View style={styles.card}>
                 <Text style={styles.notesText}>{notes}</Text>
@@ -449,8 +548,47 @@ const styles = StyleSheet.create({
   infoLabel: { fontSize: 12, color: '#64748B', marginBottom: 2 },
   infoValue: { fontSize: 14, color: DARK, fontWeight: '600' },
 
-  vehicleInfo: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  vehicleName: { fontSize: 16, fontWeight: '700', color: DARK, flex: 1 },
+  vehicleInfo: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
+  vehicleName: { fontSize: 16, fontWeight: '700', color: DARK },
+  vehicleBrand: { fontSize: 13, color: '#64748B', marginTop: 2 },
+  categoryBadge: {
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+    alignSelf: 'flex-start',
+    marginTop: 6,
+  },
+  categoryText: { fontSize: 11, fontWeight: '600', color: '#92400E' },
+
+  dateTimeRow: {
+    flexDirection: 'row',
+    gap: 12,
+    paddingTop: 8,
+  },
+  dateTimeItem: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+  },
+  dateTimeContent: { flex: 1 },
+  dateTimeValue: { fontSize: 13, fontWeight: '600', color: DARK, marginTop: 2 },
+
+  budgetRow: {
+    flexDirection: 'row',
+    gap: 16,
+  },
+  budgetItem: {
+    flex: 1,
+    backgroundColor: '#F0FDF4',
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#BBF7D0',
+  },
+  budgetLabel: { fontSize: 11, color: '#166534', marginBottom: 4 },
+  budgetValue: { fontSize: 16, fontWeight: '700', color: '#15803D' },
 
   notesText: { fontSize: 14, color: '#475569', lineHeight: 20 },
 
