@@ -40,20 +40,20 @@ export async function GET(
     const vendor = await prisma.vendors.findUnique({
       where: { id: vendorId },
       include: {
-        documents: {
+        vendor_documents: {
           orderBy: { createdAt: 'desc' },
           include: {
-            verifiedBy: { select: { id: true, name: true, email: true } },
+            admin_users: { select: { id: true, name: true, email: true } },
           },
         },
-        serviceRequests: {
+        vendor_service_requests: {
           orderBy: { createdAt: 'desc' },
           include: {
             services: { select: { id: true, name: true, slug: true } },
-            reviewedBy: { select: { id: true, name: true } },
+            admin_users: { select: { id: true, name: true } },
           },
         },
-        locationRequests: {
+        vendor_location_requests: {
           orderBy: { createdAt: 'desc' },
           include: {
             locations: {
@@ -62,10 +62,10 @@ export async function GET(
                 name: true,
                 slug: true,
                 parentId: true,
-                parent: { select: { name: true } },
+                locations: { select: { name: true } },
               },
             },
-            reviewedBy: { select: { id: true, name: true } },
+            admin_users: { select: { id: true, name: true } },
           },
         },
         vendor_approved_services: {
@@ -73,17 +73,18 @@ export async function GET(
         },
         vendor_approved_locations: {
           include: {
-            location: {
+            locations: {
               select: {
                 id: true,
                 name: true,
-                parent: { select: { name: true } },
+                parentId: true,
+                locations: { select: { name: true } },
               },
             },
           },
         },
-        approvedBy: { select: { id: true, name: true, email: true } },
-        _count: { select: { fleets: true } },
+        admin_users: { select: { id: true, name: true, email: true } },
+        _count: { select: { vendor_fleets: true } },
       },
     });
 
@@ -94,7 +95,7 @@ export async function GET(
     // Check if manager has access to this vendor (via approved locations)
     const hasAccess = vendor.vendor_approved_locations.some((al) =>
       assignedLocationIds.includes(al.locationId)
-    ) || vendor.locationRequests.some((lr) =>
+    ) || vendor.vendor_location_requests.some((lr) =>
       assignedLocationIds.includes(lr.locationId)
     );
 
@@ -106,18 +107,18 @@ export async function GET(
     }
 
     // Filter location requests to only show those in manager's assigned locations
-    const filteredLocationRequests = vendor.locationRequests.filter((lr) =>
+    const filteredLocationRequests = vendor.vendor_location_requests.filter((lr) =>
       assignedLocationIds.includes(lr.locationId)
     );
 
     // Filter service requests to only show those in manager's assigned services
-    const filteredServiceRequests = vendor.serviceRequests.filter((sr) =>
+    const filteredServiceRequests = vendor.vendor_service_requests.filter((sr) =>
       assignedServiceIds.includes(sr.serviceId)
     );
 
     return NextResponse.json({
       success: true,
-      vendors: {
+      vendor: {
         id: vendor.id,
         businessName: vendor.businessName,
         ownerName: vendor.ownerName,
@@ -133,16 +134,39 @@ export async function GET(
         rejectionReason: vendor.rejectionReason,
         createdAt: vendor.createdAt,
         approvedAt: vendor.approvedAt,
-        approvedBy: vendor.approvedBy,
-        documents: vendor.documents,
-        serviceRequests: filteredServiceRequests,
-        locationRequests: filteredLocationRequests,
-        vendor_approved_services: vendor.vendor_approved_services,
-        vendor_approved_locations: vendor.vendor_approved_locations.filter((al) =>
-          assignedLocationIds.includes(al.locationId)
-        ),
-        allApprovedLocations: vendor.vendor_approved_locations,
-        allApprovedServices: vendor.vendor_approved_services,
+        approvedBy: vendor.admin_users,
+        documents: vendor.vendor_documents.map((doc) => ({
+          ...doc,
+          verifiedBy: doc.admin_users,
+        })),
+        serviceRequests: filteredServiceRequests.map((req) => ({
+          ...req,
+          service: req.services,
+          reviewedBy: req.admin_users,
+        })),
+        locationRequests: filteredLocationRequests.map((req) => ({
+          ...req,
+          location: req.locations,
+          reviewedBy: req.admin_users,
+        })),
+        approvedServices: vendor.vendor_approved_services.map((item) => ({
+          ...item,
+          service: item.services,
+        })),
+        approvedLocations: vendor.vendor_approved_locations
+          .filter((al) => assignedLocationIds.includes(al.locationId))
+          .map((item) => ({
+            ...item,
+            location: item.locations,
+          })),
+        allApprovedLocations: vendor.vendor_approved_locations.map((item) => ({
+          ...item,
+          location: item.locations,
+        })),
+        allApprovedServices: vendor.vendor_approved_services.map((item) => ({
+          ...item,
+          service: item.services,
+        })),
         _count: vendor._count,
       },
       managerAccess: {

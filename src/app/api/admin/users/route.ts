@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth/auth-options';
 import { prisma } from '@/lib/db/prisma';
 import { transformPrismaResponse } from '@/lib/utils/api-transform';
 import bcrypt from 'bcryptjs';
+import { randomBytes } from 'crypto';
 
 import logger from '@/lib/security/logger';
 export const dynamic = 'force-dynamic';
@@ -57,19 +58,19 @@ export async function GET(request: NextRequest) {
         isActive: true,
         createdAt: true,
         updatedAt: true,
-        createdBy: {
+        admin_users: {
           select: { id: true, name: true, email: true },
         },
-        managerLocations: {
+        manager_locations: {
           include: {
-            location: {
+            locations: {
               select: { id: true, name: true, type: true, slug: true },
             },
           },
         },
-        managerServices: {
+        manager_services: {
           include: {
-            service: {
+            services: {
               select: { id: true, name: true, slug: true },
             },
           },
@@ -152,11 +153,15 @@ export async function POST(request: NextRequest) {
     // Hash the password
     const hashedPassword = await bcrypt.hash(password, 12);
 
+    // Generate unique ID
+    const userId = `user-${randomBytes(8).toString('hex')}`;
+
     // Create user with transaction to handle location/service assignments
     const user = await prisma.$transaction(async (tx) => {
       // Create the user
-      const newUser = await tx.adminUser.create({
+      const newUser = await tx.admin_users.create({
         data: {
+          id: userId,
           name,
           email,
           phone: phone || null,
@@ -169,8 +174,9 @@ export async function POST(request: NextRequest) {
 
       // If role is MANAGER and locations are provided, create location assignments
       if (role === 'MANAGER' && locationIds && locationIds.length > 0) {
-        await tx.managerLocation.createMany({
+        await tx.manager_locations.createMany({
           data: locationIds.map((locationId: string) => ({
+            id: `ml-${randomBytes(8).toString('hex')}`,
             managerId: newUser.id,
             locationId,
           })),
@@ -179,8 +185,9 @@ export async function POST(request: NextRequest) {
 
       // If role is MANAGER and services are provided, create service assignments
       if (role === 'MANAGER' && serviceIds && serviceIds.length > 0) {
-        await tx.managerService.createMany({
+        await tx.manager_services.createMany({
           data: serviceIds.map((serviceId: string) => ({
+            id: `ms-${randomBytes(8).toString('hex')}`,
             managerId: newUser.id,
             serviceId,
           })),
@@ -201,16 +208,16 @@ export async function POST(request: NextRequest) {
         role: true,
         isActive: true,
         createdAt: true,
-        managerLocations: {
+        manager_locations: {
           include: {
-            location: {
+            locations: {
               select: { id: true, name: true, type: true },
             },
           },
         },
-        managerServices: {
+        manager_services: {
           include: {
-            service: {
+            services: {
               select: { id: true, name: true },
             },
           },

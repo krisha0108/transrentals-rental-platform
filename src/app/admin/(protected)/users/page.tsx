@@ -43,8 +43,8 @@ interface User {
   isActive: boolean;
   createdAt: string;
   createdBy?: { id: string; name: string; email: string } | null;
-  managerLocations?: { location: Location }[];
-  managerServices?: { service: Service }[];
+  manager_locations?: { locations: Location }[];
+  manager_services?: { services: Service }[];
 }
 
 const ROLE_CONFIG = {
@@ -100,7 +100,7 @@ export default function UsersManagementPage() {
   const fetchLocationsAndServices = async () => {
     try {
       const [locRes, svcRes] = await Promise.all([
-        fetch('/api/admin/locations?flat=true&type=CITY'),
+        fetch('/api/admin/locations?flat=true&types=CITY,UNION_TERRITORY'),
         fetch('/api/admin/services?flat=true'),
       ]);
 
@@ -231,8 +231,8 @@ export default function UsersManagementPage() {
       password: '',
       role: user.role,
       isActive: user.isActive,
-      locationIds: user.managerLocations?.map((ml) => ml.location.id) || [],
-      serviceIds: user.managerServices?.map((ms) => ms.service.id) || [],
+      locationIds: user.manager_locations?.map((ml) => ml.locations.id) || [],
+      serviceIds: user.manager_services?.map((ms) => ms.services.id) || [],
     });
     setLocationSearch('');
     setServiceSearch('');
@@ -413,20 +413,20 @@ export default function UsersManagementPage() {
                     <td className="px-6 py-4">
                       {user.role === 'MANAGER' && (
                         <div className="space-y-1">
-                          {user.managerLocations && user.managerLocations.length > 0 && (
+                          {user.manager_locations && user.manager_locations.length > 0 && (
                             <div className="flex items-center gap-1 text-sm text-gray-600">
                               <MapPin className="w-3 h-3" />
-                              <span>{user.managerLocations.length} location(s)</span>
+                              <span>{user.manager_locations.length} location(s)</span>
                             </div>
                           )}
-                          {user.managerServices && user.managerServices.length > 0 && (
+                          {user.manager_services && user.manager_services.length > 0 && (
                             <div className="flex items-center gap-1 text-sm text-gray-600">
                               <Briefcase className="w-3 h-3" />
-                              <span>{user.managerServices.length} service(s)</span>
+                              <span>{user.manager_services.length} service(s)</span>
                             </div>
                           )}
-                          {(!user.managerLocations || user.managerLocations.length === 0) &&
-                            (!user.managerServices || user.managerServices.length === 0) && (
+                          {(!user.manager_locations || user.manager_locations.length === 0) &&
+                            (!user.manager_services || user.manager_services.length === 0) && (
                               <span className="text-xs text-gray-400">No assignments</span>
                             )}
                         </div>

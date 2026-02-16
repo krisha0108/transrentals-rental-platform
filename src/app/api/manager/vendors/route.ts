@@ -34,13 +34,26 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status') || 'all';
     const search = searchParams.get('search') || '';
 
-    // Build where clause
+    // Build where clause - include vendors with approved OR requested locations
     const whereClause: any = {
-      vendor_approved_locations: {
-        some: {
-          locationId: { in: assignedLocationIds },
+      OR: [
+        // Vendors with approved locations
+        {
+          vendor_approved_locations: {
+            some: {
+              locationId: { in: assignedLocationIds },
+            },
+          },
         },
-      },
+        // Vendors with pending/requested locations
+        {
+          vendor_location_requests: {
+            some: {
+              locationId: { in: assignedLocationIds },
+            },
+          },
+        },
+      ],
     };
 
     if (status !== 'all') {
@@ -48,12 +61,14 @@ export async function GET(request: NextRequest) {
     }
 
     if (search) {
-      whereClause.OR = [
-        { businessName: { contains: search } },
-        { ownerName: { contains: search } },
-        { email: { contains: search } },
-        { phone: { contains: search } },
-      ];
+      whereClause.AND = {
+        OR: [
+          { businessName: { contains: search } },
+          { ownerName: { contains: search } },
+          { email: { contains: search } },
+          { phone: { contains: search } },
+        ],
+      };
     }
 
     // Get vendors
@@ -72,13 +87,20 @@ export async function GET(request: NextRequest) {
               where: { locationId: { in: assignedLocationIds } },
               include: { locations: { select: { id: true, name: true } } },
             },
+            vendor_location_requests: {
+              where: { locationId: { in: assignedLocationIds } },
+              include: { locations: { select: { id: true, name: true } } },
+            },
             vendor_approved_services: {
+              include: { services: { select: { id: true, name: true } } },
+            },
+            vendor_service_requests: {
               include: { services: { select: { id: true, name: true } } },
             },
             _count: {
               select: {
-                documents: true,
-                fleets: true,
+                vendor_documents: true,
+                vendor_fleets: true,
               },
             },
           },
@@ -97,19 +119,31 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       success: true,
       stats,
-      vendors: vendors.map((v) => ({
-        id: v.id,
-        businessName: v.businessName,
-        ownerName: v.ownerName,
-        phone: v.phone,
-        email: v.email,
-        status: v.status,
-        createdAt: v.createdAt,
-        locations: v.vendor_approved_locations.map((al) => al.locations.name),
-        services: v.vendor_approved_services.map((as) => as.services.name),
-        documentCount: v._count.documents,
-        fleetCount: v._count.fleets,
-      })),
+      vendors: vendors.map((v) => {
+        // Combine approved and requested locations
+        const approvedLocations = v.vendor_approved_locations.map((al) => al.locations.name);
+        const requestedLocations = v.vendor_location_requests.map((lr) => `${lr.locations.name} (Requested)`);
+        const allLocations = [...approvedLocations, ...requestedLocations];
+
+        // Combine approved and requested services
+        const approvedServices = v.vendor_approved_services.map((as) => as.services.name);
+        const requestedServices = v.vendor_service_requests.map((sr) => `${sr.services.name} (Requested)`);
+        const allServices = [...approvedServices, ...requestedServices];
+
+        return {
+          id: v.id,
+          businessName: v.businessName,
+          ownerName: v.ownerName,
+          phone: v.phone,
+          email: v.email,
+          status: v.status,
+          createdAt: v.createdAt,
+          locations: allLocations,
+          services: allServices,
+          documentCount: v._count.vendor_documents,
+          fleetCount: v._count.vendor_fleets,
+        };
+      }),
     });
   } catch (error: any) {
     logger.error('Manager vendors list error', error);

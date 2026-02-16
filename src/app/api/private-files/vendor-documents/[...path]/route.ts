@@ -65,19 +65,20 @@ export async function GET(
       }
     } else {
       // Check session-based authentication
-      // Try vendor session first
-      let session = await getServerSession(vendorAuthOptions);
-      let userType = 'vendor';
+      // First try to get any valid session
+      let session = await getServerSession(authOptions);
 
-      if (!session?.user?.id) {
-        // Try admin session
-        session = await getServerSession(authOptions);
-        userType = 'admin';
+      if (!session) {
+        // Try vendor-specific auth options
+        session = await getServerSession(vendorAuthOptions);
       }
 
       if (!session?.user?.id) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
       }
+
+      // Determine user type from session
+      const userType = (session.user as any)?.userType || 'admin';
 
       // Authorization check
       if (userType === 'vendor') {
@@ -90,8 +91,8 @@ export async function GET(
           });
           return NextResponse.json({ error: 'Access denied' }, { status: 403 });
         }
-      } else if (userType === 'admin') {
-        // Verify admin role
+      } else {
+        // Admin access - verify admin role
         const adminUser = await prisma.admin_users.findUnique({
           where: { id: session.user.id },
           select: { role: true, isActive: true },

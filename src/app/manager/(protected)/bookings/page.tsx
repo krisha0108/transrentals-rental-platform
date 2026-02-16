@@ -23,6 +23,7 @@ import {
   Truck,
   Package,
   Layers,
+  ChevronLeft,
 } from 'lucide-react';
 
 interface Service {
@@ -45,6 +46,8 @@ interface Booking {
   pickupTime?: string;
   dropDate?: string;
   totalAmount: number;
+  dailyRate?: number;
+  totalDays?: number;
   advancePaymentVerified: boolean;
   createdAt: string;
 }
@@ -86,6 +89,16 @@ const STATUS_FILTERS = [
   { value: 'CANCELLED', label: 'Cancelled' },
 ];
 
+type DateFilter = 'all' | 'today' | 'yesterday' | 'thisMonth' | 'lastMonth';
+
+const DATE_FILTERS: { value: DateFilter; label: string }[] = [
+  { value: 'today', label: 'Today' },
+  { value: 'yesterday', label: 'Yesterday' },
+  { value: 'thisMonth', label: 'This Month' },
+  { value: 'lastMonth', label: 'Last Month' },
+  { value: 'all', label: 'All Bookings' },
+];
+
 export default function ManagerBookingsPage() {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [filteredBookings, setFilteredBookings] = useState<Booking[]>([]);
@@ -96,6 +109,9 @@ export default function ManagerBookingsPage() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [serviceFilter, setServiceFilter] = useState('all');
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [dateFilter, setDateFilter] = useState<DateFilter>('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   const fetchBookings = async () => {
     try {
@@ -108,13 +124,13 @@ export default function ManagerBookingsPage() {
         params.set('service', serviceFilter);
       }
 
-      const response = await fetch(`/api/manager/dashboard?${params.toString()}`);
+      const response = await fetch(`/api/manager/bookings?${params.toString()}`);
       const data = await response.json();
 
       if (data.success) {
         setBookings(data.bookings || []);
-        if (data.assignedServices) {
-          setAssignedServices(data.assignedServices);
+        if (data.services) {
+          setAssignedServices(data.services);
         }
       } else {
         setError(data.error || 'Failed to fetch bookings');
@@ -131,9 +147,40 @@ export default function ManagerBookingsPage() {
     fetchBookings();
   }, [statusFilter, serviceFilter]);
 
+  // Date filtering helper
+  const filterByDate = (booking: Booking, filter: DateFilter): boolean => {
+    if (filter === 'all') return true;
+
+    const bookingDate = new Date(booking.createdAt);
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    switch (filter) {
+      case 'today':
+        return bookingDate >= today;
+      case 'yesterday':
+        return bookingDate >= yesterday && bookingDate < today;
+      case 'thisMonth':
+        const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+        return bookingDate >= thisMonthStart;
+      case 'lastMonth':
+        const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 1);
+        return bookingDate >= lastMonthStart && bookingDate < lastMonthEnd;
+      default:
+        return true;
+    }
+  };
+
   useEffect(() => {
     let filtered = bookings;
 
+    // Apply date filter
+    filtered = filtered.filter((b) => filterByDate(b, dateFilter));
+
+    // Apply search filter
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
       filtered = filtered.filter(
@@ -147,7 +194,8 @@ export default function ManagerBookingsPage() {
     }
 
     setFilteredBookings(filtered);
-  }, [searchTerm, bookings]);
+    setCurrentPage(1); // Reset to first page when filters change
+  }, [searchTerm, bookings, dateFilter]);
 
   const handleRefresh = () => {
     setIsRefreshing(true);
@@ -169,6 +217,45 @@ export default function ManagerBookingsPage() {
       currency: 'INR',
       maximumFractionDigits: 0,
     }).format(amount);
+  };
+
+  // Pagination calculations
+  const totalPages = Math.ceil(filteredBookings.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentBookings = filteredBookings.slice(startIndex, endIndex);
+
+  // Generate page numbers for pagination
+  const getPageNumbers = () => {
+    const pages: (number | string)[] = [];
+
+    if (totalPages <= 7) {
+      // Show all pages if 7 or fewer
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      // Always show first page
+      pages.push(1);
+
+      if (currentPage > 3) {
+        pages.push('...');
+      }
+
+      // Show pages around current page
+      for (let i = Math.max(2, currentPage - 1); i <= Math.min(totalPages - 1, currentPage + 1); i++) {
+        pages.push(i);
+      }
+
+      if (currentPage < totalPages - 2) {
+        pages.push('...');
+      }
+
+      // Always show last page
+      pages.push(totalPages);
+    }
+
+    return pages;
   };
 
   if (isLoading) {
@@ -198,6 +285,25 @@ export default function ManagerBookingsPage() {
           <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
           Refresh
         </button>
+      </div>
+
+      {/* Date Filters */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+        <div className="flex flex-wrap gap-2">
+          {DATE_FILTERS.map((filter) => (
+            <button
+              key={filter.value}
+              onClick={() => setDateFilter(filter.value)}
+              className={`px-4 py-2 rounded-lg font-medium transition ${
+                dateFilter === filter.value
+                  ? 'bg-green-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              {filter.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Filters */}
@@ -259,13 +365,20 @@ export default function ManagerBookingsPage() {
       )}
 
       {/* Results count */}
-      <p className="text-sm text-gray-500">
-        Showing {filteredBookings.length} of {bookings.length} bookings
-      </p>
+      <div className="flex items-center justify-between text-sm text-gray-500">
+        <p>
+          Showing {filteredBookings.length > 0 ? startIndex + 1 : 0}-{Math.min(endIndex, filteredBookings.length)} of {filteredBookings.length} bookings
+        </p>
+        {totalPages > 1 && (
+          <p>
+            Page {currentPage} of {totalPages}
+          </p>
+        )}
+      </div>
 
       {/* Bookings List */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-        {filteredBookings.length === 0 ? (
+        {currentBookings.length === 0 ? (
           <div className="p-12 text-center">
             <Bike className="w-12 h-12 text-gray-300 mx-auto mb-4" />
             <h3 className="text-lg font-semibold text-gray-900 mb-2">No bookings found</h3>
@@ -277,9 +390,18 @@ export default function ManagerBookingsPage() {
           </div>
         ) : (
           <div className="divide-y divide-gray-100">
-            {filteredBookings.map((booking) => {
+            {currentBookings.map((booking) => {
               const statusConfig = STATUS_CONFIG[booking.status] || STATUS_CONFIG.PENDING_PAYMENT;
               const ServiceIcon = SERVICE_ICONS[booking.serviceSlug || 'bike-rental'] || Bike;
+
+              // Calculate amount with fallbacks
+              const getDisplayAmount = () => {
+                if (booking.totalAmount) return booking.totalAmount;
+                if (booking.dailyRate && booking.totalDays) return booking.dailyRate * booking.totalDays;
+                return null;
+              };
+              const displayAmount = getDisplayAmount();
+
               return (
                 <Link
                   key={booking.id}
@@ -355,7 +477,7 @@ export default function ManagerBookingsPage() {
                       <div className="text-right">
                         <div className="flex items-center gap-1 text-green-600 font-bold">
                           <IndianRupee className="w-4 h-4" />
-                          {formatCurrency(booking.totalAmount).replace('₹', '')}
+                          {displayAmount ? formatCurrency(displayAmount).replace('₹', '') : 'N/A'}
                         </div>
                         <p className="text-xs text-gray-400">
                           {formatDate(booking.createdAt)}
@@ -370,6 +492,46 @@ export default function ManagerBookingsPage() {
           </div>
         )}
       </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex justify-center items-center gap-2">
+          <button
+            onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+            disabled={currentPage === 1}
+            className="p-2 rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
+          >
+            <ChevronLeft className="w-5 h-5" />
+          </button>
+
+          {getPageNumbers().map((page, index) => (
+            <React.Fragment key={index}>
+              {page === '...' ? (
+                <span className="px-3 py-2 text-gray-400">...</span>
+              ) : (
+                <button
+                  onClick={() => setCurrentPage(page as number)}
+                  className={`px-4 py-2 rounded-lg font-medium transition ${
+                    currentPage === page
+                      ? 'bg-green-600 text-white'
+                      : 'border border-gray-200 hover:bg-gray-50'
+                  }`}
+                >
+                  {page}
+                </button>
+              )}
+            </React.Fragment>
+          ))}
+
+          <button
+            onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+            disabled={currentPage === totalPages}
+            className="p-2 rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
+          >
+            <ChevronRight className="w-5 h-5" />
+          </button>
+        </div>
+      )}
     </div>
   );
 }
