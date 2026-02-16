@@ -77,7 +77,7 @@ const trainingPrograms: Training[] = [
 const mockDriverTrainings: DriverTraining[] = [
   {
     id: 'DT001',
-    driver: { id: 'D001', name: 'Ramesh Kumar', phone: '+91 98765 43210', joinDate: '2022-03-15' },
+    driver: { id: 'D001', name: 'Ramesh Kumar', phone: '+91 9737965551', joinDate: '2022-03-15' },
     trainings: [
       { trainingId: 'T001', title: 'Defensive Driving Course', category: 'defensive_driving', status: 'completed', completedDate: '2024-01-10', expiryDate: '2025-01-10', score: 92 },
       { trainingId: 'T002', title: 'Customer Service Excellence', category: 'customer_service', status: 'completed', completedDate: '2024-01-05', score: 88 },
@@ -93,7 +93,7 @@ const mockDriverTrainings: DriverTraining[] = [
   },
   {
     id: 'DT002',
-    driver: { id: 'D002', name: 'Suresh Babu', phone: '+91 98765 43211', joinDate: '2023-06-20' },
+    driver: { id: 'D002', name: 'Suresh Babu', phone: '+91 9737965551', joinDate: '2023-06-20' },
     trainings: [
       { trainingId: 'T001', title: 'Defensive Driving Course', category: 'defensive_driving', status: 'pending' },
       { trainingId: 'T002', title: 'Customer Service Excellence', category: 'customer_service', status: 'completed', completedDate: '2024-01-12', score: 75 },
@@ -256,11 +256,10 @@ export default function TrainingPage() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as typeof activeTab)}
-                className={`flex items-center gap-2 px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
-                  activeTab === tab.id
+                className={`flex items-center gap-2 px-6 py-4 text-sm font-medium border-b-2 transition-colors ${activeTab === tab.id
                     ? 'border-blue-600 text-blue-600'
                     : 'border-transparent text-gray-500 hover:text-gray-700'
-                }`}
+                  }`}
               >
                 <tab.icon className="w-4 h-4" />
                 {tab.label}
@@ -310,10 +309,9 @@ export default function TrainingPage() {
                       <div className="flex items-center gap-2">
                         <div className="w-32 bg-gray-200 rounded-full h-2">
                           <div
-                            className={`h-2 rounded-full ${
-                              driver.overallProgress === 100 ? 'bg-green-500' :
-                              driver.overallProgress >= 50 ? 'bg-blue-500' : 'bg-yellow-500'
-                            }`}
+                            className={`h-2 rounded-full ${driver.overallProgress === 100 ? 'bg-green-500' :
+                                driver.overallProgress >= 50 ? 'bg-blue-500' : 'bg-yellow-500'
+                              }`}
                             style={{ width: `${driver.overallProgress}%` }}
                           />
                         </div>
@@ -326,11 +324,10 @@ export default function TrainingPage() {
                       {driver.trainings.slice(0, 5).map((t, i) => (
                         <div
                           key={i}
-                          className={`w-2 h-2 rounded-full ${
-                            t.status === 'completed' ? 'bg-green-500' :
-                            t.status === 'in_progress' ? 'bg-blue-500' :
-                            t.status === 'expired' ? 'bg-red-500' : 'bg-gray-300'
-                          }`}
+                          className={`w-2 h-2 rounded-full ${t.status === 'completed' ? 'bg-green-500' :
+                              t.status === 'in_progress' ? 'bg-blue-500' :
+                                t.status === 'expired' ? 'bg-red-500' : 'bg-gray-300'
+                            }`}
                           title={`${t.title}: ${t.status}`}
                         />
                       ))}
@@ -436,10 +433,9 @@ export default function TrainingPage() {
                     {driver.certifications.map((cert, index) => (
                       <div key={index} className="p-4 flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                          <Award className={`w-5 h-5 ${
-                            cert.status === 'valid' ? 'text-green-600' :
-                            cert.status === 'expiring_soon' ? 'text-yellow-600' : 'text-red-600'
-                          }`} />
+                          <Award className={`w-5 h-5 ${cert.status === 'valid' ? 'text-green-600' :
+                              cert.status === 'expiring_soon' ? 'text-yellow-600' : 'text-red-600'
+                            }`} />
                           <div>
                             <p className="font-medium text-gray-900">{cert.name}</p>
                             <p className="text-sm text-gray-500">
@@ -449,10 +445,9 @@ export default function TrainingPage() {
                           </div>
                         </div>
                         <div className="flex items-center gap-3">
-                          <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                            cert.status === 'valid' ? 'bg-green-100 text-green-700' :
-                            cert.status === 'expiring_soon' ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'
-                          }`}>
+                          <span className={`px-2 py-1 text-xs font-medium rounded-full ${cert.status === 'valid' ? 'bg-green-100 text-green-700' :
+                              cert.status === 'expiring_soon' ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'
+                            }`}>
                             {cert.status === 'valid' ? 'Valid' : cert.status === 'expiring_soon' ? 'Expiring Soon' : 'Expired'}
                           </span>
                           <button className="p-1 hover:bg-gray-100 rounded">
@@ -501,10 +496,9 @@ export default function TrainingPage() {
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-3">
                   <div
-                    className={`h-3 rounded-full ${
-                      selectedDriver.overallProgress === 100 ? 'bg-green-500' :
-                      selectedDriver.overallProgress >= 50 ? 'bg-blue-500' : 'bg-yellow-500'
-                    }`}
+                    className={`h-3 rounded-full ${selectedDriver.overallProgress === 100 ? 'bg-green-500' :
+                        selectedDriver.overallProgress >= 50 ? 'bg-blue-500' : 'bg-yellow-500'
+                      }`}
                     style={{ width: `${selectedDriver.overallProgress}%` }}
                   />
                 </div>
@@ -519,11 +513,10 @@ export default function TrainingPage() {
                   {selectedDriver.trainings.map((training, index) => (
                     <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                       <div className="flex items-center gap-3">
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                          training.status === 'completed' ? 'bg-green-100' :
-                          training.status === 'in_progress' ? 'bg-blue-100' :
-                          training.status === 'expired' ? 'bg-red-100' : 'bg-gray-100'
-                        }`}>
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center ${training.status === 'completed' ? 'bg-green-100' :
+                            training.status === 'in_progress' ? 'bg-blue-100' :
+                              training.status === 'expired' ? 'bg-red-100' : 'bg-gray-100'
+                          }`}>
                           {training.status === 'completed' ? (
                             <CheckCircle className="w-4 h-4 text-green-600" />
                           ) : training.status === 'expired' ? (
@@ -557,10 +550,9 @@ export default function TrainingPage() {
                   {selectedDriver.certifications.map((cert, index) => (
                     <div key={index} className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
                       <div className="flex items-center gap-3">
-                        <Award className={`w-5 h-5 ${
-                          cert.status === 'valid' ? 'text-green-600' :
-                          cert.status === 'expiring_soon' ? 'text-yellow-600' : 'text-red-600'
-                        }`} />
+                        <Award className={`w-5 h-5 ${cert.status === 'valid' ? 'text-green-600' :
+                            cert.status === 'expiring_soon' ? 'text-yellow-600' : 'text-red-600'
+                          }`} />
                         <div>
                           <p className="font-medium text-gray-900">{cert.name}</p>
                           <p className="text-xs text-gray-500">
@@ -568,10 +560,9 @@ export default function TrainingPage() {
                           </p>
                         </div>
                       </div>
-                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                        cert.status === 'valid' ? 'bg-green-100 text-green-700' :
-                        cert.status === 'expiring_soon' ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'
-                      }`}>
+                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${cert.status === 'valid' ? 'bg-green-100 text-green-700' :
+                          cert.status === 'expiring_soon' ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'
+                        }`}>
                         {cert.status === 'valid' ? 'Valid' : cert.status === 'expiring_soon' ? 'Expiring Soon' : 'Expired'}
                       </span>
                     </div>

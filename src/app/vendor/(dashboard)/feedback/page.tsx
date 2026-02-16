@@ -59,7 +59,7 @@ const mockReviews: Review[] = [
   {
     id: 'R001',
     bookingId: 'BK-2024-0156',
-    customer: { name: 'Rahul Sharma', phone: '+91 98765 43210', email: 'rahul@email.com' },
+    customer: { name: 'Rahul Sharma', phone: '+91 9737965551', email: 'rahul@email.com' },
     vehicle: { name: 'Toyota Innova', number: 'KA-01-AB-1234' },
     driver: 'Ramesh Kumar',
     serviceType: 'Airport Transfer',
@@ -81,7 +81,7 @@ const mockReviews: Review[] = [
   {
     id: 'R002',
     bookingId: 'BK-2024-0148',
-    customer: { name: 'Priya Menon', phone: '+91 98765 43211', email: 'priya@email.com' },
+    customer: { name: 'Priya Menon', phone: '+91 9737965551', email: 'priya@email.com' },
     vehicle: { name: 'Honda City', number: 'KA-01-EF-9012' },
     driver: 'Prakash Raj',
     serviceType: 'Outstation Trip',
@@ -324,9 +324,8 @@ export default function FeedbackPage() {
               >
                 <div className="flex items-start justify-between">
                   <div className="flex items-start gap-4">
-                    <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
-                      review.rating >= 4 ? 'bg-green-100' : review.rating >= 3 ? 'bg-yellow-100' : 'bg-red-100'
-                    }`}>
+                    <div className={`w-12 h-12 rounded-full flex items-center justify-center ${review.rating >= 4 ? 'bg-green-100' : review.rating >= 3 ? 'bg-yellow-100' : 'bg-red-100'
+                      }`}>
                       <SentimentIcon className={`w-6 h-6 ${getSentimentColor(review.rating)}`} />
                     </div>
                     <div className="flex-1">
@@ -363,10 +362,9 @@ export default function FeedbackPage() {
                   </div>
 
                   <div className="flex items-center gap-3">
-                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                      review.status === 'responded' ? 'bg-green-100 text-green-700' :
+                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${review.status === 'responded' ? 'bg-green-100 text-green-700' :
                       review.status === 'flagged' ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700'
-                    }`}>
+                      }`}>
                       {review.status === 'responded' ? 'Replied' : review.status === 'flagged' ? 'Flagged' : 'Pending'}
                     </span>
                     <ChevronRight className="w-5 h-5 text-gray-400" />
@@ -385,9 +383,8 @@ export default function FeedbackPage() {
             <div className="p-6 border-b border-gray-200">
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-4">
-                  <div className={`w-14 h-14 rounded-full flex items-center justify-center ${
-                    selectedReview.rating >= 4 ? 'bg-green-100' : selectedReview.rating >= 3 ? 'bg-yellow-100' : 'bg-red-100'
-                  }`}>
+                  <div className={`w-14 h-14 rounded-full flex items-center justify-center ${selectedReview.rating >= 4 ? 'bg-green-100' : selectedReview.rating >= 3 ? 'bg-yellow-100' : 'bg-red-100'
+                    }`}>
                     {React.createElement(getSentimentIcon(selectedReview.rating), {
                       className: `w-7 h-7 ${getSentimentColor(selectedReview.rating)}`
                     })}

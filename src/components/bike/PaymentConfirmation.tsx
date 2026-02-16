@@ -323,7 +323,7 @@ export function PaymentConfirmation({
                 required
                 value={formData.paymentReference}
                 onChange={(e) => setFormData({ ...formData, paymentReference: e.target.value })}
-                placeholder="Enter your transaction ID or UTR number"
+                placeholder="+91 9737965551"
                 className="w-full border rounded-lg px-3 py-2"
               />
             </div>
@@ -382,9 +382,9 @@ export function PaymentConfirmation({
         {/* Support Contact */}
         <div className="text-center text-sm text-gray-500">
           <p>Need help with payment?</p>
-          <a href="tel:+919876543210" className="flex items-center justify-center gap-1 text-emerald-600 font-medium mt-1">
+          <a href="tel:+919737965551" className="flex items-center justify-center gap-1 text-emerald-600 font-medium mt-1">
             <Phone className="w-4 h-4" />
-            Call +91 98765 43210
+            Call +91 9737965551
           </a>
         </div>
       </div>

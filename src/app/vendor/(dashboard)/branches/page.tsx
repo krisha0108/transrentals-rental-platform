@@ -68,7 +68,7 @@ const mockBranches: Branch[] = [
     phone: '+91 80 4123 4567',
     email: 'koramangala@transrentals.com',
     manager: 'Rajesh Kumar',
-    managerPhone: '+91 98765 43210',
+    managerPhone: '+91 9737965551',
     status: 'active',
     openingHours: '8:00 AM - 10:00 PM',
     vehicles: 45,
@@ -370,12 +370,10 @@ export default function BranchesPage() {
                 <div className="p-4 border-b border-gray-100">
                   <div className="flex items-start justify-between">
                     <div className="flex items-start gap-3">
-                      <div className={`p-2 rounded-lg ${
-                        branch.type === 'headquarters' ? 'bg-purple-100' : 'bg-blue-100'
-                      }`}>
-                        <Building2 className={`w-5 h-5 ${
-                          branch.type === 'headquarters' ? 'text-purple-600' : 'text-blue-600'
-                        }`} />
+                      <div className={`p-2 rounded-lg ${branch.type === 'headquarters' ? 'bg-purple-100' : 'bg-blue-100'
+                        }`}>
+                        <Building2 className={`w-5 h-5 ${branch.type === 'headquarters' ? 'text-purple-600' : 'text-blue-600'
+                          }`} />
                       </div>
                       <div>
                         <h3 className="font-semibold text-gray-900">{branch.name}</h3>
@@ -430,11 +428,10 @@ export default function BranchesPage() {
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2">
                     <div
-                      className={`h-2 rounded-full ${
-                        revenueProgress >= 100 ? 'bg-green-500' :
-                        revenueProgress >= 75 ? 'bg-blue-500' :
-                        revenueProgress >= 50 ? 'bg-yellow-500' : 'bg-red-500'
-                      }`}
+                      className={`h-2 rounded-full ${revenueProgress >= 100 ? 'bg-green-500' :
+                          revenueProgress >= 75 ? 'bg-blue-500' :
+                            revenueProgress >= 50 ? 'bg-yellow-500' : 'bg-red-500'
+                        }`}
                       style={{ width: `${Math.min(revenueProgress, 100)}%` }}
                     />
                   </div>
@@ -485,12 +482,10 @@ export default function BranchesPage() {
                   <tr key={branch.id} className="hover:bg-gray-50">
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
-                        <div className={`p-2 rounded-lg ${
-                          branch.type === 'headquarters' ? 'bg-purple-100' : 'bg-blue-100'
-                        }`}>
-                          <Building2 className={`w-4 h-4 ${
-                            branch.type === 'headquarters' ? 'text-purple-600' : 'text-blue-600'
-                          }`} />
+                        <div className={`p-2 rounded-lg ${branch.type === 'headquarters' ? 'bg-purple-100' : 'bg-blue-100'
+                          }`}>
+                          <Building2 className={`w-4 h-4 ${branch.type === 'headquarters' ? 'text-purple-600' : 'text-blue-600'
+                            }`} />
                         </div>
                         <div>
                           <p className="font-medium text-gray-900">{branch.name}</p>

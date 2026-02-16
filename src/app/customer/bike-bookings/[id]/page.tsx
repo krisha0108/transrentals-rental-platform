@@ -68,7 +68,7 @@ const MOCK_BOOKING = {
   },
   vendorId: 'vendor-1',
   vendorName: 'Bike Zone Mumbai',
-  vendorPhone: '+91 98765 43210',
+  vendorPhone: '+91 9737965551',
   vendorRating: 4.8,
   vendorReviewCount: 156,
   vendorAddress: 'Shop 12, Colaba Causeway, Near Regal Cinema, Mumbai 400001',

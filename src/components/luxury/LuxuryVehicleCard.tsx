@@ -145,7 +145,6 @@ export function LuxuryVehicleCard({
               <p className="text-gray-400 text-xs mb-1">Starting from</p>
               <div className="flex items-baseline gap-1">
                 <span className="text-3xl font-bold text-white">₹{vehicle.basePrice.toLocaleString()}</span>
-                <span className="text-gray-400">/day</span>
               </div>
             </div>
             <button
@@ -269,7 +268,6 @@ export function LuxuryVehicleCard({
             <p className="text-xs text-gray-500 mb-0.5">Starting from</p>
             <div className="flex items-baseline gap-1">
               <span className="text-2xl font-bold text-gray-900">₹{vehicle.basePrice.toLocaleString()}</span>
-              <span className="text-sm text-gray-500">/day</span>
             </div>
           </div>
           <button

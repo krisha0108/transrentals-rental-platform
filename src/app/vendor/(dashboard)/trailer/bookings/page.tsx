@@ -59,7 +59,7 @@ const SAMPLE_BOOKINGS: TrailerBooking[] = [
     toCity: 'Hyderabad',
     loadingDate: new Date(Date.now() + 4 * 86400000).toISOString(),
     customerName: 'Metro Construction',
-    customerPhone: '9876543210',
+    customerPhone: '9737965551',
     totalAmount: 85000,
     advancePaid: 42500,
     balanceAmount: 42500,
@@ -168,9 +168,8 @@ export default function VendorTrailerBookingsPage() {
           <button
             key={f.value}
             onClick={() => setFilter(f.value)}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
-              filter === f.value ? 'bg-slate-100 text-slate-700' : 'bg-gray-100 text-gray-600'
-            }`}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition ${filter === f.value ? 'bg-slate-100 text-slate-700' : 'bg-gray-100 text-gray-600'
+              }`}
           >
             {f.label}
           </button>

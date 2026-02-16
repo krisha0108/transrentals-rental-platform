@@ -531,7 +531,7 @@ export function BikeFleetGrid({
                           <span className="text-sm text-gray-500 ml-1">
                             total
                           </span>
-                          <p className="text-xs text-gray-400">₹{bike.pricePerDay}/day × {rentalDays} days</p>
+                          <p className="text-xs text-gray-400">Starting from ₹{bike.pricePerDay} × {rentalDays} days</p>
                         </div>
                         <Button
                           onClick={() => setSelectedBike(bike)}

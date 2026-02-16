@@ -32,7 +32,7 @@ export function WeddingBusRentalServiceHero() {
               </h1>
 
               <p className="text-xl md:text-2xl mb-8 text-rose-100">
-                Starting @₹3999/day
+                Starting from ₹3999
               </p>
 
               <div className="space-y-4 mb-8">

@@ -502,9 +502,9 @@ export function CarFleetGrid({
                         {/* Price & Book */}
                         <div className="flex items-end justify-between pt-3 border-t border-gray-100">
                           <div>
+                            <p className="text-xs text-gray-500 font-medium mb-0.5">Starting from</p>
                             <p className="text-2xl font-bold text-gray-900">
                               ₹{car.pricePerDay}
-                              <span className="text-sm font-normal text-gray-500">/day</span>
                             </p>
                             <p className="text-xs text-gray-500">
                               ₹{calculateTotal(car.pricePerDay).total} for {duration.days} days

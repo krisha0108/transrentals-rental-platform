@@ -102,7 +102,7 @@ export default function FooterManagementPage() {
     ],
     contact: {
       email: 'support@transrentals.in',
-      phone: '+91 98765 43210',
+      phone: '+91 9737965551',
       address: 'Mumbai, Maharashtra, India',
     },
     social: {
@@ -191,11 +191,11 @@ export default function FooterManagementPage() {
       columns: prev.columns.map(col =>
         col.id === columnId
           ? {
-              ...col,
-              links: col.links.map(link =>
-                link.id === linkId ? { ...link, ...updates } : link
-              ),
-            }
+            ...col,
+            links: col.links.map(link =>
+              link.id === linkId ? { ...link, ...updates } : link
+            ),
+          }
           : col
       ),
     }));

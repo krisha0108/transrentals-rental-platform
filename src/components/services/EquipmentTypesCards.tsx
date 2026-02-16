@@ -9,7 +9,7 @@ const EQUIPMENT_SUB_SERVICES = [
     icon: '🚜',
     description: 'Backhoe loaders for construction work',
     features: ['Excavation', 'Construction', 'Expert operators'],
-    price: 'Starting @₹2499/day',
+    price: 'Starting from ₹2499',
     url: '/jcb-on-rent',
     gradient: 'from-yellow-600 to-orange-500',
     popular: true,
@@ -23,7 +23,7 @@ const EQUIPMENT_TYPES = [
     icon: '🏗️',
     description: 'Heavy lifting equipment',
     features: ['10-100 TON', 'Construction sites', 'Material handling'],
-    price: 'Starting @₹3999/day',
+    price: 'Starting from ₹3999',
     gradient: 'from-orange-500 to-red-500',
     popular: true,
   },
@@ -33,7 +33,7 @@ const EQUIPMENT_TYPES = [
     icon: '⛏️',
     description: 'Digging & earthmoving',
     features: ['Trenching', 'Foundation work', 'Demolition'],
-    price: 'Starting @₹2999/day',
+    price: 'Starting from ₹2999',
     gradient: 'from-yellow-600 to-orange-600',
     popular: true,
   },
@@ -43,7 +43,7 @@ const EQUIPMENT_TYPES = [
     icon: '🚜',
     description: 'Versatile digging & loading',
     features: ['Construction', 'Excavation', 'Road work'],
-    price: 'Starting @₹2499/day',
+    price: 'Starting from ₹2499',
     gradient: 'from-amber-500 to-yellow-500',
     popular: true,
   },
@@ -53,7 +53,7 @@ const EQUIPMENT_TYPES = [
     icon: '🚜',
     description: 'Heavy earthmoving',
     features: ['Land clearing', 'Grading', 'Road construction'],
-    price: 'Starting @₹3499/day',
+    price: 'Starting from ₹3499',
     gradient: 'from-green-600 to-teal-600',
   },
   {
@@ -62,7 +62,7 @@ const EQUIPMENT_TYPES = [
     icon: '🚧',
     description: 'Road compaction equipment',
     features: ['Road laying', 'Compaction', 'Paving work'],
-    price: 'Starting @₹1999/day',
+    price: 'Starting from ₹1999',
     gradient: 'from-blue-600 to-cyan-600',
   },
   {
@@ -71,7 +71,7 @@ const EQUIPMENT_TYPES = [
     icon: '🚜',
     description: 'Material loading equipment',
     features: ['Bulk loading', 'Material handling', 'Site cleanup'],
-    price: 'Starting @₹2299/day',
+    price: 'Starting from ₹2299',
     gradient: 'from-purple-600 to-pink-600',
   },
   {
@@ -80,7 +80,7 @@ const EQUIPMENT_TYPES = [
     icon: '⚡',
     description: 'Power backup equipment',
     features: ['25-500 KVA', 'Silent models', 'Events & construction'],
-    price: 'Starting @₹999/day',
+    price: 'Starting from ₹999',
     gradient: 'from-indigo-600 to-purple-600',
   },
   {
@@ -89,7 +89,7 @@ const EQUIPMENT_TYPES = [
     icon: '🏭',
     description: 'Warehouse material handling',
     features: ['1-5 TON', 'Indoor/outdoor', 'Warehouse ops'],
-    price: 'Starting @₹1499/day',
+    price: 'Starting from ₹1499',
     gradient: 'from-cyan-600 to-blue-600',
   },
   {
@@ -98,7 +98,7 @@ const EQUIPMENT_TYPES = [
     icon: '🔨',
     description: 'Concrete mixing equipment',
     features: ['Transit mixer', 'Construction', 'Site batching'],
-    price: 'Starting @₹1799/day',
+    price: 'Starting from ₹1799',
     gradient: 'from-gray-600 to-slate-600',
   },
   {
@@ -107,7 +107,7 @@ const EQUIPMENT_TYPES = [
     icon: '⚙️',
     description: 'Borewell & foundation drilling',
     features: ['Borewell', 'Foundation', 'Deep drilling'],
-    price: 'Starting @₹4999/day',
+    price: 'Starting from ₹4999',
     gradient: 'from-red-700 to-orange-700',
   },
   {
@@ -116,7 +116,7 @@ const EQUIPMENT_TYPES = [
     icon: '💨',
     description: 'Pneumatic power equipment',
     features: ['Portable', 'Construction', 'Industrial use'],
-    price: 'Starting @₹799/day',
+    price: 'Starting from ₹799',
     gradient: 'from-teal-600 to-green-600',
   },
 ];
@@ -187,46 +187,46 @@ export function EquipmentTypesCards() {
         <div>
           <h3 className="text-xl font-bold text-gray-900 mb-4">All Equipment Types</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {EQUIPMENT_TYPES.map((equipment) => (
-            <div
-              key={equipment.id}
-              className="group relative bg-gradient-to-br from-gray-50 to-white rounded-xl border-2 border-gray-200 p-6 hover:border-primary hover:shadow-xl transition-all duration-300 hover:-translate-y-2"
-            >
-              {equipment.popular && (
-                <div className="absolute top-3 right-3">
-                  <span className="px-2 py-1 bg-amber-500 text-white text-xs font-bold rounded-full">
-                    Popular
-                  </span>
+            {EQUIPMENT_TYPES.map((equipment) => (
+              <div
+                key={equipment.id}
+                className="group relative bg-gradient-to-br from-gray-50 to-white rounded-xl border-2 border-gray-200 p-6 hover:border-primary hover:shadow-xl transition-all duration-300 hover:-translate-y-2"
+              >
+                {equipment.popular && (
+                  <div className="absolute top-3 right-3">
+                    <span className="px-2 py-1 bg-amber-500 text-white text-xs font-bold rounded-full">
+                      Popular
+                    </span>
+                  </div>
+                )}
+
+                <div className={`w-16 h-16 bg-gradient-to-br ${equipment.gradient} rounded-lg flex items-center justify-center text-4xl mb-4 group-hover:scale-110 transition-transform`}>
+                  {equipment.icon}
                 </div>
-              )}
 
-              <div className={`w-16 h-16 bg-gradient-to-br ${equipment.gradient} rounded-lg flex items-center justify-center text-4xl mb-4 group-hover:scale-110 transition-transform`}>
-                {equipment.icon}
+                <h3 className="text-lg font-bold text-gray-900 mb-2">
+                  {equipment.name}
+                </h3>
+                <p className="text-gray-600 text-sm mb-3">
+                  {equipment.description}
+                </p>
+
+                <ul className="space-y-1 mb-4">
+                  {equipment.features.map((feature) => (
+                    <li key={feature} className="text-xs text-gray-600 flex items-center gap-2">
+                      <span className="text-primary">✓</span>
+                      {feature}
+                    </li>
+                  ))}
+                </ul>
+
+                <p className="text-primary font-bold text-sm">
+                  {equipment.price}
+                </p>
+
+                <div className={`absolute inset-0 bg-gradient-to-br ${equipment.gradient} opacity-0 group-hover:opacity-5 transition-opacity rounded-xl pointer-events-none`} />
               </div>
-
-              <h3 className="text-lg font-bold text-gray-900 mb-2">
-                {equipment.name}
-              </h3>
-              <p className="text-gray-600 text-sm mb-3">
-                {equipment.description}
-              </p>
-
-              <ul className="space-y-1 mb-4">
-                {equipment.features.map((feature) => (
-                  <li key={feature} className="text-xs text-gray-600 flex items-center gap-2">
-                    <span className="text-primary">✓</span>
-                    {feature}
-                  </li>
-                ))}
-              </ul>
-
-              <p className="text-primary font-bold text-sm">
-                {equipment.price}
-              </p>
-
-              <div className={`absolute inset-0 bg-gradient-to-br ${equipment.gradient} opacity-0 group-hover:opacity-5 transition-opacity rounded-xl pointer-events-none`} />
-            </div>
-          ))}
+            ))}
           </div>
         </div>
 

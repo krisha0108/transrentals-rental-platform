@@ -413,7 +413,7 @@ export default function VendorEquipmentBookingDetailPage() {
                             value={assignForm.operatorPhone}
                             onChange={(e) => setAssignForm({ ...assignForm, operatorPhone: e.target.value })}
                             className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-amber-500"
-                            placeholder="9876543210"
+                            placeholder="9737965551"
                           />
                         </div>
                       </div>

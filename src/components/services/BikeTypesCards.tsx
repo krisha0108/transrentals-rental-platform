@@ -11,7 +11,7 @@ const BIKE_SUB_SERVICES = [
     icon: "🛵",
     description: "Easy to ride scooters for city commute",
     features: ["110-125cc", "Automatic", "Fuel efficient"],
-    price: "Starting @₹299/day",
+    price: "Starting from ₹299",
     url: "/activa-on-rent",
     gradient: "from-blue-500 to-cyan-500",
     popular: true,
@@ -22,7 +22,7 @@ const BIKE_SUB_SERVICES = [
     icon: "🏍️",
     description: "Classic bikes for road trips",
     features: ["Classic 350", "Himalayan", "Perfect for tours"],
-    price: "Starting @₹599/day",
+    price: "Starting from ₹599",
     url: "/royal-enfield-on-rent",
     gradient: "from-amber-600 to-yellow-500",
     popular: true,
@@ -36,7 +36,7 @@ const BIKE_TYPES = [
     icon: "🏍️",
     description: "High performance racing bikes",
     features: ["200cc+", "Racing position", "High speed"],
-    price: "Starting @₹699/day",
+    price: "Starting from ₹699",
     gradient: "from-red-500 to-orange-500",
   },
   {
@@ -45,7 +45,7 @@ const BIKE_TYPES = [
     icon: "🛵",
     description: "Easy & convenient city rides",
     features: ["110-125cc", "Automatic", "Fuel efficient"],
-    price: "Starting @₹299/day",
+    price: "Starting from ₹299",
     gradient: "from-blue-500 to-cyan-500",
   },
   {
@@ -54,7 +54,7 @@ const BIKE_TYPES = [
     icon: "🏍️",
     description: "Comfortable long-distance rides",
     features: ["Royal Enfield", "Relaxed riding", "Classic style"],
-    price: "Starting @₹599/day",
+    price: "Starting from ₹599",
     gradient: "from-amber-600 to-yellow-500",
   },
   {
@@ -63,7 +63,7 @@ const BIKE_TYPES = [
     icon: "🏍️",
     description: "Urban commuting champions",
     features: ["150-200cc", "Upright position", "City friendly"],
-    price: "Starting @₹499/day",
+    price: "Starting from ₹499",
     gradient: "from-purple-500 to-pink-500",
   },
   {
@@ -72,7 +72,7 @@ const BIKE_TYPES = [
     icon: "🏍️",
     description: "Built for long journeys",
     features: ["200cc+", "Long range", "All terrain"],
-    price: "Starting @₹799/day",
+    price: "Starting from ₹799",
     gradient: "from-green-600 to-teal-500",
   },
   {
@@ -81,7 +81,7 @@ const BIKE_TYPES = [
     icon: "🏍️",
     description: "Off-road adventure bikes",
     features: ["Off-road", "Trail riding", "Adventure ready"],
-    price: "Starting @₹899/day",
+    price: "Starting from ₹899",
     gradient: "from-orange-600 to-red-500",
   },
 ];

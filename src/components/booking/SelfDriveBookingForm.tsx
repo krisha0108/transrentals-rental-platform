@@ -179,9 +179,8 @@ export function SelfDriveBookingForm() {
         <div className="flex items-start justify-between">
           {[1, 2, 3].map((step) => (
             <div key={step} className="flex flex-col items-center" style={{ width: '33.33%' }}>
-              <div className={`flex items-center justify-center w-10 h-10 rounded-full font-bold transition-all ${
-                currentStep >= step ? 'bg-primary text-white' : 'bg-gray-200 text-gray-500'
-              }`}>
+              <div className={`flex items-center justify-center w-10 h-10 rounded-full font-bold transition-all ${currentStep >= step ? 'bg-primary text-white' : 'bg-gray-200 text-gray-500'
+                }`}>
                 {currentStep > step ? <Check className="w-5 h-5" /> : step}
               </div>
               <span className={`text-sm mt-2 text-center ${currentStep >= step ? 'text-primary font-medium' : 'text-gray-500'}`}>
@@ -233,9 +232,8 @@ export function SelfDriveBookingForm() {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 {VEHICLE_TYPES.map((vehicle) => (
                   <button key={vehicle.id} type="button" onClick={() => updateFormData('vehicleType', vehicle.id)}
-                    className={`p-4 border-2 rounded-xl text-center transition-all ${
-                      formData.vehicleType === vehicle.id ? 'border-primary bg-primary/5 shadow-md' : 'border-gray-200 hover:border-primary/50'
-                    }`}>
+                    className={`p-4 border-2 rounded-xl text-center transition-all ${formData.vehicleType === vehicle.id ? 'border-primary bg-primary/5 shadow-md' : 'border-gray-200 hover:border-primary/50'
+                      }`}>
                     <div className="text-2xl mb-2">{vehicle.icon}</div>
                     <div className="font-semibold text-gray-900 text-sm">{vehicle.name}</div>
                     <div className="text-xs text-gray-500">{vehicle.description}</div>
@@ -249,9 +247,8 @@ export function SelfDriveBookingForm() {
               <div className="grid grid-cols-2 gap-3">
                 {TRANSMISSION_TYPES.map((trans) => (
                   <button key={trans.id} type="button" onClick={() => updateFormData('transmission', trans.id)}
-                    className={`p-4 border-2 rounded-xl text-center transition-all ${
-                      formData.transmission === trans.id ? 'border-primary bg-primary/5 shadow-md' : 'border-gray-200 hover:border-primary/50'
-                    }`}>
+                    className={`p-4 border-2 rounded-xl text-center transition-all ${formData.transmission === trans.id ? 'border-primary bg-primary/5 shadow-md' : 'border-gray-200 hover:border-primary/50'
+                      }`}>
                     <div className="text-2xl mb-2">{trans.icon}</div>
                     <div className="font-semibold text-gray-900 text-sm">{trans.name}</div>
                     <div className="text-xs text-gray-500">{trans.description}</div>
@@ -265,9 +262,8 @@ export function SelfDriveBookingForm() {
               <div className="grid grid-cols-4 gap-3">
                 {FUEL_TYPES.map((fuel) => (
                   <button key={fuel.id} type="button" onClick={() => updateFormData('fuelType', fuel.id)}
-                    className={`p-4 border-2 rounded-xl text-center transition-all ${
-                      formData.fuelType === fuel.id ? 'border-primary bg-primary/5 shadow-md' : 'border-gray-200 hover:border-primary/50'
-                    }`}>
+                    className={`p-4 border-2 rounded-xl text-center transition-all ${formData.fuelType === fuel.id ? 'border-primary bg-primary/5 shadow-md' : 'border-gray-200 hover:border-primary/50'
+                      }`}>
                     <div className="text-2xl mb-2">{fuel.icon}</div>
                     <div className="font-semibold text-gray-900 text-sm">{fuel.name}</div>
                   </button>
@@ -280,9 +276,8 @@ export function SelfDriveBookingForm() {
               <div className="grid grid-cols-2 gap-3">
                 {[{ id: 'yes', name: 'Yes', icon: '✅' }, { id: 'no', name: 'No', icon: '❌' }].map((option) => (
                   <button key={option.id} type="button" onClick={() => updateFormData('doorstepDelivery', option.id)}
-                    className={`p-4 border-2 rounded-xl text-center transition-all ${
-                      formData.doorstepDelivery === option.id ? 'border-primary bg-primary/5 shadow-md' : 'border-gray-200 hover:border-primary/50'
-                    }`}>
+                    className={`p-4 border-2 rounded-xl text-center transition-all ${formData.doorstepDelivery === option.id ? 'border-primary bg-primary/5 shadow-md' : 'border-gray-200 hover:border-primary/50'
+                      }`}>
                     <div className="text-2xl mb-2">{option.icon}</div>
                     <div className="font-semibold text-gray-900 text-sm">{option.name}</div>
                   </button>
@@ -347,23 +342,20 @@ export function SelfDriveBookingForm() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2"><User className="w-4 h-4 inline mr-2" />Full Name *</label>
                 <input type="text" value={formData.name} onChange={(e) => updateFormData('name', e.target.value)}
-                  placeholder="Enter your full name" className={`w-full px-4 py-3 border-2 rounded-lg focus:border-primary focus:outline-none ${
-                    isAuthenticated ? 'bg-green-50 border-green-200' : 'border-gray-200'
-                  }`} required />
+                  placeholder="Enter your full name" className={`w-full px-4 py-3 border-2 rounded-lg focus:border-primary focus:outline-none ${isAuthenticated ? 'bg-green-50 border-green-200' : 'border-gray-200'
+                    }`} required />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2"><Mail className="w-4 h-4 inline mr-2" />Email Address *</label>
                 <input type="email" value={formData.email} onChange={(e) => updateFormData('email', e.target.value)}
-                  placeholder="your.email@example.com" className={`w-full px-4 py-3 border-2 rounded-lg focus:border-primary focus:outline-none ${
-                    isAuthenticated ? 'bg-green-50 border-green-200' : 'border-gray-200'
-                  }`} required />
+                  placeholder="your.email@example.com" className={`w-full px-4 py-3 border-2 rounded-lg focus:border-primary focus:outline-none ${isAuthenticated ? 'bg-green-50 border-green-200' : 'border-gray-200'
+                    }`} required />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2"><Phone className="w-4 h-4 inline mr-2" />Phone Number *</label>
                 <input type="tel" value={formData.phone} onChange={(e) => updateFormData('phone', e.target.value)}
-                  placeholder="+91 98765 43210" className={`w-full px-4 py-3 border-2 rounded-lg focus:border-primary focus:outline-none ${
-                    isAuthenticated ? 'bg-green-50 border-green-200' : 'border-gray-200'
-                  }`} required />
+                  placeholder="+91 9737965551" className={`w-full px-4 py-3 border-2 rounded-lg focus:border-primary focus:outline-none ${isAuthenticated ? 'bg-green-50 border-green-200' : 'border-gray-200'
+                    }`} required />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2"><MessageSquare className="w-4 h-4 inline mr-2" />Additional Details</label>

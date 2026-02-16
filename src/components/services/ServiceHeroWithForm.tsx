@@ -77,7 +77,7 @@ const SERVICE_HERO_CONFIGS: Record<string, {
   'car-rental': {
     badge: 'Car Rental with Driver',
     title: 'Book Your Car Rental',
-    titleHighlight: 'Starting @₹999/Day',
+    titleHighlight: 'Starting from ₹999',
     description: 'Choose from Airport Taxi, Round Trip, or One-Way rentals. Get instant quotes from verified vendors across 250+ cities.',
     citiesCount: '250+',
     gradient: { from: 'blue-50', to: 'indigo-50', accent: 'from-blue-600 to-indigo-600' },
@@ -131,7 +131,7 @@ const SERVICE_HERO_CONFIGS: Record<string, {
   'transporter': {
     badge: 'Truck Rental & Transport',
     title: 'Transporter Services',
-    titleHighlight: 'Starting @₹3999/Day',
+    titleHighlight: 'Starting from ₹3999',
     description: 'Professional truck rental and transport services. 7-ton to 32-ton trucks available. GPS tracking, verified drivers.',
     citiesCount: '200+',
     gradient: { from: 'slate-50', to: 'blue-50', accent: 'from-slate-600 to-blue-600' },
@@ -149,7 +149,7 @@ const SERVICE_HERO_CONFIGS: Record<string, {
   'packers-and-movers': {
     badge: 'Packers & Movers',
     title: 'Professional Relocation',
-    titleHighlight: 'Starting @₹4999',
+    titleHighlight: 'Starting from ₹4999',
     description: 'Home shifting, office relocation, vehicle transport. Insured and reliable packers & movers across India.',
     citiesCount: '150+',
     gradient: { from: 'emerald-50', to: 'teal-50', accent: 'from-emerald-600 to-teal-600' },
@@ -167,7 +167,7 @@ const SERVICE_HERO_CONFIGS: Record<string, {
   'equipment-rental': {
     badge: 'Equipment Rental',
     title: 'Construction Equipment',
-    titleHighlight: 'Starting @₹1499/Day',
+    titleHighlight: 'Starting from ₹1499',
     description: 'Rent JCB, cranes, excavators, generators, and more. Professional operators available. Get quotes now!',
     citiesCount: '100+',
     gradient: { from: 'yellow-50', to: 'orange-50', accent: 'from-yellow-600 to-orange-600' },
