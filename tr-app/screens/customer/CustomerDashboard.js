@@ -40,6 +40,7 @@ import VendorCard from '../../components/VendorCard'; // update path accordingly
 import Geolocation from 'react-native-geolocation-service';
 import api, { BASE_URL } from '../api';
 import { bookingService, notificationService, profileService, fleetService } from '../services';
+import { LocationPermissionModal } from '../../components/CustomModals';
 // SPIN AND WIN - COMMENTED OUT
 // import SpinAndWinModal from './SpinAndWinModal';
 // import AnimatedSpinFab from './AnimatedSpinFab';
@@ -172,6 +173,7 @@ export default function CustomerDashboard() {
   const [customerLocation, setCustomerLocation] = useState(null);
   const [locationPermissionGranted, setLocationPermissionGranted] = useState(false);
   const [upcomingTrips, setUpcomingTrips] = useState([]);
+  const [showLocationPermissionModal, setShowLocationPermissionModal] = useState(false);
 
   // ────── ANIMATIONS ──────
   const scrollY = useRef(new Animated.Value(0)).current;
@@ -325,6 +327,14 @@ export default function CustomerDashboard() {
   // };
 
   const requestLocationPermission = async () => {
+    // Show custom modal first
+    setShowLocationPermissionModal(true);
+    return false; // Will handle permission after user clicks allow
+  };
+
+  const handleLocationAllow = async () => {
+    setShowLocationPermissionModal(false);
+
     if (Platform.OS === 'android') {
       const granted = await PermissionsAndroid.request(
         PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
@@ -336,9 +346,20 @@ export default function CustomerDashboard() {
           buttonPositive: 'OK',
         }
       );
-      return granted === PermissionsAndroid.RESULTS.GRANTED;
+
+      if (granted === PermissionsAndroid.RESULTS.GRANTED) {
+        setLocationPermissionGranted(true);
+        getCurrentLocation();
+      }
+    } else {
+      setLocationPermissionGranted(true);
+      getCurrentLocation();
     }
-    return true;
+  };
+
+  const handleLocationDeny = () => {
+    setShowLocationPermissionModal(false);
+    setLocationPermissionGranted(false);
   };
 
   const getAddressFromCoords = async (latitude, longitude) => {
@@ -480,13 +501,8 @@ export default function CustomerDashboard() {
 
     initApp();
 
-    (async () => {
-      const granted = await requestLocationPermission();
-      setLocationPermissionGranted(granted);
-      if (granted) {
-        getCurrentLocation();
-      }
-    })();
+    // Request location permission
+    requestLocationPermission();
 
   }, []);
 
@@ -1186,6 +1202,13 @@ export default function CustomerDashboard() {
         customerId={customerId}
         prizes={[5, 2, 10, 100, 50, 20, 15, 25]} // customize
       /> */}
+
+      {/* Location Permission Modal */}
+      <LocationPermissionModal
+        visible={showLocationPermissionModal}
+        onAllow={handleLocationAllow}
+        onDeny={handleLocationDeny}
+      />
 
     </SafeAreaView>
   );

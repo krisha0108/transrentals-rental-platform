@@ -256,6 +256,9 @@ export async function POST(request: NextRequest) {
         requestId,
         vendorId: vendorId,
       },
+      select: {
+        id: true,
+      },
     });
 
     if (existingQuote) {
@@ -343,7 +346,6 @@ export async function POST(request: NextRequest) {
         vehicleImages: finalVehicleImages ? JSON.stringify(finalVehicleImages) : null,
         vehicleFeatures: vehicleFeatures ? JSON.stringify(vehicleFeatures) : null,
         dailyRate,
-        totalPrice: totalPrice || null,
         totalAmount,
         gstAmount,
         securityDeposit,

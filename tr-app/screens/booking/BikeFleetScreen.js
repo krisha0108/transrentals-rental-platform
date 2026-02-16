@@ -312,8 +312,11 @@ const BikeFleetScreen = () => {
 
       if (response?.success || response?.quoteRequest) {
         setShowBookingModal(false);
-        alert('Request submitted successfully! Vendors will send you quotes soon.');
-        navigation.navigate('MyBikeBookings');
+        navigation.navigate('BookingConfirmation', {
+          booking_id: response?.quoteRequest?.id || 'TRX-' + Date.now(),
+          service_name: 'Bike Rental',
+          service_type: 'bike',
+        });
       }
     } catch (err) {
       console.log('Quote request error:', err);
