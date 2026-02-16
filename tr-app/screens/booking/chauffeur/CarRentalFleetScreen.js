@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -14,6 +14,8 @@ import {
   Dimensions,
   Linking,
   BackHandler,
+  KeyboardAvoidingView,
+  Keyboard,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Feather';
@@ -95,6 +97,10 @@ export default function CarRentalFleetScreen({ navigation, route }) {
 
   // Step management
   const [step, setStep] = useState(1); // 1: Trip details, 2: Select vehicle, 3: Confirm
+
+  // ScrollView ref for keyboard handling
+  const scrollViewRef = useRef(null);
+  const fromInputRef = useRef(null);
 
   useEffect(() => {
     loadInitialData();
@@ -425,6 +431,16 @@ export default function CarRentalFleetScreen({ navigation, route }) {
       (airportDirection === 'drop' && !isFrom)
     );
 
+    const handleFocus = () => {
+      setShowSuggestions(true);
+      // Scroll to show input field when keyboard appears
+      setTimeout(() => {
+        if (scrollViewRef.current) {
+          scrollViewRef.current.scrollTo({ y: isFrom ? 300 : 400, animated: true });
+        }
+      }, 100);
+    };
+
     return (
       <View style={[styles.inputGroup, { zIndex: isFrom ? 20 : 10, elevation: isFrom ? 20 : 10 }]}>
         <Text style={styles.inputLabel}>
@@ -437,6 +453,7 @@ export default function CarRentalFleetScreen({ navigation, route }) {
             color="#0F172A"
           />
           <TextInput
+            ref={isFrom ? fromInputRef : null}
             style={styles.locationInput}
             value={query || location?.name || ''}
             onChangeText={(text) => {
@@ -445,7 +462,7 @@ export default function CarRentalFleetScreen({ navigation, route }) {
               else setToLocation(null);
               setShowSuggestions(true);
             }}
-            onFocus={() => setShowSuggestions(true)}
+            onFocus={handleFocus}
             placeholder={showAirports ? 'Select airport' : 'Select city'}
             placeholderTextColor="#94A3B8"
           />
@@ -461,7 +478,14 @@ export default function CarRentalFleetScreen({ navigation, route }) {
 
         {showSuggestions && (
           <View style={styles.suggestionsBox}>
-            <ScrollView style={{ maxHeight: 200 }} nestedScrollEnabled keyboardShouldPersistTaps="handled">
+            <ScrollView
+              style={{ maxHeight: 200 }}
+              nestedScrollEnabled
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+              scrollEventThrottle={16}
+              bounces={true}
+            >
               {filteredLocations(query, showAirports).map((loc) => (
                 <TouchableOpacity
                   key={loc.id}
@@ -623,37 +647,48 @@ export default function CarRentalFleetScreen({ navigation, route }) {
   };
 
   const renderStep1 = () => (
-    <ScrollView style={styles.stepContent} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-      {/* Hero Section Wrapper for Trip Type */}
-      <View style={styles.heroWrapper}>
-        <Text style={styles.heroTitle}>Where are you going?</Text>
-        <Text style={styles.heroSubtitle}>Select your trip type and pickup details</Text>
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      style={{ flex: 1 }}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
+    >
+      <ScrollView
+        ref={scrollViewRef}
+        style={styles.stepContent}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+        scrollEventThrottle={16}
+        contentContainerStyle={{ paddingBottom: 120 }}
+      >
+        {/* Compact Hero Section for Trip Type */}
+        <View style={styles.heroWrapper}>
+          <Text style={styles.heroTitle}>Select Trip Type</Text>
 
-        <View style={styles.tripTypeGrid}>
-          {TRIP_TYPES.map((type) => {
-            const isActive = tripType === type.id;
-            return (
-              <TouchableOpacity
-                key={type.id}
-                style={[styles.tripTypeCard, isActive && styles.tripTypeCardActive]}
-                onPress={() => {
-                  setTripType(type.id);
-                  setFromLocation(null);
-                  setToLocation(null);
-                  setSelectedPackage(null);
-                }}
-              >
-                <View style={[styles.tripTypeIcon, isActive && styles.tripTypeIconActive]}>
-                  <Icon name={type.icon} size={18} color={isActive ? '#fff' : BRAND_TEAL} />
-                </View>
-                <Text style={[styles.tripTypeLabel, isActive && styles.tripTypeLabelActive]}>
-                  {type.label}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
+          <View style={styles.tripTypeGrid}>
+            {TRIP_TYPES.map((type) => {
+              const isActive = tripType === type.id;
+              return (
+                <TouchableOpacity
+                  key={type.id}
+                  style={[styles.tripTypeCard, isActive && styles.tripTypeCardActive]}
+                  onPress={() => {
+                    setTripType(type.id);
+                    setFromLocation(null);
+                    setToLocation(null);
+                    setSelectedPackage(null);
+                  }}
+                >
+                  <View style={[styles.tripTypeIcon, isActive && styles.tripTypeIconActive]}>
+                    <Icon name={type.icon} size={16} color={isActive ? '#fff' : BRAND_TEAL} />
+                  </View>
+                  <Text style={[styles.tripTypeLabel, isActive && styles.tripTypeLabelActive]}>
+                    {type.label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
         </View>
-      </View>
 
       {/* Airport Direction (only for airport trips) */}
       {tripType === 'airport' && (
@@ -728,9 +763,8 @@ export default function CarRentalFleetScreen({ navigation, route }) {
           </View>
         </TouchableOpacity>
       </View>
-
-      <View style={{ height: 120 }} />
-    </ScrollView>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 
   const renderStep2 = () => (
@@ -1129,39 +1163,40 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 18, fontWeight: '700', color: '#0F172A', marginBottom: 12 },
   sectionSubtitle: { fontSize: 14, color: '#64748B', marginBottom: 16 },
 
-  // Hero
+  // Hero - Compact Version
   heroWrapper: {
     backgroundColor: BRAND_TEAL,
     marginHorizontal: -16,
     marginTop: -16,
-    padding: 24,
-    paddingBottom: 32,
-    borderBottomLeftRadius: 32,
-    borderBottomRightRadius: 32,
-    marginBottom: 24,
+    padding: 16,
+    paddingBottom: 20,
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
+    marginBottom: 20,
   },
   heroTitle: {
-    fontSize: 24,
-    fontWeight: '800',
+    fontSize: 16,
+    fontWeight: '700',
     color: '#fff',
-    marginBottom: 4,
+    marginBottom: 14,
+    textAlign: 'center',
   },
   heroSubtitle: {
-    fontSize: 14,
+    fontSize: 12,
     color: 'rgba(255,255,255,0.8)',
-    marginBottom: 24,
+    marginBottom: 16,
   },
 
-  // Trip Type
+  // Trip Type - Compact Version
   tripTypeGrid: {
     flexDirection: 'row',
-    gap: 8,
+    gap: 6,
   },
   tripTypeCard: {
     flex: 1,
     backgroundColor: 'rgba(255,255,255,0.15)',
-    borderRadius: 16,
-    padding: 12,
+    borderRadius: 12,
+    padding: 8,
     alignItems: 'center',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.2)',
@@ -1169,23 +1204,23 @@ const styles = StyleSheet.create({
   tripTypeCardActive: {
     backgroundColor: '#fff',
     borderColor: '#fff',
-    elevation: 8,
+    elevation: 4,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 8,
+    shadowRadius: 4,
   },
   tripTypeIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 12,
+    width: 28,
+    height: 28,
+    borderRadius: 10,
     backgroundColor: 'rgba(255,255,255,0.2)',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 6,
   },
   tripTypeIconActive: { backgroundColor: BRAND_TEAL },
-  tripTypeLabel: { fontSize: 13, fontWeight: '700', color: '#fff' },
+  tripTypeLabel: { fontSize: 11, fontWeight: '700', color: '#fff' },
   tripTypeLabelActive: { color: BRAND_TEAL },
 
   // Airport Direction

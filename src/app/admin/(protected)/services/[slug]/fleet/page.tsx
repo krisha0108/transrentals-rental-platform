@@ -157,6 +157,7 @@ export default function ServiceFleetPage() {
   const [search, setSearch] = useState('');
   const [subServiceFilter, setSubServiceFilter] = useState('ALL');
   const [statusFilter, setStatusFilter] = useState('ALL');
+  const [locationFilter, setLocationFilter] = useState('ALL');
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -891,6 +892,24 @@ export default function ServiceFleetPage() {
     XLSX.writeFile(wb, filename);
   };
 
+  // Fetch all locations for filter dropdown
+  const fetchLocations = React.useCallback(async () => {
+    try {
+      const res = await fetch('/api/admin/locations?flat=true&types=CITY,UNION_TERRITORY&limit=1000');
+      if (res.ok) {
+        const data = await res.json();
+        // transformPrismaResponse returns array directly when flat=true
+        const locations = Array.isArray(data) ? data : (data.locations || data.data || []);
+        setAllLocations(locations);
+        console.log('Fetched locations:', locations.length);
+      } else {
+        console.error('Failed to fetch locations:', res.status, res.statusText);
+      }
+    } catch (error) {
+      console.error('Failed to fetch locations:', error);
+    }
+  }, []);
+
   const fetchFleet = React.useCallback(async () => {
     setLoading(true);
     try {
@@ -900,6 +919,7 @@ export default function ServiceFleetPage() {
       if (search) params.append('search', search);
       if (subServiceFilter !== 'ALL') params.append('subServiceId', subServiceFilter);
       if (statusFilter !== 'ALL') params.append('status', statusFilter.toLowerCase());
+      if (locationFilter !== 'ALL') params.append('locationId', locationFilter);
 
       const res = await fetch(`/api/admin/services/${slug}/fleet?${params}`);
       if (res.ok) {
@@ -935,13 +955,18 @@ export default function ServiceFleetPage() {
     } finally {
       setLoading(false);
     }
-  }, [slug, search, subServiceFilter, statusFilter, currentPage, itemsPerPage]);
+  }, [slug, search, subServiceFilter, statusFilter, locationFilter, currentPage, itemsPerPage]);
 
   useEffect(() => {
     if (slug) {
       fetchFleet();
     }
   }, [slug, fetchFleet]);
+
+  // Fetch locations on mount for filter dropdown
+  useEffect(() => {
+    fetchLocations();
+  }, [fetchLocations]);
 
   const filteredFleet = fleet.filter((item) => {
     const matchesSearch =
@@ -1087,6 +1112,20 @@ export default function ServiceFleetPage() {
             <option value="ALL">All Status</option>
             <option value="ACTIVE">Active</option>
             <option value="INACTIVE">Inactive</option>
+          </select>
+
+          {/* Location Filter */}
+          <select
+            value={locationFilter}
+            onChange={(e) => setLocationFilter(e.target.value)}
+            className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="ALL">All Locations</option>
+            {allLocations.map((loc) => (
+              <option key={loc.id} value={loc.id}>
+                {loc.name}
+              </option>
+            ))}
           </select>
         </div>
       </div>

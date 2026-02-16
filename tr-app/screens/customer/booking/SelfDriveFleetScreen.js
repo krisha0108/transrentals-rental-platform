@@ -190,20 +190,11 @@ const SelfDriveFleetScreen = () => {
 
       if (response?.success || response?.quoteRequest) {
         setShowBookingModal(false);
-        Alert.alert(
-          'Request Submitted!',
-          'Your quote request has been sent to vendors. You will receive quotes within 24-48 hours.',
-          [
-            {
-              text: 'View My Requests',
-              onPress: () => navigation.navigate('MySelfDriveBookings'),
-            },
-            {
-              text: 'Continue Browsing',
-              style: 'cancel',
-            },
-          ]
-        );
+        navigation.navigate('BookingConfirmation', {
+          booking_id: response?.quoteRequest?.id || 'TRX-' + Date.now(),
+          service_name: 'Self Drive Car',
+          service_type: 'self-drive',
+        });
       }
     } catch (err) {
       console.log('Quote request error:', err);

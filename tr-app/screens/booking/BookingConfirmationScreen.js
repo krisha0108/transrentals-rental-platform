@@ -68,10 +68,12 @@ import {
   ScrollView,
   Animated,
   Easing,
+  Dimensions,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
+const { width } = Dimensions.get('window');
 const BG = '#F5F5F7';
 const GREEN = '#09B368';
 
@@ -140,15 +142,23 @@ export default function BookingConfirmationScreen() {
   const pulse = useRef(new Animated.Value(0)).current;
   const btnFade = useRef(new Animated.Value(0)).current;
   const bgFade = useRef(new Animated.Value(0)).current;
+  const confettiFade = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    // 1 → pulse
-    Animated.timing(pulse, {
-      toValue: 1,
-      duration: 400,
-      easing: Easing.out(Easing.ease),
-      useNativeDriver: true,
-    }).start(() => {
+    // 1 → pulse + confetti
+    Animated.parallel([
+      Animated.timing(pulse, {
+        toValue: 1,
+        duration: 400,
+        easing: Easing.out(Easing.ease),
+        useNativeDriver: true,
+      }),
+      Animated.timing(confettiFade, {
+        toValue: 1,
+        duration: 600,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
       // 2 → card + buttons + glow together (faster)
       Animated.parallel([
         Animated.spring(sheetY, {
@@ -170,7 +180,7 @@ export default function BookingConfirmationScreen() {
         }),
       ]).start();
     });
-  }, [pulse, sheetY, btnFade, bgFade]);
+  }, [pulse, sheetY, btnFade, bgFade, confettiFade]);
 
   const scaleCircle = pulse.interpolate({
     inputRange: [0, 1],
@@ -182,12 +192,25 @@ export default function BookingConfirmationScreen() {
     outputRange: [0, 0.7],
   });
 
-  const goDashboard = () => navigation.navigate('CustomerDashboard');
-  const goBookings = () => navigation.navigate('MyBookings');
+  const goDashboard = () => {
+    navigation.reset({
+      index: 0,
+      routes: [{ name: 'CustomerDashboard' }],
+    });
+  };
+
+  const goBookingDetails = () => {
+    // Navigate based on service type
+    if (lower.includes('bike') || serviceType === 'bike') {
+      navigation.navigate('MyBikeBookings');
+    } else {
+      navigation.navigate('MyBookings');
+    }
+  };
 
   return (
     <SafeAreaView style={styles.safe}>
-      {/* soft bg burst */}
+      {/* Animated background gradients */}
       <Animated.View
         pointerEvents="none"
         style={[
@@ -198,19 +221,21 @@ export default function BookingConfirmationScreen() {
           },
         ]}
       />
-
-      {/* top close */}
-      <View style={styles.topBar}>
-        <TouchableOpacity onPress={goDashboard} style={styles.closeBtn}>
-          <Ionicons name="close" size={18} color="#0F172A" />
-        </TouchableOpacity>
-      </View>
+      <Animated.View
+        pointerEvents="none"
+        style={[
+          styles.bgBurst2,
+          {
+            opacity: bgOpacity,
+          },
+        ]}
+      />
 
       <ScrollView
-        contentContainerStyle={{ paddingBottom: 50 }}
+        contentContainerStyle={{ paddingBottom: 40 }}
         showsVerticalScrollIndicator={false}
       >
-        {/* success icon */}
+        {/* Success Animation & Title */}
         <View style={styles.centerWrap}>
           <Animated.View
             style={[
@@ -221,16 +246,33 @@ export default function BookingConfirmationScreen() {
             ]}
           >
             <View style={styles.successInner}>
-              <Ionicons name="checkmark" size={30} color="#fff" />
+              <Ionicons name="checkmark-circle" size={64} color="#fff" />
             </View>
           </Animated.View>
-          <Text style={styles.title}>Booking created 🎉</Text>
-          <Text style={styles.sub}>
-            Vendors near your location will now start sending quotes. You can compare and confirm.
-          </Text>
+
+          {/* Confetti particles */}
+          <Animated.View
+            style={[
+              styles.confettiContainer,
+              { opacity: confettiFade }
+            ]}
+          >
+            <View style={[styles.confetti, { top: 20, left: 40, backgroundColor: '#FFD700' }]} />
+            <View style={[styles.confetti, { top: 40, right: 50, backgroundColor: '#FF69B4' }]} />
+            <View style={[styles.confetti, { top: 60, left: 60, backgroundColor: '#00CED1' }]} />
+            <View style={[styles.confetti, { top: 30, right: 40, backgroundColor: '#FF6347' }]} />
+            <View style={[styles.confetti, { top: 70, left: 100, backgroundColor: '#9370DB' }]} />
+            <View style={[styles.confetti, { top: 50, right: 80, backgroundColor: '#32CD32' }]} />
+          </Animated.View>
+
+          <Text style={styles.title}>Booking Created Successfully!</Text>
+          <View style={styles.bookingIdBox}>
+            <Ionicons name={finalIcon} size={16} color={GREEN} />
+            <Text style={styles.bookingIdText}>Booking ID: {bookingId}</Text>
+          </View>
         </View>
 
-        {/* slide-up card */}
+        {/* Info Card */}
         <Animated.View
           style={[
             styles.card,
@@ -239,63 +281,59 @@ export default function BookingConfirmationScreen() {
             },
           ]}
         >
-          <View style={styles.badgeRow}>
-            <View style={styles.badge}>
-              <Ionicons name={finalIcon} size={13} color="#055F3B" />
-              {/* dynamic service name */}
-              <Text style={styles.badgeText}>Your Booking</Text>
+          <View style={styles.cardIconRow}>
+            <View style={styles.cardIconCircle}>
+              <Ionicons name="information-circle" size={28} color={GREEN} />
             </View>
-            <Text style={styles.badgeRight}>ID: {bookingId}</Text>
+            <View style={styles.cardTextWrap}>
+              <Text style={styles.cardTitle}>What happens next?</Text>
+              <Text style={styles.cardSub}>
+                Vendors near you will send quotes. Compare and choose the best one!
+              </Text>
+            </View>
           </View>
 
-          <Text style={styles.cardTitle}>What happens next?</Text>
-          <Text style={styles.cardSub}>
-            We notify verified TransRentals vendors. You pick the best quote.
-          </Text>
-
-          {/* timeline */}
+          {/* Timeline */}
           <View style={styles.timeline}>
-            {/* 1 */}
             <View style={styles.stepRow}>
               <View style={[styles.dot, styles.dotDone]}>
                 <Ionicons name="checkmark" size={14} color="#fff" />
               </View>
               <View style={styles.stepTextWrap}>
-                <Text style={styles.stepTitle}>Request received</Text>
-                <Text style={styles.stepSub}>We’ve sent it to nearby vendors</Text>
+                <Text style={styles.stepTitle}>Request Sent</Text>
+                <Text style={styles.stepSub}>Notified nearby vendors</Text>
               </View>
             </View>
             <View style={styles.stepLine} />
 
-            {/* 2 */}
             <View style={styles.stepRow}>
               <View style={[styles.dot, styles.dotActive]}>
+                <View style={styles.dotPulse} />
                 <Text style={styles.dotText}>2</Text>
               </View>
               <View style={styles.stepTextWrap}>
-                <Text style={styles.stepTitle}>Vendors send quotes</Text>
-                <Text style={styles.stepSub}>Expect price + vehicle/load details</Text>
+                <Text style={styles.stepTitle}>Receive Quotes</Text>
+                <Text style={styles.stepSub}>Compare prices & details</Text>
               </View>
             </View>
             <View style={styles.stepLine} />
 
-            {/* 3 */}
             <View style={styles.stepRow}>
               <View style={[styles.dot, styles.dotMuted]}>
                 <Text style={styles.dotTextMuted}>3</Text>
               </View>
               <View style={styles.stepTextWrap}>
-                <Text style={styles.stepTitle}>You confirm & pay</Text>
-                <Text style={styles.stepSub}>We lock the trip/shift for you</Text>
+                <Text style={styles.stepTitle}>Confirm & Enjoy</Text>
+                <Text style={styles.stepSub}>Book and get ready for your ride</Text>
               </View>
             </View>
           </View>
         </Animated.View>
 
-        {/* actions */}
+        {/* Action Options */}
         <Animated.View
           style={[
-            styles.actions,
+            styles.actionSection,
             {
               opacity: btnFade,
               transform: [
@@ -309,23 +347,52 @@ export default function BookingConfirmationScreen() {
             },
           ]}
         >
-          <TouchableOpacity style={styles.primaryBtn} onPress={goDashboard} activeOpacity={0.9}>
-            <Text style={styles.primaryText}>Go to dashboard</Text>
-            <Ionicons name="arrow-forward" size={16} color="#fff" />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.secondaryBtn} onPress={goBookings} activeOpacity={0.85}>
-            <Ionicons name="list-outline" size={16} color="#0F172A" />
-            <Text style={styles.secondaryText}>View my bookings</Text>
-          </TouchableOpacity>
+          <Text style={styles.actionTitle}>What would you like to do?</Text>
+
+          {/* Option Cards */}
+          <View style={styles.optionsContainer}>
+            <TouchableOpacity
+              style={styles.optionCard}
+              onPress={goBookingDetails}
+              activeOpacity={0.85}
+            >
+              <View style={styles.optionIconCircle}>
+                <Ionicons name="receipt-outline" size={28} color={GREEN} />
+              </View>
+              <View style={styles.optionContent}>
+                <Text style={styles.optionTitle}>View Booking</Text>
+                <Text style={styles.optionDesc}>Check quotes & details</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color="#CBD5E1" />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.optionCard}
+              onPress={goDashboard}
+              activeOpacity={0.85}
+            >
+              <View style={[styles.optionIconCircle, styles.optionIconCircle2]}>
+                <Ionicons name="home-outline" size={28} color="#6366F1" />
+              </View>
+              <View style={styles.optionContent}>
+                <Text style={styles.optionTitle}>Go to Dashboard</Text>
+                <Text style={styles.optionDesc}>Browse more services</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color="#CBD5E1" />
+            </TouchableOpacity>
+          </View>
         </Animated.View>
 
-        {/* footer note */}
-        <View style={styles.footer}>
-          <Ionicons name="shield-checkmark-outline" size={14} color="#94A3B8" />
-          <Text style={styles.footerText}>
-            Tip: respond to vendor calls quickly to secure the slot.
+        {/* Help Note */}
+        <Animated.View style={[styles.helpNote, { opacity: btnFade }]}>
+          <View style={styles.helpIconCircle}>
+            <Ionicons name="bulb-outline" size={18} color="#F59E0B" />
+          </View>
+          <Text style={styles.helpText}>
+            <Text style={styles.helpBold}>Pro Tip: </Text>
+            Respond to vendor calls quickly to secure the best rates and availability.
           </Text>
-        </View>
+        </Animated.View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -338,123 +405,133 @@ const styles = StyleSheet.create({
   },
   bgBurst: {
     position: 'absolute',
-    top: -140,
-    alignSelf: 'center',
-    width: 340,
-    height: 340,
-    backgroundColor: 'rgba(9,179,104,0.12)',
+    top: -100,
+    left: -50,
+    width: 280,
+    height: 280,
+    backgroundColor: 'rgba(9,179,104,0.08)',
     borderRadius: 999,
   },
-  topBar: {
-    height: 44,
-    justifyContent: 'flex-end',
-    alignItems: 'flex-end',
-    paddingHorizontal: 16,
-  },
-  closeBtn: {
-    width: 34,
-    height: 34,
+  bgBurst2: {
+    position: 'absolute',
+    top: 100,
+    right: -80,
+    width: 200,
+    height: 200,
+    backgroundColor: 'rgba(99,102,241,0.06)',
     borderRadius: 999,
-    backgroundColor: '#fff',
-    justifyContent: 'center',
-    alignItems: 'center',
-    elevation: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.03,
-    shadowRadius: 4,
   },
   centerWrap: {
     alignItems: 'center',
-    marginTop: 2,
-    paddingHorizontal: 22,
+    marginTop: 40,
+    paddingHorizontal: 24,
   },
   successOuter: {
-    width: 124,
-    height: 124,
+    width: 140,
+    height: 140,
     borderRadius: 999,
-    backgroundColor: 'rgba(9,179,104,0.08)',
+    backgroundColor: 'rgba(9,179,104,0.12)',
     justifyContent: 'center',
     alignItems: 'center',
+    shadowColor: GREEN,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.25,
+    shadowRadius: 16,
+    elevation: 8,
   },
   successInner: {
-    width: 78,
-    height: 78,
+    width: 100,
+    height: 100,
     borderRadius: 999,
     backgroundColor: GREEN,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  title: {
-    marginTop: 14,
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#0F172A',
+  confettiContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
   },
-  sub: {
-    marginTop: 4,
+  confetti: {
+    position: 'absolute',
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  title: {
+    marginTop: 24,
+    fontSize: 24,
+    fontWeight: '800',
+    color: '#0F172A',
     textAlign: 'center',
-    color: '#6B7280',
+  },
+  bookingIdBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(9,179,104,0.1)',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 999,
+    marginTop: 12,
+  },
+  bookingIdText: {
     fontSize: 13,
+    fontWeight: '600',
+    color: GREEN,
   },
   card: {
     backgroundColor: '#fff',
-    marginHorizontal: 16,
-    marginTop: 18,
-    borderRadius: 20,
-    padding: 16,
+    marginHorizontal: 20,
+    marginTop: 32,
+    borderRadius: 24,
+    padding: 20,
     shadowColor: '#000',
-    shadowOpacity: 0.03,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 6,
   },
-  badgeRow: {
+  cardIconRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    gap: 14,
+    marginBottom: 20,
+  },
+  cardIconCircle: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: 'rgba(9,179,104,0.1)',
+    justifyContent: 'center',
     alignItems: 'center',
   },
-  badge: {
-    flexDirection: 'row',
-    gap: 6,
-    backgroundColor: 'rgba(9,179,104,0.09)',
-    borderColor: 'rgba(9,179,104,0.25)',
-    borderWidth: 1,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 999,
-    alignItems: 'center',
-  },
-  badgeText: {
-    color: '#055F3B',
-    fontSize: 12.5,
-    fontWeight: '600',
-  },
-  badgeRight: {
-    fontSize: 12,
-    color: '#94A3B8',
+  cardTextWrap: {
+    flex: 1,
   },
   cardTitle: {
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: '700',
     color: '#0F172A',
-    marginTop: 12,
   },
   cardSub: {
-    color: '#94A3B8',
-    fontSize: 12.5,
-    marginTop: 2,
+    color: '#64748B',
+    fontSize: 13,
+    marginTop: 4,
+    lineHeight: 18,
   },
   timeline: {
-    marginTop: 14,
+    marginTop: 4,
   },
   stepRow: {
     flexDirection: 'row',
-    gap: 12,
+    gap: 14,
     alignItems: 'flex-start',
   },
   dot: {
-    width: 30,
-    height: 30,
+    width: 32,
+    height: 32,
     borderRadius: 999,
     justifyContent: 'center',
     alignItems: 'center',
@@ -464,17 +541,25 @@ const styles = StyleSheet.create({
   },
   dotActive: {
     backgroundColor: 'rgba(9,179,104,0.15)',
-    borderWidth: 1,
-    borderColor: 'rgba(9,179,104,0.4)',
+    borderWidth: 2,
+    borderColor: GREEN,
+    position: 'relative',
+  },
+  dotPulse: {
+    position: 'absolute',
+    width: 32,
+    height: 32,
+    borderRadius: 999,
+    backgroundColor: 'rgba(9,179,104,0.2)',
   },
   dotMuted: {
-    backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: 'rgba(15,23,42,0.05)',
+    backgroundColor: '#F8FAFC',
+    borderWidth: 2,
+    borderColor: '#E2E8F0',
   },
   dotText: {
-    color: '#055F3B',
-    fontWeight: '600',
+    color: GREEN,
+    fontWeight: '700',
     fontSize: 13,
   },
   dotTextMuted: {
@@ -484,69 +569,105 @@ const styles = StyleSheet.create({
   },
   stepTextWrap: {
     flex: 1,
+    paddingTop: 2,
   },
   stepTitle: {
-    fontSize: 13,
+    fontSize: 14,
     color: '#0F172A',
     fontWeight: '600',
   },
   stepSub: {
-    fontSize: 11.5,
+    fontSize: 12,
     color: '#94A3B8',
-    marginTop: 2,
+    marginTop: 3,
   },
   stepLine: {
-    width: 1.4,
-    height: 14,
-    backgroundColor: 'rgba(148,163,184,0.26)',
-    marginLeft: 14,
-    marginVertical: 3,
+    width: 2,
+    height: 16,
+    backgroundColor: '#E2E8F0',
+    marginLeft: 15,
+    marginVertical: 4,
   },
-  actions: {
-    marginHorizontal: 16,
-    marginTop: 22,
+  actionSection: {
+    marginHorizontal: 20,
+    marginTop: 32,
   },
-  primaryBtn: {
-    backgroundColor: GREEN,
-    borderRadius: 999,
-    paddingVertical: 12,
-    flexDirection: 'row',
-    gap: 6,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  primaryText: {
-    color: '#fff',
-    fontSize: 15,
+  actionTitle: {
+    fontSize: 18,
     fontWeight: '700',
+    color: '#0F172A',
+    marginBottom: 16,
   },
-  secondaryBtn: {
-    marginTop: 10,
+  optionsContainer: {
+    gap: 12,
+  },
+  optionCard: {
     backgroundColor: '#fff',
-    borderRadius: 999,
-    paddingVertical: 11,
+    borderRadius: 20,
+    padding: 18,
     flexDirection: 'row',
-    gap: 6,
+    alignItems: 'center',
+    gap: 14,
+    shadowColor: '#000',
+    shadowOpacity: 0.04,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 3,
+    borderWidth: 1.5,
+    borderColor: '#F1F5F9',
+  },
+  optionIconCircle: {
+    width: 54,
+    height: 54,
+    borderRadius: 27,
+    backgroundColor: 'rgba(9,179,104,0.1)',
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(15,23,42,0.05)',
   },
-  secondaryText: {
-    color: '#0F172A',
-    fontWeight: '600',
+  optionIconCircle2: {
+    backgroundColor: 'rgba(99,102,241,0.1)',
   },
-  footer: {
-    flexDirection: 'row',
-    gap: 6,
-    alignItems: 'center',
-    marginTop: 16,
-    marginHorizontal: 16,
-    padding:5,
-  },
-  footerText: {
-    fontSize: 11.5,
-    color: '#94A3B8',
+  optionContent: {
     flex: 1,
+  },
+  optionTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#0F172A',
+  },
+  optionDesc: {
+    fontSize: 12,
+    color: '#64748B',
+    marginTop: 2,
+  },
+  helpNote: {
+    flexDirection: 'row',
+    gap: 12,
+    alignItems: 'flex-start',
+    marginHorizontal: 20,
+    marginTop: 24,
+    backgroundColor: '#FEF3C7',
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  helpIconCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#FEF9C3',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  helpText: {
+    flex: 1,
+    fontSize: 12.5,
+    color: '#92400E',
+    lineHeight: 18,
+  },
+  helpBold: {
+    fontWeight: '700',
+    color: '#78350F',
   },
 });

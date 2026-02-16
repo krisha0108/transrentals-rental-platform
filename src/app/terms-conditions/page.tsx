@@ -39,7 +39,7 @@ const COMMITMENTS = [
 ];
 
 const RIGHTS = [
-  'Request data access, corrections, or deletion by emailing privacy@transrentals.in.',
+  'Request data access, corrections, or deletion by emailing book@transrentals.in.',
   'Opt out of marketing and notifications through your dashboard or support.',
   'Escalate unresolved disputes to arbitration or local authorities per Indian law.',
 ];

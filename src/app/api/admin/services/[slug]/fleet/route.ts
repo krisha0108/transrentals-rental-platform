@@ -33,6 +33,7 @@ export async function GET(
     const search = searchParams.get('search') || '';
     const subServiceId = searchParams.get('subServiceId') || '';
     const status = searchParams.get('status') || '';
+    const locationId = searchParams.get('locationId') || '';
 
     // Find the service by slug
     const service = await prisma.services.findUnique({
@@ -95,6 +96,16 @@ export async function GET(
       where.isActive = true;
     } else if (status === 'inactive') {
       where.isActive = false;
+    }
+
+    // Filter by location if specified
+    if (locationId) {
+      where.vehicle_model_locations = {
+        some: {
+          locationId: locationId,
+          isActive: true,
+        },
+      };
     }
 
     // Fetch vehicle models for this service

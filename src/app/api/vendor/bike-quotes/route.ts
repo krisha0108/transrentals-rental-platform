@@ -102,6 +102,7 @@ export async function GET(request: NextRequest) {
         vehicleYear: q.vehicleYear,
         vendorFleetId: q.vendorFleetId,
         dailyRate: q.dailyRate,
+        totalPrice: q.totalPrice,
         totalAmount: q.totalAmount,
         gstAmount: q.gstAmount,
         securityDeposit: q.securityDeposit,
@@ -255,6 +256,9 @@ export async function POST(request: NextRequest) {
       where: {
         requestId,
         vendorId: vendorId,
+      },
+      select: {
+        id: true,
       },
     });
 
@@ -416,6 +420,7 @@ export async function POST(request: NextRequest) {
         quoteNumber: quote.quoteNumber,
         vehicleName: quote.vehicleName,
         dailyRate: quote.dailyRate,
+        totalPrice: quote.totalPrice,
         grandTotal: quote.grandTotal,
         advanceAmount: quote.advanceAmount,
         advancePercent: quote.advancePercent,
