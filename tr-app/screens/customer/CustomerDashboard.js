@@ -24,7 +24,8 @@ import {
   useWindowDimensions,
   PermissionsAndroid,
   Linking,
-  RefreshControl
+  RefreshControl,
+  BackHandler
 } from 'react-native';
 import {
   widthPercentageToDP as wp,
@@ -40,7 +41,7 @@ import VendorCard from '../../components/VendorCard'; // update path accordingly
 import Geolocation from 'react-native-geolocation-service';
 import api, { BASE_URL } from '../api';
 import { bookingService, notificationService, profileService, fleetService } from '../services';
-import { LocationPermissionModal } from '../../components/CustomModals';
+import { LocationPermissionModal, ExitConfirmationModal } from '../../components/CustomModals';
 // SPIN AND WIN - COMMENTED OUT
 // import SpinAndWinModal from './SpinAndWinModal';
 // import AnimatedSpinFab from './AnimatedSpinFab';
@@ -174,6 +175,7 @@ export default function CustomerDashboard() {
   const [locationPermissionGranted, setLocationPermissionGranted] = useState(false);
   const [upcomingTrips, setUpcomingTrips] = useState([]);
   const [showLocationPermissionModal, setShowLocationPermissionModal] = useState(false);
+  const [showExitModal, setShowExitModal] = useState(false);
 
   // ────── ANIMATIONS ──────
   const scrollY = useRef(new Animated.Value(0)).current;
@@ -511,6 +513,23 @@ export default function CustomerDashboard() {
     React.useCallback(() => {
       // Refresh notification count when screen comes into focus
       fetchUnreadNotificationCount();
+    }, [])
+  );
+
+  // ────── PREVENT BACK NAVIGATION FROM CUSTOMER DASHBOARD ──────
+  useFocusEffect(
+    React.useCallback(() => {
+      const onBackPress = () => {
+        // Show custom exit confirmation modal
+        setShowExitModal(true);
+        return true; // Prevent default back behavior
+      };
+
+      // Add event listener
+      const backHandler = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+
+      // Cleanup function
+      return () => backHandler.remove();
     }, [])
   );
 
@@ -1208,6 +1227,13 @@ export default function CustomerDashboard() {
         visible={showLocationPermissionModal}
         onAllow={handleLocationAllow}
         onDeny={handleLocationDeny}
+      />
+
+      {/* Exit Confirmation Modal */}
+      <ExitConfirmationModal
+        visible={showExitModal}
+        onCancel={() => setShowExitModal(false)}
+        onExit={() => BackHandler.exitApp()}
       />
 
     </SafeAreaView>

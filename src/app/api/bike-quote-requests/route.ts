@@ -232,6 +232,7 @@ export async function GET(request: NextRequest) {
             vendorId: true,
             vehicleName: true,
             dailyRate: true,
+            totalPrice: true,
             grandTotal: true,
             advanceAmount: true,
             advancePercent: true,

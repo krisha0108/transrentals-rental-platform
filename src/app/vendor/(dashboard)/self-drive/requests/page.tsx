@@ -241,7 +241,7 @@ export default function VendorSelfDriveRequestsPage() {
                     <div>
                       <div className="flex items-center gap-2 mb-1">
                         <h3 className="font-bold text-gray-900">
-                          {request.vehicle_modelsName || request.vehicleCategoryName || request.vehicle_category || 'Any Car'}
+                          {request.vehicleModelName || request.vehicleCategoryName || 'Any Car'}
                         </h3>
                         {request.vehicleBrand && (
                           <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded-full">

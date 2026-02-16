@@ -338,6 +338,147 @@ export const LocationPermissionModal = ({ visible, onAllow, onDeny }) => {
 };
 
 // ========================================
+// EXIT CONFIRMATION MODAL
+// ========================================
+export const ExitConfirmationModal = ({ visible, onCancel, onExit }) => {
+  const scaleAnim = useRef(new Animated.Value(0)).current;
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const iconShakeAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (visible) {
+      scaleAnim.setValue(0);
+      fadeAnim.setValue(0);
+
+      Animated.parallel([
+        Animated.spring(scaleAnim, {
+          toValue: 1,
+          tension: 60,
+          friction: 8,
+          useNativeDriver: true,
+        }),
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 250,
+          useNativeDriver: true,
+        }),
+      ]).start();
+
+      // Shake animation for warning icon
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(iconShakeAnim, {
+            toValue: 10,
+            duration: 100,
+            useNativeDriver: true,
+          }),
+          Animated.timing(iconShakeAnim, {
+            toValue: -10,
+            duration: 100,
+            useNativeDriver: true,
+          }),
+          Animated.timing(iconShakeAnim, {
+            toValue: 10,
+            duration: 100,
+            useNativeDriver: true,
+          }),
+          Animated.timing(iconShakeAnim, {
+            toValue: 0,
+            duration: 100,
+            useNativeDriver: true,
+          }),
+          Animated.delay(2000),
+        ])
+      ).start();
+    }
+  }, [visible]);
+
+  return (
+    <Modal
+      visible={visible}
+      transparent
+      animationType="none"
+      onRequestClose={onCancel}
+    >
+      <Animated.View style={[styles.modalOverlay, { opacity: fadeAnim }]}>
+        <Animated.View
+          style={[
+            styles.exitModalContainer,
+            {
+              transform: [{ scale: scaleAnim }],
+            },
+          ]}
+        >
+          {/* Warning Icon with Shake */}
+          <Animated.View
+            style={[
+              styles.exitIconContainer,
+              {
+                transform: [{ rotate: iconShakeAnim.interpolate({
+                  inputRange: [-10, 10],
+                  outputRange: ['-3deg', '3deg'],
+                })}],
+              },
+            ]}
+          >
+            <View style={styles.exitIconCircle}>
+              <LinearGradient
+                colors={['#FF6B6B', '#EE5A52']}
+                style={styles.exitGradient}
+              >
+                <Ionicons name="exit-outline" size={60} color="#fff" />
+              </LinearGradient>
+            </View>
+          </Animated.View>
+
+          {/* Title & Message */}
+          <Text style={styles.exitTitle}>Exit App?</Text>
+          <Text style={styles.exitMessage}>
+            Are you sure you want to close the app?
+          </Text>
+
+          {/* Info Note */}
+          <View style={styles.exitNote}>
+            <Ionicons name="information-circle" size={18} color="#64748B" />
+            <Text style={styles.exitNoteText}>
+              Your session and data will be saved
+            </Text>
+          </View>
+
+          {/* Action Buttons */}
+          <View style={styles.exitButtons}>
+            <TouchableOpacity
+              style={styles.exitCancelButton}
+              onPress={onCancel}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="arrow-back" size={20} color={GREEN} />
+              <Text style={styles.exitCancelButtonText}>Stay Here</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.exitConfirmButton}
+              onPress={onExit}
+              activeOpacity={0.9}
+            >
+              <LinearGradient
+                colors={['#FF6B6B', '#EE5A52']}
+                style={styles.exitConfirmGradient}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+              >
+                <Ionicons name="log-out-outline" size={20} color="#fff" />
+                <Text style={styles.exitConfirmButtonText}>Exit App</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
+        </Animated.View>
+      </Animated.View>
+    </Modal>
+  );
+};
+
+// ========================================
 // STYLES
 // ========================================
 const styles = StyleSheet.create({
@@ -597,5 +738,111 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: '#94A3B8',
     lineHeight: 16,
+  },
+
+  // ===== EXIT CONFIRMATION MODAL STYLES =====
+  exitModalContainer: {
+    backgroundColor: '#fff',
+    borderRadius: 28,
+    padding: 28,
+    alignItems: 'center',
+    width: width - 80,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  exitIconContainer: {
+    marginBottom: 20,
+  },
+  exitIconCircle: {
+    width: 110,
+    height: 110,
+    borderRadius: 55,
+    overflow: 'hidden',
+    elevation: 8,
+    shadowColor: '#FF6B6B',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 10,
+  },
+  exitGradient: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  exitTitle: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: '#0F172A',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  exitMessage: {
+    fontSize: 15,
+    color: '#64748B',
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: 20,
+  },
+  exitNote: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#F8FAFC',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 12,
+    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  exitNoteText: {
+    fontSize: 13,
+    color: '#64748B',
+    fontWeight: '500',
+  },
+  exitButtons: {
+    width: '100%',
+    gap: 12,
+  },
+  exitCancelButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 14,
+    backgroundColor: 'rgba(9, 179, 104, 0.1)',
+    borderRadius: 16,
+    borderWidth: 2,
+    borderColor: GREEN,
+  },
+  exitCancelButtonText: {
+    color: GREEN,
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  exitConfirmButton: {
+    borderRadius: 16,
+    overflow: 'hidden',
+    shadowColor: '#FF6B6B',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  exitConfirmGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 14,
+  },
+  exitConfirmButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '700',
   },
 });
