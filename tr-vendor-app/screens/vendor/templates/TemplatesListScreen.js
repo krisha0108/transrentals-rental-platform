@@ -506,11 +506,12 @@ const styles = StyleSheet.create({
     backgroundColor: C.surface,
     borderBottomWidth: 1,
     borderBottomColor: C.border,
+    height: 56, // Fixed height to prevent overflow
   },
   filterContent: {
     paddingHorizontal: 12,
     paddingVertical: 10,
-    gap: 8,
+    alignItems: 'center', // Vertically center the chips
   },
   filterChip: {
     paddingHorizontal: 16,
@@ -518,6 +519,9 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     backgroundColor: C.bg,
     marginRight: 8,
+    height: 36, // Fixed height for consistent sizing
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   filterText: {
     fontSize: 13,

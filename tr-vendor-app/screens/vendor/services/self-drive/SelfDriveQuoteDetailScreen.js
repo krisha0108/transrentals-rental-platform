@@ -16,7 +16,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Feather';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import { getVendorQuotes } from '../../../api/client';
+import { getVendorQuotes, getBaseURL } from '../../../api/client';
 
 const { width } = Dimensions.get('window');
 const SLIDER_WIDTH = width - 32; // Full width with padding
@@ -40,7 +40,15 @@ export default function SelfDriveQuoteDetailScreen({ route, navigation }) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [baseUrl, setBaseUrl] = useState('');
   const imageSliderRef = useRef(null);
+
+  useEffect(() => {
+    getBaseURL().then(url => {
+      console.log('🌐 [SelfDrive Image Debug] Base URL:', url);
+      setBaseUrl(url);
+    });
+  }, []);
 
   const fetchQuoteDetail = useCallback(async () => {
     if (!quoteId) {
@@ -168,10 +176,15 @@ export default function SelfDriveQuoteDetailScreen({ route, navigation }) {
 
   // Helper to get full image URL
   const getFullImageUrl = (path) => {
+    console.log('🖼️ [SelfDrive Image Debug] Processing path:', path);
     if (!path) return null;
-    if (path.startsWith('http')) return path;
-    const baseUrl = 'http://192.168.29.68:3000'; // Your dev URL
-    return `${baseUrl}${path}`;
+    if (path.startsWith('http')) {
+      console.log('✅ [SelfDrive Image Debug] Path is already full URL:', path);
+      return path;
+    }
+    const fullUrl = `${baseUrl}${path}`;
+    console.log('🔗 [SelfDrive Image Debug] Constructed URL:', fullUrl);
+    return fullUrl;
   };
 
   // Parse JSON fields
@@ -195,8 +208,12 @@ export default function SelfDriveQuoteDetailScreen({ route, navigation }) {
   };
 
   // Parse and convert image URLs
+  console.log('🖼️ [SelfDrive Image Debug] Raw vehicleImages from quote:', quote.vehicleImages);
+  console.log('🖼️ [SelfDrive Image Debug] Type:', typeof quote.vehicleImages);
   const rawImages = parseJSON(quote.vehicleImages);
+  console.log('🖼️ [SelfDrive Image Debug] Parsed images array:', rawImages);
   const vehicleImages = rawImages?.map(img => getFullImageUrl(img)).filter(Boolean) || null;
+  console.log('🖼️ [SelfDrive Image Debug] Final vehicleImages with full URLs:', vehicleImages);
 
   const vehicleFeatures = parseJSON(quote.vehicleFeatures);
   const inclusions = parseJSON(quote.inclusions);
