@@ -1,11 +1,12 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
 import { getCitiesByPriority } from '@/data/indian-cities';
-
 import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
+import { formatPriceHighlight } from '@/lib/utils';
+
 export const metadata: Metadata = {
-  title: 'Sports Car Rental | Supercar Hire @₹25000/Day | Ferrari Lamborghini India',
-  description: 'Rent sports cars & supercars. Ferrari, Lamborghini, Porsche available. Luxury sports car hire @₹25000/day. Self-drive & chauffeur options.',
+  title: formatPriceHighlight('Sports Car Rental | Supercar Hire @₹25000/Day | Ferrari Lamborghini India'),
+  description: formatPriceHighlight('Rent sports cars & supercars. Ferrari, Lamborghini, Porsche available. Luxury sports car hire @₹25000/day. Self-drive & chauffeur options.'),
   keywords: [
     'sports car rental',
     'supercar rental india',
@@ -21,8 +22,8 @@ export const metadata: Metadata = {
     'premium sports car',
   ],
   openGraph: {
-    title: 'Sports Car Rental India | Ferrari, Lamborghini @₹25000/Day',
-    description: 'Rent exotic supercars - Ferrari, Lamborghini, Porsche. Ultimate luxury sports car experience.',
+    title: formatPriceHighlight('Sports Car Rental India | Ferrari, Lamborghini @₹25000/Day'),
+    description: formatPriceHighlight('Rent exotic supercars - Ferrari, Lamborghini, Porsche. Ultimate luxury sports car experience.'),
   },
 };
 

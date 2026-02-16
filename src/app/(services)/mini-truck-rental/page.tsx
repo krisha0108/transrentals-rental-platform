@@ -3,10 +3,12 @@ import type { Metadata } from 'next';
 import { LocationsGrid } from '@/components/services/LocationsGrid';
 import { FAQSection } from '@/components/services/FAQSection';
 import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
+import { formatPriceHighlight } from '@/lib/utils';
+
 export const metadata: Metadata = {
-  title: 'Mini Truck Rental - Tata Ace on Rent Starting @₹799/Day | TransRentals',
+  title: formatPriceHighlight('Mini Truck Rental - Tata Ace on Rent Starting @₹799/Day | TransRentals'),
   description:
-    'Rent mini trucks and Tata Ace for goods transport. 750 KG to 1.5 TON capacity. Perfect for city deliveries. Affordable rates. Book now!',
+    formatPriceHighlight('Rent mini trucks and Tata Ace for goods transport. 750 KG to 1.5 TON capacity. Perfect for city deliveries. Affordable rates. Book now!'),
   keywords: [
     'mini truck rental',
     'tata ace on rent',
@@ -17,8 +19,8 @@ export const metadata: Metadata = {
     'pickup truck rental',
   ],
   openGraph: {
-    title: 'Mini Truck Rental - Tata Ace @₹799/Day | TransRentals',
-    description: 'Rent mini trucks for city deliveries and goods transport.',
+    title: formatPriceHighlight('Mini Truck Rental - Tata Ace @₹799/Day | TransRentals'),
+    description: formatPriceHighlight('Rent mini trucks for city deliveries and goods transport.'),
   },
 };
 

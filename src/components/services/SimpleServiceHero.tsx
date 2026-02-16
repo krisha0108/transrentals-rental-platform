@@ -4,6 +4,8 @@ import React from 'react';
 import { MapPin, Star, Shield, Zap, Clock, Users, Truck, Package } from 'lucide-react';
 import { motion } from 'framer-motion';
 
+import { formatPriceHighlight } from '@/lib/utils';
+
 // Icon mapping
 const iconMap = {
   star: Star,
@@ -68,14 +70,14 @@ export function SimpleServiceHero({
         <div className="text-center">
           <div className="inline-flex items-center gap-2 bg-primary/10 text-primary px-4 py-2 rounded-full text-sm font-medium mb-6">
             <MapPin className="w-4 h-4" />
-            <span>{citiesCount ? `Available in ${citiesCount} Cities` : badge}</span>
+            <span>{formatPriceHighlight(citiesCount ? `Available in ${citiesCount} Cities` : badge)}</span>
           </div>
 
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 mb-4">
             {title}
             <br />
             <span className={`bg-gradient-to-r ${gradientAccent} bg-clip-text text-transparent`}>
-              {titleHighlight}
+              {formatPriceHighlight(titleHighlight)}
             </span>
           </h1>
 

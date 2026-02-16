@@ -247,6 +247,7 @@ export async function PUT(
         slug: vehicleSlug ?? existing.slug,
         brandId: brandId ?? existing.brandId,
         subServiceId: validSubServiceId,
+        vehicleCategoryId: categoryInfo?.id || (subServiceId === null || subServiceId === '' ? null : existing.vehicleCategoryId),
         fuelType: fuelType !== undefined ? fuelType : existing.fuelType,
         transmission: transmission !== undefined ? transmission : existing.transmission,
         seatingCapacity: seatingCapacity !== undefined ? safeParseInt(seatingCapacity) : existing.seatingCapacity,

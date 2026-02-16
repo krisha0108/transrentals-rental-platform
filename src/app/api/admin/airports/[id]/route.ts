@@ -22,7 +22,14 @@ export async function GET(
       return NextResponse.json({ success: false, error: 'Airport not found' }, { status: 404 });
     }
 
-    return NextResponse.json({ success: true, airport });
+    return NextResponse.json({
+      success: true,
+      airport: {
+        ...airport,
+        parent: airport.locations, // Map locations to parent
+        locations: undefined // Remove duplicate
+      }
+    });
   } catch (error) {
     console.error('Failed to fetch airport:', error);
     return NextResponse.json({ success: false, error: 'Failed to fetch airport' }, { status: 500 });
