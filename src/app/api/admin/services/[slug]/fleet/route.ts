@@ -33,6 +33,7 @@ export async function GET(
     const search = searchParams.get('search') || '';
     const subServiceId = searchParams.get('subServiceId') || '';
     const status = searchParams.get('status') || '';
+    const locationId = searchParams.get('locationId') || '';
 
     // Find the service by slug
     const service = await prisma.services.findUnique({
@@ -97,6 +98,16 @@ export async function GET(
       where.isActive = false;
     }
 
+    // Filter by location if specified
+    if (locationId) {
+      where.vehicle_model_locations = {
+        some: {
+          locationId: locationId,
+          isActive: true,
+        },
+      };
+    }
+
     // Fetch vehicle models for this service
     const [vehicles, total] = await Promise.all([
       prisma.vehicle_models.findMany({
@@ -106,6 +117,9 @@ export async function GET(
             select: { id: true, name: true, slug: true, logo: true },
           },
           services_vehicle_models_subServiceIdToservices: {
+            select: { id: true, name: true, slug: true },
+          },
+          chauffeur_vehicle_categories: {
             select: { id: true, name: true, slug: true },
           },
           vehicle_model_locations: {
@@ -165,6 +179,10 @@ export async function GET(
       // Priority 3: Check category mapping
       else if (v.subServiceId && categoryMap.has(v.subServiceId)) {
         categoryName = categoryMap.get(v.subServiceId)!.name;
+      }
+      // Priority 4: Check chauffeur category relation
+      else if ((v as any).chauffeur_vehicle_categories?.name) {
+        categoryName = (v as any).chauffeur_vehicle_categories.name;
       }
 
       return {

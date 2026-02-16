@@ -57,7 +57,7 @@ export async function GET(
         vehicleModelId: quoteRequest.vehicleModelId,
         vehicleModelName: quoteRequest.vehicleModelName,
         vehicleBrand: quoteRequest.vehicleBrand,
-        chauffeur_vehicle_categories: quoteRequest.vehicle_category,
+        chauffeur_vehicle_categories: quoteRequest.vehicleCategory,
         vehicleCategoryName: quoteRequest.vehicleCategoryName,
         vehicleType: quoteRequest.vehicleType,
         transmission: quoteRequest.transmission,

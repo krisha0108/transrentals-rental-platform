@@ -108,55 +108,75 @@ export default async function TransporterLocationPage({ params }: PageProps) {
     );
   }
 
-  // Fetch trucks/transporters from database (ALL_INDIA type vehicles)
-  const dbVehicles = await getAllIndiaFleet(
-    ['truck', 'transporter', 'Truck Rental', 'Transporter', 'Truck', 'Mini Truck']
-  );
+  // Fetch trucks/transporters from database (filtered by service and location)
+  const service = await prisma.services.findUnique({
+    where: { slug: 'transporter' },
+    select: { id: true }
+  });
 
-  // Fallback mock data if database is empty
-  const fallbackVehicles = [
-    {
-      id: '1',
-      name: '7-Ton Mini Truck',
-      slug: '7-ton-mini-truck',
-      brand: 'Tata',
-      image: '/images/fleet/tempo-traveller-17-seater.jpg',
-      price: 3999,
-      rating: 4.7,
-      features: [],
-      specs: {},
-      vehicleType: 'Mini Truck',
-      availabilityType: 'ALL_INDIA',
-    },
-    {
-      id: '2',
-      name: '14-Ton Medium Truck',
-      slug: '14-ton-medium-truck',
-      brand: 'Ashok Leyland',
-      image: '/images/fleet/force-traveller-12-seater.jpg',
-      price: 5999,
-      rating: 4.8,
-      features: [],
-      specs: {},
-      vehicleType: 'Medium Truck',
-      availabilityType: 'ALL_INDIA',
-    },
-    {
-      id: '3',
-      name: '32-Ton Heavy Truck',
-      slug: '32-ton-heavy-truck',
-      brand: 'Bharat Benz',
-      image: '/images/fleet/luxury-bus-45-seater.jpg',
-      price: 8999,
-      rating: 4.9,
-      features: [],
-      specs: {},
-      vehicleType: 'Heavy Truck',
-      availabilityType: 'ALL_INDIA',
-    },
-  ];
+  const location = await prisma.locations.findUnique({
+    where: { slug: params.location },
+    select: { id: true }
+  });
 
-  const vehicles = dbVehicles.length > 0 ? dbVehicles : fallbackVehicles;
+  let dbVehicles: any[] = [];
+  if (service && location) {
+    const vehiclesData = await prisma.vehicle_models.findMany({
+      where: {
+        serviceId: service.id,
+        isActive: true,
+        vehicle_model_locations: {
+          some: {
+            locationId: location.id,
+            isActive: true
+          }
+        }
+      },
+      include: {
+        brands: true,
+        vehicle_model_locations: {
+          where: {
+            locationId: location.id
+          }
+        }
+      },
+      orderBy: { displayOrder: 'asc' }
+    });
+
+    dbVehicles = vehiclesData.map(v => {
+      // Parse specs safely
+      let specsObj: any = {};
+      if (v.specs) {
+        try {
+          specsObj = typeof v.specs === 'string' ? JSON.parse(v.specs) : v.specs;
+        } catch (e) {
+          console.error('[transporter] Failed to parse specs:', e);
+        }
+      }
+
+      // Format specs for VehicleGrid (expects Record<string, string>)
+      const displaySpecs: Record<string, string> = {};
+      if (v.fuelType) displaySpecs.fuel = v.fuelType;
+      if (v.transmission) displaySpecs.transmission = v.transmission;
+      if (v.seatingCapacity) displaySpecs.seating = `${v.seatingCapacity} Seats`;
+      if (v.mileage) displaySpecs.mileage = v.mileage;
+      if (v.engineCC) displaySpecs.engine = `${v.engineCC} CC`;
+
+      return {
+        id: v.id,
+        name: v.name,
+        slug: v.slug,
+        brand: v.brands?.name || 'Tata',
+        image: v.sideImage || '/images/fleet/honda-city.jpg',
+        price: v.vehicle_model_locations[0]?.basePricePerDay || v.basePricePerDay || 3999,
+        rating: v.rating || 4.7,
+        features: Array.isArray(v.features) ? v.features : [],
+        specs: displaySpecs,
+      };
+    });
+  }
+
+  const vehicles = dbVehicles;
 
   return (
     <div className="flex flex-col">

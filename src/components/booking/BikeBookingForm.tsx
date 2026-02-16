@@ -188,15 +188,14 @@ export function BikeBookingForm() {
         {/* Progress Line */}
         <div className="absolute top-5 left-0 right-0 h-1 bg-gray-200 -z-10"></div>
         <div className={`absolute top-5 left-0 h-1 bg-primary transition-all -z-10`}
-             style={{ width: `${((currentStep - 1) / 2) * 100}%` }}></div>
+          style={{ width: `${((currentStep - 1) / 2) * 100}%` }}></div>
 
         {/* Steps */}
         <div className="flex items-start justify-between">
           {[1, 2, 3].map((step) => (
             <div key={step} className="flex flex-col items-center" style={{ width: '33.33%' }}>
-              <div className={`flex items-center justify-center w-10 h-10 rounded-full font-bold transition-all ${
-                currentStep >= step ? 'bg-primary text-white' : 'bg-gray-200 text-gray-500'
-              }`}>
+              <div className={`flex items-center justify-center w-10 h-10 rounded-full font-bold transition-all ${currentStep >= step ? 'bg-primary text-white' : 'bg-gray-200 text-gray-500'
+                }`}>
                 {currentStep > step ? <Check className="w-5 h-5" /> : step}
               </div>
               <span className={`text-sm mt-2 text-center ${currentStep >= step ? 'text-primary font-medium' : 'text-gray-500'}`}>
@@ -273,11 +272,10 @@ export function BikeBookingForm() {
                     key={bike.id}
                     type="button"
                     onClick={() => updateFormData('bikeType', bike.id)}
-                    className={`p-4 border-2 rounded-xl text-left transition-all ${
-                      formData.bikeType === bike.id
+                    className={`p-4 border-2 rounded-xl text-left transition-all ${formData.bikeType === bike.id
                         ? 'border-primary bg-primary/5 shadow-md'
                         : 'border-gray-200 hover:border-primary/50'
-                    }`}
+                      }`}
                   >
                     <div className="text-2xl mb-2">{bike.icon}</div>
                     <div className="font-semibold text-gray-900 text-sm">{bike.name}</div>
@@ -296,11 +294,10 @@ export function BikeBookingForm() {
                     key={duration.id}
                     type="button"
                     onClick={() => updateFormData('duration', duration.id)}
-                    className={`p-4 border-2 rounded-xl text-center transition-all ${
-                      formData.duration === duration.id
+                    className={`p-4 border-2 rounded-xl text-center transition-all ${formData.duration === duration.id
                         ? 'border-primary bg-primary/5 shadow-md'
                         : 'border-gray-200 hover:border-primary/50'
-                    }`}
+                      }`}
                   >
                     <div className="text-2xl mb-1">{duration.icon}</div>
                     <div className="font-semibold text-gray-900 text-sm">{duration.name}</div>
@@ -410,9 +407,8 @@ export function BikeBookingForm() {
                   value={formData.name}
                   onChange={(e) => updateFormData('name', e.target.value)}
                   placeholder="Enter your full name"
-                  className={`w-full px-4 py-3 border-2 rounded-lg focus:border-primary focus:outline-none transition-colors ${
-                    isAuthenticated ? 'bg-green-50 border-green-200' : 'border-gray-200'
-                  }`}
+                  className={`w-full px-4 py-3 border-2 rounded-lg focus:border-primary focus:outline-none transition-colors ${isAuthenticated ? 'bg-green-50 border-green-200' : 'border-gray-200'
+                    }`}
                   required
                 />
               </div>
@@ -427,9 +423,8 @@ export function BikeBookingForm() {
                   value={formData.email}
                   onChange={(e) => updateFormData('email', e.target.value)}
                   placeholder="your.email@example.com"
-                  className={`w-full px-4 py-3 border-2 rounded-lg focus:border-primary focus:outline-none transition-colors ${
-                    isAuthenticated ? 'bg-green-50 border-green-200' : 'border-gray-200'
-                  }`}
+                  className={`w-full px-4 py-3 border-2 rounded-lg focus:border-primary focus:outline-none transition-colors ${isAuthenticated ? 'bg-green-50 border-green-200' : 'border-gray-200'
+                    }`}
                   required
                 />
               </div>
@@ -443,10 +438,9 @@ export function BikeBookingForm() {
                   type="tel"
                   value={formData.phone}
                   onChange={(e) => updateFormData('phone', e.target.value)}
-                  placeholder="+91 98765 43210"
-                  className={`w-full px-4 py-3 border-2 rounded-lg focus:border-primary focus:outline-none transition-colors ${
-                    isAuthenticated ? 'bg-green-50 border-green-200' : 'border-gray-200'
-                  }`}
+                  placeholder="+91 9737965551"
+                  className={`w-full px-4 py-3 border-2 rounded-lg focus:border-primary focus:outline-none transition-colors ${isAuthenticated ? 'bg-green-50 border-green-200' : 'border-gray-200'
+                    }`}
                   required
                 />
               </div>

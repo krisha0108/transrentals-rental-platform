@@ -30,7 +30,7 @@ const mockAvailableVehicles = [
     vendorName: 'Krishna Travels',
     vendorRating: 4.7,
     vendorTrips: 234,
-    vendorPhone: '+91 98765 43210',
+    vendorPhone: '+91 9737965551',
     vehicleType: 'Tempo Traveller',
     vehicle_models: 'Force Traveller 12-Seater',
     registrationNumber: 'MH04XX1234',
@@ -56,7 +56,7 @@ const mockAvailableVehicles = [
     vendorName: 'Sharma Transport',
     vendorRating: 4.5,
     vendorTrips: 156,
-    vendorPhone: '+91 98765 43211',
+    vendorPhone: '+91 9737965551',
     vehicleType: 'Mini Truck',
     vehicle_models: 'Tata Ace Gold',
     registrationNumber: 'MH12YY5678',
@@ -268,6 +268,7 @@ export default function BrowseVehiclesPage() {
             className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           >
             <option value="all">All Vehicle Types</option>
+            <option value="1">Rajesh Kumar (+91 9737965551)</option>
             <option value="Sedan">Sedan</option>
             <option value="SUV">SUV</option>
             <option value="Tempo Traveller">Tempo Traveller</option>

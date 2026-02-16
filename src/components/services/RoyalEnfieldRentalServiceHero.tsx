@@ -32,7 +32,7 @@ export function RoyalEnfieldRentalServiceHero() {
               </h1>
 
               <p className="text-xl md:text-2xl mb-8 text-orange-100">
-                Starting @₹599/day
+                Starting from ₹599
               </p>
 
               <div className="space-y-4 mb-8">

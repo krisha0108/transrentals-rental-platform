@@ -70,7 +70,7 @@ const MOCK_BOOKING = {
   features: ['AC', 'Panoramic Sunroof', 'ADAS', 'Ventilated Seats', 'Touchscreen'],
   vendorId: null as string | null,
   vendorName: 'CarZone Mumbai',
-  vendorPhone: '+91 98765 43210',
+  vendorPhone: '+91 9737965551',
   vendorEmail: 'contact@carzonemumbai.com',
   vendorAddress: 'Shop 12, Andheri West, Mumbai - 400053',
   vendorRating: 4.8,
@@ -912,7 +912,7 @@ export default function CarBookingDetailPage() {
             Our support team is available 24/7
           </p>
           <a
-            href="tel:+919876543210"
+            href="tel:+919737965551"
             className="inline-flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition"
           >
             <Phone className="w-5 h-5" />

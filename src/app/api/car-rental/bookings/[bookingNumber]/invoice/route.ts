@@ -133,12 +133,11 @@ export async function GET(
       <div class="info-box">
         <label>Booking Status</label>
         <p>
-          <span class="status ${
-            booking.status === 'COMPLETED' ? 'status-completed' :
-            booking.status === 'CANCELLED' ? 'status-cancelled' :
-            ['ACCEPTED', 'DRIVER_ASSIGNED', 'IN_PROGRESS'].includes(booking.status) ? 'status-confirmed' :
+          <span class="status ${booking.status === 'COMPLETED' ? 'status-completed' :
+        booking.status === 'CANCELLED' ? 'status-cancelled' :
+          ['ACCEPTED', 'DRIVER_ASSIGNED', 'IN_PROGRESS'].includes(booking.status) ? 'status-confirmed' :
             'status-pending'
-          }">
+      }">
             ${booking.status.replace(/_/g, ' ')}
           </span>
         </p>
@@ -249,7 +248,7 @@ export async function GET(
 
     <div class="footer">
       <p style="margin-bottom: 10px;">Thank you for choosing TransRentals!</p>
-      <p>For support, contact us at support@transrentals.in | +91 9876543210</p>
+      <p>For support, contact us at support@transrentals.in | +91 9737965551</p>
       <p style="margin-top: 15px; font-size: 11px; color: #999;">
         This is a computer-generated invoice and does not require a signature.
       </p>

@@ -52,6 +52,11 @@ interface VehicleDetails {
     name: string;
     slug: string;
   } | null;
+  chauffeur_vehicle_categories?: {
+    id: string;
+    name: string;
+    slug: string;
+  } | null;
   vehicle_model_locations?: Array<{
     id: string;
     basePricePerDay: number | null;
@@ -177,9 +182,9 @@ export default function VehicleViewPage() {
             Inactive
           </span>
         )}
-        {vehicle.services_vehicle_models_subServiceIdToservices && (
+        {(vehicle.services_vehicle_models_subServiceIdToservices || vehicle.chauffeur_vehicle_categories) && (
           <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm">
-            {vehicle.services_vehicle_models_subServiceIdToservices.name}
+            {vehicle.services_vehicle_models_subServiceIdToservices?.name || vehicle.chauffeur_vehicle_categories?.name}
           </span>
         )}
       </div>
@@ -305,7 +310,11 @@ export default function VehicleViewPage() {
               </div>
               <div className="flex items-center justify-between py-2 border-b">
                 <span className="text-gray-600">Category</span>
-                <span className="font-medium">{vehicle.services_vehicle_models_subServiceIdToservices?.name || 'Uncategorized'}</span>
+                <span className="font-medium">
+                  {vehicle.services_vehicle_models_subServiceIdToservices?.name ||
+                    vehicle.chauffeur_vehicle_categories?.name ||
+                    'Uncategorized'}
+                </span>
               </div>
               <div className="flex items-center justify-between py-2 border-b">
                 <span className="text-gray-600">Locations</span>

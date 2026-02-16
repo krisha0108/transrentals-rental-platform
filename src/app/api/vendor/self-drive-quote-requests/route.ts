@@ -201,7 +201,7 @@ export async function GET(request: NextRequest) {
         requestNumber: r.requestNumber,
         vehicleModelName: r.vehicleModelName,
         vehicleBrand: r.vehicleBrand,
-        chauffeur_vehicle_categories: r.vehicle_category,
+        vehicleCategory: r.vehicleCategory,
         vehicleCategoryName: r.vehicleCategoryName,
         vehicleType: r.vehicleType,
         transmission: r.transmission,

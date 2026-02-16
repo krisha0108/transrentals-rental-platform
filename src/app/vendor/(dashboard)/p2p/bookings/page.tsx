@@ -30,7 +30,7 @@ const mockAvailableBookings = [
     vendorName: 'Shree Tours & Travels',
     vendorRating: 4.6,
     vendorTrips: 189,
-    vendorPhone: '+91 98765 43210',
+    vendorPhone: '+91 9737965551',
     bookingType: 'Pilgrimage Tour',
     vehicleRequired: 'Bus (45-Seater)',
     route: {
@@ -467,7 +467,7 @@ export default function BrowseBookingsPage() {
                 </label>
                 <select className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500">
                   <option value="">Select driver</option>
-                  <option value="1">Rajesh Kumar (+91 98765 43210)</option>
+                  <option value="1">Rajesh Kumar (+91 9737965551)</option>
                   <option value="2">Suresh Patil (+91 98765 43211)</option>
                 </select>
               </div>

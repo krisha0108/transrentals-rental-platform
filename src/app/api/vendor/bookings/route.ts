@@ -44,7 +44,7 @@ function getSampleBookings() {
       id: 'BK001',
       bookingNumber: 'TR2024120001',
       customerName: 'Rahul Sharma',
-      customerPhone: '+91 98765 43210',
+      customerPhone: '+91 9737965551',
       customerEmail: 'rahul@example.com',
       vehicleType: 'SUV',
       vehicleName: 'Toyota Fortuner',

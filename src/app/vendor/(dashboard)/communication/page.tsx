@@ -52,7 +52,7 @@ Driver Details:
 Total: ₹{amount}
 
 Thank you for choosing TransRentals!
-For support: +91 98765 43210`,
+For support: +91 9737965551`,
     variables: ['customer_name', 'booking_id', 'vehicle_type', 'pickup_location', 'date', 'time', 'driver_name', 'driver_phone', 'amount'],
     usageCount: 245,
   },
@@ -135,7 +135,7 @@ Valid until: {valid_until}
 To confirm, reply YES or call us.
 
 TransRentals
-📞 +91 98765 43210`,
+📞 +91 9737965551`,
     variables: ['customer_name', 'quote_id', 'service', 'route', 'date', 'amount', 'valid_until'],
     usageCount: 134,
   },
@@ -189,7 +189,7 @@ TransRentals`,
 
 // Recent communications
 const recentMessages = [
-  { id: 1, customer: 'Rajesh Kumar', phone: '+91 98765 43210', template: 'Booking Confirmation', sentAt: '2024-01-18 10:30', status: 'delivered', channel: 'whatsapp' },
+  { id: 1, customer: 'Rajesh Kumar', phone: '+91 9737965551', template: 'Booking Confirmation', sentAt: '2024-01-18 10:30', status: 'delivered', channel: 'whatsapp' },
   { id: 2, customer: 'Priya Sharma', phone: '+91 87654 32109', template: 'Payment Reminder', sentAt: '2024-01-18 09:15', status: 'read', channel: 'whatsapp' },
   { id: 3, customer: 'Tech Solutions', phone: '+91 54321 09876', template: 'Quotation Sent', sentAt: '2024-01-17 16:45', status: 'delivered', channel: 'whatsapp' },
   { id: 4, customer: 'Mohammed Ali', phone: '+91 76543 21098', template: 'Trip Started', sentAt: '2024-01-17 14:20', status: 'delivered', channel: 'sms' },
@@ -306,11 +306,10 @@ export default function CommunicationPage() {
           <button
             key={tab.id}
             onClick={() => setSelectedTab(tab.id)}
-            className={`px-4 py-2 rounded-lg flex items-center gap-2 transition ${
-              selectedTab === tab.id
+            className={`px-4 py-2 rounded-lg flex items-center gap-2 transition ${selectedTab === tab.id
                 ? 'bg-blue-600 text-white'
                 : 'text-gray-600 hover:bg-gray-100'
-            }`}
+              }`}
           >
             <tab.icon className="w-4 h-4" />
             {tab.label}
@@ -338,11 +337,10 @@ export default function CommunicationPage() {
                 <button
                   key={cat}
                   onClick={() => setCategoryFilter(cat)}
-                  className={`px-3 py-2 rounded-lg text-sm transition ${
-                    categoryFilter === cat
+                  className={`px-3 py-2 rounded-lg text-sm transition ${categoryFilter === cat
                       ? 'bg-blue-600 text-white'
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
+                    }`}
                 >
                   {cat === 'all' ? 'All' : cat}
                 </button>
@@ -359,9 +357,8 @@ export default function CommunicationPage() {
                     <div>
                       <h3 className="font-semibold text-gray-900">{template.name}</h3>
                       <div className="flex items-center gap-2 mt-1">
-                        <span className={`px-2 py-0.5 rounded text-xs font-medium ${
-                          template.channel === 'whatsapp' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'
-                        }`}>
+                        <span className={`px-2 py-0.5 rounded text-xs font-medium ${template.channel === 'whatsapp' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'
+                          }`}>
                           {template.channel === 'whatsapp' ? 'WhatsApp' : 'SMS'}
                         </span>
                         <span className="text-xs text-gray-500">{template.category}</span>
@@ -435,9 +432,8 @@ export default function CommunicationPage() {
                     </td>
                     <td className="px-4 py-3 text-gray-700">{msg.template}</td>
                     <td className="px-4 py-3">
-                      <span className={`px-2 py-0.5 rounded text-xs font-medium ${
-                        msg.channel === 'whatsapp' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'
-                      }`}>
+                      <span className={`px-2 py-0.5 rounded text-xs font-medium ${msg.channel === 'whatsapp' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'
+                        }`}>
                         {msg.channel === 'whatsapp' ? 'WhatsApp' : 'SMS'}
                       </span>
                     </td>
@@ -466,9 +462,8 @@ export default function CommunicationPage() {
           {scheduledMessages.map(msg => (
             <div key={msg.id} className="bg-white rounded-xl border border-gray-200 p-4 flex items-center justify-between">
               <div className="flex items-center gap-4">
-                <div className={`p-3 rounded-lg ${
-                  msg.channel === 'whatsapp' ? 'bg-green-100' : 'bg-blue-100'
-                }`}>
+                <div className={`p-3 rounded-lg ${msg.channel === 'whatsapp' ? 'bg-green-100' : 'bg-blue-100'
+                  }`}>
                   {msg.channel === 'whatsapp' ? (
                     <MessageSquare className="w-5 h-5 text-green-600" />
                   ) : (
@@ -587,7 +582,7 @@ export default function CommunicationPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Recipient Phone</label>
                 <input
                   type="tel"
-                  placeholder="+91 98765 43210"
+                  placeholder="+91 9737965551"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 />
               </div>

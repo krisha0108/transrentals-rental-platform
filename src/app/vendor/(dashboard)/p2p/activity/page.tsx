@@ -35,7 +35,7 @@ const mockActivity = [
     partnerVendor: {
       name: 'Royal Weddings',
       rating: 4.9,
-      phone: '+91 98765 43210',
+      phone: '+91 9737965551',
     },
     vehicle: 'Mercedes E-Class',
     amount: 15000,
@@ -56,7 +56,7 @@ const mockActivity = [
     partnerVendor: {
       name: 'Metro Tours',
       rating: 4.6,
-      phone: '+91 98765 43211',
+      phone: '+91 9737965551',
     },
     vehicle: 'Force Traveller 12-Seater',
     amount: 3000,
@@ -361,20 +361,18 @@ export default function P2PActivityPage() {
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex items-start gap-4">
                     {/* Icon */}
-                    <div className={`p-3 rounded-lg ${
-                      activity.type === 'vehicle_shared' ? 'bg-blue-100' :
+                    <div className={`p-3 rounded-lg ${activity.type === 'vehicle_shared' ? 'bg-blue-100' :
                       activity.type === 'booking_received' ? 'bg-green-100' : 'bg-purple-100'
-                    }`}>
+                      }`}>
                       {getActivityIcon(activity.type, activity.direction)}
                     </div>
 
                     {/* Details */}
                     <div>
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className={`px-2 py-0.5 rounded text-xs font-medium ${
-                          activity.type === 'vehicle_shared' ? 'bg-blue-100 text-blue-700' :
+                        <span className={`px-2 py-0.5 rounded text-xs font-medium ${activity.type === 'vehicle_shared' ? 'bg-blue-100 text-blue-700' :
                           activity.type === 'booking_received' ? 'bg-green-100 text-green-700' : 'bg-purple-100 text-purple-700'
-                        }`}>
+                          }`}>
                           {getActivityLabel(activity.type)}
                         </span>
                         <span className={`px-2 py-0.5 rounded-full text-xs font-medium flex items-center gap-1 ${status.bg} ${status.text}`}>
@@ -418,11 +416,10 @@ export default function P2PActivityPage() {
                             {[1, 2, 3, 4, 5].map((star) => (
                               <Star
                                 key={star}
-                                className={`w-4 h-4 ${
-                                  star <= activity.customerRating
-                                    ? 'text-yellow-500 fill-current'
-                                    : 'text-gray-300'
-                                }`}
+                                className={`w-4 h-4 ${star <= activity.customerRating
+                                  ? 'text-yellow-500 fill-current'
+                                  : 'text-gray-300'
+                                  }`}
                               />
                             ))}
                           </div>
@@ -439,10 +436,9 @@ export default function P2PActivityPage() {
                       ) : (
                         <ArrowUpRight className="w-4 h-4 text-blue-500" />
                       )}
-                      <span className={`text-lg font-bold ${
-                        activity.status === 'cancelled' ? 'text-gray-400 line-through' :
+                      <span className={`text-lg font-bold ${activity.status === 'cancelled' ? 'text-gray-400 line-through' :
                         activity.direction === 'incoming' ? 'text-green-600' : 'text-blue-600'
-                      }`}>
+                        }`}>
                         {formatCurrency(activity.netAmount)}
                       </span>
                     </div>

@@ -28,6 +28,7 @@ export async function GET(
         brands: true,
         services_vehicle_models_serviceIdToservices: true,
         services_vehicle_models_subServiceIdToservices: true,
+        chauffeur_vehicle_categories: true,
         vehicle_model_locations: {
           include: {
             locations: {

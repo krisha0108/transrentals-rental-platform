@@ -88,7 +88,7 @@ const SAMPLE_REQUEST: QuoteRequest = {
   pickupTime: '05:00',
   pickupAddress: 'Karol Bagh Metro Station',
   customerName: 'Sharma Family',
-  customerPhone: '9876543210',
+  customerPhone: '9737965551',
   specialRequirements: 'Need pushback seats, early morning pickup',
 };
 
@@ -466,11 +466,10 @@ export default function SendQuotePage() {
                 key={template.id}
                 type="button"
                 onClick={() => selectTemplate(template)}
-                className={`p-4 rounded-lg border-2 text-left transition ${
-                  selectedTemplateId === template.id
+                className={`p-4 rounded-lg border-2 text-left transition ${selectedTemplateId === template.id
                     ? 'border-orange-500 bg-orange-50'
                     : 'border-gray-200 hover:border-orange-300'
-                }`}
+                  }`}
               >
                 <div className="flex items-center justify-between mb-1">
                   <h3 className="font-semibold text-gray-900">{template.name}</h3>

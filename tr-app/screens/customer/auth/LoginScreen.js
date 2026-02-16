@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useRef } from "react";
-import { 
-  View, 
-  Text, 
-  TextInput, 
-  TouchableOpacity, 
-  StyleSheet, 
-  SafeAreaView, 
-  Alert, 
-  Image, 
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  SafeAreaView,
+  Alert,
+  Image,
   ActivityIndicator,
   Animated,
   Easing,
@@ -21,6 +21,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import messaging from '@react-native-firebase/messaging';
 import Icon from 'react-native-vector-icons/Feather';
 import { authService } from '../../services';
+import { LoginSuccessModal } from '../../../components/CustomModals';
 
 const { width, height } = Dimensions.get('window');
 
@@ -35,6 +36,8 @@ export default function LoginScreen({ navigation }) {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [passwordVisible, setPasswordVisible] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [loggedInUserName, setLoggedInUserName] = useState('');
 
   // Animation values
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -147,8 +150,8 @@ export default function LoginScreen({ navigation }) {
           console.log('Error sending FCM token to backend:', err.message);
         }
 
-        Alert.alert("Success", response.message || "Login successful!");
-        navigation.replace("CustomerDashboard");
+        setLoggedInUserName(response.customers.name || 'User');
+        setShowSuccessModal(true);
       } else {
         Alert.alert("Error", response.message || "Login failed");
       }
@@ -190,8 +193,8 @@ export default function LoginScreen({ navigation }) {
           console.log('Error sending FCM token to backend:', err.message);
         }
 
-        Alert.alert("Success", "Login successful!");
-        navigation.replace("CustomerDashboard");
+        setLoggedInUserName(response.customers.name || 'User');
+        setShowSuccessModal(true);
       } else {
         Alert.alert("Error", response.message || "Google login failed");
       }
@@ -223,6 +226,11 @@ export default function LoginScreen({ navigation }) {
       toValue: 1,
       useNativeDriver: true,
     }).start();
+  };
+
+  const handleSuccessModalClose = () => {
+    setShowSuccessModal(false);
+    navigation.replace("CustomerDashboard");
   };
 
   return (
@@ -444,6 +452,13 @@ export default function LoginScreen({ navigation }) {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* Success Modal */}
+      <LoginSuccessModal
+        visible={showSuccessModal}
+        onClose={handleSuccessModalClose}
+        userName={loggedInUserName}
+      />
     </SafeAreaView>
   );
 }

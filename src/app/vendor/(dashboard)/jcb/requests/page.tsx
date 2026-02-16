@@ -44,7 +44,7 @@ const SAMPLE_REQUESTS: QuoteRequest[] = [
     siteLocation: 'Plot No. 45, Industrial Area',
     city: 'Faridabad',
     customerName: 'ABC Builders',
-    customerPhone: '9876543210',
+    customerPhone: '9737965551',
     specialRequirements: 'Foundation digging for residential building',
     quotesReceived: 3,
     createdAt: new Date(Date.now() - 2 * 3600000).toISOString(),
@@ -130,15 +130,13 @@ export default function VendorJCBRequestsPage() {
             <button
               key={f.value}
               onClick={() => setFilter(f.value)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
-                filter === f.value ? 'bg-white text-yellow-600 shadow-sm' : 'text-gray-600'
-              }`}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition ${filter === f.value ? 'bg-white text-yellow-600 shadow-sm' : 'text-gray-600'
+                }`}
             >
               {f.label}
               {f.count > 0 && (
-                <span className={`ml-1.5 px-1.5 py-0.5 rounded-full text-xs ${
-                  filter === f.value ? 'bg-yellow-100 text-yellow-600' : 'bg-gray-200'
-                }`}>
+                <span className={`ml-1.5 px-1.5 py-0.5 rounded-full text-xs ${filter === f.value ? 'bg-yellow-100 text-yellow-600' : 'bg-gray-200'
+                  }`}>
                   {f.count}
                 </span>
               )}
@@ -156,16 +154,14 @@ export default function VendorJCBRequestsPage() {
         ) : (
           filteredRequests.map((request) => (
             <div key={request.id} className="bg-white rounded-xl shadow-sm border overflow-hidden">
-              <div className={`px-4 py-2 flex items-center justify-between ${
-                request.hasQuoted ? 'bg-green-50' : 'bg-yellow-50'
-              }`}>
+              <div className={`px-4 py-2 flex items-center justify-between ${request.hasQuoted ? 'bg-green-50' : 'bg-yellow-50'
+                }`}>
                 <div className="flex items-center gap-2">
                   <span className="font-mono text-sm text-gray-700">#{request.inquiryNumber}</span>
                   <span className="text-xs text-gray-500">{getTimeAgo(request.createdAt)}</span>
                 </div>
-                <span className={`px-2 py-0.5 text-xs font-medium rounded-full flex items-center gap-1 ${
-                  request.hasQuoted ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
-                }`}>
+                <span className={`px-2 py-0.5 text-xs font-medium rounded-full flex items-center gap-1 ${request.hasQuoted ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
+                  }`}>
                   {request.hasQuoted ? <CheckCircle className="w-3 h-3" /> : <AlertCircle className="w-3 h-3" />}
                   {request.hasQuoted ? 'Quoted' : 'New'}
                 </span>

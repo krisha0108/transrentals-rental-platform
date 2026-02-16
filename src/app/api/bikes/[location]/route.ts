@@ -166,6 +166,9 @@ export async function GET(
     const aggregatedBikes: AggregatedBike[] = [];
 
     for (const model of vehicleModels) {
+      // Check if this model is assigned to this location
+      const hasLocationAssignment = model.vehicle_model_locations && model.vehicle_model_locations.length > 0;
+
       // Use admin's pricing from vehicle_model_locations (if exists) or vehicle_models table
       const locationSpecificPrice = model.vehicle_model_locations[0]?.basePricePerDay;
       const basePrice = locationSpecificPrice || model.basePricePerDay || 0;
@@ -176,7 +179,7 @@ export async function GET(
       }
 
       // Count how many vendors have added this bike model at this location
-      // (Only count, don't fetch pricing - we only show admin price)
+      // Only count fleets that are EXPLICITLY assigned to this location
       const vendorFleetCount = await prisma.vendor_fleets.count({
         where: {
           vehicleModelId: model.id,
@@ -185,28 +188,30 @@ export async function GET(
           vendors: {
             status: 'APPROVED', // Only count approved vendors
           },
-          OR: [
-            {
-              vendor_fleet_locations: {
-                some: {
-                  locationId: locationData.id,
-                  isActive: true,
-                },
-              },
+          // Only show fleets explicitly assigned to this location
+          vendor_fleet_locations: {
+            some: {
+              locationId: locationData.id,
+              isActive: true,
             },
-            {
-              vendor_fleet_locations: {
-                none: {}, // Vendor available everywhere
-              },
-            },
-          ],
+          },
         },
       });
 
-      // Display vendor count: Minimum 1 (even if 0 vendors added)
-      // If 0 vendors added → show 1
-      // If 1 vendor added → show 1
-      // If 2 vendors added → show 2
+      // Debug logging
+      console.log(`[Bikes API] Model: ${model.name}, Location: ${locationData.name}, VendorFleetCount: ${vendorFleetCount}, HasLocationAssignment: ${hasLocationAssignment}, LocationPrice: ${locationSpecificPrice}, BasePrice: ${basePrice}`);
+
+      // Skip this bike model ONLY if:
+      // - No vendor fleets are assigned to this location AND
+      // - Model is NOT assigned to this location by admin
+      // Show if: vendorFleetCount > 0 OR hasLocationAssignment = true
+      if (vendorFleetCount === 0 && !hasLocationAssignment) {
+        console.log(`[Bikes API] Skipping ${model.name} - no fleets or location assignment for this location`);
+        continue;
+      }
+
+      // Display vendor count: Show at least 1 if we're displaying the bike
+      // (If vendorFleetCount is 0 but locationSpecificPrice exists, show as 1)
       const displayVendorCount = Math.max(1, vendorFleetCount);
 
       // Only admin price is shown to customer (no vendor pricing)

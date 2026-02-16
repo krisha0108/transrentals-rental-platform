@@ -67,7 +67,7 @@ const mockVehicles: VehicleLocation[] = [
   {
     id: 'V001',
     vehicle: { name: 'Toyota Innova', number: 'KA-01-AB-1234', type: 'SUV' },
-    driver: { name: 'Ramesh Kumar', phone: '+91 98765 43210' },
+    driver: { name: 'Ramesh Kumar', phone: '+91 9737965551' },
     location: {
       lat: 12.9716,
       lng: 77.5946,
@@ -93,7 +93,7 @@ const mockVehicles: VehicleLocation[] = [
   {
     id: 'V002',
     vehicle: { name: 'Maruti Swift', number: 'KA-01-CD-5678', type: 'Hatchback' },
-    driver: { name: 'Suresh Babu', phone: '+91 98765 43211' },
+    driver: { name: 'Suresh Babu', phone: '+91 9737965551' },
     location: {
       lat: 12.9352,
       lng: 77.6245,
@@ -228,9 +228,8 @@ export default function GPSTrackingPage() {
           <div className="flex items-center gap-3">
             <button
               onClick={() => setIsLiveUpdating(!isLiveUpdating)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg ${
-                isLiveUpdating ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'
-              }`}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg ${isLiveUpdating ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'
+                }`}
             >
               {isLiveUpdating ? <Play className="w-4 h-4" /> : <Pause className="w-4 h-4" />}
               {isLiveUpdating ? 'Live' : 'Paused'}
@@ -285,7 +284,7 @@ export default function GPSTrackingPage() {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
               <input
                 type="text"
-                placeholder="Search vehicle or driver..."
+                placeholder="+91 9737965551"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -310,9 +309,8 @@ export default function GPSTrackingPage() {
               <div
                 key={vehicle.id}
                 onClick={() => setSelectedVehicle(vehicle)}
-                className={`p-3 border-b border-gray-100 cursor-pointer hover:bg-gray-50 ${
-                  selectedVehicle?.id === vehicle.id ? 'bg-blue-50 border-l-4 border-l-blue-600' : ''
-                }`}
+                className={`p-3 border-b border-gray-100 cursor-pointer hover:bg-gray-50 ${selectedVehicle?.id === vehicle.id ? 'bg-blue-50 border-l-4 border-l-blue-600' : ''
+                  }`}
               >
                 <div className="flex items-start justify-between">
                   <div className="flex items-start gap-2">
