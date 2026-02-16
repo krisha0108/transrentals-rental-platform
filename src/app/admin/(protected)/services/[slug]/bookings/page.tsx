@@ -113,7 +113,7 @@ const mockBookings: Booking[] = [
     id: '1',
     bookingNo: 'TR-2024-001234',
     customerName: 'Rahul Sharma',
-    customerPhone: '+91 98765 43210',
+    customerPhone: '+91 9737965551',
     customerEmail: 'rahul@example.com',
     vehicleName: 'Hyundai Creta',
     services_vehicle_models_subServiceIdToservices: 'SUV',
@@ -350,13 +350,13 @@ export default function ServiceBookingsPage() {
   // Use bookings directly from API - filtering happens server-side
   const filteredBookings = search
     ? bookings.filter((booking) => {
-        const matchesSearch =
-          booking.bookingNo.toLowerCase().includes(search.toLowerCase()) ||
-          booking.customerName.toLowerCase().includes(search.toLowerCase()) ||
-          booking.customerPhone.includes(search) ||
-          booking.vehicleName.toLowerCase().includes(search.toLowerCase());
-        return matchesSearch;
-      })
+      const matchesSearch =
+        booking.bookingNo.toLowerCase().includes(search.toLowerCase()) ||
+        booking.customerName.toLowerCase().includes(search.toLowerCase()) ||
+        booking.customerPhone.includes(search) ||
+        booking.vehicleName.toLowerCase().includes(search.toLowerCase());
+      return matchesSearch;
+    })
     : bookings;
 
   const formatDate = (dateString: string) => {

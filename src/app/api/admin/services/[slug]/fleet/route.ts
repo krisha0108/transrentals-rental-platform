@@ -119,6 +119,9 @@ export async function GET(
           services_vehicle_models_subServiceIdToservices: {
             select: { id: true, name: true, slug: true },
           },
+          chauffeur_vehicle_categories: {
+            select: { id: true, name: true, slug: true },
+          },
           vehicle_model_locations: {
             where: {
               isActive: true,
@@ -176,6 +179,10 @@ export async function GET(
       // Priority 3: Check category mapping
       else if (v.subServiceId && categoryMap.has(v.subServiceId)) {
         categoryName = categoryMap.get(v.subServiceId)!.name;
+      }
+      // Priority 4: Check chauffeur category relation
+      else if ((v as any).chauffeur_vehicle_categories?.name) {
+        categoryName = (v as any).chauffeur_vehicle_categories.name;
       }
 
       return {

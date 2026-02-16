@@ -46,6 +46,8 @@ interface Booking {
   pickupTime?: string;
   dropDate?: string;
   totalAmount: number;
+  dailyRate?: number;
+  totalDays?: number;
   advancePaymentVerified: boolean;
   createdAt: string;
 }
@@ -122,13 +124,13 @@ export default function ManagerBookingsPage() {
         params.set('service', serviceFilter);
       }
 
-      const response = await fetch(`/api/manager/dashboard?${params.toString()}`);
+      const response = await fetch(`/api/manager/bookings?${params.toString()}`);
       const data = await response.json();
 
       if (data.success) {
         setBookings(data.bookings || []);
-        if (data.assignedServices) {
-          setAssignedServices(data.assignedServices);
+        if (data.services) {
+          setAssignedServices(data.services);
         }
       } else {
         setError(data.error || 'Failed to fetch bookings');
@@ -391,6 +393,15 @@ export default function ManagerBookingsPage() {
             {currentBookings.map((booking) => {
               const statusConfig = STATUS_CONFIG[booking.status] || STATUS_CONFIG.PENDING_PAYMENT;
               const ServiceIcon = SERVICE_ICONS[booking.serviceSlug || 'bike-rental'] || Bike;
+
+              // Calculate amount with fallbacks
+              const getDisplayAmount = () => {
+                if (booking.totalAmount) return booking.totalAmount;
+                if (booking.dailyRate && booking.totalDays) return booking.dailyRate * booking.totalDays;
+                return null;
+              };
+              const displayAmount = getDisplayAmount();
+
               return (
                 <Link
                   key={booking.id}
@@ -466,7 +477,7 @@ export default function ManagerBookingsPage() {
                       <div className="text-right">
                         <div className="flex items-center gap-1 text-green-600 font-bold">
                           <IndianRupee className="w-4 h-4" />
-                          {formatCurrency(booking.totalAmount).replace('₹', '')}
+                          {displayAmount ? formatCurrency(displayAmount).replace('₹', '') : 'N/A'}
                         </div>
                         <p className="text-xs text-gray-400">
                           {formatDate(booking.createdAt)}

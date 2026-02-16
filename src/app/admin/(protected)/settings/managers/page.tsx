@@ -248,9 +248,8 @@ export default function ManagersPage() {
           managers.map((item) => (
             <div
               key={item.id}
-              className={`bg-white rounded-lg border p-4 ${
-                !item.isActive ? 'opacity-60' : ''
-              }`}
+              className={`bg-white rounded-lg border p-4 ${!item.isActive ? 'opacity-60' : ''
+                }`}
             >
               <div className="flex justify-between items-start">
                 <div className="flex gap-4">
@@ -369,7 +368,7 @@ export default function ManagersPage() {
                     value={formData.phone}
                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                     className="w-full border rounded-lg px-3 py-2"
-                    placeholder="+91 9876543210"
+                    placeholder="+91 9737965551"
                   />
                 </div>
               </div>
@@ -423,9 +422,8 @@ export default function ManagersPage() {
                     locations.map((loc) => (
                       <label
                         key={loc.id}
-                        className={`flex items-center gap-2 p-2 rounded cursor-pointer hover:bg-gray-50 ${
-                          formData.locationIds.includes(loc.id) ? 'bg-blue-50' : ''
-                        }`}
+                        className={`flex items-center gap-2 p-2 rounded cursor-pointer hover:bg-gray-50 ${formData.locationIds.includes(loc.id) ? 'bg-blue-50' : ''
+                          }`}
                       >
                         <input
                           type="checkbox"
@@ -453,9 +451,8 @@ export default function ManagersPage() {
                     services.map((svc) => (
                       <label
                         key={svc.id}
-                        className={`flex items-center gap-2 p-2 rounded cursor-pointer hover:bg-gray-50 ${
-                          formData.serviceIds.includes(svc.id) ? 'bg-green-50' : ''
-                        }`}
+                        className={`flex items-center gap-2 p-2 rounded cursor-pointer hover:bg-gray-50 ${formData.serviceIds.includes(svc.id) ? 'bg-green-50' : ''
+                          }`}
                       >
                         <input
                           type="checkbox"

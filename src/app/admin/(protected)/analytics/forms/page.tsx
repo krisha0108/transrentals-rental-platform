@@ -139,7 +139,7 @@ export default function FormsAnalyticsPage() {
       { field: 'Submit', started: 720, completed: 650, dropoffRate: 9.7 },
     ],
     recentSubmissions: [
-      { id: '1', formType: 'Booking', name: 'Rahul Sharma', phone: '+91 98765 43210', email: 'rahul@email.com', page: '/activa-on-rent', status: 'completed', timestamp: '2 mins ago', completionTime: 145 },
+      { id: '1', formType: 'Booking', name: 'Rahul Sharma', phone: '+91 9737965551', email: 'rahul@email.com', page: '/activa-on-rent', status: 'completed', timestamp: '2 mins ago', completionTime: 145 },
       { id: '2', formType: 'Contact', name: 'Priya Patel', phone: '+91 87654 32109', email: 'priya@email.com', page: '/contact', status: 'completed', timestamp: '15 mins ago', completionTime: 78 },
       { id: '3', formType: 'Quick Enquiry', name: 'Amit Singh', phone: '+91 76543 21098', email: 'amit@email.com', page: '/self-drive-cars', status: 'pending', timestamp: '32 mins ago', completionTime: 52 },
       { id: '4', formType: 'Booking', name: 'Neha Gupta', phone: '+91 65432 10987', email: 'neha@email.com', page: '/activa-on-rent/mumbai', status: 'completed', timestamp: '1 hour ago', completionTime: 203 },
@@ -525,13 +525,12 @@ export default function FormsAnalyticsPage() {
                   </td>
                   <td className="py-3 px-4">
                     <span
-                      className={`px-2 py-1 text-xs font-medium rounded ${
-                        submission.status === 'completed'
+                      className={`px-2 py-1 text-xs font-medium rounded ${submission.status === 'completed'
                           ? 'bg-green-100 text-green-700'
                           : submission.status === 'pending'
-                          ? 'bg-yellow-100 text-yellow-700'
-                          : 'bg-blue-100 text-blue-700'
-                      }`}
+                            ? 'bg-yellow-100 text-yellow-700'
+                            : 'bg-blue-100 text-blue-700'
+                        }`}
                     >
                       {submission.status}
                     </span>

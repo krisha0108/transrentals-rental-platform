@@ -30,7 +30,7 @@ const invoicesData = [
   {
     id: 'INV-2024-001',
     customerName: 'Priya Sharma',
-    customerPhone: '+91 87654 32109',
+    customerPhone: '+91 9737965551',
     customerEmail: 'priya.sharma@company.com',
     customerGstin: '27AABCU9603R1ZM',
     customerAddress: 'Tech Park, Hinjewadi, Pune - 411057',
@@ -58,7 +58,7 @@ const invoicesData = [
   {
     id: 'INV-2024-002',
     customerName: 'Rajesh Kumar',
-    customerPhone: '+91 98765 43210',
+    customerPhone: '+91 9737965551',
     customerEmail: 'rajesh@email.com',
     customerGstin: '',
     customerAddress: 'Andheri West, Mumbai - 400053',

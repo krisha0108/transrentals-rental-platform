@@ -49,7 +49,7 @@ const SAMPLE_REQUESTS: QuoteRequest[] = [
     loadingDate: new Date(Date.now() + 4 * 86400000).toISOString(),
     needCrane: false,
     customerName: 'Metro Construction',
-    customerPhone: '9876543210',
+    customerPhone: '9737965551',
     specialRequirements: 'Self-loading with ramps',
     quotesReceived: 3,
     createdAt: new Date(Date.now() - 4 * 3600000).toISOString(),
@@ -66,8 +66,7 @@ const SAMPLE_REQUESTS: QuoteRequest[] = [
     toCity: 'Mumbai',
     loadingDate: new Date(Date.now() + 7 * 86400000).toISOString(),
     needCrane: true,
-    customerName: 'Steel Corp India',
-    customerPhone: '9876543211',
+    customerPhone: '9737965551',
     quotesReceived: 5,
     createdAt: new Date(Date.now() - 12 * 3600000).toISOString(),
     hasQuoted: true,
@@ -137,15 +136,13 @@ export default function VendorTrailerRequestsPage() {
             <button
               key={f.value}
               onClick={() => setFilter(f.value)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
-                filter === f.value ? 'bg-white text-slate-600 shadow-sm' : 'text-gray-600'
-              }`}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition ${filter === f.value ? 'bg-white text-slate-600 shadow-sm' : 'text-gray-600'
+                }`}
             >
               {f.label}
               {f.count > 0 && (
-                <span className={`ml-1.5 px-1.5 py-0.5 rounded-full text-xs ${
-                  filter === f.value ? 'bg-slate-100 text-slate-600' : 'bg-gray-200'
-                }`}>
+                <span className={`ml-1.5 px-1.5 py-0.5 rounded-full text-xs ${filter === f.value ? 'bg-slate-100 text-slate-600' : 'bg-gray-200'
+                  }`}>
                   {f.count}
                 </span>
               )}
@@ -163,16 +160,14 @@ export default function VendorTrailerRequestsPage() {
         ) : (
           filteredRequests.map((request) => (
             <div key={request.id} className="bg-white rounded-xl shadow-sm border overflow-hidden">
-              <div className={`px-4 py-2 flex items-center justify-between ${
-                request.hasQuoted ? 'bg-green-50' : 'bg-slate-50'
-              }`}>
+              <div className={`px-4 py-2 flex items-center justify-between ${request.hasQuoted ? 'bg-green-50' : 'bg-slate-50'
+                }`}>
                 <div className="flex items-center gap-2">
                   <span className="font-mono text-sm text-gray-700">#{request.inquiryNumber}</span>
                   <span className="text-xs text-gray-500">{getTimeAgo(request.createdAt)}</span>
                 </div>
-                <span className={`px-2 py-0.5 text-xs font-medium rounded-full flex items-center gap-1 ${
-                  request.hasQuoted ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-700'
-                }`}>
+                <span className={`px-2 py-0.5 text-xs font-medium rounded-full flex items-center gap-1 ${request.hasQuoted ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-700'
+                  }`}>
                   {request.hasQuoted ? <CheckCircle className="w-3 h-3" /> : <AlertCircle className="w-3 h-3" />}
                   {request.hasQuoted ? 'Quoted' : 'New'}
                 </span>

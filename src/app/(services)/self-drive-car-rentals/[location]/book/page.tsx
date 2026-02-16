@@ -245,9 +245,8 @@ function SelfDriveBookingPageContent() {
                     value={formData.name}
                     onChange={(e) => updateFormData('name', e.target.value)}
                     placeholder="Enter your full name"
-                    className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition ${
-                      isAuthenticated ? 'bg-green-50 border-green-200' : 'border-gray-200'
-                    }`}
+                    className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition ${isAuthenticated ? 'bg-green-50 border-green-200' : 'border-gray-200'
+                      }`}
                     required
                   />
                 </div>
@@ -262,9 +261,8 @@ function SelfDriveBookingPageContent() {
                     value={formData.email}
                     onChange={(e) => updateFormData('email', e.target.value)}
                     placeholder="your.email@example.com"
-                    className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition ${
-                      isAuthenticated ? 'bg-green-50 border-green-200' : 'border-gray-200'
-                    }`}
+                    className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition ${isAuthenticated ? 'bg-green-50 border-green-200' : 'border-gray-200'
+                      }`}
                     required
                   />
                 </div>
@@ -278,10 +276,9 @@ function SelfDriveBookingPageContent() {
                     type="tel"
                     value={formData.phone}
                     onChange={(e) => updateFormData('phone', e.target.value)}
-                    placeholder="+91 98765 43210"
-                    className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition ${
-                      isAuthenticated ? 'bg-green-50 border-green-200' : 'border-gray-200'
-                    }`}
+                    placeholder="+91 9737965551"
+                    className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition ${isAuthenticated ? 'bg-green-50 border-green-200' : 'border-gray-200'
+                      }`}
                     required
                   />
                 </div>

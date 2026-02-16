@@ -1,8 +1,8 @@
 const whatsappRaw =
-  process.env.NEXT_PUBLIC_WHATSAPP_NUMBER?.trim() || '+91 98765 43210';
+  process.env.NEXT_PUBLIC_WHATSAPP_NUMBER?.trim() || '+91 9737965551';
 const WHATSAPP_DIGITS = whatsappRaw.replace(/\D+/g, '');
 const contactPhoneRaw =
-  process.env.NEXT_PUBLIC_CONTACT_PHONE?.trim() || '+91 98765 43210';
+  process.env.NEXT_PUBLIC_CONTACT_PHONE?.trim() || '+91 9737965551';
 const CONTACT_PHONE_DIGITS = contactPhoneRaw.replace(/\D+/g, '');
 const contactEmailRaw =
   process.env.NEXT_PUBLIC_CONTACT_EMAIL?.trim() || 'support@transrentals.in';

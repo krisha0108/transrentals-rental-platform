@@ -32,7 +32,7 @@ const contractsData = [
     customerName: 'Tech Solutions Pvt Ltd',
     customerType: 'Corporate',
     customerContact: 'Mr. Sharma',
-    customerPhone: '+91 98765 43210',
+    customerPhone: '+91 9737965551',
     customerEmail: 'transport@techsol.com',
     type: 'Monthly Rental',
     service: 'Corporate Cars',

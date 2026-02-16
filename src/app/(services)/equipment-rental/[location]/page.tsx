@@ -108,50 +108,63 @@ export default async function EquipmentLocationPage({ params }: PageProps) {
     );
   }
 
-  // Mock data for now - in production, fetch from API
-  const pageData = {
-    location: {
-      name: locationName,
-      slug: params.location,
-      state: cityData?.state || 'India',
-    },
-    service: {
-      name: 'Equipment Rental',
-      slug: 'equipment-rental',
-    },
-    hero: {
-      title: `Equipment Rental in ${locationName}`,
-      subtitle: `Quality construction and event equipment rental services in ${locationName}`,
-      image: '/images/locations/default.jpg',
-    },
-    vehicles: [
-      {
-        id: 1,
-        name: 'DJ Sound System',
-        image: '/images/equipment/dj-system.jpg',
-        price: 1499,
-        rating: 4.8,
+  // Fetch equipment from database (filtered by service and location)
+  const service = await prisma.services.findUnique({
+    where: { slug: 'equipment-rental' },
+    select: { id: true }
+  });
+
+  const location = await prisma.locations.findUnique({
+    where: { slug: params.location },
+    select: { id: true }
+  });
+
+  let dbVehicles: any[] = [];
+  if (service && location) {
+    const vehiclesData = await prisma.vehicle_models.findMany({
+      where: {
+        serviceId: service.id,
+        isActive: true,
+        vehicle_model_locations: {
+          some: {
+            locationId: location.id,
+            isActive: true
+          }
+        }
       },
-      {
-        id: 2,
-        name: '10 KVA Generator',
-        image: '/images/equipment/generator.jpg',
-        price: 2499,
-        rating: 4.7,
+      include: {
+        brands: true,
+        vehicle_model_locations: {
+          where: {
+            locationId: location.id
+          }
+        }
       },
-      {
-        id: 3,
-        name: 'Excavator',
-        image: '/images/equipment/excavator.jpg',
-        price: 4999,
-        rating: 4.9,
-      },
-    ],
-    nearbyLocations: [
-      { name: 'Nearby City 1', slug: 'nearby-city-1' },
-      { name: 'Nearby City 2', slug: 'nearby-city-2' },
-    ],
-  };
+      orderBy: { displayOrder: 'asc' }
+    });
+
+    dbVehicles = vehiclesData.map(v => {
+      // Format specs for VehicleGrid (expects Record<string, string>)
+      const displaySpecs: Record<string, string> = {};
+      if (v.loadCapacity) displaySpecs.capacity = `${v.loadCapacity} Tons`;
+      if (v.heightFt) displaySpecs.height = `${v.heightFt} Ft`;
+      if (v.lengthFt) displaySpecs.length = `${v.lengthFt} Ft`;
+
+      return {
+        id: v.id,
+        name: v.name,
+        slug: v.slug,
+        brand: v.brands?.name || '',
+        image: v.sideImage || '/images/fleet/honda-city.jpg',
+        price: v.vehicle_model_locations[0]?.basePricePerDay || v.basePricePerDay || 1499,
+        rating: v.rating || 4.8,
+        features: Array.isArray(v.features) ? v.features : [],
+        specs: displaySpecs,
+      };
+    });
+  }
+
+  const vehicles = dbVehicles;
 
   return (
     <div className="flex flex-col">
@@ -187,8 +200,10 @@ export default async function EquipmentLocationPage({ params }: PageProps) {
       />
 
       <VehicleGrid
-        vehicles={pageData.vehicles}
+        vehicles={vehicles}
         title={`Available Equipment in ${locationName}`}
+        locationSlug={params.location}
+        serviceSlug="equipment-rental"
       />
 
       <WhyRentHere locationName={locationName} />

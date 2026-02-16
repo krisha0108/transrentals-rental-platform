@@ -658,7 +658,7 @@ export default function CustomerSelfDriveBookingPage() {
                 Contact our support team for any queries
               </p>
               <a
-                href="tel:+919876543210"
+                href="tel:+919737965551"
                 className="block w-full text-center px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition"
               >
                 <Phone className="w-4 h-4 inline mr-2" />

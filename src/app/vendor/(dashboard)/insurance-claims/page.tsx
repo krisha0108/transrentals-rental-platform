@@ -93,7 +93,7 @@ const mockClaims: InsuranceClaim[] = [
     driver: 'Ramesh Kumar',
     thirdParty: {
       name: 'Suresh Reddy',
-      phone: '+91 98765 43210',
+      phone: '+91 9737965551',
       vehicleNumber: 'KA-03-CD-5678'
     },
     documents: [
@@ -182,7 +182,7 @@ const mockClaims: InsuranceClaim[] = [
     ],
     surveyorDetails: {
       name: 'Mr. Verma',
-      phone: '+91 98765 11223',
+      phone: '+91 9737965551',
       visitDate: '2024-01-13'
     },
     createdAt: '2024-01-11',
@@ -444,9 +444,8 @@ export default function InsuranceClaimsPage() {
                     {claim.documents.slice(0, 4).map((doc, index) => (
                       <span
                         key={index}
-                        className={`px-2 py-0.5 text-xs rounded ${
-                          doc.uploaded ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-                        }`}
+                        className={`px-2 py-0.5 text-xs rounded ${doc.uploaded ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                          }`}
                       >
                         {doc.name}
                       </span>
@@ -620,9 +619,8 @@ export default function InsuranceClaimsPage() {
                   {selectedClaim.documents.map((doc, index) => (
                     <div
                       key={index}
-                      className={`p-3 rounded-lg border ${
-                        doc.uploaded ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'
-                      }`}
+                      className={`p-3 rounded-lg border ${doc.uploaded ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'
+                        }`}
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
@@ -650,9 +648,8 @@ export default function InsuranceClaimsPage() {
                   {selectedClaim.timeline.map((event, index) => (
                     <div key={index} className="flex gap-4">
                       <div className="flex flex-col items-center">
-                        <div className={`w-3 h-3 rounded-full ${
-                          index === 0 ? 'bg-blue-600' : 'bg-gray-300'
-                        }`} />
+                        <div className={`w-3 h-3 rounded-full ${index === 0 ? 'bg-blue-600' : 'bg-gray-300'
+                          }`} />
                         {index < selectedClaim.timeline.length - 1 && (
                           <div className="w-0.5 flex-1 bg-gray-200" />
                         )}

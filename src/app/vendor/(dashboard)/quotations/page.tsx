@@ -33,7 +33,7 @@ const quotationsData = [
   {
     id: 'Q2024-001',
     customerName: 'Rajesh Kumar',
-    customerPhone: '+91 98765 43210',
+    customerPhone: '+91 9737965551',
     customerEmail: 'rajesh@email.com',
     service: 'Bus Rental',
     items: [

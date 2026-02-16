@@ -24,8 +24,10 @@ import {
 
 interface Inquiry {
   id: string;
-  bookingNumber: string;
+  requestNumber: string;
   status: string;
+  serviceName: string;
+  serviceSlug: string;
   customerName: string;
   customerPhone: string;
   customerEmail?: string;
@@ -33,51 +35,46 @@ interface Inquiry {
   pickupDate: string;
   pickupTime?: string;
   dropDate?: string;
-  totalAmount: number;
-  advancePaymentVerified: boolean;
-  advancePaymentProof?: string;
-  advancePaymentRef?: string;
+  quotesCount: number;
   createdAt: string;
 }
 
-const INQUIRY_STATUSES = [
-  'PENDING_PAYMENT',
-  'PAYMENT_SUBMITTED',
-  'PAYMENT_VERIFIED',
-  'PENDING_VENDOR',
-  'BROADCASTED',
-];
+interface Service {
+  id: string;
+  name: string;
+  slug: string;
+}
 
 const STATUS_CONFIG: Record<string, { bg: string; text: string; label: string; description: string }> = {
-  PENDING_PAYMENT: {
+  PENDING: {
     bg: 'bg-yellow-50',
     text: 'text-yellow-700',
-    label: 'Pending Payment',
-    description: 'Customer needs to pay advance',
+    label: 'Pending',
+    description: 'Waiting for vendor quotes',
   },
-  PAYMENT_SUBMITTED: {
-    bg: 'bg-orange-50',
-    text: 'text-orange-700',
-    label: 'Payment Submitted',
-    description: 'Awaiting payment verification',
-  },
-  PAYMENT_VERIFIED: {
+  QUOTED: {
     bg: 'bg-blue-50',
     text: 'text-blue-700',
-    label: 'Payment Verified',
-    description: 'Ready to assign vendor',
+    label: 'Quoted',
+    description: 'Vendors have submitted quotes',
   },
-  PENDING_VENDOR: {
-    bg: 'bg-purple-50',
-    text: 'text-purple-700',
-    label: 'Pending Vendor',
-    description: 'Waiting for vendor response',
+  ACCEPTED: {
+    bg: 'bg-green-50',
+    text: 'text-green-700',
+    label: 'Accepted',
+    description: 'Customer accepted a quote',
   },
-  BROADCASTED: {
-    bg: 'bg-indigo-50',
-    text: 'text-indigo-700',
-    label: 'Broadcasted',
-    description: 'Open for all vendors',
+  REJECTED: {
+    bg: 'bg-red-50',
+    text: 'text-red-700',
+    label: 'Rejected',
+    description: 'Request was rejected',
+  },
+  EXPIRED: {
+    bg: 'bg-gray-50',
+    text: 'text-gray-500',
+    label: 'Expired',
+    description: 'Request has expired',
   },
 };
 
@@ -94,45 +91,44 @@ const DATE_FILTERS: { value: DateFilter; label: string }[] = [
 export default function ManagerInquiriesPage() {
   const [inquiries, setInquiries] = useState<Inquiry[]>([]);
   const [filteredInquiries, setFilteredInquiries] = useState<Inquiry[]>([]);
+  const [services, setServices] = useState<Service[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [serviceFilter, setServiceFilter] = useState('all');
   const [dateFilter, setDateFilter] = useState<DateFilter>('all');
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
   const [stats, setStats] = useState({
-    pendingPayment: 0,
-    paymentSubmitted: 0,
-    paymentVerified: 0,
-    pendingVendor: 0,
-    broadcasted: 0,
+    pending: 0,
+    quoted: 0,
+    accepted: 0,
+    rejected: 0,
     total: 0,
   });
 
   const fetchInquiries = async () => {
     try {
       setError(null);
-      const response = await fetch('/api/manager/dashboard');
+      const url = serviceFilter === 'all'
+        ? '/api/manager/inquiries'
+        : `/api/manager/inquiries?service=${serviceFilter}`;
+      const response = await fetch(url);
       const data = await response.json();
 
       if (data.success) {
-        // Filter only inquiry-stage bookings
-        const allBookings = data.bookings || [];
-        const inquiryBookings = allBookings.filter((b: any) =>
-          INQUIRY_STATUSES.includes(b.status)
-        );
-
+        const inquiryBookings = data.inquiries || [];
         setInquiries(inquiryBookings);
+        setServices(data.services || []);
 
         // Calculate stats
         setStats({
-          pendingPayment: allBookings.filter((b: any) => b.status === 'PENDING_PAYMENT').length,
-          paymentSubmitted: allBookings.filter((b: any) => b.status === 'PAYMENT_SUBMITTED').length,
-          paymentVerified: allBookings.filter((b: any) => b.status === 'PAYMENT_VERIFIED').length,
-          pendingVendor: allBookings.filter((b: any) => b.status === 'PENDING_VENDOR').length,
-          broadcasted: allBookings.filter((b: any) => b.status === 'BROADCASTED').length,
+          pending: inquiryBookings.filter((b: any) => b.status === 'PENDING').length,
+          quoted: inquiryBookings.filter((b: any) => b.status === 'QUOTED').length,
+          accepted: inquiryBookings.filter((b: any) => b.status === 'ACCEPTED').length,
+          rejected: inquiryBookings.filter((b: any) => b.status === 'REJECTED').length,
           total: inquiryBookings.length,
         });
       } else {
@@ -148,7 +144,7 @@ export default function ManagerInquiriesPage() {
 
   useEffect(() => {
     fetchInquiries();
-  }, []);
+  }, [serviceFilter]);
 
   // Filter by date
   const filterByDate = (inquiry: Inquiry, filter: DateFilter): boolean => {
@@ -195,7 +191,7 @@ export default function ManagerInquiriesPage() {
       const term = searchTerm.toLowerCase();
       filtered = filtered.filter(
         (i) =>
-          i.bookingNumber?.toLowerCase().includes(term) ||
+          i.requestNumber?.toLowerCase().includes(term) ||
           i.customerName?.toLowerCase().includes(term) ||
           i.customerPhone?.includes(term) ||
           i.locationName?.toLowerCase().includes(term)
@@ -276,13 +272,12 @@ export default function ManagerInquiriesPage() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
         {[
-          { key: 'PAYMENT_SUBMITTED', count: stats.paymentSubmitted, label: 'Payment Submitted', color: 'orange' },
-          { key: 'PENDING_PAYMENT', count: stats.pendingPayment, label: 'Pending Payment', color: 'yellow' },
-          { key: 'PAYMENT_VERIFIED', count: stats.paymentVerified, label: 'Payment Verified', color: 'blue' },
-          { key: 'PENDING_VENDOR', count: stats.pendingVendor, label: 'Pending Vendor', color: 'purple' },
-          { key: 'BROADCASTED', count: stats.broadcasted, label: 'Broadcasted', color: 'indigo' },
+          { key: 'PENDING', count: stats.pending, label: 'Pending', color: 'yellow' },
+          { key: 'QUOTED', count: stats.quoted, label: 'Quoted', color: 'blue' },
+          { key: 'ACCEPTED', count: stats.accepted, label: 'Accepted', color: 'green' },
+          { key: 'REJECTED', count: stats.rejected, label: 'Rejected', color: 'red' },
         ].map((stat) => (
           <button
             key={stat.key}
@@ -341,6 +336,23 @@ export default function ManagerInquiriesPage() {
               />
             </div>
 
+            {/* Service Filter */}
+            <div className="relative">
+              <Bike className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <select
+                value={serviceFilter}
+                onChange={(e) => setServiceFilter(e.target.value)}
+                className="pl-10 pr-8 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent appearance-none bg-white min-w-[180px]"
+              >
+                <option value="all">All Services</option>
+                {services.map((service) => (
+                  <option key={service.id} value={service.slug}>
+                    {service.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
             {/* Status Filter */}
             <div className="relative">
               <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -349,12 +361,11 @@ export default function ManagerInquiriesPage() {
                 onChange={(e) => setStatusFilter(e.target.value)}
                 className="pl-10 pr-8 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent appearance-none bg-white min-w-[180px]"
               >
-                <option value="all">All Inquiries ({stats.total})</option>
-                <option value="PAYMENT_SUBMITTED">Payment Submitted ({stats.paymentSubmitted})</option>
-                <option value="PENDING_PAYMENT">Pending Payment ({stats.pendingPayment})</option>
-                <option value="PAYMENT_VERIFIED">Payment Verified ({stats.paymentVerified})</option>
-                <option value="PENDING_VENDOR">Pending Vendor ({stats.pendingVendor})</option>
-                <option value="BROADCASTED">Broadcasted ({stats.broadcasted})</option>
+                <option value="all">All Requests ({stats.total})</option>
+                <option value="PENDING">Pending ({stats.pending})</option>
+                <option value="QUOTED">Quoted ({stats.quoted})</option>
+                <option value="ACCEPTED">Accepted ({stats.accepted})</option>
+                <option value="REJECTED">Rejected ({stats.rejected})</option>
               </select>
             </div>
           </div>
@@ -388,28 +399,28 @@ export default function ManagerInquiriesPage() {
         ) : (
           <div className="divide-y divide-gray-100">
             {currentInquiries.map((inquiry) => {
-              const statusConfig = STATUS_CONFIG[inquiry.status] || STATUS_CONFIG.PENDING_PAYMENT;
-              const needsAttention = inquiry.status === 'PAYMENT_SUBMITTED';
+              const statusConfig = STATUS_CONFIG[inquiry.status] || STATUS_CONFIG.PENDING;
+              const needsAttention = inquiry.status === 'PENDING';
 
               return (
                 <Link
                   key={inquiry.id}
-                  href={`/manager/bookings/${inquiry.id}`}
+                  href={`/manager/inquiries/${inquiry.id}`}
                   className={`block p-4 sm:p-5 hover:bg-gray-50 transition ${
-                    needsAttention ? 'bg-orange-50/50' : ''
+                    needsAttention ? 'bg-yellow-50/50' : ''
                   }`}
                 >
                   <div className="flex items-start gap-4">
                     {/* Icon */}
                     <div
                       className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${
-                        needsAttention ? 'bg-orange-100' : 'bg-green-100'
+                        needsAttention ? 'bg-yellow-100' : 'bg-green-100'
                       }`}
                     >
                       {needsAttention ? (
-                        <AlertCircle className="w-6 h-6 text-orange-600" />
+                        <AlertCircle className="w-6 h-6 text-yellow-600" />
                       ) : (
-                        <Bike className="w-6 h-6 text-green-600" />
+                        <FileText className="w-6 h-6 text-green-600" />
                       )}
                     </div>
 
@@ -417,7 +428,10 @@ export default function ManagerInquiriesPage() {
                     <div className="flex-1 min-w-0">
                       <div className="flex flex-wrap items-center gap-2 mb-2">
                         <span className="font-semibold text-gray-900">
-                          #{inquiry.bookingNumber}
+                          #{inquiry.requestNumber}
+                        </span>
+                        <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">
+                          {inquiry.serviceName}
                         </span>
                         <span
                           className={`px-2 py-0.5 rounded-full text-xs font-medium ${statusConfig.bg} ${statusConfig.text}`}
@@ -454,41 +468,25 @@ export default function ManagerInquiriesPage() {
                         </div>
                       </div>
 
-                      {/* Payment info for PAYMENT_SUBMITTED */}
-                      {inquiry.status === 'PAYMENT_SUBMITTED' && (
-                        <div className="mt-3 p-3 bg-orange-50 rounded-lg border border-orange-100">
-                          <p className="text-sm text-orange-700 font-medium flex items-center gap-2">
-                            <AlertCircle className="w-4 h-4" />
-                            Payment verification required
+                      {/* Quotes info */}
+                      {inquiry.quotesCount > 0 && (
+                        <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-100">
+                          <p className="text-sm text-blue-700 font-medium flex items-center gap-2">
+                            <CheckCircle className="w-4 h-4" />
+                            {inquiry.quotesCount} {inquiry.quotesCount === 1 ? 'quote' : 'quotes'} received
                           </p>
-                          {inquiry.advancePaymentRef && (
-                            <p className="text-xs text-orange-600 mt-1">
-                              Ref: {inquiry.advancePaymentRef}
-                            </p>
-                          )}
                         </div>
                       )}
                     </div>
 
-                    {/* Amount & Arrow */}
+                    {/* Quotes Count & Arrow */}
                     <div className="flex items-center gap-3">
                       <div className="text-right">
-                        <div className="flex items-center gap-1 text-green-600 font-bold">
-                          <IndianRupee className="w-4 h-4" />
-                          {formatCurrency(inquiry.totalAmount).replace('₹', '')}
+                        <div className="text-lg font-bold text-gray-900">
+                          {inquiry.quotesCount}
                         </div>
-                        <p className="text-xs text-gray-400 mt-1">
-                          {inquiry.advancePaymentVerified ? (
-                            <span className="flex items-center gap-1 text-green-600">
-                              <CheckCircle2 className="w-3 h-3" />
-                              Verified
-                            </span>
-                          ) : (
-                            <span className="flex items-center gap-1 text-gray-400">
-                              <XCircle className="w-3 h-3" />
-                              Unverified
-                            </span>
-                          )}
+                        <p className="text-xs text-gray-500 mt-1">
+                          {inquiry.quotesCount === 1 ? 'Quote' : 'Quotes'}
                         </p>
                       </div>
                       <ChevronRight className="w-5 h-5 text-gray-400" />

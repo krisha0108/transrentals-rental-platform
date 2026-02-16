@@ -598,7 +598,7 @@ export function BikeBookingConfirmModal({
                 name="phone"
                 value={formData.phone}
                 onChange={handleChange}
-                placeholder="+91 98765 43210"
+                placeholder="+91 9737965551"
                 className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                 required
               />

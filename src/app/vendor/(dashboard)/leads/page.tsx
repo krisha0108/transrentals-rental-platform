@@ -32,7 +32,7 @@ const leadsData = [
   {
     id: 'L001',
     name: 'Rajesh Kumar',
-    phone: '+91 98765 43210',
+    phone: '+91 9737965551',
     email: 'rajesh@email.com',
     source: 'Website',
     service: 'Bus Rental',
@@ -52,7 +52,7 @@ const leadsData = [
   {
     id: 'L002',
     name: 'Priya Sharma',
-    phone: '+91 87654 32109',
+    phone: '+91 9737965551',
     email: 'priya.sharma@company.com',
     source: 'Referral',
     service: 'Corporate Cars',
@@ -557,7 +557,7 @@ export default function LeadsPage() {
                     value={newLead.phone}
                     onChange={(e) => setNewLead({ ...newLead, phone: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                    placeholder="+91 98765 43210"
+                    placeholder="+91 9737965551"
                   />
                 </div>
               </div>
