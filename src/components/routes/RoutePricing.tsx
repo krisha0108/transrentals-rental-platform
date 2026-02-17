@@ -13,10 +13,10 @@ interface RoutePricingProps {
   }>;
   fromCity: string;
   toCity: string;
-  routeSlug: string;
+  routeSlug?: string;
 }
 
-export function RoutePricing({ packages, fromCity, toCity, routeSlug }: RoutePricingProps) {
+export function RoutePricing({ packages, fromCity, toCity }: RoutePricingProps) {
   return (
     <section className="py-16 bg-gray-50">
       <div className="container-custom">
@@ -95,17 +95,6 @@ export function RoutePricing({ packages, fromCity, toCity, routeSlug }: RoutePri
                   ))}
                 </div>
 
-                {/* Book Button */}
-                <a
-                  href={`/book?route=${routeSlug}&vehicle=${pkg.id}`}
-                  className={`block w-full text-center py-3 rounded-xl font-semibold transition ${
-                    isPopular
-                      ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white hover:from-emerald-700 hover:to-teal-700'
-                      : 'bg-gray-100 text-gray-900 hover:bg-gray-200'
-                  }`}
-                >
-                  Book Now
-                </a>
               </div>
             );
           })}
