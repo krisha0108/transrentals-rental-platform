@@ -5,10 +5,14 @@ const smtpPort = parseInt(process.env.SMTP_PORT || '465');
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST || 'smtp.gmail.com',
   port: smtpPort,
-  secure: smtpPort === 465, // true for 465, false for other ports
+  secure: smtpPort === 465, // true for 465 (SSL), false for 587 (STARTTLS)
+  requireTLS: smtpPort === 587, // force STARTTLS for port 587
   auth: {
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASSWORD,
+  },
+  tls: {
+    rejectUnauthorized: false, // allow self-signed certs in dev
   },
 });
 
@@ -101,6 +105,10 @@ export async function sendOTPEmail(
       console.error('SMTP credentials not configured');
       return { success: false, error: 'Email service not configured' };
     }
+
+    console.log('📧 SMTP Debug - User:', process.env.SMTP_USER);
+    console.log('📧 SMTP Debug - Password length:', process.env.SMTP_PASSWORD?.length);
+    console.log('📧 SMTP Debug - Host:', process.env.SMTP_HOST, 'Port:', process.env.SMTP_PORT);
 
     const { subject, html } = getOTPEmailTemplate(otp, type);
 

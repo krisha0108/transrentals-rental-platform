@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { SessionProvider, useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { Loader2, Menu, X, Home, FileText, MapPin, Briefcase, LogOut, Users, Store, MessageSquare } from 'lucide-react';
+import { Loader2, Menu, X, Home, FileText, MapPin, Briefcase, LogOut, Users, Store, MessageSquare, Headphones } from 'lucide-react';
 import Link from 'next/link';
 import { signOut } from 'next-auth/react';
 
@@ -14,6 +14,7 @@ const SIDEBAR_LINKS = [
   { href: '/manager/vendors', label: 'Vendors', icon: Store },
   { href: '/manager/chats', label: 'Chats', icon: MessageSquare },
   { href: '/manager/locations', label: 'My Locations', icon: MapPin },
+  { href: '/manager/helpdesk', label: 'Helpdesk', icon: Headphones },
 ];
 
 function ManagerSidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {

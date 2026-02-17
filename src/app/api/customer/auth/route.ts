@@ -659,6 +659,19 @@ async function handleForgotPassword(body: { email: string }): Promise<NextRespon
 
   if (!emailResult.success) {
     logger.error('Failed to send password reset OTP email', { email: normalizedEmail, error: emailResult.error });
+    // In development, log OTP to console for testing
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`\n🔐 ==========================================`);
+      console.log(`🔐 DEV MODE - Password Reset OTP`);
+      console.log(`🔐 Email: ${normalizedEmail}`);
+      console.log(`🔐 OTP: ${otpResult.otp}`);
+      console.log(`🔐 ==========================================\n`);
+      return NextResponse.json({
+        status: 'success',
+        message: 'If an account exists with this email, you will receive an OTP.',
+        expiresIn: otpResult.expiresIn,
+      });
+    }
     // Still return success to prevent email enumeration
     return NextResponse.json({
       status: 'success',
