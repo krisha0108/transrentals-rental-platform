@@ -1,11 +1,12 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
 import { getCitiesByPriority } from '@/data/indian-cities';
-
 import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
+import { formatPriceHighlight } from '@/lib/utils';
+
 export const metadata: Metadata = {
-  title: 'Vintage Car Rental | Classic Car for Wedding @₹8999 | Ambassador Car Hire',
-  description: 'Rent vintage cars for weddings. Classic Ambassador, retro cars available. Vintage car for baraat. Heritage car booking @₹8999. Photo shoot ready.',
+  title: formatPriceHighlight('Vintage Car Rental | Classic Car for Wedding @₹8999 | Ambassador Car Hire'),
+  description: formatPriceHighlight('Rent vintage cars for weddings. Classic Ambassador, retro cars available. Vintage car for baraat. Heritage car booking @₹8999. Photo shoot ready.'),
   keywords: [
     'vintage car rental',
     'vintage car for wedding',
@@ -21,8 +22,8 @@ export const metadata: Metadata = {
     'retro car hire',
   ],
   openGraph: {
-    title: 'Vintage Car Rental India | Classic Cars for Wedding @₹8999',
-    description: 'Rent vintage & classic cars for weddings. Ambassador, heritage cars. Perfect for baraat and photo shoots.',
+    title: formatPriceHighlight('Vintage Car Rental India | Classic Cars for Wedding @₹8999'),
+    description: formatPriceHighlight('Rent vintage & classic cars for weddings. Ambassador, heritage cars. Perfect for baraat and photo shoots.'),
   },
 };
 
@@ -49,7 +50,7 @@ export default function VintageCarRentalPage() {
               Vintage Car Rental | Classic Heritage Cars
             </h1>
             <p className="text-xl md:text-2xl mb-8 opacity-90">
-              Ambassador & Classic Cars for Weddings | Starting @₹8,999
+              {formatPriceHighlight('Ambassador & Classic Cars for Weddings | Starting @₹8,999')}
             </p>
             <div className="grid md:grid-cols-3 gap-6 mb-8 text-left">
               <div className="bg-white/10 backdrop-blur p-4 rounded-lg">
@@ -130,7 +131,7 @@ export default function VintageCarRentalPage() {
                   {city.name}
                 </h3>
                 <p className="text-sm text-gray-600">{city.state}</p>
-                <p className="text-sm text-amber-800 mt-2">From @₹8999 →</p>
+                <p className="text-sm text-amber-800 mt-2">{formatPriceHighlight('From @₹8999')} →</p>
               </Link>
             ))}
           </div>

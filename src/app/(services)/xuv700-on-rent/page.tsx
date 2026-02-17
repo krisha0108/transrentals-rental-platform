@@ -3,12 +3,13 @@ import Link from 'next/link';
 import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
 import { FAQSection } from '@/components/services/FAQSection';
 import { ALL_CITIES } from '@/data/indian-cities';
+import { formatPriceHighlight } from '@/lib/utils';
 
 export const metadata: Metadata = {
-  title: 'XUV700 on Rent Without Driver | Self Drive @₹2999/Day | TransRentals',
+  title: formatPriceHighlight('XUV700 on Rent Without Driver | Self Drive @₹2999/Day | TransRentals'),
   description: 'Rent Mahindra XUV700 without driver across India. Self-drive XUV700 with ADAS, panoramic sunroof. 5 & 7 seater options. Book now!',
   keywords: ['xuv700 on rent', 'mahindra xuv700 on rent', 'xuv700 self drive', 'rent xuv700 without driver'],
-  openGraph: { title: 'XUV700 on Rent Without Driver @₹2999/Day | TransRentals', url: 'https://transrentals.in/xuv700-on-rent' },
+  openGraph: { title: formatPriceHighlight('XUV700 on Rent Without Driver @₹2999/Day | TransRentals'), url: 'https://transrentals.in/xuv700-on-rent' },
   alternates: { canonical: 'https://transrentals.in/xuv700-on-rent' },
 };
 

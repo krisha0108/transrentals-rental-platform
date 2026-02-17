@@ -61,7 +61,7 @@ export async function GET(request: NextRequest) {
         longitude: a.longitude,
         description: a.description,
         isActive: a.isActive,
-        locations: a.parent,
+        parent: a.locations, // Map locations relation to parent property
       })),
     });
   } catch (error) {
@@ -70,11 +70,16 @@ export async function GET(request: NextRequest) {
   }
 }
 
+import { generateLocationId, generateServiceLocationId, generateRoutePackageId } from '@/lib/utils/id-generator';
+
 // POST - Create new airport
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { name, code, parentId, latitude, longitude, description, distanceFromCity, isActive, serviceSlug } = body;
+    const { name, code, parentId, latitude, longitude, description, isActive, serviceSlug } = body;
+
+    // Ensure distanceFromCity is a number if provided
+    const distanceFromCity = body.distanceFromCity ? Number(body.distanceFromCity) : null;
 
     if (!name || !code || !parentId) {
       return NextResponse.json(
@@ -107,16 +112,8 @@ export async function POST(request: NextRequest) {
     // Generate slug
     const slug = `${parentCity.name.toLowerCase().replace(/\s+/g, '-')}-airport-${code.toLowerCase()}`;
 
-    // Get next location ID (fetch all and find max to avoid alphabetical ordering bug)
-    const allLocations = await prisma.locations.findMany({
-      where: { id: { startsWith: 'LOC_' } },
-      select: { id: true },
-    });
-    const maxLocId = allLocations.reduce((max, loc) => {
-      const num = parseInt(loc.id.replace('LOC_', ''));
-      return num > max ? num : max;
-    }, 0);
-    const nextId = `LOC_${maxLocId + 1}`;
+    // Use centralized ID generator
+    const nextId = await generateLocationId();
 
     // Create airport (stored as AIRPORT type)
     const airport = await prisma.locations.create({
@@ -127,8 +124,8 @@ export async function POST(request: NextRequest) {
         type: 'AIRPORT', // Airports are stored as AIRPORT type
         code: code.toUpperCase(),
         parentId,
-        latitude: latitude || null,
-        longitude: longitude || null,
+        latitude: latitude ? parseFloat(latitude.toString()) : null,
+        longitude: longitude ? parseFloat(longitude.toString()) : null,
         description: distanceFromCity
           ? `Distance from city center: ${distanceFromCity} km`
           : description || null,
@@ -146,16 +143,8 @@ export async function POST(request: NextRequest) {
       });
 
       if (service) {
-        // Get next service location ID (fetch all and find max to avoid alphabetical ordering bug)
-        const allSLIds = await prisma.service_locations.findMany({
-          where: { id: { startsWith: 'SL_' } },
-          select: { id: true },
-        });
-        const maxSLId = allSLIds.reduce((max, sl) => {
-          const num = parseInt(sl.id.replace('SL_', ''));
-          return num > max ? num : max;
-        }, 0);
-        const nextSLId = `SL_${maxSLId + 1}`;
+        // Use centralized ID generator
+        const nextSLId = await generateServiceLocationId();
 
         await prisma.service_locations.create({
           data: {
@@ -208,17 +197,6 @@ async function createAirportTransferRoutes(
       'car-rental-luxury-suv': { perKm: 150, baseFare: 4999 },
     };
 
-    // Get next route ID (fetch all and find max to avoid alphabetical ordering bug)
-    const allRoutes = await prisma.chauffeur_route_packages.findMany({
-      where: { id: { startsWith: 'CRP_' } },
-      select: { id: true },
-    });
-    const maxRouteId = allRoutes.reduce((max, route) => {
-      const num = parseInt(route.id.replace('CRP_', ''));
-      return num > max ? num : max;
-    }, 0);
-    let nextRouteId = maxRouteId + 1;
-
     const duration = distanceKm < 20 ? '30-45 min' : distanceKm < 40 ? '45-60 min' : '1-1.5 hr';
 
     for (const category of categories) {
@@ -228,7 +206,7 @@ async function createAirportTransferRoutes(
       // Airport to City route
       await prisma.chauffeur_route_packages.create({
         data: {
-          id: `CRP_${nextRouteId++}`,
+          id: await generateRoutePackageId(),
           vehicleCategoryId: category.id,
           fromLocationId: airportId,
           toLocationId: cityId,
@@ -245,7 +223,7 @@ async function createAirportTransferRoutes(
       // City to Airport route
       await prisma.chauffeur_route_packages.create({
         data: {
-          id: `CRP_${nextRouteId++}`,
+          id: await generateRoutePackageId(),
           vehicleCategoryId: category.id,
           fromLocationId: cityId,
           toLocationId: airportId,

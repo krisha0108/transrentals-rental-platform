@@ -41,7 +41,25 @@ export async function GET(
     const where: any = {
       serviceId: service.id,
       isActive: true,
+      brands: {
+        isActive: true,
+      },
     };
+
+    where.AND = [
+      {
+        OR: [
+          { vehicleCategoryId: null },
+          { chauffeur_vehicle_categories: { isActive: true } },
+        ],
+      },
+      {
+        OR: [
+          { subServiceId: null },
+          { services_vehicle_models_subServiceIdToservices: { isActive: true } },
+        ],
+      },
+    ];
 
     if (subServiceSlug) {
       const sub_service = await prisma.services.findUnique({

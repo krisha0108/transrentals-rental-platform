@@ -70,6 +70,13 @@ interface VehicleModel {
   _count?: {
     vendorFleets: number;
   };
+  // Truck/Transporter specific fields
+  loadCapacity?: number | null;
+  bodyType?: string | null;
+  wheels?: string | null;
+  lengthFt?: number | null;
+  widthFt?: number | null;
+  heightFt?: number | null;
 }
 
 interface Service {
@@ -166,7 +173,7 @@ const isEquipmentService = (slug: string) => {
 
 export default function ServiceVehicleModelsPage() {
   const params = useParams();
-  const serviceSlug = params.slug as string;
+  const serviceSlug = (params?.slug as string) || '';
 
   const [service, setService] = useState<Service | null>(null);
   const [brands, setBrands] = useState<Brand[]>([]);
@@ -256,9 +263,9 @@ export default function ServiceVehicleModelsPage() {
       if (res.ok) {
         const data = await res.json();
         const fetchedBrands = data.brands || data;
-        // Filter brands by current service ID to ensure only this service's brands are shown
+        // Filter brands by current service ID and only show active brands
         const filteredBrands = fetchedBrands.filter((brand: Brand) =>
-          !brand.serviceId || brand.serviceId === service.id
+          (!brand.serviceId || brand.serviceId === service.id) && brand.isActive !== false
         );
         setBrands(filteredBrands);
         console.log(`[${serviceSlug}] Fetched ${filteredBrands.length} brands for service:`, service.id);
@@ -292,7 +299,9 @@ export default function ServiceVehicleModelsPage() {
       if (res.ok) {
         const data = await res.json();
         if (data.success && data.categories) {
-          setVehicleCategories(data.categories);
+          // Filter only active vehicle categories
+          const activeCategories = data.categories.filter((cat: VehicleCategory) => cat.isActive !== false);
+          setVehicleCategories(activeCategories);
         }
       }
     } catch (error) {
@@ -425,12 +434,12 @@ export default function ServiceVehicleModelsPage() {
       isActive: model.isActive,
       displayOrder: model.displayOrder,
       // Truck/Packers specific fields
-      loadCapacity: (model as any).loadCapacity?.toString() || '',
-      bodyType: (model as any).bodyType || '',
-      wheels: (model as any).wheels || '',
-      lengthFt: (model as any).lengthFt?.toString() || '',
-      widthFt: (model as any).widthFt?.toString() || '',
-      heightFt: (model as any).heightFt?.toString() || '',
+      loadCapacity: model.loadCapacity?.toString() || '',
+      bodyType: model.bodyType || '',
+      wheels: model.wheels || '',
+      lengthFt: model.lengthFt?.toString() || '',
+      widthFt: model.widthFt?.toString() || '',
+      heightFt: model.heightFt?.toString() || '',
       // Equipment fields - parse from model if exists
       capacity: (model as any).capacity?.toString() || '',
       capacityUnit: (model as any).capacityUnit || 'ton',

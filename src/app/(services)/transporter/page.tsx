@@ -4,11 +4,12 @@ import { LocationsGrid } from '@/components/services/LocationsGrid';
 import { FAQSection } from '@/components/services/FAQSection';
 import { TruckTypesCards } from '@/components/services/TruckTypesCards';
 import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
+import { formatPriceHighlight } from '@/lib/utils';
 
 export const metadata: Metadata = {
-  title: 'Truck Rental & Transport Services - Starting @₹3999/Day | TransRentals',
+  title: formatPriceHighlight('Truck Rental & Transport Services - Starting @₹3999/Day | TransRentals'),
   description:
-    'Professional truck rental and transport services across India. 7-ton to 32-ton trucks available. GPS tracking, verified drivers. Book your transporter now!',
+    formatPriceHighlight('Professional truck rental and transport services across India. 7-ton to 32-ton trucks available. GPS tracking, verified drivers. Book your transporter now!'),
   keywords: [
     'truck rental',
     'transporter services',
@@ -19,8 +20,8 @@ export const metadata: Metadata = {
     'freight transport',
   ],
   openGraph: {
-    title: 'Truck Rental & Transport Services - Starting @₹3999/Day | TransRentals',
-    description: 'Professional truck rental services across India. Best prices guaranteed.',
+    title: formatPriceHighlight('Truck Rental & Transport Services - Starting @₹3999/Day | TransRentals'),
+    description: formatPriceHighlight('Professional truck rental services across India. Best prices guaranteed.'),
   },
 };
 
@@ -42,7 +43,7 @@ export default function TransporterPage() {
         gradientTo="gray-50"
       />
 
-      
+
 
       <TruckTypesCards />
 

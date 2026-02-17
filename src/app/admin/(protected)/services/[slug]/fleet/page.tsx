@@ -267,8 +267,10 @@ export default function ServiceFleetPage() {
         const res = await fetch(`/api/admin/services/${slug}/brands`);
         if (res.ok) {
           const data = await res.json();
-          setBrands(data.brands || []);
-          console.log(`[${slug}] Fetched ${data.brands?.length || 0} brands for this service`);
+          // Filter only active brands
+          const activeBrands = (data.brands || []).filter((brand: any) => brand.isActive !== false);
+          setBrands(activeBrands);
+          console.log(`[${slug}] Fetched ${activeBrands.length} active brands for this service`);
         }
       } catch (error) {
         console.error('Failed to fetch brands:', error);
@@ -397,7 +399,7 @@ export default function ServiceFleetPage() {
           name: m.originalName || m.filename,
           url: m.url,
           type: m.mimeType?.startsWith('image/') ? 'image' :
-                m.mimeType?.startsWith('video/') ? 'video' : 'document',
+            m.mimeType?.startsWith('video/') ? 'video' : 'document',
           folder: m.folder || 'uploads',
         }));
         setMediaItems(transformedMedia);
@@ -828,20 +830,20 @@ export default function ServiceFleetPage() {
       'Base Price (₹)': item.basePrice || 0,
       ...(isEquipmentService
         ? {
-            'Power Capacity': item.specs?.powerCapacity || '-',
-            'Load Capacity': item.specs?.loadCapacity || '-',
-            'Operator Included': item.specs?.operatorIncluded === 'true' ? 'Yes' : 'No',
-            'Security Deposit (₹)': item.specs?.securityDeposit || '-',
-            'Weekly Rate (₹)': item.specs?.weeklyRate || '-',
-            'Monthly Rate (₹)': item.specs?.monthlyRate || '-',
-          }
+          'Power Capacity': item.specs?.powerCapacity || '-',
+          'Load Capacity': item.specs?.loadCapacity || '-',
+          'Operator Included': item.specs?.operatorIncluded === 'true' ? 'Yes' : 'No',
+          'Security Deposit (₹)': item.specs?.securityDeposit || '-',
+          'Weekly Rate (₹)': item.specs?.weeklyRate || '-',
+          'Monthly Rate (₹)': item.specs?.monthlyRate || '-',
+        }
         : isPackersService
-        ? {
+          ? {
             'Vehicle Capacity': item.specs?.vehicleCapacity || '-',
             'Team Size': item.specs?.teamSize || '-',
             'Registration Number': item.specs?.registrationNumber || '-',
           }
-        : {
+          : {
             'Fuel Type': item.fuelType || '-',
             'Transmission': item.transmission || '-',
             'Seating Capacity': item.seatingCapacity || '-',
@@ -973,7 +975,7 @@ export default function ServiceFleetPage() {
       item.name.toLowerCase().includes(search.toLowerCase()) ||
       item.brand.toLowerCase().includes(search.toLowerCase()) ||
       item.model.toLowerCase().includes(search.toLowerCase());
-    const matchesSubService = subServiceFilter === 'ALL' || item.sub_service === subServiceFilter;
+    const matchesSubService = subServiceFilter === 'ALL' || item.subServiceId === subServiceFilter;
     const matchesStatus =
       statusFilter === 'ALL' ||
       (statusFilter === 'ACTIVE' && item.isActive) ||
@@ -1096,7 +1098,7 @@ export default function ServiceFleetPage() {
             >
               <option value="ALL">All Categories</option>
               {subServices.map((sub) => (
-                <option key={sub.slug} value={sub.name}>
+                <option key={sub.id} value={sub.id}>
                   {sub.name}
                 </option>
               ))}
@@ -1298,11 +1300,10 @@ export default function ServiceFleetPage() {
                     <button
                       key={pageNum}
                       onClick={() => setCurrentPage(pageNum)}
-                      className={`px-3 py-1 rounded-lg text-sm font-medium transition ${
-                        currentPage === pageNum
+                      className={`px-3 py-1 rounded-lg text-sm font-medium transition ${currentPage === pageNum
                           ? 'bg-blue-600 text-white'
                           : 'border border-gray-300 hover:bg-gray-50'
-                      }`}
+                        }`}
                     >
                       {pageNum}
                     </button>
@@ -2055,11 +2056,10 @@ export default function ServiceFleetPage() {
                                     <button
                                       onClick={() => toggleLocation(ut.id, isLeafAssigned)}
                                       disabled={savingLocations}
-                                      className={`flex-1 flex items-center gap-2 p-3 text-left transition-all ${
-                                        isLeafAssigned
+                                      className={`flex-1 flex items-center gap-2 p-3 text-left transition-all ${isLeafAssigned
                                           ? 'bg-purple-100 border-l-4 border-purple-600'
                                           : 'bg-purple-50 hover:bg-purple-100'
-                                      }`}
+                                        }`}
                                     >
                                       {isLeafAssigned ? (
                                         <CheckCircle className="w-5 h-5 text-purple-600 flex-shrink-0" />
@@ -2069,11 +2069,10 @@ export default function ServiceFleetPage() {
                                       <span className={`font-medium ${isLeafAssigned ? 'text-purple-900' : 'text-gray-900'}`}>
                                         {ut.name}
                                       </span>
-                                      <span className={`text-xs ml-auto px-2 py-1 rounded ${
-                                        isLeafAssigned
+                                      <span className={`text-xs ml-auto px-2 py-1 rounded ${isLeafAssigned
                                           ? 'bg-purple-200 text-purple-800'
                                           : 'bg-purple-100 text-purple-600'
-                                      }`}>
+                                        }`}>
                                         {isLeafAssigned ? '✓ Assigned' : 'Location'}
                                       </span>
                                     </button>
@@ -2304,7 +2303,7 @@ export default function ServiceFleetPage() {
                               name: m.originalName || m.filename,
                               url: m.url,
                               type: m.mimeType?.startsWith('image/') ? 'image' :
-                                    m.mimeType?.startsWith('video/') ? 'video' : 'document',
+                                m.mimeType?.startsWith('video/') ? 'video' : 'document',
                               folder: m.folder || 'uploads',
                             }));
                             setMediaItems(transformedMedia);

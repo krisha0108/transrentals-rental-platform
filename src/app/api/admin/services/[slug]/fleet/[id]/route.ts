@@ -247,6 +247,7 @@ export async function PUT(
         slug: vehicleSlug ?? existing.slug,
         brandId: brandId ?? existing.brandId,
         subServiceId: validSubServiceId,
+        vehicleCategoryId: categoryInfo?.id || (subServiceId === null || subServiceId === '' ? null : existing.vehicleCategoryId),
         fuelType: fuelType !== undefined ? fuelType : existing.fuelType,
         transmission: transmission !== undefined ? transmission : existing.transmission,
         seatingCapacity: seatingCapacity !== undefined ? safeParseInt(seatingCapacity) : existing.seatingCapacity,
@@ -312,12 +313,17 @@ export async function DELETE(
       return NextResponse.json({ error: 'Vehicle not found' }, { status: 404 });
     }
 
-    // Check if vehicle has vendor fleets
+    // If vehicle has vendor fleets, soft-delete by marking inactive
     if (existing.vendor_fleets.length > 0) {
-      return NextResponse.json(
-        { error: `Cannot delete: ${existing.vendor_fleets.length} vendor(s) have this vehicle in their fleet` },
-        { status: 400 }
-      );
+      await prisma.vehicle_models.update({
+        where: { id },
+        data: { isActive: false },
+      });
+
+      return NextResponse.json({
+        success: true,
+        message: `Vehicle deactivated because ${existing.vendor_fleets.length} vendor(s) use it`,
+      });
     }
 
     await prisma.vehicle_models.delete({ where: { id } });

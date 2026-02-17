@@ -26,7 +26,7 @@ export async function GET(
         brands: {
           select: { id: true, name: true, slug: true, logo: true },
         },
-        service: {
+        services_vehicle_models_serviceIdToservices: {
           select: { id: true, name: true, slug: true },
         },
         services_vehicle_models_subServiceIdToservices: {
@@ -88,6 +88,13 @@ export async function PUT(
       basePricePerDay,
       isActive,
       displayOrder,
+      // Truck/Transporter specific fields
+      loadCapacity,
+      bodyType,
+      wheels,
+      lengthFt,
+      widthFt,
+      heightFt,
     } = body;
 
     // Find the service by slug
@@ -170,6 +177,13 @@ export async function PUT(
         basePricePerDay: basePricePerDay !== undefined ? basePricePerDay : existing.basePricePerDay,
         isActive: isActive !== undefined ? isActive : existing.isActive,
         displayOrder: displayOrder !== undefined ? displayOrder : existing.displayOrder,
+        // Truck/Transporter specific fields
+        loadCapacity: loadCapacity !== undefined ? loadCapacity : existing.loadCapacity,
+        bodyType: bodyType !== undefined ? bodyType : existing.bodyType,
+        wheels: wheels !== undefined ? wheels : existing.wheels,
+        lengthFt: lengthFt !== undefined ? lengthFt : existing.lengthFt,
+        widthFt: widthFt !== undefined ? widthFt : existing.widthFt,
+        heightFt: heightFt !== undefined ? heightFt : existing.heightFt,
       },
       include: {
         brands: {

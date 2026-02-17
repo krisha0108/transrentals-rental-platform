@@ -3,10 +3,11 @@ import Link from 'next/link';
 import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
 import { FAQSection } from '@/components/services/FAQSection';
 import { ALL_CITIES } from '@/data/indian-cities';
+import { formatPriceHighlight } from '@/lib/utils';
 
 export const metadata: Metadata = {
-  title: 'Swift on Rent Without Driver | Self Drive Swift @₹899/Day | TransRentals',
-  description: 'Rent Maruti Swift without driver across India. Self-drive Swift rental for city commute & short trips. Most popular hatchback with great mileage. Book now!',
+  title: formatPriceHighlight('Swift on Rent Without Driver | Self Drive Swift @₹899/Day | TransRentals'),
+  description: formatPriceHighlight('Rent Maruti Swift without driver across India. Self-drive Swift rental for city commute & short trips. Most popular hatchback with great mileage. Book now!'),
   keywords: [
     'swift on rent',
     'maruti swift on rent',
@@ -16,8 +17,8 @@ export const metadata: Metadata = {
     'swift car rental',
   ],
   openGraph: {
-    title: 'Swift on Rent Without Driver @₹899/Day | TransRentals',
-    description: 'Self-drive Maruti Swift rental. Most popular hatchback for city commute.',
+    title: formatPriceHighlight('Swift on Rent Without Driver @₹899/Day | TransRentals'),
+    description: formatPriceHighlight('Self-drive Maruti Swift rental. Most popular hatchback for city commute.'),
     type: 'website',
     url: 'https://transrentals.in/swift-on-rent',
   },
