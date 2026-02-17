@@ -57,6 +57,9 @@ export const authOptions: NextAuthOptions = {
 
           if (credentials.role) {
             const expectedRole = credentials.role;
+            if (expectedRole === 'ADMIN' && user.role !== 'SUPER_ADMIN' && user.role !== 'ADMIN') {
+              throw new Error('Access denied - Admin role required');
+            }
             if (expectedRole === 'SUB_ADMIN' && user.role !== 'SUB_ADMIN') {
               throw new Error('Access denied - SubAdmin role required');
             }
