@@ -24,15 +24,23 @@ export default function AdminLoginPage() {
       const result = await signIn('admin-credentials', {
         email: formData.email,
         password: formData.password,
+        role: 'ADMIN',
         redirect: false,
       });
 
       if (result?.error) {
-        setError('Invalid email or password');
+        if (result.error.includes('Admin role required')) {
+          setError('Access denied. This account is not an admin account.');
+        } else {
+          setError('Invalid email or password');
+        }
         setIsLoading(false);
-      } else {
+      } else if (result?.ok) {
         router.push('/admin/dashboard');
         router.refresh();
+      } else {
+        setError('Login failed. Please try again.');
+        setIsLoading(false);
       }
     } catch (error) {
       setError('An error occurred. Please try again.');
