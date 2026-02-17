@@ -7,6 +7,7 @@ import { getAllIndiaFleet } from '@/lib/fleet-utils';
 import { ServiceComingSoon } from '@/components/location/ServiceComingSoon';
 import { isServiceAvailableInLocation, getNearbyAvailableLocations } from '@/lib/services/service-availability';
 import { prisma } from '@/lib/db/prisma';
+import { formatPriceHighlight } from '@/lib/utils';
 
 interface PageProps {
   params: {
@@ -72,8 +73,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const locationName = city.name;
 
   return {
-    title: `Tempo Traveller ${locationName} | 12-17 Seater @₹18/Km | Force Traveller`,
-    description: `Rent Tempo Traveller in ${locationName}. 12, 17, 20 seater AC tempo. Group travel, family trips, corporate events. Book online @₹18/km.`,
+    title: formatPriceHighlight(`Tempo Traveller ${locationName} | 12-17 Seater @₹18/Km | Force Traveller`),
+    description: formatPriceHighlight(`Rent Tempo Traveller in ${locationName}. 12, 17, 20 seater AC tempo. Group travel, family trips, corporate events. Book online @₹18/km.`),
     keywords: [
       `tempo traveller ${locationName.toLowerCase()}`,
       `12 seater tempo ${locationName.toLowerCase()}`,
@@ -87,8 +88,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       ...(city.keywords || []).map(k => `tempo traveller ${k}`),
     ],
     openGraph: {
-      title: `Tempo Traveller in ${locationName} - 12-17 Seater @₹18/Km`,
-      description: `Book Tempo Traveller in ${locationName}. AC vehicles for group travel and outstation trips.`,
+      title: formatPriceHighlight(`Tempo Traveller in ${locationName} - 12-17 Seater @₹18/Km`),
+      description: formatPriceHighlight(`Book Tempo Traveller in ${locationName}. AC vehicles for group travel and outstation trips.`),
       url: `https://transrentals.in/tempo-traveller/${params.location}`,
     },
     alternates: {

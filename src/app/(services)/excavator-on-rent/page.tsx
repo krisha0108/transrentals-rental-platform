@@ -3,12 +3,13 @@ import Link from 'next/link';
 import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
 import { FAQSection } from '@/components/services/FAQSection';
 import { ALL_CITIES } from '@/data/indian-cities';
+import { formatPriceHighlight } from '@/lib/utils';
 
 export const metadata: Metadata = {
-  title: 'Excavator on Rent | Excavator Hire @₹5000/Day | TransRentals',
-  description: 'Hire excavator on rent for digging, trenching, construction. Mini to large excavators. Operator included. Starting ₹5000/day. Book now!',
+  title: formatPriceHighlight('Excavator on Rent | Excavator Hire @₹5000/Day | TransRentals'),
+  description: formatPriceHighlight('Hire excavator on rent for digging, trenching, construction. Mini to large excavators. Operator included. Starting ₹5000/day. Book now!'),
   keywords: ['excavator on rent', 'excavator rental', 'excavator hire', 'poclain on rent', 'hitachi excavator rental'],
-  openGraph: { title: 'Excavator on Rent @₹5000/Day | TransRentals', url: 'https://transrentals.in/excavator-on-rent' },
+  openGraph: { title: formatPriceHighlight('Excavator on Rent @₹5000/Day | TransRentals'), url: 'https://transrentals.in/excavator-on-rent' },
   alternates: { canonical: 'https://transrentals.in/excavator-on-rent' },
 };
 

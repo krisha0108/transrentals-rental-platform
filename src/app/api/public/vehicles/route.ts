@@ -18,6 +18,9 @@ export async function GET(request: NextRequest) {
     // Build where clause
     const where: any = {
       isActive: true,
+      brands: {
+        isActive: true,
+      },
     };
 
     // Filter by service if provided
@@ -54,6 +57,16 @@ export async function GET(request: NextRequest) {
         };
       }
     }
+
+    // Filter out vehicles with inactive categories
+    where.OR = [
+      { vehicleCategoryId: null }, // No category assigned
+      {
+        chauffeur_vehicle_categories: {
+          isActive: true,
+        },
+      },
+    ];
 
     // Fetch vehicles
     const [vehicles, total] = await Promise.all([

@@ -5,11 +5,12 @@ import { LocationsGrid } from '@/components/services/LocationsGrid';
 import { FAQSection } from '@/components/services/FAQSection';
 import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
 import { BikeServiceSchema } from '@/components/seo/schemas';
+import { formatPriceHighlight } from '@/lib/utils';
 
 export const metadata: Metadata = {
-  title: 'Activa on Rent - Rent Activa & Scooty Starting @₹299/Day | TransRentals',
+  title: formatPriceHighlight('Activa on Rent - Rent Activa & Scooty Starting @₹299/Day | TransRentals'),
   description:
-    'Rent Honda Activa, TVS Jupiter, Suzuki Access & other scooters across 150+ cities in India. Easy to ride, fuel efficient. Best prices guaranteed. Book your scooty rental now!',
+    formatPriceHighlight('Rent Honda Activa, TVS Jupiter, Suzuki Access & other scooters across 150+ cities in India. Easy to ride, fuel efficient. Best prices guaranteed. Book your scooty rental now!'),
   keywords: [
     'activa on rent',
     'scooty on rent',
@@ -23,8 +24,8 @@ export const metadata: Metadata = {
     'scooter rental near me',
   ],
   openGraph: {
-    title: 'Activa on Rent - Scooty Rental Starting @₹299/Day | TransRentals',
-    description: 'Rent Honda Activa, TVS Jupiter & scooters across 150+ cities. Easy to ride, fuel efficient.',
+    title: formatPriceHighlight('Activa on Rent - Scooty Rental Starting @₹299/Day | TransRentals'),
+    description: formatPriceHighlight('Rent Honda Activa, TVS Jupiter & scooters across 150+ cities. Easy to ride, fuel efficient.'),
     type: 'website',
     url: 'https://transrentals.in/activa-on-rent',
     images: [
@@ -38,8 +39,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Activa on Rent - Starting @₹299/Day | TransRentals',
-    description: 'Rent scooters across 150+ cities in India. Easy to ride, fuel efficient.',
+    title: formatPriceHighlight('Activa on Rent - Starting @₹299/Day | TransRentals'),
+    description: formatPriceHighlight('Rent scooters across 150+ cities in India. Easy to ride, fuel efficient.'),
     images: ['https://transrentals.in/images/og/activa-rental.jpg'],
   },
   alternates: {
@@ -79,80 +80,80 @@ export default function ActivaOnRentPage() {
         reviewCount={1890}
       />
       <div className="flex flex-col">
-      <ServiceHeroWithChat
-        badge="Activa Rental in 250+ Cities"
-        title="Activa on Rent | Scooty Rental"
-        titleHighlight="Starting @₹299/Day"
-        description="Rent Honda Activa and scooters for daily commute, weekend trips, or long-term use. Well-maintained vehicles with flexible rental options."
-        gradientFrom="cyan-50"
-        gradientTo="blue-50"
-      />
+        <ServiceHeroWithChat
+          badge="Activa Rental in 250+ Cities"
+          title="Activa on Rent | Scooty Rental"
+          titleHighlight="Starting @₹299/Day"
+          description="Rent Honda Activa and scooters for daily commute, weekend trips, or long-term use. Well-maintained vehicles with flexible rental options."
+          gradientFrom="cyan-50"
+          gradientTo="blue-50"
+        />
 
-      <ActivaRentalServiceHero />
+        <ActivaRentalServiceHero />
 
-      {/* Key Features Section */}
-      <section className="py-16 bg-white">
-        <div className="container-custom">
-          <h2 className="text-3xl md:text-4xl font-bold text-center mb-12">
-            Why Rent Activa & Scooters?
-          </h2>
-          <div className="grid md:grid-cols-3 gap-8">
-            <div className="text-center p-6">
-              <div className="w-16 h-16 bg-gradient-to-br from-cyan-500 to-blue-500 rounded-full flex items-center justify-center text-3xl mx-auto mb-4">
-                💰
+        {/* Key Features Section */}
+        <section className="py-16 bg-white">
+          <div className="container-custom">
+            <h2 className="text-3xl md:text-4xl font-bold text-center mb-12">
+              Why Rent Activa & Scooters?
+            </h2>
+            <div className="grid md:grid-cols-3 gap-8">
+              <div className="text-center p-6">
+                <div className="w-16 h-16 bg-gradient-to-br from-cyan-500 to-blue-500 rounded-full flex items-center justify-center text-3xl mx-auto mb-4">
+                  💰
+                </div>
+                <h3 className="text-xl font-bold mb-2">Affordable</h3>
+                <p className="text-gray-600">Starting at just ₹299/day with flexible rental durations</p>
               </div>
-              <h3 className="text-xl font-bold mb-2">Affordable</h3>
-              <p className="text-gray-600">Starting at just ₹299/day with flexible rental durations</p>
-            </div>
-            <div className="text-center p-6">
-              <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-full flex items-center justify-center text-3xl mx-auto mb-4">
-                ⚡
+              <div className="text-center p-6">
+                <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-full flex items-center justify-center text-3xl mx-auto mb-4">
+                  ⚡
+                </div>
+                <h3 className="text-xl font-bold mb-2">Fuel Efficient</h3>
+                <p className="text-gray-600">50-60 km/l mileage, perfect for daily commuting</p>
               </div>
-              <h3 className="text-xl font-bold mb-2">Fuel Efficient</h3>
-              <p className="text-gray-600">50-60 km/l mileage, perfect for daily commuting</p>
-            </div>
-            <div className="text-center p-6">
-              <div className="w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-full flex items-center justify-center text-3xl mx-auto mb-4">
-                🎯
+              <div className="text-center p-6">
+                <div className="w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-full flex items-center justify-center text-3xl mx-auto mb-4">
+                  🎯
+                </div>
+                <h3 className="text-xl font-bold mb-2">Easy to Ride</h3>
+                <p className="text-gray-600">Automatic transmission, no clutch or gear shifting needed</p>
               </div>
-              <h3 className="text-xl font-bold mb-2">Easy to Ride</h3>
-              <p className="text-gray-600">Automatic transmission, no clutch or gear shifting needed</p>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* Popular Models */}
-      <section className="py-16 bg-gray-50">
-        <div className="container-custom">
-          <h2 className="text-3xl md:text-4xl font-bold text-center mb-12">
-            Popular Scooty Models Available
-          </h2>
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {[
-              { name: 'Honda Activa', cc: '110cc', price: '₹299/day' },
-              { name: 'TVS Jupiter', cc: '110cc', price: '₹299/day' },
-              { name: 'Suzuki Access 125', cc: '125cc', price: '₹349/day' },
-              { name: 'Honda Dio', cc: '110cc', price: '₹299/day' },
-              { name: 'TVS Ntorq', cc: '125cc', price: '₹399/day' },
-              { name: 'Hero Pleasure', cc: '110cc', price: '₹299/day' },
-              { name: 'Yamaha Fascino', cc: '125cc', price: '₹349/day' },
-              { name: 'Suzuki Burgman', cc: '125cc', price: '₹449/day' },
-            ].map((model) => (
-              <div key={model.name} className="bg-white p-6 rounded-lg shadow-md hover:shadow-xl transition">
-                <div className="text-4xl mb-3">🛵</div>
-                <h3 className="text-lg font-bold mb-1">{model.name}</h3>
-                <p className="text-sm text-gray-600 mb-2">{model.cc}</p>
-                <p className="text-primary font-bold">{model.price}</p>
-              </div>
-            ))}
+        {/* Popular Models */}
+        <section className="py-16 bg-gray-50">
+          <div className="container-custom">
+            <h2 className="text-3xl md:text-4xl font-bold text-center mb-12">
+              Popular Scooty Models Available
+            </h2>
+            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {[
+                { name: 'Honda Activa', cc: '110cc', price: '₹299/day' },
+                { name: 'TVS Jupiter', cc: '110cc', price: '₹299/day' },
+                { name: 'Suzuki Access 125', cc: '125cc', price: '₹349/day' },
+                { name: 'Honda Dio', cc: '110cc', price: '₹299/day' },
+                { name: 'TVS Ntorq', cc: '125cc', price: '₹399/day' },
+                { name: 'Hero Pleasure', cc: '110cc', price: '₹299/day' },
+                { name: 'Yamaha Fascino', cc: '125cc', price: '₹349/day' },
+                { name: 'Suzuki Burgman', cc: '125cc', price: '₹449/day' },
+              ].map((model) => (
+                <div key={model.name} className="bg-white p-6 rounded-lg shadow-md hover:shadow-xl transition">
+                  <div className="text-4xl mb-3">🛵</div>
+                  <h3 className="text-lg font-bold mb-1">{model.name}</h3>
+                  <p className="text-sm text-gray-600 mb-2">{model.cc}</p>
+                  <p className="text-primary font-bold">{model.price}</p>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      <LocationsGrid service="activa-on-rent" />
+        <LocationsGrid service="activa-on-rent" />
 
-      <FAQSection service="bike-on-rent" />
+        <FAQSection service="bike-on-rent" />
 
       </div>
     </>

@@ -4,11 +4,12 @@ import { prisma } from '@/lib/db/prisma';
 import { SimpleServiceHero } from '@/components/services/SimpleServiceHero';
 import { AirportRoutesGrid } from '@/components/services/AirportRoutesGrid';
 import { DynamicServicePage } from '@/components/services/DynamicServicePage';
+import { formatPriceHighlight } from '@/lib/utils';
 
 export const metadata: Metadata = {
-  title: 'Airport Transfer - Cab Service Starting @₹499 | TransRentals',
+  title: formatPriceHighlight('Airport Transfer - Cab Service Starting @₹499 | TransRentals'),
   description:
-    'Book airport transfer cab service across India. Airport pickup & drop service. Professional drivers, all inclusive pricing. 500+ airport routes available.',
+    formatPriceHighlight('Book airport transfer cab service across India. Airport pickup & drop service. Professional drivers, all inclusive pricing. 500+ airport routes available.'),
   keywords: [
     'airport transfer',
     'airport taxi',
@@ -19,8 +20,8 @@ export const metadata: Metadata = {
     'delhi airport taxi',
   ],
   openGraph: {
-    title: 'Airport Transfer - Cab Service Starting @₹499 | TransRentals',
-    description: 'Book airport transfer service across India. Airport pickup & drop available.',
+    title: formatPriceHighlight('Airport Transfer - Cab Service Starting @₹499 | TransRentals'),
+    description: formatPriceHighlight('Book airport transfer service across India. Airport pickup & drop available.'),
     type: 'website',
     url: 'https://transrentals.in/airport-transfer',
     images: [
@@ -34,8 +35,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Airport Transfer - Cab Service Starting @₹499 | TransRentals',
-    description: 'Book airport transfer service across India.',
+    title: formatPriceHighlight('Airport Transfer - Cab Service Starting @₹499 | TransRentals'),
+    description: formatPriceHighlight('Book airport transfer service across India.'),
     images: ['https://transrentals.in/images/og/airport-transfer.jpg'],
   },
   alternates: {
@@ -219,11 +220,10 @@ export default async function AirportTransferPage() {
                 >
                   {/* Route Direction Badge */}
                   <div className="mb-4">
-                    <span className={`inline-flex items-center gap-1 text-xs font-semibold px-3 py-1 rounded-full ${
-                      route.isAirportPickup
+                    <span className={`inline-flex items-center gap-1 text-xs font-semibold px-3 py-1 rounded-full ${route.isAirportPickup
                         ? 'bg-green-100 text-green-700'
                         : 'bg-blue-100 text-blue-700'
-                    }`}>
+                      }`}>
                       {route.isAirportPickup ? '✈️ Airport Pickup' : '🚗 Airport Drop'}
                     </span>
                   </div>

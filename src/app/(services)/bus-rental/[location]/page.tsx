@@ -6,7 +6,7 @@ import { PopularRoutes } from '@/components/location/PopularRoutes';
 import { FAQSection } from '@/components/services/FAQSection';
 import { NearbyLocations } from '@/components/location/NearbyLocations';
 import { ServiceComingSoon } from '@/components/location/ServiceComingSoon';
-import { capitalize } from '@/lib/utils';
+import { capitalize, formatPriceHighlight } from '@/lib/utils';
 import { ALL_CITIES, STATIC_CITIES, getCityBySlug } from '@/data/indian-cities';
 import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
 import { isServiceAvailableInLocation, getNearbyAvailableLocations } from '@/lib/services/service-availability';
@@ -71,8 +71,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const locationName = capitalize(params.location.replace(/-/g, ' '));
 
   return {
-    title: `Bus Rental in ${locationName} | Starting @₹2499/Day | TransRentals`,
-    description: `Rent buses in ${locationName} with TransRentals. Choose from mini buses, tempo travellers, luxury coaches. Best prices guaranteed. Book your bus rental now!`,
+    title: formatPriceHighlight(`Bus Rental in ${locationName} | Starting @₹2499/Day | TransRentals`),
+    description: formatPriceHighlight(`Rent buses in ${locationName} with TransRentals. Choose from mini buses, tempo travellers, luxury coaches. Best prices guaranteed. Book your bus rental now!`),
     keywords: [
       `bus rental in ${locationName}`,
       `bus on rent ${locationName}`,
@@ -81,8 +81,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       `mini bus rental ${locationName}`,
     ],
     openGraph: {
-      title: `Bus Rental in ${locationName} - TransRentals`,
-      description: `Rent buses in ${locationName} starting @₹2499/day. Best prices guaranteed.`,
+      title: formatPriceHighlight(`Bus Rental in ${locationName} - TransRentals`),
+      description: formatPriceHighlight(`Rent buses in ${locationName} starting @₹2499/day. Best prices guaranteed.`),
     },
   };
 }
@@ -108,7 +108,7 @@ export default async function BusLocationPage({ params }: PageProps) {
     );
   }
 
-  // Fetch vendor fleets available for this location
+  // Fetch admin vehicle models for this location
   const service = await prisma.services.findUnique({
     where: { slug: 'bus-rental' },
     select: { id: true, name: true, slug: true },
@@ -137,13 +137,28 @@ export default async function BusLocationPage({ params }: PageProps) {
   }> = [];
 
   if (service && location) {
-    // Fetch vendor fleets that are available in this location
-    const vendorFleets = await prisma.vendor_fleets.findMany({
+    const vehicleModels = await prisma.vehicle_models.findMany({
       where: {
         serviceId: service.id,
         isActive: true,
-        isAvailable: true,
-        vendor_fleet_locations: {
+        brands: {
+          isActive: true,
+        },
+        AND: [
+          {
+            OR: [
+              { vehicleCategoryId: null },
+              { chauffeur_vehicle_categories: { isActive: true } },
+            ],
+          },
+          {
+            OR: [
+              { subServiceId: null },
+              { services_vehicle_models_subServiceIdToservices: { isActive: true } },
+            ],
+          },
+        ],
+        vehicle_model_locations: {
           some: {
             locationId: location.id,
             isActive: true,
@@ -154,47 +169,34 @@ export default async function BusLocationPage({ params }: PageProps) {
         brands: {
           select: { name: true, logo: true },
         },
-        vehicle_models: {
-          select: { name: true, slug: true, sideImage: true, basePricePerDay: true },
-        },
-        chauffeur_vehicle_categories: {
-          select: { name: true, slug: true },
-        },
-        fleet_pricing: {
+        vehicle_model_locations: {
           where: {
             locationId: location.id,
             isActive: true,
           },
-          take: 1,
+          select: { basePricePerDay: true },
         },
       },
-      orderBy: [{ createdAt: 'desc' }],
+      orderBy: [{ displayOrder: 'asc' }, { name: 'asc' }],
       take: 12,
     });
 
-    vehicles = vendorFleets.map((fleet) => {
-      // Get price: fleet_pricing > vehicle_models.basePricePerDay > fallback
-      const locationPricing = fleet.fleet_pricing?.[0];
-      const modelBasePrice = fleet.vehicle_models?.basePricePerDay;
-      const price = locationPricing?.basePrice || modelBasePrice || 2499;
-
-      // Generate a URL-friendly slug
-      const fleetSlug = fleet.vehicle_models?.slug ||
-        fleet.vehicleName?.toLowerCase().replace(/\s+/g, '-') ||
-        fleet.id;
+    vehicles = vehicleModels.map((model) => {
+      const locationPricing = model.vehicle_model_locations?.[0]?.basePricePerDay;
+      const price = locationPricing || model.basePricePerDay || 2499;
 
       return {
-        id: fleet.id,
-        name: fleet.vehicleName || fleet.vehicle_models?.name || 'Bus',
-        slug: fleetSlug,
-        brand: fleet.brands?.name || undefined,
-        image: fleet.images ? JSON.parse(fleet.images)[0] : (fleet.vehicle_models?.sideImage || '/images/fleet/default-bus.jpg'),
+        id: model.id,
+        name: model.name,
+        slug: model.slug,
+        brand: model.brands?.name || undefined,
+        image: model.sideImage || '/images/fleet/default-bus.jpg',
         price: price,
-        rating: fleet.avgRating || 4.5,
+        rating: model.rating || 4.5,
         specs: {
-          ...(fleet.seatingCapacity ? { seating: `${fleet.seatingCapacity} Seater` } : {}),
-          ...(fleet.fuelType ? { fuel: fleet.fuelType } : {}),
-          ...(fleet.transmission ? { transmission: fleet.transmission } : {}),
+          ...(model.seatingCapacity ? { seating: `${model.seatingCapacity} Seater` } : {}),
+          ...(model.fuelType ? { fuel: model.fuelType } : {}),
+          ...(model.transmission ? { transmission: model.transmission } : {}),
         },
       };
     });

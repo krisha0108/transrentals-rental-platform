@@ -143,6 +143,13 @@ export async function POST(
       basePricePerDay,
       isActive,
       displayOrder,
+      // Truck/Transporter specific fields
+      loadCapacity,
+      bodyType,
+      wheels,
+      lengthFt,
+      widthFt,
+      heightFt,
     } = body;
 
     if (!name || !modelSlug) {
@@ -210,6 +217,13 @@ export async function POST(
         basePricePerDay: basePricePerDay || null,
         isActive: isActive !== false,
         displayOrder: displayOrder || 0,
+        // Truck/Transporter specific fields
+        loadCapacity: loadCapacity || null,
+        bodyType: bodyType || null,
+        wheels: wheels || null,
+        lengthFt: lengthFt || null,
+        widthFt: widthFt || null,
+        heightFt: heightFt || null,
       },
       include: {
         brands: {

@@ -3,12 +3,13 @@ import Link from 'next/link';
 import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
 import { FAQSection } from '@/components/services/FAQSection';
 import { ALL_CITIES } from '@/data/indian-cities';
+import { formatPriceHighlight } from '@/lib/utils';
 
 export const metadata: Metadata = {
-  title: 'Crane on Rent | Mobile Crane Rental @₹8000/Day | TransRentals',
-  description: 'Hire crane on rent for construction, industrial projects. Mobile crane, tower crane, hydra crane available. 10-100 ton capacity. Book now!',
+  title: formatPriceHighlight('Crane on Rent | Mobile Crane Rental @₹8000/Day | TransRentals'),
+  description: formatPriceHighlight('Hire crane on rent for construction, industrial projects. Mobile crane, tower crane, hydra crane available. 10-100 ton capacity. Book now!'),
   keywords: ['crane on rent', 'crane rental', 'mobile crane hire', 'tower crane rental', 'construction crane'],
-  openGraph: { title: 'Crane on Rent @₹8000/Day | TransRentals', url: 'https://transrentals.in/crane-on-rent' },
+  openGraph: { title: formatPriceHighlight('Crane on Rent @₹8000/Day | TransRentals'), url: 'https://transrentals.in/crane-on-rent' },
   alternates: { canonical: 'https://transrentals.in/crane-on-rent' },
 };
 

@@ -3,10 +3,11 @@ import Link from 'next/link';
 import { SimpleServiceHero } from '@/components/services/SimpleServiceHero';
 import { ServiceLocationsGrid } from '@/components/services/ServiceLocationsGrid';
 import { ServiceFleetDisplay } from '@/components/services/ServiceFleetDisplay';
+import { formatPriceHighlight } from '@/lib/utils';
 
 export const metadata: Metadata = {
-  title: 'Monthly Car Rental | Car Subscription @₹12000/Month | Long Term Car Lease',
-  description: 'Rent car on monthly basis. Car subscription service. Long term car rental @₹12000/month. Self-drive & chauffeur options. All-inclusive package.',
+  title: formatPriceHighlight('Monthly Car Rental | Car Subscription @₹12000/Month | Long Term Car Lease'),
+  description: formatPriceHighlight('Rent car on monthly basis. Car subscription service. Long term car rental @₹12000/month. Self-drive & chauffeur options. All-inclusive package.'),
   keywords: [
     'monthly car rental',
     'car subscription',
@@ -22,8 +23,8 @@ export const metadata: Metadata = {
     'car rental per month',
   ],
   openGraph: {
-    title: 'Monthly Car Rental India | Car Subscription @₹12000/Month',
-    description: 'Subscribe to cars monthly. All-inclusive packages. Self-drive & chauffeur options available.',
+    title: formatPriceHighlight('Monthly Car Rental India | Car Subscription @₹12000/Month'),
+    description: formatPriceHighlight('Subscribe to cars monthly. All-inclusive packages. Self-drive & chauffeur options available.'),
   },
 };
 

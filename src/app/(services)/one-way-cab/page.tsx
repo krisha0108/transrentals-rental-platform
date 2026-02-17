@@ -4,11 +4,12 @@ import { prisma } from '@/lib/db/prisma';
 import { SimpleServiceHero } from '@/components/services/SimpleServiceHero';
 import { OneWayCabRoutesGrid } from '@/components/services/OneWayCabRoutesGrid';
 import { DynamicServicePage } from '@/components/services/DynamicServicePage';
+import { formatPriceHighlight } from '@/lib/utils';
 
 export const metadata: Metadata = {
-  title: 'One Way Cab - Drop Taxi Service Starting @₹9/km | TransRentals',
+  title: formatPriceHighlight('One Way Cab - Drop Taxi Service Starting @₹9/km | TransRentals'),
   description:
-    'Book one way cab service across India. No return charges. Professional drivers, all inclusive pricing. Drop taxi service available in 500+ routes.',
+    formatPriceHighlight('Book one way cab service across India. No return charges. Professional drivers, all inclusive pricing. Drop taxi service available in 500+ routes.'),
   keywords: [
     'one way cab',
     'one way taxi',
@@ -19,8 +20,8 @@ export const metadata: Metadata = {
     'intercity cab',
   ],
   openGraph: {
-    title: 'One Way Cab - Drop Taxi Service Starting @₹9/km | TransRentals',
-    description: 'Book one way cab service across India. No return charges. Drop in different city.',
+    title: formatPriceHighlight('One Way Cab - Drop Taxi Service Starting @₹9/km | TransRentals'),
+    description: formatPriceHighlight('Book one way cab service across India. No return charges. Drop in different city.'),
     type: 'website',
     url: 'https://transrentals.in/one-way-cab',
     images: [
@@ -34,8 +35,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'One Way Cab - Drop Taxi Service Starting @₹9/km | TransRentals',
-    description: 'Book one way cab service across India. No return charges.',
+    title: formatPriceHighlight('One Way Cab - Drop Taxi Service Starting @₹9/km | TransRentals'),
+    description: formatPriceHighlight('Book one way cab service across India. No return charges.'),
     images: ['https://transrentals.in/images/og/one-way-cab.jpg'],
   },
   alternates: {
