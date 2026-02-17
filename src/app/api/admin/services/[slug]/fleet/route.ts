@@ -49,16 +49,17 @@ export async function GET(
       return NextResponse.json({ error: 'Service not found' }, { status: 404 });
     }
 
-    // Fetch vehicle categories for this service
+    // Fetch vehicle categories for this service (only active categories)
     const vehicleCategories = await prisma.chauffeur_vehicle_categories.findMany({
       where: {
         serviceId: service.id,
-        isActive: true,
+        isActive: true, // Only show active categories in dropdown
       },
       select: {
         id: true,
         name: true,
         slug: true,
+        isActive: true, // Include isActive status for display
       },
       orderBy: { displayOrder: 'asc' },
     });
@@ -209,7 +210,7 @@ export async function GET(
         id: v.id,
         name: v.name,
         slug: v.slug,
-        brand: v.brands?.name || 'Unknown',
+        brand: v.brands?.name || '',
         brandId: v.brandId,
         brandLogo: v.brands?.logo || null,
         services_vehicle_models_subServiceIdToservices: categoryName,
@@ -337,35 +338,8 @@ export async function POST(
     const brandOptionalServices = ['equipment-rental', 'packers-and-movers'];
     const isBrandOptional = brandOptionalServices.includes(slug);
 
-    // Ensure we have a brandId (create default if needed for optional services)
-    let finalBrandId = brandId;
-
-    if (!brandId && isBrandOptional) {
-      // Create or find a default "Generic" brand for this service
-      let defaultBrand = await prisma.brands.findFirst({
-        where: {
-          serviceId: service.id,
-          slug: 'generic',
-        },
-      });
-
-      if (!defaultBrand) {
-        // Create default brand
-        defaultBrand = await prisma.brands.create({
-          data: {
-            id: generateId(),
-            name: 'Generic',
-            slug: 'generic',
-            serviceId: service.id,
-            isActive: true,
-            displayOrder: 9999,
-          },
-        });
-        console.log('Created default brand for', slug, ':', defaultBrand.id);
-      }
-
-      finalBrandId = defaultBrand.id;
-    }
+    // Allow null brandId for optional services
+    const finalBrandId = brandId || null;
 
     if (!isBrandOptional && !finalBrandId) {
       return NextResponse.json(

@@ -125,6 +125,31 @@ export default async function TransporterLocationPage({ params }: PageProps) {
       where: {
         serviceId: service.id,
         isActive: true,
+        brands: {
+          isActive: true,
+        },
+        AND: [
+          {
+            OR: [
+              { vehicleCategoryId: null },
+              { chauffeur_vehicle_categories: { isActive: true } },
+            ],
+          },
+          {
+            OR: [
+              { subServiceId: null },
+              { services_vehicle_models_subServiceIdToservices: { isActive: true } },
+            ],
+          },
+        ],
+        OR: [
+          { vehicleCategoryId: null }, // No category assigned
+          {
+            chauffeur_vehicle_categories: {
+              isActive: true,
+            },
+          },
+        ],
         vehicle_model_locations: {
           some: {
             locationId: location.id,

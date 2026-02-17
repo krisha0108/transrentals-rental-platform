@@ -23,6 +23,8 @@ interface VehicleGridProps {
   vehicles?: Vehicle[];
   title?: string;
   serviceSlug?: string;
+  showViewDetails?: boolean;
+  isClickable?: boolean;
 }
 
 export function VehicleGrid({

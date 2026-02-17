@@ -267,8 +267,10 @@ export default function ServiceFleetPage() {
         const res = await fetch(`/api/admin/services/${slug}/brands`);
         if (res.ok) {
           const data = await res.json();
-          setBrands(data.brands || []);
-          console.log(`[${slug}] Fetched ${data.brands?.length || 0} brands for this service`);
+          // Filter only active brands
+          const activeBrands = (data.brands || []).filter((brand: any) => brand.isActive !== false);
+          setBrands(activeBrands);
+          console.log(`[${slug}] Fetched ${activeBrands.length} active brands for this service`);
         }
       } catch (error) {
         console.error('Failed to fetch brands:', error);

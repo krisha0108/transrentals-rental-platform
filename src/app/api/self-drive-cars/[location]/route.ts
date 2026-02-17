@@ -103,8 +103,8 @@ export async function GET(
       : {};
 
     const brandFilter = brandSlug
-      ? { brands: { slug: brandSlug } }
-      : {};
+      ? { brands: { slug: brandSlug, isActive: true } }
+      : { brands: { isActive: true } };
 
     // Check if self-drive service is available in this location
     const serviceLocation = await prisma.service_locations.findFirst({
