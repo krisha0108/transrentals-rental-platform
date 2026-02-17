@@ -7,11 +7,12 @@ import { BikeServiceSchema } from '@/components/seo/schemas';
 import { SimpleServiceHero } from '@/components/services/SimpleServiceHero';
 import { ServiceLocationsGrid } from '@/components/services/ServiceLocationsGrid';
 import { ServiceFleetDisplay } from '@/components/services/ServiceFleetDisplay';
+import { formatPriceHighlight } from '@/lib/utils';
 
 export const metadata: Metadata = {
-  title: 'Bike on Rent - Rent Bikes Starting @₹399/Day | TransRentals',
+  title: formatPriceHighlight('Bike on Rent - Rent Bikes Starting @₹399/Day | TransRentals'),
   description:
-    'Rent bikes across 150+ cities in India. Choose from Royal Enfield, KTM, Honda, Yamaha & more. Best prices guaranteed. Book your bike rental now!',
+    formatPriceHighlight('Rent bikes across 150+ cities in India. Choose from Royal Enfield, KTM, Honda, Yamaha & more. Best prices guaranteed. Book your bike rental now!'),
   keywords: [
     'bike on rent',
     'bike rental',
@@ -22,8 +23,8 @@ export const metadata: Metadata = {
     'bike hire india',
   ],
   openGraph: {
-    title: 'Bike on Rent - Starting @₹399/Day | TransRentals',
-    description: 'Rent bikes across 150+ cities in India. Royal Enfield, KTM, Honda & more.',
+    title: formatPriceHighlight('Bike on Rent - Starting @₹399/Day | TransRentals'),
+    description: formatPriceHighlight('Rent bikes across 150+ cities in India. Royal Enfield, KTM, Honda & more.'),
     type: 'website',
     url: 'https://transrentals.in/bike-on-rent',
     images: [
@@ -37,8 +38,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Bike on Rent - Starting @₹399/Day | TransRentals',
-    description: 'Rent bikes across 150+ cities in India. Royal Enfield, KTM, Honda & more.',
+    title: formatPriceHighlight('Bike on Rent - Starting @₹399/Day | TransRentals'),
+    description: formatPriceHighlight('Rent bikes across 150+ cities in India. Royal Enfield, KTM, Honda & more.'),
     images: ['https://transrentals.in/images/og/bike-rental.jpg'],
   },
   alternates: {

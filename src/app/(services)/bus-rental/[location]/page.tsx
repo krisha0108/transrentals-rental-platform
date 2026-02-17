@@ -6,7 +6,7 @@ import { PopularRoutes } from '@/components/location/PopularRoutes';
 import { FAQSection } from '@/components/services/FAQSection';
 import { NearbyLocations } from '@/components/location/NearbyLocations';
 import { ServiceComingSoon } from '@/components/location/ServiceComingSoon';
-import { capitalize } from '@/lib/utils';
+import { capitalize, formatPriceHighlight } from '@/lib/utils';
 import { ALL_CITIES, STATIC_CITIES, getCityBySlug } from '@/data/indian-cities';
 import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
 import { isServiceAvailableInLocation, getNearbyAvailableLocations } from '@/lib/services/service-availability';
@@ -71,8 +71,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const locationName = capitalize(params.location.replace(/-/g, ' '));
 
   return {
-    title: `Bus Rental in ${locationName} | Starting @₹2499/Day | TransRentals`,
-    description: `Rent buses in ${locationName} with TransRentals. Choose from mini buses, tempo travellers, luxury coaches. Best prices guaranteed. Book your bus rental now!`,
+    title: formatPriceHighlight(`Bus Rental in ${locationName} | Starting @₹2499/Day | TransRentals`),
+    description: formatPriceHighlight(`Rent buses in ${locationName} with TransRentals. Choose from mini buses, tempo travellers, luxury coaches. Best prices guaranteed. Book your bus rental now!`),
     keywords: [
       `bus rental in ${locationName}`,
       `bus on rent ${locationName}`,
@@ -81,8 +81,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       `mini bus rental ${locationName}`,
     ],
     openGraph: {
-      title: `Bus Rental in ${locationName} - TransRentals`,
-      description: `Rent buses in ${locationName} starting @₹2499/day. Best prices guaranteed.`,
+      title: formatPriceHighlight(`Bus Rental in ${locationName} - TransRentals`),
+      description: formatPriceHighlight(`Rent buses in ${locationName} starting @₹2499/day. Best prices guaranteed.`),
     },
   };
 }

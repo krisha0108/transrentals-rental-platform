@@ -3,12 +3,13 @@ import Link from 'next/link';
 import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
 import { FAQSection } from '@/components/services/FAQSection';
 import { ALL_CITIES } from '@/data/indian-cities';
+import { formatPriceHighlight } from '@/lib/utils';
 
 export const metadata: Metadata = {
-  title: 'Scorpio on Rent Without Driver | Self Drive @₹2499/Day | TransRentals',
-  description: 'Rent Mahindra Scorpio-N without driver across India. Rugged SUV for adventure trips, outstation. 6 & 7 seater. Book now!',
+  title: formatPriceHighlight('Scorpio on Rent Without Driver | Self Drive @₹2499/Day | TransRentals'),
+  description: formatPriceHighlight('Rent Mahindra Scorpio-N without driver across India. Rugged SUV for adventure trips, outstation. 6 & 7 seater. Book now!'),
   keywords: ['scorpio on rent', 'mahindra scorpio on rent', 'scorpio n self drive', 'rent scorpio without driver'],
-  openGraph: { title: 'Scorpio on Rent Without Driver @₹2499/Day', url: 'https://transrentals.in/scorpio-on-rent' },
+  openGraph: { title: formatPriceHighlight('Scorpio on Rent Without Driver @₹2499/Day'), url: 'https://transrentals.in/scorpio-on-rent' },
   alternates: { canonical: 'https://transrentals.in/scorpio-on-rent' },
 };
 

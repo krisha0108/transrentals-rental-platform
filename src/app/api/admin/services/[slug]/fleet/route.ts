@@ -75,38 +75,48 @@ export async function GET(
     });
     const serviceLocationIds = serviceLocations.map(sl => sl.locationId);
 
-    // Build where clause for vehicle models
-    const where: any = {
-      serviceId: service.id,
-    };
+    // Build conditions for vehicle models
+    const conditions: any[] = [{ serviceId: service.id }];
 
     if (search) {
-      where.OR = [
-        { name: { contains: search } },
-        { slug: { contains: search } },
-        { brands: { name: { contains: search } } },
-      ];
+      conditions.push({
+        OR: [
+          { name: { contains: search } },
+          { slug: { contains: search } },
+          { brands: { name: { contains: search } } },
+        ],
+      });
     }
 
     if (subServiceId) {
-      where.subServiceId = subServiceId;
+      conditions.push({
+        OR: [
+          { subServiceId: subServiceId },
+          { vehicleCategoryId: subServiceId },
+          { specs: { contains: `"categoryId":"${subServiceId}"` } } // Fallback for legacy specs data
+        ],
+      });
     }
 
     if (status === 'active') {
-      where.isActive = true;
+      conditions.push({ isActive: true });
     } else if (status === 'inactive') {
-      where.isActive = false;
+      conditions.push({ isActive: false });
     }
 
     // Filter by location if specified
     if (locationId) {
-      where.vehicle_model_locations = {
-        some: {
-          locationId: locationId,
-          isActive: true,
+      conditions.push({
+        vehicle_model_locations: {
+          some: {
+            locationId: locationId,
+            isActive: true,
+          },
         },
-      };
+      });
     }
+
+    const where = { AND: conditions };
 
     // Fetch vehicle models for this service
     const [vehicles, total] = await Promise.all([
@@ -137,11 +147,16 @@ export async function GET(
       prisma.vehicle_models.count({ where }),
     ]);
 
-    // Fetch category mapping for vehicles that have subServiceId
+    // Fetch category mapping for vehicles that have subServiceId or vehicleCategoryId
     const vehicleIds = vehicles.map(v => v.id);
+    const categoryIds = [
+      ...vehicles.map(v => v.subServiceId),
+      ...vehicles.map(v => v.vehicleCategoryId)
+    ].filter(Boolean) as string[];
+
     const categoryMappings = await prisma.chauffeur_vehicle_categories.findMany({
       where: {
-        id: { in: vehicles.map(v => v.subServiceId).filter(Boolean) as string[] },
+        id: { in: categoryIds },
         serviceId: service.id,
       },
       select: { id: true, name: true, slug: true },
@@ -172,17 +187,22 @@ export async function GET(
         categoryName = specsObj.categoryName;
         categoryId = specsObj.categoryId || categoryId;
       }
-      // Priority 2: Check service relation
+      // Priority 2: Check chauffeur category relation
+      else if (v.chauffeur_vehicle_categories?.name) {
+        categoryName = v.chauffeur_vehicle_categories.name;
+        categoryId = v.vehicleCategoryId || categoryId;
+      }
+      // Priority 3: Check service relation
       else if (v.services_vehicle_models_subServiceIdToservices?.name) {
         categoryName = v.services_vehicle_models_subServiceIdToservices.name;
       }
-      // Priority 3: Check category mapping
+      // Priority 4: Check category mapping
       else if (v.subServiceId && categoryMap.has(v.subServiceId)) {
         categoryName = categoryMap.get(v.subServiceId)!.name;
       }
-      // Priority 4: Check chauffeur category relation
-      else if ((v as any).chauffeur_vehicle_categories?.name) {
-        categoryName = (v as any).chauffeur_vehicle_categories.name;
+      else if (v.vehicleCategoryId && categoryMap.has(v.vehicleCategoryId)) {
+        categoryName = categoryMap.get(v.vehicleCategoryId)!.name;
+        categoryId = v.vehicleCategoryId;
       }
 
       return {
@@ -472,6 +492,7 @@ export async function POST(
         slug: vehicleSlug,
         serviceId: service.id,
         subServiceId: validSubServiceId,
+        vehicleCategoryId: categoryInfo?.id || null,
         brandId: finalBrandId,
         fuelType: fuelType || null,
         transmission: transmission || null,

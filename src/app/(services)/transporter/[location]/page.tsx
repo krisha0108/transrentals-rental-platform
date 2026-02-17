@@ -6,7 +6,7 @@ import { PopularRoutes } from '@/components/location/PopularRoutes';
 import { FAQSection } from '@/components/services/FAQSection';
 import { NearbyLocations } from '@/components/location/NearbyLocations';
 import { ServiceComingSoon } from '@/components/location/ServiceComingSoon';
-import { capitalize } from '@/lib/utils';
+import { capitalize, formatPriceHighlight } from '@/lib/utils';
 import { ALL_CITIES, STATIC_CITIES } from '@/data/indian-cities';
 import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
 import { getAllIndiaFleet } from '@/lib/fleet-utils';
@@ -72,8 +72,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const locationName = capitalize(params.location.replace(/-/g, ' '));
 
   return {
-    title: `Truck Rental in ${locationName} | Starting @₹3999/Day | TransRentals`,
-    description: `Professional truck rental and transport services in ${locationName}. 7-ton to 32-ton trucks with GPS tracking. Best prices guaranteed. Book now!`,
+    title: formatPriceHighlight(`Truck Rental in ${locationName} | Starting @₹3999/Day | TransRentals`),
+    description: formatPriceHighlight(`Professional truck rental and transport services in ${locationName}. 7-ton to 32-ton trucks with GPS tracking. Best prices guaranteed. Book now!`),
     keywords: [
       `truck rental in ${locationName}`,
       `transporter in ${locationName}`,
@@ -82,8 +82,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       `cargo transport ${locationName}`,
     ],
     openGraph: {
-      title: `Truck Rental in ${locationName} - TransRentals`,
-      description: `Professional truck rental in ${locationName} starting @₹3999/day. GPS tracking included.`,
+      title: formatPriceHighlight(`Truck Rental in ${locationName} - TransRentals`),
+      description: formatPriceHighlight(`Professional truck rental in ${locationName} starting @₹3999/day. GPS tracking included.`),
     },
   };
 }

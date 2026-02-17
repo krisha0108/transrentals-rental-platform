@@ -7,6 +7,8 @@ import { getServiceLocations } from '@/lib/services/service-locations';;
 import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
 import { FAQSection } from '@/components/services/FAQSection';
 
+import { formatPriceHighlight } from '@/lib/utils';
+
 interface PageProps { params: { location: string }; }
 
 // Generate static params from DATABASE - Only locations where car-rental is available
@@ -24,8 +26,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const city = getCityBySlug(params.location);
   const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
   return {
-    title: `XUV700 on Rent in ${locationName} | @₹2999/Day | TransRentals`,
-    description: `Rent Mahindra XUV700 without driver in ${locationName}. India's safest SUV with ADAS.`,
+    title: formatPriceHighlight(`XUV700 on Rent in ${locationName} | @₹2999/Day | TransRentals`),
+    description: formatPriceHighlight(`Rent Mahindra XUV700 without driver in ${locationName}. India's safest SUV with ADAS.`),
     alternates: { canonical: `https://transrentals.in/xuv700-on-rent/${params.location}` },
   };
 }
