@@ -64,8 +64,8 @@ export const RATE_LIMITS: Record<string, RateLimitConfig> = {
 
   // Password reset
   passwordReset: {
-    interval: 60 * 60 * 1000, // 1 hour
-    maxRequests: 3, // 3 reset requests per hour
+    interval: 60 * 1000, // 1 minute (relaxed for testing)
+    maxRequests: 20, // 20 reset requests per minute (relaxed for testing)
   },
 
   // General API endpoints

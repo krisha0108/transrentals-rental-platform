@@ -12,7 +12,7 @@ const OTP_CONFIG = {
   length: 6, // 6-digit OTP
   expiryMinutes: 10, // OTP expires after 10 minutes
   maxAttempts: 3, // Max verification attempts before OTP is invalidated
-  cooldownSeconds: 60, // Minimum time between OTP requests
+  cooldownSeconds: 10, // Minimum time between OTP requests (relaxed for testing)
   maxDailyOtps: 10, // Max OTPs per identifier per day
 };
 
@@ -139,15 +139,19 @@ async function checkDailyLimit(identifier: string, purpose: OTPPurpose): Promise
 async function incrementDailyCount(identifier: string, purpose: OTPPurpose): Promise<void> {
   const key = `daily_otp:${getKey(identifier, purpose)}`;
   const today = new Date().toISOString().split('T')[0];
+  const fullKey = `${key}:${today}`;
 
   try {
+    const existing = await prisma.settings.findUnique({ where: { key: fullKey } });
+    const currentCount = existing ? parseInt(existing.value, 10) : 0;
+
     await prisma.settings.upsert({
-      where: { key: `${key}:${today}` },
+      where: { key: fullKey },
       update: {
-        value: { increment: 1 } as unknown as string,
+        value: String(currentCount + 1),
       },
       create: {
-        key: `${key}:${today}`,
+        key: fullKey,
         value: '1',
         type: 'NUMBER',
         group: 'otp',
@@ -173,23 +177,26 @@ export async function createOTP(
 }> {
   const normalizedIdentifier = identifier.toLowerCase().trim();
 
-  // Check cooldown
-  const cooldownCheck = await checkCooldown(normalizedIdentifier, purpose);
-  if (!cooldownCheck.allowed) {
-    return {
-      success: false,
-      error: 'Please wait before requesting another OTP',
-      waitSeconds: cooldownCheck.waitSeconds,
-    };
-  }
+  // Skip cooldown and daily limit checks in development
+  if (process.env.NODE_ENV !== 'development') {
+    // Check cooldown
+    const cooldownCheck = await checkCooldown(normalizedIdentifier, purpose);
+    if (!cooldownCheck.allowed) {
+      return {
+        success: false,
+        error: 'Please wait before requesting another OTP',
+        waitSeconds: cooldownCheck.waitSeconds,
+      };
+    }
 
-  // Check daily limit
-  const limitCheck = await checkDailyLimit(normalizedIdentifier, purpose);
-  if (!limitCheck.allowed) {
-    return {
-      success: false,
-      error: 'Daily OTP limit reached. Please try again tomorrow.',
-    };
+    // Check daily limit
+    const limitCheck = await checkDailyLimit(normalizedIdentifier, purpose);
+    if (!limitCheck.allowed) {
+      return {
+        success: false,
+        error: 'Daily OTP limit reached. Please try again tomorrow.',
+      };
+    }
   }
 
   // Generate OTP

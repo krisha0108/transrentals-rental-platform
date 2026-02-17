@@ -8,7 +8,7 @@ import Icon from "react-native-vector-icons/Ionicons";
 
 // Same URL config as screens/api/client.js
 const DEFAULT_PROD = "https://transrentals.in";
-const DEFAULT_DEV_ANDROID = "http://192.168.29.68:3000";
+const DEFAULT_DEV_ANDROID = "http://localhost:3000"; // Use ADB reverse: adb reverse tcp:3000 tcp:3000
 const DEFAULT_DEV_IOS = "http://localhost:3000";
 
 function getBaseURL() {
@@ -50,7 +50,7 @@ export default function VendorForgotPasswordScreen({ navigation }) {
   const [loading, setLoading] = useState(false);
 
   const [email, setEmail] = useState("");
-  const [otpDigits, setOtpDigits] = useState(["","","",""]);
+  const [otpDigits, setOtpDigits] = useState(["","","","","",""]);
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -59,7 +59,7 @@ export default function VendorForgotPasswordScreen({ navigation }) {
   const [errors, setErrors] = useState({});
   const [timer, setTimer] = useState(0);
 
-  const otpRefs = [useRef(), useRef(), useRef(), useRef()];
+  const otpRefs = [useRef(), useRef(), useRef(), useRef(), useRef(), useRef()];
   const otp = useMemo(()=>otpDigits.join(""),[otpDigits]);
 
   /* ---------- timers ---------- */
@@ -78,11 +78,11 @@ export default function VendorForgotPasswordScreen({ navigation }) {
 
     try {
       setLoading(true);
-      const res = await axios.post(`${BASE_URL}/forgot-password/send-otp`, { email: email.trim() });
+      const res = await axios.post(`${BASE_URL}/forgot-password`, { action: 'send-otp', email: email.trim() });
       if (res?.data?.status) {
         setStep(2);
         setTimer(60);
-        setOtpDigits(["","","",""]);
+        setOtpDigits(["","","","","",""]);
         setTimeout(()=>otpRefs[0].current?.focus(), 150);
       } else {
         Alert.alert("Error", res?.data?.message || "Failed to send OTP");
@@ -93,10 +93,10 @@ export default function VendorForgotPasswordScreen({ navigation }) {
   };
 
   const verifyOtp = async () => {
-    if (otp.length !== 4) { setErrors({otp:"Enter 4-digit OTP"}); return; }
+    if (otp.length !== 6) { setErrors({otp:"Enter 6-digit OTP"}); return; }
     try {
       setLoading(true);
-      const res = await axios.post(`${BASE_URL}/forgot-password/verify-otp`, { email: email.trim(), otp });
+      const res = await axios.post(`${BASE_URL}/forgot-password`, { action: 'verify-otp', email: email.trim(), otp });
       if (res?.data?.status) setStep(3);
       else Alert.alert("Invalid OTP", res?.data?.message || "Please try again");
     } catch (err) {
@@ -108,10 +108,10 @@ export default function VendorForgotPasswordScreen({ navigation }) {
     if (timer>0) return;
     try {
       setLoading(true);
-      const res = await axios.post(`${BASE_URL}/forgot-password/send-otp`, { email: email.trim() });
+      const res = await axios.post(`${BASE_URL}/forgot-password`, { action: 'send-otp', email: email.trim() });
       if (res?.data?.status) {
         setTimer(60);
-        setOtpDigits(["","","",""]);
+        setOtpDigits(["","","","","",""]);
         setTimeout(()=>otpRefs[0].current?.focus(),150);
       } else {
         Alert.alert("Error", res?.data?.message || "Failed to resend OTP");
@@ -131,10 +131,11 @@ export default function VendorForgotPasswordScreen({ navigation }) {
 
     try {
       setLoading(true);
-      const res = await axios.post(`${BASE_URL}/forgot-password/reset-password`, {
+      const res = await axios.post(`${BASE_URL}/forgot-password`, {
+        action: 'reset-password',
         email: email.trim(),
+        otp,
         password,
-        password_confirmation: confirmPassword,
       });
       if (res?.data?.status) {
         Alert.alert("Success", res?.data?.message || "Password updated", [
@@ -152,7 +153,7 @@ export default function VendorForgotPasswordScreen({ navigation }) {
   const onOtpChange = (i, v) => {
     const digit = v.replace(/[^0-9]/g,"").slice(-1);
     const arr=[...otpDigits]; arr[i]=digit; setOtpDigits(arr);
-    if(digit && i<3) otpRefs[i+1].current?.focus();
+    if(digit && i<5) otpRefs[i+1].current?.focus();
     if(!digit && i>0) otpRefs[i-1].current?.focus();
   };
   const onOtpKey = (i, e) => {
