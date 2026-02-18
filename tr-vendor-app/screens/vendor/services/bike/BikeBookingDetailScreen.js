@@ -365,20 +365,6 @@ export default function BikeBookingDetailScreen({ route, navigation }) {
               </View>
             </View>
 
-            <View style={styles.infoBox}>
-              <View style={[styles.infoIconBox, { backgroundColor: '#DCFCE7' }]}>
-                <Ionicons name="call" size={20} color={C.green} />
-              </View>
-              <View style={styles.infoContent}>
-                <Text style={styles.infoLabel}>Phone</Text>
-                <TouchableOpacity onPress={() => handleCall(booking.customerPhone)}>
-                  <Text style={[styles.infoValue, { color: C.green }]}>
-                    {booking.customerPhone}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-
             {booking.customerEmail && (
               <View style={[styles.infoBox, styles.infoBoxFull]}>
                 <View style={[styles.infoIconBox, { backgroundColor: '#F3E8FF' }]}>
@@ -396,22 +382,6 @@ export default function BikeBookingDetailScreen({ route, navigation }) {
 
           {/* Quick Actions */}
           <View style={styles.quickActions}>
-            <TouchableOpacity
-              style={[styles.quickActionBtn, { backgroundColor: '#DCFCE7' }]}
-              onPress={() => handleCall(booking.customerPhone)}
-            >
-              <Ionicons name="call" size={20} color={C.green} />
-              <Text style={[styles.quickActionText, { color: C.green }]}>Call</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.quickActionBtn, { backgroundColor: '#D1FAE5' }]}
-              onPress={() => handleWhatsApp(booking.customerPhone)}
-            >
-              <Ionicons name="logo-whatsapp" size={20} color={C.emerald} />
-              <Text style={[styles.quickActionText, { color: C.emerald }]}>WhatsApp</Text>
-            </TouchableOpacity>
-
             <TouchableOpacity
               style={[styles.quickActionBtn, { backgroundColor: '#F3E8FF' }]}
               onPress={handleChat}

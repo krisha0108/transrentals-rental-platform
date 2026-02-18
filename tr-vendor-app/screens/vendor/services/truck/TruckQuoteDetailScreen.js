@@ -354,15 +354,6 @@ export default function TruckQuoteDetailScreen({ route, navigation }) {
                   </View>
                 </View>
               )}
-              {customerPhone && (
-                <View style={styles.infoRow}>
-                  <Ionicons name="call" size={18} color="#64748B" />
-                  <View style={styles.infoContent}>
-                    <Text style={styles.infoLabel}>Phone</Text>
-                    <Text style={styles.infoValue}>{customerPhone}</Text>
-                  </View>
-                </View>
-              )}
             </View>
           </View>
 

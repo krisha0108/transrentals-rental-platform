@@ -4,6 +4,7 @@ import { prisma } from '@/lib/db/prisma';
 import { transformPrismaResponse } from '@/lib/utils/api-transform';
 
 import logger from '@/lib/security/logger';
+import { sendQuoteRequestNotificationToVendors } from '@/lib/utils/vendor-notification-sender';
 export const dynamic = 'force-dynamic';
 
 // Helper to generate request number
@@ -149,6 +150,17 @@ export async function POST(request: NextRequest) {
         quotesOpenTill,
       },
     });
+
+    // Non-blocking vendor notification
+    sendQuoteRequestNotificationToVendors({
+      requestId: quoteRequest.id,
+      requestNumber: quoteRequest.requestNumber,
+      locationId: location?.id || pickupCity,
+      locationName: location?.name || pickupCity,
+      customerName,
+      serviceType: 'luxury',
+      serviceDisplayName: 'Luxury Car',
+    }).catch((err: any) => console.error('[Notification] Failed:', err));
 
     return NextResponse.json({
       success: true,

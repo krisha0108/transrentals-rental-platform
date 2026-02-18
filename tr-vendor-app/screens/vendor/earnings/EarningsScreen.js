@@ -232,12 +232,6 @@ export default function EarningsScreen({ navigation }) {
               ₹{formatCurrency(item.amount)}
             </Text>
           </View>
-          <TouchableOpacity
-            style={styles.actionButton}
-            onPress={() => handleCall(item.customerPhone)}
-          >
-            <Icon name="phone" size={18} color={C.brand} />
-          </TouchableOpacity>
         </View>
       </TouchableOpacity>
     );

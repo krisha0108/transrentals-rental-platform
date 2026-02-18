@@ -1,12 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  FlatList,
-  TouchableOpacity,
-  RefreshControl,
-  ActivityIndicator,
+  View, Text, StyleSheet, FlatList, TouchableOpacity,
+  RefreshControl, ActivityIndicator, LayoutAnimation, Platform, UIManager,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Feather';
@@ -14,300 +9,146 @@ import { getBookings } from '../../../api/client';
 import { useInfiniteScroll } from '../../../../hooks/useInfiniteScroll';
 import DateFilterModal from '../../../../components/DateFilterModal';
 
-const C = {
-  bg: '#F7FAFC',
-  surface: '#FFFFFF',
-  text: '#1E293B',
-  muted: '#64748B',
-  border: '#E2E8F0',
-  brand: '#3B82F6',
-  green: '#10B981',
-  orange: '#F59E0B',
-  red: '#EF4444',
-  blue: '#3B82F6',
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
+
+const C = { bg:'#F7FAFC', surface:'#FFFFFF', text:'#1E293B', subtext:'#475569', muted:'#94A3B8', border:'#E2E8F0', brand:'#3B82F6', green:'#10B981', orange:'#F59E0B', red:'#EF4444', purple:'#9333EA' };
+
+const STATUS_CONFIG = {
+  PENDING_PAYMENT:  { label:'Payment Pending',     color:C.orange },
+  PAYMENT_SUBMITTED:{ label:'Payment Submitted',   color:C.orange },
+  ADVANCE_PAID:     { label:'Advance Paid',        color:C.green  },
+  PAYMENT_VERIFIED: { label:'Payment Verified',    color:C.green  },
+  BROADCASTED:      { label:'Open',                color:C.brand  },
+  PENDING_VENDOR:   { label:'Pending',             color:C.orange },
+  ACCEPTED:         { label:'Accepted',            color:C.green  },
+  VEHICLE_ASSIGNED: { label:'Operator Assigned',   color:C.brand  },
+  CONFIRMED:        { label:'Confirmed',           color:C.green  },
+  DISPATCHED:       { label:'Dispatched',          color:C.orange },
+  DELIVERED:        { label:'Delivered',           color:C.purple },
+  ON_RENT:          { label:'On Rent',             color:C.purple },
+  PICKUP_SCHEDULED: { label:'Pickup Scheduled',    color:C.orange },
+  RETURNED:         { label:'Returned',            color:C.brand  },
+  IN_PROGRESS:      { label:'In Progress',         color:C.purple },
+  COMPLETED:        { label:'Completed',           color:'#059669'},
+  CANCELLED:        { label:'Cancelled',           color:C.red    },
 };
+
+const fmt = (d) => d ? new Date(d).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'}) : '--';
 
 export default function EquipmentBookingsScreen({ navigation, route }) {
   const { filter } = route.params || {};
   const [showDateFilter, setShowDateFilter] = useState(false);
+  const [expandedId, setExpandedId] = useState(null);
 
-  const {
-    data: bookings,
-    loading,
-    refreshing,
-    hasMore,
-    loadMore,
-    refresh,
-    initialLoad,
-    applyDateFilter,
-    dateFilter,
-    clearDateFilter,
-  } = useInfiniteScroll(getBookings, {
-    service: 'equipment',
-    type: filter,
-  });
+  const { data:bookings, loading, refreshing, hasMore, loadMore, refresh, initialLoad, applyDateFilter, dateFilter } =
+    useInfiniteScroll(getBookings, { service:'equipment', type:filter });
 
-  useEffect(() => {
-    initialLoad();
-  }, [initialLoad]);
+  useEffect(() => { initialLoad(); }, [initialLoad]);
 
-  const getStatusBadge = (status) => {
-    const statusConfig = {
-      PENDING_PAYMENT: { label: 'Payment Pending', color: C.orange },
-      PAYMENT_SUBMITTED: { label: 'Payment Submitted', color: C.orange },
-      ADVANCE_PAID: { label: 'Advance Paid', color: C.green },
-      PAYMENT_VERIFIED: { label: 'Payment Verified', color: C.green },
-      BROADCASTED: { label: 'Broadcasted', color: C.blue },
-      PENDING_VENDOR: { label: 'Pending', color: C.orange },
-      ACCEPTED: { label: 'Accepted', color: C.green },
-      VEHICLE_ASSIGNED: { label: 'Operator Assigned', color: C.blue },
-      CONFIRMED: { label: 'Confirmed', color: C.green },
-      DISPATCHED: { label: 'Dispatched', color: C.orange },
-      DELIVERED: { label: 'Delivered', color: '#9333EA' },
-      IN_USE: { label: 'Equipment in Use', color: '#9333EA' },
-      ON_RENT: { label: 'On Rent', color: '#9333EA' },
-      PICKUP_SCHEDULED: { label: 'Pickup Scheduled', color: C.orange },
-      RETURNED: { label: 'Returned', color: C.blue },
-      IN_PROGRESS: { label: 'In Progress', color: '#9333EA' },
-      COMPLETED: { label: 'Completed', color: '#059669' },
-      CANCELLED: { label: 'Cancelled', color: C.red },
-    };
-    return statusConfig[status] || { label: status, color: C.muted };
+  const toggleExpand = (id) => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setExpandedId(prev => prev === id ? null : id);
   };
 
   const renderBooking = ({ item }) => {
-    const statusBadge = getStatusBadge(item.status);
-
+    const sc = STATUS_CONFIG[item.status] || { label:item.status, color:C.muted };
+    const isExpanded = expandedId === item.id;
+    const startDate = item.startDate || item.pickupDate;
+    const location = item.deliveryCity || item.pickupCity || item.city;
     return (
-      <TouchableOpacity
-        style={styles.card}
-        onPress={() => navigation.navigate('EquipmentBookingDetail', {
-          bookingId: item.id,
-          serviceType: 'equipment',
-        })}
-        activeOpacity={0.7}
-      >
-        <View style={styles.cardHeader}>
-          <Text style={styles.bookingNumber}>#{item.bookingNumber}</Text>
-          <View style={[styles.statusBadge, { backgroundColor: statusBadge.color + '20' }]}>
-            <Text style={[styles.statusText, { color: statusBadge.color }]}>
-              {statusBadge.label}
-            </Text>
-          </View>
-        </View>
-
-        <View style={styles.cardBody}>
-          <View style={styles.infoRow}>
-            <Icon name="user" size={16} color={C.muted} />
-            <Text style={styles.infoText}>{item.customerName}</Text>
-          </View>
-
-          <View style={styles.infoRow}>
-            <Icon name="map-pin" size={16} color={C.muted} />
-            <Text style={styles.infoText} numberOfLines={1}>
-              {item.deliveryCity || item.pickupCity || item.city || 'N/A'}
-            </Text>
-          </View>
-
-          <View style={styles.infoRow}>
-            <Icon name="calendar" size={16} color={C.muted} />
-            <Text style={styles.infoText}>
-              {item.startDate ? new Date(item.startDate).toLocaleDateString('en-IN') :
-               item.pickupDate ? new Date(item.pickupDate).toLocaleDateString('en-IN') : 'N/A'}
-            </Text>
-          </View>
-
-          <View style={styles.divider} />
-
-          <View style={styles.footer}>
-            <View>
-              <Text style={styles.amountLabel}>Total Amount</Text>
-              <Text style={styles.amount}>₹{item.grandTotal || item.totalAmount}</Text>
+      <View style={s.card}>
+        <TouchableOpacity activeOpacity={0.8} onPress={()=>navigation.navigate('EquipmentBookingDetail',{bookingId:item.id,serviceType:'equipment'})}>
+          <View style={s.cardTop}>
+            <View style={s.cardTopLeft}>
+              <Text style={s.num}>#{item.bookingNumber}</Text>
+              {item.equipmentCategory && <Text style={s.chip}>{item.equipmentCategory}</Text>}
             </View>
-            <Icon name="chevron-right" size={20} color={C.muted} />
+            <View style={[s.badge,{backgroundColor:sc.color+'20'}]}><Text style={[s.badgeText,{color:sc.color}]}>{sc.label}</Text></View>
           </View>
-        </View>
-      </TouchableOpacity>
+          <View style={s.body}>
+            <View style={s.row}><Icon name="user" size={14} color={C.muted}/><Text style={s.rowText} numberOfLines={1}>{item.customerName}</Text></View>
+            {item.equipmentName && <View style={s.row}><Icon name="tool" size={14} color={C.muted}/><Text style={s.rowText} numberOfLines={1}>{item.equipmentName}{item.quantity?` × ${item.quantity}`:''}</Text></View>}
+            <View style={s.row}><Icon name="map-pin" size={14} color={C.muted}/><Text style={s.rowText} numberOfLines={1}>{location||'N/A'}</Text></View>
+            <View style={s.row}><Icon name="calendar" size={14} color={C.muted}/><Text style={s.rowText}>{fmt(startDate)}</Text></View>
+          </View>
+          <View style={s.footer}>
+            <View><Text style={s.amtLabel}>Total Amount</Text><Text style={s.amt}>₹{(item.grandTotal||item.totalAmount||0).toLocaleString('en-IN')}</Text></View>
+            <View style={s.footerRight}>
+              <TouchableOpacity style={s.expandBtn} onPress={()=>toggleExpand(item.id)} hitSlop={{top:8,bottom:8,left:8,right:8}}>
+                <Icon name={isExpanded?'chevron-up':'chevron-down'} size={16} color={C.muted}/>
+              </TouchableOpacity>
+              <Icon name="chevron-right" size={18} color={C.brand}/>
+            </View>
+          </View>
+        </TouchableOpacity>
+        {isExpanded && (
+          <View style={s.expanded}>
+            <View style={s.expandDivider}/>
+            {item.deliveryAddress && <View style={s.eRow}><Icon name="map-pin" size={13} color={C.green}/><Text style={s.eLabel}>Delivery Addr.</Text><Text style={s.eVal}>{item.deliveryAddress}</Text></View>}
+            {item.endDate && <View style={s.eRow}><Icon name="calendar" size={13} color={C.muted}/><Text style={s.eLabel}>End Date</Text><Text style={s.eVal}>{fmt(item.endDate)}</Text></View>}
+            {item.rentalDays && <View style={s.eRow}><Icon name="clock" size={13} color={C.muted}/><Text style={s.eLabel}>Rental Days</Text><Text style={s.eVal}>{item.rentalDays} days</Text></View>}
+            {item.operatorName && <View style={s.eRow}><Icon name="user-check" size={13} color={C.green}/><Text style={s.eLabel}>Operator</Text><Text style={[s.eVal,{color:C.green}]}>{item.operatorName}</Text></View>}
+            {item.customerNotes && <View style={[s.eRow,{alignItems:'flex-start'}]}><Icon name="file-text" size={13} color={C.muted}/><Text style={s.eLabel}>Notes</Text><Text style={[s.eVal,{flex:1}]}>{item.customerNotes}</Text></View>}
+            <TouchableOpacity style={s.viewBtn} onPress={()=>navigation.navigate('EquipmentBookingDetail',{bookingId:item.id,serviceType:'equipment'})}>
+              <Text style={s.viewBtnText}>View Full Details</Text><Icon name="arrow-right" size={14} color={C.brand}/>
+            </TouchableOpacity>
+          </View>
+        )}
+      </View>
     );
   };
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Icon name="arrow-left" size={22} color={C.text} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Equipment Bookings</Text>
-        <TouchableOpacity
-          onPress={() => setShowDateFilter(true)}
-          style={styles.filterButton}
-        >
-          <Icon name="calendar" size={20} color={dateFilter.start ? C.brand : C.muted} />
-          {dateFilter.start && <View style={styles.activeFilterDot} />}
+    <SafeAreaView style={s.safe} edges={['top']}>
+      <View style={s.header}>
+        <TouchableOpacity onPress={()=>navigation.goBack()} style={s.backBtn}><Icon name="arrow-left" size={22} color={C.text}/></TouchableOpacity>
+        <Text style={s.headerTitle}>Equipment Bookings</Text>
+        <TouchableOpacity onPress={()=>setShowDateFilter(true)} style={s.filterBtn}>
+          <Icon name="calendar" size={20} color={dateFilter.start?C.brand:C.muted}/>
+          {dateFilter.start && <View style={s.filterDot}/>}
         </TouchableOpacity>
       </View>
-
-      {loading && bookings.length === 0 ? (
-        <View style={styles.centered}>
-          <ActivityIndicator size="large" color={C.brand} />
-        </View>
+      {loading && bookings.length===0 ? (
+        <View style={s.centered}><ActivityIndicator size="large" color={C.brand}/></View>
       ) : (
-        <FlatList
-          data={bookings}
-          renderItem={renderBooking}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.list}
-          onEndReached={loadMore}
-          onEndReachedThreshold={0.5}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={refresh} colors={[C.brand]} />
-          }
-          ListFooterComponent={loading && hasMore ? (
-            <View style={{ paddingVertical: 20 }}>
-              <ActivityIndicator size="small" color={C.brand} />
-            </View>
-          ) : null}
-          ListEmptyComponent={
-            <View style={styles.empty}>
-              <Icon name="inbox" size={48} color={C.muted} />
-              <Text style={styles.emptyText}>No bookings found</Text>
-            </View>
-          }
+        <FlatList data={bookings} renderItem={renderBooking} keyExtractor={i=>i.id} contentContainerStyle={s.list}
+          onEndReached={loadMore} onEndReachedThreshold={0.5}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} colors={[C.brand]}/>}
+          ListFooterComponent={loading&&hasMore?<View style={{paddingVertical:20}}><ActivityIndicator size="small" color={C.brand}/></View>:null}
+          ListEmptyComponent={<View style={s.empty}><Icon name="inbox" size={48} color={C.muted}/><Text style={s.emptyTitle}>No bookings found</Text><Text style={s.emptySub}>Equipment bookings will appear here</Text></View>}
         />
       )}
-
-      <DateFilterModal
-        visible={showDateFilter}
-        onClose={() => setShowDateFilter(false)}
-        onApply={(start, end, filterType) => applyDateFilter(start, end, filterType)}
-        currentStartDate={dateFilter.start}
-        currentEndDate={dateFilter.end}
-        currentFilterType={dateFilter.type}
-      />
+      <DateFilterModal visible={showDateFilter} onClose={()=>setShowDateFilter(false)} onApply={(st,e,t)=>applyDateFilter(st,e,t)} currentStartDate={dateFilter.start} currentEndDate={dateFilter.end} currentFilterType={dateFilter.type}/>
     </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: C.bg,
-  },
-  centered: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: C.bg,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: C.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: C.border,
-  },
-  backBtn: {
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: C.text,
-  },
-  filterButton: {
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-    position: 'relative',
-  },
-  activeFilterDot: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: C.brand,
-  },
-  list: {
-    padding: 16,
-    gap: 12,
-  },
-  card: {
-    backgroundColor: C.surface,
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: C.border,
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  bookingNumber: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: C.text,
-  },
-  statusBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  statusText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  cardBody: {
-    gap: 8,
-  },
-  infoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  infoText: {
-    fontSize: 14,
-    color: C.text,
-    flex: 1,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: C.border,
-    marginVertical: 8,
-  },
-  footer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  amountLabel: {
-    fontSize: 12,
-    color: C.muted,
-    marginBottom: 2,
-  },
-  amount: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: C.brand,
-  },
-  empty: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 60,
-  },
-  emptyText: {
-    fontSize: 16,
-    color: C.muted,
-    marginTop: 12,
-  },
+const s = StyleSheet.create({
+  safe:{flex:1,backgroundColor:C.bg}, centered:{flex:1,justifyContent:'center',alignItems:'center'},
+  header:{flexDirection:'row',alignItems:'center',justifyContent:'space-between',paddingHorizontal:16,paddingVertical:12,backgroundColor:C.surface,borderBottomWidth:1,borderBottomColor:C.border},
+  backBtn:{width:40,height:40,justifyContent:'center',alignItems:'center'}, headerTitle:{fontSize:18,fontWeight:'600',color:C.text},
+  filterBtn:{width:40,height:40,justifyContent:'center',alignItems:'center',position:'relative'},
+  filterDot:{position:'absolute',top:8,right:8,width:8,height:8,borderRadius:4,backgroundColor:C.brand},
+  list:{padding:16,gap:12},
+  card:{backgroundColor:C.surface,borderRadius:14,borderWidth:1,borderColor:C.border,overflow:'hidden'},
+  cardTop:{flexDirection:'row',justifyContent:'space-between',alignItems:'flex-start',paddingHorizontal:14,paddingTop:14,paddingBottom:10},
+  cardTopLeft:{flexDirection:'row',alignItems:'center',gap:8,flex:1},
+  num:{fontSize:15,fontWeight:'700',color:C.text},
+  chip:{fontSize:11,color:C.purple,backgroundColor:'#F5F3FF',paddingHorizontal:7,paddingVertical:2,borderRadius:6,fontWeight:'600'},
+  badge:{paddingHorizontal:10,paddingVertical:4,borderRadius:12}, badgeText:{fontSize:11,fontWeight:'700'},
+  body:{paddingHorizontal:14,gap:8},
+  row:{flexDirection:'row',alignItems:'center',gap:6}, rowText:{fontSize:13,color:C.subtext,flex:1},
+  footer:{flexDirection:'row',justifyContent:'space-between',alignItems:'center',paddingHorizontal:14,paddingVertical:12,marginTop:6,borderTopWidth:1,borderTopColor:C.border},
+  amtLabel:{fontSize:11,color:C.muted,marginBottom:1}, amt:{fontSize:17,fontWeight:'800',color:C.brand},
+  footerRight:{flexDirection:'row',alignItems:'center',gap:10}, expandBtn:{padding:4},
+  expanded:{paddingHorizontal:14,paddingBottom:14},
+  expandDivider:{height:1,backgroundColor:C.border,marginBottom:10},
+  eRow:{flexDirection:'row',alignItems:'center',gap:7,paddingVertical:5},
+  eLabel:{fontSize:12,color:C.muted,width:84}, eVal:{fontSize:13,color:C.text,fontWeight:'500',flex:1},
+  viewBtn:{flexDirection:'row',alignItems:'center',justifyContent:'center',gap:6,marginTop:10,paddingVertical:9,borderRadius:8,backgroundColor:'#EFF6FF'},
+  viewBtnText:{fontSize:13,fontWeight:'700',color:C.brand},
+  empty:{alignItems:'center',justifyContent:'center',paddingVertical:72,gap:8},
+  emptyTitle:{fontSize:16,fontWeight:'600',color:C.text}, emptySub:{fontSize:13,color:C.muted},
 });
