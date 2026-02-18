@@ -10,7 +10,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Feather';
-import { getVendorNotifications } from '../../api/client';
+import { getVendorNotifications, markVendorNotificationsRead } from '../../api/client';
+import { NotifBadgeContext } from '../../../contexts/NotifBadgeContext';
 
 const C = {
   bg: '#F7FAFC',
@@ -25,6 +26,16 @@ const C = {
   red: '#EF4444',
 };
 
+const QUOTE_SCREEN_MAP = {
+  bike: 'BikeQuoteRequestDetail',
+  bus: 'BusQuoteRequestDetail',
+  truck: 'TruckQuoteRequestDetail',
+  luxury: 'LuxuryQuoteRequestDetail',
+  packers: 'PackersQuoteRequestDetail',
+  equipment: 'EquipmentQuoteRequestDetail',
+  'self-drive': 'SelfDriveQuoteRequestDetail',
+};
+
 const NOTIFICATION_TYPES = {
   booking_new: { icon: 'calendar', color: C.blue, bg: '#DBEAFE' },
   booking_accepted: { icon: 'check-circle', color: C.brand, bg: '#DCFCE7' },
@@ -37,6 +48,7 @@ const NOTIFICATION_TYPES = {
 };
 
 export default function NotificationsScreen({ navigation }) {
+  const { refreshBadge } = React.useContext(NotifBadgeContext);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [notifications, setNotifications] = useState([]);
@@ -83,12 +95,38 @@ export default function NotificationsScreen({ navigation }) {
     return NOTIFICATION_TYPES[type] || NOTIFICATION_TYPES.general;
   };
 
+  const handleNotificationPress = useCallback(async (item) => {
+    // Optimistically mark as read in local state
+    if (!item.read) {
+      setNotifications(prev => prev.map(n => n.id === item.id ? { ...n, read: true } : n));
+      markVendorNotificationsRead([item.id]).catch(() => {});
+      refreshBadge();
+    }
+    // Navigate to correct screen based on type
+    if (item.type === 'quote_request' && item.serviceType && item.requestId) {
+      const screenName = QUOTE_SCREEN_MAP[item.serviceType];
+      if (screenName) {
+        navigation.navigate(screenName, { requestId: item.requestId });
+      }
+    }
+  }, [navigation, refreshBadge]);
+
+  const handleMarkAllRead = useCallback(async () => {
+    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    markVendorNotificationsRead(null).catch(() => {});
+    refreshBadge();
+  }, [refreshBadge]);
+
   const renderNotification = ({ item }) => {
     const config = getNotificationConfig(item.type);
-    const isUnread = !item.readAt;
+    const isUnread = item.read === false;
 
     return (
-      <View style={[styles.notificationItem, isUnread && styles.unreadItem]}>
+      <TouchableOpacity
+        style={[styles.notificationItem, isUnread && styles.unreadItem]}
+        onPress={() => handleNotificationPress(item)}
+        activeOpacity={0.75}
+      >
         <View style={[styles.iconContainer, { backgroundColor: config.bg }]}>
           <Icon name={config.icon} size={18} color={config.color} />
         </View>
@@ -98,15 +136,17 @@ export default function NotificationsScreen({ navigation }) {
             {item.title}
           </Text>
           <Text style={styles.notificationBody} numberOfLines={2}>
-            {item.body}
+            {item.body || item.message}
           </Text>
           <Text style={styles.notificationTime}>{formatTime(item.createdAt)}</Text>
         </View>
 
         {isUnread && <View style={styles.unreadDot} />}
-      </View>
+      </TouchableOpacity>
     );
   };
+
+  const hasUnread = notifications.some(n => n.read === false);
 
   if (loading) {
     return (
@@ -133,7 +173,13 @@ export default function NotificationsScreen({ navigation }) {
           <Icon name="arrow-left" size={20} color={C.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Notifications</Text>
-        <View style={{ width: 36 }} />
+        {hasUnread ? (
+          <TouchableOpacity onPress={handleMarkAllRead} style={styles.markAllBtn}>
+            <Text style={styles.markAllText}>Mark all read</Text>
+          </TouchableOpacity>
+        ) : (
+          <View style={{ width: 80 }} />
+        )}
       </View>
 
       {notifications.length === 0 ? (
@@ -192,6 +238,15 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  markAllBtn: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  markAllText: {
+    fontSize: 12,
+    color: C.brand,
+    fontWeight: '600',
   },
   headerTitle: {
     fontSize: 18,

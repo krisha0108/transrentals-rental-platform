@@ -3533,6 +3533,7 @@ model vendors {
   rating                                                          Float?                        @default(0)
   totalRatings                                                    Int                           @default(0)
   lastLoginAt                                                     DateTime?
+  fcmToken                                                        String?                       @db.Text
   createdAt                                                       DateTime                      @default(now())
   updatedAt                                                       DateTime                      @updatedAt
   bike_bookings_bike_bookings_acceptedVendorIdTovendors           bike_bookings[]               @relation("bike_bookings_acceptedVendorIdTovendors")

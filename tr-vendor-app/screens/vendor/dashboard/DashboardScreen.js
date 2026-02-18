@@ -17,6 +17,7 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getVendorProfile, getVendorBookings, getVendorEarnings } from '../../api/client';
+import { NotifBadgeContext } from '../../../contexts/NotifBadgeContext';
 
 // Color scheme from old app (user likes this)
 const C = {
@@ -64,6 +65,7 @@ const SERVICE_IDS = {
 };
 
 export default function DashboardScreen({ navigation }) {
+  const { unreadCount } = React.useContext(NotifBadgeContext);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [vendor, setVendor] = useState(null);
@@ -398,6 +400,13 @@ export default function DashboardScreen({ navigation }) {
               onPress={() => navigation.navigate('NotificationsScreen')}
             >
               <Ionicons name="notifications-outline" size={20} color={C.brand} />
+              {unreadCount > 0 && (
+                <View style={styles.bellBadge}>
+                  <Text style={styles.bellBadgeText}>
+                    {unreadCount > 99 ? '99+' : String(unreadCount)}
+                  </Text>
+                </View>
+              )}
             </TouchableOpacity>
           </View>
 
@@ -839,6 +848,26 @@ const styles = StyleSheet.create({
     backgroundColor: '#F0FDF4',
     borderWidth: 1,
     borderColor: '#BBF7D0',
+    position: 'relative',
+  },
+  bellBadge: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    minWidth: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: '#EF4444',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 3,
+    borderWidth: 1.5,
+    borderColor: '#fff',
+  },
+  bellBadgeText: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: '#fff',
   },
   statusBadge: {
     marginTop: 12,

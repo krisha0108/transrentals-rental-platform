@@ -36,7 +36,9 @@ export async function getBaseURL() {
     return cachedBaseURL;
   }
   // 3) default - use localhost in dev (with ADB reverse), production otherwise
-  cachedBaseURL = __DEV__ ? inferLocalBase() : DEFAULT_PROD;
+  // cachedBaseURL = __DEV__ ? inferLocalBase() : DEFAULT_PROD;
+   // 3) default - always use production URL (transrentals.in)                                                                                                                                                                                                      
+   cachedBaseURL = DEFAULT_PROD;   
   return cachedBaseURL;
 }
 
@@ -895,10 +897,38 @@ export async function deleteStaff(staffId) {
 // ==================== NOTIFICATION APIs ====================
 
 /**
+ * Save vendor FCM token to backend (called after login / on app start)
+ */
+export async function saveVendorFcmToken(fcmToken) {
+  const res = await apiPost('/vendor/fcm-token', { fcmToken });
+  return res.data;
+}
+
+/**
  * Get vendor notifications
  */
 export async function getVendorNotifications() {
   const res = await apiGet('/vendor/notifications');
+  return res.data;
+}
+
+/**
+ * Mark vendor notifications as read
+ * Pass notificationIds array to mark specific ones, or null to mark all
+ */
+export async function markVendorNotificationsRead(notificationIds = null) {
+  const body = notificationIds
+    ? { action: 'markRead', notificationIds }
+    : { action: 'markAllRead' };
+  const res = await apiPost('/vendor/notifications', body);
+  return res.data;
+}
+
+/**
+ * Get unread notification count for vendor
+ */
+export async function getVendorNotificationsUnreadCount() {
+  const res = await apiGet('/vendor/notifications/unread-count');
   return res.data;
 }
 

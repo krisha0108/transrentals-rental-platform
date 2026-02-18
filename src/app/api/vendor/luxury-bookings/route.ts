@@ -204,7 +204,7 @@ export async function GET(request: NextRequest) {
       })));
     }
 
-    if (effectiveType === 'confirmed' || effectiveType === 'active' || effectiveType === 'completed' || effectiveType === 'all') {
+    if (effectiveType === 'confirmed' || effectiveType === 'active' || effectiveType === 'completed' || effectiveType === 'all' || effectiveType === 'bookings') {
       // Fetch confirmed LuxuryBookings assigned to this vendor
       let bookingWhere: any = {
         ...dateFilter,
@@ -224,7 +224,9 @@ export async function GET(request: NextRequest) {
       } else if (effectiveType === 'completed') {
         bookingWhere.status = 'COMPLETED';
       }
+      // effectiveType === 'bookings' → no status filter → returns all LB statuses
 
+      const isAllMode = effectiveType === 'all';
       const [bookings, bookingsTotal] = await Promise.all([
         prisma.luxury_bookings.findMany({
           where: bookingWhere,
@@ -234,13 +236,13 @@ export async function GET(request: NextRequest) {
             luxury_quotes: { select: { quoteNumber: true, vehicleName: true, totalAmount: true } },
           },
           orderBy: [{ pickupDate: 'asc' }, { createdAt: 'desc' }],
-          skip: effectiveType === 'all' ? 0 : skip,
-          take: effectiveType === 'all' ? 20 : limit,
+          skip: isAllMode ? 0 : skip,
+          take: isAllMode ? 20 : limit,
         }),
-        effectiveType !== 'all' ? prisma.luxury_bookings.count({ where: bookingWhere }) : Promise.resolve(0),
+        !isAllMode ? prisma.luxury_bookings.count({ where: bookingWhere }) : Promise.resolve(0),
       ]);
 
-      if (effectiveType !== 'all') {
+      if (!isAllMode) {
         total = bookingsTotal;
       }
 

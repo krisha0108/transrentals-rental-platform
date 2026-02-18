@@ -59,6 +59,9 @@ export default function BikeSendQuoteScreen({ navigation, route }) {
   const [templates, setTemplates] = useState([]);
   const [selectedTemplateId, setSelectedTemplateId] = useState('');
 
+  // Validation errors
+  const [errors, setErrors] = useState({});
+
   // Form state
   const [selectedFleetId, setSelectedFleetId] = useState('');
   const [vehicleName, setVehicleName] = useState('');
@@ -228,15 +231,17 @@ export default function BikeSendQuoteScreen({ navigation, route }) {
     return Math.round((total * percent) / 100);
   };
 
+  const validateForm = () => {
+    const newErrors = {};
+    if (!vehicleName.trim()) newErrors.vehicleName = 'Vehicle name is required';
+    if (!totalPrice || parseFloat(totalPrice) <= 0) newErrors.totalPrice = 'Enter a valid total price';
+    if (!validityDays || parseInt(validityDays) <= 0) newErrors.validityDays = 'Validity must be at least 1 day';
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleSubmit = async () => {
-    if (!vehicleName) {
-      Alert.alert('Error', 'Please enter vehicle name or select from fleet');
-      return;
-    }
-    if (!totalPrice || parseFloat(totalPrice) <= 0) {
-      Alert.alert('Error', 'Please enter valid total price');
-      return;
-    }
+    if (!validateForm()) return;
 
     try {
       setSubmitting(true);
@@ -382,13 +387,14 @@ export default function BikeSendQuoteScreen({ navigation, route }) {
 
           <Text style={styles.inputLabel}>Vehicle Name *</Text>
           <TextInput
-            style={styles.input}
+            style={[styles.input, errors.vehicleName && styles.inputError]}
             value={vehicleName}
-            onChangeText={setVehicleName}
+            onChangeText={(v) => { setVehicleName(v); if (errors.vehicleName) setErrors(e => ({ ...e, vehicleName: '' })); }}
             placeholder="e.g., Royal Enfield Classic 350"
             placeholderTextColor={C.muted}
             editable={!selectedFleetId}
           />
+          {errors.vehicleName ? <Text style={styles.errorText}>{errors.vehicleName}</Text> : null}
 
           <Text style={styles.inputLabel}>Brand</Text>
           <TextInput
@@ -417,13 +423,14 @@ export default function BikeSendQuoteScreen({ navigation, route }) {
 
           <Text style={styles.inputLabel}>Total Price (₹) *</Text>
           <TextInput
-            style={styles.input}
+            style={[styles.input, errors.totalPrice && styles.inputError]}
             value={totalPrice}
-            onChangeText={setTotalPrice}
+            onChangeText={(v) => { setTotalPrice(v); if (errors.totalPrice) setErrors(e => ({ ...e, totalPrice: '' })); }}
             placeholder={`e.g., ${(request?.totalDays || 1) * 800} (for ${request?.totalDays || 1} days)`}
             keyboardType="decimal-pad"
             placeholderTextColor={C.muted}
           />
+          {errors.totalPrice ? <Text style={styles.errorText}>{errors.totalPrice}</Text> : null}
 
           <Text style={styles.inputLabel}>Security Deposit (₹)</Text>
           <TextInput
@@ -574,15 +581,16 @@ export default function BikeSendQuoteScreen({ navigation, route }) {
             textAlignVertical="top"
           />
 
-          <Text style={styles.inputLabel}>Quote Valid For (Days)</Text>
+          <Text style={styles.inputLabel}>Quote Valid For (Days) *</Text>
           <TextInput
-            style={styles.input}
+            style={[styles.input, errors.validityDays && styles.inputError]}
             value={validityDays}
-            onChangeText={setValidityDays}
+            onChangeText={(v) => { setValidityDays(v); if (errors.validityDays) setErrors(e => ({ ...e, validityDays: '' })); }}
             placeholder="3"
             keyboardType="number-pad"
             placeholderTextColor={C.muted}
           />
+          {errors.validityDays ? <Text style={styles.errorText}>{errors.validityDays}</Text> : null}
         </View>
 
         <View style={{ height: 100 }} />
@@ -743,6 +751,16 @@ const styles = StyleSheet.create({
     padding: 12,
     fontSize: 14,
     color: C.text,
+  },
+  inputError: {
+    borderColor: '#EF4444',
+    backgroundColor: '#FFF5F5',
+  },
+  errorText: {
+    fontSize: 12,
+    color: '#EF4444',
+    marginTop: 4,
+    marginBottom: 4,
   },
   textArea: {
     height: 80,
