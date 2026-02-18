@@ -1,11 +1,11 @@
 import { Metadata } from 'next';
-import { notFound } from 'next/navigation';
-import { ALL_CITIES, STATIC_CITIES, getCityBySlug } from '@/data/indian-cities';
+import { permanentRedirect } from 'next/navigation';
+import { getCityBySlug } from '@/data/indian-cities';
 import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
 import { VehicleGrid } from '@/components/location/VehicleGrid';
 import { getAllIndiaFleet } from '@/lib/fleet-utils';
-import { ServiceComingSoon } from '@/components/location/ServiceComingSoon';
-import { isServiceAvailableInLocation, getNearbyAvailableLocations } from '@/lib/services/service-availability';
+import { resolveServicePage } from '@/lib/services/service-availability';
+import { StateServicePage } from '@/components/location/StateServicePage';
 import { prisma } from '@/lib/db/prisma';
 import { formatPriceHighlight } from '@/lib/utils';
 
@@ -99,30 +99,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 }
 
 export default async function TempoTravellerLocationPage({ params }: PageProps) {
-  const city = getCityBySlug(params.location);
-
-  if (!city) {
-    notFound();
-  }
-
+  const pageContext = await resolveServicePage('tempo-traveller', params.location);
+  if (pageContext.type === 'redirect') permanentRedirect(pageContext.to);
+  if (pageContext.type === 'state') return <StateServicePage state={pageContext.state} activeCities={pageContext.activeCities} serviceSlug="tempo-traveller" serviceName="Tempo Traveller" />;
+  const city = pageContext.city;
   const locationName = city.name;
-
-  // Check if tempo-traveller service is available in this location
-  const isAvailable = await isServiceAvailableInLocation('tempo-traveller', params.location);
-
-  // If service not available, show coming soon page
-  if (!isAvailable) {
-    const nearbyLocations = await getNearbyAvailableLocations('tempo-traveller', params.location, 6);
-    return (
-      <ServiceComingSoon
-        serviceName="Tempo Traveller"
-        serviceSlug="tempo-traveller"
-        locationName={locationName}
-        locationSlug={params.location}
-        nearbyLocations={nearbyLocations}
-      />
-    );
-  }
 
   // Fetch tempo traveller fleet from database (ALL_INDIA type vehicles)
   const vehicles = await getAllIndiaFleet(

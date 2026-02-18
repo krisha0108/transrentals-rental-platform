@@ -1,11 +1,14 @@
 import React from 'react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { permanentRedirect } from 'next/navigation';
 import { capitalize } from '@/lib/utils';
 import { getCityBySlug } from '@/data/indian-cities';
 import { getServiceLocations } from '@/lib/services/service-locations';;
 import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
 import { FAQSection } from '@/components/services/FAQSection';
+import { resolveServicePage } from '@/lib/services/service-availability';
+import { StateServicePage } from '@/components/location/StateServicePage';
 
 interface PageProps {
   params: {
@@ -58,8 +61,11 @@ const cretaVariants = [
   { name: 'Hyundai Creta SX(O) AT', price: 3299, fuel: 'Diesel' },
 ];
 
-export default function CretaOnRentLocationPage({ params }: PageProps) {
-  const city = getCityBySlug(params.location);
+export default async function CretaOnRentLocationPage({ params }: PageProps) {
+  const pageContext = await resolveServicePage('creta-on-rent', params.location);
+  if (pageContext.type === 'redirect') permanentRedirect(pageContext.to);
+  if (pageContext.type === 'state') return <StateServicePage state={pageContext.state} activeCities={pageContext.activeCities} serviceSlug="creta-on-rent" serviceName="Creta on Rent" />;
+  const city = pageContext.city;
   const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
 
   return (

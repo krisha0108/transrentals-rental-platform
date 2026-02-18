@@ -1,5 +1,5 @@
 import { Metadata } from 'next';
-import { notFound } from 'next/navigation';
+import { permanentRedirect } from 'next/navigation';
 import { prisma } from '@/lib/db/prisma';
 import { OneWayRouteBookingHero } from '@/components/one-way-cab/OneWayRouteBookingHero';
 import { RouteOverview } from '@/components/routes/RouteOverview';
@@ -330,14 +330,14 @@ export default async function OneWayCabRoutePage({ params }: PageProps) {
 
   // Invalid route format (not "city-to-city")
   if (!parsed) {
-    notFound();
+    permanentRedirect('/one-way-cab');
   }
 
   const routeData = await getRouteData(parsed.from, parsed.to);
 
   // Route not found in database or no packages available
   if (!routeData) {
-    notFound();
+    permanentRedirect('/one-way-cab');
   }
 
   const { from, to, packages } = routeData;

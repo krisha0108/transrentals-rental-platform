@@ -1,8 +1,10 @@
 import { Metadata } from 'next';
-import { notFound } from 'next/navigation';
+import { permanentRedirect } from 'next/navigation';
 import { getCityBySlug } from '@/data/indian-cities';
 import { getServiceLocations } from '@/lib/services/service-locations';;
 import { CarRentalBookingHero } from '@/components/car-rental/CarRentalBookingHero';
+import { resolveServicePage } from '@/lib/services/service-availability';
+import { StateServicePage } from '@/components/location/StateServicePage';
 
 interface PageProps {
   params: {
@@ -53,12 +55,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   };
 }
 
-export default function OneWayCarRentalLocationPage({ params }: PageProps) {
-  const city = getCityBySlug(params.location);
-
-  if (!city) {
-    notFound();
-  }
+export default async function OneWayCarRentalLocationPage({ params }: PageProps) {
+  const pageContext = await resolveServicePage('one-way-car-rental', params.location);
+  if (pageContext.type === 'redirect') permanentRedirect(pageContext.to);
+  if (pageContext.type === 'state') return <StateServicePage state={pageContext.state} activeCities={pageContext.activeCities} serviceSlug="one-way-car-rental" serviceName="One Way Car Rental" />;
+  const city = pageContext.city;
 
   const locationName = city.name;
 

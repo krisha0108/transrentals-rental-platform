@@ -1,0 +1,73 @@
+import { NextResponse } from 'next/server';
+import { buildUrlsetXml, BASE_URL, SitemapEntry } from '@/lib/sitemap/utils';
+
+// Static pages never change — cache for 24 hours
+export const revalidate = 86400;
+
+const ENTRIES: SitemapEntry[] = [
+  { url: BASE_URL,                                        changeFrequency: 'daily',  priority: 1.0 },
+  { url: `${BASE_URL}/car-rental`,                        changeFrequency: 'weekly', priority: 0.9 },
+  { url: `${BASE_URL}/bike-on-rent`,                      changeFrequency: 'weekly', priority: 0.9 },
+  { url: `${BASE_URL}/bus-rental`,                        changeFrequency: 'weekly', priority: 0.9 },
+  { url: `${BASE_URL}/luxury-car-rental`,                 changeFrequency: 'weekly', priority: 0.9 },
+  { url: `${BASE_URL}/self-drive-car-rentals`,            changeFrequency: 'weekly', priority: 0.9 },
+  { url: `${BASE_URL}/local-taxi`,                        changeFrequency: 'weekly', priority: 0.9 },
+  { url: `${BASE_URL}/outstation-cab`,                    changeFrequency: 'weekly', priority: 0.9 },
+  { url: `${BASE_URL}/airport-transfer`,                  changeFrequency: 'weekly', priority: 0.9 },
+  { url: `${BASE_URL}/one-way-cab`,                       changeFrequency: 'weekly', priority: 0.9 },
+  { url: `${BASE_URL}/round-trip`,                        changeFrequency: 'weekly', priority: 0.9 },
+  { url: `${BASE_URL}/equipment-rental`,                  changeFrequency: 'weekly', priority: 0.8 },
+  { url: `${BASE_URL}/trailer-on-rent`,                   changeFrequency: 'weekly', priority: 0.8 },
+  { url: `${BASE_URL}/packers-and-movers`,                changeFrequency: 'weekly', priority: 0.8 },
+  { url: `${BASE_URL}/tempo-traveller`,                   changeFrequency: 'weekly', priority: 0.8 },
+  { url: `${BASE_URL}/chauffeur-service`,                 changeFrequency: 'weekly', priority: 0.8 },
+  { url: `${BASE_URL}/corporate-car-rental`,              changeFrequency: 'weekly', priority: 0.8 },
+  { url: `${BASE_URL}/corporate-bus-rental`,              changeFrequency: 'weekly', priority: 0.8 },
+  { url: `${BASE_URL}/wedding-car-rental`,                changeFrequency: 'weekly', priority: 0.8 },
+  { url: `${BASE_URL}/wedding-bus-rental`,                changeFrequency: 'weekly', priority: 0.8 },
+  { url: `${BASE_URL}/sports-car-rental`,                 changeFrequency: 'weekly', priority: 0.7 },
+  { url: `${BASE_URL}/vintage-car-rental`,                changeFrequency: 'weekly', priority: 0.7 },
+  { url: `${BASE_URL}/monthly-car-rental`,                changeFrequency: 'weekly', priority: 0.8 },
+  { url: `${BASE_URL}/monthly-bike-rental`,               changeFrequency: 'weekly', priority: 0.8 },
+  { url: `${BASE_URL}/hourly-car-rental`,                 changeFrequency: 'weekly', priority: 0.8 },
+  { url: `${BASE_URL}/outstation-car-rental`,             changeFrequency: 'weekly', priority: 0.8 },
+  { url: `${BASE_URL}/one-way-car-rental`,                changeFrequency: 'weekly', priority: 0.8 },
+  { url: `${BASE_URL}/self-drive-hatchback-rental`,       changeFrequency: 'weekly', priority: 0.7 },
+  { url: `${BASE_URL}/self-drive-sedan-rental`,           changeFrequency: 'weekly', priority: 0.7 },
+  { url: `${BASE_URL}/self-drive-suv-rental`,             changeFrequency: 'weekly', priority: 0.7 },
+  { url: `${BASE_URL}/electric-scooter-rental`,           changeFrequency: 'weekly', priority: 0.7 },
+  { url: `${BASE_URL}/mini-truck-rental`,                 changeFrequency: 'weekly', priority: 0.7 },
+  { url: `${BASE_URL}/transporter`,                       changeFrequency: 'weekly', priority: 0.7 },
+  { url: `${BASE_URL}/crane-on-rent`,                     changeFrequency: 'weekly', priority: 0.7 },
+  { url: `${BASE_URL}/excavator-on-rent`,                 changeFrequency: 'weekly', priority: 0.7 },
+  { url: `${BASE_URL}/jcb-on-rent`,                       changeFrequency: 'weekly', priority: 0.7 },
+  { url: `${BASE_URL}/hydra-on-rent`,                     changeFrequency: 'weekly', priority: 0.7 },
+  { url: `${BASE_URL}/generator-on-rent`,                 changeFrequency: 'weekly', priority: 0.7 },
+  { url: `${BASE_URL}/activa-on-rent`,                    changeFrequency: 'weekly', priority: 0.8 },
+  { url: `${BASE_URL}/royal-enfield-on-rent`,             changeFrequency: 'weekly', priority: 0.8 },
+  { url: `${BASE_URL}/pulsar-on-rent`,                    changeFrequency: 'weekly', priority: 0.7 },
+  { url: `${BASE_URL}/ktm-on-rent`,                       changeFrequency: 'weekly', priority: 0.7 },
+  { url: `${BASE_URL}/himalayan-on-rent`,                 changeFrequency: 'weekly', priority: 0.7 },
+  { url: `${BASE_URL}/splendor-on-rent`,                  changeFrequency: 'weekly', priority: 0.7 },
+  { url: `${BASE_URL}/apache-on-rent`,                    changeFrequency: 'weekly', priority: 0.7 },
+  { url: `${BASE_URL}/innova-on-rent`,                    changeFrequency: 'weekly', priority: 0.8 },
+  { url: `${BASE_URL}/creta-on-rent`,                     changeFrequency: 'weekly', priority: 0.8 },
+  { url: `${BASE_URL}/fortuner-on-rent`,                  changeFrequency: 'weekly', priority: 0.8 },
+  { url: `${BASE_URL}/scorpio-on-rent`,                   changeFrequency: 'weekly', priority: 0.7 },
+  { url: `${BASE_URL}/seltos-on-rent`,                    changeFrequency: 'weekly', priority: 0.7 },
+  { url: `${BASE_URL}/swift-on-rent`,                     changeFrequency: 'weekly', priority: 0.7 },
+  { url: `${BASE_URL}/xuv700-on-rent`,                    changeFrequency: 'weekly', priority: 0.7 },
+  { url: `${BASE_URL}/12-seater-tempo-traveller`,         changeFrequency: 'weekly', priority: 0.7 },
+  { url: `${BASE_URL}/17-seater-tempo-traveller`,         changeFrequency: 'weekly', priority: 0.7 },
+  { url: `${BASE_URL}/20-seater-tempo-traveller`,         changeFrequency: 'weekly', priority: 0.7 },
+  { url: `${BASE_URL}/26-seater-bus`,                     changeFrequency: 'weekly', priority: 0.7 },
+];
+
+export async function GET() {
+  return new NextResponse(buildUrlsetXml(ENTRIES), {
+    headers: {
+      'Content-Type': 'application/xml; charset=utf-8',
+      'Cache-Control': 'public, max-age=86400, s-maxage=86400, stale-while-revalidate=604800',
+    },
+  });
+}

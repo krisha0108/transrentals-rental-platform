@@ -1,9 +1,8 @@
 import { Metadata } from 'next';
-import { notFound } from 'next/navigation';
+import { permanentRedirect } from 'next/navigation';
 import { prisma } from '@/lib/db/prisma';
 import { RouteOverview } from '@/components/routes/RouteOverview';
 import { RouteFAQs } from '@/components/routes/RouteFAQs';
-import { RouteNotAvailable } from '@/components/routes/RouteNotAvailable';
 import { RoundTripRouteBookingHeroWithForm } from '@/components/round-trip/RoundTripRouteBookingHeroWithForm';
 
 interface PageProps {
@@ -210,7 +209,7 @@ export default async function RoundTripRoutePage({ params }: PageProps) {
   const parsed = parseRouteSlug(params.route);
 
   if (!parsed) {
-    return <RouteNotAvailable />;
+    permanentRedirect('/round-trip');
   }
 
   try {
@@ -253,7 +252,7 @@ export default async function RoundTripRoutePage({ params }: PageProps) {
     ]);
 
     if (!fromLocation || !toLocation) {
-      notFound();
+      permanentRedirect('/round-trip');
     }
 
     // Fetch route package
@@ -283,7 +282,7 @@ export default async function RoundTripRoutePage({ params }: PageProps) {
     });
 
     if (!routePackage) {
-      return <RouteNotAvailable />;
+      permanentRedirect('/round-trip');
     }
 
     // Calculate round trip pricing

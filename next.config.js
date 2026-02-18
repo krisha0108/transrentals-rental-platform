@@ -498,19 +498,9 @@ const nextConfig = {
         permanent: true,
       },
 
-      // ============================================
-      // STATE-LEVEL REDIRECTS (redirect to main service)
-      // ============================================
-      {
-        source: '/car-rental-in-:state(west-bengal|kerala|uttar-pradesh|uttarakhand|rajasthan|tamil-nadu|gujarat|maharashtra)',
-        destination: '/car-rental',
-        permanent: true,
-      },
-      {
-        source: '/bike-on-rent/:state(uttar-pradesh|uttarakhand|rajasthan|tamil-nadu|gujarat|maharashtra)',
-        destination: '/bike-on-rent',
-        permanent: true,
-      },
+      // NOTE: State-level slugs (e.g. /bike-on-rent/gujarat) are now handled
+      // by the StateServicePage component via resolveServicePage() and are
+      // intentionally NOT redirected. The old redirect block was removed.
     ];
   },
   async headers() {

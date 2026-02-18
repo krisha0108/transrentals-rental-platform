@@ -39,6 +39,7 @@ interface ServiceFleetDisplayProps {
   limit?: number;
   showViewAll?: boolean;
   priceUnit?: string;
+  locationSlug?: string;
 }
 
 export function ServiceFleetDisplay({
@@ -48,6 +49,7 @@ export function ServiceFleetDisplay({
   limit = 12,
   showViewAll = true,
   priceUnit = '/day',
+  locationSlug = '',
 }: ServiceFleetDisplayProps) {
   const [fleet, setFleet] = useState<Vehicle[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -59,9 +61,13 @@ export function ServiceFleetDisplay({
     async function fetchFleet() {
       try {
         setLoading(true);
-        const url = selectedCategory
+        let url = selectedCategory
           ? `/api/services/${serviceSlug}/fleet?limit=${limit}&subService=${selectedCategory}`
           : `/api/services/${serviceSlug}/fleet?limit=${limit}`;
+
+        if (locationSlug) {
+          url += `&location=${locationSlug}`;
+        }
 
         const response = await fetch(url);
         const data = await response.json();
@@ -109,8 +115,8 @@ export function ServiceFleetDisplay({
             <button
               onClick={() => setSelectedCategory('')}
               className={`px-4 py-2 rounded-full text-sm font-medium transition ${selectedCategory === ''
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                ? 'bg-blue-600 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
             >
               All
@@ -120,8 +126,8 @@ export function ServiceFleetDisplay({
                 key={category.id}
                 onClick={() => setSelectedCategory(category.slug)}
                 className={`px-4 py-2 rounded-full text-sm font-medium transition ${selectedCategory === category.slug
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
               >
                 {category.icon && <span className="mr-1">{category.icon}</span>}
