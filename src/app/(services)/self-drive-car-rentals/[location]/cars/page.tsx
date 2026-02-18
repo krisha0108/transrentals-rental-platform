@@ -172,6 +172,30 @@ async function getCarsForLocation(locationSlug: string): Promise<AggregatedCar[]
       where: {
         serviceId: carService.id,
         isActive: true,
+        vehicle_model_locations: {
+          some: {
+            locationId: location.id,
+            isActive: true,
+          },
+        },
+        AND: [
+          {
+            OR: [
+              { vehicleCategoryId: null }, // No category assigned
+              {
+                chauffeur_vehicle_categories: {
+                  isActive: true,
+                },
+              },
+            ],
+          },
+          {
+            OR: [
+              { subServiceId: null },
+              { services_vehicle_models_subServiceIdToservices: { isActive: true } },
+            ],
+          },
+        ],
       },
       include: {
         brands: {

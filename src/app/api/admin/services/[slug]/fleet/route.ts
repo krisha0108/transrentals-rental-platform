@@ -33,6 +33,7 @@ export async function GET(
     const search = searchParams.get('search') || '';
     const subServiceId = searchParams.get('subServiceId') || '';
     const status = searchParams.get('status') || '';
+    const locationId = searchParams.get('locationId') || '';
 
     // Find the service by slug
     const service = await prisma.services.findUnique({
@@ -97,8 +98,39 @@ export async function GET(
       where.isActive = false;
     }
 
+    // Build conditions array for counts
+    const conditions: any[] = [{ serviceId: service.id }];
+    if (search) {
+      conditions.push({
+        OR: [
+          { name: { contains: search } },
+          { slug: { contains: search } },
+          { brands: { name: { contains: search } } },
+        ]
+      });
+    }
+    if (subServiceId) {
+      conditions.push({ subServiceId });
+    }
+    if (locationId) {
+      where.vehicle_model_locations = {
+        some: {
+          locationId,
+          isActive: true
+        }
+      };
+      conditions.push({
+        vehicle_model_locations: {
+          some: {
+            locationId,
+            isActive: true
+          }
+        }
+      });
+    }
+
     // Fetch vehicle models for this service
-    const [vehicles, total] = await Promise.all([
+    const [vehicles, total, activeTotal, inactiveTotal] = await Promise.all([
       prisma.vehicle_models.findMany({
         where,
         include: {
@@ -124,6 +156,22 @@ export async function GET(
         take: limit,
       }),
       prisma.vehicle_models.count({ where }),
+      prisma.vehicle_models.count({
+        where: {
+          AND: [
+            ...conditions,
+            { isActive: true }
+          ]
+        }
+      }),
+      prisma.vehicle_models.count({
+        where: {
+          AND: [
+            ...conditions,
+            { isActive: false }
+          ]
+        }
+      }),
     ]);
 
     // Fetch category mapping for vehicles that have subServiceId
@@ -208,6 +256,8 @@ export async function GET(
       // Use vehicle categories as subServices (for category dropdown)
       subServices: vehicleCategories.length > 0 ? vehicleCategories : service.other_services,
       vehicleCategories,
+      activeTotal,
+      inactiveTotal,
       pagination: {
         page,
         limit,

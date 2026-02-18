@@ -148,6 +148,7 @@ export default async function SelfDriveCarRentalLocationPage({ params }: PagePro
       {/* Available Cars - Dynamic from Database */}
       <ServiceFleetDisplay
         serviceSlug="self-drive-car-rentals"
+        locationSlug={params.location}
         title={`Self Drive Cars Available in ${locationName}`}
         showCategories={true}
         limit={12}

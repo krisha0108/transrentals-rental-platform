@@ -19,7 +19,7 @@ export default function AboutPage() {
   return (
     <>
       {/* Hero Section */}
-      <section className="relative bg-gradient-to-br from-blue-600 to-blue-400 text-white py-20">
+      <section className="relative bg-gradient-to-br from-green-600 via-emerald-600 to-teal-600 text-white py-20">
         <div className="container-custom">
           <div className="max-w-4xl mx-auto text-center">
             <h1 className="text-4xl md:text-5xl font-bold mb-6">
