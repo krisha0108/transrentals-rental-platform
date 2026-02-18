@@ -170,12 +170,12 @@ export default function PackersQuoteRequestDetailScreen({ route, navigation }) {
   const specificType = request.specificType || request.specific_type; // 1BHK, 2BHK, etc.
 
   // Location Details
-  const fromAddress = request.fromAddress || request.from_address || request.pickupLocation || request.pickup_location || 'N/A';
-  const toAddress = request.toAddress || request.to_address || request.dropLocation || request.drop_location || request.dropCity;
+  const fromAddress = request.fromAddress || request.from_address || request.pickupAddress || request.pickupLocation || request.pickup_location || request.pickupCity || 'N/A';
+  const toAddress = request.toAddress || request.to_address || request.dropAddress || request.dropLocation || request.drop_location || request.dropCity;
 
   // Date & Time Details
-  const movingDate = request.movingDate || request.moving_date || request.pickupDate || request.pickup_date || request.startDate;
-  const movingTime = request.movingTime || request.moving_time || request.pickupTime || request.pickup_time;
+  const movingDate = request.movingDate || request.moving_date || request.preferredDate || request.pickupDate || request.pickup_date || request.startDate || request.scheduledDate;
+  const movingTime = request.movingTime || request.moving_time || request.pickupTime || request.pickup_time || request.scheduledTime;
 
   // Customer Notes
   const customerNotes = request.customerNotes || request.customer_notes || request.notes || request.description || request.additionalInfo || request.specialRequirements;

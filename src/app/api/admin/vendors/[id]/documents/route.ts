@@ -5,6 +5,7 @@ import { prisma } from '@/lib/db/prisma';
 import { transformPrismaResponse } from '@/lib/utils/api-transform';
 
 import logger from '@/lib/security/logger';
+import { sendVendorDirectNotification } from '@/lib/utils/vendor-notification-sender';
 export const dynamic = 'force-dynamic';
 
 // PUT - Approve/Reject document (single or bulk)
@@ -46,6 +47,13 @@ export async function PUT(
             rejectionReason: null,
           },
         });
+        sendVendorDirectNotification({
+          vendorId,
+          title: '✅ Documents Approved',
+          body: `Your ${documentIds.length > 1 ? documentIds.length + ' documents have' : 'document has'} been approved. Please wait for your account to be fully reviewed.`,
+          type: 'document_approved',
+          serviceType: 'general',
+        }).catch((err: any) => console.error('[DocApprove] Vendor notify failed:', err));
         return NextResponse.json({ success: true, message: `Approved ${documentIds.length} documents` });
       } else if (action === 'REJECT_ALL') {
         if (!rejectionReason) {
@@ -64,6 +72,13 @@ export async function PUT(
             rejectionReason,
           },
         });
+        sendVendorDirectNotification({
+          vendorId,
+          title: '❌ Documents Rejected',
+          body: `Your ${documentIds.length > 1 ? documentIds.length + ' documents have' : 'document has'} been rejected. Reason: ${rejectionReason}. Please re-upload corrected documents.`,
+          type: 'document_rejected',
+          serviceType: 'general',
+        }).catch((err: any) => console.error('[DocReject] Vendor notify failed:', err));
         return NextResponse.json({ success: true, message: `Rejected ${documentIds.length} documents` });
       }
     }
@@ -92,6 +107,14 @@ export async function PUT(
           rejectionReason: null,
         },
       });
+
+      sendVendorDirectNotification({
+        vendorId,
+        title: '✅ Document Approved',
+        body: `Your ${document.documentType?.replace(/_/g, ' ').toLowerCase() || 'document'} has been approved. Please wait for your account to be fully reviewed.`,
+        type: 'document_approved',
+        serviceType: 'general',
+      }).catch((err: any) => console.error('[DocApprove] Vendor notify failed:', err));
 
       // Check if all required documents are approved to update vendor status
       const requiredTypes = ['GST_CERTIFICATE', 'PAN_CARD', 'ADDRESS_PROOF'];
@@ -129,6 +152,14 @@ export async function PUT(
           rejectionReason,
         },
       });
+
+      sendVendorDirectNotification({
+        vendorId,
+        title: '❌ Document Rejected',
+        body: `Your ${document.documentType?.replace(/_/g, ' ').toLowerCase() || 'document'} was rejected. Reason: ${rejectionReason}. Please re-upload a corrected document.`,
+        type: 'document_rejected',
+        serviceType: 'general',
+      }).catch((err: any) => console.error('[DocReject] Vendor notify failed:', err));
     } else {
       return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
     }

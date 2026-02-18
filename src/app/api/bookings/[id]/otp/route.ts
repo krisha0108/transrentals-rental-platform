@@ -7,6 +7,7 @@ import { sendNotificationToCustomer } from '@/lib/services/push-notification-ser
 import crypto from 'crypto';
 
 import logger from '@/lib/security/logger';
+import { sendVendorDirectNotification } from '@/lib/utils/vendor-notification-sender';
 export const dynamic = 'force-dynamic';
 
 // Generate a 6-digit OTP
@@ -344,6 +345,19 @@ export async function POST(
         logger.error('Failed to send trip started notification', notificationError);
       }
 
+      // Notify vendor that bike trip has started
+      if (booking.acceptedVendorId) {
+        sendVendorDirectNotification({
+          vendorId: booking.acceptedVendorId,
+          title: '🏍️ Trip Started!',
+          body: `Booking #${updatedBooking.bookingNumber} bike rental trip has been started successfully.`,
+          type: 'trip_started',
+          serviceType: 'bike-on-rent',
+          bookingId: bookingId,
+          bookingNumber: updatedBooking.bookingNumber || '',
+        }).catch((err: any) => console.error('[BikeStart] Vendor notify failed:', err));
+      }
+
       return NextResponse.json({
         success: true,
         message: 'OTP verified successfully. Trip started!',
@@ -425,6 +439,19 @@ export async function POST(
         // Log error but don't fail the trip completion
         console.error('❌ Trip completion notification error:', notificationError);
         logger.error('Failed to send trip completion notification', notificationError);
+      }
+
+      // Notify vendor that bike trip has been completed
+      if (booking.acceptedVendorId) {
+        sendVendorDirectNotification({
+          vendorId: booking.acceptedVendorId,
+          title: '✅ Trip Completed!',
+          body: `Booking #${updatedBooking.bookingNumber} bike rental trip has been completed successfully.`,
+          type: 'trip_completed',
+          serviceType: 'bike-on-rent',
+          bookingId: bookingId,
+          bookingNumber: updatedBooking.bookingNumber || '',
+        }).catch((err: any) => console.error('[BikeComplete] Vendor notify failed:', err));
       }
 
       return NextResponse.json({

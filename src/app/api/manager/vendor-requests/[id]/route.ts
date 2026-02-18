@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth/auth-options';
 import { prisma } from '@/lib/db/prisma';
 
 import logger from '@/lib/security/logger';
+import { sendVendorDirectNotification } from '@/lib/utils/vendor-notification-sender';
 export const dynamic = 'force-dynamic';
 
 // PUT - Approve or reject a vendor request
@@ -108,6 +109,14 @@ export async function PUT(
           });
         });
 
+        sendVendorDirectNotification({
+          vendorId: locationRequest.vendorId,
+          title: '📍 Location Approved',
+          body: `Your request for ${locationRequest.location?.name || 'the location'} has been approved. You can now start accepting bookings in this area.`,
+          type: 'location_approved',
+          serviceType: 'general',
+        }).catch((err: any) => console.error('[ManagerLocApprove] Vendor notify failed:', err));
+
         return NextResponse.json({
           success: true,
           message: `Location request approved. ${locationRequest.vendor.businessName} can now operate in ${locationRequest.locations.name}.`,
@@ -123,6 +132,14 @@ export async function PUT(
             rejectionReason: reason || 'Rejected by manager',
           },
         });
+
+        sendVendorDirectNotification({
+          vendorId: locationRequest.vendorId,
+          title: '❌ Location Request Rejected',
+          body: `Your request for ${locationRequest.location?.name || 'the location'} was rejected. ${reason ? 'Reason: ' + reason : 'Please contact support for more information.'}.`,
+          type: 'location_rejected',
+          serviceType: 'general',
+        }).catch((err: any) => console.error('[ManagerLocReject] Vendor notify failed:', err));
 
         return NextResponse.json({
           success: true,
@@ -190,6 +207,14 @@ export async function PUT(
           });
         });
 
+        sendVendorDirectNotification({
+          vendorId: serviceRequest.vendorId,
+          title: '🎉 Service Approved',
+          body: `Your request for ${serviceRequest.service?.name || 'the service'} has been approved. You can now start offering this service.`,
+          type: 'service_approved',
+          serviceType: 'general',
+        }).catch((err: any) => console.error('[ManagerSvcApprove] Vendor notify failed:', err));
+
         return NextResponse.json({
           success: true,
           message: `Service request approved. ${serviceRequest.vendor.businessName} can now offer ${serviceRequest.services.name}.`,
@@ -205,6 +230,14 @@ export async function PUT(
             rejectionReason: reason || 'Rejected by manager',
           },
         });
+
+        sendVendorDirectNotification({
+          vendorId: serviceRequest.vendorId,
+          title: '❌ Service Request Rejected',
+          body: `Your request for ${serviceRequest.service?.name || 'the service'} was rejected. ${reason ? 'Reason: ' + reason : 'Please contact support for more information.'}.`,
+          type: 'service_rejected',
+          serviceType: 'general',
+        }).catch((err: any) => console.error('[ManagerSvcReject] Vendor notify failed:', err));
 
         return NextResponse.json({
           success: true,

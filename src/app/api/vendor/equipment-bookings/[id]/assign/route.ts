@@ -3,6 +3,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getVendorAuth } from '@/lib/auth/vendor-mobile-auth';
 import { prisma } from '@/lib/db/prisma';
 import { transformPrismaResponse } from '@/lib/utils/api-transform';
+import { sendPushNotification } from '@/lib/services/push-notification-service';
+import { saveDriverNotification } from '@/lib/utils/driver-notification-sender';
 import logger from '@/lib/security/logger';
 
 export const dynamic = 'force-dynamic';
@@ -79,6 +81,36 @@ export async function POST(
         operatorPhone: operatorPhone || null,
       },
     });
+
+    // Notify assigned operator via FCM (if they are registered staff)
+    if (operatorPhone) {
+      try {
+        const operatorStaff = await prisma.vendor_staff.findFirst({
+          where: { phone: operatorPhone, vendorId },
+          select: { id: true, fcmToken: true },
+        });
+        if (operatorStaff) {
+          const notifTitle = '⚙️ New Job Assigned!';
+          const notifBody = `You have been assigned to Equipment Booking #${booking.bookingNumber}. Please check your app for details.`;
+          const notifData = { type: 'driver_assigned', bookingId: booking.id, bookingNumber: booking.bookingNumber, serviceType: 'equipment' };
+          if (operatorStaff.fcmToken) {
+            sendPushNotification(operatorStaff.fcmToken, { title: notifTitle, body: notifBody }, notifData)
+              .catch((err: any) => console.error('[EquipAssign] Operator FCM failed:', err));
+          }
+          saveDriverNotification({
+            staffId: operatorStaff.id,
+            title: notifTitle,
+            body: notifBody,
+            type: 'booking_assigned',
+            serviceType: 'equipment',
+            bookingId: booking.id,
+            bookingNumber: booking.bookingNumber,
+          }).catch((err: any) => console.error('[EquipAssign] Operator in-app notif failed:', err));
+        }
+      } catch (operatorNotifErr) {
+        console.error('[EquipAssign] Operator notification lookup failed:', operatorNotifErr);
+      }
+    }
 
     return NextResponse.json({
       success: true,

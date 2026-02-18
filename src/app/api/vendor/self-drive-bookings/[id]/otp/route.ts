@@ -8,6 +8,7 @@ import { sendNotificationToCustomer } from '@/lib/services/push-notification-ser
 import crypto from 'crypto';
 
 import logger from '@/lib/security/logger';
+import { sendVendorDirectNotification } from '@/lib/utils/vendor-notification-sender';
 export const dynamic = 'force-dynamic';
 
 // Generate 6-digit OTP
@@ -262,6 +263,17 @@ export async function POST(
       console.error('❌ Self-drive trip started notification error:', notificationError);
       logger.error('Failed to send self-drive trip started notification', notificationError);
     }
+
+    // Notify vendor that trip has started
+    sendVendorDirectNotification({
+      vendorId,
+      title: '🚗 Trip Started!',
+      body: `Booking #${updatedBooking.bookingNumber} self-drive trip has been started successfully.`,
+      type: 'trip_started',
+      serviceType: 'self-drive',
+      bookingId: booking.id,
+      bookingNumber: updatedBooking.bookingNumber,
+    }).catch((err: any) => console.error('[SelfDriveStart] Vendor notify failed:', err));
 
     return NextResponse.json({
       success: true,
