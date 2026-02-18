@@ -4,6 +4,7 @@ import { prisma } from '@/lib/db/prisma';
 import { transformPrismaResponse } from '@/lib/utils/api-transform';
 
 import logger from '@/lib/security/logger';
+import { sendVendorDirectNotification } from '@/lib/utils/vendor-notification-sender';
 export const dynamic = 'force-dynamic';
 
 function generateBookingNumber(prefix: string): string {
@@ -61,6 +62,24 @@ export async function POST(request: NextRequest) {
           { success: false, message: 'Invalid service type' },
           { status: 400 }
         );
+    }
+
+    // Non-blocking: notify the vendor whose quote was accepted
+    const vendorId = booking.vendorId || booking.acceptedVendorId || booking.assignedVendorId;
+    if (vendorId) {
+      const serviceDisplayNames: Record<string, string> = {
+        truck: 'Truck Rental', packers: 'Packers & Movers', equipment: 'Equipment Rental',
+        bus: 'Bus Rental', bike: 'Bike Rental', 'self-drive': 'Self Drive',
+      };
+      sendVendorDirectNotification({
+        vendorId,
+        title: '🎉 Quote Accepted!',
+        body: `Your quote has been accepted. Booking #${bookingNumber} created. Payment pending from customer.`,
+        type: 'quote_accepted',
+        serviceType,
+        bookingId: booking.id,
+        bookingNumber,
+      }).catch((err: any) => console.error('[AcceptQuote] Vendor notification failed:', err));
     }
 
     return NextResponse.json({

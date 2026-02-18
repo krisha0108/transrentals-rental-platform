@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db/prisma';
 import { transformPrismaResponse } from '@/lib/utils/api-transform';
 import { prepareNotificationData } from '@/lib/utils/notification-helper';
 import { sendFCMNotification } from '@/lib/utils/fcm-helper';
+import { sendVendorDirectNotification, sendQuoteRequestNotificationToVendors } from '@/lib/utils/vendor-notification-sender';
 
 import logger from '@/lib/security/logger';
 export const dynamic = 'force-dynamic';
@@ -294,6 +295,17 @@ export async function POST(request: NextRequest) {
           });
         } catch (e) { logger.error('Notification error', e); }
 
+        // Notify the bus vendor
+        sendVendorDirectNotification({
+          vendorId: busBooking.vendorId,
+          title: '💰 Advance Payment Received!',
+          body: `Customer has paid the advance for booking #${busBooking.bookingNumber}. Trip is confirmed.`,
+          type: 'payment_received',
+          serviceType: 'bus',
+          bookingId,
+          bookingNumber: busBooking.bookingNumber,
+        }).catch((err: any) => console.error('[PaymentVerify] Bus vendor notify failed:', err));
+
         return NextResponse.json({
           success: true,
           message: 'Bus booking payment verified successfully.',
@@ -378,6 +390,17 @@ export async function POST(request: NextRequest) {
         } catch (notifError) {
           logger.error('Failed to create notification', notifError);
         }
+
+        // Notify the truck vendor
+        sendVendorDirectNotification({
+          vendorId: truckBooking.vendorId,
+          title: '💰 Advance Payment Received!',
+          body: `Customer has paid the advance for booking #${truckBooking.bookingNumber}. Trip is confirmed.`,
+          type: 'payment_received',
+          serviceType: 'truck',
+          bookingId,
+          bookingNumber: truckBooking.bookingNumber,
+        }).catch((err: any) => console.error('[PaymentVerify] Truck vendor notify failed:', err));
 
         return NextResponse.json({
           success: true,
@@ -464,6 +487,17 @@ export async function POST(request: NextRequest) {
           logger.error('Failed to create notification', notifError);
         }
 
+        // Notify the equipment vendor
+        sendVendorDirectNotification({
+          vendorId: equipmentBooking.vendorId,
+          title: '💰 Advance Payment Received!',
+          body: `Customer has paid the advance for booking #${equipmentBooking.bookingNumber}. Booking is confirmed.`,
+          type: 'payment_received',
+          serviceType: 'equipment',
+          bookingId,
+          bookingNumber: equipmentBooking.bookingNumber,
+        }).catch((err: any) => console.error('[PaymentVerify] Equipment vendor notify failed:', err));
+
         return NextResponse.json({
           success: true,
           message: 'Equipment booking payment verified successfully.',
@@ -548,6 +582,17 @@ export async function POST(request: NextRequest) {
         } catch (notifError) {
           logger.error('Failed to create notification', notifError);
         }
+
+        // Notify the packers vendor
+        sendVendorDirectNotification({
+          vendorId: packersBooking.vendorId,
+          title: '💰 Advance Payment Received!',
+          body: `Customer has paid the advance for booking #${packersBooking.bookingNumber}. Booking is confirmed.`,
+          type: 'payment_received',
+          serviceType: 'packers',
+          bookingId,
+          bookingNumber: packersBooking.bookingNumber,
+        }).catch((err: any) => console.error('[PaymentVerify] Packers vendor notify failed:', err));
 
         return NextResponse.json({
           success: true,
@@ -635,6 +680,19 @@ export async function POST(request: NextRequest) {
           logger.error('Failed to create notification', notifError);
         }
 
+        // Notify the luxury vendor
+        if (luxuryBooking.acceptedVendorId) {
+          sendVendorDirectNotification({
+            vendorId: luxuryBooking.acceptedVendorId,
+            title: '💰 Advance Payment Received!',
+            body: `Customer has paid the advance for luxury booking #${luxuryBooking.bookingNumber}. Booking is confirmed.`,
+            type: 'payment_received',
+            serviceType: 'luxury',
+            bookingId,
+            bookingNumber: luxuryBooking.bookingNumber,
+          }).catch((err: any) => console.error('[PaymentVerify] Luxury vendor notify failed:', err));
+        }
+
         return NextResponse.json({
           success: true,
           message: 'Luxury Car booking payment verified successfully.',
@@ -713,7 +771,7 @@ export async function POST(request: NextRequest) {
         },
       });
 
-      // ⭐ Send notification - Payment Approved
+      // ⭐ Send notification - Payment Approved (to customer)
       try {
         await prisma.notifications.create({
           data: prepareNotificationData({
@@ -728,6 +786,36 @@ export async function POST(request: NextRequest) {
         });
       } catch (notifError) {
         logger.error('Failed to create notification', notifError);
+      }
+
+      // ⭐ Notify vendor(s) about the booking
+      if (isSingleVendor) {
+        // Single vendor — notify only the assigned vendor
+        sendVendorDirectNotification({
+          vendorId: booking.assignedVendorId,
+          title: '🚗 New Car Rental Booking!',
+          body: `A new car rental booking has been assigned to you. Please review and confirm.`,
+          type: 'booking_assigned',
+          serviceType: 'car',
+          bookingId,
+        }).catch((err: any) => console.error('[PaymentVerify] Single vendor notify failed:', err));
+      } else {
+        // Broadcast — notify all vendors in the booking's location
+        const fullBooking = await prisma.chauffeur_bookings.findUnique({
+          where: { id: bookingId },
+          select: { locationId: true, locationName: true, bookingNumber: true },
+        });
+        if (fullBooking?.locationId) {
+          sendQuoteRequestNotificationToVendors({
+            requestId: bookingId,
+            requestNumber: fullBooking.bookingNumber || bookingId,
+            locationId: fullBooking.locationId,
+            locationName: fullBooking.locationName || 'your city',
+            customerName: 'A customer',
+            serviceType: 'car',
+            serviceDisplayName: 'Car Rental',
+          }).catch((err: any) => console.error('[PaymentVerify] Broadcast vendor notify failed:', err));
+        }
       }
 
       return NextResponse.json({

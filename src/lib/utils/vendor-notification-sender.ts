@@ -126,3 +126,80 @@ export async function sendQuoteRequestNotificationToVendors(
 
   console.log(`[VendorNotify] Done notifying vendors for request ${requestNumber}`);
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Send a notification to a SINGLE specific vendor (e.g. quote accepted, booking assigned)
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface VendorDirectNotificationParams {
+  vendorId: string;
+  title: string;
+  body: string;
+  type: string;           // 'booking_confirmed' | 'booking_assigned' | 'quote_accepted' etc.
+  serviceType: string;
+  bookingId?: string;
+  bookingNumber?: string;
+  data?: Record<string, string>;
+}
+
+export async function sendVendorDirectNotification(
+  params: VendorDirectNotificationParams
+): Promise<void> {
+  const { vendorId, title, body, type, serviceType, bookingId, bookingNumber, data: extraData } = params;
+
+  try {
+    const vendor = await prisma.vendors.findUnique({
+      where: { id: vendorId },
+      select: { id: true, fcmToken: true },
+    });
+
+    if (!vendor) {
+      console.log(`[VendorDirectNotify] Vendor ${vendorId} not found`);
+      return;
+    }
+
+    // 1. Save to vendor's in-app notifications
+    const settingKey = `vendor_notifications_${vendorId}`;
+    const existing = await prisma.settings.findUnique({ where: { key: settingKey } });
+    const notifData: any = existing?.value
+      ? JSON.parse(existing.value as string)
+      : { notifications: [] };
+
+    const newNotification = {
+      id: `${type}_${bookingId || Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+      type,
+      title,
+      body,
+      bookingId: bookingId || null,
+      bookingNumber: bookingNumber || null,
+      serviceType,
+      read: false,
+      createdAt: new Date().toISOString(),
+    };
+
+    notifData.notifications = [newNotification, ...(notifData.notifications || [])].slice(0, 50);
+
+    await prisma.settings.upsert({
+      where: { key: settingKey },
+      create: { key: settingKey, value: JSON.stringify(notifData) },
+      update: { value: JSON.stringify(notifData) },
+    });
+
+    // 2. Send FCM push
+    if (vendor.fcmToken) {
+      const pushData = {
+        screen: 'BookingDetail',
+        serviceType,
+        bookingId: bookingId || '',
+        bookingNumber: bookingNumber || '',
+        ...extraData,
+      };
+      const result = await sendPushNotification(vendor.fcmToken, { title, body }, pushData);
+      console.log(`[VendorDirectNotify] FCM result for vendor ${vendorId}:`, result);
+    } else {
+      console.log(`[VendorDirectNotify] Vendor ${vendorId} has NO fcmToken — skipping push`);
+    }
+  } catch (err) {
+    console.error(`[VendorDirectNotify] Failed for vendor ${vendorId}:`, err);
+  }
+}
