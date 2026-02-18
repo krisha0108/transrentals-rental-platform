@@ -175,6 +175,12 @@ async function getCarsForLocation(locationSlug: string): Promise<AggregatedCar[]
         brands: {
           isActive: true,
         },
+        vehicle_model_locations: {
+          some: {
+            locationId: location.id,
+            isActive: true,
+          },
+        },
         AND: [
           {
             OR: [
