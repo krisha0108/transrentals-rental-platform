@@ -1,10 +1,10 @@
 import { Metadata } from 'next';
-import { notFound } from 'next/navigation';
+import { permanentRedirect } from 'next/navigation';
 import { getCityBySlug } from '@/data/indian-cities';
 import { getServiceLocations } from '@/lib/services/service-locations';;
 import { CarRentalBookingHero } from '@/components/car-rental/CarRentalBookingHero';
-import { ServiceComingSoon } from '@/components/location/ServiceComingSoon';
-import { isServiceAvailableInLocation, getNearbyAvailableLocations } from '@/lib/services/service-availability';
+import { resolveServicePage } from '@/lib/services/service-availability';
+import { StateServicePage } from '@/components/location/StateServicePage';
 
 interface PageProps {
   params: {
@@ -58,31 +58,13 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 }
 
 export default async function ChauffeurServiceLocationPage({ params }: PageProps) {
-  const city = getCityBySlug(params.location);
+  const pageContext = await resolveServicePage('chauffeur-service', params.location);
+  if (pageContext.type === 'redirect') permanentRedirect(pageContext.to);
+  if (pageContext.type === 'state') return <StateServicePage state={pageContext.state} activeCities={pageContext.activeCities} serviceSlug="chauffeur-service" serviceName="Chauffeur Service" />;
+  const city = pageContext.city;
   // Fallback: getAllCities().find(c => c.slug === params.location);
 
-  if (!city) {
-    notFound();
-  }
-
   const locationName = city.name;
-
-  // Check if chauffeur-service is available in this location
-  const isAvailable = await isServiceAvailableInLocation('chauffeur-service', params.location);
-
-  // If service not available, show coming soon page
-  if (!isAvailable) {
-    const nearbyLocations = await getNearbyAvailableLocations('chauffeur-service', params.location, 6);
-    return (
-      <ServiceComingSoon
-        serviceName="Chauffeur Service"
-        serviceSlug="chauffeur-service"
-        locationName={locationName}
-        locationSlug={params.location}
-        nearbyLocations={nearbyLocations}
-      />
-    );
-  }
 
   return (
     <>

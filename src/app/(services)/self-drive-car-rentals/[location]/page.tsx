@@ -1,10 +1,10 @@
 import { Metadata } from 'next';
-import { notFound } from 'next/navigation';
-import { ALL_CITIES, STATIC_CITIES, getCityBySlug } from '@/data/indian-cities';
+import { permanentRedirect } from 'next/navigation';
+import { getCityBySlug } from '@/data/indian-cities';
 import { CarSearchHero } from '@/components/car';
-import { ServiceComingSoon } from '@/components/location/ServiceComingSoon';
 import { ServiceFleetDisplay } from '@/components/services/ServiceFleetDisplay';
-import { isServiceAvailableInLocation, getNearbyAvailableLocations } from '@/lib/services/service-availability';
+import { resolveServicePage } from '@/lib/services/service-availability';
+import { StateServicePage } from '@/components/location/StateServicePage';
 import { prisma } from '@/lib/db/prisma';
 
 interface PageProps {
@@ -93,30 +93,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 }
 
 export default async function SelfDriveCarRentalLocationPage({ params }: PageProps) {
-  const city = getCityBySlug(params.location);
-
-  if (!city) {
-    notFound();
-  }
-
+  const pageContext = await resolveServicePage('self-drive-car-rentals', params.location);
+  if (pageContext.type === 'redirect') permanentRedirect(pageContext.to);
+  if (pageContext.type === 'state') return <StateServicePage state={pageContext.state} activeCities={pageContext.activeCities} serviceSlug="self-drive-car-rentals" serviceName="Self Drive Car Rentals" />;
+  const city = pageContext.city;
   const locationName = city.name;
-
-  // Check if self-drive-car-rentals service is available in this location
-  const isAvailable = await isServiceAvailableInLocation('self-drive-car-rentals', params.location);
-
-  // If service not available, show coming soon page
-  if (!isAvailable) {
-    const nearbyLocations = await getNearbyAvailableLocations('self-drive-car-rentals', params.location, 6);
-    return (
-      <ServiceComingSoon
-        serviceName="Self Drive Car Rental"
-        serviceSlug="self-drive-car-rentals"
-        locationName={locationName}
-        locationSlug={params.location}
-        nearbyLocations={nearbyLocations}
-      />
-    );
-  }
 
   return (
     <>
@@ -148,6 +129,7 @@ export default async function SelfDriveCarRentalLocationPage({ params }: PagePro
       {/* Available Cars - Dynamic from Database */}
       <ServiceFleetDisplay
         serviceSlug="self-drive-car-rentals"
+        locationSlug={params.location}
         title={`Self Drive Cars Available in ${locationName}`}
         showCategories={true}
         limit={12}

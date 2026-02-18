@@ -1,8 +1,10 @@
 import { Metadata } from 'next';
-import { notFound } from 'next/navigation';
+import { permanentRedirect } from 'next/navigation';
 import { getCityBySlug } from '@/data/indian-cities';
 import { getServiceLocations } from '@/lib/services/service-locations';;
 import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
+import { resolveServicePage } from '@/lib/services/service-availability';
+import { StateServicePage } from '@/components/location/StateServicePage';
 
 interface PageProps {
   params: {
@@ -54,13 +56,12 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   };
 }
 
-export default function CorporateCarRentalLocationPage({ params }: PageProps) {
-  const city = getCityBySlug(params.location);
+export default async function CorporateCarRentalLocationPage({ params }: PageProps) {
+  const pageContext = await resolveServicePage('corporate-car-rental', params.location);
+  if (pageContext.type === 'redirect') permanentRedirect(pageContext.to);
+  if (pageContext.type === 'state') return <StateServicePage state={pageContext.state} activeCities={pageContext.activeCities} serviceSlug="corporate-car-rental" serviceName="Corporate Car Rental" />;
+  const city = pageContext.city;
   // Fallback: getAllCities().find(c => c.slug === params.location);
-
-  if (!city) {
-    notFound();
-  }
 
   const locationName = city.name;
 

@@ -15,46 +15,56 @@ export interface City {
   priority: number; // 1-10, 10 being highest for SEO
 }
 
+export interface IndianState {
+  name: string;
+  code: string;
+  slug: string;
+}
+
 // All Indian States and Union Territories
-export const INDIAN_STATES = [
-  { name: 'Andhra Pradesh', code: 'AP' },
-  { name: 'Arunachal Pradesh', code: 'AR' },
-  { name: 'Assam', code: 'AS' },
-  { name: 'Bihar', code: 'BR' },
-  { name: 'Chhattisgarh', code: 'CT' },
-  { name: 'Goa', code: 'GA' },
-  { name: 'Gujarat', code: 'GJ' },
-  { name: 'Haryana', code: 'HR' },
-  { name: 'Himachal Pradesh', code: 'HP' },
-  { name: 'Jharkhand', code: 'JH' },
-  { name: 'Karnataka', code: 'KA' },
-  { name: 'Kerala', code: 'KL' },
-  { name: 'Madhya Pradesh', code: 'MP' },
-  { name: 'Maharashtra', code: 'MH' },
-  { name: 'Manipur', code: 'MN' },
-  { name: 'Meghalaya', code: 'ML' },
-  { name: 'Mizoram', code: 'MZ' },
-  { name: 'Nagaland', code: 'NL' },
-  { name: 'Odisha', code: 'OR' },
-  { name: 'Punjab', code: 'PB' },
-  { name: 'Rajasthan', code: 'RJ' },
-  { name: 'Sikkim', code: 'SK' },
-  { name: 'Tamil Nadu', code: 'TN' },
-  { name: 'Telangana', code: 'TS' },
-  { name: 'Tripura', code: 'TR' },
-  { name: 'Uttar Pradesh', code: 'UP' },
-  { name: 'Uttarakhand', code: 'UK' },
-  { name: 'West Bengal', code: 'WB' },
+export const INDIAN_STATES: IndianState[] = [
+  { name: 'Andhra Pradesh', code: 'AP', slug: 'andhra-pradesh' },
+  { name: 'Arunachal Pradesh', code: 'AR', slug: 'arunachal-pradesh' },
+  { name: 'Assam', code: 'AS', slug: 'assam' },
+  { name: 'Bihar', code: 'BR', slug: 'bihar' },
+  { name: 'Chhattisgarh', code: 'CT', slug: 'chhattisgarh' },
+  { name: 'Goa', code: 'GA', slug: 'goa' },
+  { name: 'Gujarat', code: 'GJ', slug: 'gujarat' },
+  { name: 'Haryana', code: 'HR', slug: 'haryana' },
+  { name: 'Himachal Pradesh', code: 'HP', slug: 'himachal-pradesh' },
+  { name: 'Jharkhand', code: 'JH', slug: 'jharkhand' },
+  { name: 'Karnataka', code: 'KA', slug: 'karnataka' },
+  { name: 'Kerala', code: 'KL', slug: 'kerala' },
+  { name: 'Madhya Pradesh', code: 'MP', slug: 'madhya-pradesh' },
+  { name: 'Maharashtra', code: 'MH', slug: 'maharashtra' },
+  { name: 'Manipur', code: 'MN', slug: 'manipur' },
+  { name: 'Meghalaya', code: 'ML', slug: 'meghalaya' },
+  { name: 'Mizoram', code: 'MZ', slug: 'mizoram' },
+  { name: 'Nagaland', code: 'NL', slug: 'nagaland' },
+  { name: 'Odisha', code: 'OR', slug: 'odisha' },
+  { name: 'Punjab', code: 'PB', slug: 'punjab' },
+  { name: 'Rajasthan', code: 'RJ', slug: 'rajasthan' },
+  { name: 'Sikkim', code: 'SK', slug: 'sikkim' },
+  { name: 'Tamil Nadu', code: 'TN', slug: 'tamil-nadu' },
+  { name: 'Telangana', code: 'TS', slug: 'telangana' },
+  { name: 'Tripura', code: 'TR', slug: 'tripura' },
+  { name: 'Uttar Pradesh', code: 'UP', slug: 'uttar-pradesh' },
+  { name: 'Uttarakhand', code: 'UK', slug: 'uttarakhand' },
+  { name: 'West Bengal', code: 'WB', slug: 'west-bengal' },
   // Union Territories
-  { name: 'Andaman and Nicobar Islands', code: 'AN' },
-  { name: 'Chandigarh', code: 'CH' },
-  { name: 'Dadra and Nagar Haveli and Daman and Diu', code: 'DD' },
-  { name: 'Delhi', code: 'DL' },
-  { name: 'Jammu and Kashmir', code: 'JK' },
-  { name: 'Ladakh', code: 'LA' },
-  { name: 'Lakshadweep', code: 'LD' },
-  { name: 'Puducherry', code: 'PY' },
+  { name: 'Andaman and Nicobar Islands', code: 'AN', slug: 'andaman-and-nicobar-islands' },
+  { name: 'Chandigarh', code: 'CH', slug: 'chandigarh' },
+  { name: 'Dadra and Nagar Haveli and Daman and Diu', code: 'DD', slug: 'dadra-and-nagar-haveli-and-daman-and-diu' },
+  { name: 'Delhi', code: 'DL', slug: 'delhi' },
+  { name: 'Jammu and Kashmir', code: 'JK', slug: 'jammu-and-kashmir' },
+  { name: 'Ladakh', code: 'LA', slug: 'ladakh' },
+  { name: 'Lakshadweep', code: 'LD', slug: 'lakshadweep' },
+  { name: 'Puducherry', code: 'PY', slug: 'puducherry' },
 ];
+
+export function getStateBySlug(slug: string): IndianState | undefined {
+  return INDIAN_STATES.find(s => s.slug === slug);
+}
 
 // ============================================
 // TIER 1 - Metro Cities (Top 8)

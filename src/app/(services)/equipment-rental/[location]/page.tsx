@@ -5,11 +5,12 @@ import { WhyRentHere } from '@/components/location/WhyRentHere';
 import { PopularRoutes } from '@/components/location/PopularRoutes';
 import { FAQSection } from '@/components/services/FAQSection';
 import { NearbyLocations } from '@/components/location/NearbyLocations';
-import { ServiceComingSoon } from '@/components/location/ServiceComingSoon';
+import { permanentRedirect } from 'next/navigation';
 import { capitalize } from '@/lib/utils';
-import { ALL_CITIES, STATIC_CITIES, getCityBySlug } from '@/data/indian-cities';
+import { getCityBySlug } from '@/data/indian-cities';
 import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
-import { isServiceAvailableInLocation, getNearbyAvailableLocations } from '@/lib/services/service-availability';
+import { resolveServicePage } from '@/lib/services/service-availability';
+import { StateServicePage } from '@/components/location/StateServicePage';
 import { prisma } from '@/lib/db/prisma';
 
 function parseJsonField<T>(value: unknown, defaultValue: T): T {
@@ -99,25 +100,13 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 }
 
 export default async function EquipmentLocationPage({ params }: PageProps) {
+  const pageContext = await resolveServicePage('equipment-rental', params.location);
+  if (pageContext.type === 'redirect') permanentRedirect(pageContext.to);
+  if (pageContext.type === 'state') return <StateServicePage state={pageContext.state} activeCities={pageContext.activeCities} serviceSlug="equipment-rental" serviceName="Equipment Rental" />;
+  const city = pageContext.city;
+
   const locationName = capitalize(params.location.replace(/-/g, ' '));
   const cityData = getCityBySlug(params.location);
-
-  // Check if equipment-rental service is available in this location
-  const isAvailable = await isServiceAvailableInLocation('equipment-rental', params.location);
-
-  // If service not available, show coming soon page
-  if (!isAvailable) {
-    const nearbyLocations = await getNearbyAvailableLocations('equipment-rental', params.location, 6);
-    return (
-      <ServiceComingSoon
-        serviceName="Equipment Rental"
-        serviceSlug="equipment-rental"
-        locationName={locationName}
-        locationSlug={params.location}
-        nearbyLocations={nearbyLocations}
-      />
-    );
-  }
 
   // Fetch equipment from database (filtered by service and location)
   const service = await prisma.services.findUnique({

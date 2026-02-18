@@ -1,5 +1,5 @@
 import { Metadata } from 'next';
-import { notFound } from 'next/navigation';
+import { permanentRedirect } from 'next/navigation';
 import { prisma } from '@/lib/db/prisma';
 import { AirportRouteBookingHero } from '@/components/airport-transfer/AirportRouteBookingHero';
 import { RouteOverview } from '@/components/routes/RouteOverview';
@@ -558,14 +558,14 @@ export default async function AirportTransferRoutePage({ params }: PageProps) {
 
   // Invalid route format - must contain "-to-"
   if (!parsed) {
-    notFound();
+    permanentRedirect('/airport-transfer');
   }
 
   const routeData = await getRouteData(parsed.from, parsed.to, parsed.isCityGeneric);
 
   // Route not found or not an airport route
   if (!routeData) {
-    notFound();
+    permanentRedirect('/airport-transfer');
   }
 
   const { from, to, packages, isAirportPickup } = routeData;

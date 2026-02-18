@@ -5,12 +5,12 @@ import { WhyRentHere } from '@/components/location/WhyRentHere';
 import { PopularRoutes } from '@/components/location/PopularRoutes';
 import { FAQSection } from '@/components/services/FAQSection';
 import { NearbyLocations } from '@/components/location/NearbyLocations';
-import { ServiceComingSoon } from '@/components/location/ServiceComingSoon';
+import { permanentRedirect } from 'next/navigation';
 import { capitalize, formatPriceHighlight } from '@/lib/utils';
-import { ALL_CITIES, STATIC_CITIES } from '@/data/indian-cities';
 import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
 import { getAllIndiaFleet } from '@/lib/fleet-utils';
-import { isServiceAvailableInLocation, getNearbyAvailableLocations } from '@/lib/services/service-availability';
+import { resolveServicePage } from '@/lib/services/service-availability';
+import { StateServicePage } from '@/components/location/StateServicePage';
 import { prisma } from '@/lib/db/prisma';
 
 interface PageProps {
@@ -89,24 +89,12 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 }
 
 export default async function TransporterLocationPage({ params }: PageProps) {
+  const pageContext = await resolveServicePage('transporter', params.location);
+  if (pageContext.type === 'redirect') permanentRedirect(pageContext.to);
+  if (pageContext.type === 'state') return <StateServicePage state={pageContext.state} activeCities={pageContext.activeCities} serviceSlug="transporter" serviceName="Transporter" />;
+  const city = pageContext.city;
+
   const locationName = capitalize(params.location.replace(/-/g, ' '));
-
-  // Check if transporter service is available in this location
-  const isAvailable = await isServiceAvailableInLocation('transporter', params.location);
-
-  // If service not available, show coming soon page
-  if (!isAvailable) {
-    const nearbyLocations = await getNearbyAvailableLocations('transporter', params.location, 6);
-    return (
-      <ServiceComingSoon
-        serviceName="Truck Rental"
-        serviceSlug="transporter"
-        locationName={locationName}
-        locationSlug={params.location}
-        nearbyLocations={nearbyLocations}
-      />
-    );
-  }
 
   // Fetch trucks/transporters from database (filtered by service and location)
   const service = await prisma.services.findUnique({

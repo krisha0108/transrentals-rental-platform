@@ -5,12 +5,13 @@ import { WhyRentHere } from '@/components/location/WhyRentHere';
 import { PopularRoutes } from '@/components/location/PopularRoutes';
 import { FAQSection } from '@/components/services/FAQSection';
 import { NearbyLocations } from '@/components/location/NearbyLocations';
-import { ServiceComingSoon } from '@/components/location/ServiceComingSoon';
+import { permanentRedirect } from 'next/navigation';
 import { capitalize } from '@/lib/utils';
 import { getCityBySlug } from '@/data/indian-cities';
 import { getServiceLocations } from '@/lib/services/service-locations';;
 import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
-import { isServiceAvailableInLocation, getNearbyAvailableLocations } from '@/lib/services/service-availability';
+import { resolveServicePage } from '@/lib/services/service-availability';
+import { StateServicePage } from '@/components/location/StateServicePage';
 import { prisma } from '@/lib/db/prisma';
 
 interface PageProps {
@@ -56,25 +57,13 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 }
 
 export default async function PackersMoversLocationPage({ params }: PageProps) {
+  const pageContext = await resolveServicePage('packers-and-movers', params.location);
+  if (pageContext.type === 'redirect') permanentRedirect(pageContext.to);
+  if (pageContext.type === 'state') return <StateServicePage state={pageContext.state} activeCities={pageContext.activeCities} serviceSlug="packers-and-movers" serviceName="Packers and Movers" />;
+  const city = pageContext.city;
+
   const locationName = capitalize(params.location.replace(/-/g, ' '));
   const cityData = getCityBySlug(params.location);
-
-  // Check if packers-and-movers service is available in this location
-  const isAvailable = await isServiceAvailableInLocation('packers-and-movers', params.location);
-
-  // If service not available, show coming soon page
-  if (!isAvailable) {
-    const nearbyLocations = await getNearbyAvailableLocations('packers-and-movers', params.location, 6);
-    return (
-      <ServiceComingSoon
-        serviceName="Packers and Movers"
-        serviceSlug="packers-and-movers"
-        locationName={locationName}
-        locationSlug={params.location}
-        nearbyLocations={nearbyLocations}
-      />
-    );
-  }
 
   // Fetch admin vehicle models for this location
   const service = await prisma.services.findUnique({

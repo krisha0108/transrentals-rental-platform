@@ -119,8 +119,9 @@ export async function GET(
 
     const where = { AND: conditions };
 
+
     // Fetch vehicle models for this service
-    const [vehicles, total] = await Promise.all([
+    const [vehicles, total, activeTotal, inactiveTotal] = await Promise.all([
       prisma.vehicle_models.findMany({
         where,
         include: {
@@ -146,6 +147,22 @@ export async function GET(
         take: limit,
       }),
       prisma.vehicle_models.count({ where }),
+      prisma.vehicle_models.count({
+        where: {
+          AND: [
+            ...conditions,
+            { isActive: true }
+          ]
+        }
+      }),
+      prisma.vehicle_models.count({
+        where: {
+          AND: [
+            ...conditions,
+            { isActive: false }
+          ]
+        }
+      }),
     ]);
 
     // Fetch category mapping for vehicles that have subServiceId or vehicleCategoryId
@@ -240,6 +257,8 @@ export async function GET(
       // Use vehicle categories as subServices (for category dropdown)
       subServices: vehicleCategories.length > 0 ? vehicleCategories : service.other_services,
       vehicleCategories,
+      activeTotal,
+      inactiveTotal,
       pagination: {
         page,
         limit,
