@@ -103,20 +103,15 @@ export async function sendQuoteRequestNotificationToVendors(
           update: { value: serialized },
         });
 
-        // 2. Send FCM push notification if vendor has a token
-        if (vendor.fcmToken) {
-          console.log(`[VendorNotify] Sending FCM push to vendor ${vendor.id}, token: ${vendor.fcmToken.substring(0, 20)}...`);
-          const result = await sendPushNotification(
-            vendor.fcmToken,
-            {
-              title: notificationTitle,
-              body: notificationBody,
-            },
-            notificationData
-          );
-          console.log(`[VendorNotify] FCM result for vendor ${vendor.id}:`, result);
-        } else {
+        // 2. Send FCM push to ALL devices of this vendor
+        const tokens = await getVendorFcmTokens(vendor.id);
+        if (tokens.length === 0) {
           console.log(`[VendorNotify] Vendor ${vendor.id} has NO fcmToken — skipping push`);
+        } else {
+          await Promise.allSettled(
+            tokens.map((token) => sendPushNotification(token, { title: notificationTitle, body: notificationBody }, notificationData))
+          );
+          console.log(`[VendorNotify] FCM sent to ${tokens.length} device(s) for vendor ${vendor.id}`);
         }
       } catch (err) {
         console.error(`[VendorNotify] Failed for vendor ${vendor.id}:`, err);
@@ -142,22 +137,30 @@ interface VendorDirectNotificationParams {
   data?: Record<string, string>;
 }
 
+// Helper: get all FCM tokens for a vendor (multi-device support)
+async function getVendorFcmTokens(vendorId: string): Promise<string[]> {
+  // 1. Check multi-device tokens from settings table
+  const settingKey = `vendor_fcm_tokens_${vendorId}`;
+  const setting = await prisma.settings.findUnique({ where: { key: settingKey } });
+  if (setting?.value) {
+    const data = JSON.parse(setting.value as string);
+    const tokens: string[] = (data.tokens || []).map((t: any) => t.token).filter(Boolean);
+    if (tokens.length > 0) return tokens;
+  }
+  // 2. Fallback to single fcmToken on vendors table
+  const vendor = await prisma.vendors.findUnique({
+    where: { id: vendorId },
+    select: { fcmToken: true },
+  });
+  return vendor?.fcmToken ? [vendor.fcmToken] : [];
+}
+
 export async function sendVendorDirectNotification(
   params: VendorDirectNotificationParams
 ): Promise<void> {
   const { vendorId, title, body, type, serviceType, bookingId, bookingNumber, data: extraData } = params;
 
   try {
-    const vendor = await prisma.vendors.findUnique({
-      where: { id: vendorId },
-      select: { id: true, fcmToken: true },
-    });
-
-    if (!vendor) {
-      console.log(`[VendorDirectNotify] Vendor ${vendorId} not found`);
-      return;
-    }
-
     // 1. Save to vendor's in-app notifications
     const settingKey = `vendor_notifications_${vendorId}`;
     const existing = await prisma.settings.findUnique({ where: { key: settingKey } });
@@ -185,20 +188,25 @@ export async function sendVendorDirectNotification(
       update: { value: JSON.stringify(notifData) },
     });
 
-    // 2. Send FCM push
-    if (vendor.fcmToken) {
-      const pushData = {
-        screen: 'BookingDetail',
-        serviceType,
-        bookingId: bookingId || '',
-        bookingNumber: bookingNumber || '',
-        ...extraData,
-      };
-      const result = await sendPushNotification(vendor.fcmToken, { title, body }, pushData);
-      console.log(`[VendorDirectNotify] FCM result for vendor ${vendorId}:`, result);
-    } else {
+    // 2. Send FCM push to ALL devices
+    const tokens = await getVendorFcmTokens(vendorId);
+    if (tokens.length === 0) {
       console.log(`[VendorDirectNotify] Vendor ${vendorId} has NO fcmToken — skipping push`);
+      return;
     }
+
+    const pushData = {
+      screen: 'BookingDetail',
+      serviceType,
+      bookingId: bookingId || '',
+      bookingNumber: bookingNumber || '',
+      ...extraData,
+    };
+
+    const results = await Promise.allSettled(
+      tokens.map((token) => sendPushNotification(token, { title, body }, pushData))
+    );
+    console.log(`[VendorDirectNotify] Sent to ${tokens.length} device(s) for vendor ${vendorId}:`, results.map(r => r.status));
   } catch (err) {
     console.error(`[VendorDirectNotify] Failed for vendor ${vendorId}:`, err);
   }

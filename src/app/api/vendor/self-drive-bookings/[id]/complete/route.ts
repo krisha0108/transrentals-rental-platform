@@ -8,6 +8,7 @@ import { sendNotificationToCustomer } from '@/lib/services/push-notification-ser
 import crypto from 'crypto';
 
 import logger from '@/lib/security/logger';
+import { sendVendorDirectNotification } from '@/lib/utils/vendor-notification-sender';
 export const dynamic = 'force-dynamic';
 
 // POST - Vendor completes the car rental trip
@@ -157,6 +158,17 @@ export async function POST(
       console.error('❌ Self-drive trip completed notification error:', notificationError);
       logger.error('Failed to send self-drive trip completed notification', notificationError);
     }
+
+    // Notify vendor that trip has been completed
+    sendVendorDirectNotification({
+      vendorId,
+      title: '✅ Trip Completed!',
+      body: `Booking #${updatedBooking.bookingNumber} self-drive trip has been completed successfully.`,
+      type: 'trip_completed',
+      serviceType: 'self-drive',
+      bookingId: booking.id,
+      bookingNumber: updatedBooking.bookingNumber,
+    }).catch((err: any) => console.error('[SelfDriveComplete] Vendor notify failed:', err));
 
     // Calculate total km driven
     const totalKmDriven = odometerEnd && booking.odometerStart

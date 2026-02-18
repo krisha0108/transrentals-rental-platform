@@ -5,6 +5,7 @@ import { prisma } from '@/lib/db/prisma';
 import { transformPrismaResponse } from '@/lib/utils/api-transform';
 
 import logger from '@/lib/security/logger';
+import { sendVendorDirectNotification } from '@/lib/utils/vendor-notification-sender';
 export const dynamic = 'force-dynamic';
 
 // GET - Get single vendor with full details
@@ -234,6 +235,41 @@ export async function PUT(
       where: { id },
       data: updateData,
     });
+
+    // Notify vendor based on action
+    const notifyMap: Record<string, { title: string; body: string; type: string }> = {
+      APPROVE: {
+        title: '🎉 Account Approved! You\'re Live',
+        body: 'Congratulations! Your vendor account has been approved. You can now log in to the app and start managing bookings, quotes, and more.',
+        type: 'account_approved',
+      },
+      REJECT: {
+        title: '❌ Account Application Rejected',
+        body: `Your vendor account application was rejected. Reason: ${rejectionReason || 'Please contact support for more information.'}.`,
+        type: 'account_rejected',
+      },
+      SUSPEND: {
+        title: '⚠️ Account Suspended',
+        body: 'Your vendor account has been suspended. Please contact support for more information.',
+        type: 'account_suspended',
+      },
+      UNSUSPEND: {
+        title: '✅ Account Reinstated',
+        body: 'Your vendor account has been reinstated. You can now resume accepting bookings.',
+        type: 'account_reinstated',
+      },
+      BLOCK: {
+        title: '🚫 Account Blocked',
+        body: 'Your vendor account has been blocked. Please contact support.',
+        type: 'account_blocked',
+      },
+    };
+
+    if (notifyMap[action]) {
+      const { title, body, type } = notifyMap[action];
+      sendVendorDirectNotification({ vendorId: id, title, body, type, serviceType: 'general' })
+        .catch((err: any) => console.error('[VendorStatus] Notify failed:', err));
+    }
 
     const { password, ...safeVendor } = updatedVendor;
 

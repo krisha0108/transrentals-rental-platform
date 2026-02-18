@@ -90,6 +90,19 @@ export async function POST(request: NextRequest) {
           logger.error('Failed to create/send payment notification', notifError);
         }
 
+        // ⭐ Notify the specific vendor — payment verified, booking confirmed
+        if (hasAcceptedVendor && vendorId) {
+          sendVendorDirectNotification({
+            vendorId,
+            title: '💰 Payment Verified! Booking Confirmed',
+            body: `Customer's advance payment has been verified for bike booking #${bikeBooking.bookingNumber}. Booking is now confirmed.`,
+            type: 'payment_received',
+            serviceType: 'bike',
+            bookingId,
+            bookingNumber: bikeBooking.bookingNumber,
+          }).catch((err: any) => console.error('[PaymentVerify] Bike vendor notify failed:', err));
+        }
+
         return NextResponse.json({
           success: true,
           message: hasAcceptedVendor
@@ -204,6 +217,19 @@ export async function POST(request: NextRequest) {
           });
         } catch (notifError) {
           logger.error('Failed to create notification', notifError);
+        }
+
+        // ⭐ Notify the specific vendor — payment verified, booking confirmed
+        if (hasAcceptedVendor && vendorId) {
+          sendVendorDirectNotification({
+            vendorId,
+            title: '💰 Payment Verified! Booking Confirmed',
+            body: `Customer's advance payment has been verified for self-drive booking #${carBooking.bookingNumber}. Booking is now confirmed.`,
+            type: 'payment_received',
+            serviceType: 'self-drive',
+            bookingId,
+            bookingNumber: carBooking.bookingNumber,
+          }).catch((err: any) => console.error('[PaymentVerify] Self-drive vendor notify failed:', err));
         }
 
         return NextResponse.json({

@@ -4,6 +4,7 @@ import { getServerSession } from 'next-auth';
 import { prisma } from '@/lib/db/prisma';
 
 import logger from '@/lib/security/logger';
+import { sendPushNotification, sendNotificationToCustomer } from '@/lib/services/push-notification-service';
 export const dynamic = 'force-dynamic';
 
 // GET - Get conversation with messages
@@ -177,6 +178,34 @@ export async function POST(
           : { vendorUnread: { increment: 1 } }),
       },
     });
+
+    // Send FCM push notification for new message (no DB storage)
+    try {
+      const msgPreview = content.length > 60 ? content.substring(0, 60) + '...' : content;
+      if (isFromVendor && conversation.customerId) {
+        // Vendor sent → notify customer
+        await sendNotificationToCustomer(
+          conversation.customerId,
+          { title: '💬 New message from vendor', body: msgPreview },
+          { type: 'chat', screen: 'Chat', conversationId }
+        );
+      } else if (!isFromVendor && conversation.vendorId) {
+        // Customer sent → notify vendor
+        const vendor = await prisma.vendors.findUnique({
+          where: { id: conversation.vendorId },
+          select: { fcmToken: true },
+        });
+        if (vendor?.fcmToken) {
+          await sendPushNotification(
+            vendor.fcmToken,
+            { title: '💬 New message from customer', body: msgPreview },
+            { type: 'chat', screen: 'ChatDetail', conversationId }
+          );
+        }
+      }
+    } catch (notifErr) {
+      console.error('[Chat] Push notification failed:', notifErr);
+    }
 
     // Update quick reply usage if applicable
     if (quickReplyId) {
