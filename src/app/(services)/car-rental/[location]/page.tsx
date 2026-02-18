@@ -1,15 +1,15 @@
 import { Metadata } from 'next';
-import { notFound } from 'next/navigation';
-import { ALL_CITIES, STATIC_CITIES, getCityBySlug } from '@/data/indian-cities';
+import { permanentRedirect } from 'next/navigation';
+import { getCityBySlug } from '@/data/indian-cities';
 import { CarRentalBookingHero } from '@/components/car-rental/CarRentalBookingHero';
 import { PopularRoutes } from '@/components/location/PopularRoutes';
 import { PackagesGrid } from '@/components/location/PackagesGrid';
 import { WhyRentHere } from '@/components/location/WhyRentHere';
 import { FAQSection } from '@/components/services/FAQSection';
 import { NearbyLocations } from '@/components/location/NearbyLocations';
-import { ServiceComingSoon } from '@/components/location/ServiceComingSoon';
 import { prisma } from '@/lib/db/prisma';
-import { isServiceAvailableInLocation, getNearbyAvailableLocations } from '@/lib/services/service-availability';
+import { resolveServicePage } from '@/lib/services/service-availability';
+import { StateServicePage } from '@/components/location/StateServicePage';
 
 interface PageProps {
   params: {
@@ -181,30 +181,11 @@ async function getPackagesForLocation(locationSlug: string) {
 }
 
 export default async function CarRentalLocationPage({ params }: PageProps) {
-  const city = getCityBySlug(params.location);
-
-  if (!city) {
-    notFound();
-  }
-
+  const pageContext = await resolveServicePage('car-rental', params.location);
+  if (pageContext.type === 'redirect') permanentRedirect(pageContext.to);
+  if (pageContext.type === 'state') return <StateServicePage state={pageContext.state} activeCities={pageContext.activeCities} serviceSlug="car-rental" serviceName="Car Rental" />;
+  const city = pageContext.city;
   const locationName = city.name;
-
-  // Check if car-rental service is available in this location
-  const isAvailable = await isServiceAvailableInLocation('car-rental', params.location);
-
-  // If service not available, show coming soon page
-  if (!isAvailable) {
-    const nearbyLocations = await getNearbyAvailableLocations('car-rental', params.location, 6);
-    return (
-      <ServiceComingSoon
-        serviceName="Car Rental"
-        serviceSlug="car-rental"
-        locationName={locationName}
-        locationSlug={params.location}
-        nearbyLocations={nearbyLocations}
-      />
-    );
-  }
 
   // Fetch packages from database
   const categories = await getPackagesForLocation(params.location);

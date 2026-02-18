@@ -5,11 +5,14 @@ import { WhyRentHere } from '@/components/location/WhyRentHere';
 import { PopularRoutes } from '@/components/location/PopularRoutes';
 import { FAQSection } from '@/components/services/FAQSection';
 import { NearbyLocations } from '@/components/location/NearbyLocations';
+import { permanentRedirect } from 'next/navigation';
 import { capitalize } from '@/lib/utils';
 import { getCityBySlug } from '@/data/indian-cities';
 import { getServiceLocations } from '@/lib/services/service-locations';;
 import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
 import { BikeServiceSchema } from '@/components/seo/schemas';
+import { resolveServicePage } from '@/lib/services/service-availability';
+import { StateServicePage } from '@/components/location/StateServicePage';
 
 interface PageProps {
   params: {
@@ -88,7 +91,10 @@ const schemaVehicles = [
 ];
 
 export default async function ApacheLocationPage({ params }: PageProps) {
-  const city = getCityBySlug(params.location);
+  const pageContext = await resolveServicePage('apache-on-rent', params.location);
+  if (pageContext.type === 'redirect') permanentRedirect(pageContext.to);
+  if (pageContext.type === 'state') return <StateServicePage state={pageContext.state} activeCities={pageContext.activeCities} serviceSlug="apache-on-rent" serviceName="Apache on Rent" />;
+  const city = pageContext.city;
   const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
 
   const pageData = {
@@ -136,7 +142,7 @@ export default async function ApacheLocationPage({ params }: PageProps) {
         vehicles={schemaVehicles}
         priceRange={{ min: 499, max: 1299 }}
         rating={4.8}
-        reviewCount={Math.floor(Math.random() * 400) + 250}
+        reviewCount={384}
       />
       <div className="flex flex-col">
         {/* Breadcrumbs */}

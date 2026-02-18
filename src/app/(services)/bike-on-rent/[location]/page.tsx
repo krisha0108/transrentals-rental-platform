@@ -4,11 +4,12 @@ import { BikeSearchHero } from '@/components/bike';
 import { WhyRentHere } from '@/components/location/WhyRentHere';
 import { FAQSection } from '@/components/services/FAQSection';
 import { NearbyLocations } from '@/components/location/NearbyLocations';
-import { ServiceComingSoon } from '@/components/location/ServiceComingSoon';
+import { permanentRedirect } from 'next/navigation';
 import { capitalize } from '@/lib/utils';
 import { ALL_CITIES, STATIC_CITIES, getCityBySlug } from '@/data/indian-cities';
 import { BikeServiceSchema } from '@/components/seo/schemas';
-import { isServiceAvailableInLocation, getNearbyAvailableLocations } from '@/lib/services/service-availability';
+import { resolveServicePage } from '@/lib/services/service-availability';
+import { StateServicePage } from '@/components/location/StateServicePage';
 import { prisma } from '@/lib/db/prisma';
 
 interface PageProps {
@@ -151,26 +152,12 @@ const schemaVehicles = [
 ];
 
 export default async function BikeLocationPage({ params }: PageProps) {
-  const city = getCityBySlug(params.location);
+  const pageContext = await resolveServicePage('bike-on-rent', params.location);
+  if (pageContext.type === 'redirect') permanentRedirect(pageContext.to);
+  if (pageContext.type === 'state') return <StateServicePage state={pageContext.state} activeCities={pageContext.activeCities} serviceSlug="bike-on-rent" serviceName="Bike on Rent" />;
+  const city = pageContext.city;
   const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
   const locationFaqs = getLocationFaqs(locationName);
-
-  // Check if bike-on-rent service is available in this location
-  const isAvailable = await isServiceAvailableInLocation('bike-on-rent', params.location);
-
-  // If service not available, show coming soon page
-  if (!isAvailable) {
-    const nearbyLocations = await getNearbyAvailableLocations('bike-on-rent', params.location, 6);
-    return (
-      <ServiceComingSoon
-        serviceName="Bike Rental"
-        serviceSlug="bike-on-rent"
-        locationName={locationName}
-        locationSlug={params.location}
-        nearbyLocations={nearbyLocations}
-      />
-    );
-  }
 
   return (
     <>
@@ -185,7 +172,7 @@ export default async function BikeLocationPage({ params }: PageProps) {
         vehicles={schemaVehicles}
         priceRange={{ min: 299, max: 1499 }}
         rating={4.5}
-        reviewCount={Math.floor(Math.random() * 500) + 200}
+        reviewCount={487}
       />
 
       <div className="flex flex-col">

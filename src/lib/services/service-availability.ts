@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/db/prisma';
+import { getCityBySlug, getStateBySlug, IndianState } from '@/data/indian-cities';
 
 /**
  * Check if a service is available in a specific location
@@ -130,6 +131,87 @@ export async function getAvailableLocationsForService(serviceSlug: string) {
     console.error('Error fetching available locations:', error);
     return [];
   }
+}
+
+/**
+ * Combined check: validates city exists AND service is active in location.
+ * Returns the redirect path (service homepage) if invalid, or null if page should render.
+ * Use this in every [location] page component.
+ */
+export async function validateCityAndServiceOrRedirect(
+  serviceSlug: string,
+  locationSlug: string
+): Promise<string | null> {
+  // Step 1: Is this a known city?
+  const city = getCityBySlug(locationSlug);
+  if (!city) return `/${serviceSlug}`;
+
+  // Step 2: Is the service active in this location?
+  const isAvailable = await isServiceAvailableInLocation(serviceSlug, locationSlug);
+  if (!isAvailable) return `/${serviceSlug}`;
+
+  return null; // All good - render the page
+}
+
+export type ServicePageContext =
+  | { type: 'city'; city: NonNullable<ReturnType<typeof getCityBySlug>> }
+  | { type: 'state'; state: IndianState; activeCities: Array<{ name: string; slug: string; tier?: number }> }
+  | { type: 'redirect'; to: string };
+
+/**
+ * Get all active locations in a state for a given service
+ */
+export async function getActiveLocationsInStateForService(
+  serviceSlug: string,
+  stateCode: string
+): Promise<Array<{ name: string; slug: string; tier?: number }>> {
+  if (process.env.SKIP_DATABASE_CALLS === '1') return [];
+  if (!prisma) return [];
+
+  try {
+    const serviceLocations = await getAvailableLocationsForService(serviceSlug);
+    return serviceLocations
+      .filter(loc => {
+        const cityData = getCityBySlug(loc.slug);
+        return cityData?.stateCode === stateCode;
+      })
+      .map(loc => {
+        const cityData = getCityBySlug(loc.slug);
+        return { name: loc.name, slug: loc.slug, tier: cityData?.tier };
+      })
+      .sort((a, b) => (a.tier ?? 99) - (b.tier ?? 99));
+  } catch (error) {
+    console.error('Error fetching locations for state:', error);
+    return [];
+  }
+}
+
+/**
+ * Resolves a [location] slug to city page, state hub page, or redirect.
+ * Use this instead of validateCityAndServiceOrRedirect in page components.
+ */
+export async function resolveServicePage(
+  serviceSlug: string,
+  locationSlug: string
+): Promise<ServicePageContext> {
+  // Step 1: Is it a known city?
+  const city = getCityBySlug(locationSlug);
+  if (city) {
+    const isAvailable = await isServiceAvailableInLocation(serviceSlug, locationSlug);
+    if (!isAvailable) return { type: 'redirect', to: `/${serviceSlug}` };
+    return { type: 'city', city };
+  }
+
+  // Step 2: Is it a known state?
+  const state = getStateBySlug(locationSlug);
+  if (state) {
+    const activeCities = await getActiveLocationsInStateForService(serviceSlug, state.code);
+    if (activeCities.length === 0) return { type: 'redirect', to: `/${serviceSlug}` };
+    return { type: 'state', state, activeCities };
+  }
+
+  // Step 3: Neither — redirect
+  return { type: 'redirect', to: `/${serviceSlug}` };
 }
 
 /**
