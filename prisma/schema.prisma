@@ -3465,6 +3465,8 @@ model vendor_staff {
   salary            Float               @default(0)
   emergencyContact  String?
   emergencyPhone    String?
+  fcmToken          String?             @db.Text
+  lastLoginAt       DateTime?
   createdAt         DateTime            @default(now())
   updatedAt         DateTime            @updatedAt
   password          String?

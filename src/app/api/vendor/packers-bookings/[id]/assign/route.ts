@@ -5,7 +5,8 @@ import { prisma } from '@/lib/db/prisma';
 import { transformPrismaResponse } from '@/lib/utils/api-transform';
 import logger from '@/lib/security/logger';
 import { prepareNotificationData } from '@/lib/utils/notification-helper';
-import { sendNotificationToCustomer } from '@/lib/services/push-notification-service';
+import { sendNotificationToCustomer, sendPushNotification } from '@/lib/services/push-notification-service';
+import { saveDriverNotification } from '@/lib/utils/driver-notification-sender';
 
 export const dynamic = 'force-dynamic';
 
@@ -85,6 +86,34 @@ export async function POST(
         teamLeaderPhone,
       },
     });
+
+    // Notify assigned team leader via FCM
+    try {
+      const teamStaff = await prisma.vendor_staff.findFirst({
+        where: { phone: teamLeaderPhone, vendorId },
+        select: { id: true, fcmToken: true },
+      });
+      if (teamStaff) {
+        const notifTitle = '👷 New Job Assigned!';
+        const notifBody = `You have been assigned as team leader for Packers & Movers Booking #${booking.bookingNumber}. Please check your app for details.`;
+        const notifData = { type: 'driver_assigned', bookingId: booking.id, bookingNumber: booking.bookingNumber, serviceType: 'packers' };
+        if (teamStaff.fcmToken) {
+          sendPushNotification(teamStaff.fcmToken, { title: notifTitle, body: notifBody }, notifData)
+            .catch((err: any) => console.error('[PackersAssign] Team leader FCM failed:', err));
+        }
+        saveDriverNotification({
+          staffId: teamStaff.id,
+          title: notifTitle,
+          body: notifBody,
+          type: 'booking_assigned',
+          serviceType: 'packers',
+          bookingId: booking.id,
+          bookingNumber: booking.bookingNumber,
+        }).catch((err: any) => console.error('[PackersAssign] Team leader in-app notif failed:', err));
+      }
+    } catch (teamNotifErr) {
+      console.error('[PackersAssign] Team leader notification lookup failed:', teamNotifErr);
+    }
 
     // Send notification to customer
     try {

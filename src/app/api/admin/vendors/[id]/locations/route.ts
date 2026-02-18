@@ -6,6 +6,7 @@ import { transformPrismaResponse } from '@/lib/utils/api-transform';
 import crypto from 'crypto';
 
 import logger from '@/lib/security/logger';
+import { sendVendorDirectNotification } from '@/lib/utils/vendor-notification-sender';
 
 // Helper to generate a cuid-like unique ID
 function generateId(): string {
@@ -102,6 +103,13 @@ export async function PUT(
           });
         }
 
+        sendVendorDirectNotification({
+          vendorId,
+          title: '📍 Locations Approved',
+          body: `${pendingRequests.length} location${pendingRequests.length > 1 ? 's have' : ' has'} been approved. You can now start accepting bookings in ${pendingRequests.length > 1 ? 'these areas' : pendingRequests[0]?.locations?.name || 'the approved area'}.`,
+          type: 'location_approved',
+          serviceType: 'general',
+        }).catch((err: any) => console.error('[LocApprove] Vendor notify failed:', err));
         return NextResponse.json({ success: true, message: `Approved ${pendingRequests.length} location requests` });
       } else if (action === 'REJECT_ALL') {
         if (!rejectionReason) {
@@ -120,6 +128,13 @@ export async function PUT(
             rejectionReason,
           },
         });
+        sendVendorDirectNotification({
+          vendorId,
+          title: '❌ Location Requests Rejected',
+          body: `${pendingRequests.length} location request${pendingRequests.length > 1 ? 's have' : ' has'} been rejected. Reason: ${rejectionReason}.`,
+          type: 'location_rejected',
+          serviceType: 'general',
+        }).catch((err: any) => console.error('[LocReject] Vendor notify failed:', err));
         return NextResponse.json({ success: true, message: `Rejected ${pendingRequests.length} location requests` });
       }
     }
@@ -167,6 +182,14 @@ export async function PUT(
           isActive: true,
         },
       });
+
+      sendVendorDirectNotification({
+        vendorId,
+        title: '📍 Location Approved',
+        body: `Your request for ${locationRequest.locations?.name || 'the location'} has been approved. You can now start accepting bookings in this area.`,
+        type: 'location_approved',
+        serviceType: 'general',
+      }).catch((err: any) => console.error('[LocApprove] Vendor notify failed:', err));
 
       // If cascadeChildren is true, also approve all child location requests
       if (cascadeChildren) {
@@ -231,6 +254,14 @@ export async function PUT(
           rejectionReason,
         },
       });
+
+      sendVendorDirectNotification({
+        vendorId,
+        title: '❌ Location Request Rejected',
+        body: `Your request for ${locationRequest.locations?.name || 'the location'} was rejected. Reason: ${rejectionReason}.`,
+        type: 'location_rejected',
+        serviceType: 'general',
+      }).catch((err: any) => console.error('[LocReject] Vendor notify failed:', err));
 
       // If cascadeChildren is true, also reject all child location requests
       if (cascadeChildren) {

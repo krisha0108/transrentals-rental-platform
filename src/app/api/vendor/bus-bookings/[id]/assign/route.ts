@@ -5,7 +5,8 @@ import { getVendorAuth } from '@/lib/auth/vendor-mobile-auth';
 import { prisma } from '@/lib/db/prisma';
 import { transformPrismaResponse } from '@/lib/utils/api-transform';
 import { prepareNotificationData } from '@/lib/utils/notification-helper';
-import { sendNotificationToCustomer } from '@/lib/services/push-notification-service';
+import { sendNotificationToCustomer, sendPushNotification } from '@/lib/services/push-notification-service';
+import { saveDriverNotification } from '@/lib/utils/driver-notification-sender';
 
 import logger from '@/lib/security/logger';
 export const dynamic = 'force-dynamic';
@@ -98,6 +99,36 @@ export async function POST(
         tripEndOtp: null,
       },
     });
+
+    // Notify assigned driver via FCM
+    try {
+      const driverStaff = await prisma.vendor_staff.findFirst({
+        where: { phone: driverPhone, vendorId },
+        select: { id: true, fcmToken: true },
+      });
+      if (driverStaff) {
+        const notifTitle = '🚌 New Booking Assigned!';
+        const notifBody = `You have been assigned to Bus Booking #${booking.bookingNumber}. Vehicle: ${vehicleNumber}. Please check your app for details.`;
+        const notifData = { type: 'driver_assigned', bookingId: booking.id, bookingNumber: booking.bookingNumber, serviceType: 'bus' };
+        // FCM push (mobile)
+        if (driverStaff.fcmToken) {
+          sendPushNotification(driverStaff.fcmToken, { title: notifTitle, body: notifBody }, notifData)
+            .catch((err: any) => console.error('[BusAssign] Driver FCM failed:', err));
+        }
+        // In-app notification (web/PWA polling)
+        saveDriverNotification({
+          staffId: driverStaff.id,
+          title: notifTitle,
+          body: notifBody,
+          type: 'booking_assigned',
+          serviceType: 'bus',
+          bookingId: booking.id,
+          bookingNumber: booking.bookingNumber,
+        }).catch((err: any) => console.error('[BusAssign] Driver in-app notif failed:', err));
+      }
+    } catch (driverNotifErr) {
+      console.error('[BusAssign] Driver notification lookup failed:', driverNotifErr);
+    }
 
     // Send notification to customer
     try {

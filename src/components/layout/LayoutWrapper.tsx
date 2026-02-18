@@ -5,6 +5,7 @@ import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { MobileBottomNav } from '@/components/layout/MobileBottomNav';
 import { SmartShivi } from '@/components/chatbot/SmartShivi';
+import { useCustomerWebNotifications } from '@/hooks/useCustomerWebNotifications';
 
 // Routes that should NOT show the default header/footer
 const noLayoutRoutes = [
@@ -22,6 +23,9 @@ const noLayoutRoutes = [
 
 export function LayoutWrapper({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+
+  // Browser push notifications for logged-in customers (polling-based)
+  useCustomerWebNotifications();
 
   // Check if current path should hide the default layout
   const hideDefaultLayout = noLayoutRoutes.some(route =>

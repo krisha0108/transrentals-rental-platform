@@ -6,6 +6,7 @@ import { transformPrismaResponse } from '@/lib/utils/api-transform';
 import crypto from 'crypto';
 
 import logger from '@/lib/security/logger';
+import { sendVendorDirectNotification } from '@/lib/utils/vendor-notification-sender';
 
 // Helper to generate a cuid-like unique ID
 function generateId(): string {
@@ -83,6 +84,13 @@ export async function PUT(
           });
         }
 
+        sendVendorDirectNotification({
+          vendorId,
+          title: '🎉 Services Approved',
+          body: `${pendingRequests.length} service${pendingRequests.length > 1 ? 's have' : ' has'} been approved. You can now start offering these services.`,
+          type: 'service_approved',
+          serviceType: 'general',
+        }).catch((err: any) => console.error('[SvcApprove] Vendor notify failed:', err));
         return NextResponse.json({ success: true, message: `Approved ${pendingRequests.length} service requests` });
       } else if (action === 'REJECT_ALL') {
         if (!rejectionReason) {
@@ -101,6 +109,13 @@ export async function PUT(
             rejectionReason,
           },
         });
+        sendVendorDirectNotification({
+          vendorId,
+          title: '❌ Service Requests Rejected',
+          body: `${pendingRequests.length} service request${pendingRequests.length > 1 ? 's have' : ' has'} been rejected. Reason: ${rejectionReason}.`,
+          type: 'service_rejected',
+          serviceType: 'general',
+        }).catch((err: any) => console.error('[SvcReject] Vendor notify failed:', err));
         return NextResponse.json({ success: true, message: `Rejected ${pendingRequests.length} service requests` });
       }
     }
@@ -145,6 +160,14 @@ export async function PUT(
           isActive: true,
         },
       });
+
+      sendVendorDirectNotification({
+        vendorId,
+        title: '🎉 Service Approved',
+        body: `Your service request has been approved. You can now start offering this service on the platform.`,
+        type: 'service_approved',
+        serviceType: 'general',
+      }).catch((err: any) => console.error('[SvcApprove] Vendor notify failed:', err));
     } else if (action === 'REJECT') {
       if (!rejectionReason) {
         return NextResponse.json({ error: 'Rejection reason is required' }, { status: 400 });
@@ -159,6 +182,14 @@ export async function PUT(
           rejectionReason,
         },
       });
+
+      sendVendorDirectNotification({
+        vendorId,
+        title: '❌ Service Request Rejected',
+        body: `Your service request was rejected. Reason: ${rejectionReason}.`,
+        type: 'service_rejected',
+        serviceType: 'general',
+      }).catch((err: any) => console.error('[SvcReject] Vendor notify failed:', err));
     } else {
       return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
     }

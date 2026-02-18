@@ -6,6 +6,7 @@ import { Menu, Loader2, AlertTriangle } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { useRouter, usePathname } from 'next/navigation';
 import { ToastProvider } from '@/components/ui/toast';
+import { useVendorWebNotifications } from '@/hooks/useVendorWebNotifications';
 
 interface VendorLayoutProps {
   children: React.ReactNode;
@@ -38,6 +39,9 @@ export function VendorLayout({ children }: VendorLayoutProps) {
   const { data: session, status } = useSession();
   const router = useRouter();
   const pathname = usePathname();
+
+  // Browser push notifications via Notification API (polling-based)
+  useVendorWebNotifications();
 
   // Fetch fresh vendor status from database
   useEffect(() => {

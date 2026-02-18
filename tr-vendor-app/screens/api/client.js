@@ -10,7 +10,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
  */
 const DEFAULT_PROD = "https://transrentals.in";
 // For physical Android device use ADB reverse: adb reverse tcp:3000 tcp:3000
-const DEFAULT_DEV_ANDROID = "http://localhost:3000"; // ADB reverse compatible
+const DEFAULT_DEV_ANDROID = "http://192.168.137.1:3000"; // Hotspot IP - change back to localhost for ADB reverse
 const DEFAULT_DEV_IOS = "http://localhost:3000";
 
 function inferLocalBase() {
@@ -36,9 +36,9 @@ export async function getBaseURL() {
     return cachedBaseURL;
   }
   // 3) default - use localhost in dev (with ADB reverse), production otherwise
-  // cachedBaseURL = __DEV__ ? inferLocalBase() : DEFAULT_PROD;
+  cachedBaseURL = __DEV__ ? inferLocalBase() : DEFAULT_PROD;
    // 3) default - always use production URL (transrentals.in)                                                                                                                                                                                                      
-   cachedBaseURL = DEFAULT_PROD;   
+  //  cachedBaseURL = DEFAULT_PROD;   
   return cachedBaseURL;
 }
 
@@ -407,6 +407,19 @@ export async function registerVendor(data) {
  * Logout vendor
  */
 export async function logoutVendor() {
+  // Remove this device's FCM token from backend before clearing session
+  try {
+    const fcmToken = await AsyncStorage.getItem('vendor_fcm_token');
+    const deviceId = await AsyncStorage.getItem('vendor_device_id');
+    if (fcmToken) {
+      const api = await createInstance();
+      await api.delete('/vendor/fcm-token', { data: { fcmToken, deviceId } });
+      console.log('[Logout] FCM token removed from backend');
+    }
+  } catch (e) {
+    console.log('[Logout] FCM token removal failed (non-critical):', e);
+  }
+
   try {
     const baseURL = await getBaseURL();
     await axios.post(`${baseURL}/api/vendor/auth/signout`, {}, { withCredentials: true });
@@ -422,6 +435,7 @@ export async function logoutVendor() {
     'vendor_email',
     'vendor_token',
     'vendor_phone',
+    'vendor_fcm_token',
   ]);
 }
 
@@ -899,8 +913,21 @@ export async function deleteStaff(staffId) {
 /**
  * Save vendor FCM token to backend (called after login / on app start)
  */
+// Get or generate a stable device ID for this installation
+async function getDeviceId() {
+  let deviceId = await AsyncStorage.getItem('vendor_device_id');
+  if (!deviceId) {
+    deviceId = 'dev_' + Math.random().toString(36).slice(2, 10) + '_' + Date.now().toString(36);
+    await AsyncStorage.setItem('vendor_device_id', deviceId);
+  }
+  return deviceId;
+}
+
 export async function saveVendorFcmToken(fcmToken) {
-  const res = await apiPost('/vendor/fcm-token', { fcmToken });
+  const deviceId = await getDeviceId();
+  // Also save token locally so logout can remove it
+  await AsyncStorage.setItem('vendor_fcm_token', fcmToken);
+  const res = await apiPost('/vendor/fcm-token', { fcmToken, deviceId });
   return res.data;
 }
 

@@ -8,6 +8,7 @@ import { prepareNotificationData } from '@/lib/utils/notification-helper';
 import { sendNotificationToCustomer } from '@/lib/services/push-notification-service';
 
 import logger from '@/lib/security/logger';
+import { sendVendorDirectNotification } from '@/lib/utils/vendor-notification-sender';
 export const dynamic = 'force-dynamic';
 
 // POST - Vendor completes Bus Booking trip
@@ -145,6 +146,17 @@ export async function POST(
       // Log error but don't fail the request
       logger.error('Failed to send trip completion notification', notifError);
     }
+
+    // Notify vendor that trip has been completed
+    sendVendorDirectNotification({
+      vendorId,
+      title: '✅ Trip Completed!',
+      body: `Booking #${booking.bookingNumber} bus trip has been completed successfully.${newBalanceAmount > 0 ? ` Balance due: ₹${newBalanceAmount.toLocaleString()}.` : ''}`,
+      type: 'trip_completed',
+      serviceType: 'bus',
+      bookingId: booking.id,
+      bookingNumber: booking.bookingNumber,
+    }).catch((err: any) => console.error('[BusComplete] Vendor notify failed:', err));
 
     return NextResponse.json({
       success: true,
