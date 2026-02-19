@@ -8,6 +8,8 @@ import {
   Building2,
   FileText,
   MapPin,
+  Link2,
+  BookOpen,
   Layers,
   Car,
   DollarSign,
@@ -96,6 +98,16 @@ const approvedNavigationItems: NavItem[] = [
     name: 'Customer Chats',
     href: '/vendor/chat',
     icon: MessageSquare,
+  },
+  {
+    name: 'Booking Links',
+    href: '/vendor/booking-links',
+    icon: Link2,
+  },
+  {
+    name: 'Direct Bookings',
+    href: '/vendor/direct-bookings',
+    icon: BookOpen,
   },
   {
     name: 'Bike Rentals',

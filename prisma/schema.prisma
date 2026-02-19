@@ -3293,6 +3293,7 @@ model vendor_fleets {
   truck_bookings               truck_bookings[]
   truck_quotes                 truck_quotes[]
   vendor_fleet_locations       vendor_fleet_locations[]
+  assigned_bookings            vendor_direct_bookings[]      @relation("direct_booking_vehicle")
   brands                       brands?                       @relation(fields: [brandId], references: [id])
   services                     services                      @relation(fields: [serviceId], references: [id], onDelete: Cascade)
   chauffeur_vehicle_categories chauffeur_vehicle_categories? @relation(fields: [vehicleCategoryId], references: [id])
@@ -3470,9 +3471,10 @@ model vendor_staff {
   createdAt         DateTime            @default(now())
   updatedAt         DateTime            @updatedAt
   password          String?
-  staff_attendance  staff_attendance[]
-  truck_bookings    truck_bookings[]
-  vendors           vendors             @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  staff_attendance   staff_attendance[]
+  truck_bookings     truck_bookings[]
+  assigned_bookings  vendor_direct_bookings[] @relation("direct_booking_driver")
+  vendors            vendors             @relation(fields: [vendorId], references: [id], onDelete: Cascade)
 
   @@unique([vendorId, phone])
   @@index([email])
@@ -3522,6 +3524,7 @@ model vendors {
   logo                                                            String?
   description                                                     String?                       @db.Text
   website                                                         String?
+  slug                                                            String?                       @unique
   bankName                                                        String?
   accountNumber                                                   String?
   ifscCode                                                        String?
@@ -3577,6 +3580,8 @@ model vendors {
   vendor_staff                                                    vendor_staff[]
   vendor_truck_templates                                          vendor_truck_templates[]
   admin_users                                                     admin_users?                  @relation(fields: [approvedById], references: [id])
+  vendor_booking_links                                            vendor_booking_links[]
+  vendor_direct_bookings                                          vendor_direct_bookings[]
 
   @@index([approvedById], map: "vendors_approvedById_fkey")
   @@index([email])
@@ -4343,4 +4348,104 @@ enum chauffeur_bookings_paymentStatus {
   PAID
   REFUNDED
   FAILED
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Vendor Booking Links — shareable forms vendors send to their own clients
+// ─────────────────────────────────────────────────────────────────────────────
+
+model vendor_booking_links {
+  id             String   @id @default(cuid())
+  vendorId       String
+
+  // One link per service per vendor
+  serviceType    String   // 'bike' | 'bus' | 'car-with-driver' | 'self-drive' | 'luxury' | 'all'
+  isActive       Boolean  @default(true)
+
+  // Form customisation
+  formTitle      String?
+  welcomeMsg     String?  @db.Text
+  visibleFields  Json?    // ["name","phone","vehicle","dates","pickup","notes"]
+
+  // Optional advance payment on form submit
+  requireAdvance   Boolean @default(false)
+  advanceAmount    Float?
+
+  // Analytics
+  clickCount     Int      @default(0)
+  bookingCount   Int      @default(0)
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  vendor         vendors  @relation(fields: [vendorId], references: [id])
+  vendor_direct_bookings vendor_direct_bookings[]
+
+  @@unique([vendorId, serviceType])
+  @@index([vendorId])
+  @@index([isActive])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Vendor Direct Bookings — bookings added by vendor (walk-in / phone / form)
+// ─────────────────────────────────────────────────────────────────────────────
+
+model vendor_direct_bookings {
+  id             String   @id @default(cuid())
+  bookingNumber  String   @unique
+  vendorId       String
+
+  // How did this booking arrive?
+  bookingSource  String   @default("manual")  // 'manual' | 'shared_form'
+  linkId         String?  // FK to vendor_booking_links.id (if shared_form)
+
+  serviceType    String   // 'bike' | 'bus' | 'car-with-driver' | 'self-drive' | 'luxury'
+  vehicleType    String?
+
+  // Customer (no platform account needed)
+  customerName   String
+  customerPhone  String
+  customerEmail  String?
+
+  // Trip details
+  pickupDate     DateTime?
+  returnDate     DateTime?
+  pickupLocation String?  @db.Text
+  dropLocation   String?  @db.Text
+  notes          String?  @db.Text
+
+  // Booking status
+  status         String   @default("inquiry")
+  // inquiry → confirmed → in_progress → completed | rejected | cancelled
+
+  // Payment
+  totalAmount    Float?
+  paymentStatus  String   @default("pending")
+  // pending | partial | collected | link_sent | paid_online | waived
+  paymentMode    String?  // cash | upi | card | bank_transfer | razorpay_link
+  paidAmount     Float    @default(0)
+  razorpayLinkId String?
+
+  vendorNotes    String?  @db.Text
+
+  // Assignment
+  assignedDriverId  String?
+  assignedVehicleId String?
+  assignedAt        DateTime?
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  vendor          vendors               @relation(fields: [vendorId], references: [id])
+  link            vendor_booking_links? @relation(fields: [linkId], references: [id])
+  assignedDriver  vendor_staff?         @relation("direct_booking_driver",  fields: [assignedDriverId],  references: [id], onDelete: SetNull)
+  assignedVehicle vendor_fleets?        @relation("direct_booking_vehicle", fields: [assignedVehicleId], references: [id], onDelete: SetNull)
+
+  @@index([vendorId])
+  @@index([bookingNumber])
+  @@index([status])
+  @@index([createdAt])
+  @@index([bookingSource])
+  @@index([assignedDriverId])
+  @@index([assignedVehicleId])
 }
