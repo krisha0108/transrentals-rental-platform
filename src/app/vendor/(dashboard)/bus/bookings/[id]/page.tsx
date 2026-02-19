@@ -76,15 +76,17 @@ interface StaffDriver {
     email?: string;
     status: string;
     isAvailable: boolean;
+    isAvailableForDates?: boolean;
 }
 
 interface FleetVehicle {
     id: string;
     registrationNumber: string | null;
+    isAvailableForDates?: boolean;
     vehicle_models: {
         id: string;
         name: string;
-        brand: {
+        brands: {
             id: string;
             name: string;
         } | null;
@@ -93,11 +95,11 @@ interface FleetVehicle {
         id: string;
         name: string;
     } | null;
-    brand: {
+    brands: {
         id: string;
         name: string;
     } | null;
-    service: {
+    services: {
         id: string;
         name: string;
         slug: string;
@@ -163,30 +165,59 @@ export default function VendorBusBookingDetailPage() {
         }
     };
 
-    const fetchStaffDrivers = async () => {
+    const fetchStaffDrivers = async (pickupDate?: string, returnDate?: string) => {
         try {
-            const driversRes = await fetch('/api/vendor/staff/drivers');
+            let driversUrl = '/api/vendor/staff/drivers';
+            if (pickupDate) {
+                const startDate = new Date(pickupDate).toISOString();
+                const endDate = returnDate
+                    ? new Date(returnDate).toISOString()
+                    : startDate;
+                driversUrl += `?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`;
+            }
+            const driversRes = await fetch(driversUrl);
             const driversData = await driversRes.json();
 
             if (driversData.success) {
-                setStaffDrivers(driversData.drivers || []);
+                const drivers: StaffDriver[] = driversData.drivers || [];
+                // Sort: available drivers first, unavailable (assigned for dates) last
+                drivers.sort((a, b) => {
+                    const aUnavail = a.isAvailableForDates === false ? 1 : 0;
+                    const bUnavail = b.isAvailableForDates === false ? 1 : 0;
+                    return aUnavail - bUnavail;
+                });
+                setStaffDrivers(drivers);
             }
         } catch (err) {
             console.error('Failed to fetch staff:', err);
         }
     };
 
-    const fetchFleetVehicles = async () => {
+    const fetchFleetVehicles = async (pickupDate?: string, returnDate?: string) => {
         try {
-            const fleetRes = await fetch('/api/vendor/fleet');
+            let fleetUrl = '/api/vendor/fleet';
+            if (pickupDate) {
+                const startDate = new Date(pickupDate).toISOString();
+                const endDate = returnDate
+                    ? new Date(returnDate).toISOString()
+                    : startDate;
+                fleetUrl += `?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`;
+            }
+            const fleetRes = await fetch(fleetUrl);
             const fleetData = await fleetRes.json();
             if (fleetData.success && fleetData.fleet) {
                 // Filter for bus rental vehicles only
                 const busFleet = fleetData.fleet.filter((v: FleetVehicle) => {
-                    const svc = (v as any).services || v.service;
-                    const slug = svc?.slug?.toLowerCase() || '';
-                    const name = svc?.name?.toLowerCase() || '';
+                    if (!v.isActive) return false;
+                    const slug = v.services?.slug?.toLowerCase() || '';
+                    const name = v.services?.name?.toLowerCase() || '';
                     return slug.includes('bus') || name.includes('bus');
+                });
+                // Sort: available vehicles first, unavailable (booked for dates) last
+                busFleet.sort((a: FleetVehicle, b: FleetVehicle) => {
+                    const aUnavail = a.isAvailableForDates === false ? 1 : 0;
+                    const bUnavail = b.isAvailableForDates === false ? 1 : 0;
+                    return aUnavail - bUnavail;
                 });
                 setFleetVehicles(busFleet);
             }
@@ -207,13 +238,13 @@ export default function VendorBusBookingDetailPage() {
             // Build vehicle name from model/brand/category
             let vModel = '';
             if (selectedVehicle.vehicle_models) {
-                vModel = selectedVehicle.vehicle_models.brand?.name
-                    ? `${selectedVehicle.vehicle_models.brand.name} ${selectedVehicle.vehicle_models.name}`
+                vModel = selectedVehicle.vehicle_models.brands?.name
+                    ? `${selectedVehicle.vehicle_models.brands.name} ${selectedVehicle.vehicle_models.name}`
                     : selectedVehicle.vehicle_models.name;
-            } else if (selectedVehicle.brand && selectedVehicle.vehicle_category) {
-                vModel = `${selectedVehicle.brand.name} ${selectedVehicle.vehicle_category.name}`;
-            } else if (selectedVehicle.vehicle_category) {
-                vModel = selectedVehicle.vehicle_category.name;
+            } else if (selectedVehicle.brands && selectedVehicle.chauffeur_vehicle_categories) {
+                vModel = `${selectedVehicle.brands.name} ${selectedVehicle.chauffeur_vehicle_categories.name}`;
+            } else if (selectedVehicle.chauffeur_vehicle_categories) {
+                vModel = selectedVehicle.chauffeur_vehicle_categories.name;
             }
 
             setAssignForm({
@@ -227,9 +258,18 @@ export default function VendorBusBookingDetailPage() {
 
     useEffect(() => {
         fetchBooking();
-        fetchStaffDrivers();
-        fetchFleetVehicles();
     }, [id]);
+
+    // Fetch fleet vehicles and staff drivers with booking dates for availability check
+    useEffect(() => {
+        if (booking?.pickupDate) {
+            fetchFleetVehicles(booking.pickupDate, booking.returnDate);
+            fetchStaffDrivers(booking.pickupDate, booking.returnDate);
+        } else if (booking) {
+            fetchFleetVehicles();
+            fetchStaffDrivers();
+        }
+    }, [booking?.pickupDate, booking?.id]);
 
     const handleAssignSubmit = async () => {
         if (!assignForm.driverName || !assignForm.driverPhone || !assignForm.vehicleNumber) {
@@ -511,21 +551,22 @@ export default function VendorBusBookingDetailPage() {
                                                     // Build display name
                                                     let displayName = '';
                                                     if (vehicle.vehicle_models) {
-                                                        displayName = vehicle.vehicle_models.brand?.name
-                                                            ? `${vehicle.vehicle_models.brand.name} ${vehicle.vehicle_models.name}`
+                                                        displayName = vehicle.vehicle_models.brands?.name
+                                                            ? `${vehicle.vehicle_models.brands.name} ${vehicle.vehicle_models.name}`
                                                             : vehicle.vehicle_models.name;
-                                                    } else if (vehicle.brand && vehicle.vehicle_category) {
-                                                        displayName = `${vehicle.brand.name} ${vehicle.vehicle_category.name}`;
-                                                    } else if (vehicle.vehicle_category) {
-                                                        displayName = vehicle.vehicle_category.name;
+                                                    } else if (vehicle.brands && vehicle.chauffeur_vehicle_categories) {
+                                                        displayName = `${vehicle.brands.name} ${vehicle.chauffeur_vehicle_categories.name}`;
+                                                    } else if (vehicle.chauffeur_vehicle_categories) {
+                                                        displayName = vehicle.chauffeur_vehicle_categories.name;
                                                     }
 
                                                     // Add registration number if available
                                                     const regNum = vehicle.registrationNumber ? ` (${vehicle.registrationNumber})` : '';
+                                                    const isBookedForDates = vehicle.isAvailableForDates === false;
 
                                                     return (
-                                                        <option key={vehicle.id} value={vehicle.id}>
-                                                            {displayName}{regNum}
+                                                        <option key={vehicle.id} value={vehicle.id} disabled={isBookedForDates}>
+                                                            {displayName}{regNum}{isBookedForDates ? ' — Booked for these dates' : ''}
                                                         </option>
                                                     );
                                                 })}
@@ -567,9 +608,14 @@ export default function VendorBusBookingDetailPage() {
                                             }}
                                         >
                                             <option value="">-- Select Driver --</option>
-                                            {staffDrivers.map(d => (
-                                                <option key={d.id} value={d.id}>{d.name} ({d.phone})</option>
-                                            ))}
+                                            {staffDrivers.map(d => {
+                                                const isAssignedForDates = d.isAvailableForDates === false;
+                                                return (
+                                                    <option key={d.id} value={d.id} disabled={isAssignedForDates}>
+                                                        {d.name} ({d.phone}){isAssignedForDates ? ' — Assigned for these dates' : ''}
+                                                    </option>
+                                                );
+                                            })}
                                         </select>
 
                                         {assignForm.driverName && (

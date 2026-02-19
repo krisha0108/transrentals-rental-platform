@@ -49,7 +49,7 @@ interface FleetEquipment {
   vehicle_models: {
     id: string;
     name: string;
-    brand: {
+    brands: {
       id: string;
       name: string;
     } | null;
@@ -58,7 +58,7 @@ interface FleetEquipment {
   equipmentModel?: {
     id: string;
     name: string;
-    brand: {
+    brands: {
       id: string;
       name: string;
     } | null;
@@ -74,15 +74,16 @@ interface FleetEquipment {
     id: string;
     name: string;
   } | null;
-  brand: {
+  brands: {
     id: string;
     name: string;
   } | null;
-  service: {
+  services: {
     id: string;
     name: string;
     slug: string;
   } | null;
+  isAvailableForDates?: boolean;
 }
 
 interface Template {
@@ -263,17 +264,32 @@ export default function SendEquipmentQuotePage() {
         setTemplates(SAMPLE_TEMPLATES);
       }
 
-      // Fetch vendor's fleet for equipment
+      // Fetch vendor's fleet for equipment (with availability check)
       try {
-        const fleetRes = await fetch('/api/vendor/fleet');
+        let fleetUrl = '/api/vendor/fleet';
+        if (data.request?.startDate) {
+          const startDate = new Date(data.request.startDate).toISOString();
+          const endDate = data.request.endDate
+            ? new Date(data.request.endDate).toISOString()
+            : startDate;
+          fleetUrl += `?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`;
+        }
+        const fleetRes = await fetch(fleetUrl);
         const fleetData = await fleetRes.json();
         if (fleetData.success && fleetData.fleet) {
           // Filter for equipment rental vehicles only
           const equipFleet = fleetData.fleet.filter((v: FleetEquipment) => {
-            const svc = (v as any).services || v.service;
+            if (!v.isActive) return false;
+            const svc = v.services;
             const slug = svc?.slug?.toLowerCase() || '';
             const name = svc?.name?.toLowerCase() || '';
             return slug.includes('equipment') || name.includes('equipment');
+          });
+          // Sort: available equipment first, unavailable at the end
+          equipFleet.sort((a: FleetEquipment, b: FleetEquipment) => {
+            const aUnavail = a.isAvailableForDates === false ? 1 : 0;
+            const bUnavail = b.isAvailableForDates === false ? 1 : 0;
+            return aUnavail - bUnavail;
           });
           setFleetEquipment(equipFleet);
         }
@@ -341,18 +357,18 @@ export default function SendEquipmentQuotePage() {
       let eModel = '';
 
       const modelData = selectedEquip.vehicle_models || selectedEquip.equipmentModel;
-      const categoryData = selectedEquip.vehicle_category || selectedEquip.equipmentCategory;
+      const categoryData = selectedEquip.chauffeur_vehicle_categories || selectedEquip.equipmentCategory;
 
       if (modelData) {
         // Get name from model with brand
-        eName = modelData.brand?.name
-          ? `${modelData.brand.name} ${modelData.name}`
+        eName = modelData.brands?.name
+          ? `${modelData.brands.name} ${modelData.name}`
           : modelData.name;
         // Model is the equipment model name
         eModel = modelData.name || '';
-      } else if (selectedEquip.brand && categoryData) {
-        eName = `${selectedEquip.brand.name} ${categoryData.name}`;
-        eModel = selectedEquip.brand.name || '';
+      } else if (selectedEquip.brands && categoryData) {
+        eName = `${selectedEquip.brands.name} ${categoryData.name}`;
+        eModel = selectedEquip.brands.name || '';
       } else if (categoryData) {
         eName = categoryData.name;
       }
@@ -642,23 +658,25 @@ export default function SendEquipmentQuotePage() {
                   // Fleet API uses vehicle_model and vehicle_category for equipment too
                   // Also check for equipmentModel/equipmentCategory for backward compatibility
                   const modelData = equipment.vehicle_models || equipment.equipmentModel;
-                  const categoryData = equipment.vehicle_category || equipment.equipmentCategory;
+                  const categoryData = equipment.chauffeur_vehicle_categories || equipment.equipmentCategory;
                   let displayName = '';
                   if (modelData) {
-                    displayName = modelData.brand?.name
-                      ? `${modelData.brand.name} ${modelData.name}`
+                    displayName = modelData.brands?.name
+                      ? `${modelData.brands.name} ${modelData.name}`
                       : modelData.name;
-                  } else if (equipment.brand && categoryData) {
-                    displayName = `${equipment.brand.name} ${categoryData.name}`;
+                  } else if (equipment.brands && categoryData) {
+                    displayName = `${equipment.brands.name} ${categoryData.name}`;
                   } else if (categoryData) {
                     displayName = categoryData.name;
                   }
 
                   const regNum = equipment.registrationNumber ? ` (${equipment.registrationNumber})` : '';
 
+                  const isUnavailable = equipment.isAvailableForDates === false;
+
                   return (
-                    <option key={equipment.id} value={equipment.id}>
-                      {displayName}{regNum}
+                    <option key={equipment.id} value={equipment.id} disabled={isUnavailable}>
+                      {displayName}{regNum}{isUnavailable ? ' — Booked for these dates' : ''}
                     </option>
                   );
                 })}

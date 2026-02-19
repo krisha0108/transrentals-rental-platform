@@ -4,6 +4,7 @@ import { getVendorAuth } from '@/lib/auth/vendor-mobile-auth';
 import { prisma } from '@/lib/db/prisma';
 import { transformPrismaResponse } from '@/lib/utils/api-transform';
 import logger from '@/lib/security/logger';
+import { releaseDatesForBooking } from '@/lib/utils/fleet-availability';
 
 export const dynamic = 'force-dynamic';
 
@@ -227,6 +228,13 @@ export async function PATCH(
             where: { id },
             data: updateData,
         });
+
+        // Release blocked dates on cancellation
+        if (action === 'reject') {
+          releaseDatesForBooking(id, 'truck').catch((err) =>
+            logger.error('Failed to release blocked dates for truck booking', err)
+          );
+        }
 
         return NextResponse.json({
             success: true,

@@ -51,15 +51,13 @@ interface FleetVehicle {
   vehicle_models: {
     id: string;
     name: string;
-    brand: { id: string; name: string } | null;
-    brands?: { id: string; name: string } | null;
+    brands: { id: string; name: string } | null;
   } | null;
   chauffeur_vehicle_categories: { id: string; name: string; slug: string } | null;
-  brand: { id: string; name: string } | null;
-  brands?: { id: string; name: string } | null;
-  service?: { id: string; name: string; slug: string } | null;
-  services?: { id: string; name: string; slug: string } | null;
+  brands: { id: string; name: string } | null;
+  services: { id: string; name: string; slug: string } | null;
   serviceId?: string;
+  isAvailableForDates?: boolean;
 }
 
 interface Template {
@@ -144,17 +142,32 @@ export default function SendBikeQuotePage() {
         setRequest(data.request);
       }
 
-      // Fetch vendor's fleet for bike service
+      // Fetch vendor's fleet for bike service (with availability check for booking dates)
       try {
-        const fleetRes = await fetch('/api/vendor/fleet');
+        let fleetUrl = '/api/vendor/fleet';
+        if (data.request?.pickupDate) {
+          const startDate = new Date(data.request.pickupDate).toISOString();
+          const endDate = data.request.dropDate
+            ? new Date(data.request.dropDate).toISOString()
+            : startDate;
+          fleetUrl += `?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`;
+        }
+        const fleetRes = await fetch(fleetUrl);
         const fleetData = await fleetRes.json();
         if (fleetData.success && fleetData.fleet) {
-          // Filter for bike rental service - check both 'service' and 'services' (API returns 'services')
+          // Filter for bike rental service
           const bikeFleet = fleetData.fleet.filter((v: FleetVehicle) => {
-            const svc = v.services || v.service;
+            if (!v.isActive) return false;
+            const svc = v.services;
             const slug = svc?.slug?.toLowerCase() || '';
             const name = svc?.name?.toLowerCase() || '';
             return slug === 'bike-on-rent' || slug.includes('bike') || name.includes('bike');
+          });
+          // Sort: available vehicles first, unavailable at the end
+          bikeFleet.sort((a: FleetVehicle, b: FleetVehicle) => {
+            const aUnavail = a.isAvailableForDates === false ? 1 : 0;
+            const bUnavail = b.isAvailableForDates === false ? 1 : 0;
+            return aUnavail - bUnavail;
           });
           setFleetVehicles(bikeFleet);
         }
@@ -220,16 +233,12 @@ export default function SendBikeQuotePage() {
       let vBrand = '';
       if (selectedVehicle.vehicle_models) {
         vName = selectedVehicle.vehicle_models.name;
-        // Check both 'brand' and 'brands' (API returns 'brands')
-        vBrand = selectedVehicle.vehicle_models.brands?.name || selectedVehicle.vehicle_models.brand?.name || '';
-      } else if ((selectedVehicle as any).vehicle_category) {
-        vName = (selectedVehicle as any).vehicle_category.name;
+        vBrand = selectedVehicle.vehicle_models.brands?.name || '';
+      } else if (selectedVehicle.chauffeur_vehicle_categories) {
+        vName = selectedVehicle.chauffeur_vehicle_categories.name;
       }
-      // Check both 'brand' and 'brands' at vehicle level
       if (selectedVehicle.brands) {
         vBrand = selectedVehicle.brands.name;
-      } else if (selectedVehicle.brand) {
-        vBrand = selectedVehicle.brand.name;
       }
 
       setVehicleName(vName);
@@ -448,19 +457,19 @@ export default function SendBikeQuotePage() {
                 {fleetVehicles.map((vehicle) => {
                   let displayName = '';
                   if (vehicle.vehicle_models) {
-                    // Check both 'brand' and 'brands' (API returns 'brands')
-                    const brandName = vehicle.vehicle_models.brands?.name || vehicle.vehicle_models.brand?.name;
+                    const brandName = vehicle.vehicle_models.brands?.name;
                     displayName = brandName
                       ? `${brandName} ${vehicle.vehicle_models.name}`
                       : vehicle.vehicle_models.name;
-                  } else if ((vehicle as any).vehicle_category) {
-                    displayName = (vehicle as any).vehicle_category.name;
+                  } else if (vehicle.chauffeur_vehicle_categories) {
+                    displayName = vehicle.chauffeur_vehicle_categories.name;
                   }
                   const regNum = vehicle.registrationNumber ? ` (${vehicle.registrationNumber})` : '';
+                  const isUnavailable = vehicle.isAvailableForDates === false;
 
                   return (
-                    <option key={vehicle.id} value={vehicle.id}>
-                      {displayName}{regNum}
+                    <option key={vehicle.id} value={vehicle.id} disabled={isUnavailable}>
+                      {displayName}{regNum}{isUnavailable ? ' — Booked for these dates' : ''}
                     </option>
                   );
                 })}

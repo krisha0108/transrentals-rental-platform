@@ -34,7 +34,7 @@ const nextConfig = {
 
   experimental: {
     // CRITICAL: Exclude Prisma from Next.js bundling (fixes undefined methods in standalone builds)
-    serverComponentsExternalPackages: ['@prisma/client', 'prisma'],
+    serverComponentsExternalPackages: ['@prisma/client', 'prisma', 'jsonwebtoken'],
     // Limit concurrency to prevent DB connection exhaustion during static generation
     workerThreads: false,
     cpus: 4,

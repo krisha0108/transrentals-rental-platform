@@ -45,7 +45,7 @@ interface FleetVehicle {
   vehicle_models: {
     id: string;
     name: string;
-    brand: {
+    brands: {
       id: string;
       name: string;
     } | null;
@@ -54,15 +54,16 @@ interface FleetVehicle {
     id: string;
     name: string;
   } | null;
-  brand: {
+  brands: {
     id: string;
     name: string;
   } | null;
-  service: {
+  services: {
     id: string;
     name: string;
     slug: string;
   } | null;
+  isAvailableForDates?: boolean;
 }
 
 interface Template {
@@ -202,17 +203,31 @@ export default function SendQuotePage() {
         setTemplates(SAMPLE_TEMPLATES);
       }
 
-      // Fetch vendor's fleet for bus service
+      // Fetch vendor's fleet for bus service (with availability check)
       try {
-        const fleetRes = await fetch('/api/vendor/fleet');
+        let fleetUrl = '/api/vendor/fleet';
+        if (data.request?.pickupDate) {
+          const startDate = new Date(data.request.pickupDate).toISOString();
+          const endDate = data.request.returnDate
+            ? new Date(data.request.returnDate).toISOString()
+            : startDate;
+          fleetUrl += `?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`;
+        }
+        const fleetRes = await fetch(fleetUrl);
         const fleetData = await fleetRes.json();
         if (fleetData.success && fleetData.fleet) {
           // Filter for bus rental vehicles only
           const busFleet = fleetData.fleet.filter((v: FleetVehicle) => {
-            const svc = (v as any).services || v.service;
-            const slug = svc?.slug?.toLowerCase() || '';
-            const name = svc?.name?.toLowerCase() || '';
+            if (!v.isActive) return false;
+            const slug = v.services?.slug?.toLowerCase() || '';
+            const name = v.services?.name?.toLowerCase() || '';
             return slug.includes('bus') || name.includes('bus');
+          });
+          // Sort: available vehicles first, unavailable at the end
+          busFleet.sort((a: FleetVehicle, b: FleetVehicle) => {
+            const aUnavail = a.isAvailableForDates === false ? 1 : 0;
+            const bUnavail = b.isAvailableForDates === false ? 1 : 0;
+            return aUnavail - bUnavail;
           });
           setFleetVehicles(busFleet);
         }
@@ -269,13 +284,13 @@ export default function SendQuotePage() {
       // Build vehicle name from model/brand/category
       let vName = '';
       if (selectedVehicle.vehicle_models) {
-        vName = selectedVehicle.vehicle_models.brand?.name
-          ? `${selectedVehicle.vehicle_models.brand.name} ${selectedVehicle.vehicle_models.name}`
+        vName = selectedVehicle.vehicle_models.brands?.name
+          ? `${selectedVehicle.vehicle_models.brands.name} ${selectedVehicle.vehicle_models.name}`
           : selectedVehicle.vehicle_models.name;
-      } else if (selectedVehicle.brand && selectedVehicle.vehicle_category) {
-        vName = `${selectedVehicle.brand.name} ${selectedVehicle.vehicle_category.name}`;
-      } else if (selectedVehicle.vehicle_category) {
-        vName = selectedVehicle.vehicle_category.name;
+      } else if (selectedVehicle.brands && selectedVehicle.chauffeur_vehicle_categories) {
+        vName = `${selectedVehicle.brands.name} ${selectedVehicle.chauffeur_vehicle_categories.name}`;
+      } else if (selectedVehicle.chauffeur_vehicle_categories) {
+        vName = selectedVehicle.chauffeur_vehicle_categories.name;
       }
 
       setVehicleName(vName);
@@ -527,21 +542,23 @@ export default function SendQuotePage() {
                   // Build display name
                   let displayName = '';
                   if (vehicle.vehicle_models) {
-                    displayName = vehicle.vehicle_models.brand?.name
-                      ? `${vehicle.vehicle_models.brand.name} ${vehicle.vehicle_models.name}`
+                    displayName = vehicle.vehicle_models.brands?.name
+                      ? `${vehicle.vehicle_models.brands.name} ${vehicle.vehicle_models.name}`
                       : vehicle.vehicle_models.name;
-                  } else if (vehicle.brand && vehicle.vehicle_category) {
-                    displayName = `${vehicle.brand.name} ${vehicle.vehicle_category.name}`;
-                  } else if (vehicle.vehicle_category) {
-                    displayName = vehicle.vehicle_category.name;
+                  } else if (vehicle.brands && vehicle.chauffeur_vehicle_categories) {
+                    displayName = `${vehicle.brands.name} ${vehicle.chauffeur_vehicle_categories.name}`;
+                  } else if (vehicle.chauffeur_vehicle_categories) {
+                    displayName = vehicle.chauffeur_vehicle_categories.name;
                   }
 
                   // Add registration number if available
                   const regNum = vehicle.registrationNumber ? ` (${vehicle.registrationNumber})` : '';
 
+                  const isUnavailable = vehicle.isAvailableForDates === false;
+
                   return (
-                    <option key={vehicle.id} value={vehicle.id}>
-                      {displayName}{regNum}
+                    <option key={vehicle.id} value={vehicle.id} disabled={isUnavailable}>
+                      {displayName}{regNum}{isUnavailable ? ' — Booked for these dates' : ''}
                     </option>
                   );
                 })}

@@ -6,6 +6,7 @@ import { sendFCMNotification } from '@/lib/utils/fcm-helper';
 import { sendVendorDirectNotification, sendQuoteRequestNotificationToVendors } from '@/lib/utils/vendor-notification-sender';
 
 import logger from '@/lib/security/logger';
+import { checkFleetAvailability, blockDatesForBooking } from '@/lib/utils/fleet-availability';
 export const dynamic = 'force-dynamic';
 
 // POST - Verify or reject a payment
@@ -56,6 +57,20 @@ export async function POST(request: NextRequest) {
             responseDeadline: hasAcceptedVendor ? null : new Date(Date.now() + 4 * 60 * 60 * 1000),
           },
         });
+
+        // Block fleet vehicle dates after payment verified
+        if (bikeBooking.acceptedVehicleId && bikeBooking.pickupDate) {
+          try {
+            const startDate = new Date(bikeBooking.pickupDate);
+            const endDate = bikeBooking.dropDate ? new Date(bikeBooking.dropDate) : startDate;
+            const availability = await checkFleetAvailability(bikeBooking.acceptedVehicleId, startDate, endDate);
+            if (availability.available) {
+              await blockDatesForBooking(prisma, bikeBooking.acceptedVehicleId, startDate, endDate, bookingId, 'bike');
+            }
+          } catch (err) {
+            logger.error('Failed to block dates for bike booking', err);
+          }
+        }
 
         // ⭐ Send notification to customer - Payment Approved
         try {
@@ -202,6 +217,20 @@ export async function POST(request: NextRequest) {
           },
         });
 
+        // Block fleet vehicle dates after payment verified
+        if (carBooking.assignedVehicleId && carBooking.pickupDate) {
+          try {
+            const startDate = new Date(carBooking.pickupDate);
+            const endDate = carBooking.dropDate ? new Date(carBooking.dropDate) : startDate;
+            const availability = await checkFleetAvailability(carBooking.assignedVehicleId, startDate, endDate);
+            if (availability.available) {
+              await blockDatesForBooking(prisma, carBooking.assignedVehicleId, startDate, endDate, bookingId, 'car');
+            }
+          } catch (err) {
+            logger.error('Failed to block dates for car booking', err);
+          }
+        }
+
         // ⭐ Send notification - Payment Approved
         try {
           await prisma.notifications.create({
@@ -306,6 +335,20 @@ export async function POST(request: NextRequest) {
           },
         });
 
+        // Block fleet vehicle dates after payment verified
+        if (busBooking.assignedVehicleId && busBooking.pickupDate) {
+          try {
+            const startDate = new Date(busBooking.pickupDate);
+            const endDate = busBooking.returnDate ? new Date(busBooking.returnDate) : startDate;
+            const availability = await checkFleetAvailability(busBooking.assignedVehicleId, startDate, endDate);
+            if (availability.available) {
+              await blockDatesForBooking(prisma, busBooking.assignedVehicleId, startDate, endDate, bookingId, 'bus');
+            }
+          } catch (err) {
+            logger.error('Failed to block dates for bus booking', err);
+          }
+        }
+
         // ⭐ Notification
         try {
           await prisma.notifications.create({
@@ -399,6 +442,20 @@ export async function POST(request: NextRequest) {
             vendorNotes: notes ? `Payment verified: ${notes}` : 'Payment verified',
           },
         });
+
+        // Block fleet vehicle dates after payment verified
+        if (truckBooking.assignedVehicleId && truckBooking.pickupDate) {
+          try {
+            const startDate = new Date(truckBooking.pickupDate);
+            const endDate = startDate; // Truck bookings are single-day
+            const availability = await checkFleetAvailability(truckBooking.assignedVehicleId, startDate, endDate);
+            if (availability.available) {
+              await blockDatesForBooking(prisma, truckBooking.assignedVehicleId, startDate, endDate, bookingId, 'truck');
+            }
+          } catch (err) {
+            logger.error('Failed to block dates for truck booking', err);
+          }
+        }
 
         // ⭐ Send notification - Payment Approved
         try {
@@ -592,6 +649,26 @@ export async function POST(request: NextRequest) {
           },
         });
 
+        // Block fleet vehicle dates after payment verified (lookup via accepted quote)
+        if (packersBooking.acceptedQuoteId && packersBooking.scheduledDate) {
+          try {
+            const quote = await prisma.packers_quotes.findUnique({
+              where: { id: packersBooking.acceptedQuoteId },
+              select: { vendorFleetId: true },
+            });
+            if (quote?.vendorFleetId) {
+              const startDate = new Date(packersBooking.scheduledDate);
+              const endDate = startDate; // Single-day service
+              const availability = await checkFleetAvailability(quote.vendorFleetId, startDate, endDate);
+              if (availability.available) {
+                await blockDatesForBooking(prisma, quote.vendorFleetId, startDate, endDate, bookingId, 'packers');
+              }
+            }
+          } catch (err) {
+            logger.error('Failed to block dates for packers booking', err);
+          }
+        }
+
         // ⭐ Send notification - Payment Approved
         try {
           await prisma.notifications.create({
@@ -688,6 +765,26 @@ export async function POST(request: NextRequest) {
             advancePaidAt: new Date(),
           },
         });
+
+        // Block fleet vehicle dates after payment verified (lookup via accepted quote)
+        if (luxuryBooking.acceptedQuoteId && luxuryBooking.pickupDate) {
+          try {
+            const quote = await prisma.luxury_quotes.findUnique({
+              where: { id: luxuryBooking.acceptedQuoteId },
+              select: { fleetId: true },
+            });
+            if (quote?.fleetId) {
+              const startDate = new Date(luxuryBooking.pickupDate);
+              const endDate = luxuryBooking.returnDate ? new Date(luxuryBooking.returnDate) : startDate;
+              const availability = await checkFleetAvailability(quote.fleetId, startDate, endDate);
+              if (availability.available) {
+                await blockDatesForBooking(prisma, quote.fleetId, startDate, endDate, bookingId, 'luxury');
+              }
+            }
+          } catch (err) {
+            logger.error('Failed to block dates for luxury booking', err);
+          }
+        }
 
         // ⭐ Send notification - Payment Approved
         try {
