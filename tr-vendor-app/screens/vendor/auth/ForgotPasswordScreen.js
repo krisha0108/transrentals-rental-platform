@@ -5,20 +5,13 @@ import {
 } from "react-native";
 import axios from "axios";
 import Icon from "react-native-vector-icons/Ionicons";
+import { getBaseURL } from "../../api/client";
 
-// Same URL config as screens/api/client.js
-const DEFAULT_PROD = "https://transrentals.in";
-const DEFAULT_DEV_ANDROID = "http://localhost:3000"; // Use ADB reverse: adb reverse tcp:3000 tcp:3000
-const DEFAULT_DEV_IOS = "http://localhost:3000";
-
-function getBaseURL() {
-  if (__DEV__) {
-    return Platform.OS === "android" ? DEFAULT_DEV_ANDROID : DEFAULT_DEV_IOS;
-  }
-  return DEFAULT_PROD;
+// BASE_URL is resolved async from client.js (respects live/dev/hotspot setting)
+async function getVendorApiURL() {
+  const base = await getBaseURL();
+  return `${base}/api/vendor`;
 }
-
-const BASE_URL = `${getBaseURL()}/api/vendor`;
 
 const BRAND = {
   bg: "#F5F7FB",
@@ -78,6 +71,7 @@ export default function VendorForgotPasswordScreen({ navigation }) {
 
     try {
       setLoading(true);
+      const BASE_URL = await getVendorApiURL();
       const res = await axios.post(`${BASE_URL}/forgot-password`, { action: 'send-otp', email: email.trim() });
       if (res?.data?.status) {
         setStep(2);
@@ -88,6 +82,7 @@ export default function VendorForgotPasswordScreen({ navigation }) {
         Alert.alert("Error", res?.data?.message || "Failed to send OTP");
       }
     } catch (err) {
+      console.log("OTP send error", err);
       Alert.alert("Error", err?.response?.data?.message || "Something went wrong");
     } finally { setLoading(false); }
   };
@@ -96,6 +91,7 @@ export default function VendorForgotPasswordScreen({ navigation }) {
     if (otp.length !== 6) { setErrors({otp:"Enter 6-digit OTP"}); return; }
     try {
       setLoading(true);
+      const BASE_URL = await getVendorApiURL();
       const res = await axios.post(`${BASE_URL}/forgot-password`, { action: 'verify-otp', email: email.trim(), otp });
       if (res?.data?.status) setStep(3);
       else Alert.alert("Invalid OTP", res?.data?.message || "Please try again");
@@ -108,6 +104,7 @@ export default function VendorForgotPasswordScreen({ navigation }) {
     if (timer>0) return;
     try {
       setLoading(true);
+      const BASE_URL = await getVendorApiURL();
       const res = await axios.post(`${BASE_URL}/forgot-password`, { action: 'send-otp', email: email.trim() });
       if (res?.data?.status) {
         setTimer(60);
@@ -131,6 +128,7 @@ export default function VendorForgotPasswordScreen({ navigation }) {
 
     try {
       setLoading(true);
+      const BASE_URL = await getVendorApiURL();
       const res = await axios.post(`${BASE_URL}/forgot-password`, {
         action: 'reset-password',
         email: email.trim(),
