@@ -36,9 +36,9 @@ export async function getBaseURL() {
     return cachedBaseURL;
   }
   // 3) default - use localhost in dev (with ADB reverse), production otherwise
-  cachedBaseURL = __DEV__ ? inferLocalBase() : DEFAULT_PROD;
+  // cachedBaseURL = __DEV__ ? inferLocalBase() : DEFAULT_PROD;
    // 3) default - always use production URL (transrentals.in)                                                                                                                                                                                                      
-  //  cachedBaseURL = DEFAULT_PROD;   
+   cachedBaseURL = DEFAULT_PROD;   
   return cachedBaseURL;
 }
 
