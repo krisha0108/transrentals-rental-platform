@@ -3299,6 +3299,7 @@ model vendor_fleets {
   chauffeur_vehicle_categories chauffeur_vehicle_categories? @relation(fields: [vehicleCategoryId], references: [id])
   vehicle_models               vehicle_models?               @relation(fields: [vehicleModelId], references: [id], onDelete: Cascade)
   vendors                      vendors                       @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  vendor_fleet_blocked_dates   vendor_fleet_blocked_dates[]
 
   @@index([brandId])
   @@index([isActive])
@@ -3307,6 +3308,28 @@ model vendor_fleets {
   @@index([vehicleCategoryId])
   @@index([vehicleModelId])
   @@index([vendorId])
+}
+
+model vendor_fleet_blocked_dates {
+  id              String        @id
+  vendorFleetId   String
+  startDate       DateTime      @db.Date
+  endDate         DateTime      @db.Date
+  reason          String        @default("BOOKING")
+  bookingId       String?
+  bookingType     String?
+  notes           String?       @db.Text
+  createdBy       String?
+  isActive        Boolean       @default(true)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  vendor_fleets   vendor_fleets @relation(fields: [vendorFleetId], references: [id], onDelete: Cascade)
+
+  @@index([vendorFleetId])
+  @@index([startDate])
+  @@index([endDate])
+  @@index([bookingId])
+  @@index([vendorFleetId, startDate, endDate])
 }
 
 model vendor_location_requests {

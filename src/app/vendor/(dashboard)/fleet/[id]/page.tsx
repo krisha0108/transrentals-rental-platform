@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn, resolveAssetUrl } from '@/lib/utils';
+import FleetBlockedDatesCalendar from '@/components/vendor/FleetBlockedDatesCalendar';
 
 interface FleetVehicle {
   id: string;
@@ -734,6 +735,15 @@ export default function VehicleDetailPage() {
             ))}
           </div>
         )}
+      </div>
+
+      {/* Blocked Dates Calendar */}
+      <div className="bg-white rounded-xl border shadow-sm p-6">
+        <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+          <Calendar className="w-5 h-5 text-red-600" />
+          Blocked Dates
+        </h2>
+        <FleetBlockedDatesCalendar fleetId={vehicle.id} />
       </div>
 
       {/* Category Info */}

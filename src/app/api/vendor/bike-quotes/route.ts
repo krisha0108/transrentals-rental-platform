@@ -8,6 +8,7 @@ import { sendFCMNotification } from '@/lib/utils/fcm-helper';
 import crypto from 'crypto';
 
 import logger from '@/lib/security/logger';
+import { checkFleetAvailability } from '@/lib/utils/fleet-availability';
 export const dynamic = 'force-dynamic';
 
 // Helper to generate a cuid-like unique ID
@@ -249,6 +250,19 @@ export async function POST(request: NextRequest) {
         { error: 'Quote submission window has closed' },
         { status: 400 }
       );
+    }
+
+    // Check fleet vehicle availability for requested dates
+    if (vendorFleetId && quoteRequest.pickupDate) {
+      const bikeStart = new Date(quoteRequest.pickupDate);
+      const bikeEnd = quoteRequest.dropDate ? new Date(quoteRequest.dropDate) : bikeStart;
+      const availability = await checkFleetAvailability(vendorFleetId, bikeStart, bikeEnd);
+      if (!availability.available) {
+        return NextResponse.json(
+          { error: 'This vehicle is already booked for the requested dates. Please select a different vehicle.' },
+          { status: 409 }
+        );
+      }
     }
 
     // Check if vendor already quoted

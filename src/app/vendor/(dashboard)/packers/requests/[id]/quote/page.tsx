@@ -82,12 +82,13 @@ interface PackersTemplate {
 interface FleetVehicle {
   id: string;
   registrationNumber?: string;
-  vehicle_category?: {
+  chauffeur_vehicle_categories?: {
     id: string;
     name: string;
     luggageCapacity?: string;
   };
   isAvailable: boolean;
+  isAvailableForDates?: boolean;
 }
 
 const SERVICE_TYPES: Record<string, string> = {
@@ -173,17 +174,22 @@ export default function SendPackersQuotePage() {
   useEffect(() => {
     fetchRequestDetails();
     fetchTemplates();
-    fetchFleetVehicles();
   }, [params.id]);
 
-  const fetchFleetVehicles = async () => {
+  const fetchFleetVehicles = async (preferredDate?: string) => {
     try {
-      const response = await fetch('/api/vendor/fleet');
+      let fleetUrl = '/api/vendor/fleet';
+      if (preferredDate) {
+        const dateStr = new Date(preferredDate).toISOString();
+        fleetUrl += `?startDate=${encodeURIComponent(dateStr)}&endDate=${encodeURIComponent(dateStr)}`;
+      }
+      const response = await fetch(fleetUrl);
       const data = await response.json();
 
       if (data.success && data.fleet) {
         // Filter fleet for packers-movers service
         const packersFleet = data.fleet.filter((f: any) => {
+          if (!f.isActive) return false;
           const serviceName = f.services?.name?.toLowerCase() || '';
           const serviceSlug = f.services?.slug?.toLowerCase() || '';
           return (
@@ -194,14 +200,20 @@ export default function SendPackersQuotePage() {
           );
         });
 
-        setFleetVehicles(
-          packersFleet.map((f: any) => ({
-            id: f.id,
-            registrationNumber: f.registrationNumber,
-            chauffeur_vehicle_categories: f.vehicle_category,
-            isAvailable: f.isAvailable,
-          }))
-        );
+        // Sort: available vehicles first, unavailable at the end
+        const mapped: FleetVehicle[] = packersFleet.map((f: any) => ({
+          id: f.id,
+          registrationNumber: f.registrationNumber,
+          chauffeur_vehicle_categories: f.chauffeur_vehicle_categories,
+          isAvailable: f.isAvailable,
+          isAvailableForDates: f.isAvailableForDates,
+        }));
+        mapped.sort((a: FleetVehicle, b: FleetVehicle) => {
+          const aUnavail = a.isAvailableForDates === false || !a.isAvailable ? 1 : 0;
+          const bUnavail = b.isAvailableForDates === false || !b.isAvailable ? 1 : 0;
+          return aUnavail - bUnavail;
+        });
+        setFleetVehicles(mapped);
       }
     } catch (error) {
       console.error('Failed to fetch fleet vehicles:', error);
@@ -266,6 +278,7 @@ export default function SendPackersQuotePage() {
 
       if (data.success && data.request) {
         setRequest(data.request);
+        fetchFleetVehicles(data.request.preferredDate);
 
         // Auto-calculate GST (5% of subtotal by default)
         const autoGST = () => {
@@ -644,20 +657,23 @@ export default function SendPackersQuotePage() {
                     setSelectedFleetVehicleId(e.target.value);
                     // Auto-fill vehicle type from selected fleet vehicle
                     const selected = fleetVehicles.find((f) => f.id === e.target.value);
-                    if (selected?.vehicle_category?.name) {
-                      setVehicleType(selected.vehicle_category.name);
+                    if (selected?.chauffeur_vehicle_categories?.name) {
+                      setVehicleType(selected.chauffeur_vehicle_categories.name);
                     }
                   }}
                   className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-cyan-500"
                 >
                   <option value="">-- Select Vehicle --</option>
-                  {fleetVehicles.map((vehicle) => (
-                    <option key={vehicle.id} value={vehicle.id} disabled={!vehicle.isAvailable}>
-                      {vehicle.vehicle_category?.name || 'Vehicle'}{' '}
-                      {vehicle.registrationNumber ? `(${vehicle.registrationNumber})` : ''}{' '}
-                      {!vehicle.isAvailable ? '- Not Available' : ''}
-                    </option>
-                  ))}
+                  {fleetVehicles.map((vehicle) => {
+                    const isUnavailable = vehicle.isAvailableForDates === false || !vehicle.isAvailable;
+                    return (
+                      <option key={vehicle.id} value={vehicle.id} disabled={isUnavailable}>
+                        {vehicle.chauffeur_vehicle_categories?.name || 'Vehicle'}{' '}
+                        {vehicle.registrationNumber ? `(${vehicle.registrationNumber})` : ''}{' '}
+                        {vehicle.isAvailableForDates === false ? '— Booked for this date' : !vehicle.isAvailable ? '- Not Available' : ''}
+                      </option>
+                    );
+                  })}
                 </select>
               ) : (
                 <div className="text-sm text-gray-500 p-3 bg-gray-50 rounded-lg">

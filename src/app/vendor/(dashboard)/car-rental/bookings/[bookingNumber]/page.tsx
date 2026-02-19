@@ -93,6 +93,7 @@ interface StaffDriver {
   licenseExpiry?: string;
   isAvailable: boolean;
   licenseExpired: boolean;
+  isAvailableForDates?: boolean;
 }
 
 interface FleetVehicle {
@@ -101,16 +102,17 @@ interface FleetVehicle {
   color: string | null;
   isAvailable: boolean;
   isActive: boolean;
-  vehicle_category?: {
+  isAvailableForDates?: boolean;
+  chauffeur_vehicle_categories?: {
     id: string;
     name: string;
     seatingCapacity?: number;
   } | null;
-  brand?: {
+  brands?: {
     id: string;
     name: string;
   } | null;
-  service: {
+  services?: {
     slug: string;
   };
 }
@@ -215,19 +217,30 @@ export default function VendorBookingDetailPage() {
     }
   };
 
-  const fetchDrivers = async (pickupDate?: string) => {
+  const fetchDrivers = async (pickupDate?: string, returnDate?: string) => {
     try {
       let url = '/api/vendor/staff/drivers';
       if (pickupDate) {
-        url += `?date=${pickupDate}`;
+        const startDate = new Date(pickupDate).toISOString();
+        const endDate = returnDate
+          ? new Date(returnDate).toISOString()
+          : startDate;
+        url += `?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`;
       }
       const response = await fetch(url);
       const data = await response.json();
 
       if (data.success) {
-        setStaffDrivers(data.drivers || []);
+        const drivers: StaffDriver[] = data.drivers || [];
+        // Sort: available drivers first, unavailable (assigned for dates) last
+        drivers.sort((a, b) => {
+          const aUnavail = a.isAvailableForDates === false ? 1 : 0;
+          const bUnavail = b.isAvailableForDates === false ? 1 : 0;
+          return aUnavail - bUnavail;
+        });
+        setStaffDrivers(drivers);
         // If no drivers exist, default to manual entry
-        if (!data.drivers || data.drivers.length === 0) {
+        if (drivers.length === 0) {
           setUseManualEntry(true);
         }
       }
@@ -237,19 +250,32 @@ export default function VendorBookingDetailPage() {
     }
   };
 
-  const fetchFleetVehicles = async () => {
+  const fetchFleetVehicles = async (pickupDate?: string, returnDate?: string) => {
     try {
-      const response = await fetch('/api/vendor/fleet');
+      let fleetUrl = '/api/vendor/fleet';
+      if (pickupDate) {
+        const startDate = new Date(pickupDate).toISOString();
+        const endDate = returnDate
+          ? new Date(returnDate).toISOString()
+          : startDate;
+        fleetUrl += `?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`;
+      }
+      const response = await fetch(fleetUrl);
       const data = await response.json();
 
       if (data.success) {
-        // Filter only car-rental vehicles that are active and available
+        // Filter only car-rental vehicles that are active
         const carRentalVehicles = (data.fleet || []).filter(
           (v: FleetVehicle) => {
-            const svc = (v as any).services || v.service;
-            return svc?.slug === 'car-rental' && v.isActive;
+            return v.services?.slug === 'car-rental' && v.isActive;
           }
         );
+        // Sort: available vehicles first, unavailable (booked for dates) last
+        carRentalVehicles.sort((a: FleetVehicle, b: FleetVehicle) => {
+          const aUnavail = a.isAvailableForDates === false ? 1 : 0;
+          const bUnavail = b.isAvailableForDates === false ? 1 : 0;
+          return aUnavail - bUnavail;
+        });
         setFleetVehicles(carRentalVehicles);
       }
     } catch (error) {
@@ -297,9 +323,9 @@ export default function VendorBookingDetailPage() {
 
     const vehicle = fleetVehicles.find(v => v.id === vehicleId);
     if (vehicle) {
-      const vehicle_model = vehicle.brand?.name
-        ? `${vehicle.brand.name} ${vehicle.vehicle_category?.name || ''}`
-        : vehicle.vehicle_category?.name || '';
+      const vehicle_model = vehicle.brands?.name
+        ? `${vehicle.brands.name} ${vehicle.chauffeur_vehicle_categories?.name || ''}`
+        : vehicle.chauffeur_vehicle_categories?.name || '';
       setDriverForm({
         ...driverForm,
         vehicleNumber: vehicle.registrationNumber || '',
@@ -310,16 +336,19 @@ export default function VendorBookingDetailPage() {
 
   useEffect(() => {
     fetchBooking();
-    fetchDrivers();
-    fetchFleetVehicles();
   }, [bookingNumber]);
 
-  // Fetch drivers with pickup date when booking loads
+  // Fetch drivers and fleet vehicles with booking dates when booking loads
   useEffect(() => {
     if (booking?.pickupDate) {
-      fetchDrivers(booking.pickupDate);
+      fetchDrivers(booking.pickupDate, booking.returnDate);
+      // Fetch fleet vehicles with booking dates for availability check
+      fetchFleetVehicles(booking.pickupDate, booking.returnDate);
+    } else if (booking) {
+      // Booking loaded but no pickupDate - fetch fleet without dates
+      fetchFleetVehicles();
     }
-  }, [booking?.pickupDate]);
+  }, [booking?.pickupDate, booking?.id]);
 
   const handleAction = async (action: string, extraData?: any) => {
     setActionLoading(true);
@@ -625,17 +654,20 @@ export default function VendorBookingDetailPage() {
                       className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500"
                     >
                       <option value="">-- Select a Driver --</option>
-                      {staffDrivers.map((driver) => (
-                        <option
-                          key={driver.id}
-                          value={driver.id}
-                          disabled={!driver.isAvailable || driver.licenseExpired}
-                        >
-                          {driver.name} - {driver.phone}
-                          {!driver.isAvailable ? ' (Unavailable)' : ''}
-                          {driver.licenseExpired ? ' (License Expired)' : ''}
-                        </option>
-                      ))}
+                      {staffDrivers.map((driver) => {
+                        const isAssignedForDates = driver.isAvailableForDates === false;
+                        return (
+                          <option
+                            key={driver.id}
+                            value={driver.id}
+                            disabled={!driver.isAvailable || driver.licenseExpired || isAssignedForDates}
+                          >
+                            {driver.name} - {driver.phone}
+                            {isAssignedForDates ? ' — Assigned for these dates' : !driver.isAvailable ? ' (Unavailable)' : ''}
+                            {driver.licenseExpired ? ' (License Expired)' : ''}
+                          </option>
+                        );
+                      })}
                       <option value="manual">-- Enter Manually --</option>
                     </select>
                     {selectedDriverId && selectedDriverId !== 'manual' && (
@@ -665,18 +697,21 @@ export default function VendorBookingDetailPage() {
                       className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500"
                     >
                       <option value="">-- Select a Vehicle --</option>
-                      {fleetVehicles.map((vehicle) => (
-                        <option
-                          key={vehicle.id}
-                          value={vehicle.id}
-                          disabled={!vehicle.isAvailable}
-                        >
-                          {vehicle.brand?.name} {vehicle.vehicle_category?.name}
-                          {vehicle.registrationNumber ? ` - ${vehicle.registrationNumber}` : ''}
-                          {vehicle.vehicle_category?.seatingCapacity ? ` (${vehicle.vehicle_category.seatingCapacity} Seater)` : ''}
-                          {!vehicle.isAvailable ? ' (Unavailable)' : ''}
-                        </option>
-                      ))}
+                      {fleetVehicles.map((vehicle) => {
+                        const isBookedForDates = vehicle.isAvailableForDates === false;
+                        return (
+                          <option
+                            key={vehicle.id}
+                            value={vehicle.id}
+                            disabled={!vehicle.isAvailable || isBookedForDates}
+                          >
+                            {vehicle.brands?.name} {vehicle.chauffeur_vehicle_categories?.name}
+                            {vehicle.registrationNumber ? ` - ${vehicle.registrationNumber}` : ''}
+                            {vehicle.chauffeur_vehicle_categories?.seatingCapacity ? ` (${vehicle.chauffeur_vehicle_categories.seatingCapacity} Seater)` : ''}
+                            {isBookedForDates ? ' — Booked for these dates' : !vehicle.isAvailable ? ' (Unavailable)' : ''}
+                          </option>
+                        );
+                      })}
                       <option value="manual">-- Enter Manually --</option>
                     </select>
                     {selectedVehicleId && selectedVehicleId !== 'manual' && (

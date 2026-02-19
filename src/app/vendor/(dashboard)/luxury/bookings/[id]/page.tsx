@@ -87,19 +87,21 @@ interface StaffDriver {
   email?: string;
   status: string;
   isAvailable: boolean;
+  isAvailableForDates?: boolean;
 }
 
 interface FleetVehicle {
   id: string;
   registrationNumber: string | null;
+  isAvailableForDates?: boolean;
   vehicle_models: {
     id: string;
     name: string;
-    brand: { id: string; name: string } | null;
+    brands: { id: string; name: string } | null;
   } | null;
   chauffeur_vehicle_categories: { id: string; name: string } | null;
-  brand: { id: string; name: string } | null;
-  service: { id: string; name: string; slug: string } | null;
+  brands: { id: string; name: string } | null;
+  services: { id: string; name: string; slug: string } | null;
 }
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bgColor: string }> = {
@@ -178,31 +180,61 @@ export default function VendorLuxuryBookingDetailPage() {
     }
   };
 
-  const fetchStaffDrivers = async () => {
+  const fetchStaffDrivers = async (pickupDate?: string, returnDate?: string) => {
     try {
-      const res = await fetch('/api/vendor/staff/drivers');
+      let url = '/api/vendor/staff/drivers';
+      if (pickupDate) {
+        const startDate = new Date(pickupDate).toISOString();
+        const endDate = returnDate
+          ? new Date(returnDate).toISOString()
+          : startDate;
+        url += `?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`;
+      }
+      const res = await fetch(url);
       const data = await res.json();
       if (data.success) {
-        setStaffDrivers(data.drivers || []);
+        const drivers = data.drivers || [];
+        // Sort: available drivers first, unavailable (assigned for dates) last
+        drivers.sort((a: StaffDriver, b: StaffDriver) => {
+          const aUnavail = a.isAvailableForDates === false ? 1 : 0;
+          const bUnavail = b.isAvailableForDates === false ? 1 : 0;
+          return aUnavail - bUnavail;
+        });
+        setStaffDrivers(drivers);
       }
     } catch (err) {
       console.error('Failed to fetch staff:', err);
     }
   };
 
-  const fetchFleetVehicles = async () => {
+  const fetchFleetVehicles = async (pickupDate?: string, returnDate?: string) => {
     try {
-      const res = await fetch('/api/vendor/fleet');
+      let fleetUrl = '/api/vendor/fleet';
+      if (pickupDate) {
+        const startDate = new Date(pickupDate).toISOString();
+        const endDate = returnDate
+          ? new Date(returnDate).toISOString()
+          : startDate;
+        fleetUrl += `?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`;
+      }
+      const res = await fetch(fleetUrl);
       const data = await res.json();
       if (data.success && data.fleet) {
         // Filter for luxury vehicles
         const luxuryFleet = data.fleet.filter((v: FleetVehicle) => {
-          const svc = (v as any).services || v.service;
-          const slug = svc?.slug?.toLowerCase() || '';
-          const name = svc?.name?.toLowerCase() || '';
+          if (!v.isActive) return false;
+          const slug = v.services?.slug?.toLowerCase() || '';
+          const name = v.services?.name?.toLowerCase() || '';
           return slug.includes('luxury') || name.includes('luxury');
         });
-        setFleetVehicles(luxuryFleet.length > 0 ? luxuryFleet : data.fleet);
+        const filteredFleet = luxuryFleet.length > 0 ? luxuryFleet : data.fleet;
+        // Sort: available vehicles first, unavailable (booked for dates) last
+        filteredFleet.sort((a: FleetVehicle, b: FleetVehicle) => {
+          const aUnavail = a.isAvailableForDates === false ? 1 : 0;
+          const bUnavail = b.isAvailableForDates === false ? 1 : 0;
+          return aUnavail - bUnavail;
+        });
+        setFleetVehicles(filteredFleet);
       }
     } catch (err) {
       console.error('Failed to fetch fleet:', err);
@@ -220,11 +252,11 @@ export default function VendorLuxuryBookingDetailPage() {
       let vModel = '';
       let vBrand = '';
       if (vehicle.vehicle_models) {
-        vBrand = vehicle.vehicle_models.brand?.name || '';
+        vBrand = vehicle.vehicle_models.brands?.name || '';
         vModel = vehicle.vehicle_models.name;
-      } else if (vehicle.brand && vehicle.vehicle_category) {
-        vBrand = vehicle.brand.name;
-        vModel = vehicle.vehicle_category.name;
+      } else if (vehicle.brands && vehicle.chauffeur_vehicle_categories) {
+        vBrand = vehicle.brands.name;
+        vModel = vehicle.chauffeur_vehicle_categories.name;
       }
 
       setAssignForm({
@@ -238,9 +270,18 @@ export default function VendorLuxuryBookingDetailPage() {
 
   useEffect(() => {
     fetchBooking();
-    fetchStaffDrivers();
-    fetchFleetVehicles();
   }, [id]);
+
+  // Fetch staff drivers and fleet vehicles with booking dates for availability check
+  useEffect(() => {
+    if (booking?.pickupDate) {
+      fetchStaffDrivers(booking.pickupDate, booking.returnDate);
+      fetchFleetVehicles(booking.pickupDate, booking.returnDate);
+    } else if (booking) {
+      fetchStaffDrivers();
+      fetchFleetVehicles();
+    }
+  }, [booking?.pickupDate, booking?.id]);
 
   const handleAssignSubmit = async () => {
     if (!assignForm.driverName || !assignForm.driverPhone) {
@@ -577,18 +618,19 @@ export default function VendorLuxuryBookingDetailPage() {
                         {fleetVehicles.map((vehicle) => {
                           let displayName = '';
                           if (vehicle.vehicle_models) {
-                            displayName = vehicle.vehicle_models.brand?.name
-                              ? `${vehicle.vehicle_models.brand.name} ${vehicle.vehicle_models.name}`
+                            displayName = vehicle.vehicle_models.brands?.name
+                              ? `${vehicle.vehicle_models.brands.name} ${vehicle.vehicle_models.name}`
                               : vehicle.vehicle_models.name;
-                          } else if (vehicle.brand && vehicle.vehicle_category) {
-                            displayName = `${vehicle.brand.name} ${vehicle.vehicle_category.name}`;
-                          } else if (vehicle.vehicle_category) {
-                            displayName = vehicle.vehicle_category.name;
+                          } else if (vehicle.brands && vehicle.chauffeur_vehicle_categories) {
+                            displayName = `${vehicle.brands.name} ${vehicle.chauffeur_vehicle_categories.name}`;
+                          } else if (vehicle.chauffeur_vehicle_categories) {
+                            displayName = vehicle.chauffeur_vehicle_categories.name;
                           }
                           const regNum = vehicle.registrationNumber ? ` (${vehicle.registrationNumber})` : '';
+                          const isBookedForDates = vehicle.isAvailableForDates === false;
                           return (
-                            <option key={vehicle.id} value={vehicle.id}>
-                              {displayName}{regNum}
+                            <option key={vehicle.id} value={vehicle.id} disabled={isBookedForDates}>
+                              {displayName}{regNum}{isBookedForDates ? ' — Booked for these dates' : ''}
                             </option>
                           );
                         })}
@@ -656,9 +698,14 @@ export default function VendorLuxuryBookingDetailPage() {
                           }}
                         >
                           <option value="">-- Select from your staff --</option>
-                          {staffDrivers.map(d => (
-                            <option key={d.id} value={d.id}>{d.name} ({d.phone})</option>
-                          ))}
+                          {staffDrivers.map(d => {
+                            const isBusyForDates = d.isAvailableForDates === false;
+                            return (
+                              <option key={d.id} value={d.id} disabled={isBusyForDates}>
+                                {d.name} ({d.phone}){isBusyForDates ? ' \u2014 Assigned for these dates' : ''}
+                              </option>
+                            );
+                          })}
                         </select>
                       </>
                     ) : null}

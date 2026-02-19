@@ -76,19 +76,21 @@ interface StaffDriver {
   email?: string;
   status: string;
   isAvailable: boolean;
+  isAvailableForDates?: boolean;
 }
 
 interface FleetVehicle {
   id: string;
   registrationNumber: string | null;
+  isAvailableForDates?: boolean;
   vehicle_models: {
     id: string;
     name: string;
-    brand: { id: string; name: string } | null;
+    brands: { id: string; name: string } | null;
   } | null;
   chauffeur_vehicle_categories: { id: string; name: string } | null;
-  brand: { id: string; name: string } | null;
-  service: { id: string; name: string; slug: string } | null;
+  brands: { id: string; name: string } | null;
+  services: { id: string; name: string; slug: string } | null;
 }
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bgColor: string }> = {
@@ -164,28 +166,51 @@ export default function VendorTruckBookingDetailPage() {
     }
   };
 
-  const fetchStaffDrivers = async () => {
+  const fetchStaffDrivers = async (pickupDate?: string) => {
     try {
-      const res = await fetch('/api/vendor/staff/drivers');
+      let driverUrl = '/api/vendor/staff/drivers';
+      if (pickupDate) {
+        const dateISO = new Date(pickupDate).toISOString();
+        driverUrl += `?startDate=${encodeURIComponent(dateISO)}&endDate=${encodeURIComponent(dateISO)}`;
+      }
+      const res = await fetch(driverUrl);
       const data = await res.json();
       if (data.success) {
-        setStaffDrivers(data.drivers || []);
+        const driverList: StaffDriver[] = data.drivers || [];
+        // Sort: available drivers first, unavailable (assigned for dates) last
+        driverList.sort((a, b) => {
+          const aUnavail = a.isAvailableForDates === false ? 1 : 0;
+          const bUnavail = b.isAvailableForDates === false ? 1 : 0;
+          return aUnavail - bUnavail;
+        });
+        setStaffDrivers(driverList);
       }
     } catch (err) {
       console.error('Failed to fetch staff:', err);
     }
   };
 
-  const fetchFleetVehicles = async () => {
+  const fetchFleetVehicles = async (pickupDate?: string) => {
     try {
-      const res = await fetch('/api/vendor/fleet');
+      let fleetUrl = '/api/vendor/fleet';
+      if (pickupDate) {
+        const startDate = new Date(pickupDate).toISOString();
+        fleetUrl += `?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(startDate)}`;
+      }
+      const res = await fetch(fleetUrl);
       const data = await res.json();
       if (data.success && data.fleet) {
         const truckFleet = data.fleet.filter((v: FleetVehicle) => {
-          const svc = (v as any).services || v.service;
-          const slug = svc?.slug?.toLowerCase() || '';
-          const name = svc?.name?.toLowerCase() || '';
+          if (!v.isActive) return false;
+          const slug = v.services?.slug?.toLowerCase() || '';
+          const name = v.services?.name?.toLowerCase() || '';
           return slug.includes('truck') || name.includes('truck');
+        });
+        // Sort: available vehicles first, unavailable (booked for dates) last
+        truckFleet.sort((a: FleetVehicle, b: FleetVehicle) => {
+          const aUnavail = a.isAvailableForDates === false ? 1 : 0;
+          const bUnavail = b.isAvailableForDates === false ? 1 : 0;
+          return aUnavail - bUnavail;
         });
         setFleetVehicles(truckFleet);
       }
@@ -204,13 +229,13 @@ export default function VendorTruckBookingDetailPage() {
     if (vehicle) {
       let vModel = '';
       if (vehicle.vehicle_models) {
-        vModel = vehicle.vehicle_models.brand?.name
-          ? `${vehicle.vehicle_models.brand.name} ${vehicle.vehicle_models.name}`
+        vModel = vehicle.vehicle_models.brands?.name
+          ? `${vehicle.vehicle_models.brands.name} ${vehicle.vehicle_models.name}`
           : vehicle.vehicle_models.name;
-      } else if (vehicle.brand && vehicle.vehicle_category) {
-        vModel = `${vehicle.brand.name} ${vehicle.vehicle_category.name}`;
-      } else if (vehicle.vehicle_category) {
-        vModel = vehicle.vehicle_category.name;
+      } else if (vehicle.brands && vehicle.chauffeur_vehicle_categories) {
+        vModel = `${vehicle.brands.name} ${vehicle.chauffeur_vehicle_categories.name}`;
+      } else if (vehicle.chauffeur_vehicle_categories) {
+        vModel = vehicle.chauffeur_vehicle_categories.name;
       }
 
       setAssignForm({
@@ -223,9 +248,25 @@ export default function VendorTruckBookingDetailPage() {
 
   useEffect(() => {
     fetchBooking();
-    fetchStaffDrivers();
-    fetchFleetVehicles();
   }, [id]);
+
+  // Fetch staff drivers with booking date for availability check
+  useEffect(() => {
+    if (booking?.pickupDate) {
+      fetchStaffDrivers(booking.pickupDate);
+    } else if (booking) {
+      fetchStaffDrivers();
+    }
+  }, [booking?.pickupDate, booking?.id]);
+
+  // Fetch fleet vehicles with booking date for availability check
+  useEffect(() => {
+    if (booking?.pickupDate) {
+      fetchFleetVehicles(booking.pickupDate);
+    } else if (booking) {
+      fetchFleetVehicles();
+    }
+  }, [booking?.pickupDate, booking?.id]);
 
   const handleAssignSubmit = async () => {
     if (!assignForm.driverName || !assignForm.driverPhone || !assignForm.vehicleNumber) {
@@ -462,18 +503,19 @@ export default function VendorTruckBookingDetailPage() {
                         {fleetVehicles.map((vehicle) => {
                           let displayName = '';
                           if (vehicle.vehicle_models) {
-                            displayName = vehicle.vehicle_models.brand?.name
-                              ? `${vehicle.vehicle_models.brand.name} ${vehicle.vehicle_models.name}`
+                            displayName = vehicle.vehicle_models.brands?.name
+                              ? `${vehicle.vehicle_models.brands.name} ${vehicle.vehicle_models.name}`
                               : vehicle.vehicle_models.name;
-                          } else if (vehicle.brand && vehicle.vehicle_category) {
-                            displayName = `${vehicle.brand.name} ${vehicle.vehicle_category.name}`;
-                          } else if (vehicle.vehicle_category) {
-                            displayName = vehicle.vehicle_category.name;
+                          } else if (vehicle.brands && vehicle.chauffeur_vehicle_categories) {
+                            displayName = `${vehicle.brands.name} ${vehicle.chauffeur_vehicle_categories.name}`;
+                          } else if (vehicle.chauffeur_vehicle_categories) {
+                            displayName = vehicle.chauffeur_vehicle_categories.name;
                           }
                           const regNum = vehicle.registrationNumber ? ` (${vehicle.registrationNumber})` : '';
+                          const isBookedForDates = vehicle.isAvailableForDates === false;
                           return (
-                            <option key={vehicle.id} value={vehicle.id}>
-                              {displayName}{regNum}
+                            <option key={vehicle.id} value={vehicle.id} disabled={isBookedForDates}>
+                              {displayName}{regNum}{isBookedForDates ? ' — Booked for these dates' : ''}
                             </option>
                           );
                         })}
@@ -528,9 +570,14 @@ export default function VendorTruckBookingDetailPage() {
                         }}
                       >
                         <option value="">-- Select Driver --</option>
-                        {staffDrivers.map(d => (
-                          <option key={d.id} value={d.id}>{d.name} ({d.phone})</option>
-                        ))}
+                        {staffDrivers.map(d => {
+                          const isBusyForDates = d.isAvailableForDates === false;
+                          return (
+                            <option key={d.id} value={d.id} disabled={isBusyForDates}>
+                              {d.name} ({d.phone}){isBusyForDates ? ' — Assigned for this date' : ''}
+                            </option>
+                          );
+                        })}
                       </select>
                     ) : (
                       <div className="grid md:grid-cols-2 gap-4">

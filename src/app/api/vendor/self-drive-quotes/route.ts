@@ -6,6 +6,7 @@ import { transformPrismaResponse } from '@/lib/utils/api-transform';
 import crypto from 'crypto';
 
 import logger from '@/lib/security/logger';
+import { checkFleetAvailability } from '@/lib/utils/fleet-availability';
 export const dynamic = 'force-dynamic';
 
 // Helper to generate a unique ID
@@ -265,6 +266,19 @@ export async function POST(request: NextRequest) {
         { error: 'Quote submission window has closed' },
         { status: 400 }
       );
+    }
+
+    // Check fleet vehicle availability for requested dates
+    if (vendorFleetId && quoteRequest.pickupDate) {
+      const sdStart = new Date(quoteRequest.pickupDate);
+      const sdEnd = quoteRequest.dropDate ? new Date(quoteRequest.dropDate) : sdStart;
+      const availability = await checkFleetAvailability(vendorFleetId, sdStart, sdEnd);
+      if (!availability.available) {
+        return NextResponse.json(
+          { error: 'This vehicle is already booked for the requested dates. Please select a different vehicle.' },
+          { status: 409 }
+        );
+      }
     }
 
     // Check if vendor already quoted

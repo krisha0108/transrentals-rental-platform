@@ -22,6 +22,7 @@ import {
   ToggleLeft,
   ToggleRight,
   Filter,
+  Calendar,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -504,6 +505,22 @@ export default function VendorFleetPage() {
                     {fleetLocations.length > 2 && ` +${fleetLocations.length - 2}`}
                   </div>
                 )}
+
+                {/* Next booking */}
+                {(() => {
+                  const blockedDates = (vehicle as any).vendor_fleet_blocked_dates;
+                  const nextBlock = blockedDates?.[0];
+                  if (nextBlock) {
+                    const startDate = new Date(nextBlock.startDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
+                    return (
+                      <div className="flex items-center gap-1 text-xs text-red-600 mb-3">
+                        <Calendar className="w-3.5 h-3.5" />
+                        Next {nextBlock.reason === 'BOOKING' ? 'booking' : 'block'}: {startDate}
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
 
                 {/* Actions */}
                 <div className="flex items-center gap-2 pt-3 border-t">
