@@ -199,7 +199,7 @@ export async function POST(request: NextRequest) {
             success: true,
             order: { id: existingOrder.id, amount: existingOrder.amount, currency: existingOrder.currency, receipt: existingOrder.receipt },
             booking: { id: booking.id, bookingNumber: booking.bookingNumber, customerName: booking.customerName, customerEmail: booking.customerEmail, customerPhone: booking.customerPhone, vehicleName: booking.vehicleName || '', advanceAmount, grandTotal: (booking as any).grandTotal ?? advanceAmount },
-            razorpayConfig: { key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || '', name: RAZORPAY_CONFIG.name, description: `${booking.vehicleName || bookingType} - Advance Payment`, prefill: { name: booking.customerName, email: booking.customerEmail, contact: booking.customerPhone } },
+            razorpayConfig: { key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || '', name: RAZORPAY_CONFIG.name, description: `${booking.vehicleName || bookingType} - Advance Payment`, image: RAZORPAY_CONFIG.image, theme: RAZORPAY_CONFIG.theme, prefill: { name: booking.customerName, email: booking.customerEmail, contact: booking.customerPhone } },
           });
         }
       } catch {
@@ -255,6 +255,8 @@ export async function POST(request: NextRequest) {
         key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || 'rzp_test_dummy_key_id',
         name: RAZORPAY_CONFIG.name,
         description: `${booking.vehicleName || bookingType} - Advance Payment`,
+        image: RAZORPAY_CONFIG.image,
+        theme: RAZORPAY_CONFIG.theme,
         prefill: {
           name: booking.customerName,
           email: booking.customerEmail,

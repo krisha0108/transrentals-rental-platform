@@ -487,7 +487,7 @@ function BookingDetailContent({ bookingId }: { bookingId: string }) {
         </div>
 
         {/* Payment Section - Show for PENDING_PAYMENT status */}
-        {booking.status === 'PENDING_PAYMENT' && !!booking.advanceAmount && (
+        {booking.status === 'PENDING_PAYMENT' && (
           <div className="bg-white rounded-xl border border-amber-200 p-4">
             <p className="font-bold text-gray-900 mb-1">Pay Advance to Confirm</p>
             <p className="text-sm text-gray-500 mb-3">{booking.advancePercent}% advance — ₹{booking.advanceAmount?.toLocaleString()}</p>

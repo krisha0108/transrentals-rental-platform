@@ -34,7 +34,7 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useCustomerAuth } from '@/hooks/useCustomer';
 import { useSocket } from '@/hooks/useSocket';
-import { PaymentConfirmation } from '@/components/bike/PaymentConfirmation';
+import { BookingPayment } from '@/components/payment/BookingPayment';
 import { BikeBookingChat } from '@/components/bike/BikeBookingChat';
 
 type BikeBookingStatus =
@@ -563,15 +563,12 @@ export default function BikeBookingDetailPage() {
 
         {/* Payment Confirmation Section */}
         {showPaymentConfirmation && (
-          <PaymentConfirmation
+          <BookingPayment
             bookingId={booking.id}
+            bookingType="bike"
+            amount={booking.advanceAmount}
             bookingNumber={booking.bookingNumber}
-            amount={booking.advanceAmount + booking.platformFee}
-            serviceSlug="bike-rental"
-            onPaymentConfirmed={() => {
-              // Refresh booking to get updated status
-              window.location.reload();
-            }}
+            onSuccess={() => window.location.reload()}
           />
         )}
 

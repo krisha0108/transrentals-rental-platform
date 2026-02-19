@@ -484,7 +484,7 @@ export default function CustomerSelfDriveBookingPage() {
           {/* Sidebar */}
           <div className="space-y-6">
             {/* Payment Action */}
-            {booking.status === 'PENDING_PAYMENT' && !!(booking.advanceAmount || booking.grandTotal) && (
+            {booking.status === 'PENDING_PAYMENT' && (
               <div className="bg-white rounded-xl border p-4">
                 <h3 className="font-semibold text-gray-900 mb-3">Complete Your Booking</h3>
                 <BookingPayment

@@ -177,6 +177,7 @@ export function RazorpayPayment({
         currency: data.order.currency,
         name: data.razorpayConfig.name,
         description: data.razorpayConfig.description,
+        image: data.razorpayConfig.image,
         order_id: data.order.id,
 
         handler: async function (response: any) {
@@ -221,6 +222,7 @@ export function RazorpayPayment({
         },
 
         prefill: data.razorpayConfig.prefill,
+        theme: data.razorpayConfig.theme,
 
         modal: {
           ondismiss: function () {
@@ -479,6 +481,7 @@ export function PaymentButton({
           }
         },
         prefill: data.razorpayConfig.prefill,
+        theme: data.razorpayConfig.theme,
         modal: {
           ondismiss: function () {
             setIsProcessing(false);

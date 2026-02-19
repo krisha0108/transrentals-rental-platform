@@ -138,13 +138,6 @@ export async function GET(
             vehicleCategoryId: null, // Allow bikes without category
           },
         ],
-        // Only show bikes assigned to this location
-        vehicle_model_locations: {
-          some: {
-            locationId: locationData.id,
-            isActive: true,
-          },
-        },
       },
       include: {
         brands: {
@@ -220,10 +213,8 @@ export async function GET(
       // Debug logging
       console.log(`[Bikes API] Model: ${model.name}, Location: ${locationData.name}, VendorFleetCount: ${vendorFleetCount}, HasLocationAssignment: ${hasLocationAssignment}, LocationPrice: ${locationSpecificPrice}, BasePrice: ${basePrice}`);
 
-      // Skip this bike model ONLY if:
-      // - No vendor fleets are assigned to this location AND
-      // - Model is NOT assigned to this location by admin
-      // Show if: vendorFleetCount > 0 OR hasLocationAssignment = true
+      // Skip this bike model if no vendor fleets are at this location
+      // (hasLocationAssignment is still a fallback for admin-assigned models)
       if (vendorFleetCount === 0 && !hasLocationAssignment) {
         console.log(`[Bikes API] Skipping ${model.name} - no fleets or location assignment for this location`);
         continue;

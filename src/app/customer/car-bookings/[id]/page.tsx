@@ -502,28 +502,8 @@ export default function CarBookingDetailPage() {
           </div>
         </div>
 
-        {/* Waiting for Quote Section */}
-        {booking.status === 'PENDING' && (
-          <div className="bg-amber-50 rounded-2xl p-6 border border-amber-200">
-            <div className="flex items-start gap-4">
-              <div className="w-12 h-12 bg-amber-100 rounded-xl flex items-center justify-center flex-shrink-0 animate-pulse">
-                <Timer className="w-6 h-6 text-amber-600" />
-              </div>
-              <div>
-                <h3 className="font-bold text-amber-800 mb-1">Booking Request Submitted</h3>
-                <p className="text-sm text-amber-700 mb-2">
-                  We are reviewing your request and finding the best vendor for you. You will receive a quote shortly.
-                </p>
-                <p className="text-xs text-amber-600">
-                  Once a vendor quotes a price, you will see the payment option here to confirm your booking.
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Payment Section - Show when PENDING_PAYMENT with actual quote amount */}
-        {booking.status === 'PENDING_PAYMENT' && !!booking.advanceAmount && (
+        {/* Payment Section - Show when PENDING_PAYMENT */}
+        {(booking.status === 'PENDING_PAYMENT' || booking.status === 'PENDING') && (
           <BookingPayment
             bookingId={booking.id}
             bookingType="self-drive"
