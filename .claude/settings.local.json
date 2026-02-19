@@ -165,7 +165,22 @@
       "Bash(else)",
       "Bash(file=\"src/app/api/$api-quote-requests/route.ts\")",
       "Bash(if grep -q \"Math.ceil.*getTime.*60.*24\" \"$file\")",
-      "Bash(__NEW_LINE_39814c82807ef28d__ if grep -q \"from ''@/lib/utils/duration''\" \"$file\")"
+      "Bash(__NEW_LINE_39814c82807ef28d__ if grep -q \"from ''@/lib/utils/duration''\" \"$file\")",
+      "Bash(sqlite3:*)",
+      "Bash(git rm:*)",
+      "Bash(/tmp/fix-response.sh:*)",
+      "Bash(bash:*)",
+      "Bash(/tmp/fix-all-quotes.sh << 'EOFSCRIPT'\n#!/bin/bash\ncd \"/c/Users/Admin/Desktop/tran_stable/tr-vendor-app/screens/vendor/services\"\n\nfor screen in bus/BusQuoteDetailScreen.js equipment/EquipmentQuoteDetailScreen.js luxury/LuxuryQuoteDetailScreen.js packers/PackersQuoteDetailScreen.js self-drive/SelfDriveQuoteDetailScreen.js truck/TruckQuoteDetailScreen.js; do\n  echo \"Fixing: $screen\"\n  \n  # 1. Add getBaseURL to imports \\(find getVendorQuotes import and add getBaseURL\\)\n  sed -i \"s/from '..\\\\/..\\\\/..\\\\/api\\\\/client';/, getBaseURL } from '..\\\\/..\\\\/..\\\\/api\\\\/client';/g\" \"$screen\"\n  sed -i \"s/{ getVendorQuotes,/{ getVendorQuotes, getBaseURL,/g\" \"$screen\"\n  \n  # 2. Replace hardcoded baseUrl with dynamic one\n  sed -i \"s/const baseUrl = 'http:\\\\/\\\\/192\\\\.168\\\\.[0-9]*\\\\.[0-9]*:[0-9]*';.*$/\\\\/\\\\/ Dynamic base URL - set via useEffect/g\" \"$screen\"\n  \n  echo \"  ✓ Fixed $screen\"\ndone\n\necho \"All quote detail screens updated!\"\nEOFSCRIPT)",
+      "Bash(gh auth:*)",
+      "Bash(git config:*)",
+      "Bash(git restore:*)",
+      "Bash(gh api:*)",
+      "Bash(ngrok:*)",
+      "Bash(winget:*)",
+      "Bash(refreshenv)",
+      "Bash(export PATH=\"$PATH:/c/Users/Admin/AppData/Local/Microsoft/WinGet/Links\")",
+      "Bash(npm uninstall:*)",
+      "Bash(awk:*)"
     ],
     "deny": [],
     "ask": []
