@@ -135,6 +135,8 @@ export function Footer() {
     { name: 'About Us', href: '/about' },
     { name: 'Contact Us', href: '/contact' },
     { name: 'Become a Vendor', href: '/vendor' },
+    { name: 'Vendor Guide', href: '/vendor-guide.html', external: true },
+    { name: 'Interactive Guide', href: '/guide/vendor' },
     { name: 'Reflections', href: '/blog' },
     { name: 'Customer Login', href: `${process.env.NEXT_PUBLIC_API_URL?.replace('/api', '')}/customer/login`, external: true },
     { name: 'Vendor Login', href: `${process.env.NEXT_PUBLIC_API_URL?.replace('/api', '')}/vendor/login`, external: true },
