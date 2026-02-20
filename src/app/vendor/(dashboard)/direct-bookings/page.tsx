@@ -134,12 +134,7 @@ export default function DirectBookingsPage() {
             <p className="text-sm text-orange-700 flex-1">
               <strong className="font-bold">{pendingCount}</strong> booking{pendingCount > 1 ? 's' : ''} awaiting payment collection
             </p>
-            <button
-              onClick={() => { setActiveTab('all'); setSource('all'); setServiceFilter('all'); }}
-              className="text-xs font-semibold text-orange-600 hover:text-orange-800 shrink-0 underline underline-offset-2"
-            >
-              View all
-            </button>
+           
           </div>
         )}
 

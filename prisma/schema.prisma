@@ -3615,6 +3615,7 @@ model vendors {
   admin_users                                                     admin_users?                  @relation(fields: [approvedById], references: [id])
   vendor_booking_links                                            vendor_booking_links[]
   vendor_direct_bookings                                          vendor_direct_bookings[]
+  vendor_direct_booking_expenses                                  vendor_direct_booking_expenses[]
 
   @@index([approvedById], map: "vendors_approvedById_fkey")
   @@index([email])
@@ -4413,7 +4414,6 @@ model vendor_booking_links {
 
   vendor         vendors  @relation(fields: [vendorId], references: [id])
   vendor_direct_bookings         vendor_direct_bookings[]
-  vendor_direct_booking_expenses vendor_direct_booking_expenses[]
 
   @@unique([vendorId, serviceType])
   @@index([vendorId])

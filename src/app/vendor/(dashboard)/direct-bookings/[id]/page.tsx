@@ -10,7 +10,7 @@ import {
   Edit3, Save, Loader2, Trash2, User, Clock,
   IndianRupee, Receipt, Pencil, Share2, Copy, Check,
   UserCircle2, Truck, X, ChevronRight, Bike,
-  AlertTriangle, CheckCheck,
+  AlertTriangle, CheckCheck, Plus, Fuel, TrendingDown,
 } from 'lucide-react';
 
 interface AssignedDriver {
@@ -47,6 +47,20 @@ interface VehicleOption {
   color: string | null; fuelType: string | null; seatingCapacity: number | null;
   isAvailable: boolean; serviceName: string | null; serviceSlug: string | null;
 }
+interface BookingExpense {
+  id: string; category: string; amount: number;
+  note: string | null; expenseDate: string;
+}
+
+const EXPENSE_CATEGORIES = [
+  { value: 'fuel',           label: 'Fuel',           emoji: '⛽' },
+  { value: 'driver_payment', label: 'Driver Payment',  emoji: '👤' },
+  { value: 'toll',           label: 'Toll',            emoji: '🛣️' },
+  { value: 'parking',        label: 'Parking',         emoji: '🅿️' },
+  { value: 'maintenance',    label: 'Maintenance',     emoji: '🔧' },
+  { value: 'cleaning',       label: 'Cleaning',        emoji: '🧹' },
+  { value: 'other',          label: 'Other',           emoji: '📋' },
+];
 
 /* ── Status config ── */
 const STATUS_CFG: Record<string, {
@@ -90,6 +104,37 @@ const SERVICE_LABELS: Record<string, string> = {
   'packers-movers': '📦  Packers & Movers', equipment: '🔧  Equipment Rental', general: '📋  General',
 };
 
+/* ── Structured extras keys + icons ── */
+const EXTRA_KEYS: Record<string, { icon: string; label: string; color: string }> = {
+  'Use Type':   { icon: '🏭', label: 'Use Type',   color: 'bg-slate-100 text-slate-700' },
+  'Goods':      { icon: '📦', label: 'Goods',       color: 'bg-amber-50 text-amber-700' },
+  'Weight':     { icon: '⚖️', label: 'Weight',      color: 'bg-blue-50 text-blue-700' },
+  'Trip':       { icon: '🗺️', label: 'Trip Type',   color: 'bg-violet-50 text-violet-700' },
+  'Time':       { icon: '⏰', label: 'Time',         color: 'bg-indigo-50 text-indigo-700' },
+  'Passengers': { icon: '👥', label: 'Passengers',  color: 'bg-emerald-50 text-emerald-700' },
+  'Helmets':    { icon: '⛑️', label: 'Helmets',     color: 'bg-orange-50 text-orange-700' },
+  'Occasion':   { icon: '✨', label: 'Occasion',    color: 'bg-pink-50 text-pink-700' },
+  'License':    { icon: '🪪', label: 'License',     color: 'bg-gray-100 text-gray-700' },
+  'Duration':   { icon: '📅', label: 'Duration',    color: 'bg-cyan-50 text-cyan-700' },
+  'Units':      { icon: '🔢', label: 'Units',        color: 'bg-teal-50 text-teal-700' },
+  'Load':       { icon: '📦', label: 'Load Info',   color: 'bg-amber-50 text-amber-700' },
+};
+function parseNotes(raw: string | null): { extras: Record<string, string>; freeText: string } {
+  if (!raw) return { extras: {}, freeText: '' };
+  const lines = raw.split('\n');
+  const extras: Record<string, string> = {};
+  const freeLines: string[] = [];
+  for (const line of lines) {
+    const match = line.match(/^([^:]+):\s*(.+)$/);
+    if (match && EXTRA_KEYS[match[1].trim()]) {
+      extras[match[1].trim()] = match[2].trim();
+    } else {
+      freeLines.push(line);
+    }
+  }
+  return { extras, freeText: freeLines.join('\n').trim() };
+}
+
 /* ─────────────────────────────────────────────────────────────────────── */
 export default function DirectBookingDetailPage() {
   const params  = useParams();
@@ -105,6 +150,14 @@ export default function DirectBookingDetailPage() {
   const [notesVal, setNotesVal]   = useState('');
   const [copied, setCopied]       = useState(false);
 
+  /* ── Expense state ── */
+  const [expenses, setExpenses]         = useState<BookingExpense[]>([]);
+  const [expensesLoaded, setExpensesLoaded] = useState(false);
+  const [expenseForm, setExpenseForm]   = useState({ category: 'fuel', amount: '', note: '' });
+  const [addingExpense, setAddingExpense] = useState(false);
+  const [savingExpense, setSavingExpense] = useState(false);
+  const [deletingExpenseId, setDeletingExpenseId] = useState<string | null>(null);
+
   /* ── Assignment state ── */
   const [assignModal, setAssignModal]   = useState<'driver' | 'vehicle' | null>(null);
   const [assignOptions, setAssignOptions] = useState<{ drivers: DriverOption[]; vehicles: VehicleOption[] } | null>(null);
@@ -117,6 +170,42 @@ export default function DirectBookingDetailPage() {
       .then(d => { setBooking(d.booking); setNotesVal(d.booking?.vendorNotes || ''); })
       .finally(() => setLoading(false));
   }, [params.id]);
+
+  const loadExpenses = () => {
+    fetch(`/api/vendor/direct-bookings/${params.id}/expenses`, { credentials: 'include' })
+      .then(r => r.json())
+      .then(d => { setExpenses(d.expenses || []); setExpensesLoaded(true); });
+  };
+
+  const saveExpense = async () => {
+    if (!expenseForm.amount || isNaN(parseFloat(expenseForm.amount))) return;
+    setSavingExpense(true);
+    const res = await fetch(`/api/vendor/direct-bookings/${params.id}/expenses`, {
+      method: 'POST', credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        category: expenseForm.category,
+        amount:   parseFloat(expenseForm.amount),
+        note:     expenseForm.note || null,
+      }),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      setExpenses(prev => [data.expense, ...prev]);
+      setExpenseForm({ category: 'fuel', amount: '', note: '' });
+      setAddingExpense(false);
+    }
+    setSavingExpense(false);
+  };
+
+  const deleteExpense = async (expenseId: string) => {
+    setDeletingExpenseId(expenseId);
+    await fetch(`/api/vendor/direct-bookings/${params.id}/expenses/${expenseId}`, {
+      method: 'DELETE', credentials: 'include',
+    });
+    setExpenses(prev => prev.filter(e => e.id !== expenseId));
+    setDeletingExpenseId(null);
+  };
 
   const update = async (data: object) => {
     setUpdating(true);
@@ -352,52 +441,81 @@ export default function DirectBookingDetailPage() {
             </div>
 
             {/* Trip details */}
-            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
-              <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">Trip Details</p>
-              <div className="space-y-3">
-                <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 rounded-xl bg-blue-50 flex items-center justify-center shrink-0"><Car className="w-4 h-4 text-blue-500" /></div>
-                  <div>
-                    <p className="text-xs text-gray-400 font-medium">Service</p>
-                    <p className="text-sm font-semibold text-gray-800 mt-0.5">
-                      {SERVICE_LABELS[booking.serviceType] ?? booking.serviceType}
-                      {booking.vehicleType && <span className="text-gray-400 font-normal"> · {booking.vehicleType}</span>}
-                    </p>
+            {(() => {
+              const { extras, freeText } = parseNotes(booking.notes);
+              const extraEntries = Object.entries(extras);
+              return (
+                <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
+                  <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">Trip Details</p>
+                  <div className="space-y-3">
+                    {/* Service */}
+                    <div className="flex items-start gap-3">
+                      <div className="w-8 h-8 rounded-xl bg-blue-50 flex items-center justify-center shrink-0"><Car className="w-4 h-4 text-blue-500" /></div>
+                      <div>
+                        <p className="text-xs text-gray-400 font-medium">Service</p>
+                        <p className="text-sm font-semibold text-gray-800 mt-0.5">
+                          {SERVICE_LABELS[booking.serviceType] ?? booking.serviceType}
+                          {booking.vehicleType && <span className="text-gray-400 font-normal"> · {booking.vehicleType}</span>}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Structured extras (Use Type, Goods, Weight, Trip, etc.) */}
+                    {extraEntries.length > 0 && (
+                      <div className="flex flex-wrap gap-2 pt-1">
+                        {extraEntries.map(([key, val]) => {
+                          const cfg = EXTRA_KEYS[key];
+                          return (
+                            <span key={key} className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 rounded-lg ${cfg.color}`}>
+                              <span>{cfg.icon}</span>
+                              <span className="text-[10px] opacity-70 font-normal">{cfg.label}:</span>
+                              {val}
+                            </span>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    {/* Dates */}
+                    {(booking.pickupDate || booking.returnDate) && (
+                      <div className="flex items-start gap-3">
+                        <div className="w-8 h-8 rounded-xl bg-violet-50 flex items-center justify-center shrink-0"><Calendar className="w-4 h-4 text-violet-500" /></div>
+                        <div>
+                          <p className="text-xs text-gray-400 font-medium">Dates</p>
+                          <p className="text-sm font-semibold text-gray-800 mt-0.5">
+                            {formatDate(booking.pickupDate)}
+                            {booking.returnDate && <span className="text-gray-400 font-normal"> → {formatDate(booking.returnDate)}</span>}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Route */}
+                    {(booking.pickupLocation || booking.dropLocation) && (
+                      <div className="flex items-start gap-3">
+                        <div className="w-8 h-8 rounded-xl bg-emerald-50 flex items-center justify-center shrink-0"><MapPin className="w-4 h-4 text-emerald-500" /></div>
+                        <div>
+                          <p className="text-xs text-gray-400 font-medium">Route</p>
+                          {booking.pickupLocation && <p className="text-sm font-semibold text-gray-800 mt-0.5">{booking.pickupLocation}</p>}
+                          {booking.dropLocation && <p className="text-sm text-gray-500 mt-0.5 flex items-center gap-1"><span className="text-gray-300">→</span> {booking.dropLocation}</p>}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Customer free-text note */}
+                    {freeText && (
+                      <div className="flex items-start gap-3">
+                        <div className="w-8 h-8 rounded-xl bg-amber-50 flex items-center justify-center shrink-0"><MessageSquare className="w-4 h-4 text-amber-500" /></div>
+                        <div>
+                          <p className="text-xs text-gray-400 font-medium">Customer Note</p>
+                          <p className="text-sm text-gray-700 mt-0.5 leading-relaxed whitespace-pre-line">{freeText}</p>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
-                {(booking.pickupDate || booking.returnDate) && (
-                  <div className="flex items-start gap-3">
-                    <div className="w-8 h-8 rounded-xl bg-violet-50 flex items-center justify-center shrink-0"><Calendar className="w-4 h-4 text-violet-500" /></div>
-                    <div>
-                      <p className="text-xs text-gray-400 font-medium">Dates</p>
-                      <p className="text-sm font-semibold text-gray-800 mt-0.5">
-                        {formatDate(booking.pickupDate)}
-                        {booking.returnDate && <span className="text-gray-400 font-normal"> → {formatDate(booking.returnDate)}</span>}
-                      </p>
-                    </div>
-                  </div>
-                )}
-                {(booking.pickupLocation || booking.dropLocation) && (
-                  <div className="flex items-start gap-3">
-                    <div className="w-8 h-8 rounded-xl bg-emerald-50 flex items-center justify-center shrink-0"><MapPin className="w-4 h-4 text-emerald-500" /></div>
-                    <div>
-                      <p className="text-xs text-gray-400 font-medium">Route</p>
-                      {booking.pickupLocation && <p className="text-sm font-semibold text-gray-800 mt-0.5">{booking.pickupLocation}</p>}
-                      {booking.dropLocation && <p className="text-sm text-gray-500 mt-0.5 flex items-center gap-1"><span className="text-gray-300">→</span> {booking.dropLocation}</p>}
-                    </div>
-                  </div>
-                )}
-                {booking.notes && (
-                  <div className="flex items-start gap-3">
-                    <div className="w-8 h-8 rounded-xl bg-amber-50 flex items-center justify-center shrink-0"><MessageSquare className="w-4 h-4 text-amber-500" /></div>
-                    <div>
-                      <p className="text-xs text-gray-400 font-medium">Customer Note</p>
-                      <p className="text-sm text-gray-700 mt-0.5 leading-relaxed">{booking.notes}</p>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
+              );
+            })()}
 
             {/* ── Assignment card ── */}
             <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
@@ -501,6 +619,168 @@ export default function DirectBookingDetailPage() {
                 </div>
               )}
             </div>
+
+            {/* ── Expenses card ── */}
+            {(() => {
+              const totalExp   = expenses.reduce((s, e) => s + Number(e.amount), 0);
+              const revenue    = Number(booking.totalAmount || 0);
+              const collected  = Number(booking.paidAmount || 0);
+              const netProfit  = collected - totalExp;
+              return (
+                <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+                  {/* Header */}
+                  <div className="px-5 pt-5 pb-3 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Expenses</p>
+                      {expenses.length > 0 && (
+                        <span className="text-xs font-bold text-red-600 bg-red-50 px-2 py-0.5 rounded-full">
+                          ₹{totalExp.toLocaleString('en-IN')}
+                        </span>
+                      )}
+                    </div>
+                    <button
+                      onClick={() => {
+                        if (!expensesLoaded) loadExpenses();
+                        setAddingExpense(v => !v);
+                      }}
+                      className="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-xl bg-orange-50 hover:bg-orange-100 text-orange-700 transition"
+                    >
+                      <Plus className="w-3.5 h-3.5" /> Add Expense
+                    </button>
+                  </div>
+
+                  {/* Lazy load trigger */}
+                  {!expensesLoaded && !addingExpense && (
+                    <div className="px-5 pb-4">
+                      <button
+                        onClick={loadExpenses}
+                        className="text-xs text-blue-600 hover:underline font-medium"
+                      >
+                        View all expenses
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Add expense inline form */}
+                  {addingExpense && (
+                    <div className="mx-5 mb-4 p-4 bg-orange-50 rounded-2xl border border-orange-100 space-y-3">
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wide mb-1">Category</label>
+                          <select
+                            value={expenseForm.category}
+                            onChange={e => setExpenseForm(p => ({ ...p, category: e.target.value }))}
+                            className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-orange-400"
+                          >
+                            {EXPENSE_CATEGORIES.map(c => (
+                              <option key={c.value} value={c.value}>{c.emoji} {c.label}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wide mb-1">Amount (₹)</label>
+                          <input
+                            type="number"
+                            placeholder="0"
+                            value={expenseForm.amount}
+                            onChange={e => setExpenseForm(p => ({ ...p, amount: e.target.value }))}
+                            className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wide mb-1">Note (optional)</label>
+                        <input
+                          type="text"
+                          placeholder="e.g. Filled 30L at HP pump"
+                          value={expenseForm.note}
+                          onChange={e => setExpenseForm(p => ({ ...p, note: e.target.value }))}
+                          className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
+                        />
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={saveExpense}
+                          disabled={savingExpense || !expenseForm.amount}
+                          className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-orange-600 hover:bg-orange-700 text-white rounded-xl text-sm font-bold transition disabled:opacity-60"
+                        >
+                          {savingExpense ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Check className="w-4 h-4" /> Save</>}
+                        </button>
+                        <button
+                          onClick={() => setAddingExpense(false)}
+                          className="px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm font-semibold text-gray-500 hover:bg-gray-50 transition"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Expense list */}
+                  {expensesLoaded && expenses.length === 0 && (
+                    <p className="px-5 pb-4 text-sm text-gray-400 italic">No expenses recorded yet.</p>
+                  )}
+                  {expenses.length > 0 && (
+                    <div className="divide-y divide-gray-100">
+                      {expenses.map(exp => {
+                        const cat = EXPENSE_CATEGORIES.find(c => c.value === exp.category);
+                        return (
+                          <div key={exp.id} className="flex items-center gap-3 px-5 py-3">
+                            <div className="w-8 h-8 rounded-xl bg-orange-50 flex items-center justify-center text-base shrink-0">
+                              {cat?.emoji ?? '📋'}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-semibold text-gray-800">{cat?.label ?? exp.category}</p>
+                              {exp.note && <p className="text-xs text-gray-400 truncate">{exp.note}</p>}
+                            </div>
+                            <div className="text-right shrink-0">
+                              <p className="text-sm font-bold text-red-600">−₹{Number(exp.amount).toLocaleString('en-IN')}</p>
+                              <p className="text-[10px] text-gray-400">
+                                {new Date(exp.expenseDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}
+                              </p>
+                            </div>
+                            <button
+                              onClick={() => deleteExpense(exp.id)}
+                              disabled={deletingExpenseId === exp.id}
+                              className="w-7 h-7 rounded-lg bg-red-50 hover:bg-red-100 flex items-center justify-center transition ml-1 shrink-0"
+                            >
+                              {deletingExpenseId === exp.id
+                                ? <Loader2 className="w-3.5 h-3.5 text-red-400 animate-spin" />
+                                : <Trash2 className="w-3.5 h-3.5 text-red-400" />
+                              }
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {/* P&L summary */}
+                  {expenses.length > 0 && (
+                    <div className="mx-5 mb-5 mt-3 p-4 bg-gray-50 rounded-2xl border border-gray-100 space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-500">Revenue</span>
+                        <span className="font-semibold text-gray-800">₹{revenue.toLocaleString('en-IN')}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-500">Collected</span>
+                        <span className="font-semibold text-emerald-600">₹{collected.toLocaleString('en-IN')}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-500">Total Expenses</span>
+                        <span className="font-semibold text-red-600">−₹{totalExp.toLocaleString('en-IN')}</span>
+                      </div>
+                      <div className="border-t border-gray-200 pt-2 flex justify-between">
+                        <span className="text-sm font-bold text-gray-700">Net Earnings</span>
+                        <span className={`text-sm font-bold ${netProfit >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                          {netProfit >= 0 ? '+' : ''}₹{netProfit.toLocaleString('en-IN')}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
 
             {/* Vendor notes */}
             <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">

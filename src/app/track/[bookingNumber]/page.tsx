@@ -55,6 +55,36 @@ const SERVICE_LABELS: Record<string, string> = {
   general:          '📋 General',
 };
 
+const EXTRA_KEYS: Record<string, { icon: string; label: string }> = {
+  'Use Type':   { icon: '🏭', label: 'Use Type' },
+  'Goods':      { icon: '📦', label: 'Goods' },
+  'Weight':     { icon: '⚖️', label: 'Weight' },
+  'Trip':       { icon: '🗺️', label: 'Trip Type' },
+  'Time':       { icon: '⏰', label: 'Pickup Time' },
+  'Passengers': { icon: '👥', label: 'Passengers' },
+  'Helmets':    { icon: '⛑️', label: 'Helmets' },
+  'Occasion':   { icon: '✨', label: 'Occasion' },
+  'License':    { icon: '🪪', label: 'License' },
+  'Duration':   { icon: '📅', label: 'Duration' },
+  'Units':      { icon: '🔢', label: 'Units' },
+  'Load':       { icon: '📦', label: 'Load Info' },
+};
+function parseNotes(raw: string | null): { extras: Record<string, string>; freeText: string } {
+  if (!raw) return { extras: {}, freeText: '' };
+  const lines = raw.split('\n');
+  const extras: Record<string, string> = {};
+  const freeLines: string[] = [];
+  for (const line of lines) {
+    const match = line.match(/^([^:]+):\s*(.+)$/);
+    if (match && EXTRA_KEYS[match[1].trim()]) {
+      extras[match[1].trim()] = match[2].trim();
+    } else {
+      freeLines.push(line);
+    }
+  }
+  return { extras, freeText: freeLines.join('\n').trim() };
+}
+
 const PAYMENT_LABELS: Record<string, { label: string; color: string; bg: string }> = {
   pending:     { label: 'Payment Pending',   color: 'text-orange-700', bg: 'bg-orange-50 border-orange-200' },
   partial:     { label: 'Advance Paid',      color: 'text-yellow-700', bg: 'bg-yellow-50 border-yellow-200' },
@@ -466,67 +496,89 @@ export default function BookingTrackPage() {
               )}
 
               {/* Trip Details */}
-              <div className="bg-white/5 border border-white/10 rounded-3xl p-6 backdrop-blur-sm">
-                <h3 className="text-white/40 text-xs font-bold uppercase tracking-widest mb-5">Trip Details</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {/* Service */}
-                  <div className="flex items-start gap-3 bg-white/3 rounded-2xl p-3">
-                    <div className="w-8 h-8 rounded-xl bg-violet-500/20 flex items-center justify-center shrink-0">
-                      <Car className="w-4 h-4 text-violet-400" />
-                    </div>
-                    <div>
-                      <p className="text-white/40 text-xs">Service</p>
-                      <p className="text-white text-sm font-semibold mt-0.5">{SERVICE_LABELS[booking.serviceType] ?? booking.serviceType}</p>
-                      {booking.vehicleType && <p className="text-white/50 text-xs mt-0.5">{booking.vehicleType}</p>}
+              {(() => {
+                const { extras, freeText } = parseNotes(booking.notes);
+                const extraEntries = Object.entries(extras);
+                return (
+                  <div className="bg-white/5 border border-white/10 rounded-3xl p-6 backdrop-blur-sm">
+                    <h3 className="text-white/40 text-xs font-bold uppercase tracking-widest mb-5">Trip Details</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {/* Service */}
+                      <div className="flex items-start gap-3 bg-white/3 rounded-2xl p-3">
+                        <div className="w-8 h-8 rounded-xl bg-violet-500/20 flex items-center justify-center shrink-0">
+                          <Car className="w-4 h-4 text-violet-400" />
+                        </div>
+                        <div>
+                          <p className="text-white/40 text-xs">Service</p>
+                          <p className="text-white text-sm font-semibold mt-0.5">{SERVICE_LABELS[booking.serviceType] ?? booking.serviceType}</p>
+                          {booking.vehicleType && <p className="text-white/60 text-xs mt-0.5">{booking.vehicleType}</p>}
+                        </div>
+                      </div>
+
+                      {/* Dates */}
+                      {(booking.pickupDate || booking.returnDate) && (
+                        <div className="flex items-start gap-3 bg-white/3 rounded-2xl p-3">
+                          <div className="w-8 h-8 rounded-xl bg-blue-500/20 flex items-center justify-center shrink-0">
+                            <Calendar className="w-4 h-4 text-blue-400" />
+                          </div>
+                          <div>
+                            <p className="text-white/40 text-xs">Dates</p>
+                            {booking.pickupDate && <p className="text-white text-sm font-semibold mt-0.5">{formatDate(booking.pickupDate)}</p>}
+                            {booking.returnDate && <p className="text-white/50 text-xs mt-0.5 flex items-center gap-1"><ArrowRight className="w-3 h-3" />{formatDate(booking.returnDate)}</p>}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Structured extras chips */}
+                      {extraEntries.length > 0 && (
+                        <div className="sm:col-span-2 flex flex-wrap gap-2">
+                          {extraEntries.map(([key, val]) => {
+                            const cfg = EXTRA_KEYS[key];
+                            return (
+                              <span key={key} className="inline-flex items-center gap-1.5 bg-white/8 border border-white/10 rounded-xl px-3 py-1.5 text-xs font-semibold text-white/80">
+                                <span>{cfg.icon}</span>
+                                <span className="text-white/40 font-normal">{cfg.label}:</span>
+                                {val}
+                              </span>
+                            );
+                          })}
+                        </div>
+                      )}
+
+                      {/* Pickup / Drop */}
+                      {booking.pickupLocation && (
+                        <div className="flex items-start gap-3 bg-white/3 rounded-2xl p-3 sm:col-span-2">
+                          <div className="w-8 h-8 rounded-xl bg-emerald-500/20 flex items-center justify-center shrink-0">
+                            <MapPin className="w-4 h-4 text-emerald-400" />
+                          </div>
+                          <div>
+                            <p className="text-white/40 text-xs">Pickup Location</p>
+                            <p className="text-white text-sm font-semibold mt-0.5">{booking.pickupLocation}</p>
+                            {booking.dropLocation && (
+                              <p className="text-white/50 text-xs mt-1 flex items-center gap-1">
+                                <ArrowRight className="w-3 h-3" /> Drop: {booking.dropLocation}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Free-text customer note */}
+                      {freeText && (
+                        <div className="flex items-start gap-3 bg-white/3 rounded-2xl p-3 sm:col-span-2">
+                          <div className="w-8 h-8 rounded-xl bg-amber-500/20 flex items-center justify-center shrink-0">
+                            <MessageSquare className="w-4 h-4 text-amber-400" />
+                          </div>
+                          <div>
+                            <p className="text-white/40 text-xs">Your Note</p>
+                            <p className="text-white/70 text-sm mt-0.5 whitespace-pre-line">{freeText}</p>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
-
-                  {/* Dates */}
-                  {(booking.pickupDate || booking.returnDate) && (
-                    <div className="flex items-start gap-3 bg-white/3 rounded-2xl p-3">
-                      <div className="w-8 h-8 rounded-xl bg-blue-500/20 flex items-center justify-center shrink-0">
-                        <Calendar className="w-4 h-4 text-blue-400" />
-                      </div>
-                      <div>
-                        <p className="text-white/40 text-xs">Dates</p>
-                        {booking.pickupDate && <p className="text-white text-sm font-semibold mt-0.5">{formatDate(booking.pickupDate)}</p>}
-                        {booking.returnDate && <p className="text-white/50 text-xs mt-0.5 flex items-center gap-1"><ArrowRight className="w-3 h-3" />{formatDate(booking.returnDate)}</p>}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Pickup */}
-                  {booking.pickupLocation && (
-                    <div className="flex items-start gap-3 bg-white/3 rounded-2xl p-3 sm:col-span-2">
-                      <div className="w-8 h-8 rounded-xl bg-emerald-500/20 flex items-center justify-center shrink-0">
-                        <MapPin className="w-4 h-4 text-emerald-400" />
-                      </div>
-                      <div>
-                        <p className="text-white/40 text-xs">Pickup Location</p>
-                        <p className="text-white text-sm font-semibold mt-0.5">{booking.pickupLocation}</p>
-                        {booking.dropLocation && (
-                          <p className="text-white/50 text-xs mt-1 flex items-center gap-1">
-                            <ArrowRight className="w-3 h-3" /> Drop: {booking.dropLocation}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Notes */}
-                  {booking.notes && (
-                    <div className="flex items-start gap-3 bg-white/3 rounded-2xl p-3 sm:col-span-2">
-                      <div className="w-8 h-8 rounded-xl bg-amber-500/20 flex items-center justify-center shrink-0">
-                        <MessageSquare className="w-4 h-4 text-amber-400" />
-                      </div>
-                      <div>
-                        <p className="text-white/40 text-xs">Notes</p>
-                        <p className="text-white/70 text-sm mt-0.5 whitespace-pre-line">{booking.notes}</p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
+                );
+              })()}
 
               {/* Mobile footer */}
               <p className="lg:hidden text-center text-white/20 text-xs pb-2">

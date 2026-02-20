@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import {
   CheckCircle, Phone, MapPin, Calendar, Car, User, Mail,
   MessageSquare, Clock, Users, Star, ChevronRight, Send,
-  Loader2, ArrowLeft, Shield, Zap,
+  Loader2, ArrowLeft, Shield, Zap, Package, Weight,
 } from 'lucide-react';
 
 /* ─── Types ─────────────────────────────────────────────────────────────── */
@@ -77,6 +77,55 @@ const LUXURY_OCCASIONS = [
   { value: 'other',       label: 'Other' },
 ];
 
+const TRUCK_TYPES = [
+  { value: 'Tata Ace',                  label: '🚚 Tata Ace',              sub: 'Upto 0.75 MT' },
+  { value: 'Tata 407 (2.5 MT)',         label: '🚚 Tata 407',              sub: '2.5 MT' },
+  { value: 'Canter 17ft (4 Wheel)',     label: '🚚 Canter 17ft',           sub: '4 Wheel' },
+  { value: 'Truck 9MT (6 Wheel)',       label: '🚛 Truck 9MT',             sub: '6 Wheel' },
+  { value: 'Truck 16MT (10 Wheel)',     label: '🚚 Truck 16MT',            sub: '10 Wheel' },
+  { value: 'Truck 20MT (12 Wheel)',     label: '🚚 Truck 20MT',            sub: '12 Wheel' },
+  { value: 'Truck 25MT (14 Wheel)',     label: '🚛 Truck 25MT',            sub: '14 Wheel' },
+  { value: 'Semi Low Bed Trailer',      label: '🚛 Semi Low Bed Trailer',  sub: 'Heavy Load' },
+  { value: 'LCV (Light Commercial)',    label: '🚚 LCV',                   sub: 'Light Commercial' },
+];
+
+const GOODS_TYPES = [
+  { value: 'Household Goods',       icon: '🏠' },
+  { value: 'Furniture & Wood',      icon: '🪑' },
+  { value: 'Electronics',           icon: '📺' },
+  { value: 'Vehicles/Automobiles',  icon: '🚗' },
+  { value: 'Building Materials',    icon: '🧱' },
+  { value: 'Agricultural Produce',  icon: '🌾' },
+  { value: 'Industrial Goods',      icon: '⚙️' },
+  { value: 'Fragile / Delicate',    icon: '📦' },
+  { value: 'Other',                 icon: '📋' },
+];
+
+const EQUIPMENT_TYPES = [
+  { value: 'JCB / Excavator',       label: '🚧 JCB / Excavator',        sub: 'Earthmoving' },
+  { value: 'Crane (Grove)',          label: '🏗️ Grove Crane',            sub: 'Heavy Lift' },
+  { value: 'Truck Mounted Crane',    label: '🚚 Truck Mounted Crane',    sub: 'Mobile Crane' },
+  { value: 'Tower Crane',            label: '🏗️ Tower Crane',            sub: 'Construction' },
+  { value: 'Telescopic Crane',       label: '🏗️ Telescopic Crane',       sub: 'Reach Crane' },
+  { value: 'Rough Terrain Crane',    label: '🏗️ Rough Terrain Crane',    sub: 'Off-road' },
+  { value: 'Hydra Crane',            label: '🏗️ Hydra Crane',            sub: 'Loading/Unloading' },
+  { value: 'Overhead Crane',         label: '🏗️ Overhead Crane',         sub: 'Industrial' },
+  { value: 'Bulldozer',              label: '🚜 Bulldozer',               sub: 'Earthmoving' },
+  { value: 'Dumper',                 label: '🚛 Dumper',                  sub: 'Material Hauling' },
+  { value: 'Loader',                 label: '🚜 Loader',                  sub: 'Loading' },
+  { value: 'Backhoe Loader',         label: '🚜 Backhoe Loader',          sub: 'Multi-purpose' },
+  { value: 'Generator',              label: '⚡ Generator',               sub: 'Power Backup' },
+  { value: 'Concrete Mixer',         label: '🔄 Concrete Mixer',          sub: 'Construction' },
+  { value: 'Other',                  label: '📋 Other Equipment',         sub: 'Custom' },
+];
+
+const EQUIP_DURATION_OPTIONS = [
+  { value: '1 to 5 Days',      icon: '📅' },
+  { value: '6 to 15 Days',     icon: '📆' },
+  { value: '16 to 30 Days',    icon: '🗓️' },
+  { value: 'More than 30 Days',icon: '📊' },
+];
+
 /* ─── Shared input styles ────────────────────────────────────────────────── */
 const inp = 'w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent transition-shadow hover:shadow-sm';
 const inpIcon = 'w-full bg-white border border-gray-200 rounded-xl pl-10 pr-4 py-3 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent transition-shadow hover:shadow-sm';
@@ -94,11 +143,19 @@ export default function VendorBookingFormClient({ vendorSlug, serviceType, servi
     pickupLocation: '', dropLocation: '', notes: '',
     tripType: '', pickupTime: '', passengerCount: '',
     helmetCount: '', occasion: '', licenseNumber: '',
+    // Transporter-specific
+    useType: '', goodsType: '', goodsWeight: '', weightUnit: 'KG',
+    // Equipment-specific
+    equipType: '', equipDuration: '', equipUnits: '',
   });
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [bookingNumber, setBookingNumber] = useState('');
   const [error, setError] = useState('');
+  const [showAllTrucks, setShowAllTrucks] = useState(false);
+  const [customTruckType, setCustomTruckType] = useState('');
+  const [showAllEquip, setShowAllEquip] = useState(false);
+  const [customEquipType, setCustomEquipType] = useState('');
 
   useEffect(() => {
     if (serviceType === 'all') setScreen('pick');
@@ -118,7 +175,11 @@ export default function VendorBookingFormClient({ vendorSlug, serviceType, servi
   const today = new Date().toISOString().split('T')[0];
 
   const pickService = (v: string) => {
-    setForm(p => ({ ...p, selectedService: v, vehicleType: '', tripType: '', pickupTime: '', passengerCount: '', helmetCount: '', occasion: '', licenseNumber: '' }));
+    setForm(p => ({ ...p, selectedService: v, vehicleType: '', tripType: '', pickupTime: '', passengerCount: '', helmetCount: '', occasion: '', licenseNumber: '', equipType: '', equipDuration: '', equipUnits: '' }));
+    setShowAllTrucks(false);
+    setCustomTruckType('');
+    setShowAllEquip(false);
+    setCustomEquipType('');
     setScreen('form');
   };
 
@@ -135,6 +196,11 @@ export default function VendorBookingFormClient({ vendorSlug, serviceType, servi
     if (form.helmetCount)    extras.push(`Helmets: ${form.helmetCount}`);
     if (form.occasion)       extras.push(`Occasion: ${form.occasion}`);
     if (form.licenseNumber)  extras.push(`License: ${form.licenseNumber}`);
+    if (form.useType)        extras.push(`Use Type: ${form.useType}`);
+    if (form.goodsType)      extras.push(`Goods: ${form.goodsType}`);
+    if (form.goodsWeight)    extras.push(`Weight: ${form.goodsWeight} ${form.weightUnit}`);
+    if (form.equipDuration)  extras.push(`Duration: ${form.equipDuration}`);
+    if (form.equipUnits)     extras.push(`Units: ${form.equipUnits}`);
 
     setSubmitting(true);
     try {
@@ -417,8 +483,8 @@ export default function VendorBookingFormClient({ vendorSlug, serviceType, servi
                   </div>
 
                   <div className="space-y-3">
-                    {/* Vehicle type */}
-                    {activeVehicles.length > 0 && (
+                    {/* Vehicle type — hidden for transporter and equipment (handled by card grid below) */}
+                    {activeVehicles.length > 0 && activeService !== 'transporter' && activeService !== 'equipment' && (
                       <div className="relative">
                         <Car className={iconPos} />
                         <select value={form.vehicleType} onChange={e => set('vehicleType', e.target.value)} className={inpIcon + ' appearance-none bg-white'}>
@@ -496,6 +562,211 @@ export default function VendorBookingFormClient({ vendorSlug, serviceType, servi
                         <div className="relative">
                           <Clock className={iconPos} />
                           <input type="time" value={form.pickupTime} onChange={e => set('pickupTime', e.target.value)} className={inpIcon} />
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Transporter / Truck */}
+                    {(activeService === 'transporter') && (
+                      <div className="space-y-3">
+                        {/* Personal / Commercial */}
+                        <div>
+                          <p className="text-xs font-semibold text-gray-500 mb-2">Is this for personal or commercial use?</p>
+                          <div className="grid grid-cols-2 gap-2">
+                            {[
+                              { value: 'Personal',   icon: '🏠', label: 'Personal Use' },
+                              { value: 'Commercial', icon: '🏭', label: 'Commercial Use' },
+                            ].map(opt => (
+                              <button
+                                key={opt.value} type="button"
+                                onClick={() => set('useType', opt.value)}
+                                className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 text-sm font-semibold transition ${
+                                  form.useType === opt.value
+                                    ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
+                                    : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
+                                }`}
+                              >
+                                <span className="text-base">{opt.icon}</span> {opt.label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Truck type — card grid with expand + custom */}
+                        <div>
+                          <p className="text-xs font-semibold text-gray-500 mb-2">What type of truck do you need?</p>
+                          <div className="grid grid-cols-2 gap-2">
+                            {(showAllTrucks ? TRUCK_TYPES : TRUCK_TYPES.slice(0, 4)).map(t => (
+                              <button
+                                key={t.value} type="button"
+                                onClick={() => { set('vehicleType', form.vehicleType === t.value ? '' : t.value); setCustomTruckType(''); }}
+                                className={`flex flex-col items-start px-3 py-2.5 rounded-xl border-2 text-left transition ${
+                                  form.vehicleType === t.value
+                                    ? 'border-indigo-500 bg-indigo-50'
+                                    : 'border-gray-200 bg-white hover:border-gray-300'
+                                }`}
+                              >
+                                <span className="text-sm font-semibold text-gray-800">{t.label}</span>
+                                <span className="text-[11px] text-gray-400 mt-0.5">{t.sub}</span>
+                              </button>
+                            ))}
+
+                            {/* More / Less toggle */}
+                            {!showAllTrucks && (
+                              <button
+                                type="button"
+                                onClick={() => setShowAllTrucks(true)}
+                                className="flex flex-col items-start px-3 py-2.5 rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 hover:border-indigo-400 hover:bg-indigo-50 text-left transition"
+                              >
+                                <span className="text-sm font-semibold text-gray-500">🚛 More Options</span>
+                                <span className="text-[11px] text-gray-400 mt-0.5">See all types</span>
+                              </button>
+                            )}
+                          </div>
+
+                          {showAllTrucks && (
+                            <button
+                              type="button"
+                              onClick={() => setShowAllTrucks(false)}
+                              className="mt-1.5 text-xs text-indigo-500 hover:text-indigo-700 font-semibold"
+                            >
+                              ▲ Show less
+                            </button>
+                          )}
+
+                          {/* Custom truck type input */}
+                          <div className="mt-2">
+                            <input
+                              type="text"
+                              placeholder="Or type your own (e.g. Flatbed 30MT)…"
+                              value={customTruckType}
+                              onChange={e => {
+                                setCustomTruckType(e.target.value);
+                                set('vehicleType', e.target.value);
+                              }}
+                              onFocus={() => set('vehicleType', customTruckType)}
+                              className={`${inp} text-sm ${customTruckType ? 'border-indigo-400 ring-1 ring-indigo-300' : ''}`}
+                            />
+                          </div>
+                        </div>
+
+                        {/* Goods type */}
+                        <div>
+                          <p className="text-xs font-semibold text-gray-500 mb-2">What type of goods are you transporting?</p>
+                          <div className="grid grid-cols-3 gap-1.5">
+                            {GOODS_TYPES.map(g => (
+                              <button
+                                key={g.value} type="button"
+                                onClick={() => set('goodsType', form.goodsType === g.value ? '' : g.value)}
+                                className={`flex flex-col items-center gap-1 px-2 py-2 rounded-xl border-2 text-center transition ${
+                                  form.goodsType === g.value
+                                    ? 'border-indigo-500 bg-indigo-50'
+                                    : 'border-gray-200 bg-white hover:border-gray-300'
+                                }`}
+                              >
+                                <span className="text-lg">{g.icon}</span>
+                                <span className="text-[10px] font-semibold text-gray-700 leading-tight">{g.value}</span>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Weight */}
+                        <div>
+                          <p className="text-xs font-semibold text-gray-500 mb-2">Approximate weight of goods (optional)</p>
+                          <div className="flex gap-2">
+                            <div className="relative flex-1">
+                              <Package className={iconPos} />
+                              <input
+                                type="number" min="0" placeholder="Weight"
+                                value={form.goodsWeight}
+                                onChange={e => set('goodsWeight', e.target.value)}
+                                className={inpIcon}
+                              />
+                            </div>
+                            <div className="flex rounded-xl border-2 border-gray-200 overflow-hidden shrink-0">
+                              {['KG', 'TON'].map(unit => (
+                                <button
+                                  key={unit} type="button"
+                                  onClick={() => set('weightUnit', unit)}
+                                  className={`px-4 py-2 text-sm font-bold transition ${
+                                    form.weightUnit === unit
+                                      ? 'bg-indigo-600 text-white'
+                                      : 'bg-white text-gray-500 hover:bg-gray-50'
+                                  }`}
+                                >
+                                  {unit}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Equipment */}
+                    {activeService === 'equipment' && (
+                      <div className="space-y-3">
+                        {/* Equipment type card grid */}
+                        <div>
+                          <p className="text-xs font-semibold text-gray-500 mb-2">What type of equipment do you need?</p>
+                          <div className="grid grid-cols-2 gap-2">
+                            {(showAllEquip ? EQUIPMENT_TYPES : EQUIPMENT_TYPES.slice(0, 4)).map(t => (
+                              <button key={t.value} type="button"
+                                onClick={() => { set('vehicleType', form.vehicleType === t.value ? '' : t.value); setCustomEquipType(''); }}
+                                className={`flex flex-col items-start px-3 py-2.5 rounded-xl border-2 text-left transition ${
+                                  form.vehicleType === t.value ? 'border-red-500 bg-red-50' : 'border-gray-200 bg-white hover:border-gray-300'
+                                }`}>
+                                <span className="text-sm font-semibold text-gray-800">{t.label}</span>
+                                <span className="text-[11px] text-gray-400 mt-0.5">{t.sub}</span>
+                              </button>
+                            ))}
+                            {!showAllEquip && (
+                              <button type="button" onClick={() => setShowAllEquip(true)}
+                                className="flex flex-col items-start px-3 py-2.5 rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 hover:border-red-400 hover:bg-red-50 text-left transition">
+                                <span className="text-sm font-semibold text-gray-500">📋 More Equipment</span>
+                                <span className="text-[11px] text-gray-400 mt-0.5">See all types</span>
+                              </button>
+                            )}
+                          </div>
+                          {showAllEquip && (
+                            <button type="button" onClick={() => setShowAllEquip(false)} className="mt-1.5 text-xs text-red-500 hover:text-red-700 font-semibold">▲ Show less</button>
+                          )}
+                          <input
+                            type="text" placeholder="Or type your own equipment…"
+                            value={customEquipType}
+                            onChange={e => { setCustomEquipType(e.target.value); set('vehicleType', e.target.value); }}
+                            onFocus={() => set('vehicleType', customEquipType)}
+                            className={`${inp} text-sm mt-2 ${customEquipType ? 'border-red-400 ring-1 ring-red-300' : ''}`}
+                          />
+                        </div>
+
+                        {/* Duration */}
+                        <div>
+                          <p className="text-xs font-semibold text-gray-500 mb-2">How long do you need it?</p>
+                          <div className="grid grid-cols-2 gap-2">
+                            {EQUIP_DURATION_OPTIONS.map(d => (
+                              <button key={d.value} type="button"
+                                onClick={() => set('equipDuration', form.equipDuration === d.value ? '' : d.value)}
+                                className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 text-sm font-semibold transition ${
+                                  form.equipDuration === d.value ? 'border-red-500 bg-red-50 text-red-700' : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
+                                }`}>
+                                <span>{d.icon}</span> {d.value}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Units */}
+                        <div>
+                          <p className="text-xs font-semibold text-gray-500 mb-2">How many units? <span className="font-normal text-gray-400">(optional)</span></p>
+                          <div className="relative">
+                            <input type="number" min="1" placeholder="e.g. 2"
+                              value={form.equipUnits}
+                              onChange={e => set('equipUnits', e.target.value)}
+                              className={inp + ' text-sm'}
+                            />
+                          </div>
                         </div>
                       </div>
                     )}

@@ -40,8 +40,55 @@ const CAR_TRIP_TYPES   = ['Local (within city)', 'Outstation – One Way', 'Outs
 const BUS_TRIP_TYPES   = ['Local / Sightseeing', 'Outstation Trip', 'Wedding', 'Pilgrimage / Religious', 'Corporate / Office', 'School / College'];
 const LUXURY_OCCASIONS = ['Wedding', 'Corporate Event', 'Birthday', 'Anniversary', 'Photoshoot', 'Airport Transfer', 'Other'];
 const MOVE_SIZES       = ['1 BHK', '2 BHK', '3 BHK', '3+ BHK / Villa', 'Office / Commercial'];
-const GOODS_TYPES      = ['Household Goods', 'Raw Materials', 'Agricultural Produce', 'Electronics / Fragile', 'Machinery / Heavy', 'Other'];
 const EQUIP_DURATIONS  = ['Half Day (4 hrs)', 'Full Day (8 hrs)', '2 Days', '3 Days', 'Weekly', 'Monthly'];
+
+const TRUCK_TYPES = [
+  { value: 'Tata Ace',                label: '🚚 Tata Ace',             sub: 'Upto 0.75 MT' },
+  { value: 'Tata 407 (2.5 MT)',       label: '🚚 Tata 407',             sub: '2.5 MT' },
+  { value: 'Canter 17ft (4 Wheel)',   label: '🚚 Canter 17ft',          sub: '4 Wheel' },
+  { value: 'Truck 9MT (6 Wheel)',     label: '🚛 Truck 9MT',            sub: '6 Wheel' },
+  { value: 'Truck 16MT (10 Wheel)',   label: '🚚 Truck 16MT',           sub: '10 Wheel' },
+  { value: 'Truck 20MT (12 Wheel)',   label: '🚚 Truck 20MT',           sub: '12 Wheel' },
+  { value: 'Truck 25MT (14 Wheel)',   label: '🚛 Truck 25MT',           sub: '14 Wheel' },
+  { value: 'Semi Low Bed Trailer',    label: '🚛 Semi Low Bed Trailer', sub: 'Heavy Load' },
+  { value: 'LCV (Light Commercial)',  label: '🚚 LCV',                  sub: 'Light Commercial' },
+];
+const GOODS_TYPES_GRID = [
+  { value: 'Household Goods',      icon: '🏠' },
+  { value: 'Furniture & Wood',     icon: '🪑' },
+  { value: 'Electronics',          icon: '📺' },
+  { value: 'Vehicles/Automobiles', icon: '🚗' },
+  { value: 'Building Materials',   icon: '🧱' },
+  { value: 'Agricultural Produce', icon: '🌾' },
+  { value: 'Industrial Goods',     icon: '⚙️' },
+  { value: 'Fragile / Delicate',   icon: '📦' },
+  { value: 'Other',                icon: '📋' },
+];
+
+const EQUIPMENT_TYPES = [
+  { value: 'JCB / Excavator',       label: '🚧 JCB / Excavator',        sub: 'Earthmoving' },
+  { value: 'Crane (Grove)',          label: '🏗️ Grove Crane',            sub: 'Heavy Lift' },
+  { value: 'Truck Mounted Crane',    label: '🚚 Truck Mounted Crane',    sub: 'Mobile Crane' },
+  { value: 'Tower Crane',            label: '🏗️ Tower Crane',            sub: 'Construction' },
+  { value: 'Telescopic Crane',       label: '🏗️ Telescopic Crane',       sub: 'Reach Crane' },
+  { value: 'Rough Terrain Crane',    label: '🏗️ Rough Terrain Crane',    sub: 'Off-road' },
+  { value: 'Hydra Crane',            label: '🏗️ Hydra Crane',            sub: 'Loading/Unloading' },
+  { value: 'Overhead Crane',         label: '🏗️ Overhead Crane',         sub: 'Industrial' },
+  { value: 'Bulldozer',              label: '🚜 Bulldozer',               sub: 'Earthmoving' },
+  { value: 'Dumper',                 label: '🚛 Dumper',                  sub: 'Material Hauling' },
+  { value: 'Loader',                 label: '🚜 Loader',                  sub: 'Loading' },
+  { value: 'Backhoe Loader',         label: '🚜 Backhoe Loader',          sub: 'Multi-purpose' },
+  { value: 'Generator',              label: '⚡ Generator',               sub: 'Power Backup' },
+  { value: 'Concrete Mixer',         label: '🔄 Concrete Mixer',          sub: 'Construction' },
+  { value: 'Other',                  label: '📋 Other Equipment',         sub: 'Custom' },
+];
+
+const EQUIP_DURATION_OPTIONS = [
+  { value: '1 to 5 Days',      icon: '📅' },
+  { value: '6 to 15 Days',     icon: '📆' },
+  { value: '16 to 30 Days',    icon: '🗓️' },
+  { value: 'More than 30 Days',icon: '📊' },
+];
 
 /* ─────────────────────────── Shared styles ───────────────────────── */
 const inp     = 'w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition';
@@ -59,7 +106,15 @@ function SectionTitle({ icon, title, color }: { icon: React.ReactNode; title: st
 }
 
 /* ─────────────────────── Service-specific fields ─────────────────── */
-function ServiceFields({ serviceType, form, set }: { serviceType: string; form: any; set: (k: string, v: string) => void }) {
+function ServiceFields({ serviceType, form, set, extraState }: {
+  serviceType: string; form: any; set: (k: string, v: string) => void;
+  extraState: {
+    showAllTrucks: boolean; setShowAllTrucks: (v: boolean) => void;
+    customTruckType: string; setCustomTruckType: (v: string) => void;
+    showAllEquip: boolean; setShowAllEquip: (v: boolean) => void;
+    customEquipType: string; setCustomEquipType: (v: string) => void;
+  };
+}) {
   if (serviceType === 'car-with-driver') return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
       <div>
@@ -156,24 +211,99 @@ function ServiceFields({ serviceType, form, set }: { serviceType: string; form: 
     </div>
   );
 
-  if (serviceType === 'transporter') return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-      <div>
-        <label className={lbl}>Goods Type</label>
-        <select value={form.goodsType} onChange={e => set('goodsType', e.target.value)} className={inp + ' appearance-none bg-white'}>
-          <option value="">Select goods type</option>
-          {GOODS_TYPES.map(g => <option key={g} value={g}>{g}</option>)}
-        </select>
-      </div>
-      <div>
-        <label className={lbl}>Approx. Weight / Load</label>
-        <div className="relative">
-          <Package className={iconPos} />
-          <input type="text" placeholder="e.g. 500 kg, 2 tons" value={form.loadInfo} onChange={e => set('loadInfo', e.target.value)} className={inpIcon} />
+  if (serviceType === 'transporter') {
+    const { showAllTrucks, setShowAllTrucks, customTruckType, setCustomTruckType } = extraState;
+    return (
+      <div className="space-y-4">
+        {/* Personal / Commercial */}
+        <div>
+          <label className={lbl}>Use Type</label>
+          <div className="grid grid-cols-2 gap-2">
+            {[{ value: 'Personal', icon: '🏠', label: 'Personal Use' }, { value: 'Commercial', icon: '🏭', label: 'Commercial Use' }].map(opt => (
+              <button key={opt.value} type="button" onClick={() => set('useType', opt.value)}
+                className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 text-sm font-semibold transition ${
+                  form.useType === opt.value ? 'border-slate-500 bg-slate-50 text-slate-700' : 'border-gray-200 bg-white text-gray-500 hover:border-gray-300'
+                }`}>
+                <span>{opt.icon}</span> {opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Truck type card grid */}
+        <div>
+          <label className={lbl}>Truck Type</label>
+          <div className="grid grid-cols-2 gap-2">
+            {(showAllTrucks ? TRUCK_TYPES : TRUCK_TYPES.slice(0, 4)).map(t => (
+              <button key={t.value} type="button"
+                onClick={() => { set('vehicleType', form.vehicleType === t.value ? '' : t.value); setCustomTruckType(''); }}
+                className={`flex flex-col items-start px-3 py-2.5 rounded-xl border-2 text-left transition ${
+                  form.vehicleType === t.value ? 'border-slate-500 bg-slate-50' : 'border-gray-200 bg-white hover:border-gray-300'
+                }`}>
+                <span className="text-sm font-semibold text-gray-800">{t.label}</span>
+                <span className="text-[11px] text-gray-400 mt-0.5">{t.sub}</span>
+              </button>
+            ))}
+            {!showAllTrucks && (
+              <button type="button" onClick={() => setShowAllTrucks(true)}
+                className="flex flex-col items-start px-3 py-2.5 rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 hover:border-slate-400 hover:bg-slate-50 text-left transition">
+                <span className="text-sm font-semibold text-gray-500">🚛 More Options</span>
+                <span className="text-[11px] text-gray-400 mt-0.5">See all types</span>
+              </button>
+            )}
+          </div>
+          {showAllTrucks && (
+            <button type="button" onClick={() => setShowAllTrucks(false)} className="mt-1.5 text-xs text-slate-600 hover:text-slate-800 font-semibold">
+              ▲ Show less
+            </button>
+          )}
+          <input
+            type="text" placeholder="Or type your own (e.g. Flatbed 30MT)…"
+            value={customTruckType}
+            onChange={e => { setCustomTruckType(e.target.value); set('vehicleType', e.target.value); }}
+            onFocus={() => set('vehicleType', customTruckType)}
+            className={`${inp} text-sm mt-2 ${customTruckType ? 'border-slate-400 ring-1 ring-slate-300' : ''}`}
+          />
+        </div>
+
+        {/* Goods type grid */}
+        <div>
+          <label className={lbl}>Goods Type</label>
+          <div className="grid grid-cols-3 gap-1.5">
+            {GOODS_TYPES_GRID.map(g => (
+              <button key={g.value} type="button"
+                onClick={() => set('goodsType', form.goodsType === g.value ? '' : g.value)}
+                className={`flex flex-col items-center gap-1 px-2 py-2 rounded-xl border-2 text-center transition ${
+                  form.goodsType === g.value ? 'border-slate-500 bg-slate-50' : 'border-gray-200 bg-white hover:border-gray-300'
+                }`}>
+                <span className="text-lg">{g.icon}</span>
+                <span className="text-[10px] font-semibold text-gray-700 leading-tight">{g.value}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Weight */}
+        <div>
+          <label className={lbl}>Approx. Weight <span className="normal-case font-normal text-gray-400">(optional)</span></label>
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <Package className={iconPos} />
+              <input type="number" min="0" placeholder="e.g. 500" value={form.goodsWeight} onChange={e => set('goodsWeight', e.target.value)} className={inpIcon} />
+            </div>
+            <div className="flex rounded-xl border-2 border-gray-200 overflow-hidden shrink-0">
+              {['KG', 'TON'].map(unit => (
+                <button key={unit} type="button" onClick={() => set('weightUnit', unit)}
+                  className={`px-4 py-2 text-sm font-bold transition ${form.weightUnit === unit ? 'bg-slate-700 text-white' : 'bg-white text-gray-500 hover:bg-gray-50'}`}>
+                  {unit}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
-    </div>
-  );
+    );
+  }
 
   if (serviceType === 'packers-movers') return (
     <div className="space-y-3">
@@ -215,24 +345,67 @@ function ServiceFields({ serviceType, form, set }: { serviceType: string; form: 
     </div>
   );
 
-  if (serviceType === 'equipment') return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-      <div>
-        <label className={lbl}>Rental Duration</label>
-        <select value={form.equipDuration} onChange={e => set('equipDuration', e.target.value)} className={inp + ' appearance-none bg-white'}>
-          <option value="">Select duration</option>
-          {EQUIP_DURATIONS.map(d => <option key={d} value={d}>{d}</option>)}
-        </select>
-      </div>
-      <div>
-        <label className={lbl}>Work / Site Location</label>
-        <div className="relative">
-          <MapPin className={iconPos} />
-          <input type="text" placeholder="Site address or area" value={form.siteLocation} onChange={e => set('siteLocation', e.target.value)} className={inpIcon} />
+  if (serviceType === 'equipment') {
+    const { showAllEquip, setShowAllEquip, customEquipType, setCustomEquipType } = extraState;
+    return (
+      <div className="space-y-4">
+        {/* Equipment type card grid */}
+        <div>
+          <label className={lbl}>Equipment Type</label>
+          <div className="grid grid-cols-2 gap-2">
+            {(showAllEquip ? EQUIPMENT_TYPES : EQUIPMENT_TYPES.slice(0, 4)).map(t => (
+              <button key={t.value} type="button"
+                onClick={() => { set('vehicleType', form.vehicleType === t.value ? '' : t.value); setCustomEquipType(''); }}
+                className={`flex flex-col items-start px-3 py-2.5 rounded-xl border-2 text-left transition ${
+                  form.vehicleType === t.value ? 'border-red-500 bg-red-50' : 'border-gray-200 bg-white hover:border-gray-300'
+                }`}>
+                <span className="text-sm font-semibold text-gray-800">{t.label}</span>
+                <span className="text-[11px] text-gray-400 mt-0.5">{t.sub}</span>
+              </button>
+            ))}
+            {!showAllEquip && (
+              <button type="button" onClick={() => setShowAllEquip(true)}
+                className="flex flex-col items-start px-3 py-2.5 rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 hover:border-red-400 hover:bg-red-50 text-left transition">
+                <span className="text-sm font-semibold text-gray-500">📋 More Equipment</span>
+                <span className="text-[11px] text-gray-400 mt-0.5">See all types</span>
+              </button>
+            )}
+          </div>
+          {showAllEquip && (
+            <button type="button" onClick={() => setShowAllEquip(false)} className="mt-1.5 text-xs text-red-600 hover:text-red-800 font-semibold">▲ Show less</button>
+          )}
+          <input type="text" placeholder="Or type your own equipment…"
+            value={customEquipType}
+            onChange={e => { setCustomEquipType(e.target.value); set('vehicleType', e.target.value); }}
+            onFocus={() => set('vehicleType', customEquipType)}
+            className={`${inp} text-sm mt-2 ${customEquipType ? 'border-red-400 ring-1 ring-red-300' : ''}`}
+          />
+        </div>
+
+        {/* Duration */}
+        <div>
+          <label className={lbl}>Rental Duration</label>
+          <div className="grid grid-cols-2 gap-2">
+            {EQUIP_DURATION_OPTIONS.map(d => (
+              <button key={d.value} type="button"
+                onClick={() => set('equipDuration', form.equipDuration === d.value ? '' : d.value)}
+                className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 text-sm font-semibold transition ${
+                  form.equipDuration === d.value ? 'border-red-500 bg-red-50 text-red-700' : 'border-gray-200 bg-white text-gray-500 hover:border-gray-300'
+                }`}>
+                <span>{d.icon}</span> {d.value}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Units */}
+        <div>
+          <label className={lbl}>No. of Units <span className="normal-case font-normal text-gray-400">(optional)</span></label>
+          <input type="number" min="1" placeholder="e.g. 2" value={form.equipUnits} onChange={e => set('equipUnits', e.target.value)} className={inp} />
         </div>
       </div>
-    </div>
-  );
+    );
+  }
 
   return null; // general — no extra fields
 }
@@ -242,6 +415,10 @@ export default function AddDirectBookingPage() {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [showAllTrucks, setShowAllTrucks] = useState(false);
+  const [customTruckType, setCustomTruckType] = useState('');
+  const [showAllEquip, setShowAllEquip] = useState(false);
+  const [customEquipType, setCustomEquipType] = useState('');
 
   const [form, setForm] = useState({
     customerName: '', customerPhone: '', customerEmail: '',
@@ -252,9 +429,9 @@ export default function AddDirectBookingPage() {
     // service-specific
     tripType: '', passengerCount: '', helmetCount: '',
     occasion: '', licenseNumber: '',
-    goodsType: '', loadInfo: '',
+    useType: '', goodsType: '', goodsWeight: '', weightUnit: 'KG', loadInfo: '',
     moveSize: '', packingRequired: '', floorInfo: '',
-    equipDuration: '', siteLocation: '',
+    equipDuration: '', equipUnits: '', siteLocation: '',
     // payment
     totalAmount: '', paymentStatus: 'pending', paymentMode: '', paidAmount: '',
   });
@@ -270,10 +447,14 @@ export default function AddDirectBookingPage() {
       ...p, serviceType: svc, vehicleType: '',
       tripType: '', passengerCount: '', helmetCount: '',
       occasion: '', licenseNumber: '',
-      goodsType: '', loadInfo: '',
+      useType: '', goodsType: '', goodsWeight: '', weightUnit: 'KG', loadInfo: '',
       moveSize: '', packingRequired: '', floorInfo: '',
-      equipDuration: '', siteLocation: '', pickupTime: '',
+      equipDuration: '', equipUnits: '', siteLocation: '', pickupTime: '',
     }));
+    setShowAllTrucks(false);
+    setCustomTruckType('');
+    setShowAllEquip(false);
+    setCustomEquipType('');
   };
 
   /* Build notes string including service-specific extras */
@@ -285,12 +466,15 @@ export default function AddDirectBookingPage() {
     if (form.helmetCount)     extras.push(`Helmets: ${form.helmetCount}`);
     if (form.occasion)        extras.push(`Occasion: ${form.occasion}`);
     if (form.licenseNumber)   extras.push(`License: ${form.licenseNumber}`);
+    if (form.useType)         extras.push(`Use Type: ${form.useType}`);
     if (form.goodsType)       extras.push(`Goods: ${form.goodsType}`);
+    if (form.goodsWeight)     extras.push(`Weight: ${form.goodsWeight} ${form.weightUnit}`);
     if (form.loadInfo)        extras.push(`Load: ${form.loadInfo}`);
     if (form.moveSize)        extras.push(`Move size: ${form.moveSize}`);
     if (form.packingRequired) extras.push(`Packing: ${form.packingRequired}`);
     if (form.floorInfo)       extras.push(`Floor info: ${form.floorInfo}`);
     if (form.equipDuration)   extras.push(`Duration: ${form.equipDuration}`);
+    if (form.equipUnits)      extras.push(`Units: ${form.equipUnits}`);
     if (form.siteLocation)    extras.push(`Site: ${form.siteLocation}`);
     return [form.notes, ...extras].filter(Boolean).join('\n');
   };
@@ -377,8 +561,8 @@ export default function AddDirectBookingPage() {
                   })}
                 </div>
 
-                {/* Vehicle */}
-                {vehicles.length > 0 && (
+                {/* Vehicle — hidden for transporter and equipment (type handled in ServiceFields) */}
+                {vehicles.length > 0 && form.serviceType !== 'transporter' && form.serviceType !== 'equipment' && (
                   <div className="mt-4">
                     <label className={lbl}>Vehicle <span className="normal-case font-normal text-gray-400">(optional)</span></label>
                     <div className="relative">
@@ -404,7 +588,9 @@ export default function AddDirectBookingPage() {
                       <p className="text-xs text-gray-400">Specific info for this service</p>
                     </div>
                   </div>
-                  <ServiceFields serviceType={form.serviceType} form={form} set={set} />
+                  <ServiceFields serviceType={form.serviceType} form={form} set={set}
+                    extraState={{ showAllTrucks, setShowAllTrucks, customTruckType, setCustomTruckType,
+                                  showAllEquip, setShowAllEquip, customEquipType, setCustomEquipType }} />
                 </div>
               )}
 
@@ -595,6 +781,24 @@ export default function AddDirectBookingPage() {
                       <span className="font-semibold text-gray-800">{form.occasion}</span>
                     </div>
                   )}
+                  {form.useType && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Use Type</span>
+                      <span className="font-semibold text-gray-800">{form.useType}</span>
+                    </div>
+                  )}
+                  {form.goodsType && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Goods</span>
+                      <span className="font-semibold text-gray-800">{form.goodsType}</span>
+                    </div>
+                  )}
+                  {form.goodsWeight && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Weight</span>
+                      <span className="font-semibold text-gray-800">{form.goodsWeight} {form.weightUnit}</span>
+                    </div>
+                  )}
                   {form.moveSize && (
                     <div className="flex justify-between">
                       <span className="text-gray-500">Move Size</span>
@@ -605,6 +809,12 @@ export default function AddDirectBookingPage() {
                     <div className="flex justify-between">
                       <span className="text-gray-500">Duration</span>
                       <span className="font-semibold text-gray-800">{form.equipDuration}</span>
+                    </div>
+                  )}
+                  {form.equipUnits && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Units</span>
+                      <span className="font-semibold text-gray-800">{form.equipUnits}</span>
                     </div>
                   )}
                   {form.customerName && (

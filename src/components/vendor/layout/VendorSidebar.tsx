@@ -399,6 +399,11 @@ const approvedNavigationItems: NavItem[] = [
   //   href: '/vendor/promotions',
   //   icon: Tag,
   // },
+   {
+    name: 'Financials',
+    href: '/vendor/financials',
+    icon: PieChart,
+  },
   {
     name: 'Services & Locations',
     href: '/vendor/requests',
