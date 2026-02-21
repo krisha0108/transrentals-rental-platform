@@ -6,6 +6,7 @@ import { prisma } from '@/lib/db/prisma';
 import { transformPrismaResponse } from '@/lib/utils/api-transform';
 
 import logger from '@/lib/security/logger';
+import { releaseDatesForBooking } from '@/lib/utils/fleet-availability';
 export const dynamic = 'force-dynamic';
 
 // GET - Get Equipment Booking details for vendor
@@ -179,6 +180,11 @@ export async function PATCH(
             cancelledAt: new Date(),
           },
         });
+
+        // Release blocked dates
+        releaseDatesForBooking(id, 'equipment').catch((err) =>
+          logger.error('Failed to release blocked dates for equipment booking', err)
+        );
 
         return NextResponse.json({
           success: true,

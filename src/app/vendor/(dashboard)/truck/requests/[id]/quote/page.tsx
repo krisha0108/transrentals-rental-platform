@@ -72,6 +72,7 @@ interface FleetVehicle {
     name: string;
     slug: string;
   } | null;
+  isAvailableForDates?: boolean;
 }
 
 interface Template {
@@ -264,20 +265,32 @@ export default function SendTruckQuotePage() {
         setTemplates(SAMPLE_TEMPLATES);
       }
 
-      // Fetch vendor's fleet for truck service
+      // Fetch vendor's fleet for truck service (with availability check)
       try {
-        const fleetRes = await fetch('/api/vendor/fleet');
+        let fleetUrl = '/api/vendor/fleet';
+        if (data.request?.pickupDate) {
+          const pickupDate = new Date(data.request.pickupDate).toISOString();
+          fleetUrl += `?startDate=${encodeURIComponent(pickupDate)}&endDate=${encodeURIComponent(pickupDate)}`;
+        }
+        const fleetRes = await fetch(fleetUrl);
         const fleetData = await fleetRes.json();
         console.log('Fleet API response:', fleetData);
         if (fleetData.success && fleetData.fleet) {
           // Filter for truck rental vehicles only
           const truckFleet = fleetData.fleet.filter((v: FleetVehicle) => {
-            const svc = (v as any).services;
+            if (!v.isActive) return false;
+            const svc = v.services;
             const slug = svc?.slug?.toLowerCase() || '';
             const name = svc?.name?.toLowerCase() || '';
             return slug.includes('truck') || name.includes('truck') || slug.includes('transporter');
           });
           console.log('Filtered truck fleet:', truckFleet);
+          // Sort: available vehicles first, unavailable at the end
+          truckFleet.sort((a: FleetVehicle, b: FleetVehicle) => {
+            const aUnavail = a.isAvailableForDates === false ? 1 : 0;
+            const bUnavail = b.isAvailableForDates === false ? 1 : 0;
+            return aUnavail - bUnavail;
+          });
           setFleetVehicles(truckFleet);
         }
       } catch (fleetError) {
@@ -360,9 +373,9 @@ export default function SendTruckQuotePage() {
       setVehicleNumber(selectedVehicle.registrationNumber || '');
 
       // Set vehicle capacity
-      const capacity = (selectedVehicle as any).seatingCapacity
+      const capacity = selectedVehicle.seatingCapacity
         || selectedVehicle.chauffeur_vehicle_categories?.seatingCapacity
-        || (selectedVehicle as any).vehicleCapacity;
+        || selectedVehicle.vehicleCapacity;
       if (capacity) {
         setVehicleCapacity(String(capacity) + (typeof capacity === 'number' ? ' Ton' : ''));
       }
@@ -694,9 +707,11 @@ export default function SendTruckQuotePage() {
                     ? ` (${vehicle.registrationNumber})`
                     : '';
 
+                  const isUnavailable = vehicle.isAvailableForDates === false;
+
                   return (
-                    <option key={vehicle.id} value={vehicle.id}>
-                      {displayName}{regNum}
+                    <option key={vehicle.id} value={vehicle.id} disabled={isUnavailable}>
+                      {displayName}{regNum}{isUnavailable ? ' — Booked for this date' : ''}
                     </option>
                   );
                 })}

@@ -103,6 +103,11 @@ export async function GET(request: NextRequest) {
 
     const vendorId = auth.vendorId;
 
+    // Optional date params for availability checking
+    const { searchParams } = new URL(request.url);
+    const checkStartDate = searchParams.get('startDate');
+    const checkEndDate = searchParams.get('endDate');
+
     // Fetch all data in parallel for better performance
     const [
       fleet,
@@ -155,6 +160,19 @@ export async function GET(request: NextRequest) {
               driverAllowance: true, nightCharges: true,
               kmLimitPerDay: true, extraKmCharge: true, deposit: true,
               locationId: true,
+            },
+          },
+          vendor_fleet_blocked_dates: {
+            where: {
+              isActive: true,
+              endDate: { gte: new Date() },
+            },
+            orderBy: { startDate: 'asc' },
+            take: 1,
+            select: {
+              startDate: true,
+              endDate: true,
+              reason: true,
             },
           },
         },
@@ -247,6 +265,26 @@ export async function GET(request: NextRequest) {
       .map((al: any) => al.locations)
       .filter((l: any) => l);
 
+    // Check fleet availability for given date range (if provided)
+    let unavailableFleetIds: Set<string> = new Set();
+    if (checkStartDate && checkEndDate && fleet.length > 0) {
+      try {
+        const fleetIds = fleet.map((v: any) => v.id);
+        const conflicts = await prisma.vendor_fleet_blocked_dates.findMany({
+          where: {
+            vendorFleetId: { in: fleetIds },
+            isActive: true,
+            startDate: { lte: new Date(checkEndDate) },
+            endDate: { gte: new Date(checkStartDate) },
+          },
+          select: { vendorFleetId: true },
+        });
+        unavailableFleetIds = new Set(conflicts.map((c: any) => c.vendorFleetId));
+      } catch (e) {
+        logger.error('Error checking fleet availability', e);
+      }
+    }
+
     // Transform fleet images and handle potential stringified nulls
     const transformedFleet = fleet.map((vehicle: any) => ({
       ...vehicle,
@@ -254,7 +292,8 @@ export async function GET(request: NextRequest) {
         ? (typeof vehicle.images === 'string'
           ? (vehicle.images === 'null' ? null : JSON.parse(vehicle.images))
           : vehicle.images)
-        : null
+        : null,
+      ...(checkStartDate && checkEndDate ? { isAvailableForDates: !unavailableFleetIds.has(vehicle.id) } : {}),
     }));
 
     // Return all data

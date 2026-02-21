@@ -49,7 +49,7 @@ interface FleetVehicle {
   vehicle_models: {
     id: string;
     name: string;
-    brand: {
+    brands: {
       id: string;
       name: string;
     } | null;
@@ -58,15 +58,16 @@ interface FleetVehicle {
     id: string;
     name: string;
   } | null;
-  brand: {
+  brands: {
     id: string;
     name: string;
   } | null;
-  service: {
+  services: {
     id: string;
     name: string;
     slug: string;
   } | null;
+  isAvailableForDates?: boolean;
 }
 
 interface Template {
@@ -244,16 +245,28 @@ export default function SendMiniTruckQuotePage() {
 
       setTemplates(SAMPLE_TEMPLATES);
 
-      // Fetch vendor's fleet for mini-truck service
+      // Fetch vendor's fleet for mini-truck service (with availability check)
       try {
-        const fleetRes = await fetch('/api/vendor/fleet');
+        let fleetUrl = '/api/vendor/fleet';
+        if (data.request?.pickupDate) {
+          const pickupDate = new Date(data.request.pickupDate).toISOString();
+          fleetUrl += `?startDate=${encodeURIComponent(pickupDate)}&endDate=${encodeURIComponent(pickupDate)}`;
+        }
+        const fleetRes = await fetch(fleetUrl);
         const fleetData = await fleetRes.json();
         if (fleetData.success && fleetData.fleet) {
           const truckFleet = fleetData.fleet.filter((v: FleetVehicle) => {
-            const svc = (v as any).services || v.service;
+            if (!v.isActive) return false;
+            const svc = v.services;
             const slug = svc?.slug?.toLowerCase() || '';
             const name = svc?.name?.toLowerCase() || '';
             return slug.includes('truck') || name.includes('truck') || slug.includes('mini');
+          });
+          // Sort: available vehicles first, unavailable at the end
+          truckFleet.sort((a: FleetVehicle, b: FleetVehicle) => {
+            const aUnavail = a.isAvailableForDates === false ? 1 : 0;
+            const bUnavail = b.isAvailableForDates === false ? 1 : 0;
+            return aUnavail - bUnavail;
           });
           setFleetVehicles(truckFleet);
         }
@@ -305,13 +318,13 @@ export default function SendMiniTruckQuotePage() {
     if (selectedVehicle) {
       let vName = '';
       if (selectedVehicle.vehicle_models) {
-        vName = selectedVehicle.vehicle_models.brand?.name
-          ? `${selectedVehicle.vehicle_models.brand.name} ${selectedVehicle.vehicle_models.name}`
+        vName = selectedVehicle.vehicle_models.brands?.name
+          ? `${selectedVehicle.vehicle_models.brands.name} ${selectedVehicle.vehicle_models.name}`
           : selectedVehicle.vehicle_models.name;
-      } else if (selectedVehicle.brand && selectedVehicle.vehicle_category) {
-        vName = `${selectedVehicle.brand.name} ${selectedVehicle.vehicle_category.name}`;
-      } else if (selectedVehicle.vehicle_category) {
-        vName = selectedVehicle.vehicle_category.name;
+      } else if (selectedVehicle.brands && selectedVehicle.chauffeur_vehicle_categories) {
+        vName = `${selectedVehicle.brands.name} ${selectedVehicle.chauffeur_vehicle_categories.name}`;
+      } else if (selectedVehicle.chauffeur_vehicle_categories) {
+        vName = selectedVehicle.chauffeur_vehicle_categories.name;
       }
 
       setVehicleName(vName);
@@ -362,8 +375,8 @@ export default function SendMiniTruckQuotePage() {
           requestId: request?.id || params.id,
           templateId: selectedTemplateId,
           fleetId: selectedFleetId || null,
-          chauffeur_vehicle_categories: request?.vehicle_category,
-          vehicleName: vehicleName || request?.vehicle_category,
+          chauffeur_vehicle_categories: request?.chauffeur_vehicle_categories,
+          vehicleName: vehicleName || request?.chauffeur_vehicle_categories,
           vehicleNumber: vehicleNumber || null,
           vehicleCapacity: vehicleCapacity || null,
           labourIncluded,
@@ -436,7 +449,7 @@ export default function SendMiniTruckQuotePage() {
           <div className="flex items-start gap-3">
             <Truck className="w-5 h-5 text-orange-600 mt-0.5" />
             <div>
-              <p className="font-medium text-gray-900">{request.vehicle_category}</p>
+              <p className="font-medium text-gray-900">{request.chauffeur_vehicle_categories}</p>
               <p className="text-sm text-gray-600">
                 {SERVICE_TYPES[request.serviceType] || request.serviceType}
               </p>
@@ -581,20 +594,21 @@ export default function SendMiniTruckQuotePage() {
                 {fleetVehicles.map((vehicle) => {
                   let displayName = '';
                   if (vehicle.vehicle_models) {
-                    displayName = vehicle.vehicle_models.brand?.name
-                      ? `${vehicle.vehicle_models.brand.name} ${vehicle.vehicle_models.name}`
+                    displayName = vehicle.vehicle_models.brands?.name
+                      ? `${vehicle.vehicle_models.brands.name} ${vehicle.vehicle_models.name}`
                       : vehicle.vehicle_models.name;
-                  } else if (vehicle.brand && vehicle.vehicle_category) {
-                    displayName = `${vehicle.brand.name} ${vehicle.vehicle_category.name}`;
-                  } else if (vehicle.vehicle_category) {
-                    displayName = vehicle.vehicle_category.name;
+                  } else if (vehicle.brands && vehicle.chauffeur_vehicle_categories) {
+                    displayName = `${vehicle.brands.name} ${vehicle.chauffeur_vehicle_categories.name}`;
+                  } else if (vehicle.chauffeur_vehicle_categories) {
+                    displayName = vehicle.chauffeur_vehicle_categories.name;
                   }
 
                   const regNum = vehicle.registrationNumber ? ` (${vehicle.registrationNumber})` : '';
+                  const isUnavailable = vehicle.isAvailableForDates === false;
 
                   return (
-                    <option key={vehicle.id} value={vehicle.id}>
-                      {displayName}{regNum}
+                    <option key={vehicle.id} value={vehicle.id} disabled={isUnavailable}>
+                      {displayName}{regNum}{isUnavailable ? ' — Booked for this date' : ''}
                     </option>
                   );
                 })}

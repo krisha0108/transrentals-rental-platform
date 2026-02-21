@@ -321,6 +321,63 @@ export default function VendorLandingPage() {
           </div>
         </section>
 
+        {/* Vendor Guide Section */}
+        <section className="py-16 bg-gradient-to-br from-violet-50 via-purple-50 to-indigo-50 border-y border-purple-100">
+          <div className="container-custom max-w-5xl">
+            <div className="flex flex-col md:flex-row items-center gap-8 bg-white rounded-2xl shadow-lg border border-purple-100 p-8 md:p-10">
+              <div className="flex-shrink-0">
+                <div className="w-20 h-20 bg-gradient-to-br from-violet-600 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg">
+                  <span className="text-4xl">📖</span>
+                </div>
+              </div>
+              <div className="flex-1 text-center md:text-left">
+                <div className="inline-flex items-center gap-2 bg-violet-50 border border-violet-200 rounded-full px-3 py-1 text-xs font-bold text-violet-700 uppercase tracking-wider mb-3">
+                  Complete Documentation
+                </div>
+                <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-3">
+                  New to the Platform? Read the Vendor Guide
+                </h2>
+                <p className="text-gray-500 text-sm md:text-base leading-relaxed mb-6 max-w-2xl">
+                  Everything you need to know — registration, KYC, fleet setup, staff management,
+                  how to respond to quotes, manage bookings, and track your earnings. All in one place.
+                </p>
+                <div className="flex flex-wrap gap-3 justify-center md:justify-start">
+                  <a
+                    href="/vendor-guide.html"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-violet-600 to-indigo-600 text-white rounded-xl font-semibold text-sm hover:from-violet-700 hover:to-indigo-700 transition shadow-md hover:shadow-lg hover:scale-105 transform duration-200"
+                  >
+                    📖 Read Vendor Guide
+                    <ArrowRight className="w-4 h-4" />
+                  </a>
+                  <Link
+                    href="/guide/vendor"
+                    className="inline-flex items-center gap-2 px-6 py-3 bg-white border-2 border-violet-200 text-violet-700 rounded-xl font-semibold text-sm hover:bg-violet-50 transition duration-200"
+                  >
+                    🎯 Interactive Step Guide
+                    <ArrowRight className="w-4 h-4" />
+                  </Link>
+                  <Link
+                    href="/vendor/register"
+                    className="inline-flex items-center gap-2 px-6 py-3 bg-white border-2 border-gray-200 text-gray-700 rounded-xl font-semibold text-sm hover:bg-gray-50 transition duration-200"
+                  >
+                    Register Now
+                    <ArrowRight className="w-4 h-4" />
+                  </Link>
+                </div>
+              </div>
+              <div className="hidden lg:flex flex-col gap-3 flex-shrink-0">
+                {['✍️ Registration & KYC', '🚙 Fleet Management', '💬 Quotes & Bookings', '💰 Financials & P&L'].map((item) => (
+                  <div key={item} className="flex items-center gap-2 bg-violet-50 rounded-lg px-4 py-2 text-sm font-medium text-violet-700">
+                    {item}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+
         {/* CTA Section */}
         <section className="py-20 bg-gradient-to-br from-green-50 via-white to-blue-50">
           <div className="container-custom max-w-4xl">

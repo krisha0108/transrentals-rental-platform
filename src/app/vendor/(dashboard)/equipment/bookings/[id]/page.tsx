@@ -68,6 +68,7 @@ interface StaffOperator {
   email?: string;
   status: string;
   isAvailable: boolean;
+  isAvailableForDates?: boolean;
 }
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bgColor: string }> = {
@@ -137,12 +138,23 @@ export default function VendorEquipmentBookingDetailPage() {
     }
   };
 
-  const fetchStaffOperators = async () => {
+  const fetchStaffOperators = async (startDate?: string, endDate?: string) => {
     try {
-      const res = await fetch('/api/vendor/staff/drivers');
+      let url = '/api/vendor/staff/drivers';
+      if (startDate && endDate) {
+        url += `?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`;
+      }
+      const res = await fetch(url);
       const data = await res.json();
       if (data.success) {
-        setStaffOperators(data.drivers || []);
+        const operators: StaffOperator[] = data.drivers || [];
+        // Sort: available operators first, unavailable ones at the bottom
+        operators.sort((a, b) => {
+          const aUnavailable = a.isAvailableForDates === false ? 1 : 0;
+          const bUnavailable = b.isAvailableForDates === false ? 1 : 0;
+          return aUnavailable - bUnavailable;
+        });
+        setStaffOperators(operators);
       }
     } catch (err) {
       console.error('Failed to fetch staff:', err);
@@ -151,8 +163,16 @@ export default function VendorEquipmentBookingDetailPage() {
 
   useEffect(() => {
     fetchBooking();
-    fetchStaffOperators();
   }, [id]);
+
+  // Fetch staff operators with booking dates once booking is loaded
+  useEffect(() => {
+    if (booking?.startDate && booking?.endDate) {
+      fetchStaffOperators(booking.startDate, booking.endDate);
+    } else {
+      fetchStaffOperators();
+    }
+  }, [booking?.startDate, booking?.endDate]);
 
   const handleAssignSubmit = async () => {
     if (!assignForm.operatorName || !assignForm.operatorPhone) {
@@ -391,7 +411,13 @@ export default function VendorEquipmentBookingDetailPage() {
                       >
                         <option value="">-- Select Operator --</option>
                         {staffOperators.map(o => (
-                          <option key={o.id} value={o.id}>{o.name} ({o.phone})</option>
+                          <option
+                            key={o.id}
+                            value={o.id}
+                            disabled={o.isAvailableForDates === false}
+                          >
+                            {o.name} ({o.phone}){o.isAvailableForDates === false ? ' — Assigned for these dates' : ''}
+                          </option>
                         ))}
                       </select>
                     ) : (

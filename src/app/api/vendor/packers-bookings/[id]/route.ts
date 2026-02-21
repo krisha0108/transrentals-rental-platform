@@ -4,6 +4,7 @@ import { getVendorAuth } from '@/lib/auth/vendor-mobile-auth';
 import { prisma } from '@/lib/db/prisma';
 import { transformPrismaResponse } from '@/lib/utils/api-transform';
 import logger from '@/lib/security/logger';
+import { releaseDatesForBooking } from '@/lib/utils/fleet-availability';
 import { prepareNotificationData } from '@/lib/utils/notification-helper';
 import { sendNotificationToCustomer } from '@/lib/services/push-notification-service';
 
@@ -199,6 +200,13 @@ export async function PATCH(
             where: { id },
             data: updateData,
         });
+
+        // Release blocked dates on cancellation
+        if (action === 'reject') {
+          releaseDatesForBooking(id, 'packers').catch((err) =>
+            logger.error('Failed to release blocked dates for packers booking', err)
+          );
+        }
 
         // Send notification to customer based on action
         try {
