@@ -212,8 +212,7 @@ export default function VendorEquipmentRequestsPage() {
                 hasQuoted ? 'bg-green-50' : 'bg-amber-50'
               }`}>
                 <div className="flex items-center gap-2">
-                  <span className="text-sm font-semibold text-gray-800">{request.customerName}</span>
-                  <span className="font-mono text-xs text-gray-500">#{request.requestNumber}</span>
+                  <span className="font-mono text-sm text-gray-700">#{request.requestNumber}</span>
                   <span className="text-xs text-gray-500">{getTimeAgo(request.createdAt)}</span>
                 </div>
                 <div className="flex items-center gap-2">
