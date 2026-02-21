@@ -3298,6 +3298,8 @@ model vendor_fleets {
   truck_quotes                 truck_quotes[]
   vendor_fleet_locations       vendor_fleet_locations[]
   assigned_bookings            vendor_direct_bookings[]      @relation("direct_booking_vehicle")
+  p2p_vehicle_postings         p2p_vehicle_postings[]
+  p2p_requests                 p2p_requests[]
   brands                       brands?                       @relation(fields: [brandId], references: [id])
   services                     services                      @relation(fields: [serviceId], references: [id], onDelete: Cascade)
   chauffeur_vehicle_categories chauffeur_vehicle_categories? @relation(fields: [vehicleCategoryId], references: [id])
@@ -3612,6 +3614,15 @@ model vendors {
   fleet_maintenance_records                                       fleet_maintenance_records[]
   fleet_incidents                                                 fleet_incidents[]
   fleet_fuel_records                                              fleet_fuel_records[]
+  p2p_vehicle_postings                                            p2p_vehicle_postings[]        @relation("p2p_vehicle_postings_vendor")
+  p2p_booking_postings                                            p2p_booking_postings[]        @relation("p2p_booking_postings_vendor")
+  p2p_requests_requesting                                         p2p_requests[]                @relation("p2p_requests_requestingVendor")
+  p2p_requests_posting                                            p2p_requests[]                @relation("p2p_requests_postingVendor")
+  p2p_transactions_vendorA                                        p2p_transactions[]            @relation("p2p_transactions_vendorA")
+  p2p_transactions_vendorB                                        p2p_transactions[]            @relation("p2p_transactions_vendorB")
+  p2p_ratings_rater                                               p2p_ratings[]                 @relation("p2p_ratings_rater")
+  p2p_ratings_rated                                               p2p_ratings[]                 @relation("p2p_ratings_rated")
+  p2p_comments                                                    p2p_comments[]                @relation("p2p_comments_vendor")
   admin_users                                                     admin_users?                  @relation(fields: [approvedById], references: [id])
   vendor_booking_links                                            vendor_booking_links[]
   vendor_direct_bookings                                          vendor_direct_bookings[]
@@ -3818,6 +3829,239 @@ model funnel_analytics {
   @@index([stepOrder])
 }
 
+
+// ==========================================
+// P2P Marketplace Tables
+// ==========================================
+
+model p2p_vehicle_postings {
+  id              String             @id
+  postingNumber   String             @unique
+  vendorId        String
+  serviceType     String
+  vehicleId       String?
+  vehicleCategory String?
+  vehicleName     String
+  vehicleNumber   String?
+  capacity        String?
+  bodyType        String?
+  fromCity        String
+  toCity          String
+  departureDate   DateTime
+  departureTime   String?
+  arrivalDate     DateTime?
+  arrivalTime     String?
+  priceFullLoad   Float?
+  pricePartLoad   Float?
+  acceptsPartLoad Boolean            @default(false)
+  availableSpace  String?
+  driverIncluded  Boolean            @default(true)
+  driverName      String?
+  driverPhone     String?
+  fuelIncluded    Boolean            @default(false)
+  labourAvailable Boolean            @default(false)
+  labourCount     Int?
+  goodsAccepted   String?            @db.LongText
+  totalSeats      Int?
+  availableSeats  Int?
+  busType         String?
+  isAC            Boolean?
+  notes           String?            @db.Text
+  status          p2p_posting_status @default(ACTIVE)
+  expiresAt       DateTime?
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+
+  vendor           vendors              @relation("p2p_vehicle_postings_vendor", fields: [vendorId], references: [id], onDelete: Cascade)
+  vehicleFleet     vendor_fleets?       @relation(fields: [vehicleId], references: [id])
+  p2p_requests     p2p_requests[]       @relation("p2p_requests_vehiclePosting")
+  p2p_transactions p2p_transactions[]   @relation("p2p_transactions_vehiclePosting")
+  p2p_comments     p2p_comments[]
+
+  @@index([vendorId])
+  @@index([vehicleId])
+  @@index([serviceType])
+  @@index([fromCity])
+  @@index([toCity])
+  @@index([status])
+  @@index([departureDate])
+  @@index([expiresAt])
+}
+
+model p2p_booking_postings {
+  id               String             @id
+  postingNumber    String             @unique
+  vendorId         String
+  serviceType      String
+  bookingType      String?
+  vehicleRequired  String?
+  vehicleCategory  String?
+  fromCity         String
+  toCity           String?
+  tripDate         DateTime
+  tripTime         String?
+  returnDate       DateTime?
+  passengers       Int?
+  goodsType        String?
+  goodsDescription String?            @db.Text
+  estimatedWeight  String?
+  needInsurance    Boolean            @default(false)
+  needPackaging    Boolean            @default(false)
+  needLabour       Boolean            @default(false)
+  labourCount      Int?
+  customerBudget   Float?
+  partnerEarning   Float?
+  commission       Float?
+  urgency          p2p_urgency        @default(MEDIUM)
+  reason           String?
+  notes            String?            @db.Text
+  status           p2p_posting_status @default(ACTIVE)
+  expiresAt        DateTime?
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+
+  vendor           vendors              @relation("p2p_booking_postings_vendor", fields: [vendorId], references: [id], onDelete: Cascade)
+  p2p_requests     p2p_requests[]       @relation("p2p_requests_bookingPosting")
+  p2p_transactions p2p_transactions[]   @relation("p2p_transactions_bookingPosting")
+  p2p_comments     p2p_comments[]
+
+  @@index([vendorId])
+  @@index([serviceType])
+  @@index([fromCity])
+  @@index([status])
+  @@index([tripDate])
+  @@index([urgency])
+  @@index([expiresAt])
+}
+
+model p2p_requests {
+  id                 String             @id
+  requestNumber      String             @unique
+  postingType        p2p_posting_type
+  vehiclePostingId   String?
+  bookingPostingId   String?
+  requestingVendorId String
+  postingVendorId    String
+  selectedVehicleId  String?
+  driverName         String?
+  driverPhone        String?
+  notes              String?            @db.Text
+  loadType           String?
+  goodsType          String?
+  estimatedWeight    String?
+  pickupAddress      String?            @db.Text
+  dropAddress        String?            @db.Text
+  status             p2p_request_status @default(PENDING)
+  respondedAt        DateTime?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  vehiclePosting   p2p_vehicle_postings? @relation("p2p_requests_vehiclePosting", fields: [vehiclePostingId], references: [id])
+  bookingPosting   p2p_booking_postings? @relation("p2p_requests_bookingPosting", fields: [bookingPostingId], references: [id])
+  requestingVendor vendors              @relation("p2p_requests_requestingVendor", fields: [requestingVendorId], references: [id], onDelete: Cascade)
+  postingVendor    vendors              @relation("p2p_requests_postingVendor", fields: [postingVendorId], references: [id], onDelete: Cascade)
+  selectedVehicle  vendor_fleets?       @relation(fields: [selectedVehicleId], references: [id])
+  p2p_transactions p2p_transactions[]
+
+  @@index([vehiclePostingId])
+  @@index([bookingPostingId])
+  @@index([requestingVendorId])
+  @@index([postingVendorId])
+  @@index([postingType])
+  @@index([status])
+}
+
+model p2p_transactions {
+  id                 String                 @id
+  transactionNumber  String                 @unique
+  postingType        p2p_posting_type
+  vehiclePostingId   String?
+  bookingPostingId   String?
+  requestId          String
+  vendorAId          String
+  vendorBId          String
+  serviceType        String
+  fromCity           String
+  toCity             String?
+  tripDate           DateTime
+  vehicleName        String?
+  vehicleNumber      String?
+  driverName         String?
+  driverPhone        String?
+  agreedAmount       Float
+  platformFeePercent Float                  @default(5.0)
+  platformFee        Float                  @default(0)
+  vendorAEarning     Float                  @default(0)
+  vendorBEarning     Float                  @default(0)
+  paymentStatus      p2p_payment_status     @default(PENDING)
+  tripStatus         p2p_transaction_status @default(PENDING)
+  startOtp           String?
+  endOtp             String?
+  startedAt          DateTime?
+  completedAt        DateTime?
+  settledAt          DateTime?
+  notes              String?                @db.Text
+  createdAt          DateTime               @default(now())
+  updatedAt          DateTime               @updatedAt
+
+  vehiclePosting p2p_vehicle_postings? @relation("p2p_transactions_vehiclePosting", fields: [vehiclePostingId], references: [id])
+  bookingPosting p2p_booking_postings? @relation("p2p_transactions_bookingPosting", fields: [bookingPostingId], references: [id])
+  request        p2p_requests          @relation(fields: [requestId], references: [id])
+  vendorA        vendors               @relation("p2p_transactions_vendorA", fields: [vendorAId], references: [id], onDelete: Cascade)
+  vendorB        vendors               @relation("p2p_transactions_vendorB", fields: [vendorBId], references: [id], onDelete: Cascade)
+  p2p_ratings    p2p_ratings[]
+
+  @@index([vendorAId])
+  @@index([vendorBId])
+  @@index([requestId])
+  @@index([vehiclePostingId])
+  @@index([bookingPostingId])
+  @@index([tripStatus])
+  @@index([paymentStatus])
+  @@index([tripDate])
+}
+
+model p2p_ratings {
+  id                  String   @id
+  transactionId       String
+  raterVendorId       String
+  ratedVendorId       String
+  overallRating       Float
+  vehicleRating       Float?
+  driverRating        Float?
+  communicationRating Float?
+  paymentRating       Float?
+  review              String?  @db.Text
+  createdAt           DateTime @default(now())
+
+  transaction p2p_transactions @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  raterVendor vendors          @relation("p2p_ratings_rater", fields: [raterVendorId], references: [id], onDelete: Cascade)
+  ratedVendor vendors          @relation("p2p_ratings_rated", fields: [ratedVendorId], references: [id], onDelete: Cascade)
+
+  @@unique([transactionId, raterVendorId])
+  @@index([transactionId])
+  @@index([raterVendorId])
+  @@index([ratedVendorId])
+}
+
+model p2p_comments {
+  id               String               @id
+  postingType      p2p_posting_type
+  vehiclePostingId String?
+  bookingPostingId String?
+  vendorId         String
+  message          String               @db.Text
+  createdAt        DateTime             @default(now())
+
+  vehiclePosting   p2p_vehicle_postings? @relation(fields: [vehiclePostingId], references: [id], onDelete: Cascade)
+  bookingPosting   p2p_booking_postings? @relation(fields: [bookingPostingId], references: [id], onDelete: Cascade)
+  vendor           vendors               @relation("p2p_comments_vendor", fields: [vendorId], references: [id], onDelete: Cascade)
+
+  @@index([vehiclePostingId])
+  @@index([bookingPostingId])
+  @@index([vendorId])
+  @@index([createdAt])
+}
 
 // Enums for conversion tracking
 enum conversion_events_eventType {
@@ -4583,4 +4827,53 @@ model fleet_fuel_records {
   @@index([vendorId])
   @@index([vendorFleetId])
   @@index([fuelDate])
+}
+
+// ==========================================
+// P2P Marketplace Enums
+// ==========================================
+
+enum p2p_posting_status {
+  ACTIVE
+  REQUESTED
+  ACCEPTED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  EXPIRED
+}
+
+enum p2p_request_status {
+  PENDING
+  ACCEPTED
+  REJECTED
+  CANCELLED
+  EXPIRED
+}
+
+enum p2p_transaction_status {
+  PENDING
+  CONFIRMED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  SETTLED
+}
+
+enum p2p_payment_status {
+  PENDING
+  PAID
+  SETTLED
+  DISPUTED
+}
+
+enum p2p_posting_type {
+  VEHICLE
+  BOOKING
+}
+
+enum p2p_urgency {
+  HIGH
+  MEDIUM
+  LOW
 }

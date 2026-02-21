@@ -248,19 +248,20 @@ const approvedNavigationItems: NavItem[] = [
       { name: 'Payroll', href: '/vendor/staff/payroll', icon: CreditCard },
     ],
   },
-  // {
-  //   name: 'P2P Marketplace',
-  //   href: '/vendor/p2p',
-  //   icon: ArrowRightLeft,
-  //   children: [
-  //     { name: 'Dashboard', href: '/vendor/p2p', icon: ArrowRightLeft },
-  //     { name: 'Available Vehicles', href: '/vendor/p2p/vehicles', icon: Car },
-  //     { name: 'Post Vehicle', href: '/vendor/p2p/vehicles/post', icon: Plus },
-  //     { name: 'Available Bookings', href: '/vendor/p2p/bookings', icon: CalendarCheck },
-  //     { name: 'Share Booking', href: '/vendor/p2p/bookings/post', icon: Send },
-  //     { name: 'My Activity', href: '/vendor/p2p/activity', icon: History },
-  //   ],
-  // },
+  {
+    name: 'P2P Marketplace',
+    href: '/vendor/p2p',
+    icon: ArrowRightLeft,
+    children: [
+      { name: 'Dashboard', href: '/vendor/p2p', icon: ArrowRightLeft },
+      { name: 'Available Vehicles', href: '/vendor/p2p/vehicles', icon: Car },
+      { name: 'Post Vehicle', href: '/vendor/p2p/vehicles/post', icon: Plus },
+      { name: 'Available Bookings', href: '/vendor/p2p/bookings', icon: CalendarCheck },
+      { name: 'Share Booking', href: '/vendor/p2p/bookings/post', icon: Send },
+      { name: 'My Activity', href: '/vendor/p2p/activity', icon: History },
+      { name: 'My Postings', href: '/vendor/p2p/my-postings', icon: ClipboardList },
+    ],
+  },
   // {
   //   name: 'Customer CRM',
   //   href: '/vendor/crm',
@@ -563,7 +564,17 @@ export function VendorSidebar({ isOpen, onClose, vendorStatus, approvedServiceId
             <div className="ml-4 pl-4 border-l border-gray-700 space-y-1">
               {item.children!.map((child) => {
                 const ChildIcon = child.icon;
-                const isChildActive = pathname === child.href || pathname.startsWith(child.href + '/');
+                // Check if this child is the best match — prevent multiple highlights
+                // A child is active if pathname matches exactly OR starts with it,
+                // BUT only if no other sibling is a longer/better match
+                const isExact = pathname === child.href;
+                const isPrefix = pathname.startsWith(child.href + '/');
+                const hasBetterMatch = item.children!.some(
+                  (sibling) => sibling.href !== child.href &&
+                    (pathname === sibling.href || pathname.startsWith(sibling.href + '/')) &&
+                    sibling.href.length > child.href.length
+                );
+                const isChildActive = isExact || (isPrefix && !hasBetterMatch);
 
                 return (
                   <Link
