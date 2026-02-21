@@ -135,7 +135,7 @@ const approvedNavigationItems: NavItem[] = [
       { name: 'Bookings', href: '/vendor/self-drive/bookings', icon: CalendarCheck },
       { name: 'Direct Requests', href: '/vendor/self-drive/bookings/direct', icon: Inbox },
       { name: 'Open Requests', href: '/vendor/self-drive/bookings/open', icon: Radio },
-      { name: 'Earnings', href: '/vendor/self-drive/earnings', icon: Wallet },
+      { name: 'Earnings', href: '/vendor/self-drive/earnings', icon: Wallet },  
       { name: 'Templates', href: '/vendor/self-drive/templates', icon: FileSpreadsheet },
     ],
   },

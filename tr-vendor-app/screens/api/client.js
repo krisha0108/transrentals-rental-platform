@@ -10,7 +10,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
  */
 const DEFAULT_PROD = "https://transrentals.in";
 // For physical Android device use ADB reverse: adb reverse tcp:3000 tcp:3000
-const DEFAULT_DEV_ANDROID = "http://192.168.137.1:3000"; // Hotspot IP - change back to localhost for ADB reverse
+const DEFAULT_DEV_ANDROID = "http://localhost:3000"; // Physical device via ADB reverse
 const DEFAULT_DEV_IOS = "http://localhost:3000";
 
 function inferLocalBase() {
@@ -21,6 +21,13 @@ let cachedBaseURL = null;
 
 export async function getBaseURL() {
   if (cachedBaseURL) return cachedBaseURL;
+
+  // In dev mode, always use local server (ignore any cached production URL)
+  if (__DEV__) {
+    cachedBaseURL = inferLocalBase();
+    console.log('[API] DEV mode - using local server:', cachedBaseURL);
+    return cachedBaseURL;
+  }
 
   // 1) App-level override (changeable at runtime)
   const saved = await AsyncStorage.getItem("api_base_url");
@@ -35,10 +42,8 @@ export async function getBaseURL() {
     cachedBaseURL = ENV_URL;
     return cachedBaseURL;
   }
-  // 3) default - use localhost in dev (with ADB reverse), production otherwise
-  // cachedBaseURL = __DEV__ ? inferLocalBase() : DEFAULT_PROD;
-   // 3) default - always use production URL (transrentals.in)                                                                                                                                                                                                      
-   cachedBaseURL = DEFAULT_PROD;   
+  // 3) default - production
+  cachedBaseURL = DEFAULT_PROD;
   return cachedBaseURL;
 }
 
@@ -858,6 +863,58 @@ export async function deleteVehicle(vehicleId) {
   return res.data;
 }
 
+// ==================== FLEET DOCUMENTS APIs ====================
+
+export async function getFleetDocuments() {
+  const res = await apiGet('/vendor/fleet/documents');
+  return res.data;
+}
+
+export async function uploadFleetDocument(formData) {
+  const base = await getBaseURL();
+  const token = await getSessionToken();
+  const resp = await axios.post(`${base}/api/vendor/fleet/documents`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+  });
+  return resp.data;
+}
+
+// ==================== FLEET FUEL APIs ====================
+
+export async function getFleetFuel() {
+  const res = await apiGet('/vendor/fleet/fuel');
+  return res.data;
+}
+
+export async function addFleetFuel(data) {
+  const res = await apiPost('/vendor/fleet/fuel', data);
+  return res.data;
+}
+
+// ==================== FLEET INCIDENTS APIs ====================
+
+export async function getFleetIncidents() {
+  const res = await apiGet('/vendor/fleet/incidents');
+  return res.data;
+}
+
+export async function addFleetIncident(data) {
+  const res = await apiPost('/vendor/fleet/incidents', data);
+  return res.data;
+}
+
+// ==================== FLEET SERVICE APIs ====================
+
+export async function getFleetService() {
+  const res = await apiGet('/vendor/fleet/service');
+  return res.data;
+}
+
+export async function addFleetService(data) {
+  const res = await apiPost('/vendor/fleet/service', data);
+  return res.data;
+}
+
 // ==================== STAFF APIs ====================
 
 /**
@@ -1139,6 +1196,189 @@ export async function toggleTemplateActive(serviceType, templateId, isActive) {
   }
   const res = await apiPut(`/vendor/${mappedServiceType}-templates/${templateId}`, { isActive });
   return res.data;
+}
+
+// ==================== DIRECT BOOKING APIs ====================
+
+/**
+ * Get direct bookings list with optional filters
+ */
+export async function getDirectBookings(params = {}) {
+  try {
+    const queryString = new URLSearchParams(params).toString();
+    const res = await apiGet(`/vendor/direct-bookings${queryString ? `?${queryString}` : ''}`);
+    return res.data;
+  } catch (error) {
+    console.error('[API] Failed to fetch direct bookings:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get single direct booking by ID
+ */
+export async function getDirectBookingById(bookingId) {
+  try {
+    const res = await apiGet(`/vendor/direct-bookings/${bookingId}`);
+    return res.data;
+  } catch (error) {
+    console.error('[API] Failed to fetch direct booking:', error);
+    throw error;
+  }
+}
+
+/**
+ * Create a new direct booking
+ */
+export async function createDirectBooking(bookingData) {
+  try {
+    const res = await apiPost('/vendor/direct-bookings', bookingData);
+    return res.data;
+  } catch (error) {
+    console.error('[API] Failed to create direct booking:', error);
+    throw error;
+  }
+}
+
+/**
+ * Update direct booking (status, payment, notes, assignment)
+ */
+export async function updateDirectBooking(bookingId, updateData) {
+  try {
+    const res = await apiPut(`/vendor/direct-bookings/${bookingId}`, updateData);
+    return res.data;
+  } catch (error) {
+    console.error('[API] Failed to update direct booking:', error);
+    throw error;
+  }
+}
+
+/**
+ * Cancel/delete a direct booking
+ */
+export async function cancelDirectBooking(bookingId) {
+  try {
+    const res = await apiDelete(`/vendor/direct-bookings/${bookingId}`);
+    return res.data;
+  } catch (error) {
+    console.error('[API] Failed to cancel direct booking:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get expenses for a direct booking
+ */
+export async function getDirectBookingExpenses(bookingId) {
+  try {
+    const res = await apiGet(`/vendor/direct-bookings/${bookingId}/expenses`);
+    return res.data;
+  } catch (error) {
+    console.error('[API] Failed to fetch direct booking expenses:', error);
+    throw error;
+  }
+}
+
+/**
+ * Add expense to a direct booking
+ */
+export async function addDirectBookingExpense(bookingId, expenseData) {
+  try {
+    const res = await apiPost(`/vendor/direct-bookings/${bookingId}/expenses`, expenseData);
+    return res.data;
+  } catch (error) {
+    console.error('[API] Failed to add direct booking expense:', error);
+    throw error;
+  }
+}
+
+/**
+ * Delete expense from a direct booking
+ */
+export async function deleteDirectBookingExpense(bookingId, expenseId) {
+  try {
+    const res = await apiDelete(`/vendor/direct-bookings/${bookingId}/expenses/${expenseId}`);
+    return res.data;
+  } catch (error) {
+    console.error('[API] Failed to delete direct booking expense:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get assignment options (drivers + vehicles) for direct bookings
+ */
+export async function getDirectBookingAssignOptions(date) {
+  try {
+    const query = date ? `?date=${date}` : '';
+    const res = await apiGet(`/vendor/direct-bookings/assign-options${query}`);
+    return res.data;
+  } catch (error) {
+    console.error('[API] Failed to fetch assign options:', error);
+    throw error;
+  }
+}
+
+// ==================== FINANCIALS APIs ====================
+
+/**
+ * Get vendor financials summary (revenue, expenses, pending payments)
+ * @param {Object} params - { month: '2026-02' } (optional)
+ */
+export async function getVendorFinancials(params = {}) {
+  try {
+    const queryParts = [];
+    if (params.month) queryParts.push(`month=${params.month}`);
+    const qs = queryParts.length ? `?${queryParts.join('&')}` : '';
+    const res = await apiGet(`/vendor/financials${qs}`);
+    return res.data;
+  } catch (error) {
+    console.error('[API] Failed to fetch financials:', error);
+    throw error;
+  }
+}
+
+// ==================== BOOKING LINK APIs ====================
+
+/**
+ * Get all booking links for the vendor
+ */
+export async function getBookingLinks() {
+  try {
+    const res = await apiGet('/vendor/booking-links');
+    return res.data;
+  } catch (error) {
+    console.error('[API] Failed to fetch booking links:', error);
+    throw error;
+  }
+}
+
+/**
+ * Update a booking link (toggle active, customize form title/welcome message)
+ */
+export async function updateBookingLink(linkId, updateData) {
+  try {
+    const res = await apiPut(`/vendor/booking-links/${linkId}`, updateData);
+    return res.data;
+  } catch (error) {
+    console.error('[API] Failed to update booking link:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get QR code for a booking link URL
+ */
+export async function getBookingLinkQR(url, linkId) {
+  try {
+    const params = new URLSearchParams({ url });
+    if (linkId) params.append('linkId', linkId);
+    const res = await apiGet(`/vendor/booking-links/qr?${params.toString()}`);
+    return res.data;
+  } catch (error) {
+    console.error('[API] Failed to generate QR code:', error);
+    throw error;
+  }
 }
 
 // ==================== UTILITY FUNCTIONS ====================

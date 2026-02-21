@@ -17,6 +17,7 @@ export default function BookingsListScreen({ navigation }) {
     { id: 'packers', name: 'Packers & Movers', icon: 'package-variant', color: '#EC4899', screen: 'PackersBookings' },
     { id: 'equipment', name: 'Equipment Rental', icon: 'hammer-wrench', color: '#F97316', screen: 'EquipmentBookings' },
     { id: 'self-drive', name: 'Self Drive', icon: 'car-side', color: '#06B6D4', screen: 'SelfDriveBookings' },
+    { id: 'direct', name: 'Direct Bookings', icon: 'book-plus', color: '#F59E0B', screen: 'DirectBookings' },
   ];
 
   return (

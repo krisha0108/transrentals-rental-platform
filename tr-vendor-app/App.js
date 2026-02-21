@@ -50,6 +50,10 @@ import NotificationsScreen from './screens/vendor/notifications/NotificationsScr
 
 // Fleet
 import FleetListScreen from './screens/vendor/fleet/FleetListScreen';
+import FleetDocumentsScreen from './screens/vendor/fleet/FleetDocumentsScreen';
+import FuelTrackingScreen from './screens/vendor/fleet/FuelTrackingScreen';
+import IncidentsScreen from './screens/vendor/fleet/IncidentsScreen';
+import ServiceMaintenanceScreen from './screens/vendor/fleet/ServiceMaintenanceScreen';
 
 // Staff
 import StaffListScreen from './screens/vendor/staff/StaffListScreen';
@@ -110,6 +114,17 @@ import PackersBookingsScreen from './screens/vendor/services/packers/PackersBook
 import PackersBookingDetailScreen from './screens/vendor/services/packers/PackersBookingDetailScreen';
 import SelfDriveBookingsScreen from './screens/vendor/services/self-drive/SelfDriveBookingsScreen';
 import SelfDriveBookingDetailScreen from './screens/vendor/services/self-drive/SelfDriveBookingDetailScreen';
+
+// Direct Bookings
+import DirectBookingsScreen from './screens/vendor/direct-bookings/DirectBookingsScreen';
+import AddDirectBookingScreen from './screens/vendor/direct-bookings/AddDirectBookingScreen';
+import DirectBookingDetailScreen from './screens/vendor/direct-bookings/DirectBookingDetailScreen';
+
+// Booking Links
+import BookingLinksScreen from './screens/vendor/booking-links/BookingLinksScreen';
+
+// Financials
+import FinancialsScreen from './screens/vendor/financials/FinancialsScreen';
 
 // Service-Specific Quote Screens
 import BikeMyQuotesScreen from './screens/vendor/services/bike/BikeMyQuotesScreen';
@@ -571,6 +586,10 @@ export default function App() {
             {/* Fleet Screens */}
             <Stack.Screen name="VehicleDetailScreen" component={VehicleDetailScreen} />
             <Stack.Screen name="AddVehicleScreen" component={AddVehicleScreen} />
+            <Stack.Screen name="FleetDocumentsScreen" component={FleetDocumentsScreen} />
+            <Stack.Screen name="FuelTrackingScreen" component={FuelTrackingScreen} />
+            <Stack.Screen name="IncidentsScreen" component={IncidentsScreen} />
+            <Stack.Screen name="ServiceMaintenanceScreen" component={ServiceMaintenanceScreen} />
 
             {/* Staff Screens */}
             <Stack.Screen name="StaffDetailScreen" component={StaffDetailScreen} />
@@ -621,6 +640,17 @@ export default function App() {
             <Stack.Screen name="PackersBookingDetail" component={PackersBookingDetailScreen} />
             <Stack.Screen name="SelfDriveBookings" component={SelfDriveBookingsScreen} />
             <Stack.Screen name="SelfDriveBookingDetail" component={SelfDriveBookingDetailScreen} />
+
+            {/* Direct Bookings */}
+            <Stack.Screen name="DirectBookings" component={DirectBookingsScreen} />
+            <Stack.Screen name="AddDirectBooking" component={AddDirectBookingScreen} />
+            <Stack.Screen name="DirectBookingDetail" component={DirectBookingDetailScreen} />
+
+            {/* Booking Links */}
+            <Stack.Screen name="BookingLinks" component={BookingLinksScreen} />
+
+            {/* Financials */}
+            <Stack.Screen name="Financials" component={FinancialsScreen} />
 
             {/* Service-Specific Quote Screens */}
             {/* Bike */}

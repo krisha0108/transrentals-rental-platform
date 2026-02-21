@@ -706,6 +706,33 @@ export default function DashboardScreen({ navigation }) {
                 </View>
                 <Text style={styles.quickActionBtnText}>Locations</Text>
               </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.quickActionBtn}
+                onPress={() => navigation.navigate('DirectBookings')}
+              >
+                <View style={[styles.quickActionBtnIcon, { backgroundColor: '#FEF3C7' }]}>
+                  <Icon name="book-open" size={18} color="#F59E0B" />
+                </View>
+                <Text style={styles.quickActionBtnText}>Direct Bookings</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.quickActionBtn}
+                onPress={() => navigation.navigate('BookingLinks')}
+              >
+                <View style={[styles.quickActionBtnIcon, { backgroundColor: '#E0E7FF' }]}>
+                  <Icon name="link-2" size={18} color="#6366F1" />
+                </View>
+                <Text style={styles.quickActionBtnText}>Booking Links</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.quickActionBtn}
+                onPress={() => navigation.navigate('Financials')}
+              >
+                <View style={[styles.quickActionBtnIcon, { backgroundColor: '#EDE9FE' }]}>
+                  <Icon name="bar-chart-2" size={18} color="#7C3AED" />
+                </View>
+                <Text style={styles.quickActionBtnText}>Financials</Text>
+              </TouchableOpacity>
             </ScrollView>
           </>
         )}
@@ -754,6 +781,36 @@ export default function DashboardScreen({ navigation }) {
                 </View>
                 <Text style={styles.manageText}>Settings</Text>
                 <Text style={styles.manageCount}>Profile</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.manageCard}
+                onPress={() => navigation.navigate('DirectBookings')}
+              >
+                <View style={[styles.manageCardIcon, { backgroundColor: '#FFF7ED' }]}>
+                  <Icon name="book-open" size={18} color="#F59E0B" />
+                </View>
+                <Text style={styles.manageText}>Direct</Text>
+                <Text style={styles.manageCount}>Bookings</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.manageCard}
+                onPress={() => navigation.navigate('BookingLinks')}
+              >
+                <View style={[styles.manageCardIcon, { backgroundColor: '#E0E7FF' }]}>
+                  <Icon name="link-2" size={18} color="#6366F1" />
+                </View>
+                <Text style={styles.manageText}>Booking</Text>
+                <Text style={styles.manageCount}>Links</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.manageCard}
+                onPress={() => navigation.navigate('Financials')}
+              >
+                <View style={[styles.manageCardIcon, { backgroundColor: '#EDE9FE' }]}>
+                  <Icon name="bar-chart-2" size={18} color="#7C3AED" />
+                </View>
+                <Text style={styles.manageText}>Financials</Text>
+                <Text style={styles.manageCount}>P&L</Text>
               </TouchableOpacity>
             </View>
           </>
