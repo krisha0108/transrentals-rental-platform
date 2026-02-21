@@ -9,13 +9,8 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
  * Base URL points to the Next.js app (not the old Laravel API)
  */
 const DEFAULT_PROD = "https://transrentals.in";
-<<<<<<< Updated upstream
-// For Android Emulator use 10.0.2.2, for Physical Device use your computer's IP
-const DEFAULT_DEV_ANDROID = "http://192.168.29.68:3000"; // Your computer's WiFi IP
-=======
 // For physical Android device use ADB reverse: adb reverse tcp:3000 tcp:3000
 const DEFAULT_DEV_ANDROID = "http://192.168.29.73:3000"; // WiFi IP
->>>>>>> Stashed changes
 const DEFAULT_DEV_IOS = "http://localhost:3000";
 
 function inferLocalBase() {

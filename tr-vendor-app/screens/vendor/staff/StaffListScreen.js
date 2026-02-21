@@ -344,8 +344,6 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: C.muted,
   },
-<<<<<<< Updated upstream
-=======
   quickActions: {
     flexDirection: 'row',
     marginHorizontal: 16,
@@ -381,11 +379,6 @@ const styles = StyleSheet.create({
     color: C.muted,
     marginBottom: 2,
   },
-  filtersContainer: {
-    height: 56,
-    marginTop: 12,
-  },
->>>>>>> Stashed changes
   filtersContent: {
     paddingHorizontal: 16,
     paddingVertical: 12,
