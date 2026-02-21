@@ -255,3 +255,6 @@ ALTER TABLE `vendor_direct_bookings`
     ADD CONSTRAINT `vendor_direct_bookings_assignedVehicleId_fkey`
     FOREIGN KEY (`assignedVehicleId`) REFERENCES `vendor_fleets`(`id`)
     ON DELETE SET NULL ON UPDATE CASCADE;
+
+
+ALTER TABLE `vendors` ADD COLUMN `slug` VARCHAR(191) NULL UNIQUE;
