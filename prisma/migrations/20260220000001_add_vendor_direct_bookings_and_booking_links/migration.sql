@@ -1,7 +1,9 @@
 -- Migration: add_vendor_direct_bookings_and_booking_links
 -- Creates vendor_booking_links and vendor_direct_bookings tables.
 -- Safe to run on both fresh deployments and existing deployments
--- where these tables were created manually (uses IF NOT EXISTS throughout).
+-- where these tables were created manually.
+-- Compatible with MySQL 5.7+ (uses INFORMATION_SCHEMA checks instead of
+-- ADD COLUMN IF NOT EXISTS which is MariaDB-only syntax).
 
 -- ─────────────────────────────────────────────────────────────────────────────
 -- 1. vendor_booking_links
@@ -74,80 +76,181 @@ CREATE TABLE IF NOT EXISTS `vendor_direct_bookings` (
 
 -- ─────────────────────────────────────────────────────────────────────────────
 -- 3. For EXISTING deployments: add columns that may be missing
---    (IF NOT EXISTS ensures no error if columns already exist)
+--    Uses SET/PREPARE pattern (MySQL 5.7+ compatible) instead of
+--    ADD COLUMN IF NOT EXISTS (MariaDB-only).
 -- ─────────────────────────────────────────────────────────────────────────────
 
--- vendor_booking_links extra columns (in case table exists without them)
-ALTER TABLE `vendor_booking_links` ADD COLUMN IF NOT EXISTS `formTitle`      VARCHAR(191) NULL;
-ALTER TABLE `vendor_booking_links` ADD COLUMN IF NOT EXISTS `welcomeMsg`     LONGTEXT     NULL;
-ALTER TABLE `vendor_booking_links` ADD COLUMN IF NOT EXISTS `visibleFields`  JSON         NULL;
-ALTER TABLE `vendor_booking_links` ADD COLUMN IF NOT EXISTS `requireAdvance` BOOLEAN      NOT NULL DEFAULT false;
-ALTER TABLE `vendor_booking_links` ADD COLUMN IF NOT EXISTS `advanceAmount`  DOUBLE       NULL;
-ALTER TABLE `vendor_booking_links` ADD COLUMN IF NOT EXISTS `clickCount`     INTEGER      NOT NULL DEFAULT 0;
-ALTER TABLE `vendor_booking_links` ADD COLUMN IF NOT EXISTS `bookingCount`   INTEGER      NOT NULL DEFAULT 0;
+-- vendor_booking_links: formTitle
+SET @sql = (SELECT IF(COUNT(*) = 0, 'ALTER TABLE `vendor_booking_links` ADD COLUMN `formTitle` VARCHAR(191) NULL', 'SELECT 1') FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'vendor_booking_links' AND COLUMN_NAME = 'formTitle');
+PREPARE _s FROM @sql;
+EXECUTE _s;
+DEALLOCATE PREPARE _s;
 
--- vendor_direct_bookings: assignment columns (most likely missing on existing deployments)
-ALTER TABLE `vendor_direct_bookings` ADD COLUMN IF NOT EXISTS `assignedDriverId`  VARCHAR(191) NULL;
-ALTER TABLE `vendor_direct_bookings` ADD COLUMN IF NOT EXISTS `assignedVehicleId` VARCHAR(191) NULL;
-ALTER TABLE `vendor_direct_bookings` ADD COLUMN IF NOT EXISTS `assignedAt`        DATETIME(3)  NULL;
+-- vendor_booking_links: welcomeMsg
+SET @sql = (SELECT IF(COUNT(*) = 0, 'ALTER TABLE `vendor_booking_links` ADD COLUMN `welcomeMsg` LONGTEXT NULL', 'SELECT 1') FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'vendor_booking_links' AND COLUMN_NAME = 'welcomeMsg');
+PREPARE _s FROM @sql;
+EXECUTE _s;
+DEALLOCATE PREPARE _s;
 
--- vendor_direct_bookings: other columns that may be missing on older manual tables
-ALTER TABLE `vendor_direct_bookings` ADD COLUMN IF NOT EXISTS `bookingSource`  VARCHAR(191) NOT NULL DEFAULT 'manual';
-ALTER TABLE `vendor_direct_bookings` ADD COLUMN IF NOT EXISTS `linkId`         VARCHAR(191) NULL;
-ALTER TABLE `vendor_direct_bookings` ADD COLUMN IF NOT EXISTS `vehicleType`    VARCHAR(191) NULL;
-ALTER TABLE `vendor_direct_bookings` ADD COLUMN IF NOT EXISTS `customerEmail`  VARCHAR(191) NULL;
-ALTER TABLE `vendor_direct_bookings` ADD COLUMN IF NOT EXISTS `paymentMode`    VARCHAR(191) NULL;
-ALTER TABLE `vendor_direct_bookings` ADD COLUMN IF NOT EXISTS `razorpayLinkId` VARCHAR(191) NULL;
-ALTER TABLE `vendor_direct_bookings` ADD COLUMN IF NOT EXISTS `vendorNotes`    LONGTEXT     NULL;
+-- vendor_booking_links: visibleFields
+SET @sql = (SELECT IF(COUNT(*) = 0, 'ALTER TABLE `vendor_booking_links` ADD COLUMN `visibleFields` JSON NULL', 'SELECT 1') FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'vendor_booking_links' AND COLUMN_NAME = 'visibleFields');
+PREPARE _s FROM @sql;
+EXECUTE _s;
+DEALLOCATE PREPARE _s;
+
+-- vendor_booking_links: requireAdvance
+SET @sql = (SELECT IF(COUNT(*) = 0, 'ALTER TABLE `vendor_booking_links` ADD COLUMN `requireAdvance` BOOLEAN NOT NULL DEFAULT false', 'SELECT 1') FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'vendor_booking_links' AND COLUMN_NAME = 'requireAdvance');
+PREPARE _s FROM @sql;
+EXECUTE _s;
+DEALLOCATE PREPARE _s;
+
+-- vendor_booking_links: advanceAmount
+SET @sql = (SELECT IF(COUNT(*) = 0, 'ALTER TABLE `vendor_booking_links` ADD COLUMN `advanceAmount` DOUBLE NULL', 'SELECT 1') FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'vendor_booking_links' AND COLUMN_NAME = 'advanceAmount');
+PREPARE _s FROM @sql;
+EXECUTE _s;
+DEALLOCATE PREPARE _s;
+
+-- vendor_booking_links: clickCount
+SET @sql = (SELECT IF(COUNT(*) = 0, 'ALTER TABLE `vendor_booking_links` ADD COLUMN `clickCount` INTEGER NOT NULL DEFAULT 0', 'SELECT 1') FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'vendor_booking_links' AND COLUMN_NAME = 'clickCount');
+PREPARE _s FROM @sql;
+EXECUTE _s;
+DEALLOCATE PREPARE _s;
+
+-- vendor_booking_links: bookingCount
+SET @sql = (SELECT IF(COUNT(*) = 0, 'ALTER TABLE `vendor_booking_links` ADD COLUMN `bookingCount` INTEGER NOT NULL DEFAULT 0', 'SELECT 1') FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'vendor_booking_links' AND COLUMN_NAME = 'bookingCount');
+PREPARE _s FROM @sql;
+EXECUTE _s;
+DEALLOCATE PREPARE _s;
+
+-- vendor_direct_bookings: assignedDriverId
+SET @sql = (SELECT IF(COUNT(*) = 0, 'ALTER TABLE `vendor_direct_bookings` ADD COLUMN `assignedDriverId` VARCHAR(191) NULL', 'SELECT 1') FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'vendor_direct_bookings' AND COLUMN_NAME = 'assignedDriverId');
+PREPARE _s FROM @sql;
+EXECUTE _s;
+DEALLOCATE PREPARE _s;
+
+-- vendor_direct_bookings: assignedVehicleId
+SET @sql = (SELECT IF(COUNT(*) = 0, 'ALTER TABLE `vendor_direct_bookings` ADD COLUMN `assignedVehicleId` VARCHAR(191) NULL', 'SELECT 1') FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'vendor_direct_bookings' AND COLUMN_NAME = 'assignedVehicleId');
+PREPARE _s FROM @sql;
+EXECUTE _s;
+DEALLOCATE PREPARE _s;
+
+-- vendor_direct_bookings: assignedAt
+SET @sql = (SELECT IF(COUNT(*) = 0, 'ALTER TABLE `vendor_direct_bookings` ADD COLUMN `assignedAt` DATETIME(3) NULL', 'SELECT 1') FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'vendor_direct_bookings' AND COLUMN_NAME = 'assignedAt');
+PREPARE _s FROM @sql;
+EXECUTE _s;
+DEALLOCATE PREPARE _s;
+
+-- vendor_direct_bookings: bookingSource
+SET @sql = (SELECT IF(COUNT(*) = 0, "ALTER TABLE `vendor_direct_bookings` ADD COLUMN `bookingSource` VARCHAR(191) NOT NULL DEFAULT 'manual'", 'SELECT 1') FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'vendor_direct_bookings' AND COLUMN_NAME = 'bookingSource');
+PREPARE _s FROM @sql;
+EXECUTE _s;
+DEALLOCATE PREPARE _s;
+
+-- vendor_direct_bookings: linkId
+SET @sql = (SELECT IF(COUNT(*) = 0, 'ALTER TABLE `vendor_direct_bookings` ADD COLUMN `linkId` VARCHAR(191) NULL', 'SELECT 1') FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'vendor_direct_bookings' AND COLUMN_NAME = 'linkId');
+PREPARE _s FROM @sql;
+EXECUTE _s;
+DEALLOCATE PREPARE _s;
+
+-- vendor_direct_bookings: vehicleType
+SET @sql = (SELECT IF(COUNT(*) = 0, 'ALTER TABLE `vendor_direct_bookings` ADD COLUMN `vehicleType` VARCHAR(191) NULL', 'SELECT 1') FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'vendor_direct_bookings' AND COLUMN_NAME = 'vehicleType');
+PREPARE _s FROM @sql;
+EXECUTE _s;
+DEALLOCATE PREPARE _s;
+
+-- vendor_direct_bookings: customerEmail
+SET @sql = (SELECT IF(COUNT(*) = 0, 'ALTER TABLE `vendor_direct_bookings` ADD COLUMN `customerEmail` VARCHAR(191) NULL', 'SELECT 1') FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'vendor_direct_bookings' AND COLUMN_NAME = 'customerEmail');
+PREPARE _s FROM @sql;
+EXECUTE _s;
+DEALLOCATE PREPARE _s;
+
+-- vendor_direct_bookings: paymentMode
+SET @sql = (SELECT IF(COUNT(*) = 0, 'ALTER TABLE `vendor_direct_bookings` ADD COLUMN `paymentMode` VARCHAR(191) NULL', 'SELECT 1') FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'vendor_direct_bookings' AND COLUMN_NAME = 'paymentMode');
+PREPARE _s FROM @sql;
+EXECUTE _s;
+DEALLOCATE PREPARE _s;
+
+-- vendor_direct_bookings: razorpayLinkId
+SET @sql = (SELECT IF(COUNT(*) = 0, 'ALTER TABLE `vendor_direct_bookings` ADD COLUMN `razorpayLinkId` VARCHAR(191) NULL', 'SELECT 1') FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'vendor_direct_bookings' AND COLUMN_NAME = 'razorpayLinkId');
+PREPARE _s FROM @sql;
+EXECUTE _s;
+DEALLOCATE PREPARE _s;
+
+-- vendor_direct_bookings: vendorNotes
+SET @sql = (SELECT IF(COUNT(*) = 0, 'ALTER TABLE `vendor_direct_bookings` ADD COLUMN `vendorNotes` LONGTEXT NULL', 'SELECT 1') FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'vendor_direct_bookings' AND COLUMN_NAME = 'vendorNotes');
+PREPARE _s FROM @sql;
+EXECUTE _s;
+DEALLOCATE PREPARE _s;
 
 -- ─────────────────────────────────────────────────────────────────────────────
--- 4. Indexes for assignment columns (CREATE INDEX IF NOT EXISTS — MySQL 8.0+)
+-- 4. Indexes for assignment columns
 -- ─────────────────────────────────────────────────────────────────────────────
 
-CREATE INDEX IF NOT EXISTS `vendor_direct_bookings_assignedDriverId_idx`  ON `vendor_direct_bookings`(`assignedDriverId`);
-CREATE INDEX IF NOT EXISTS `vendor_direct_bookings_assignedVehicleId_idx` ON `vendor_direct_bookings`(`assignedVehicleId`);
-CREATE INDEX IF NOT EXISTS `vendor_direct_bookings_bookingSource_idx`     ON `vendor_direct_bookings`(`bookingSource`);
+SET @sql = (SELECT IF(COUNT(*) = 0, 'CREATE INDEX `vendor_direct_bookings_assignedDriverId_idx` ON `vendor_direct_bookings`(`assignedDriverId`)', 'SELECT 1') FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'vendor_direct_bookings' AND INDEX_NAME = 'vendor_direct_bookings_assignedDriverId_idx');
+PREPARE _s FROM @sql;
+EXECUTE _s;
+DEALLOCATE PREPARE _s;
+
+SET @sql = (SELECT IF(COUNT(*) = 0, 'CREATE INDEX `vendor_direct_bookings_assignedVehicleId_idx` ON `vendor_direct_bookings`(`assignedVehicleId`)', 'SELECT 1') FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'vendor_direct_bookings' AND INDEX_NAME = 'vendor_direct_bookings_assignedVehicleId_idx');
+PREPARE _s FROM @sql;
+EXECUTE _s;
+DEALLOCATE PREPARE _s;
+
+SET @sql = (SELECT IF(COUNT(*) = 0, 'CREATE INDEX `vendor_direct_bookings_bookingSource_idx` ON `vendor_direct_bookings`(`bookingSource`)', 'SELECT 1') FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'vendor_direct_bookings' AND INDEX_NAME = 'vendor_direct_bookings_bookingSource_idx');
+PREPARE _s FROM @sql;
+EXECUTE _s;
+DEALLOCATE PREPARE _s;
 
 -- ─────────────────────────────────────────────────────────────────────────────
 -- 5. Foreign key constraints
---    DROP IF EXISTS first so re-running this migration never errors.
+--    Drop if exists (via INFORMATION_SCHEMA check) then re-add.
 -- ─────────────────────────────────────────────────────────────────────────────
 
 -- vendor_booking_links → vendors
-ALTER TABLE `vendor_booking_links`
-    DROP FOREIGN KEY IF EXISTS `vendor_booking_links_vendorId_fkey`;
+SET @sql = (SELECT IF(COUNT(*) > 0, 'ALTER TABLE `vendor_booking_links` DROP FOREIGN KEY `vendor_booking_links_vendorId_fkey`', 'SELECT 1') FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS WHERE CONSTRAINT_SCHEMA = DATABASE() AND TABLE_NAME = 'vendor_booking_links' AND CONSTRAINT_NAME = 'vendor_booking_links_vendorId_fkey' AND CONSTRAINT_TYPE = 'FOREIGN KEY');
+PREPARE _s FROM @sql;
+EXECUTE _s;
+DEALLOCATE PREPARE _s;
 ALTER TABLE `vendor_booking_links`
     ADD CONSTRAINT `vendor_booking_links_vendorId_fkey`
     FOREIGN KEY (`vendorId`) REFERENCES `vendors`(`id`)
     ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- vendor_direct_bookings → vendors
-ALTER TABLE `vendor_direct_bookings`
-    DROP FOREIGN KEY IF EXISTS `vendor_direct_bookings_vendorId_fkey`;
+SET @sql = (SELECT IF(COUNT(*) > 0, 'ALTER TABLE `vendor_direct_bookings` DROP FOREIGN KEY `vendor_direct_bookings_vendorId_fkey`', 'SELECT 1') FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS WHERE CONSTRAINT_SCHEMA = DATABASE() AND TABLE_NAME = 'vendor_direct_bookings' AND CONSTRAINT_NAME = 'vendor_direct_bookings_vendorId_fkey' AND CONSTRAINT_TYPE = 'FOREIGN KEY');
+PREPARE _s FROM @sql;
+EXECUTE _s;
+DEALLOCATE PREPARE _s;
 ALTER TABLE `vendor_direct_bookings`
     ADD CONSTRAINT `vendor_direct_bookings_vendorId_fkey`
     FOREIGN KEY (`vendorId`) REFERENCES `vendors`(`id`)
     ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- vendor_direct_bookings → vendor_booking_links (nullable)
-ALTER TABLE `vendor_direct_bookings`
-    DROP FOREIGN KEY IF EXISTS `vendor_direct_bookings_linkId_fkey`;
+SET @sql = (SELECT IF(COUNT(*) > 0, 'ALTER TABLE `vendor_direct_bookings` DROP FOREIGN KEY `vendor_direct_bookings_linkId_fkey`', 'SELECT 1') FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS WHERE CONSTRAINT_SCHEMA = DATABASE() AND TABLE_NAME = 'vendor_direct_bookings' AND CONSTRAINT_NAME = 'vendor_direct_bookings_linkId_fkey' AND CONSTRAINT_TYPE = 'FOREIGN KEY');
+PREPARE _s FROM @sql;
+EXECUTE _s;
+DEALLOCATE PREPARE _s;
 ALTER TABLE `vendor_direct_bookings`
     ADD CONSTRAINT `vendor_direct_bookings_linkId_fkey`
     FOREIGN KEY (`linkId`) REFERENCES `vendor_booking_links`(`id`)
     ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- vendor_direct_bookings → vendor_staff (assigned driver, nullable)
-ALTER TABLE `vendor_direct_bookings`
-    DROP FOREIGN KEY IF EXISTS `vendor_direct_bookings_assignedDriverId_fkey`;
+SET @sql = (SELECT IF(COUNT(*) > 0, 'ALTER TABLE `vendor_direct_bookings` DROP FOREIGN KEY `vendor_direct_bookings_assignedDriverId_fkey`', 'SELECT 1') FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS WHERE CONSTRAINT_SCHEMA = DATABASE() AND TABLE_NAME = 'vendor_direct_bookings' AND CONSTRAINT_NAME = 'vendor_direct_bookings_assignedDriverId_fkey' AND CONSTRAINT_TYPE = 'FOREIGN KEY');
+PREPARE _s FROM @sql;
+EXECUTE _s;
+DEALLOCATE PREPARE _s;
 ALTER TABLE `vendor_direct_bookings`
     ADD CONSTRAINT `vendor_direct_bookings_assignedDriverId_fkey`
     FOREIGN KEY (`assignedDriverId`) REFERENCES `vendor_staff`(`id`)
     ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- vendor_direct_bookings → vendor_fleets (assigned vehicle, nullable)
-ALTER TABLE `vendor_direct_bookings`
-    DROP FOREIGN KEY IF EXISTS `vendor_direct_bookings_assignedVehicleId_fkey`;
+SET @sql = (SELECT IF(COUNT(*) > 0, 'ALTER TABLE `vendor_direct_bookings` DROP FOREIGN KEY `vendor_direct_bookings_assignedVehicleId_fkey`', 'SELECT 1') FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS WHERE CONSTRAINT_SCHEMA = DATABASE() AND TABLE_NAME = 'vendor_direct_bookings' AND CONSTRAINT_NAME = 'vendor_direct_bookings_assignedVehicleId_fkey' AND CONSTRAINT_TYPE = 'FOREIGN KEY');
+PREPARE _s FROM @sql;
+EXECUTE _s;
+DEALLOCATE PREPARE _s;
 ALTER TABLE `vendor_direct_bookings`
     ADD CONSTRAINT `vendor_direct_bookings_assignedVehicleId_fkey`
     FOREIGN KEY (`assignedVehicleId`) REFERENCES `vendor_fleets`(`id`)
