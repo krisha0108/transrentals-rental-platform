@@ -263,12 +263,12 @@ export default function BikeBookingDetailScreen({ route, navigation }) {
   };
 
   const canAccept = () => {
-    const acceptableStatuses = ['PENDING_VENDOR', 'BROADCASTED', 'PAYMENT_VERIFIED'];
+    const acceptableStatuses = ['PENDING_VENDOR', 'BROADCASTED'];
     return acceptableStatuses.includes(booking?.status);
   };
 
   const canReject = () => {
-    const rejectableStatuses = ['PENDING_VENDOR', 'BROADCASTED', 'PAYMENT_VERIFIED'];
+    const rejectableStatuses = ['PENDING_VENDOR', 'BROADCASTED'];
     return rejectableStatuses.includes(booking?.status);
   };
 
@@ -346,6 +346,23 @@ export default function BikeBookingDetailScreen({ route, navigation }) {
             </View>
           </View>
         </View>
+
+        {/* Payment Received Info Card — shown for quote-based bookings after customer pays */}
+        {booking.status === 'PAYMENT_VERIFIED' && booking.isOwnBooking && (
+          <View style={[styles.card, { backgroundColor: '#F0FDF4', borderColor: '#86EFAC', borderWidth: 1 }]}>
+            <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 10 }}>
+              <Ionicons name="checkmark-circle" size={24} color={C.green} />
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 15, fontWeight: '700', color: C.green, marginBottom: 4 }}>
+                  Advance Payment Received!
+                </Text>
+                <Text style={{ fontSize: 13, color: C.muted, lineHeight: 18 }}>
+                  Customer has paid the advance. Prepare the bike and generate OTP when customer arrives for pickup.
+                </Text>
+              </View>
+            </View>
+          </View>
+        )}
 
         {/* Customer Info Card */}
         <View style={styles.card}>
@@ -539,7 +556,7 @@ export default function BikeBookingDetailScreen({ route, navigation }) {
         </View>
 
         {/* Trip Control - OTP Section */}
-        {(booking.status === 'ACCEPTED' || booking.status === 'CONFIRMED' || booking.status === 'READY_FOR_PICKUP' || booking.status === 'IN_PROGRESS') && (
+        {(booking.status === 'ACCEPTED' || booking.status === 'CONFIRMED' || booking.status === 'READY_FOR_PICKUP' || booking.status === 'IN_PROGRESS' || (booking.status === 'PAYMENT_VERIFIED' && booking.isOwnBooking)) && (
           <View style={styles.card}>
             <View style={styles.cardHeaderRow}>
               <Ionicons name="key-outline" size={22} color={C.purple} />
@@ -558,11 +575,13 @@ export default function BikeBookingDetailScreen({ route, navigation }) {
               </View>
             )}
 
-            {/* For ACCEPTED/CONFIRMED - Generate OTP */}
-            {(booking.status === 'ACCEPTED' || booking.status === 'CONFIRMED') && (
+            {/* For ACCEPTED/CONFIRMED/PAYMENT_VERIFIED(own) - Generate OTP */}
+            {(booking.status === 'ACCEPTED' || booking.status === 'CONFIRMED' || (booking.status === 'PAYMENT_VERIFIED' && booking.isOwnBooking)) && (
               <View>
                 <Text style={styles.tripControlDesc}>
-                  When customer arrives for pickup, generate OTP to start the trip.
+                  {booking.status === 'PAYMENT_VERIFIED'
+                    ? 'Advance payment received. When customer arrives for pickup, generate OTP to start the trip.'
+                    : 'When customer arrives for pickup, generate OTP to start the trip.'}
                 </Text>
                 <TouchableOpacity
                   style={[styles.otpButton, { backgroundColor: C.purple }]}

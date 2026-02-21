@@ -83,6 +83,16 @@ export async function GET(request: NextRequest) {
               status: true,
             },
           },
+          // Include the booking created from this accepted quote
+          luxury_bookings: {
+            select: {
+              id: true,
+              bookingNumber: true,
+              status: true,
+              paymentStatus: true,
+              advancePaid: true,
+            },
+          },
         },
         orderBy: { createdAt: 'desc' },
         skip,
@@ -138,6 +148,7 @@ export async function GET(request: NextRequest) {
         sentAt: q.sentAt,
         viewCount: q.viewCount,
         request: q.luxury_quote_requests,
+        booking: q.luxury_bookings || null,
         createdAt: q.createdAt,
         updatedAt: q.updatedAt,
       })),

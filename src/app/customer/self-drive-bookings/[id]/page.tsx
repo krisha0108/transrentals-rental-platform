@@ -35,6 +35,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import CustomerBookingChat from '@/components/customer/CustomerBookingChat';
+import { BookingPayment } from '@/components/payment/BookingPayment';
 
 interface BankAccount {
   id: string;
@@ -483,25 +484,17 @@ export default function CustomerSelfDriveBookingPage() {
           {/* Sidebar */}
           <div className="space-y-6">
             {/* Payment Action */}
-            {booking.status === 'PENDING_PAYMENT' && (
-              <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-6 text-white">
-                <h3 className="font-semibold mb-2">Complete Your Booking</h3>
-                <p className="text-blue-100 text-sm mb-4">
-                  Pay the advance amount to confirm your booking
-                </p>
-                <div className="bg-white/20 rounded-lg p-3 mb-4">
-                  <p className="text-sm text-blue-100">Amount to Pay</p>
-                  <p className="text-2xl font-bold">
-                    ₹{(booking.advanceAmount || booking.grandTotal)?.toLocaleString()}
-                  </p>
-                </div>
-                <Button
-                  onClick={openPaymentModal}
-                  className="w-full bg-white text-blue-600 hover:bg-blue-50"
-                >
-                  <CreditCard className="w-4 h-4 mr-2" />
-                  Pay Now
-                </Button>
+            {booking.status === 'PENDING_PAYMENT' && !!(booking.advanceAmount || booking.grandTotal) && (
+              <div className="bg-white rounded-xl border p-4">
+                <h3 className="font-semibold text-gray-900 mb-3">Complete Your Booking</h3>
+                <BookingPayment
+                  bookingId={booking.id}
+                  bookingType="self-drive"
+                  amount={booking.advanceAmount || booking.grandTotal}
+                  bookingNumber={booking.bookingNumber}
+                  serviceSlug="self-drive-car-rentals"
+                  onSuccess={() => window.location.reload()}
+                />
               </div>
             )}
 
@@ -669,8 +662,8 @@ export default function CustomerSelfDriveBookingPage() {
         </div>
       </div>
 
-      {/* Payment Modal */}
-      {showPaymentModal && booking && (
+      {/* Payment Modal - replaced by BookingPayment component */}
+      {false && booking && (
         <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4 overflow-y-auto">
           <div className="bg-white rounded-3xl max-w-lg w-full overflow-hidden shadow-2xl my-8">
             {/* Header */}

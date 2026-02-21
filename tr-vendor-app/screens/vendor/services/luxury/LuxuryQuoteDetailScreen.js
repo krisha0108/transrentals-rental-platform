@@ -264,6 +264,31 @@ export default function LuxuryQuoteDetailScreen({ route, navigation }) {
           <Text style={styles.totalAmount}>{formatCurrency(totalAmount)}</Text>
         </View>
 
+        {/* Booking created banner — shown when quote is ACCEPTED */}
+        {status === 'ACCEPTED' && quote.booking && (
+          <TouchableOpacity
+            style={styles.bookingBanner}
+            onPress={() => navigation.navigate('LuxuryBookingDetail', { bookingId: quote.booking.id })}
+            activeOpacity={0.8}
+          >
+            <View style={styles.bookingBannerLeft}>
+              <Ionicons name="checkmark-circle" size={22} color={GREEN} />
+              <View>
+                <Text style={styles.bookingBannerTitle}>Booking Created!</Text>
+                <Text style={styles.bookingBannerSub}>
+                  #{quote.booking.bookingNumber} •{' '}
+                  {quote.booking.paymentStatus === 'PAID'
+                    ? 'Advance Received'
+                    : 'Awaiting Customer Payment'}
+                </Text>
+              </View>
+            </View>
+            <View style={styles.bookingBannerArrow}>
+              <Icon name="arrow-right" size={16} color={GREEN} />
+            </View>
+          </TouchableOpacity>
+        )}
+
         <View style={styles.content}>
           {/* Vehicle Images Slider */}
           {vehicleImages && vehicleImages.length > 0 && (
@@ -684,6 +709,31 @@ const styles = StyleSheet.create({
   headerCenter: { alignItems: 'center', flex: 1 },
   headerTitle: { fontSize: 18, fontWeight: '700', color: DARK },
   headerSubtitle: { fontSize: 12, color: '#64748B', marginTop: 2 },
+
+  bookingBanner: {
+    marginHorizontal: 16,
+    marginTop: 8,
+    backgroundColor: '#F0FDF4',
+    borderColor: '#86EFAC',
+    borderWidth: 1,
+    borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+  },
+  bookingBannerLeft: { flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 },
+  bookingBannerTitle: { fontSize: 14, fontWeight: '700', color: '#14532D' },
+  bookingBannerSub: { fontSize: 12, color: '#166534', marginTop: 2 },
+  bookingBannerArrow: {
+    width: 28,
+    height: 28,
+    backgroundColor: '#DCFCE7',
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 
   loaderWrap: {
     flex: 1,

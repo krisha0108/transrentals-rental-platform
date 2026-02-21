@@ -137,9 +137,7 @@ export default async function InnovaOnRentLocationPage({ params }: PageProps) {
                   </div>
                 </div>
                 <p className="text-sm text-gray-600 mb-4">⛽ {variant.fuel} • 👥 {variant.seats} Seats • 🚐 MPV</p>
-                <button className="w-full bg-purple-600 text-white py-2 rounded-lg hover:bg-purple-700 transition">
-                  Book Now
-                </button>
+                <p className="text-sm text-emerald-600 font-medium text-center mt-2">Use the chat below to book</p>
               </div>
             ))}
           </div>

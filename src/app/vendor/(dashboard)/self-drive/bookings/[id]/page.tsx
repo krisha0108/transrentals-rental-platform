@@ -77,6 +77,8 @@ const getStatusConfig = (status: string) => {
   const configs: Record<string, { label: string; bg: string; text: string }> = {
     PENDING_VENDOR: { label: 'Awaiting Response', bg: 'bg-yellow-100', text: 'text-yellow-700' },
     BROADCASTED: { label: 'Open Request', bg: 'bg-blue-100', text: 'text-blue-700' },
+    PENDING_PAYMENT: { label: 'Awaiting Payment', bg: 'bg-orange-100', text: 'text-orange-700' },
+    PAYMENT_VERIFIED: { label: 'Payment Received', bg: 'bg-emerald-100', text: 'text-emerald-700' },
     ACCEPTED: { label: 'Accepted', bg: 'bg-green-100', text: 'text-green-700' },
     READY_FOR_PICKUP: { label: 'Ready for Pickup', bg: 'bg-cyan-100', text: 'text-cyan-700' },
     IN_PROGRESS: { label: 'In Progress', bg: 'bg-purple-100', text: 'text-purple-700' },
@@ -306,7 +308,7 @@ export default function VendorBookingDetailPage() {
 
   const statusConfig = getStatusConfig(booking.status);
   const canAcceptReject = ['PENDING_VENDOR', 'BROADCASTED'].includes(booking.status);
-  const canGenerateOtp = booking.status === 'ACCEPTED';
+  const canGenerateOtp = ['ACCEPTED', 'PAYMENT_VERIFIED'].includes(booking.status);
   const canVerifyOtp = booking.status === 'READY_FOR_PICKUP';
   const canCompleteTrip = booking.status === 'IN_PROGRESS';
 
@@ -550,7 +552,9 @@ export default function VendorBookingDetailPage() {
               <div className="space-y-3">
                 <div className="bg-cyan-50 rounded-lg p-4 text-center">
                   <KeyRound className="w-8 h-8 text-cyan-600 mx-auto mb-2" />
-                  <p className="text-sm text-cyan-700">Customer is ready for pickup</p>
+                  <p className="text-sm text-cyan-700">
+                    {booking.status === 'PAYMENT_VERIFIED' ? 'Payment received — booking confirmed!' : 'Customer is ready for pickup'}
+                  </p>
                   <p className="text-xs text-cyan-600">Generate OTP to start the trip</p>
                 </div>
                 <Button

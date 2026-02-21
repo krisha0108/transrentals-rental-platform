@@ -16,7 +16,7 @@ const FLOW_STEPS = [
   },
   {
     title: 'Post-ride resolution',
-    detail: 'Any disputes get routed via SmartShivi support. We resolve them within 48 hours or escalate to arbitration if needed.',
+    detail: 'Any disputes get routed via TransRentals support. We resolve them within 48 hours or escalate to arbitration if needed.',
   },
 ];
 
@@ -132,7 +132,7 @@ export default function TermsConditionsPage() {
               <span>Need help?</span>
             </div>
             <p className="mt-2 text-sm text-slate-600">
-              SmartShivi and helpline support stay live 24x7. Raise disputes within 48 hours for the quickest resolution.
+              TransRentals and helpline support stay live 24x7. Raise disputes within 48 hours for the quickest resolution.
             </p>
           </div>
         </section>

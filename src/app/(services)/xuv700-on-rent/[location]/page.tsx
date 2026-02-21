@@ -100,7 +100,7 @@ export default async function XUV700LocationPage({ params }: PageProps) {
                 <h3 className="text-lg font-bold mb-1">{v.name}</h3>
                 <p className="text-sm text-gray-500 mb-3">{v.seats} Seater</p>
                 <p className="text-2xl font-bold text-red-600 mb-4">₹{v.price}<span className="text-sm text-gray-500">/day</span></p>
-                <button className="w-full bg-red-600 text-white py-2 rounded-lg">Book Now</button>
+                <p className="text-sm text-emerald-600 font-medium text-center mt-2">Use the chat below to book</p>
               </div>
             ))}
           </div>

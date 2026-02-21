@@ -96,7 +96,7 @@ export default async function SeltosLocationPage({ params }: PageProps) {
               <div key={v.name} className="bg-white rounded-xl shadow-md p-6">
                 <h3 className="text-lg font-bold mb-2">{v.name}</h3>
                 <p className="text-3xl font-bold text-red-600 mb-4">₹{v.price}<span className="text-sm text-gray-500">/day</span></p>
-                <button className="w-full bg-red-600 text-white py-2 rounded-lg">Book Now</button>
+                <p className="text-sm text-emerald-600 font-medium text-center mt-2">Use the chat below to book</p>
               </div>
             ))}
           </div>

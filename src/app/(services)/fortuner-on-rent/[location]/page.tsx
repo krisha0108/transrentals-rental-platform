@@ -137,9 +137,7 @@ export default async function FortunerOnRentLocationPage({ params }: PageProps) 
                   </div>
                 </div>
                 <p className="text-sm text-gray-600 mb-4">⛽ {variant.fuel} • 👥 {variant.seats} Seats • 🚙 Premium SUV</p>
-                <button className="w-full bg-yellow-500 text-black py-2 rounded-lg font-semibold hover:bg-yellow-400 transition">
-                  Book Now
-                </button>
+                <p className="text-sm text-emerald-600 font-medium text-center mt-2">Use the chat below to book</p>
               </div>
             ))}
           </div>

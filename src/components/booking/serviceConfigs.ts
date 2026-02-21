@@ -10,6 +10,7 @@ export interface ServiceConfig {
   serviceName: string;
   serviceType: string;
   flowType: FlowType;
+  vehicleModelName?: string; // Specific model name for model-specific pages (e.g. "Seltos", "KTM")
   subServices?: { label: string; value: string }[];
 }
 
@@ -33,26 +34,65 @@ export const SERVICE_CONFIGS: Record<string, ServiceConfig> = {
   'activa-on-rent': {
     serviceName: 'Activa / Scooter Rental',
     serviceType: 'activa-on-rent',
+    vehicleModelName: 'Activa',
     flowType: 'BROWSE_FIRST',
   },
   'royal-enfield-on-rent': {
     serviceName: 'Royal Enfield Rental',
     serviceType: 'royal-enfield-on-rent',
+    vehicleModelName: 'Royal Enfield',
     flowType: 'BROWSE_FIRST',
   },
   'ktm-on-rent': {
     serviceName: 'KTM Rental',
-    serviceType: 'ktm-on-rent',
+    serviceType: 'bike-ktm',
+    vehicleModelName: 'KTM',
     flowType: 'BROWSE_FIRST',
   },
   'electric-scooter-rental': {
     serviceName: 'Electric Scooter Rental',
-    serviceType: 'electric-scooter-rental',
+    serviceType: 'bike-electric-scooter',
+    vehicleModelName: 'Electric Scooter',
     flowType: 'BROWSE_FIRST',
   },
   'monthly-bike-rental': {
     serviceName: 'Monthly Bike Rental',
     serviceType: 'monthly-bike-rental',
+    flowType: 'BROWSE_FIRST',
+  },
+  // BIKE MODEL-SPECIFIC PAGES - BROWSE_FIRST
+  'apache-on-rent': {
+    serviceName: 'Apache on Rent',
+    serviceType: 'bike-apache',
+    vehicleModelName: 'Apache',
+    flowType: 'BROWSE_FIRST',
+  },
+  'himalayan-on-rent': {
+    serviceName: 'Royal Enfield Himalayan Rental',
+    serviceType: 'bike-himalayan',
+    vehicleModelName: 'Royal Enfield Himalayan',
+    flowType: 'BROWSE_FIRST',
+  },
+  'pulsar-on-rent': {
+    serviceName: 'Pulsar on Rent',
+    serviceType: 'bike-pulsar',
+    vehicleModelName: 'Pulsar',
+    flowType: 'BROWSE_FIRST',
+  },
+  'splendor-on-rent': {
+    serviceName: 'Splendor on Rent',
+    serviceType: 'bike-splendor',
+    vehicleModelName: 'Splendor',
+    flowType: 'BROWSE_FIRST',
+  },
+  'bike-tours': {
+    serviceName: 'Bike Tours',
+    serviceType: 'bike-tours',
+    flowType: 'BROWSE_FIRST',
+  },
+  'bike-trips': {
+    serviceName: 'Bike Trips',
+    serviceType: 'bike-trips',
     flowType: 'BROWSE_FIRST',
   },
 
@@ -67,6 +107,66 @@ export const SERVICE_CONFIGS: Record<string, ServiceConfig> = {
       { label: '🚙 SUV (Creta/Seltos)', value: 'suv' },
       { label: '🏎️ Luxury Car', value: 'luxury' },
     ],
+  },
+  'self-drive-hatchback-rental': {
+    serviceName: 'Self Drive Hatchback Rental',
+    serviceType: 'self-drive-hatchback',
+    flowType: 'BROWSE_FIRST',
+  },
+  'self-drive-sedan-rental': {
+    serviceName: 'Self Drive Sedan Rental',
+    serviceType: 'self-drive-sedan',
+    flowType: 'BROWSE_FIRST',
+  },
+  'self-drive-suv-rental': {
+    serviceName: 'Self Drive SUV Rental',
+    serviceType: 'self-drive-suv',
+    flowType: 'BROWSE_FIRST',
+  },
+
+  // VEHICLE-SPECIFIC SELF-DRIVE PAGES - BROWSE_FIRST
+  // These are fleet/model-specific pages that should create self-drive quote requests
+  'seltos-on-rent': {
+    serviceName: 'Seltos on Rent',
+    serviceType: 'self-drive-seltos',
+    vehicleModelName: 'Seltos',
+    flowType: 'BROWSE_FIRST',
+  },
+  'creta-on-rent': {
+    serviceName: 'Creta on Rent',
+    serviceType: 'self-drive-creta',
+    vehicleModelName: 'Creta',
+    flowType: 'BROWSE_FIRST',
+  },
+  'xuv700-on-rent': {
+    serviceName: 'XUV700 on Rent',
+    serviceType: 'self-drive-xuv700',
+    vehicleModelName: 'XUV700',
+    flowType: 'BROWSE_FIRST',
+  },
+  'scorpio-on-rent': {
+    serviceName: 'Scorpio on Rent',
+    serviceType: 'self-drive-scorpio',
+    vehicleModelName: 'Scorpio',
+    flowType: 'BROWSE_FIRST',
+  },
+  'innova-on-rent': {
+    serviceName: 'Innova on Rent',
+    serviceType: 'self-drive-innova',
+    vehicleModelName: 'Innova Crysta',
+    flowType: 'BROWSE_FIRST',
+  },
+  'fortuner-on-rent': {
+    serviceName: 'Fortuner on Rent',
+    serviceType: 'self-drive-fortuner',
+    vehicleModelName: 'Fortuner',
+    flowType: 'BROWSE_FIRST',
+  },
+  'swift-on-rent': {
+    serviceName: 'Swift on Rent',
+    serviceType: 'self-drive-swift',
+    vehicleModelName: 'Swift',
+    flowType: 'BROWSE_FIRST',
   },
 
   // ============= TRIP_FIRST SERVICES =============
@@ -233,6 +333,26 @@ export const SERVICE_CONFIGS: Record<string, ServiceConfig> = {
       { label: '🚐 20 Seater Tempo', value: '20-seater' },
     ],
   },
+  '12-seater-tempo-traveller': {
+    serviceName: '12 Seater Tempo Traveller',
+    serviceType: 'tempo-12seater',
+    flowType: 'QUOTE_BASED',
+  },
+  '17-seater-tempo-traveller': {
+    serviceName: '17 Seater Tempo Traveller',
+    serviceType: 'tempo-17seater',
+    flowType: 'QUOTE_BASED',
+  },
+  '20-seater-tempo-traveller': {
+    serviceName: '20 Seater Tempo Traveller',
+    serviceType: 'tempo-20seater',
+    flowType: 'QUOTE_BASED',
+  },
+  '26-seater-bus': {
+    serviceName: '26 Seater Bus',
+    serviceType: 'bus-26seater',
+    flowType: 'QUOTE_BASED',
+  },
   'corporate-bus-rental': {
     serviceName: 'Corporate Bus Rental',
     serviceType: 'corporate-bus-rental',
@@ -321,22 +441,22 @@ export const SERVICE_CONFIGS: Record<string, ServiceConfig> = {
   },
   'crane-on-rent': {
     serviceName: 'Crane Rental',
-    serviceType: 'crane-on-rent',
+    serviceType: 'equipment-crane',
     flowType: 'QUOTE_BASED',
   },
   'excavator-on-rent': {
     serviceName: 'Excavator Rental',
-    serviceType: 'excavator-on-rent',
+    serviceType: 'equipment-excavator',
     flowType: 'QUOTE_BASED',
   },
   'generator-on-rent': {
     serviceName: 'Generator Rental',
-    serviceType: 'generator-on-rent',
+    serviceType: 'equipment-generator',
     flowType: 'QUOTE_BASED',
   },
   'hydra-on-rent': {
     serviceName: 'Hydra Rental',
-    serviceType: 'hydra-on-rent',
+    serviceType: 'equipment-hydra',
     flowType: 'QUOTE_BASED',
   },
 };

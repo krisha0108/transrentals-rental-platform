@@ -48,18 +48,20 @@ export async function GET(
       return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
     }
 
-    // Check if this vendor accepted the booking
-    if (booking.acceptedVendorId !== vendorId) {
+    // Check if this vendor is authorized for the booking
+    // acceptedVendorId is set after explicit accept; assignedVendorId is set in quote flow (PAYMENT_VERIFIED)
+    const isAuthorized = booking.acceptedVendorId === vendorId || booking.assignedVendorId === vendorId;
+    if (!isAuthorized) {
       return NextResponse.json(
         { error: 'You are not authorized for this booking' },
         { status: 403 }
       );
     }
 
-    // Check if booking is accepted or confirmed
-    if (booking.status !== 'ACCEPTED' && booking.status !== 'CONFIRMED') {
+    // Check if booking is in a state that allows OTP generation
+    if (!['ACCEPTED', 'CONFIRMED', 'PAYMENT_VERIFIED'].includes(booking.status)) {
       return NextResponse.json(
-        { error: 'Booking must be in ACCEPTED or CONFIRMED status to generate OTP' },
+        { error: 'Booking must be accepted or payment verified to generate OTP' },
         { status: 400 }
       );
     }
@@ -68,7 +70,7 @@ export async function GET(
     const otp = generateOTP();
     const otpExpiry = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
 
-    // Update booking with OTP
+    // Update booking with OTP — also set acceptedVendorId if not already set (quote flow)
     const updatedBooking = await prisma.car_bookings.update({
       where: { id },
       data: {
@@ -76,6 +78,8 @@ export async function GET(
         tripStartOtpExpiry: otpExpiry,
         tripStartOtpSentAt: new Date(),
         status: 'READY_FOR_PICKUP',
+        // Set acceptedVendorId for quote-flow bookings where only assignedVendorId was set
+        acceptedVendorId: booking.acceptedVendorId ?? vendorId,
       },
     });
 
@@ -169,8 +173,9 @@ export async function POST(
       return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
     }
 
-    // Check if this vendor accepted the booking
-    if (booking.acceptedVendorId !== vendorId) {
+    // Check if this vendor is authorized for the booking
+    const isAuthorized = booking.acceptedVendorId === vendorId || booking.assignedVendorId === vendorId;
+    if (!isAuthorized) {
       return NextResponse.json(
         { error: 'You are not authorized for this booking' },
         { status: 403 }

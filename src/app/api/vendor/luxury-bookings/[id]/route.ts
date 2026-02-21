@@ -139,7 +139,7 @@ export async function PATCH(
           return NextResponse.json({ error: 'Cannot assign driver in current status' }, { status: 400 });
         }
 
-        const { driverName, driverPhone, driverPhoto, vehicleNumber, vehicle_model, vehicleBrand, vehicleColor } = data;
+        const { driverName, driverPhone, driverPhoto, vehicleNumber, vehicle_model, vehicle_models, vehicleBrand, vehicleColor } = data;
 
         if (!driverName || !driverPhone) {
           return NextResponse.json({ error: 'Driver details are required' }, { status: 400 });
@@ -153,7 +153,7 @@ export async function PATCH(
             driverPhone,
             driverPhoto: driverPhoto || null,
             vehicleNumber: vehicleNumber || booking.vehicleNumber,
-            vehicleModel: vehicle_model || booking.vehicleModel,
+            vehicleModel: vehicle_models || vehicle_model || booking.vehicleModel,
             vehicleBrand: vehicleBrand || booking.vehicleBrand,
             vehicleColor: vehicleColor || booking.vehicleColor,
             // No OTP generated here - driver will generate when ready

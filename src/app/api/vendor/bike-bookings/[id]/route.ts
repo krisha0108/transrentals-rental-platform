@@ -69,7 +69,10 @@ export async function GET(
     // 2. They accepted the booking
     // 3. They were notified about the booking (in notifiedVendorIds)
     // 4. They have approved location and booking is in a viewable status
-    const canView = isAssigned || isAccepted || isNotified || (hasApprovedLocation && viewableStatuses.includes(booking.status));
+    // Exception: PAYMENT_VERIFIED with assignedVendorId set — only the assigned vendor can view (quote-based booking)
+    const isQuoteBasedPayment = booking.status === 'PAYMENT_VERIFIED' && booking.assignedVendorId !== null;
+    const canView = isAssigned || isAccepted || isNotified ||
+      (hasApprovedLocation && viewableStatuses.includes(booking.status) && !isQuoteBasedPayment);
 
     if (!canView) {
       return NextResponse.json(
@@ -113,8 +116,13 @@ export async function GET(
         createdAt: booking.createdAt.toISOString(),
         updatedAt: booking.updatedAt.toISOString(),
         // Additional flags for UI
-        canAccept: ['PENDING_VENDOR', 'BROADCASTED', 'PAYMENT_VERIFIED'].includes(booking.status) &&
-                   (isAssigned || isNotified || (hasApprovedLocation && viewableStatuses.includes(booking.status))),
+        // PAYMENT_VERIFIED: only the assigned vendor can accept (quote-based booking)
+        // BROADCASTED / PENDING_VENDOR: any vendor with approved location or notification can accept
+        canAccept: (
+          (['PENDING_VENDOR', 'BROADCASTED'].includes(booking.status) &&
+            (isAssigned || isNotified || hasApprovedLocation)) ||
+          (booking.status === 'PAYMENT_VERIFIED' && isAssigned)
+        ),
         isOwnBooking: isAssigned || isAccepted,
       },
     });

@@ -279,6 +279,36 @@ export default function LuxuryBookingDetailScreen({ route, navigation }) {
           <Text style={styles.createdDate}>Created on {formatDate(booking.createdAt)}</Text>
         </View>
 
+        {/* Info card when customer has accepted quote but not yet paid */}
+        {booking.status === 'PENDING_PAYMENT' && (
+          <View style={[styles.card, { backgroundColor: '#FFFBEB', borderColor: '#FDE68A', borderWidth: 1, flexDirection: 'row', alignItems: 'flex-start', gap: 10 }]}>
+            <Icon name="clock" size={20} color={C.amber} style={{ marginTop: 2 }} />
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 14, fontWeight: '700', color: '#92400E', marginBottom: 4 }}>
+                Quote Accepted — Awaiting Advance Payment
+              </Text>
+              <Text style={{ fontSize: 13, color: '#78350F', lineHeight: 18 }}>
+                Customer has accepted your quote. They need to pay the advance (₹{(booking.advanceAmount || 0).toLocaleString()}) to confirm this booking. You'll receive a notification once payment is done.
+              </Text>
+            </View>
+          </View>
+        )}
+
+        {/* Info card when advance is paid and driver assignment needed */}
+        {booking.status === 'ADVANCE_PAID' && !booking.driverName && (
+          <View style={[styles.card, { backgroundColor: '#F0FDF4', borderColor: '#86EFAC', borderWidth: 1, flexDirection: 'row', alignItems: 'flex-start', gap: 10 }]}>
+            <Icon name="check-circle" size={20} color={C.green} style={{ marginTop: 2 }} />
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 14, fontWeight: '700', color: '#14532D', marginBottom: 4 }}>
+                Advance Received — Assign a Driver
+              </Text>
+              <Text style={{ fontSize: 13, color: '#166534', lineHeight: 18 }}>
+                Customer has paid the advance. Please assign a driver to confirm this booking.
+              </Text>
+            </View>
+          </View>
+        )}
+
         {/* Only show vehicle details if there's actual data */}
         {(booking.vehicleName || booking.vehicleCategory || booking.requestedBrand || booking.carCategory || booking.carCategoryName) && (
           <View style={styles.card}>
@@ -453,20 +483,34 @@ export default function LuxuryBookingDetailScreen({ route, navigation }) {
             </Text>
           </View>
 
-          {(booking.advanceAmount || booking.advancePaid || booking.paidAmount) > 0 && (
+          {(booking.advanceAmount || 0) > 0 && (
             <View style={styles.paymentRow}>
-              <Text style={styles.paymentLabel}>Advance Paid</Text>
-              <Text style={[styles.paymentValue, { color: C.green }]}>
-                ₹{(booking.advanceAmount || booking.advancePaid || booking.paidAmount || 0).toLocaleString()}
+              <Text style={styles.paymentLabel}>Advance Required</Text>
+              <Text style={styles.paymentValue}>
+                ₹{(booking.advanceAmount || 0).toLocaleString()}
               </Text>
             </View>
           )}
 
-          {(booking.balanceAmount > 0 || ((booking.grandTotal || booking.totalAmount || 0) > (booking.advanceAmount || booking.advancePaid || 0))) && (
+          {(booking.paymentStatus === 'PAID' || (booking.advancePaid || booking.paidAmount || 0) > 0) ? (
+            <View style={[styles.paymentRow, { backgroundColor: '#F0FDF4', borderRadius: 8, paddingHorizontal: 8, marginTop: 4 }]}>
+              <Text style={[styles.paymentLabel, { color: C.green }]}>✓ Advance Received</Text>
+              <Text style={[styles.paymentValue, { color: C.green }]}>
+                ₹{(booking.advancePaid || booking.paidAmount || booking.advanceAmount || 0).toLocaleString()}
+              </Text>
+            </View>
+          ) : (booking.advanceAmount || 0) > 0 ? (
+            <View style={[styles.paymentRow, { backgroundColor: '#FFFBEB', borderRadius: 8, paddingHorizontal: 8, marginTop: 4 }]}>
+              <Text style={[styles.paymentLabel, { color: C.amber }]}>⏳ Awaiting Customer Payment</Text>
+              <Text style={[styles.paymentValue, { color: C.amber, fontSize: 12 }]}>Pending</Text>
+            </View>
+          ) : null}
+
+          {(booking.grandTotal || booking.totalAmount || 0) > 0 && (
             <View style={[styles.paymentRow, styles.paymentRowDivider]}>
-              <Text style={[styles.paymentLabel, { fontWeight: '600' }]}>Balance</Text>
+              <Text style={[styles.paymentLabel, { fontWeight: '600' }]}>Balance Due</Text>
               <Text style={[styles.paymentValue, { color: C.amber }]}>
-                ₹{((booking.grandTotal || booking.totalAmount || 0) - (booking.advanceAmount || booking.advancePaid || booking.paidAmount || 0)).toLocaleString()}
+                ₹{Math.max(0, (booking.grandTotal || booking.totalAmount || 0) - (booking.advancePaid || booking.paidAmount || 0)).toLocaleString()}
               </Text>
             </View>
           )}

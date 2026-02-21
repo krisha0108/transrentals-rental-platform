@@ -137,9 +137,7 @@ export default async function CretaOnRentLocationPage({ params }: PageProps) {
                   </div>
                 </div>
                 <p className="text-sm text-gray-600 mb-4">⛽ {variant.fuel} • 👥 5 Seats • 🚙 SUV</p>
-                <button className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition">
-                  Book Now
-                </button>
+                <p className="text-sm text-emerald-600 font-medium text-center mt-2">Use the chat below to book</p>
               </div>
             ))}
           </div>

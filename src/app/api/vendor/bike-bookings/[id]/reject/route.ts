@@ -41,15 +41,15 @@ export async function POST(
     }
 
     // Check if booking can be rejected
-    if (!['PENDING_VENDOR', 'BROADCASTED'].includes(booking.status)) {
+    if (!['PENDING_VENDOR', 'BROADCASTED', 'PAYMENT_VERIFIED'].includes(booking.status)) {
       return NextResponse.json(
         { error: 'This booking cannot be rejected' },
         { status: 400 }
       );
     }
 
-    // For direct requests, only the assigned vendor can reject
-    if (booking.status === 'PENDING_VENDOR' && booking.assignedVendorId !== vendorId) {
+    // For direct/payment-verified requests, only the assigned vendor can reject
+    if (['PENDING_VENDOR', 'PAYMENT_VERIFIED'].includes(booking.status) && booking.assignedVendorId !== vendorId) {
       return NextResponse.json(
         { error: 'You are not authorized to reject this booking' },
         { status: 403 }
@@ -59,6 +59,33 @@ export async function POST(
     // Parse request body for rejection reason
     const body = await request.json().catch(() => ({}));
     const { reason = 'Vehicle not available' } = body;
+
+    // PAYMENT_VERIFIED = quote-based booking where customer already paid.
+    // Do NOT broadcast to other vendors — cancel the booking instead.
+    if (booking.status === 'PAYMENT_VERIFIED') {
+      const updatedBooking = await prisma.bike_bookings.update({
+        where: { id },
+        data: {
+          status: 'CANCELLED',
+          cancellationReason: `Vendor cancelled: ${reason}`,
+          responseDeadline: null,
+        },
+        include: {
+          locations: { select: { name: true, slug: true } },
+        },
+      });
+
+      return NextResponse.json({
+        success: true,
+        message: 'Booking cancelled. Customer will be notified and refund will be processed.',
+        booking: {
+          id: updatedBooking.id,
+          bookingNumber: updatedBooking.bookingNumber,
+          status: updatedBooking.status,
+          location: updatedBooking.locations?.name,
+        },
+      });
+    }
 
     // Get current rejected vendors list
     const currentRejections = (booking.rejectedByVendors as any[]) || [];
@@ -80,7 +107,7 @@ export async function POST(
     const updatedBooking = await prisma.bike_bookings.update({
       where: { id },
       data: {
-        status: 'BROADCASTED', // Always broadcast after rejection
+        status: 'BROADCASTED', // Broadcast after rejection for non-payment bookings
         assignedVendorId: null, // Clear assigned vendor
         rejectedByVendors: updatedRejections,
         broadcastedAt: wasDirectRequest ? new Date() : booking.broadcastedAt,

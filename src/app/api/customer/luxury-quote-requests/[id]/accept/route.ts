@@ -112,7 +112,7 @@ export async function POST(
         carCategory: quote.vehicle_category,
         carCategoryName: quote.request.vehicleCategoryName || quote.vehicle_category,
         vehicleNumber: quote.vehicleNumber,
-        vehicle_models: quote.vehicle_models,
+        vehicleModel: quote.vehicleModel,
         vehicleBrand: quote.vehicleName?.split(' ')[0] || null,
         vehicleColor: null,
         vehicleImages: typeof quote.vehicleImages === 'string'
@@ -155,9 +155,13 @@ export async function POST(
         status: 'PENDING_PAYMENT',
         paymentStatus: 'PENDING',
 
-        // Vendor Assignment
-        acceptedVendor: { connect: { id: quote.vendorId } },
+        // Vendor Assignment (use scalar field directly — relation name is auto-generated and long)
+        acceptedVendorId: quote.vendorId,
         acceptedAt: new Date(),
+
+        // Link to source quote request and accepted quote
+        quoteRequestId: resolvedParams.id,
+        acceptedQuoteId: quoteId,
 
         // OTPs
         tripStartOtp: pickupOtp,

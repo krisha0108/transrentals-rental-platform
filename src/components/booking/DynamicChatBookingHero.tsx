@@ -9,6 +9,7 @@ interface DynamicChatBookingHeroProps {
   // Optional overrides - if not provided, auto-detects from URL
   serviceType?: string;
   serviceName?: string;
+  vehicleModelName?: string;
   defaultLocation?: string;
   vehicleName?: string;
   subServices?: { label: string; value: string }[];
@@ -18,6 +19,7 @@ interface DynamicChatBookingHeroProps {
 export function DynamicChatBookingHero({
   serviceType: manualServiceType,
   serviceName: manualServiceName,
+  vehicleModelName: manualVehicleModelName,
   defaultLocation: manualLocation,
   vehicleName: manualVehicleName,
   subServices: manualSubServices,
@@ -35,6 +37,7 @@ export function DynamicChatBookingHero({
   // and finally fall back to user's selected city from LocationContext
   const serviceType = manualServiceType || autoServiceConfig?.serviceType || 'service';
   const serviceName = manualServiceName || autoServiceConfig?.serviceName || 'Service';
+  const vehicleModelName = manualVehicleModelName || autoServiceConfig?.vehicleModelName;
   const defaultLocation = manualLocation || autoLocation || currentCity?.name;
   const vehicleName = manualVehicleName || autoVehicleName;
   const subServices = manualSubServices || autoServiceConfig?.subServices;
@@ -43,6 +46,7 @@ export function DynamicChatBookingHero({
     <ChatBookingHero
       serviceType={serviceType}
       serviceName={serviceName}
+      vehicleModelName={vehicleModelName}
       defaultLocation={defaultLocation}
       vehicleName={vehicleName}
       subServices={subServices}

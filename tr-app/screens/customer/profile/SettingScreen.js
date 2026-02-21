@@ -261,6 +261,19 @@ const SettingScreen = ({navigation}) => {
               <Ionicons name="chevron-forward" size={18} color="#A0AEC0" />
             </TouchableOpacity>
 
+            <TouchableOpacity style={styles.menuItem} onPress={() => navigation.navigate('AboutUsScreen')}>
+              <View style={styles.menuItemLeft}>
+                <View style={[styles.menuIconWrapper, {backgroundColor: '#EBF8FF'}]}>
+                  <Ionicons name="call-outline" size={20} color="#3B82F6" />
+                </View>
+                <View>
+                  <Text style={styles.menuTitle}>Contact Us</Text>
+                  <Text style={styles.menuSubtitle}>+91 9737965551 · book@transrentals.in</Text>
+                </View>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color="#A0AEC0" />
+            </TouchableOpacity>
+
             <TouchableOpacity style={styles.menuItem} onPress={handleLogout}>
               <View style={styles.menuItemLeft}>
                 <View style={[styles.menuIconWrapper, {backgroundColor: '#FED7D7'}]}>

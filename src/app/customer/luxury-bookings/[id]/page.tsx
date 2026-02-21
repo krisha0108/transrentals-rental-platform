@@ -32,6 +32,7 @@ import {
   Loader2,
 } from 'lucide-react';
 // Chat will be inline - no external component needed
+import { BookingPayment } from '@/components/payment/BookingPayment';
 
 interface BookingDetail {
   id: string;
@@ -486,25 +487,18 @@ function BookingDetailContent({ bookingId }: { bookingId: string }) {
         </div>
 
         {/* Payment Section - Show for PENDING_PAYMENT status */}
-        {booking.status === 'PENDING_PAYMENT' && (
-          <div className="bg-gradient-to-r from-amber-500 to-yellow-500 rounded-xl p-6 text-gray-900">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <p className="font-bold text-lg">Pay Advance to Confirm</p>
-                <p className="text-sm opacity-80">{booking.advancePercent}% advance required</p>
-              </div>
-              <div className="text-right">
-                <p className="text-3xl font-bold">₹{booking.advanceAmount?.toLocaleString()}</p>
-                <p className="text-sm opacity-80">of ₹{booking.grandTotal?.toLocaleString()}</p>
-              </div>
-            </div>
-            <button
-              onClick={() => setShowPaymentModal(true)}
-              className="w-full py-3 bg-gray-900 text-white font-bold rounded-lg hover:bg-gray-800 transition flex items-center justify-center gap-2"
-            >
-              <CreditCard className="w-5 h-5" />
-              Pay Now
-            </button>
+        {booking.status === 'PENDING_PAYMENT' && !!booking.advanceAmount && (
+          <div className="bg-white rounded-xl border border-amber-200 p-4">
+            <p className="font-bold text-gray-900 mb-1">Pay Advance to Confirm</p>
+            <p className="text-sm text-gray-500 mb-3">{booking.advancePercent}% advance — ₹{booking.advanceAmount?.toLocaleString()}</p>
+            <BookingPayment
+              bookingId={booking.id}
+              bookingType="luxury"
+              amount={booking.advanceAmount || 0}
+              bookingNumber={booking.bookingNumber}
+              serviceSlug="luxury-car-rental"
+              onSuccess={() => window.location.reload()}
+            />
           </div>
         )}
 
@@ -837,8 +831,8 @@ function BookingDetailContent({ bookingId }: { bookingId: string }) {
         </div>
       </div>
 
-      {/* Payment Modal */}
-      {showPaymentModal && paymentSettings && (
+      {/* Payment Modal - replaced by BookingPayment component */}
+      {false && showPaymentModal && paymentSettings && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl max-w-md w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6">
