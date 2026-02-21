@@ -106,6 +106,26 @@ export async function GET(request: NextRequest) {
       }))
       .sort((a, b) => b.balanceDue - a.balanceDue);
 
+    // ── Per-booking P&L (expenses grouped by bookingId) ──
+    const expByBooking: Record<string, number> = {};
+    for (const e of expenses) {
+      expByBooking[e.bookingId] = (expByBooking[e.bookingId] || 0) + Number(e.amount);
+    }
+
+    const bookingsList = bookings.map(b => ({
+      id: b.id,
+      bookingNumber: b.bookingNumber,
+      customerName: b.customerName,
+      serviceType: b.serviceType,
+      status: b.status,
+      totalAmount:  Number(b.totalAmount || 0),
+      paidAmount:   Number(b.paidAmount  || 0),
+      expenses:     expByBooking[b.id] || 0,
+      netEarnings:  Number(b.paidAmount || 0) - (expByBooking[b.id] || 0),
+      paymentStatus: b.paymentStatus,
+      createdAt: b.createdAt,
+    }));
+
     return NextResponse.json({
       summary: {
         totalRevenue,
@@ -118,6 +138,7 @@ export async function GET(request: NextRequest) {
       },
       expenseBreakdown,
       pendingBookings,
+      bookings: bookingsList,
     });
   } catch (err) {
     console.error('[financials] error:', err);

@@ -223,12 +223,27 @@ export default function DirectBookingDetailPage() {
   const saveNotes = async () => { await update({ vendorNotes: notesVal }); setEditingNotes(false); };
 
   const handlePayment = async () => {
+    const total = Number(booking?.totalAmount || 0);
+    const existingPaid = Number(booking?.paidAmount || 0);
+
     if (payForm.action === 'mark_paid') {
-      await update({ paymentStatus: 'collected', paymentMode: payForm.mode, paidAmount: booking?.totalAmount ?? parseFloat(payForm.amount || '0') });
+      const newPaid = total > 0 ? total : existingPaid + parseFloat(payForm.amount || '0');
+      const data: any = { paymentStatus: 'collected', paymentMode: payForm.mode, paidAmount: newPaid };
+      if (total <= 0) data.totalAmount = newPaid; // fix totalAmount if it was 0
+      await update(data);
     } else if (payForm.action === 'mark_partial') {
-      await update({ paymentStatus: 'partial', paymentMode: payForm.mode, paidAmount: parseFloat(payForm.amount || '0') });
+      const newPaid = existingPaid + parseFloat(payForm.amount || '0');
+      if (total > 0 && newPaid >= total) {
+        await update({ paymentStatus: 'collected', paymentMode: payForm.mode, paidAmount: total });
+      } else {
+        const data: any = { paymentStatus: 'partial', paymentMode: payForm.mode, paidAmount: newPaid };
+        if (total <= 0) data.totalAmount = newPaid;
+        await update(data);
+      }
     } else if (payForm.action === 'send_whatsapp') {
-      const msg = encodeURIComponent(`Dear ${booking?.customerName},\n\nPlease pay ₹${booking?.totalAmount?.toLocaleString('en-IN')} for your booking #${booking?.bookingNumber}.\n\nThank you!`);
+      const bal = Math.max(0, total - existingPaid);
+      const amt = bal > 0 ? bal : total;
+      const msg = encodeURIComponent(`Dear ${booking?.customerName},\n\nPlease pay ₹${amt.toLocaleString('en-IN')} for your booking #${booking?.bookingNumber}.\n\nThank you!`);
       window.open(`https://wa.me/91${booking?.customerPhone.replace(/\D/g, '')}?text=${msg}`, '_blank');
     }
     setPayModal(false);
@@ -872,7 +887,7 @@ export default function DirectBookingDetailPage() {
                   )}
                 </>
               ) : null}
-              {!isTerminal && booking.paymentStatus !== 'collected' && booking.paymentStatus !== 'paid_online' && (
+              {booking.status !== 'cancelled' && booking.status !== 'rejected' && booking.paymentStatus !== 'collected' && booking.paymentStatus !== 'paid_online' && (
                 <div className="space-y-2 pt-1">
                   <button onClick={() => { setPayForm({ mode: 'cash', amount: String(balanceDue > 0 ? balanceDue : totalAmt || ''), action: 'mark_paid' }); setPayModal(true); }}
                     className="w-full flex items-center justify-center gap-2 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-bold transition shadow-sm">

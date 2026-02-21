@@ -589,6 +589,49 @@ export default function FleetListScreen({ navigation }) {
         </View>
       </View>
 
+      {/* Fleet Management Quick Actions */}
+      <View style={styles.managementSection}>
+        <Text style={styles.managementTitle}>Fleet Management</Text>
+        <View style={styles.managementGrid}>
+          <TouchableOpacity
+            style={styles.managementCard}
+            onPress={() => navigation.navigate('FleetDocumentsScreen')}
+          >
+            <View style={[styles.managementIconCircle, { backgroundColor: '#DBEAFE' }]}>
+              <MaterialCommunityIcons name="file-document-outline" size={22} color={C.blue} />
+            </View>
+            <Text style={styles.managementCardText}>Documents</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.managementCard}
+            onPress={() => navigation.navigate('FuelTrackingScreen')}
+          >
+            <View style={[styles.managementIconCircle, { backgroundColor: '#FEF3C7' }]}>
+              <MaterialCommunityIcons name="gas-station" size={22} color={C.orange} />
+            </View>
+            <Text style={styles.managementCardText}>Fuel Tracking</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.managementCard}
+            onPress={() => navigation.navigate('IncidentsScreen')}
+          >
+            <View style={[styles.managementIconCircle, { backgroundColor: '#FEE2E2' }]}>
+              <MaterialCommunityIcons name="alert-circle-outline" size={22} color={C.red} />
+            </View>
+            <Text style={styles.managementCardText}>Incidents</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.managementCard}
+            onPress={() => navigation.navigate('ServiceMaintenanceScreen')}
+          >
+            <View style={[styles.managementIconCircle, { backgroundColor: '#D1FAE5' }]}>
+              <MaterialCommunityIcons name="wrench-outline" size={22} color={C.emerald} />
+            </View>
+            <Text style={styles.managementCardText}>Service</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
       {/* Service Filters */}
       {availableServices.length > 0 && (
         <View style={styles.filtersSection}>
@@ -769,6 +812,47 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: C.muted,
     fontWeight: '500',
+  },
+  managementSection: {
+    marginHorizontal: 16,
+    marginBottom: 12,
+  },
+  managementTitle: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: C.text,
+    marginBottom: 10,
+  },
+  managementGrid: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  managementCard: {
+    flex: 1,
+    backgroundColor: C.surface,
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: C.border,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.03,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  managementIconCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 6,
+  },
+  managementCardText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: C.text,
   },
   filtersSection: {
     marginBottom: 12,
