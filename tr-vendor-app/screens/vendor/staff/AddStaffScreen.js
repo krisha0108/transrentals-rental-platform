@@ -65,6 +65,7 @@ export default function AddStaffScreen({ route, navigation }) {
   const isEditing = !!staffId;
 
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   // Modal states
   const [showStateModal, setShowStateModal] = useState(false);
@@ -198,7 +199,7 @@ export default function AddStaffScreen({ route, navigation }) {
       return false;
     }
 
-    // Password required for new staff
+    // Password validation
     if (!isEditing) {
       if (!form.password.trim()) {
         Alert.alert('Error', 'Password is required for new staff');
@@ -208,6 +209,9 @@ export default function AddStaffScreen({ route, navigation }) {
         Alert.alert('Error', 'Password must be at least 6 characters');
         return false;
       }
+    } else if (form.password.trim() && form.password.length < 6) {
+      Alert.alert('Error', 'Password must be at least 6 characters');
+      return false;
     }
 
     // For drivers, email is also required
@@ -340,20 +344,32 @@ export default function AddStaffScreen({ route, navigation }) {
             {isDriver && <Text style={styles.hint}>Required for driver app login</Text>}
           </View>
 
-          {!isEditing && (
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Password {isDriver && '*'}</Text>
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>
+              {isEditing ? 'Update Password' : 'Password'} {!isEditing && isDriver && '*'}
+            </Text>
+            <View style={styles.passwordWrap}>
               <TextInput
-                style={styles.input}
-                placeholder="Enter password (min 6 characters)"
+                style={styles.passwordInput}
+                placeholder={isEditing ? 'Enter new password to change' : 'Enter password (min 6 characters)'}
                 placeholderTextColor={C.muted}
                 value={form.password}
                 onChangeText={(v) => updateForm('password', v)}
-                secureTextEntry
+                secureTextEntry={!showPassword}
               />
-              {isDriver && <Text style={styles.hint}>Required for driver app login</Text>}
+              <TouchableOpacity
+                style={styles.passwordToggle}
+                onPress={() => setShowPassword(!showPassword)}
+              >
+                <Icon name={showPassword ? 'eye-off' : 'eye'} size={18} color={C.muted} />
+              </TouchableOpacity>
             </View>
-          )}
+            {isEditing ? (
+              <Text style={styles.hint}>Leave empty to keep current password</Text>
+            ) : (
+              isDriver && <Text style={styles.hint}>Required for driver app login</Text>
+            )}
+          </View>
 
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Date of Birth</Text>
@@ -910,6 +926,25 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: C.muted,
     marginTop: 4,
+  },
+  passwordWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: C.bg,
+    borderWidth: 1,
+    borderColor: C.border,
+    borderRadius: 10,
+  },
+  passwordInput: {
+    flex: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 15,
+    color: C.text,
+  },
+  passwordToggle: {
+    paddingHorizontal: 14,
+    paddingVertical: 12,
   },
   submitBtn: {
     flexDirection: 'row',

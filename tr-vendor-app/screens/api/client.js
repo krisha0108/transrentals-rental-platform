@@ -9,8 +9,13 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
  * Base URL points to the Next.js app (not the old Laravel API)
  */
 const DEFAULT_PROD = "https://transrentals.in";
+<<<<<<< Updated upstream
 // For Android Emulator use 10.0.2.2, for Physical Device use your computer's IP
 const DEFAULT_DEV_ANDROID = "http://192.168.29.68:3000"; // Your computer's WiFi IP
+=======
+// For physical Android device use ADB reverse: adb reverse tcp:3000 tcp:3000
+const DEFAULT_DEV_ANDROID = "http://192.168.29.73:3000"; // WiFi IP
+>>>>>>> Stashed changes
 const DEFAULT_DEV_IOS = "http://localhost:3000";
 
 function inferLocalBase() {
@@ -35,10 +40,15 @@ export async function getBaseURL() {
     cachedBaseURL = ENV_URL;
     return cachedBaseURL;
   }
+<<<<<<< Updated upstream
   // 3) default - use prod unless in dev mode
   cachedBaseURL = __DEV__ ? inferLocalBase() : DEFAULT_PROD;
   // 3) default - always use production URL (transrentals.in)
   // cachedBaseURL = DEFAULT_PROD;
+=======
+  // 3) default - use localhost in dev (with ADB reverse), production otherwise
+  cachedBaseURL = __DEV__ ? inferLocalBase() : DEFAULT_PROD;
+>>>>>>> Stashed changes
   return cachedBaseURL;
 }
 
@@ -323,7 +333,7 @@ export async function loginVendor(email, password, fcmToken = null) {
       // Update FCM token if provided
       if (fcmToken) {
         try {
-          await apiPost('/vendor/profile', { fcmToken });
+          await saveVendorFcmToken(fcmToken);
         } catch (e) {
           console.log('Failed to update FCM token:', e);
         }
@@ -891,6 +901,38 @@ export async function getFleetVehicles() {
  */
 export async function deleteStaff(staffId) {
   const res = await apiDelete(`/vendor/staff/${staffId}`);
+  return res.data;
+}
+
+/**
+ * Get staff attendance for a month
+ */
+export async function getStaffAttendance(month, year) {
+  const res = await apiGet(`/vendor/staff/attendance?month=${month}&year=${year}`);
+  return res.data;
+}
+
+/**
+ * Mark staff attendance (bulk)
+ */
+export async function markStaffAttendance(records) {
+  const res = await apiPost('/vendor/staff/attendance', { records });
+  return res.data;
+}
+
+/**
+ * Get staff payroll for a month
+ */
+export async function getStaffPayroll(month, year) {
+  const res = await apiGet(`/vendor/staff/payments?month=${month}&year=${year}`);
+  return res.data;
+}
+
+/**
+ * Mark staff payment as paid
+ */
+export async function markStaffPayment(data) {
+  const res = await apiPost('/vendor/staff/payments', data);
   return res.data;
 }
 
