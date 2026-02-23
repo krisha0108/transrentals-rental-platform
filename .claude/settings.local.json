@@ -180,7 +180,16 @@
       "Bash(refreshenv)",
       "Bash(export PATH=\"$PATH:/c/Users/Admin/AppData/Local/Microsoft/WinGet/Links\")",
       "Bash(npm uninstall:*)",
-      "Bash(awk:*)"
+      "Bash(awk:*)",
+      "Bash(git credential-manager:*)",
+      "Bash(git credential:*)",
+      "Bash(FILE=\"C:/Users/Admin/Desktop/tran_stable/src/app/\\(services\\)/$f/[location]/page.tsx\")",
+      "Bash(if grep -q \"prisma\\\\.\" \"$FILE\")",
+      "Bash(powershell -command \"Get-PSDrive C | Select-Object Used,Free | ForEach-Object { Write-Host \\(''Used: '' + [math]::Round\\($_Used/1GB,2\\) + '' GB | Free: '' + [math]::Round\\($_Free/1GB,2\\) + '' GB''\\) }\")",
+      "Bash(powershell -NoProfile -Command:*)",
+      "Bash(powershell -NoProfile -ExecutionPolicy Bypass -File \"C:\\\\Users\\\\Admin\\\\AppData\\\\Local\\\\Temp\\\\check_sizes.ps1\")",
+      "Bash(powershell -NoProfile -ExecutionPolicy Bypass -File \"C:\\\\Users\\\\Admin\\\\AppData\\\\Local\\\\Temp\\\\cleanup.ps1\")",
+      "Bash(powershell -NoProfile -ExecutionPolicy Bypass -File \"C:\\\\Users\\\\Admin\\\\AppData\\\\Local\\\\Temp\\\\freespace.ps1\")"
     ],
     "deny": [],
     "ask": []
