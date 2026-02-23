@@ -12,6 +12,7 @@ import {
   ThumbsDown,
   Store,
   AlertCircle,
+  CheckCheck,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -37,6 +38,8 @@ export default function LocationRequestsPage() {
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [rejectTarget, setRejectTarget] = useState<LocationRequest | null>(null);
   const [rejectionReason, setRejectionReason] = useState('');
+  const [showApproveAllModal, setShowApproveAllModal] = useState(false);
+  const [approveAllLoading, setApproveAllLoading] = useState(false);
 
   const fetchRequests = async () => {
     setLoading(true);
@@ -82,6 +85,27 @@ export default function LocationRequestsPage() {
     }
   };
 
+  const handleApproveAll = async () => {
+    setApproveAllLoading(true);
+    try {
+      const res = await fetch('/api/admin/vendors/location-requests', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      if (res.ok) {
+        setShowApproveAllModal(false);
+        await fetchRequests();
+      } else {
+        const error = await res.json();
+        alert(error.error || 'Approve all failed');
+      }
+    } catch (error) {
+      console.error('Approve all failed:', error);
+    } finally {
+      setApproveAllLoading(false);
+    }
+  };
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-IN', {
       day: '2-digit',
@@ -108,6 +132,17 @@ export default function LocationRequestsPage() {
           <span className="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-sm">
             {pendingCount} Pending
           </span>
+          {pendingCount > 0 && (
+            <Button
+              size="sm"
+              className="bg-green-600 hover:bg-green-700"
+              onClick={() => setShowApproveAllModal(true)}
+              disabled={approveAllLoading}
+            >
+              <CheckCheck className="w-4 h-4 mr-1" />
+              Approve All ({pendingCount})
+            </Button>
+          )}
         </div>
       </div>
 
@@ -229,6 +264,44 @@ export default function LocationRequestsPage() {
           </div>
         )}
       </div>
+
+      {/* Approve All Confirmation Modal */}
+      {showApproveAllModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl max-w-md w-full p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                <CheckCheck className="w-5 h-5 text-green-600" />
+              </div>
+              <h2 className="text-xl font-bold text-gray-900">Approve All Requests</h2>
+            </div>
+            <p className="text-gray-600 mb-6">
+              Are you sure you want to approve all <strong>{pendingCount} pending</strong> location requests? This will notify all the vendors.
+            </p>
+            <div className="flex justify-end gap-3">
+              <Button
+                variant="outline"
+                onClick={() => setShowApproveAllModal(false)}
+                disabled={approveAllLoading}
+              >
+                Cancel
+              </Button>
+              <Button
+                className="bg-green-600 hover:bg-green-700"
+                onClick={handleApproveAll}
+                disabled={approveAllLoading}
+              >
+                {approveAllLoading ? (
+                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                ) : (
+                  <CheckCheck className="w-4 h-4 mr-2" />
+                )}
+                Yes, Approve All
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Rejection Modal */}
       {showRejectModal && rejectTarget && (

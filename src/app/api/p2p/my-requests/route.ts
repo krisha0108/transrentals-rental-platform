@@ -42,6 +42,7 @@ export async function GET(request: NextRequest) {
             businessName: true,
             logo: true,
             city: true,
+            phone: true,
           },
         },
         vehiclePosting: {

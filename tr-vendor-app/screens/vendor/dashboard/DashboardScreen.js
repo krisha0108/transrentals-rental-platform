@@ -94,19 +94,13 @@ export default function DashboardScreen({ navigation }) {
       // Fetch earnings if approved
       if (profileData?.status === 'APPROVED') {
         try {
-          console.log('[Dashboard] Fetching earnings...');
           const earningsRes = await getVendorEarnings();
-          console.log('[Dashboard] Earnings response:', JSON.stringify(earningsRes, null, 2));
           if (earningsRes?.success) {
-            console.log('[Dashboard] Setting earnings:', earningsRes.earnings);
             setEarnings(earningsRes.earnings);
             setBookingsData(earningsRes.bookings);
-          } else {
-            console.log('[Dashboard] Earnings response not successful');
           }
         } catch (e) {
-          console.log('[Dashboard] Earnings fetch error:', e);
-          console.log('[Dashboard] Error details:', e?.response?.data);
+          // silently fail
         }
 
         // Fetch recent bookings
@@ -116,11 +110,11 @@ export default function DashboardScreen({ navigation }) {
             setRecentBookings(bookingsRes.bookings.slice(0, 5));
           }
         } catch (e) {
-          console.log('Bookings fetch error:', e);
+          // silently fail
         }
       }
     } catch (error) {
-      console.log('Error fetching dashboard data:', error);
+      // silently fail
     } finally {
       setLoading(false);
     }
@@ -733,6 +727,15 @@ export default function DashboardScreen({ navigation }) {
                 </View>
                 <Text style={styles.quickActionBtnText}>Financials</Text>
               </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.quickActionBtn}
+                onPress={() => navigation.navigate('P2PDashboard')}
+              >
+                <View style={[styles.quickActionBtnIcon, { backgroundColor: '#D1FAE5' }]}>
+                  <MaterialCommunityIcons name="swap-horizontal" size={18} color="#10B981" />
+                </View>
+                <Text style={styles.quickActionBtnText}>P2P Market</Text>
+              </TouchableOpacity>
             </ScrollView>
           </>
         )}
@@ -811,6 +814,16 @@ export default function DashboardScreen({ navigation }) {
                 </View>
                 <Text style={styles.manageText}>Financials</Text>
                 <Text style={styles.manageCount}>P&L</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.manageCard}
+                onPress={() => navigation.navigate('P2PDashboard')}
+              >
+                <View style={[styles.manageCardIcon, { backgroundColor: '#D1FAE5' }]}>
+                  <MaterialCommunityIcons name="swap-horizontal" size={18} color="#10B981" />
+                </View>
+                <Text style={styles.manageText}>P2P</Text>
+                <Text style={styles.manageCount}>Market</Text>
               </TouchableOpacity>
             </View>
           </>

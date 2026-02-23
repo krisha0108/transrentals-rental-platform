@@ -89,6 +89,13 @@ export async function GET(request: NextRequest) {
               status: true,
             },
           },
+          p2p_ratings: {
+            select: {
+              id: true,
+              raterVendorId: true,
+              overallRating: true,
+            },
+          },
         },
         orderBy: { createdAt: 'desc' },
         skip,

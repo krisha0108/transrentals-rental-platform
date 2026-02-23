@@ -881,6 +881,16 @@ export async function uploadFleetDocument(formData) {
   return resp.data;
 }
 
+export async function extractDocumentData(formData) {
+  const base = await getBaseURL();
+  const token = await getSessionToken();
+  const resp = await axios.post(`${base}/api/vendor/fleet/documents/extract`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+    timeout: 30000,
+  });
+  return resp.data;
+}
+
 // ==================== FLEET FUEL APIs ====================
 
 export async function getFleetFuel() {
@@ -1052,9 +1062,7 @@ export async function getVendorBookings(params = {}) {
  */
 export async function getVendorEarnings(params = {}) {
   const queryString = new URLSearchParams(params).toString();
-  console.log('[API Client] Fetching earnings with params:', params);
   const res = await apiGet(`/vendor/earnings${queryString ? `?${queryString}` : ''}`);
-  console.log('[API Client] Earnings Response:', JSON.stringify(res.data, null, 2));
   return res.data;
 }
 
@@ -1381,6 +1389,141 @@ export async function getBookingLinkQR(url, linkId) {
     console.error('[API] Failed to generate QR code:', error);
     throw error;
   }
+}
+
+// ==================== P2P MARKETPLACE APIs ====================
+
+// --- Stats & Dashboard ---
+export async function getP2PStats() {
+  const res = await apiGet('/p2p/stats');
+  return res.data;
+}
+
+export async function getP2PMyPostings(params = {}) {
+  const qs = new URLSearchParams(params).toString();
+  const res = await apiGet(`/p2p/my-postings${qs ? `?${qs}` : ''}`);
+  return res.data;
+}
+
+// --- Vehicle Postings ---
+export async function getP2PVehicles(params = {}) {
+  const qs = new URLSearchParams(params).toString();
+  const res = await apiGet(`/p2p/vehicles${qs ? `?${qs}` : ''}`);
+  return res.data;
+}
+
+export async function getP2PVehicleById(id) {
+  const res = await apiGet(`/p2p/vehicles/${id}`);
+  return res.data;
+}
+
+export async function createP2PVehicle(data) {
+  const res = await apiPost('/p2p/vehicles', data);
+  return res.data;
+}
+
+export async function updateP2PVehicle(id, data) {
+  const res = await apiPut(`/p2p/vehicles/${id}`, data);
+  return res.data;
+}
+
+export async function deleteP2PVehicle(id) {
+  const res = await apiDelete(`/p2p/vehicles/${id}`);
+  return res.data;
+}
+
+export async function requestP2PVehicle(id, data) {
+  const res = await apiPost(`/p2p/vehicles/${id}/request`, data);
+  return res.data;
+}
+
+// --- Booking Postings ---
+export async function getP2PBookings(params = {}) {
+  const qs = new URLSearchParams(params).toString();
+  const res = await apiGet(`/p2p/bookings${qs ? `?${qs}` : ''}`);
+  return res.data;
+}
+
+export async function getP2PBookingById(id) {
+  const res = await apiGet(`/p2p/bookings/${id}`);
+  return res.data;
+}
+
+export async function createP2PBooking(data) {
+  const res = await apiPost('/p2p/bookings', data);
+  return res.data;
+}
+
+export async function updateP2PBooking(id, data) {
+  const res = await apiPut(`/p2p/bookings/${id}`, data);
+  return res.data;
+}
+
+export async function deleteP2PBooking(id) {
+  const res = await apiDelete(`/p2p/bookings/${id}`);
+  return res.data;
+}
+
+export async function acceptP2PBooking(id, data) {
+  const res = await apiPost(`/p2p/bookings/${id}/accept`, data);
+  return res.data;
+}
+
+// --- Requests ---
+export async function getP2PMyRequests(params = {}) {
+  const qs = new URLSearchParams(params).toString();
+  const res = await apiGet(`/p2p/my-requests${qs ? `?${qs}` : ''}`);
+  return res.data;
+}
+
+export async function respondP2PRequest(id, data) {
+  const res = await apiPost(`/p2p/requests/${id}/respond`, data);
+  return res.data;
+}
+
+// --- Transactions ---
+export async function getP2PTransactions(params = {}) {
+  const qs = new URLSearchParams(params).toString();
+  const res = await apiGet(`/p2p/transactions${qs ? `?${qs}` : ''}`);
+  return res.data;
+}
+
+export async function getP2PTransactionById(id) {
+  const res = await apiGet(`/p2p/transactions/${id}`);
+  return res.data;
+}
+
+export async function startP2PTrip(id) {
+  const res = await apiPost(`/p2p/transactions/${id}/start`);
+  return res.data;
+}
+
+export async function completeP2PTrip(id) {
+  const res = await apiPost(`/p2p/transactions/${id}/complete`);
+  return res.data;
+}
+
+export async function cancelP2PTransaction(id) {
+  const res = await apiPost(`/p2p/transactions/${id}/cancel`);
+  return res.data;
+}
+
+// --- Comments ---
+export async function getP2PComments(params = {}) {
+  const qs = new URLSearchParams(params).toString();
+  const res = await apiGet(`/p2p/comments${qs ? `?${qs}` : ''}`);
+  return res.data;
+}
+
+export async function addP2PComment(data) {
+  const res = await apiPost('/p2p/comments', data);
+  return res.data;
+}
+
+// --- Ratings ---
+export async function submitP2PRating(data) {
+  const res = await apiPost('/p2p/ratings', data);
+  return res.data;
 }
 
 // ==================== UTILITY FUNCTIONS ====================
