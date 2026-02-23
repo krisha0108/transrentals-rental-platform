@@ -32,6 +32,8 @@ import {
   ChevronRight,
   ChevronDown,
   FolderTree,
+  Percent,
+  Edit2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -74,6 +76,7 @@ interface LocationRequest {
 interface ApprovedService {
   id: string;
   isActive: boolean;
+  commissionPercent: number;
   service: { id: string; name: string };
 }
 
@@ -148,6 +151,14 @@ export default function VendorDetailPage({ params }: { params: { id: string } })
   const [documentPreviewError, setDocumentPreviewError] = useState(false);
   const [documentLoading, setDocumentLoading] = useState(true);
 
+  // Commission modal state
+  const [showCommissionModal, setShowCommissionModal] = useState(false);
+  const [commissionTarget, setCommissionTarget] = useState<{ requestId: string; serviceName: string } | null>(null);
+  const [commissionInput, setCommissionInput] = useState('0');
+  // Inline edit commission state for approved services
+  const [editingCommissionId, setEditingCommissionId] = useState<string | null>(null);
+  const [editingCommissionValue, setEditingCommissionValue] = useState('');
+
   // Check if document URL is accessible
   useEffect(() => {
     if (selectedDocument) {
@@ -213,25 +224,50 @@ export default function VendorDetailPage({ params }: { params: { id: string } })
     }
   };
 
-  const handleServiceAction = async (requestId: string, action: string, reason?: string) => {
+  const handleServiceAction = async (requestId: string, action: string, reason?: string, commissionPercent?: number) => {
     setActionLoading(`service-${requestId}`);
     try {
       const res = await fetch(`/api/admin/vendors/${id}/services`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ requestId, action, rejectionReason: reason }),
+        body: JSON.stringify({ requestId, action, rejectionReason: reason, commissionPercent }),
       });
 
       if (res.ok) {
         await fetchVendor();
         setShowRejectModal(false);
         setRejectionReason('');
+        setShowCommissionModal(false);
+        setCommissionTarget(null);
+        setCommissionInput('0');
       } else {
         const error = await res.json();
         alert(error.error || 'Action failed');
       }
     } catch (error) {
       console.error('Action failed:', error);
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleUpdateCommission = async (approvedServiceId: string) => {
+    setActionLoading(`commission-${approvedServiceId}`);
+    try {
+      const res = await fetch(`/api/admin/vendors/${id}/services`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ approvedServiceId, commissionPercent: parseFloat(editingCommissionValue) || 0 }),
+      });
+      if (res.ok) {
+        await fetchVendor();
+        setEditingCommissionId(null);
+      } else {
+        const error = await res.json();
+        alert(error.error || 'Failed to update commission');
+      }
+    } catch (error) {
+      console.error('Update commission failed:', error);
     } finally {
       setActionLoading(null);
     }
@@ -895,14 +931,21 @@ export default function VendorDetailPage({ params }: { params: { id: string } })
                       <div className="flex items-center gap-2">
                         <Button
                           size="sm"
-                          onClick={() => handleServiceAction(request.id, 'APPROVE')}
+                          onClick={() => {
+                            setCommissionTarget({ requestId: request.id, serviceName: request.service.name });
+                            setCommissionInput('0');
+                            setShowCommissionModal(true);
+                          }}
                           disabled={!!actionLoading}
                           className="bg-green-600 hover:bg-green-700"
                         >
                           {actionLoading === `service-${request.id}` ? (
                             <Loader2 className="w-4 h-4 animate-spin" />
                           ) : (
-                            <ThumbsUp className="w-4 h-4" />
+                            <>
+                              <ThumbsUp className="w-4 h-4 mr-1" />
+                              Approve
+                            </>
                           )}
                         </Button>
                         <Button
@@ -934,14 +977,72 @@ export default function VendorDetailPage({ params }: { params: { id: string } })
                 No approved services yet
               </div>
             ) : (
-              <div className="p-4 flex flex-wrap gap-2">
+              <div className="divide-y">
                 {vendor.approvedServices.map((item) => (
-                  <span
-                    key={item.id}
-                    className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm"
-                  >
-                    {item.service.name}
-                  </span>
+                  <div key={item.id} className="flex items-center justify-between px-4 py-3 hover:bg-gray-50">
+                    <div className="flex items-center gap-3">
+                      <span className="font-medium text-gray-900">{item.service.name}</span>
+                      {!item.isActive && (
+                        <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">Inactive</span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-3">
+                      {editingCommissionId === item.id ? (
+                        <div className="flex items-center gap-2">
+                          <div className="relative">
+                            <input
+                              type="number"
+                              min="0"
+                              max="100"
+                              step="0.5"
+                              value={editingCommissionValue}
+                              onChange={(e) => setEditingCommissionValue(e.target.value)}
+                              className="w-20 px-2 py-1 pr-6 text-sm border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                              autoFocus
+                            />
+                            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-gray-400">%</span>
+                          </div>
+                          <Button
+                            size="sm"
+                            onClick={() => handleUpdateCommission(item.id)}
+                            disabled={!!actionLoading}
+                            className="bg-blue-600 hover:bg-blue-700 h-7 px-2 text-xs"
+                          >
+                            {actionLoading === `commission-${item.id}` ? (
+                              <Loader2 className="w-3 h-3 animate-spin" />
+                            ) : 'Save'}
+                          </Button>
+                          <button
+                            onClick={() => setEditingCommissionId(null)}
+                            className="text-gray-400 hover:text-gray-600"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <span className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold ${
+                            item.commissionPercent > 0
+                              ? 'bg-orange-100 text-orange-700'
+                              : 'bg-gray-100 text-gray-500'
+                          }`}>
+                            <Percent className="w-3 h-3" />
+                            {item.commissionPercent > 0 ? `${item.commissionPercent}% commission` : 'No commission set'}
+                          </span>
+                          <button
+                            onClick={() => {
+                              setEditingCommissionId(item.id);
+                              setEditingCommissionValue(String(item.commissionPercent));
+                            }}
+                            className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                            title="Edit commission %"
+                          >
+                            <Edit2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 ))}
               </div>
             )}
@@ -1259,6 +1360,74 @@ export default function VendorDetailPage({ params }: { params: { id: string } })
                     </span>
                   </div>
                 ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Commission Approval Modal */}
+      {showCommissionModal && commissionTarget && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl max-w-md w-full p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                <Percent className="w-5 h-5 text-green-600" />
+              </div>
+              <div>
+                <h2 className="text-lg font-bold text-gray-900">Approve Service</h2>
+                <p className="text-sm text-gray-500">{commissionTarget.serviceName}</p>
+              </div>
+            </div>
+
+            <div className="bg-gray-50 rounded-lg p-4 mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Commission Percentage
+              </label>
+              <div className="relative">
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="0.5"
+                  value={commissionInput}
+                  onChange={(e) => setCommissionInput(e.target.value)}
+                  placeholder="e.g. 20"
+                  className="w-full px-4 py-2.5 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:outline-none text-lg font-semibold"
+                  autoFocus
+                />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 font-semibold">%</span>
+              </div>
+              {parseFloat(commissionInput) > 0 && (
+                <p className="text-xs text-gray-500 mt-2">
+                  Example: ₹5000 booking → Admin keeps ₹{(5000 * parseFloat(commissionInput) / 100).toFixed(0)} commission
+                </p>
+              )}
+              <p className="text-xs text-gray-400 mt-1">Set 0 for no commission on this service</p>
+            </div>
+
+            <div className="flex justify-end gap-3">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowCommissionModal(false);
+                  setCommissionTarget(null);
+                  setCommissionInput('0');
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={() => handleServiceAction(commissionTarget.requestId, 'APPROVE', undefined, parseFloat(commissionInput) || 0)}
+                disabled={!!actionLoading}
+                className="bg-green-600 hover:bg-green-700"
+              >
+                {actionLoading === `service-${commissionTarget.requestId}` ? (
+                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                ) : (
+                  <CheckCircle className="w-4 h-4 mr-2" />
+                )}
+                Approve with {parseFloat(commissionInput) || 0}% Commission
+              </Button>
             </div>
           </div>
         </div>

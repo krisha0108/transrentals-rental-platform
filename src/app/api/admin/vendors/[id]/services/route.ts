@@ -36,7 +36,12 @@ export async function PUT(
 
     const { id: vendorId } = await params;
     const body = await request.json();
-    const { requestId, requestIds, action, rejectionReason, bulk } = body;
+    const { requestId, requestIds, action, rejectionReason, bulk, commissionPercent } = body;
+
+    // Parse and validate commissionPercent
+    const commission = commissionPercent !== undefined
+      ? Math.min(100, Math.max(0, parseFloat(commissionPercent) || 0))
+      : 0;
 
     // Handle bulk operations
     if (bulk && requestIds && Array.isArray(requestIds)) {
@@ -74,12 +79,13 @@ export async function PUT(
                 serviceId: req.serviceId,
               },
             },
-            update: { isActive: true },
+            update: { isActive: true, commissionPercent: commission },
             create: {
               id: generateId(),
               vendorId,
               serviceId: req.serviceId,
               isActive: true,
+              commissionPercent: commission,
             },
           });
         }
@@ -144,7 +150,7 @@ export async function PUT(
         },
       });
 
-      // Create approved service entry
+      // Create approved service entry with commission
       await prisma.vendor_approved_services.upsert({
         where: {
           vendorId_serviceId: {
@@ -152,12 +158,13 @@ export async function PUT(
             serviceId: serviceRequest.serviceId,
           },
         },
-        update: { isActive: true },
+        update: { isActive: true, commissionPercent: commission },
         create: {
           id: generateId(),
           vendorId,
           serviceId: serviceRequest.serviceId,
           isActive: true,
+          commissionPercent: commission,
         },
       });
 
@@ -199,6 +206,51 @@ export async function PUT(
     logger.error('Update service request error', error);
     return NextResponse.json(
       { error: 'Failed to update service request', details: error?.message },
+      { status: 500 }
+    );
+  }
+}
+
+// PATCH - Update commission % for an already-approved service
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const currentUser = await prisma.admin_users.findUnique({
+      where: { id: session.user.id },
+    });
+
+    if (!currentUser || !['SUPER_ADMIN', 'ADMIN', 'MANAGER'].includes(currentUser.role)) {
+      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
+    }
+
+    const { id: vendorId } = await params;
+    const body = await request.json();
+    const { approvedServiceId, commissionPercent } = body;
+
+    if (!approvedServiceId || commissionPercent === undefined) {
+      return NextResponse.json({ error: 'approvedServiceId and commissionPercent are required' }, { status: 400 });
+    }
+
+    const commission = Math.min(100, Math.max(0, parseFloat(commissionPercent) || 0));
+
+    const updated = await prisma.vendor_approved_services.update({
+      where: { id: approvedServiceId, vendorId },
+      data: { commissionPercent: commission },
+      include: { services: { select: { id: true, name: true, slug: true } } },
+    });
+
+    return NextResponse.json({ success: true, approvedService: updated });
+  } catch (error: any) {
+    logger.error('Update commission error', error);
+    return NextResponse.json(
+      { error: 'Failed to update commission', details: error?.message },
       { status: 500 }
     );
   }

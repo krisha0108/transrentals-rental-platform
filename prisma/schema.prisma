@@ -3100,13 +3100,14 @@ model vendor_approved_locations {
 }
 
 model vendor_approved_services {
-  id         String   @id
-  vendorId   String
-  serviceId  String
-  isActive   Boolean  @default(true)
-  approvedAt DateTime @default(now())
-  services   services @relation(fields: [serviceId], references: [id], onDelete: Cascade)
-  vendors    vendors  @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  id                String   @id
+  vendorId          String
+  serviceId         String
+  isActive          Boolean  @default(true)
+  approvedAt        DateTime @default(now())
+  commissionPercent Float    @default(0)
+  services          services @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  vendors           vendors  @relation(fields: [vendorId], references: [id], onDelete: Cascade)
 
   @@unique([vendorId, serviceId])
   @@index([serviceId])
