@@ -345,7 +345,7 @@ export default function VendorSelfDriveBookingsPage() {
                     </span>
                   </div>
                   <p className="text-sm text-gray-600 mt-1">
-                    {booking.vehicleName} • {booking.vehicle_category || booking.vehicleType}
+                    {booking.vehicleName} • {booking.chauffeur_vehicle_categories || booking.vehicleType}
                   </p>
                   <p className="text-sm text-gray-500">
                     {booking.customerName} • {booking.locationName}

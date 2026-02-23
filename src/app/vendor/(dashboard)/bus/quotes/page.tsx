@@ -27,7 +27,7 @@ interface Quote {
   id: string;
   quoteNumber: string;
   vehicleName: string;
-  chauffeur_vehicle_categories: string;
+  vehicleCategory: string;
   seats: number;
   totalAmount: number;
   status: string;
@@ -292,7 +292,7 @@ export default function VendorBusQuotesPage() {
                         <Bus className="w-6 h-6 text-orange-600" />
                       </div>
                       <div>
-                        <h3 className="font-bold text-gray-900">{quote.vehicleName || getCategoryName(quote.vehicle_category)}</h3>
+                        <h3 className="font-bold text-gray-900">{quote.vehicleName || getCategoryName(quote.vehicleCategory) || quote.vehicleCategory}</h3>
                         <div className="flex items-center gap-1 text-sm text-gray-500">
                           <span>{getTripTypeName(quote.request?.tripType || '')}</span>
                           <span>•</span>

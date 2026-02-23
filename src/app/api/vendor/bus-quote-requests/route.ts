@@ -166,6 +166,7 @@ export async function GET(request: NextRequest) {
         passengers: r.passengers,
         customerName: r.customerName,
         customerPhone: r.customerPhone,
+        customerEmail: r.customerEmail,
         pickupCity: r.pickupCity,
         dropCity: r.dropCity,
         routeDetails: r.routeDetails,

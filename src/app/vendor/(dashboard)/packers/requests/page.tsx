@@ -15,6 +15,8 @@ import {
   CheckCircle,
   Eye,
   Phone,
+  Mail,
+  User,
   Home,
   Building2,
   ArrowRight,
@@ -38,6 +40,9 @@ interface QuoteRequest {
   hasPickupLift: boolean;
   hasDropLift: boolean;
   preferredDate: string;
+  customerName: string;
+  customerPhone: string;
+  customerEmail?: string;
   requirements?: string;
   status: string;
   totalQuotesReceived: number;
@@ -203,8 +208,8 @@ export default function VendorPackersRequestsPage() {
                 hasQuoted ? 'bg-green-50' : 'bg-blue-50'
               }`}>
                 <div className="flex items-center gap-2">
-                  <span className="font-mono text-sm text-gray-700">
-                    #{request.requestNumber}
+                  <span className="text-sm font-semibold text-gray-800">
+                    {request.customerName}
                   </span>
                   <span className="text-xs text-gray-500">
                     {getTimeAgo(request.createdAt)}
@@ -293,6 +298,28 @@ export default function VendorPackersRequestsPage() {
                       )}
                     </div>
                   )}
+                </div>
+
+                {/* Customer Info Card */}
+                <div className="bg-blue-50 rounded-lg p-3 mb-4 border border-blue-100">
+                  <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
+                    <div className="flex items-center gap-1.5 text-sm font-medium text-gray-900">
+                      <User className="w-4 h-4 text-blue-500" />
+                      {request.customerName}
+                    </div>
+                    {request.customerPhone && (
+                      <a href={`tel:${request.customerPhone}`} className="flex items-center gap-1.5 text-sm text-blue-600 hover:underline">
+                        <Phone className="w-3.5 h-3.5" />
+                        {request.customerPhone}
+                      </a>
+                    )}
+                    {request.customerEmail && (
+                      <a href={`mailto:${request.customerEmail}`} className="flex items-center gap-1.5 text-sm text-blue-600 hover:underline">
+                        <Mail className="w-3.5 h-3.5" />
+                        {request.customerEmail}
+                      </a>
+                    )}
+                  </div>
                 </div>
 
                 {/* Expanded Details */}

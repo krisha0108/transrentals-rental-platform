@@ -30,6 +30,21 @@ import { EQUIPMENT_CONFIG } from '@/lib/quote-services';
 import Pagination from '@/components/vendor/Pagination';
 import DateFilterDropdown from '@/components/vendor/DateFilterDropdown';
 
+// Equipment type ID to name mapping (IDs from customer booking form)
+const EQUIPMENT_TYPE_NAMES: Record<string, string> = {
+  '1': 'Grove Crane',
+  '2': 'Truck Mounted Crane',
+  '3': 'Tower Crane',
+  '4': 'Telescopic Crane',
+  '5': 'Rough Terrain Crane',
+  '6': 'Overhead Crane',
+  '7': 'Bulldozer',
+  '8': 'Dumper',
+  '9': 'Loader',
+  '10': 'Excavators',
+  '11': 'Backhoe Loader',
+};
+
 interface QuoteRequest {
   id: string;
   requestNumber: string;
@@ -238,17 +253,16 @@ export default function VendorEquipmentRequestsPage() {
                       <Wrench className="w-6 h-6 text-amber-600" />
                     </div>
                     <div>
-                      <h3 className="font-bold text-gray-900">{request.equipmentType}</h3>
-                      <p className="text-sm text-gray-500">{getCategoryName(request.equipmentCategory)}</p>
-                      {request.equipmentName && (
-                        <p className="text-xs text-gray-500 mt-0.5">{request.equipmentName}</p>
-                      )}
+                      <h3 className="font-bold text-gray-900">
+                        {request.equipmentName || EQUIPMENT_TYPE_NAMES[request.equipmentType] || request.equipmentType}
+                      </h3>
+                      <p className="text-sm text-gray-500 capitalize">{request.equipmentCategory}</p>
                     </div>
                   </div>
 
                   <div className="text-right">
                     <span className="px-2 py-1 bg-amber-100 text-amber-700 text-sm font-medium rounded capitalize">
-                      {request.rentalDuration} {request.durationUnit?.toLowerCase()}
+                      {request.rentalDays || request.rentalDuration} days ({request.durationUnit})
                     </span>
                     {request.quantity > 1 && (
                       <p className="text-sm text-gray-600 mt-1">Qty: {request.quantity}</p>

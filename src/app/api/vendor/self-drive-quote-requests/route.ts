@@ -16,32 +16,12 @@ export async function GET(request: NextRequest) {
     }
     const vendorId = auth.vendorId;
 
-    // Get vendor with approved locations and services
+    // Get vendor with approved locations
     const vendor = await prisma.vendors.findFirst({
       where: { id: vendorId },
       select: {
         id: true,
         vendor_approved_locations: { select: { locationId: true } },
-        vendor_approved_services: {
-          where: {
-            isActive: true,
-            services: { slug: { in: ['self-drive-car-rental', 'self-drive', 'self-drive-car-rentals'] } },
-          },
-          select: { serviceId: true },
-        },
-        vendor_fleets: {
-          where: {
-            isActive: true,
-            services: { slug: { in: ['self-drive-car-rental', 'self-drive', 'self-drive-car-rentals'] } },
-          },
-          select: {
-            id: true,
-            vehicleCategoryId: true,
-            chauffeur_vehicle_categories: { select: { slug: true } },
-            transmission: true,
-            fuelType: true,
-          },
-        },
       },
     });
 
@@ -49,23 +29,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Vendor not found' }, { status: 404 });
     }
 
-    // Check if vendor is approved for self-drive service
-    if (vendor.vendor_approved_services.length === 0) {
-      return NextResponse.json({
-        success: true,
-        message: 'You are not approved for self-drive car rental service',
-        requests: [],
-        pagination: { page: 1, limit: 20, total: 0, totalPages: 0 },
-      });
-    }
-
     const approvedLocationIds = vendor.vendor_approved_locations.map((l) => l.locationId);
-    const fleetCategories = vendor.vendor_fleets
-      .map((f) => f.vehicleCategoryId)
-      .filter(Boolean);
-
-    // If no fleet categories defined, vendor can see all requests in their locations
-    const hasFleetCategories = fleetCategories.length > 0;
 
     const { searchParams } = new URL(request.url);
     const type = searchParams.get('type'); // 'open', 'quoted', 'won', 'lost'
@@ -103,14 +67,14 @@ export async function GET(request: NextRequest) {
         ...dateFilter,
         status: { in: ['PENDING', 'QUOTES_RECEIVED'] },
         quotesOpenTill: { gte: new Date() },
-        locationId: { in: approvedLocationIds },
+        OR: [
+          { locationId: { in: approvedLocationIds } },
+          { locationId: null },
+        ],
         self_drive_quotes_self_drive_quotes_requestIdToself_drive_quote_requests: {
           none: { vendorId: vendorId },
         },
       };
-
-      // Category filtering disabled to fix issue with mismatched category IDs
-      // Vendors can see all requests in their approved locations and quote accordingly
     } else if (type === 'quoted') {
       // Requests where vendor has submitted a quote
       whereClause = {
@@ -150,12 +114,12 @@ export async function GET(request: NextRequest) {
       const openRequestsFilter: any = {
         status: { in: ['PENDING', 'QUOTES_RECEIVED'] },
         quotesOpenTill: { gte: new Date() },
-        locationId: { in: approvedLocationIds },
-        ...dateFilter, // ✅ Add date filter
+        OR: [
+          { locationId: { in: approvedLocationIds } },
+          { locationId: null },
+        ],
+        ...dateFilter,
       };
-
-      // Category filtering disabled to fix issue with mismatched category IDs
-      // Vendors can see all requests in their approved locations
 
       whereClause = {
         OR: [
@@ -209,6 +173,7 @@ export async function GET(request: NextRequest) {
         minSeats: r.minSeats,
         customerName: r.customerName,
         customerPhone: r.customerPhone,
+        customerEmail: r.customerEmail,
         locationId: r.locationId,
         locationName: r.locationName,
         location: r.locations,

@@ -15,6 +15,8 @@ import {
   CheckCircle,
   Eye,
   Phone,
+  Mail,
+  User,
 } from 'lucide-react';
 import Pagination from '@/components/vendor/Pagination';
 import DateFilterDropdown from '@/components/vendor/DateFilterDropdown';
@@ -29,6 +31,7 @@ interface QuoteRequest {
   vehicleCategoryName?: string;
   customerName: string;
   customerPhone: string;
+  customerEmail?: string;
   locationId: string;
   locationName: string;
   pickupDate: string;
@@ -196,9 +199,7 @@ export default function VendorBikeRequestsPage() {
                 request.hasQuoted ? 'bg-green-50' : 'bg-orange-50'
               }`}>
                 <div className="flex items-center gap-2">
-                  <span className="font-mono text-sm text-gray-700">
-                    #{request.requestNumber}
-                  </span>
+                  <span className="text-sm font-semibold text-gray-800">{request.customerName}</span>
                   <span className="text-xs text-gray-500">
                     {getTimeAgo(request.createdAt)}
                   </span>
@@ -290,6 +291,28 @@ export default function VendorBikeRequestsPage() {
                   )}
                 </div>
 
+                {/* Customer Info Card */}
+                <div className="bg-blue-50 rounded-lg p-3 mb-4 border border-blue-100">
+                  <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
+                    <div className="flex items-center gap-1.5 text-sm font-medium text-gray-900">
+                      <User className="w-4 h-4 text-blue-500" />
+                      {request.customerName}
+                    </div>
+                    {request.customerPhone && (
+                      <a href={`tel:${request.customerPhone}`} className="flex items-center gap-1.5 text-sm text-blue-600 hover:underline">
+                        <Phone className="w-3.5 h-3.5" />
+                        {request.customerPhone}
+                      </a>
+                    )}
+                    {request.customerEmail && (
+                      <a href={`mailto:${request.customerEmail}`} className="flex items-center gap-1.5 text-sm text-blue-600 hover:underline">
+                        <Mail className="w-3.5 h-3.5" />
+                        {request.customerEmail}
+                      </a>
+                    )}
+                  </div>
+                </div>
+
                 {/* Expanded Details */}
                 {expandedId === request.id && (
                   <div className="border-t pt-4 mt-4 space-y-3">
@@ -299,19 +322,6 @@ export default function VendorBikeRequestsPage() {
                         <p className="text-sm text-gray-700">{request.customerNotes}</p>
                       </div>
                     )}
-                    <div className="flex items-center gap-4 bg-gray-50 p-3 rounded-lg">
-                      <div>
-                        <span className="text-xs text-gray-500 uppercase tracking-wide">Customer</span>
-                        <p className="text-sm font-medium text-gray-900">{request.customerName}</p>
-                      </div>
-                      <div>
-                        <span className="text-xs text-gray-500 uppercase tracking-wide">Phone</span>
-                        <p className="text-sm font-medium text-gray-900 flex items-center gap-1">
-                          <Phone className="w-3 h-3" />
-                          {request.customerPhone}
-                        </p>
-                      </div>
-                    </div>
                     {request.myQuote && (
                       <div className="bg-green-50 p-3 rounded-lg">
                         <span className="text-xs text-green-600 uppercase tracking-wide">Your Quote</span>
