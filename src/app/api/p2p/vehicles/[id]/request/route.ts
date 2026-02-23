@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 import { getVendorAuth } from '@/lib/auth/vendor-mobile-auth';
 import logger from '@/lib/security/logger';
+import { sendVendorDirectNotification } from '@/lib/utils/vendor-notification-sender';
 
 export const dynamic = 'force-dynamic';
 
@@ -146,6 +147,17 @@ export async function POST(
         },
       }),
     ]);
+
+    // Notify posting owner about the new vehicle request
+    sendVendorDirectNotification({
+      vendorId: posting.vendorId,
+      title: '🚛 New Vehicle Request',
+      body: `${newRequest.requestingVendor?.businessName || 'A vendor'} wants your ${posting.vehicleName || 'vehicle'} for ${posting.fromCity}→${posting.toCity}`,
+      type: 'p2p_vehicle_requested',
+      serviceType: 'p2p',
+      bookingId: newRequest.id,
+      bookingNumber: newRequest.requestNumber,
+    }).catch((err: any) => console.error('[P2P] Notify failed:', err));
 
     return NextResponse.json({
       success: true,

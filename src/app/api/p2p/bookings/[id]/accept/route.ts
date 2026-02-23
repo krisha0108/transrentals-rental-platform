@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 import { getVendorAuth } from '@/lib/auth/vendor-mobile-auth';
 import logger from '@/lib/security/logger';
+import { sendVendorDirectNotification } from '@/lib/utils/vendor-notification-sender';
 
 export const dynamic = 'force-dynamic';
 
@@ -164,6 +165,28 @@ export async function POST(
       where: { id },
       data: { status: 'ACCEPTED' },
     });
+
+    // Notify posting vendor (A) that booking was accepted
+    sendVendorDirectNotification({
+      vendorId: posting.vendorId,
+      title: '✅ Booking Accepted!',
+      body: `${auth.vendorId === posting.vendorId ? 'You' : 'A vendor'} accepted your booking ${posting.fromCity}→${posting.toCity || ''}`,
+      type: 'p2p_booking_accepted',
+      serviceType: 'p2p',
+      bookingId: transaction.id,
+      bookingNumber: transaction.transactionNumber,
+    }).catch((err: any) => console.error('[P2P] Notify vendorA failed:', err));
+
+    // Notify accepting vendor (B) that deal is confirmed
+    sendVendorDirectNotification({
+      vendorId: auth.vendorId,
+      title: '🤝 Deal Confirmed!',
+      body: `Transaction #${transaction.transactionNumber} confirmed for ${posting.fromCity}→${posting.toCity || ''}`,
+      type: 'p2p_deal_confirmed',
+      serviceType: 'p2p',
+      bookingId: transaction.id,
+      bookingNumber: transaction.transactionNumber,
+    }).catch((err: any) => console.error('[P2P] Notify vendorB failed:', err));
 
     return NextResponse.json({
       transaction,

@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 import { getVendorAuth } from '@/lib/auth/vendor-mobile-auth';
 import logger from '@/lib/security/logger';
+import { sendVendorDirectNotification } from '@/lib/utils/vendor-notification-sender';
 
 export const dynamic = 'force-dynamic';
 
@@ -102,6 +103,18 @@ export async function POST(
           },
         },
       });
+
+      // Notify requesting vendor that their request was rejected
+      const rejectPosting = updatedRequest.vehiclePosting || updatedRequest.bookingPosting;
+      sendVendorDirectNotification({
+        vendorId: updatedRequest.requestingVendorId,
+        title: '❌ Request Declined',
+        body: `Your P2P request for ${rejectPosting?.fromCity || ''}→${rejectPosting?.toCity || ''} was not accepted`,
+        type: 'p2p_request_rejected',
+        serviceType: 'p2p',
+        bookingId: updatedRequest.id,
+        bookingNumber: updatedRequest.requestNumber,
+      }).catch((err: any) => console.error('[P2P] Notify reject failed:', err));
 
       return NextResponse.json({
         success: true,
@@ -272,6 +285,50 @@ export async function POST(
         },
       }),
     ]);
+
+    // Notify requesting vendor (accepted)
+    sendVendorDirectNotification({
+      vendorId: p2pRequest.requestingVendorId,
+      title: '✅ Request Accepted!',
+      body: `Your P2P request has been accepted. Transaction #${transaction.transactionNumber}`,
+      type: 'p2p_request_accepted',
+      serviceType: 'p2p',
+      bookingId: transaction.id,
+      bookingNumber: transaction.transactionNumber,
+    }).catch((err: any) => console.error('[P2P] Notify accept failed:', err));
+
+    // Notify posting vendor (transaction confirmed)
+    sendVendorDirectNotification({
+      vendorId: p2pRequest.postingVendorId,
+      title: '🤝 Transaction Created',
+      body: `Transaction #${transaction.transactionNumber} confirmed for ${posting.fromCity}→${posting.toCity || ''}`,
+      type: 'p2p_transaction_created',
+      serviceType: 'p2p',
+      bookingId: transaction.id,
+      bookingNumber: transaction.transactionNumber,
+    }).catch((err: any) => console.error('[P2P] Notify posting vendor failed:', err));
+
+    // Notify auto-rejected vendors (other requesters whose requests got closed)
+    const autoRejectedRequests = await prisma.p2p_requests.findMany({
+      where: {
+        ...(p2pRequest.vehiclePostingId
+          ? { vehiclePostingId: p2pRequest.vehiclePostingId }
+          : { bookingPostingId: p2pRequest.bookingPostingId }),
+        status: 'REJECTED',
+        id: { not: id },
+        requestingVendorId: { not: p2pRequest.requestingVendorId },
+      },
+      select: { requestingVendorId: true },
+    });
+    for (const req of autoRejectedRequests) {
+      sendVendorDirectNotification({
+        vendorId: req.requestingVendorId,
+        title: 'Posting No Longer Available',
+        body: `The posting ${posting.fromCity}→${posting.toCity || ''} has been assigned to another vendor`,
+        type: 'p2p_request_closed',
+        serviceType: 'p2p',
+      }).catch((err: any) => console.error('[P2P] Notify auto-reject failed:', err));
+    }
 
     return NextResponse.json({
       success: true,

@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 import { getVendorAuth } from '@/lib/auth/vendor-mobile-auth';
 import logger from '@/lib/security/logger';
+import { sendVendorDirectNotification } from '@/lib/utils/vendor-notification-sender';
 
 export const dynamic = 'force-dynamic';
 
@@ -188,6 +189,12 @@ export async function DELETE(
       return NextResponse.json({ error: 'You can only cancel your own postings' }, { status: 403 });
     }
 
+    // Query pending requesters BEFORE cancellation so we can notify them
+    const pendingRequesters = await prisma.p2p_requests.findMany({
+      where: { bookingPostingId: id, status: 'PENDING' },
+      select: { requestingVendorId: true },
+    });
+
     // Cancel the posting
     const posting = await prisma.p2p_booking_postings.update({
       where: { id },
@@ -204,6 +211,17 @@ export async function DELETE(
         status: 'CANCELLED',
       },
     });
+
+    // Notify each pending requester that the posting was withdrawn
+    for (const req of pendingRequesters) {
+      sendVendorDirectNotification({
+        vendorId: req.requestingVendorId,
+        title: 'Posting Withdrawn',
+        body: `Booking posting ${existing.fromCity}→${existing.toCity || ''} has been withdrawn by the owner`,
+        type: 'p2p_posting_cancelled',
+        serviceType: 'p2p',
+      }).catch((err: any) => console.error('[P2P] Notify posting cancel failed:', err));
+    }
 
     return NextResponse.json({ posting, message: 'Booking posting cancelled successfully' });
   } catch (error) {

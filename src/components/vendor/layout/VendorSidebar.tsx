@@ -404,15 +404,15 @@ const approvedNavigationItems: NavItem[] = [
   //   href: '/vendor/reviews',
   //   icon: Star,
   // },
-  // {
-  //   name: 'Notifications',
-  //   href: '/vendor/notifications',
-  //   icon: Bell,
-  //   children: [
-  //     { name: 'All Notifications', href: '/vendor/notifications', icon: Bell },
-  //     { name: 'Notification Settings', href: '/vendor/notification-settings', icon: Settings },
-  //   ],
-  // },
+  {
+    name: 'Notifications',
+    href: '/vendor/notifications',
+    icon: Bell,
+    children: [
+      { name: 'All Notifications', href: '/vendor/notifications', icon: Bell },
+      { name: 'Notification Settings', href: '/vendor/notification-settings', icon: Settings },
+    ],
+  },
   // {
   //   name: 'Settings',
   //   href: '/vendor/settings',

@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 import { getVendorAuth } from '@/lib/auth/vendor-mobile-auth';
 import logger from '@/lib/security/logger';
+import { sendVendorDirectNotification } from '@/lib/utils/vendor-notification-sender';
 
 export const dynamic = 'force-dynamic';
 
@@ -158,6 +159,17 @@ export async function POST(request: NextRequest) {
       ratedVendorId,
       overallRating,
     });
+
+    // Notify rated vendor about the new rating
+    sendVendorDirectNotification({
+      vendorId: ratedVendorId,
+      title: '⭐ New Rating Received',
+      body: `${rating.raterVendor?.businessName || 'A vendor'} rated you ${overallRating}★ on transaction #${rating.transaction?.transactionNumber || transactionId}`,
+      type: 'p2p_rating_received',
+      serviceType: 'p2p',
+      bookingId: transactionId,
+      bookingNumber: rating.transaction?.transactionNumber || '',
+    }).catch((err: any) => console.error('[P2P] Notify rating failed:', err));
 
     return NextResponse.json({
       success: true,

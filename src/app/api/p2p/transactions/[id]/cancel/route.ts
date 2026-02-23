@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 import { getVendorAuth } from '@/lib/auth/vendor-mobile-auth';
 import logger from '@/lib/security/logger';
+import { sendVendorDirectNotification } from '@/lib/utils/vendor-notification-sender';
 
 export const dynamic = 'force-dynamic';
 
@@ -115,6 +116,15 @@ export async function POST(
           data: { status: 'ACTIVE' },
         });
 
+        // Notify posting vendor that their posting is live again
+        sendVendorDirectNotification({
+          vendorId: transaction.vendorAId,
+          title: '🔄 Posting Reactivated',
+          body: `Your posting is live again after transaction cancellation`,
+          type: 'p2p_posting_reactivated',
+          serviceType: 'p2p',
+        }).catch((err: any) => console.error('[P2P] Notify reactivate failed:', err));
+
         logger.info('Vehicle posting reactivated after transaction cancel', {
           postingId: transaction.vehiclePostingId,
         });
@@ -134,11 +144,34 @@ export async function POST(
           data: { status: 'ACTIVE' },
         });
 
+        // Notify posting vendor that their posting is live again
+        sendVendorDirectNotification({
+          vendorId: transaction.vendorAId,
+          title: '🔄 Posting Reactivated',
+          body: `Your posting is live again after transaction cancellation`,
+          type: 'p2p_posting_reactivated',
+          serviceType: 'p2p',
+        }).catch((err: any) => console.error('[P2P] Notify reactivate failed:', err));
+
         logger.info('Booking posting reactivated after transaction cancel', {
           postingId: transaction.bookingPostingId,
         });
       }
     }
+
+    // Notify the OTHER vendor about the cancellation
+    const otherVendorId = auth.vendorId === transaction.vendorAId
+      ? transaction.vendorBId
+      : transaction.vendorAId;
+    sendVendorDirectNotification({
+      vendorId: otherVendorId,
+      title: '❌ Transaction Cancelled',
+      body: `Transaction #${transaction.transactionNumber} cancelled.${reason ? ` Reason: ${reason}` : ''}`,
+      type: 'p2p_transaction_cancelled',
+      serviceType: 'p2p',
+      bookingId: transaction.id,
+      bookingNumber: transaction.transactionNumber,
+    }).catch((err: any) => console.error('[P2P] Notify cancel failed:', err));
 
     logger.info('P2P transaction cancelled', {
       vendorId: auth.vendorId,

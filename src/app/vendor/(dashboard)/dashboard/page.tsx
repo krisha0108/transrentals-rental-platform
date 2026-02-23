@@ -15,9 +15,101 @@ import {
   Truck,
   Package,
   Settings,
-  FileText
+  FileText,
+  Bell,
+  BellOff,
+  Check,
+  CheckCheck,
+  CreditCard,
+  Star,
+  Inbox,
+  Rocket,
+  Handshake,
+  XCircle,
+  MessageSquare,
+  RotateCcw,
+  ArrowRightLeft,
+  ChevronRight,
+  Sparkles,
 } from 'lucide-react';
 import VendorOnboarding from '@/components/vendor/onboarding/VendorOnboarding';
+
+// Notification type config for dashboard widget
+const NOTIF_CONFIG: Record<string, { icon: any; gradient: string; label: string }> = {
+  booking: { icon: Calendar, gradient: 'from-blue-500 to-blue-600', label: 'Booking' },
+  booking_confirmed: { icon: Calendar, gradient: 'from-blue-500 to-blue-600', label: 'Booking' },
+  booking_assigned: { icon: Calendar, gradient: 'from-blue-500 to-blue-600', label: 'Booking' },
+  quote_request: { icon: Inbox, gradient: 'from-violet-500 to-purple-600', label: 'Quote' },
+  quote_accepted: { icon: Check, gradient: 'from-green-500 to-emerald-600', label: 'Quote' },
+  advance_paid: { icon: CreditCard, gradient: 'from-emerald-500 to-green-600', label: 'Payment' },
+  review: { icon: Star, gradient: 'from-amber-400 to-orange-500', label: 'Review' },
+  payment: { icon: CreditCard, gradient: 'from-green-500 to-emerald-600', label: 'Payment' },
+  payout: { icon: CreditCard, gradient: 'from-purple-500 to-violet-600', label: 'Payout' },
+  system: { icon: Settings, gradient: 'from-slate-500 to-gray-600', label: 'System' },
+  p2p_vehicle_requested: { icon: Truck, gradient: 'from-orange-500 to-amber-600', label: 'P2P Request' },
+  p2p_booking_accepted: { icon: Handshake, gradient: 'from-emerald-500 to-green-600', label: 'P2P Accepted' },
+  p2p_deal_confirmed: { icon: Handshake, gradient: 'from-emerald-500 to-teal-600', label: 'P2P Deal' },
+  p2p_request_accepted: { icon: Check, gradient: 'from-green-500 to-emerald-600', label: 'P2P Accepted' },
+  p2p_transaction_created: { icon: ArrowRightLeft, gradient: 'from-blue-500 to-indigo-600', label: 'P2P Transaction' },
+  p2p_request_rejected: { icon: XCircle, gradient: 'from-red-500 to-rose-600', label: 'P2P Declined' },
+  p2p_request_closed: { icon: XCircle, gradient: 'from-gray-500 to-slate-600', label: 'P2P Closed' },
+  p2p_transaction_cancelled: { icon: XCircle, gradient: 'from-red-500 to-rose-600', label: 'P2P Cancelled' },
+  p2p_posting_cancelled: { icon: XCircle, gradient: 'from-gray-500 to-slate-600', label: 'P2P Withdrawn' },
+  p2p_trip_started: { icon: Rocket, gradient: 'from-blue-500 to-cyan-500', label: 'P2P Trip' },
+  p2p_trip_completed: { icon: Check, gradient: 'from-emerald-500 to-green-600', label: 'P2P Complete' },
+  p2p_rating_received: { icon: Star, gradient: 'from-amber-400 to-yellow-500', label: 'P2P Rating' },
+  p2p_new_comment: { icon: MessageSquare, gradient: 'from-indigo-500 to-violet-600', label: 'P2P Comment' },
+  p2p_posting_reactivated: { icon: RotateCcw, gradient: 'from-teal-500 to-cyan-600', label: 'P2P Reactivated' },
+  p2p_new_vehicle_posted: { icon: Truck, gradient: 'from-blue-500 to-indigo-600', label: 'New Vehicle' },
+  p2p_new_booking_posted: { icon: Inbox, gradient: 'from-violet-500 to-purple-600', label: 'New Booking' },
+};
+
+const DEFAULT_NOTIF_CONFIG = { icon: Bell, gradient: 'from-gray-400 to-gray-500', label: 'Notification' };
+
+function getNotifConfig(type: string) {
+  return NOTIF_CONFIG[type] || DEFAULT_NOTIF_CONFIG;
+}
+
+// Redirect mapping for notification types
+const NOTIF_REDIRECT: Record<string, string> = {
+  p2p_new_vehicle_posted: '/vendor/p2p/vehicles',
+  p2p_new_booking_posted: '/vendor/p2p/bookings',
+  p2p_vehicle_requested: '/vendor/p2p/my-postings',
+  p2p_booking_accepted: '/vendor/p2p/my-postings',
+  p2p_deal_confirmed: '/vendor/p2p/activity',
+  p2p_request_accepted: '/vendor/p2p/activity',
+  p2p_request_rejected: '/vendor/p2p/activity',
+  p2p_request_closed: '/vendor/p2p/vehicles',
+  p2p_transaction_created: '/vendor/p2p/activity',
+  p2p_trip_started: '/vendor/p2p/activity',
+  p2p_trip_completed: '/vendor/p2p/activity',
+  p2p_transaction_cancelled: '/vendor/p2p/activity',
+  p2p_posting_cancelled: '/vendor/p2p/vehicles',
+  p2p_posting_reactivated: '/vendor/p2p/my-postings',
+  p2p_rating_received: '/vendor/p2p/activity',
+  p2p_new_comment: '/vendor/p2p/my-postings',
+  booking: '/vendor/bookings',
+  booking_confirmed: '/vendor/bookings',
+  booking_assigned: '/vendor/bookings',
+  quote_request: '/vendor/quotes',
+  quote_accepted: '/vendor/quotes',
+  advance_paid: '/vendor/payments',
+  review: '/vendor/reviews',
+  payment: '/vendor/payments',
+  payout: '/vendor/payments',
+};
+
+function getRelativeTime(dateStr: string) {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'Just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(diff / 3600000);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(diff / 86400000);
+  if (days === 1) return 'Yesterday';
+  return `${days}d ago`;
+}
 
 interface VendorProfile {
   id: string;
@@ -49,6 +141,7 @@ export default function VendorDashboard() {
   const [profile, setProfile] = useState<VendorProfile | null>(null);
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [recentNotifications, setRecentNotifications] = useState<any[]>([]);
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -59,9 +152,10 @@ export default function VendorDashboard() {
   useEffect(() => {
     async function fetchData() {
       try {
-        const [profileRes, statsRes] = await Promise.all([
+        const [profileRes, statsRes, notifRes] = await Promise.all([
           fetch('/api/vendor/profile'),
           fetch('/api/vendor/dashboard/stats'),
+          fetch('/api/vendor/notifications'),
         ]);
 
         if (profileRes.ok) {
@@ -74,6 +168,12 @@ export default function VendorDashboard() {
           if (statsData.success) {
             setStats(statsData.stats);
           }
+        }
+
+        if (notifRes.ok) {
+          const notifData = await notifRes.json();
+          const unread = (notifData.notifications || []).filter((n: any) => !n.read);
+          setRecentNotifications(unread.slice(0, 5));
         }
       } catch (error) {
         console.error('Failed to fetch data:', error);
@@ -328,6 +428,105 @@ export default function VendorDashboard() {
             <Calendar className="w-4 h-4" />
             <span>From {stats?.totalBookings || 0} completed bookings</span>
           </div>
+        </div>
+      </div>
+
+      {/* Recent Notifications — Premium Widget */}
+      <div className="relative overflow-hidden rounded-3xl border border-gray-100 shadow-lg">
+        {/* Dark gradient header */}
+        <div className="relative bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900 px-6 py-5">
+          <div className="absolute top-0 right-0 w-40 h-40 bg-blue-500/10 rounded-full -translate-y-1/2 translate-x-1/2" />
+          <div className="absolute bottom-0 left-0 w-28 h-28 bg-indigo-500/10 rounded-full translate-y-1/2 -translate-x-1/2" />
+          <div className="relative z-10 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-11 h-11 bg-white/10 backdrop-blur-sm rounded-2xl flex items-center justify-center">
+                <Bell className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <h2 className="text-lg font-bold text-white">Notifications</h2>
+                <p className="text-blue-200 text-xs">
+                  {recentNotifications.length > 0
+                    ? `${recentNotifications.length} unread`
+                    : 'All caught up!'}
+                </p>
+              </div>
+            </div>
+            <Link
+              href="/vendor/notifications"
+              className="flex items-center gap-1.5 px-4 py-2 bg-white/10 hover:bg-white/20 backdrop-blur-sm text-white rounded-xl text-sm font-medium transition-all"
+            >
+              View all <ChevronRight className="w-4 h-4" />
+            </Link>
+          </div>
+        </div>
+
+        {/* Notification items */}
+        <div className="bg-white">
+          {recentNotifications.length === 0 ? (
+            <div className="py-12 text-center">
+              <div className="w-16 h-16 bg-gradient-to-br from-gray-100 to-gray-200 rounded-2xl flex items-center justify-center mx-auto mb-4 rotate-6">
+                <BellOff className="w-8 h-8 text-gray-400 -rotate-6" />
+              </div>
+              <p className="text-gray-500 font-medium text-sm">No unread notifications</p>
+              <p className="text-gray-400 text-xs mt-1">You're all caught up!</p>
+            </div>
+          ) : (
+            <div className="divide-y divide-gray-100/80">
+              {recentNotifications.map((notif: any) => {
+                const config = getNotifConfig(notif.type);
+                const NIcon = config.icon;
+                return (
+                  <Link
+                    key={notif.id}
+                    href={NOTIF_REDIRECT[notif.type] || '/vendor/notifications'}
+                    className="group flex items-start gap-4 px-6 py-4 hover:bg-gradient-to-r hover:from-blue-50/50 hover:to-transparent transition-all duration-200 relative"
+                  >
+                    {/* Unread indicator line */}
+                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-blue-500 to-indigo-600 rounded-r" />
+
+                    {/* Gradient icon badge */}
+                    <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${config.gradient} flex items-center justify-center flex-shrink-0 shadow-lg shadow-black/10`}>
+                      <NIcon className="w-5 h-5 text-white" />
+                    </div>
+
+                    {/* Content */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between gap-2 mb-0.5">
+                        <h4 className="font-semibold text-gray-900 text-sm leading-snug flex items-center gap-2">
+                          {notif.title}
+                          <span className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse flex-shrink-0" />
+                        </h4>
+                        <span className="text-[11px] text-gray-400 whitespace-nowrap font-medium flex-shrink-0 mt-0.5">
+                          {getRelativeTime(notif.createdAt)}
+                        </span>
+                      </div>
+                      <p className="text-gray-600 text-sm truncate mb-1.5">{notif.body || notif.message}</p>
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-gradient-to-r ${config.gradient} text-white`}>
+                        {config.label}
+                      </span>
+                    </div>
+
+                    {/* Arrow */}
+                    <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-blue-500 group-hover:translate-x-0.5 transition-all mt-1 flex-shrink-0" />
+                  </Link>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Footer */}
+          {recentNotifications.length > 0 && (
+            <div className="px-6 py-3 bg-gradient-to-r from-gray-50 to-transparent border-t border-gray-100/80">
+              <Link
+                href="/vendor/notifications"
+                className="flex items-center justify-center gap-2 text-sm text-blue-600 hover:text-blue-700 font-semibold transition group"
+              >
+                <Sparkles className="w-4 h-4" />
+                View all notifications
+                <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+              </Link>
+            </div>
+          )}
         </div>
       </div>
 

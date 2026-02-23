@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 import { getVendorAuth } from '@/lib/auth/vendor-mobile-auth';
 import logger from '@/lib/security/logger';
+import { sendVendorDirectNotification } from '@/lib/utils/vendor-notification-sender';
 
 export const dynamic = 'force-dynamic';
 
@@ -87,6 +88,28 @@ export async function POST(
       transactionId: id,
       transactionNumber: transaction.transactionNumber,
     });
+
+    // Notify vendorB that trip has started with OTP
+    sendVendorDirectNotification({
+      vendorId: updatedTransaction.vendorBId,
+      title: '🚀 Trip Started!',
+      body: `Trip ${updatedTransaction.fromCity}→${updatedTransaction.toCity || ''} has started. Start OTP: ${startOtp}`,
+      type: 'p2p_trip_started',
+      serviceType: 'p2p',
+      bookingId: updatedTransaction.id,
+      bookingNumber: updatedTransaction.transactionNumber,
+    }).catch((err: any) => console.error('[P2P] Notify vendorB trip start failed:', err));
+
+    // Notify vendorA (posting owner) confirmation
+    sendVendorDirectNotification({
+      vendorId: updatedTransaction.vendorAId,
+      title: '🚀 Trip Started!',
+      body: `You started trip ${updatedTransaction.fromCity}→${updatedTransaction.toCity || ''}. OTP shared with partner.`,
+      type: 'p2p_trip_started',
+      serviceType: 'p2p',
+      bookingId: updatedTransaction.id,
+      bookingNumber: updatedTransaction.transactionNumber,
+    }).catch((err: any) => console.error('[P2P] Notify vendorA trip start failed:', err));
 
     return NextResponse.json({
       transaction: updatedTransaction,
