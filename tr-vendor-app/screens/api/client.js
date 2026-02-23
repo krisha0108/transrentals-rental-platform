@@ -42,8 +42,8 @@ export async function getBaseURL() {
     cachedBaseURL = ENV_URL;
     return cachedBaseURL;
   }
-  // 3) default - production
-  cachedBaseURL = DEFAULT_PROD;
+  // 3) default - use localhost in dev (with ADB reverse), production otherwise
+  cachedBaseURL = __DEV__ ? inferLocalBase() : DEFAULT_PROD;
   return cachedBaseURL;
 }
 
@@ -328,7 +328,7 @@ export async function loginVendor(email, password, fcmToken = null) {
       // Update FCM token if provided
       if (fcmToken) {
         try {
-          await apiPost('/vendor/profile', { fcmToken });
+          await saveVendorFcmToken(fcmToken);
         } catch (e) {
           console.log('Failed to update FCM token:', e);
         }
@@ -962,6 +962,38 @@ export async function getFleetVehicles() {
  */
 export async function deleteStaff(staffId) {
   const res = await apiDelete(`/vendor/staff/${staffId}`);
+  return res.data;
+}
+
+/**
+ * Get staff attendance for a month
+ */
+export async function getStaffAttendance(month, year) {
+  const res = await apiGet(`/vendor/staff/attendance?month=${month}&year=${year}`);
+  return res.data;
+}
+
+/**
+ * Mark staff attendance (bulk)
+ */
+export async function markStaffAttendance(records) {
+  const res = await apiPost('/vendor/staff/attendance', { records });
+  return res.data;
+}
+
+/**
+ * Get staff payroll for a month
+ */
+export async function getStaffPayroll(month, year) {
+  const res = await apiGet(`/vendor/staff/payments?month=${month}&year=${year}`);
+  return res.data;
+}
+
+/**
+ * Mark staff payment as paid
+ */
+export async function markStaffPayment(data) {
+  const res = await apiPost('/vendor/staff/payments', data);
   return res.data;
 }
 

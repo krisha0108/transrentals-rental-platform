@@ -17,6 +17,16 @@ import {
   Send,
   Trash2,
   TrendingUp,
+  Phone,
+  Mail,
+  Building2,
+  User,
+  Package,
+  Truck,
+  HardHat,
+  Settings,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 import Pagination from '@/components/vendor/Pagination';
 import DateFilterDropdown from '@/components/vendor/DateFilterDropdown';
@@ -26,6 +36,8 @@ interface Quote {
   quoteNumber: string;
   totalAmount: number;
   dailyRate: number;
+  weeklyRate?: number;
+  monthlyRate?: number;
   equipmentModel?: string;
   status: string;
   validTill: string;
@@ -33,10 +45,26 @@ interface Quote {
     id: string;
     requestNumber: string;
     customerName: string;
+    customerEmail: string;
+    customerPhone: string;
+    companyName?: string;
     equipmentCategory: string;
     equipmentType: string;
-    city: string;
+    equipmentName?: string;
+    quantity: number;
+    rentalDuration: string;
+    rentalDays: number;
     startDate: string;
+    endDate: string;
+    deliveryCity: string;
+    deliveryAddress: string;
+    siteType?: string;
+    needOperator: boolean;
+    needDelivery: boolean;
+    needInstallation: boolean;
+    requirements?: string;
+    budgetMin?: number;
+    budgetMax?: number;
     status: string;
   };
   createdAt: string;
@@ -57,6 +85,7 @@ export default function VendorEquipmentQuotesPage() {
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [filter, setFilter] = useState('all');
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -240,6 +269,8 @@ export default function VendorEquipmentQuotesPage() {
           quotes.map((quote) => {
             const statusConfig = STATUS_CONFIG[quote.status] || STATUS_CONFIG.SENT;
             const StatusIcon = statusConfig.icon;
+            const isExpanded = expandedId === quote.id;
+            const req = quote.request;
 
             return (
               <div
@@ -276,13 +307,13 @@ export default function VendorEquipmentQuotesPage() {
                       </div>
                       <div>
                         <h3 className="font-bold text-gray-900">
-                          {quote.equipmentModel || quote.request.equipmentType}
+                          {quote.equipmentModel || req.equipmentType}
                         </h3>
                         <p className="text-sm text-gray-600">
-                          {quote.request.equipmentCategory}
+                          {req.equipmentCategory}
                         </p>
                         <p className="text-xs text-gray-500 mt-1">
-                          Request: #{quote.request.requestNumber}
+                          Request: #{req.requestNumber}
                         </p>
                       </div>
                     </div>
@@ -297,23 +328,61 @@ export default function VendorEquipmentQuotesPage() {
                     </div>
                   </div>
 
-                  {/* Request Info */}
+                  {/* Customer Info Row */}
+                  <div className="bg-blue-50 rounded-lg p-3 mb-4 border border-blue-100">
+                    <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
+                      <div className="flex items-center gap-1.5 text-sm font-medium text-gray-900">
+                        <User className="w-4 h-4 text-blue-500" />
+                        {req.customerName}
+                      </div>
+                      <a href={`tel:${req.customerPhone}`} className="flex items-center gap-1.5 text-sm text-blue-600 hover:underline">
+                        <Phone className="w-3.5 h-3.5" />
+                        {req.customerPhone}
+                      </a>
+                      <a href={`mailto:${req.customerEmail}`} className="flex items-center gap-1.5 text-sm text-blue-600 hover:underline">
+                        <Mail className="w-3.5 h-3.5" />
+                        {req.customerEmail}
+                      </a>
+                      {req.companyName && (
+                        <div className="flex items-center gap-1.5 text-sm text-gray-600">
+                          <Building2 className="w-3.5 h-3.5 text-gray-400" />
+                          {req.companyName}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Location & Date Row */}
                   <div className="flex flex-wrap gap-4 mb-4 text-sm text-gray-600">
                     <div className="flex items-center gap-1.5">
                       <MapPin className="w-4 h-4 text-amber-500" />
-                      {quote.request.city}
+                      {req.deliveryCity}
                     </div>
                     <div className="flex items-center gap-1.5">
                       <Calendar className="w-4 h-4 text-amber-500" />
-                      {new Date(quote.request.startDate).toLocaleDateString('en-IN', {
+                      {new Date(req.startDate).toLocaleDateString('en-IN', {
                         day: 'numeric',
                         month: 'short',
                         year: 'numeric',
                       })}
+                      {req.endDate && (
+                        <> — {new Date(req.endDate).toLocaleDateString('en-IN', {
+                          day: 'numeric',
+                          month: 'short',
+                          year: 'numeric',
+                        })}</>
+                      )}
                     </div>
-                    <div className="flex items-center gap-1.5 text-gray-500">
-                      Customer: {quote.request.customerName}
+                    <div className="flex items-center gap-1.5">
+                      <Clock className="w-4 h-4 text-gray-400" />
+                      {req.rentalDays} days ({req.rentalDuration})
                     </div>
+                    {req.quantity > 1 && (
+                      <div className="flex items-center gap-1.5">
+                        <Package className="w-4 h-4 text-gray-400" />
+                        Qty: {req.quantity}
+                      </div>
+                    )}
                   </div>
 
                   {/* Valid Till */}
@@ -324,6 +393,90 @@ export default function VendorEquipmentQuotesPage() {
                       year: 'numeric',
                     })}
                   </p>
+
+                  {/* Expand/Collapse for full details */}
+                  <button
+                    onClick={() => setExpandedId(isExpanded ? null : quote.id)}
+                    className="flex items-center gap-1 text-sm text-amber-600 font-medium hover:text-amber-700 mb-3"
+                  >
+                    {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                    {isExpanded ? 'Hide Details' : 'View Full Request Details'}
+                  </button>
+
+                  {/* Expanded Details */}
+                  {isExpanded && (
+                    <div className="bg-gray-50 rounded-lg p-4 mb-4 border border-gray-200 space-y-4">
+                      {/* Delivery Details */}
+                      <div>
+                        <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Delivery Details</h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                          <div>
+                            <span className="text-gray-500">City:</span>{' '}
+                            <span className="font-medium text-gray-900">{req.deliveryCity}</span>
+                          </div>
+                          <div>
+                            <span className="text-gray-500">Address:</span>{' '}
+                            <span className="font-medium text-gray-900">{req.deliveryAddress}</span>
+                          </div>
+                          {req.siteType && (
+                            <div>
+                              <span className="text-gray-500">Site Type:</span>{' '}
+                              <span className="font-medium text-gray-900">{req.siteType}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Services Required */}
+                      <div>
+                        <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Services Required</h4>
+                        <div className="flex flex-wrap gap-2">
+                          {req.needOperator && (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded-full">
+                              <HardHat className="w-3 h-3" /> Operator Needed
+                            </span>
+                          )}
+                          {req.needDelivery && (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-green-100 text-green-700 text-xs font-medium rounded-full">
+                              <Truck className="w-3 h-3" /> Delivery Required
+                            </span>
+                          )}
+                          {req.needInstallation && (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-purple-100 text-purple-700 text-xs font-medium rounded-full">
+                              <Settings className="w-3 h-3" /> Installation Needed
+                            </span>
+                          )}
+                          {!req.needOperator && !req.needDelivery && !req.needInstallation && (
+                            <span className="text-sm text-gray-500">No additional services requested</span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Budget */}
+                      {(req.budgetMin || req.budgetMax) && (
+                        <div>
+                          <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Customer Budget</h4>
+                          <p className="text-sm font-medium text-gray-900">
+                            {req.budgetMin && req.budgetMax
+                              ? `₹${req.budgetMin.toLocaleString()} — ₹${req.budgetMax.toLocaleString()}`
+                              : req.budgetMin
+                              ? `Min ₹${req.budgetMin.toLocaleString()}`
+                              : `Max ₹${req.budgetMax!.toLocaleString()}`}
+                          </p>
+                        </div>
+                      )}
+
+                      {/* Special Requirements */}
+                      {req.requirements && (
+                        <div>
+                          <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Special Requirements</h4>
+                          <p className="text-sm text-gray-700 bg-white rounded p-3 border border-gray-200">
+                            {req.requirements}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   {/* Actions */}
                   <div className="flex flex-wrap gap-2 pt-4 border-t">

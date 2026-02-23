@@ -68,6 +68,8 @@ import AddVehicleScreen from './screens/vendor/fleet/AddVehicleScreen';
 // Staff Detail Screens
 import StaffDetailScreen from './screens/vendor/staff/StaffDetailScreen';
 import AddStaffScreen from './screens/vendor/staff/AddStaffScreen';
+import StaffAttendanceScreen from './screens/vendor/staff/StaffAttendanceScreen';
+import StaffPayrollScreen from './screens/vendor/staff/StaffPayrollScreen';
 
 // Profile Detail Screens
 import BankDetailsScreen from './screens/vendor/profile/BankDetailsScreen';
@@ -594,6 +596,8 @@ export default function App() {
             {/* Staff Screens */}
             <Stack.Screen name="StaffDetailScreen" component={StaffDetailScreen} />
             <Stack.Screen name="AddStaffScreen" component={AddStaffScreen} />
+            <Stack.Screen name="StaffAttendanceScreen" component={StaffAttendanceScreen} />
+            <Stack.Screen name="StaffPayrollScreen" component={StaffPayrollScreen} />
 
             {/* Profile Screens */}
             <Stack.Screen name="BankDetailsScreen" component={BankDetailsScreen} />
