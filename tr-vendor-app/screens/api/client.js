@@ -42,8 +42,10 @@ export async function getBaseURL() {
     cachedBaseURL = ENV_URL;
     return cachedBaseURL;
   }
-  // 3) default - production
+  // 3) default - production (use this for release builds)
   cachedBaseURL = DEFAULT_PROD;
+  // DEV fallback: uncomment below + comment above line if testing without __DEV__ flag
+  // cachedBaseURL = inferLocalBase();
   return cachedBaseURL;
 }
 
