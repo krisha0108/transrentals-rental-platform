@@ -120,27 +120,13 @@ export async function POST(
       );
     }
 
-    // Generate transaction ID
-    const allIds = await prisma.p2p_transactions.findMany({
-      where: { id: { startsWith: 'PTX_' } },
-      select: { id: true },
-    });
-    const maxId = allIds.reduce((max, item) => {
-      const num = parseInt(item.id.replace('PTX_', ''));
-      return num > max ? num : max;
-    }, 0);
-    const newId = `PTX_${maxId + 1}`;
-
-    // Generate transaction number
-    const allTxNumbers = await prisma.p2p_transactions.findMany({
-      where: { transactionNumber: { startsWith: 'TX-' } },
-      select: { transactionNumber: true },
-    });
-    const maxTxNum = allTxNumbers.reduce((max, item) => {
-      const num = parseInt(item.transactionNumber.replace('TX-', ''));
-      return num > max ? num : max;
-    }, 1000);
-    const transactionNumber = `TX-${maxTxNum + 1}`;
+    // Generate transaction ID and number efficiently (single row queries)
+    const [maxIdResult, maxTxResult]: any[] = await Promise.all([
+      prisma.$queryRaw`SELECT MAX(CAST(SUBSTRING(id, 5) AS UNSIGNED)) as maxNum FROM p2p_transactions WHERE id LIKE 'PTX_%'`,
+      prisma.$queryRaw`SELECT MAX(CAST(SUBSTRING(transactionNumber, 4) AS UNSIGNED)) as maxNum FROM p2p_transactions WHERE transactionNumber LIKE 'TX-%'`,
+    ]);
+    const newId = `PTX_${(Number(maxIdResult?.[0]?.maxNum) || 0) + 1}`;
+    const transactionNumber = `TX-${(Number(maxTxResult?.[0]?.maxNum) || 1000) + 1}`;
 
     // Generate 4-digit end OTP
     const endOtp = Math.floor(1000 + Math.random() * 9000).toString();

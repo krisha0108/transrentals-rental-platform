@@ -37,6 +37,7 @@
     "audit:json": "node scripts/audit.js --json"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "0.78.0",
     "@floating-ui/dom": "1.7.4",
     "@hookform/resolvers": "^3.9.1",
     "@prisma/client": "6.19.2",

@@ -128,6 +128,15 @@ import BookingLinksScreen from './screens/vendor/booking-links/BookingLinksScree
 // Financials
 import FinancialsScreen from './screens/vendor/financials/FinancialsScreen';
 
+// P2P Marketplace
+import P2PDashboardScreen from './screens/vendor/p2p/P2PDashboardScreen';
+import BrowseVehiclesScreen from './screens/vendor/p2p/BrowseVehiclesScreen';
+import BrowseBookingsScreen from './screens/vendor/p2p/BrowseBookingsScreen';
+import PostVehicleScreen from './screens/vendor/p2p/PostVehicleScreen';
+import PostBookingScreen from './screens/vendor/p2p/PostBookingScreen';
+import MyPostingsScreen from './screens/vendor/p2p/MyPostingsScreen';
+import P2PActivityScreen from './screens/vendor/p2p/P2PActivityScreen';
+
 // Service-Specific Quote Screens
 import BikeMyQuotesScreen from './screens/vendor/services/bike/BikeMyQuotesScreen';
 import BikeQuoteDetailScreen from './screens/vendor/services/bike/BikeQuoteDetailScreen';
@@ -655,6 +664,15 @@ export default function App() {
 
             {/* Financials */}
             <Stack.Screen name="Financials" component={FinancialsScreen} />
+
+            {/* P2P Marketplace */}
+            <Stack.Screen name="P2PDashboard" component={P2PDashboardScreen} />
+            <Stack.Screen name="BrowseVehiclesScreen" component={BrowseVehiclesScreen} />
+            <Stack.Screen name="BrowseBookingsScreen" component={BrowseBookingsScreen} />
+            <Stack.Screen name="PostVehicleScreen" component={PostVehicleScreen} />
+            <Stack.Screen name="PostBookingScreen" component={PostBookingScreen} />
+            <Stack.Screen name="MyPostingsScreen" component={MyPostingsScreen} />
+            <Stack.Screen name="P2PActivityScreen" component={P2PActivityScreen} />
 
             {/* Service-Specific Quote Screens */}
             {/* Bike */}

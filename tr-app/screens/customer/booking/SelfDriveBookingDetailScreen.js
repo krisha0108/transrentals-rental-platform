@@ -560,7 +560,7 @@ const SelfDriveBookingDetailScreen = () => {
 
           <TouchableOpacity
             style={styles.supportBtn}
-            onPress={() => Linking.openURL('tel:+918800302030')}
+            onPress={() => Linking.openURL('tel:+919737965551')}
           >
             <Ionicons name="headset-outline" size={20} color={GREEN} />
             <Text style={styles.supportBtnText}>Contact Support</Text>

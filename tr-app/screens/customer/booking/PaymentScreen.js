@@ -22,7 +22,7 @@ import paymentService from '../../services/paymentService';
 
 const GREEN = '#09B368';
 const BG = '#F5F5F7';
-const SUPPORT_PHONE = '+91 88003 02030';
+const SUPPORT_PHONE = '+91 97379 65551';
 
 export default function PaymentScreen() {
   const route = useRoute();
