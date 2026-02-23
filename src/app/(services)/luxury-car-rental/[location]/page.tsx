@@ -1,11 +1,11 @@
 import { Metadata } from 'next';
-import { notFound } from 'next/navigation';
+import { permanentRedirect } from 'next/navigation';
 import Link from 'next/link';
-import { ALL_CITIES, STATIC_CITIES, getCityBySlug } from '@/data/indian-cities';
+import { ALL_CITIES, getCityBySlug } from '@/data/indian-cities';
 import { Crown, Star, Shield, Clock, Phone } from 'lucide-react';
 import { LuxuryBookingHero } from '@/components/luxury';
-import { ServiceComingSoon } from '@/components/location/ServiceComingSoon';
-import { isServiceAvailableInLocation, getNearbyAvailableLocations } from '@/lib/services/service-availability';
+import { resolveServicePage } from '@/lib/services/service-availability';
+import { StateServicePage } from '@/components/location/StateServicePage';
 import { prisma } from '@/lib/db/prisma';
 
 interface PageProps {
@@ -96,30 +96,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 
 export default async function LuxuryCarRentalLocationPage({ params }: PageProps) {
-  const city = getCityBySlug(params.location);
-
-  if (!city) {
-    notFound();
-  }
-
+  const pageContext = await resolveServicePage('luxury-car-rental', params.location);
+  if (pageContext.type === 'redirect') permanentRedirect(pageContext.to);
+  if (pageContext.type === 'state') return <StateServicePage state={pageContext.state} activeCities={pageContext.activeCities} serviceSlug="luxury-car-rental" serviceName="Luxury Car Rental" />;
+  const city = pageContext.city;
   const locationName = city.name;
-
-  // Check if luxury-car-rental service is available in this location
-  const isAvailable = await isServiceAvailableInLocation('luxury-car-rental', params.location);
-
-  // If service not available, show coming soon page
-  if (!isAvailable) {
-    const nearbyLocations = await getNearbyAvailableLocations('luxury-car-rental', params.location, 6);
-    return (
-      <ServiceComingSoon
-        serviceName="Luxury Car Rental"
-        serviceSlug="luxury-car-rental"
-        locationName={locationName}
-        locationSlug={params.location}
-        nearbyLocations={nearbyLocations}
-      />
-    );
-  }
 
   // Get nearby cities for internal linking
   const nearbyCities = ALL_CITIES

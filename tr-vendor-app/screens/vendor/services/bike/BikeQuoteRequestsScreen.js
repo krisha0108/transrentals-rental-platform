@@ -127,7 +127,13 @@ export default function BikeQuoteRequestsScreen({ navigation }) {
     const dropLocation = item.dropLocation || item.drop_location || item.dropCity;
     const pickupDate = item.pickupDate || item.pickup_date || item.startDate;
     const returnDate = item.returnDate || item.return_date || item.endDate;
-    const bikeType = item.bikeType || item.bike_type || item.vehicleType;
+
+    // Extract vehicle information
+    const vehicleModelName = item.vehicleModelName || item.vehicle_model_name;
+    const vehicleBrand = item.vehicleBrand || item.vehicle_brand;
+    const vehicleCategoryName = item.vehicleCategoryName || item.vehicle_category_name ||
+                                item.vehicleCategory || item.chauffeur_vehicle_categories?.name ||
+                                item.chauffeur_vehicle_categories;
 
     return (
       <TouchableOpacity
@@ -194,11 +200,36 @@ export default function BikeQuoteRequestsScreen({ navigation }) {
           </Text>
         </View>
 
-        {/* Bike Type */}
-        {bikeType && (
-          <View style={styles.infoRow}>
-            <MaterialCommunityIcons name="motorbike" size={16} color="#64748B" />
-            <Text style={styles.infoText}>{bikeType}</Text>
+        {/* Vehicle Information - Enhanced Display */}
+        {(vehicleModelName || vehicleBrand || vehicleCategoryName) && (
+          <View style={styles.vehicleSection}>
+            <View style={styles.vehicleIconWrapper}>
+              <MaterialCommunityIcons name="motorbike" size={24} color="#22C55E" />
+            </View>
+            <View style={styles.vehicleDetails}>
+              {/* Model Name - Primary */}
+              {vehicleModelName ? (
+                <Text style={styles.vehicleModel} numberOfLines={1}>
+                  {vehicleModelName}
+                </Text>
+              ) : vehicleBrand ? (
+                <Text style={styles.vehicleModel} numberOfLines={1}>
+                  {vehicleBrand}
+                </Text>
+              ) : null}
+
+              {/* Brand & Category - Secondary */}
+              <View style={styles.vehicleMeta}>
+                {vehicleBrand && vehicleModelName && (
+                  <Text style={styles.vehicleBrand}>{vehicleBrand}</Text>
+                )}
+                {vehicleCategoryName && (
+                  <View style={styles.categoryBadge}>
+                    <Text style={styles.categoryBadgeText}>{vehicleCategoryName}</Text>
+                  </View>
+                )}
+              </View>
+            </View>
           </View>
         )}
 
@@ -304,9 +335,20 @@ export default function BikeQuoteRequestsScreen({ navigation }) {
 
       {/* Content */}
       {loading && allRequests.length === 0 ? (
-        <View style={styles.loaderWrap}>
-          <ActivityIndicator size="large" color={GREEN} />
-        </View>
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.skeletonContainer} showsVerticalScrollIndicator={false}>
+          {[1, 2, 3, 4].map(i => (
+            <View key={i} style={styles.skeletonCard}>
+              <View style={styles.skeletonHeaderRow}>
+                <View style={styles.skeletonCircle} />
+                <View style={styles.skeletonBlock} />
+                <View style={[styles.skeletonBlock, { width: 70, flex: 0 }]} />
+              </View>
+              <View style={styles.skeletonLine} />
+              <View style={[styles.skeletonLine, { width: '80%' }]} />
+              <View style={[styles.skeletonLine, { width: '55%' }]} />
+            </View>
+          ))}
+        </ScrollView>
       ) : (
         <FlatList
           data={filteredRequests}
@@ -366,6 +408,12 @@ const styles = StyleSheet.create({
   headerSubtitle: { fontSize: 12, color: '#64748B', marginTop: 2 },
 
   loaderWrap: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: BG },
+  skeletonContainer: { padding: 16, paddingBottom: 100 },
+  skeletonCard: { backgroundColor: '#fff', borderRadius: 16, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: '#E2E8F0' },
+  skeletonHeaderRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: '#F1F5F9' },
+  skeletonCircle: { width: 32, height: 32, borderRadius: 16, backgroundColor: '#E2E8F0' },
+  skeletonBlock: { flex: 1, height: 16, backgroundColor: '#E2E8F0', borderRadius: 8 },
+  skeletonLine: { height: 12, backgroundColor: '#E2E8F0', borderRadius: 6, width: '100%', marginBottom: 8 },
   listContent: { padding: 16, paddingBottom: 100 },
 
   card: {
@@ -424,6 +472,60 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   locationText: { fontSize: 13, color: '#475569', flex: 1 },
+
+  // Vehicle Information Styles
+  vehicleSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F0FDF4',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#BBF7D0',
+  },
+  vehicleIconWrapper: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#fff',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  vehicleDetails: {
+    flex: 1,
+  },
+  vehicleModel: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#0F172A',
+    marginBottom: 4,
+  },
+  vehicleMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flexWrap: 'wrap',
+  },
+  vehicleBrand: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#166534',
+  },
+  categoryBadge: {
+    backgroundColor: '#22C55E',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+  },
+  categoryBadgeText: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: '#fff',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
 
   cardFooter: {
     flexDirection: 'row',

@@ -7,6 +7,7 @@ import { smartRateLimit, detectDuplicate, getClientIdentifier, hashBookingData }
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/auth-options';
 import logger from '@/lib/security/logger';
+import { sendQuoteRequestNotificationToVendors } from '@/lib/utils/vendor-notification-sender';
 export const dynamic = 'force-dynamic';
 
 function generateRequestNumber(): string {
@@ -157,6 +158,17 @@ export async function POST(request: NextRequest) {
         quotesOpenTill,
       },
     });
+
+    // Non-blocking vendor notification
+    sendQuoteRequestNotificationToVendors({
+      requestId: quoteRequest.id,
+      requestNumber: quoteRequest.requestNumber,
+      locationId: location?.id || pickupCity,
+      locationName: location?.name || pickupCity,
+      customerName,
+      serviceType: 'truck',
+      serviceDisplayName: 'Truck Rental',
+    }).catch((err: any) => console.error('[Notification] Failed:', err));
 
     return NextResponse.json({
       success: true,

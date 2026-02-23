@@ -5,12 +5,14 @@ import { WhyRentHere } from '@/components/location/WhyRentHere';
 import { PopularRoutes } from '@/components/location/PopularRoutes';
 import { FAQSection } from '@/components/services/FAQSection';
 import { NearbyLocations } from '@/components/location/NearbyLocations';
-import { ServiceComingSoon } from '@/components/location/ServiceComingSoon';
+import { permanentRedirect } from 'next/navigation';
 import { capitalize } from '@/lib/utils';
 import { getCityBySlug } from '@/data/indian-cities';
 import { getServiceLocations } from '@/lib/services/service-locations';;
 import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
-import { isServiceAvailableInLocation, getNearbyAvailableLocations } from '@/lib/services/service-availability';
+import { resolveServicePage } from '@/lib/services/service-availability';
+import { StateServicePage } from '@/components/location/StateServicePage';
+import { prisma } from '@/lib/db/prisma';
 
 interface PageProps {
   params: {
@@ -26,6 +28,9 @@ export async function generateStaticParams() {
 
 // Enable ISR - Revalidate every hour
 export const revalidate = 3600;
+
+// Always fetch fresh data (reflect admin category changes)
+export const dynamic = 'force-dynamic';
 
 // Allow dynamic params for new cities without rebuild
 export const dynamicParams = true;
@@ -52,27 +57,110 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 }
 
 export default async function PackersMoversLocationPage({ params }: PageProps) {
+  const pageContext = await resolveServicePage('packers-and-movers', params.location);
+  if (pageContext.type === 'redirect') permanentRedirect(pageContext.to);
+  if (pageContext.type === 'state') return <StateServicePage state={pageContext.state} activeCities={pageContext.activeCities} serviceSlug="packers-and-movers" serviceName="Packers and Movers" />;
+  const city = pageContext.city;
+
   const locationName = capitalize(params.location.replace(/-/g, ' '));
   const cityData = getCityBySlug(params.location);
 
-  // Check if packers-and-movers service is available in this location
-  const isAvailable = await isServiceAvailableInLocation('packers-and-movers', params.location);
+  // Fetch admin vehicle models for this location
+  const service = await prisma.services.findUnique({
+    where: { slug: 'packers-and-movers' },
+    select: { id: true },
+  });
 
-  // If service not available, show coming soon page
-  if (!isAvailable) {
-    const nearbyLocations = await getNearbyAvailableLocations('packers-and-movers', params.location, 6);
-    return (
-      <ServiceComingSoon
-        serviceName="Packers and Movers"
-        serviceSlug="packers-and-movers"
-        locationName={locationName}
-        locationSlug={params.location}
-        nearbyLocations={nearbyLocations}
-      />
-    );
+  const location = await prisma.locations.findFirst({
+    where: {
+      OR: [
+        { slug: params.location },
+        { name: locationName },
+      ],
+      isActive: true,
+    },
+  });
+
+  let vehicles: Array<{
+    id: string;
+    name: string;
+    slug: string;
+    brand?: string;
+    image: string;
+    price: number;
+    rating: number;
+    specs?: Record<string, string>;
+  }> = [];
+
+  if (service && location) {
+    const vehicleModels = await prisma.vehicle_models.findMany({
+      where: {
+        serviceId: service.id,
+        isActive: true,
+        AND: [
+          {
+            OR: [
+              { brandId: null },
+              { brands: { isActive: true } },
+            ],
+          },
+          {
+            OR: [
+              { vehicleCategoryId: null },
+              { chauffeur_vehicle_categories: { isActive: true } },
+            ],
+          },
+          {
+            OR: [
+              { subServiceId: null },
+              { services_vehicle_models_subServiceIdToservices: { isActive: true } },
+            ],
+          },
+        ],
+        vehicle_model_locations: {
+          some: {
+            locationId: location.id,
+            isActive: true,
+          },
+        },
+      },
+      include: {
+        brands: {
+          select: { name: true },
+        },
+        vehicle_model_locations: {
+          where: {
+            locationId: location.id,
+            isActive: true,
+          },
+          select: { basePricePerDay: true },
+        },
+      },
+      orderBy: [{ displayOrder: 'asc' }, { name: 'asc' }],
+      take: 12,
+    });
+
+    vehicles = vehicleModels.map((model) => {
+      const locationPricing = model.vehicle_model_locations?.[0]?.basePricePerDay;
+      const price = locationPricing || model.basePricePerDay || 14999;
+
+      return {
+        id: model.id,
+        name: model.name,
+        slug: model.slug,
+        brand: model.brands?.name || undefined,
+        image: model.sideImage || '/images/packers/default.jpg',
+        price: price,
+        rating: model.rating || 4.7,
+        specs: {
+          ...(model.loadCapacity ? { capacity: `${model.loadCapacity} Tons` } : {}),
+          ...(model.bodyType ? { body: model.bodyType } : {}),
+          ...(model.wheels ? { wheels: model.wheels } : {}),
+        },
+      };
+    });
   }
 
-  // Mock data for now - in production, fetch from API
   const pageData = {
     location: {
       name: locationName,
@@ -88,29 +176,7 @@ export default async function PackersMoversLocationPage({ params }: PageProps) {
       subtitle: `Professional and reliable packing and moving services for stress-free relocation in ${locationName}`,
       image: '/images/locations/default.jpg',
     },
-    vehicles: [
-      {
-        id: 1,
-        name: 'Local Shifting Package',
-        image: '/images/packers/local.jpg',
-        price: 4999,
-        rating: 4.8,
-      },
-      {
-        id: 2,
-        name: 'Domestic Moving Package',
-        image: '/images/packers/domestic.jpg',
-        price: 9999,
-        rating: 4.9,
-      },
-      {
-        id: 3,
-        name: 'Office Shifting Package',
-        image: '/images/packers/office.jpg',
-        price: 14999,
-        rating: 4.7,
-      },
-    ],
+    vehicles,
     nearbyLocations: [
       { name: 'Nearby City 1', slug: 'nearby-city-1' },
       { name: 'Nearby City 2', slug: 'nearby-city-2' },

@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { email, password } = body;
+    const { email, password, fcmToken } = body;
 
     if (!email || !password) {
       return NextResponse.json(
@@ -103,11 +103,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Update last login
+    // Update last login + FCM token if provided
     await prisma.vendors.update({
       where: { id: vendor.id },
       data: {
         lastLoginAt: new Date(),
+        ...(fcmToken ? { fcmToken } : {}),
       },
     });
 

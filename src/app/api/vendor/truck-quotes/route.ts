@@ -8,6 +8,7 @@ import { sendNotificationToCustomer } from '@/lib/services/push-notification-ser
 import crypto from 'crypto';
 
 import logger from '@/lib/security/logger';
+import { checkFleetAvailability } from '@/lib/utils/fleet-availability';
 export const dynamic = 'force-dynamic';
 
 // Helper to generate a unique ID
@@ -186,6 +187,18 @@ export async function POST(request: NextRequest) {
     }
     if (quoteRequest.status !== 'PENDING' && quoteRequest.status !== 'QUOTES_RECEIVED') {
       return NextResponse.json({ error: 'This request is no longer accepting quotes' }, { status: 400 });
+    }
+
+    // Check fleet vehicle availability for requested dates
+    if (vendorFleetId && quoteRequest.pickupDate) {
+      const truckDate = new Date(quoteRequest.pickupDate);
+      const availability = await checkFleetAvailability(vendorFleetId, truckDate, truckDate);
+      if (!availability.available) {
+        return NextResponse.json(
+          { error: 'This vehicle is already booked for the requested date. Please select a different vehicle.' },
+          { status: 409 }
+        );
+      }
     }
 
     const existingQuote = await prisma.truck_quotes.findFirst({ where: { requestId, vendorId: vendorId } });

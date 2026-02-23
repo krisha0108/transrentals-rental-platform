@@ -191,7 +191,7 @@ const isBusService = (slug: string) => ['bus-rental', 'bus-on-rent'].includes(sl
 
 export default function ServiceVehiclesPage() {
   const params = useParams();
-  const serviceSlug = params.slug as string;
+  const serviceSlug = (params?.slug as string) || '';
   const serviceName = serviceNames[serviceSlug] || serviceSlug;
 
   const [categories, setCategories] = useState<VehicleCategory[]>([]);
@@ -271,7 +271,10 @@ export default function ServiceVehiclesPage() {
 
   const handleCreate = () => {
     setEditingId(null);
-    setFormData(initialFormData);
+    setFormData({
+      ...initialFormData,
+      displayOrder: categories.length, // Auto-increment based on existing categories
+    });
     setShowForm(true);
   };
 

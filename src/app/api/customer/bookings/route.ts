@@ -396,7 +396,6 @@ export async function GET(request: NextRequest) {
           },
           include: {
             vendors: { select: { businessName: true, phone: true } },
-            locations: { select: { name: true } },
           },
           orderBy: { createdAt: 'desc' },
           take: 50,
@@ -708,7 +707,7 @@ export async function GET(request: NextRequest) {
         booking_number: b.bookingNumber,
         service_name: 'Equipment Rental',
         service_type: 'equipment',
-        location_name: b.locations?.name || b.deliveryCity || '',
+        location_name: b.deliveryCity || '',
         destination: b.deliveryAddress || null,
         journey_datetime: b.startDate.toISOString(),
         return_datetime: b.endDate?.toISOString() || null,

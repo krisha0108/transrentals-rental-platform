@@ -1,8 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
-import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import {
   ArrowLeft,
   Store,
@@ -16,16 +15,23 @@ import {
   XCircle,
   Clock,
   AlertTriangle,
+  Ban,
   Eye,
   Download,
   Car,
   Calendar,
   User,
   Loader2,
+  Shield,
   ThumbsUp,
   ThumbsDown,
   X,
   ExternalLink,
+  CheckSquare,
+  XSquare,
+  ChevronRight,
+  ChevronDown,
+  FolderTree,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -99,8 +105,6 @@ interface Vendor {
   locationRequests: LocationRequest[];
   approvedServices: ApprovedService[];
   approvedLocations: ApprovedLocation[];
-  allApprovedLocations: ApprovedLocation[];
-  allApprovedServices: ApprovedService[];
   _count: { fleets: number };
 }
 
@@ -130,34 +134,52 @@ const documentTypeLabels: Record<string, string> = {
   OTHER: 'Other Document',
 };
 
-export default function ManagerVendorDetailPage() {
-  const params = useParams();
+export default function VendorDetailPage({ params }: { params: { id: string } }) {
+  const { id } = params;
   const router = useRouter();
-  const vendorId = params.id as string;
-
   const [vendor, setVendor] = useState<Vendor | null>(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'overview' | 'documents' | 'services' | 'locations'>('overview');
-  const [selectedDocument, setSelectedDocument] = useState<VendorDocument | null>(null);
-  const [showRejectModal, setShowRejectModal] = useState(false);
-  const [rejectTarget, setRejectTarget] = useState<{ type: string; id: string } | null>(null);
   const [rejectionReason, setRejectionReason] = useState('');
-  const [error, setError] = useState<string | null>(null);
+  const [showRejectModal, setShowRejectModal] = useState(false);
+  const [rejectTarget, setRejectTarget] = useState<{ type: string; id?: string } | null>(null);
+  const [selectedDocument, setSelectedDocument] = useState<VendorDocument | null>(null);
+  const [documentPreviewError, setDocumentPreviewError] = useState(false);
+  const [documentLoading, setDocumentLoading] = useState(true);
+
+  // Check if document URL is accessible
+  useEffect(() => {
+    if (selectedDocument) {
+      setDocumentLoading(true);
+      setDocumentPreviewError(false);
+
+      // Check if URL exists by making a HEAD request
+      fetch(selectedDocument.documentUrl, { method: 'HEAD' })
+        .then((res) => {
+          if (!res.ok) {
+            setDocumentPreviewError(true);
+          }
+          setDocumentLoading(false);
+        })
+        .catch(() => {
+          setDocumentPreviewError(true);
+          setDocumentLoading(false);
+        });
+    }
+  }, [selectedDocument]);
 
   const fetchVendor = async () => {
     try {
-      setError(null);
-      const res = await fetch(`/api/manager/vendors/${vendorId}`);
-      const data = await res.json();
-
-      if (data.success) {
-        setVendor(data.vendor);
+      const res = await fetch(`/api/admin/vendors/${id}`);
+      if (res.ok) {
+        const data = await res.json();
+        setVendor(data);
       } else {
-        setError(data.error || 'Failed to fetch vendor');
+        router.push('/manager/vendors');
       }
-    } catch (err: any) {
-      setError(err.message || 'Failed to fetch vendor');
+    } catch (error) {
+      console.error('Failed to fetch vendor:', error);
     } finally {
       setLoading(false);
     }
@@ -165,41 +187,251 @@ export default function ManagerVendorDetailPage() {
 
   useEffect(() => {
     fetchVendor();
-  }, [vendorId]);
+  }, [id]);
 
-  const handleRequestAction = async (requestId: string, type: 'location' | 'service', action: 'approve' | 'reject', reason?: string) => {
-    setActionLoading(`${type}-${requestId}`);
+  const handleVendorAction = async (action: string, reason?: string) => {
+    setActionLoading(action);
     try {
-      const res = await fetch(`/api/manager/vendor-requests/${requestId}`, {
+      const res = await fetch(`/api/admin/vendors/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type, action, reason }),
+        body: JSON.stringify({ action, rejectionReason: reason }),
       });
 
-      const data = await res.json();
-
-      if (data.success) {
-        fetchVendor();
+      if (res.ok) {
+        await fetchVendor();
         setShowRejectModal(false);
         setRejectionReason('');
       } else {
-        setError(data.error || 'Action failed');
+        const error = await res.json();
+        alert(error.error || 'Action failed');
       }
-    } catch (err: any) {
-      setError(err.message || 'Action failed');
+    } catch (error) {
+      console.error('Action failed:', error);
     } finally {
       setActionLoading(null);
     }
   };
 
-  const openRejectModal = (type: string, id: string) => {
+  const handleServiceAction = async (requestId: string, action: string, reason?: string) => {
+    setActionLoading(`service-${requestId}`);
+    try {
+      const res = await fetch(`/api/admin/vendors/${id}/services`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ requestId, action, rejectionReason: reason }),
+      });
+
+      if (res.ok) {
+        await fetchVendor();
+        setShowRejectModal(false);
+        setRejectionReason('');
+      } else {
+        const error = await res.json();
+        alert(error.error || 'Action failed');
+      }
+    } catch (error) {
+      console.error('Action failed:', error);
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleLocationAction = async (requestId: string, action: string, reason?: string) => {
+    setActionLoading(`location-${requestId}`);
+    try {
+      const res = await fetch(`/api/admin/vendors/${id}/locations`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ requestId, action, rejectionReason: reason }),
+      });
+
+      if (res.ok) {
+        await fetchVendor();
+        setShowRejectModal(false);
+        setRejectionReason('');
+      } else {
+        const error = await res.json();
+        alert(error.error || 'Action failed');
+      }
+    } catch (error) {
+      console.error('Action failed:', error);
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleDocumentAction = async (documentId: string, action: string, reason?: string) => {
+    setActionLoading(`document-${documentId}`);
+    try {
+      const res = await fetch(`/api/admin/vendors/${id}/documents`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ documentId, action, rejectionReason: reason }),
+      });
+
+      if (res.ok) {
+        await fetchVendor();
+        setShowRejectModal(false);
+        setRejectionReason('');
+      } else {
+        const error = await res.json();
+        alert(error.error || 'Action failed');
+      }
+    } catch (error) {
+      console.error('Action failed:', error);
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  // Bulk action handlers
+  const handleBulkDocumentAction = async (action: string, reason?: string) => {
+    const pendingDocs = vendor?.documents.filter((d) => d.status === 'PENDING') || [];
+    if (pendingDocs.length === 0) return;
+
+    setActionLoading('bulk-document');
+    try {
+      const res = await fetch(`/api/admin/vendors/${id}/documents`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          bulk: true,
+          documentIds: pendingDocs.map((d) => d.id),
+          action,
+          rejectionReason: reason,
+        }),
+      });
+
+      if (res.ok) {
+        await fetchVendor();
+        setShowRejectModal(false);
+        setRejectionReason('');
+      } else {
+        const error = await res.json();
+        alert(error.error || 'Action failed');
+      }
+    } catch (error) {
+      console.error('Bulk action failed:', error);
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleBulkServiceAction = async (action: string, reason?: string) => {
+    const pendingServices = vendor?.serviceRequests.filter((s) => s.status === 'PENDING') || [];
+    if (pendingServices.length === 0) return;
+
+    setActionLoading('bulk-service');
+    try {
+      const res = await fetch(`/api/admin/vendors/${id}/services`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          bulk: true,
+          requestIds: pendingServices.map((s) => s.id),
+          action,
+          rejectionReason: reason,
+        }),
+      });
+
+      if (res.ok) {
+        await fetchVendor();
+        setShowRejectModal(false);
+        setRejectionReason('');
+      } else {
+        const error = await res.json();
+        alert(error.error || 'Action failed');
+      }
+    } catch (error) {
+      console.error('Bulk action failed:', error);
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleBulkLocationAction = async (action: string, reason?: string) => {
+    const pendingLocations = vendor?.locationRequests.filter((l) => l.status === 'PENDING') || [];
+    if (pendingLocations.length === 0) return;
+
+    setActionLoading('bulk-location');
+    try {
+      const res = await fetch(`/api/admin/vendors/${id}/locations`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          bulk: true,
+          requestIds: pendingLocations.map((l) => l.id),
+          action,
+          rejectionReason: reason,
+        }),
+      });
+
+      if (res.ok) {
+        await fetchVendor();
+        setShowRejectModal(false);
+        setRejectionReason('');
+      } else {
+        const error = await res.json();
+        alert(error.error || 'Action failed');
+      }
+    } catch (error) {
+      console.error('Bulk action failed:', error);
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  // Handle cascading location approval/rejection (parent with children)
+  const handleLocationActionWithCascade = async (requestId: string, action: string, reason?: string, cascade: boolean = false) => {
+    setActionLoading(`location-${requestId}`);
+    try {
+      const res = await fetch(`/api/admin/vendors/${id}/locations`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ requestId, action, rejectionReason: reason, cascadeChildren: cascade }),
+      });
+
+      if (res.ok) {
+        await fetchVendor();
+        setShowRejectModal(false);
+        setRejectionReason('');
+      } else {
+        const error = await res.json();
+        alert(error.error || 'Action failed');
+      }
+    } catch (error) {
+      console.error('Action failed:', error);
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const openRejectModal = (type: string, id?: string) => {
     setRejectTarget({ type, id });
     setShowRejectModal(true);
   };
 
   const handleReject = () => {
     if (!rejectTarget || !rejectionReason.trim()) return;
-    handleRequestAction(rejectTarget.id, rejectTarget.type as any, 'reject', rejectionReason);
+
+    if (rejectTarget.type === 'vendor') {
+      handleVendorAction('REJECT', rejectionReason);
+    } else if (rejectTarget.type === 'service' && rejectTarget.id) {
+      handleServiceAction(rejectTarget.id, 'REJECT', rejectionReason);
+    } else if (rejectTarget.type === 'location' && rejectTarget.id) {
+      handleLocationAction(rejectTarget.id, 'REJECT', rejectionReason);
+    } else if (rejectTarget.type === 'document' && rejectTarget.id) {
+      handleDocumentAction(rejectTarget.id, 'REJECT', rejectionReason);
+    } else if (rejectTarget.type === 'bulk-document') {
+      handleBulkDocumentAction('REJECT_ALL', rejectionReason);
+    } else if (rejectTarget.type === 'bulk-service') {
+      handleBulkServiceAction('REJECT_ALL', rejectionReason);
+    } else if (rejectTarget.type === 'bulk-location') {
+      handleBulkLocationAction('REJECT_ALL', rejectionReason);
+    } else if (rejectTarget.type === 'location-cascade' && rejectTarget.id) {
+      handleLocationActionWithCascade(rejectTarget.id, 'REJECT', rejectionReason, true);
+    }
   };
 
   const formatDate = (dateString: string) => {
@@ -207,26 +439,15 @@ export default function ManagerVendorDetailPage() {
       day: '2-digit',
       month: 'short',
       year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
     });
   };
 
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Loader2 className="w-8 h-8 animate-spin text-green-600" />
-      </div>
-    );
-  }
-
-  if (error && !vendor) {
-    return (
-      <div className="text-center py-12">
-        <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-        <p className="text-gray-900 font-medium mb-2">Error</p>
-        <p className="text-gray-600 mb-4">{error}</p>
-        <Link href="/manager/vendors">
-          <Button>Back to Vendors</Button>
-        </Link>
+        <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
       </div>
     );
   }
@@ -234,8 +455,7 @@ export default function ManagerVendorDetailPage() {
   if (!vendor) {
     return (
       <div className="text-center py-12">
-        <Store className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-        <p className="text-gray-600">Vendor not found</p>
+        <p className="text-gray-500">Vendor not found</p>
       </div>
     );
   }
@@ -248,11 +468,9 @@ export default function ManagerVendorDetailPage() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center gap-4">
-        <Link href="/manager/vendors">
-          <Button variant="outline" size="sm">
-            <ArrowLeft className="w-4 h-4" />
-          </Button>
-        </Link>
+        <Button variant="outline" size="sm" onClick={() => router.back()}>
+          <ArrowLeft className="w-4 h-4" />
+        </Button>
         <div className="flex-1">
           <div className="flex items-center gap-3">
             <h1 className="text-2xl font-bold text-gray-900">{vendor.businessName}</h1>
@@ -260,17 +478,56 @@ export default function ManagerVendorDetailPage() {
               {statusInfo.label}
             </span>
           </div>
-          <p className="text-gray-600">{vendor.ownerName}</p>
+          <p className="text-gray-600">Vendor ID: {vendor.id}</p>
+        </div>
+
+        {/* Quick Actions */}
+        <div className="flex items-center gap-2">
+          {vendor.status === 'UNDER_REVIEW' && (
+            <>
+              <Button
+                onClick={() => handleVendorAction('APPROVE')}
+                disabled={!!actionLoading}
+                className="bg-green-600 hover:bg-green-700"
+              >
+                {actionLoading === 'APPROVE' ? (
+                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                ) : (
+                  <CheckCircle className="w-4 h-4 mr-2" />
+                )}
+                Approve Vendor
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={() => openRejectModal('vendor')}
+                disabled={!!actionLoading}
+              >
+                <XCircle className="w-4 h-4 mr-2" />
+                Reject
+              </Button>
+            </>
+          )}
+          {vendor.status === 'APPROVED' && (
+            <Button
+              variant="outline"
+              onClick={() => handleVendorAction('SUSPEND')}
+              disabled={!!actionLoading}
+            >
+              <AlertTriangle className="w-4 h-4 mr-2" />
+              Suspend
+            </Button>
+          )}
+          {vendor.status === 'SUSPENDED' && (
+            <Button
+              onClick={() => handleVendorAction('UNSUSPEND')}
+              disabled={!!actionLoading}
+            >
+              <CheckCircle className="w-4 h-4 mr-2" />
+              Unsuspend
+            </Button>
+          )}
         </div>
       </div>
-
-      {/* Error */}
-      {error && (
-        <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-center gap-3">
-          <AlertTriangle className="w-5 h-5 text-red-500" />
-          <p className="text-red-700">{error}</p>
-        </div>
-      )}
 
       {/* Tabs */}
       <div className="border-b">
@@ -286,7 +543,7 @@ export default function ManagerVendorDetailPage() {
               onClick={() => setActiveTab(tab.id as any)}
               className={`flex items-center gap-2 px-1 py-3 border-b-2 transition-colors ${
                 activeTab === tab.id
-                  ? 'border-green-600 text-green-600'
+                  ? 'border-blue-600 text-blue-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700'
               }`}
             >
@@ -302,11 +559,11 @@ export default function ManagerVendorDetailPage() {
         </nav>
       </div>
 
-      {/* Overview Tab */}
+      {/* Tab Content */}
       {activeTab === 'overview' && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Business Info */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Business Info */}
             <div className="bg-white rounded-xl p-6 shadow-sm border">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Business Information</h3>
               <div className="grid grid-cols-2 gap-4">
@@ -382,6 +639,17 @@ export default function ManagerVendorDetailPage() {
                     </div>
                   </div>
                 )}
+                {vendor.status === 'REJECTED' && vendor.rejectionReason && (
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center">
+                      <XCircle className="w-4 h-4 text-red-600" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-gray-900">Rejected</p>
+                      <p className="text-sm text-gray-500">Reason: {vendor.rejectionReason}</p>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -403,14 +671,14 @@ export default function ManagerVendorDetailPage() {
                     <Layers className="w-4 h-4" />
                     Approved Services
                   </span>
-                  <span className="font-semibold">{vendor.allApprovedServices.length}</span>
+                  <span className="font-semibold">{vendor.approvedServices.length}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-gray-600 flex items-center gap-2">
                     <MapPin className="w-4 h-4" />
                     Approved Locations
                   </span>
-                  <span className="font-semibold">{vendor.allApprovedLocations.length}</span>
+                  <span className="font-semibold">{vendor.approvedLocations.length}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-gray-600 flex items-center gap-2">
@@ -445,9 +713,40 @@ export default function ManagerVendorDetailPage() {
         </div>
       )}
 
-      {/* Documents Tab */}
       {activeTab === 'documents' && (
         <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
+          {/* Bulk Action Buttons */}
+          {vendor.documents.filter((d) => d.status === 'PENDING').length > 0 && (
+            <div className="p-4 bg-gray-50 border-b flex items-center justify-between">
+              <span className="text-sm text-gray-600">
+                {vendor.documents.filter((d) => d.status === 'PENDING').length} pending document(s)
+              </span>
+              <div className="flex items-center gap-2">
+                <Button
+                  size="sm"
+                  onClick={() => handleBulkDocumentAction('APPROVE_ALL')}
+                  disabled={!!actionLoading}
+                  className="bg-green-600 hover:bg-green-700"
+                >
+                  {actionLoading === 'bulk-document' ? (
+                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                  ) : (
+                    <CheckSquare className="w-4 h-4 mr-2" />
+                  )}
+                  Approve All
+                </Button>
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  onClick={() => openRejectModal('bulk-document')}
+                  disabled={!!actionLoading}
+                >
+                  <XSquare className="w-4 h-4 mr-2" />
+                  Reject All
+                </Button>
+              </div>
+            </div>
+          )}
           {vendor.documents.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-48 text-gray-500">
               <FileText className="w-12 h-12 mb-4" />
@@ -469,7 +768,9 @@ export default function ManagerVendorDetailPage() {
                         {doc.documentNumber && (
                           <p className="text-xs text-gray-500">Number: {doc.documentNumber}</p>
                         )}
-                        <p className="text-sm text-gray-500">Uploaded {formatDate(doc.createdAt)}</p>
+                        <p className="text-sm text-gray-500">
+                          Uploaded {formatDate(doc.createdAt)}
+                        </p>
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
@@ -484,15 +785,37 @@ export default function ManagerVendorDetailPage() {
                       >
                         {doc.status}
                       </span>
-                      <a
-                        href={doc.documentUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
+                      <button
+                        onClick={() => setSelectedDocument(doc)}
                         className="p-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg"
                         title="View Document"
                       >
                         <Eye className="w-5 h-5" />
-                      </a>
+                      </button>
+                      {doc.status === 'PENDING' && (
+                        <>
+                          <Button
+                            size="sm"
+                            onClick={() => handleDocumentAction(doc.id, 'APPROVE')}
+                            disabled={!!actionLoading}
+                            className="bg-green-600 hover:bg-green-700"
+                          >
+                            {actionLoading === `document-${doc.id}` ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <ThumbsUp className="w-4 h-4" />
+                            )}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => openRejectModal('document', doc.id)}
+                            disabled={!!actionLoading}
+                          >
+                            <ThumbsDown className="w-4 h-4" />
+                          </Button>
+                        </>
+                      )}
                     </div>
                   </div>
                   {doc.status === 'REJECTED' && doc.rejectionReason && (
@@ -502,6 +825,11 @@ export default function ManagerVendorDetailPage() {
                       </p>
                     </div>
                   )}
+                  {doc.status === 'APPROVED' && doc.verifiedBy && doc.verifiedAt && (
+                    <div className="mt-2 ml-16 text-xs text-gray-500">
+                      Verified by {doc.verifiedBy.name} on {formatDate(doc.verifiedAt)}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -509,17 +837,40 @@ export default function ManagerVendorDetailPage() {
         </div>
       )}
 
-      {/* Services Tab */}
       {activeTab === 'services' && (
         <div className="space-y-6">
-          {/* Pending Requests */}
+          {/* Pending Service Requests */}
           {pendingServiceRequests.length > 0 && (
             <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
-              <div className="p-4 bg-yellow-50 border-b">
+              <div className="p-4 bg-yellow-50 border-b flex items-center justify-between">
                 <h3 className="font-semibold text-yellow-800 flex items-center gap-2">
                   <Clock className="w-5 h-5" />
                   Pending Service Requests ({pendingServiceRequests.length})
                 </h3>
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    onClick={() => handleBulkServiceAction('APPROVE_ALL')}
+                    disabled={!!actionLoading}
+                    className="bg-green-600 hover:bg-green-700"
+                  >
+                    {actionLoading === 'bulk-service' ? (
+                      <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                    ) : (
+                      <CheckSquare className="w-4 h-4 mr-2" />
+                    )}
+                    Approve All
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    onClick={() => openRejectModal('bulk-service')}
+                    disabled={!!actionLoading}
+                  >
+                    <XSquare className="w-4 h-4 mr-2" />
+                    Reject All
+                  </Button>
+                </div>
               </div>
               <div className="divide-y">
                 {pendingServiceRequests.map((request) => (
@@ -544,7 +895,7 @@ export default function ManagerVendorDetailPage() {
                       <div className="flex items-center gap-2">
                         <Button
                           size="sm"
-                          onClick={() => handleRequestAction(request.id, 'service', 'approve')}
+                          onClick={() => handleServiceAction(request.id, 'APPROVE')}
                           disabled={!!actionLoading}
                           className="bg-green-600 hover:bg-green-700"
                         >
@@ -570,102 +921,293 @@ export default function ManagerVendorDetailPage() {
             </div>
           )}
 
-          {/* All Approved Services */}
+          {/* Approved Services */}
           <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
             <div className="p-4 bg-green-50 border-b">
               <h3 className="font-semibold text-green-800 flex items-center gap-2">
                 <CheckCircle className="w-5 h-5" />
-                All Approved Services ({vendor.allApprovedServices.length})
+                Approved Services ({vendor.approvedServices.length})
               </h3>
             </div>
-            {vendor.allApprovedServices.length === 0 ? (
-              <div className="p-8 text-center text-gray-500">No approved services yet</div>
+            {vendor.approvedServices.length === 0 ? (
+              <div className="p-8 text-center text-gray-500">
+                No approved services yet
+              </div>
             ) : (
               <div className="p-4 flex flex-wrap gap-2">
-                {vendor.allApprovedServices.map((item) => (
-                  <span key={item.id} className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm">
+                {vendor.approvedServices.map((item) => (
+                  <span
+                    key={item.id}
+                    className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm"
+                  >
                     {item.service.name}
                   </span>
                 ))}
               </div>
             )}
           </div>
+
+          {/* All Service Requests History */}
+          <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
+            <div className="p-4 border-b">
+              <h3 className="font-semibold text-gray-900">Request History</h3>
+            </div>
+            <div className="divide-y">
+              {vendor.serviceRequests
+                .filter((r) => r.status !== 'PENDING')
+                .map((request) => (
+                  <div key={request.id} className="p-4 flex items-center justify-between">
+                    <div>
+                      <p className="font-medium text-gray-900">{request.service.name}</p>
+                      {request.rejectionReason && (
+                        <p className="text-sm text-red-600 mt-1">
+                          Reason: {request.rejectionReason}
+                        </p>
+                      )}
+                      {request.reviewedBy && request.reviewedAt && (
+                        <p className="text-xs text-gray-400 mt-1">
+                          Reviewed by {request.reviewedBy.name} on {formatDate(request.reviewedAt)}
+                        </p>
+                      )}
+                    </div>
+                    <span
+                      className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        request.status === 'APPROVED'
+                          ? 'bg-green-100 text-green-800'
+                          : 'bg-red-100 text-red-800'
+                      }`}
+                    >
+                      {request.status}
+                    </span>
+                  </div>
+                ))}
+            </div>
+          </div>
         </div>
       )}
 
-      {/* Locations Tab */}
       {activeTab === 'locations' && (
         <div className="space-y-6">
-          {/* Pending Requests */}
+          {/* Pending Location Requests - Hierarchical View */}
           {pendingLocationRequests.length > 0 && (
             <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
-              <div className="p-4 bg-yellow-50 border-b">
+              <div className="p-4 bg-yellow-50 border-b flex items-center justify-between">
                 <h3 className="font-semibold text-yellow-800 flex items-center gap-2">
                   <Clock className="w-5 h-5" />
                   Pending Location Requests ({pendingLocationRequests.length})
                 </h3>
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    onClick={() => handleBulkLocationAction('APPROVE_ALL')}
+                    disabled={!!actionLoading}
+                    className="bg-green-600 hover:bg-green-700"
+                  >
+                    {actionLoading === 'bulk-location' ? (
+                      <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                    ) : (
+                      <CheckSquare className="w-4 h-4 mr-2" />
+                    )}
+                    Approve All
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    onClick={() => openRejectModal('bulk-location')}
+                    disabled={!!actionLoading}
+                  >
+                    <XSquare className="w-4 h-4 mr-2" />
+                    Reject All
+                  </Button>
+                </div>
               </div>
               <div className="divide-y">
-                {pendingLocationRequests.map((request) => (
-                  <div key={request.id} className="p-4">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <p className="font-medium text-gray-900">
-                          {request.location.name}
-                          {request.location.parent && (
-                            <span className="text-gray-500 ml-1">({request.location.parent.name})</span>
-                          )}
-                        </p>
-                        {request.message && (
-                          <p className="text-sm text-gray-600 mt-1">{request.message}</p>
-                        )}
-                        <p className="text-xs text-gray-400 mt-2">
-                          Requested {formatDate(request.createdAt)}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Button
-                          size="sm"
-                          onClick={() => handleRequestAction(request.id, 'location', 'approve')}
-                          disabled={!!actionLoading}
-                          className="bg-green-600 hover:bg-green-700"
-                        >
-                          {actionLoading === `location-${request.id}` ? (
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                          ) : (
-                            <ThumbsUp className="w-4 h-4" />
-                          )}
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="destructive"
-                          onClick={() => openRejectModal('location', request.id)}
-                          disabled={!!actionLoading}
-                        >
-                          <ThumbsDown className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
+                {/* Group locations by parent for hierarchical display */}
+                {(() => {
+                  // Separate parent (no parentId) and child locations
+                  const parentLocations = pendingLocationRequests.filter((r) => !r.location.parentId);
+                  const childLocations = pendingLocationRequests.filter((r) => r.location.parentId);
+
+                  // Group children by parent name for display
+                  const childrenByParent: Record<string, typeof pendingLocationRequests> = {};
+                  childLocations.forEach((child) => {
+                    const parentName = child.location.parent?.name || 'Other';
+                    if (!childrenByParent[parentName]) {
+                      childrenByParent[parentName] = [];
+                    }
+                    childrenByParent[parentName].push(child);
+                  });
+
+                  // Check if a parent location has pending children
+                  const getChildCount = (parentName: string) => {
+                    return childrenByParent[parentName]?.length || 0;
+                  };
+
+                  return (
+                    <>
+                      {/* Parent locations (states/regions) */}
+                      {parentLocations.map((request) => {
+                        const childCount = getChildCount(request.location.name);
+                        return (
+                          <div key={request.id} className="p-4 bg-blue-50/50">
+                            <div className="flex items-start justify-between">
+                              <div className="flex items-start gap-3">
+                                <FolderTree className="w-5 h-5 text-blue-600 mt-0.5" />
+                                <div>
+                                  <p className="font-semibold text-gray-900 flex items-center gap-2">
+                                    {request.location.name}
+                                    <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded">
+                                      Parent Location
+                                    </span>
+                                  </p>
+                                  {request.message && (
+                                    <p className="text-sm text-gray-600 mt-1">{request.message}</p>
+                                  )}
+                                  <p className="text-xs text-gray-400 mt-2">
+                                    Requested {formatDate(request.createdAt)}
+                                  </p>
+                                  {childCount > 0 && (
+                                    <p className="text-xs text-blue-600 mt-1">
+                                      + {childCount} child location(s) pending
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                              <div className="flex flex-col gap-2">
+                                <div className="flex items-center gap-2">
+                                  <Button
+                                    size="sm"
+                                    onClick={() => handleLocationAction(request.id, 'APPROVE')}
+                                    disabled={!!actionLoading}
+                                    className="bg-green-600 hover:bg-green-700"
+                                    title="Approve this location only"
+                                  >
+                                    {actionLoading === `location-${request.id}` ? (
+                                      <Loader2 className="w-4 h-4 animate-spin" />
+                                    ) : (
+                                      <ThumbsUp className="w-4 h-4" />
+                                    )}
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="destructive"
+                                    onClick={() => openRejectModal('location', request.id)}
+                                    disabled={!!actionLoading}
+                                    title="Reject this location only"
+                                  >
+                                    <ThumbsDown className="w-4 h-4" />
+                                  </Button>
+                                </div>
+                                {childCount > 0 && (
+                                  <div className="flex items-center gap-2">
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => handleLocationActionWithCascade(request.id, 'APPROVE', undefined, true)}
+                                      disabled={!!actionLoading}
+                                      className="text-green-600 border-green-600 hover:bg-green-50 text-xs"
+                                      title="Approve this + all children"
+                                    >
+                                      <ChevronDown className="w-3 h-3 mr-1" />
+                                      + Children
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => openRejectModal('location-cascade', request.id)}
+                                      disabled={!!actionLoading}
+                                      className="text-red-600 border-red-600 hover:bg-red-50 text-xs"
+                                      title="Reject this + all children"
+                                    >
+                                      <ChevronDown className="w-3 h-3 mr-1" />
+                                      + Children
+                                    </Button>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+
+                      {/* Child locations grouped by parent */}
+                      {Object.entries(childrenByParent).map(([parentName, children]) => (
+                        <div key={parentName}>
+                          <div className="px-4 py-2 bg-gray-100 border-y text-sm font-medium text-gray-600 flex items-center gap-2">
+                            <ChevronRight className="w-4 h-4" />
+                            {parentName}
+                            <span className="text-xs text-gray-500">({children.length} location(s))</span>
+                          </div>
+                          {children.map((request) => (
+                            <div key={request.id} className="p-4 pl-10">
+                              <div className="flex items-start justify-between">
+                                <div className="flex items-start gap-3">
+                                  <MapPin className="w-4 h-4 text-gray-400 mt-0.5" />
+                                  <div>
+                                    <p className="font-medium text-gray-900">
+                                      {request.location.name}
+                                    </p>
+                                    {request.message && (
+                                      <p className="text-sm text-gray-600 mt-1">{request.message}</p>
+                                    )}
+                                    <p className="text-xs text-gray-400 mt-2">
+                                      Requested {formatDate(request.createdAt)}
+                                    </p>
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <Button
+                                    size="sm"
+                                    onClick={() => handleLocationAction(request.id, 'APPROVE')}
+                                    disabled={!!actionLoading}
+                                    className="bg-green-600 hover:bg-green-700"
+                                  >
+                                    {actionLoading === `location-${request.id}` ? (
+                                      <Loader2 className="w-4 h-4 animate-spin" />
+                                    ) : (
+                                      <ThumbsUp className="w-4 h-4" />
+                                    )}
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="destructive"
+                                    onClick={() => openRejectModal('location', request.id)}
+                                    disabled={!!actionLoading}
+                                  >
+                                    <ThumbsDown className="w-4 h-4" />
+                                  </Button>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ))}
+                    </>
+                  );
+                })()}
               </div>
             </div>
           )}
 
-          {/* All Approved Locations */}
+          {/* Approved Locations */}
           <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
             <div className="p-4 bg-green-50 border-b">
               <h3 className="font-semibold text-green-800 flex items-center gap-2">
                 <CheckCircle className="w-5 h-5" />
-                All Approved Locations ({vendor.allApprovedLocations.length})
+                Approved Locations ({vendor.approvedLocations.length})
               </h3>
             </div>
-            {vendor.allApprovedLocations.length === 0 ? (
-              <div className="p-8 text-center text-gray-500">No approved locations yet</div>
+            {vendor.approvedLocations.length === 0 ? (
+              <div className="p-8 text-center text-gray-500">
+                No approved locations yet
+              </div>
             ) : (
               <div className="p-4 flex flex-wrap gap-2">
-                {vendor.allApprovedLocations.map((item) => (
-                  <span key={item.id} className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm">
+                {vendor.approvedLocations.map((item) => (
+                  <span
+                    key={item.id}
+                    className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm"
+                  >
                     {item.location.name}
                     {item.location.parent && (
                       <span className="text-green-600 ml-1">({item.location.parent.name})</span>
@@ -674,6 +1216,50 @@ export default function ManagerVendorDetailPage() {
                 ))}
               </div>
             )}
+          </div>
+
+          {/* All Location Requests History */}
+          <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
+            <div className="p-4 border-b">
+              <h3 className="font-semibold text-gray-900">Request History</h3>
+            </div>
+            <div className="divide-y">
+              {vendor.locationRequests
+                .filter((r) => r.status !== 'PENDING')
+                .map((request) => (
+                  <div key={request.id} className="p-4 flex items-center justify-between">
+                    <div>
+                      <p className="font-medium text-gray-900">
+                        {request.location.name}
+                        {request.location.parent && (
+                          <span className="text-gray-500 ml-1">
+                            ({request.location.parent.name})
+                          </span>
+                        )}
+                      </p>
+                      {request.rejectionReason && (
+                        <p className="text-sm text-red-600 mt-1">
+                          Reason: {request.rejectionReason}
+                        </p>
+                      )}
+                      {request.reviewedBy && request.reviewedAt && (
+                        <p className="text-xs text-gray-400 mt-1">
+                          Reviewed by {request.reviewedBy.name} on {formatDate(request.reviewedAt)}
+                        </p>
+                      )}
+                    </div>
+                    <span
+                      className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        request.status === 'APPROVED'
+                          ? 'bg-green-100 text-green-800'
+                          : 'bg-red-100 text-red-800'
+                      }`}
+                    >
+                      {request.status}
+                    </span>
+                  </div>
+                ))}
+            </div>
           </div>
         </div>
       )}
@@ -713,6 +1299,131 @@ export default function ManagerVendorDetailPage() {
                 )}
                 Reject
               </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Document Preview Modal */}
+      {selectedDocument && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-4 border-b">
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900">
+                  {documentTypeLabels[selectedDocument.documentType] || selectedDocument.documentType.replace(/_/g, ' ')}
+                </h2>
+                {selectedDocument.documentNumber && (
+                  <p className="text-sm text-gray-500">Document No: {selectedDocument.documentNumber}</p>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                <a
+                  href={selectedDocument.documentUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg"
+                  title="Open in new tab"
+                >
+                  <Download className="w-5 h-5" />
+                </a>
+                <button
+                  onClick={() => setSelectedDocument(null)}
+                  className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Body - Document Viewer */}
+            <div className="flex-1 overflow-auto p-4 bg-gray-100 flex items-center justify-center min-h-[400px]">
+              {documentLoading ? (
+                <div className="text-center">
+                  <Loader2 className="w-12 h-12 text-blue-500 animate-spin mx-auto mb-4" />
+                  <p className="text-gray-600">Loading document...</p>
+                </div>
+              ) : documentPreviewError ? (
+                <div className="text-center">
+                  <AlertTriangle className="w-16 h-16 text-yellow-500 mx-auto mb-4" />
+                  <p className="text-gray-900 font-medium mb-2">Document Not Available</p>
+                  <p className="text-gray-600 mb-4 text-sm">
+                    The document file could not be loaded. It may not have been uploaded to storage yet.
+                  </p>
+                  <div className="flex items-center justify-center gap-3">
+                    <a
+                      href={selectedDocument.documentUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                    >
+                      <ExternalLink className="w-4 h-4" />
+                      Try Opening Directly
+                    </a>
+                  </div>
+                  <p className="text-xs text-gray-400 mt-4">
+                    URL: {selectedDocument.documentUrl}
+                  </p>
+                </div>
+              ) : selectedDocument.documentUrl.toLowerCase().match(/\.(jpg|jpeg|png|gif|webp|bmp)$/i) ? (
+                <img
+                  src={selectedDocument.documentUrl}
+                  alt={selectedDocument.documentName || 'Document'}
+                  className="max-w-full max-h-[70vh] object-contain rounded-lg shadow-lg"
+                  onError={() => setDocumentPreviewError(true)}
+                />
+              ) : selectedDocument.documentUrl.toLowerCase().endsWith('.pdf') ? (
+                <iframe
+                  src={selectedDocument.documentUrl}
+                  className="w-full h-[70vh] rounded-lg bg-white"
+                  title={selectedDocument.documentName || 'Document'}
+                />
+              ) : (
+                <div className="text-center">
+                  <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                  <p className="text-gray-600 mb-4">Preview not available for this file type</p>
+                  <a
+                    href={selectedDocument.documentUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  >
+                    <Download className="w-4 h-4" />
+                    Download Document
+                  </a>
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer - Document Info */}
+            <div className="p-4 border-t bg-gray-50">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4 text-sm text-gray-600">
+                  <span>Uploaded: {formatDate(selectedDocument.createdAt)}</span>
+                  <span
+                    className={`px-2 py-1 rounded-full text-xs font-medium ${
+                      selectedDocument.status === 'APPROVED'
+                        ? 'bg-green-100 text-green-800'
+                        : selectedDocument.status === 'REJECTED'
+                        ? 'bg-red-100 text-red-800'
+                        : 'bg-yellow-100 text-yellow-800'
+                    }`}
+                  >
+                    {selectedDocument.status}
+                  </span>
+                </div>
+                {selectedDocument.verifiedBy && selectedDocument.verifiedAt && (
+                  <span className="text-sm text-gray-500">
+                    Verified by {selectedDocument.verifiedBy.name} on {formatDate(selectedDocument.verifiedAt)}
+                  </span>
+                )}
+              </div>
+              {selectedDocument.rejectionReason && (
+                <p className="mt-2 text-sm text-red-600">
+                  Rejection Reason: {selectedDocument.rejectionReason}
+                </p>
+              )}
             </div>
           </div>
         </div>

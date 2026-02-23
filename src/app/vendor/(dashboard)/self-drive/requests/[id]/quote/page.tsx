@@ -60,14 +60,15 @@ interface FleetVehicle {
   vehicle_models: {
     id: string;
     name: string;
-    brand: { id: string; name: string } | null;
+    brands: { id: string; name: string } | null;
   } | null;
   chauffeur_vehicle_categories: { id: string; name: string; slug: string } | null;
-  brand: { id: string; name: string } | null;
+  brands: { id: string; name: string } | null;
   transmission?: string;
   fuelType?: string;
   seats?: number;
-  service: { id: string; name: string; slug: string } | null;
+  services: { id: string; name: string; slug: string } | null;
+  isAvailableForDates?: boolean;
 }
 
 interface Template {
@@ -160,16 +161,31 @@ export default function SendSelfDriveQuotePage() {
         if (data.request.fuelType) setFuelType(data.request.fuelType);
       }
 
-      // Fetch vendor's fleet for self-drive service
+      // Fetch vendor's fleet for self-drive service (with availability check for booking dates)
       try {
-        const fleetRes = await fetch('/api/vendor/fleet');
+        let fleetUrl = '/api/vendor/fleet';
+        if (data.request?.pickupDate) {
+          const startDate = new Date(data.request.pickupDate).toISOString();
+          const endDate = data.request.dropDate
+            ? new Date(data.request.dropDate).toISOString()
+            : startDate;
+          fleetUrl += `?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`;
+        }
+        const fleetRes = await fetch(fleetUrl);
         const fleetData = await fleetRes.json();
         if (fleetData.success && fleetData.fleet) {
           const selfDriveFleet = fleetData.fleet.filter((v: FleetVehicle) => {
-            const svc = (v as any).services || v.service;
+            if (!v.isActive) return false;
+            const svc = v.services;
             const slug = svc?.slug?.toLowerCase() || '';
             const name = svc?.name?.toLowerCase() || '';
             return slug.includes('self-drive') || name.includes('self');
+          });
+          // Sort: available vehicles first, unavailable at the end
+          selfDriveFleet.sort((a: FleetVehicle, b: FleetVehicle) => {
+            const aUnavail = a.isAvailableForDates === false ? 1 : 0;
+            const bUnavail = b.isAvailableForDates === false ? 1 : 0;
+            return aUnavail - bUnavail;
           });
           setFleetVehicles(selfDriveFleet);
         }
@@ -240,17 +256,17 @@ export default function SendSelfDriveQuotePage() {
       let vBrand = '';
       if (selectedVehicle.vehicle_models) {
         vName = selectedVehicle.vehicle_models.name;
-        vBrand = selectedVehicle.vehicle_models.brand?.name || '';
-      } else if (selectedVehicle.vehicle_category) {
-        vName = selectedVehicle.vehicle_category.name;
+        vBrand = selectedVehicle.vehicle_models.brands?.name || '';
+      } else if (selectedVehicle.chauffeur_vehicle_categories) {
+        vName = selectedVehicle.chauffeur_vehicle_categories.name;
       }
-      if (selectedVehicle.brand) {
-        vBrand = selectedVehicle.brand.name;
+      if (selectedVehicle.brands) {
+        vBrand = selectedVehicle.brands.name;
       }
 
       setVehicleName(vName);
       setVehicleBrand(vBrand);
-      setVehicleCategory(selectedVehicle.vehicle_category?.slug || '');
+      setVehicleCategory(selectedVehicle.chauffeur_vehicle_categories?.slug || '');
       setRegistrationNumber(selectedVehicle.registrationNumber || '');
       if (selectedVehicle.transmission) setTransmission(selectedVehicle.transmission);
       if (selectedVehicle.fuelType) setFuelType(selectedVehicle.fuelType);
@@ -492,17 +508,18 @@ export default function SendSelfDriveQuotePage() {
                 {fleetVehicles.map((vehicle) => {
                   let displayName = '';
                   if (vehicle.vehicle_models) {
-                    displayName = vehicle.vehicle_models.brand?.name
-                      ? `${vehicle.vehicle_models.brand.name} ${vehicle.vehicle_models.name}`
+                    displayName = vehicle.vehicle_models.brands?.name
+                      ? `${vehicle.vehicle_models.brands.name} ${vehicle.vehicle_models.name}`
                       : vehicle.vehicle_models.name;
-                  } else if (vehicle.vehicle_category) {
-                    displayName = vehicle.vehicle_category.name;
+                  } else if (vehicle.chauffeur_vehicle_categories) {
+                    displayName = vehicle.chauffeur_vehicle_categories.name;
                   }
                   const regNum = vehicle.registrationNumber ? ` (${vehicle.registrationNumber})` : '';
+                  const isUnavailable = vehicle.isAvailableForDates === false;
 
                   return (
-                    <option key={vehicle.id} value={vehicle.id}>
-                      {displayName}{regNum}
+                    <option key={vehicle.id} value={vehicle.id} disabled={isUnavailable}>
+                      {displayName}{regNum}{isUnavailable ? ' — Booked for these dates' : ''}
                     </option>
                   );
                 })}

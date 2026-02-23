@@ -4,6 +4,7 @@ import { prisma } from '@/lib/db/prisma';
 import { transformPrismaResponse } from '@/lib/utils/api-transform';
 import { calculateRentalDuration } from '@/lib/utils';
 import logger from '@/lib/security/logger';
+import { sendQuoteRequestNotificationToVendors } from '@/lib/utils/vendor-notification-sender';
 export const dynamic = 'force-dynamic';
 
 // Helper to generate request number
@@ -164,6 +165,17 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    // Non-blocking vendor notification
+    sendQuoteRequestNotificationToVendors({
+      requestId: quoteRequest.id,
+      requestNumber: quoteRequest.requestNumber,
+      locationId: location?.id || locationId,
+      locationName: location?.name || locationName,
+      customerName,
+      serviceType: 'bike',
+      serviceDisplayName: 'Bike Rental',
+    }).catch((err: any) => console.error('[Notification] Failed:', err));
+
     return NextResponse.json({
       success: true,
       message: 'Quote request submitted. Vendors will send quotes within 24-48 hours.',
@@ -171,8 +183,10 @@ export async function POST(request: NextRequest) {
         id: quoteRequest.id,
         requestNumber: quoteRequest.requestNumber,
         status: quoteRequest.status,
-        chauffeur_vehicle_categories: quoteRequest.vehicleCategoryName,
-        vehicleModelName: quoteRequest.vehicle_modelsName,
+        vehicleCategory: quoteRequest.vehicleCategory,
+        vehicleCategoryName: quoteRequest.vehicleCategoryName,
+        vehicleModelName: quoteRequest.vehicleModelName,
+        vehicleBrand: quoteRequest.vehicleBrand,
         locationName: quoteRequest.locationName,
         pickupDate: quoteRequest.pickupDate,
         dropDate: quoteRequest.dropDate,
@@ -230,6 +244,7 @@ export async function GET(request: NextRequest) {
             vendorId: true,
             vehicleName: true,
             dailyRate: true,
+            totalPrice: true,
             grandTotal: true,
             advanceAmount: true,
             advancePercent: true,
@@ -254,9 +269,9 @@ export async function GET(request: NextRequest) {
       requests: requests.map((r) => ({
         id: r.id,
         requestNumber: r.requestNumber,
-        vehicleModelName: r.vehicle_modelsName,
+        vehicleModelName: r.vehicleModelName,
         vehicleBrand: r.vehicleBrand,
-        chauffeur_vehicle_categories: r.vehicle_category,
+        vehicleCategory: r.vehicleCategory,
         vehicleCategoryName: r.vehicleCategoryName,
         locationId: r.locationId,
         locationName: r.locationName,

@@ -3,12 +3,13 @@ import type { Metadata } from 'next';
 import { WeddingBusRentalServiceHero } from '@/components/services/WeddingBusRentalServiceHero';
 import { LocationsGrid } from '@/components/services/LocationsGrid';
 import { FAQSection } from '@/components/services/FAQSection';
-
 import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
+import { formatPriceHighlight } from '@/lib/utils';
+
 export const metadata: Metadata = {
-  title: 'Wedding Bus Rental - Luxury Buses for Marriage Starting @₹3999 | TransRentals',
+  title: formatPriceHighlight('Wedding Bus Rental - Luxury Buses for Marriage Starting @₹3999 | TransRentals'),
   description:
-    'Rent luxury AC buses for weddings. Guest transportation, decorated buses, 20-50 seater options. Make your wedding memorable. Book now!',
+    formatPriceHighlight('Rent luxury AC buses for weddings. Guest transportation, decorated buses, 20-50 seater options. Make your wedding memorable. Book now!'),
   keywords: [
     'wedding bus rental',
     'bus for wedding',
@@ -19,8 +20,8 @@ export const metadata: Metadata = {
     'shaadi bus',
   ],
   openGraph: {
-    title: 'Wedding Bus Rental - Starting @₹3999 | TransRentals',
-    description: 'Luxury AC buses for your wedding guests. All sizes available.',
+    title: formatPriceHighlight('Wedding Bus Rental - Starting @₹3999 | TransRentals'),
+    description: formatPriceHighlight('Luxury AC buses for your wedding guests. All sizes available.'),
   },
 };
 

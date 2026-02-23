@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth/auth-options';
 import { prisma } from '@/lib/db/prisma';
 import { transformPrismaResponse } from '@/lib/utils/api-transform';
 import bcrypt from 'bcryptjs';
+import { randomBytes } from 'crypto';
 
 import logger from '@/lib/security/logger';
 export const dynamic = 'force-dynamic';
@@ -41,19 +42,19 @@ export async function GET(
         isActive: true,
         createdAt: true,
         updatedAt: true,
-        createdBy: {
+        admin_users: {
           select: { id: true, name: true, email: true },
         },
-        managerLocations: {
+        manager_locations: {
           include: {
-            location: {
+            locations: {
               select: { id: true, name: true, type: true, slug: true },
             },
           },
         },
-        managerServices: {
+        manager_services: {
           include: {
-            service: {
+            services: {
               select: { id: true, name: true, slug: true },
             },
           },
@@ -159,7 +160,7 @@ export async function PUT(
       }
 
       // Update user
-      await tx.adminUser.update({
+      await tx.admin_users.update({
         where: { id },
         data: updateData,
       });
@@ -167,14 +168,15 @@ export async function PUT(
       // Update location assignments for MANAGER
       if (existingUser.role === 'MANAGER' && locationIds !== undefined) {
         // Remove existing assignments
-        await tx.managerLocation.deleteMany({
+        await tx.manager_locations.deleteMany({
           where: { managerId: id },
         });
 
         // Add new assignments
         if (locationIds && locationIds.length > 0) {
-          await tx.managerLocation.createMany({
+          await tx.manager_locations.createMany({
             data: locationIds.map((locationId: string) => ({
+              id: `ml-${randomBytes(8).toString('hex')}`,
               managerId: id,
               locationId,
             })),
@@ -185,14 +187,15 @@ export async function PUT(
       // Update service assignments for MANAGER
       if (existingUser.role === 'MANAGER' && serviceIds !== undefined) {
         // Remove existing assignments
-        await tx.managerService.deleteMany({
+        await tx.manager_services.deleteMany({
           where: { managerId: id },
         });
 
         // Add new assignments
         if (serviceIds && serviceIds.length > 0) {
-          await tx.managerService.createMany({
+          await tx.manager_services.createMany({
             data: serviceIds.map((serviceId: string) => ({
+              id: `ms-${randomBytes(8).toString('hex')}`,
               managerId: id,
               serviceId,
             })),
@@ -213,16 +216,16 @@ export async function PUT(
         isActive: true,
         createdAt: true,
         updatedAt: true,
-        managerLocations: {
+        manager_locations: {
           include: {
-            location: {
+            locations: {
               select: { id: true, name: true, type: true },
             },
           },
         },
-        managerServices: {
+        manager_services: {
           include: {
-            service: {
+            services: {
               select: { id: true, name: true },
             },
           },

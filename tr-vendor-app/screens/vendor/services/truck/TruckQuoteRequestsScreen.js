@@ -130,10 +130,13 @@ export default function TruckQuoteRequestsScreen({ navigation }) {
 
     const customerName = item.customerName || item.customer_name || 'Customer';
     const pickupLocation = item.pickupLocation || item.pickup_location || item.pickupCity || 'N/A';
-    const dropLocation = item.dropLocation || item.drop_location || item.dropCity;
-    const pickupDate = item.pickupDate || item.pickup_date || item.startDate;
-    const returnDate = item.returnDate || item.return_date || item.endDate;
+    const destination = item.destination || item.dropLocation || item.drop_location || item.dropCity;
+    const startDate = item.startDate || item.start_date || item.pickupDate || item.pickup_date;
     const truckType = item.truckType || item.truck_type || item.vehicleType;
+    const mode = item.mode;
+    const goodType = item.goodType || item.good_type || item.materialType;
+    const weight = item.weight;
+    const weightUnit = item.weightUnit || item.weight_unit || 'kg';
 
     return (
       <TouchableOpacity
@@ -177,33 +180,62 @@ export default function TruckQuoteRequestsScreen({ navigation }) {
               {pickupLocation}
             </Text>
           </View>
-          {dropLocation && (
+          {destination && (
             <>
               <Icon name="arrow-right" size={14} color="#94A3B8" />
               <View style={styles.locationItem}>
                 <Ionicons name="location" size={16} color="#EF4444" />
                 <Text style={styles.locationText} numberOfLines={1}>
-                  {dropLocation}
+                  {destination}
                 </Text>
               </View>
             </>
           )}
         </View>
 
-        {/* Date Range */}
-        <View style={styles.infoRow}>
-          <Ionicons name="calendar-outline" size={16} color="#64748B" />
-          <Text style={styles.infoText}>
-            {formatDate(pickupDate)}
-            {returnDate && ` - ${formatDate(returnDate)}`}
-          </Text>
-        </View>
-
-        {/* Bike Type */}
-        {truckType && (
+        {/* Date */}
+        {startDate && (
           <View style={styles.infoRow}>
-            <MaterialCommunityIcons name="truck" size={16} color="#64748B" />
-            <Text style={styles.infoText}>{truckType}</Text>
+            <Ionicons name="calendar-outline" size={16} color="#64748B" />
+            <Text style={styles.infoText}>{formatDate(startDate)}</Text>
+          </View>
+        )}
+
+        {/* Truck Information */}
+        {(truckType || mode || goodType || weight) && (
+          <View style={styles.truckSection}>
+            <View style={styles.truckIconWrapper}>
+              <MaterialCommunityIcons name="truck" size={24} color="#22C55E" />
+            </View>
+            <View style={styles.truckDetails}>
+              {/* Truck Type & Mode */}
+              {truckType && (
+                <Text style={styles.truckType} numberOfLines={1}>
+                  {truckType}
+                </Text>
+              )}
+
+              {/* Mode, Good Type & Weight */}
+              <View style={styles.truckMeta}>
+                {mode && (
+                  <View style={styles.modeBadge}>
+                    <Text style={styles.modeBadgeText}>
+                      {mode === 'local' ? 'LOCAL' : mode === 'outstation' ? 'OUTSTATION' : mode.toUpperCase()}
+                    </Text>
+                  </View>
+                )}
+                {goodType && (
+                  <Text style={styles.truckMetaText} numberOfLines={1}>
+                    {goodType}
+                  </Text>
+                )}
+                {weight && (
+                  <Text style={styles.truckMetaText}>
+                    {weight} {weightUnit}
+                  </Text>
+                )}
+              </View>
+            </View>
           </View>
         )}
 
@@ -309,9 +341,20 @@ export default function TruckQuoteRequestsScreen({ navigation }) {
 
       {/* Content */}
       {loading ? (
-        <View style={styles.loaderWrap}>
-          <ActivityIndicator size="large" color={GREEN} />
-        </View>
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.skeletonContainer} showsVerticalScrollIndicator={false}>
+          {[1, 2, 3, 4].map(i => (
+            <View key={i} style={styles.skeletonCard}>
+              <View style={styles.skeletonHeaderRow}>
+                <View style={styles.skeletonCircle} />
+                <View style={styles.skeletonBlock} />
+                <View style={[styles.skeletonBlock, { width: 70, flex: 0 }]} />
+              </View>
+              <View style={styles.skeletonLine} />
+              <View style={[styles.skeletonLine, { width: '80%' }]} />
+              <View style={[styles.skeletonLine, { width: '55%' }]} />
+            </View>
+          ))}
+        </ScrollView>
       ) : (
         <FlatList
           data={filteredRequests}
@@ -376,6 +419,12 @@ const styles = StyleSheet.create({
   headerSubtitle: { fontSize: 12, color: '#64748B', marginTop: 2 },
 
   loaderWrap: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: BG },
+  skeletonContainer: { padding: 16, paddingBottom: 100 },
+  skeletonCard: { backgroundColor: '#fff', borderRadius: 16, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: '#E2E8F0' },
+  skeletonHeaderRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: '#F1F5F9' },
+  skeletonCircle: { width: 32, height: 32, borderRadius: 16, backgroundColor: '#E2E8F0' },
+  skeletonBlock: { flex: 1, height: 16, backgroundColor: '#E2E8F0', borderRadius: 8 },
+  skeletonLine: { height: 12, backgroundColor: '#E2E8F0', borderRadius: 6, width: '100%', marginBottom: 8 },
   listContent: { padding: 16, paddingBottom: 100 },
 
   card: {
@@ -434,6 +483,59 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   locationText: { fontSize: 13, color: '#475569', flex: 1 },
+
+  // Truck Information Styles
+  truckSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F0FDF4',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#BBF7D0',
+  },
+  truckIconWrapper: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#fff',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  truckDetails: {
+    flex: 1,
+  },
+  truckType: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#0F172A',
+    marginBottom: 4,
+  },
+  truckMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flexWrap: 'wrap',
+  },
+  truckMetaText: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#166534',
+  },
+  modeBadge: {
+    backgroundColor: '#22C55E',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+  },
+  modeBadgeText: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: '#fff',
+    letterSpacing: 0.5,
+  },
 
   cardFooter: {
     flexDirection: 'row',

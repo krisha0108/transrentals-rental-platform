@@ -97,6 +97,7 @@ interface StaffMember {
   email?: string;
   role: string;
   status: string;
+  isAvailableForDates?: boolean;
 }
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bgColor: string }> = {
@@ -162,6 +163,15 @@ export default function VendorPackersBookingDetailPage() {
 
   const [staffMembers, setStaffMembers] = useState<StaffMember[]>([]);
 
+  const handleOpenAssignForm = () => {
+    setShowAssignForm(true);
+    // Re-fetch staff with date-based availability when modal opens
+    if (booking?.scheduledDate) {
+      const dateStr = booking.scheduledDate.split('T')[0];
+      fetchStaffMembers(dateStr, dateStr);
+    }
+  };
+
   const fetchBooking = async () => {
     try {
       const response = await fetch(`/api/vendor/packers-bookings/${id}`);
@@ -185,15 +195,25 @@ export default function VendorPackersBookingDetailPage() {
     }
   };
 
-  const fetchStaffMembers = async () => {
+  const fetchStaffMembers = async (startDate?: string, endDate?: string) => {
     try {
-      const res = await fetch('/api/vendor/staff');
+      let url = '/api/vendor/staff';
+      if (startDate && endDate) {
+        url += `?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`;
+      }
+      const res = await fetch(url);
       const data = await res.json();
       if (data.success) {
         // Filter for active staff members who could be team leaders or helpers
         const activeStaff = data.staff?.filter((s: StaffMember) =>
           s.status === 'ACTIVE' && (s.role === 'DRIVER' || s.role === 'HELPER')
         ) || [];
+        // Sort so unavailable staff appear at the bottom
+        activeStaff.sort((a: StaffMember, b: StaffMember) => {
+          if (a.isAvailableForDates === false && b.isAvailableForDates !== false) return 1;
+          if (a.isAvailableForDates !== false && b.isAvailableForDates === false) return -1;
+          return 0;
+        });
         setStaffMembers(activeStaff);
       }
     } catch (err) {
@@ -203,8 +223,17 @@ export default function VendorPackersBookingDetailPage() {
 
   useEffect(() => {
     fetchBooking();
-    fetchStaffMembers();
   }, [id]);
+
+  // Re-fetch staff with date-based availability when booking loads
+  useEffect(() => {
+    if (booking?.scheduledDate) {
+      const dateStr = booking.scheduledDate.split('T')[0];
+      fetchStaffMembers(dateStr, dateStr);
+    } else {
+      fetchStaffMembers();
+    }
+  }, [booking?.scheduledDate]);
 
   const handleAssignSubmit = async () => {
     if (!assignForm.teamLeaderName || !assignForm.teamLeaderPhone) {
@@ -465,7 +494,7 @@ export default function VendorPackersBookingDetailPage() {
               </h3>
               {!booking.teamLeaderName && !showAssignForm && ['ADVANCE_PAID', 'CONFIRMED'].includes(booking.status) && (
                 <button
-                  onClick={() => setShowAssignForm(true)}
+                  onClick={handleOpenAssignForm}
                   className="px-4 py-2 bg-cyan-600 text-white text-sm font-medium rounded-lg hover:bg-cyan-700 transition"
                 >
                   Assign Team
@@ -473,7 +502,7 @@ export default function VendorPackersBookingDetailPage() {
               )}
               {booking.teamLeaderName && !showAssignForm && ['TEAM_ASSIGNED', 'ADVANCE_PAID'].includes(booking.status) && (
                 <button
-                  onClick={() => setShowAssignForm(true)}
+                  onClick={handleOpenAssignForm}
                   className="text-cyan-600 text-sm font-medium hover:underline flex items-center gap-1"
                 >
                   <Edit className="w-4 h-4" />
@@ -506,8 +535,12 @@ export default function VendorPackersBookingDetailPage() {
                       >
                         <option value="">-- Select team leader --</option>
                         {staffMembers.map((member) => (
-                          <option key={member.id} value={member.id}>
-                            {member.name} ({member.phone}) - {member.role}
+                          <option
+                            key={member.id}
+                            value={member.id}
+                            disabled={member.isAvailableForDates === false}
+                          >
+                            {member.name} ({member.phone}) - {member.role}{member.isAvailableForDates === false ? ' — Assigned for this date' : ''}
                           </option>
                         ))}
                       </select>
@@ -605,7 +638,7 @@ export default function VendorPackersBookingDetailPage() {
                 <p>No team assigned yet.</p>
                 {['ADVANCE_PAID', 'CONFIRMED'].includes(booking.status) && (
                   <button
-                    onClick={() => setShowAssignForm(true)}
+                    onClick={handleOpenAssignForm}
                     className="mt-4 px-6 py-2 bg-cyan-600 text-white text-sm font-medium rounded-lg hover:bg-cyan-700"
                   >
                     Assign Team Now

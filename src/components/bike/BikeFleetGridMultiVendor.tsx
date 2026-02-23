@@ -181,9 +181,9 @@ export function BikeFleetGridMultiVendor({
     setShowQuoteModal(true);
   };
 
-  // Get unique categories and brands from data
-  const categories = ['All', ...new Set(bikes.map((b) => b.categoryName).filter(Boolean))];
-  const brands = ['All', ...new Set(bikes.map((b) => b.brandName))];
+  // Get categories and brands from filters prop (from API)
+  const categories = ['All', ...filters.categories.map((c) => c.name)];
+  const brands = ['All', ...filters.brands.map((b) => b.name)];
 
   return (
     <div className="bg-gray-50 min-h-screen">

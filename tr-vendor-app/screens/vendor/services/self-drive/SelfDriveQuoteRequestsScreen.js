@@ -130,7 +130,19 @@ export default function SelfDriveQuoteRequestsScreen({ navigation }) {
     const dropLocation = item.dropLocation || item.drop_location || item.dropCity;
     const pickupDate = item.pickupDate || item.pickup_date || item.startDate;
     const returnDate = item.returnDate || item.return_date || item.endDate;
-    const vehicleType = item.vehicleType || item.vehicle_type || item.vehicleType;
+    const vehicleModelName = item.vehicleModelName || item.vehicle_model_name;
+    const vehicleBrand = item.vehicleBrand || item.vehicle_brand;
+    const vehicleType = item.vehicleType || item.vehicle_type;
+    const vehicleCategoryName = item.vehicleCategoryName || item.vehicle_category_name;
+
+    // Map vehicleType to display name
+    const vehicleTypeDisplay =
+      vehicleType === '1' || vehicleType === 1 ? 'Hatchback' :
+      vehicleType === '2' || vehicleType === 2 ? 'Sedan' :
+      vehicleType === '3' || vehicleType === 3 ? 'MUV' :
+      vehicleType === '4' || vehicleType === 4 ? 'SUV' :
+      vehicleType === '5' || vehicleType === 5 ? 'Luxury' :
+      vehicleCategoryName || vehicleType;
 
     return (
       <TouchableOpacity
@@ -196,11 +208,29 @@ export default function SelfDriveQuoteRequestsScreen({ navigation }) {
           </Text>
         </View>
 
-        {/* Bike Type */}
-        {vehicleType && (
-          <View style={styles.infoRow}>
+        {/* Vehicle Info */}
+        {(vehicleModelName || vehicleBrand || vehicleTypeDisplay) && (
+          <View style={styles.vehicleInfoRow}>
             <MaterialCommunityIcons name="car" size={16} color="#64748B" />
-            <Text style={styles.infoText}>{vehicleType}</Text>
+            <View style={styles.vehicleDetails}>
+              {vehicleModelName ? (
+                <>
+                  <Text style={styles.vehicleModelText}>{vehicleModelName}</Text>
+                  {vehicleBrand && (
+                    <Text style={styles.vehicleBrandText}>{vehicleBrand}</Text>
+                  )}
+                </>
+              ) : (
+                <>
+                  {vehicleTypeDisplay && (
+                    <Text style={styles.vehicleModelText}>{vehicleTypeDisplay}</Text>
+                  )}
+                  {vehicleBrand && (
+                    <Text style={styles.vehicleBrandText}>{vehicleBrand}</Text>
+                  )}
+                </>
+              )}
+            </View>
           </View>
         )}
 
@@ -306,9 +336,20 @@ export default function SelfDriveQuoteRequestsScreen({ navigation }) {
 
       {/* Content */}
       {loading && filteredRequests.length === 0 ? (
-        <View style={styles.loaderWrap}>
-          <ActivityIndicator size="large" color={GREEN} />
-        </View>
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.skeletonContainer} showsVerticalScrollIndicator={false}>
+          {[1, 2, 3, 4].map(i => (
+            <View key={i} style={styles.skeletonCard}>
+              <View style={styles.skeletonHeaderRow}>
+                <View style={styles.skeletonCircle} />
+                <View style={styles.skeletonBlock} />
+                <View style={[styles.skeletonBlock, { width: 70, flex: 0 }]} />
+              </View>
+              <View style={styles.skeletonLine} />
+              <View style={[styles.skeletonLine, { width: '80%' }]} />
+              <View style={[styles.skeletonLine, { width: '55%' }]} />
+            </View>
+          ))}
+        </ScrollView>
       ) : (
         <FlatList
           data={filteredRequests}
@@ -368,6 +409,12 @@ const styles = StyleSheet.create({
   headerSubtitle: { fontSize: 12, color: '#64748B', marginTop: 2 },
 
   loaderWrap: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: BG },
+  skeletonContainer: { padding: 16, paddingBottom: 100 },
+  skeletonCard: { backgroundColor: '#fff', borderRadius: 16, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: '#E2E8F0' },
+  skeletonHeaderRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: '#F1F5F9' },
+  skeletonCircle: { width: 32, height: 32, borderRadius: 16, backgroundColor: '#E2E8F0' },
+  skeletonBlock: { flex: 1, height: 16, backgroundColor: '#E2E8F0', borderRadius: 8 },
+  skeletonLine: { height: 12, backgroundColor: '#E2E8F0', borderRadius: 6, width: '100%', marginBottom: 8 },
   listContent: { padding: 16, paddingBottom: 40 },
 
   card: {
@@ -412,6 +459,26 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   infoText: { fontSize: 14, color: '#334155', flex: 1 },
+
+  vehicleInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    marginBottom: 8,
+  },
+  vehicleDetails: {
+    flex: 1,
+  },
+  vehicleModelText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: DARK,
+  },
+  vehicleBrandText: {
+    fontSize: 13,
+    color: '#64748B',
+    marginTop: 2,
+  },
 
   locationRow: {
     flexDirection: 'row',

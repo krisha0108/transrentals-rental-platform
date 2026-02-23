@@ -5,6 +5,7 @@ import { sendNotificationToCustomer } from '@/lib/services/push-notification-ser
 import crypto from 'crypto';
 
 import logger from '@/lib/security/logger';
+import { sendVendorDirectNotification } from '@/lib/utils/vendor-notification-sender';
 export const dynamic = 'force-dynamic';
 
 // Generate 4-digit OTP
@@ -732,6 +733,28 @@ export async function PATCH(
         logger.error('Failed to send trip started notification', notificationError);
       }
 
+      // Notify vendor that driver has started the trip
+      if (driver.vendorId) {
+        const serviceTypeNames: any = {
+          car: 'chauffeur-service', bus: 'bus-rental', truck: 'truck-rental',
+          packers: 'packers-and-movers', equipment: 'equipment-rental', luxury: 'luxury-car-rental',
+        };
+        const startTitles: any = {
+          truck: '📦 Loading Started!', packers: '📦 Packing Started!',
+          equipment: '✅ Equipment Delivered!',
+        };
+        const startTitle = startTitles[serviceType] || '🚀 Trip Started!';
+        sendVendorDirectNotification({
+          vendorId: driver.vendorId,
+          title: startTitle,
+          body: `Your driver has started the trip for Booking #${updatedBooking.bookingNumber}.`,
+          type: 'trip_started',
+          serviceType: serviceTypeNames[serviceType] || serviceType,
+          bookingId: booking.id,
+          bookingNumber: updatedBooking.bookingNumber || '',
+        }).catch((err: any) => console.error('[DriverTripStart] Vendor notify failed:', err));
+      }
+
       // Determine success message
       let message = 'Trip started successfully!';
       if (isTruck) message = 'Loading started successfully!';
@@ -844,6 +867,18 @@ export async function PATCH(
           completedAt: new Date(),
         },
       });
+
+      if (driver.vendorId) {
+        sendVendorDirectNotification({
+          vendorId: driver.vendorId,
+          title: '✅ Delivery Completed!',
+          body: `Your driver has completed the truck delivery for Booking #${updatedBooking.bookingNumber}.`,
+          type: 'trip_completed',
+          serviceType: 'truck-rental',
+          bookingId: booking.id,
+          bookingNumber: updatedBooking.bookingNumber || '',
+        }).catch((err: any) => console.error('[DriverTruckComplete] Vendor notify failed:', err));
+      }
 
       return NextResponse.json({
         success: true,
@@ -1033,6 +1068,18 @@ export async function PATCH(
         },
       });
 
+      if (driver.vendorId) {
+        sendVendorDirectNotification({
+          vendorId: driver.vendorId,
+          title: '✅ Moving Job Completed!',
+          body: `Your team has completed the packers & movers job for Booking #${updatedBooking.bookingNumber}.`,
+          type: 'trip_completed',
+          serviceType: 'packers-and-movers',
+          bookingId: booking.id,
+          bookingNumber: updatedBooking.bookingNumber || '',
+        }).catch((err: any) => console.error('[DriverPackersComplete] Vendor notify failed:', err));
+      }
+
       return NextResponse.json({
         success: true,
         message: 'Moving job completed successfully!',
@@ -1168,6 +1215,18 @@ export async function PATCH(
         },
       });
 
+      if (driver.vendorId) {
+        sendVendorDirectNotification({
+          vendorId: driver.vendorId,
+          title: '✅ Equipment Rental Completed!',
+          body: `Your operator has completed the equipment rental for Booking #${updatedBooking.bookingNumber}.`,
+          type: 'trip_completed',
+          serviceType: 'equipment-rental',
+          bookingId: booking.id,
+          bookingNumber: updatedBooking.bookingNumber || '',
+        }).catch((err: any) => console.error('[DriverEquipmentComplete] Vendor notify failed:', err));
+      }
+
       return NextResponse.json({
         success: true,
         message: 'Rental completed successfully!',
@@ -1244,6 +1303,18 @@ export async function PATCH(
         },
       });
 
+      if (driver.vendorId) {
+        sendVendorDirectNotification({
+          vendorId: driver.vendorId,
+          title: '🚀 Trip Started!',
+          body: `Your driver has started the luxury car trip for Booking #${updatedBooking.bookingNumber}.`,
+          type: 'trip_started',
+          serviceType: 'luxury-car-rental',
+          bookingId: booking.id,
+          bookingNumber: updatedBooking.bookingNumber || '',
+        }).catch((err: any) => console.error('[DriverLuxuryStart] Vendor notify failed:', err));
+      }
+
       return NextResponse.json({
         success: true,
         message: 'Trip started successfully!',
@@ -1273,6 +1344,18 @@ export async function PATCH(
           paymentStatus: 'PAID',
         },
       });
+
+      if (driver.vendorId) {
+        sendVendorDirectNotification({
+          vendorId: driver.vendorId,
+          title: '✅ Trip Completed!',
+          body: `Your driver has completed the luxury car trip for Booking #${updatedBooking.bookingNumber}.`,
+          type: 'trip_completed',
+          serviceType: 'luxury-car-rental',
+          bookingId: booking.id,
+          bookingNumber: updatedBooking.bookingNumber || '',
+        }).catch((err: any) => console.error('[DriverLuxuryComplete] Vendor notify failed:', err));
+      }
 
       return NextResponse.json({
         success: true,
@@ -1368,6 +1451,23 @@ export async function PATCH(
       } catch (notificationError: any) {
         console.error('❌ Trip completed notification error:', notificationError);
         logger.error('Failed to send trip completed notification', notificationError);
+      }
+
+      // Notify vendor that driver has completed the trip
+      if (driver.vendorId) {
+        const serviceTypeNames: any = {
+          car: 'chauffeur-service', bus: 'bus-rental', truck: 'truck-rental',
+          packers: 'packers-and-movers', equipment: 'equipment-rental', luxury: 'luxury-car-rental',
+        };
+        sendVendorDirectNotification({
+          vendorId: driver.vendorId,
+          title: '✅ Trip Completed!',
+          body: `Your driver has completed the trip for Booking #${updatedBooking.bookingNumber}.`,
+          type: 'trip_completed',
+          serviceType: serviceTypeNames[serviceType] || serviceType,
+          bookingId: booking.id,
+          bookingNumber: updatedBooking.bookingNumber || '',
+        }).catch((err: any) => console.error('[DriverTripComplete] Vendor notify failed:', err));
       }
 
       return NextResponse.json({

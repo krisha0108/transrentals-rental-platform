@@ -365,17 +365,8 @@ export default function PackersBookingDetailScreen({ route, navigation }) {
             </View>
             <View style={styles.customerInfo}>
               <Text style={styles.customerName}>{booking.customerName || 'Customer'}</Text>
-              <Text style={styles.customerContact}>{booking.customerPhone}</Text>
             </View>
             <View style={styles.customerActions}>
-              {booking.customerPhone && (
-                <TouchableOpacity
-                  style={[styles.iconBtn, { backgroundColor: '#DCFCE7' }]}
-                  onPress={() => handleCall(booking.customerPhone)}
-                >
-                  <Icon name="phone" size={18} color={C.green} />
-                </TouchableOpacity>
-              )}
               <TouchableOpacity
                 style={[styles.iconBtn, { backgroundColor: '#DBEAFE' }]}
                 onPress={handleChat}
@@ -414,36 +405,6 @@ export default function PackersBookingDetailScreen({ route, navigation }) {
           )}
         </View>
 
-        {(canAccept() || canReject()) && (
-          <View style={styles.actionsContainer}>
-            {canReject() && (
-              <TouchableOpacity
-                style={[styles.actionButton, styles.rejectButton]}
-                onPress={handleReject}
-                disabled={actionLoading}
-              >
-                <Icon name="x" size={18} color={C.red} />
-                <Text style={[styles.actionButtonText, { color: C.red }]}>Reject</Text>
-              </TouchableOpacity>
-            )}
-            {canAccept() && (
-              <TouchableOpacity
-                style={[styles.actionButton, styles.acceptButton]}
-                onPress={handleAccept}
-                disabled={actionLoading}
-              >
-                {actionLoading ? (
-                  <ActivityIndicator size="small" color="#fff" />
-                ) : (
-                  <>
-                    <Icon name="check" size={18} color="#fff" />
-                    <Text style={[styles.actionButtonText, { color: '#fff' }]}>Accept</Text>
-                  </>
-                )}
-              </TouchableOpacity>
-            )}
-          </View>
-        )}
 
         {/* Assign Team Leader Button */}
         {canAssignDriver() && (
@@ -596,8 +557,39 @@ export default function PackersBookingDetailScreen({ route, navigation }) {
           </View>
         )}
 
-        <View style={{ height: 40 }} />
+        <View style={{ height: 80 }} />
       </ScrollView>
+
+      {(canAccept() || canReject()) && (
+        <View style={styles.actionBar}>
+          {canReject() && (
+            <TouchableOpacity
+              style={[styles.actionBtn, styles.rejectBtn]}
+              onPress={handleReject}
+              disabled={actionLoading}
+            >
+              <Icon name="x" size={18} color={C.red} />
+              <Text style={[styles.actionBtnText, { color: C.red }]}>Decline</Text>
+            </TouchableOpacity>
+          )}
+          {canAccept() && (
+            <TouchableOpacity
+              style={[styles.actionBtn, styles.acceptBtn]}
+              onPress={handleAccept}
+              disabled={actionLoading}
+            >
+              {actionLoading ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <>
+                  <Icon name="check-circle" size={18} color="#fff" />
+                  <Text style={[styles.actionBtnText, { color: '#fff' }]}>Accept Booking</Text>
+                </>
+              )}
+            </TouchableOpacity>
+          )}
+        </View>
+      )}
 
       {/* Driver Selection Modal */}
       <Modal
@@ -868,6 +860,41 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 12,
     marginTop: 8,
+  },
+  actionBar: {
+    flexDirection: 'row',
+    gap: 12,
+    padding: 16,
+    backgroundColor: C.surface,
+    borderTopWidth: 1,
+    borderTopColor: C.border,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: -2 },
+    elevation: 10,
+  },
+  actionBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  rejectBtn: {
+    backgroundColor: C.surface,
+    borderColor: '#FEE2E2',
+  },
+  acceptBtn: {
+    backgroundColor: C.brand,
+    borderColor: C.brand,
+  },
+  actionBtnText: {
+    fontSize: 14,
+    fontWeight: '700',
   },
   actionButton: {
     flex: 1,

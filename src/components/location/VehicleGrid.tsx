@@ -23,6 +23,8 @@ interface VehicleGridProps {
   vehicles?: Vehicle[];
   title?: string;
   serviceSlug?: string;
+  showViewDetails?: boolean;
+  isClickable?: boolean;
 }
 
 export function VehicleGrid({
@@ -30,7 +32,9 @@ export function VehicleGrid({
   locationSlug,
   vehicles = [],
   title,
-  serviceSlug = 'bike-on-rent'
+  serviceSlug = 'bike-on-rent',
+  showViewDetails = false,
+  isClickable = false
 }: VehicleGridProps) {
   const displayTitle = title || `Available Vehicles${location ? ` in ${location}` : ''}`;
 
@@ -50,19 +54,16 @@ export function VehicleGrid({
             vehicles.map((vehicle) => {
               // Use ID for vendor fleets, slug for legacy fleet
               const vehicleIdentifier = vehicle.slug || String(vehicle.id);
-              return (
-                <Link
-                  key={vehicle.id}
-                  href={`/fleet/${vehicleIdentifier}${locationSlug ? `?location=${locationSlug}` : ''}`}
-                  className="group bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100"
-                >
+
+              const CardContent = (
+                <div className={`${isClickable ? 'group' : ''} bg-white rounded-xl shadow-md ${isClickable ? 'hover:shadow-xl transition-all duration-300' : ''} overflow-hidden border border-gray-100 flex flex-col h-full`}>
                   {/* Vehicle Image */}
-                  <div className="relative h-48 bg-gray-100 overflow-hidden">
+                  <div className="relative h-48 bg-gray-100 overflow-hidden shrink-0">
                     <Image
                       src={vehicle.image}
                       alt={vehicle.name}
                       fill
-                      className="object-cover group-hover:scale-105 transition-transform duration-300"
+                      className={`object-cover ${isClickable ? 'group-hover:scale-105' : ''} transition-transform duration-300`}
                       sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
                       onError={(e) => {
                         const target = e.target as HTMLImageElement;
@@ -79,7 +80,7 @@ export function VehicleGrid({
                   </div>
 
                   {/* Vehicle Details */}
-                  <div className="p-4">
+                  <div className="p-4 flex flex-col flex-1">
                     {/* Brand */}
                     {vehicle.brand && (
                       <p className="text-xs font-medium text-orange-600 uppercase tracking-wide mb-1">
@@ -88,7 +89,7 @@ export function VehicleGrid({
                     )}
 
                     {/* Name */}
-                    <h3 className="text-lg font-bold text-gray-900 mb-2 group-hover:text-orange-600 transition-colors line-clamp-1">
+                    <h3 className={`text-lg font-bold text-gray-900 mb-2 ${isClickable ? 'group-hover:text-orange-600' : ''} transition-colors line-clamp-1`}>
                       {vehicle.name}
                     </h3>
 
@@ -117,17 +118,37 @@ export function VehicleGrid({
                     )}
 
                     {/* Price */}
-                    <div className="flex items-baseline justify-between pt-3 border-t border-gray-100">
+                    <div className="flex items-baseline justify-between pt-3 border-t border-gray-100 mt-auto">
                       <div>
                         <p className="text-xs text-gray-500 font-medium mb-0.5">Starting from</p>
                         <span className="text-2xl font-bold text-gray-900">₹{vehicle.price}</span>
                       </div>
-                      <span className="text-xs font-medium text-orange-600 group-hover:text-orange-700">
-                        View Details →
-                      </span>
+                      {showViewDetails && (
+                        <span className={`text-xs font-medium text-orange-600 ${isClickable ? 'group-hover:text-orange-700' : ''}`}>
+                          View Details →
+                        </span>
+                      )}
                     </div>
                   </div>
-                </Link>
+                </div>
+              );
+
+              if (isClickable) {
+                return (
+                  <Link
+                    key={vehicle.id}
+                    href={`/fleet/${vehicleIdentifier}${locationSlug ? `?location=${locationSlug}` : ''}`}
+                    className="block h-full"
+                  >
+                    {CardContent}
+                  </Link>
+                );
+              }
+
+              return (
+                <div key={vehicle.id} className="h-full">
+                  {CardContent}
+                </div>
               );
             })
           )}

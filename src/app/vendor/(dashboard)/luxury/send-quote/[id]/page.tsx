@@ -48,15 +48,20 @@ interface Fleet {
   registrationNumber: string;
   yearOfManufacture: number | null;
   color: string | null;
-  vehicle_model?: {
+  services?: {
+    slug?: string;
+    name?: string;
+  };
+  vehicle_models?: {
     name: string;
-    brand: { name: string };
+    brands: { name: string };
     sideImage?: string;
   };
-  vehicle_category?: {
+  chauffeur_vehicle_categories?: {
     name: string;
     image?: string;
   };
+  isAvailableForDates?: boolean;
 }
 
 interface Template {
@@ -147,14 +152,28 @@ export default function SendQuotePage() {
         return;
       }
 
-      // Fetch vendor's fleet (luxury vehicles)
-      const fleetRes = await fetch('/api/vendor/fleet');
+      // Fetch vendor's fleet (luxury vehicles) with availability check
+      let fleetUrl = '/api/vendor/fleet';
+      if (requestData.quoteRequest?.pickupDate) {
+        const startDate = new Date(requestData.quoteRequest.pickupDate).toISOString();
+        const endDate = requestData.quoteRequest.returnDate
+          ? new Date(requestData.quoteRequest.returnDate).toISOString()
+          : startDate;
+        fleetUrl += `?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`;
+      }
+      const fleetRes = await fetch(fleetUrl);
       const fleetData = await fleetRes.json();
       if (fleetData.success) {
         // Filter for luxury service
-        const luxuryFleets = (fleetData.fleet || []).filter((f: any) =>
-          f.services?.slug?.includes('luxury') || f.services?.name?.toLowerCase().includes('luxury')
+        const luxuryFleets = (fleetData.fleet || []).filter((f: Fleet) =>
+          f.isActive && (f.services?.slug?.includes('luxury') || f.services?.name?.toLowerCase().includes('luxury'))
         );
+        // Sort: available vehicles first, unavailable at the end
+        luxuryFleets.sort((a: Fleet, b: Fleet) => {
+          const aUnavail = a.isAvailableForDates === false ? 1 : 0;
+          const bUnavail = b.isAvailableForDates === false ? 1 : 0;
+          return aUnavail - bUnavail;
+        });
         setFleets(luxuryFleets);
       }
 
@@ -175,8 +194,8 @@ export default function SendQuotePage() {
     const fleet = fleets.find(f => f.id === fleetId);
     if (fleet) {
       setSelectedFleet(fleetId);
-      const brandName = fleet.vehicle_models?.brand?.name || '';
-      const modelName = fleet.vehicle_models?.name || fleet.vehicle_category?.name || '';
+      const brandName = fleet.vehicle_models?.brands?.name || '';
+      const modelName = fleet.vehicle_models?.name || fleet.chauffeur_vehicle_categories?.name || '';
       setVehicleName(`${brandName} ${modelName}`.trim());
       setVehicleNumber(fleet.registrationNumber || '');
       setVehicleYear(fleet.yearOfManufacture || '');
@@ -476,17 +495,21 @@ export default function SendQuotePage() {
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
               {fleets.map((fleet) => {
                 const isSelected = selectedFleet === fleet.id;
-                const brandName = fleet.vehicle_models?.brand?.name || '';
-                const modelName = fleet.vehicle_models?.name || fleet.vehicle_category?.name || '';
-                const image = fleet.vehicle_models?.sideImage || fleet.vehicle_category?.image;
+                const brandName = fleet.vehicle_models?.brands?.name || '';
+                const modelName = fleet.vehicle_models?.name || fleet.chauffeur_vehicle_categories?.name || '';
+                const image = fleet.vehicle_models?.sideImage || fleet.chauffeur_vehicle_categories?.image;
+                const isUnavailable = fleet.isAvailableForDates === false;
 
                 return (
                   <button
                     key={fleet.id}
                     type="button"
-                    onClick={() => handleFleetSelect(fleet.id)}
+                    onClick={() => !isUnavailable && handleFleetSelect(fleet.id)}
+                    disabled={isUnavailable}
                     className={`relative p-4 rounded-xl border-2 transition-all text-left ${
-                      isSelected
+                      isUnavailable
+                        ? 'border-gray-200 bg-gray-100 opacity-60 cursor-not-allowed'
+                        : isSelected
                         ? 'border-purple-500 bg-purple-50 shadow-md'
                         : 'border-gray-200 hover:border-gray-300 hover:shadow-sm'
                     }`}
@@ -503,7 +526,12 @@ export default function SendQuotePage() {
                     {fleet.yearOfManufacture && (
                       <p className="text-xs text-gray-400">{fleet.yearOfManufacture} • {fleet.color}</p>
                     )}
-                    {isSelected && (
+                    {isUnavailable && (
+                      <div className="absolute top-2 right-2 bg-red-100 text-red-600 text-xs font-medium px-2 py-0.5 rounded-full">
+                        Booked
+                      </div>
+                    )}
+                    {isSelected && !isUnavailable && (
                       <div className="absolute top-2 right-2">
                         <Check className="w-5 h-5 text-purple-600" />
                       </div>

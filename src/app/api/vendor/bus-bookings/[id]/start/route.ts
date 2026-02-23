@@ -8,6 +8,7 @@ import { prepareNotificationData } from '@/lib/utils/notification-helper';
 import { sendNotificationToCustomer } from '@/lib/services/push-notification-service';
 
 import logger from '@/lib/security/logger';
+import { sendVendorDirectNotification } from '@/lib/utils/vendor-notification-sender';
 export const dynamic = 'force-dynamic';
 
 // POST - Vendor starts Bus Booking trip (with OTP verification)
@@ -124,6 +125,17 @@ export async function POST(
       // Log error but don't fail the request
       logger.error('Failed to send trip start notification', notifError);
     }
+
+    // Notify vendor that trip has started
+    sendVendorDirectNotification({
+      vendorId,
+      title: '🚀 Trip Started!',
+      body: `Booking #${booking.bookingNumber} bus trip has been started successfully.`,
+      type: 'trip_started',
+      serviceType: 'bus',
+      bookingId: booking.id,
+      bookingNumber: booking.bookingNumber,
+    }).catch((err: any) => console.error('[BusStart] Vendor notify failed:', err));
 
     return NextResponse.json({
       success: true,

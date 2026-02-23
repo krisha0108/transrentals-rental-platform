@@ -384,13 +384,9 @@ export default function CustomerLoginPage() {
                 <input type="checkbox" className="rounded border-gray-300 text-green-600 focus:ring-green-500" />
                 <span className="ml-2 text-sm text-gray-600">Remember me</span>
               </label>
-              <button
-                type="button"
-                onClick={() => setMode('forgot-password')}
-                className="text-sm text-green-600 hover:text-green-700"
-              >
+              <Link href="/customer/forgot-password" className="text-sm text-green-600 hover:text-green-700">
                 Forgot password?
-              </button>
+              </Link>
             </div>
 
             <button

@@ -13,7 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Feather';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import { getQuoteRequests } from '../../../api/client';
+import { getQuoteRequestById } from '../../../api/client';
 
 const GREEN = '#09B368';
 const BG = '#F5F5F7';
@@ -44,44 +44,9 @@ export default function SelfDriveQuoteRequestDetailScreen({ route, navigation })
     console.log('🔍 [SelfDriveRequestDetail] Fetching request with ID:', requestId);
 
     try {
-      // FIX: Fetch ALL pages to find the request
-      let allRequests = [];
-      let page = 1;
-      let hasMore = true;
-
-      while (hasMore && page <= 10) { // Max 10 pages to prevent infinite loop
-        console.log(`📄 [SelfDriveRequestDetail] Fetching page ${page}...`);
-        const response = await getQuoteRequests('self-drive', { page, limit: 20 });
-        const pageRequests = response.quoteRequests || response.requests || response.data || [];
-
-        allRequests = [...allRequests, ...pageRequests];
-
-        // Check if we found the request
-        const found = pageRequests.find(r => {
-          const itemId = (r.id || r._id)?.toString();
-          const searchId = requestId?.toString();
-          return itemId === searchId;
-        });
-
-        if (found) {
-          console.log('✅ [SelfDriveRequestDetail] Request found on page', page);
-          setRequest(found);
-          setLoading(false);
-          setRefreshing(false);
-          return;
-        }
-
-        // Check if there are more pages
-        const pagination = response.pagination || {};
-        hasMore = page < (pagination.totalPages || 1);
-        page++;
-      }
-
-      // If we reach here, request was not found
-      console.log('❌ [SelfDriveRequestDetail] Request not found after checking all pages');
-      console.log('Total requests checked:', allRequests.length);
-      Alert.alert('Error', 'Request not found');
-
+      const data = await getQuoteRequestById('self-drive', requestId);
+      const requestData = data.request || data;
+      setRequest({ ...requestData, hasQuoted: data.hasQuoted, vendorQuote: data.vendorQuote });
     } catch (error) {
       console.error('Error fetching request detail:', error);
       Alert.alert('Error', 'Failed to load request details');
@@ -110,6 +75,19 @@ export default function SelfDriveQuoteRequestDetailScreen({ route, navigation })
     });
   };
 
+  const formatTime = (timeStr) => {
+    if (!timeStr) return 'N/A';
+    // Handle both HH:MM and HH:MM:SS formats
+    const timeParts = timeStr.split(':');
+    let hours = parseInt(timeParts[0], 10);
+    const minutes = timeParts[1] || '00';
+
+    const period = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12 || 12; // Convert 0 to 12 for 12 AM
+
+    return `${hours}:${minutes} ${period}`;
+  };
+
   const getStatusIcon = (status) => {
     switch (status?.toUpperCase()) {
       case 'PENDING':
@@ -134,10 +112,28 @@ export default function SelfDriveQuoteRequestDetailScreen({ route, navigation })
   if (loading) {
     return (
       <SafeAreaView style={styles.safe} edges={['top']}>
-        <View style={styles.loaderWrap}>
-          <ActivityIndicator size="large" color={GREEN} />
-          <Text style={styles.loaderText}>Loading request details...</Text>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+            <Icon name="arrow-left" size={22} color={DARK} />
+          </TouchableOpacity>
+          <View style={styles.headerCenter}>
+            <Text style={styles.headerTitle}>Request Details</Text>
+            <Text style={styles.headerSubtitle}>Self Drive</Text>
+          </View>
+          <View style={{ width: 40 }} />
         </View>
+        <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+          <View style={styles.skeletonBanner} />
+          <View style={{ padding: 16, paddingTop: 8 }}>
+            {[1, 2, 3].map(i => (
+              <View key={i} style={styles.skeletonCard}>
+                <View style={styles.skeletonLine} />
+                <View style={[styles.skeletonLine, { width: '70%' }]} />
+                <View style={[styles.skeletonLine, { width: '50%' }]} />
+              </View>
+            ))}
+          </View>
+        </ScrollView>
       </SafeAreaView>
     );
   }
@@ -164,16 +160,51 @@ export default function SelfDriveQuoteRequestDetailScreen({ route, navigation })
   const status = request.status?.toUpperCase() || 'PENDING';
   const statusColor = STATUS_COLORS[status] || '#6B7280';
 
+  // Customer Information
   const customerName = request.customerName || request.customer_name || 'Customer';
   const customerEmail = request.customerEmail || request.customer_email;
   const customerPhone = request.customerPhone || request.customer_phone;
+
+  // Vehicle Details
+  const vehicleModelName = request.vehicleModelName || request.vehicle_model_name;
+  const vehicleBrand = request.vehicleBrand || request.vehicle_brand;
+  const vehicleType = request.vehicleType || request.vehicle_type;
+  const carType = request.carType || request.car_type;
+  const carTypeName = request.carTypeName || request.car_type_name || request.vehicleCategoryName || request.vehicle_category_name;
+
+  // Map vehicleType to display name
+  const vehicleTypeDisplay =
+    vehicleType === '1' ? 'Hatchback' :
+    vehicleType === '2' ? 'Sedan' :
+    vehicleType === '3' ? 'MUV' :
+    vehicleType === '4' ? 'SUV' :
+    vehicleType === '5' ? 'Luxury' :
+    vehicleType || carTypeName || carType;
+  const transmission = request.transmission;
+  const transmissionName = transmission === '1' || transmission === 1 ? 'Automatic' : transmission === '2' || transmission === 2 ? 'Manual' : transmission;
+  const fuelType = request.fuelType || request.fuel_type;
+  const fuelTypeName =
+    fuelType === '1' || fuelType === 1 ? 'Diesel' :
+    fuelType === '2' || fuelType === 2 ? 'Petrol' :
+    fuelType === '3' || fuelType === 3 ? 'Electric' :
+    fuelType === '4' || fuelType === 4 ? 'CNG' : fuelType;
+
+  // Location & Trip Details
   const pickupLocation = request.locationName || request.location?.name || request.pickupLocation || request.pickup_location || request.pickupCity || 'N/A';
-  const dropLocation = request.dropLocation || request.drop_location || request.dropCity;
-  const pickupDate = request.pickupDate || request.pickup_date || request.startDate;
-  const returnDate = request.returnDate || request.return_date || request.endDate;
-  const carType = request.carType || request.car_type || request.vehicleType;
+  const destination = request.destination || request.dropLocation || request.drop_location || request.dropCity;
+  const pickupDate = request.pickupDate || request.pickup_date || request.startDate || request.journey_date;
+  const pickupTime = request.pickupTime || request.pickup_time || request.start_time || request.journey_time;
+  const returnDate = request.returnDate || request.return_date || request.endDate || request.return_datetime;
+  const returnTime = request.returnTime || request.return_time;
+
+  // Additional Details
+  const doorstepDelivery = request.doorstepDelivery || request.doorstep_delivery || request.is_doorstep_delivery || request.isDoorstepDelivery;
+  const isDoorstepDelivery = doorstepDelivery === '1' || doorstepDelivery === 1 || doorstepDelivery === 'yes' || doorstepDelivery === true;
+  const passengers = request.passengers || request.total_passengers || request.totalPassengers || request.total_passangers;
+
+  // Request Metadata
   const requestNumber = request.requestNumber || request.request_number || (request.id || request._id)?.toString().slice(-8);
-  const notes = request.notes || request.description || request.additionalInfo || request.specialRequirements;
+  const notes = request.customerNotes || request.customer_notes || request.notes || request.description || request.additionalInfo || request.specialRequirements || request.additional_details || request.other_info;
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -211,7 +242,28 @@ export default function SelfDriveQuoteRequestDetailScreen({ route, navigation })
               <Text style={styles.sendQuoteBtnText}>Send Quote</Text>
             </TouchableOpacity>
           )}
+          {request.hasQuoted && (
+            <View style={styles.quotedBadge}>
+              <Ionicons name="checkmark-circle" size={14} color="#10B981" />
+              <Text style={styles.quotedBadgeText}>Quoted</Text>
+            </View>
+          )}
         </View>
+
+        {request.hasQuoted && (
+          <View style={styles.quotedBanner}>
+            <Ionicons name="checkmark-circle" size={22} color="#10B981" />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.quotedBannerTitle}>You've already sent a quote</Text>
+              {request.vendorQuote?.grandTotal ? (
+                <Text style={styles.quotedBannerAmount}>
+                  ₹{Number(request.vendorQuote.grandTotal).toLocaleString('en-IN')}
+                  {request.vendorQuote?.status ? `  •  ${request.vendorQuote.status}` : ''}
+                </Text>
+              ) : null}
+            </View>
+          </View>
+        )}
 
         <View style={styles.content}>
           {/* Customer Information */}
@@ -237,30 +289,68 @@ export default function SelfDriveQuoteRequestDetailScreen({ route, navigation })
                   </View>
                 </View>
               )}
-              {customerPhone && (
-                <View style={styles.infoRow}>
-                  <Ionicons name="call" size={18} color="#64748B" />
-                  <View style={styles.infoContent}>
-                    <Text style={styles.infoLabel}>Phone</Text>
-                    <Text style={styles.infoValue}>{customerPhone}</Text>
-                  </View>
-                </View>
-              )}
             </View>
           </View>
 
           {/* Vehicle Information */}
-          {carType && (
+          {(vehicleModelName || vehicleBrand || vehicleTypeDisplay || transmission || fuelType) && (
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
                 <MaterialCommunityIcons name="car" size={20} color="#64748B" />
-                <Text style={styles.sectionTitle}>Vehicle Requested</Text>
+                <Text style={styles.sectionTitle}>Vehicle Preference</Text>
               </View>
               <View style={styles.card}>
                 <View style={styles.vehicleInfo}>
                   <MaterialCommunityIcons name="car" size={32} color={GREEN} />
-                  <Text style={styles.vehicleName}>{carType}</Text>
+                  <View style={{ flex: 1 }}>
+                    {vehicleModelName ? (
+                      <>
+                        <View style={styles.vehicleHeader}>
+                          <Text style={styles.vehicleName}>{vehicleModelName}</Text>
+                          {vehicleTypeDisplay && (
+                            <View style={styles.categoryBadge}>
+                              <Text style={styles.categoryText}>{vehicleTypeDisplay}</Text>
+                            </View>
+                          )}
+                        </View>
+                        {vehicleBrand && (
+                          <Text style={styles.vehicleBrand}>{vehicleBrand}</Text>
+                        )}
+                      </>
+                    ) : (
+                      <>
+                        <View style={styles.vehicleHeader}>
+                          <Text style={styles.vehicleName}>{vehicleTypeDisplay || 'Vehicle'}</Text>
+                        </View>
+                        {vehicleBrand && (
+                          <Text style={styles.vehicleBrand}>{vehicleBrand}</Text>
+                        )}
+                      </>
+                    )}
+                  </View>
                 </View>
+                {(transmission || fuelType) && (
+                  <View style={styles.vehicleSpecsRow}>
+                    {transmissionName && (
+                      <View style={styles.specItem}>
+                        <MaterialCommunityIcons name="car-shift-pattern" size={18} color="#64748B" />
+                        <View style={styles.specContent}>
+                          <Text style={styles.specLabel}>Transmission</Text>
+                          <Text style={styles.specValue}>{transmissionName}</Text>
+                        </View>
+                      </View>
+                    )}
+                    {fuelTypeName && (
+                      <View style={styles.specItem}>
+                        <MaterialCommunityIcons name="gas-station" size={18} color="#64748B" />
+                        <View style={styles.specContent}>
+                          <Text style={styles.specLabel}>Fuel Type</Text>
+                          <Text style={styles.specValue}>{fuelTypeName}</Text>
+                        </View>
+                      </View>
+                    )}
+                  </View>
+                )}
               </View>
             </View>
           )}
@@ -269,7 +359,7 @@ export default function SelfDriveQuoteRequestDetailScreen({ route, navigation })
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <Ionicons name="calendar-outline" size={20} color="#64748B" />
-              <Text style={styles.sectionTitle}>Booking Details</Text>
+              <Text style={styles.sectionTitle}>Rental Details</Text>
             </View>
             <View style={styles.card}>
               <View style={styles.infoRow}>
@@ -279,28 +369,66 @@ export default function SelfDriveQuoteRequestDetailScreen({ route, navigation })
                   <Text style={styles.infoValue}>{pickupLocation}</Text>
                 </View>
               </View>
-              {dropLocation && (
+              {destination && (
                 <View style={styles.infoRow}>
                   <Ionicons name="location" size={18} color="#EF4444" />
                   <View style={styles.infoContent}>
-                    <Text style={styles.infoLabel}>Drop Location</Text>
-                    <Text style={styles.infoValue}>{dropLocation}</Text>
+                    <Text style={styles.infoLabel}>Destination</Text>
+                    <Text style={styles.infoValue}>{destination}</Text>
                   </View>
                 </View>
               )}
-              <View style={styles.infoRow}>
-                <Ionicons name="calendar" size={18} color="#64748B" />
-                <View style={styles.infoContent}>
-                  <Text style={styles.infoLabel}>Pickup Date</Text>
-                  <Text style={styles.infoValue}>{formatDate(pickupDate)}</Text>
+              <View style={styles.dateTimeRow}>
+                <View style={styles.dateTimeItem}>
+                  <Ionicons name="calendar" size={16} color="#64748B" />
+                  <View style={styles.dateTimeContent}>
+                    <Text style={styles.infoLabel}>Pickup Date</Text>
+                    <Text style={styles.dateTimeValue}>{formatDate(pickupDate)}</Text>
+                  </View>
+                </View>
+                <View style={styles.dateTimeItem}>
+                  <Ionicons name="time" size={16} color="#64748B" />
+                  <View style={styles.dateTimeContent}>
+                    <Text style={styles.infoLabel}>Time</Text>
+                    <Text style={styles.dateTimeValue}>{formatTime(pickupTime)}</Text>
+                  </View>
                 </View>
               </View>
               {returnDate && (
+                <View style={styles.dateTimeRow}>
+                  <View style={styles.dateTimeItem}>
+                    <Ionicons name="calendar" size={16} color="#64748B" />
+                    <View style={styles.dateTimeContent}>
+                      <Text style={styles.infoLabel}>Return Date</Text>
+                      <Text style={styles.dateTimeValue}>{formatDate(returnDate)}</Text>
+                    </View>
+                  </View>
+                  <View style={styles.dateTimeItem}>
+                    <Ionicons name="time" size={16} color="#64748B" />
+                    <View style={styles.dateTimeContent}>
+                      <Text style={styles.infoLabel}>Time</Text>
+                      <Text style={styles.dateTimeValue}>{formatTime(returnTime)}</Text>
+                    </View>
+                  </View>
+                </View>
+              )}
+              {passengers && (
                 <View style={styles.infoRow}>
-                  <Ionicons name="calendar" size={18} color="#64748B" />
+                  <Ionicons name="people" size={18} color="#64748B" />
                   <View style={styles.infoContent}>
-                    <Text style={styles.infoLabel}>Return Date</Text>
-                    <Text style={styles.infoValue}>{formatDate(returnDate)}</Text>
+                    <Text style={styles.infoLabel}>Total Passengers</Text>
+                    <Text style={styles.infoValue}>{passengers}</Text>
+                  </View>
+                </View>
+              )}
+              {doorstepDelivery !== null && doorstepDelivery !== undefined && (
+                <View style={styles.infoRow}>
+                  <MaterialCommunityIcons name="truck-delivery" size={18} color="#64748B" />
+                  <View style={styles.infoContent}>
+                    <Text style={styles.infoLabel}>Doorstep Delivery</Text>
+                    <Text style={[styles.infoValue, { color: isDoorstepDelivery ? GREEN : '#EF4444' }]}>
+                      {isDoorstepDelivery ? 'Yes' : 'No'}
+                    </Text>
                   </View>
                 </View>
               )}
@@ -355,6 +483,20 @@ export default function SelfDriveQuoteRequestDetailScreen({ route, navigation })
           </TouchableOpacity>
         </View>
       )}
+      {request.hasQuoted && (
+        <View style={styles.quotedBottomBar}>
+          <Ionicons name="checkmark-circle" size={22} color="#10B981" />
+          <View style={{ flex: 1, marginLeft: 10 }}>
+            <Text style={styles.quotedBottomTitle}>Quote Already Sent</Text>
+            {request.vendorQuote?.grandTotal ? (
+              <Text style={styles.quotedBottomSub}>
+                ₹{Number(request.vendorQuote.grandTotal).toLocaleString('en-IN')}
+                {request.vendorQuote?.status ? `  •  ${request.vendorQuote.status}` : ''}
+              </Text>
+            ) : null}
+          </View>
+        </View>
+      )}
     </SafeAreaView>
   );
 }
@@ -383,6 +525,18 @@ const styles = StyleSheet.create({
   headerCenter: { alignItems: 'center', flex: 1 },
   headerTitle: { fontSize: 18, fontWeight: '700', color: DARK },
   headerSubtitle: { fontSize: 12, color: '#64748B', marginTop: 2 },
+
+  skeletonBanner: { height: 80, backgroundColor: '#E2E8F0', borderRadius: 16, marginHorizontal: 16, marginTop: 16 },
+  skeletonCard: { backgroundColor: '#fff', borderRadius: 16, padding: 16, borderWidth: 1, borderColor: '#E2E8F0', gap: 12, marginBottom: 20 },
+  skeletonLine: { height: 12, backgroundColor: '#E2E8F0', borderRadius: 6, width: '100%' },
+  quotedBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#DCFCE7', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 10 },
+  quotedBadgeText: { fontSize: 12, fontWeight: '600', color: '#166534' },
+  quotedBanner: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F0FDF4', marginHorizontal: 16, marginTop: 10, borderRadius: 14, padding: 14, gap: 10, borderWidth: 1, borderColor: '#BBF7D0' },
+  quotedBannerTitle: { fontSize: 13, fontWeight: '700', color: '#166534' },
+  quotedBannerAmount: { fontSize: 12, color: '#166534', marginTop: 2 },
+  quotedBottomBar: { flexDirection: 'row', alignItems: 'center', padding: 16, backgroundColor: '#F0FDF4', borderTopWidth: 1, borderTopColor: '#BBF7D0' },
+  quotedBottomTitle: { fontSize: 14, fontWeight: '700', color: '#166534' },
+  quotedBottomSub: { fontSize: 12, color: '#166534', marginTop: 2 },
 
   loaderWrap: {
     flex: 1,
@@ -447,8 +601,52 @@ const styles = StyleSheet.create({
   infoLabel: { fontSize: 12, color: '#64748B', marginBottom: 2 },
   infoValue: { fontSize: 14, color: DARK, fontWeight: '600' },
 
-  vehicleInfo: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  vehicleInfo: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
+  vehicleHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+    marginBottom: 4,
+  },
   vehicleName: { fontSize: 16, fontWeight: '700', color: DARK, flex: 1 },
+  vehicleBrand: { fontSize: 13, color: '#64748B', marginTop: 0 },
+  categoryBadge: {
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  categoryText: { fontSize: 11, fontWeight: '600', color: '#92400E' },
+
+  vehicleSpecsRow: {
+    flexDirection: 'row',
+    gap: 12,
+    paddingTop: 8,
+  },
+  specItem: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+  },
+  specContent: { flex: 1 },
+  specLabel: { fontSize: 11, color: '#64748B', marginBottom: 2 },
+  specValue: { fontSize: 13, fontWeight: '600', color: DARK },
+
+  dateTimeRow: {
+    flexDirection: 'row',
+    gap: 12,
+    paddingTop: 8,
+  },
+  dateTimeItem: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+  },
+  dateTimeContent: { flex: 1 },
+  dateTimeValue: { fontSize: 13, fontWeight: '600', color: DARK, marginTop: 2 },
 
   notesText: { fontSize: 14, color: '#475569', lineHeight: 20 },
 

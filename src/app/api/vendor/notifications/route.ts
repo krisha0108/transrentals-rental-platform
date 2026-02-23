@@ -1,10 +1,9 @@
 // @ts-nocheck
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
-import { transformPrismaResponse } from '@/lib/utils/api-transform';
 import { getVendorAuth } from '@/lib/auth/vendor-mobile-auth';
-
 import logger from '@/lib/security/logger';
+
 export const dynamic = 'force-dynamic';
 
 // GET - Fetch all notifications for the logged-in vendor
@@ -16,13 +15,13 @@ export async function GET(request: NextRequest) {
     }
     const vendorId = auth.vendorId;
 
-    // Fetch notifications from SiteSetting
     const settingKey = `vendor_notifications_${vendorId}`;
     const setting = await prisma.settings.findUnique({
       where: { key: settingKey },
     });
 
-    const notifications = (setting?.value as any)?.notifications || getSampleNotifications();
+    const parsed = setting?.value ? JSON.parse(setting.value as string) : {};
+    const notifications = parsed?.notifications || [];
 
     return NextResponse.json({ notifications });
   } catch (error) {
@@ -34,7 +33,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST - Mark notifications as read
+// POST - Mark notifications as read / delete
 export async function POST(request: NextRequest) {
   try {
     const auth = await getVendorAuth(request);
@@ -49,7 +48,14 @@ export async function POST(request: NextRequest) {
       where: { key: settingKey },
     });
 
-    const data = (existing?.value as any) || { notifications: getSampleNotifications() };
+    // Always start from real DB data — never fall back to dummy
+    const data: any = existing?.value
+      ? JSON.parse(existing.value as string)
+      : { notifications: [] };
+
+    if (!Array.isArray(data.notifications)) {
+      data.notifications = [];
+    }
 
     if (body.action === 'markAllRead') {
       data.notifications = data.notifications.map((n: any) => ({ ...n, read: true }));
@@ -61,12 +67,15 @@ export async function POST(request: NextRequest) {
       data.notifications = data.notifications.filter(
         (n: any) => !body.notificationIds.includes(n.id)
       );
+    } else {
+      return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
     }
 
+    const serialized = JSON.stringify(data);
     await prisma.settings.upsert({
       where: { key: settingKey },
-      create: { key: settingKey, value: data },
-      update: { value: data },
+      create: { key: settingKey, value: serialized },
+      update: { value: serialized },
     });
 
     return NextResponse.json({ success: true, notifications: data.notifications });
@@ -77,80 +86,4 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
-}
-
-// Sample notifications for demonstration
-function getSampleNotifications() {
-  const now = Date.now();
-  return [
-    {
-      id: 'n1',
-      type: 'booking',
-      title: 'New Booking Request',
-      message: 'You have a new booking request for Toyota Fortuner from Rahul Sharma.',
-      bookingId: 'BK001',
-      read: false,
-      createdAt: new Date(now - 1800000).toISOString(), // 30 mins ago
-    },
-    {
-      id: 'n2',
-      type: 'booking',
-      title: 'Booking Confirmed',
-      message: 'Booking #TR2024110045 has been confirmed by customer Amit Kumar.',
-      bookingId: 'BK003',
-      read: false,
-      createdAt: new Date(now - 7200000).toISOString(), // 2 hours ago
-    },
-    {
-      id: 'n3',
-      type: 'review',
-      title: 'New Review Received',
-      message: 'Priya Patel left a 4-star review for your Honda City service.',
-      reviewId: '2',
-      read: false,
-      createdAt: new Date(now - 86400000).toISOString(), // 1 day ago
-    },
-    {
-      id: 'n4',
-      type: 'payment',
-      title: 'Payment Received',
-      message: 'Payment of ₹8,500 received for booking #TR2024110032.',
-      bookingId: 'BK004',
-      read: true,
-      createdAt: new Date(now - 172800000).toISOString(), // 2 days ago
-    },
-    {
-      id: 'n5',
-      type: 'system',
-      title: 'Profile Approved',
-      message: 'Congratulations! Your vendor profile has been approved. You can now receive bookings.',
-      read: true,
-      createdAt: new Date(now - 604800000).toISOString(), // 7 days ago
-    },
-    {
-      id: 'n6',
-      type: 'system',
-      title: 'Document Expiring Soon',
-      message: 'Your vehicle insurance for Maruti Swift (MH01AB1234) expires in 15 days. Please update.',
-      read: true,
-      createdAt: new Date(now - 864000000).toISOString(), // 10 days ago
-    },
-    {
-      id: 'n7',
-      type: 'payout',
-      title: 'Payout Processed',
-      message: 'Your payout of ₹25,000 has been processed and will be credited to your bank account within 2-3 business days.',
-      read: true,
-      createdAt: new Date(now - 1209600000).toISOString(), // 14 days ago
-    },
-    {
-      id: 'n8',
-      type: 'review',
-      title: 'New Review Received',
-      message: 'Sneha Reddy left a 5-star review for your Mercedes E-Class service. Great job!',
-      reviewId: '4',
-      read: true,
-      createdAt: new Date(now - 1728000000).toISOString(), // 20 days ago
-    },
-  ];
 }

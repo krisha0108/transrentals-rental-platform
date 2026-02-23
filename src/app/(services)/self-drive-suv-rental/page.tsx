@@ -3,10 +3,11 @@ import Link from 'next/link';
 import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
 import { FAQSection } from '@/components/services/FAQSection';
 import { ALL_CITIES } from '@/data/indian-cities';
+import { formatPriceHighlight } from '@/lib/utils';
 
 export const metadata: Metadata = {
-  title: 'Self Drive SUV Rental India | Rent SUV Without Driver @₹1999/Day | TransRentals',
-  description: 'Rent SUV without driver across India. Creta, Seltos, Scorpio, XUV700, Fortuner available. Self-drive SUV rental for road trips, family travel. Book online!',
+  title: formatPriceHighlight('Self Drive SUV Rental India | Rent SUV Without Driver @₹1999/Day | TransRentals'),
+  description: formatPriceHighlight('Rent SUV without driver across India. Creta, Seltos, Scorpio, XUV700, Fortuner available. Self-drive SUV rental for road trips, family travel. Book online!'),
   keywords: [
     'self drive suv rental',
     'suv on rent without driver',
@@ -16,8 +17,8 @@ export const metadata: Metadata = {
     'family suv rental',
   ],
   openGraph: {
-    title: 'Self Drive SUV Rental India @₹1999/Day | TransRentals',
-    description: 'Rent SUVs without driver. Creta, Seltos, Scorpio, Fortuner available.',
+    title: formatPriceHighlight('Self Drive SUV Rental India @₹1999/Day | TransRentals'),
+    description: formatPriceHighlight('Rent SUVs without driver. Creta, Seltos, Scorpio, Fortuner available.'),
     type: 'website',
     url: 'https://transrentals.in/self-drive-suv-rental',
   },

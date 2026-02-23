@@ -13,7 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Feather';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import { getQuoteRequests } from '../../../api/client';
+import { getQuoteRequestById } from '../../../api/client';
 
 const GREEN = '#09B368';
 const BG = '#F5F5F7';
@@ -44,44 +44,9 @@ export default function LuxuryQuoteRequestDetailScreen({ route, navigation }) {
     console.log('🔍 [LuxuryRequestDetail] Fetching request with ID:', requestId);
 
     try {
-      // FIX: Fetch ALL pages to find the request
-      let allRequests = [];
-      let page = 1;
-      let hasMore = true;
-
-      while (hasMore && page <= 10) { // Max 10 pages to prevent infinite loop
-        console.log(`📄 [LuxuryRequestDetail] Fetching page ${page}...`);
-        const response = await getQuoteRequests('luxury', { page, limit: 20 });
-        const pageRequests = response.quoteRequests || response.requests || response.data || [];
-
-        allRequests = [...allRequests, ...pageRequests];
-
-        // Check if we found the request
-        const found = pageRequests.find(r => {
-          const itemId = (r.id || r._id)?.toString();
-          const searchId = requestId?.toString();
-          return itemId === searchId;
-        });
-
-        if (found) {
-          console.log('✅ [LuxuryRequestDetail] Request found on page', page);
-          setRequest(found);
-          setLoading(false);
-          setRefreshing(false);
-          return;
-        }
-
-        // Check if there are more pages
-        const pagination = response.pagination || {};
-        hasMore = page < (pagination.totalPages || 1);
-        page++;
-      }
-
-      // If we reach here, request was not found
-      console.log('❌ [LuxuryRequestDetail] Request not found after checking all pages');
-      console.log('Total requests checked:', allRequests.length);
-      Alert.alert('Error', 'Request not found');
-
+      const data = await getQuoteRequestById('luxury', requestId);
+      const requestData = data.request || data;
+      setRequest({ ...requestData, hasQuoted: data.hasQuoted, vendorQuote: data.vendorQuote });
     } catch (error) {
       console.error('Error fetching request detail:', error);
       Alert.alert('Error', 'Failed to load request details');
@@ -110,6 +75,19 @@ export default function LuxuryQuoteRequestDetailScreen({ route, navigation }) {
     });
   };
 
+  const formatTime = (timeStr) => {
+    if (!timeStr) return 'N/A';
+    // Handle both HH:MM and HH:MM:SS formats
+    const timeParts = timeStr.split(':');
+    let hours = parseInt(timeParts[0], 10);
+    const minutes = timeParts[1] || '00';
+
+    const period = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12 || 12; // Convert 0 to 12 for 12 AM
+
+    return `${hours}:${minutes} ${period}`;
+  };
+
   const getStatusIcon = (status) => {
     switch (status?.toUpperCase()) {
       case 'PENDING':
@@ -134,10 +112,28 @@ export default function LuxuryQuoteRequestDetailScreen({ route, navigation }) {
   if (loading) {
     return (
       <SafeAreaView style={styles.safe} edges={['top']}>
-        <View style={styles.loaderWrap}>
-          <ActivityIndicator size="large" color={GREEN} />
-          <Text style={styles.loaderText}>Loading request details...</Text>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+            <Icon name="arrow-left" size={22} color={DARK} />
+          </TouchableOpacity>
+          <View style={styles.headerCenter}>
+            <Text style={styles.headerTitle}>Request Details</Text>
+            <Text style={styles.headerSubtitle}>Luxury Car</Text>
+          </View>
+          <View style={{ width: 40 }} />
         </View>
+        <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+          <View style={styles.skeletonBanner} />
+          <View style={{ padding: 16, paddingTop: 8 }}>
+            {[1, 2, 3].map(i => (
+              <View key={i} style={styles.skeletonCard}>
+                <View style={styles.skeletonLine} />
+                <View style={[styles.skeletonLine, { width: '70%' }]} />
+                <View style={[styles.skeletonLine, { width: '50%' }]} />
+              </View>
+            ))}
+          </View>
+        </ScrollView>
       </SafeAreaView>
     );
   }
@@ -164,33 +160,52 @@ export default function LuxuryQuoteRequestDetailScreen({ route, navigation }) {
   const status = request.status?.toUpperCase() || 'PENDING';
   const statusColor = STATUS_COLORS[status] || '#6B7280';
 
+  // Customer Information
   const customerName = request.customerName || request.customer_name || 'Customer';
   const customerEmail = request.customerEmail || request.customer_email;
   const customerPhone = request.customerPhone || request.customer_phone;
-  const pickupCity = request.pickupCity || request.pickup_location || request.pickupLocation || 'N/A';
+
+  // Location Details
+  const pickupLocation = request.pickupLocation || request.pickup_location || request.pickupCity || 'N/A';
   const pickupAddress = request.pickupAddress || request.pickup_address;
-  const dropCity = request.dropCity || request.drop_location || request.dropLocation;
-  const dropAddress = request.dropAddress || request.drop_address;
-  const pickupDate = request.pickupDate || request.pickup_date || request.startDate;
-  const pickupTime = request.pickupTime || request.pickup_time;
+  const destination = request.destination || request.drop_location || request.dropLocation || request.dropCity;
+  const destinationAddress = request.destinationAddress || request.destination_address || request.dropAddress || request.drop_address;
+
+  // Date & Time Details
+  const startDate = request.startDate || request.pickup_date || request.pickupDate;
+  const startTime = request.startTime || request.pickup_time || request.pickupTime || '10:00';
   const returnDate = request.returnDate || request.return_date || request.endDate;
-  const returnTime = request.returnTime || request.return_time;
-  const vehicleType = request.vehicleType || request.vehicle_type || request.vehicleCategory;
-  const vehicleCategoryName = request.vehicleCategoryName || request.vehicle_category_name;
-  const specificModel = request.specificModel || request.specific_model;
+  const returnTime = request.returnTime || request.return_time || request.dropTime || '10:00';
+
+  // Booking Type & Package
+  const bookingType = request.bookingType || request.booking_type || 'N/A';
+  const packageType = request.packageType || request.package_type;
+
+  // Vehicle Details
+  const vehicleModelName = request.vehicleModelName || request.vehicle_model_name || request.specificModel || request.specific_model;
+  const vehicleBrand = request.vehicleBrand || request.vehicle_brand;
+  const vehicleCategory = request.vehicleCategory || request.vehicle_category;
+  const vehicleCategoryName = request.vehicleCategoryName || request.vehicle_category_name || vehicleCategory;
+
+  // Trip Details
   const passengers = request.passengers;
   const tripType = request.tripType || request.trip_type;
   const occasion = request.occasion;
   const tripDays = request.tripDays || request.trip_days;
   const tripHours = request.tripHours || request.trip_hours;
-  const packageType = request.packageType || request.package_type;
+
+  // Requirements
   const needChauffeur = request.needChauffeur !== false;
   const needDecoration = request.needDecoration === true;
   const decorationType = request.decorationType || request.decoration_type;
+
+  // Budget Information
   const budgetMin = request.budgetMin || request.budget_min;
   const budgetMax = request.budgetMax || request.budget_max;
+
+  // Request Metadata
   const requestNumber = request.requestNumber || request.request_number || (request.id || request._id)?.toString().slice(-8);
-  const notes = request.requirements || request.notes || request.description || request.additionalInfo || request.specialRequirements;
+  const notes = request.customerNotes || request.customer_notes || request.notes || request.requirements || request.description || request.additionalInfo || request.specialRequirements;
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -228,7 +243,28 @@ export default function LuxuryQuoteRequestDetailScreen({ route, navigation }) {
               <Text style={styles.sendQuoteBtnText}>Send Quote</Text>
             </TouchableOpacity>
           )}
+          {request.hasQuoted && (
+            <View style={styles.quotedBadge}>
+              <Ionicons name="checkmark-circle" size={14} color="#10B981" />
+              <Text style={styles.quotedBadgeText}>Quoted</Text>
+            </View>
+          )}
         </View>
+
+        {request.hasQuoted && (
+          <View style={styles.quotedBanner}>
+            <Ionicons name="checkmark-circle" size={22} color="#10B981" />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.quotedBannerTitle}>You've already sent a quote</Text>
+              {request.vendorQuote?.grandTotal ? (
+                <Text style={styles.quotedBannerAmount}>
+                  ₹{Number(request.vendorQuote.grandTotal).toLocaleString('en-IN')}
+                  {request.vendorQuote?.status ? `  •  ${request.vendorQuote.status}` : ''}
+                </Text>
+              ) : null}
+            </View>
+          </View>
+        )}
 
         <View style={styles.content}>
           {/* Customer Information */}
@@ -254,40 +290,57 @@ export default function LuxuryQuoteRequestDetailScreen({ route, navigation }) {
                   </View>
                 </View>
               )}
-              {customerPhone && (
-                <View style={styles.infoRow}>
-                  <Ionicons name="call" size={18} color="#64748B" />
-                  <View style={styles.infoContent}>
-                    <Text style={styles.infoLabel}>Phone</Text>
-                    <Text style={styles.infoValue}>{customerPhone}</Text>
-                  </View>
-                </View>
-              )}
             </View>
           </View>
 
-          {/* Vehicle & Trip Information */}
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <MaterialCommunityIcons name="car-sport" size={20} color="#64748B" />
-              <Text style={styles.sectionTitle}>Vehicle & Trip Details</Text>
-            </View>
-            <View style={styles.card}>
-              {(vehicleType || vehicleCategoryName) && (
-                <View style={styles.infoRow}>
-                  <MaterialCommunityIcons name="car-sport" size={18} color="#64748B" />
-                  <View style={styles.infoContent}>
-                    <Text style={styles.infoLabel}>Vehicle Category</Text>
-                    <Text style={styles.infoValue}>{vehicleCategoryName || vehicleType}</Text>
+          {/* Vehicle Information */}
+          {(vehicleModelName || vehicleCategoryName) && (
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <MaterialCommunityIcons name="car-sports" size={20} color="#64748B" />
+                <Text style={styles.sectionTitle}>Vehicle Preference</Text>
+              </View>
+              <View style={styles.card}>
+                <View style={styles.vehicleInfo}>
+                  <MaterialCommunityIcons name="car-sports" size={32} color={GREEN} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.vehicleName}>
+                      {vehicleModelName || 'Any Luxury Car'}
+                    </Text>
+                    {vehicleBrand && (
+                      <Text style={styles.vehicleBrand}>{vehicleBrand}</Text>
+                    )}
+                    {vehicleCategoryName && (
+                      <View style={styles.categoryBadge}>
+                        <Text style={styles.categoryText}>{vehicleCategoryName}</Text>
+                      </View>
+                    )}
                   </View>
                 </View>
-              )}
-              {specificModel && (
+              </View>
+            </View>
+          )}
+
+          {/* Booking Type & Package */}
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Ionicons name="pricetag-outline" size={20} color="#64748B" />
+              <Text style={styles.sectionTitle}>Booking Type & Package</Text>
+            </View>
+            <View style={styles.card}>
+              <View style={styles.infoRow}>
+                <Ionicons name="timer-outline" size={18} color="#64748B" />
+                <View style={styles.infoContent}>
+                  <Text style={styles.infoLabel}>Booking Type</Text>
+                  <Text style={styles.infoValue}>{bookingType}</Text>
+                </View>
+              </View>
+              {packageType && (
                 <View style={styles.infoRow}>
-                  <MaterialCommunityIcons name="car-info" size={18} color="#64748B" />
+                  <Ionicons name="cube-outline" size={18} color="#64748B" />
                   <View style={styles.infoContent}>
-                    <Text style={styles.infoLabel}>Preferred Model</Text>
-                    <Text style={styles.infoValue}>{specificModel}</Text>
+                    <Text style={styles.infoLabel}>Package</Text>
+                    <Text style={styles.infoValue}>{packageType}</Text>
                   </View>
                 </View>
               )}
@@ -300,15 +353,6 @@ export default function LuxuryQuoteRequestDetailScreen({ route, navigation }) {
                   </View>
                 </View>
               )}
-              {tripType && (
-                <View style={styles.infoRow}>
-                  <Ionicons name="navigate" size={18} color="#64748B" />
-                  <View style={styles.infoContent}>
-                    <Text style={styles.infoLabel}>Trip Type</Text>
-                    <Text style={styles.infoValue}>{tripType.charAt(0).toUpperCase() + tripType.slice(1)}</Text>
-                  </View>
-                </View>
-              )}
               {occasion && (
                 <View style={styles.infoRow}>
                   <Ionicons name="star" size={18} color="#64748B" />
@@ -318,36 +362,14 @@ export default function LuxuryQuoteRequestDetailScreen({ route, navigation }) {
                   </View>
                 </View>
               )}
-              {packageType && (
-                <View style={styles.infoRow}>
-                  <Ionicons name="time" size={18} color="#64748B" />
-                  <View style={styles.infoContent}>
-                    <Text style={styles.infoLabel}>Package</Text>
-                    <Text style={styles.infoValue}>{packageType}</Text>
-                  </View>
-                </View>
-              )}
-              {(tripDays || tripHours) && (
-                <View style={styles.infoRow}>
-                  <Ionicons name="timer" size={18} color="#64748B" />
-                  <View style={styles.infoContent}>
-                    <Text style={styles.infoLabel}>Duration</Text>
-                    <Text style={styles.infoValue}>
-                      {tripDays ? `${tripDays} day${tripDays > 1 ? 's' : ''}` : ''}
-                      {tripDays && tripHours ? ', ' : ''}
-                      {tripHours ? `${tripHours} hour${tripHours > 1 ? 's' : ''}` : ''}
-                    </Text>
-                  </View>
-                </View>
-              )}
             </View>
           </View>
 
-          {/* Route & Schedule */}
+          {/* Trip Details */}
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <Ionicons name="location-outline" size={20} color="#64748B" />
-              <Text style={styles.sectionTitle}>Route & Schedule</Text>
+              <Ionicons name="calendar-outline" size={20} color="#64748B" />
+              <Text style={styles.sectionTitle}>Trip Details</Text>
             </View>
             <View style={styles.card}>
               <View style={styles.infoRow}>
@@ -355,42 +377,54 @@ export default function LuxuryQuoteRequestDetailScreen({ route, navigation }) {
                 <View style={styles.infoContent}>
                   <Text style={styles.infoLabel}>Pickup Location</Text>
                   <Text style={styles.infoValue}>
-                    {pickupCity}
+                    {pickupLocation}
                     {pickupAddress ? `\n${pickupAddress}` : ''}
                   </Text>
                 </View>
               </View>
-              {dropCity && (
+              {destination && (
                 <View style={styles.infoRow}>
                   <Ionicons name="location" size={18} color="#EF4444" />
                   <View style={styles.infoContent}>
-                    <Text style={styles.infoLabel}>Drop Location</Text>
+                    <Text style={styles.infoLabel}>Destination</Text>
                     <Text style={styles.infoValue}>
-                      {dropCity}
-                      {dropAddress ? `\n${dropAddress}` : ''}
+                      {destination}
+                      {destinationAddress ? `\n${destinationAddress}` : ''}
                     </Text>
                   </View>
                 </View>
               )}
-              <View style={styles.infoRow}>
-                <Ionicons name="calendar" size={18} color="#64748B" />
-                <View style={styles.infoContent}>
-                  <Text style={styles.infoLabel}>Pickup Date & Time</Text>
-                  <Text style={styles.infoValue}>
-                    {formatDate(pickupDate)}
-                    {pickupTime ? ` at ${pickupTime}` : ''}
-                  </Text>
+              <View style={styles.dateTimeRow}>
+                <View style={styles.dateTimeItem}>
+                  <Ionicons name="calendar" size={16} color="#64748B" />
+                  <View style={styles.dateTimeContent}>
+                    <Text style={styles.infoLabel}>Start Date</Text>
+                    <Text style={styles.dateTimeValue}>{formatDate(startDate)}</Text>
+                  </View>
+                </View>
+                <View style={styles.dateTimeItem}>
+                  <Ionicons name="time" size={16} color="#64748B" />
+                  <View style={styles.dateTimeContent}>
+                    <Text style={styles.infoLabel}>Time</Text>
+                    <Text style={styles.dateTimeValue}>{formatTime(startTime)}</Text>
+                  </View>
                 </View>
               </View>
               {returnDate && (
-                <View style={styles.infoRow}>
-                  <Ionicons name="calendar" size={18} color="#64748B" />
-                  <View style={styles.infoContent}>
-                    <Text style={styles.infoLabel}>Return Date & Time</Text>
-                    <Text style={styles.infoValue}>
-                      {formatDate(returnDate)}
-                      {returnTime ? ` at ${returnTime}` : ''}
-                    </Text>
+                <View style={styles.dateTimeRow}>
+                  <View style={styles.dateTimeItem}>
+                    <Ionicons name="calendar" size={16} color="#64748B" />
+                    <View style={styles.dateTimeContent}>
+                      <Text style={styles.infoLabel}>Return Date</Text>
+                      <Text style={styles.dateTimeValue}>{formatDate(returnDate)}</Text>
+                    </View>
+                  </View>
+                  <View style={styles.dateTimeItem}>
+                    <Ionicons name="time" size={16} color="#64748B" />
+                    <View style={styles.dateTimeContent}>
+                      <Text style={styles.infoLabel}>Time</Text>
+                      <Text style={styles.dateTimeValue}>{formatTime(returnTime)}</Text>
+                    </View>
                   </View>
                 </View>
               )}
@@ -400,7 +434,7 @@ export default function LuxuryQuoteRequestDetailScreen({ route, navigation }) {
           {/* Requirements */}
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <Ionicons name="list-outline" size={20} color="#64748B" />
+              <MaterialCommunityIcons name="shield-check" size={20} color="#64748B" />
               <Text style={styles.sectionTitle}>Requirements</Text>
             </View>
             <View style={styles.card}>
@@ -408,40 +442,55 @@ export default function LuxuryQuoteRequestDetailScreen({ route, navigation }) {
                 <Ionicons name="person-outline" size={18} color="#64748B" />
                 <View style={styles.infoContent}>
                   <Text style={styles.infoLabel}>Chauffeur</Text>
-                  <Text style={[styles.infoValue, { color: needChauffeur ? GREEN : '#EF4444' }]}>
+                  <Text style={[styles.infoValue, { color: needChauffeur ? GREEN : '#64748B' }]}>
                     {needChauffeur ? 'Required' : 'Not Required'}
                   </Text>
                 </View>
               </View>
-              <View style={styles.infoRow}>
-                <MaterialCommunityIcons name="party-popper" size={18} color="#64748B" />
-                <View style={styles.infoContent}>
-                  <Text style={styles.infoLabel}>Decoration</Text>
-                  <Text style={[styles.infoValue, { color: needDecoration ? GREEN : '#64748B' }]}>
-                    {needDecoration ? (decorationType || 'Required') : 'Not Required'}
-                  </Text>
-                </View>
-              </View>
-              {(budgetMin || budgetMax) && (
+              {needDecoration && (
                 <View style={styles.infoRow}>
-                  <Ionicons name="cash-outline" size={18} color="#64748B" />
+                  <MaterialCommunityIcons name="party-popper" size={18} color="#64748B" />
                   <View style={styles.infoContent}>
-                    <Text style={styles.infoLabel}>Budget Range</Text>
-                    <Text style={styles.infoValue}>
-                      ₹{budgetMin ? budgetMin.toLocaleString('en-IN') : '0'} - ₹{budgetMax ? budgetMax.toLocaleString('en-IN') : '0'}
-                    </Text>
+                    <Text style={styles.infoLabel}>Decoration</Text>
+                    <Text style={styles.infoValue}>{decorationType || 'Required'}</Text>
                   </View>
                 </View>
               )}
             </View>
           </View>
 
-          {/* Additional Notes */}
+          {/* Budget Range */}
+          {(budgetMin || budgetMax) && (
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <Ionicons name="wallet-outline" size={20} color="#64748B" />
+                <Text style={styles.sectionTitle}>Budget Range</Text>
+              </View>
+              <View style={styles.card}>
+                <View style={styles.budgetRow}>
+                  {budgetMin && (
+                    <View style={styles.budgetItem}>
+                      <Text style={styles.budgetLabel}>Minimum</Text>
+                      <Text style={styles.budgetValue}>₹{budgetMin?.toLocaleString()}</Text>
+                    </View>
+                  )}
+                  {budgetMax && (
+                    <View style={styles.budgetItem}>
+                      <Text style={styles.budgetLabel}>Maximum</Text>
+                      <Text style={styles.budgetValue}>₹{budgetMax?.toLocaleString()}</Text>
+                    </View>
+                  )}
+                </View>
+              </View>
+            </View>
+          )}
+
+          {/* Customer Notes */}
           {notes && (
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
                 <Ionicons name="chatbox-outline" size={20} color="#64748B" />
-                <Text style={styles.sectionTitle}>Special Requirements</Text>
+                <Text style={styles.sectionTitle}>Customer Notes</Text>
               </View>
               <View style={styles.card}>
                 <Text style={styles.notesText}>{notes}</Text>
@@ -484,6 +533,20 @@ export default function LuxuryQuoteRequestDetailScreen({ route, navigation }) {
           </TouchableOpacity>
         </View>
       )}
+      {request.hasQuoted && (
+        <View style={styles.quotedBottomBar}>
+          <Ionicons name="checkmark-circle" size={22} color="#10B981" />
+          <View style={{ flex: 1, marginLeft: 10 }}>
+            <Text style={styles.quotedBottomTitle}>Quote Already Sent</Text>
+            {request.vendorQuote?.grandTotal ? (
+              <Text style={styles.quotedBottomSub}>
+                ₹{Number(request.vendorQuote.grandTotal).toLocaleString('en-IN')}
+                {request.vendorQuote?.status ? `  •  ${request.vendorQuote.status}` : ''}
+              </Text>
+            ) : null}
+          </View>
+        </View>
+      )}
     </SafeAreaView>
   );
 }
@@ -512,6 +575,19 @@ const styles = StyleSheet.create({
   headerCenter: { alignItems: 'center', flex: 1 },
   headerTitle: { fontSize: 18, fontWeight: '700', color: DARK },
   headerSubtitle: { fontSize: 12, color: '#64748B', marginTop: 2 },
+
+  skeletonBanner: { height: 80, backgroundColor: '#E2E8F0', borderRadius: 16, marginHorizontal: 16, marginTop: 16 },
+  skeletonCard: { backgroundColor: '#fff', borderRadius: 16, padding: 16, borderWidth: 1, borderColor: '#E2E8F0', gap: 12, marginBottom: 20 },
+  skeletonLine: { height: 12, backgroundColor: '#E2E8F0', borderRadius: 6, width: '100%' },
+
+  quotedBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#DCFCE7', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 10 },
+  quotedBadgeText: { fontSize: 12, fontWeight: '600', color: '#166534' },
+  quotedBanner: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F0FDF4', marginHorizontal: 16, marginTop: 10, borderRadius: 14, padding: 14, gap: 10, borderWidth: 1, borderColor: '#BBF7D0' },
+  quotedBannerTitle: { fontSize: 13, fontWeight: '700', color: '#166534' },
+  quotedBannerAmount: { fontSize: 12, color: '#166534', marginTop: 2 },
+  quotedBottomBar: { flexDirection: 'row', alignItems: 'center', padding: 16, backgroundColor: '#F0FDF4', borderTopWidth: 1, borderTopColor: '#BBF7D0' },
+  quotedBottomTitle: { fontSize: 14, fontWeight: '700', color: '#166534' },
+  quotedBottomSub: { fontSize: 12, color: '#166534', marginTop: 2 },
 
   loaderWrap: {
     flex: 1,
@@ -576,8 +652,47 @@ const styles = StyleSheet.create({
   infoLabel: { fontSize: 12, color: '#64748B', marginBottom: 2 },
   infoValue: { fontSize: 14, color: DARK, fontWeight: '600' },
 
-  vehicleInfo: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  vehicleName: { fontSize: 16, fontWeight: '700', color: DARK, flex: 1 },
+  vehicleInfo: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
+  vehicleName: { fontSize: 16, fontWeight: '700', color: DARK },
+  vehicleBrand: { fontSize: 13, color: '#64748B', marginTop: 2 },
+  categoryBadge: {
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+    alignSelf: 'flex-start',
+    marginTop: 6,
+  },
+  categoryText: { fontSize: 11, fontWeight: '600', color: '#92400E' },
+
+  dateTimeRow: {
+    flexDirection: 'row',
+    gap: 12,
+    paddingTop: 8,
+  },
+  dateTimeItem: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+  },
+  dateTimeContent: { flex: 1 },
+  dateTimeValue: { fontSize: 13, fontWeight: '600', color: DARK, marginTop: 2 },
+
+  budgetRow: {
+    flexDirection: 'row',
+    gap: 16,
+  },
+  budgetItem: {
+    flex: 1,
+    backgroundColor: '#F0FDF4',
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#BBF7D0',
+  },
+  budgetLabel: { fontSize: 11, color: '#166534', marginBottom: 4 },
+  budgetValue: { fontSize: 16, fontWeight: '700', color: '#15803D' },
 
   notesText: { fontSize: 14, color: '#475569', lineHeight: 20 },
 

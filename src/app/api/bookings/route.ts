@@ -7,6 +7,7 @@ import {
   RATE_LIMITS,
   logger,
 } from '@/lib/security';
+import { sendQuoteRequestNotificationToVendors } from '@/lib/utils/vendor-notification-sender';
 
 export const dynamic = 'force-dynamic';
 
@@ -677,6 +678,16 @@ async function handleTruckQuoteRequest(customerInfo: { name: string; email: stri
     },
   });
 
+  sendQuoteRequestNotificationToVendors({
+    requestId: quoteRequest.id,
+    requestNumber: quoteRequest.requestNumber,
+    locationId: pickupLocation?.id || (bookingData.location_name as string),
+    locationName: pickupLocation?.name || (bookingData.location_name as string),
+    customerName: customerInfo.name,
+    serviceType: 'truck',
+    serviceDisplayName: 'Truck Rental',
+  }).catch((err: any) => console.error('[Notification] Truck failed:', err));
+
   return {
     success: true,
     message: 'Your truck rental request has been submitted! Vendors will send quotes within 24-48 hours.',
@@ -728,6 +739,16 @@ async function handlePackersQuoteRequest(customerInfo: { name: string; email: st
       quotesOpenTill,
     },
   });
+
+  sendQuoteRequestNotificationToVendors({
+    requestId: quoteRequest.id,
+    requestNumber: quoteRequest.requestNumber,
+    locationId: pickupLocation?.id || (bookingData.location_name as string),
+    locationName: pickupLocation?.name || (bookingData.location_name as string),
+    customerName: customerInfo.name,
+    serviceType: 'packers',
+    serviceDisplayName: 'Packers & Movers',
+  }).catch((err: any) => console.error('[Notification] Packers failed:', err));
 
   return {
     success: true,
@@ -793,6 +814,16 @@ async function handleEquipmentQuoteRequest(customerInfo: { name: string; email: 
     },
   });
 
+  sendQuoteRequestNotificationToVendors({
+    requestId: quoteRequest.id,
+    requestNumber: quoteRequest.requestNumber,
+    locationId: location?.id || (bookingData.location_name as string),
+    locationName: location?.name || (bookingData.location_name as string),
+    customerName: customerInfo.name,
+    serviceType: 'equipment',
+    serviceDisplayName: 'Equipment Rental',
+  }).catch((err: any) => console.error('[Notification] Equipment failed:', err));
+
   return {
     success: true,
     message: 'Your equipment rental request has been submitted! Vendors will send quotes within 24-48 hours.',
@@ -847,6 +878,16 @@ async function handleBusQuoteRequest(customerInfo: { name: string; email: string
       quotesOpenTill,
     },
   });
+
+  sendQuoteRequestNotificationToVendors({
+    requestId: quoteRequest.id,
+    requestNumber: quoteRequest.requestNumber,
+    locationId: pickupLocation?.id || (bookingData.location_name as string),
+    locationName: pickupLocation?.name || (bookingData.location_name as string),
+    customerName: customerInfo.name,
+    serviceType: 'bus',
+    serviceDisplayName: 'Bus Rental',
+  }).catch((err: any) => console.error('[Notification] Bus failed:', err));
 
   return {
     success: true,

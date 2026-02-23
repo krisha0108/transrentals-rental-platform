@@ -488,12 +488,13 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   categoryContainer: {
-    maxHeight: 50,
+    maxHeight: 56,
     marginBottom: 12,
   },
   categoryContent: {
     paddingHorizontal: 16,
-    gap: 8,
+    paddingVertical: 8,
+    alignItems: 'center',
   },
   categoryChip: {
     flexDirection: 'row',
@@ -504,7 +505,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFF',
     borderWidth: 1,
     borderColor: SERVICE_COLOR,
-    gap: 6,
+    marginRight: 8,
+    height: 40,
+    justifyContent: 'center',
   },
   categoryChipActive: {
     backgroundColor: SERVICE_COLOR,

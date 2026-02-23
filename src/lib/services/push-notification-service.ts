@@ -79,8 +79,8 @@ export async function sendPushNotification(
       android: {
         priority: 'high',
         notification: {
-          channelId: 'transrentals_notifications',
-          sound: 'default',
+          channelId: 'default_v3',
+          sound: 'notification_sound',
         },
       },
       apns: {
@@ -128,8 +128,8 @@ export async function sendMulticastNotification(
       android: {
         priority: 'high',
         notification: {
-          channelId: 'transrentals_notifications',
-          sound: 'default',
+          channelId: 'default_v3',
+          sound: 'notification_sound',
         },
       },
       apns: {

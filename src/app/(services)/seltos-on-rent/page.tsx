@@ -3,13 +3,14 @@ import Link from 'next/link';
 import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
 import { FAQSection } from '@/components/services/FAQSection';
 import { ALL_CITIES } from '@/data/indian-cities';
+import { formatPriceHighlight } from '@/lib/utils';
 
 export const metadata: Metadata = {
-  title: 'Seltos on Rent Without Driver | Self Drive Seltos @₹1899/Day | TransRentals',
-  description: 'Rent Kia Seltos without driver across India. Self-drive Seltos rental for family trips & outstation. HTK, HTX, GTX variants. Book now!',
+  title: formatPriceHighlight('Seltos on Rent Without Driver | Self Drive Seltos @₹1899/Day | TransRentals'),
+  description: formatPriceHighlight('Rent Kia Seltos without driver across India. Self-drive Seltos rental for family trips & outstation. HTK, HTX, GTX variants. Book now!'),
   keywords: ['seltos on rent', 'kia seltos on rent', 'seltos self drive', 'rent seltos without driver'],
   openGraph: {
-    title: 'Seltos on Rent Without Driver @₹1899/Day | TransRentals',
+    title: formatPriceHighlight('Seltos on Rent Without Driver @₹1899/Day | TransRentals'),
     url: 'https://transrentals.in/seltos-on-rent',
   },
   alternates: { canonical: 'https://transrentals.in/seltos-on-rent' },

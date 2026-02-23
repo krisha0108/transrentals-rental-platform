@@ -2,10 +2,11 @@ import { Metadata } from 'next';
 import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
 import { ServiceLocationsGrid } from '@/components/services/ServiceLocationsGrid';
 import { ServiceFleetDisplay } from '@/components/services/ServiceFleetDisplay';
+import { formatPriceHighlight } from '@/lib/utils';
 
 export const metadata: Metadata = {
-  title: 'Tempo Traveller on Rent | 12, 17 Seater @₹18/Km | Force Traveller Booking',
-  description: 'Rent Tempo Traveller for group travel. 12 seater, 17 seater, 20 seater available. Family trips, pilgrimages, corporate events. Book force traveller online.',
+  title: formatPriceHighlight('Tempo Traveller on Rent | 12, 17 Seater @₹18/Km | Force Traveller Booking'),
+  description: formatPriceHighlight('Rent Tempo Traveller for group travel. 12 seater, 17 seater, 20 seater available. Family trips, pilgrimages, corporate events. Book force traveller online.'),
   keywords: [
     'tempo traveller on rent',
     '12 seater tempo traveller',
@@ -21,8 +22,8 @@ export const metadata: Metadata = {
     'tempo for outstation',
   ],
   openGraph: {
-    title: 'Tempo Traveller on Rent India | 12-17 Seater @₹18/Km | TransRentals',
-    description: 'Book Tempo Traveller for group travel across India. Comfortable AC vehicles for family trips and corporate events.',
+    title: formatPriceHighlight('Tempo Traveller on Rent India | 12-17 Seater @₹18/Km | TransRentals'),
+    description: formatPriceHighlight('Book Tempo Traveller for group travel across India. Comfortable AC vehicles for family trips and corporate events.'),
   },
 };
 

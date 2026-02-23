@@ -137,6 +137,7 @@ export async function GET(request: NextRequest) {
           rentalDuration: r.rentalDays,
           rentalDays: r.rentalDays,
           durationUnit: r.rentalDuration,
+          jobDuration: r.rentalDuration,
           city: cityName,
           pickupCity: cityName,
           pickupLocation: cityName,
@@ -157,8 +158,10 @@ export async function GET(request: NextRequest) {
           quotesOpenTill: r.quotesOpenTill,
           expiresAt: r.expiresAt,
           myQuote: r.equipment_quotes[0] || null,
+          hasQuoted: r.equipment_quotes.length > 0,
           location: r.locations,
           createdAt: r.createdAt,
+          updatedAt: r.updatedAt,
         };
       }),
       pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },

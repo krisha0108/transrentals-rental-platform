@@ -2,10 +2,11 @@ import { Metadata } from 'next';
 import Link from 'next/link';
 import { getCitiesByPriority } from '@/data/indian-cities';
 import { CarRentalBookingHero } from '@/components/car-rental/CarRentalBookingHero';
+import { formatPriceHighlight } from '@/lib/utils';
 
 export const metadata: Metadata = {
-  title: 'Outstation Cab | Intercity Taxi @₹12/Km | Round Trip Car Rental India',
-  description: 'Book outstation taxi for intercity travel. Round trip & one-way cabs. Sedan, SUV, tempo available. Station taxi service across India. AC cars @₹12/km.',
+  title: formatPriceHighlight('Outstation Cab | Intercity Taxi @₹12/Km | Round Trip Car Rental India'),
+  description: formatPriceHighlight('Book outstation taxi for intercity travel. Round trip & one-way cabs. Sedan, SUV, tempo available. Station taxi service across India. AC cars @₹12/km.'),
   keywords: [
     'outstation cab',
     'outstation taxi',
@@ -21,8 +22,8 @@ export const metadata: Metadata = {
     'station cab service',
   ],
   openGraph: {
-    title: 'Outstation Cab India | Intercity Taxi @₹12/Km | Round Trip',
-    description: 'Book outstation cabs for intercity travel across India. Sedan, SUV available. Round trip & one-way options.',
+    title: formatPriceHighlight('Outstation Cab India | Intercity Taxi @₹12/Km | Round Trip'),
+    description: formatPriceHighlight('Book outstation cabs for intercity travel across India. Sedan, SUV available. Round trip & one-way options.'),
   },
 };
 

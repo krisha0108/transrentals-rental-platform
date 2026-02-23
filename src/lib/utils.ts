@@ -72,6 +72,15 @@ export function capitalize(text: string): string {
 }
 
 /**
+ * Format price highlight string (e.g., "@₹3999/day" -> "Starting from ₹3999")
+ */
+export function formatPriceHighlight(text: string): string {
+  if (!text) return '';
+  // Replace pattern like "Starting @₹2499/day" or "@₹2499/day" with "Starting from ₹2499"
+  return text.replace(/(?:Starting\s+)?@₹(\d+)(?:\/day)?/gi, 'Starting from ₹$1');
+}
+
+/**
  * Truncate text to specified length
  */
 export function truncate(text: string, length: number): string {
@@ -126,7 +135,7 @@ export function generateMetaDescription(content: string, maxLength = 160): strin
   return truncate(stripped, maxLength);
 }
 
- const ASSET_BASE_URL = (process.env.NEXT_PUBLIC_APP_URL || 'https://transrentals.com').replace(/\/$/, '');
+const ASSET_BASE_URL = (process.env.NEXT_PUBLIC_APP_URL || 'https://transrentals.com').replace(/\/$/, '');
 
 export function resolveAssetUrl(path?: string): string {
   if (!path) return ASSET_BASE_URL;

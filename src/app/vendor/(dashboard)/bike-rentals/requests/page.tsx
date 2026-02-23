@@ -25,7 +25,7 @@ interface QuoteRequest {
   requestNumber: string;
   vehicleModelName?: string;
   vehicleBrand?: string;
-  chauffeur_vehicle_categories: string;
+  vehicleCategory?: string;
   vehicleCategoryName?: string;
   customerName: string;
   customerPhone: string;
@@ -233,7 +233,7 @@ export default function VendorBikeRequestsPage() {
                     <div>
                       <div className="flex items-center gap-2 mb-1">
                         <h3 className="font-bold text-gray-900">
-                          {request.vehicle_modelsName || request.vehicleCategoryName || request.vehicle_category || 'Any Bike'}
+                          {request.vehicleModelName || request.vehicleCategoryName || 'Any Bike'}
                         </h3>
                         {request.vehicleBrand && (
                           <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded-full">

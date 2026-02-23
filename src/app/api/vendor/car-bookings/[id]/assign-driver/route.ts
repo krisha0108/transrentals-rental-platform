@@ -5,6 +5,8 @@ import { getVendorAuth } from '@/lib/auth/vendor-mobile-auth';
 import { prisma } from '@/lib/db/prisma';
 import { transformPrismaResponse } from '@/lib/utils/api-transform';
 
+import { sendPushNotification } from '@/lib/services/push-notification-service';
+import { saveDriverNotification } from '@/lib/utils/driver-notification-sender';
 import logger from '@/lib/security/logger';
 export const dynamic = 'force-dynamic';
 
@@ -80,6 +82,34 @@ export async function POST(
         driverAssignedAt: new Date(),
       },
     });
+
+    // Notify assigned driver via FCM
+    try {
+      const driverStaff = await prisma.vendor_staff.findFirst({
+        where: { phone: driverPhone, vendorId },
+        select: { id: true, fcmToken: true },
+      });
+      if (driverStaff) {
+        const notifTitle = '🚗 New Booking Assigned!';
+        const notifBody = `You have been assigned to Chauffeur Booking #${booking.bookingNumber}. Vehicle: ${vehicleNumber}. Please check your app for details.`;
+        const notifData = { type: 'driver_assigned', bookingId: booking.id, bookingNumber: booking.bookingNumber, serviceType: 'car' };
+        if (driverStaff.fcmToken) {
+          sendPushNotification(driverStaff.fcmToken, { title: notifTitle, body: notifBody }, notifData)
+            .catch((err: any) => console.error('[CarAssign] Driver FCM failed:', err));
+        }
+        saveDriverNotification({
+          staffId: driverStaff.id,
+          title: notifTitle,
+          body: notifBody,
+          type: 'booking_assigned',
+          serviceType: 'car',
+          bookingId: booking.id,
+          bookingNumber: booking.bookingNumber,
+        }).catch((err: any) => console.error('[CarAssign] Driver in-app notif failed:', err));
+      }
+    } catch (driverNotifErr) {
+      console.error('[CarAssign] Driver notification lookup failed:', driverNotifErr);
+    }
 
     return NextResponse.json({
       success: true,

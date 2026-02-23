@@ -2,14 +2,15 @@ import { Metadata } from 'next';
 import Link from 'next/link';
 import { getCitiesByPriority } from '@/data/indian-cities';
 import { CarRentalBookingHero } from '@/components/car-rental/CarRentalBookingHero';
+import { formatPriceHighlight } from '@/lib/utils';
 
 export const metadata: Metadata = {
-  title: 'One Way Car Rental - Drop at Different City @₹1299 | TransRentals',
-  description: 'One-way car rental service across India. Rent a car and drop it at a different city. No return trip needed. Convenient one-way travel. Book online instantly.',
+  title: formatPriceHighlight('One Way Car Rental - Drop at Different City @₹1299 | TransRentals'),
+  description: formatPriceHighlight('One-way car rental service across India. Rent a car and drop it at a different city. No return trip needed. Convenient one-way travel. Book online instantly.'),
   keywords: ['one way car rental', 'one way car hire', 'drop car different city', 'one way cab', 'intercity car rental', 'city to city car rental'],
   openGraph: {
-    title: 'One Way Car Rental India - Starting @₹1299 | TransRentals',
-    description: 'Rent a car and drop it at a different city. No return trip required. One-way car rental across 250+ Indian cities.',
+    title: formatPriceHighlight('One Way Car Rental India - Starting @₹1299 | TransRentals'),
+    description: formatPriceHighlight('Rent a car and drop it at a different city. No return trip required. One-way car rental across 250+ Indian cities.'),
   },
 };
 

@@ -13,7 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Feather';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import api from '../../../../lib/api';
+import { getTemplates, deleteTemplate, updateTemplate } from '../../../api/client';
 
 const C = {
   bg: '#F7FAFC',
@@ -36,13 +36,18 @@ export default function BusTemplatesScreen({ navigation }) {
 
   const fetchTemplates = useCallback(async () => {
     try {
-      const response = await api.get('/vendor/bus-templates');
-      if (response.data.success) {
-        setTemplates(response.data.templates || []);
+      const data = await getTemplates('bus');
+      if (data && data.templates) {
+        setTemplates(data.templates);
+      } else if (Array.isArray(data)) {
+        setTemplates(data);
+      } else {
+        setTemplates([]);
       }
     } catch (error) {
       console.error('Error fetching templates:', error);
       Alert.alert('Error', 'Failed to fetch templates');
+      setTemplates([]);
     } finally {
       setLoading(false);
       setRefreshing(false);

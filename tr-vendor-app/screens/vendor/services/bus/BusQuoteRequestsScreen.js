@@ -123,6 +123,8 @@ export default function BusQuoteRequestsScreen({ navigation }) {
     const statusColor = STATUS_COLORS[status] || '#6B7280';
 
     const customerName = item.customerName || item.customer_name || 'Customer';
+    const tripType = item.tripType || item.trip_type || item.serviceType || item.service_type;
+    const serviceType = tripType === 'outstation' || tripType === '1' ? 'Outstation' : tripType === 'local' || tripType === '2' ? 'Local' : tripType;
     const pickupLocation = item.pickupLocation || item.pickup_location || item.pickupCity || 'N/A';
     const dropLocation = item.dropLocation || item.drop_location || item.dropCity;
     const pickupDate = item.pickupDate || item.pickup_date || item.startDate;
@@ -162,6 +164,16 @@ export default function BusQuoteRequestsScreen({ navigation }) {
           <Ionicons name="person-circle-outline" size={18} color="#64748B" />
           <Text style={styles.infoText}>{customerName}</Text>
         </View>
+
+        {/* Service Type */}
+        {serviceType && (
+          <View style={styles.infoRow}>
+            <MaterialCommunityIcons name="bus" size={16} color="#64748B" />
+            <View style={styles.serviceBadge}>
+              <Text style={styles.serviceText}>{serviceType}</Text>
+            </View>
+          </View>
+        )}
 
         {/* Location */}
         <View style={styles.locationRow}>
@@ -303,9 +315,20 @@ export default function BusQuoteRequestsScreen({ navigation }) {
 
       {/* Content */}
       {loading && filteredRequests.length === 0 ? (
-        <View style={styles.loaderWrap}>
-          <ActivityIndicator size="large" color={GREEN} />
-        </View>
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.skeletonContainer} showsVerticalScrollIndicator={false}>
+          {[1, 2, 3, 4].map(i => (
+            <View key={i} style={styles.skeletonCard}>
+              <View style={styles.skeletonHeaderRow}>
+                <View style={styles.skeletonCircle} />
+                <View style={styles.skeletonBlock} />
+                <View style={[styles.skeletonBlock, { width: 70, flex: 0 }]} />
+              </View>
+              <View style={styles.skeletonLine} />
+              <View style={[styles.skeletonLine, { width: '80%' }]} />
+              <View style={[styles.skeletonLine, { width: '55%' }]} />
+            </View>
+          ))}
+        </ScrollView>
       ) : (
         <FlatList
           data={filteredRequests}
@@ -381,6 +404,12 @@ const styles = StyleSheet.create({
   },
 
   loaderWrap: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: BG },
+  skeletonContainer: { padding: 16, paddingBottom: 100 },
+  skeletonCard: { backgroundColor: '#fff', borderRadius: 16, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: '#E2E8F0' },
+  skeletonHeaderRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: '#F1F5F9' },
+  skeletonCircle: { width: 32, height: 32, borderRadius: 16, backgroundColor: '#E2E8F0' },
+  skeletonBlock: { flex: 1, height: 16, backgroundColor: '#E2E8F0', borderRadius: 8 },
+  skeletonLine: { height: 12, backgroundColor: '#E2E8F0', borderRadius: 6, width: '100%', marginBottom: 8 },
   listContent: { padding: 16, paddingBottom: 100 },
 
   card: {
@@ -518,5 +547,17 @@ const styles = StyleSheet.create({
   },
   filterCountTextActive: {
     color: '#fff',
+  },
+
+  serviceBadge: {
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  serviceText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#92400E',
   },
 });

@@ -66,6 +66,7 @@ interface Driver {
   licenseNumber?: string;
   licenseType?: string;
   profilePhoto?: string;
+  isAvailableForDates?: boolean;
 }
 
 interface Vehicle {
@@ -75,6 +76,7 @@ interface Vehicle {
   color?: string;
   vehicle_model?: { id: string; name: string };
   service?: { id: string; name: string };
+  isAvailableForDates?: boolean;
 }
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: any }> = {
@@ -131,13 +133,30 @@ export default function VendorTruckBookingDetailPage() {
     }
   };
 
-  const fetchResources = async () => {
+  const fetchResources = async (pickupDate?: string) => {
     try {
-      const response = await fetch('/api/vendor/resources?type=all');
+      let url = '/api/vendor/resources?type=all';
+      if (pickupDate) {
+        const startDate = new Date(pickupDate).toISOString();
+        url += `&startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(startDate)}`;
+      }
+      const response = await fetch(url);
       const data = await response.json();
       if (data.success) {
-        setDrivers(data.drivers || []);
-        setVehicles(data.vehicles || []);
+        const driverList = data.drivers || [];
+        driverList.sort((a: Driver, b: Driver) => {
+          const aUnavail = a.isAvailableForDates === false ? 1 : 0;
+          const bUnavail = b.isAvailableForDates === false ? 1 : 0;
+          return aUnavail - bUnavail;
+        });
+        setDrivers(driverList);
+        const vehicleList = data.vehicles || [];
+        vehicleList.sort((a: Vehicle, b: Vehicle) => {
+          const aUnavail = a.isAvailableForDates === false ? 1 : 0;
+          const bUnavail = b.isAvailableForDates === false ? 1 : 0;
+          return aUnavail - bUnavail;
+        });
+        setVehicles(vehicleList);
       }
     } catch (err) {
       console.error('Failed to fetch resources:', err);
@@ -145,8 +164,10 @@ export default function VendorTruckBookingDetailPage() {
   };
 
   const handleOpenAssignModal = () => {
-    fetchResources();
+    fetchResources(booking?.pickupDate);
     setShowAssignModal(true);
+    setSelectedVehicleId('');
+    setSelectedDriverId('');
   };
 
   const handleAssign = async () => {
@@ -662,11 +683,15 @@ export default function VendorTruckBookingDetailPage() {
                         className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500"
                       >
                         <option value="">-- Select Driver --</option>
-                        {drivers.map((driver) => (
-                          <option key={driver.id} value={driver.id}>
-                            {driver.name} - {driver.phone} {driver.licenseNumber && `(${driver.licenseNumber})`}
-                          </option>
-                        ))}
+                        {drivers.map((driver) => {
+                          const isAssignedForDates = driver.isAvailableForDates === false;
+                          return (
+                            <option key={driver.id} value={driver.id} disabled={isAssignedForDates}>
+                              {driver.name} - {driver.phone} {driver.licenseNumber && `(${driver.licenseNumber})`}
+                              {isAssignedForDates ? ' — Assigned for this date' : ''}
+                            </option>
+                          );
+                        })}
                       </select>
                     ) : (
                       <div className="bg-yellow-50 p-3 rounded-lg text-sm text-yellow-700">
@@ -688,11 +713,15 @@ export default function VendorTruckBookingDetailPage() {
                         className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500"
                       >
                         <option value="">-- Select Vehicle --</option>
-                        {vehicles.map((vehicle) => (
-                          <option key={vehicle.id} value={vehicle.id}>
-                            {vehicle.registrationNumber || 'No Reg#'} - {vehicle.vehicle_model?.name || 'Unknown Model'}
-                          </option>
-                        ))}
+                        {vehicles.map((vehicle) => {
+                          const isBookedForDates = vehicle.isAvailableForDates === false;
+                          return (
+                            <option key={vehicle.id} value={vehicle.id} disabled={isBookedForDates}>
+                              {vehicle.registrationNumber || 'No Reg#'} - {vehicle.vehicle_model?.name || 'Unknown Model'}
+                              {isBookedForDates ? ' — Booked for these dates' : ''}
+                            </option>
+                          );
+                        })}
                       </select>
                     ) : (
                       <div className="bg-yellow-50 p-3 rounded-lg text-sm text-yellow-700">

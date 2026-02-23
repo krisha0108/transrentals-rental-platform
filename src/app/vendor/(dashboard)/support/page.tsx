@@ -65,12 +65,36 @@ export default function VendorSupportPage() {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
+  const [contactSettings, setContactSettings] = useState({
+    contactEmail: 'vendor-support@transrentals.in',
+    contactPhone: '+91 98765 43210',
+  });
 
   const [ticketForm, setTicketForm] = useState({
     subject: '',
     category: '',
     message: '',
   });
+
+  // Fetch contact settings on mount
+  React.useEffect(() => {
+    const fetchContactSettings = async () => {
+      try {
+        const response = await fetch('/api/public/contact-settings');
+        if (response.ok) {
+          const data = await response.json();
+          setContactSettings((prev) => ({
+            contactEmail: data.contactEmail || prev.contactEmail,
+            contactPhone: data.contactPhone || prev.contactPhone,
+          }));
+        }
+      } catch (err) {
+        console.error('Failed to fetch contact settings:', err);
+      }
+    };
+
+    fetchContactSettings();
+  }, []);
 
   const handleTicketChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -139,8 +163,8 @@ export default function VendorSupportPage() {
           </div>
           <h3 className="font-semibold text-gray-900">Email Us</h3>
           <p className="text-sm text-gray-500 mt-1">We reply within 24hrs</p>
-          <a href="mailto:vendor-support@transrentals.in" className="text-purple-600 font-medium mt-2 block hover:underline">
-            vendor-support@transrentals.in
+          <a href={`mailto:${contactSettings.contactEmail}`} className="text-purple-600 font-medium mt-2 block hover:underline">
+            {contactSettings.contactEmail}
           </a>
         </div>
       </div>

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 import { transformPrismaResponse } from '@/lib/utils/api-transform';
 import logger from '@/lib/security/logger';
+import { sendVendorDirectNotification } from '@/lib/utils/vendor-notification-sender';
 
 export const dynamic = 'force-dynamic';
 
@@ -198,6 +199,17 @@ export async function POST(
       bookingId: booking.id,
       bookingNumber: booking.bookingNumber,
     });
+
+    // Non-blocking: notify the vendor whose luxury quote was accepted
+    sendVendorDirectNotification({
+      vendorId: quote.vendorId,
+      title: '🎉 Quote Accepted!',
+      body: `Your luxury car quote has been accepted. Booking #${booking.bookingNumber} created. Payment pending from customer.`,
+      type: 'quote_accepted',
+      serviceType: 'luxury',
+      bookingId: booking.id,
+      bookingNumber: booking.bookingNumber,
+    }).catch((err: any) => console.error('[LuxuryAccept] Vendor notification failed:', err));
 
     return NextResponse.json({
       success: true,

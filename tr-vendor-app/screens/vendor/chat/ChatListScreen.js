@@ -40,7 +40,16 @@ export default function ChatListScreen({ navigation }) {
       const response = await apiGet('/vendor/chats');
       console.log('[ChatList] API Response:', response.data);
       console.log('[ChatList] Chats:', response.data?.chats);
-      setChats(response.data?.chats || []);
+      const rawChats = response.data?.chats || [];
+      // Deduplicate by bookingId to avoid duplicate key warnings
+      const seen = new Set();
+      const uniqueChats = rawChats.filter((chat) => {
+        const key = chat.bookingId || chat.id;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+      setChats(uniqueChats);
     } catch (error) {
       console.log('Error fetching chats:', error);
     } finally {

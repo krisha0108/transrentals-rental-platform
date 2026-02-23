@@ -4,6 +4,7 @@ import { transformPrismaResponse } from '@/lib/utils/api-transform';
 import crypto from 'crypto';
 
 import logger from '@/lib/security/logger';
+import { sendPushNotification } from '@/lib/services/push-notification-service';
 export const dynamic = 'force-dynamic';
 
 function generateId(): string {
@@ -285,6 +286,24 @@ export async function POST(
         vendorUnread: { increment: 1 },
       },
     });
+
+    // Send FCM push to vendor (no DB storage)
+    try {
+      const vendor = await prisma.vendors.findUnique({
+        where: { id: vendorId },
+        select: { fcmToken: true },
+      });
+      if (vendor?.fcmToken) {
+        const msgPreview = message.trim().length > 60 ? message.trim().substring(0, 60) + '...' : message.trim();
+        await sendPushNotification(
+          vendor.fcmToken,
+          { title: '💬 New message from customer', body: msgPreview },
+          { type: 'chat', screen: 'ChatDetail', bookingId }
+        );
+      }
+    } catch (notifErr) {
+      console.error('[CustomerChat] Vendor push notification failed:', notifErr);
+    }
 
     // Use display ID for frontend
     const displayCustomerId = effectiveCustomerId || `guest-${bookingId}`;

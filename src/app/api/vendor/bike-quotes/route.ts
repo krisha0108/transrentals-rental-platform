@@ -8,6 +8,7 @@ import { sendFCMNotification } from '@/lib/utils/fcm-helper';
 import crypto from 'crypto';
 
 import logger from '@/lib/security/logger';
+import { checkFleetAvailability } from '@/lib/utils/fleet-availability';
 export const dynamic = 'force-dynamic';
 
 // Helper to generate a cuid-like unique ID
@@ -102,6 +103,7 @@ export async function GET(request: NextRequest) {
         vehicleYear: q.vehicleYear,
         vendorFleetId: q.vendorFleetId,
         dailyRate: q.dailyRate,
+        totalPrice: q.totalPrice,
         totalAmount: q.totalAmount,
         gstAmount: q.gstAmount,
         securityDeposit: q.securityDeposit,
@@ -250,11 +252,27 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Check fleet vehicle availability for requested dates
+    if (vendorFleetId && quoteRequest.pickupDate) {
+      const bikeStart = new Date(quoteRequest.pickupDate);
+      const bikeEnd = quoteRequest.dropDate ? new Date(quoteRequest.dropDate) : bikeStart;
+      const availability = await checkFleetAvailability(vendorFleetId, bikeStart, bikeEnd);
+      if (!availability.available) {
+        return NextResponse.json(
+          { error: 'This vehicle is already booked for the requested dates. Please select a different vehicle.' },
+          { status: 409 }
+        );
+      }
+    }
+
     // Check if vendor already quoted
     const existingQuote = await prisma.bike_quotes.findFirst({
       where: {
         requestId,
         vendorId: vendorId,
+      },
+      select: {
+        id: true,
       },
     });
 
@@ -416,6 +434,7 @@ export async function POST(request: NextRequest) {
         quoteNumber: quote.quoteNumber,
         vehicleName: quote.vehicleName,
         dailyRate: quote.dailyRate,
+        totalPrice: quote.totalPrice,
         grandTotal: quote.grandTotal,
         advanceAmount: quote.advanceAmount,
         advancePercent: quote.advancePercent,

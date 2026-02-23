@@ -271,8 +271,10 @@ export default function ServiceFleetPage() {
         const res = await fetch(`/api/admin/services/${slug}/brands`);
         if (res.ok) {
           const data = await res.json();
-          setBrands(data.brands || []);
-          console.log(`[${slug}] Fetched ${data.brands?.length || 0} brands for this service`);
+          // Filter only active brands
+          const activeBrands = (data.brands || []).filter((brand: any) => brand.isActive !== false);
+          setBrands(activeBrands);
+          console.log(`[${slug}] Fetched ${activeBrands.length} active brands for this service`);
         }
       } catch (error) {
         console.error('Failed to fetch brands:', error);
@@ -942,7 +944,6 @@ export default function ServiceFleetPage() {
     }
   }, []);
 
-
   const fetchFleet = React.useCallback(async () => {
     setLoading(true);
     try {
@@ -1127,7 +1128,7 @@ export default function ServiceFleetPage() {
             >
               <option value="ALL">All Categories</option>
               {subServices.map((sub) => (
-                <option key={sub.slug} value={sub.name}>
+                <option key={sub.id} value={sub.id}>
                   {sub.name}
                 </option>
               ))}
@@ -1143,6 +1144,20 @@ export default function ServiceFleetPage() {
             <option value="ALL">All Status</option>
             <option value="ACTIVE">Active</option>
             <option value="INACTIVE">Inactive</option>
+          </select>
+
+          {/* Location Filter */}
+          <select
+            value={locationFilter}
+            onChange={(e) => setLocationFilter(e.target.value)}
+            className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="ALL">All Locations</option>
+            {allLocations.map((loc) => (
+              <option key={loc.id} value={loc.id}>
+                {loc.name}
+              </option>
+            ))}
           </select>
         </div>
       </div>

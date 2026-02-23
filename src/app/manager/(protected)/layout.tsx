@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { SessionProvider, useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { Loader2, Menu, X, Home, FileText, MapPin, Briefcase, LogOut, Users, Store, ClipboardList, MessageSquare } from 'lucide-react';
+import { Loader2, Menu, X, Home, FileText, MapPin, Briefcase, LogOut, Users, Store, MessageSquare, Headphones } from 'lucide-react';
 import Link from 'next/link';
 import { signOut } from 'next-auth/react';
 
@@ -12,9 +12,9 @@ const SIDEBAR_LINKS = [
   { href: '/manager/inquiries', label: 'My Inquiries', icon: FileText },
   { href: '/manager/bookings', label: 'My Bookings', icon: Briefcase },
   { href: '/manager/vendors', label: 'Vendors', icon: Store },
-  { href: '/manager/vendor-requests', label: 'Vendor Requests', icon: ClipboardList },
   { href: '/manager/chats', label: 'Chats', icon: MessageSquare },
   { href: '/manager/locations', label: 'My Locations', icon: MapPin },
+  { href: '/manager/helpdesk', label: 'Helpdesk', icon: Headphones },
 ];
 
 function ManagerSidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
@@ -40,16 +40,16 @@ function ManagerSidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => v
           {/* Header */}
           <div className="p-4 border-b border-green-500">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
-                  <Users className="w-6 h-6" />
+              <div className="flex items-center gap-2">
+                <div className="w-9 h-9 bg-white/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <Users className="w-5 h-5" />
                 </div>
-                <div>
-                  <h2 className="font-bold">Manager Panel</h2>
-                  <p className="text-xs text-green-200">TransRentals</p>
+                <div className="min-w-0">
+                  <h2 className="font-semibold text-sm truncate">Manager Panel</h2>
+                  <p className="text-xs text-green-200 truncate">TransRentals</p>
                 </div>
               </div>
-              <button onClick={onClose} className="lg:hidden p-2 hover:bg-white/10 rounded-lg">
+              <button onClick={onClose} className="lg:hidden p-2 hover:bg-white/10 rounded-lg flex-shrink-0">
                 <X className="w-5 h-5" />
               </button>
             </div>
