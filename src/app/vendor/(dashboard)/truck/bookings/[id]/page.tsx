@@ -8,7 +8,6 @@ import {
   Calendar,
   Clock,
   MapPin,
-  Phone,
   User,
   Mail,
   CheckCircle,
@@ -30,7 +29,7 @@ interface TruckBooking {
   id: string;
   bookingNumber: string;
   serviceType: string;
-  chauffeur_vehicle_categories: string;
+  vehicleCategory: string;
   vehicleName?: string;
   goodsType: string;
   weight?: number;
@@ -354,7 +353,7 @@ export default function VendorTruckBookingDetailPage() {
                   <Truck className="w-6 h-6 text-blue-600" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold text-gray-900">{getTruckTypeName(booking.vehicle_category)}</h2>
+                  <h2 className="text-xl font-bold text-gray-900">{booking.vehicleName || getTruckTypeName(booking.vehicleCategory) || booking.vehicleCategory}</h2>
                   <p className="text-gray-600">{booking.serviceType?.replace('-', ' ').toUpperCase() || 'Transport'}</p>
                 </div>
               </div>
@@ -413,15 +412,6 @@ export default function VendorTruckBookingDetailPage() {
                 <div>
                   <p className="text-xs text-gray-500">Name</p>
                   <p className="font-medium">{booking.customerName}</p>
-                </div>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs text-gray-500">Phone</p>
-                    <p className="font-medium">{booking.customerPhone}</p>
-                  </div>
-                  <a href={`tel:${booking.customerPhone}`} className="p-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-100">
-                    <Phone className="w-4 h-4" />
-                  </a>
                 </div>
                 {booking.customerEmail && (
                   <div>

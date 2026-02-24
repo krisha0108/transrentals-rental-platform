@@ -7,7 +7,7 @@ import {
   CalendarCheck,
   MapPin,
   Calendar,
-  Phone,
+
   Eye,
   Star,
   CheckCircle,
@@ -18,6 +18,21 @@ import {
 import { EQUIPMENT_CONFIG } from '@/lib/quote-services';
 import Pagination from '@/components/vendor/Pagination';
 import DateFilterDropdown from '@/components/vendor/DateFilterDropdown';
+
+// Equipment type ID to name mapping (IDs from customer booking form)
+const EQUIPMENT_TYPE_NAMES: Record<string, string> = {
+  '1': 'Grove Crane',
+  '2': 'Truck Mounted Crane',
+  '3': 'Tower Crane',
+  '4': 'Telescopic Crane',
+  '5': 'Rough Terrain Crane',
+  '6': 'Overhead Crane',
+  '7': 'Bulldozer',
+  '8': 'Dumper',
+  '9': 'Loader',
+  '10': 'Excavators',
+  '11': 'Backhoe Loader',
+};
 
 interface EquipmentBooking {
   id: string;
@@ -33,7 +48,7 @@ interface EquipmentBooking {
   city: string;
   deliveryAddress: string;
   customerName: string;
-  customerPhone: string;
+
   totalAmount: number;
   advanceAmount?: number;
   advancePaid?: number;
@@ -272,7 +287,7 @@ export default function VendorEquipmentBookingsPage() {
                         <Wrench className="w-6 h-6 text-amber-600" />
                       </div>
                       <div>
-                        <h3 className="font-bold text-gray-900">{booking.equipmentType}</h3>
+                        <h3 className="font-bold text-gray-900">{booking.equipmentName || EQUIPMENT_TYPE_NAMES[booking.equipmentType] || booking.equipmentType}</h3>
                         <p className="text-sm text-gray-500">{getCategoryName(booking.equipmentCategory)}</p>
                         <div className="flex items-center gap-1 text-sm text-gray-600 mt-1">
                           <MapPin className="w-4 h-4" />
@@ -310,9 +325,6 @@ export default function VendorEquipmentBookingsPage() {
                     <div>
                       <span className="text-xs text-gray-500 uppercase">Customer</span>
                       <p className="font-medium text-gray-900">{booking.customerName}</p>
-                      <p className="text-sm text-gray-600 flex items-center gap-1">
-                        <Phone className="w-3 h-3" />{booking.customerPhone}
-                      </p>
                     </div>
                     {booking.operatorName && (
                       <div>

@@ -7,7 +7,7 @@ import {
   CalendarCheck,
   MapPin,
   Calendar,
-  Phone,
+
   Eye,
   Star,
   CheckCircle,
@@ -28,7 +28,7 @@ interface JCBBooking {
   siteLocation: string;
   city: string;
   customerName: string;
-  customerPhone: string;
+
   totalAmount: number;
   advancePaid: number;
   balanceAmount: number;
@@ -58,7 +58,7 @@ const SAMPLE_BOOKINGS: JCBBooking[] = [
     siteLocation: 'Plot No. 45, Industrial Area',
     city: 'Faridabad',
     customerName: 'ABC Builders',
-    customerPhone: '9737965551',
+
     totalAmount: 84000,
     advancePaid: 42000,
     balanceAmount: 42000,
@@ -76,7 +76,7 @@ const SAMPLE_BOOKINGS: JCBBooking[] = [
     siteLocation: 'Stone Quarry',
     city: 'Hyderabad',
     customerName: 'Rock Mining Co.',
-    customerPhone: '9876543211',
+
     totalAmount: 450000,
     advancePaid: 450000,
     balanceAmount: 0,
@@ -231,9 +231,6 @@ export default function VendorJCBBookingsPage() {
                     <div>
                       <span className="text-xs text-gray-500 uppercase">Customer</span>
                       <p className="font-medium text-gray-900">{booking.customerName}</p>
-                      <p className="text-sm text-gray-600 flex items-center gap-1">
-                        <Phone className="w-3 h-3" />{booking.customerPhone}
-                      </p>
                     </div>
                     {booking.operatorName && (
                       <div>

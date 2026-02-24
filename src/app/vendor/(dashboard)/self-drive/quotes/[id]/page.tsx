@@ -47,7 +47,7 @@ interface Quote {
   quoteNumber: string;
   vehicleName: string;
   vehicleBrand?: string;
-  vehicle_category?: string;
+  vehicleCategory?: string;
   transmission?: string;
   fuelType?: string;
   seats?: number;
@@ -290,10 +290,10 @@ export default function VendorSelfDriveQuoteDetailPage() {
                   <p className="font-medium">{quote.vehicleBrand}</p>
                 </div>
               )}
-              {quote.vehicle_category && (
+              {quote.vehicleCategory && (
                 <div>
                   <p className="text-sm text-gray-500">Category</p>
-                  <p className="font-medium">{quote.vehicle_category}</p>
+                  <p className="font-medium">{quote.vehicleCategory}</p>
                 </div>
               )}
               {quote.transmission && (

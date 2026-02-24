@@ -379,7 +379,7 @@ export default function VendorLuxuryBookingsPage() {
                       </div>
                       <div>
                         <h3 className="font-bold text-gray-900">
-                          {item.vehicleName || item.vehicleCategoryName || VEHICLE_CATEGORIES[item.vehicle_category] || item.vehicle_category}
+                          {item.vehicleName || item.vehicleCategoryName || VEHICLE_CATEGORIES[item.chauffeur_vehicle_categories] || item.chauffeur_vehicle_categories}
                         </h3>
                         <p className="text-sm text-gray-500">
                           {TRIP_TYPES[item.tripType] || item.tripType}
@@ -521,13 +521,6 @@ export default function VendorLuxuryBookingsPage() {
                         View Details
                       </Link>
                     )}
-                    <a
-                      href={`tel:${item.customerPhone}`}
-                      className="px-4 py-2 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-200 flex items-center gap-2"
-                    >
-                      <Phone className="w-4 h-4" />
-                      Call
-                    </a>
                   </div>
                 </div>
               </div>

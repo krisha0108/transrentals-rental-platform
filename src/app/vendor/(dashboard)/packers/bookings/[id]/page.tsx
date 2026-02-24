@@ -8,7 +8,6 @@ import {
   Calendar,
   Clock,
   MapPin,
-  Phone,
   User,
   Mail,
   CheckCircle,
@@ -437,15 +436,6 @@ export default function VendorPackersBookingDetailPage() {
                 <div>
                   <p className="text-xs text-gray-500">Name</p>
                   <p className="font-medium">{booking.customerName}</p>
-                </div>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs text-gray-500">Phone</p>
-                    <p className="font-medium">{booking.customerPhone}</p>
-                  </div>
-                  <a href={`tel:${booking.customerPhone}`} className="p-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-100">
-                    <Phone className="w-4 h-4" />
-                  </a>
                 </div>
                 {booking.customerEmail && (
                   <div>

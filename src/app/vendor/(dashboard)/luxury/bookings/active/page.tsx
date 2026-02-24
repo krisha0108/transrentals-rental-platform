@@ -265,7 +265,7 @@ export default function VendorLuxuryActivePage() {
                       </div>
                       <div>
                         <h3 className="font-bold text-gray-900">
-                          {booking.assignedVehicle || booking.specificVehicle || booking.vehiclePreference || booking.vehicle_category}
+                          {booking.assignedVehicle || booking.specificVehicle || booking.vehiclePreference || booking.vehicleCategoryName || booking.chauffeur_vehicle_categories}
                         </h3>
                         <p className="text-sm text-gray-500">
                           {booking.dropCity
@@ -315,9 +315,6 @@ export default function VendorLuxuryActivePage() {
                       <div>
                         <p className="text-xs text-gray-500">Guest</p>
                         <p className="text-sm font-medium">{booking.customerName}</p>
-                        <a href={`tel:${booking.customerPhone}`} className="text-xs text-amber-600">
-                          {booking.customerPhone}
-                        </a>
                       </div>
                     </div>
                   </div>
@@ -405,13 +402,6 @@ export default function VendorLuxuryActivePage() {
                       </button>
                     )}
 
-                    <a
-                      href={`tel:${booking.customerPhone}`}
-                      className="px-4 py-2.5 bg-gray-100 text-gray-700 font-medium rounded-lg hover:bg-gray-200 transition flex items-center gap-2"
-                    >
-                      <Phone className="w-5 h-5" />
-                      Call Guest
-                    </a>
                   </div>
                 </div>
               </div>

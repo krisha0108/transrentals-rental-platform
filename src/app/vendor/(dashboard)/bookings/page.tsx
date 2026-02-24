@@ -7,7 +7,6 @@ import {
   Clock,
   MapPin,
   User,
-  Phone,
   Car,
   CheckCircle,
   XCircle,
@@ -330,10 +329,6 @@ export default function VendorBookingsPage() {
                         <div className="flex items-center gap-2 text-gray-700">
                           <User className="w-4 h-4 text-gray-400" />
                           <span className="font-medium">{booking.customerName}</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-gray-600">
-                          <Phone className="w-4 h-4 text-gray-400" />
-                          <span>{booking.customerPhone}</span>
                         </div>
                       </div>
 

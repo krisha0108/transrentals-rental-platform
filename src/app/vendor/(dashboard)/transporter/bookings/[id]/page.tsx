@@ -28,7 +28,7 @@ interface Booking {
   id: string;
   bookingNumber: string;
   serviceType: string;
-  chauffeur_vehicle_categories: string;
+  vehicleCategory: string;
   vehicleName: string;
   goodsType: string;
   goodsDescription?: string;
@@ -375,13 +375,6 @@ export default function VendorTruckBookingDetailPage() {
               <div>
                 <p className="text-sm text-gray-500">Name</p>
                 <p className="font-medium text-gray-900">{booking.customerName}</p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-500">Phone</p>
-                <a href={`tel:${booking.customerPhone}`} className="font-medium text-indigo-600 flex items-center gap-1">
-                  <Phone className="w-4 h-4" />
-                  {booking.customerPhone}
-                </a>
               </div>
               <div>
                 <p className="text-sm text-gray-500">Email</p>

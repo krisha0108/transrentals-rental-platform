@@ -23,7 +23,7 @@ interface Quote {
   id: string;
   quoteNumber: string;
   vehicleName: string;
-  chauffeur_vehicle_categories: string;
+  vehicleCategory: string;
   totalAmount: number;
   status: string;
   validTill: string;
@@ -208,7 +208,7 @@ export default function VendorTransporterQuotesPage() {
                       <div>
                         <h3 className="font-bold text-gray-900">{quote.request?.customerName || 'Customer'}</h3>
                         <p className="text-sm text-gray-500">
-                          {quote.vehicleName || getCategoryName(quote.vehicle_category)}
+                          {quote.vehicleName || getCategoryName(quote.vehicleCategory) || quote.vehicleCategory}
                         </p>
                         <div className="flex items-center gap-1 text-sm text-gray-600 mt-1">
                           <MapPin className="w-4 h-4" />

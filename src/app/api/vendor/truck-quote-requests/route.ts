@@ -123,9 +123,9 @@ export async function GET(request: NextRequest) {
         customerName: r.customerName,
         customerEmail: r.customerEmail,
         customerPhone: r.customerPhone,
-        serviceType: r.serviceType, // Personal/Commercial
+        serviceType: r.serviceType,
         vehicleCategory: r.vehicleCategory,
-        vehicleCategoryName: r.vehicleCategoryName, // Truck type
+        vehicleCategoryName: r.vehicleCategoryName,
         goodsType: r.goodsType,
         goodsDescription: r.goodsDescription,
         estimatedWeight: r.estimatedWeight,

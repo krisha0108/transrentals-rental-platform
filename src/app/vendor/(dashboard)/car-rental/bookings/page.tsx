@@ -641,18 +641,6 @@ export default function VendorCarRentalBookingsPage() {
                       </div>
                     </div>
 
-                    <div className="flex items-start gap-2">
-                      <Phone className="w-4 h-4 text-emerald-500 mt-0.5" />
-                      <div>
-                        <p className="text-xs text-gray-500">Phone</p>
-                        <a
-                          href={`tel:${booking.customerPhone}`}
-                          className="text-sm font-medium text-emerald-600 hover:underline"
-                        >
-                          {booking.customerPhone}
-                        </a>
-                      </div>
-                    </div>
                   </div>
 
                   {/* Driver Details (if assigned) */}

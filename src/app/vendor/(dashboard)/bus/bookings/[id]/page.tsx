@@ -8,7 +8,6 @@ import {
     Calendar,
     Clock,
     MapPin,
-    Phone,
     User,
     Mail,
     CheckCircle,
@@ -29,7 +28,7 @@ interface BusBooking {
     id: string;
     bookingNumber: string;
     tripType: string;
-    chauffeur_vehicle_categories: string;
+    vehicleCategory: string;
     vehicleName: string;
     passengers: number;
     customerName: string;
@@ -387,7 +386,7 @@ export default function VendorBusBookingDetailPage() {
                                 </div>
                                 <div>
                                     <h2 className="text-xl font-bold text-gray-900">{booking.vehicleName}</h2>
-                                    <p className="text-gray-600">{booking.vehicle_category} • {getTripTypeName(booking.tripType)}</p>
+                                    <p className="text-gray-600">{booking.vehicleName || booking.vehicleCategory} • {getTripTypeName(booking.tripType)}</p>
                                 </div>
                             </div>
                         </div>
@@ -461,15 +460,6 @@ export default function VendorBusBookingDetailPage() {
                                 <div>
                                     <p className="text-xs text-gray-500">Name</p>
                                     <p className="font-medium">{booking.customerName}</p>
-                                </div>
-                                <div className="flex items-center justify-between">
-                                    <div>
-                                        <p className="text-xs text-gray-500">Phone</p>
-                                        <p className="font-medium">{booking.customerPhone}</p>
-                                    </div>
-                                    <a href={`tel:${booking.customerPhone}`} className="p-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-100">
-                                        <Phone className="w-4 h-4" />
-                                    </a>
                                 </div>
                                 <div>
                                     <p className="text-xs text-gray-500">Email</p>
@@ -586,7 +576,7 @@ export default function VendorBusBookingDetailPage() {
                                     {/* Show assigned vehicle from quote */}
                                     {booking.vehicleNumber && (
                                         <p className="text-sm text-gray-600 italic pb-4 border-b border-indigo-200">
-                                            Vehicle: <strong>{booking.vehicleNumber}</strong> ({booking.vehicleName || booking.vehicle_category})
+                                            Vehicle: <strong>{booking.vehicleNumber}</strong> ({booking.vehicleName || booking.vehicleCategory})
                                         </p>
                                     )}
 
