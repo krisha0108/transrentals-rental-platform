@@ -115,7 +115,7 @@ export async function GET(request: NextRequest) {
           customerPhone: r.customerPhone,
           serviceType: r.serviceType,
           shiftingType: r.shiftingType,
-          specificType: r.propertySize, // Map propertySize to specificType
+          specificType: r.propertySize,
           propertySize: r.propertySize,
           inventoryList: r.inventoryList,
           hasHeavyItems: r.hasHeavyItems,
@@ -124,8 +124,8 @@ export async function GET(request: NextRequest) {
           fragileItemsDesc: r.fragileItemsDesc,
           hasVehicle: r.hasVehicle,
           vehicleDetails: r.vehicleDetails,
-          fromAddress: r.pickupAddress, // Map for frontend compatibility
-          toAddress: r.dropAddress, // Map for frontend compatibility
+          fromAddress: r.pickupAddress,
+          toAddress: r.dropAddress,
           pickupCity: r.pickupCity,
           pickupAddress: r.pickupAddress,
           pickupFloor: r.pickupFloor,
@@ -136,8 +136,8 @@ export async function GET(request: NextRequest) {
           dropFloor: r.dropFloor,
           hasDropLift: r.hasDropLift,
           dropParkingDist: r.dropParkingDist,
-          movingDate: r.preferredDate, // Map for frontend compatibility
-          movingTime: movingTime, // Extract time from preferredDate
+          movingDate: r.preferredDate,
+          movingTime: movingTime,
           preferredDate: r.preferredDate,
           isFlexibleDate: r.isFlexibleDate,
           flexibleDateRange: r.flexibleDateRange,

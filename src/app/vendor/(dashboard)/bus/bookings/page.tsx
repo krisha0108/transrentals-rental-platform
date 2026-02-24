@@ -12,7 +12,7 @@ import {
   CheckCircle,
   XCircle,
   AlertCircle,
-  Phone,
+
   Eye,
   Navigation,
   IndianRupee,
@@ -27,7 +27,7 @@ interface BusBooking {
   id: string;
   bookingNumber: string;
   tripType: string;
-  chauffeur_vehicle_categories: string;
+  vehicleCategory: string;
   vehicleName?: string;
   pickupCity: string;
   dropCity?: string;
@@ -37,7 +37,7 @@ interface BusBooking {
   pickupAddress?: string;
   passengers: number;
   customerName: string;
-  customerPhone: string;
+
   totalAmount: number;
   advanceAmount?: number;
   advancePaid?: number;
@@ -282,7 +282,7 @@ export default function VendorBusBookingsPage() {
                         <Bus className="w-6 h-6 text-orange-600" />
                       </div>
                       <div>
-                        <h3 className="font-bold text-gray-900">{getCategoryName(booking.vehicle_category)}</h3>
+                        <h3 className="font-bold text-gray-900">{booking.vehicleName || getCategoryName(booking.vehicleCategory) || booking.vehicleCategory}</h3>
                         <div className="flex items-center gap-1 text-sm text-gray-500">
                           <span>{getTripTypeName(booking.tripType)}</span>
                           <span>•</span>
@@ -345,10 +345,6 @@ export default function VendorBusBookingsPage() {
                     <div>
                       <span className="text-xs text-gray-500 uppercase tracking-wide">Customer</span>
                       <p className="font-medium text-gray-900">{booking.customerName}</p>
-                      <p className="text-sm text-gray-600 flex items-center gap-1">
-                        <Phone className="w-3 h-3" />
-                        {booking.customerPhone}
-                      </p>
                     </div>
                     {booking.vehicleNumber && (
                       <div>

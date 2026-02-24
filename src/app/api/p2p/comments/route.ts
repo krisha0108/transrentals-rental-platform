@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 import { getVendorAuth } from '@/lib/auth/vendor-mobile-auth';
 import logger from '@/lib/security/logger';
+import { sendVendorDirectNotification } from '@/lib/utils/vendor-notification-sender';
 import { generateId } from '@/lib/utils/id-generator';
 
 export const dynamic = 'force-dynamic';
@@ -187,6 +188,38 @@ export async function POST(request: NextRequest) {
         },
       },
     });
+
+    // Notify posting owner about the new comment (skip if commenter IS the owner)
+    let postingOwnerVendorId: string | null = null;
+    let postingRoute = '';
+    if (postingType === 'VEHICLE') {
+      const vPosting = await prisma.p2p_vehicle_postings.findUnique({
+        where: { id: postingId },
+        select: { vendorId: true, fromCity: true, toCity: true },
+      });
+      if (vPosting && vPosting.vendorId !== auth.vendorId) {
+        postingOwnerVendorId = vPosting.vendorId;
+        postingRoute = `${vPosting.fromCity}→${vPosting.toCity || ''}`;
+      }
+    } else {
+      const bPosting = await prisma.p2p_booking_postings.findUnique({
+        where: { id: postingId },
+        select: { vendorId: true, fromCity: true, toCity: true },
+      });
+      if (bPosting && bPosting.vendorId !== auth.vendorId) {
+        postingOwnerVendorId = bPosting.vendorId;
+        postingRoute = `${bPosting.fromCity}→${bPosting.toCity || ''}`;
+      }
+    }
+    if (postingOwnerVendorId) {
+      sendVendorDirectNotification({
+        vendorId: postingOwnerVendorId,
+        title: '💬 New Comment',
+        body: `${comment.vendor?.businessName || 'A vendor'} commented on your ${postingType.toLowerCase()} posting ${postingRoute}`,
+        type: 'p2p_new_comment',
+        serviceType: 'p2p',
+      }).catch((err: any) => console.error('[P2P] Notify comment failed:', err));
+    }
 
     return NextResponse.json({
       success: true,

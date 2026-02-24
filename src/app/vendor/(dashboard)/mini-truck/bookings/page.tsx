@@ -7,7 +7,7 @@ import {
   CalendarCheck,
   MapPin,
   Calendar,
-  Phone,
+
   Eye,
   Star,
   CheckCircle,
@@ -28,7 +28,7 @@ interface MiniTruckBooking {
   pickupDate: string;
   pickupTime: string;
   customerName: string;
-  customerPhone: string;
+
   totalAmount: number;
   status: string;
   driverName?: string;
@@ -56,7 +56,7 @@ const SAMPLE_BOOKINGS: MiniTruckBooking[] = [
     pickupDate: new Date(Date.now() + 1 * 86400000).toISOString(),
     pickupTime: '10:00',
     customerName: 'Rahul Sharma',
-    customerPhone: '9737965551',
+
     totalAmount: 1500,
     status: 'DRIVER_ASSIGNED',
     driverName: 'Raju',
@@ -73,7 +73,7 @@ const SAMPLE_BOOKINGS: MiniTruckBooking[] = [
     pickupDate: new Date(Date.now() - 2 * 86400000).toISOString(),
     pickupTime: '08:00',
     customerName: 'QuickMart Store',
-    customerPhone: '9876543211',
+
     totalAmount: 3500,
     status: 'DELIVERED',
     driverName: 'Suresh',
@@ -227,9 +227,6 @@ export default function VendorMiniTruckBookingsPage() {
                     <div>
                       <span className="text-xs text-gray-500 uppercase">Customer</span>
                       <p className="font-medium text-gray-900">{booking.customerName}</p>
-                      <p className="text-sm text-gray-600 flex items-center gap-1">
-                        <Phone className="w-3 h-3" />{booking.customerPhone}
-                      </p>
                     </div>
                     {booking.driverName && (
                       <div>

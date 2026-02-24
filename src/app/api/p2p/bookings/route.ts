@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 import { getVendorAuth } from '@/lib/auth/vendor-mobile-auth';
 import logger from '@/lib/security/logger';
+import { sendVendorDirectNotification } from '@/lib/utils/vendor-notification-sender';
 
 export const dynamic = 'force-dynamic';
 
@@ -200,6 +201,27 @@ export async function POST(request: NextRequest) {
         },
       },
     });
+
+    // Notify other approved vendors about the new booking posting
+    prisma.vendors.findMany({
+      where: {
+        id: { not: auth.vendorId },
+        status: 'APPROVED',
+      },
+      select: { id: true },
+    }).then((vendors: any[]) => {
+      for (const v of vendors) {
+        sendVendorDirectNotification({
+          vendorId: v.id,
+          title: '📋 New Booking Request',
+          body: `${posting.vendor?.businessName || 'A vendor'} needs ${posting.vehicleRequired || posting.serviceType} for ${posting.fromCity}→${posting.toCity || 'local'} on ${new Date(posting.tripDate).toLocaleDateString('en-IN')}`,
+          type: 'p2p_new_booking_posted',
+          serviceType: 'p2p',
+          bookingId: posting.id,
+          bookingNumber: posting.postingNumber,
+        }).catch((err: any) => console.error('[P2P] Notify booking posted failed:', err));
+      }
+    }).catch((err: any) => console.error('[P2P] Query vendors for notify failed:', err));
 
     return NextResponse.json({ success: true, posting }, { status: 201 });
   } catch (error: any) {

@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 import { getVendorAuth } from '@/lib/auth/vendor-mobile-auth';
 import logger from '@/lib/security/logger';
+import { sendVendorDirectNotification } from '@/lib/utils/vendor-notification-sender';
 
 export const dynamic = 'force-dynamic';
 
@@ -83,6 +84,17 @@ export async function POST(
       transactionId: id,
       transactionNumber: transaction.transactionNumber,
     });
+
+    // Notify vendorB that trip is completed
+    sendVendorDirectNotification({
+      vendorId: updatedTransaction.vendorBId,
+      title: '✅ Trip Completed!',
+      body: `Trip ${updatedTransaction.fromCity}→${updatedTransaction.toCity || ''} is done. Rate your experience!`,
+      type: 'p2p_trip_completed',
+      serviceType: 'p2p',
+      bookingId: updatedTransaction.id,
+      bookingNumber: updatedTransaction.transactionNumber,
+    }).catch((err: any) => console.error('[P2P] Notify vendorB trip complete failed:', err));
 
     return NextResponse.json({ transaction: updatedTransaction });
   } catch (error) {

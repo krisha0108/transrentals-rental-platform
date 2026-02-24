@@ -22,7 +22,7 @@ interface Quote {
   quoteNumber: string;
   vehicleName: string;
   vehicleBrand?: string;
-  vehicle_category?: string;
+  vehicleCategory?: string;
   dailyRate: number;
   grandTotal: number;
   advanceAmount: number;

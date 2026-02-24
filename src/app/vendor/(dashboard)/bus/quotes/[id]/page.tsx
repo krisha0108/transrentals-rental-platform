@@ -32,7 +32,7 @@ interface QuoteDetails {
   vehicleName: string;
   vehicleNumber?: string;
   vehicle_model?: string;
-  vehicle_category?: string;
+  vehicleCategory?: string;
   seats: number;
   vehicleImages?: string;
   baseAmount: number;
@@ -236,7 +236,7 @@ export default function VendorQuoteDetailPage() {
               </div>
               <div>
                 <h2 className="text-xl font-bold text-gray-900">{quote.vehicleName}</h2>
-                <p className="text-gray-600">{getCategoryName(quote.vehicle_category)} • {quote.seats} seats</p>
+                <p className="text-gray-600">{getCategoryName(quote.vehicleCategory) || quote.vehicleCategory} • {quote.seats} seats</p>
                 {quote.vehicleNumber && (
                   <p className="text-sm text-gray-500 font-mono">{quote.vehicleNumber}</p>
                 )}

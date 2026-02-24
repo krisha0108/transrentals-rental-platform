@@ -24,7 +24,7 @@ interface Quote {
   quoteNumber: string;
   vehicleName: string;
   vehicleBrand?: string;
-  vehicle_category?: string;
+  vehicleCategory?: string;
   transmission?: string;
   fuelType?: string;
   dailyRate: number;

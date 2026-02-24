@@ -53,6 +53,7 @@ model admin_users {
   vendor_location_requests vendor_location_requests[]
   vendor_service_requests  vendor_service_requests[]
   vendors                  vendors[]
+  vendor_payout_batches    vendor_payout_batches[]
 
   @@index([createdById], map: "admin_users_createdById_fkey")
 }
@@ -3100,17 +3101,56 @@ model vendor_approved_locations {
 }
 
 model vendor_approved_services {
-  id         String   @id
-  vendorId   String
-  serviceId  String
-  isActive   Boolean  @default(true)
-  approvedAt DateTime @default(now())
-  services   services @relation(fields: [serviceId], references: [id], onDelete: Cascade)
-  vendors    vendors  @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  id                String   @id
+  vendorId          String
+  serviceId         String
+  isActive          Boolean  @default(true)
+  approvedAt        DateTime @default(now())
+  commissionPercent Float    @default(0)
+  services          services @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  vendors           vendors  @relation(fields: [vendorId], references: [id], onDelete: Cascade)
 
   @@unique([vendorId, serviceId])
   @@index([serviceId])
   @@index([vendorId])
+}
+
+model vendor_payout_batches {
+  id                   String                     @id
+  vendorId             String
+  totalAmount          Float
+  paidAt               DateTime                   @default(now())
+  paidById             String?
+  paymentMethod        String?
+  referenceNumber      String?
+  notes                String?                    @db.Text
+  createdAt            DateTime                   @default(now())
+  updatedAt            DateTime                   @updatedAt
+  vendors              vendors                    @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  admin_users          admin_users?               @relation(fields: [paidById], references: [id])
+  vendor_payout_batch_items vendor_payout_batch_items[]
+
+  @@index([vendorId])
+  @@index([paidAt])
+}
+
+model vendor_payout_batch_items {
+  id                  String                @id
+  batchId             String
+  bookingId           String
+  bookingType         String
+  bookingNumber       String?
+  totalAmount         Float
+  advanceAmount       Float
+  commissionPercent   Float                 @default(0)
+  commissionAmount    Float
+  vendorPayoutAmount  Float
+  createdAt           DateTime              @default(now())
+  vendor_payout_batches vendor_payout_batches @relation(fields: [batchId], references: [id], onDelete: Cascade)
+
+  @@index([batchId])
+  @@index([bookingId])
+  @@index([bookingType])
 }
 
 model vendor_bike_templates {
@@ -3627,6 +3667,7 @@ model vendors {
   vendor_booking_links                                            vendor_booking_links[]
   vendor_direct_bookings                                          vendor_direct_bookings[]
   vendor_direct_booking_expenses                                  vendor_direct_booking_expenses[]
+  vendor_payout_batches                                           vendor_payout_batches[]
 
   @@index([approvedById], map: "vendors_approvedById_fkey")
   @@index([email])

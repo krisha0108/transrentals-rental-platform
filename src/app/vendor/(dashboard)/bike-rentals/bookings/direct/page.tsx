@@ -6,7 +6,6 @@ import {
   Clock,
   MapPin,
   User,
-  Phone,
   Bike,
   CheckCircle,
   XCircle,
@@ -324,10 +323,6 @@ export default function VendorDirectRequestsPage() {
                           <span>{booking.customerName}</span>
                         </div>
                         <div className="flex items-center gap-2">
-                          <Phone className="w-4 h-4 text-gray-400" />
-                          <span>{booking.customerPhone}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
                           <MapPin className="w-4 h-4 text-gray-400" />
                           <span>{booking.locationName}</span>
                         </div>
@@ -346,7 +341,7 @@ export default function VendorDirectRequestsPage() {
                             <p className="font-medium text-gray-900">
                               {booking.vehicleBrand} {booking.vehicleName}
                             </p>
-                            <p className="text-sm text-gray-500">{booking.vehicle_category}</p>
+                            <p className="text-sm text-gray-500">{booking.chauffeur_vehicle_categories}</p>
                           </div>
                         </div>
                       </div>
