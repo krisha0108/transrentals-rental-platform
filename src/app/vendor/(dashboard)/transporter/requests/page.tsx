@@ -31,7 +31,7 @@ interface QuoteRequest {
   weightUnit: string;
   pickupCity: string;
   dropCity: string;
-  preferredDate: string;
+  pickupDate: string;
   customerName: string;
   customerPhone: string;
   customerEmail?: string;
@@ -225,12 +225,14 @@ export default function VendorTransporterRequestsPage() {
                         {request.weightUnit === 'KG' ? `${request.weight} kg` : `${request.weight} tons`}
                       </div>
                     )}
-                    <div className="flex items-center gap-1 text-gray-600 text-sm mt-1">
+                   <div className="flex items-center gap-1 text-gray-600 text-sm mt-1">
                       <Calendar className="w-4 h-4" />
-                      {new Date(request.preferredDate).toLocaleDateString('en-IN', {
-                        day: 'numeric',
-                        month: 'short',
-                      })}
+                      {request.pickupDate
+                        ? new Date(request.pickupDate).toLocaleDateString('en-IN', {
+                            day: 'numeric',
+                            month: 'short',
+                          })
+                        : 'Date not set'}
                     </div>
                   </div>
                 </div>
