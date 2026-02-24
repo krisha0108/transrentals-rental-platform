@@ -3708,6 +3708,7 @@ model web_vitals {
   createdAt      DateTime              @default(now())
 
   @@index([createdAt])
+  @@index([sessionId])
   @@index([lcpRating])
   @@index([pagePath])
 }
