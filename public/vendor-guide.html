@@ -5,15 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>TransRentals — Vendor Platform Documentation</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    window.MermaidConfig = { startOnLoad: true, theme: 'base',
-      themeVariables: { primaryColor: '#7C3AED', primaryTextColor: '#fff',
-        primaryBorderColor: '#6D28D9', lineColor: '#6D28D9',
-        secondaryColor: '#EDE9FE', tertiaryColor: '#F5F3FF',
-        noteBkgColor: '#FEF3C7', noteTextColor: '#92400E',
-        edgeLabelBackground: '#F5F3FF' }
-    };
-  </script>
   <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap');
@@ -1422,7 +1413,18 @@ flowchart TD
 </main>
 
 <script>
-  mermaid.initialize(window.MermaidConfig);
+  mermaid.initialize({
+    startOnLoad: false,
+    theme: 'base',
+    themeVariables: {
+      primaryColor: '#7C3AED', primaryTextColor: '#fff',
+      primaryBorderColor: '#6D28D9', lineColor: '#6D28D9',
+      secondaryColor: '#EDE9FE', tertiaryColor: '#F5F3FF',
+      noteBkgColor: '#FEF3C7', noteTextColor: '#92400E',
+      edgeLabelBackground: '#F5F3FF'
+    }
+  });
+  mermaid.run();
 
   function toggleSidebar() {
     const sidebar = document.getElementById('sidebar');
