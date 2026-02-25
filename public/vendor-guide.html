@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>TransRentals — Vendor Platform Documentation</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap');
     * { scroll-behavior: smooth; }
@@ -1412,9 +1411,11 @@ flowchart TD
   </div><!-- /padding wrapper -->
 </main>
 
-<script>
+<script type="module">
+  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
   mermaid.initialize({
     startOnLoad: false,
+    securityLevel: 'loose',
     theme: 'base',
     themeVariables: {
       primaryColor: '#7C3AED', primaryTextColor: '#fff',
@@ -1424,7 +1425,7 @@ flowchart TD
       edgeLabelBackground: '#F5F3FF'
     }
   });
-  mermaid.run();
+  await mermaid.run({ querySelector: '.mermaid' });
 
   function toggleSidebar() {
     const sidebar = document.getElementById('sidebar');
