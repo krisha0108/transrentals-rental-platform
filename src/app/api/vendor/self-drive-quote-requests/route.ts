@@ -67,10 +67,7 @@ export async function GET(request: NextRequest) {
         ...dateFilter,
         status: { in: ['PENDING', 'QUOTES_RECEIVED'] },
         quotesOpenTill: { gte: new Date() },
-        OR: [
-          { locationId: { in: approvedLocationIds } },
-          { locationId: null },
-        ],
+        locationId: approvedLocationIds.length > 0 ? { in: approvedLocationIds } : undefined,
         self_drive_quotes_self_drive_quotes_requestIdToself_drive_quote_requests: {
           none: { vendorId: vendorId },
         },
@@ -114,10 +111,7 @@ export async function GET(request: NextRequest) {
       const openRequestsFilter: any = {
         status: { in: ['PENDING', 'QUOTES_RECEIVED'] },
         quotesOpenTill: { gte: new Date() },
-        OR: [
-          { locationId: { in: approvedLocationIds } },
-          { locationId: null },
-        ],
+        locationId: approvedLocationIds.length > 0 ? { in: approvedLocationIds } : undefined,
         ...dateFilter,
       };
 
