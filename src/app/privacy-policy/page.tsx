@@ -61,7 +61,7 @@ const RIGHTS = [
   },
   {
     title: 'Opt-outs',
-    body: 'Disable marketing emails or communications through your dashboard or by emailing privacy@transrentals.in.',
+    body: 'Disable marketing emails or communications through your dashboard or by emailing book@transrentals.in.',
   },
 ];
 

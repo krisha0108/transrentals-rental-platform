@@ -303,7 +303,7 @@ export async function GET(
 
     <div class="footer">
       <p style="margin-bottom: 10px; font-weight: 600;">Thank you for choosing TransRentals Luxury Services!</p>
-      <p>For support, contact us at support@transrentals.in | +91 97379 65551</p>
+      <p>For support, contact us at book@transrentals.in | +91 97379 65551</p>
       <p style="margin-top: 15px; font-size: 11px; color: #999;">
         This is a computer-generated invoice and does not require a signature.
       </p>

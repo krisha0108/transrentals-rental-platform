@@ -63,7 +63,7 @@ const SAMPLE_REQUESTS: QuoteRequest[] = [
     siteLocation: 'Stone Quarry, Outer Ring',
     city: 'Hyderabad',
     customerName: 'Rock Mining Co.',
-    customerPhone: '9876543211',
+    customerPhone: '9737965551',
     quotesReceived: 5,
     createdAt: new Date(Date.now() - 8 * 3600000).toISOString(),
     hasQuoted: true,

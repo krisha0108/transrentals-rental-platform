@@ -1376,7 +1376,7 @@ export default function CustomerHelpdeskPage() {
 
                   <p className="text-sm text-slate-500 mt-1">
 
-                    Reach us on <span className="font-semibold text-slate-900">+91-98208-87711</span> between 10am and
+                    Reach us on <span className="font-semibold text-slate-900">+91-9737965551</span> between 10am and
 
                     8pm, Monday to Saturday. Keep your booking or ticket number ready.
 

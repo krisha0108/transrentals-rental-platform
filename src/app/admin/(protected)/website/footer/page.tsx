@@ -101,7 +101,7 @@ export default function FooterManagementPage() {
       },
     ],
     contact: {
-      email: 'support@transrentals.in',
+      email: 'book@transrentals.in',
       phone: '+91 9737965551',
       address: 'Mumbai, Maharashtra, India',
     },

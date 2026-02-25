@@ -702,7 +702,7 @@ Make your wedding entry unforgettable with TransRentals' premium wedding car col
 
 **Call Now:** +91 9737965551
 **WhatsApp:** +91 9737965551
-**Email:** weddings@transrentals.com
+**Email:** book@transrentals.in
 
 ### Special Wedding Season Offer:
 - Book 3+ vehicles: 10% discount
@@ -1135,7 +1135,7 @@ Ready to explore Goa in style? Book your bike with TransRentals and get:
 
 **Call/WhatsApp:** +91 9737965551
 **Website:** www.transrentals.com/goa-bike-rental
-**Email:** goa@transrentals.com
+**Email:** book@transrentals.in
 
 ### Download Our App:
 - Real-time bike availability
@@ -1675,7 +1675,7 @@ Transform your corporate transportation with TransRentals' smart fleet solutions
 
 ### Schedule a Consultation:
 **Call:** +91 9737965551
-**Email:** corporate@transrentals.com
+**Email:** book@transrentals.in
 **Website:** www.transrentals.com/corporate
 
 ### What We'll Discuss:

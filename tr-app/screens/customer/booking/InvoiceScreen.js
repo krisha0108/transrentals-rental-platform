@@ -238,7 +238,7 @@ export default function InvoiceScreen({ navigation, route }) {
             {/* Footer */}
             <View style={styles.footer}>
               <Text style={styles.footerText}>Thank you for choosing TransRentals!</Text>
-              <Text style={styles.footerContact}>support@transrentals.in | +91 9876543210</Text>
+              <Text style={styles.footerContact}>book@transrentals.in | +91 9876543210</Text>
             </View>
           </View>
 

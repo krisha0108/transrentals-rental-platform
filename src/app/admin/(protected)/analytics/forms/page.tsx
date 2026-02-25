@@ -140,10 +140,10 @@ export default function FormsAnalyticsPage() {
     ],
     recentSubmissions: [
       { id: '1', formType: 'Booking', name: 'Rahul Sharma', phone: '+91 9737965551', email: 'rahul@email.com', page: '/activa-on-rent', status: 'completed', timestamp: '2 mins ago', completionTime: 145 },
-      { id: '2', formType: 'Contact', name: 'Priya Patel', phone: '+91 87654 32109', email: 'priya@email.com', page: '/contact', status: 'completed', timestamp: '15 mins ago', completionTime: 78 },
-      { id: '3', formType: 'Quick Enquiry', name: 'Amit Singh', phone: '+91 76543 21098', email: 'amit@email.com', page: '/self-drive-cars', status: 'pending', timestamp: '32 mins ago', completionTime: 52 },
-      { id: '4', formType: 'Booking', name: 'Neha Gupta', phone: '+91 65432 10987', email: 'neha@email.com', page: '/activa-on-rent/mumbai', status: 'completed', timestamp: '1 hour ago', completionTime: 203 },
-      { id: '5', formType: 'Callback', name: 'Vikram Joshi', phone: '+91 54321 09876', email: 'vikram@email.com', page: '/', status: 'contacted', timestamp: '2 hours ago', completionTime: 28 },
+      { id: '2', formType: 'Contact', name: 'Priya Patel', phone: '+91 97379 65551', email: 'priya@email.com', page: '/contact', status: 'completed', timestamp: '15 mins ago', completionTime: 78 },
+      { id: '3', formType: 'Quick Enquiry', name: 'Amit Singh', phone: '+91 97379 65551', email: 'amit@email.com', page: '/self-drive-cars', status: 'pending', timestamp: '32 mins ago', completionTime: 52 },
+      { id: '4', formType: 'Booking', name: 'Neha Gupta', phone: '+91 97379 65551', email: 'neha@email.com', page: '/activa-on-rent/mumbai', status: 'completed', timestamp: '1 hour ago', completionTime: 203 },
+      { id: '5', formType: 'Callback', name: 'Vikram Joshi', phone: '+91 97379 65551', email: 'vikram@email.com', page: '/', status: 'contacted', timestamp: '2 hours ago', completionTime: 28 },
     ],
     hourlySubmissions: Array.from({ length: 24 }, (_, i) => ({
       hour: `${i}:00`,

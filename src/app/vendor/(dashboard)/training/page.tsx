@@ -108,7 +108,7 @@ const mockDriverTrainings: DriverTraining[] = [
   },
   {
     id: 'DT003',
-    driver: { id: 'D003', name: 'Prakash Raj', phone: '+91 98765 43212', joinDate: '2021-11-10' },
+    driver: { id: 'D003', name: 'Prakash Raj', phone: '+91 97379 65551', joinDate: '2021-11-10' },
     trainings: [
       { trainingId: 'T001', title: 'Defensive Driving Course', category: 'defensive_driving', status: 'expired', completedDate: '2023-01-15', expiryDate: '2024-01-15', score: 88 },
       { trainingId: 'T002', title: 'Customer Service Excellence', category: 'customer_service', status: 'completed', completedDate: '2023-11-20', score: 92 },
