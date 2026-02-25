@@ -86,7 +86,7 @@ const invoicesData = [
   {
     id: 'INV-2024-003',
     customerName: 'Tech Solutions Pvt Ltd',
-    customerPhone: '+91 54321 09876',
+    customerPhone: '+91 97379 65551',
     customerEmail: 'transport@techsol.com',
     customerGstin: '27AADCT1234R1ZP',
     customerAddress: 'BKC, Mumbai - 400051',
@@ -111,7 +111,7 @@ const invoicesData = [
   {
     id: 'INV-2024-004',
     customerName: 'Arun Deshmukh',
-    customerPhone: '+91 43210 98765',
+    customerPhone: '+91 97379 65551',
     customerEmail: 'arun.d@company.in',
     customerGstin: '',
     customerAddress: 'Thane West - 400601',
@@ -139,7 +139,7 @@ const invoicesData = [
   {
     id: 'INV-2024-005',
     customerName: 'Mohammed Ali',
-    customerPhone: '+91 76543 21098',
+    customerPhone: '+91 97379 65551',
     customerEmail: 'mali@gmail.com',
     customerGstin: '',
     customerAddress: 'Powai, Mumbai - 400076',
@@ -170,8 +170,8 @@ const companyDetails = {
   gstin: '27AABCT1234R1ZM',
   pan: 'AABCT1234R',
   address: 'Office 401, Trade Center, Andheri East, Mumbai - 400069',
-  phone: '+91 22 4567 8900',
-  email: 'billing@transrentals.in',
+  phone: '+91 97379 65551',
+  email: 'book@transrentals.in',
   bankName: 'HDFC Bank',
   accountNo: '50100123456789',
   ifsc: 'HDFC0001234',

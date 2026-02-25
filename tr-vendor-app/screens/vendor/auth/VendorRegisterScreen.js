@@ -434,7 +434,7 @@ export default function VendorRegisterScreen({ navigation }) {
                     <Ionicons name="call-outline" size={18} color={BRAND.subText} style={styles.leftIcon} />
                     <TextInput
                       style={styles.input}
-                      placeholder="9876543210"
+                      placeholder="9737965551"
                       placeholderTextColor="#A3B3C2"
                       keyboardType="phone-pad"
                       value={formData.phone}

@@ -66,8 +66,8 @@ export default function VendorSupportPage() {
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
   const [contactSettings, setContactSettings] = useState({
-    contactEmail: 'vendor-support@transrentals.in',
-    contactPhone: '+91 98765 43210',
+    contactEmail: 'book@transrentals.in',
+    contactPhone: '+91 97379 65551',
   });
 
   const [ticketForm, setTicketForm] = useState({

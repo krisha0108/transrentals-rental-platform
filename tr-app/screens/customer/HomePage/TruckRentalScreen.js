@@ -369,7 +369,7 @@ const handleDestinationOutsideClick = () => {
       const payload = {
         customerId: customerId || null,
         customerName: customerData?.name || 'Customer',
-        customerEmail: customerData?.email || 'customer@transrentals.in',
+        customerEmail: customerData?.email || 'book@transrentals.in',
         customerPhone: customerData?.phone || '',
         serviceType: serviceType === 'personal' ? 'personal' : 'commercial',
         vehicle_category: selectedTruckType,

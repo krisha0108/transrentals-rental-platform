@@ -112,7 +112,7 @@ const mockClaims: InsuranceClaim[] = [
     ],
     surveyorDetails: {
       name: 'Mr. Sharma',
-      phone: '+91 99887 76655',
+      phone: '+91 97379 65551',
       visitDate: '2024-01-20'
     },
     createdAt: '2024-01-16',

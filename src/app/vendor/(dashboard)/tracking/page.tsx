@@ -112,7 +112,7 @@ const mockVehicles: VehicleLocation[] = [
   {
     id: 'V003',
     vehicle: { name: 'Honda City', number: 'KA-01-EF-9012', type: 'Sedan' },
-    driver: { name: 'Prakash Raj', phone: '+91 98765 43212' },
+    driver: { name: 'Prakash Raj', phone: '+91 97379 65551' },
     location: {
       lat: 12.9698,
       lng: 77.7500,
@@ -138,7 +138,7 @@ const mockVehicles: VehicleLocation[] = [
   {
     id: 'V004',
     vehicle: { name: 'Mahindra XUV500', number: 'KA-01-GH-3456', type: 'SUV' },
-    driver: { name: 'Arun Nair', phone: '+91 98765 43213' },
+    driver: { name: 'Arun Nair', phone: '+91 97379 65551' },
     location: {
       lat: 12.8399,
       lng: 77.6770,
@@ -157,7 +157,7 @@ const mockVehicles: VehicleLocation[] = [
   {
     id: 'V005',
     vehicle: { name: 'Toyota Fortuner', number: 'KA-01-IJ-7890', type: 'SUV' },
-    driver: { name: 'Vijay Shetty', phone: '+91 98765 43214' },
+    driver: { name: 'Vijay Shetty', phone: '+91 97379 65551' },
     location: {
       lat: 12.9141,
       lng: 77.6411,

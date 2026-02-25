@@ -190,10 +190,10 @@ TransRentals`,
 // Recent communications
 const recentMessages = [
   { id: 1, customer: 'Rajesh Kumar', phone: '+91 9737965551', template: 'Booking Confirmation', sentAt: '2024-01-18 10:30', status: 'delivered', channel: 'whatsapp' },
-  { id: 2, customer: 'Priya Sharma', phone: '+91 87654 32109', template: 'Payment Reminder', sentAt: '2024-01-18 09:15', status: 'read', channel: 'whatsapp' },
-  { id: 3, customer: 'Tech Solutions', phone: '+91 54321 09876', template: 'Quotation Sent', sentAt: '2024-01-17 16:45', status: 'delivered', channel: 'whatsapp' },
-  { id: 4, customer: 'Mohammed Ali', phone: '+91 76543 21098', template: 'Trip Started', sentAt: '2024-01-17 14:20', status: 'delivered', channel: 'sms' },
-  { id: 5, customer: 'Arun Deshmukh', phone: '+91 43210 98765', template: 'Trip Completed', sentAt: '2024-01-17 11:00', status: 'read', channel: 'whatsapp' },
+  { id: 2, customer: 'Priya Sharma', phone: '+91 97379 65551', template: 'Payment Reminder', sentAt: '2024-01-18 09:15', status: 'read', channel: 'whatsapp' },
+  { id: 3, customer: 'Tech Solutions', phone: '+91 97379 65551', template: 'Quotation Sent', sentAt: '2024-01-17 16:45', status: 'delivered', channel: 'whatsapp' },
+  { id: 4, customer: 'Mohammed Ali', phone: '+91 97379 65551', template: 'Trip Started', sentAt: '2024-01-17 14:20', status: 'delivered', channel: 'sms' },
+  { id: 5, customer: 'Arun Deshmukh', phone: '+91 97379 65551', template: 'Trip Completed', sentAt: '2024-01-17 11:00', status: 'read', channel: 'whatsapp' },
 ];
 
 // Scheduled messages

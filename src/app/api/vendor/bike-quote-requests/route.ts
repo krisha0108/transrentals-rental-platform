@@ -63,10 +63,7 @@ export async function GET(request: NextRequest) {
       whereClause = {
         status: { in: ['PENDING', 'QUOTES_RECEIVED'] },
         quotesOpenTill: { gte: new Date() },
-        OR: [
-          { locationId: { in: approvedLocationIds } },
-          { locationId: null },
-        ],
+        locationId: { in: approvedLocationIds },
         ...dateFilter,
         bike_quotes_bike_quotes_requestIdTobike_quote_requests: {
           none: { vendorId: vendorId },
@@ -114,10 +111,7 @@ export async function GET(request: NextRequest) {
           {
             status: { in: ['PENDING', 'QUOTES_RECEIVED'] },
             quotesOpenTill: { gte: new Date() },
-            OR: [
-              { locationId: { in: approvedLocationIds } },
-              { locationId: null },
-            ],
+            locationId: { in: approvedLocationIds },
             ...dateFilter,
           },
           // Requests vendor has quoted on

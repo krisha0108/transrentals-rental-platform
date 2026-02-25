@@ -988,45 +988,6 @@ export default function VendorBookingDetailPage() {
             </div>
           </div>
 
-          {/* Quick Actions */}
-          <div className="bg-white rounded-xl shadow-sm border p-6">
-            <h2 className="font-semibold text-gray-900 mb-4">Actions</h2>
-
-            <div className="space-y-2">
-              {(booking.status === 'PENDING_VENDOR' || booking.status === 'BROADCASTED') && (
-                <>
-                  <button
-                    onClick={() => handleAction('accept')}
-                    disabled={actionLoading}
-                    className="w-full px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50"
-                  >
-                    Accept Booking
-                  </button>
-                  <button
-                    onClick={() => {
-                      const reason = prompt('Enter reason for rejection:');
-                      if (reason) handleAction('reject', { reason });
-                    }}
-                    disabled={actionLoading}
-                    className="w-full px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 disabled:opacity-50"
-                  >
-                    Reject Booking
-                  </button>
-                </>
-              )}
-
-              {booking.status === 'DRIVER_ASSIGNED' && (
-                <button
-                  onClick={() => handleAction('start_trip')}
-                  disabled={actionLoading}
-                  className="w-full px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50"
-                >
-                  Start Trip
-                </button>
-              )}
-
-            </div>
-          </div>
 
           {/* Booking Info */}
           <div className="bg-white rounded-xl shadow-sm border p-6">

@@ -235,7 +235,7 @@ export async function GET(request: NextRequest) {
             luxury_quote_requests: { select: { requestNumber: true, vehicleCategoryName: true } },
             luxury_quotes: { select: { quoteNumber: true, vehicleName: true, totalAmount: true } },
           },
-          orderBy: [{ pickupDate: 'asc' }, { createdAt: 'desc' }],
+          orderBy: { createdAt: 'desc' },
           skip: isAllMode ? 0 : skip,
           take: isAllMode ? 20 : limit,
         }),
@@ -280,14 +280,9 @@ export async function GET(request: NextRequest) {
       })));
     }
 
-    // Sort by pickupDate for 'all' type
+    // Sort by createdAt desc for 'all' type (newest first)
     if (type === 'all') {
-      items.sort((a, b) => {
-        // Open requests first, then by pickup date
-        if (a.type === 'quote_request' && b.type !== 'quote_request') return -1;
-        if (a.type !== 'quote_request' && b.type === 'quote_request') return 1;
-        return new Date(a.pickupDate).getTime() - new Date(b.pickupDate).getTime();
-      });
+      items.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
       total = items.length;
     }
 

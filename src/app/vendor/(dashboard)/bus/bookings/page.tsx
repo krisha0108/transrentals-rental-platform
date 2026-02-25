@@ -376,10 +376,10 @@ export default function VendorBusBookingsPage() {
                       </button>
                     )}
                     {booking.status === 'VEHICLE_ASSIGNED' && isUpcoming && (
-                      <button className="px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 transition flex items-center gap-1">
-                        <Navigation className="w-4 h-4" />
-                        Start Trip
-                      </button>
+                      <div className="w-full px-4 py-3 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-700 flex items-center gap-2">
+                        <span>🚌</span>
+                        <span>Trip will be started by your assigned driver. You will see all status updates here.</span>
+                      </div>
                     )}
                   </div>
                 </div>

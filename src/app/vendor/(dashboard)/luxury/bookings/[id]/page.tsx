@@ -842,66 +842,11 @@ export default function VendorLuxuryBookingDetailPage() {
 
             {/* Driver Actions */}
             {booking.status === 'DRIVER_ASSIGNED' && (
-              <div className="mt-8 pt-6 border-t space-y-4">
-                <h4 className="font-semibold text-gray-900 flex items-center gap-2">
-                  <Key className="w-4 h-4 text-amber-600" />
-                  Start Trip
-                </h4>
-
-                {/* Step 1: Generate OTP */}
-                {!booking.tripStartOtp && !generatedOtp && (
-                  <div className="bg-amber-50 p-4 rounded-xl border border-amber-200">
-                    <p className="text-sm text-amber-800 mb-3">
-                      When you're ready to start the trip, generate an OTP. The customer will see this OTP on their app.
-                    </p>
-                    <button
-                      onClick={handleGenerateOtp}
-                      disabled={actionLoading}
-                      className="w-full px-4 py-3 bg-amber-600 text-white font-bold rounded-lg hover:bg-amber-700 disabled:opacity-50"
-                    >
-                      {actionLoading ? 'Generating...' : 'Generate OTP'}
-                    </button>
-                  </div>
-                )}
-
-                {/* Step 2: OTP Generated - Ask customer */}
-                {(booking.tripStartOtp || generatedOtp) && (
-                  <div className="space-y-4">
-                    <div className="bg-green-50 p-4 rounded-xl border border-green-200">
-                      <p className="text-xs text-green-700 font-medium mb-1">OTP Generated!</p>
-                      <p className="text-sm text-green-800">Customer can see this OTP on their booking page. Ask them for the OTP verbally.</p>
-                    </div>
-
-                    {/* Regenerate OTP option */}
-                    <button
-                      onClick={handleGenerateOtp}
-                      disabled={actionLoading}
-                      className="w-full px-3 py-2 text-amber-600 border border-amber-300 rounded-lg hover:bg-amber-50 text-sm font-medium disabled:opacity-50"
-                    >
-                      {actionLoading ? 'Regenerating...' : 'Regenerate OTP'}
-                    </button>
-
-                    {/* Step 3: Enter OTP from customer */}
-                    <div className="bg-white p-4 rounded-xl border-2 border-indigo-200">
-                      <p className="text-sm font-bold text-gray-900 mb-3">Enter OTP from Customer</p>
-                      <input
-                        type="text"
-                        value={otpInput}
-                        onChange={(e) => setOtpInput(e.target.value.replace(/\D/g, '').slice(0, 4))}
-                        placeholder="Enter 4-digit OTP"
-                        maxLength={4}
-                        className="w-full px-4 py-3 text-center text-2xl font-mono font-bold border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                      />
-                      <button
-                        onClick={handleStartTrip}
-                        disabled={actionLoading || otpInput.length !== 4}
-                        className="w-full mt-3 px-4 py-3 bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-700 disabled:opacity-50"
-                      >
-                        {actionLoading ? 'Verifying...' : 'Start Trip'}
-                      </button>
-                    </div>
-                  </div>
-                )}
+              <div className="mt-8 pt-6 border-t">
+                <div className="px-4 py-3 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-700 flex items-center gap-2">
+                  <span>🚗</span>
+                  <span>Trip will be started by your assigned chauffeur. You will see all status updates here.</span>
+                </div>
               </div>
             )}
 
