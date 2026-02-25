@@ -8,6 +8,8 @@ import {
   Building2,
   FileText,
   MapPin,
+  Link2,
+  BookOpen,
   Layers,
   Car,
   DollarSign,
@@ -98,6 +100,16 @@ const approvedNavigationItems: NavItem[] = [
     icon: MessageSquare,
   },
   {
+    name: 'Booking Links',
+    href: '/vendor/booking-links',
+    icon: Link2,
+  },
+  {
+    name: 'Direct Bookings',
+    href: '/vendor/direct-bookings',
+    icon: BookOpen,
+  },
+  {
     name: 'Bike Rentals',
     href: '/vendor/bike-rentals',
     icon: Bike,
@@ -123,7 +135,7 @@ const approvedNavigationItems: NavItem[] = [
       { name: 'Bookings', href: '/vendor/self-drive/bookings', icon: CalendarCheck },
       { name: 'Direct Requests', href: '/vendor/self-drive/bookings/direct', icon: Inbox },
       { name: 'Open Requests', href: '/vendor/self-drive/bookings/open', icon: Radio },
-      { name: 'Earnings', href: '/vendor/self-drive/earnings', icon: Wallet },
+      { name: 'Earnings', href: '/vendor/self-drive/earnings', icon: Wallet },  
       { name: 'Templates', href: '/vendor/self-drive/templates', icon: FileSpreadsheet },
     ],
   },
@@ -388,6 +400,11 @@ const approvedNavigationItems: NavItem[] = [
   //   href: '/vendor/promotions',
   //   icon: Tag,
   // },
+   {
+    name: 'Financials',
+    href: '/vendor/financials',
+    icon: PieChart,
+  },
   {
     name: 'Services & Locations',
     href: '/vendor/requests',

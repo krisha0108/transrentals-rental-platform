@@ -1,9 +1,12 @@
 import React from 'react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { permanentRedirect } from 'next/navigation';
 import { capitalize } from '@/lib/utils';
 import { getCityBySlug } from '@/data/indian-cities';
 import { getServiceLocations } from '@/lib/services/service-locations';;
+import { resolveServicePage } from '@/lib/services/service-availability';
+import { StateServicePage } from '@/components/location/StateServicePage';
 import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
 import { FAQSection } from '@/components/services/FAQSection';
 
@@ -59,8 +62,11 @@ const hatchbackModels = [
   { name: 'Maruti Wagon R', price: 799, fuel: 'Petrol/CNG' },
 ];
 
-export default function HatchbackRentalLocationPage({ params }: PageProps) {
-  const city = getCityBySlug(params.location);
+export default async function HatchbackRentalLocationPage({ params }: PageProps) {
+  const pageContext = await resolveServicePage('self-drive-hatchback-rental', params.location);
+  if (pageContext.type === 'redirect') permanentRedirect(pageContext.to);
+  if (pageContext.type === 'state') return <StateServicePage state={pageContext.state} activeCities={pageContext.activeCities} serviceSlug="self-drive-hatchback-rental" serviceName="Self Drive Hatchback Rental" />;
+  const city = pageContext.city;
   const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
 
   return (

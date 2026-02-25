@@ -17,6 +17,7 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getVendorProfile, getVendorBookings, getVendorEarnings } from '../../api/client';
+import { NotifBadgeContext } from '../../../contexts/NotifBadgeContext';
 
 // Color scheme from old app (user likes this)
 const C = {
@@ -64,6 +65,7 @@ const SERVICE_IDS = {
 };
 
 export default function DashboardScreen({ navigation }) {
+  const { unreadCount } = React.useContext(NotifBadgeContext);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [vendor, setVendor] = useState(null);
@@ -92,19 +94,13 @@ export default function DashboardScreen({ navigation }) {
       // Fetch earnings if approved
       if (profileData?.status === 'APPROVED') {
         try {
-          console.log('[Dashboard] Fetching earnings...');
           const earningsRes = await getVendorEarnings();
-          console.log('[Dashboard] Earnings response:', JSON.stringify(earningsRes, null, 2));
           if (earningsRes?.success) {
-            console.log('[Dashboard] Setting earnings:', earningsRes.earnings);
             setEarnings(earningsRes.earnings);
             setBookingsData(earningsRes.bookings);
-          } else {
-            console.log('[Dashboard] Earnings response not successful');
           }
         } catch (e) {
-          console.log('[Dashboard] Earnings fetch error:', e);
-          console.log('[Dashboard] Error details:', e?.response?.data);
+          // silently fail
         }
 
         // Fetch recent bookings
@@ -114,11 +110,11 @@ export default function DashboardScreen({ navigation }) {
             setRecentBookings(bookingsRes.bookings.slice(0, 5));
           }
         } catch (e) {
-          console.log('Bookings fetch error:', e);
+          // silently fail
         }
       }
     } catch (error) {
-      console.log('Error fetching dashboard data:', error);
+      // silently fail
     } finally {
       setLoading(false);
     }
@@ -398,6 +394,13 @@ export default function DashboardScreen({ navigation }) {
               onPress={() => navigation.navigate('NotificationsScreen')}
             >
               <Ionicons name="notifications-outline" size={20} color={C.brand} />
+              {unreadCount > 0 && (
+                <View style={styles.bellBadge}>
+                  <Text style={styles.bellBadgeText}>
+                    {unreadCount > 99 ? '99+' : String(unreadCount)}
+                  </Text>
+                </View>
+              )}
             </TouchableOpacity>
           </View>
 
@@ -697,6 +700,42 @@ export default function DashboardScreen({ navigation }) {
                 </View>
                 <Text style={styles.quickActionBtnText}>Locations</Text>
               </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.quickActionBtn}
+                onPress={() => navigation.navigate('DirectBookings')}
+              >
+                <View style={[styles.quickActionBtnIcon, { backgroundColor: '#FEF3C7' }]}>
+                  <Icon name="book-open" size={18} color="#F59E0B" />
+                </View>
+                <Text style={styles.quickActionBtnText}>Direct Bookings</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.quickActionBtn}
+                onPress={() => navigation.navigate('BookingLinks')}
+              >
+                <View style={[styles.quickActionBtnIcon, { backgroundColor: '#E0E7FF' }]}>
+                  <Icon name="link-2" size={18} color="#6366F1" />
+                </View>
+                <Text style={styles.quickActionBtnText}>Booking Links</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.quickActionBtn}
+                onPress={() => navigation.navigate('Financials')}
+              >
+                <View style={[styles.quickActionBtnIcon, { backgroundColor: '#EDE9FE' }]}>
+                  <Icon name="bar-chart-2" size={18} color="#7C3AED" />
+                </View>
+                <Text style={styles.quickActionBtnText}>Financials</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.quickActionBtn}
+                onPress={() => navigation.navigate('P2PDashboard')}
+              >
+                <View style={[styles.quickActionBtnIcon, { backgroundColor: '#D1FAE5' }]}>
+                  <MaterialCommunityIcons name="swap-horizontal" size={18} color="#10B981" />
+                </View>
+                <Text style={styles.quickActionBtnText}>P2P Market</Text>
+              </TouchableOpacity>
             </ScrollView>
           </>
         )}
@@ -745,6 +784,46 @@ export default function DashboardScreen({ navigation }) {
                 </View>
                 <Text style={styles.manageText}>Settings</Text>
                 <Text style={styles.manageCount}>Profile</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.manageCard}
+                onPress={() => navigation.navigate('DirectBookings')}
+              >
+                <View style={[styles.manageCardIcon, { backgroundColor: '#FFF7ED' }]}>
+                  <Icon name="book-open" size={18} color="#F59E0B" />
+                </View>
+                <Text style={styles.manageText}>Direct</Text>
+                <Text style={styles.manageCount}>Bookings</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.manageCard}
+                onPress={() => navigation.navigate('BookingLinks')}
+              >
+                <View style={[styles.manageCardIcon, { backgroundColor: '#E0E7FF' }]}>
+                  <Icon name="link-2" size={18} color="#6366F1" />
+                </View>
+                <Text style={styles.manageText}>Booking</Text>
+                <Text style={styles.manageCount}>Links</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.manageCard}
+                onPress={() => navigation.navigate('Financials')}
+              >
+                <View style={[styles.manageCardIcon, { backgroundColor: '#EDE9FE' }]}>
+                  <Icon name="bar-chart-2" size={18} color="#7C3AED" />
+                </View>
+                <Text style={styles.manageText}>Financials</Text>
+                <Text style={styles.manageCount}>P&L</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.manageCard}
+                onPress={() => navigation.navigate('P2PDashboard')}
+              >
+                <View style={[styles.manageCardIcon, { backgroundColor: '#D1FAE5' }]}>
+                  <MaterialCommunityIcons name="swap-horizontal" size={18} color="#10B981" />
+                </View>
+                <Text style={styles.manageText}>P2P</Text>
+                <Text style={styles.manageCount}>Market</Text>
               </TouchableOpacity>
             </View>
           </>
@@ -839,6 +918,26 @@ const styles = StyleSheet.create({
     backgroundColor: '#F0FDF4',
     borderWidth: 1,
     borderColor: '#BBF7D0',
+    position: 'relative',
+  },
+  bellBadge: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    minWidth: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: '#EF4444',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 3,
+    borderWidth: 1.5,
+    borderColor: '#fff',
+  },
+  bellBadgeText: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: '#fff',
   },
   statusBadge: {
     marginTop: 12,

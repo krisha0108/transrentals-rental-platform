@@ -149,6 +149,7 @@ interface ServiceData {
 
 export default function ServiceFleetPage() {
   const params = useParams();
+  if (!params) return null;
   const slug = params.slug as string;
   const [service, setService] = useState<ServiceData | null>(null);
   const [serviceLoading, setServiceLoading] = useState(true);
@@ -168,6 +169,8 @@ export default function ServiceFleetPage() {
     total: number;
     pages: number;
   } | null>(null);
+  const [activeTotal, setActiveTotal] = useState(0);
+  const [inactiveTotal, setInactiveTotal] = useState(0);
 
   // Modal state
   const [showModal, setShowModal] = useState(false);
@@ -175,6 +178,7 @@ export default function ServiceFleetPage() {
   const [saving, setSaving] = useState(false);
   const [brands, setBrands] = useState<Brand[]>([]);
   const [subServices, setSubServices] = useState<SubService[]>([]);
+  const [exporting, setExporting] = useState(false);
 
   // Location modal state
   const [showLocationModal, setShowLocationModal] = useState(false);
@@ -267,8 +271,10 @@ export default function ServiceFleetPage() {
         const res = await fetch(`/api/admin/services/${slug}/brands`);
         if (res.ok) {
           const data = await res.json();
-          setBrands(data.brands || []);
-          console.log(`[${slug}] Fetched ${data.brands?.length || 0} brands for this service`);
+          // Filter only active brands
+          const activeBrands = (data.brands || []).filter((brand: any) => brand.isActive !== false);
+          setBrands(activeBrands);
+          console.log(`[${slug}] Fetched ${activeBrands.length} active brands for this service`);
         }
       } catch (error) {
         console.error('Failed to fetch brands:', error);
@@ -397,7 +403,7 @@ export default function ServiceFleetPage() {
           name: m.originalName || m.filename,
           url: m.url,
           type: m.mimeType?.startsWith('image/') ? 'image' :
-                m.mimeType?.startsWith('video/') ? 'video' : 'document',
+            m.mimeType?.startsWith('video/') ? 'video' : 'document',
           folder: m.folder || 'uploads',
         }));
         setMediaItems(transformedMedia);
@@ -812,22 +818,44 @@ export default function ServiceFleetPage() {
     l.name.toLowerCase().includes(locationSearch.toLowerCase())
   );
 
-  const handleExport = () => {
-    if (fleet.length === 0) {
+  const handleExport = async () => {
+    if (!pagination || pagination.total === 0) {
       alert('No fleet data to export');
       return;
     }
 
-    // Prepare data for export
-    const exportData = fleet.map((item: any, index) => ({
-      'S.No': index + 1,
-      'Name': item.name,
-      'Brand': item.brand,
-      'Model': item.model,
-      'Category': item.sub_service || '-',
-      'Base Price (₹)': item.basePrice || 0,
-      ...(isEquipmentService
-        ? {
+    setExporting(true);
+    try {
+      // Build params for fetching all data
+      const exportParams = new URLSearchParams();
+      exportParams.append('page', '1');
+      exportParams.append('limit', pagination.total.toString());
+      if (search) exportParams.append('search', search);
+      if (subServiceFilter !== 'ALL') exportParams.append('subServiceId', subServiceFilter);
+      if (statusFilter !== 'ALL') exportParams.append('status', statusFilter.toLowerCase());
+      if (locationFilter !== 'ALL') exportParams.append('locationId', locationFilter);
+
+      const res = await fetch(`/api/admin/services/${slug}/fleet?${exportParams}`);
+      if (!res.ok) throw new Error('Failed to fetch data for export');
+
+      const data = await res.json();
+      const allFleetData = data.fleet || [];
+
+      if (allFleetData.length === 0) {
+        alert('No fleet data to export');
+        return;
+      }
+
+      // Prepare data for export
+      const exportData = allFleetData.map((item: any, index: number) => ({
+        'S.No': index + 1,
+        'Name': item.name,
+        'Brand': item.brand,
+        'Model': item.slug,
+        'Category': item.services_vehicle_models_subServiceIdToservices || '-',
+        'Base Price (₹)': item.basePricePerDay || 0,
+        ...(isEquipmentService
+          ? {
             'Power Capacity': item.specs?.powerCapacity || '-',
             'Load Capacity': item.specs?.loadCapacity || '-',
             'Operator Included': item.specs?.operatorIncluded === 'true' ? 'Yes' : 'No',
@@ -835,61 +863,67 @@ export default function ServiceFleetPage() {
             'Weekly Rate (₹)': item.specs?.weeklyRate || '-',
             'Monthly Rate (₹)': item.specs?.monthlyRate || '-',
           }
-        : isPackersService
-        ? {
-            'Vehicle Capacity': item.specs?.vehicleCapacity || '-',
-            'Team Size': item.specs?.teamSize || '-',
-            'Registration Number': item.specs?.registrationNumber || '-',
-          }
-        : {
-            'Fuel Type': item.fuelType || '-',
-            'Transmission': item.transmission || '-',
-            'Seating Capacity': item.seatingCapacity || '-',
-            'Engine (CC)': item.specs?.engineCC || '-',
-            'Mileage': item.specs?.mileage || '-',
-            'Weekly Discount (%)': item.weeklyDiscount || 0,
-            'Monthly Discount (%)': item.monthlyDiscount || 0,
-          }
-      ),
-      'Locations': `${item.locations} cities`,
-      'Status': item.isActive ? 'Active' : 'Inactive',
-      'Image URL': item.imageUrl || '-',
-    }));
+          : isPackersService
+            ? {
+              'Vehicle Capacity': item.specs?.vehicleCapacity || '-',
+              'Team Size': item.specs?.teamSize || '-',
+              'Registration Number': item.specs?.registrationNumber || '-',
+            }
+            : {
+              'Fuel Type': item.fuelType || '-',
+              'Transmission': item.transmission || '-',
+              'Seating Capacity': item.seatingCapacity || '-',
+              'Engine (CC)': item.engineCC || '-',
+              'Mileage': item.mileage || '-',
+              'Weekly Discount (%)': item.weeklyDiscount || 0,
+              'Monthly Discount (%)': item.monthlyDiscount || 0,
+            }
+        ),
+        'Locations': `${item.locationCount} cities`,
+        'Status': item.isActive ? 'Active' : 'Inactive',
+        'Image URL': item.sideImage || '-',
+      }));
 
-    // Create workbook and worksheet
-    const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.json_to_sheet(exportData);
+      // Create workbook and worksheet
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.json_to_sheet(exportData);
 
-    // Set column widths for better readability
-    const columnWidths = [
-      { wch: 6 },  // S.No
-      { wch: 25 }, // Name
-      { wch: 15 }, // Brand
-      { wch: 20 }, // Model
-      { wch: 15 }, // Category
-      { wch: 15 }, // Base Price
-      { wch: 15 }, // Additional fields
-      { wch: 15 },
-      { wch: 15 },
-      { wch: 15 },
-      { wch: 15 },
-      { wch: 12 }, // Locations
-      { wch: 10 }, // Status
-      { wch: 40 }, // Image URL
-    ];
-    ws['!cols'] = columnWidths;
+      // Set column widths for better readability
+      const columnWidths = [
+        { wch: 6 },  // S.No
+        { wch: 25 }, // Name
+        { wch: 15 }, // Brand
+        { wch: 20 }, // Model
+        { wch: 15 }, // Category
+        { wch: 15 }, // Base Price
+        { wch: 15 }, // Additional fields
+        { wch: 15 },
+        { wch: 15 },
+        { wch: 15 },
+        { wch: 15 },
+        { wch: 12 }, // Locations
+        { wch: 10 }, // Status
+        { wch: 40 }, // Image URL
+      ];
+      ws['!cols'] = columnWidths;
 
-    // Add worksheet to workbook
-    const sheetName = isEquipmentService ? 'Equipment Fleet' : isPackersService ? 'Packers Fleet' : 'Vehicle Fleet';
-    XLSX.utils.book_append_sheet(wb, ws, sheetName);
+      // Add worksheet to workbook
+      const sheetName = isEquipmentService ? 'Equipment Fleet' : isPackersService ? 'Packers Fleet' : 'Vehicle Fleet';
+      XLSX.utils.book_append_sheet(wb, ws, sheetName);
 
-    // Generate filename with service name and current date
-    const serviceName = service?.name.replace(/[^a-zA-Z0-9]/g, '_') || 'fleet';
-    const date = new Date().toISOString().split('T')[0];
-    const filename = `${serviceName}_fleet_${date}.xlsx`;
+      // Generate filename with service name and current date
+      const serviceName = service?.name.replace(/[^a-zA-Z0-9]/g, '_') || 'fleet';
+      const date = new Date().toISOString().split('T')[0];
+      const filename = `${serviceName}_fleet_${date}.xlsx`;
 
-    // Download file
-    XLSX.writeFile(wb, filename);
+      // Download file
+      XLSX.writeFile(wb, filename);
+    } catch (error) {
+      console.error('Export failed:', error);
+      alert('Failed to export data. Please try again.');
+    } finally {
+      setExporting(false);
+    }
   };
 
   // Fetch all locations for filter dropdown
@@ -925,6 +959,8 @@ export default function ServiceFleetPage() {
       if (res.ok) {
         const data = await res.json();
         setPagination(data.pagination);
+        setActiveTotal(data.activeTotal || 0);
+        setInactiveTotal(data.inactiveTotal || 0);
         setFleet(data.fleet.map((item: any) => ({
           id: item.id,
           name: item.name,
@@ -968,24 +1004,11 @@ export default function ServiceFleetPage() {
     fetchLocations();
   }, [fetchLocations]);
 
-  const filteredFleet = fleet.filter((item) => {
-    const matchesSearch =
-      item.name.toLowerCase().includes(search.toLowerCase()) ||
-      item.brand.toLowerCase().includes(search.toLowerCase()) ||
-      item.model.toLowerCase().includes(search.toLowerCase());
-    const matchesSubService = subServiceFilter === 'ALL' || item.sub_service === subServiceFilter;
-    const matchesStatus =
-      statusFilter === 'ALL' ||
-      (statusFilter === 'ACTIVE' && item.isActive) ||
-      (statusFilter === 'INACTIVE' && !item.isActive);
-    return matchesSearch && matchesSubService && matchesStatus;
-  });
-
   const stats = {
-    total: fleet.length,
-    active: fleet.filter((f) => f.isActive).length,
-    inactive: fleet.filter((f) => !f.isActive).length,
-    totalLocations: fleet.reduce((acc, f) => acc + f.locations, 0),
+    total: pagination?.total || 0,
+    active: activeTotal,
+    inactive: inactiveTotal,
+    totalLocations: fleet.reduce((acc, f) => acc + f.locations, 0), // Note: this will still be for current page only, but usually total count is more important
   };
 
   if (serviceLoading) {
@@ -1037,9 +1060,18 @@ export default function ServiceFleetPage() {
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <Button variant="outline" size="sm" onClick={handleExport}>
-            <Download className="w-4 h-4 mr-2" />
-            Export
+          <Button variant="outline" size="sm" onClick={handleExport} disabled={exporting}>
+            {exporting ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Exporting...
+              </>
+            ) : (
+              <>
+                <Download className="w-4 h-4 mr-2" />
+                Export All
+              </>
+            )}
           </Button>
           <Button
             onClick={openAddModal}
@@ -1096,7 +1128,7 @@ export default function ServiceFleetPage() {
             >
               <option value="ALL">All Categories</option>
               {subServices.map((sub) => (
-                <option key={sub.slug} value={sub.name}>
+                <option key={sub.id} value={sub.id}>
                   {sub.name}
                 </option>
               ))}
@@ -1136,7 +1168,7 @@ export default function ServiceFleetPage() {
           <div className="flex items-center justify-center h-64">
             <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
           </div>
-        ) : filteredFleet.length === 0 ? (
+        ) : fleet.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-64 text-gray-500">
             {isEquipmentService ? <Wrench className="w-12 h-12 mb-4" /> : <Car className="w-12 h-12 mb-4" />}
             <p className="font-medium">No {isEquipmentService ? 'equipment' : 'vehicles'} found</p>
@@ -1160,7 +1192,7 @@ export default function ServiceFleetPage() {
                 </tr>
               </thead>
               <tbody className="divide-y">
-                {filteredFleet.map((item) => (
+                {fleet.map((item) => (
                   <tr key={item.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
@@ -1184,7 +1216,7 @@ export default function ServiceFleetPage() {
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded text-sm">{item.sub_service}</span>
+                      <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded text-sm">{item.services_vehicle_models_subServiceIdToservices}</span>
                     </td>
                     <td className="px-6 py-4">
                       {item.basePrice > 0 ? (
@@ -1298,11 +1330,10 @@ export default function ServiceFleetPage() {
                     <button
                       key={pageNum}
                       onClick={() => setCurrentPage(pageNum)}
-                      className={`px-3 py-1 rounded-lg text-sm font-medium transition ${
-                        currentPage === pageNum
-                          ? 'bg-blue-600 text-white'
-                          : 'border border-gray-300 hover:bg-gray-50'
-                      }`}
+                      className={`px-3 py-1 rounded-lg text-sm font-medium transition ${currentPage === pageNum
+                        ? 'bg-blue-600 text-white'
+                        : 'border border-gray-300 hover:bg-gray-50'
+                        }`}
                     >
                       {pageNum}
                     </button>
@@ -2053,13 +2084,12 @@ export default function ServiceFleetPage() {
                                   {ut.isLeafLocation ? (
                                     // Leaf location - UT itself is a location (no child cities)
                                     <button
-                                      onClick={() => toggleLocation(ut.id, isLeafAssigned)}
+                                      onClick={() => toggleLocation(ut.id, !!isLeafAssigned)}
                                       disabled={savingLocations}
-                                      className={`flex-1 flex items-center gap-2 p-3 text-left transition-all ${
-                                        isLeafAssigned
-                                          ? 'bg-purple-100 border-l-4 border-purple-600'
-                                          : 'bg-purple-50 hover:bg-purple-100'
-                                      }`}
+                                      className={`flex-1 flex items-center gap-2 p-3 text-left transition-all ${isLeafAssigned
+                                        ? 'bg-purple-100 border-l-4 border-purple-600'
+                                        : 'bg-purple-50 hover:bg-purple-100'
+                                        }`}
                                     >
                                       {isLeafAssigned ? (
                                         <CheckCircle className="w-5 h-5 text-purple-600 flex-shrink-0" />
@@ -2069,11 +2099,10 @@ export default function ServiceFleetPage() {
                                       <span className={`font-medium ${isLeafAssigned ? 'text-purple-900' : 'text-gray-900'}`}>
                                         {ut.name}
                                       </span>
-                                      <span className={`text-xs ml-auto px-2 py-1 rounded ${
-                                        isLeafAssigned
-                                          ? 'bg-purple-200 text-purple-800'
-                                          : 'bg-purple-100 text-purple-600'
-                                      }`}>
+                                      <span className={`text-xs ml-auto px-2 py-1 rounded ${isLeafAssigned
+                                        ? 'bg-purple-200 text-purple-800'
+                                        : 'bg-purple-100 text-purple-600'
+                                        }`}>
                                         {isLeafAssigned ? '✓ Assigned' : 'Location'}
                                       </span>
                                     </button>
@@ -2304,7 +2333,7 @@ export default function ServiceFleetPage() {
                               name: m.originalName || m.filename,
                               url: m.url,
                               type: m.mimeType?.startsWith('image/') ? 'image' :
-                                    m.mimeType?.startsWith('video/') ? 'video' : 'document',
+                                m.mimeType?.startsWith('video/') ? 'video' : 'document',
                               folder: m.folder || 'uploads',
                             }));
                             setMediaItems(transformedMedia);

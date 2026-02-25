@@ -14,6 +14,17 @@ import {
   CheckCircle,
   Eye,
   Phone,
+  Mail,
+  Building2,
+  User,
+  Package,
+  Truck,
+  HardHat,
+  Settings,
+  ChevronDown,
+  ChevronUp,
+  IndianRupee,
+  FileText,
 } from 'lucide-react';
 import { EQUIPMENT_CONFIG } from '@/lib/quote-services';
 import Pagination from '@/components/vendor/Pagination';
@@ -22,20 +33,34 @@ import DateFilterDropdown from '@/components/vendor/DateFilterDropdown';
 interface QuoteRequest {
   id: string;
   requestNumber: string;
+  customerName: string;
+  customerEmail: string;
+  customerPhone: string;
+  companyName?: string;
   equipmentCategory: string;
   equipmentType: string;
+  equipmentName?: string;
   specificModel?: string;
   quantity: number;
   rentalDuration: number;
+  rentalDays: number;
   durationUnit: string;
   city: string;
+  deliveryCity: string;
   deliveryAddress?: string;
+  siteType?: string;
   startDate: string;
   endDate?: string;
   needOperator?: boolean;
+  needDelivery?: boolean;
+  needInstallation?: boolean;
   requirements?: string;
+  budgetMin?: number;
+  budgetMax?: number;
   status: string;
   totalQuotesReceived: number;
+  quotesOpenTill?: string;
+  expiresAt?: string;
   createdAt: string;
   myQuote?: { id: string; quoteNumber: string; totalAmount: number; status: string };
 }
@@ -187,7 +212,7 @@ export default function VendorEquipmentRequestsPage() {
                 hasQuoted ? 'bg-green-50' : 'bg-amber-50'
               }`}>
                 <div className="flex items-center gap-2">
-                  <span className="font-mono text-sm text-gray-700">#{request.requestNumber}</span>
+                  <span className="text-sm font-semibold text-gray-800">{request.customerName}</span>
                   <span className="text-xs text-gray-500">{getTimeAgo(request.createdAt)}</span>
                 </div>
                 <div className="flex items-center gap-2">
@@ -206,6 +231,7 @@ export default function VendorEquipmentRequestsPage() {
               </div>
 
               <div className="p-4 md:p-6">
+                {/* Equipment Info */}
                 <div className="flex flex-wrap items-start justify-between gap-4 mb-4">
                   <div className="flex items-start gap-3">
                     <div className="w-12 h-12 bg-amber-100 rounded-xl flex items-center justify-center">
@@ -214,10 +240,9 @@ export default function VendorEquipmentRequestsPage() {
                     <div>
                       <h3 className="font-bold text-gray-900">{request.equipmentType}</h3>
                       <p className="text-sm text-gray-500">{getCategoryName(request.equipmentCategory)}</p>
-                      <div className="flex items-center gap-1 text-gray-600 mt-1">
-                        <MapPin className="w-4 h-4" />
-                        <span className="text-sm">{request.city}</span>
-                      </div>
+                      {request.equipmentName && (
+                        <p className="text-xs text-gray-500 mt-0.5">{request.equipmentName}</p>
+                      )}
                     </div>
                   </div>
 
@@ -231,53 +256,167 @@ export default function VendorEquipmentRequestsPage() {
                   </div>
                 </div>
 
+                {/* Customer Info Card */}
+                <div className="bg-blue-50 rounded-lg p-3 mb-4 border border-blue-100">
+                  <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
+                    <div className="flex items-center gap-1.5 text-sm font-medium text-gray-900">
+                      <User className="w-4 h-4 text-blue-500" />
+                      {request.customerName}
+                    </div>
+                    {request.customerPhone && (
+                      <a href={`tel:${request.customerPhone}`} className="flex items-center gap-1.5 text-sm text-blue-600 hover:underline">
+                        <Phone className="w-3.5 h-3.5" />
+                        {request.customerPhone}
+                      </a>
+                    )}
+                    {request.customerEmail && (
+                      <a href={`mailto:${request.customerEmail}`} className="flex items-center gap-1.5 text-sm text-blue-600 hover:underline">
+                        <Mail className="w-3.5 h-3.5" />
+                        {request.customerEmail}
+                      </a>
+                    )}
+                    {request.companyName && (
+                      <div className="flex items-center gap-1.5 text-sm text-gray-600">
+                        <Building2 className="w-3.5 h-3.5 text-gray-400" />
+                        {request.companyName}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Location, Date & Duration Row */}
                 <div className="flex flex-wrap gap-4 mb-4 text-sm text-gray-600">
                   <div className="flex items-center gap-1.5">
+                    <MapPin className="w-4 h-4 text-amber-500" />
+                    {request.city}
+                  </div>
+                  <div className="flex items-center gap-1.5">
                     <Calendar className="w-4 h-4 text-amber-500" />
-                    Start: {new Date(request.startDate).toLocaleDateString('en-IN', {
+                    {new Date(request.startDate).toLocaleDateString('en-IN', {
                       day: 'numeric', month: 'short', year: 'numeric',
                     })}
+                    {request.endDate && (
+                      <> — {new Date(request.endDate).toLocaleDateString('en-IN', {
+                        day: 'numeric', month: 'short', year: 'numeric',
+                      })}</>
+                    )}
                   </div>
+                  <div className="flex items-center gap-1.5">
+                    <Clock className="w-4 h-4 text-gray-400" />
+                    {request.rentalDays || request.rentalDuration} days ({request.durationUnit})
+                  </div>
+                  {request.quantity > 1 && (
+                    <div className="flex items-center gap-1.5">
+                      <Package className="w-4 h-4 text-gray-400" />
+                      Qty: {request.quantity}
+                    </div>
+                  )}
+                </div>
+
+                {/* Service Badges */}
+                <div className="flex flex-wrap gap-2 mb-4">
                   {request.needOperator && (
-                    <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full">
-                      Operator Needed
+                    <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded-full">
+                      <HardHat className="w-3 h-3" /> Operator Needed
+                    </span>
+                  )}
+                  {request.needDelivery && (
+                    <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-green-100 text-green-700 text-xs font-medium rounded-full">
+                      <Truck className="w-3 h-3" /> Delivery Required
+                    </span>
+                  )}
+                  {request.needInstallation && (
+                    <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-purple-100 text-purple-700 text-xs font-medium rounded-full">
+                      <Settings className="w-3 h-3" /> Installation Needed
                     </span>
                   )}
                 </div>
 
+                {/* Expand/Collapse Button */}
+                <button
+                  onClick={() => setExpandedId(expandedId === request.id ? null : request.id)}
+                  className="flex items-center gap-1 text-sm text-amber-600 font-medium hover:text-amber-700 mb-3"
+                >
+                  {expandedId === request.id ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                  {expandedId === request.id ? 'Hide Details' : 'View Full Details'}
+                </button>
+
+                {/* Expanded Details */}
                 {expandedId === request.id && (
-                  <div className="border-t pt-4 mt-4 space-y-3">
-                    {request.deliveryAddress && (
+                  <div className="bg-gray-50 rounded-lg p-4 mb-4 border border-gray-200 space-y-4">
+                    {/* Delivery Details */}
+                    <div>
+                      <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Delivery Details</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                        <div>
+                          <span className="text-gray-500">City:</span>{' '}
+                          <span className="font-medium text-gray-900">{request.deliveryCity || request.city}</span>
+                        </div>
+                        {request.deliveryAddress && (
+                          <div>
+                            <span className="text-gray-500">Address:</span>{' '}
+                            <span className="font-medium text-gray-900">{request.deliveryAddress}</span>
+                          </div>
+                        )}
+                        {request.siteType && (
+                          <div>
+                            <span className="text-gray-500">Site Type:</span>{' '}
+                            <span className="font-medium text-gray-900">{request.siteType}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Budget */}
+                    {(request.budgetMin || request.budgetMax) && (
                       <div>
-                        <span className="text-xs text-gray-500 uppercase">Delivery Address</span>
-                        <p className="text-sm text-gray-700">{request.deliveryAddress}</p>
+                        <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Customer Budget</h4>
+                        <p className="text-sm font-medium text-gray-900">
+                          {request.budgetMin && request.budgetMax
+                            ? `₹${request.budgetMin.toLocaleString()} — ₹${request.budgetMax.toLocaleString()}`
+                            : request.budgetMin
+                            ? `Min ₹${request.budgetMin.toLocaleString()}`
+                            : `Max ₹${request.budgetMax!.toLocaleString()}`}
+                        </p>
                       </div>
                     )}
+
+                    {/* Quotes Window */}
+                    {request.quotesOpenTill && (
+                      <div>
+                        <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Quotes Open Till</h4>
+                        <p className="text-sm font-medium text-gray-900">
+                          {new Date(request.quotesOpenTill).toLocaleDateString('en-IN', {
+                            day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
+                          })}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Special Requirements */}
                     {request.requirements && (
                       <div>
-                        <span className="text-xs text-gray-500 uppercase">Requirements</span>
-                        <p className="text-sm text-gray-700">{request.requirements}</p>
+                        <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Special Requirements</h4>
+                        <p className="text-sm text-gray-700 bg-white rounded p-3 border border-gray-200">
+                          {request.requirements}
+                        </p>
                       </div>
                     )}
+
+                    {/* Your Quote */}
                     {request.myQuote && (
-                      <div className="bg-green-50 p-3 rounded-lg">
-                        <span className="text-xs text-green-600 uppercase tracking-wide">Your Quote</span>
-                        <p className="text-sm font-medium text-green-800">
-                          ₹{request.myQuote.totalAmount.toLocaleString()} - {request.myQuote.status}
+                      <div className="bg-green-50 p-3 rounded-lg border border-green-200">
+                        <span className="text-xs font-bold text-green-600 uppercase tracking-wide">Your Quote</span>
+                        <p className="text-sm font-medium text-green-800 mt-1">
+                          ₹{request.myQuote.totalAmount.toLocaleString()} — {request.myQuote.status}
                         </p>
                       </div>
                     )}
                   </div>
                 )}
 
-                <div className="flex flex-wrap gap-2 pt-4 border-t mt-4">
-                  <button
-                    onClick={() => setExpandedId(expandedId === request.id ? null : request.id)}
-                    className="px-4 py-2 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-200 flex items-center gap-1"
-                  >
-                    <Eye className="w-4 h-4" />
-                    {expandedId === request.id ? 'Less' : 'Details'}
-                  </button>
+                {/* Actions */}
+                <div className="flex flex-wrap gap-2 pt-4 border-t">
                   {!hasQuoted ? (
                     <Link
                       href={`/vendor/equipment/requests/${request.id}/quote`}

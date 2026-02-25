@@ -37,7 +37,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useCustomerAuth } from '@/hooks/useCustomer';
-import { PaymentConfirmation } from '@/components/bike/PaymentConfirmation';
+import { BookingPayment } from '@/components/payment/BookingPayment';
 import InlineBookingChat from '@/components/customer/InlineBookingChat';
 
 // Car booking status type
@@ -502,17 +502,14 @@ export default function CarBookingDetailPage() {
           </div>
         </div>
 
-        {/* Payment Confirmation Section - Show when PENDING_PAYMENT */}
+        {/* Payment Section - Show when PENDING_PAYMENT */}
         {(booking.status === 'PENDING_PAYMENT' || booking.status === 'PENDING') && (
-          <PaymentConfirmation
+          <BookingPayment
             bookingId={booking.id}
+            bookingType="self-drive"
+            amount={booking.advanceAmount}
             bookingNumber={booking.bookingNumber}
-            amount={booking.advanceAmount + booking.platformFee}
-            serviceSlug="self-drive-car-rental"
-            onPaymentConfirmed={() => {
-              // Refresh booking to get updated status
-              window.location.reload();
-            }}
+            onSuccess={() => window.location.reload()}
           />
         )}
 

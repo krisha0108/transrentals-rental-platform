@@ -16,7 +16,9 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import messaging from '@react-native-firebase/messaging';
 import notifee, { AndroidStyle, AndroidImportance, EventType } from '@notifee/react-native';
 import axios from 'axios';
-import { debugAuthState, getSessionToken } from './screens/api/client';
+import { debugAuthState, getSessionToken, getVendorNotificationsUnreadCount, saveVendorFcmToken } from './screens/api/client';
+import OfflineBanner from './components/OfflineBanner';
+import { NotifBadgeContext } from './contexts/NotifBadgeContext';
 
 // Screens
 import SplashScreen from './screens/SplashScreen';
@@ -48,6 +50,10 @@ import NotificationsScreen from './screens/vendor/notifications/NotificationsScr
 
 // Fleet
 import FleetListScreen from './screens/vendor/fleet/FleetListScreen';
+import FleetDocumentsScreen from './screens/vendor/fleet/FleetDocumentsScreen';
+import FuelTrackingScreen from './screens/vendor/fleet/FuelTrackingScreen';
+import IncidentsScreen from './screens/vendor/fleet/IncidentsScreen';
+import ServiceMaintenanceScreen from './screens/vendor/fleet/ServiceMaintenanceScreen';
 
 // Staff
 import StaffListScreen from './screens/vendor/staff/StaffListScreen';
@@ -62,6 +68,8 @@ import AddVehicleScreen from './screens/vendor/fleet/AddVehicleScreen';
 // Staff Detail Screens
 import StaffDetailScreen from './screens/vendor/staff/StaffDetailScreen';
 import AddStaffScreen from './screens/vendor/staff/AddStaffScreen';
+import StaffAttendanceScreen from './screens/vendor/staff/StaffAttendanceScreen';
+import StaffPayrollScreen from './screens/vendor/staff/StaffPayrollScreen';
 
 // Profile Detail Screens
 import BankDetailsScreen from './screens/vendor/profile/BankDetailsScreen';
@@ -108,6 +116,26 @@ import PackersBookingsScreen from './screens/vendor/services/packers/PackersBook
 import PackersBookingDetailScreen from './screens/vendor/services/packers/PackersBookingDetailScreen';
 import SelfDriveBookingsScreen from './screens/vendor/services/self-drive/SelfDriveBookingsScreen';
 import SelfDriveBookingDetailScreen from './screens/vendor/services/self-drive/SelfDriveBookingDetailScreen';
+
+// Direct Bookings
+import DirectBookingsScreen from './screens/vendor/direct-bookings/DirectBookingsScreen';
+import AddDirectBookingScreen from './screens/vendor/direct-bookings/AddDirectBookingScreen';
+import DirectBookingDetailScreen from './screens/vendor/direct-bookings/DirectBookingDetailScreen';
+
+// Booking Links
+import BookingLinksScreen from './screens/vendor/booking-links/BookingLinksScreen';
+
+// Financials
+import FinancialsScreen from './screens/vendor/financials/FinancialsScreen';
+
+// P2P Marketplace
+import P2PDashboardScreen from './screens/vendor/p2p/P2PDashboardScreen';
+import BrowseVehiclesScreen from './screens/vendor/p2p/BrowseVehiclesScreen';
+import BrowseBookingsScreen from './screens/vendor/p2p/BrowseBookingsScreen';
+import PostVehicleScreen from './screens/vendor/p2p/PostVehicleScreen';
+import PostBookingScreen from './screens/vendor/p2p/PostBookingScreen';
+import MyPostingsScreen from './screens/vendor/p2p/MyPostingsScreen';
+import P2PActivityScreen from './screens/vendor/p2p/P2PActivityScreen';
 
 // Service-Specific Quote Screens
 import BikeMyQuotesScreen from './screens/vendor/services/bike/BikeMyQuotesScreen';
@@ -190,6 +218,7 @@ const C = {
 
 // Custom Tab Bar Component for premium look
 function CustomTabBar({ state, descriptors, navigation }) {
+  const { unreadCount } = React.useContext(NotifBadgeContext);
   const tabs = [
     { name: 'Dashboard', icon: 'home', iconOutline: 'home-outline', label: 'Home' },
     { name: 'Bookings', icon: 'calendar', iconOutline: 'calendar-outline', label: 'Bookings' },
@@ -234,6 +263,14 @@ function CustomTabBar({ state, descriptors, navigation }) {
                   size={isFocused ? 24 : 22}
                   color={isFocused ? '#fff' : C.muted}
                 />
+                {/* Unread notification badge on Dashboard tab */}
+                {index === 0 && unreadCount > 0 && (
+                  <View style={styles.notifBadge}>
+                    <Text style={styles.notifBadgeText}>
+                      {unreadCount > 99 ? '99+' : String(unreadCount)}
+                    </Text>
+                  </View>
+                )}
               </View>
 
               {/* Label */}
@@ -360,6 +397,16 @@ const navigationRef = React.createRef();
 const isNavigationReadyRef = React.createRef();
 const pendingNavigateDataRef = React.createRef();
 
+const QUOTE_SCREEN_MAP = {
+  bike: 'BikeQuoteRequestDetail',
+  bus: 'BusQuoteRequestDetail',
+  truck: 'TruckQuoteRequestDetail',
+  luxury: 'LuxuryQuoteRequestDetail',
+  packers: 'PackersQuoteRequestDetail',
+  equipment: 'EquipmentQuoteRequestDetail',
+  'self-drive': 'SelfDriveQuoteRequestDetail',
+};
+
 function navigateByData(data) {
   if (!data || !navigationRef.current) return;
 
@@ -374,19 +421,40 @@ function navigateByData(data) {
     navigationRef.current.navigate('ChatScreen', { bookingId: Number(bookingId) });
     return;
   }
+  if (screen === 'QuoteRequestDetail' && data.serviceType && data.requestId) {
+    const screenName = QUOTE_SCREEN_MAP[data.serviceType];
+    if (screenName) {
+      navigationRef.current.navigate(screenName, { requestId: data.requestId });
+      return;
+    }
+  }
   console.log('Unknown screen for navigation:', screen);
 }
 
 export default function App() {
   const [permissionGranted, setPermissionGranted] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  const refreshBadge = React.useCallback(async () => {
+    try {
+      const token = await getSessionToken();
+      if (!token) return; // not logged in yet — skip
+      const res = await getVendorNotificationsUnreadCount();
+      setUnreadCount(res?.unreadCount || 0);
+    } catch {
+      // silently ignore — not critical
+    }
+  }, []);
 
   useEffect(() => {
     createNotificationChannel();
     checkNotificationPermission();
+    refreshBadge();
 
     // Handle foreground notifications
     const unsubscribeOnMessage = messaging().onMessage(async (remoteMessage) => {
       console.log('Foreground Message:', remoteMessage);
+      refreshBadge();
       const image =
         remoteMessage?.data?.image ||
         remoteMessage?.notification?.android?.imageUrl ||
@@ -400,7 +468,7 @@ export default function App() {
           channelId: 'default_v3',
           importance: AndroidImportance.HIGH,
           sound: 'notification_sound',
-          smallIcon: 'ic_launcher',
+          smallIcon: 'ic_notification',
           pressAction: { id: 'default_v3' },
           style:
             image && image !== 'null'
@@ -441,7 +509,7 @@ export default function App() {
       unsubscribeOpened();
       unsubscribeNotifee();
     };
-  }, []);
+  }, [refreshBadge]);
 
   async function checkNotificationPermission() {
     const authStatus = await messaging().requestPermission();
@@ -459,13 +527,13 @@ export default function App() {
   }
 
   async function getTokenAndSend() {
+    const token = await getSessionToken();
+    if (!token) return; // not logged in yet — skip
     const fcmToken = await messaging().getToken();
     console.log('FCM Token:', fcmToken);
     if (fcmToken) {
       try {
-        await axios.post('https://transrentals.in/api/vendor/profile', {
-          fcmToken: fcmToken,
-        });
+        await saveVendorFcmToken(fcmToken);
         console.log('FCM token sent to backend');
       } catch (error) {
         console.log('Error sending FCM token:', error.message);
@@ -474,6 +542,7 @@ export default function App() {
   }
 
   return (
+    <NotifBadgeContext.Provider value={{ unreadCount, refreshBadge }}>
     <SafeAreaProvider>
       <NavigationContainer
         ref={navigationRef}
@@ -528,10 +597,16 @@ export default function App() {
             {/* Fleet Screens */}
             <Stack.Screen name="VehicleDetailScreen" component={VehicleDetailScreen} />
             <Stack.Screen name="AddVehicleScreen" component={AddVehicleScreen} />
+            <Stack.Screen name="FleetDocumentsScreen" component={FleetDocumentsScreen} />
+            <Stack.Screen name="FuelTrackingScreen" component={FuelTrackingScreen} />
+            <Stack.Screen name="IncidentsScreen" component={IncidentsScreen} />
+            <Stack.Screen name="ServiceMaintenanceScreen" component={ServiceMaintenanceScreen} />
 
             {/* Staff Screens */}
             <Stack.Screen name="StaffDetailScreen" component={StaffDetailScreen} />
             <Stack.Screen name="AddStaffScreen" component={AddStaffScreen} />
+            <Stack.Screen name="StaffAttendanceScreen" component={StaffAttendanceScreen} />
+            <Stack.Screen name="StaffPayrollScreen" component={StaffPayrollScreen} />
 
             {/* Profile Screens */}
             <Stack.Screen name="BankDetailsScreen" component={BankDetailsScreen} />
@@ -578,6 +653,26 @@ export default function App() {
             <Stack.Screen name="PackersBookingDetail" component={PackersBookingDetailScreen} />
             <Stack.Screen name="SelfDriveBookings" component={SelfDriveBookingsScreen} />
             <Stack.Screen name="SelfDriveBookingDetail" component={SelfDriveBookingDetailScreen} />
+
+            {/* Direct Bookings */}
+            <Stack.Screen name="DirectBookings" component={DirectBookingsScreen} />
+            <Stack.Screen name="AddDirectBooking" component={AddDirectBookingScreen} />
+            <Stack.Screen name="DirectBookingDetail" component={DirectBookingDetailScreen} />
+
+            {/* Booking Links */}
+            <Stack.Screen name="BookingLinks" component={BookingLinksScreen} />
+
+            {/* Financials */}
+            <Stack.Screen name="Financials" component={FinancialsScreen} />
+
+            {/* P2P Marketplace */}
+            <Stack.Screen name="P2PDashboard" component={P2PDashboardScreen} />
+            <Stack.Screen name="BrowseVehiclesScreen" component={BrowseVehiclesScreen} />
+            <Stack.Screen name="BrowseBookingsScreen" component={BrowseBookingsScreen} />
+            <Stack.Screen name="PostVehicleScreen" component={PostVehicleScreen} />
+            <Stack.Screen name="PostBookingScreen" component={PostBookingScreen} />
+            <Stack.Screen name="MyPostingsScreen" component={MyPostingsScreen} />
+            <Stack.Screen name="P2PActivityScreen" component={P2PActivityScreen} />
 
             {/* Service-Specific Quote Screens */}
             {/* Bike */}
@@ -653,7 +748,9 @@ export default function App() {
           </Stack.Group>
         </Stack.Navigator>
       </NavigationContainer>
+      <OfflineBanner />
     </SafeAreaProvider>
+    </NotifBadgeContext.Provider>
   );
 }
 
@@ -736,5 +833,24 @@ const styles = StyleSheet.create({
     borderRadius: 2,
     backgroundColor: C.brand,
     marginTop: 3,
+  },
+  notifBadge: {
+    position: 'absolute',
+    top: -2,
+    right: -2,
+    minWidth: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: '#EF4444',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 3,
+    borderWidth: 1.5,
+    borderColor: '#fff',
+  },
+  notifBadgeText: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: '#fff',
   },
 });

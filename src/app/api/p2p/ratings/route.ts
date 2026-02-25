@@ -96,16 +96,9 @@ export async function POST(request: NextRequest) {
     // Determine the rated vendor (the OTHER vendor)
     const ratedVendorId = isVendorA ? transaction.vendorBId : transaction.vendorAId;
 
-    // Generate ID with PRT_ prefix
-    const allIds = await prisma.p2p_ratings.findMany({
-      where: { id: { startsWith: 'PRT_' } },
-      select: { id: true },
-    });
-    const maxId = allIds.reduce((max, item) => {
-      const num = parseInt(item.id.replace('PRT_', ''));
-      return num > max ? num : max;
-    }, 0);
-    const newId = `PRT_${maxId + 1}`;
+    // Generate ID efficiently (single-row MAX query instead of full table scan)
+    const maxIdResult: any[] = await prisma.$queryRaw`SELECT MAX(CAST(SUBSTRING(id, 5) AS UNSIGNED)) as maxNum FROM p2p_ratings WHERE id LIKE 'PRT_%'`;
+    const newId = `PRT_${(Number(maxIdResult?.[0]?.maxNum) || 0) + 1}`;
 
     // Create the rating
     const rating = await prisma.p2p_ratings.create({

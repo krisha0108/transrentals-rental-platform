@@ -3,10 +3,11 @@ import Link from 'next/link';
 import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
 import { FAQSection } from '@/components/services/FAQSection';
 import { ALL_CITIES } from '@/data/indian-cities';
+import { formatPriceHighlight } from '@/lib/utils';
 
 export const metadata: Metadata = {
-  title: 'Self Drive Hatchback Rental India | Rent Hatchback @₹899/Day | TransRentals',
-  description: 'Rent hatchback without driver across India. Swift, i20, Baleno, Tiago available. Self-drive hatchback rental for city commute. Most affordable option.',
+  title: formatPriceHighlight('Self Drive Hatchback Rental India | Rent Hatchback @₹899/Day | TransRentals'),
+  description: formatPriceHighlight('Rent hatchback without driver across India. Swift, i20, Baleno, Tiago available. Self-drive hatchback rental for city commute. Most affordable option.'),
   keywords: [
     'self drive hatchback rental',
     'hatchback on rent without driver',
@@ -16,8 +17,8 @@ export const metadata: Metadata = {
     'baleno rental',
   ],
   openGraph: {
-    title: 'Self Drive Hatchback Rental India @₹899/Day | TransRentals',
-    description: 'Rent hatchbacks without driver. Swift, i20, Baleno available.',
+    title: formatPriceHighlight('Self Drive Hatchback Rental India @₹899/Day | TransRentals'),
+    description: formatPriceHighlight('Rent hatchbacks without driver. Swift, i20, Baleno available.'),
     type: 'website',
     url: 'https://transrentals.in/self-drive-hatchback-rental',
   },

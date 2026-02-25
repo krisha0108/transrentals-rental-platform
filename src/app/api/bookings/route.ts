@@ -7,6 +7,7 @@ import {
   RATE_LIMITS,
   logger,
 } from '@/lib/security';
+import { sendQuoteRequestNotificationToVendors } from '@/lib/utils/vendor-notification-sender';
 
 export const dynamic = 'force-dynamic';
 
@@ -677,6 +678,16 @@ async function handleTruckQuoteRequest(customerInfo: { name: string; email: stri
     },
   });
 
+  sendQuoteRequestNotificationToVendors({
+    requestId: quoteRequest.id,
+    requestNumber: quoteRequest.requestNumber,
+    locationId: pickupLocation?.id || (bookingData.location_name as string),
+    locationName: pickupLocation?.name || (bookingData.location_name as string),
+    customerName: customerInfo.name,
+    serviceType: 'truck',
+    serviceDisplayName: 'Truck Rental',
+  }).catch((err: any) => console.error('[Notification] Truck failed:', err));
+
   return {
     success: true,
     message: 'Your truck rental request has been submitted! Vendors will send quotes within 24-48 hours.',
@@ -728,6 +739,16 @@ async function handlePackersQuoteRequest(customerInfo: { name: string; email: st
       quotesOpenTill,
     },
   });
+
+  sendQuoteRequestNotificationToVendors({
+    requestId: quoteRequest.id,
+    requestNumber: quoteRequest.requestNumber,
+    locationId: pickupLocation?.id || (bookingData.location_name as string),
+    locationName: pickupLocation?.name || (bookingData.location_name as string),
+    customerName: customerInfo.name,
+    serviceType: 'packers',
+    serviceDisplayName: 'Packers & Movers',
+  }).catch((err: any) => console.error('[Notification] Packers failed:', err));
 
   return {
     success: true,
@@ -793,6 +814,16 @@ async function handleEquipmentQuoteRequest(customerInfo: { name: string; email: 
     },
   });
 
+  sendQuoteRequestNotificationToVendors({
+    requestId: quoteRequest.id,
+    requestNumber: quoteRequest.requestNumber,
+    locationId: location?.id || (bookingData.location_name as string),
+    locationName: location?.name || (bookingData.location_name as string),
+    customerName: customerInfo.name,
+    serviceType: 'equipment',
+    serviceDisplayName: 'Equipment Rental',
+  }).catch((err: any) => console.error('[Notification] Equipment failed:', err));
+
   return {
     success: true,
     message: 'Your equipment rental request has been submitted! Vendors will send quotes within 24-48 hours.',
@@ -848,6 +879,16 @@ async function handleBusQuoteRequest(customerInfo: { name: string; email: string
     },
   });
 
+  sendQuoteRequestNotificationToVendors({
+    requestId: quoteRequest.id,
+    requestNumber: quoteRequest.requestNumber,
+    locationId: pickupLocation?.id || (bookingData.location_name as string),
+    locationName: pickupLocation?.name || (bookingData.location_name as string),
+    customerName: customerInfo.name,
+    serviceType: 'bus',
+    serviceDisplayName: 'Bus Rental',
+  }).catch((err: any) => console.error('[Notification] Bus failed:', err));
+
   return {
     success: true,
     message: 'Your bus rental request has been submitted! Vendors will send quotes within 24-48 hours.',
@@ -862,6 +903,110 @@ async function handleBusQuoteRequest(customerInfo: { name: string; email: string
       phone: customer.phone,
     },
     redirect_to: `/customer/bus-quotes/${quoteRequest.id}`,
+  };
+}
+
+// ============= LUXURY QUOTE REQUEST HANDLER =============
+
+async function handleLuxuryQuoteRequest(customerInfo: { name: string; email: string; phone: string; password?: string }, bookingData: Record<string, unknown>) {
+  const { customer } = await getOrCreateCustomer(customerInfo);
+  const location = await findLocation(bookingData.location_name as string);
+
+  // Map subService to vehicle category
+  const vehicleCategoryMap: Record<string, string> = {
+    'luxury-sedan': 'luxury_sedan',
+    'luxury-suv': 'luxury_suv',
+    'premium-sedan': 'luxury_sedan',
+    'sports-car': 'sports',
+    'supercar': 'sports',
+    'performance': 'sports',
+    'luxury-sports': 'sports',
+    'vintage': 'vintage',
+    'guest-transport': 'luxury_suv',
+  };
+
+  // Map luxury_type to occasion
+  const occasionMap: Record<string, string> = {
+    '1': 'wedding',
+    '2': 'personal',
+    '3': 'corporate',
+  };
+
+  // Map package to trip type
+  const tripTypeMap: Record<string, string> = {
+    '1': 'local',
+    '2': 'local',
+    '3': 'outstation',
+    '4': 'airport',
+  };
+
+  const vehicleCategory = vehicleCategoryMap[bookingData.subService as string] || 'luxury_sedan';
+  const occasion = occasionMap[bookingData.luxury_type as string] || 'personal';
+  const tripType = tripTypeMap[bookingData.package as string] || 'local';
+
+  const pickupDate = bookingData.journey_datetime ? new Date(bookingData.journey_datetime as string) : new Date();
+  const returnDate = bookingData.return_datetime ? new Date(bookingData.return_datetime as string) : null;
+
+  let tripDays = 1;
+  if (returnDate) {
+    const diff = returnDate.getTime() - pickupDate.getTime();
+    tripDays = Math.max(1, Math.ceil(diff / (1000 * 60 * 60 * 24)));
+  }
+
+  const requestNumber = generateRequestNumber('LQR');
+
+  const quoteRequest = await prisma.luxury_quote_requests.create({
+    data: {
+      requestNumber,
+      customerId: customer.id,
+      customerName: customerInfo.name,
+      customerEmail: customerInfo.email,
+      customerPhone: customerInfo.phone,
+      tripType,
+      occasion,
+      vehicleCategory,
+      vehicleCategoryName: vehicleCategory,
+      passengers: parseInt(bookingData.passengers as string) || 4,
+      specificModel: null,
+      pickupCity: bookingData.location_name as string,
+      dropCity: (bookingData.destination as string) || null,
+      pickupDate,
+      pickupTime: pickupDate.toTimeString().slice(0, 5),
+      returnDate,
+      returnTime: returnDate ? returnDate.toTimeString().slice(0, 5) : null,
+      tripDays,
+      needChauffeur: true,
+      needDecoration: occasion === 'wedding',
+      requirements: (bookingData.other_info as string) || null,
+      locationId: location?.id || null,
+      status: 'PENDING',
+      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      quotesOpenTill: new Date(Date.now() + 48 * 60 * 60 * 1000),
+    },
+  });
+
+  sendQuoteRequestNotificationToVendors({
+    requestId: quoteRequest.id,
+    requestNumber: quoteRequest.requestNumber,
+    locationId: location?.id || (bookingData.location_name as string),
+    locationName: location?.name || (bookingData.location_name as string),
+    customerName: customerInfo.name,
+    serviceType: 'luxury',
+    serviceDisplayName: 'Luxury Car',
+  }).catch((err: any) => console.error('[Notification] Failed:', err));
+
+  return {
+    success: true,
+    message: 'Your luxury car request has been submitted! Vendors will send quotes within 24-48 hours.',
+    request_id: quoteRequest.id,
+    request_number: quoteRequest.requestNumber,
+    customer: {
+      id: customer.id,
+      name: customerInfo.name,
+      email: customerInfo.email,
+      phone: customerInfo.phone,
+    },
+    redirect_to: `/customer/luxury-quotes/${quoteRequest.id}`,
   };
 }
 
@@ -952,6 +1097,180 @@ async function handleTrailerBooking(customerInfo: { name: string; email: string;
   });
 }
 
+// ============= BIKE QUOTE REQUEST HANDLER =============
+// BROWSE_FIRST: Customer requests quotes from vendors; vendor sends quote; customer accepts and pays
+
+async function handleBikeQuoteRequest(customerInfo: { name: string; email: string; phone: string }, bookingData: Record<string, unknown>) {
+  const { customer } = await getOrCreateCustomer(customerInfo);
+  const location = await findLocation(bookingData.location_name as string || bookingData.location_slug as string);
+
+  // Parse dates
+  const pickupDate = bookingData.journey_datetime ? new Date(bookingData.journey_datetime as string) : new Date();
+  const returnDate = bookingData.return_datetime ? new Date(bookingData.return_datetime as string) : new Date(pickupDate.getTime() + 24 * 60 * 60 * 1000);
+
+  const totalDays = Math.max(1, Math.ceil((returnDate.getTime() - pickupDate.getTime()) / (24 * 60 * 60 * 1000)));
+
+  // Map bike type to category name
+  const bikeTypeMap: Record<string, string> = {
+    '1': 'Regular', '2': 'Scooter', '3': 'Royal Enfield',
+    '4': 'Sports', '5': 'KTM', '6': 'Premium',
+  };
+  const vehicleCategory = bikeTypeMap[bookingData.bike_type as string] || 'Regular';
+  // Use vehicle_model_name (e.g. "KTM", "Royal Enfield") from model-specific pages first,
+  // then fall back to fleet vehicle name, then service name
+  const vehicleModelName = (bookingData.vehicle_model_name as string) || (bookingData.fleet as string) || (bookingData.service_name as string) || null;
+
+  const requestNumber = generateRequestNumber('BKQ');
+  const expiresAt = new Date();
+  expiresAt.setDate(expiresAt.getDate() + 7);
+  const quotesOpenTill = new Date();
+  quotesOpenTill.setHours(quotesOpenTill.getHours() + 48);
+
+  const quoteRequest = await prisma.bike_quote_requests.create({
+    data: {
+      requestNumber,
+      customerId: customer.id,
+      customerName: customerInfo.name,
+      customerEmail: customerInfo.email,
+      customerPhone: customerInfo.phone,
+      vehicleModelName: vehicleModelName,
+      vehicleCategory: null,      // null = visible to all vendors (category-agnostic request)
+      vehicleCategoryName: vehicleCategory, // human-readable for display only
+      locationId: location?.id || 'default_loc',
+      locationName: (bookingData.location_name as string) || location?.name || 'Not specified',
+      pickupDate,
+      pickupTime: pickupDate.toTimeString().slice(0, 5),
+      dropDate: returnDate,
+      dropTime: returnDate.toTimeString().slice(0, 5),
+      totalDays,
+      helmetsRequired: 1,
+      customerNotes: (bookingData.other_info as string) || null,
+      status: 'PENDING',
+      expiresAt,
+      quotesOpenTill,
+    },
+  });
+
+  sendQuoteRequestNotificationToVendors({
+    requestId: quoteRequest.id,
+    requestNumber: quoteRequest.requestNumber,
+    locationId: location?.id || (bookingData.location_name as string),
+    locationName: location?.name || (bookingData.location_name as string),
+    customerName: customerInfo.name,
+    serviceType: 'bike',
+    serviceDisplayName: 'Bike Rental',
+  }).catch((err: any) => console.error('[Notification] Failed:', err));
+
+  return {
+    success: true,
+    message: 'Quote request submitted. Vendors will respond within 24-48 hours.',
+    request_id: quoteRequest.id,
+    request_number: quoteRequest.requestNumber,
+    customer: {
+      id: customer.id,
+      name: customer.name,
+      email: customer.email,
+      phone: customer.phone,
+    },
+    redirect_to: `/customer/bike-quotes/${quoteRequest.id}`,
+  };
+}
+
+// ============= SELF-DRIVE QUOTE REQUEST HANDLER =============
+// BROWSE_FIRST: Customer requests self-drive quotes from vendors
+
+async function handleSelfDriveQuoteRequest(customerInfo: { name: string; email: string; phone: string }, bookingData: Record<string, unknown>) {
+  const { customer } = await getOrCreateCustomer(customerInfo);
+  const location = await findLocation(bookingData.location_name as string || bookingData.location_slug as string);
+
+  // Parse dates
+  const pickupDate = bookingData.journey_datetime ? new Date(bookingData.journey_datetime as string) : new Date();
+  const returnDate = bookingData.return_datetime ? new Date(bookingData.return_datetime as string) : new Date(pickupDate.getTime() + 24 * 60 * 60 * 1000);
+
+  const totalDays = Math.max(1, Math.ceil((returnDate.getTime() - pickupDate.getTime()) / (24 * 60 * 60 * 1000)));
+
+  // Map car type
+  const carTypeMap: Record<string, string> = {
+    '1': 'Hatchback', '2': 'Sedan', '3': 'MUV', '4': 'SUV',
+  };
+  // Map transmission
+  const transmissionMap: Record<string, string> = {
+    '1': 'AUTOMATIC', '2': 'MANUAL',
+  };
+  // Map fuel type
+  const fuelTypeMap: Record<string, string> = {
+    '1': 'Diesel', '2': 'Petrol', '3': 'Electric', '4': 'CNG',
+  };
+
+  const vehicleType = carTypeMap[bookingData.car_type as string] || null;
+  const transmission = transmissionMap[bookingData.transmission as string] || null;
+  const fuelType = fuelTypeMap[bookingData.fuel_type as string] || null;
+  const isDeliveryRequested = bookingData.doorstep_delivery === '1' || bookingData.doorstep_delivery === 1;
+
+  // For vehicle-specific pages, use vehicle_model_name (e.g. "Seltos", "Creta") first,
+  // then fall back to fleet vehicle name, then service name
+  const vehicleModelName = (bookingData.vehicle_model_name as string) || (bookingData.fleet as string) || (bookingData.service_name as string) || null;
+  const customerNotes = (bookingData.other_info as string) || null;
+
+  const requestNumber = generateRequestNumber('SDQ');
+  const expiresAt = new Date();
+  expiresAt.setDate(expiresAt.getDate() + 7);
+  const quotesOpenTill = new Date();
+  quotesOpenTill.setHours(quotesOpenTill.getHours() + 48);
+
+  const quoteRequest = await prisma.self_drive_quote_requests.create({
+    data: {
+      requestNumber,
+      customerId: customer.id,
+      customerName: customerInfo.name,
+      customerEmail: customerInfo.email,
+      customerPhone: customerInfo.phone,
+      vehicleModelName: vehicleModelName,
+      vehicleCategory: vehicleType,
+      vehicleCategoryName: vehicleType,
+      vehicleType: vehicleType,
+      transmission: transmission,
+      fuelType: fuelType,
+      locationId: location?.id || 'default_loc',
+      locationName: (bookingData.location_name as string) || location?.name || 'Not specified',
+      pickupDate,
+      pickupTime: pickupDate.toTimeString().slice(0, 5),
+      dropDate: returnDate,
+      dropTime: returnDate.toTimeString().slice(0, 5),
+      totalDays,
+      isDeliveryRequested,
+      customerNotes: customerNotes,
+      status: 'PENDING',
+      expiresAt,
+      quotesOpenTill,
+    },
+  });
+
+  sendQuoteRequestNotificationToVendors({
+    requestId: quoteRequest.id,
+    requestNumber: quoteRequest.requestNumber,
+    locationId: location?.id || (bookingData.location_name as string),
+    locationName: location?.name || (bookingData.location_name as string),
+    customerName: customerInfo.name,
+    serviceType: 'self-drive',
+    serviceDisplayName: 'Self Drive Car',
+  }).catch((err: any) => console.error('[Notification] Failed:', err));
+
+  return {
+    success: true,
+    message: 'Quote request submitted. Vendors will respond within 24-48 hours.',
+    request_id: quoteRequest.id,
+    request_number: quoteRequest.requestNumber,
+    customer: {
+      id: customer.id,
+      name: customer.name,
+      email: customer.email,
+      phone: customer.phone,
+    },
+    redirect_to: `/customer/self-drive-quotes/${quoteRequest.id}`,
+  };
+}
+
 // ============= MAIN POST HANDLER =============
 
 export async function POST(request: NextRequest) {
@@ -987,15 +1306,23 @@ export async function POST(request: NextRequest) {
     let result;
 
     // Route to appropriate handler based on booking type
-    // BIKE SERVICES
-    if (bookingType === 'bike' || bookingType.includes('bike') || bookingType.includes('scooter') || bookingType.includes('activa')) {
+    // BIKE QUOTE REQUEST (BROWSE_FIRST: non-fleet bike → quote request flow)
+    if (bookingType === 'bike-quote-request') {
+      result = await handleBikeQuoteRequest(customerInfo, bookingData);
+    }
+    // SELF-DRIVE QUOTE REQUEST (BROWSE_FIRST: non-fleet self-drive → quote request flow)
+    else if (bookingType === 'selfdrive-quote-request') {
+      result = await handleSelfDriveQuoteRequest(customerInfo, bookingData);
+    }
+    // BIKE SERVICES (direct booking - fleet bikes with known vendor)
+    else if (bookingType === 'bike' || bookingType.includes('bike') || bookingType.includes('scooter') || bookingType.includes('activa')) {
       result = await handleBikeBooking(customerInfo, bookingData);
     }
     // CAR SERVICES (with driver)
     else if (bookingType === 'car-roundtrip' || bookingType === 'car-oneway' || bookingType === 'car-airport' || bookingType === 'car' || bookingType === 'one-way-cab') {
       result = await handleCarBooking(customerInfo, bookingData);
     }
-    // SELF-DRIVE CAR
+    // SELF-DRIVE CAR (direct booking - fleet cars with known vendor)
     else if (bookingType === 'selfdrive' || bookingType.includes('self-drive')) {
       result = await handleSelfDriveBooking(customerInfo, bookingData);
     }
@@ -1019,7 +1346,11 @@ export async function POST(request: NextRequest) {
     else if (bookingType.startsWith('bus-') || bookingType === 'bus' || bookingType.includes('tempo-traveller')) {
       result = await handleBusQuoteRequest(customerInfo, bookingData);
     }
-    // LUXURY CAR
+    // LUXURY QUOTE REQUEST (BROWSE_FIRST: non-fleet luxury → quote request flow)
+    else if (bookingType === 'luxury-quote-request') {
+      result = await handleLuxuryQuoteRequest(customerInfo, bookingData);
+    }
+    // LUXURY CAR (direct booking - legacy/fleet)
     else if (bookingType === 'luxury' || bookingType.includes('luxury') || bookingType.includes('wedding-car') || bookingType.includes('vintage') || bookingType.includes('sports-car')) {
       result = await handleLuxuryBooking(customerInfo, bookingData, isLoggedIn);
     }

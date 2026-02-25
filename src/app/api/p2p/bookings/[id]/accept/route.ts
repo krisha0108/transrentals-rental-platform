@@ -66,49 +66,17 @@ export async function POST(
     const body = await request.json();
     const { selectedVehicleId, vehicleName, vehicleNumber, driverName, driverPhone, notes } = body;
 
-    // Generate request ID
-    const allRequestIds = await prisma.p2p_requests.findMany({
-      where: { id: { startsWith: 'PRQ_' } },
-      select: { id: true },
-    });
-    const maxRequestId = allRequestIds.reduce((max, item) => {
-      const num = parseInt(item.id.replace('PRQ_', ''));
-      return num > max ? num : max;
-    }, 0);
-    const newRequestId = `PRQ_${maxRequestId + 1}`;
-
-    // Generate request number
-    const allRequestNumbers = await prisma.p2p_requests.findMany({
-      where: { requestNumber: { startsWith: 'RQ-' } },
-      select: { requestNumber: true },
-    });
-    const maxRequestNum = allRequestNumbers.reduce((max, item) => {
-      const num = parseInt(item.requestNumber.replace('RQ-', ''));
-      return num > max ? num : max;
-    }, 0);
-    const newRequestNumber = `RQ-${maxRequestNum + 1}`;
-
-    // Generate transaction ID
-    const allTxIds = await prisma.p2p_transactions.findMany({
-      where: { id: { startsWith: 'PTX_' } },
-      select: { id: true },
-    });
-    const maxTxId = allTxIds.reduce((max, item) => {
-      const num = parseInt(item.id.replace('PTX_', ''));
-      return num > max ? num : max;
-    }, 0);
-    const newTxId = `PTX_${maxTxId + 1}`;
-
-    // Generate transaction number
-    const allTxNumbers = await prisma.p2p_transactions.findMany({
-      where: { transactionNumber: { startsWith: 'TX-' } },
-      select: { transactionNumber: true },
-    });
-    const maxTxNum = allTxNumbers.reduce((max, item) => {
-      const num = parseInt(item.transactionNumber.replace('TX-', ''));
-      return num > max ? num : max;
-    }, 0);
-    const newTxNumber = `TX-${maxTxNum + 1}`;
+    // Generate IDs efficiently (single-row MAX queries instead of full table scans)
+    const [maxReqIdResult, maxReqNumResult, maxTxIdResult, maxTxNumResult]: any[] = await Promise.all([
+      prisma.$queryRaw`SELECT MAX(CAST(SUBSTRING(id, 5) AS UNSIGNED)) as maxNum FROM p2p_requests WHERE id LIKE 'PRQ_%'`,
+      prisma.$queryRaw`SELECT MAX(CAST(SUBSTRING(requestNumber, 4) AS UNSIGNED)) as maxNum FROM p2p_requests WHERE requestNumber LIKE 'RQ-%'`,
+      prisma.$queryRaw`SELECT MAX(CAST(SUBSTRING(id, 5) AS UNSIGNED)) as maxNum FROM p2p_transactions WHERE id LIKE 'PTX_%'`,
+      prisma.$queryRaw`SELECT MAX(CAST(SUBSTRING(transactionNumber, 4) AS UNSIGNED)) as maxNum FROM p2p_transactions WHERE transactionNumber LIKE 'TX-%'`,
+    ]);
+    const newRequestId = `PRQ_${(Number(maxReqIdResult?.[0]?.maxNum) || 0) + 1}`;
+    const newRequestNumber = `RQ-${(Number(maxReqNumResult?.[0]?.maxNum) || 0) + 1}`;
+    const newTxId = `PTX_${(Number(maxTxIdResult?.[0]?.maxNum) || 0) + 1}`;
+    const newTxNumber = `TX-${(Number(maxTxNumResult?.[0]?.maxNum) || 1000) + 1}`;
 
     // Calculate financials
     const agreedAmount = posting.partnerEarning || posting.customerBudget || 0;

@@ -433,7 +433,7 @@ export default function VendorBookingDetailPage() {
             {statusConfig.label}
           </span>
 
-          {(booking.status === 'PENDING_VENDOR' || booking.status === 'BROADCASTED' || booking.status === 'PAYMENT_VERIFIED') && (
+          {(booking.status === 'PENDING_VENDOR' || booking.status === 'BROADCASTED') && (
             <Button
               onClick={() => setAcceptModalOpen(true)}
               className="bg-green-600 hover:bg-green-700"
@@ -643,7 +643,7 @@ export default function VendorBookingDetailPage() {
               </div>
             </div>
 
-            {(booking.status === 'PENDING_VENDOR' || booking.status === 'BROADCASTED' || booking.status === 'PAYMENT_VERIFIED') && (
+            {(booking.status === 'PENDING_VENDOR' || booking.status === 'BROADCASTED') && (
               <div className="mt-6 space-y-3">
                 <Button
                   onClick={() => setAcceptModalOpen(true)}
@@ -660,8 +660,23 @@ export default function VendorBookingDetailPage() {
             )}
           </div>
 
+          {/* Payment Received Info — quote-based booking, no manual accept needed */}
+          {booking.status === 'PAYMENT_VERIFIED' && (
+            <div className="bg-green-50 rounded-xl border border-green-200 p-4 mt-6">
+              <div className="flex items-start gap-3">
+                <CheckCircle className="w-5 h-5 text-green-600 mt-0.5 shrink-0" />
+                <div>
+                  <p className="font-semibold text-green-800">Advance Payment Received!</p>
+                  <p className="text-sm text-green-700 mt-1">
+                    Customer has paid the advance. Prepare the bike and generate OTP when customer arrives for pickup.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Trip Control - OTP Section */}
-          {(booking.status === 'ACCEPTED' || booking.status === 'CONFIRMED' || booking.status === 'READY_FOR_PICKUP' || booking.status === 'IN_PROGRESS') && (
+          {(booking.status === 'PAYMENT_VERIFIED' || booking.status === 'ACCEPTED' || booking.status === 'CONFIRMED' || booking.status === 'READY_FOR_PICKUP' || booking.status === 'IN_PROGRESS') && (
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mt-6">
               <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
                 <Play className="w-5 h-5 text-purple-600" />
@@ -680,11 +695,13 @@ export default function VendorBookingDetailPage() {
                 </div>
               )}
 
-              {/* For ACCEPTED/CONFIRMED - Generate OTP */}
-              {(booking.status === 'ACCEPTED' || booking.status === 'CONFIRMED') && (
+              {/* For PAYMENT_VERIFIED/ACCEPTED/CONFIRMED - Generate OTP */}
+              {(booking.status === 'PAYMENT_VERIFIED' || booking.status === 'ACCEPTED' || booking.status === 'CONFIRMED') && (
                 <div className="space-y-4">
                   <p className="text-sm text-gray-600">
-                    When customer arrives for pickup, generate OTP to start the trip.
+                    {booking.status === 'PAYMENT_VERIFIED'
+                      ? 'Payment received — booking confirmed! When customer arrives, generate OTP to start the trip.'
+                      : 'When customer arrives for pickup, generate OTP to start the trip.'}
                   </p>
                   <Button
                     onClick={handleGenerateOtp}

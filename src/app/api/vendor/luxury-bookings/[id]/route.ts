@@ -6,6 +6,9 @@ import { prisma } from '@/lib/db/prisma';
 import { transformPrismaResponse } from '@/lib/utils/api-transform';
 
 import logger from '@/lib/security/logger';
+import { sendVendorDirectNotification } from '@/lib/utils/vendor-notification-sender';
+import { sendPushNotification } from '@/lib/services/push-notification-service';
+import { saveDriverNotification } from '@/lib/utils/driver-notification-sender';
 export const dynamic = 'force-dynamic';
 
 // Helper function to generate OTP
@@ -136,7 +139,7 @@ export async function PATCH(
           return NextResponse.json({ error: 'Cannot assign driver in current status' }, { status: 400 });
         }
 
-        const { driverName, driverPhone, driverPhoto, vehicleNumber, vehicle_model, vehicleBrand, vehicleColor } = data;
+        const { driverName, driverPhone, driverPhoto, vehicleNumber, vehicle_model, vehicle_models, vehicleBrand, vehicleColor } = data;
 
         if (!driverName || !driverPhone) {
           return NextResponse.json({ error: 'Driver details are required' }, { status: 400 });
@@ -150,7 +153,7 @@ export async function PATCH(
             driverPhone,
             driverPhoto: driverPhoto || null,
             vehicleNumber: vehicleNumber || booking.vehicleNumber,
-            vehicleModel: vehicle_model || booking.vehicleModel,
+            vehicleModel: vehicle_models || vehicle_model || booking.vehicleModel,
             vehicleBrand: vehicleBrand || booking.vehicleBrand,
             vehicleColor: vehicleColor || booking.vehicleColor,
             // No OTP generated here - driver will generate when ready
@@ -158,6 +161,34 @@ export async function PATCH(
             tripEndOtp: null,
           },
         });
+
+        // Notify assigned driver via FCM
+        try {
+          const driverStaff = await prisma.vendor_staff.findFirst({
+            where: { phone: driverPhone, vendorId: vendor.id },
+            select: { id: true, fcmToken: true },
+          });
+          if (driverStaff) {
+            const notifTitle = '🚘 New Booking Assigned!';
+            const notifBody = `You have been assigned to Luxury Booking #${booking.bookingNumber}. Please check your app for details.`;
+            const notifData = { type: 'driver_assigned', bookingId: booking.id, bookingNumber: booking.bookingNumber, serviceType: 'luxury' };
+            if (driverStaff.fcmToken) {
+              sendPushNotification(driverStaff.fcmToken, { title: notifTitle, body: notifBody }, notifData)
+                .catch((err: any) => console.error('[LuxuryAssign] Driver FCM failed:', err));
+            }
+            saveDriverNotification({
+              staffId: driverStaff.id,
+              title: notifTitle,
+              body: notifBody,
+              type: 'booking_assigned',
+              serviceType: 'luxury',
+              bookingId: booking.id,
+              bookingNumber: booking.bookingNumber,
+            }).catch((err: any) => console.error('[LuxuryAssign] Driver in-app notif failed:', err));
+          }
+        } catch (driverNotifErr) {
+          console.error('[LuxuryAssign] Driver notification lookup failed:', driverNotifErr);
+        }
 
         return NextResponse.json({
           success: true,
@@ -219,6 +250,16 @@ export async function PATCH(
           },
         });
 
+        sendVendorDirectNotification({
+          vendorId: vendor.id,
+          title: '🚀 Trip Started!',
+          body: `Booking #${updatedBooking.bookingNumber} luxury car trip has been started successfully.`,
+          type: 'trip_started',
+          serviceType: 'luxury',
+          bookingId: updatedBooking.id,
+          bookingNumber: updatedBooking.bookingNumber,
+        }).catch((err: any) => console.error('[LuxuryStart] Vendor notify failed:', err));
+
         return NextResponse.json({
           success: true,
           message: 'Trip started successfully!',
@@ -257,6 +298,16 @@ export async function PATCH(
             paymentStatus: 'PAID',
           },
         });
+
+        sendVendorDirectNotification({
+          vendorId: vendor.id,
+          title: '✅ Trip Completed!',
+          body: `Booking #${updatedBooking.bookingNumber} luxury car trip has been completed successfully.`,
+          type: 'trip_completed',
+          serviceType: 'luxury',
+          bookingId: updatedBooking.id,
+          bookingNumber: updatedBooking.bookingNumber,
+        }).catch((err: any) => console.error('[LuxuryComplete] Vendor notify failed:', err));
 
         return NextResponse.json({
           success: true,
@@ -336,6 +387,16 @@ export async function PATCH(
             paymentStatus: 'PAID',
           },
         });
+
+        sendVendorDirectNotification({
+          vendorId: vendor.id,
+          title: '✅ Trip Completed!',
+          body: `Booking #${updatedBooking.bookingNumber} luxury car trip has been completed successfully.`,
+          type: 'trip_completed',
+          serviceType: 'luxury',
+          bookingId: updatedBooking.id,
+          bookingNumber: updatedBooking.bookingNumber,
+        }).catch((err: any) => console.error('[LuxuryComplete] Vendor notify failed:', err));
 
         return NextResponse.json({
           success: true,

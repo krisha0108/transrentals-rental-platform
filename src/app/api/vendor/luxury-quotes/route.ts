@@ -8,6 +8,7 @@ import { sendNotificationToCustomer } from '@/lib/services/push-notification-ser
 import crypto from 'crypto';
 
 import logger from '@/lib/security/logger';
+import { checkFleetAvailability } from '@/lib/utils/fleet-availability';
 export const dynamic = 'force-dynamic';
 
 // Helper to generate a unique ID
@@ -82,6 +83,16 @@ export async function GET(request: NextRequest) {
               status: true,
             },
           },
+          // Include the booking created from this accepted quote
+          luxury_bookings: {
+            select: {
+              id: true,
+              bookingNumber: true,
+              status: true,
+              paymentStatus: true,
+              advancePaid: true,
+            },
+          },
         },
         orderBy: { createdAt: 'desc' },
         skip,
@@ -137,6 +148,7 @@ export async function GET(request: NextRequest) {
         sentAt: q.sentAt,
         viewCount: q.viewCount,
         request: q.luxury_quote_requests,
+        booking: q.luxury_bookings || null,
         createdAt: q.createdAt,
         updatedAt: q.updatedAt,
       })),
@@ -267,6 +279,19 @@ export async function POST(request: NextRequest) {
         { error: 'Quote submission window has closed' },
         { status: 400 }
       );
+    }
+
+    // Check fleet vehicle availability for requested dates
+    if (fleetId && quoteRequest.pickupDate) {
+      const luxStart = new Date(quoteRequest.pickupDate);
+      const luxEnd = quoteRequest.returnDate ? new Date(quoteRequest.returnDate) : luxStart;
+      const availability = await checkFleetAvailability(fleetId, luxStart, luxEnd);
+      if (!availability.available) {
+        return NextResponse.json(
+          { error: 'This vehicle is already booked for the requested dates. Please select a different vehicle.' },
+          { status: 409 }
+        );
+      }
     }
 
     // Check if vendor already quoted

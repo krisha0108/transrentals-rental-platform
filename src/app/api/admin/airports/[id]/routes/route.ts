@@ -52,9 +52,9 @@ export async function GET(
       success: true,
       routes: routes.map((r) => ({
         id: r.id,
-        fromLocation: r.fromLocation,
-        toLocation: r.toLocation,
-        chauffeur_vehicle_categories: r.vehicle_category,
+        fromLocation: r.locations_chauffeur_route_packages_fromLocationIdTolocations,
+        toLocation: r.locations_chauffeur_route_packages_toLocationIdTolocations,
+        vehicle_category: r.chauffeur_vehicle_categories,
         estimatedKm: r.estimatedKm,
         estimatedDuration: r.estimatedDuration,
         basePrice: r.basePrice,

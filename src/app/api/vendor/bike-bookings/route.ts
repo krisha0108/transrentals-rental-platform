@@ -117,18 +117,21 @@ export async function GET(request: NextRequest) {
       };
     } else if (type === 'open') {
       // Open/Broadcasted requests - available to all vendors in their service locations
-      // Include BROADCASTED, PAYMENT_VERIFIED, and PENDING_VENDOR with no assigned vendor
+      // BROADCASTED with no vendor assigned: show to all in location
+      // PAYMENT_VERIFIED: only show to the specific assigned vendor (not all vendors)
       whereClause = {
         ...dateFilter,
         OR: [
+          // Unassigned broadcasted/pending: visible to all vendors in location
           {
-            status: { in: ['BROADCASTED', 'PAYMENT_VERIFIED'] },
-            locationId: { in: allLocationIds },
-          },
-          {
-            status: 'PENDING_VENDOR',
+            status: { in: ['BROADCASTED', 'PENDING_VENDOR'] },
             assignedVendorId: null,
             locationId: { in: allLocationIds },
+          },
+          // Assigned specifically to this vendor: show regardless of status
+          {
+            status: { in: ['BROADCASTED', 'PAYMENT_VERIFIED', 'PENDING_VENDOR'] },
+            assignedVendorId: vendor.id,
           },
         ],
       };
@@ -279,9 +282,15 @@ export async function POST(request: NextRequest) {
       prisma.bike_bookings.count({
         where: {
           OR: [
+            // Open/broadcasted bookings visible to all vendors in location (unassigned only)
             {
-              status: { in: ['BROADCASTED', 'PAYMENT_VERIFIED'] },
+              status: 'BROADCASTED',
               locationId: { in: allLocationIds },
+            },
+            // PAYMENT_VERIFIED — only count if assigned to THIS vendor (quote-based booking)
+            {
+              status: 'PAYMENT_VERIFIED',
+              assignedVendorId: vendor.id,
             },
             {
               status: 'PENDING_VENDOR',

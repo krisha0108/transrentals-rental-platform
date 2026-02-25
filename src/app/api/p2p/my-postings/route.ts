@@ -29,179 +29,181 @@ export async function GET(request: NextRequest) {
     let vehicleTotal = 0;
     let bookingTotal = 0;
 
-    // Build common where clause for vehicle postings
-    if (type === 'vehicle' || type === 'all') {
-      const vehicleWhere: any = { vendorId: auth.vendorId };
-      if (status) {
-        vehicleWhere.status = status;
-      }
-
-      // Get total count
-      vehicleTotal = await prisma.p2p_vehicle_postings.count({
-        where: vehicleWhere,
-      });
-
-      // Fetch vehicle postings with request count and transaction info
-      vehiclePostings = await prisma.p2p_vehicle_postings.findMany({
-        where: vehicleWhere,
-        include: {
-          vehicleFleet: {
-            select: {
-              id: true,
-              vehicleName: true,
-              registrationNumber: true,
-              serviceId: true,
-            },
-          },
-          p2p_requests: {
-            select: {
-              id: true,
-              requestNumber: true,
-              status: true,
-              requestingVendorId: true,
-              requestingVendor: {
-                select: {
-                  id: true,
-                  businessName: true,
-                  logo: true,
-                  city: true,
-                },
-              },
-              createdAt: true,
-            },
-            orderBy: { createdAt: 'desc' },
-          },
-          p2p_transactions: {
-            select: {
-              id: true,
-              transactionNumber: true,
-              tripStatus: true,
-              paymentStatus: true,
-              agreedAmount: true,
-              vendorAId: true,
-              vendorBId: true,
-              vendorA: {
-                select: {
-                  id: true,
-                  businessName: true,
-                  logo: true,
-                },
-              },
-              vendorB: {
-                select: {
-                  id: true,
-                  businessName: true,
-                  logo: true,
-                },
-              },
-              createdAt: true,
-            },
-            orderBy: { createdAt: 'desc' },
-          },
-        },
-        orderBy: { createdAt: 'desc' },
-        skip: type === 'vehicle' ? skip : 0,
-        take: type === 'vehicle' ? limit : undefined,
-      });
-
-      // Add computed request count to each posting
-      vehiclePostings = vehiclePostings.map((posting) => ({
-        ...posting,
-        _count: {
-          requests: posting.p2p_requests.length,
-          transactions: posting.p2p_transactions.length,
-        },
-        pendingRequests: posting.p2p_requests.filter(
-          (r: any) => r.status === 'PENDING'
-        ).length,
-      }));
+    const vehicleWhere: any = { vendorId: auth.vendorId };
+    const bookingWhere: any = { vendorId: auth.vendorId };
+    if (status) {
+      vehicleWhere.status = status;
+      bookingWhere.status = status;
     }
 
-    // Build common where clause for booking postings
-    if (type === 'booking' || type === 'all') {
-      const bookingWhere: any = { vendorId: auth.vendorId };
-      if (status) {
-        bookingWhere.status = status;
-      }
-
-      // Get total count
-      bookingTotal = await prisma.p2p_booking_postings.count({
-        where: bookingWhere,
-      });
-
-      // Fetch booking postings with request count and transaction info
-      bookingPostings = await prisma.p2p_booking_postings.findMany({
-        where: bookingWhere,
-        include: {
-          p2p_requests: {
+    const vehicleInclude = {
+      vehicleFleet: {
+        select: {
+          id: true,
+          vehicleName: true,
+          registrationNumber: true,
+          serviceId: true,
+        },
+      },
+      p2p_requests: {
+        select: {
+          id: true,
+          requestNumber: true,
+          status: true,
+          requestingVendorId: true,
+          pickupAddress: true,
+          dropAddress: true,
+          notes: true,
+          requestingVendor: {
             select: {
               id: true,
-              requestNumber: true,
-              status: true,
-              requestingVendorId: true,
-              requestingVendor: {
-                select: {
-                  id: true,
-                  businessName: true,
-                  logo: true,
-                  city: true,
-                },
-              },
-              createdAt: true,
+              businessName: true,
+              logo: true,
+              city: true,
             },
-            orderBy: { createdAt: 'desc' },
           },
-          p2p_transactions: {
+          createdAt: true,
+        },
+        orderBy: { createdAt: 'desc' as const },
+      },
+      p2p_transactions: {
+        select: {
+          id: true,
+          transactionNumber: true,
+          tripStatus: true,
+          paymentStatus: true,
+          agreedAmount: true,
+          vendorAId: true,
+          vendorBId: true,
+          vendorA: {
+            select: { id: true, businessName: true, logo: true },
+          },
+          vendorB: {
+            select: { id: true, businessName: true, logo: true },
+          },
+          createdAt: true,
+        },
+        orderBy: { createdAt: 'desc' as const },
+      },
+    };
+
+    const bookingInclude = {
+      p2p_requests: {
+        select: {
+          id: true,
+          requestNumber: true,
+          status: true,
+          requestingVendorId: true,
+          driverName: true,
+          driverPhone: true,
+          notes: true,
+          requestingVendor: {
             select: {
               id: true,
-              transactionNumber: true,
-              tripStatus: true,
-              paymentStatus: true,
-              agreedAmount: true,
-              vendorAId: true,
-              vendorBId: true,
-              vendorA: {
-                select: {
-                  id: true,
-                  businessName: true,
-                  logo: true,
-                },
-              },
-              vendorB: {
-                select: {
-                  id: true,
-                  businessName: true,
-                  logo: true,
-                },
-              },
-              createdAt: true,
+              businessName: true,
+              logo: true,
+              city: true,
             },
-            orderBy: { createdAt: 'desc' },
           },
+          createdAt: true,
         },
-        orderBy: { createdAt: 'desc' },
-        skip: type === 'booking' ? skip : 0,
-        take: type === 'booking' ? limit : undefined,
-      });
-
-      // Add computed request count to each posting
-      bookingPostings = bookingPostings.map((posting) => ({
-        ...posting,
-        _count: {
-          requests: posting.p2p_requests.length,
-          transactions: posting.p2p_transactions.length,
+        orderBy: { createdAt: 'desc' as const },
+      },
+      p2p_transactions: {
+        select: {
+          id: true,
+          transactionNumber: true,
+          tripStatus: true,
+          paymentStatus: true,
+          agreedAmount: true,
+          vendorAId: true,
+          vendorBId: true,
+          vendorA: {
+            select: { id: true, businessName: true, logo: true },
+          },
+          vendorB: {
+            select: { id: true, businessName: true, logo: true },
+          },
+          createdAt: true,
         },
-        pendingRequests: posting.p2p_requests.filter(
-          (r: any) => r.status === 'PENDING'
-        ).length,
-      }));
-    }
+        orderBy: { createdAt: 'desc' as const },
+      },
+    };
 
-    // If type is 'all', apply pagination to the combined result
+    // Run all queries in parallel
     if (type === 'all') {
-      vehiclePostings = vehiclePostings.slice(skip, skip + limit);
-      bookingPostings = bookingPostings.slice(skip, skip + limit);
+      const [vTotal, vData, bTotal, bData] = await Promise.all([
+        prisma.p2p_vehicle_postings.count({ where: vehicleWhere }),
+        prisma.p2p_vehicle_postings.findMany({
+          where: vehicleWhere,
+          include: vehicleInclude,
+          orderBy: { createdAt: 'desc' },
+          skip,
+          take: limit,
+        }),
+        prisma.p2p_booking_postings.count({ where: bookingWhere }),
+        prisma.p2p_booking_postings.findMany({
+          where: bookingWhere,
+          include: bookingInclude,
+          orderBy: { createdAt: 'desc' },
+          skip,
+          take: limit,
+        }),
+      ]);
+      vehicleTotal = vTotal;
+      vehiclePostings = vData;
+      bookingTotal = bTotal;
+      bookingPostings = bData;
+    } else if (type === 'vehicle') {
+      const [vTotal, vData] = await Promise.all([
+        prisma.p2p_vehicle_postings.count({ where: vehicleWhere }),
+        prisma.p2p_vehicle_postings.findMany({
+          where: vehicleWhere,
+          include: vehicleInclude,
+          orderBy: { createdAt: 'desc' },
+          skip,
+          take: limit,
+        }),
+      ]);
+      vehicleTotal = vTotal;
+      vehiclePostings = vData;
+    } else {
+      const [bTotal, bData] = await Promise.all([
+        prisma.p2p_booking_postings.count({ where: bookingWhere }),
+        prisma.p2p_booking_postings.findMany({
+          where: bookingWhere,
+          include: bookingInclude,
+          orderBy: { createdAt: 'desc' },
+          skip,
+          take: limit,
+        }),
+      ]);
+      bookingTotal = bTotal;
+      bookingPostings = bData;
     }
+
+    // Add computed counts
+    vehiclePostings = vehiclePostings.map((posting) => ({
+      ...posting,
+      _count: {
+        requests: posting.p2p_requests.length,
+        transactions: posting.p2p_transactions.length,
+      },
+      pendingRequests: posting.p2p_requests.filter(
+        (r: any) => r.status === 'PENDING'
+      ).length,
+    }));
+
+    bookingPostings = bookingPostings.map((posting) => ({
+      ...posting,
+      _count: {
+        requests: posting.p2p_requests.length,
+        transactions: posting.p2p_transactions.length,
+      },
+      pendingRequests: posting.p2p_requests.filter(
+        (r: any) => r.status === 'PENDING'
+      ).length,
+    }));
 
     logger.info('P2P my-postings fetched', {
       vendorId: auth.vendorId,

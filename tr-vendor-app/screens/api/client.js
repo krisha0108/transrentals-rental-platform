@@ -9,8 +9,8 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
  * Base URL points to the Next.js app (not the old Laravel API)
  */
 const DEFAULT_PROD = "https://transrentals.in";
-// For Android Emulator use 10.0.2.2, for Physical Device use your computer's IP
-const DEFAULT_DEV_ANDROID = "http://192.168.29.68:3000"; // Your computer's WiFi IP
+// For physical Android device use ADB reverse: adb reverse tcp:3000 tcp:3000
+const DEFAULT_DEV_ANDROID = "http://localhost:3000"; // Physical device via ADB reverse
 const DEFAULT_DEV_IOS = "http://localhost:3000";
 
 function inferLocalBase() {
@@ -21,6 +21,13 @@ let cachedBaseURL = null;
 
 export async function getBaseURL() {
   if (cachedBaseURL) return cachedBaseURL;
+
+  // In dev mode, always use local server (ignore any cached production URL)
+  if (__DEV__) {
+    cachedBaseURL = inferLocalBase();
+    console.log('[API] DEV mode - using local server:', cachedBaseURL);
+    return cachedBaseURL;
+  }
 
   // 1) App-level override (changeable at runtime)
   const saved = await AsyncStorage.getItem("api_base_url");
@@ -35,10 +42,10 @@ export async function getBaseURL() {
     cachedBaseURL = ENV_URL;
     return cachedBaseURL;
   }
-  // 3) default - use prod unless in dev mode
-  // cachedBaseURL = __DEV__ ? inferLocalBase() : DEFAULT_PROD;
-  // 3) default - always use production URL (transrentals.in)
+  // 3) default - production (use this for release builds)
   cachedBaseURL = DEFAULT_PROD;
+  // DEV fallback: uncomment below + comment above line if testing without __DEV__ flag
+  // cachedBaseURL = inferLocalBase();
   return cachedBaseURL;
 }
 
@@ -407,6 +414,19 @@ export async function registerVendor(data) {
  * Logout vendor
  */
 export async function logoutVendor() {
+  // Remove this device's FCM token from backend before clearing session
+  try {
+    const fcmToken = await AsyncStorage.getItem('vendor_fcm_token');
+    const deviceId = await AsyncStorage.getItem('vendor_device_id');
+    if (fcmToken) {
+      const api = await createInstance();
+      await api.delete('/vendor/fcm-token', { data: { fcmToken, deviceId } });
+      console.log('[Logout] FCM token removed from backend');
+    }
+  } catch (e) {
+    console.log('[Logout] FCM token removal failed (non-critical):', e);
+  }
+
   try {
     const baseURL = await getBaseURL();
     await axios.post(`${baseURL}/api/vendor/auth/signout`, {}, { withCredentials: true });
@@ -422,6 +442,7 @@ export async function logoutVendor() {
     'vendor_email',
     'vendor_token',
     'vendor_phone',
+    'vendor_fcm_token',
   ]);
 }
 
@@ -844,6 +865,68 @@ export async function deleteVehicle(vehicleId) {
   return res.data;
 }
 
+// ==================== FLEET DOCUMENTS APIs ====================
+
+export async function getFleetDocuments() {
+  const res = await apiGet('/vendor/fleet/documents');
+  return res.data;
+}
+
+export async function uploadFleetDocument(formData) {
+  const base = await getBaseURL();
+  const token = await getSessionToken();
+  const resp = await axios.post(`${base}/api/vendor/fleet/documents`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+  });
+  return resp.data;
+}
+
+export async function extractDocumentData(formData) {
+  const base = await getBaseURL();
+  const token = await getSessionToken();
+  const resp = await axios.post(`${base}/api/vendor/fleet/documents/extract`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+    timeout: 30000,
+  });
+  return resp.data;
+}
+
+// ==================== FLEET FUEL APIs ====================
+
+export async function getFleetFuel() {
+  const res = await apiGet('/vendor/fleet/fuel');
+  return res.data;
+}
+
+export async function addFleetFuel(data) {
+  const res = await apiPost('/vendor/fleet/fuel', data);
+  return res.data;
+}
+
+// ==================== FLEET INCIDENTS APIs ====================
+
+export async function getFleetIncidents() {
+  const res = await apiGet('/vendor/fleet/incidents');
+  return res.data;
+}
+
+export async function addFleetIncident(data) {
+  const res = await apiPost('/vendor/fleet/incidents', data);
+  return res.data;
+}
+
+// ==================== FLEET SERVICE APIs ====================
+
+export async function getFleetService() {
+  const res = await apiGet('/vendor/fleet/service');
+  return res.data;
+}
+
+export async function addFleetService(data) {
+  const res = await apiPost('/vendor/fleet/service', data);
+  return res.data;
+}
+
 // ==================== STAFF APIs ====================
 
 /**
@@ -897,10 +980,51 @@ export async function deleteStaff(staffId) {
 // ==================== NOTIFICATION APIs ====================
 
 /**
+ * Save vendor FCM token to backend (called after login / on app start)
+ */
+// Get or generate a stable device ID for this installation
+async function getDeviceId() {
+  let deviceId = await AsyncStorage.getItem('vendor_device_id');
+  if (!deviceId) {
+    deviceId = 'dev_' + Math.random().toString(36).slice(2, 10) + '_' + Date.now().toString(36);
+    await AsyncStorage.setItem('vendor_device_id', deviceId);
+  }
+  return deviceId;
+}
+
+export async function saveVendorFcmToken(fcmToken) {
+  const deviceId = await getDeviceId();
+  // Also save token locally so logout can remove it
+  await AsyncStorage.setItem('vendor_fcm_token', fcmToken);
+  const res = await apiPost('/vendor/fcm-token', { fcmToken, deviceId });
+  return res.data;
+}
+
+/**
  * Get vendor notifications
  */
 export async function getVendorNotifications() {
   const res = await apiGet('/vendor/notifications');
+  return res.data;
+}
+
+/**
+ * Mark vendor notifications as read
+ * Pass notificationIds array to mark specific ones, or null to mark all
+ */
+export async function markVendorNotificationsRead(notificationIds = null) {
+  const body = notificationIds
+    ? { action: 'markRead', notificationIds }
+    : { action: 'markAllRead' };
+  const res = await apiPost('/vendor/notifications', body);
+  return res.data;
+}
+
+/**
+ * Get unread notification count for vendor
+ */
+export async function getVendorNotificationsUnreadCount() {
+  const res = await apiGet('/vendor/notifications/unread-count');
   return res.data;
 }
 
@@ -938,9 +1062,7 @@ export async function getVendorBookings(params = {}) {
  */
 export async function getVendorEarnings(params = {}) {
   const queryString = new URLSearchParams(params).toString();
-  console.log('[API Client] Fetching earnings with params:', params);
   const res = await apiGet(`/vendor/earnings${queryString ? `?${queryString}` : ''}`);
-  console.log('[API Client] Earnings Response:', JSON.stringify(res.data, null, 2));
   return res.data;
 }
 
@@ -1083,6 +1205,324 @@ export async function toggleTemplateActive(serviceType, templateId, isActive) {
     return res.data;
   }
   const res = await apiPut(`/vendor/${mappedServiceType}-templates/${templateId}`, { isActive });
+  return res.data;
+}
+
+// ==================== DIRECT BOOKING APIs ====================
+
+/**
+ * Get direct bookings list with optional filters
+ */
+export async function getDirectBookings(params = {}) {
+  try {
+    const queryString = new URLSearchParams(params).toString();
+    const res = await apiGet(`/vendor/direct-bookings${queryString ? `?${queryString}` : ''}`);
+    return res.data;
+  } catch (error) {
+    console.error('[API] Failed to fetch direct bookings:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get single direct booking by ID
+ */
+export async function getDirectBookingById(bookingId) {
+  try {
+    const res = await apiGet(`/vendor/direct-bookings/${bookingId}`);
+    return res.data;
+  } catch (error) {
+    console.error('[API] Failed to fetch direct booking:', error);
+    throw error;
+  }
+}
+
+/**
+ * Create a new direct booking
+ */
+export async function createDirectBooking(bookingData) {
+  try {
+    const res = await apiPost('/vendor/direct-bookings', bookingData);
+    return res.data;
+  } catch (error) {
+    console.error('[API] Failed to create direct booking:', error);
+    throw error;
+  }
+}
+
+/**
+ * Update direct booking (status, payment, notes, assignment)
+ */
+export async function updateDirectBooking(bookingId, updateData) {
+  try {
+    const res = await apiPut(`/vendor/direct-bookings/${bookingId}`, updateData);
+    return res.data;
+  } catch (error) {
+    console.error('[API] Failed to update direct booking:', error);
+    throw error;
+  }
+}
+
+/**
+ * Cancel/delete a direct booking
+ */
+export async function cancelDirectBooking(bookingId) {
+  try {
+    const res = await apiDelete(`/vendor/direct-bookings/${bookingId}`);
+    return res.data;
+  } catch (error) {
+    console.error('[API] Failed to cancel direct booking:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get expenses for a direct booking
+ */
+export async function getDirectBookingExpenses(bookingId) {
+  try {
+    const res = await apiGet(`/vendor/direct-bookings/${bookingId}/expenses`);
+    return res.data;
+  } catch (error) {
+    console.error('[API] Failed to fetch direct booking expenses:', error);
+    throw error;
+  }
+}
+
+/**
+ * Add expense to a direct booking
+ */
+export async function addDirectBookingExpense(bookingId, expenseData) {
+  try {
+    const res = await apiPost(`/vendor/direct-bookings/${bookingId}/expenses`, expenseData);
+    return res.data;
+  } catch (error) {
+    console.error('[API] Failed to add direct booking expense:', error);
+    throw error;
+  }
+}
+
+/**
+ * Delete expense from a direct booking
+ */
+export async function deleteDirectBookingExpense(bookingId, expenseId) {
+  try {
+    const res = await apiDelete(`/vendor/direct-bookings/${bookingId}/expenses/${expenseId}`);
+    return res.data;
+  } catch (error) {
+    console.error('[API] Failed to delete direct booking expense:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get assignment options (drivers + vehicles) for direct bookings
+ */
+export async function getDirectBookingAssignOptions(date) {
+  try {
+    const query = date ? `?date=${date}` : '';
+    const res = await apiGet(`/vendor/direct-bookings/assign-options${query}`);
+    return res.data;
+  } catch (error) {
+    console.error('[API] Failed to fetch assign options:', error);
+    throw error;
+  }
+}
+
+// ==================== FINANCIALS APIs ====================
+
+/**
+ * Get vendor financials summary (revenue, expenses, pending payments)
+ * @param {Object} params - { month: '2026-02' } (optional)
+ */
+export async function getVendorFinancials(params = {}) {
+  try {
+    const queryParts = [];
+    if (params.month) queryParts.push(`month=${params.month}`);
+    const qs = queryParts.length ? `?${queryParts.join('&')}` : '';
+    const res = await apiGet(`/vendor/financials${qs}`);
+    return res.data;
+  } catch (error) {
+    console.error('[API] Failed to fetch financials:', error);
+    throw error;
+  }
+}
+
+// ==================== BOOKING LINK APIs ====================
+
+/**
+ * Get all booking links for the vendor
+ */
+export async function getBookingLinks() {
+  try {
+    const res = await apiGet('/vendor/booking-links');
+    return res.data;
+  } catch (error) {
+    console.error('[API] Failed to fetch booking links:', error);
+    throw error;
+  }
+}
+
+/**
+ * Update a booking link (toggle active, customize form title/welcome message)
+ */
+export async function updateBookingLink(linkId, updateData) {
+  try {
+    const res = await apiPut(`/vendor/booking-links/${linkId}`, updateData);
+    return res.data;
+  } catch (error) {
+    console.error('[API] Failed to update booking link:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get QR code for a booking link URL
+ */
+export async function getBookingLinkQR(url, linkId) {
+  try {
+    const params = new URLSearchParams({ url });
+    if (linkId) params.append('linkId', linkId);
+    const res = await apiGet(`/vendor/booking-links/qr?${params.toString()}`);
+    return res.data;
+  } catch (error) {
+    console.error('[API] Failed to generate QR code:', error);
+    throw error;
+  }
+}
+
+// ==================== P2P MARKETPLACE APIs ====================
+
+// --- Stats & Dashboard ---
+export async function getP2PStats() {
+  const res = await apiGet('/p2p/stats');
+  return res.data;
+}
+
+export async function getP2PMyPostings(params = {}) {
+  const qs = new URLSearchParams(params).toString();
+  const res = await apiGet(`/p2p/my-postings${qs ? `?${qs}` : ''}`);
+  return res.data;
+}
+
+// --- Vehicle Postings ---
+export async function getP2PVehicles(params = {}) {
+  const qs = new URLSearchParams(params).toString();
+  const res = await apiGet(`/p2p/vehicles${qs ? `?${qs}` : ''}`);
+  return res.data;
+}
+
+export async function getP2PVehicleById(id) {
+  const res = await apiGet(`/p2p/vehicles/${id}`);
+  return res.data;
+}
+
+export async function createP2PVehicle(data) {
+  const res = await apiPost('/p2p/vehicles', data);
+  return res.data;
+}
+
+export async function updateP2PVehicle(id, data) {
+  const res = await apiPut(`/p2p/vehicles/${id}`, data);
+  return res.data;
+}
+
+export async function deleteP2PVehicle(id) {
+  const res = await apiDelete(`/p2p/vehicles/${id}`);
+  return res.data;
+}
+
+export async function requestP2PVehicle(id, data) {
+  const res = await apiPost(`/p2p/vehicles/${id}/request`, data);
+  return res.data;
+}
+
+// --- Booking Postings ---
+export async function getP2PBookings(params = {}) {
+  const qs = new URLSearchParams(params).toString();
+  const res = await apiGet(`/p2p/bookings${qs ? `?${qs}` : ''}`);
+  return res.data;
+}
+
+export async function getP2PBookingById(id) {
+  const res = await apiGet(`/p2p/bookings/${id}`);
+  return res.data;
+}
+
+export async function createP2PBooking(data) {
+  const res = await apiPost('/p2p/bookings', data);
+  return res.data;
+}
+
+export async function updateP2PBooking(id, data) {
+  const res = await apiPut(`/p2p/bookings/${id}`, data);
+  return res.data;
+}
+
+export async function deleteP2PBooking(id) {
+  const res = await apiDelete(`/p2p/bookings/${id}`);
+  return res.data;
+}
+
+export async function acceptP2PBooking(id, data) {
+  const res = await apiPost(`/p2p/bookings/${id}/accept`, data);
+  return res.data;
+}
+
+// --- Requests ---
+export async function getP2PMyRequests(params = {}) {
+  const qs = new URLSearchParams(params).toString();
+  const res = await apiGet(`/p2p/my-requests${qs ? `?${qs}` : ''}`);
+  return res.data;
+}
+
+export async function respondP2PRequest(id, data) {
+  const res = await apiPost(`/p2p/requests/${id}/respond`, data);
+  return res.data;
+}
+
+// --- Transactions ---
+export async function getP2PTransactions(params = {}) {
+  const qs = new URLSearchParams(params).toString();
+  const res = await apiGet(`/p2p/transactions${qs ? `?${qs}` : ''}`);
+  return res.data;
+}
+
+export async function getP2PTransactionById(id) {
+  const res = await apiGet(`/p2p/transactions/${id}`);
+  return res.data;
+}
+
+export async function startP2PTrip(id) {
+  const res = await apiPost(`/p2p/transactions/${id}/start`);
+  return res.data;
+}
+
+export async function completeP2PTrip(id) {
+  const res = await apiPost(`/p2p/transactions/${id}/complete`);
+  return res.data;
+}
+
+export async function cancelP2PTransaction(id) {
+  const res = await apiPost(`/p2p/transactions/${id}/cancel`);
+  return res.data;
+}
+
+// --- Comments ---
+export async function getP2PComments(params = {}) {
+  const qs = new URLSearchParams(params).toString();
+  const res = await apiGet(`/p2p/comments${qs ? `?${qs}` : ''}`);
+  return res.data;
+}
+
+export async function addP2PComment(data) {
+  const res = await apiPost('/p2p/comments', data);
+  return res.data;
+}
+
+// --- Ratings ---
+export async function submitP2PRating(data) {
+  const res = await apiPost('/p2p/ratings', data);
   return res.data;
 }
 

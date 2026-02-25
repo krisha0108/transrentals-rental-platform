@@ -191,6 +191,35 @@ export default function StaffListScreen({ navigation }) {
         </View>
       </View>
 
+      {/* Quick Actions */}
+      <View style={styles.quickActions}>
+        <TouchableOpacity
+          style={styles.quickActionBtn}
+          onPress={() => navigation.navigate('StaffAttendanceScreen')}
+          activeOpacity={0.7}
+        >
+          <View style={[styles.quickActionIcon, { backgroundColor: '#DBEAFE' }]}>
+            <Icon name="calendar" size={18} color={C.blue} />
+          </View>
+          <Text style={styles.quickActionTitle}>Attendance</Text>
+          <Text style={styles.quickActionSub}>Track daily</Text>
+          <Icon name="chevron-right" size={14} color={C.muted} />
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.quickActionBtn}
+          onPress={() => navigation.navigate('StaffPayrollScreen')}
+          activeOpacity={0.7}
+        >
+          <View style={[styles.quickActionIcon, { backgroundColor: '#F3E8FF' }]}>
+            <Icon name="dollar-sign" size={18} color={C.purple} />
+          </View>
+          <Text style={styles.quickActionTitle}>Payroll</Text>
+          <Text style={styles.quickActionSub}>Salaries</Text>
+          <Icon name="chevron-right" size={14} color={C.muted} />
+        </TouchableOpacity>
+      </View>
+
       {/* Filters */}
       <View style={styles.filtersContainer}>
         <FlatList
@@ -316,6 +345,41 @@ const styles = StyleSheet.create({
   statLabel: {
     fontSize: 11,
     color: C.muted,
+  },
+  quickActions: {
+    flexDirection: 'row',
+    marginHorizontal: 16,
+    marginTop: 10,
+    gap: 10,
+  },
+  quickActionBtn: {
+    flex: 1,
+    flexDirection: 'column',
+    alignItems: 'center',
+    backgroundColor: C.surface,
+    borderRadius: 12,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: C.border,
+    gap: 4,
+  },
+  quickActionIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 2,
+  },
+  quickActionTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: C.text,
+  },
+  quickActionSub: {
+    fontSize: 10,
+    color: C.muted,
+    marginBottom: 2,
   },
   filtersContainer: {
     height: 56,

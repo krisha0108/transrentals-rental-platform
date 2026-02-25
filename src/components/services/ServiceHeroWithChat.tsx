@@ -4,6 +4,7 @@ import React from 'react';
 import { MapPin, Star, Shield, Zap } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { DynamicChatBookingHero } from '@/components/booking/DynamicChatBookingHero';
+import { formatPriceHighlight } from '@/lib/utils';
 
 interface ServiceHeroWithChatProps {
   badge: string;
@@ -43,12 +44,12 @@ export function ServiceHeroWithChat({
         <div className="text-center mb-8">
           <div className="inline-flex items-center gap-2 bg-primary/10 text-primary px-4 py-2 rounded-full text-sm font-medium mb-6">
             <MapPin className="w-4 h-4" />
-            <span>{badge}</span>
+            <span>{formatPriceHighlight(badge)}</span>
           </div>
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 mb-4">
             {title}<br />
             <span className="bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
-              {titleHighlight}
+              {formatPriceHighlight(titleHighlight)}
             </span>
           </h1>
           <p className="text-lg md:text-xl text-gray-600 max-w-3xl mx-auto">

@@ -182,27 +182,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Generate unique ID with PVP_ prefix
-    const allIds = await prisma.p2p_vehicle_postings.findMany({
-      where: { id: { startsWith: 'PVP_' } },
-      select: { id: true },
-    });
-    const maxId = allIds.reduce((max, item) => {
-      const num = parseInt(item.id.replace('PVP_', ''));
-      return num > max ? num : max;
-    }, 0);
-    const newId = `PVP_${maxId + 1}`;
-
-    // Generate unique posting number with VP- prefix
-    const allPostingNumbers = await prisma.p2p_vehicle_postings.findMany({
-      where: { postingNumber: { startsWith: 'VP-' } },
-      select: { postingNumber: true },
-    });
-    const maxPostingNum = allPostingNumbers.reduce((max, item) => {
-      const num = parseInt(item.postingNumber.replace('VP-', ''));
-      return num > max ? num : max;
-    }, 1000);
-    const newPostingNumber = `VP-${maxPostingNum + 1}`;
+    // Generate IDs efficiently (single-row MAX queries instead of full table scans)
+    const [maxIdResult, maxPostNumResult]: any[] = await Promise.all([
+      prisma.$queryRaw`SELECT MAX(CAST(SUBSTRING(id, 5) AS UNSIGNED)) as maxNum FROM p2p_vehicle_postings WHERE id LIKE 'PVP_%'`,
+      prisma.$queryRaw`SELECT MAX(CAST(SUBSTRING(postingNumber, 4) AS UNSIGNED)) as maxNum FROM p2p_vehicle_postings WHERE postingNumber LIKE 'VP-%'`,
+    ]);
+    const newId = `PVP_${(Number(maxIdResult?.[0]?.maxNum) || 0) + 1}`;
+    const newPostingNumber = `VP-${(Number(maxPostNumResult?.[0]?.maxNum) || 1000) + 1}`;
 
     // Set expiresAt to end of departureDate (auto-expire after trip date passes)
     const parsedDepartureDate = new Date(departureDate);

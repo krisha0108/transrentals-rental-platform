@@ -100,15 +100,6 @@ export async function GET(
       );
     }
 
-    // Build filters for category and brand
-    const categoryFilter = categorySlug
-      ? { services_vehicle_models_subServiceIdToservices: { slug: categorySlug } }
-      : {};
-
-    const brandFilter = brandSlug
-      ? { brands: { slug: brandSlug } }
-      : {};
-
     // Check if bike rental service is available in this location
     const serviceLocation = await prisma.service_locations.findFirst({
       where: {
@@ -130,8 +121,23 @@ export async function GET(
       where: {
         serviceId: bikeService.id,
         isActive: true,
-        ...categoryFilter,
-        ...brandFilter,
+        // Only show if brand is active
+        brands: {
+          isActive: true,
+          ...(brandSlug ? { slug: brandSlug } : {}),
+        },
+        // Only show if vehicle category is active (if category exists)
+        OR: [
+          {
+            chauffeur_vehicle_categories: {
+              isActive: true,
+              ...(categorySlug ? { slug: categorySlug } : {}),
+            },
+          },
+          {
+            vehicleCategoryId: null, // Allow bikes without category
+          },
+        ],
       },
       include: {
         brands: {
@@ -142,7 +148,7 @@ export async function GET(
             logo: true,
           },
         },
-        services_vehicle_models_subServiceIdToservices: {
+        chauffeur_vehicle_categories: {
           select: {
             id: true,
             name: true,
@@ -162,6 +168,11 @@ export async function GET(
       orderBy: [{ displayOrder: 'asc' }, { name: 'asc' }],
     });
 
+    console.log(`[Bikes API] Found ${vehicleModels.length} vehicle models for ${locationData.name}`);
+    vehicleModels.forEach(model => {
+      console.log(`  - ${model.name} (Brand: ${model.brands?.name}, Active: ${model.isActive}, Brand Active: ${model.brands?.isActive})`);
+    });
+
     // Aggregate the data from admin vehicle models
     const aggregatedBikes: AggregatedBike[] = [];
 
@@ -174,9 +185,10 @@ export async function GET(
       const basePrice = locationSpecificPrice || model.basePricePerDay || 0;
 
       if (basePrice <= 0) {
-        console.log(`[Bikes API] Skipping ${model.name} - no base price set`);
+        console.log(`[Bikes API] ❌ Skipping ${model.name} - no base price set (locationPrice: ${locationSpecificPrice}, modelPrice: ${model.basePricePerDay})`);
         continue;
       }
+      console.log(`[Bikes API] ✅ Including ${model.name} - price: ${basePrice}`);
 
       // Count how many vendors have added this bike model at this location
       // Only count fleets that are EXPLICITLY assigned to this location
@@ -201,10 +213,8 @@ export async function GET(
       // Debug logging
       console.log(`[Bikes API] Model: ${model.name}, Location: ${locationData.name}, VendorFleetCount: ${vendorFleetCount}, HasLocationAssignment: ${hasLocationAssignment}, LocationPrice: ${locationSpecificPrice}, BasePrice: ${basePrice}`);
 
-      // Skip this bike model ONLY if:
-      // - No vendor fleets are assigned to this location AND
-      // - Model is NOT assigned to this location by admin
-      // Show if: vendorFleetCount > 0 OR hasLocationAssignment = true
+      // Skip this bike model if no vendor fleets are at this location
+      // (hasLocationAssignment is still a fallback for admin-assigned models)
       if (vendorFleetCount === 0 && !hasLocationAssignment) {
         console.log(`[Bikes API] Skipping ${model.name} - no fleets or location assignment for this location`);
         continue;
@@ -231,8 +241,8 @@ export async function GET(
         brandId: model.brands?.id || '',
         brandName: model.brands?.name || 'Unknown Brand',
         brandLogo: model.brands?.logo ?? undefined,
-        categoryId: model.services_vehicle_models_subServiceIdToservices?.id,
-        categoryName: model.services_vehicle_models_subServiceIdToservices?.name,
+        categoryId: model.chauffeur_vehicle_categories?.id,
+        categoryName: model.chauffeur_vehicle_categories?.name,
         sideImage: model.sideImage ?? undefined,
         fuelType: model.fuelType ?? undefined,
         transmission: model.transmission ?? undefined,
@@ -278,9 +288,15 @@ export async function GET(
     }
 
     // Get categories and brands for filters
-    const categories = await prisma.services.findMany({
+    // Extract unique brand IDs from aggregated bikes (only show brands with bikes)
+    const availableBrandIds = new Set(
+      aggregatedBikes.map(b => b.brandId).filter(Boolean)
+    );
+
+    // Fetch all active bike categories (vehicle categories) for filtering
+    const categories = await prisma.chauffeur_vehicle_categories.findMany({
       where: {
-        parentId: bikeService.id,
+        serviceId: bikeService.id,
         isActive: true,
       },
       select: {
@@ -291,8 +307,10 @@ export async function GET(
       orderBy: { displayOrder: 'asc' },
     });
 
+    // Fetch only brands that have bikes in this location
     const brands = await prisma.brands.findMany({
       where: {
+        id: { in: Array.from(availableBrandIds) },
         serviceId: bikeService.id,
         isActive: true,
       },

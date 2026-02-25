@@ -10,11 +10,12 @@ import {
 import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
 import { ServiceLocationsGrid } from '@/components/services/ServiceLocationsGrid';
 import { ServiceFleetDisplay } from '@/components/services/ServiceFleetDisplay';
+import { formatPriceHighlight } from '@/lib/utils';
 
 export const metadata: Metadata = {
-  title: 'Bus & Tempo Traveller Rental | Get Quotes from Verified Operators',
+  title: formatPriceHighlight('Bus & Tempo Traveller Rental | Get Quotes from Verified Operators'),
   description:
-    'Hire buses and tempo travellers for pilgrimages, weddings, corporate events, tours. Get multiple quotes from verified operators. 12-50 seater vehicles available.',
+    formatPriceHighlight('Hire buses and tempo travellers for pilgrimages, weddings, corporate events, tours. Get multiple quotes from verified operators. 12-50 seater vehicles available.'),
   keywords: [
     'bus rental',
     'tempo traveller',
@@ -28,12 +29,12 @@ export const metadata: Metadata = {
 };
 
 const TRIP_TYPES = [
-  { name: 'Pilgrimage Tours', icon: '🛕', desc: 'Temple visits, Char Dham, Vaishno Devi' },
-  { name: 'Wedding Transport', icon: '💒', desc: 'Baarat, guest transport, decoration' },
-  { name: 'Corporate Events', icon: '🏢', desc: 'Team outings, conferences, retreats' },
-  { name: 'School/College', icon: '🎓', desc: 'Picnics, educational tours, sports' },
-  { name: 'Tour Packages', icon: '🗺️', desc: 'Multi-city tours, sightseeing' },
-  { name: 'Outstation', icon: '🛣️', desc: 'One-way and round trips' },
+  { name: 'Pilgrimage Tours', icon: '🛕', desc: 'Temple Visits, Char Dham, Vaishno Devi' },
+  { name: 'Wedding Transport', icon: '💒', desc: 'Baraat, Guest Transport' },
+  { name: 'Corporate Events', icon: '🏢', desc: 'Team Outings, Conferences, Retreats' },
+  { name: 'Schools & Colleges', icon: '🎓', desc: 'Picnics, Educational Tours, Sports' },
+  { name: 'Tour Packages', icon: '🗺️', desc: 'Multi-City Tours, Sightseeing' },
+  { name: 'Outstation', icon: '🛣️', desc: 'One-Way and Round Trips' },
 ];
 
 const HOW_IT_WORKS = [
@@ -141,11 +142,13 @@ export default function BusRentalPage() {
             {TRIP_TYPES.map((type) => (
               <div
                 key={type.name}
-                className="bg-white rounded-xl p-4 text-center hover:shadow-md transition"
+                className="bg-white rounded-xl p-4 text-center hover:shadow-md transition flex flex-col items-center justify-center min-h-[150px]"
               >
-                <div className="text-3xl mb-2">{type.icon}</div>
-                <h3 className="font-semibold text-gray-900 mb-1">{type.name}</h3>
-                <p className="text-xs text-gray-500">{type.desc}</p>
+                <div className="text-3xl mb-3">{type.icon}</div>
+                <h3 className="font-semibold text-gray-900 mb-1 text-sm sm:text-base leading-tight">
+                  {type.name}
+                </h3>
+                <p className="text-xs text-gray-500 line-clamp-2">{type.desc}</p>
               </div>
             ))}
           </div>

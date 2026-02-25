@@ -11,9 +11,10 @@ import {
   LogOut,
   Menu,
   X,
-  Bell,
+  Download,
   Loader2,
 } from 'lucide-react';
+import { useDriverWebNotifications } from '@/hooks/useDriverWebNotifications';
 
 interface Driver {
   id: string;
@@ -36,9 +37,59 @@ export default function DriverDashboardLayout({
   const [driver, setDriver] = useState<Driver | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [installPrompt, setInstallPrompt] = useState<any>(null);
+  const [showInstallBanner, setShowInstallBanner] = useState(false);
+  const [isInstalled, setIsInstalled] = useState(false);
+
+  // Poll for new booking assignment notifications (web/PWA)
+  useDriverWebNotifications();
 
   useEffect(() => {
     checkAuth();
+
+    // ── PWA: point to driver-specific manifest ──────────────────────────────
+    let manifestLink = document.querySelector('link[rel="manifest"]') as HTMLLinkElement | null;
+    if (!manifestLink) {
+      manifestLink = document.createElement('link');
+      manifestLink.rel = 'manifest';
+      document.head.appendChild(manifestLink);
+    }
+    manifestLink.href = '/driver-manifest.json';
+
+    // ── PWA: detect standalone mode (already installed) ────────────────────
+    const isStandalone =
+      window.matchMedia('(display-mode: standalone)').matches ||
+      (window.navigator as any).standalone === true;
+    if (isStandalone) {
+      setIsInstalled(true);
+    }
+
+    // ── PWA: capture install prompt ────────────────────────────────────────
+    const handleBeforeInstall = (e: Event) => {
+      e.preventDefault();
+      setInstallPrompt(e);
+      setShowInstallBanner(true);
+    };
+
+    // ── PWA: hide banner once installed ───────────────────────────────────
+    const handleAppInstalled = () => {
+      setInstallPrompt(null);
+      setShowInstallBanner(false);
+      setIsInstalled(true);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstall);
+    window.addEventListener('appinstalled', handleAppInstalled);
+
+    // ── Notifications: request permission ─────────────────────────────────
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstall);
+      window.removeEventListener('appinstalled', handleAppInstalled);
+    };
   }, []);
 
   const checkAuth = async () => {
@@ -70,6 +121,16 @@ export default function DriverDashboardLayout({
     }
   };
 
+  const handleInstallClick = async () => {
+    if (!installPrompt) return;
+    installPrompt.prompt();
+    const { outcome } = await installPrompt.userChoice;
+    if (outcome === 'accepted') {
+      setInstallPrompt(null);
+      setShowInstallBanner(false);
+    }
+  };
+
   const navItems = [
     { href: '/driver', icon: Home, label: 'Dashboard' },
     { href: '/driver/bookings', icon: Calendar, label: 'My Trips' },
@@ -93,6 +154,31 @@ export default function DriverDashboardLayout({
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* PWA Install Banner */}
+      {showInstallBanner && !isInstalled && (
+        <div className="bg-emerald-50 border-b border-emerald-200 px-4 py-2 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2 text-sm text-emerald-800">
+            <Download className="w-4 h-4 shrink-0" />
+            <span>Install Driver App on your phone for quick access</span>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={handleInstallClick}
+              className="bg-emerald-600 text-white text-xs font-semibold px-3 py-1.5 rounded-lg hover:bg-emerald-700 transition"
+            >
+              Install
+            </button>
+            <button
+              onClick={() => setShowInstallBanner(false)}
+              className="text-emerald-600 hover:text-emerald-800 p-1"
+              aria-label="Dismiss"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <header className="bg-emerald-600 text-white sticky top-0 z-50 shadow-lg">
         <div className="max-w-7xl mx-auto px-4">
@@ -139,7 +225,18 @@ export default function DriverDashboardLayout({
             </nav>
 
             {/* User Menu */}
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              {/* Install button (desktop) — only shown when not yet installed */}
+              {installPrompt && !isInstalled && (
+                <button
+                  onClick={handleInstallClick}
+                  className="hidden sm:flex items-center gap-1.5 bg-white text-emerald-700 text-xs font-semibold px-3 py-1.5 rounded-lg hover:bg-emerald-50 transition"
+                  title="Install as app"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  Install App
+                </button>
+              )}
               <div className="hidden sm:block text-right">
                 <p className="font-medium text-sm">{driver.name}</p>
                 <p className="text-emerald-200 text-xs">{driver.phone}</p>
@@ -181,6 +278,16 @@ export default function DriverDashboardLayout({
                   </Link>
                 );
               })}
+              {/* Install option in mobile menu */}
+              {installPrompt && !isInstalled && (
+                <button
+                  onClick={() => { handleInstallClick(); setIsMobileMenuOpen(false); }}
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-emerald-100 hover:bg-emerald-800"
+                >
+                  <Download className="w-5 h-5" />
+                  Install App
+                </button>
+              )}
               <button
                 onClick={handleLogout}
                 className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-emerald-100 hover:bg-emerald-800"

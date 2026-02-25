@@ -1,12 +1,13 @@
 import { Metadata } from 'next';
-import { notFound } from 'next/navigation';
-import { ALL_CITIES, STATIC_CITIES, getCityBySlug } from '@/data/indian-cities';
+import { permanentRedirect } from 'next/navigation';
+import { getCityBySlug } from '@/data/indian-cities';
 import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
 import { VehicleGrid } from '@/components/location/VehicleGrid';
 import { getAllIndiaFleet } from '@/lib/fleet-utils';
-import { ServiceComingSoon } from '@/components/location/ServiceComingSoon';
-import { isServiceAvailableInLocation, getNearbyAvailableLocations } from '@/lib/services/service-availability';
+import { resolveServicePage } from '@/lib/services/service-availability';
+import { StateServicePage } from '@/components/location/StateServicePage';
 import { prisma } from '@/lib/db/prisma';
+import { formatPriceHighlight } from '@/lib/utils';
 
 interface PageProps {
   params: {
@@ -72,8 +73,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const locationName = city.name;
 
   return {
-    title: `Tempo Traveller ${locationName} | 12-17 Seater @₹18/Km | Force Traveller`,
-    description: `Rent Tempo Traveller in ${locationName}. 12, 17, 20 seater AC tempo. Group travel, family trips, corporate events. Book online @₹18/km.`,
+    title: formatPriceHighlight(`Tempo Traveller ${locationName} | 12-17 Seater @₹18/Km | Force Traveller`),
+    description: formatPriceHighlight(`Rent Tempo Traveller in ${locationName}. 12, 17, 20 seater AC tempo. Group travel, family trips, corporate events. Book online @₹18/km.`),
     keywords: [
       `tempo traveller ${locationName.toLowerCase()}`,
       `12 seater tempo ${locationName.toLowerCase()}`,
@@ -87,8 +88,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       ...(city.keywords || []).map(k => `tempo traveller ${k}`),
     ],
     openGraph: {
-      title: `Tempo Traveller in ${locationName} - 12-17 Seater @₹18/Km`,
-      description: `Book Tempo Traveller in ${locationName}. AC vehicles for group travel and outstation trips.`,
+      title: formatPriceHighlight(`Tempo Traveller in ${locationName} - 12-17 Seater @₹18/Km`),
+      description: formatPriceHighlight(`Book Tempo Traveller in ${locationName}. AC vehicles for group travel and outstation trips.`),
       url: `https://transrentals.in/tempo-traveller/${params.location}`,
     },
     alternates: {
@@ -98,30 +99,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 }
 
 export default async function TempoTravellerLocationPage({ params }: PageProps) {
-  const city = getCityBySlug(params.location);
-
-  if (!city) {
-    notFound();
-  }
-
+  const pageContext = await resolveServicePage('tempo-traveller', params.location);
+  if (pageContext.type === 'redirect') permanentRedirect(pageContext.to);
+  if (pageContext.type === 'state') return <StateServicePage state={pageContext.state} activeCities={pageContext.activeCities} serviceSlug="tempo-traveller" serviceName="Tempo Traveller" />;
+  const city = pageContext.city;
   const locationName = city.name;
-
-  // Check if tempo-traveller service is available in this location
-  const isAvailable = await isServiceAvailableInLocation('tempo-traveller', params.location);
-
-  // If service not available, show coming soon page
-  if (!isAvailable) {
-    const nearbyLocations = await getNearbyAvailableLocations('tempo-traveller', params.location, 6);
-    return (
-      <ServiceComingSoon
-        serviceName="Tempo Traveller"
-        serviceSlug="tempo-traveller"
-        locationName={locationName}
-        locationSlug={params.location}
-        nearbyLocations={nearbyLocations}
-      />
-    );
-  }
 
   // Fetch tempo traveller fleet from database (ALL_INDIA type vehicles)
   const vehicles = await getAllIndiaFleet(

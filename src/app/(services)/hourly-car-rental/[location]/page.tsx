@@ -1,11 +1,14 @@
 import React from 'react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { permanentRedirect } from 'next/navigation';
 import { capitalize } from '@/lib/utils';
 import { getCityBySlug } from '@/data/indian-cities';
 import { getServiceLocations } from '@/lib/services/service-locations';;
 import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
 import { FAQSection } from '@/components/services/FAQSection';
+import { resolveServicePage } from '@/lib/services/service-availability';
+import { StateServicePage } from '@/components/location/StateServicePage';
 
 interface PageProps { params: { location: string }; }
 
@@ -36,8 +39,11 @@ const packages = [
   { hours: 8, km: 80, price: 899 },
 ];
 
-export default function HourlyCarLocationPage({ params }: PageProps) {
-  const city = getCityBySlug(params.location);
+export default async function HourlyCarLocationPage({ params }: PageProps) {
+  const pageContext = await resolveServicePage('hourly-car-rental', params.location);
+  if (pageContext.type === 'redirect') permanentRedirect(pageContext.to);
+  if (pageContext.type === 'state') return <StateServicePage state={pageContext.state} activeCities={pageContext.activeCities} serviceSlug="hourly-car-rental" serviceName="Hourly Car Rental" />;
+  const city = pageContext.city;
   const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
 
   return (

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 import { transformPrismaResponse } from '@/lib/utils/api-transform';
 import logger from '@/lib/security/logger';
+import { sendVendorDirectNotification } from '@/lib/utils/vendor-notification-sender';
 
 export const dynamic = 'force-dynamic';
 
@@ -111,7 +112,7 @@ export async function POST(
         carCategory: quote.vehicle_category,
         carCategoryName: quote.request.vehicleCategoryName || quote.vehicle_category,
         vehicleNumber: quote.vehicleNumber,
-        vehicle_models: quote.vehicle_models,
+        vehicleModel: quote.vehicleModel,
         vehicleBrand: quote.vehicleName?.split(' ')[0] || null,
         vehicleColor: null,
         vehicleImages: typeof quote.vehicleImages === 'string'
@@ -154,9 +155,13 @@ export async function POST(
         status: 'PENDING_PAYMENT',
         paymentStatus: 'PENDING',
 
-        // Vendor Assignment
-        acceptedVendor: { connect: { id: quote.vendorId } },
+        // Vendor Assignment (use scalar field directly — relation name is auto-generated and long)
+        acceptedVendorId: quote.vendorId,
         acceptedAt: new Date(),
+
+        // Link to source quote request and accepted quote
+        quoteRequestId: resolvedParams.id,
+        acceptedQuoteId: quoteId,
 
         // OTPs
         tripStartOtp: pickupOtp,
@@ -198,6 +203,17 @@ export async function POST(
       bookingId: booking.id,
       bookingNumber: booking.bookingNumber,
     });
+
+    // Non-blocking: notify the vendor whose luxury quote was accepted
+    sendVendorDirectNotification({
+      vendorId: quote.vendorId,
+      title: '🎉 Quote Accepted!',
+      body: `Your luxury car quote has been accepted. Booking #${booking.bookingNumber} created. Payment pending from customer.`,
+      type: 'quote_accepted',
+      serviceType: 'luxury',
+      bookingId: booking.id,
+      bookingNumber: booking.bookingNumber,
+    }).catch((err: any) => console.error('[LuxuryAccept] Vendor notification failed:', err));
 
     return NextResponse.json({
       success: true,

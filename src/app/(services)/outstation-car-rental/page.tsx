@@ -4,11 +4,12 @@ import { FAQSection } from '@/components/services/FAQSection';
 import { SimpleServiceHero } from '@/components/services/SimpleServiceHero';
 import { ServiceLocationsGrid } from '@/components/services/ServiceLocationsGrid';
 import { ServiceFleetDisplay } from '@/components/services/ServiceFleetDisplay';
+import { formatPriceHighlight } from '@/lib/utils';
 
 export const metadata: Metadata = {
-  title: 'Outstation Car Rental - Intercity Car Hire Starting @₹10/km | TransRentals',
+  title: formatPriceHighlight('Outstation Car Rental - Intercity Car Hire Starting @₹10/km | TransRentals'),
   description:
-    'Rent cars for outstation trips across India. Round trips, one-way drops, multi-city tours. Professional drivers, all India permits. Book now!',
+    formatPriceHighlight('Rent cars for outstation trips across India. Round trips, one-way drops, multi-city tours. Professional drivers, all India permits. Book now!'),
   keywords: [
     'outstation car rental',
     'intercity car rental',
@@ -19,8 +20,8 @@ export const metadata: Metadata = {
     'long distance car rental',
   ],
   openGraph: {
-    title: 'Outstation Car Rental - Starting @₹10/km | TransRentals',
-    description: 'Rent cars for intercity and long-distance trips.',
+    title: formatPriceHighlight('Outstation Car Rental - Starting @₹10/km | TransRentals'),
+    description: formatPriceHighlight('Rent cars for intercity and long-distance trips.'),
   },
 };
 

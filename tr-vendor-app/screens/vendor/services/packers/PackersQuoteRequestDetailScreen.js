@@ -13,7 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Feather';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import { getQuoteRequests } from '../../../api/client';
+import { getQuoteRequestById } from '../../../api/client';
 
 const GREEN = '#09B368';
 const BG = '#F5F5F7';
@@ -44,44 +44,9 @@ export default function PackersQuoteRequestDetailScreen({ route, navigation }) {
     console.log('🔍 [PackersRequestDetail] Fetching request with ID:', requestId);
 
     try {
-      // FIX: Fetch ALL pages to find the request
-      let allRequests = [];
-      let page = 1;
-      let hasMore = true;
-
-      while (hasMore && page <= 10) { // Max 10 pages to prevent infinite loop
-        console.log(`📄 [PackersRequestDetail] Fetching page ${page}...`);
-        const response = await getQuoteRequests('packers', { page, limit: 20 });
-        const pageRequests = response.quoteRequests || response.requests || response.data || [];
-
-        allRequests = [...allRequests, ...pageRequests];
-
-        // Check if we found the request
-        const found = pageRequests.find(r => {
-          const itemId = (r.id || r._id)?.toString();
-          const searchId = requestId?.toString();
-          return itemId === searchId;
-        });
-
-        if (found) {
-          console.log('✅ [PackersRequestDetail] Request found on page', page);
-          setRequest(found);
-          setLoading(false);
-          setRefreshing(false);
-          return;
-        }
-
-        // Check if there are more pages
-        const pagination = response.pagination || {};
-        hasMore = page < (pagination.totalPages || 1);
-        page++;
-      }
-
-      // If we reach here, request was not found
-      console.log('❌ [PackersRequestDetail] Request not found after checking all pages');
-      console.log('Total requests checked:', allRequests.length);
-      Alert.alert('Error', 'Request not found');
-
+      const data = await getQuoteRequestById('packers', requestId);
+      const requestData = data.request || data;
+      setRequest({ ...requestData, hasQuoted: data.hasQuoted, vendorQuote: data.vendorQuote });
     } catch (error) {
       console.error('Error fetching request detail:', error);
       Alert.alert('Error', 'Failed to load request details');
@@ -147,10 +112,28 @@ export default function PackersQuoteRequestDetailScreen({ route, navigation }) {
   if (loading) {
     return (
       <SafeAreaView style={styles.safe} edges={['top']}>
-        <View style={styles.loaderWrap}>
-          <ActivityIndicator size="large" color={GREEN} />
-          <Text style={styles.loaderText}>Loading request details...</Text>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+            <Icon name="arrow-left" size={22} color={DARK} />
+          </TouchableOpacity>
+          <View style={styles.headerCenter}>
+            <Text style={styles.headerTitle}>Request Details</Text>
+            <Text style={styles.headerSubtitle}>Packers & Movers</Text>
+          </View>
+          <View style={{ width: 40 }} />
         </View>
+        <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+          <View style={styles.skeletonBanner} />
+          <View style={{ padding: 16, paddingTop: 8 }}>
+            {[1, 2, 3].map(i => (
+              <View key={i} style={styles.skeletonCard}>
+                <View style={styles.skeletonLine} />
+                <View style={[styles.skeletonLine, { width: '70%' }]} />
+                <View style={[styles.skeletonLine, { width: '50%' }]} />
+              </View>
+            ))}
+          </View>
+        </ScrollView>
       </SafeAreaView>
     );
   }
@@ -187,12 +170,12 @@ export default function PackersQuoteRequestDetailScreen({ route, navigation }) {
   const specificType = request.specificType || request.specific_type; // 1BHK, 2BHK, etc.
 
   // Location Details
-  const fromAddress = request.fromAddress || request.from_address || request.pickupLocation || request.pickup_location || 'N/A';
-  const toAddress = request.toAddress || request.to_address || request.dropLocation || request.drop_location || request.dropCity;
+  const fromAddress = request.fromAddress || request.from_address || request.pickupAddress || request.pickupLocation || request.pickup_location || request.pickupCity || 'N/A';
+  const toAddress = request.toAddress || request.to_address || request.dropAddress || request.dropLocation || request.drop_location || request.dropCity;
 
   // Date & Time Details
-  const movingDate = request.movingDate || request.moving_date || request.pickupDate || request.pickup_date || request.startDate;
-  const movingTime = request.movingTime || request.moving_time || request.pickupTime || request.pickup_time;
+  const movingDate = request.movingDate || request.moving_date || request.preferredDate || request.pickupDate || request.pickup_date || request.startDate || request.scheduledDate;
+  const movingTime = request.movingTime || request.moving_time || request.pickupTime || request.pickup_time || request.scheduledTime;
 
   // Customer Notes
   const customerNotes = request.customerNotes || request.customer_notes || request.notes || request.description || request.additionalInfo || request.specialRequirements;
@@ -236,7 +219,28 @@ export default function PackersQuoteRequestDetailScreen({ route, navigation }) {
               <Text style={styles.sendQuoteBtnText}>Send Quote</Text>
             </TouchableOpacity>
           )}
+          {request.hasQuoted && (
+            <View style={styles.quotedBadge}>
+              <Ionicons name="checkmark-circle" size={14} color="#10B981" />
+              <Text style={styles.quotedBadgeText}>Quoted</Text>
+            </View>
+          )}
         </View>
+
+        {request.hasQuoted && (
+          <View style={styles.quotedBanner}>
+            <Ionicons name="checkmark-circle" size={22} color="#10B981" />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.quotedBannerTitle}>You've already sent a quote</Text>
+              {request.vendorQuote?.grandTotal ? (
+                <Text style={styles.quotedBannerAmount}>
+                  ₹{Number(request.vendorQuote.grandTotal).toLocaleString('en-IN')}
+                  {request.vendorQuote?.status ? `  •  ${request.vendorQuote.status}` : ''}
+                </Text>
+              ) : null}
+            </View>
+          </View>
+        )}
 
         <View style={styles.content}>
           {/* Customer Information */}
@@ -259,15 +263,6 @@ export default function PackersQuoteRequestDetailScreen({ route, navigation }) {
                   <View style={styles.infoContent}>
                     <Text style={styles.infoLabel}>Email</Text>
                     <Text style={styles.infoValue}>{customerEmail}</Text>
-                  </View>
-                </View>
-              )}
-              {customerPhone && (
-                <View style={styles.infoRow}>
-                  <Ionicons name="call" size={18} color="#64748B" />
-                  <View style={styles.infoContent}>
-                    <Text style={styles.infoLabel}>Phone</Text>
-                    <Text style={styles.infoValue}>{customerPhone}</Text>
                   </View>
                 </View>
               )}
@@ -407,6 +402,20 @@ export default function PackersQuoteRequestDetailScreen({ route, navigation }) {
           </TouchableOpacity>
         </View>
       )}
+      {request.hasQuoted && (
+        <View style={styles.quotedBottomBar}>
+          <Ionicons name="checkmark-circle" size={22} color="#10B981" />
+          <View style={{ flex: 1, marginLeft: 10 }}>
+            <Text style={styles.quotedBottomTitle}>Quote Already Sent</Text>
+            {request.vendorQuote?.grandTotal ? (
+              <Text style={styles.quotedBottomSub}>
+                ₹{Number(request.vendorQuote.grandTotal).toLocaleString('en-IN')}
+                {request.vendorQuote?.status ? `  •  ${request.vendorQuote.status}` : ''}
+              </Text>
+            ) : null}
+          </View>
+        </View>
+      )}
     </SafeAreaView>
   );
 }
@@ -435,6 +444,18 @@ const styles = StyleSheet.create({
   headerCenter: { alignItems: 'center', flex: 1 },
   headerTitle: { fontSize: 18, fontWeight: '700', color: DARK },
   headerSubtitle: { fontSize: 12, color: '#64748B', marginTop: 2 },
+
+  skeletonBanner: { height: 80, backgroundColor: '#E2E8F0', borderRadius: 16, marginHorizontal: 16, marginTop: 16 },
+  skeletonCard: { backgroundColor: '#fff', borderRadius: 16, padding: 16, borderWidth: 1, borderColor: '#E2E8F0', gap: 12, marginBottom: 20 },
+  skeletonLine: { height: 12, backgroundColor: '#E2E8F0', borderRadius: 6, width: '100%' },
+  quotedBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#DCFCE7', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 10 },
+  quotedBadgeText: { fontSize: 12, fontWeight: '600', color: '#166534' },
+  quotedBanner: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F0FDF4', marginHorizontal: 16, marginTop: 10, borderRadius: 14, padding: 14, gap: 10, borderWidth: 1, borderColor: '#BBF7D0' },
+  quotedBannerTitle: { fontSize: 13, fontWeight: '700', color: '#166534' },
+  quotedBannerAmount: { fontSize: 12, color: '#166534', marginTop: 2 },
+  quotedBottomBar: { flexDirection: 'row', alignItems: 'center', padding: 16, backgroundColor: '#F0FDF4', borderTopWidth: 1, borderTopColor: '#BBF7D0' },
+  quotedBottomTitle: { fontSize: 14, fontWeight: '700', color: '#166534' },
+  quotedBottomSub: { fontSize: 12, color: '#166534', marginTop: 2 },
 
   loaderWrap: {
     flex: 1,

@@ -5,12 +5,12 @@ import { WhyRentHere } from '@/components/location/WhyRentHere';
 import { PopularRoutes } from '@/components/location/PopularRoutes';
 import { FAQSection } from '@/components/services/FAQSection';
 import { NearbyLocations } from '@/components/location/NearbyLocations';
-import { ServiceComingSoon } from '@/components/location/ServiceComingSoon';
-import { capitalize } from '@/lib/utils';
-import { ALL_CITIES, STATIC_CITIES } from '@/data/indian-cities';
+import { permanentRedirect } from 'next/navigation';
+import { capitalize, formatPriceHighlight } from '@/lib/utils';
 import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
 import { getAllIndiaFleet } from '@/lib/fleet-utils';
-import { isServiceAvailableInLocation, getNearbyAvailableLocations } from '@/lib/services/service-availability';
+import { resolveServicePage } from '@/lib/services/service-availability';
+import { StateServicePage } from '@/components/location/StateServicePage';
 import { prisma } from '@/lib/db/prisma';
 
 interface PageProps {
@@ -72,8 +72,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const locationName = capitalize(params.location.replace(/-/g, ' '));
 
   return {
-    title: `Truck Rental in ${locationName} | Starting @₹3999/Day | TransRentals`,
-    description: `Professional truck rental and transport services in ${locationName}. 7-ton to 32-ton trucks with GPS tracking. Best prices guaranteed. Book now!`,
+    title: formatPriceHighlight(`Truck Rental in ${locationName} | Starting @₹3999/Day | TransRentals`),
+    description: formatPriceHighlight(`Professional truck rental and transport services in ${locationName}. 7-ton to 32-ton trucks with GPS tracking. Best prices guaranteed. Book now!`),
     keywords: [
       `truck rental in ${locationName}`,
       `transporter in ${locationName}`,
@@ -82,31 +82,19 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       `cargo transport ${locationName}`,
     ],
     openGraph: {
-      title: `Truck Rental in ${locationName} - TransRentals`,
-      description: `Professional truck rental in ${locationName} starting @₹3999/day. GPS tracking included.`,
+      title: formatPriceHighlight(`Truck Rental in ${locationName} - TransRentals`),
+      description: formatPriceHighlight(`Professional truck rental in ${locationName} starting @₹3999/day. GPS tracking included.`),
     },
   };
 }
 
 export default async function TransporterLocationPage({ params }: PageProps) {
+  const pageContext = await resolveServicePage('transporter', params.location);
+  if (pageContext.type === 'redirect') permanentRedirect(pageContext.to);
+  if (pageContext.type === 'state') return <StateServicePage state={pageContext.state} activeCities={pageContext.activeCities} serviceSlug="transporter" serviceName="Transporter" />;
+  const city = pageContext.city;
+
   const locationName = capitalize(params.location.replace(/-/g, ' '));
-
-  // Check if transporter service is available in this location
-  const isAvailable = await isServiceAvailableInLocation('transporter', params.location);
-
-  // If service not available, show coming soon page
-  if (!isAvailable) {
-    const nearbyLocations = await getNearbyAvailableLocations('transporter', params.location, 6);
-    return (
-      <ServiceComingSoon
-        serviceName="Truck Rental"
-        serviceSlug="transporter"
-        locationName={locationName}
-        locationSlug={params.location}
-        nearbyLocations={nearbyLocations}
-      />
-    );
-  }
 
   // Fetch trucks/transporters from database (filtered by service and location)
   const service = await prisma.services.findUnique({
@@ -125,6 +113,31 @@ export default async function TransporterLocationPage({ params }: PageProps) {
       where: {
         serviceId: service.id,
         isActive: true,
+        brands: {
+          isActive: true,
+        },
+        AND: [
+          {
+            OR: [
+              { vehicleCategoryId: null },
+              { chauffeur_vehicle_categories: { isActive: true } },
+            ],
+          },
+          {
+            OR: [
+              { subServiceId: null },
+              { services_vehicle_models_subServiceIdToservices: { isActive: true } },
+            ],
+          },
+        ],
+        OR: [
+          { vehicleCategoryId: null }, // No category assigned
+          {
+            chauffeur_vehicle_categories: {
+              isActive: true,
+            },
+          },
+        ],
         vehicle_model_locations: {
           some: {
             locationId: location.id,

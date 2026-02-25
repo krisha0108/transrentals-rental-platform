@@ -30,14 +30,14 @@ const responsiveScale = (size) => {
 export default function ForgotPasswordScreen({ navigation }) {
   const [step, setStep] = useState(1);
   const [email, setEmail] = useState('');
-  const [otp, setOtp] = useState(['', '', '', '']);
+  const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [confirmVisible, setConfirmVisible] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const otpRefs = [useRef(), useRef(), useRef(), useRef()];
+  const otpRefs = [useRef(), useRef(), useRef(), useRef(), useRef(), useRef()];
 
   // ✅ Animation values
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -97,8 +97,8 @@ export default function ForgotPasswordScreen({ navigation }) {
   // Note: New API combines verify and reset in one step
   const verifyOtp = async () => {
     const enteredOtp = otp.join('');
-    if (enteredOtp.length < 4) {
-      return Alert.alert('Error', 'Please enter 4-digit OTP');
+    if (enteredOtp.length < 6) {
+      return Alert.alert('Error', 'Please enter 6-digit OTP');
     }
 
     // In new API, we go directly to password reset step
@@ -141,8 +141,17 @@ export default function ForgotPasswordScreen({ navigation }) {
     newOtp[index] = value;
     setOtp(newOtp);
 
-    if (value && index < 3) {
+    if (value && index < 5) {
       otpRefs[index + 1].current.focus();
+    }
+  };
+
+  const handleOtpKeyPress = ({ nativeEvent }, index) => {
+    if (nativeEvent.key === 'Backspace' && !otp[index] && index > 0) {
+      const newOtp = [...otp];
+      newOtp[index - 1] = '';
+      setOtp(newOtp);
+      otpRefs[index - 1].current.focus();
     }
   };
 
@@ -244,6 +253,7 @@ export default function ForgotPasswordScreen({ navigation }) {
                             onChangeText={(value) =>
                               handleOtpChange(value, index)
                             }
+                            onKeyPress={(e) => handleOtpKeyPress(e, index)}
                             editable={!loading}
                           />
                         </Animated.View>
@@ -434,17 +444,18 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     marginBottom: responsiveScale(20),
+    paddingHorizontal: responsiveScale(4),
   },
 
   otpBox: {
-    width: responsiveScale(55),
-    height: responsiveScale(55),
-    borderRadius: responsiveScale(12),
+    width: responsiveScale(42),
+    height: responsiveScale(48),
+    borderRadius: responsiveScale(10),
     backgroundColor: "#fff",
     borderWidth: 1,
     borderColor: "#ccc",
     textAlign: "center",
-    fontSize: responsiveScale(20),
+    fontSize: responsiveScale(18),
     color: "#000",
   },
 

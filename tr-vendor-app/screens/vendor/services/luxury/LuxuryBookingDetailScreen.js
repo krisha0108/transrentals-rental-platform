@@ -279,6 +279,36 @@ export default function LuxuryBookingDetailScreen({ route, navigation }) {
           <Text style={styles.createdDate}>Created on {formatDate(booking.createdAt)}</Text>
         </View>
 
+        {/* Info card when customer has accepted quote but not yet paid */}
+        {booking.status === 'PENDING_PAYMENT' && (
+          <View style={[styles.card, { backgroundColor: '#FFFBEB', borderColor: '#FDE68A', borderWidth: 1, flexDirection: 'row', alignItems: 'flex-start', gap: 10 }]}>
+            <Icon name="clock" size={20} color={C.amber} style={{ marginTop: 2 }} />
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 14, fontWeight: '700', color: '#92400E', marginBottom: 4 }}>
+                Quote Accepted — Awaiting Advance Payment
+              </Text>
+              <Text style={{ fontSize: 13, color: '#78350F', lineHeight: 18 }}>
+                Customer has accepted your quote. They need to pay the advance (₹{(booking.advanceAmount || 0).toLocaleString()}) to confirm this booking. You'll receive a notification once payment is done.
+              </Text>
+            </View>
+          </View>
+        )}
+
+        {/* Info card when advance is paid and driver assignment needed */}
+        {booking.status === 'ADVANCE_PAID' && !booking.driverName && (
+          <View style={[styles.card, { backgroundColor: '#F0FDF4', borderColor: '#86EFAC', borderWidth: 1, flexDirection: 'row', alignItems: 'flex-start', gap: 10 }]}>
+            <Icon name="check-circle" size={20} color={C.green} style={{ marginTop: 2 }} />
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 14, fontWeight: '700', color: '#14532D', marginBottom: 4 }}>
+                Advance Received — Assign a Driver
+              </Text>
+              <Text style={{ fontSize: 13, color: '#166534', lineHeight: 18 }}>
+                Customer has paid the advance. Please assign a driver to confirm this booking.
+              </Text>
+            </View>
+          </View>
+        )}
+
         {/* Only show vehicle details if there's actual data */}
         {(booking.vehicleName || booking.vehicleCategory || booking.requestedBrand || booking.carCategory || booking.carCategoryName) && (
           <View style={styles.card}>
@@ -432,17 +462,8 @@ export default function LuxuryBookingDetailScreen({ route, navigation }) {
             </View>
             <View style={styles.customerInfo}>
               <Text style={styles.customerName}>{booking.customerName || 'Customer'}</Text>
-              <Text style={styles.customerContact}>{booking.customerPhone}</Text>
             </View>
             <View style={styles.customerActions}>
-              {booking.customerPhone && (
-                <TouchableOpacity
-                  style={[styles.iconBtn, { backgroundColor: '#DCFCE7' }]}
-                  onPress={() => handleCall(booking.customerPhone)}
-                >
-                  <Icon name="phone" size={18} color={C.green} />
-                </TouchableOpacity>
-              )}
               <TouchableOpacity
                 style={[styles.iconBtn, { backgroundColor: '#DBEAFE' }]}
                 onPress={handleChat}
@@ -462,20 +483,34 @@ export default function LuxuryBookingDetailScreen({ route, navigation }) {
             </Text>
           </View>
 
-          {(booking.advanceAmount || booking.advancePaid || booking.paidAmount) > 0 && (
+          {(booking.advanceAmount || 0) > 0 && (
             <View style={styles.paymentRow}>
-              <Text style={styles.paymentLabel}>Advance Paid</Text>
-              <Text style={[styles.paymentValue, { color: C.green }]}>
-                ₹{(booking.advanceAmount || booking.advancePaid || booking.paidAmount || 0).toLocaleString()}
+              <Text style={styles.paymentLabel}>Advance Required</Text>
+              <Text style={styles.paymentValue}>
+                ₹{(booking.advanceAmount || 0).toLocaleString()}
               </Text>
             </View>
           )}
 
-          {(booking.balanceAmount > 0 || ((booking.grandTotal || booking.totalAmount || 0) > (booking.advanceAmount || booking.advancePaid || 0))) && (
+          {(booking.paymentStatus === 'PAID' || (booking.advancePaid || booking.paidAmount || 0) > 0) ? (
+            <View style={[styles.paymentRow, { backgroundColor: '#F0FDF4', borderRadius: 8, paddingHorizontal: 8, marginTop: 4 }]}>
+              <Text style={[styles.paymentLabel, { color: C.green }]}>✓ Advance Received</Text>
+              <Text style={[styles.paymentValue, { color: C.green }]}>
+                ₹{(booking.advancePaid || booking.paidAmount || booking.advanceAmount || 0).toLocaleString()}
+              </Text>
+            </View>
+          ) : (booking.advanceAmount || 0) > 0 ? (
+            <View style={[styles.paymentRow, { backgroundColor: '#FFFBEB', borderRadius: 8, paddingHorizontal: 8, marginTop: 4 }]}>
+              <Text style={[styles.paymentLabel, { color: C.amber }]}>⏳ Awaiting Customer Payment</Text>
+              <Text style={[styles.paymentValue, { color: C.amber, fontSize: 12 }]}>Pending</Text>
+            </View>
+          ) : null}
+
+          {(booking.grandTotal || booking.totalAmount || 0) > 0 && (
             <View style={[styles.paymentRow, styles.paymentRowDivider]}>
-              <Text style={[styles.paymentLabel, { fontWeight: '600' }]}>Balance</Text>
+              <Text style={[styles.paymentLabel, { fontWeight: '600' }]}>Balance Due</Text>
               <Text style={[styles.paymentValue, { color: C.amber }]}>
-                ₹{((booking.grandTotal || booking.totalAmount || 0) - (booking.advanceAmount || booking.advancePaid || booking.paidAmount || 0)).toLocaleString()}
+                ₹{Math.max(0, (booking.grandTotal || booking.totalAmount || 0) - (booking.advancePaid || booking.paidAmount || 0)).toLocaleString()}
               </Text>
             </View>
           )}
@@ -524,39 +559,39 @@ export default function LuxuryBookingDetailScreen({ route, navigation }) {
           </View>
         )}
 
-        {(canAccept() || canReject()) && (
-          <View style={styles.actionsContainer}>
-            {canReject() && (
-              <TouchableOpacity
-                style={[styles.actionButton, styles.rejectButton]}
-                onPress={handleReject}
-                disabled={actionLoading}
-              >
-                <Icon name="x" size={18} color={C.red} />
-                <Text style={[styles.actionButtonText, { color: C.red }]}>Reject</Text>
-              </TouchableOpacity>
-            )}
-            {canAccept() && (
-              <TouchableOpacity
-                style={[styles.actionButton, styles.acceptButton]}
-                onPress={handleAccept}
-                disabled={actionLoading}
-              >
-                {actionLoading ? (
-                  <ActivityIndicator size="small" color="#fff" />
-                ) : (
-                  <>
-                    <Icon name="check" size={18} color="#fff" />
-                    <Text style={[styles.actionButtonText, { color: '#fff' }]}>Accept</Text>
-                  </>
-                )}
-              </TouchableOpacity>
-            )}
-          </View>
-        )}
-
-        <View style={{ height: 40 }} />
+        <View style={{ height: 80 }} />
       </ScrollView>
+
+      {(canAccept() || canReject()) && (
+        <View style={styles.actionBar}>
+          {canReject() && (
+            <TouchableOpacity
+              style={[styles.actionBtn, styles.rejectBtn]}
+              onPress={handleReject}
+              disabled={actionLoading}
+            >
+              <Icon name="x" size={18} color={C.red} />
+              <Text style={[styles.actionBtnText, { color: C.red }]}>Decline</Text>
+            </TouchableOpacity>
+          )}
+          {canAccept() && (
+            <TouchableOpacity
+              style={[styles.actionBtn, styles.acceptBtn]}
+              onPress={handleAccept}
+              disabled={actionLoading}
+            >
+              {actionLoading ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <>
+                  <Icon name="check-circle" size={18} color="#fff" />
+                  <Text style={[styles.actionBtnText, { color: '#fff' }]}>Accept Booking</Text>
+                </>
+              )}
+            </TouchableOpacity>
+          )}
+        </View>
+      )}
 
       {/* Driver Selection Modal */}
       <Modal
@@ -818,6 +853,41 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 12,
     marginTop: 8,
+  },
+  actionBar: {
+    flexDirection: 'row',
+    gap: 12,
+    padding: 16,
+    backgroundColor: C.surface,
+    borderTopWidth: 1,
+    borderTopColor: C.border,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: -2 },
+    elevation: 10,
+  },
+  actionBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  rejectBtn: {
+    backgroundColor: C.surface,
+    borderColor: '#FEE2E2',
+  },
+  acceptBtn: {
+    backgroundColor: C.brand,
+    borderColor: C.brand,
+  },
+  actionBtnText: {
+    fontSize: 14,
+    fontWeight: '700',
   },
   actionButton: {
     flex: 1,

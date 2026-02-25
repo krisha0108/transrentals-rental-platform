@@ -5,12 +5,21 @@ import { WhyRentHere } from '@/components/location/WhyRentHere';
 import { PopularRoutes } from '@/components/location/PopularRoutes';
 import { FAQSection } from '@/components/services/FAQSection';
 import { NearbyLocations } from '@/components/location/NearbyLocations';
-import { ServiceComingSoon } from '@/components/location/ServiceComingSoon';
+import { permanentRedirect } from 'next/navigation';
 import { capitalize } from '@/lib/utils';
-import { ALL_CITIES, STATIC_CITIES, getCityBySlug } from '@/data/indian-cities';
+import { getCityBySlug } from '@/data/indian-cities';
 import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
-import { isServiceAvailableInLocation, getNearbyAvailableLocations } from '@/lib/services/service-availability';
+import { resolveServicePage } from '@/lib/services/service-availability';
+import { StateServicePage } from '@/components/location/StateServicePage';
 import { prisma } from '@/lib/db/prisma';
+
+function parseJsonField<T>(value: unknown, defaultValue: T): T {
+  if (value === null || value === undefined) return defaultValue;
+  if (typeof value === 'string') {
+    try { return JSON.parse(value) as T; } catch { return defaultValue; }
+  }
+  return value as T;
+}
 
 interface PageProps {
   params: {
@@ -63,6 +72,9 @@ export async function generateStaticParams() {
 // Enable ISR - Revalidate every hour
 export const revalidate = 3600;
 
+// Always fetch fresh data (reflect admin category changes)
+export const dynamic = 'force-dynamic';
+
 // Allow dynamic params for new cities without rebuild
 export const dynamicParams = true;
 
@@ -88,25 +100,13 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 }
 
 export default async function EquipmentLocationPage({ params }: PageProps) {
+  const pageContext = await resolveServicePage('equipment-rental', params.location);
+  if (pageContext.type === 'redirect') permanentRedirect(pageContext.to);
+  if (pageContext.type === 'state') return <StateServicePage state={pageContext.state} activeCities={pageContext.activeCities} serviceSlug="equipment-rental" serviceName="Equipment Rental" />;
+  const city = pageContext.city;
+
   const locationName = capitalize(params.location.replace(/-/g, ' '));
   const cityData = getCityBySlug(params.location);
-
-  // Check if equipment-rental service is available in this location
-  const isAvailable = await isServiceAvailableInLocation('equipment-rental', params.location);
-
-  // If service not available, show coming soon page
-  if (!isAvailable) {
-    const nearbyLocations = await getNearbyAvailableLocations('equipment-rental', params.location, 6);
-    return (
-      <ServiceComingSoon
-        serviceName="Equipment Rental"
-        serviceSlug="equipment-rental"
-        locationName={locationName}
-        locationSlug={params.location}
-        nearbyLocations={nearbyLocations}
-      />
-    );
-  }
 
   // Fetch equipment from database (filtered by service and location)
   const service = await prisma.services.findUnique({
@@ -114,25 +114,85 @@ export default async function EquipmentLocationPage({ params }: PageProps) {
     select: { id: true }
   });
 
-  const location = await prisma.locations.findUnique({
-    where: { slug: params.location },
+  const location = await prisma.locations.findFirst({
+    where: {
+      OR: [
+        { slug: params.location },
+        { name: params.location.replace(/-/g, ' ') },
+      ],
+      isActive: true,
+    },
     select: { id: true }
   });
 
   let dbVehicles: any[] = [];
   if (service && location) {
+    const [activeCategories, activeSubServices] = await Promise.all([
+      prisma.chauffeur_vehicle_categories.findMany({
+        where: {
+          serviceId: service.id,
+          isActive: true,
+        },
+        select: { id: true },
+      }),
+      prisma.services.findMany({
+        where: {
+          parentId: service.id,
+          isActive: true,
+        },
+        select: { id: true },
+      }),
+    ]);
+
+    const activeCategoryIds = activeCategories.map((cat) => cat.id);
+    const activeSubServiceIds = activeSubServices.map((sub) => sub.id);
+
     const vehiclesData = await prisma.vehicle_models.findMany({
       where: {
         serviceId: service.id,
         isActive: true,
-        vehicle_model_locations: {
-          some: {
-            locationId: location.id,
-            isActive: true
-          }
-        }
+        AND: [
+          {
+            OR: [
+              { brandId: null },
+              { brands: { isActive: true } },
+            ],
+          },
+          {
+            OR: [
+              { vehicleCategoryId: null },
+              { vehicleCategoryId: { in: activeCategoryIds } },
+            ],
+          },
+          {
+            OR: [
+              { subServiceId: null },
+              { subServiceId: { in: activeSubServiceIds } },
+            ],
+          },
+          {
+            OR: [
+              {
+                vehicle_model_locations: {
+                  some: {
+                    locationId: location.id,
+                    isActive: true,
+                  },
+                },
+              },
+              {
+                vehicle_model_locations: {
+                  none: {},
+                },
+              },
+            ],
+          },
+        ],
       },
       include: {
+        chauffeur_vehicle_categories: {
+          select: { id: true, name: true, isActive: true },
+        },
         brands: true,
         vehicle_model_locations: {
           where: {
@@ -143,7 +203,17 @@ export default async function EquipmentLocationPage({ params }: PageProps) {
       orderBy: { displayOrder: 'asc' }
     });
 
-    dbVehicles = vehiclesData.map(v => {
+    const filteredVehicles = vehiclesData.filter((vehicle) => {
+      const specs = parseJsonField<Record<string, unknown>>(vehicle.specs, {});
+      const specCategoryId = typeof specs.categoryId === 'string' ? specs.categoryId : null;
+
+      if (!specCategoryId) return true;
+
+      return activeCategoryIds.includes(specCategoryId)
+        || activeSubServiceIds.includes(specCategoryId);
+    });
+
+    dbVehicles = filteredVehicles.map(v => {
       // Format specs for VehicleGrid (expects Record<string, string>)
       const displaySpecs: Record<string, string> = {};
       if (v.loadCapacity) displaySpecs.capacity = `${v.loadCapacity} Tons`;

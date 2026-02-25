@@ -145,27 +145,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Generate ID
-    const allIds = await prisma.p2p_booking_postings.findMany({
-      where: { id: { startsWith: 'PBP_' } },
-      select: { id: true },
-    });
-    const maxId = allIds.reduce((max: number, item: any) => {
-      const num = parseInt(item.id.replace('PBP_', ''));
-      return num > max ? num : max;
-    }, 0);
-    const newId = `PBP_${maxId + 1}`;
-
-    // Generate posting number
-    const allPostingNumbers = await prisma.p2p_booking_postings.findMany({
-      where: { postingNumber: { startsWith: 'BP-' } },
-      select: { postingNumber: true },
-    });
-    const maxPostingNum = allPostingNumbers.reduce((max: number, item: any) => {
-      const num = parseInt(item.postingNumber.replace('BP-', ''));
-      return num > max ? num : max;
-    }, 0);
-    const newPostingNumber = `BP-${maxPostingNum + 1}`;
+    // Generate IDs efficiently (single-row MAX queries instead of full table scans)
+    const [maxIdResult, maxPostNumResult]: any[] = await Promise.all([
+      prisma.$queryRaw`SELECT MAX(CAST(SUBSTRING(id, 5) AS UNSIGNED)) as maxNum FROM p2p_booking_postings WHERE id LIKE 'PBP_%'`,
+      prisma.$queryRaw`SELECT MAX(CAST(SUBSTRING(postingNumber, 4) AS UNSIGNED)) as maxNum FROM p2p_booking_postings WHERE postingNumber LIKE 'BP-%'`,
+    ]);
+    const newId = `PBP_${(Number(maxIdResult?.[0]?.maxNum) || 0) + 1}`;
+    const newPostingNumber = `BP-${(Number(maxPostNumResult?.[0]?.maxNum) || 0) + 1}`;
 
     // Calculate expiresAt as end of trip date
     const expDate = new Date(tripDate);

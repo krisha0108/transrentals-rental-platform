@@ -7,6 +7,7 @@ import { sendNotificationToCustomer } from '@/lib/services/push-notification-ser
 import crypto from 'crypto';
 
 import logger from '@/lib/security/logger';
+import { sendVendorDirectNotification } from '@/lib/utils/vendor-notification-sender';
 export const dynamic = 'force-dynamic';
 
 // Generate a 6-digit OTP
@@ -43,8 +44,10 @@ export async function GET(
       return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
     }
 
-    // Verify that this vendor is the accepted vendor for this booking
-    if (booking.acceptedVendorId !== vendorAuth.vendorId) {
+    // Verify that this vendor is authorized for this booking
+    // acceptedVendorId is set after explicit accept; assignedVendorId is set in quote flow (PAYMENT_VERIFIED)
+    const isAuthorized = booking.acceptedVendorId === vendorAuth.vendorId || booking.assignedVendorId === vendorAuth.vendorId;
+    if (!isAuthorized) {
       return NextResponse.json(
         { error: 'You are not authorized to generate OTP for this booking' },
         { status: 403 }
@@ -122,8 +125,8 @@ export async function GET(
       });
     }
 
-    // Check if booking is ready for trip start (vendor approved)
-    const allowedStatuses = ['ACCEPTED', 'CONFIRMED', 'READY_FOR_PICKUP'];
+    // Check if booking is ready for trip start (vendor approved or payment verified)
+    const allowedStatuses = ['PAYMENT_VERIFIED', 'ACCEPTED', 'CONFIRMED', 'READY_FOR_PICKUP'];
     if (!allowedStatuses.includes(booking.status)) {
       return NextResponse.json(
         { error: 'Booking is not ready to start or end trip. Current status: ' + booking.status },
@@ -139,6 +142,8 @@ export async function GET(
         tripStartOtpExpiry: otpExpiry,
         tripStartOtpSentAt: new Date(),
         status: 'READY_FOR_PICKUP',
+        // Set acceptedVendorId for quote-flow bookings where only assignedVendorId was set
+        acceptedVendorId: booking.acceptedVendorId ?? vendorAuth.vendorId,
       },
     });
 
@@ -257,8 +262,9 @@ export async function POST(
       return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
     }
 
-    // Verify that this vendor is the accepted vendor for this booking
-    if (booking.acceptedVendorId !== vendorAuth.vendorId) {
+    // Verify that this vendor is authorized for this booking
+    const isAuthorizedToVerify = booking.acceptedVendorId === vendorAuth.vendorId || booking.assignedVendorId === vendorAuth.vendorId;
+    if (!isAuthorizedToVerify) {
       return NextResponse.json(
         { error: 'You are not authorized to verify OTP for this booking' },
         { status: 403 }
@@ -344,6 +350,19 @@ export async function POST(
         logger.error('Failed to send trip started notification', notificationError);
       }
 
+      // Notify vendor that bike trip has started
+      if (booking.acceptedVendorId) {
+        sendVendorDirectNotification({
+          vendorId: booking.acceptedVendorId,
+          title: '🏍️ Trip Started!',
+          body: `Booking #${updatedBooking.bookingNumber} bike rental trip has been started successfully.`,
+          type: 'trip_started',
+          serviceType: 'bike-on-rent',
+          bookingId: bookingId,
+          bookingNumber: updatedBooking.bookingNumber || '',
+        }).catch((err: any) => console.error('[BikeStart] Vendor notify failed:', err));
+      }
+
       return NextResponse.json({
         success: true,
         message: 'OTP verified successfully. Trip started!',
@@ -425,6 +444,19 @@ export async function POST(
         // Log error but don't fail the trip completion
         console.error('❌ Trip completion notification error:', notificationError);
         logger.error('Failed to send trip completion notification', notificationError);
+      }
+
+      // Notify vendor that bike trip has been completed
+      if (booking.acceptedVendorId) {
+        sendVendorDirectNotification({
+          vendorId: booking.acceptedVendorId,
+          title: '✅ Trip Completed!',
+          body: `Booking #${updatedBooking.bookingNumber} bike rental trip has been completed successfully.`,
+          type: 'trip_completed',
+          serviceType: 'bike-on-rent',
+          bookingId: bookingId,
+          bookingNumber: updatedBooking.bookingNumber || '',
+        }).catch((err: any) => console.error('[BikeComplete] Vendor notify failed:', err));
       }
 
       return NextResponse.json({

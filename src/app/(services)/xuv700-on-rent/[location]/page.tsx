@@ -1,11 +1,16 @@
 import React from 'react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { permanentRedirect } from 'next/navigation';
 import { capitalize } from '@/lib/utils';
 import { getCityBySlug } from '@/data/indian-cities';
 import { getServiceLocations } from '@/lib/services/service-locations';;
+import { resolveServicePage } from '@/lib/services/service-availability';
+import { StateServicePage } from '@/components/location/StateServicePage';
 import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
 import { FAQSection } from '@/components/services/FAQSection';
+
+import { formatPriceHighlight } from '@/lib/utils';
 
 interface PageProps { params: { location: string }; }
 
@@ -24,14 +29,17 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const city = getCityBySlug(params.location);
   const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
   return {
-    title: `XUV700 on Rent in ${locationName} | @₹2999/Day | TransRentals`,
-    description: `Rent Mahindra XUV700 without driver in ${locationName}. India's safest SUV with ADAS.`,
+    title: formatPriceHighlight(`XUV700 on Rent in ${locationName} | @₹2999/Day | TransRentals`),
+    description: formatPriceHighlight(`Rent Mahindra XUV700 without driver in ${locationName}. India's safest SUV with ADAS.`),
     alternates: { canonical: `https://transrentals.in/xuv700-on-rent/${params.location}` },
   };
 }
 
-export default function XUV700LocationPage({ params }: PageProps) {
-  const city = getCityBySlug(params.location);
+export default async function XUV700LocationPage({ params }: PageProps) {
+  const pageContext = await resolveServicePage('xuv700-on-rent', params.location);
+  if (pageContext.type === 'redirect') permanentRedirect(pageContext.to);
+  if (pageContext.type === 'state') return <StateServicePage state={pageContext.state} activeCities={pageContext.activeCities} serviceSlug="xuv700-on-rent" serviceName="XUV700 on Rent" />;
+  const city = pageContext.city;
   const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
 
   return (
@@ -92,7 +100,7 @@ export default function XUV700LocationPage({ params }: PageProps) {
                 <h3 className="text-lg font-bold mb-1">{v.name}</h3>
                 <p className="text-sm text-gray-500 mb-3">{v.seats} Seater</p>
                 <p className="text-2xl font-bold text-red-600 mb-4">₹{v.price}<span className="text-sm text-gray-500">/day</span></p>
-                <button className="w-full bg-red-600 text-white py-2 rounded-lg">Book Now</button>
+                <p className="text-sm text-emerald-600 font-medium text-center mt-2">Use the chat below to book</p>
               </div>
             ))}
           </div>

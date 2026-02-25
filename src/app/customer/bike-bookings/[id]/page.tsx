@@ -34,7 +34,7 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useCustomerAuth } from '@/hooks/useCustomer';
 import { useSocket } from '@/hooks/useSocket';
-import { PaymentConfirmation } from '@/components/bike/PaymentConfirmation';
+import { BookingPayment } from '@/components/payment/BookingPayment';
 import { BikeBookingChat } from '@/components/bike/BikeBookingChat';
 
 type BikeBookingStatus =
@@ -460,7 +460,7 @@ export default function BikeBookingDetailPage() {
   const isActive = ['PENDING_PAYMENT', 'PAYMENT_SUBMITTED', 'PAYMENT_VERIFIED', 'PENDING_VENDOR', 'BROADCASTED', 'ACCEPTED', 'READY_FOR_PICKUP', 'IN_PROGRESS'].includes(
     booking.status
   );
-  const showPaymentConfirmation = booking.status === 'PENDING_PAYMENT' || booking.status === 'PENDING';
+  const showPaymentConfirmation = booking.status === 'PENDING_PAYMENT' && !!booking.advanceAmount;
 
   return (
     <div className="min-h-screen bg-gray-50 pt-16 md:pt-20">
@@ -541,17 +541,34 @@ export default function BikeBookingDetailPage() {
           </div>
         </div>
 
+        {/* Waiting for Quote Section */}
+        {booking.status === 'PENDING' && (
+          <div className="bg-amber-50 rounded-2xl p-6 border border-amber-200">
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 bg-amber-100 rounded-xl flex items-center justify-center flex-shrink-0 animate-pulse">
+                <Timer className="w-6 h-6 text-amber-600" />
+              </div>
+              <div>
+                <h3 className="font-bold text-amber-800 mb-1">Booking Request Submitted</h3>
+                <p className="text-sm text-amber-700 mb-2">
+                  We are reviewing your request and finding the best vendor for you. You will receive a quote shortly.
+                </p>
+                <p className="text-xs text-amber-600">
+                  Once a vendor quotes a price, you will see the payment option here to confirm your booking.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Payment Confirmation Section */}
         {showPaymentConfirmation && (
-          <PaymentConfirmation
+          <BookingPayment
             bookingId={booking.id}
+            bookingType="bike"
+            amount={booking.advanceAmount}
             bookingNumber={booking.bookingNumber}
-            amount={booking.advanceAmount + booking.platformFee}
-            serviceSlug="bike-rental"
-            onPaymentConfirmed={() => {
-              // Refresh booking to get updated status
-              window.location.reload();
-            }}
+            onSuccess={() => window.location.reload()}
           />
         )}
 

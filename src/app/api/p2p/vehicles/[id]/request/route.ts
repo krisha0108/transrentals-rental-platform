@@ -76,27 +76,13 @@ export async function POST(
 
     const { notes, loadType, goodsType, estimatedWeight, pickupAddress, dropAddress } = body;
 
-    // Generate unique ID with PRQ_ prefix
-    const allIds = await prisma.p2p_requests.findMany({
-      where: { id: { startsWith: 'PRQ_' } },
-      select: { id: true },
-    });
-    const maxId = allIds.reduce((max, item) => {
-      const num = parseInt(item.id.replace('PRQ_', ''));
-      return num > max ? num : max;
-    }, 0);
-    const newId = `PRQ_${maxId + 1}`;
-
-    // Generate unique request number with RQ- prefix
-    const allRequestNumbers = await prisma.p2p_requests.findMany({
-      where: { requestNumber: { startsWith: 'RQ-' } },
-      select: { requestNumber: true },
-    });
-    const maxReqNum = allRequestNumbers.reduce((max, item) => {
-      const num = parseInt(item.requestNumber.replace('RQ-', ''));
-      return num > max ? num : max;
-    }, 1000);
-    const newRequestNumber = `RQ-${maxReqNum + 1}`;
+    // Generate IDs efficiently (single-row MAX queries instead of full table scans)
+    const [maxIdResult, maxReqNumResult]: any[] = await Promise.all([
+      prisma.$queryRaw`SELECT MAX(CAST(SUBSTRING(id, 5) AS UNSIGNED)) as maxNum FROM p2p_requests WHERE id LIKE 'PRQ_%'`,
+      prisma.$queryRaw`SELECT MAX(CAST(SUBSTRING(requestNumber, 4) AS UNSIGNED)) as maxNum FROM p2p_requests WHERE requestNumber LIKE 'RQ-%'`,
+    ]);
+    const newId = `PRQ_${(Number(maxIdResult?.[0]?.maxNum) || 0) + 1}`;
+    const newRequestNumber = `RQ-${(Number(maxReqNumResult?.[0]?.maxNum) || 1000) + 1}`;
 
     // Create the request and optionally update posting status in a transaction
     const [newRequest] = await prisma.$transaction([

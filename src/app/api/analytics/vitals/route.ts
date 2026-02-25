@@ -254,7 +254,7 @@ async function updatePagePerformance(prisma: any, pagePath: string, vitals: {
           clsNeedsWork,
           clsPoor,
           overallStatus,
-          issues: issues.length > 0 ? issues : null,
+          issues: issues.length > 0 ? JSON.stringify(issues) : null,
           lastMeasured: new Date(),
         },
       });
@@ -292,7 +292,7 @@ async function updatePagePerformance(prisma: any, pagePath: string, vitals: {
           clsNeedsWork: vitals.clsRating === 'NEEDS_IMPROVEMENT' ? 1 : 0,
           clsPoor: vitals.clsRating === 'POOR' ? 1 : 0,
           overallStatus,
-          issues: issues.length > 0 ? issues : null,
+          issues: issues.length > 0 ? JSON.stringify(issues) : null,
           lastMeasured: new Date(),
         },
       });

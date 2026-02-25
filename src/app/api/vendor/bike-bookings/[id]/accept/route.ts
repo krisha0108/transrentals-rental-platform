@@ -65,9 +65,19 @@ export async function POST(
       );
     }
 
-    // For broadcasted/verified requests, check if vendor was notified or has approved location
+    // For PAYMENT_VERIFIED (quote-based flow): only the assigned vendor can accept
+    if (booking.status === 'PAYMENT_VERIFIED') {
+      if (booking.assignedVendorId !== vendor.id) {
+        return NextResponse.json(
+          { error: 'You are not authorized to accept this booking' },
+          { status: 403 }
+        );
+      }
+    }
+
+    // For broadcasted requests, check if vendor was notified or has approved location
     const notifiedVendors = (booking.notifiedVendorIds as string[]) || [];
-    if (booking.status === 'BROADCASTED' || booking.status === 'PAYMENT_VERIFIED') {
+    if (booking.status === 'BROADCASTED') {
       // Check if vendor has approved location or was in notified list
       const isNotified = notifiedVendors.includes(vendor.id);
       const hasApprovedLocation = approvedLocationIds.includes(booking.locationId);

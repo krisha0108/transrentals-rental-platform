@@ -2,7 +2,7 @@
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const dev = true; // 🌐 PRODUCTION MODE - App will call https://transrentals.in/api
+const dev = false; // 🚀 PRODUCTION MODE - App will call https://transrentals.in/api
 
 // For Android Emulator: Use 10.0.2.2 (this is the host machine's localhost)
 // For Physical Device: Use your computer's IP address
@@ -101,6 +101,6 @@ console.log('   API URL:', API_BASE_URL);
 console.log('   Images:', IMAGE_BASE_URL);
 if (dev) {
   console.log('   ⚠️  Make sure backend is running: npm run dev');
-  console.log('   ⚠️  Make sure ADB reverse: adb reverse tcp:3003 tcp:3003');
+  console.log('   ⚠️  Make sure ADB reverse: adb reverse tcp:3000 tcp:3000');
 }
 console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');

@@ -146,7 +146,24 @@ export default function AboutUsScreen() {
 
             <View style={styles.divider} />
 
-            <TouchableOpacity 
+            <View style={styles.divider} />
+
+            <TouchableOpacity
+              style={styles.linkItem}
+              onPress={() => Linking.openURL('https://transrentals.in/refund-policy/')}>
+              <View style={styles.linkIconContainer}>
+                <Icon name="refresh-circle" size={18} color="#10B981" />
+              </View>
+              <View style={styles.linkTextContainer}>
+                <Text style={styles.linkText}>Refund & Cancellation Policy</Text>
+                <Text style={styles.linkDescription}>Our refund and cancellation terms</Text>
+              </View>
+              <Icon name="chevron-forward" size={16} color="#9CA3AF" />
+            </TouchableOpacity>
+
+            <View style={styles.divider} />
+
+            <TouchableOpacity
               style={styles.linkItem}
               onPress={() => Linking.openURL('https://transrentals.in/')}>
               <View style={styles.linkIconContainer}>
@@ -161,19 +178,27 @@ export default function AboutUsScreen() {
           </View>
 
           {/* Contact Information */}
-          {/* <View style={styles.contactCard}>
+          <View style={styles.contactCard}>
             <Text style={styles.contactTitle}>Get In Touch</Text>
             <View style={styles.contactItems}>
+              <TouchableOpacity
+                style={styles.contactItem}
+                onPress={() => Linking.openURL('mailto:book@transrentals.in')}>
+                <Icon name="mail" size={16} color="#10B981" />
+                <Text style={[styles.contactText, {color: '#10B981'}]}>book@transrentals.in</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.contactItem}
+                onPress={() => Linking.openURL('tel:+919737965551')}>
+                <Icon name="call" size={16} color="#10B981" />
+                <Text style={[styles.contactText, {color: '#10B981'}]}>+91 9737965551</Text>
+              </TouchableOpacity>
               <View style={styles.contactItem}>
-                <Icon name="mail" size={16} color="#6B7280" />
-                <Text style={styles.contactText}>support@transrentals.in</Text>
-              </View>
-              <View style={styles.contactItem}>
-                <Icon name="call" size={16} color="#6B7280" />
-                <Text style={styles.contactText}>+91 XXXXXXXXXX</Text>
+                <Icon name="location" size={16} color="#6B7280" />
+                <Text style={styles.contactText}>215, Galaxy Business, 2nd Floor,{'\n'}SP Ring Road, Ahmedabad, Gujarat - 382350</Text>
               </View>
             </View>
-          </View> */}
+          </View>
 
           {/* App Version */}
           <View style={styles.versionContainer}>

@@ -1,8 +1,10 @@
-import { notFound } from 'next/navigation';
+import { permanentRedirect } from 'next/navigation';
 import { LocationHighlights } from '@/components/location/LocationHighlights';
 import { cities } from '@/data/cities';
 import type { Metadata } from 'next';
 import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
+import { resolveServicePage } from '@/lib/services/service-availability';
+import { StateServicePage } from '@/components/location/StateServicePage';
 
 interface Props {
   params: { location: string };
@@ -31,14 +33,15 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-export default function TrailerLocationPage({ params }: Props) {
+export default async function TrailerLocationPage({ params }: Props) {
+  const pageContext = await resolveServicePage('trailer-on-rent', params.location);
+  if (pageContext.type === 'redirect') permanentRedirect(pageContext.to);
+  if (pageContext.type === 'state') return <StateServicePage state={pageContext.state} activeCities={pageContext.activeCities} serviceSlug="trailer-on-rent" serviceName="Trailer on Rent" />;
+  const city = pageContext.city;
+
   const location = cities.find(
     (city) => city.slug === params.location.toLowerCase()
-  );
-
-  if (!location) {
-    notFound();
-  }
+  )!;
 
   const highlights = [
     {

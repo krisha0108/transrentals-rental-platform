@@ -1,11 +1,12 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
 import { getCitiesByPriority } from '@/data/indian-cities';
-
 import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
+import { formatPriceHighlight } from '@/lib/utils';
+
 export const metadata: Metadata = {
-  title: 'Wedding Car Rental | Shadi Car on Rent @₹2999/Day | Baraat Car Hire',
-  description: 'Book wedding cars for your special day. Luxury sedans, vintage cars, decorated cars. Baraat car rental, bride/groom car hire. Pan-India service.',
+  title: formatPriceHighlight('Wedding Car Rental | Shadi Car on Rent @₹2999/Day | Baraat Car Hire'),
+  description: formatPriceHighlight('Book wedding cars for your special day. Luxury sedans, vintage cars, decorated cars. Baraat car rental, bride/groom car hire. Pan-India service.'),
   keywords: [
     'wedding car rental',
     'shadi car on rent',
@@ -20,8 +21,8 @@ export const metadata: Metadata = {
     'decorated car for wedding',
   ],
   openGraph: {
-    title: 'Wedding Car Rental India | Shadi Car @₹2999/Day | TransRentals',
-    description: 'Premium wedding cars for your special day. Baraat, bride & groom cars available. Book decorated cars across India.',
+    title: formatPriceHighlight('Wedding Car Rental India | Shadi Car @₹2999/Day | TransRentals'),
+    description: formatPriceHighlight('Premium wedding cars for your special day. Baraat, bride & groom cars available. Book decorated cars across India.'),
   },
 };
 
@@ -83,7 +84,7 @@ export default function WeddingCarRentalPage() {
                   {city.name}
                 </h3>
                 <p className="text-sm text-gray-600">{city.state}</p>
-                <p className="text-sm text-rose-700 mt-2">From @₹2999 →</p>
+                <p className="text-sm text-rose-700 mt-2">{formatPriceHighlight('From @₹2999')} →</p>
               </Link>
             ))}
           </div>

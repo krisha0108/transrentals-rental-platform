@@ -17,6 +17,7 @@ export async function GET(
     const { searchParams } = new URL(request.url);
     const limit = parseInt(searchParams.get('limit') || '20');
     const subServiceSlug = searchParams.get('sub_service') || '';
+    const locationSlug = searchParams.get('location') || '';
 
     // Find the service by slug
     const service = await prisma.services.findUnique({
@@ -41,7 +42,25 @@ export async function GET(
     const where: any = {
       serviceId: service.id,
       isActive: true,
+      brands: {
+        isActive: true,
+      },
     };
+
+    where.AND = [
+      {
+        OR: [
+          { vehicleCategoryId: null },
+          { chauffeur_vehicle_categories: { isActive: true } },
+        ],
+      },
+      {
+        OR: [
+          { subServiceId: null },
+          { services_vehicle_models_subServiceIdToservices: { isActive: true } },
+        ],
+      },
+    ];
 
     if (subServiceSlug) {
       const sub_service = await prisma.services.findUnique({
@@ -49,6 +68,22 @@ export async function GET(
       });
       if (sub_service) {
         where.subServiceId = sub_service.id;
+      }
+    }
+
+    // Handle location-based filtering
+    if (locationSlug) {
+      const city = await prisma.locations.findUnique({
+        where: { slug: locationSlug },
+      });
+
+      if (city) {
+        where.vehicle_model_locations = {
+          some: {
+            locationId: city.id,
+            isActive: true,
+          },
+        };
       }
     }
 

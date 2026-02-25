@@ -47,7 +47,12 @@ async function getFleetData() {
       }),
       // Admin-added vehicles (VehicleModel) - fetch ALL active vehicles
       prisma.vehicle_models.findMany({
-        where: { isActive: true },
+        where: {
+          isActive: true,
+          brands: {
+            isActive: true,
+          },
+        },
         include: {
           brands: { select: { id: true, name: true, slug: true } },
           services_vehicle_models_serviceIdToservices: { select: { id: true, name: true, slug: true } },

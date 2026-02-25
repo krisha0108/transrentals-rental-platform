@@ -1,11 +1,14 @@
 import React from 'react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { permanentRedirect } from 'next/navigation';
 import { capitalize } from '@/lib/utils';
 import { getCityBySlug } from '@/data/indian-cities';
 import { getServiceLocations } from '@/lib/services/service-locations';;
 import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
 import { FAQSection } from '@/components/services/FAQSection';
+import { resolveServicePage } from '@/lib/services/service-availability';
+import { StateServicePage } from '@/components/location/StateServicePage';
 
 interface PageProps {
   params: {
@@ -58,8 +61,11 @@ const fortunerVariants = [
   { name: 'Toyota Fortuner Legender', price: 7499, fuel: 'Diesel', seats: 7 },
 ];
 
-export default function FortunerOnRentLocationPage({ params }: PageProps) {
-  const city = getCityBySlug(params.location);
+export default async function FortunerOnRentLocationPage({ params }: PageProps) {
+  const pageContext = await resolveServicePage('fortuner-on-rent', params.location);
+  if (pageContext.type === 'redirect') permanentRedirect(pageContext.to);
+  if (pageContext.type === 'state') return <StateServicePage state={pageContext.state} activeCities={pageContext.activeCities} serviceSlug="fortuner-on-rent" serviceName="Fortuner on Rent" />;
+  const city = pageContext.city;
   const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
 
   return (
@@ -131,9 +137,7 @@ export default function FortunerOnRentLocationPage({ params }: PageProps) {
                   </div>
                 </div>
                 <p className="text-sm text-gray-600 mb-4">⛽ {variant.fuel} • 👥 {variant.seats} Seats • 🚙 Premium SUV</p>
-                <button className="w-full bg-yellow-500 text-black py-2 rounded-lg font-semibold hover:bg-yellow-400 transition">
-                  Book Now
-                </button>
+                <p className="text-sm text-emerald-600 font-medium text-center mt-2">Use the chat below to book</p>
               </div>
             ))}
           </div>

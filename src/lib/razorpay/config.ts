@@ -14,10 +14,6 @@ export const RAZORPAY_CONFIG = {
   currency: 'INR',
   name: 'TransRentals',
   description: 'Bike Rental Payment',
-  image: '/logo.png', // Company logo
-  theme: {
-    color: '#3B82F6', // Blue theme color
-  },
   prefill: {
     name: '',
     email: '',

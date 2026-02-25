@@ -24,7 +24,7 @@ import {
   Send,
   X,
 } from 'lucide-react';
-import { PaymentConfirmation } from '@/components/bike/PaymentConfirmation';
+import { BookingPayment } from '@/components/payment/BookingPayment';
 
 interface Customer {
   id: string;
@@ -463,15 +463,13 @@ export default function CustomerPackersBookingDetailPage() {
 
         {/* Payment Required */}
         {booking.status === 'PENDING_PAYMENT' && booking.advanceAmount && (
-          <PaymentConfirmation
+          <BookingPayment
             bookingId={booking.id}
-            bookingNumber={booking.bookingNumber}
+            bookingType="packers"
             amount={booking.advanceAmount}
+            bookingNumber={booking.bookingNumber}
             serviceSlug="packers-movers"
-            onPaymentConfirmed={() => {
-              // Refresh booking to get updated status
-              window.location.reload();
-            }}
+            onSuccess={() => window.location.reload()}
           />
         )}
 

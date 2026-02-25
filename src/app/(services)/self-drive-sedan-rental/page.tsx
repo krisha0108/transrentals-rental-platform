@@ -3,10 +3,11 @@ import Link from 'next/link';
 import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
 import { FAQSection } from '@/components/services/FAQSection';
 import { ALL_CITIES } from '@/data/indian-cities';
+import { formatPriceHighlight } from '@/lib/utils';
 
 export const metadata: Metadata = {
-  title: 'Self Drive Sedan Rental India | Rent Sedan Without Driver @₹1299/Day | TransRentals',
-  description: 'Rent sedan without driver across India. Honda City, Hyundai Verna, Maruti Ciaz, Skoda Slavia available. Self-drive sedan rental for business & leisure.',
+  title: formatPriceHighlight('Self Drive Sedan Rental India | Rent Sedan Without Driver @₹1299/Day | TransRentals'),
+  description: formatPriceHighlight('Rent sedan without driver across India. Honda City, Hyundai Verna, Maruti Ciaz, Skoda Slavia available. Self-drive sedan rental for business & leisure.'),
   keywords: [
     'self drive sedan rental',
     'sedan on rent without driver',
@@ -16,8 +17,8 @@ export const metadata: Metadata = {
     'sedan rental for outstation',
   ],
   openGraph: {
-    title: 'Self Drive Sedan Rental India @₹1299/Day | TransRentals',
-    description: 'Rent sedans without driver. City, Verna, Ciaz available.',
+    title: formatPriceHighlight('Self Drive Sedan Rental India @₹1299/Day | TransRentals'),
+    description: formatPriceHighlight('Rent sedans without driver. City, Verna, Ciaz available.'),
     type: 'website',
     url: 'https://transrentals.in/self-drive-sedan-rental',
   },

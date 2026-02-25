@@ -3,8 +3,10 @@ import { prisma } from '@/lib/db/prisma';
 import { transformPrismaResponse } from '@/lib/utils/api-transform';
 import { prepareNotificationData } from '@/lib/utils/notification-helper';
 import { sendFCMNotification } from '@/lib/utils/fcm-helper';
+import { sendVendorDirectNotification, sendQuoteRequestNotificationToVendors } from '@/lib/utils/vendor-notification-sender';
 
 import logger from '@/lib/security/logger';
+import { checkFleetAvailability, blockDatesForBooking } from '@/lib/utils/fleet-availability';
 export const dynamic = 'force-dynamic';
 
 // POST - Verify or reject a payment
@@ -56,6 +58,20 @@ export async function POST(request: NextRequest) {
           },
         });
 
+        // Block fleet vehicle dates after payment verified
+        if (bikeBooking.acceptedVehicleId && bikeBooking.pickupDate) {
+          try {
+            const startDate = new Date(bikeBooking.pickupDate);
+            const endDate = bikeBooking.dropDate ? new Date(bikeBooking.dropDate) : startDate;
+            const availability = await checkFleetAvailability(bikeBooking.acceptedVehicleId, startDate, endDate);
+            if (availability.available) {
+              await blockDatesForBooking(prisma, bikeBooking.acceptedVehicleId, startDate, endDate, bookingId, 'bike');
+            }
+          } catch (err) {
+            logger.error('Failed to block dates for bike booking', err);
+          }
+        }
+
         // ⭐ Send notification to customer - Payment Approved
         try {
           const notifTitle = '✅ Payment Approved!';
@@ -87,6 +103,19 @@ export async function POST(request: NextRequest) {
           });
         } catch (notifError) {
           logger.error('Failed to create/send payment notification', notifError);
+        }
+
+        // ⭐ Notify the specific vendor — payment verified, booking confirmed
+        if (hasAcceptedVendor && vendorId) {
+          sendVendorDirectNotification({
+            vendorId,
+            title: '💰 Payment Verified! Booking Confirmed',
+            body: `Customer's advance payment has been verified for bike booking #${bikeBooking.bookingNumber}. Booking is now confirmed.`,
+            type: 'payment_received',
+            serviceType: 'bike',
+            bookingId,
+            bookingNumber: bikeBooking.bookingNumber,
+          }).catch((err: any) => console.error('[PaymentVerify] Bike vendor notify failed:', err));
         }
 
         return NextResponse.json({
@@ -188,6 +217,20 @@ export async function POST(request: NextRequest) {
           },
         });
 
+        // Block fleet vehicle dates after payment verified
+        if (carBooking.assignedVehicleId && carBooking.pickupDate) {
+          try {
+            const startDate = new Date(carBooking.pickupDate);
+            const endDate = carBooking.dropDate ? new Date(carBooking.dropDate) : startDate;
+            const availability = await checkFleetAvailability(carBooking.assignedVehicleId, startDate, endDate);
+            if (availability.available) {
+              await blockDatesForBooking(prisma, carBooking.assignedVehicleId, startDate, endDate, bookingId, 'car');
+            }
+          } catch (err) {
+            logger.error('Failed to block dates for car booking', err);
+          }
+        }
+
         // ⭐ Send notification - Payment Approved
         try {
           await prisma.notifications.create({
@@ -203,6 +246,19 @@ export async function POST(request: NextRequest) {
           });
         } catch (notifError) {
           logger.error('Failed to create notification', notifError);
+        }
+
+        // ⭐ Notify the specific vendor — payment verified, booking confirmed
+        if (hasAcceptedVendor && vendorId) {
+          sendVendorDirectNotification({
+            vendorId,
+            title: '💰 Payment Verified! Booking Confirmed',
+            body: `Customer's advance payment has been verified for self-drive booking #${carBooking.bookingNumber}. Booking is now confirmed.`,
+            type: 'payment_received',
+            serviceType: 'self-drive',
+            bookingId,
+            bookingNumber: carBooking.bookingNumber,
+          }).catch((err: any) => console.error('[PaymentVerify] Self-drive vendor notify failed:', err));
         }
 
         return NextResponse.json({
@@ -279,6 +335,20 @@ export async function POST(request: NextRequest) {
           },
         });
 
+        // Block fleet vehicle dates after payment verified
+        if (busBooking.assignedVehicleId && busBooking.pickupDate) {
+          try {
+            const startDate = new Date(busBooking.pickupDate);
+            const endDate = busBooking.returnDate ? new Date(busBooking.returnDate) : startDate;
+            const availability = await checkFleetAvailability(busBooking.assignedVehicleId, startDate, endDate);
+            if (availability.available) {
+              await blockDatesForBooking(prisma, busBooking.assignedVehicleId, startDate, endDate, bookingId, 'bus');
+            }
+          } catch (err) {
+            logger.error('Failed to block dates for bus booking', err);
+          }
+        }
+
         // ⭐ Notification
         try {
           await prisma.notifications.create({
@@ -293,6 +363,17 @@ export async function POST(request: NextRequest) {
             }),
           });
         } catch (e) { logger.error('Notification error', e); }
+
+        // Notify the bus vendor
+        sendVendorDirectNotification({
+          vendorId: busBooking.vendorId,
+          title: '💰 Advance Payment Received!',
+          body: `Customer has paid the advance for booking #${busBooking.bookingNumber}. Trip is confirmed.`,
+          type: 'payment_received',
+          serviceType: 'bus',
+          bookingId,
+          bookingNumber: busBooking.bookingNumber,
+        }).catch((err: any) => console.error('[PaymentVerify] Bus vendor notify failed:', err));
 
         return NextResponse.json({
           success: true,
@@ -362,6 +443,20 @@ export async function POST(request: NextRequest) {
           },
         });
 
+        // Block fleet vehicle dates after payment verified
+        if (truckBooking.assignedVehicleId && truckBooking.pickupDate) {
+          try {
+            const startDate = new Date(truckBooking.pickupDate);
+            const endDate = startDate; // Truck bookings are single-day
+            const availability = await checkFleetAvailability(truckBooking.assignedVehicleId, startDate, endDate);
+            if (availability.available) {
+              await blockDatesForBooking(prisma, truckBooking.assignedVehicleId, startDate, endDate, bookingId, 'truck');
+            }
+          } catch (err) {
+            logger.error('Failed to block dates for truck booking', err);
+          }
+        }
+
         // ⭐ Send notification - Payment Approved
         try {
           await prisma.notifications.create({
@@ -378,6 +473,17 @@ export async function POST(request: NextRequest) {
         } catch (notifError) {
           logger.error('Failed to create notification', notifError);
         }
+
+        // Notify the truck vendor
+        sendVendorDirectNotification({
+          vendorId: truckBooking.vendorId,
+          title: '💰 Advance Payment Received!',
+          body: `Customer has paid the advance for booking #${truckBooking.bookingNumber}. Trip is confirmed.`,
+          type: 'payment_received',
+          serviceType: 'truck',
+          bookingId,
+          bookingNumber: truckBooking.bookingNumber,
+        }).catch((err: any) => console.error('[PaymentVerify] Truck vendor notify failed:', err));
 
         return NextResponse.json({
           success: true,
@@ -464,6 +570,17 @@ export async function POST(request: NextRequest) {
           logger.error('Failed to create notification', notifError);
         }
 
+        // Notify the equipment vendor
+        sendVendorDirectNotification({
+          vendorId: equipmentBooking.vendorId,
+          title: '💰 Advance Payment Received!',
+          body: `Customer has paid the advance for booking #${equipmentBooking.bookingNumber}. Booking is confirmed.`,
+          type: 'payment_received',
+          serviceType: 'equipment',
+          bookingId,
+          bookingNumber: equipmentBooking.bookingNumber,
+        }).catch((err: any) => console.error('[PaymentVerify] Equipment vendor notify failed:', err));
+
         return NextResponse.json({
           success: true,
           message: 'Equipment booking payment verified successfully.',
@@ -532,6 +649,26 @@ export async function POST(request: NextRequest) {
           },
         });
 
+        // Block fleet vehicle dates after payment verified (lookup via accepted quote)
+        if (packersBooking.acceptedQuoteId && packersBooking.scheduledDate) {
+          try {
+            const quote = await prisma.packers_quotes.findUnique({
+              where: { id: packersBooking.acceptedQuoteId },
+              select: { vendorFleetId: true },
+            });
+            if (quote?.vendorFleetId) {
+              const startDate = new Date(packersBooking.scheduledDate);
+              const endDate = startDate; // Single-day service
+              const availability = await checkFleetAvailability(quote.vendorFleetId, startDate, endDate);
+              if (availability.available) {
+                await blockDatesForBooking(prisma, quote.vendorFleetId, startDate, endDate, bookingId, 'packers');
+              }
+            }
+          } catch (err) {
+            logger.error('Failed to block dates for packers booking', err);
+          }
+        }
+
         // ⭐ Send notification - Payment Approved
         try {
           await prisma.notifications.create({
@@ -548,6 +685,17 @@ export async function POST(request: NextRequest) {
         } catch (notifError) {
           logger.error('Failed to create notification', notifError);
         }
+
+        // Notify the packers vendor
+        sendVendorDirectNotification({
+          vendorId: packersBooking.vendorId,
+          title: '💰 Advance Payment Received!',
+          body: `Customer has paid the advance for booking #${packersBooking.bookingNumber}. Booking is confirmed.`,
+          type: 'payment_received',
+          serviceType: 'packers',
+          bookingId,
+          bookingNumber: packersBooking.bookingNumber,
+        }).catch((err: any) => console.error('[PaymentVerify] Packers vendor notify failed:', err));
 
         return NextResponse.json({
           success: true,
@@ -618,6 +766,26 @@ export async function POST(request: NextRequest) {
           },
         });
 
+        // Block fleet vehicle dates after payment verified (lookup via accepted quote)
+        if (luxuryBooking.acceptedQuoteId && luxuryBooking.pickupDate) {
+          try {
+            const quote = await prisma.luxury_quotes.findUnique({
+              where: { id: luxuryBooking.acceptedQuoteId },
+              select: { fleetId: true },
+            });
+            if (quote?.fleetId) {
+              const startDate = new Date(luxuryBooking.pickupDate);
+              const endDate = luxuryBooking.returnDate ? new Date(luxuryBooking.returnDate) : startDate;
+              const availability = await checkFleetAvailability(quote.fleetId, startDate, endDate);
+              if (availability.available) {
+                await blockDatesForBooking(prisma, quote.fleetId, startDate, endDate, bookingId, 'luxury');
+              }
+            }
+          } catch (err) {
+            logger.error('Failed to block dates for luxury booking', err);
+          }
+        }
+
         // ⭐ Send notification - Payment Approved
         try {
           await prisma.notifications.create({
@@ -633,6 +801,19 @@ export async function POST(request: NextRequest) {
           });
         } catch (notifError) {
           logger.error('Failed to create notification', notifError);
+        }
+
+        // Notify the luxury vendor
+        if (luxuryBooking.acceptedVendorId) {
+          sendVendorDirectNotification({
+            vendorId: luxuryBooking.acceptedVendorId,
+            title: '💰 Advance Payment Received!',
+            body: `Customer has paid the advance for luxury booking #${luxuryBooking.bookingNumber}. Booking is confirmed.`,
+            type: 'payment_received',
+            serviceType: 'luxury',
+            bookingId,
+            bookingNumber: luxuryBooking.bookingNumber,
+          }).catch((err: any) => console.error('[PaymentVerify] Luxury vendor notify failed:', err));
         }
 
         return NextResponse.json({
@@ -713,7 +894,7 @@ export async function POST(request: NextRequest) {
         },
       });
 
-      // ⭐ Send notification - Payment Approved
+      // ⭐ Send notification - Payment Approved (to customer)
       try {
         await prisma.notifications.create({
           data: prepareNotificationData({
@@ -728,6 +909,36 @@ export async function POST(request: NextRequest) {
         });
       } catch (notifError) {
         logger.error('Failed to create notification', notifError);
+      }
+
+      // ⭐ Notify vendor(s) about the booking
+      if (isSingleVendor) {
+        // Single vendor — notify only the assigned vendor
+        sendVendorDirectNotification({
+          vendorId: booking.assignedVendorId,
+          title: '🚗 New Car Rental Booking!',
+          body: `A new car rental booking has been assigned to you. Please review and confirm.`,
+          type: 'booking_assigned',
+          serviceType: 'car',
+          bookingId,
+        }).catch((err: any) => console.error('[PaymentVerify] Single vendor notify failed:', err));
+      } else {
+        // Broadcast — notify all vendors in the booking's location
+        const fullBooking = await prisma.chauffeur_bookings.findUnique({
+          where: { id: bookingId },
+          select: { locationId: true, locationName: true, bookingNumber: true },
+        });
+        if (fullBooking?.locationId) {
+          sendQuoteRequestNotificationToVendors({
+            requestId: bookingId,
+            requestNumber: fullBooking.bookingNumber || bookingId,
+            locationId: fullBooking.locationId,
+            locationName: fullBooking.locationName || 'your city',
+            customerName: 'A customer',
+            serviceType: 'car',
+            serviceDisplayName: 'Car Rental',
+          }).catch((err: any) => console.error('[PaymentVerify] Broadcast vendor notify failed:', err));
+        }
       }
 
       return NextResponse.json({

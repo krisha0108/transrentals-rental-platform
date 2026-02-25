@@ -7,6 +7,7 @@ import { sanitizeInput, isValidEmail, isValidPhone, sanitizePhone } from '@/lib/
 import { smartRateLimit, detectDuplicate, getClientIdentifier, hashBookingData } from '@/lib/utils/smart-rate-limit';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/auth-options';
+import { sendQuoteRequestNotificationToVendors } from '@/lib/utils/vendor-notification-sender';
 
 export const dynamic = 'force-dynamic';
 
@@ -268,6 +269,17 @@ export async function POST(request: NextRequest) {
         { status: 500 }
       );
     }
+
+    // Non-blocking vendor notification
+    sendQuoteRequestNotificationToVendors({
+      requestId: quoteRequest.id,
+      requestNumber: quoteRequest.requestNumber,
+      locationId: location?.id || pickupCity,
+      locationName: location?.name || pickupCity,
+      customerName,
+      serviceType: 'bus',
+      serviceDisplayName: 'Bus Rental',
+    }).catch((err: any) => console.error('[BusRoute] Notification Failed:', err));
 
     return NextResponse.json({
       success: true,

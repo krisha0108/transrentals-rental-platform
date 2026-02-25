@@ -216,7 +216,7 @@ export default function VendorDashboard() {
   // Service mappings with multiple slug variations
   const allServices = [
     {
-      slugs: ['bike-rental', 'bike', 'bike-rentals', 'two-wheeler'],
+      slugs: ['bike-rental', 'bike', 'bike-rentals', 'two-wheeler', 'bike-on-rent', 'bike-rental-activa'],
       name: 'Bike Rentals',
       description: 'Requests & Bookings',
       icon: '🏍️',
@@ -236,7 +236,7 @@ export default function VendorDashboard() {
       textColor: 'purple',
     },
     {
-      slugs: ['self-drive-car-rental', 'self-drive', 'car-rental-self-drive', 'self-driven'],
+      slugs: ['self-drive-car-rental', 'self-drive-car-rentals', 'self-drive', 'car-rental-self-drive', 'self-driven'],
       name: 'Self-Drive',
       description: 'Without Driver',
       icon: '🔑',
@@ -276,7 +276,7 @@ export default function VendorDashboard() {
       textColor: 'amber',
     },
     {
-      slugs: ['truck-transport', 'truck', 'goods-transport', 'cargo'],
+      slugs: ['truck-transport', 'truck', 'goods-transport', 'cargo', 'transporter', 'truck-rental'],
       name: 'Truck Transport',
       description: 'Cargo Service',
       icon: '🚚',

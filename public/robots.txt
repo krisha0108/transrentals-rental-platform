@@ -211,15 +211,7 @@ Crawl-delay: 1
 # =============================================================================
 # SITEMAP LOCATIONS
 # =============================================================================
-# Sitemap Index (references all 4 sitemaps - FULLY DYNAMIC, DATABASE-DRIVEN)
-# All URLs are verified working - NO 404 ERRORS
 Sitemap: https://transrentals.in/sitemap.xml
-
-# Individual Sitemaps (auto-updated from database, all URLs validated)
-Sitemap: https://transrentals.in/sitemap/0.xml
-Sitemap: https://transrentals.in/sitemap/1.xml
-Sitemap: https://transrentals.in/sitemap/2.xml
-Sitemap: https://transrentals.in/sitemap/3.xml
 
 # =============================================================================
 # HOST DIRECTIVE
