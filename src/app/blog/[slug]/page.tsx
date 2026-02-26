@@ -113,7 +113,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
       {/* Hero Section */}
       <div className="relative">
         {/* Featured Image Hero */}
-        <div className="relative h-[50vh] md:h-[60vh] lg:h-[70vh] overflow-hidden">
+        <div className="relative h-[85vh] md:h-[65vh] lg:h-[70vh] overflow-hidden">
           {normalizedFeaturedImage && normalizedFeaturedImage !== '/images/blog-default.jpg' ? (
             <Image
               src={normalizedFeaturedImage}
@@ -137,28 +137,31 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
           )}
 
           {/* Gradient overlay */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-black/20" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-black/10" />
 
-          {/* Content overlay */}
-          <div className="absolute inset-0 flex flex-col justify-end">
-                <div className="container relative mx-auto px-4 pb-12 md:pb-16">
-                  <Link
-                    href="/blog"
-                    className="absolute -top-8 left-0 inline-flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-md text-white rounded-full hover:bg-white/20 transition-all font-medium text-sm"
-                  >
-                    <ArrowLeft size={18} />
-                    <span>Back to Reflections</span>
-                  </Link>
-                <div className="max-w-4xl space-y-4">
+          {/* Content overlay — top: back button; bottom: post info */}
+          <div className="absolute inset-0 flex flex-col justify-between">
+
+            {/* Back button — sits just below the fixed header */}
+            <div className="container mx-auto px-4 pt-20 md:pt-28">
+              <Link
+                href="/blog"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-md text-white rounded-full hover:bg-white/20 transition-all font-medium text-sm"
+              >
+                <ArrowLeft size={18} />
+                <span>Back to Reflections</span>
+              </Link>
+            </div>
+
+            {/* Post info — pinned to bottom */}
+            <div className="container mx-auto px-4 pb-8 md:pb-12">
+              <div className="max-w-4xl space-y-3 md:space-y-4">
+
                 {/* Breadcrumbs */}
-                <nav className="flex items-center gap-2 text-sm text-white/70 mb-6 mt-10">
-                  <Link href="/" className="hover:text-white transition-colors">
-                    Home
-                  </Link>
+                <nav className="flex items-center gap-2 text-sm text-white/70">
+                  <Link href="/" className="hover:text-white transition-colors">Home</Link>
                   <ChevronRight size={14} />
-                  <Link href="/blog" className="hover:text-white transition-colors">
-                    Reflections
-                  </Link>
+                  <Link href="/blog" className="hover:text-white transition-colors">Reflections</Link>
                   <ChevronRight size={14} />
                   <Link
                     href={`/blog/category/${post.category.slug}`}
@@ -171,7 +174,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                 {/* Category Badge */}
                 <Link
                   href={`/blog/category/${post.category.slug}`}
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold text-white mb-6 backdrop-blur-sm transition-transform hover:scale-105"
+                  className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-semibold text-white backdrop-blur-sm transition-transform hover:scale-105"
                   style={{ backgroundColor: `${categoryColor}dd` }}
                 >
                   <span>{categoryIcon}</span>
@@ -179,19 +182,19 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                 </Link>
 
                 {/* Title */}
-                <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-6 leading-tight drop-shadow-lg font-[family-name:var(--font-blog-heading)]">
+                <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-white leading-tight drop-shadow-lg font-[family-name:var(--font-blog-heading)]">
                   {post.title}
                 </h1>
 
-                {/* Excerpt */}
-                <p className="text-lg md:text-xl text-white/90 mb-8 max-w-3xl leading-relaxed">
+                {/* Excerpt — hidden on small screens to save space */}
+                <p className="hidden sm:block text-base md:text-xl text-white/90 max-w-3xl leading-relaxed">
                   {post.excerpt}
                 </p>
 
                 {/* Meta Info */}
-                <div className="flex flex-wrap items-center gap-6">
+                <div className="flex flex-wrap items-center gap-4 md:gap-6">
                   <div className="flex items-center gap-3">
-                    <div className="relative w-12 h-12 rounded-full overflow-hidden ring-2 ring-white/30">
+                    <div className="relative w-10 h-10 md:w-12 md:h-12 rounded-full overflow-hidden ring-2 ring-white/30 shrink-0">
                       <Image
                         src={post.author.avatar}
                         alt={post.author.name}
@@ -200,13 +203,13 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                       />
                     </div>
                     <div>
-                      <div className="font-semibold text-white">{post.author.name}</div>
+                      <div className="font-semibold text-white text-sm md:text-base">{post.author.name}</div>
                       <div className="text-xs text-white/70">{post.author.role}</div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-4 text-sm text-white/80">
+                  <div className="flex flex-wrap items-center gap-3 text-xs md:text-sm text-white/80">
                     <span className="flex items-center gap-1.5">
-                      <Calendar size={16} />
+                      <Calendar size={14} />
                       {new Date(post.publishedAt).toLocaleDateString('en-IN', {
                         day: 'numeric',
                         month: 'long',
@@ -214,11 +217,11 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                       })}
                     </span>
                     <span className="flex items-center gap-1.5">
-                      <Clock size={16} />
+                      <Clock size={14} />
                       {post.readTime} min read
                     </span>
                     <span className="flex items-center gap-1.5">
-                      <Eye size={16} />
+                      <Eye size={14} />
                       {post.views.toLocaleString()} views
                     </span>
                   </div>
@@ -231,8 +234,10 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                     />
                   </div>
                 </div>
+
               </div>
             </div>
+
           </div>
         </div>
 
