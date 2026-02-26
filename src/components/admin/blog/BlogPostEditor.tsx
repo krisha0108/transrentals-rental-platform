@@ -1,0 +1,811 @@
+'use client';
+
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { useRouter } from 'next/navigation';
+import dynamic from 'next/dynamic';
+import Link from 'next/link';
+import {
+  ArrowLeft, Save, Eye, ChevronDown, ChevronUp,
+  Upload, X, Image as ImageIcon, Tag, Globe,
+  CheckCircle2, AlertCircle, Clock, Loader2, Search, Plus, FolderPlus,
+} from 'lucide-react';
+
+const BlogEditor = dynamic(() => import('./BlogEditor'), {
+  ssr: false,
+  loading: () => (
+    <div className="border border-gray-300 rounded-xl min-h-[500px] flex items-center justify-center bg-gray-50">
+      <div className="flex items-center gap-2 text-gray-400">
+        <Loader2 className="w-5 h-5 animate-spin" />
+        <span>Loading editor...</span>
+      </div>
+    </div>
+  ),
+});
+
+interface Category {
+  id: string;
+  name: string;
+  slug: string;
+}
+
+interface PostData {
+  id?: string;
+  title: string;
+  slug: string;
+  content: string;
+  excerpt: string;
+  featuredImage: string;
+  status: 'DRAFT' | 'PUBLISHED';
+  categoryId: string;
+  tags: string[];
+  seo: {
+    metaTitle: string;
+    metaDescription: string;
+    metaKeywords: string;
+    ogTitle: string;
+    ogDescription: string;
+    ogImage: string;
+    canonicalUrl: string;
+    noindex: boolean;
+    nofollow: boolean;
+  };
+}
+
+interface BlogPostEditorProps {
+  // API base for save: e.g. /api/admin/services/bike-on-rent/blog or /api/admin/blog
+  apiBase: string;
+  // Back link
+  backHref: string;
+  backLabel: string;
+  // Preview base: /blog
+  previewBase?: string;
+  // Initial data (for edit mode)
+  initialData?: Partial<PostData> & { id?: string };
+  postId?: string;
+}
+
+function slugify(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[^\w\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .trim();
+}
+
+function CharCount({ value, max, warn }: { value: string; max: number; warn: number }) {
+  const len = value.length;
+  const color = len > max ? 'text-red-500' : len >= warn ? 'text-yellow-500' : 'text-gray-400';
+  return (
+    <span className={`text-xs ${color}`}>
+      {len}/{max}
+    </span>
+  );
+}
+
+export default function BlogPostEditor({
+  apiBase,
+  backHref,
+  backLabel,
+  previewBase = '/blog',
+  initialData,
+  postId,
+}: BlogPostEditorProps) {
+  const router = useRouter();
+  const isEdit = !!postId;
+
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [newCatOpen, setNewCatOpen] = useState(false);
+  const [newCatName, setNewCatName] = useState('');
+  const [newCatSaving, setNewCatSaving] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saved' | 'error'>('idle');
+  const [error, setError] = useState('');
+  const [seoOpen, setSeoOpen] = useState(false);
+  const [tagInput, setTagInput] = useState('');
+  const [imgUploading, setImgUploading] = useState(false);
+  const [slugEdited, setSlugEdited] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const emptyPost: PostData = {
+    title: '',
+    slug: '',
+    content: '',
+    excerpt: '',
+    featuredImage: '',
+    status: 'DRAFT',
+    categoryId: '',
+    tags: [],
+    seo: {
+      metaTitle: '',
+      metaDescription: '',
+      metaKeywords: '',
+      ogTitle: '',
+      ogDescription: '',
+      ogImage: '',
+      canonicalUrl: '',
+      noindex: false,
+      nofollow: false,
+    },
+  };
+
+  const [form, setForm] = useState<PostData>(() => {
+    if (!initialData) return emptyPost;
+    const seo = initialData.seo || {};
+    return {
+      title: initialData.title || '',
+      slug: initialData.slug || '',
+      content: initialData.content || '',
+      excerpt: initialData.excerpt || '',
+      featuredImage: initialData.featuredImage || '',
+      status: (initialData.status as any) || 'DRAFT',
+      categoryId: initialData.categoryId || '',
+      tags: initialData.tags || [],
+      seo: {
+        metaTitle: (seo as any).metaTitle || '',
+        metaDescription: (seo as any).metaDescription || '',
+        metaKeywords: (seo as any).metaKeywords || '',
+        ogTitle: (seo as any).ogTitle || '',
+        ogDescription: (seo as any).ogDescription || '',
+        ogImage: (seo as any).ogImage || '',
+        canonicalUrl: (seo as any).canonicalUrl || '',
+        noindex: (seo as any).noindex || false,
+        nofollow: (seo as any).nofollow || false,
+      },
+    };
+  });
+
+  const loadCategories = useCallback(() => {
+    fetch('/api/admin/blog/categories')
+      .then((r) => r.json())
+      .then((d) => setCategories(d.categories || []))
+      .catch(() => {});
+  }, []);
+
+  // Fetch categories on mount
+  useEffect(() => { loadCategories(); }, [loadCategories]);
+
+  const createCategory = useCallback(async () => {
+    const name = newCatName.trim();
+    if (!name) return;
+    setNewCatSaving(true);
+    try {
+      const res = await fetch('/api/admin/blog/categories', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name }),
+      });
+      const data = await res.json();
+      if (res.ok && data.category) {
+        await loadCategories();
+        setForm((f) => ({ ...f, categoryId: data.category.id }));
+        setNewCatName('');
+        setNewCatOpen(false);
+      }
+    } finally {
+      setNewCatSaving(false);
+    }
+  }, [newCatName, loadCategories]);
+
+  // Auto-slug from title
+  useEffect(() => {
+    if (!slugEdited && form.title && !isEdit) {
+      setForm((f) => ({ ...f, slug: slugify(f.title) }));
+    }
+  }, [form.title, slugEdited, isEdit]);
+
+  // Auto-fill SEO from title/excerpt
+  useEffect(() => {
+    setForm((f) => ({
+      ...f,
+      seo: {
+        ...f.seo,
+        metaTitle: f.seo.metaTitle || f.title,
+        metaDescription: f.seo.metaDescription || f.excerpt,
+        ogTitle: f.seo.ogTitle || f.title,
+        ogDescription: f.seo.ogDescription || f.excerpt,
+        ogImage: f.seo.ogImage || f.featuredImage,
+      },
+    }));
+  }, [form.title, form.excerpt, form.featuredImage]);
+
+  const handleSave = useCallback(
+    async (status?: 'DRAFT' | 'PUBLISHED') => {
+      setError('');
+      if (!form.title.trim()) { setError('Title is required'); return; }
+      if (!form.slug.trim()) { setError('Slug is required'); return; }
+
+      setSaving(true);
+      try {
+        const payload = { ...form, status: status || form.status };
+        const url = isEdit ? `${apiBase}/${postId}` : apiBase;
+        const method = isEdit ? 'PATCH' : 'POST';
+
+        const res = await fetch(url, {
+          method,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+
+        const data = await res.json();
+        if (!res.ok) {
+          setError(data.error || 'Failed to save');
+          setSaveStatus('error');
+          return;
+        }
+
+        setSaveStatus('saved');
+        setTimeout(() => setSaveStatus('idle'), 3000);
+
+        if (!isEdit && data.post?.id) {
+          // Redirect to edit page after create
+          router.replace(`${backHref}/${data.post.id}/edit`);
+        }
+      } catch {
+        setError('Network error. Please try again.');
+        setSaveStatus('error');
+      } finally {
+        setSaving(false);
+      }
+    },
+    [form, isEdit, apiBase, postId, backHref, router]
+  );
+
+  const addTag = () => {
+    const t = tagInput.trim();
+    if (t && !form.tags.includes(t)) {
+      setForm((f) => ({ ...f, tags: [...f.tags, t] }));
+    }
+    setTagInput('');
+  };
+
+  const removeTag = (tag: string) => {
+    setForm((f) => ({ ...f, tags: f.tags.filter((t) => t !== tag) }));
+  };
+
+  const uploadFeaturedImage = async (file: File) => {
+    setImgUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      fd.append('folder', 'blog');
+      const res = await fetch('/api/admin/media', { method: 'POST', body: fd });
+      if (res.ok) {
+        const data = await res.json();
+        const url = data.media?.[0]?.url || data.media?.url;
+        if (url) {
+          setForm((f) => ({
+            ...f,
+            featuredImage: url,
+            seo: { ...f.seo, ogImage: f.seo.ogImage || url },
+          }));
+        }
+      }
+    } finally {
+      setImgUploading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Top Bar */}
+      <div className="sticky top-0 z-30 bg-white border-b border-gray-200 shadow-sm">
+        <div className="flex items-center justify-between px-4 py-3 max-w-screen-2xl mx-auto">
+          <div className="flex items-center gap-3">
+            <Link
+              href={backHref}
+              className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-900 transition-colors"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              {backLabel}
+            </Link>
+            <span className="text-gray-300">/</span>
+            <span className="text-sm font-medium text-gray-700">
+              {isEdit ? 'Edit Post' : 'New Post'}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {/* Save status */}
+            {saveStatus === 'saved' && (
+              <span className="flex items-center gap-1 text-sm text-green-600">
+                <CheckCircle2 className="w-4 h-4" /> Saved
+              </span>
+            )}
+            {saveStatus === 'error' && (
+              <span className="flex items-center gap-1 text-sm text-red-600">
+                <AlertCircle className="w-4 h-4" /> Error
+              </span>
+            )}
+
+            {/* Preview */}
+            {isEdit && form.slug && (
+              <a
+                href={`${previewBase}/${form.slug}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                <Eye className="w-4 h-4" />
+                Preview
+              </a>
+            )}
+
+            {/* Save Draft */}
+            <button
+              type="button"
+              onClick={() => handleSave('DRAFT')}
+              disabled={saving}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 transition-colors"
+            >
+              {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Clock className="w-4 h-4" />}
+              Save Draft
+            </button>
+
+            {/* Publish */}
+            <button
+              type="button"
+              onClick={() => handleSave('PUBLISHED')}
+              disabled={saving}
+              className="flex items-center gap-1.5 px-4 py-1.5 text-sm text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors font-medium"
+            >
+              {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Globe className="w-4 h-4" />}
+              {form.status === 'PUBLISHED' ? 'Update' : 'Publish'}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Error Banner */}
+      {error && (
+        <div className="max-w-screen-2xl mx-auto px-4 pt-4">
+          <div className="flex items-center gap-2 px-4 py-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+            <AlertCircle className="w-4 h-4 flex-shrink-0" />
+            {error}
+            <button onClick={() => setError('')} className="ml-auto">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Main Layout */}
+      <div className="max-w-screen-2xl mx-auto px-4 py-6">
+        <div className="grid grid-cols-1 xl:grid-cols-[1fr_320px] gap-6">
+          {/* Left — Main Editor */}
+          <div className="space-y-4">
+            {/* Title */}
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+              <textarea
+                value={form.title}
+                onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
+                placeholder="Post title..."
+                rows={2}
+                className="w-full px-6 py-5 text-2xl font-bold text-gray-900 placeholder-gray-300 border-none outline-none resize-none leading-tight"
+              />
+              {/* Slug */}
+              <div className="flex items-center gap-2 px-6 pb-4 border-t border-gray-100">
+                <span className="text-xs text-gray-400 shrink-0">/blog/</span>
+                <input
+                  type="text"
+                  value={form.slug}
+                  onChange={(e) => {
+                    setSlugEdited(true);
+                    setForm((f) => ({ ...f, slug: slugify(e.target.value) }));
+                  }}
+                  placeholder="post-slug"
+                  className="flex-1 text-xs text-gray-600 font-mono border-none outline-none bg-transparent"
+                />
+                {form.slug && (
+                  <button
+                    type="button"
+                    onClick={() => setForm((f) => ({ ...f, slug: slugify(f.title) }))}
+                    className="text-xs text-blue-500 hover:text-blue-700 shrink-0"
+                  >
+                    Reset
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Excerpt */}
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
+              <div className="px-4 py-3 border-b border-gray-100">
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                  Excerpt / Summary
+                </label>
+              </div>
+              <textarea
+                value={form.excerpt}
+                onChange={(e) => setForm((f) => ({ ...f, excerpt: e.target.value }))}
+                placeholder="Write a brief summary of the post (shown in listing, used for SEO description)..."
+                rows={3}
+                className="w-full px-4 py-3 text-sm text-gray-700 border-none outline-none resize-none"
+              />
+            </div>
+
+            {/* Rich Text Editor */}
+            <div>
+              <div className="mb-2 flex items-center justify-between">
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                  Content
+                </label>
+              </div>
+              <BlogEditor
+                content={form.content}
+                onChange={(html) => setForm((f) => ({ ...f, content: html }))}
+                placeholder="Start writing your blog post..."
+              />
+            </div>
+          </div>
+
+          {/* Right Sidebar */}
+          <div className="space-y-4">
+            {/* Status */}
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+              <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
+                Publish Settings
+              </h3>
+              <div className="space-y-3">
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-1 block">Status</label>
+                  <select
+                    value={form.status}
+                    onChange={(e) => setForm((f) => ({ ...f, status: e.target.value as any }))}
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="DRAFT">Draft</option>
+                    <option value="PUBLISHED">Published</option>
+                  </select>
+                </div>
+
+                <div className="flex gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => handleSave('DRAFT')}
+                    disabled={saving}
+                    className="flex-1 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 font-medium transition-colors"
+                  >
+                    Save Draft
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleSave('PUBLISHED')}
+                    disabled={saving}
+                    className="flex-1 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 font-medium transition-colors"
+                  >
+                    {saving ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : form.status === 'PUBLISHED' ? 'Update' : 'Publish'}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Featured Image */}
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+              <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
+                Featured Image
+              </h3>
+
+              {form.featuredImage ? (
+                <div className="relative group">
+                  <img
+                    src={form.featuredImage}
+                    alt="Featured"
+                    className="w-full aspect-video object-cover rounded-lg"
+                  />
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="px-3 py-1.5 bg-white text-gray-800 text-xs rounded-lg font-medium hover:bg-gray-100"
+                    >
+                      Change
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setForm((f) => ({ ...f, featuredImage: '' }))}
+                      className="px-3 py-1.5 bg-red-600 text-white text-xs rounded-lg font-medium hover:bg-red-700"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div
+                  onClick={() => fileInputRef.current?.click()}
+                  className="border-2 border-dashed border-gray-200 rounded-lg p-6 text-center cursor-pointer hover:border-blue-400 hover:bg-blue-50/30 transition-colors group"
+                >
+                  {imgUploading ? (
+                    <div className="flex flex-col items-center gap-2">
+                      <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
+                      <p className="text-sm text-gray-500">Uploading...</p>
+                    </div>
+                  ) : (
+                    <>
+                      <ImageIcon className="w-8 h-8 text-gray-300 group-hover:text-blue-400 mx-auto mb-2 transition-colors" />
+                      <p className="text-sm text-gray-500 group-hover:text-blue-600 transition-colors">
+                        Click to upload image
+                      </p>
+                      <p className="text-xs text-gray-400 mt-1">JPG, PNG, WebP up to 10MB</p>
+                    </>
+                  )}
+                </div>
+              )}
+
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) uploadFeaturedImage(file);
+                  e.target.value = '';
+                }}
+              />
+
+              {/* Or paste URL */}
+              <div className="mt-2">
+                <input
+                  type="url"
+                  value={form.featuredImage}
+                  onChange={(e) => setForm((f) => ({ ...f, featuredImage: e.target.value }))}
+                  placeholder="Or paste image URL..."
+                  className="w-full px-3 py-1.5 text-xs border border-gray-200 rounded-lg focus:ring-1 focus:ring-blue-500 text-gray-600"
+                />
+              </div>
+            </div>
+
+            {/* Category */}
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                  Category
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => { setNewCatOpen((o) => !o); setNewCatName(''); }}
+                  className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 font-medium"
+                >
+                  <FolderPlus className="w-3.5 h-3.5" />
+                  New
+                </button>
+              </div>
+
+              <select
+                value={form.categoryId}
+                onChange={(e) => setForm((f) => ({ ...f, categoryId: e.target.value }))}
+                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="">— Select category —</option>
+                {categories.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+
+              {/* Inline quick-create */}
+              {newCatOpen && (
+                <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-100">
+                  <p className="text-xs font-medium text-blue-700 mb-2">Create new category</p>
+                  <input
+                    autoFocus
+                    type="text"
+                    value={newCatName}
+                    onChange={(e) => setNewCatName(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && createCategory()}
+                    placeholder="Category name..."
+                    className="w-full px-2.5 py-1.5 text-sm border border-blue-200 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white mb-2"
+                  />
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={createCategory}
+                      disabled={!newCatName.trim() || newCatSaving}
+                      className="flex-1 flex items-center justify-center gap-1 py-1.5 bg-blue-600 text-white text-xs rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                    >
+                      {newCatSaving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Plus className="w-3 h-3" />}
+                      Create
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setNewCatOpen(false)}
+                      className="px-2.5 py-1.5 text-xs text-gray-500 hover:bg-gray-100 rounded-lg"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Tags */}
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+              <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
+                Tags
+              </h3>
+              <div className="flex flex-wrap gap-1.5 mb-2">
+                {form.tags.map((tag) => (
+                  <span
+                    key={tag}
+                    className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-50 text-blue-700 text-xs rounded-full border border-blue-200"
+                  >
+                    <Tag className="w-2.5 h-2.5" />
+                    {tag}
+                    <button type="button" onClick={() => removeTag(tag)} className="hover:text-red-500">
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                ))}
+              </div>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={tagInput}
+                  onChange={(e) => setTagInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ',') {
+                      e.preventDefault();
+                      addTag();
+                    }
+                  }}
+                  placeholder="Add tag, press Enter"
+                  className="flex-1 px-2 py-1.5 text-xs border border-gray-300 rounded-lg focus:ring-1 focus:ring-blue-500"
+                />
+                <button
+                  type="button"
+                  onClick={addTag}
+                  className="px-2 py-1.5 text-xs bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                >
+                  Add
+                </button>
+              </div>
+            </div>
+
+            {/* SEO Section */}
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+              <button
+                type="button"
+                onClick={() => setSeoOpen(!seoOpen)}
+                className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition-colors"
+              >
+                <div className="flex items-center gap-2">
+                  <Search className="w-4 h-4 text-gray-500" />
+                  <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                    SEO Settings
+                  </span>
+                </div>
+                {seoOpen ? (
+                  <ChevronUp className="w-4 h-4 text-gray-400" />
+                ) : (
+                  <ChevronDown className="w-4 h-4 text-gray-400" />
+                )}
+              </button>
+
+              {seoOpen && (
+                <div className="border-t border-gray-100 px-4 pb-4 space-y-3">
+                  {/* SEO Preview */}
+                  {(form.seo.metaTitle || form.title) && (
+                    <div className="mt-3 p-3 bg-gray-50 rounded-lg border border-gray-100">
+                      <p className="text-xs text-gray-400 mb-1.5">Google Preview</p>
+                      <div className="text-[13px] text-blue-700 font-medium leading-snug truncate">
+                        {form.seo.metaTitle || form.title}
+                      </div>
+                      <div className="text-[11px] text-green-700 truncate mt-0.5">
+                        https://transrentals.com/blog/{form.slug}
+                      </div>
+                      <div className="text-[12px] text-gray-600 mt-1 line-clamp-2 leading-relaxed">
+                        {form.seo.metaDescription || form.excerpt || 'No description set.'}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="pt-2 space-y-3">
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="text-xs font-medium text-gray-600">Meta Title</label>
+                        <CharCount value={form.seo.metaTitle} max={60} warn={50} />
+                      </div>
+                      <input
+                        type="text"
+                        value={form.seo.metaTitle}
+                        onChange={(e) =>
+                          setForm((f) => ({ ...f, seo: { ...f.seo, metaTitle: e.target.value } }))
+                        }
+                        placeholder={form.title}
+                        className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-1 focus:ring-blue-500"
+                      />
+                    </div>
+
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="text-xs font-medium text-gray-600">Meta Description</label>
+                        <CharCount value={form.seo.metaDescription} max={160} warn={140} />
+                      </div>
+                      <textarea
+                        value={form.seo.metaDescription}
+                        onChange={(e) =>
+                          setForm((f) => ({ ...f, seo: { ...f.seo, metaDescription: e.target.value } }))
+                        }
+                        placeholder={form.excerpt || 'Description shown in search results...'}
+                        rows={3}
+                        className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-1 focus:ring-blue-500 resize-none"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-medium text-gray-600 block mb-1">
+                        Keywords <span className="text-gray-400">(comma separated)</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={form.seo.metaKeywords}
+                        onChange={(e) =>
+                          setForm((f) => ({ ...f, seo: { ...f.seo, metaKeywords: e.target.value } }))
+                        }
+                        placeholder="bike rental, leh ladakh, trip guide"
+                        className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-1 focus:ring-blue-500"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-medium text-gray-600 block mb-1">OG Image URL</label>
+                      <input
+                        type="url"
+                        value={form.seo.ogImage}
+                        onChange={(e) =>
+                          setForm((f) => ({ ...f, seo: { ...f.seo, ogImage: e.target.value } }))
+                        }
+                        placeholder={form.featuredImage || 'Social share image URL...'}
+                        className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-1 focus:ring-blue-500"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-medium text-gray-600 block mb-1">Canonical URL</label>
+                      <input
+                        type="url"
+                        value={form.seo.canonicalUrl}
+                        onChange={(e) =>
+                          setForm((f) => ({ ...f, seo: { ...f.seo, canonicalUrl: e.target.value } }))
+                        }
+                        placeholder={`https://transrentals.com/blog/${form.slug}`}
+                        className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-1 focus:ring-blue-500"
+                      />
+                    </div>
+
+                    <div className="flex items-center gap-4 pt-1">
+                      <label className="flex items-center gap-2 text-xs text-gray-600 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={form.seo.noindex}
+                          onChange={(e) =>
+                            setForm((f) => ({ ...f, seo: { ...f.seo, noindex: e.target.checked } }))
+                          }
+                          className="rounded"
+                        />
+                        No-Index
+                      </label>
+                      <label className="flex items-center gap-2 text-xs text-gray-600 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={form.seo.nofollow}
+                          onChange={(e) =>
+                            setForm((f) => ({ ...f, seo: { ...f.seo, nofollow: e.target.checked } }))
+                          }
+                          className="rounded"
+                        />
+                        No-Follow
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

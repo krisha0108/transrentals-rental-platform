@@ -1,7 +1,7 @@
 import { Metadata } from 'next';
 import { Suspense } from 'react';
 import Link from 'next/link';
-import { fetchBlogPosts, fetchCategories, fetchPopularTags, fetchFeaturedPosts } from '@/lib/api/blog';
+import { fetchBlogPosts, fetchCategories, fetchPopularTags, fetchFeaturedPosts, fetchBlogServices } from '@/lib/api/blog';
 import { BlogGrid } from '@/components/blog/BlogGrid';
 import { BlogPostCard } from '@/components/blog/BlogPostCard';
 import { BlogSearch } from '@/components/blog/BlogSearch';
@@ -52,6 +52,35 @@ export const metadata: Metadata = {
   },
 };
 
+// Slug → display info mapping for services
+const SERVICE_META: Record<string, { label: string; icon: string; color: string; bg: string }> = {
+  'bike-on-rent':       { label: 'Bike Rentals',        icon: '🏍️', color: 'text-orange-600',  bg: 'bg-orange-50 border-orange-200 hover:border-orange-400' },
+  'car-rental':         { label: 'Car Rentals',          icon: '🚗', color: 'text-blue-600',    bg: 'bg-blue-50 border-blue-200 hover:border-blue-400' },
+  'self-drive':         { label: 'Self Drive',           icon: '🗝️', color: 'text-purple-600',  bg: 'bg-purple-50 border-purple-200 hover:border-purple-400' },
+  'bus-rental':         { label: 'Bus Rentals',          icon: '🚌', color: 'text-green-600',   bg: 'bg-green-50 border-green-200 hover:border-green-400' },
+  'truck-rental':       { label: 'Truck Rentals',        icon: '🚚', color: 'text-red-600',     bg: 'bg-red-50 border-red-200 hover:border-red-400' },
+  'packers-and-movers': { label: 'Packers & Movers',     icon: '📦', color: 'text-yellow-600',  bg: 'bg-yellow-50 border-yellow-200 hover:border-yellow-400' },
+  'equipment-rental':   { label: 'Equipment Rentals',    icon: '🏗️', color: 'text-slate-600',   bg: 'bg-slate-50 border-slate-200 hover:border-slate-400' },
+  'luxury-car-rental':  { label: 'Luxury Cars',          icon: '✨', color: 'text-amber-600',   bg: 'bg-amber-50 border-amber-200 hover:border-amber-400' },
+  'airport-transfer':   { label: 'Airport Transfers',    icon: '✈️', color: 'text-sky-600',     bg: 'bg-sky-50 border-sky-200 hover:border-sky-400' },
+  'one-way-cab':        { label: 'One Way Cab',          icon: '🚕', color: 'text-teal-600',    bg: 'bg-teal-50 border-teal-200 hover:border-teal-400' },
+  'tempo-traveller':    { label: 'Tempo Traveller',      icon: '🚐', color: 'text-indigo-600',  bg: 'bg-indigo-50 border-indigo-200 hover:border-indigo-400' },
+  'wedding-cars':       { label: 'Wedding Cars',         icon: '💒', color: 'text-pink-600',    bg: 'bg-pink-50 border-pink-200 hover:border-pink-400' },
+};
+
+function serviceLabel(slug: string) {
+  return SERVICE_META[slug]?.label || slug.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+}
+function serviceIcon(slug: string) {
+  return SERVICE_META[slug]?.icon || '🔧';
+}
+function serviceBg(slug: string) {
+  return SERVICE_META[slug]?.bg || 'bg-gray-50 border-gray-200 hover:border-gray-400';
+}
+function serviceColor(slug: string) {
+  return SERVICE_META[slug]?.color || 'text-gray-700';
+}
+
 interface BlogPageProps {
   searchParams: {
     page?: string;
@@ -66,7 +95,7 @@ export default async function BlogPage({ searchParams }: BlogPageProps) {
   const limit = 12;
 
   // Fetch data
-  const [postsResponse, categories, tags, featuredPosts] = await Promise.all([
+  const [postsResponse, categories, tags, featuredPosts, blogServices] = await Promise.all([
     fetchBlogPosts({
       page,
       limit,
@@ -77,6 +106,7 @@ export default async function BlogPage({ searchParams }: BlogPageProps) {
     fetchCategories(),
     fetchPopularTags(),
     page === 1 ? fetchFeaturedPosts(4) : Promise.resolve([]),
+    fetchBlogServices(),
   ]);
 
   const { posts, meta } = postsResponse;
@@ -171,6 +201,35 @@ export default async function BlogPage({ searchParams }: BlogPageProps) {
           </div>
         </div>
       </div>
+
+      {/* Browse by Service */}
+      {blogServices.length > 0 && (
+        <div className="bg-gray-50 border-b border-gray-200">
+          <div className="container mx-auto px-4 py-8">
+            <div className="mb-5">
+              <h2 className="text-2xl font-semibold text-gray-900">Browse by Service</h2>
+              <p className="text-sm text-gray-500 mt-1">
+                Find blogs specific to the vehicle service you need
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-3">
+              {blogServices.map((svc) => (
+                <Link
+                  key={svc.slug}
+                  href={`/blog/service/${svc.slug}`}
+                  className={`inline-flex items-center gap-2.5 px-5 py-3 rounded-xl border text-sm font-medium transition-all ${serviceBg(svc.slug)} ${serviceColor(svc.slug)}`}
+                >
+                  <span className="text-lg">{serviceIcon(svc.slug)}</span>
+                  <span>{serviceLabel(svc.slug)}</span>
+                  <span className="ml-1 px-2 py-0.5 rounded-full bg-white/70 text-xs font-semibold text-gray-500">
+                    {svc.postCount}
+                  </span>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Featured Posts - Magazine Layout */}
       {page === 1 && featuredPosts.length > 0 && (

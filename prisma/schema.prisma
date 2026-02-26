@@ -51,9 +51,9 @@ model admin_users {
   pages                    pages[]
   vendor_documents         vendor_documents[]
   vendor_location_requests vendor_location_requests[]
+  vendor_payout_batches    vendor_payout_batches[]
   vendor_service_requests  vendor_service_requests[]
   vendors                  vendors[]
-  vendor_payout_batches    vendor_payout_batches[]
 
   @@index([createdById], map: "admin_users_createdById_fkey")
 }
@@ -305,7 +305,6 @@ model bike_quotes {
   advancePercent                                                       Int                    @default(30)
   createdAt                                                            DateTime               @default(now())
   dailyRate                                                            Float
-  totalPrice                                                           Float?
   extraKmCharge                                                        Float?
   grandTotal                                                           Float
   gstAmount                                                            Float                  @default(0)
@@ -335,6 +334,7 @@ model bike_quotes {
   viewCount                                                            Int                    @default(0)
   viewedAt                                                             DateTime?
   templateId                                                           String?
+  totalPrice                                                           Float?
   bike_bookings                                                        bike_bookings?
   bike_quote_requests_bike_quote_requests_acceptedQuoteIdTobike_quotes bike_quote_requests[]  @relation("bike_quote_requests_acceptedQuoteIdTobike_quotes")
   bike_quote_requests_bike_quotes_requestIdTobike_quote_requests       bike_quote_requests    @relation("bike_quotes_requestIdTobike_quote_requests", fields: [requestId], references: [id], onDelete: Cascade)
@@ -378,6 +378,7 @@ model blog_posts {
   tags            String?           @db.LongText
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt
+  serviceSlug     String?
   admin_users     admin_users       @relation(fields: [authorId], references: [id])
   blog_categories blog_categories?  @relation(fields: [categoryId], references: [id])
   seo_meta        seo_meta?
@@ -387,6 +388,7 @@ model blog_posts {
   @@index([publishedAt])
   @@index([slug])
   @@index([status])
+  @@index([serviceSlug])
 }
 
 model brands {
@@ -1200,9 +1202,9 @@ model customers {
   totalBookings             Int                         @default(0)
   totalSpent                Float                       @default(0)
   lastLoginAt               DateTime?
-  fcmToken                  String?                     @db.Text
   createdAt                 DateTime                    @default(now())
   updatedAt                 DateTime                    @updatedAt
+  fcmToken                  String?                     @db.Text
   bike_bookings             bike_bookings[]
   bike_quote_requests       bike_quote_requests[]
   bus_bookings              bus_bookings[]
@@ -1236,10 +1238,10 @@ model notifications {
   bookingId   String?
   quoteId     String?
   type        String?
-  serviceType String?   // Service type: bike, bus, truck, equipment, packers, self-drive, luxury
   isRead      Boolean   @default(false)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+  serviceType String?
   customers   customers @relation(fields: [customerId], references: [id], onDelete: Cascade)
 
   @@index([customerId])
@@ -2286,13 +2288,13 @@ model packers_quotes {
   createdAt                DateTime                  @default(now())
   updatedAt                DateTime                  @updatedAt
   templateId               String?
-  vendorFleetId            String?
   vehicleImages            String?                   @db.LongText
+  vendorFleetId            String?
   packers_bookings         packers_bookings?
   packers_quote_requests   packers_quote_requests    @relation(fields: [requestId], references: [id])
   vendor_packers_templates vendor_packers_templates? @relation(fields: [templateId], references: [id])
-  vendors                  vendors                   @relation(fields: [vendorId], references: [id])
   vendor_fleets            vendor_fleets?            @relation(fields: [vendorFleetId], references: [id])
+  vendors                  vendors                   @relation(fields: [vendorId], references: [id])
 
   @@index([requestId])
   @@index([status])
@@ -2461,7 +2463,7 @@ model integration_settings {
   refreshToken String?   @db.Text
   expiresAt    DateTime?
   isActive     Boolean   @default(false)
-  config       Json?
+  config       String?   @db.LongText
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
@@ -2555,7 +2557,6 @@ model self_drive_quotes {
   baseAmount                                                                             Float
   createdAt                                                                              DateTime                     @default(now())
   dailyRate                                                                              Float
-  totalPrice                                                                             Float?
   deliveryCharges                                                                        Float                        @default(0)
   extraKmRate                                                                            Float                        @default(10)
   fuelType                                                                               String?
@@ -2588,6 +2589,7 @@ model self_drive_quotes {
   viewCount                                                                              Int                          @default(0)
   viewedAt                                                                               DateTime?
   templateId                                                                             String?
+  totalPrice                                                                             Float?
   car_bookings                                                                           car_bookings?
   self_drive_quote_requests_self_drive_quote_requests_acceptedQuoteIdToself_drive_quotes self_drive_quote_requests[]  @relation("self_drive_quote_requests_acceptedQuoteIdToself_drive_quotes")
   self_drive_quote_requests_self_drive_quotes_requestIdToself_drive_quote_requests       self_drive_quote_requests    @relation("self_drive_quotes_requestIdToself_drive_quote_requests", fields: [requestId], references: [id], onDelete: Cascade)
@@ -2997,13 +2999,13 @@ model truck_quotes {
   createdAt              DateTime                @default(now())
   updatedAt              DateTime                @updatedAt
   templateId             String?
-  vendorFleetId          String?
   vehicleImages          String?                 @db.LongText
+  vendorFleetId          String?
   truck_bookings         truck_bookings?
   truck_quote_requests   truck_quote_requests    @relation(fields: [requestId], references: [id])
   vendor_truck_templates vendor_truck_templates? @relation(fields: [templateId], references: [id])
-  vendors                vendors                 @relation(fields: [vendorId], references: [id])
   vendor_fleets          vendor_fleets?          @relation(fields: [vendorFleetId], references: [id])
+  vendors                vendors                 @relation(fields: [vendorId], references: [id])
 
   @@index([requestId])
   @@index([status])
@@ -3116,36 +3118,37 @@ model vendor_approved_services {
 }
 
 model vendor_payout_batches {
-  id                   String                     @id
-  vendorId             String
-  totalAmount          Float
-  paidAt               DateTime                   @default(now())
-  paidById             String?
-  paymentMethod        String?
-  referenceNumber      String?
-  notes                String?                    @db.Text
-  createdAt            DateTime                   @default(now())
-  updatedAt            DateTime                   @updatedAt
-  vendors              vendors                    @relation(fields: [vendorId], references: [id], onDelete: Cascade)
-  admin_users          admin_users?               @relation(fields: [paidById], references: [id])
+  id                        String                      @id
+  vendorId                  String
+  totalAmount               Float
+  paidAt                    DateTime                    @default(now())
+  paidById                  String?
+  paymentMethod             String?
+  referenceNumber           String?
+  notes                     String?                     @db.Text
+  createdAt                 DateTime                    @default(now())
+  updatedAt                 DateTime                    @default(now()) @updatedAt
   vendor_payout_batch_items vendor_payout_batch_items[]
+  admin_users               admin_users?                @relation(fields: [paidById], references: [id])
+  vendors                   vendors                     @relation(fields: [vendorId], references: [id], onDelete: Cascade)
 
   @@index([vendorId])
   @@index([paidAt])
+  @@index([paidById], map: "vendor_payout_batches_paidById_fkey")
 }
 
 model vendor_payout_batch_items {
-  id                  String                @id
-  batchId             String
-  bookingId           String
-  bookingType         String
-  bookingNumber       String?
-  totalAmount         Float
-  advanceAmount       Float
-  commissionPercent   Float                 @default(0)
-  commissionAmount    Float
-  vendorPayoutAmount  Float
-  createdAt           DateTime              @default(now())
+  id                    String                @id
+  batchId               String
+  bookingId             String
+  bookingType           String
+  bookingNumber         String?
+  totalAmount           Float
+  advanceAmount         Float
+  commissionPercent     Float                 @default(0)
+  commissionAmount      Float
+  vendorPayoutAmount    Float
+  createdAt             DateTime              @default(now())
   vendor_payout_batches vendor_payout_batches @relation(fields: [batchId], references: [id], onDelete: Cascade)
 
   @@index([batchId])
@@ -3304,10 +3307,8 @@ model vendor_fleets {
   chauffeurName                String?
   chauffeurPhone               String?
   chauffeurPhoto               String?
-  fitnessImage                 String?
   fitnessValidity              DateTime?
   fuelType                     String?
-  insuranceImage               String?
   insuranceProvider            String?
   insuranceValidity            DateTime?
   interiorColor                String?
@@ -3318,9 +3319,7 @@ model vendor_fleets {
   minimumBookingHours          Int?
   operatingCities              String?                       @db.LongText
   parkingCity                  String?
-  permitImage                  String?
   permitType                   String?
-  rcImage                      String?
   safetyFeatures               String?                       @db.LongText
   seatingCapacity              Int?
   totalRatings                 Int?                          @default(0)
@@ -3329,26 +3328,30 @@ model vendor_fleets {
   vehicleCondition             String?
   vehicleDescription           String?                       @db.Text
   vehicleName                  String?
+  insuranceImage               String?
+  fitnessImage                 String?
+  permitImage                  String?
+  rcImage                      String?
   bike_quotes                  bike_quotes[]
+  fleet_fuel_records           fleet_fuel_records[]
+  fleet_incidents              fleet_incidents[]
+  fleet_maintenance_records    fleet_maintenance_records[]
   fleet_pricing                fleet_pricing[]
   luxury_quotes                luxury_quotes[]
+  p2p_requests                 p2p_requests[]
+  p2p_vehicle_postings         p2p_vehicle_postings[]
   packers_quotes               packers_quotes[]
   self_drive_quotes            self_drive_quotes[]
   truck_bookings               truck_bookings[]
   truck_quotes                 truck_quotes[]
-  vendor_fleet_locations       vendor_fleet_locations[]
   assigned_bookings            vendor_direct_bookings[]      @relation("direct_booking_vehicle")
-  p2p_vehicle_postings         p2p_vehicle_postings[]
-  p2p_requests                 p2p_requests[]
+  vendor_fleet_blocked_dates   vendor_fleet_blocked_dates[]
+  vendor_fleet_locations       vendor_fleet_locations[]
   brands                       brands?                       @relation(fields: [brandId], references: [id])
   services                     services                      @relation(fields: [serviceId], references: [id], onDelete: Cascade)
   chauffeur_vehicle_categories chauffeur_vehicle_categories? @relation(fields: [vehicleCategoryId], references: [id])
   vehicle_models               vehicle_models?               @relation(fields: [vehicleModelId], references: [id], onDelete: Cascade)
   vendors                      vendors                       @relation(fields: [vendorId], references: [id], onDelete: Cascade)
-  vendor_fleet_blocked_dates   vendor_fleet_blocked_dates[]
-  fleet_maintenance_records    fleet_maintenance_records[]
-  fleet_incidents              fleet_incidents[]
-  fleet_fuel_records           fleet_fuel_records[]
 
   @@index([brandId])
   @@index([isActive])
@@ -3360,19 +3363,19 @@ model vendor_fleets {
 }
 
 model vendor_fleet_blocked_dates {
-  id              String        @id
-  vendorFleetId   String
-  startDate       DateTime      @db.Date
-  endDate         DateTime      @db.Date
-  reason          String        @default("BOOKING")
-  bookingId       String?
-  bookingType     String?
-  notes           String?       @db.Text
-  createdBy       String?
-  isActive        Boolean       @default(true)
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-  vendor_fleets   vendor_fleets @relation(fields: [vendorFleetId], references: [id], onDelete: Cascade)
+  id            String        @id
+  vendorFleetId String
+  startDate     DateTime      @db.Date
+  endDate       DateTime      @db.Date
+  reason        String        @default("BOOKING")
+  bookingId     String?
+  bookingType   String?
+  notes         String?       @db.Text
+  createdBy     String?
+  isActive      Boolean       @default(true)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @default(now()) @updatedAt
+  vendor_fleets vendor_fleets @relation(fields: [vendorFleetId], references: [id], onDelete: Cascade)
 
   @@index([vendorFleetId])
   @@index([startDate])
@@ -3509,20 +3512,20 @@ model vendor_service_requests {
 }
 
 model vendor_staff {
-  id                String              @id
+  id                String                   @id
   vendorId          String
   name              String
   phone             String
-  email             String?             @unique
-  address           String?             @db.Text
+  email             String?                  @unique
+  address           String?                  @db.Text
   city              String?
   state             String?
   pincode           String?
   dateOfBirth       DateTime?
-  joiningDate       DateTime            @default(now())
+  joiningDate       DateTime                 @default(now())
   profilePhoto      String?
-  role              vendor_staff_role   @default(DRIVER)
-  status            vendor_staff_status @default(ACTIVE)
+  role              vendor_staff_role        @default(DRIVER)
+  status            vendor_staff_status      @default(ACTIVE)
   aadharNumber      String?
   aadharDocument    String?
   panNumber         String?
@@ -3535,18 +3538,18 @@ model vendor_staff {
   accountNumber     String?
   ifscCode          String?
   accountHolderName String?
-  salary            Float               @default(0)
+  salary            Float                    @default(0)
   emergencyContact  String?
   emergencyPhone    String?
-  fcmToken          String?             @db.Text
-  lastLoginAt       DateTime?
-  createdAt         DateTime            @default(now())
-  updatedAt         DateTime            @updatedAt
+  createdAt         DateTime                 @default(now())
+  updatedAt         DateTime                 @updatedAt
   password          String?
-  staff_attendance   staff_attendance[]
-  truck_bookings     truck_bookings[]
-  assigned_bookings  vendor_direct_bookings[] @relation("direct_booking_driver")
-  vendors            vendors             @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  fcmToken          String?                  @db.Text
+  lastLoginAt       DateTime?
+  staff_attendance  staff_attendance[]
+  truck_bookings    truck_bookings[]
+  assigned_bookings vendor_direct_bookings[] @relation("direct_booking_driver")
+  vendors           vendors                  @relation(fields: [vendorId], references: [id], onDelete: Cascade)
 
   @@unique([vendorId, phone])
   @@index([email])
@@ -3580,58 +3583,70 @@ model vendor_truck_templates {
 }
 
 model vendors {
-  id                                                              String                        @id
-  email                                                           String                        @unique
+  id                                                              String                           @id
+  email                                                           String                           @unique
   password                                                        String
-  phone                                                           String                        @unique
+  phone                                                           String                           @unique
   businessName                                                    String
   businessType                                                    String?
   ownerName                                                       String
   gstNumber                                                       String?
   panNumber                                                       String?
-  address                                                         String?                       @db.Text
+  address                                                         String?                          @db.Text
   city                                                            String?
   state                                                           String?
   pincode                                                         String?
   logo                                                            String?
-  description                                                     String?                       @db.Text
+  description                                                     String?                          @db.Text
   website                                                         String?
-  slug                                                            String?                       @unique
   bankName                                                        String?
   accountNumber                                                   String?
   ifscCode                                                        String?
   accountHolderName                                               String?
-  status                                                          vendors_status                @default(PENDING)
-  isEmailVerified                                                 Boolean                       @default(false)
-  isPhoneVerified                                                 Boolean                       @default(false)
+  status                                                          vendors_status                   @default(PENDING)
+  isEmailVerified                                                 Boolean                          @default(false)
+  isPhoneVerified                                                 Boolean                          @default(false)
   approvedAt                                                      DateTime?
   approvedById                                                    String?
-  rejectionReason                                                 String?                       @db.Text
-  rating                                                          Float?                        @default(0)
-  totalRatings                                                    Int                           @default(0)
+  rejectionReason                                                 String?                          @db.Text
+  rating                                                          Float?                           @default(0)
+  totalRatings                                                    Int                              @default(0)
   lastLoginAt                                                     DateTime?
-  fcmToken                                                        String?                       @db.Text
-  createdAt                                                       DateTime                      @default(now())
-  updatedAt                                                       DateTime                      @updatedAt
-  bike_bookings_bike_bookings_acceptedVendorIdTovendors           bike_bookings[]               @relation("bike_bookings_acceptedVendorIdTovendors")
-  bike_bookings_bike_bookings_assignedVendorIdTovendors           bike_bookings[]               @relation("bike_bookings_assignedVendorIdTovendors")
+  createdAt                                                       DateTime                         @default(now())
+  updatedAt                                                       DateTime                         @updatedAt
+  fcmToken                                                        String?                          @db.Text
+  slug                                                            String?                          @unique
+  bike_bookings_bike_bookings_acceptedVendorIdTovendors           bike_bookings[]                  @relation("bike_bookings_acceptedVendorIdTovendors")
+  bike_bookings_bike_bookings_assignedVendorIdTovendors           bike_bookings[]                  @relation("bike_bookings_assignedVendorIdTovendors")
   bike_quotes                                                     bike_quotes[]
   bus_bookings                                                    bus_bookings[]
   bus_quotes                                                      bus_quotes[]
-  car_bookings_car_bookings_acceptedVendorIdTovendors             car_bookings[]                @relation("car_bookings_acceptedVendorIdTovendors")
-  car_bookings_car_bookings_assignedVendorIdTovendors             car_bookings[]                @relation("car_bookings_assignedVendorIdTovendors")
+  car_bookings_car_bookings_acceptedVendorIdTovendors             car_bookings[]                   @relation("car_bookings_acceptedVendorIdTovendors")
+  car_bookings_car_bookings_assignedVendorIdTovendors             car_bookings[]                   @relation("car_bookings_assignedVendorIdTovendors")
   chat_conversations                                              chat_conversations[]
   chat_quick_replies                                              chat_quick_replies[]
-  chauffeur_bookings_chauffeur_bookings_acceptedVendorIdTovendors chauffeur_bookings[]          @relation("chauffeur_bookings_acceptedVendorIdTovendors")
-  chauffeur_bookings_chauffeur_bookings_assignedVendorIdTovendors chauffeur_bookings[]          @relation("chauffeur_bookings_assignedVendorIdTovendors")
+  chauffeur_bookings_chauffeur_bookings_acceptedVendorIdTovendors chauffeur_bookings[]             @relation("chauffeur_bookings_acceptedVendorIdTovendors")
+  chauffeur_bookings_chauffeur_bookings_assignedVendorIdTovendors chauffeur_bookings[]             @relation("chauffeur_bookings_assignedVendorIdTovendors")
   equipment_bookings                                              equipment_bookings[]
   equipment_quotes                                                equipment_quotes[]
+  fleet_fuel_records                                              fleet_fuel_records[]
+  fleet_incidents                                                 fleet_incidents[]
+  fleet_maintenance_records                                       fleet_maintenance_records[]
   luxury_bids                                                     luxury_bids[]
-  luxury_bookings_luxury_bookings_acceptedVendorIdTovendors       luxury_bookings[]             @relation("luxury_bookings_acceptedVendorIdTovendors")
-  luxury_bookings_luxury_bookings_assignedVendorIdTovendors       luxury_bookings[]             @relation("luxury_bookings_assignedVendorIdTovendors")
+  luxury_bookings_luxury_bookings_acceptedVendorIdTovendors       luxury_bookings[]                @relation("luxury_bookings_acceptedVendorIdTovendors")
+  luxury_bookings_luxury_bookings_assignedVendorIdTovendors       luxury_bookings[]                @relation("luxury_bookings_assignedVendorIdTovendors")
   luxury_quotes                                                   luxury_quotes[]
   luxury_vendor_rates                                             luxury_vendor_rates[]
   media                                                           media[]
+  p2p_booking_postings                                            p2p_booking_postings[]           @relation("p2p_booking_postings_vendor")
+  p2p_comments                                                    p2p_comments[]                   @relation("p2p_comments_vendor")
+  p2p_ratings_rated                                               p2p_ratings[]                    @relation("p2p_ratings_rated")
+  p2p_ratings_rater                                               p2p_ratings[]                    @relation("p2p_ratings_rater")
+  p2p_requests_posting                                            p2p_requests[]                   @relation("p2p_requests_postingVendor")
+  p2p_requests_requesting                                         p2p_requests[]                   @relation("p2p_requests_requestingVendor")
+  p2p_transactions_vendorA                                        p2p_transactions[]               @relation("p2p_transactions_vendorA")
+  p2p_transactions_vendorB                                        p2p_transactions[]               @relation("p2p_transactions_vendorB")
+  p2p_vehicle_postings                                            p2p_vehicle_postings[]           @relation("p2p_vehicle_postings_vendor")
   packers_bookings                                                packers_bookings[]
   packers_quotes                                                  packers_quotes[]
   self_drive_quotes                                               self_drive_quotes[]
@@ -3640,34 +3655,22 @@ model vendors {
   vendor_approved_locations                                       vendor_approved_locations[]
   vendor_approved_services                                        vendor_approved_services[]
   vendor_bike_templates                                           vendor_bike_templates[]
+  vendor_booking_links                                            vendor_booking_links[]
   vendor_bus_templates                                            vendor_bus_templates[]
+  vendor_direct_booking_expenses                                  vendor_direct_booking_expenses[]
+  vendor_direct_bookings                                          vendor_direct_bookings[]
   vendor_documents                                                vendor_documents[]
   vendor_equipment_templates                                      vendor_equipment_templates[]
   vendor_fleets                                                   vendor_fleets[]
   vendor_location_requests                                        vendor_location_requests[]
   vendor_luxury_templates                                         vendor_luxury_templates[]
   vendor_packers_templates                                        vendor_packers_templates[]
+  vendor_payout_batches                                           vendor_payout_batches[]
   vendor_self_drive_templates                                     vendor_self_drive_templates[]
   vendor_service_requests                                         vendor_service_requests[]
   vendor_staff                                                    vendor_staff[]
   vendor_truck_templates                                          vendor_truck_templates[]
-  fleet_maintenance_records                                       fleet_maintenance_records[]
-  fleet_incidents                                                 fleet_incidents[]
-  fleet_fuel_records                                              fleet_fuel_records[]
-  p2p_vehicle_postings                                            p2p_vehicle_postings[]        @relation("p2p_vehicle_postings_vendor")
-  p2p_booking_postings                                            p2p_booking_postings[]        @relation("p2p_booking_postings_vendor")
-  p2p_requests_requesting                                         p2p_requests[]                @relation("p2p_requests_requestingVendor")
-  p2p_requests_posting                                            p2p_requests[]                @relation("p2p_requests_postingVendor")
-  p2p_transactions_vendorA                                        p2p_transactions[]            @relation("p2p_transactions_vendorA")
-  p2p_transactions_vendorB                                        p2p_transactions[]            @relation("p2p_transactions_vendorB")
-  p2p_ratings_rater                                               p2p_ratings[]                 @relation("p2p_ratings_rater")
-  p2p_ratings_rated                                               p2p_ratings[]                 @relation("p2p_ratings_rated")
-  p2p_comments                                                    p2p_comments[]                @relation("p2p_comments_vendor")
-  admin_users                                                     admin_users?                  @relation(fields: [approvedById], references: [id])
-  vendor_booking_links                                            vendor_booking_links[]
-  vendor_direct_bookings                                          vendor_direct_bookings[]
-  vendor_direct_booking_expenses                                  vendor_direct_booking_expenses[]
-  vendor_payout_batches                                           vendor_payout_batches[]
+  admin_users                                                     admin_users?                     @relation(fields: [approvedById], references: [id])
 
   @@index([approvedById], map: "vendors_approvedById_fkey")
   @@index([email])
@@ -3713,40 +3716,29 @@ model web_vitals {
   @@index([pagePath])
 }
 
-
-// ==================== CONVERSION TRACKING & ANALYTICS ====================
-
-// Track conversion funnel events
 model conversion_events {
-  id              String   @id
-  sessionId       String
-  eventType       conversion_events_eventType
-  eventData       Json?    // Flexible storage for event-specific data
-  pagePath        String
-  pageTitle       String?
-  
-  // Attribution
-  source          String?  // organic, direct, social, referral, paid
-  medium          String?  // google, facebook, email, etc.
-  campaign        String?  
-  keyword         String?  // Search keyword that brought user
-  landingPage     String?  // First page user visited
-  referrer        String?
-  
-  // User context
-  device          String?
-  browser         String?
-  os              String?
-  country         String?
-  city            String?
-  
-  // Booking reference (if converted)
-  bookingId       String?
-  bookingType     String?  // bike, car, bus, truck, equipment, packers
-  bookingValue    Float?
-  
-  timestamp       DateTime @default(now())
-  
+  id           String                      @id
+  sessionId    String
+  eventType    conversion_events_eventType
+  eventData    String?                     @db.LongText
+  pagePath     String
+  pageTitle    String?
+  source       String?
+  medium       String?
+  campaign     String?
+  keyword      String?
+  landingPage  String?
+  referrer     String?
+  device       String?
+  browser      String?
+  os           String?
+  country      String?
+  city         String?
+  bookingId    String?
+  bookingType  String?
+  bookingValue Float?
+  timestamp    DateTime                    @default(now())
+
   @@index([sessionId])
   @@index([eventType])
   @@index([timestamp])
@@ -3755,38 +3747,29 @@ model conversion_events {
   @@index([source])
 }
 
-// Track booking attribution - which source led to booking
 model booking_attribution {
-  id              String   @id
-  bookingId       String   @unique
-  bookingType     String   // bike, car, bus, truck, equipment, packers
-  sessionId       String
-  
-  // Attribution
-  firstSource     String?  // First touch attribution
-  firstMedium     String?
-  firstKeyword    String?
+  id               String    @id
+  bookingId        String    @unique
+  bookingType      String
+  sessionId        String
+  firstSource      String?
+  firstMedium      String?
+  firstKeyword     String?
   firstLandingPage String?
-  firstVisit      DateTime?
-  
-  lastSource      String?  // Last touch attribution
-  lastMedium      String?
-  lastKeyword     String?
-  lastLandingPage String?
-  lastVisit       DateTime?
-  
-  // Journey
-  totalSessions   Int      @default(1)
-  totalPageViews  Int      @default(0)
-  timeToConvert   Int?     // Seconds from first visit to booking
-  touchpoints     Json?    // Array of all touchpoints
-  
-  // Value
-  bookingValue    Float?
-  commission      Float?
-  
-  createdAt       DateTime @default(now())
-  
+  firstVisit       DateTime?
+  lastSource       String?
+  lastMedium       String?
+  lastKeyword      String?
+  lastLandingPage  String?
+  lastVisit        DateTime?
+  totalSessions    Int       @default(1)
+  totalPageViews   Int       @default(0)
+  timeToConvert    Int?
+  touchpoints      String?   @db.LongText
+  bookingValue     Float?
+  commission       Float?
+  createdAt        DateTime  @default(now())
+
   @@index([bookingId])
   @@index([bookingType])
   @@index([firstSource])
@@ -3794,131 +3777,108 @@ model booking_attribution {
   @@index([createdAt])
 }
 
-// Track user flow/journey
 model user_flow {
-  id              String   @id
-  sessionId       String
-  fromPage        String
-  toPage          String
-  timestamp       DateTime @default(now())
-  device          String?
-  source          String?
-  timeOnPage      Int?     // Seconds spent on fromPage
-  
+  id         String   @id
+  sessionId  String
+  fromPage   String
+  toPage     String
+  timestamp  DateTime @default(now())
+  device     String?
+  source     String?
+  timeOnPage Int?
+
   @@index([sessionId])
   @@index([fromPage])
   @@index([toPage])
   @@index([timestamp])
 }
 
-// Track keyword performance
 model keyword_performance {
   id              String   @id
   keyword         String
   date            DateTime @default(now())
-  
-  // Traffic
   impressions     Int      @default(0)
   clicks          Int      @default(0)
   visitors        Int      @default(0)
-  
-  // Engagement
-  avgTimeOnSite   Int?     // Seconds
-  bounceRate      Float?   // Percentage
+  avgTimeOnSite   Int?
+  bounceRate      Float?
   pagesPerSession Float?
-  
-  // Conversion
   conversions     Int      @default(0)
-  conversionRate  Float?   // Percentage
+  conversionRate  Float?
   revenue         Float?
-  
-  // SEO
   avgPosition     Float?
   topPage         String?
-  
   updatedAt       DateTime @updatedAt
-  
+
   @@unique([keyword, date])
   @@index([keyword])
   @@index([date])
   @@index([conversions])
 }
 
-// Funnel analytics - aggregated stats per funnel step
 model funnel_analytics {
-  id              String   @id
-  funnelName      String   // e.g., "bike-rental-funnel", "self-drive-funnel"
-  step            String   // landing, search, quote_view, quote_request, booking
-  stepOrder       Int
-  date            DateTime @default(now())
-  
-  // Metrics
-  visitors        Int      @default(0)
-  conversions     Int      @default(0)  // Moved to next step
-  dropOffs        Int      @default(0)
-  conversionRate  Float?   // Percentage
-  avgTimeInStep   Int?     // Seconds
-  
-  // Attribution
-  topSource       String?
-  topKeyword      String?
-  
-  updatedAt       DateTime @updatedAt
-  
+  id             String   @id
+  funnelName     String
+  step           String
+  stepOrder      Int
+  date           DateTime @default(now())
+  visitors       Int      @default(0)
+  conversions    Int      @default(0)
+  dropOffs       Int      @default(0)
+  conversionRate Float?
+  avgTimeInStep  Int?
+  topSource      String?
+  topKeyword     String?
+  updatedAt      DateTime @updatedAt
+
   @@unique([funnelName, step, date])
   @@index([funnelName])
   @@index([date])
   @@index([stepOrder])
 }
 
-
-// ==========================================
-// P2P Marketplace Tables
-// ==========================================
-
 model p2p_vehicle_postings {
-  id              String             @id
-  postingNumber   String             @unique
-  vendorId        String
-  serviceType     String
-  vehicleId       String?
-  vehicleCategory String?
-  vehicleName     String
-  vehicleNumber   String?
-  capacity        String?
-  bodyType        String?
-  fromCity        String
-  toCity          String
-  departureDate   DateTime
-  departureTime   String?
-  arrivalDate     DateTime?
-  arrivalTime     String?
-  priceFullLoad   Float?
-  pricePartLoad   Float?
-  acceptsPartLoad Boolean            @default(false)
-  availableSpace  String?
-  driverIncluded  Boolean            @default(true)
-  driverName      String?
-  driverPhone     String?
-  fuelIncluded    Boolean            @default(false)
-  labourAvailable Boolean            @default(false)
-  labourCount     Int?
-  goodsAccepted   String?            @db.LongText
-  totalSeats      Int?
-  availableSeats  Int?
-  busType         String?
-  isAC            Boolean?
-  notes           String?            @db.Text
-  status          p2p_posting_status @default(ACTIVE)
-  expiresAt       DateTime?
-  createdAt       DateTime           @default(now())
-  updatedAt       DateTime           @updatedAt
-
-  vendor           vendors              @relation("p2p_vehicle_postings_vendor", fields: [vendorId], references: [id], onDelete: Cascade)
-  vehicleFleet     vendor_fleets?       @relation(fields: [vehicleId], references: [id])
-  p2p_requests     p2p_requests[]       @relation("p2p_requests_vehiclePosting")
-  p2p_transactions p2p_transactions[]   @relation("p2p_transactions_vehiclePosting")
+  id               String             @id
+  postingNumber    String             @unique
+  vendorId         String
+  serviceType      String
+  vehicleId        String?
+  vehicleCategory  String?
+  vehicleName      String
+  vehicleNumber    String?
+  capacity         String?
+  bodyType         String?
+  fromCity         String
+  toCity           String
+  departureDate    DateTime
+  departureTime    String?
+  arrivalDate      DateTime?
+  arrivalTime      String?
+  priceFullLoad    Float?
+  pricePartLoad    Float?
+  acceptsPartLoad  Boolean            @default(false)
+  availableSpace   String?
+  driverIncluded   Boolean            @default(true)
+  driverName       String?
+  driverPhone      String?
+  fuelIncluded     Boolean            @default(false)
+  labourAvailable  Boolean            @default(false)
+  labourCount      Int?
+  goodsAccepted    String?            @db.LongText
+  totalSeats       Int?
+  availableSeats   Int?
+  busType          String?
+  isAC             Boolean?
+  notes            String?            @db.Text
+  status           p2p_posting_status @default(ACTIVE)
+  expiresAt        DateTime?
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
   p2p_comments     p2p_comments[]
+  p2p_requests     p2p_requests[]     @relation("p2p_requests_vehiclePosting")
+  p2p_transactions p2p_transactions[] @relation("p2p_transactions_vehiclePosting")
+  vehicleFleet     vendor_fleets?     @relation(fields: [vehicleId], references: [id])
+  vendor           vendors            @relation("p2p_vehicle_postings_vendor", fields: [vendorId], references: [id], onDelete: Cascade)
 
   @@index([vendorId])
   @@index([vehicleId])
@@ -3961,11 +3921,10 @@ model p2p_booking_postings {
   expiresAt        DateTime?
   createdAt        DateTime           @default(now())
   updatedAt        DateTime           @updatedAt
-
-  vendor           vendors              @relation("p2p_booking_postings_vendor", fields: [vendorId], references: [id], onDelete: Cascade)
-  p2p_requests     p2p_requests[]       @relation("p2p_requests_bookingPosting")
-  p2p_transactions p2p_transactions[]   @relation("p2p_transactions_bookingPosting")
+  vendor           vendors            @relation("p2p_booking_postings_vendor", fields: [vendorId], references: [id], onDelete: Cascade)
   p2p_comments     p2p_comments[]
+  p2p_requests     p2p_requests[]     @relation("p2p_requests_bookingPosting")
+  p2p_transactions p2p_transactions[] @relation("p2p_transactions_bookingPosting")
 
   @@index([vendorId])
   @@index([serviceType])
@@ -3977,8 +3936,8 @@ model p2p_booking_postings {
 }
 
 model p2p_requests {
-  id                 String             @id
-  requestNumber      String             @unique
+  id                 String                @id
+  requestNumber      String                @unique
   postingType        p2p_posting_type
   vehiclePostingId   String?
   bookingPostingId   String?
@@ -3987,23 +3946,22 @@ model p2p_requests {
   selectedVehicleId  String?
   driverName         String?
   driverPhone        String?
-  notes              String?            @db.Text
+  notes              String?               @db.Text
   loadType           String?
   goodsType          String?
   estimatedWeight    String?
-  pickupAddress      String?            @db.Text
-  dropAddress        String?            @db.Text
-  status             p2p_request_status @default(PENDING)
+  pickupAddress      String?               @db.Text
+  dropAddress        String?               @db.Text
+  status             p2p_request_status    @default(PENDING)
   respondedAt        DateTime?
-  createdAt          DateTime           @default(now())
-  updatedAt          DateTime           @updatedAt
-
-  vehiclePosting   p2p_vehicle_postings? @relation("p2p_requests_vehiclePosting", fields: [vehiclePostingId], references: [id])
-  bookingPosting   p2p_booking_postings? @relation("p2p_requests_bookingPosting", fields: [bookingPostingId], references: [id])
-  requestingVendor vendors              @relation("p2p_requests_requestingVendor", fields: [requestingVendorId], references: [id], onDelete: Cascade)
-  postingVendor    vendors              @relation("p2p_requests_postingVendor", fields: [postingVendorId], references: [id], onDelete: Cascade)
-  selectedVehicle  vendor_fleets?       @relation(fields: [selectedVehicleId], references: [id])
-  p2p_transactions p2p_transactions[]
+  createdAt          DateTime              @default(now())
+  updatedAt          DateTime              @updatedAt
+  bookingPosting     p2p_booking_postings? @relation("p2p_requests_bookingPosting", fields: [bookingPostingId], references: [id])
+  postingVendor      vendors               @relation("p2p_requests_postingVendor", fields: [postingVendorId], references: [id], onDelete: Cascade)
+  requestingVendor   vendors               @relation("p2p_requests_requestingVendor", fields: [requestingVendorId], references: [id], onDelete: Cascade)
+  selectedVehicle    vendor_fleets?        @relation(fields: [selectedVehicleId], references: [id])
+  vehiclePosting     p2p_vehicle_postings? @relation("p2p_requests_vehiclePosting", fields: [vehiclePostingId], references: [id])
+  p2p_transactions   p2p_transactions[]
 
   @@index([vehiclePostingId])
   @@index([bookingPostingId])
@@ -4011,6 +3969,7 @@ model p2p_requests {
   @@index([postingVendorId])
   @@index([postingType])
   @@index([status])
+  @@index([selectedVehicleId], map: "p2p_requests_selectedVehicleId_fkey")
 }
 
 model p2p_transactions {
@@ -4031,7 +3990,7 @@ model p2p_transactions {
   driverName         String?
   driverPhone        String?
   agreedAmount       Float
-  platformFeePercent Float                  @default(5.0)
+  platformFeePercent Float                  @default(5)
   platformFee        Float                  @default(0)
   vendorAEarning     Float                  @default(0)
   vendorBEarning     Float                  @default(0)
@@ -4045,13 +4004,12 @@ model p2p_transactions {
   notes              String?                @db.Text
   createdAt          DateTime               @default(now())
   updatedAt          DateTime               @updatedAt
-
-  vehiclePosting p2p_vehicle_postings? @relation("p2p_transactions_vehiclePosting", fields: [vehiclePostingId], references: [id])
-  bookingPosting p2p_booking_postings? @relation("p2p_transactions_bookingPosting", fields: [bookingPostingId], references: [id])
-  request        p2p_requests          @relation(fields: [requestId], references: [id])
-  vendorA        vendors               @relation("p2p_transactions_vendorA", fields: [vendorAId], references: [id], onDelete: Cascade)
-  vendorB        vendors               @relation("p2p_transactions_vendorB", fields: [vendorBId], references: [id], onDelete: Cascade)
-  p2p_ratings    p2p_ratings[]
+  p2p_ratings        p2p_ratings[]
+  bookingPosting     p2p_booking_postings?  @relation("p2p_transactions_bookingPosting", fields: [bookingPostingId], references: [id])
+  request            p2p_requests           @relation(fields: [requestId], references: [id])
+  vehiclePosting     p2p_vehicle_postings?  @relation("p2p_transactions_vehiclePosting", fields: [vehiclePostingId], references: [id])
+  vendorA            vendors                @relation("p2p_transactions_vendorA", fields: [vendorAId], references: [id], onDelete: Cascade)
+  vendorB            vendors                @relation("p2p_transactions_vendorB", fields: [vendorBId], references: [id], onDelete: Cascade)
 
   @@index([vendorAId])
   @@index([vendorBId])
@@ -4064,7 +4022,7 @@ model p2p_transactions {
 }
 
 model p2p_ratings {
-  id                  String   @id
+  id                  String           @id
   transactionId       String
   raterVendorId       String
   ratedVendorId       String
@@ -4073,12 +4031,11 @@ model p2p_ratings {
   driverRating        Float?
   communicationRating Float?
   paymentRating       Float?
-  review              String?  @db.Text
-  createdAt           DateTime @default(now())
-
-  transaction p2p_transactions @relation(fields: [transactionId], references: [id], onDelete: Cascade)
-  raterVendor vendors          @relation("p2p_ratings_rater", fields: [raterVendorId], references: [id], onDelete: Cascade)
-  ratedVendor vendors          @relation("p2p_ratings_rated", fields: [ratedVendorId], references: [id], onDelete: Cascade)
+  review              String?          @db.Text
+  createdAt           DateTime         @default(now())
+  ratedVendor         vendors          @relation("p2p_ratings_rated", fields: [ratedVendorId], references: [id], onDelete: Cascade)
+  raterVendor         vendors          @relation("p2p_ratings_rater", fields: [raterVendorId], references: [id], onDelete: Cascade)
+  transaction         p2p_transactions @relation(fields: [transactionId], references: [id], onDelete: Cascade)
 
   @@unique([transactionId, raterVendorId])
   @@index([transactionId])
@@ -4087,16 +4044,15 @@ model p2p_ratings {
 }
 
 model p2p_comments {
-  id               String               @id
+  id               String                @id
   postingType      p2p_posting_type
   vehiclePostingId String?
   bookingPostingId String?
   vendorId         String
-  message          String               @db.Text
-  createdAt        DateTime             @default(now())
-
-  vehiclePosting   p2p_vehicle_postings? @relation(fields: [vehiclePostingId], references: [id], onDelete: Cascade)
+  message          String                @db.Text
+  createdAt        DateTime              @default(now())
   bookingPosting   p2p_booking_postings? @relation(fields: [bookingPostingId], references: [id], onDelete: Cascade)
+  vehiclePosting   p2p_vehicle_postings? @relation(fields: [vehiclePostingId], references: [id], onDelete: Cascade)
   vendor           vendors               @relation("p2p_comments_vendor", fields: [vendorId], references: [id], onDelete: Cascade)
 
   @@index([vehiclePostingId])
@@ -4105,7 +4061,161 @@ model p2p_comments {
   @@index([createdAt])
 }
 
-// Enums for conversion tracking
+model vendor_booking_links {
+  id                     String                   @id @default(cuid())
+  vendorId               String
+  serviceType            String
+  isActive               Boolean                  @default(true)
+  formTitle              String?
+  welcomeMsg             String?                  @db.Text
+  visibleFields          String?                  @db.LongText
+  requireAdvance         Boolean                  @default(false)
+  advanceAmount          Float?
+  clickCount             Int                      @default(0)
+  bookingCount           Int                      @default(0)
+  createdAt              DateTime                 @default(now())
+  updatedAt              DateTime                 @updatedAt
+  vendor                 vendors                  @relation(fields: [vendorId], references: [id])
+  vendor_direct_bookings vendor_direct_bookings[]
+
+  @@unique([vendorId, serviceType])
+  @@index([vendorId])
+  @@index([isActive])
+}
+
+model vendor_direct_bookings {
+  id                String                           @id @default(cuid())
+  bookingNumber     String                           @unique
+  vendorId          String
+  bookingSource     String                           @default("manual")
+  linkId            String?
+  serviceType       String
+  vehicleType       String?
+  customerName      String
+  customerPhone     String
+  customerEmail     String?
+  pickupDate        DateTime?
+  returnDate        DateTime?
+  pickupLocation    String?                          @db.Text
+  dropLocation      String?                          @db.Text
+  notes             String?                          @db.Text
+  status            String                           @default("inquiry")
+  totalAmount       Float?
+  paymentStatus     String                           @default("pending")
+  paymentMode       String?
+  paidAmount        Float                            @default(0)
+  razorpayLinkId    String?
+  vendorNotes       String?                          @db.Text
+  assignedDriverId  String?
+  assignedVehicleId String?
+  assignedAt        DateTime?
+  createdAt         DateTime                         @default(now())
+  updatedAt         DateTime                         @updatedAt
+  expenses          vendor_direct_booking_expenses[]
+  assignedDriver    vendor_staff?                    @relation("direct_booking_driver", fields: [assignedDriverId], references: [id])
+  assignedVehicle   vendor_fleets?                   @relation("direct_booking_vehicle", fields: [assignedVehicleId], references: [id])
+  link              vendor_booking_links?            @relation(fields: [linkId], references: [id])
+  vendor            vendors                          @relation(fields: [vendorId], references: [id])
+
+  @@index([vendorId])
+  @@index([bookingNumber])
+  @@index([status])
+  @@index([createdAt])
+  @@index([bookingSource])
+  @@index([assignedDriverId])
+  @@index([assignedVehicleId])
+  @@index([linkId], map: "vendor_direct_bookings_linkId_fkey")
+}
+
+model vendor_direct_booking_expenses {
+  id          String                 @id @default(cuid())
+  bookingId   String
+  vendorId    String
+  category    String
+  amount      Float
+  note        String?                @db.Text
+  expenseDate DateTime               @default(now())
+  createdAt   DateTime               @default(now())
+  updatedAt   DateTime               @updatedAt
+  booking     vendor_direct_bookings @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  vendor      vendors                @relation(fields: [vendorId], references: [id])
+
+  @@index([bookingId])
+  @@index([vendorId])
+  @@index([expenseDate])
+  @@index([category])
+}
+
+model fleet_maintenance_records {
+  id              String        @id
+  vendorId        String
+  vendorFleetId   String
+  serviceType     String
+  description     String?       @db.Text
+  serviceDate     DateTime      @db.Date
+  odometerReading Int?
+  cost            Float         @default(0)
+  serviceProvider String?
+  notes           String?       @db.Text
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  vendor_fleets   vendor_fleets @relation(fields: [vendorFleetId], references: [id], onDelete: Cascade)
+  vendors         vendors       @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+
+  @@index([vendorId])
+  @@index([vendorFleetId])
+  @@index([serviceDate])
+}
+
+model fleet_incidents {
+  id               String        @id
+  vendorId         String
+  vendorFleetId    String
+  incidentDate     DateTime      @db.Date
+  incidentType     String
+  severity         String        @default("MINOR")
+  location         String?
+  description      String        @db.Text
+  estimatedCost    Float?
+  insuranceClaimed Boolean       @default(false)
+  status           String        @default("OPEN")
+  resolution       String?       @db.Text
+  resolvedAt       DateTime?
+  notes            String?       @db.Text
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  vendor_fleets    vendor_fleets @relation(fields: [vendorFleetId], references: [id], onDelete: Cascade)
+  vendors          vendors       @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+
+  @@index([vendorId])
+  @@index([vendorFleetId])
+  @@index([incidentDate])
+  @@index([status])
+}
+
+model fleet_fuel_records {
+  id              String        @id
+  vendorId        String
+  vendorFleetId   String
+  fuelDate        DateTime      @db.Date
+  fuelType        String?
+  quantity        Float
+  pricePerUnit    Float
+  totalCost       Float
+  odometerReading Int?
+  fuelStation     String?
+  paymentMode     String?
+  notes           String?       @db.Text
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  vendor_fleets   vendor_fleets @relation(fields: [vendorFleetId], references: [id], onDelete: Cascade)
+  vendors         vendors       @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+
+  @@index([vendorId])
+  @@index([vendorFleetId])
+  @@index([fuelDate])
+}
+
 enum conversion_events_eventType {
   PAGE_VISIT
   SEARCH
@@ -4670,211 +4780,6 @@ enum chauffeur_bookings_paymentStatus {
   REFUNDED
   FAILED
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Vendor Booking Links — shareable forms vendors send to their own clients
-// ─────────────────────────────────────────────────────────────────────────────
-
-model vendor_booking_links {
-  id             String   @id @default(cuid())
-  vendorId       String
-
-  // One link per service per vendor
-  serviceType    String   // 'bike' | 'bus' | 'car-with-driver' | 'self-drive' | 'luxury' | 'all'
-  isActive       Boolean  @default(true)
-
-  // Form customisation
-  formTitle      String?
-  welcomeMsg     String?  @db.Text
-  visibleFields  Json?    // ["name","phone","vehicle","dates","pickup","notes"]
-
-  // Optional advance payment on form submit
-  requireAdvance   Boolean @default(false)
-  advanceAmount    Float?
-
-  // Analytics
-  clickCount     Int      @default(0)
-  bookingCount   Int      @default(0)
-
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
-  vendor         vendors  @relation(fields: [vendorId], references: [id])
-  vendor_direct_bookings         vendor_direct_bookings[]
-
-  @@unique([vendorId, serviceType])
-  @@index([vendorId])
-  @@index([isActive])
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Vendor Direct Bookings — bookings added by vendor (walk-in / phone / form)
-// ─────────────────────────────────────────────────────────────────────────────
-
-model vendor_direct_bookings {
-  id             String   @id @default(cuid())
-  bookingNumber  String   @unique
-  vendorId       String
-
-  // How did this booking arrive?
-  bookingSource  String   @default("manual")  // 'manual' | 'shared_form'
-  linkId         String?  // FK to vendor_booking_links.id (if shared_form)
-
-  serviceType    String   // 'bike' | 'bus' | 'car-with-driver' | 'self-drive' | 'luxury'
-  vehicleType    String?
-
-  // Customer (no platform account needed)
-  customerName   String
-  customerPhone  String
-  customerEmail  String?
-
-  // Trip details
-  pickupDate     DateTime?
-  returnDate     DateTime?
-  pickupLocation String?  @db.Text
-  dropLocation   String?  @db.Text
-  notes          String?  @db.Text
-
-  // Booking status
-  status         String   @default("inquiry")
-  // inquiry → confirmed → in_progress → completed | rejected | cancelled
-
-  // Payment
-  totalAmount    Float?
-  paymentStatus  String   @default("pending")
-  // pending | partial | collected | link_sent | paid_online | waived
-  paymentMode    String?  // cash | upi | card | bank_transfer | razorpay_link
-  paidAmount     Float    @default(0)
-  razorpayLinkId String?
-
-  vendorNotes    String?  @db.Text
-
-  // Assignment
-  assignedDriverId  String?
-  assignedVehicleId String?
-  assignedAt        DateTime?
-
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
-  vendor          vendors               @relation(fields: [vendorId], references: [id])
-  link            vendor_booking_links? @relation(fields: [linkId], references: [id])
-  assignedDriver  vendor_staff?         @relation("direct_booking_driver",  fields: [assignedDriverId],  references: [id], onDelete: SetNull)
-  assignedVehicle vendor_fleets?        @relation("direct_booking_vehicle", fields: [assignedVehicleId], references: [id], onDelete: SetNull)
-  expenses        vendor_direct_booking_expenses[]
-
-  @@index([vendorId])
-  @@index([bookingNumber])
-  @@index([status])
-  @@index([createdAt])
-  @@index([bookingSource])
-  @@index([assignedDriverId])
-  @@index([assignedVehicleId])
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Vendor Direct Booking Expenses — per-booking cost tracking
-// ─────────────────────────────────────────────────────────────────────────────
-
-model vendor_direct_booking_expenses {
-  id          String   @id @default(cuid())
-  bookingId   String
-  vendorId    String
-
-  category    String   // fuel | driver_payment | toll | parking | maintenance | cleaning | other
-  amount      Float
-  note        String?  @db.Text
-  expenseDate DateTime @default(now())
-
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  booking  vendor_direct_bookings @relation(fields: [bookingId], references: [id], onDelete: Cascade)
-  vendor   vendors                @relation(fields: [vendorId],  references: [id])
-
-  @@index([bookingId])
-  @@index([vendorId])
-  @@index([expenseDate])
-  @@index([category])
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Fleet Management — Maintenance, Incidents, Fuel records (krisha)
-// ─────────────────────────────────────────────────────────────────────────────
-
-model fleet_maintenance_records {
-  id              String        @id
-  vendorId        String
-  vendorFleetId   String
-  serviceType     String
-  description     String?       @db.Text
-  serviceDate     DateTime      @db.Date
-  odometerReading Int?
-  cost            Float         @default(0)
-  serviceProvider String?
-  notes           String?       @db.Text
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-  vendors         vendors       @relation(fields: [vendorId], references: [id], onDelete: Cascade)
-  vendor_fleets   vendor_fleets @relation(fields: [vendorFleetId], references: [id], onDelete: Cascade)
-
-  @@index([vendorId])
-  @@index([vendorFleetId])
-  @@index([serviceDate])
-}
-
-model fleet_incidents {
-  id              String        @id
-  vendorId        String
-  vendorFleetId   String
-  incidentDate    DateTime      @db.Date
-  incidentType    String
-  severity        String        @default("MINOR")
-  location        String?
-  description     String        @db.Text
-  estimatedCost   Float?
-  insuranceClaimed Boolean      @default(false)
-  status          String        @default("OPEN")
-  resolution      String?       @db.Text
-  resolvedAt      DateTime?
-  notes           String?       @db.Text
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-  vendors         vendors       @relation(fields: [vendorId], references: [id], onDelete: Cascade)
-  vendor_fleets   vendor_fleets @relation(fields: [vendorFleetId], references: [id], onDelete: Cascade)
-
-  @@index([vendorId])
-  @@index([vendorFleetId])
-  @@index([incidentDate])
-  @@index([status])
-}
-
-model fleet_fuel_records {
-  id              String        @id
-  vendorId        String
-  vendorFleetId   String
-  fuelDate        DateTime      @db.Date
-  fuelType        String?
-  quantity        Float
-  pricePerUnit    Float
-  totalCost       Float
-  odometerReading Int?
-  fuelStation     String?
-  paymentMode     String?
-  notes           String?       @db.Text
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-  vendors         vendors       @relation(fields: [vendorId], references: [id], onDelete: Cascade)
-  vendor_fleets   vendor_fleets @relation(fields: [vendorFleetId], references: [id], onDelete: Cascade)
-
-  @@index([vendorId])
-  @@index([vendorFleetId])
-  @@index([fuelDate])
-}
-
-// ==========================================
-// P2P Marketplace Enums
-// ==========================================
 
 enum p2p_posting_status {
   ACTIVE

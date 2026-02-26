@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import { Comment } from '@/types/blog';
-import { fetchComments } from '@/lib/api/blog';
 import { CommentForm } from './CommentForm';
 import { MessageSquare, User } from 'lucide-react';
 import Image from 'next/image';
@@ -22,8 +21,11 @@ interface CommentSectionProps {
 
   const loadComments = async () => {
     try {
-      const data = await fetchComments(postId);
-      setComments(data);
+      const res = await fetch(`/api/blog/comments?postId=${encodeURIComponent(postId)}`);
+      if (res.ok) {
+        const data = await res.json();
+        setComments(data.comments || []);
+      }
     } catch (error) {
       console.error('Failed to load comments:', error);
     } finally {

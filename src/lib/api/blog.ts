@@ -1,6 +1,7 @@
 /**
  * Blog API Integration Layer
- * Currently uses mock data but structured for easy Laravel API swap
+ * SERVER ONLY — never import this in client components ('use client')
+ * Client components must use fetch('/api/blog/...') instead
  *
  * To switch to Laravel API:
  * 1. Update API_BASE_URL to your Laravel backend URL
@@ -66,6 +67,7 @@ import {
   fetchPopularTagsPrisma,
   fetchFeaturedPostsPrisma,
   searchBlogPostsPrisma,
+  fetchBlogServicesPrisma,
 } from './blog-prisma';
 
 /**
@@ -555,6 +557,18 @@ export async function fetchRelatedPosts(
   */
 
   return [];
+}
+
+/**
+ * Fetch service slugs that have published blog posts
+ */
+export async function fetchBlogServices(): Promise<{ slug: string; postCount: number }[]> {
+  try {
+    return await fetchBlogServicesPrisma();
+  } catch (error) {
+    console.error('Error fetching blog services:', error);
+    return [];
+  }
 }
 
 /**

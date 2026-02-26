@@ -76,8 +76,55 @@
   }
 
   .prose h2,
-  .prose h3 {
-    scroll-margin-top: 12rem;
+  .prose h3,
+  .prose h4 {
+    scroll-margin-top: 8rem;
+  }
+
+  /* Blog article typography — overrides global heading sizes */
+  .blog-content {
+    font-family: var(--font-blog-body), Georgia, serif;
+  }
+
+  .blog-content h1,
+  .blog-content h2,
+  .blog-content h3,
+  .blog-content h4 {
+    font-family: var(--font-blog-heading), Georgia, serif;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: #111827;
+    /* reset global responsive sizes */
+    font-size: unset;
+  }
+
+  .blog-content h2 {
+    font-size: 1.85rem;
+    line-height: 1.25;
+    margin-top: 3rem;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #f3f4f6;
+  }
+
+  .blog-content h3 {
+    font-size: 1.45rem;
+    line-height: 1.3;
+    margin-top: 2.25rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .blog-content p {
+    font-size: 1.0625rem;
+    line-height: 1.85;
+    color: #374151;
+    margin-top: 1.25rem;
+    margin-bottom: 1.25rem;
+  }
+
+  /* Tiptap outputs <br> between paragraphs — collapse excess spacing */
+  .blog-content br + br {
+    display: none;
   }
 
   h4 {
