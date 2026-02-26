@@ -110,6 +110,7 @@ export interface BlogFilters {
   author?: string;
   search?: string;
   sortBy?: 'latest' | 'popular' | 'oldest';
+  serviceSlug?: string | null;
 }
 
 export interface RelatedPost {

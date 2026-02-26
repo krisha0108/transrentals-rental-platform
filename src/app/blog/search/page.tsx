@@ -3,7 +3,6 @@
 import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { searchBlogPosts } from '@/lib/api/blog';
 import { BlogPost } from '@/types/blog';
 import { BlogGrid } from '@/components/blog/BlogGrid';
 import { BlogSearch } from '@/components/blog/BlogSearch';
@@ -25,8 +24,13 @@ function SearchContent() {
 
       setLoading(true);
       try {
-        const results = await searchBlogPosts(query, 50);
-        setPosts(results);
+        const res = await fetch(`/api/blog/search?q=${encodeURIComponent(query)}&limit=50`);
+        if (res.ok) {
+          const data = await res.json();
+          setPosts(data.posts || []);
+        } else {
+          setPosts([]);
+        }
       } catch (error) {
         console.error('Search error:', error);
         setPosts([]);

@@ -1,6 +1,8 @@
 /**
  * Blog API - Prisma Database Implementation
  * Fetches blog data from the local Prisma database (admin-created content)
+ * SERVER ONLY — never import this in 'use client' components directly.
+ * Client components must use fetch('/api/blog/...') instead.
  */
 
 import { prisma } from '@/lib/db/prisma';
@@ -71,21 +73,30 @@ function convertPrismaBlogPost(post: any): BlogPost {
         color: '#6B7280',
         icon: '📝',
       },
-    tags: post.tags && Array.isArray(post.tags)
-      ? (post.tags as string[]).map((tag: string) => ({
+    tags: (() => {
+      let rawTags: string[] = [];
+      if (post.tags) {
+        if (Array.isArray(post.tags)) {
+          rawTags = post.tags as string[];
+        } else if (typeof post.tags === 'string') {
+          try { rawTags = JSON.parse(post.tags); } catch { rawTags = []; }
+        }
+      }
+      return rawTags.map((tag: string) => ({
         id: tag,
         name: tag,
         slug: tag.toLowerCase().replace(/\s+/g, '-'),
         postCount: 0,
-      }))
-      : [],
+      }));
+    })(),
     author: {
       id: post.admin_users.id,
       name: post.admin_users.name,
       slug: post.admin_users.email.split('@')[0],
       email: post.admin_users.email,
-      bio: '',
-      avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(post.admin_users.name)}`,
+      role: 'Content Expert at TransRentals',
+      bio: `${post.admin_users.name} is a travel and vehicle rental expert at TransRentals, India's leading vehicle rental marketplace. With hands-on expertise in road trips, destination planning, and rental services across India, ${post.admin_users.name} creates practical and insightful guides to help travelers explore India's diverse landscapes with confidence — from Himalayan bike adventures to coastal road trips.`,
+      avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(post.admin_users.name)}&background=3B82F6&color=fff&size=200&bold=true`,
       socialLinks: {},
       postCount: 0,
     },
@@ -139,12 +150,18 @@ export async function fetchBlogPostsPrisma(
       tag,
       search,
       sortBy = 'latest',
+      serviceSlug,
     } = filters;
 
     // Build where clause
     const where: any = {
       status: 'PUBLISHED',
     };
+
+    // Filter by serviceSlug (undefined = all, null = general only, string = service-specific)
+    if (serviceSlug !== undefined) {
+      where.serviceSlug = serviceSlug;
+    }
 
     // Use AND array to combine multiple conditions
     const andConditions: any[] = [];
@@ -213,8 +230,15 @@ export async function fetchBlogPostsPrisma(
 
       // Filter posts that contain the tag (matching by slug or name)
       const filteredPosts = allPosts.filter((post) => {
-        if (!post.tags || !Array.isArray(post.tags)) return false;
-        return (post.tags as string[]).some((t) => {
+        let rawTags: string[] = [];
+        if (post.tags) {
+          if (Array.isArray(post.tags)) rawTags = post.tags as string[];
+          else if (typeof post.tags === 'string') {
+            try { rawTags = JSON.parse(post.tags); } catch { rawTags = []; }
+          }
+        }
+        if (!rawTags.length) return false;
+        return rawTags.some((t) => {
           const tLower = t.toLowerCase();
           const tSlug = t.toLowerCase().replace(/\s+/g, '-');
           return tLower === tagSlug ||
@@ -397,11 +421,17 @@ export async function fetchPopularTagsPrisma(limit: number = 15): Promise<Tag[]>
     // Count tag occurrences
     const tagCounts: Record<string, number> = {};
     posts.forEach((post: (typeof posts)[number]) => {
-      if (post.tags && Array.isArray(post.tags)) {
-        (post.tags as string[]).forEach((tag) => {
-          tagCounts[tag] = (tagCounts[tag] || 0) + 1;
-        });
+      let tags: string[] = [];
+      if (post.tags) {
+        if (Array.isArray(post.tags)) {
+          tags = post.tags as string[];
+        } else if (typeof post.tags === 'string') {
+          try { tags = JSON.parse(post.tags); } catch { tags = []; }
+        }
       }
+      tags.forEach((tag) => {
+        tagCounts[tag] = (tagCounts[tag] || 0) + 1;
+      });
     });
 
     // Convert to Tag array and sort by count
@@ -495,6 +525,41 @@ export async function searchBlogPostsPrisma(query: string, limit: number = 10): 
     return posts.map(convertPrismaBlogPost);
   } catch (error) {
     console.error('Error searching blog posts from Prisma:', error);
+    return [];
+  }
+}
+
+/**
+ * Fetch distinct service slugs that have published blog posts
+ */
+export async function fetchBlogServicesPrisma(): Promise<{ slug: string; postCount: number }[]> {
+  if (process.env.SKIP_DATABASE_CALLS === '1') {
+    return [];
+  }
+
+  try {
+    // Fetch all published posts that have a serviceSlug, then count in JS
+    // (avoids Prisma groupBy issues with nullable columns in MySQL)
+    const posts = await prisma.blog_posts.findMany({
+      where: {
+        status: 'PUBLISHED',
+        serviceSlug: { not: null },
+      },
+      select: { serviceSlug: true },
+    });
+
+    const counts: Record<string, number> = {};
+    for (const p of posts) {
+      if (p.serviceSlug) {
+        counts[p.serviceSlug] = (counts[p.serviceSlug] || 0) + 1;
+      }
+    }
+
+    return Object.entries(counts)
+      .map(([slug, postCount]) => ({ slug, postCount }))
+      .sort((a, b) => b.postCount - a.postCount);
+  } catch (error) {
+    console.error('Error fetching blog services from Prisma:', error);
     return [];
   }
 }

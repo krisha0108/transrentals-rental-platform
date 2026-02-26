@@ -179,7 +179,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                 </Link>
 
                 {/* Title */}
-                <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-6 leading-tight drop-shadow-lg">
+                <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-6 leading-tight drop-shadow-lg font-[family-name:var(--font-blog-heading)]">
                   {post.title}
                 </h1>
 
@@ -190,10 +190,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
 
                 {/* Meta Info */}
                 <div className="flex flex-wrap items-center gap-6">
-                  <Link
-                    href={`/blog/author/${post.author.slug}`}
-                    className="flex items-center gap-3 hover:opacity-80 transition-opacity"
-                  >
+                  <div className="flex items-center gap-3">
                     <div className="relative w-12 h-12 rounded-full overflow-hidden ring-2 ring-white/30">
                       <Image
                         src={post.author.avatar}
@@ -206,7 +203,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                       <div className="font-semibold text-white">{post.author.name}</div>
                       <div className="text-xs text-white/70">{post.author.role}</div>
                     </div>
-                  </Link>
+                  </div>
                   <div className="flex items-center gap-4 text-sm text-white/80">
                     <span className="flex items-center gap-1.5">
                       <Calendar size={16} />
@@ -251,20 +248,22 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
               <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
                 <div className="p-8 md:p-12">
                   <div
-                    className="prose prose-lg max-w-none
-                      prose-headings:font-bold prose-headings:text-gray-900
-                      prose-h2:text-3xl prose-h2:mt-10 prose-h2:mb-4
-                      prose-h3:text-2xl prose-h3:mt-8 prose-h3:mb-3
-                      prose-p:text-gray-700 prose-p:leading-relaxed prose-p:my-4
-                      prose-a:text-emerald-600 prose-a:no-underline hover:prose-a:underline
+                    className="prose prose-lg max-w-none blog-content
+                      [font-family:var(--font-blog-body)] text-gray-800
+                      prose-headings:[font-family:var(--font-blog-heading)] prose-headings:font-bold prose-headings:text-gray-900 prose-headings:tracking-tight
+                      prose-h2:text-[1.85rem] prose-h2:leading-snug prose-h2:mt-12 prose-h2:mb-4 prose-h2:pb-2 prose-h2:border-b prose-h2:border-gray-100
+                      prose-h3:text-[1.45rem] prose-h3:leading-snug prose-h3:mt-9 prose-h3:mb-3
+                      prose-p:text-[1.0625rem] prose-p:leading-[1.85] prose-p:text-gray-700 prose-p:my-5
+                      prose-a:text-emerald-600 prose-a:no-underline hover:prose-a:underline prose-a:font-medium
                       prose-strong:text-gray-900 prose-strong:font-semibold
-                      prose-ul:my-4 prose-ul:list-disc prose-ul:pl-6
-                      prose-ol:my-4 prose-ol:list-decimal prose-ol:pl-6
-                      prose-li:text-gray-700 prose-li:my-1
-                      prose-blockquote:border-l-4 prose-blockquote:border-emerald-500 prose-blockquote:pl-6 prose-blockquote:my-6 prose-blockquote:italic prose-blockquote:bg-emerald-50 prose-blockquote:py-4 prose-blockquote:pr-6 prose-blockquote:rounded-r-lg
-                      prose-code:text-emerald-600 prose-code:bg-emerald-50 prose-code:px-2 prose-code:py-1 prose-code:rounded-md prose-code:text-sm
-                      prose-pre:bg-gray-900 prose-pre:text-gray-100 prose-pre:p-6 prose-pre:rounded-xl prose-pre:my-6
-                      prose-img:rounded-xl prose-img:shadow-lg"
+                      prose-ul:my-5 prose-ul:list-disc prose-ul:pl-6 prose-ul:space-y-1
+                      prose-ol:my-5 prose-ol:list-decimal prose-ol:pl-6 prose-ol:space-y-1
+                      prose-li:text-gray-700 prose-li:leading-relaxed
+                      prose-blockquote:border-l-[3px] prose-blockquote:border-emerald-500 prose-blockquote:pl-6 prose-blockquote:my-8 prose-blockquote:italic prose-blockquote:bg-emerald-50/60 prose-blockquote:py-4 prose-blockquote:pr-6 prose-blockquote:rounded-r-xl prose-blockquote:text-gray-600 prose-blockquote:not-italic
+                      prose-code:text-emerald-700 prose-code:bg-emerald-50 prose-code:px-2 prose-code:py-0.5 prose-code:rounded-md prose-code:text-[0.875em] prose-code:font-medium
+                      prose-pre:bg-gray-900 prose-pre:text-gray-100 prose-pre:p-6 prose-pre:rounded-xl prose-pre:my-6 prose-pre:text-sm
+                      prose-img:rounded-xl prose-img:shadow-md prose-img:my-8
+                      prose-hr:border-gray-200 prose-hr:my-10"
                     dangerouslySetInnerHTML={{ __html: renderBlogContent(post.content) }}
                   />
                 </div>
@@ -345,7 +344,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
             author: {
               '@type': 'Person',
               name: post.author.name,
-              url: `https://transrentals.com/blog/author/${post.author.slug}`,
+              url: `https://transrentals.com/blog`,
             },
             publisher: {
               '@type': 'Organization',
