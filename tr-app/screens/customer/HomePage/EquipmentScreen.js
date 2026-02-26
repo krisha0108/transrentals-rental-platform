@@ -281,7 +281,7 @@ export default function EquipmentScreen() {
       const payload = {
         customerId: customerId || null,
         customerName: customerData?.name || 'Customer',
-        customerEmail: customerData?.email || 'customer@transrentals.in',
+        customerEmail: customerData?.email || 'book@transrentals.in',
         customerPhone: customerData?.phone || '',
         companyName: null,
         equipmentCategory: selectedEquipment?.name || 'Construction Equipment',

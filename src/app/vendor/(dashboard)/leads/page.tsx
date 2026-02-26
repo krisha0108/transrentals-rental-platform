@@ -71,7 +71,7 @@ const leadsData = [
   {
     id: 'L003',
     name: 'Mohammed Ali',
-    phone: '+91 76543 21098',
+    phone: '+91 97379 65551',
     email: 'mali@gmail.com',
     source: 'Google Ads',
     service: 'Packers & Movers',
@@ -88,7 +88,7 @@ const leadsData = [
   {
     id: 'L004',
     name: 'Sunita Patel',
-    phone: '+91 65432 10987',
+    phone: '+91 97379 65551',
     email: 'sunita.p@email.com',
     source: 'Walk-in',
     service: 'Self-Drive Cars',
@@ -107,7 +107,7 @@ const leadsData = [
   {
     id: 'L005',
     name: 'Tech Solutions Pvt Ltd',
-    phone: '+91 54321 09876',
+    phone: '+91 97379 65551',
     email: 'transport@techsol.com',
     source: 'LinkedIn',
     service: 'Truck & Logistics',
@@ -127,7 +127,7 @@ const leadsData = [
   {
     id: 'L006',
     name: 'Arun Deshmukh',
-    phone: '+91 43210 98765',
+    phone: '+91 97379 65551',
     email: 'arun.d@company.in',
     source: 'Phone Inquiry',
     service: 'Equipment Rental',
@@ -147,7 +147,7 @@ const leadsData = [
   {
     id: 'L007',
     name: 'Kavita Joshi',
-    phone: '+91 32109 87654',
+    phone: '+91 97379 65551',
     email: 'kavita.j@email.com',
     source: 'Instagram',
     service: 'Luxury Cars',

@@ -8,7 +8,7 @@ import {
   CalendarCheck,
   MapPin,
   Calendar,
-  Phone,
+
   Eye,
   Star,
   CheckCircle,
@@ -25,11 +25,11 @@ interface TruckBooking {
   id: string;
   bookingNumber: string;
   serviceType: string;
-  chauffeur_vehicle_categories: string;
+  vehicleCategory: string;
   vehicleName: string;
   goodsType: string;
   customerName: string;
-  customerPhone: string;
+
   pickupCity: string;
   dropCity: string;
   pickupDate: string;
@@ -213,7 +213,7 @@ export default function VendorTransporterBookingsPage() {
                         <Truck className="w-6 h-6 text-indigo-600" />
                       </div>
                       <div>
-                        <h3 className="font-bold text-gray-900">{booking.vehicleName || getCategoryName(booking.vehicle_category)}</h3>
+                        <h3 className="font-bold text-gray-900">{booking.vehicleName || getCategoryName(booking.vehicleCategory) || booking.vehicleCategory}</h3>
                         <p className="text-sm text-gray-500">{booking.goodsType || 'Transport'}</p>
                         <div className="flex items-center gap-1 text-sm text-gray-600 mt-1">
                           <MapPin className="w-4 h-4" />
@@ -252,10 +252,6 @@ export default function VendorTransporterBookingsPage() {
                     <div>
                       <span className="text-xs text-gray-500 uppercase tracking-wide">Customer</span>
                       <p className="font-medium text-gray-900">{booking.customerName}</p>
-                      <p className="text-sm text-gray-600 flex items-center gap-1">
-                        <Phone className="w-3 h-3" />
-                        {booking.customerPhone}
-                      </p>
                     </div>
                     {booking.vehicleNumber && (
                       <div>

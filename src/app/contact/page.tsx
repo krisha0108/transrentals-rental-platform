@@ -25,7 +25,7 @@ const contactMethods = [
   {
     icon: Mail,
     title: 'Email',
-    value: process.env.NEXT_PUBLIC_CONTACT_EMAIL || 'book@transrentals.com',
+    value: process.env.NEXT_PUBLIC_CONTACT_EMAIL || 'book@transrentals.in',
     link: `mailto:${process.env.NEXT_PUBLIC_CONTACT_EMAIL}`,
     description: 'Send us an email',
   },

@@ -5,7 +5,7 @@ const contactPhoneRaw =
   process.env.NEXT_PUBLIC_CONTACT_PHONE?.trim() || '+91 9737965551';
 const CONTACT_PHONE_DIGITS = contactPhoneRaw.replace(/\D+/g, '');
 const contactEmailRaw =
-  process.env.NEXT_PUBLIC_CONTACT_EMAIL?.trim() || 'support@transrentals.in';
+  process.env.NEXT_PUBLIC_CONTACT_EMAIL?.trim() || 'book@transrentals.in';
 const contactAddressRaw = process.env.NEXT_PUBLIC_CONTACT_ADDRESS?.trim() ?? '';
 const CONTACT_ADDRESS_DECODED =
   contactAddressRaw || '215, Galaxy Business, 2nd Floor, SP Ring Road, Ahmedabad, Gujarat-382350';

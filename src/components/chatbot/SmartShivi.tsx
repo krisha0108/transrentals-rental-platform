@@ -2945,69 +2945,64 @@ Ready to confirm?
 
       // Route to correct API based on service type
       if (['bike-on-rent', 'activa-on-rent', 'royal-enfield-on-rent'].includes(currentServiceType)) {
-        // BIKE RENTAL - Use /api/bike-bookings
+        // BIKE RENTAL - Use /api/bike-quote-requests (quote flow)
+        const bikeCategory = currentServiceType.includes('activa') ? 'Scooter' : currentServiceType.includes('royal') ? 'Cruiser' : 'Bike';
         const payload = {
           customerName: bookingData.name || '',
           customerEmail: bookingData.email || '',
           customerPhone: bookingData.phone || '',
           vehicleModelId: bookingData.selectedVehicleId || null,
-          vehicleName: bookingData.selectedVehicleName || currentServiceType,
-          vehicleCategory: currentServiceType.includes('activa') ? 'Scooter' : currentServiceType.includes('royal') ? 'Cruiser' : 'Bike',
+          vehicleModelName: bookingData.selectedVehicleName || null,
+          vehicleBrand: bookingData.selectedVehicleBrand || null,
+          vehicle_category: bikeCategory,
+          vehicleCategoryName: bikeCategory,
           locationId: bookingData.pickupLocationId || null,
-          locationSlug: bookingData.pickupLocation?.toLowerCase().replace(/\s+/g, '-') || '',
           locationName: bookingData.pickupLocation || '',
           pickupDate: bookingData.pickupDate,
           pickupTime: pickupTime24,
           dropDate: bookingData.returnDate,
           dropTime: returnTime24,
-          dailyRate: bookingData.selectedDailyRate || 299,
-          securityDeposit: bookingData.selectedDeposit || 2000,
-          vendorId: bookingData.selectedVendorId || null,
+          helmetsRequired: 1,
           customerNotes: bookingData.requirements || '',
-          broadcastToAll: !bookingData.selectedVendorId,
         };
 
-        console.log('Bike booking payload:', payload);
-
-        response = await fetch('/api/bike-bookings', {
+        response = await fetch('/api/bike-quote-requests', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
         });
         result = await response.json();
-        bookingId = result.booking?.bookingNumber || result.booking?.id || '';
-        dashboardUrl = '/customer/bike-bookings';
+        bookingId = result.request?.requestNumber || '';
+        dashboardUrl = '/customer/bike-quotes';
 
       } else if (['self-drive-car-rentals', 'self-drive-rental'].includes(currentServiceType)) {
-        // SELF-DRIVE - Use /api/self-drive-bookings
+        // SELF-DRIVE - Use /api/self-drive-quote-requests (quote flow)
         const payload = {
           customerName: bookingData.name || '',
           customerEmail: bookingData.email || '',
           customerPhone: bookingData.phone || '',
           vehicleModelId: bookingData.selectedVehicleId || null,
-          vehicleName: bookingData.selectedVehicleName || 'Self Drive Car',
+          vehicleModelName: bookingData.selectedVehicleName || null,
+          vehicleBrand: bookingData.selectedVehicleBrand || null,
+          vehicle_category: bookingData.selectedVehicleCategory || null,
+          vehicleCategoryName: bookingData.selectedVehicleCategoryName || null,
           locationId: bookingData.pickupLocationId || null,
-          locationSlug: bookingData.pickupLocation?.toLowerCase().replace(/\s+/g, '-') || '',
           locationName: bookingData.pickupLocation || '',
           pickupDate: bookingData.pickupDate,
           pickupTime: pickupTime24,
           dropDate: bookingData.returnDate,
           dropTime: returnTime24,
-          dailyRate: bookingData.selectedDailyRate || 1499,
-          securityDeposit: bookingData.selectedDeposit || 5000,
-          vendorId: bookingData.selectedVendorId || null,
-          vendorFleetId: bookingData.selectedVendorFleetId || null,
           customerNotes: bookingData.requirements || '',
         };
 
-        response = await fetch('/api/self-drive-bookings', {
+        response = await fetch('/api/self-drive-quote-requests', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
         });
         result = await response.json();
-        bookingId = result.booking?.bookingNumber || result.booking?.id || '';
-        dashboardUrl = '/customer/car-rental-bookings';
+        bookingId = result.request?.requestNumber || '';
+        dashboardUrl = '/customer/self-drive-quotes';
 
       } else if (['outstation-car-rental', 'one-way-car-rental', 'airport-transfer', 'local-taxi'].includes(currentServiceType)) {
         // CAR WITH DRIVER - Use /api/car-rental/bookings
@@ -3324,7 +3319,7 @@ Ready to confirm?
       const isFirstBooking = bookingHistory === 0;
 
       // Determine message based on service type
-      const isQuoteBased = ['bus-rental', 'tempo-traveller', 'corporate-bus-rental', 'wedding-bus-rental', 'mini-truck-rental', 'transporter', 'trailer-on-rent', 'packers-and-movers', 'equipment-rental', 'jcb-on-rent'].includes(currentServiceType);
+      const isQuoteBased = ['bike-on-rent', 'activa-on-rent', 'royal-enfield-on-rent', 'self-drive-car-rentals', 'self-drive-rental', 'bus-rental', 'tempo-traveller', 'corporate-bus-rental', 'wedding-bus-rental', 'mini-truck-rental', 'transporter', 'trailer-on-rent', 'packers-and-movers', 'equipment-rental', 'jcb-on-rent'].includes(currentServiceType);
 
       const successMessage = isQuoteBased
         ? `Quote Request Submitted, ${firstName}!\n\n${isFirstBooking ? 'Welcome to TransRentals! ' : ''}Your request has been sent to verified vendors.\n\nRequest ID: #${bookingId}\n\nWhat Happens Next:\n• Vendors will send quotes within 30 minutes\n• Compare quotes and select the best one\n• Confirmation via email (${bookingData.email})\n\n🎯 Go to your dashboard to track quotes.`

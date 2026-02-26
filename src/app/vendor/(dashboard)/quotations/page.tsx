@@ -54,7 +54,7 @@ const quotationsData = [
   {
     id: 'Q2024-002',
     customerName: 'Priya Sharma',
-    customerPhone: '+91 87654 32109',
+    customerPhone: '+91 97379 65551',
     customerEmail: 'priya.sharma@company.com',
     service: 'Corporate Cars',
     items: [
@@ -76,7 +76,7 @@ const quotationsData = [
   {
     id: 'Q2024-003',
     customerName: 'Mohammed Ali',
-    customerPhone: '+91 76543 21098',
+    customerPhone: '+91 97379 65551',
     customerEmail: 'mali@gmail.com',
     service: 'Packers & Movers',
     items: [
@@ -95,7 +95,7 @@ const quotationsData = [
   {
     id: 'Q2024-004',
     customerName: 'Tech Solutions Pvt Ltd',
-    customerPhone: '+91 54321 09876',
+    customerPhone: '+91 97379 65551',
     customerEmail: 'transport@techsol.com',
     service: 'Truck & Logistics',
     items: [
@@ -114,7 +114,7 @@ const quotationsData = [
   {
     id: 'Q2024-005',
     customerName: 'Kavita Joshi',
-    customerPhone: '+91 32109 87654',
+    customerPhone: '+91 97379 65551',
     customerEmail: 'kavita.j@email.com',
     service: 'Luxury Cars',
     items: [
@@ -136,7 +136,7 @@ const quotationsData = [
   {
     id: 'Q2024-006',
     customerName: 'Arun Deshmukh',
-    customerPhone: '+91 43210 98765',
+    customerPhone: '+91 97379 65551',
     customerEmail: 'arun.d@company.in',
     service: 'Equipment Rental',
     items: [

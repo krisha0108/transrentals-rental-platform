@@ -7,7 +7,7 @@ import {
   CalendarCheck,
   MapPin,
   Calendar,
-  Phone,
+
   Eye,
   Star,
   CheckCircle,
@@ -29,7 +29,7 @@ interface TrailerBooking {
   toCity: string;
   loadingDate: string;
   customerName: string;
-  customerPhone: string;
+
   totalAmount: number;
   advancePaid: number;
   balanceAmount: number;
@@ -59,7 +59,7 @@ const SAMPLE_BOOKINGS: TrailerBooking[] = [
     toCity: 'Hyderabad',
     loadingDate: new Date(Date.now() + 4 * 86400000).toISOString(),
     customerName: 'Metro Construction',
-    customerPhone: '9737965551',
+
     totalAmount: 85000,
     advancePaid: 42500,
     balanceAmount: 42500,
@@ -77,7 +77,7 @@ const SAMPLE_BOOKINGS: TrailerBooking[] = [
     toCity: 'Mumbai',
     loadingDate: new Date(Date.now() - 5 * 86400000).toISOString(),
     customerName: 'Steel Corp India',
-    customerPhone: '9876543211',
+
     totalAmount: 125000,
     advancePaid: 125000,
     balanceAmount: 0,
@@ -241,9 +241,6 @@ export default function VendorTrailerBookingsPage() {
                     <div>
                       <span className="text-xs text-gray-500 uppercase">Customer</span>
                       <p className="font-medium text-gray-900">{booking.customerName}</p>
-                      <p className="text-sm text-gray-600 flex items-center gap-1">
-                        <Phone className="w-3 h-3" />{booking.customerPhone}
-                      </p>
                     </div>
                     {booking.vehicleNumber && (
                       <div>

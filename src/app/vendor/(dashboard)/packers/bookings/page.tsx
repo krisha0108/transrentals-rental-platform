@@ -29,7 +29,7 @@ interface PackersBooking {
   serviceType: string;
   shiftingType: string;
   customerName: string;
-  customerPhone: string;
+
   pickupCity: string;
   pickupAddress: string;
   pickupFloor?: number;
@@ -344,10 +344,6 @@ export default function VendorPackersBookingsPage() {
                     <div>
                       <span className="text-xs text-gray-500 uppercase tracking-wide">Customer</span>
                       <p className="font-medium text-gray-900">{booking.customerName}</p>
-                      <p className="text-sm text-gray-600 flex items-center gap-1">
-                        <Phone className="w-3 h-3" />
-                        {booking.customerPhone}
-                      </p>
                     </div>
                     {booking.teamLeaderName && (
                       <div>

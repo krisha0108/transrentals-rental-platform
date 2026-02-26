@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import {
   Car,
   Calendar,
@@ -17,6 +18,7 @@ import {
   Flag,
   Key,
   RefreshCw,
+  Eye,
 } from 'lucide-react';
 
 interface ActiveBooking {
@@ -265,7 +267,7 @@ export default function VendorLuxuryActivePage() {
                       </div>
                       <div>
                         <h3 className="font-bold text-gray-900">
-                          {booking.assignedVehicle || booking.specificVehicle || booking.vehiclePreference || booking.vehicle_category}
+                          {booking.assignedVehicle || booking.specificVehicle || booking.vehiclePreference || booking.vehicleCategoryName || booking.chauffeur_vehicle_categories}
                         </h3>
                         <p className="text-sm text-gray-500">
                           {booking.dropCity
@@ -315,9 +317,6 @@ export default function VendorLuxuryActivePage() {
                       <div>
                         <p className="text-xs text-gray-500">Guest</p>
                         <p className="text-sm font-medium">{booking.customerName}</p>
-                        <a href={`tel:${booking.customerPhone}`} className="text-xs text-amber-600">
-                          {booking.customerPhone}
-                        </a>
                       </div>
                     </div>
                   </div>
@@ -383,16 +382,10 @@ export default function VendorLuxuryActivePage() {
                     )}
 
                     {['CHAUFFEUR_ASSIGNED', 'EN_ROUTE_PICKUP', 'ARRIVED_PICKUP'].includes(booking.status) && (
-                      <button
-                        onClick={() => {
-                          const otp = prompt('Enter OTP shared by guest:');
-                          if (otp) handleStartTrip(booking.id, otp);
-                        }}
-                        className="px-5 py-2.5 bg-purple-600 text-white font-medium rounded-lg hover:bg-purple-700 transition flex items-center gap-2"
-                      >
-                        <Play className="w-5 h-5" />
-                        Start Trip
-                      </button>
+                      <div className="w-full px-4 py-3 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-700 flex items-center gap-2">
+                        <span>🚗</span>
+                        <span>Trip will be started by your assigned chauffeur. You will see all status updates here.</span>
+                      </div>
                     )}
 
                     {['TRIP_STARTED', 'EN_ROUTE_DROP'].includes(booking.status) && (
@@ -405,13 +398,14 @@ export default function VendorLuxuryActivePage() {
                       </button>
                     )}
 
-                    <a
-                      href={`tel:${booking.customerPhone}`}
-                      className="px-4 py-2.5 bg-gray-100 text-gray-700 font-medium rounded-lg hover:bg-gray-200 transition flex items-center gap-2"
+                    <Link
+                      href={`/vendor/luxury/bookings/${booking.id}`}
+                      className="px-5 py-2.5 bg-gray-100 text-gray-700 font-medium rounded-lg hover:bg-gray-200 transition flex items-center gap-2"
                     >
-                      <Phone className="w-5 h-5" />
-                      Call Guest
-                    </a>
+                      <Eye className="w-5 h-5" />
+                      View Details
+                    </Link>
+
                   </div>
                 </div>
               </div>

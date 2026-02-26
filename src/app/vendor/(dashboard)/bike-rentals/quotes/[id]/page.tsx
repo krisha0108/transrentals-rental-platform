@@ -28,7 +28,7 @@ interface Quote {
   quoteNumber: string;
   vehicleName: string;
   vehicleBrand?: string;
-  vehicle_category?: string;
+  vehicleCategory?: string;
   registrationNumber?: string;
   vehicleYear?: number;
   vehicleImages?: string;
@@ -256,10 +256,10 @@ export default function VendorBikeQuoteDetailPage() {
                   <p className="font-medium">{quote.vehicleBrand}</p>
                 </div>
               )}
-              {quote.vehicle_category && (
+              {quote.vehicleCategory && (
                 <div>
                   <p className="text-sm text-gray-500">Category</p>
-                  <p className="font-medium">{quote.vehicle_category}</p>
+                  <p className="font-medium">{quote.vehicleCategory}</p>
                 </div>
               )}
               {quote.registrationNumber && (

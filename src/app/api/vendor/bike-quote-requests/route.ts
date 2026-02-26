@@ -16,30 +16,12 @@ export async function GET(request: NextRequest) {
     }
     const vendorId = auth.vendorId;
 
-    // Get vendor with approved locations and services
+    // Get vendor with approved locations
     const vendor = await prisma.vendors.findFirst({
       where: { id: vendorId },
       select: {
         id: true,
         vendor_approved_locations: { select: { locationId: true } },
-        vendor_approved_services: {
-          where: {
-            isActive: true,
-            services: { slug: 'bike-on-rent' },
-          },
-          select: { serviceId: true },
-        },
-        vendor_fleets: {
-          where: {
-            isActive: true,
-            services: { slug: 'bike-on-rent' },
-          },
-          select: {
-            id: true,
-            vehicleCategoryId: true,
-            chauffeur_vehicle_categories: { select: { slug: true } },
-          },
-        },
       },
     });
 
@@ -47,23 +29,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Vendor not found' }, { status: 404 });
     }
 
-    // Check if vendor is approved for bike-on-rent service
-    if (vendor.vendor_approved_services.length === 0) {
-      return NextResponse.json({
-        success: true,
-        message: 'You are not approved for bike rental service',
-        requests: [],
-        pagination: { page: 1, limit: 20, total: 0, totalPages: 0 },
-      });
-    }
-
     const approvedLocationIds = vendor.vendor_approved_locations.map((l) => l.locationId);
-    const fleetCategorySlugs = vendor.vendor_fleets
-      .map((f) => f.chauffeur_vehicle_categories?.slug)
-      .filter(Boolean);
-    const fleetCategoryIds = vendor.vendor_fleets
-      .map((f) => f.vehicleCategoryId)
-      .filter(Boolean);
 
     const { searchParams } = new URL(request.url);
     const type = searchParams.get('type'); // 'open', 'quoted', 'won', 'lost'
@@ -76,19 +42,6 @@ export async function GET(request: NextRequest) {
     const endDate = searchParams.get('endDate');
 
     let whereClause: any = {};
-
-    // Build category filter - if vendor has no fleet, show all requests
-    // Otherwise filter by matching categories (supports both slug and ID matching)
-    const hasCategoryFilter = fleetCategorySlugs.length > 0 || fleetCategoryIds.length > 0;
-    const categoryFilter = hasCategoryFilter
-      ? {
-          OR: [
-            { vehicleCategory: null },
-            { vehicleCategory: { in: fleetCategorySlugs } },
-            { vehicleCategory: { in: fleetCategoryIds } },
-          ],
-        }
-      : {}; // No category filter if vendor has no fleet - show all requests
 
     // DATE FILTERING
     const dateFilter: any = {};
@@ -107,12 +60,10 @@ export async function GET(request: NextRequest) {
 
     if (type === 'open') {
       // Open requests - vendor hasn't quoted yet
-      // Must match: location + (no category OR matching category if vendor has fleet)
       whereClause = {
         status: { in: ['PENDING', 'QUOTES_RECEIVED'] },
         quotesOpenTill: { gte: new Date() },
         locationId: { in: approvedLocationIds },
-        ...categoryFilter,
         ...dateFilter,
         bike_quotes_bike_quotes_requestIdTobike_quote_requests: {
           none: { vendorId: vendorId },
@@ -161,8 +112,7 @@ export async function GET(request: NextRequest) {
             status: { in: ['PENDING', 'QUOTES_RECEIVED'] },
             quotesOpenTill: { gte: new Date() },
             locationId: { in: approvedLocationIds },
-            ...categoryFilter,
-            ...dateFilter, // ✅ Add date filter here
+            ...dateFilter,
           },
           // Requests vendor has quoted on
           {
@@ -208,6 +158,7 @@ export async function GET(request: NextRequest) {
         vehicleCategoryName: r.vehicleCategoryName,
         customerName: r.customerName,
         customerPhone: r.customerPhone,
+        customerEmail: r.customerEmail,
         locationId: r.locationId,
         locationName: r.locationName,
         location: r.locations,

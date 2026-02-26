@@ -66,7 +66,7 @@ const mockCustomers = [
   {
     id: '3',
     name: 'Amit Patel',
-    phone: '+91 98765 43212',
+    phone: '+91 97379 65551',
     email: 'amit.patel@email.com',
     type: 'individual',
     tags: ['Regular'],
@@ -83,7 +83,7 @@ const mockCustomers = [
   {
     id: '4',
     name: 'Wedding Planners Inc',
-    phone: '+91 98765 43213',
+    phone: '+91 97379 65551',
     email: 'bookings@weddingplanners.com',
     type: 'corporate',
     tags: ['Wedding Partner', 'Premium'],
@@ -100,7 +100,7 @@ const mockCustomers = [
   {
     id: '5',
     name: 'Priya Desai',
-    phone: '+91 98765 43214',
+    phone: '+91 97379 65551',
     email: 'priya.desai@email.com',
     type: 'individual',
     tags: ['New'],

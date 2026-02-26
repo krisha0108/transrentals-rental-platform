@@ -7,7 +7,6 @@ import {
   Clock,
   MapPin,
   User,
-  Phone,
   Bike,
   CheckCircle,
   XCircle,
@@ -28,7 +27,6 @@ import { cn } from '@/lib/utils';
 import { useVendorBookings } from '@/hooks/useVendorBookings';
 import { useSession } from 'next-auth/react';
 import { NewBookingNotification } from '@/components/vendor/NewBookingNotification';
-import { AcceptBookingModal } from '@/components/vendor/AcceptBookingModal';
 import { BookingNotification } from '@/lib/socket/types';
 import Pagination from '@/components/vendor/Pagination';
 import DateFilterDropdown from '@/components/vendor/DateFilterDropdown';
@@ -127,11 +125,9 @@ export default function VendorBikeBookingsPage() {
   const [vendorId, setVendorId] = useState<string | null>(null);
   const [vendor_fleet, setVendorFleet] = useState<VehicleOption[]>([]);
 
-  // Modal states
+  // Notification states
   const [showNotification, setShowNotification] = useState(false);
   const [latestNotification, setLatestNotification] = useState<BookingNotification | null>(null);
-  const [acceptModalOpen, setAcceptModalOpen] = useState(false);
-  const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [soundEnabled, setSoundEnabled] = useState(true);
 
   // Pagination state
@@ -236,88 +232,6 @@ export default function VendorBikeBookingsPage() {
     playSound: soundEnabled,
   });
 
-  // Handle accept from notification
-  const handleAcceptFromNotification = () => {
-    if (latestNotification) {
-      // Find the booking in the list or create a temporary one
-      const existingBooking = bookings.find(
-        (b) => b.id === latestNotification.bookingId
-      );
-
-      if (existingBooking) {
-        setSelectedBooking(existingBooking);
-      } else {
-        // Create temporary booking from notification
-        setSelectedBooking({
-          id: latestNotification.bookingId,
-          bookingNumber: latestNotification.bookingNumber,
-          customerName: latestNotification.customerName,
-          customerPhone: '',
-          vehicleName: latestNotification.vehicle_modelsName,
-          locationId: latestNotification.locationId,
-          locationName: latestNotification.locationName,
-          pickupDate: latestNotification.pickupDate,
-          pickupTime: latestNotification.pickupTime,
-          dropDate: latestNotification.dropDate,
-          dropTime: latestNotification.dropTime,
-          totalDays: latestNotification.totalDays,
-          dailyRate: latestNotification.estimatedAmount / latestNotification.totalDays,
-          totalAmount: latestNotification.estimatedAmount,
-          grandTotal: latestNotification.estimatedAmount,
-          status: 'BROADCASTED',
-          type: 'open',
-          createdAt: latestNotification.createdAt,
-          requestedModelId: latestNotification.vehicle_modelsId,
-        });
-      }
-
-      setShowNotification(false);
-      setAcceptModalOpen(true);
-    }
-  };
-
-  // Handle accept booking
-  const handleAcceptBooking = async (data: {
-    vehicleId: string;
-    vehicleName: string;
-    customRate?: number;
-  }) => {
-    if (!selectedBooking) return;
-
-    const response = await fetch(
-      `/api/vendor/bike-bookings/${selectedBooking.id}/accept`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      }
-    );
-
-    const result = await response.json();
-
-    if (!response.ok) {
-      const error = new Error(result.error || 'Failed to accept booking');
-      (error as any).status = response.status;
-      throw error;
-    }
-
-    // Update local state
-    setBookings((prev) =>
-      prev.map((b) =>
-        b.id === selectedBooking.id ? { ...b, status: 'ACCEPTED' } : b
-      )
-    );
-
-    // Remove from pending notifications
-    if (lastNotification?.bookingId === selectedBooking.id) {
-      clearLastNotification();
-    }
-    removeBooking(selectedBooking.id);
-
-    // Refresh data
-    fetchData();
-  };
-
   // Filter bookings
   const filteredBookings = bookings
     .filter((booking) => {
@@ -361,23 +275,11 @@ export default function VendorBikeBookingsPage() {
       <NewBookingNotification
         booking={latestNotification}
         isVisible={showNotification}
-        onAccept={handleAcceptFromNotification}
+        onAccept={() => setShowNotification(false)}
         onDismiss={() => {
           setShowNotification(false);
           clearLastNotification();
         }}
-      />
-
-      {/* Accept Booking Modal */}
-      <AcceptBookingModal
-        isOpen={acceptModalOpen}
-        onClose={() => {
-          setAcceptModalOpen(false);
-          setSelectedBooking(null);
-        }}
-        booking={selectedBooking}
-        vehicles={vendor_fleet}
-        onAccept={handleAcceptBooking}
       />
 
       {/* Header */}
@@ -640,10 +542,6 @@ export default function VendorBikeBookingsPage() {
                         <span>{booking.customerName}</span>
                       </div>
                       <div className="flex items-center gap-2 text-gray-600">
-                        <Phone className="w-4 h-4" />
-                        <span>{booking.customerPhone}</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-gray-600">
                         <Bike className="w-4 h-4" />
                         <span>{booking.vehicleName}</span>
                       </div>
@@ -673,29 +571,6 @@ export default function VendorBikeBookingsPage() {
                     </div>
 
                     <div className="flex gap-2">
-                      {(booking.status === 'PENDING_VENDOR' || booking.status === 'BROADCASTED' || booking.status === 'PAYMENT_VERIFIED') && (
-                        <>
-                          <Button
-                            size="sm"
-                            className="bg-green-600 hover:bg-green-700"
-                            onClick={() => {
-                              setSelectedBooking(booking);
-                              setAcceptModalOpen(true);
-                            }}
-                          >
-                            <CheckCircle className="w-4 h-4 mr-1" />
-                            Accept
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="text-red-600 border-red-200"
-                          >
-                            <XCircle className="w-4 h-4 mr-1" />
-                            Reject
-                          </Button>
-                        </>
-                      )}
                       <Link href={`/vendor/bike-rentals/bookings/${booking.id}`}>
                         <Button size="sm" variant="outline">
                           View Details

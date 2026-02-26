@@ -5,7 +5,6 @@ import {
   CalendarCheck,
   MapPin,
   User,
-  Phone,
   Bike,
   CheckCircle,
   AlertTriangle,
@@ -306,10 +305,6 @@ export default function VendorOpenRequestsPage() {
                             <span>{request.customerName}</span>
                           </div>
                           <div className="flex items-center gap-2">
-                            <Phone className="w-4 h-4 text-gray-400" />
-                            <span>{request.customerPhone}</span>
-                          </div>
-                          <div className="flex items-center gap-2">
                             <MapPin className="w-4 h-4 text-gray-400" />
                             <span>{request.locationName}</span>
                           </div>
@@ -327,7 +322,7 @@ export default function VendorOpenRequestsPage() {
                             <p className="font-medium text-gray-900">
                               {request.vehicleBrand} {request.vehicleName}
                             </p>
-                            <p className="text-sm text-gray-500">{request.vehicle_category}</p>
+                            <p className="text-sm text-gray-500">{request.chauffeur_vehicle_categories}</p>
                           </div>
                         </div>
                       </div>

@@ -47,7 +47,7 @@ const TIMELINE = [
 
 const CONTACT_ISSUES = [
   'Track refunds with your booking ID inside the dashboard or app.',
-  'If the timeline slips, share the reference ID via SmartShivi or privacy@transrentals.in.',
+  'If the timeline slips, share the reference ID via SmartShivi or book@transrentals.in.',
   'Premium customers get a dedicated manager for faster reconciliation.',
 ];
 

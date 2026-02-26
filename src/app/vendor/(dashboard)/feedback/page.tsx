@@ -101,7 +101,7 @@ const mockReviews: Review[] = [
   {
     id: 'R003',
     bookingId: 'BK-2024-0132',
-    customer: { name: 'Amit Patel', phone: '+91 98765 43212', email: 'amit@email.com' },
+    customer: { name: 'Amit Patel', phone: '+91 97379 65551', email: 'amit@email.com' },
     vehicle: { name: 'Maruti Swift', number: 'KA-01-CD-5678' },
     serviceType: 'Self-Drive',
     tripDate: '2024-01-12',
@@ -119,7 +119,7 @@ const mockReviews: Review[] = [
   {
     id: 'R004',
     bookingId: 'BK-2024-0128',
-    customer: { name: 'Sneha Reddy', phone: '+91 98765 43213', email: 'sneha@email.com' },
+    customer: { name: 'Sneha Reddy', phone: '+91 97379 65551', email: 'sneha@email.com' },
     vehicle: { name: 'Toyota Fortuner', number: 'KA-01-IJ-7890' },
     driver: 'Vijay Shetty',
     serviceType: 'Wedding Car',

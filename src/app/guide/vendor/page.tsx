@@ -83,7 +83,7 @@ function RegStep1Mock() {
                 <Field label="Owner / Director Name" value="Rajesh Sharma" pin={2} color="blue" />
                 <div className="grid grid-cols-2 gap-3">
                     <Field label="Email Address" value="rajesh@sharmatravels.com" />
-                    <Field label="Phone Number" value="+91 98765 43210" pin={3} color="blue" />
+                    <Field label="Phone Number" value="+91 97379 65551" pin={3} color="blue" />
                 </div>
                 <div className="bg-blue-600 text-white rounded-lg py-2 text-center text-xs font-bold mt-1">
                     Continue to Step 2 →

@@ -233,7 +233,7 @@ const openAndroidPicker = () => {
       const payload = {
         customerId: customerId || null,
         customerName: customerData?.name || 'Customer',
-        customerEmail: customerData?.email || 'customer@transrentals.in',
+        customerEmail: customerData?.email || 'book@transrentals.in',
         customerPhone: customerData?.phone || '',
         serviceType: activeType === 'home' ? 'home-intercity' : activeType === 'office' ? 'office' : 'vehicle',
         shiftingType: selectedOption?.value || selectedOption?.label,

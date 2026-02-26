@@ -288,7 +288,7 @@ export async function GET(
 
     <div class="footer">
       <p style="margin-bottom: 10px;">Thank you for choosing TransRentals!</p>
-      <p>For support, contact us at support@transrentals.in | +91 9737965551</p>
+      <p>For support, contact us at book@transrentals.in | +91 9737965551</p>
       <p style="margin-top: 15px; font-size: 11px; color: #999;">
         This is a computer-generated invoice and does not require a signature.
       </p>

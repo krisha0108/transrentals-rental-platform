@@ -8,7 +8,6 @@ import {
   ArrowLeft,
   Car,
   User,
-  Phone,
   Mail,
   MapPin,
   Calendar,
@@ -351,17 +350,6 @@ export default function VendorBookingDetailPage() {
                 </div>
               </div>
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                  <Phone className="w-5 h-5 text-green-600" />
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Phone</p>
-                  <a href={`tel:${booking.customerPhone}`} className="font-medium text-green-600 hover:underline">
-                    {booking.customerPhone}
-                  </a>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
                   <Mail className="w-5 h-5 text-blue-600" />
                 </div>
@@ -383,22 +371,6 @@ export default function VendorBookingDetailPage() {
 
             {/* Quick Actions */}
             <div className="mt-4 pt-4 border-t flex gap-3">
-              <a
-                href={`tel:${booking.customerPhone}`}
-                className="flex-1 flex items-center justify-center gap-2 py-3 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition"
-              >
-                <Phone className="w-5 h-5" />
-                Call
-              </a>
-              <a
-                href={`https://wa.me/${booking.customerPhone.replace(/\D/g, '')}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex-1 flex items-center justify-center gap-2 py-3 bg-emerald-100 text-emerald-700 rounded-lg hover:bg-emerald-200 transition"
-              >
-                <MessageCircle className="w-5 h-5" />
-                WhatsApp
-              </a>
               <button
                 onClick={() => setShowChat(true)}
                 className="flex-1 flex items-center justify-center gap-2 py-3 bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition"

@@ -8,7 +8,6 @@ import {
   Calendar,
   Clock,
   MapPin,
-  Phone,
   User,
   Mail,
   CheckCircle,
@@ -95,6 +94,21 @@ const EQUIPMENT_CATEGORIES: Record<string, string> = {
   'generator': 'Generator',
   'concrete-mixer': 'Concrete Mixer',
   'scaffolding': 'Scaffolding',
+};
+
+// Equipment type ID to name mapping (IDs from customer booking form)
+const EQUIPMENT_TYPE_NAMES: Record<string, string> = {
+  '1': 'Grove Crane',
+  '2': 'Truck Mounted Crane',
+  '3': 'Tower Crane',
+  '4': 'Telescopic Crane',
+  '5': 'Rough Terrain Crane',
+  '6': 'Overhead Crane',
+  '7': 'Bulldozer',
+  '8': 'Dumper',
+  '9': 'Loader',
+  '10': 'Excavators',
+  '11': 'Backhoe Loader',
 };
 
 export default function VendorEquipmentBookingDetailPage() {
@@ -260,7 +274,7 @@ export default function VendorEquipmentBookingDetailPage() {
                   <Wrench className="w-6 h-6 text-amber-600" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold text-gray-900">{booking.equipmentName}</h2>
+                  <h2 className="text-xl font-bold text-gray-900">{EQUIPMENT_TYPE_NAMES[booking.equipmentName] || booking.equipmentName}</h2>
                   <p className="text-gray-600">{getEquipmentCategoryName(booking.equipmentCategory)}</p>
                 </div>
               </div>
@@ -316,15 +330,6 @@ export default function VendorEquipmentBookingDetailPage() {
                 <div>
                   <p className="text-xs text-gray-500">Name</p>
                   <p className="font-medium">{booking.customerName}</p>
-                </div>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs text-gray-500">Phone</p>
-                    <p className="font-medium">{booking.customerPhone}</p>
-                  </div>
-                  <a href={`tel:${booking.customerPhone}`} className="p-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-100">
-                    <Phone className="w-4 h-4" />
-                  </a>
                 </div>
                 {booking.customerEmail && (
                   <div>

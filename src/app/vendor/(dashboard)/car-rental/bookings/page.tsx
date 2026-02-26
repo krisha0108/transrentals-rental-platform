@@ -641,18 +641,6 @@ export default function VendorCarRentalBookingsPage() {
                       </div>
                     </div>
 
-                    <div className="flex items-start gap-2">
-                      <Phone className="w-4 h-4 text-emerald-500 mt-0.5" />
-                      <div>
-                        <p className="text-xs text-gray-500">Phone</p>
-                        <a
-                          href={`tel:${booking.customerPhone}`}
-                          className="text-sm font-medium text-emerald-600 hover:underline"
-                        >
-                          {booking.customerPhone}
-                        </a>
-                      </div>
-                    </div>
                   </div>
 
                   {/* Driver Details (if assigned) */}
@@ -712,13 +700,10 @@ export default function VendorCarRentalBookingsPage() {
                       </button>
                     )}
                     {booking.status === 'DRIVER_ASSIGNED' && (
-                      <button
-                        onClick={() => handleAction(booking.bookingNumber, 'start_trip')}
-                        disabled={isActionLoading}
-                        className="px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 disabled:opacity-50"
-                      >
-                        {isActionLoading ? 'Processing...' : 'Start Trip'}
-                      </button>
+                      <div className="w-full px-4 py-3 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-700 flex items-center gap-2">
+                        <span>🚗</span>
+                        <span>Trip will be started by your assigned driver. You will see all status updates here.</span>
+                      </div>
                     )}
                     {booking.status === 'IN_PROGRESS' && (
                       <button
