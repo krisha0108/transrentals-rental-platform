@@ -5,6 +5,7 @@ import { getVendorAuth } from '@/lib/auth/vendor-mobile-auth';
 import { prisma } from '@/lib/db/prisma';
 import { transformPrismaResponse } from '@/lib/utils/api-transform';
 
+import { sendVendorDirectNotification } from '@/lib/utils/vendor-notification-sender';
 import logger from '@/lib/security/logger';
 export const dynamic = 'force-dynamic';
 
@@ -93,6 +94,17 @@ export async function POST(
         ...(additionalCharges && additionalCharges > 0 && { damageCharges: additionalCharges }),
       },
     });
+
+    // Notify vendor that trip has been completed
+    sendVendorDirectNotification({
+      vendorId,
+      title: '✅ Trip Completed!',
+      body: `Bike booking #${updatedBooking.bookingNumber} has been completed successfully.`,
+      type: 'trip_completed',
+      serviceType: 'bike',
+      bookingId: id,
+      bookingNumber: updatedBooking.bookingNumber,
+    }).catch((err: any) => logger.error('[BikeComplete] Vendor notify failed:', err));
 
     return NextResponse.json({
       success: true,

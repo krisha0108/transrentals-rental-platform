@@ -3,6 +3,7 @@ import { getVendorAuth } from '@/lib/auth/vendor-mobile-auth';
 import { prisma } from '@/lib/db/prisma';
 import { transformPrismaResponse } from '@/lib/utils/api-transform';
 import { sendNotificationToCustomer } from '@/lib/services/push-notification-service';
+import { sendVendorDirectNotification } from '@/lib/utils/vendor-notification-sender';
 import crypto from 'crypto';
 
 import logger from '@/lib/security/logger';
@@ -559,6 +560,19 @@ export async function PATCH(
         console.error('❌ Driver assigned notification error:', notificationError);
         logger.error('Failed to send driver assigned notification', notificationError);
       }
+    }
+
+    // Notify vendor on trip completion
+    if (updatedBooking.status === 'COMPLETED') {
+      sendVendorDirectNotification({
+        vendorId,
+        title: '✅ Trip Completed!',
+        body: `Car rental booking #${updatedBooking.bookingNumber} has been completed successfully.`,
+        type: 'trip_completed',
+        serviceType: 'car',
+        bookingId: updatedBooking.id,
+        bookingNumber: updatedBooking.bookingNumber,
+      }).catch((err: any) => logger.error('[CarRentalComplete] Vendor notify failed:', err));
     }
 
     return NextResponse.json({

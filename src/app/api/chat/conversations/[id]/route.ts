@@ -132,7 +132,7 @@ export async function POST(
     // Verify conversation exists
     const conversation = await prisma.chat_conversations.findUnique({
       where: { id: conversationId },
-      select: { id: true, vendorId: true, customerId: true, status: true },
+      select: { id: true, vendorId: true, customerId: true, status: true, bookingId: true },
     });
 
     if (!conversation) {
@@ -199,7 +199,8 @@ export async function POST(
           await sendPushNotification(
             vendor.fcmToken,
             { title: '💬 New message from customer', body: msgPreview },
-            { type: 'chat', screen: 'ChatDetail', conversationId }
+            { type: 'chat', screen: 'ChatDetail', conversationId, bookingId: conversation.bookingId || '' },
+            { channelId: 'chat_channel', sound: 'chat' }
           );
         }
       }

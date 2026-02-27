@@ -140,6 +140,7 @@ export default function LuxuryBookingDetailScreen({ route, navigation }) {
       bookingId: booking.id,
       customerName: booking.customerName,
       bookingNumber: booking.bookingNumber || booking.id,
+      serviceType: 'luxury',
     });
   };
 

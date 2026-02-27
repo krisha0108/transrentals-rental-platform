@@ -151,6 +151,7 @@ export default function SelfDriveBookingDetailScreen({ route, navigation }) {
       bookingId: booking.id,
       customerName: booking.customerName,
       bookingNumber: booking.bookingNumber || booking.id,
+      serviceType: 'self-drive',
     });
   };
 

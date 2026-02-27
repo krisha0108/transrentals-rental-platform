@@ -36,15 +36,68 @@ const QUOTE_SCREEN_MAP = {
   'self-drive': 'SelfDriveQuoteRequestDetail',
 };
 
+const BOOKING_DETAIL_SCREEN_MAP = {
+  bike: 'BikeBookingDetail',
+  car: 'CarRentalBookingDetail',
+  'chauffeur-service': 'CarRentalBookingDetail',
+  'self-drive': 'SelfDriveBookingDetail',
+  bus: 'BusBookingDetail',
+  'bus-rental': 'BusBookingDetail',
+  truck: 'TruckBookingDetail',
+  'truck-rental': 'TruckBookingDetail',
+  luxury: 'LuxuryBookingDetail',
+  'luxury-car-rental': 'LuxuryBookingDetail',
+  packers: 'PackersBookingDetail',
+  'packers-and-movers': 'PackersBookingDetail',
+  equipment: 'EquipmentBookingDetail',
+  'equipment-rental': 'EquipmentBookingDetail',
+};
+
 const NOTIFICATION_TYPES = {
-  booking_new: { icon: 'calendar', color: C.blue, bg: '#DBEAFE' },
-  booking_accepted: { icon: 'check-circle', color: C.brand, bg: '#DCFCE7' },
-  booking_cancelled: { icon: 'x-circle', color: C.red, bg: '#FEE2E2' },
-  quote_request: { icon: 'file-text', color: C.purple, bg: '#F3E8FF' },
-  payment: { icon: 'credit-card', color: C.brand, bg: '#DCFCE7' },
-  document: { icon: 'file', color: C.orange, bg: '#FEF3C7' },
-  approval: { icon: 'shield', color: C.brand, bg: '#DCFCE7' },
-  general: { icon: 'bell', color: C.blue, bg: '#DBEAFE' },
+  // Quote / Booking requests
+  quote_request:          { icon: 'file-text',    color: C.purple, bg: '#F3E8FF' },
+  direct_booking_inquiry: { icon: 'inbox',         color: C.blue,   bg: '#DBEAFE' },
+  // Booking lifecycle
+  booking_new:            { icon: 'calendar',      color: C.blue,   bg: '#DBEAFE' },
+  booking_accepted:       { icon: 'check-circle',  color: C.brand,  bg: '#DCFCE7' },
+  booking_confirmed:      { icon: 'check-circle',  color: C.brand,  bg: '#DCFCE7' },
+  booking_assigned:       { icon: 'calendar',      color: C.blue,   bg: '#DBEAFE' },
+  booking_cancelled:      { icon: 'x-circle',      color: C.red,    bg: '#FEE2E2' },
+  booking_rejected:       { icon: 'x-circle',      color: C.red,    bg: '#FEE2E2' },
+  quote_accepted:         { icon: 'check-circle',  color: C.brand,  bg: '#DCFCE7' },
+  // Payment
+  payment_received:       { icon: 'credit-card',   color: C.brand,  bg: '#DCFCE7' },
+  advance_paid:           { icon: 'credit-card',   color: C.brand,  bg: '#DCFCE7' },
+  payment:                { icon: 'credit-card',   color: C.brand,  bg: '#DCFCE7' },
+  // Trip
+  trip_started:           { icon: 'navigation',    color: C.blue,   bg: '#DBEAFE' },
+  trip_complete:          { icon: 'flag',           color: C.brand,  bg: '#DCFCE7' },
+  trip_completed:         { icon: 'flag',           color: C.brand,  bg: '#DCFCE7' },
+  // Documents / Account
+  document_approved:      { icon: 'file',           color: C.brand,  bg: '#DCFCE7' },
+  document_rejected:      { icon: 'file',           color: C.red,    bg: '#FEE2E2' },
+  document:               { icon: 'file',           color: C.orange, bg: '#FEF3C7' },
+  location_approved:      { icon: 'map-pin',        color: C.brand,  bg: '#DCFCE7' },
+  location_rejected:      { icon: 'map-pin',        color: C.red,    bg: '#FEE2E2' },
+  service_approved:       { icon: 'shield',         color: C.brand,  bg: '#DCFCE7' },
+  service_rejected:       { icon: 'shield',         color: C.red,    bg: '#FEE2E2' },
+  approval:               { icon: 'shield',         color: C.brand,  bg: '#DCFCE7' },
+  // P2P
+  p2p_booking_accepted:   { icon: 'users',          color: C.blue,   bg: '#DBEAFE' },
+  p2p_deal_confirmed:     { icon: 'users',          color: C.brand,  bg: '#DCFCE7' },
+  p2p_trip_started:       { icon: 'navigation',    color: C.blue,   bg: '#DBEAFE' },
+  p2p_trip_completed:     { icon: 'flag',           color: C.brand,  bg: '#DCFCE7' },
+  p2p_vehicle_requested:  { icon: 'truck',          color: C.purple, bg: '#F3E8FF' },
+  p2p_request_accepted:   { icon: 'check-circle',  color: C.brand,  bg: '#DCFCE7' },
+  p2p_request_rejected:   { icon: 'x-circle',      color: C.red,    bg: '#FEE2E2' },
+  p2p_transaction_created:   { icon: 'users',       color: C.blue,   bg: '#DBEAFE' },
+  p2p_transaction_cancelled: { icon: 'x-circle',   color: C.red,    bg: '#FEE2E2' },
+  p2p_new_booking_posted: { icon: 'plus-circle',   color: C.blue,   bg: '#DBEAFE' },
+  p2p_posting_cancelled:  { icon: 'x-circle',      color: C.red,    bg: '#FEE2E2' },
+  p2p_rating_received:    { icon: 'star',           color: C.orange, bg: '#FEF3C7' },
+  p2p_new_comment:        { icon: 'message-circle', color: C.blue,  bg: '#DBEAFE' },
+  // General
+  general:                { icon: 'bell',           color: C.blue,   bg: '#DBEAFE' },
 };
 
 export default function NotificationsScreen({ navigation }) {
@@ -96,18 +149,73 @@ export default function NotificationsScreen({ navigation }) {
   };
 
   const handleNotificationPress = useCallback(async (item) => {
-    // Optimistically mark as read in local state
+    // Mark as read
     if (!item.read) {
       setNotifications(prev => prev.map(n => n.id === item.id ? { ...n, read: true } : n));
       markVendorNotificationsRead([item.id]).catch(() => {});
       refreshBadge();
     }
-    // Navigate to correct screen based on type
-    if (item.type === 'quote_request' && item.serviceType && item.requestId) {
-      const screenName = QUOTE_SCREEN_MAP[item.serviceType];
-      if (screenName) {
-        navigation.navigate(screenName, { requestId: item.requestId });
+
+    const { type, serviceType, requestId, bookingId } = item;
+
+    // ── Quote request → service-specific quote detail ──────────────────────
+    if (type === 'quote_request' && serviceType && requestId) {
+      if (serviceType === 'car') {
+        // Chauffeur broadcast: requestId holds the bookingId
+        navigation.navigate('CarRentalBookingDetail', { bookingId: requestId });
+      } else {
+        const screenName = QUOTE_SCREEN_MAP[serviceType];
+        if (screenName) navigation.navigate(screenName, { requestId });
       }
+      return;
+    }
+
+    // ── Booking lifecycle + payment + trip → service-specific booking detail
+    if (
+      [
+        'payment_received',
+        'advance_paid',
+        'booking_confirmed',
+        'booking_assigned',
+        'booking_new',
+        'booking_accepted',
+        'quote_accepted',
+        'trip_started',
+        'trip_complete',
+        'trip_completed',
+      ].includes(type) &&
+      serviceType &&
+      bookingId
+    ) {
+      const screenName = BOOKING_DETAIL_SCREEN_MAP[serviceType];
+      if (screenName) navigation.navigate(screenName, { bookingId });
+      return;
+    }
+
+    // ── Direct booking inquiry ──────────────────────────────────────────────
+    if (type === 'direct_booking_inquiry' && bookingId) {
+      navigation.navigate('DirectBookingDetail', { bookingId });
+      return;
+    }
+
+    // ── P2P notifications → P2P Activity screen ────────────────────────────
+    if (type && type.startsWith('p2p_')) {
+      navigation.navigate('P2PActivityScreen');
+      return;
+    }
+
+    // ── Account / document / location / service notifications ──────────────
+    if (type === 'document_approved' || type === 'document_rejected') {
+      navigation.navigate('VendorDocuments');
+      return;
+    }
+    if (type === 'location_approved' || type === 'location_rejected') {
+      navigation.navigate('VendorLocations');
+      return;
+    }
+    if (type === 'service_approved' || type === 'service_rejected') {
+      navigation.navigate('VendorServices');
+      return;
     }
   }, [navigation, refreshBadge]);
 

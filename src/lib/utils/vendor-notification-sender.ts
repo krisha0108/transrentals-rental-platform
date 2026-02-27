@@ -7,6 +7,30 @@
 import { prisma } from '@/lib/db/prisma';
 import { sendPushNotification } from '@/lib/services/push-notification-service';
 
+function getChannelForType(type: string): { channelId: string; sound: string } {
+  if (type === 'payment_received' || type === 'payment' || type === 'advance_paid') {
+    return { channelId: 'payment_channel', sound: 'payment' };
+  }
+  if (type === 'trip_started') {
+    return { channelId: 'trip_started_channel', sound: 'trip_started' };
+  }
+  if (type === 'trip_complete' || type === 'trip_completed') {
+    return { channelId: 'trip_complete_channel', sound: 'trip_completed' };
+  }
+  if (type === 'chat' || type === 'new_message') {
+    return { channelId: 'chat_channel', sound: 'chat' };
+  }
+  if (
+    type === 'booking_confirmed' ||
+    type === 'booking_assigned' ||
+    type === 'booking_accepted' ||
+    type === 'quote_accepted'
+  ) {
+    return { channelId: 'booking_confirmed_channel', sound: 'booking_confirmed' };
+  }
+  return { channelId: 'default_v3', sound: 'notification_sound' };
+}
+
 interface QuoteRequestNotificationParams {
   requestId: string;
   requestNumber: string;
@@ -38,9 +62,10 @@ export async function sendQuoteRequestNotificationToVendors(
         OR: [
           { id: locationId },
           { slug: locationId.toLowerCase().replace(/\s+/g, '-') },
-          { name: { contains: locationId } },
+          { name: { equals: locationId, mode: 'insensitive' } },
         ],
         isActive: true,
+        type: { in: ['CITY', 'UNION_TERRITORY', 'AREA', 'AIRPORT'] },
       },
       select: { id: true },
     });
@@ -108,9 +133,15 @@ export async function sendQuoteRequestNotificationToVendors(
         if (tokens.length === 0) {
           console.log(`[VendorNotify] Vendor ${vendor.id} has NO fcmToken — skipping push`);
         } else {
-          await Promise.allSettled(
+          const results = await Promise.allSettled(
             tokens.map((token) => sendPushNotification(token, { title: notificationTitle, body: notificationBody }, notificationData))
           );
+          // Clean up stale tokens
+          results.forEach((result, i) => {
+            if (result.status === 'fulfilled' && (result.value as any)?.tokenInvalid) {
+              removeStaleVendorToken(vendor.id, tokens[i]).catch(() => {});
+            }
+          });
           console.log(`[VendorNotify] FCM sent to ${tokens.length} device(s) for vendor ${vendor.id}`);
         }
       } catch (err) {
@@ -155,6 +186,34 @@ async function getVendorFcmTokens(vendorId: string): Promise<string[]> {
   return vendor?.fcmToken ? [vendor.fcmToken] : [];
 }
 
+// Helper: remove a stale/invalid FCM token from all vendor token stores
+async function removeStaleVendorToken(vendorId: string, staleToken: string): Promise<void> {
+  try {
+    // 1. Remove from multi-device tokens list in settings
+    const settingKey = `vendor_fcm_tokens_${vendorId}`;
+    const setting = await prisma.settings.findUnique({ where: { key: settingKey } });
+    if (setting?.value) {
+      const data = JSON.parse(setting.value as string);
+      const filtered = (data.tokens || []).filter((t: any) => t.token !== staleToken);
+      if (filtered.length !== (data.tokens || []).length) {
+        await prisma.settings.update({
+          where: { key: settingKey },
+          data: { value: JSON.stringify({ ...data, tokens: filtered }) },
+        });
+        console.log(`[TokenCleanup] Removed stale token from multi-device list for vendor ${vendorId}`);
+      }
+    }
+    // 2. Clear from vendors.fcmToken if it matches
+    await prisma.vendors.updateMany({
+      where: { id: vendorId, fcmToken: staleToken },
+      data: { fcmToken: null },
+    });
+    console.log(`[TokenCleanup] Cleared stale fcmToken on vendors table for vendor ${vendorId}`);
+  } catch (err) {
+    console.error(`[TokenCleanup] Failed to remove stale token for vendor ${vendorId}:`, err);
+  }
+}
+
 export async function sendVendorDirectNotification(
   params: VendorDirectNotificationParams
 ): Promise<void> {
@@ -197,16 +256,28 @@ export async function sendVendorDirectNotification(
 
     const pushData = {
       screen: 'BookingDetail',
+      type,
       serviceType,
       bookingId: bookingId || '',
       bookingNumber: bookingNumber || '',
       ...extraData,
     };
 
+    const channelOptions = getChannelForType(type);
+
     const results = await Promise.allSettled(
-      tokens.map((token) => sendPushNotification(token, { title, body }, pushData))
+      tokens.map((token) => sendPushNotification(token, { title, body }, pushData, channelOptions))
     );
-    console.log(`[VendorDirectNotify] Sent to ${tokens.length} device(s) for vendor ${vendorId}:`, results.map(r => r.status));
+
+    // Clean up any stale/invalid tokens automatically
+    results.forEach((result, i) => {
+      if (result.status === 'fulfilled' && (result.value as any)?.tokenInvalid) {
+        removeStaleVendorToken(vendorId, tokens[i]).catch(() => {});
+      }
+    });
+
+    const successCount = results.filter(r => r.status === 'fulfilled' && (r.value as any)?.success).length;
+    console.log(`[VendorDirectNotify] Sent to ${tokens.length} device(s) for vendor ${vendorId}: ${successCount} succeeded`);
   } catch (err) {
     console.error(`[VendorDirectNotify] Failed for vendor ${vendorId}:`, err);
   }
