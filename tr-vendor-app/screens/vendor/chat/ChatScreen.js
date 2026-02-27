@@ -25,8 +25,28 @@ const C = {
   blue: '#2563EB',
 };
 
+const BOOKING_DETAIL_SCREEN_MAP = {
+  bike: 'BikeBookingDetail',
+  car: 'CarRentalBookingDetail',
+  chauffeur: 'CarRentalBookingDetail',
+  'self-drive': 'SelfDriveBookingDetail',
+  bus: 'BusBookingDetail',
+  truck: 'TruckBookingDetail',
+  luxury: 'LuxuryBookingDetail',
+  packers: 'PackersBookingDetail',
+  equipment: 'EquipmentBookingDetail',
+};
+
 export default function ChatScreen({ route, navigation }) {
-  const { bookingId, customerName, bookingNumber } = route.params || {};
+  const { bookingId, customerName, bookingNumber, serviceType } = route.params || {};
+
+  const handleViewBooking = () => {
+    if (!bookingId || !serviceType) return;
+    const screen = BOOKING_DETAIL_SCREEN_MAP[serviceType];
+    if (screen) {
+      navigation.navigate(screen, { bookingId });
+    }
+  };
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [messages, setMessages] = useState([]);
@@ -195,7 +215,7 @@ export default function ChatScreen({ route, navigation }) {
           <Text style={styles.headerTitle}>{customerName || 'Customer'}</Text>
           <Text style={styles.headerSubtitle}>Booking #{bookingNumber}</Text>
         </View>
-        <TouchableOpacity style={styles.viewBookingBtn}>
+        <TouchableOpacity style={styles.viewBookingBtn} onPress={handleViewBooking}>
           <Icon name="info" size={18} color={C.muted} />
         </TouchableOpacity>
       </View>

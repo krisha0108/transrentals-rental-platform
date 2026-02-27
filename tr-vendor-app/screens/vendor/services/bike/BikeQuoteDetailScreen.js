@@ -11,12 +11,13 @@ import {
   Image,
   Dimensions,
   FlatList,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Feather';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import { getVendorQuotes, getBaseURL } from '../../../api/client';
+import { getVendorQuotes, getBaseURL, getQuoteRequestById } from '../../../api/client';
 
 const { width } = Dimensions.get('window');
 const SLIDER_WIDTH = width - 32; // Full width with padding
@@ -40,6 +41,7 @@ export default function BikeQuoteDetailScreen({ route, navigation }) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [bookingId, setBookingId] = useState(null);
   const imageSliderRef = useRef(null);
   const [baseUrl, setBaseUrl] = useState('');
 
@@ -65,6 +67,16 @@ export default function BikeQuoteDetailScreen({ route, navigation }) {
 
       if (foundQuote) {
         setQuote(foundQuote);
+        // If quote is accepted, fetch the booking ID
+        if (foundQuote.status === 'ACCEPTED') {
+          const rid = foundQuote.requestId || foundQuote.request?.id || foundQuote.request?._id;
+          if (rid) {
+            try {
+              const reqData = await getQuoteRequestById('bike', rid);
+              setBookingId(reqData.bookingId || null);
+            } catch (_) {}
+          }
+        }
       } else {
         Alert.alert('Error', 'Quote not found');
       }
@@ -655,6 +667,39 @@ export default function BikeQuoteDetailScreen({ route, navigation }) {
           </View>
         </View>
       </ScrollView>
+
+      {/* Bottom Navigation Bar */}
+      <View style={styles.bottomBar}>
+        {status !== 'ACCEPTED' ? (
+          <TouchableOpacity
+            style={styles.viewRequestButton}
+            onPress={() => {
+              const rid = quote.requestId || quote.request?.id || quote.request?._id;
+              if (rid) navigation.navigate('BikeQuoteRequestDetail', { requestId: rid });
+              else Alert.alert('Info', 'Request details not available.');
+            }}
+          >
+            <Ionicons name="document-text-outline" size={18} color="#fff" />
+            <Text style={styles.actionBtnText}>View Request Details</Text>
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity
+            style={styles.viewBookingButton}
+            onPress={() => {
+              if (bookingId) {
+                navigation.navigate('BikeBookingDetail', { bookingId });
+              } else {
+                const rid = quote.requestId || quote.request?.id || quote.request?._id;
+                if (rid) navigation.navigate('BikeQuoteRequestDetail', { requestId: rid });
+                else Alert.alert('Info', 'Please check your Bookings section.');
+              }
+            }}
+          >
+            <Ionicons name="checkmark-circle-outline" size={18} color="#fff" />
+            <Text style={styles.actionBtnText}>View Booking Details</Text>
+          </TouchableOpacity>
+        )}
+      </View>
     </SafeAreaView>
   );
 }
@@ -709,7 +754,34 @@ const styles = StyleSheet.create({
   quoteNumberText: { fontSize: 12, color: '#64748B', marginTop: 2 },
   totalAmount: { fontSize: 24, fontWeight: '700', color: GREEN },
 
-  content: { padding: 16, paddingTop: 8 },
+  content: { padding: 16, paddingTop: 8, paddingBottom: 100 },
+  bottomBar: {
+    backgroundColor: '#fff',
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: Platform.OS === 'ios' ? 28 : 14,
+    borderTopWidth: 1,
+    borderTopColor: '#E2E8F0',
+  },
+  viewRequestButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#475569',
+    paddingVertical: 14,
+    borderRadius: 12,
+  },
+  viewBookingButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#2563EB',
+    paddingVertical: 14,
+    borderRadius: 12,
+  },
+  actionBtnText: { fontSize: 15, fontWeight: '700', color: '#fff' },
 
   section: { marginBottom: 20 },
   sectionHeader: {

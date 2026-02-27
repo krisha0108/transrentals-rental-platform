@@ -46,8 +46,15 @@ export async function GET(
     // Check if vendor already has a quote for this request
     const hasQuoted = quoteRequest.luxury_quotes.length > 0;
 
+    // If request is accepted, find the booking created from this request
+    const booking = await prisma.luxury_bookings.findFirst({
+      where: { quoteRequestId: id },
+      select: { id: true },
+    });
+
     return NextResponse.json({
       success: true,
+      bookingId: booking?.id || null,
       request: {
         id: quoteRequest.id,
         requestNumber: quoteRequest.requestNumber,

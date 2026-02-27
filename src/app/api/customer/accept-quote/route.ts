@@ -689,6 +689,7 @@ async function acceptSelfDriveQuote(quoteRequestId: string, quoteId: string) {
       data: {
         bookingNumber,
         acceptedQuoteId: quoteId,
+        quoteRequestId: quoteRequestId,
         customerId: request.customerId,
         customerName: request.customerName,
         customerEmail: request.customerEmail,

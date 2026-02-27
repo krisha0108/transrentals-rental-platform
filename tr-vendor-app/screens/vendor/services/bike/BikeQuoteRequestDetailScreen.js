@@ -32,6 +32,7 @@ export default function BikeQuoteRequestDetailScreen({ route, navigation }) {
   const [request, setRequest] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [bookingId, setBookingId] = useState(null);
 
   const fetchRequestDetail = useCallback(async () => {
     if (!requestId) {
@@ -47,6 +48,7 @@ export default function BikeQuoteRequestDetailScreen({ route, navigation }) {
       const data = await getQuoteRequestById('bike', requestId);
       const requestData = data.request || data;
       setRequest({ ...requestData, hasQuoted: data.hasQuoted, vendorQuote: data.vendorQuote });
+      setBookingId(data.bookingId || null);
     } catch (error) {
       console.error('Error fetching request detail:', error);
       Alert.alert('Error', 'Failed to load request details');
@@ -442,6 +444,25 @@ export default function BikeQuoteRequestDetailScreen({ route, navigation }) {
       </ScrollView>
 
       {/* Bottom Action Button */}
+      {/* View Booking - when quote was accepted */}
+      {request.hasQuoted && (status === 'ACCEPTED' || request.vendorQuote?.status === 'ACCEPTED') && (
+        <View style={styles.bottomBar}>
+          <TouchableOpacity
+            style={styles.viewBookingButton}
+            onPress={() => {
+              if (bookingId) {
+                navigation.navigate('BikeBookingDetail', { bookingId });
+              } else {
+                Alert.alert('Info', 'Booking details will appear in your Bookings section shortly.');
+              }
+            }}
+          >
+            <Ionicons name="document-text-outline" size={20} color="#fff" />
+            <Text style={styles.sendQuoteButtonText}>View Booking Details</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+      {/* Send Quote - when pending and not yet quoted */}
       {!request.hasQuoted && (status === 'PENDING' || status === 'QUOTES_RECEIVED') && (
         <View style={styles.bottomBar}>
           <TouchableOpacity style={styles.sendQuoteButton} onPress={handleSendQuote}>
@@ -450,7 +471,8 @@ export default function BikeQuoteRequestDetailScreen({ route, navigation }) {
           </TouchableOpacity>
         </View>
       )}
-      {request.hasQuoted && (
+      {/* Quote Already Sent - only when quote is pending (not yet accepted) */}
+      {request.hasQuoted && status !== 'ACCEPTED' && request.vendorQuote?.status !== 'ACCEPTED' && (
         <View style={styles.quotedBottomBar}>
           <Ionicons name="checkmark-circle" size={22} color="#10B981" />
           <View style={{ flex: 1, marginLeft: 10 }}>
@@ -689,6 +711,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
     backgroundColor: GREEN,
+    paddingVertical: 14,
+    borderRadius: 12,
+  },
+  viewBookingButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#2563EB',
     paddingVertical: 14,
     borderRadius: 12,
   },

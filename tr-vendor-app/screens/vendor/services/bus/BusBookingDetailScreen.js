@@ -411,6 +411,7 @@ export default function BusBookingDetailScreen({ route, navigation }) {
                   bookingId: booking.id,
                   customerName: booking.customerName,
                   bookingNumber: booking.bookingNumber || booking.id,
+                  serviceType: 'bus',
                 })}
               >
                 <Icon name="message-circle" size={17} color={C.brand} />
