@@ -210,60 +210,69 @@ export async function GET(
 
     const vendor = getVendorData();
 
-    // Format response based on service
+    // Destructure out Prisma's verbose relation names, spread all raw fields
+    const {
+      customers,
+      locations,
+      vendors,
+      vendors_bike_bookings_assignedVendorIdTovendors,
+      vendors_bike_bookings_acceptedVendorIdTovendors,
+      vendors_car_bookings_assignedVendorIdTovendors,
+      vendors_car_bookings_acceptedVendorIdTovendors,
+      vendors_chauffeur_bookings_assignedVendorIdTovendors,
+      vendors_chauffeur_bookings_acceptedVendorIdTovendors,
+      vendors_luxury_bookings_assignedVendorIdTovendors,
+      vendors_luxury_bookings_acceptedVendorIdTovendors,
+      ...rawFields
+    } = booking;
+
+    // Build clean relation references
+    const assignedVendor = serviceSlug === 'bike-rental' ? vendors_bike_bookings_assignedVendorIdTovendors :
+                           serviceSlug === 'self-drive' ? vendors_car_bookings_assignedVendorIdTovendors :
+                           serviceSlug === 'car-rental' ? vendors_chauffeur_bookings_assignedVendorIdTovendors :
+                           serviceSlug === 'luxury-car-rental' ? vendors_luxury_bookings_assignedVendorIdTovendors :
+                           null;
+    const acceptedVendor = serviceSlug === 'bike-rental' ? vendors_bike_bookings_acceptedVendorIdTovendors :
+                           serviceSlug === 'self-drive' ? vendors_car_bookings_acceptedVendorIdTovendors :
+                           serviceSlug === 'car-rental' ? vendors_chauffeur_bookings_acceptedVendorIdTovendors :
+                           serviceSlug === 'luxury-car-rental' ? vendors_luxury_bookings_acceptedVendorIdTovendors :
+                           vendors;
+
+    // Format response - spread ALL raw fields, then overlay normalized aliases
     const formattedBooking = {
-      id: booking.id,
-      bookingNumber: booking.bookingNumber,
-      status: booking.status,
+      ...rawFields,
       serviceName,
       serviceSlug,
-      customerName: booking.customers?.name || booking.customerName,
-      customerEmail: booking.customers?.email || booking.customerEmail,
-      customerPhone: booking.customers?.phone || booking.customerPhone,
+      // Normalized customer fields
+      customerName: customers?.name || booking.customerName,
+      customerEmail: customers?.email || booking.customerEmail,
+      customerPhone: customers?.phone || booking.customerPhone,
+      customer: customers,
+      // Normalized vendor fields
       vendorName: vendor?.businessName || null,
       vendorPhone: vendor?.phone || null,
       vendorEmail: vendor?.email || null,
-      locationId: booking.locationId || null,
-      locationName: booking.locations?.name || booking.pickupCity || booking.locationName,
+      assignedVendor,
+      acceptedVendor,
+      // Normalized location
+      locationName: locations?.name || booking.pickupCity || booking.locationName,
+      // Normalized vehicle
       requestedVehicleName: booking.requestedVehicleName || booking.vehicleName || booking.carCategoryName || null,
       requestedCategory: booking.requestedCategory || booking.vehicleCategory || booking.carCategory || null,
+      // Normalized date aliases
       pickupDate: booking.pickupDate || booking.startDate || booking.moveDate,
       pickupTime: booking.pickupTime || '',
       dropDate: booking.dropDate || booking.returnDate || booking.endDate || null,
       dropTime: booking.dropTime || booking.returnTime || '',
+      // Normalized amount aliases
       totalDays: booking.totalDays || booking.tripDays || booking.durationDays || 0,
       dailyRate: booking.dailyRate || booking.baseFare || booking.baseAmount || booking.baseRate || null,
       totalAmount: booking.totalAmount || booking.grandTotal || 0,
-      gstAmount: booking.gstAmount || null,
-      securityDeposit: booking.securityDeposit || null,
       grandTotal: booking.grandTotal || booking.totalAmount || 0,
-      advanceAmount: booking.advanceAmount || null,
-      advancePaymentRef: booking.advancePaymentRef || null,
-      advancePaymentProof: booking.advancePaymentProof || null,
-      advancePaymentDate: booking.advancePaymentDate || null,
-      advancePaymentVerified: booking.advancePaymentVerified || false,
-      advanceVerifiedAt: booking.advanceVerifiedAt || null,
-      paymentMethod: booking.paymentMethod || null,
-      paymentStatus: booking.paymentStatus || null,
       paidAmount: booking.paidAmount || booking.advancePaid || 0,
-      tripStartOtp: booking.tripStartOtp || null,
-      tripOtpVerified: booking.tripOtpVerified || false,
+      // Normalized trip status aliases
       pickedUpAt: booking.pickedUpAt || booking.tripStartedAt || null,
       returnedAt: booking.returnedAt || booking.tripEndedAt || null,
-      customerNotes: booking.customerNotes || null,
-      adminNotes: booking.adminNotes || booking.vendorNotes || null,
-      createdAt: booking.createdAt,
-      customer: booking.customers,
-      assignedVendor: serviceSlug === 'bike-rental' ? booking.vendors_bike_bookings_assignedVendorIdTovendors :
-                      serviceSlug === 'self-drive' ? booking.vendors_car_bookings_assignedVendorIdTovendors :
-                      serviceSlug === 'car-rental' ? booking.vendors_chauffeur_bookings_assignedVendorIdTovendors :
-                      serviceSlug === 'luxury-car-rental' ? booking.vendors_luxury_bookings_assignedVendorIdTovendors :
-                      null,
-      acceptedVendor: serviceSlug === 'bike-rental' ? booking.vendors_bike_bookings_acceptedVendorIdTovendors :
-                      serviceSlug === 'self-drive' ? booking.vendors_car_bookings_acceptedVendorIdTovendors :
-                      serviceSlug === 'car-rental' ? booking.vendors_chauffeur_bookings_acceptedVendorIdTovendors :
-                      serviceSlug === 'luxury-car-rental' ? booking.vendors_luxury_bookings_acceptedVendorIdTovendors :
-                      booking.vendors,
     };
 
     return NextResponse.json({
