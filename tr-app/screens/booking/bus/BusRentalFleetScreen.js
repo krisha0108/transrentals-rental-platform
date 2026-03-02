@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -11,17 +11,67 @@ import {
   ActivityIndicator,
   BackHandler,
   Modal,
+  StatusBar,
+  Platform,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import LinearGradient from 'react-native-linear-gradient';
+import { widthPercentageToDP as wp, heightPercentageToDP as hp } from 'react-native-responsive-screen';
 import bookingService from '../../services/bookingService';
 import locationService from '../../services/locationService';
 import api from '../../api';
 
-const GREEN = '#09B368';
-const BRAND_TEAL = '#0B6E4F';
+// --- PREMIUM DARK TEAL DESIGN SYSTEM ---
+const TEAL_DEEP = '#064E3B';
+const TEAL_MID = '#065F46';
+const TEAL = '#10B981';
+const TEAL_LIGHT = '#D1FAE5';
+const BG = '#F5F7FA';
+const CARD = '#FFFFFF';
+const TEXT_PRIMARY = '#111827';
+const TEXT_SECONDARY = '#6B7280';
+const TEXT_MUTED = '#9CA3AF';
+const BORDER = '#E5E7EB';
+
+const SHADOW_SM = Platform.select({
+  ios: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+  },
+  android: {
+    elevation: 3,
+  },
+});
+
+const SHADOW_MD = Platform.select({
+  ios: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+  },
+  android: {
+    elevation: 6,
+  },
+});
+
+const SHADOW_LG = Platform.select({
+  ios: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+  },
+  android: {
+    elevation: 10,
+  },
+});
 
 const TRIP_TYPES = [
   {
@@ -107,6 +157,18 @@ export default function BusRentalFleetScreen() {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [phoneLoading, setPhoneLoading] = useState(false);
 
+  // StatusBar management
+  useFocusEffect(
+    useCallback(() => {
+      StatusBar.setBarStyle('light-content');
+      StatusBar.setBackgroundColor(TEAL_DEEP);
+      return () => {
+        StatusBar.setBarStyle('dark-content');
+        StatusBar.setBackgroundColor('#FFFFFF');
+      };
+    }, [])
+  );
+
   useEffect(() => {
     loadCustomer();
     const backHandler = BackHandler.addEventListener('hardwareBackPress', handleBackPress);
@@ -138,7 +200,8 @@ export default function BusRentalFleetScreen() {
       setStep(step - 1);
       return true;
     }
-    return false;
+    navigation.goBack();
+    return true;
   };
 
   // Location search with debounce
@@ -392,14 +455,34 @@ export default function BusRentalFleetScreen() {
     }
   };
 
+  // ========== RENDER HELPERS ==========
+
+  // Decorative circles for gradient headers
+  const renderDecoCircles = () => (
+    <>
+      <View style={styles.decoCircle1} pointerEvents="none" />
+      <View style={styles.decoCircle2} pointerEvents="none" />
+      <View style={styles.decoCircle3} pointerEvents="none" />
+    </>
+  );
+
   // STEP 1: Trip Type Selection
   const renderStep1 = () => (
     <View style={styles.stepContainer}>
-      <View style={styles.questionHeader}>
-        <Ionicons name="bus" size={40} color={GREEN} />
-        <Text style={styles.questionTitle}>What service do you need?</Text>
-        <Text style={styles.questionSubtitle}>Choose your trip type</Text>
-      </View>
+      {/* Premium hero header */}
+      <LinearGradient
+        colors={[TEAL_DEEP, TEAL_MID, '#047857']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.stepHero}
+      >
+        {renderDecoCircles()}
+        <View style={styles.stepHeroIconWrap}>
+          <Ionicons name="bus" size={wp('8%')} color="#fff" />
+        </View>
+        <Text style={styles.stepHeroTitle}>What service do you need?</Text>
+        <Text style={styles.stepHeroSubtitle}>Choose your trip type</Text>
+      </LinearGradient>
 
       <View style={styles.tripTypeGrid}>
         {TRIP_TYPES.map((type) => (
@@ -415,22 +498,22 @@ export default function BusRentalFleetScreen() {
             <View
               style={[
                 styles.tripTypeIcon,
-                { backgroundColor: tripType === type.id ? type.color : type.color + '20' },
+                { backgroundColor: tripType === type.id ? type.color : type.color + '15' },
               ]}
             >
               <Ionicons
                 name={type.icon}
-                size={28}
+                size={wp('7%')}
                 color={tripType === type.id ? '#fff' : type.color}
               />
             </View>
-            <Text style={[styles.tripTypeLabel, tripType === type.id && styles.tripTypeLabelActive]}>
+            <Text style={[styles.tripTypeLabel, tripType === type.id && { color: type.color }]}>
               {type.label}
             </Text>
             <Text style={styles.tripTypeDesc}>{type.desc}</Text>
             {tripType === type.id && (
               <View style={[styles.checkmark, { backgroundColor: type.color }]}>
-                <Ionicons name="checkmark" size={16} color="#fff" />
+                <Ionicons name="checkmark" size={wp('3.5%')} color="#fff" />
               </View>
             )}
           </TouchableOpacity>
@@ -442,26 +525,36 @@ export default function BusRentalFleetScreen() {
   // STEP 2: Pickup Location
   const renderStep2 = () => (
     <View style={styles.stepContainer}>
-      <View style={styles.questionHeader}>
-        <Ionicons name="location" size={40} color={GREEN} />
-        <Text style={styles.questionTitle}>Where will you start your journey?</Text>
-        <Text style={styles.questionSubtitle}>Enter pickup location or select from suggestions</Text>
-      </View>
+      <LinearGradient
+        colors={[TEAL_DEEP, TEAL_MID, '#047857']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.stepHero}
+      >
+        {renderDecoCircles()}
+        <View style={styles.stepHeroIconWrap}>
+          <Ionicons name="location" size={wp('8%')} color="#fff" />
+        </View>
+        <Text style={styles.stepHeroTitle}>Where will you start your journey?</Text>
+        <Text style={styles.stepHeroSubtitle}>Enter pickup location or select from suggestions</Text>
+      </LinearGradient>
 
       <View style={styles.inputContainer}>
         <View style={styles.searchBox}>
-          <Ionicons name="search-outline" size={20} color="#999" />
+          <View style={styles.searchIconCircle}>
+            <Ionicons name="search-outline" size={wp('4.5%')} color={TEAL} />
+          </View>
           <TextInput
             style={styles.searchInput}
             value={fromSearch}
             onChangeText={setFromSearch}
             placeholder="Type pickup city or place name..."
-            placeholderTextColor="#999"
+            placeholderTextColor={TEXT_MUTED}
           />
-          {searchingFrom && <ActivityIndicator size="small" color={GREEN} />}
+          {searchingFrom && <ActivityIndicator size="small" color={TEAL} />}
           {fromSearch && !fromLocation && (
             <TouchableOpacity onPress={() => setFromSearch('')}>
-              <Ionicons name="close-circle" size={20} color="#999" />
+              <Ionicons name="close-circle" size={wp('5%')} color={TEXT_MUTED} />
             </TouchableOpacity>
           )}
         </View>
@@ -474,8 +567,11 @@ export default function BusRentalFleetScreen() {
                 style={styles.dropdownItem}
                 onPress={() => selectLocation('from', loc)}
               >
-                <Ionicons name="location-outline" size={18} color={GREEN} />
+                <View style={styles.dropdownIconCircle}>
+                  <Ionicons name="location-outline" size={wp('4%')} color={TEAL} />
+                </View>
                 <Text style={styles.dropdownText}>{loc.name}</Text>
+                <Ionicons name="chevron-forward" size={wp('4%')} color={TEXT_MUTED} />
               </TouchableOpacity>
             ))}
           </View>
@@ -483,7 +579,9 @@ export default function BusRentalFleetScreen() {
 
         {fromLocation && (
           <View style={styles.selectedLocation}>
-            <Ionicons name="checkmark-circle" size={24} color={GREEN} />
+            <View style={styles.selectedLocationIcon}>
+              <Ionicons name="checkmark-circle" size={wp('5.5%')} color={TEAL} />
+            </View>
             <Text style={styles.selectedLocationText}>{fromLocation.name}</Text>
             <TouchableOpacity
               onPress={() => {
@@ -491,16 +589,16 @@ export default function BusRentalFleetScreen() {
                 setFromSearch('');
                 setFromResults([]);
               }}
-              style={{ marginLeft: 'auto' }}
+              style={styles.selectedLocationClear}
             >
-              <Ionicons name="close-circle" size={20} color={GREEN} />
+              <Ionicons name="close-circle" size={wp('5%')} color={TEAL} />
             </TouchableOpacity>
           </View>
         )}
 
         {fromSearch && !fromLocation && fromResults.length === 0 && !searchingFrom && (
           <View style={styles.manualEntryHint}>
-            <Ionicons name="information-circle" size={18} color={GREEN} />
+            <Ionicons name="information-circle" size={wp('4.5%')} color={TEAL} />
             <Text style={styles.manualEntryText}>
               You can continue with "{fromSearch}" as your pickup location
             </Text>
@@ -513,26 +611,36 @@ export default function BusRentalFleetScreen() {
   // STEP 3: Drop Location
   const renderStep3 = () => (
     <View style={styles.stepContainer}>
-      <View style={styles.questionHeader}>
-        <Ionicons name="flag" size={40} color="#EF4444" />
-        <Text style={styles.questionTitle}>Where will you be traveling to?</Text>
-        <Text style={styles.questionSubtitle}>Enter destination or select from suggestions</Text>
-      </View>
+      <LinearGradient
+        colors={[TEAL_DEEP, TEAL_MID, '#047857']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.stepHero}
+      >
+        {renderDecoCircles()}
+        <View style={[styles.stepHeroIconWrap, { backgroundColor: 'rgba(239,68,68,0.25)' }]}>
+          <Ionicons name="flag" size={wp('8%')} color="#FCA5A5" />
+        </View>
+        <Text style={styles.stepHeroTitle}>Where will you be traveling to?</Text>
+        <Text style={styles.stepHeroSubtitle}>Enter destination or select from suggestions</Text>
+      </LinearGradient>
 
       <View style={styles.inputContainer}>
         <View style={styles.searchBox}>
-          <Ionicons name="search-outline" size={20} color="#999" />
+          <View style={[styles.searchIconCircle, { backgroundColor: '#FEE2E2' }]}>
+            <Ionicons name="search-outline" size={wp('4.5%')} color="#EF4444" />
+          </View>
           <TextInput
             style={styles.searchInput}
             value={toSearch}
             onChangeText={setToSearch}
             placeholder="Type destination city or place name..."
-            placeholderTextColor="#999"
+            placeholderTextColor={TEXT_MUTED}
           />
-          {searchingTo && <ActivityIndicator size="small" color={GREEN} />}
+          {searchingTo && <ActivityIndicator size="small" color={TEAL} />}
           {toSearch && !toLocation && (
             <TouchableOpacity onPress={() => setToSearch('')}>
-              <Ionicons name="close-circle" size={20} color="#999" />
+              <Ionicons name="close-circle" size={wp('5%')} color={TEXT_MUTED} />
             </TouchableOpacity>
           )}
         </View>
@@ -545,33 +653,38 @@ export default function BusRentalFleetScreen() {
                 style={styles.dropdownItem}
                 onPress={() => selectLocation('to', loc)}
               >
-                <Ionicons name="location-outline" size={18} color="#EF4444" />
+                <View style={[styles.dropdownIconCircle, { backgroundColor: '#FEE2E2' }]}>
+                  <Ionicons name="location-outline" size={wp('4%')} color="#EF4444" />
+                </View>
                 <Text style={styles.dropdownText}>{loc.name}</Text>
+                <Ionicons name="chevron-forward" size={wp('4%')} color={TEXT_MUTED} />
               </TouchableOpacity>
             ))}
           </View>
         )}
 
         {toLocation && (
-          <View style={styles.selectedLocation}>
-            <Ionicons name="checkmark-circle" size={24} color="#EF4444" />
-            <Text style={styles.selectedLocationText}>{toLocation.name}</Text>
+          <View style={[styles.selectedLocation, { borderColor: '#EF4444', backgroundColor: '#FEF2F2' }]}>
+            <View style={styles.selectedLocationIcon}>
+              <Ionicons name="checkmark-circle" size={wp('5.5%')} color="#EF4444" />
+            </View>
+            <Text style={[styles.selectedLocationText, { color: '#EF4444' }]}>{toLocation.name}</Text>
             <TouchableOpacity
               onPress={() => {
                 setToLocation(null);
                 setToSearch('');
                 setToResults([]);
               }}
-              style={{ marginLeft: 'auto' }}
+              style={styles.selectedLocationClear}
             >
-              <Ionicons name="close-circle" size={20} color="#EF4444" />
+              <Ionicons name="close-circle" size={wp('5%')} color="#EF4444" />
             </TouchableOpacity>
           </View>
         )}
 
         {toSearch && !toLocation && toResults.length === 0 && !searchingTo && (
           <View style={styles.manualEntryHint}>
-            <Ionicons name="information-circle" size={18} color={GREEN} />
+            <Ionicons name="information-circle" size={wp('4.5%')} color={TEAL} />
             <Text style={styles.manualEntryText}>
               You can continue with "{toSearch}" as your destination
             </Text>
@@ -584,39 +697,61 @@ export default function BusRentalFleetScreen() {
   // STEP 4: Passengers
   const renderStep4 = () => (
     <View style={styles.stepContainer}>
-      <View style={styles.questionHeader}>
-        <Ionicons name="people" size={40} color={GREEN} />
-        <Text style={styles.questionTitle}>How many passengers?</Text>
-        <Text style={styles.questionSubtitle}>Enter total number of travelers</Text>
-      </View>
-
-      <View style={styles.passengerInputContainer}>
-        <TouchableOpacity
-          style={styles.passengerButton}
-          onPress={() => setPassengers(Math.max(1, parseInt(passengers || 0) - 1).toString())}
-        >
-          <Ionicons name="remove-circle" size={48} color={GREEN} />
-        </TouchableOpacity>
-
-        <View style={styles.passengerDisplay}>
-          <TextInput
-            style={styles.passengerInput}
-            value={passengers}
-            onChangeText={setPassengers}
-            keyboardType="number-pad"
-            placeholder="0"
-            placeholderTextColor="#ccc"
-            maxLength={3}
-          />
-          <Text style={styles.passengerLabel}>Passengers</Text>
+      <LinearGradient
+        colors={[TEAL_DEEP, TEAL_MID, '#047857']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.stepHero}
+      >
+        {renderDecoCircles()}
+        <View style={styles.stepHeroIconWrap}>
+          <Ionicons name="people" size={wp('8%')} color="#fff" />
         </View>
+        <Text style={styles.stepHeroTitle}>How many passengers?</Text>
+        <Text style={styles.stepHeroSubtitle}>Enter total number of travelers</Text>
+      </LinearGradient>
 
-        <TouchableOpacity
-          style={styles.passengerButton}
-          onPress={() => setPassengers((parseInt(passengers || 0) + 1).toString())}
-        >
-          <Ionicons name="add-circle" size={48} color={GREEN} />
-        </TouchableOpacity>
+      <View style={styles.passengerCard}>
+        <View style={styles.passengerInputContainer}>
+          <TouchableOpacity
+            style={styles.passengerButton}
+            onPress={() => setPassengers(Math.max(1, parseInt(passengers || 0) - 1).toString())}
+            activeOpacity={0.7}
+          >
+            <LinearGradient
+              colors={[TEAL_MID, TEAL]}
+              style={styles.passengerBtnGradient}
+            >
+              <Ionicons name="remove" size={wp('6%')} color="#fff" />
+            </LinearGradient>
+          </TouchableOpacity>
+
+          <View style={styles.passengerDisplay}>
+            <TextInput
+              style={styles.passengerInput}
+              value={passengers}
+              onChangeText={setPassengers}
+              keyboardType="number-pad"
+              placeholder="0"
+              placeholderTextColor={TEXT_MUTED}
+              maxLength={3}
+            />
+            <Text style={styles.passengerLabel}>Passengers</Text>
+          </View>
+
+          <TouchableOpacity
+            style={styles.passengerButton}
+            onPress={() => setPassengers((parseInt(passengers || 0) + 1).toString())}
+            activeOpacity={0.7}
+          >
+            <LinearGradient
+              colors={[TEAL_MID, TEAL]}
+              style={styles.passengerBtnGradient}
+            >
+              <Ionicons name="add" size={wp('6%')} color="#fff" />
+            </LinearGradient>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Quick select options */}
@@ -631,15 +766,18 @@ export default function BusRentalFleetScreen() {
                 passengers === count.toString() && styles.quickSelectBtnActive,
               ]}
               onPress={() => setPassengers(count.toString())}
+              activeOpacity={0.7}
             >
-              <Text
-                style={[
-                  styles.quickSelectBtnText,
-                  passengers === count.toString() && styles.quickSelectBtnTextActive,
-                ]}
-              >
-                {count}
-              </Text>
+              {passengers === count.toString() ? (
+                <LinearGradient
+                  colors={[TEAL_MID, TEAL]}
+                  style={styles.quickSelectBtnGradientInner}
+                >
+                  <Text style={styles.quickSelectBtnTextActive}>{count}</Text>
+                </LinearGradient>
+              ) : (
+                <Text style={styles.quickSelectBtnText}>{count}</Text>
+              )}
             </TouchableOpacity>
           ))}
         </View>
@@ -650,16 +788,24 @@ export default function BusRentalFleetScreen() {
   // STEP 5: Pickup Date/Time
   const renderStep5 = () => (
     <View style={styles.stepContainer}>
-      <View style={styles.questionHeader}>
-        <Ionicons name="calendar" size={40} color={GREEN} />
-        <Text style={styles.questionTitle}>When do you need the service?</Text>
-        <Text style={styles.questionSubtitle}>Select your pickup date and time</Text>
-      </View>
+      <LinearGradient
+        colors={[TEAL_DEEP, TEAL_MID, '#047857']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.stepHero}
+      >
+        {renderDecoCircles()}
+        <View style={styles.stepHeroIconWrap}>
+          <Ionicons name="calendar" size={wp('8%')} color="#fff" />
+        </View>
+        <Text style={styles.stepHeroTitle}>When do you need the service?</Text>
+        <Text style={styles.stepHeroSubtitle}>Select your pickup date and time</Text>
+      </LinearGradient>
 
       <View style={styles.dateTimeContainer}>
-        <TouchableOpacity style={styles.dateTimeCard} onPress={() => openDatePicker('pickup')}>
+        <TouchableOpacity style={styles.dateTimeCard} onPress={() => openDatePicker('pickup')} activeOpacity={0.7}>
           <View style={styles.dateTimeIcon}>
-            <Ionicons name="calendar-outline" size={28} color={GREEN} />
+            <Ionicons name="calendar-outline" size={wp('6%')} color={TEAL} />
           </View>
           <View style={styles.dateTimeInfo}>
             <Text style={styles.dateTimeLabel}>Pickup Date</Text>
@@ -671,23 +817,29 @@ export default function BusRentalFleetScreen() {
               })}
             </Text>
           </View>
-          <Ionicons name="chevron-forward" size={20} color="#ccc" />
+          <View style={styles.dateTimeChevron}>
+            <Ionicons name="chevron-forward" size={wp('4.5%')} color={TEXT_MUTED} />
+          </View>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.dateTimeCard} onPress={() => openTimePicker('pickup')}>
+        <TouchableOpacity style={styles.dateTimeCard} onPress={() => openTimePicker('pickup')} activeOpacity={0.7}>
           <View style={styles.dateTimeIcon}>
-            <Ionicons name="time-outline" size={28} color={GREEN} />
+            <Ionicons name="time-outline" size={wp('6%')} color={TEAL} />
           </View>
           <View style={styles.dateTimeInfo}>
             <Text style={styles.dateTimeLabel}>Pickup Time</Text>
             <Text style={styles.dateTimeValue}>{pickupTime}</Text>
           </View>
-          <Ionicons name="chevron-forward" size={20} color="#ccc" />
+          <View style={styles.dateTimeChevron}>
+            <Ionicons name="chevron-forward" size={wp('4.5%')} color={TEXT_MUTED} />
+          </View>
         </TouchableOpacity>
       </View>
 
       <View style={styles.noteBox}>
-        <Ionicons name="information-circle-outline" size={20} color="#F59E0B" />
+        <View style={styles.noteIconCircle}>
+          <Ionicons name="information-circle-outline" size={wp('4.5%')} color="#F59E0B" />
+        </View>
         <Text style={styles.noteText}>Note: You cannot select past dates</Text>
       </View>
     </View>
@@ -696,16 +848,24 @@ export default function BusRentalFleetScreen() {
   // STEP 6: Return Date/Time (for non-local)
   const renderStep6 = () => (
     <View style={styles.stepContainer}>
-      <View style={styles.questionHeader}>
-        <Ionicons name="calendar" size={40} color="#EF4444" />
-        <Text style={styles.questionTitle}>When will you return?</Text>
-        <Text style={styles.questionSubtitle}>Select your return date and time</Text>
-      </View>
+      <LinearGradient
+        colors={[TEAL_DEEP, TEAL_MID, '#047857']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.stepHero}
+      >
+        {renderDecoCircles()}
+        <View style={[styles.stepHeroIconWrap, { backgroundColor: 'rgba(239,68,68,0.25)' }]}>
+          <Ionicons name="calendar" size={wp('8%')} color="#FCA5A5" />
+        </View>
+        <Text style={styles.stepHeroTitle}>When will you return?</Text>
+        <Text style={styles.stepHeroSubtitle}>Select your return date and time</Text>
+      </LinearGradient>
 
       <View style={styles.dateTimeContainer}>
-        <TouchableOpacity style={styles.dateTimeCard} onPress={() => openDatePicker('return')}>
+        <TouchableOpacity style={styles.dateTimeCard} onPress={() => openDatePicker('return')} activeOpacity={0.7}>
           <View style={[styles.dateTimeIcon, { backgroundColor: '#FEE2E2' }]}>
-            <Ionicons name="calendar-outline" size={28} color="#EF4444" />
+            <Ionicons name="calendar-outline" size={wp('6%')} color="#EF4444" />
           </View>
           <View style={styles.dateTimeInfo}>
             <Text style={styles.dateTimeLabel}>Return Date</Text>
@@ -717,23 +877,29 @@ export default function BusRentalFleetScreen() {
               })}
             </Text>
           </View>
-          <Ionicons name="chevron-forward" size={20} color="#ccc" />
+          <View style={styles.dateTimeChevron}>
+            <Ionicons name="chevron-forward" size={wp('4.5%')} color={TEXT_MUTED} />
+          </View>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.dateTimeCard} onPress={() => openTimePicker('return')}>
+        <TouchableOpacity style={styles.dateTimeCard} onPress={() => openTimePicker('return')} activeOpacity={0.7}>
           <View style={[styles.dateTimeIcon, { backgroundColor: '#FEE2E2' }]}>
-            <Ionicons name="time-outline" size={28} color="#EF4444" />
+            <Ionicons name="time-outline" size={wp('6%')} color="#EF4444" />
           </View>
           <View style={styles.dateTimeInfo}>
             <Text style={styles.dateTimeLabel}>Return Time</Text>
             <Text style={styles.dateTimeValue}>{returnTime}</Text>
           </View>
-          <Ionicons name="chevron-forward" size={20} color="#ccc" />
+          <View style={styles.dateTimeChevron}>
+            <Ionicons name="chevron-forward" size={wp('4.5%')} color={TEXT_MUTED} />
+          </View>
         </TouchableOpacity>
       </View>
 
       <View style={styles.noteBox}>
-        <Ionicons name="information-circle-outline" size={20} color="#F59E0B" />
+        <View style={styles.noteIconCircle}>
+          <Ionicons name="information-circle-outline" size={wp('4.5%')} color="#F59E0B" />
+        </View>
         <Text style={styles.noteText}>Note: Return date must be after pickup date</Text>
       </View>
     </View>
@@ -742,30 +908,39 @@ export default function BusRentalFleetScreen() {
   // STEP 7: Special Requirements
   const renderStep7 = () => (
     <View style={styles.stepContainer}>
-      <View style={styles.questionHeader}>
-        <Ionicons name="list" size={40} color={GREEN} />
-        <Text style={styles.questionTitle}>Any special requirements?</Text>
-        <Text style={styles.questionSubtitle}>
-          Add any special requests or preferences
-        </Text>
-      </View>
+      <LinearGradient
+        colors={[TEAL_DEEP, TEAL_MID, '#047857']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.stepHero}
+      >
+        {renderDecoCircles()}
+        <View style={styles.stepHeroIconWrap}>
+          <Ionicons name="list" size={wp('8%')} color="#fff" />
+        </View>
+        <Text style={styles.stepHeroTitle}>Any special requirements?</Text>
+        <Text style={styles.stepHeroSubtitle}>Add any special requests or preferences</Text>
+      </LinearGradient>
 
       <View style={styles.preferencesContainer}>
         <TouchableOpacity
           style={[styles.preferenceCard, needAC && styles.preferenceCardActive]}
           onPress={() => setNeedAC(!needAC)}
+          activeOpacity={0.7}
         >
-          <Ionicons
-            name={needAC ? 'snow' : 'snow-outline'}
-            size={32}
-            color={needAC ? GREEN : '#666'}
-          />
+          <View style={[styles.prefIconCircle, needAC && { backgroundColor: TEAL_LIGHT }]}>
+            <Ionicons
+              name={needAC ? 'snow' : 'snow-outline'}
+              size={wp('6.5%')}
+              color={needAC ? TEAL : TEXT_SECONDARY}
+            />
+          </View>
           <Text style={[styles.preferenceText, needAC && styles.preferenceTextActive]}>
             AC Required
           </Text>
           {needAC && (
             <View style={styles.preferenceCheck}>
-              <Ionicons name="checkmark-circle" size={20} color={GREEN} />
+              <Ionicons name="checkmark-circle" size={wp('4.5%')} color={TEAL} />
             </View>
           )}
         </TouchableOpacity>
@@ -773,18 +948,21 @@ export default function BusRentalFleetScreen() {
         <TouchableOpacity
           style={[styles.preferenceCard, needLuxury && styles.preferenceCardActive]}
           onPress={() => setNeedLuxury(!needLuxury)}
+          activeOpacity={0.7}
         >
-          <Ionicons
-            name={needLuxury ? 'diamond' : 'diamond-outline'}
-            size={32}
-            color={needLuxury ? GREEN : '#666'}
-          />
+          <View style={[styles.prefIconCircle, needLuxury && { backgroundColor: TEAL_LIGHT }]}>
+            <Ionicons
+              name={needLuxury ? 'diamond' : 'diamond-outline'}
+              size={wp('6.5%')}
+              color={needLuxury ? TEAL : TEXT_SECONDARY}
+            />
+          </View>
           <Text style={[styles.preferenceText, needLuxury && styles.preferenceTextActive]}>
             Luxury Bus
           </Text>
           {needLuxury && (
             <View style={styles.preferenceCheck}>
-              <Ionicons name="checkmark-circle" size={20} color={GREEN} />
+              <Ionicons name="checkmark-circle" size={wp('4.5%')} color={TEAL} />
             </View>
           )}
         </TouchableOpacity>
@@ -792,18 +970,21 @@ export default function BusRentalFleetScreen() {
         <TouchableOpacity
           style={[styles.preferenceCard, needSleeper && styles.preferenceCardActive]}
           onPress={() => setNeedSleeper(!needSleeper)}
+          activeOpacity={0.7}
         >
-          <Ionicons
-            name={needSleeper ? 'bed' : 'bed-outline'}
-            size={32}
-            color={needSleeper ? GREEN : '#666'}
-          />
+          <View style={[styles.prefIconCircle, needSleeper && { backgroundColor: TEAL_LIGHT }]}>
+            <Ionicons
+              name={needSleeper ? 'bed' : 'bed-outline'}
+              size={wp('6.5%')}
+              color={needSleeper ? TEAL : TEXT_SECONDARY}
+            />
+          </View>
           <Text style={[styles.preferenceText, needSleeper && styles.preferenceTextActive]}>
             Sleeper Bus
           </Text>
           {needSleeper && (
             <View style={styles.preferenceCheck}>
-              <Ionicons name="checkmark-circle" size={20} color={GREEN} />
+              <Ionicons name="checkmark-circle" size={wp('4.5%')} color={TEAL} />
             </View>
           )}
         </TouchableOpacity>
@@ -816,7 +997,7 @@ export default function BusRentalFleetScreen() {
           value={requirements}
           onChangeText={setRequirements}
           placeholder="E.g., decorations, specific timing requirements, etc..."
-          placeholderTextColor="#999"
+          placeholderTextColor={TEXT_MUTED}
           multiline
           numberOfLines={4}
           textAlignVertical="top"
@@ -831,6 +1012,7 @@ export default function BusRentalFleetScreen() {
           setNeedLuxury(false);
           setNeedSleeper(false);
         }}
+        activeOpacity={0.7}
       >
         <Text style={styles.skipButtonText}>Skip & Use Defaults</Text>
       </TouchableOpacity>
@@ -840,9 +1022,12 @@ export default function BusRentalFleetScreen() {
   // STEP 8: Confirmation
   const renderStep8 = () => (
     <View style={styles.confirmationContainer}>
-      <View style={styles.successCircle}>
-        <Ionicons name="checkmark" size={60} color="#fff" />
-      </View>
+      <LinearGradient
+        colors={[TEAL_MID, TEAL]}
+        style={styles.successCircle}
+      >
+        <Ionicons name="checkmark" size={wp('14%')} color="#fff" />
+      </LinearGradient>
 
       <Text style={styles.confirmTitle}>Quote Request Submitted!</Text>
       <Text style={styles.confirmSubtitle}>
@@ -852,16 +1037,22 @@ export default function BusRentalFleetScreen() {
 
       <View style={styles.confirmCard}>
         <View style={styles.confirmRow}>
-          <Ionicons name="document-text-outline" size={24} color={GREEN} />
-          <View style={{ flex: 1, marginLeft: 12 }}>
+          <View style={styles.confirmIconCircle}>
+            <Ionicons name="document-text-outline" size={wp('5%')} color={TEAL} />
+          </View>
+          <View style={{ flex: 1, marginLeft: wp('3%') }}>
             <Text style={styles.confirmLabel}>Request ID</Text>
             <Text style={styles.confirmValue}>#{confirmedRequestId}</Text>
           </View>
         </View>
 
+        <View style={styles.confirmDivider} />
+
         <View style={styles.confirmRow}>
-          <Ionicons name="bus-outline" size={24} color={GREEN} />
-          <View style={{ flex: 1, marginLeft: 12 }}>
+          <View style={styles.confirmIconCircle}>
+            <Ionicons name="bus-outline" size={wp('5%')} color={TEAL} />
+          </View>
+          <View style={{ flex: 1, marginLeft: wp('3%') }}>
             <Text style={styles.confirmLabel}>Trip Type</Text>
             <Text style={styles.confirmValue}>
               {tripType.charAt(0).toUpperCase() + tripType.slice(1)}
@@ -869,17 +1060,25 @@ export default function BusRentalFleetScreen() {
           </View>
         </View>
 
+        <View style={styles.confirmDivider} />
+
         <View style={styles.confirmRow}>
-          <Ionicons name="people-outline" size={24} color={GREEN} />
-          <View style={{ flex: 1, marginLeft: 12 }}>
+          <View style={styles.confirmIconCircle}>
+            <Ionicons name="people-outline" size={wp('5%')} color={TEAL} />
+          </View>
+          <View style={{ flex: 1, marginLeft: wp('3%') }}>
             <Text style={styles.confirmLabel}>Passengers</Text>
             <Text style={styles.confirmValue}>{passengers} people</Text>
           </View>
         </View>
 
+        <View style={styles.confirmDivider} />
+
         <View style={styles.confirmRow}>
-          <Ionicons name="calendar-outline" size={24} color={GREEN} />
-          <View style={{ flex: 1, marginLeft: 12 }}>
+          <View style={styles.confirmIconCircle}>
+            <Ionicons name="calendar-outline" size={wp('5%')} color={TEAL} />
+          </View>
+          <View style={{ flex: 1, marginLeft: wp('3%') }}>
             <Text style={styles.confirmLabel}>Journey Date</Text>
             <Text style={styles.confirmValue}>
               {pickupDate.toLocaleDateString('en-IN', {
@@ -899,27 +1098,84 @@ export default function BusRentalFleetScreen() {
             requestId: confirmedRequestId,
           })
         }
+        activeOpacity={0.7}
       >
-        <Text style={styles.primaryBtnText}>View Quote Request</Text>
-        <Ionicons name="arrow-forward" size={20} color="#fff" />
+        <LinearGradient
+          colors={[TEAL_MID, TEAL]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={styles.primaryBtnGradient}
+        >
+          <Text style={styles.primaryBtnText}>View Quote Request</Text>
+          <Ionicons name="arrow-forward" size={wp('5%')} color="#fff" />
+        </LinearGradient>
       </TouchableOpacity>
 
       <TouchableOpacity
         style={styles.secondaryBtn}
         onPress={() => navigation.navigate('CustomerDashboard')}
+        activeOpacity={0.7}
       >
-        <Ionicons name="home-outline" size={20} color={GREEN} />
+        <Ionicons name="home-outline" size={wp('5%')} color={TEAL} />
         <Text style={styles.secondaryBtnText}>Go to Dashboard</Text>
       </TouchableOpacity>
     </View>
   );
 
+  // ========== STEP INDICATOR ==========
+  const renderStepIndicator = () => {
+    if (step >= 8) return null;
+    const stepsArr = [];
+    for (let i = 1; i <= totalSteps; i++) {
+      stepsArr.push(i);
+    }
+    return (
+      <View style={styles.stepIndicatorWrap}>
+        {stepsArr.map((s, idx) => (
+          <React.Fragment key={s}>
+            {s <= step ? (
+              <LinearGradient
+                colors={[TEAL_MID, TEAL]}
+                style={[
+                  styles.stepDot,
+                  s === step && styles.stepDotCurrent,
+                ]}
+              >
+                {s < step ? (
+                  <Ionicons name="checkmark" size={wp('2.8%')} color="#fff" />
+                ) : (
+                  <Text style={styles.stepDotText}>{s}</Text>
+                )}
+              </LinearGradient>
+            ) : (
+              <View style={styles.stepDotInactive}>
+                <Text style={styles.stepDotTextInactive}>{s}</Text>
+              </View>
+            )}
+            {idx < stepsArr.length - 1 && (
+              <View style={[styles.stepConnector, s < step && styles.stepConnectorActive]} />
+            )}
+          </React.Fragment>
+        ))}
+      </View>
+    );
+  };
+
+  // ========== MAIN RETURN ==========
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={handleBackPress} style={styles.backBtn}>
-          <Ionicons name="arrow-back" size={24} color="#333" />
+      <StatusBar barStyle="light-content" backgroundColor={TEAL_DEEP} />
+
+      {/* Premium Header */}
+      <LinearGradient
+        colors={[TEAL_DEEP, TEAL_MID, '#047857']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.header}
+      >
+        {renderDecoCircles()}
+        <TouchableOpacity onPress={handleBackPress} style={styles.backBtn} activeOpacity={0.7}>
+          <Ionicons name="arrow-back" size={wp('5.5%')} color="#fff" />
         </TouchableOpacity>
         <View style={{ flex: 1 }}>
           <Text style={styles.headerTitle}>Bus Rental</Text>
@@ -929,27 +1185,17 @@ export default function BusRentalFleetScreen() {
             </Text>
           )}
         </View>
-          <TouchableOpacity
+        <TouchableOpacity
           onPress={() => navigation.navigate('MyBusBookings')}
           style={styles.myBookingsBtn}
+          activeOpacity={0.7}
         >
-          <Ionicons name="document-text-outline" size={20} color={GREEN} />
+          <Ionicons name="document-text-outline" size={wp('5%')} color="#fff" />
         </TouchableOpacity>
-      </View>
+      </LinearGradient>
 
-      {/* Progress Bar */}
-      {step < 8 && (
-        <View style={styles.progressBarContainer}>
-          <View style={styles.progressBarBg}>
-            <View
-              style={[
-                styles.progressBarFill,
-                { width: `${((step - 1) / (totalSteps - 1)) * 100}%` },
-              ]}
-            />
-          </View>
-        </View>
-      )}
+      {/* Step Indicator */}
+      {renderStepIndicator()}
 
       {/* Content */}
       <ScrollView
@@ -971,20 +1217,28 @@ export default function BusRentalFleetScreen() {
       {step < 8 && (
         <View style={styles.footer}>
           <TouchableOpacity
-            style={[styles.nextButton, submitting && styles.nextButtonDisabled]}
+            style={styles.nextButton}
             onPress={handleNext}
             disabled={submitting}
+            activeOpacity={0.8}
           >
-            {submitting ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <>
-                <Text style={styles.nextButtonText}>
-                  {step === 7 ? 'Submit Request' : 'Continue'}
-                </Text>
-                <Ionicons name="arrow-forward" size={20} color="#fff" />
-              </>
-            )}
+            <LinearGradient
+              colors={submitting ? [TEXT_MUTED, TEXT_MUTED] : [TEAL_MID, TEAL]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.nextButtonGradient}
+            >
+              {submitting ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <>
+                  <Text style={styles.nextButtonText}>
+                    {step === 7 ? 'Submit Request' : 'Continue'}
+                  </Text>
+                  <Ionicons name="arrow-forward" size={wp('5%')} color="#fff" />
+                </>
+              )}
+            </LinearGradient>
           </TouchableOpacity>
         </View>
       )}
@@ -998,27 +1252,39 @@ export default function BusRentalFleetScreen() {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.phoneModal}>
+            <View style={styles.phoneModalHandle} />
             <View style={styles.phoneModalHeader}>
               <Text style={styles.phoneModalTitle}>Add Phone Number</Text>
-              <TouchableOpacity onPress={() => setShowPhoneModal(false)}>
-                <Ionicons name="close" size={24} color="#333" />
+              <TouchableOpacity
+                onPress={() => setShowPhoneModal(false)}
+                style={styles.phoneModalClose}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="close" size={wp('5.5%')} color={TEXT_SECONDARY} />
               </TouchableOpacity>
             </View>
 
             <View style={styles.phoneModalContent}>
-              <Ionicons name="call-outline" size={60} color={GREEN} style={styles.phoneIcon} />
+              <LinearGradient
+                colors={[TEAL_MID, TEAL]}
+                style={styles.phoneIconCircle}
+              >
+                <Ionicons name="call-outline" size={wp('8%')} color="#fff" />
+              </LinearGradient>
               <Text style={styles.phoneModalText}>
                 We need your phone number to process your booking request and send you quotes from vendors.
               </Text>
 
               <View style={styles.phoneInputGroup}>
-                <Ionicons name="call" size={20} color={GREEN} />
+                <View style={styles.phoneInputIcon}>
+                  <Ionicons name="call" size={wp('4.5%')} color={TEAL} />
+                </View>
                 <TextInput
                   style={styles.phoneInput}
                   placeholder="Enter your 10-digit phone number"
                   value={phoneNumber}
                   onChangeText={setPhoneNumber}
-                    placeholderTextColor={"#888"}
+                  placeholderTextColor={TEXT_MUTED}
                   keyboardType="phone-pad"
                   maxLength={10}
                   autoFocus={true}
@@ -1029,12 +1295,20 @@ export default function BusRentalFleetScreen() {
                 style={[styles.phoneSubmitBtn, phoneLoading && styles.phoneSubmitBtnDisabled]}
                 onPress={handlePhoneSubmit}
                 disabled={phoneLoading}
+                activeOpacity={0.8}
               >
-                {phoneLoading ? (
-                  <ActivityIndicator color="#fff" />
-                ) : (
-                  <Text style={styles.phoneSubmitBtnText}>Continue</Text>
-                )}
+                <LinearGradient
+                  colors={phoneLoading ? [TEXT_MUTED, TEXT_MUTED] : [TEAL_MID, TEAL]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.phoneSubmitGradient}
+                >
+                  {phoneLoading ? (
+                    <ActivityIndicator color="#fff" />
+                  ) : (
+                    <Text style={styles.phoneSubmitBtnText}>Continue</Text>
+                  )}
+                </LinearGradient>
               </TouchableOpacity>
             </View>
           </View>
@@ -1044,456 +1318,682 @@ export default function BusRentalFleetScreen() {
   );
 }
 
+// ========== STYLES ==========
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: BG,
   },
+
+  // --- Decorative circles ---
+  decoCircle1: {
+    position: 'absolute',
+    width: wp('30%'),
+    height: wp('30%'),
+    borderRadius: wp('15%'),
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    top: -wp('10%'),
+    right: -wp('8%'),
+  },
+  decoCircle2: {
+    position: 'absolute',
+    width: wp('20%'),
+    height: wp('20%'),
+    borderRadius: wp('10%'),
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    bottom: -wp('5%'),
+    left: -wp('5%'),
+  },
+  decoCircle3: {
+    position: 'absolute',
+    width: wp('12%'),
+    height: wp('12%'),
+    borderRadius: wp('6%'),
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    top: wp('2%'),
+    left: wp('20%'),
+  },
+
+  // --- Header ---
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
-  },
-  backBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 8,
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#111827',
-  },
-  headerSubtitle: {
-    fontSize: 13,
-    color: '#6B7280',
-    marginTop: 2,
-  },
-  progressBarContainer: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: '#fff',
-  },
-  progressBarBg: {
-    height: 6,
-    backgroundColor: '#E5E7EB',
-    borderRadius: 3,
+    paddingHorizontal: wp('4%'),
+    paddingTop: hp('1.5%'),
+    paddingBottom: hp('2%'),
+    borderBottomLeftRadius: wp('6%'),
+    borderBottomRightRadius: wp('6%'),
     overflow: 'hidden',
   },
-  progressBarFill: {
-    height: '100%',
-    backgroundColor: GREEN,
-    borderRadius: 3,
+  backBtn: {
+    width: wp('10%'),
+    height: wp('10%'),
+    borderRadius: wp('5%'),
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: wp('2%'),
+    backgroundColor: 'rgba(255,255,255,0.15)',
   },
+  headerTitle: {
+    fontSize: wp('5.2%'),
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  headerSubtitle: {
+    fontSize: wp('3.2%'),
+    color: 'rgba(255,255,255,0.7)',
+    marginTop: hp('0.3%'),
+  },
+  myBookingsBtn: {
+    width: wp('10%'),
+    height: wp('10%'),
+    borderRadius: wp('5%'),
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.15)',
+  },
+
+  // --- Step Indicator ---
+  stepIndicatorWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: hp('1.5%'),
+    paddingHorizontal: wp('4%'),
+    backgroundColor: CARD,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.05,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
+  },
+  stepDot: {
+    width: wp('6.5%'),
+    height: wp('6.5%'),
+    borderRadius: wp('3.25%'),
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  stepDotCurrent: {
+    width: wp('7.5%'),
+    height: wp('7.5%'),
+    borderRadius: wp('3.75%'),
+  },
+  stepDotInactive: {
+    width: wp('6.5%'),
+    height: wp('6.5%'),
+    borderRadius: wp('3.25%'),
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#E5E7EB',
+  },
+  stepDotText: {
+    fontSize: wp('3%'),
+    fontWeight: '700',
+    color: '#fff',
+  },
+  stepDotTextInactive: {
+    fontSize: wp('3%'),
+    fontWeight: '600',
+    color: TEXT_MUTED,
+  },
+  stepConnector: {
+    width: wp('4%'),
+    height: hp('0.3%'),
+    backgroundColor: '#E5E7EB',
+    marginHorizontal: wp('0.5%'),
+    borderRadius: hp('0.15%'),
+  },
+  stepConnectorActive: {
+    backgroundColor: TEAL,
+  },
+
+  // --- Content ---
   content: {
     flex: 1,
   },
   contentContainer: {
-    padding: 20,
+    paddingBottom: hp('2%'),
   },
   stepContainer: {
     flex: 1,
   },
-  questionHeader: {
+
+  // --- Step Hero ---
+  stepHero: {
+    paddingVertical: hp('3.5%'),
+    paddingHorizontal: wp('5%'),
     alignItems: 'center',
-    marginBottom: 32,
+    overflow: 'hidden',
+    borderBottomLeftRadius: wp('6%'),
+    borderBottomRightRadius: wp('6%'),
+    marginBottom: hp('2.5%'),
   },
-  questionTitle: {
-    fontSize: 24,
+  stepHeroIconWrap: {
+    width: wp('16%'),
+    height: wp('16%'),
+    borderRadius: wp('8%'),
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: hp('1.5%'),
+  },
+  stepHeroTitle: {
+    fontSize: wp('5.5%'),
     fontWeight: '700',
-    color: '#111827',
-    marginTop: 16,
+    color: '#FFFFFF',
     textAlign: 'center',
+    marginBottom: hp('0.5%'),
   },
-  questionSubtitle: {
-    fontSize: 15,
-    color: '#6B7280',
-    marginTop: 8,
+  stepHeroSubtitle: {
+    fontSize: wp('3.5%'),
+    color: 'rgba(255,255,255,0.75)',
     textAlign: 'center',
   },
 
-  // Trip Type Grid
+  // --- Trip Type Grid ---
   tripTypeGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 12,
+    justifyContent: 'space-between',
+    paddingHorizontal: wp('4%'),
+    gap: hp('1.2%'),
   },
   tripTypeCard: {
-    width: '48%',
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 20,
+    width: wp('43.5%'),
+    backgroundColor: CARD,
+    borderRadius: wp('4%'),
+    paddingVertical: hp('2%'),
+    paddingHorizontal: wp('3%'),
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: '#E5E7EB',
+    borderColor: BORDER,
     position: 'relative',
+    ...SHADOW_SM,
   },
   tripTypeCardActive: {
-    borderColor: GREEN,
     backgroundColor: '#F0FDF4',
   },
   tripTypeIcon: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    width: wp('15%'),
+    height: wp('15%'),
+    borderRadius: wp('7.5%'),
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: hp('1%'),
   },
   tripTypeLabel: {
-    fontSize: 16,
+    fontSize: wp('3.8%'),
     fontWeight: '700',
-    color: '#111827',
-    marginBottom: 4,
-  },
-  tripTypeLabelActive: {
-    color: GREEN,
+    color: TEXT_PRIMARY,
+    marginBottom: hp('0.3%'),
   },
   tripTypeDesc: {
-    fontSize: 12,
-    color: '#6B7280',
+    fontSize: wp('3%'),
+    color: TEXT_SECONDARY,
     textAlign: 'center',
   },
   checkmark: {
     position: 'absolute',
-    top: 8,
-    right: 8,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    top: wp('2%'),
+    right: wp('2%'),
+    width: wp('5.5%'),
+    height: wp('5.5%'),
+    borderRadius: wp('2.75%'),
     justifyContent: 'center',
     alignItems: 'center',
   },
 
-  // Location Input
+  // --- Location Input ---
   inputContainer: {
-    marginTop: 20,
+    paddingHorizontal: wp('4%'),
   },
   searchBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
+    backgroundColor: CARD,
+    borderRadius: wp('4%'),
+    paddingHorizontal: wp('3%'),
+    paddingVertical: hp('1.2%'),
     borderWidth: 1,
-    borderColor: '#E5E7EB',
-    gap: 12,
+    borderColor: BORDER,
+    gap: wp('2.5%'),
+    ...SHADOW_SM,
+  },
+  searchIconCircle: {
+    width: wp('9%'),
+    height: wp('9%'),
+    borderRadius: wp('4.5%'),
+    backgroundColor: TEAL_LIGHT,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   searchInput: {
     flex: 1,
-    fontSize: 16,
-    color: '#111827',
+    fontSize: wp('3.8%'),
+    color: TEXT_PRIMARY,
+    paddingVertical: hp('0.5%'),
   },
   dropdown: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    marginTop: 8,
+    backgroundColor: CARD,
+    borderRadius: wp('4%'),
+    marginTop: hp('1%'),
     borderWidth: 1,
-    borderColor: '#E5E7EB',
-    maxHeight: 250,
+    borderColor: BORDER,
+    maxHeight: hp('30%'),
+    overflow: 'hidden',
+    ...SHADOW_MD,
   },
   dropdownItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
+    paddingVertical: hp('1.5%'),
+    paddingHorizontal: wp('4%'),
     borderBottomWidth: 1,
     borderBottomColor: '#F3F4F6',
-    gap: 12,
+    gap: wp('3%'),
+  },
+  dropdownIconCircle: {
+    width: wp('8%'),
+    height: wp('8%'),
+    borderRadius: wp('4%'),
+    backgroundColor: TEAL_LIGHT,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   dropdownText: {
-    fontSize: 15,
-    color: '#111827',
+    fontSize: wp('3.8%'),
+    color: TEXT_PRIMARY,
     flex: 1,
   },
   selectedLocation: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F0FDF4',
-    borderRadius: 12,
-    padding: 16,
-    marginTop: 16,
-    gap: 12,
-    borderWidth: 1,
-    borderColor: GREEN,
+    backgroundColor: TEAL_LIGHT,
+    borderRadius: wp('4%'),
+    paddingVertical: hp('1.5%'),
+    paddingHorizontal: wp('4%'),
+    marginTop: hp('1.5%'),
+    gap: wp('3%'),
+    borderWidth: 1.5,
+    borderColor: TEAL,
+    ...SHADOW_SM,
+  },
+  selectedLocationIcon: {
+    // wrapper for icon alignment
   },
   selectedLocationText: {
-    fontSize: 16,
+    fontSize: wp('3.8%'),
     fontWeight: '600',
-    color: GREEN,
+    color: TEAL_DEEP,
     flex: 1,
+  },
+  selectedLocationClear: {
+    marginLeft: 'auto',
   },
   manualEntryHint: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F0FDF4',
-    borderRadius: 12,
-    padding: 12,
-    marginTop: 12,
-    gap: 8,
+    backgroundColor: TEAL_LIGHT,
+    borderRadius: wp('3.5%'),
+    paddingVertical: hp('1.2%'),
+    paddingHorizontal: wp('3.5%'),
+    marginTop: hp('1.2%'),
+    gap: wp('2%'),
     borderWidth: 1,
-    borderColor: GREEN,
+    borderColor: TEAL,
   },
   manualEntryText: {
-    fontSize: 13,
-    color: '#059669',
+    fontSize: wp('3.2%'),
+    color: TEAL_MID,
     flex: 1,
   },
 
-  // Passengers
+  // --- Passengers ---
+  passengerCard: {
+    marginHorizontal: wp('4%'),
+    backgroundColor: CARD,
+    borderRadius: wp('5%'),
+    paddingVertical: hp('3%'),
+    paddingHorizontal: wp('4%'),
+    ...SHADOW_MD,
+  },
   passengerInputContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 40,
-    gap: 32,
+    gap: wp('6%'),
   },
   passengerButton: {
-    padding: 8,
+    // wrapper
+  },
+  passengerBtnGradient: {
+    width: wp('13%'),
+    height: wp('13%'),
+    borderRadius: wp('6.5%'),
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...SHADOW_SM,
   },
   passengerDisplay: {
     alignItems: 'center',
   },
   passengerInput: {
-    fontSize: 64,
+    fontSize: wp('14%'),
     fontWeight: '700',
-    color: GREEN,
+    color: TEAL,
     textAlign: 'center',
-    minWidth: 120,
+    minWidth: wp('25%'),
   },
   passengerLabel: {
-    fontSize: 14,
-    color: '#6B7280',
-    marginTop: 8,
+    fontSize: wp('3.5%'),
+    color: TEXT_SECONDARY,
+    marginTop: hp('0.5%'),
   },
   quickSelectContainer: {
-    marginTop: 40,
+    marginTop: hp('3%'),
+    paddingHorizontal: wp('4%'),
   },
   quickSelectLabel: {
-    fontSize: 14,
+    fontSize: wp('3.5%'),
     fontWeight: '600',
-    color: '#6B7280',
-    marginBottom: 12,
+    color: TEXT_SECONDARY,
+    marginBottom: hp('1.2%'),
     textAlign: 'center',
   },
   quickSelectButtons: {
     flexDirection: 'row',
     justifyContent: 'center',
-    gap: 12,
+    gap: wp('2.5%'),
   },
   quickSelectBtn: {
-    backgroundColor: '#fff',
+    backgroundColor: CARD,
     borderWidth: 2,
-    borderColor: '#E5E7EB',
-    borderRadius: 12,
-    paddingHorizontal: 20,
-    paddingVertical: 12,
+    borderColor: BORDER,
+    borderRadius: wp('3%'),
+    overflow: 'hidden',
+    minWidth: wp('13%'),
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...SHADOW_SM,
   },
   quickSelectBtnActive: {
-    backgroundColor: GREEN,
-    borderColor: GREEN,
+    borderColor: TEAL,
+    borderWidth: 0,
+  },
+  quickSelectBtnGradientInner: {
+    paddingHorizontal: wp('4%'),
+    paddingVertical: hp('1.2%'),
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '100%',
   },
   quickSelectBtnText: {
-    fontSize: 16,
+    fontSize: wp('3.8%'),
     fontWeight: '600',
-    color: '#6B7280',
+    color: TEXT_SECONDARY,
+    paddingHorizontal: wp('4%'),
+    paddingVertical: hp('1.2%'),
   },
   quickSelectBtnTextActive: {
+    fontSize: wp('3.8%'),
+    fontWeight: '700',
     color: '#fff',
   },
 
-  // Date Time
+  // --- Date Time ---
   dateTimeContainer: {
-    gap: 16,
-    marginTop: 20,
+    gap: hp('1.5%'),
+    paddingHorizontal: wp('4%'),
   },
   dateTimeCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 16,
+    backgroundColor: CARD,
+    borderRadius: wp('4%'),
+    paddingVertical: hp('1.8%'),
+    paddingHorizontal: wp('4%'),
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: BORDER,
+    ...SHADOW_SM,
   },
   dateTimeIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: '#F0FDF4',
+    width: wp('12%'),
+    height: wp('12%'),
+    borderRadius: wp('6%'),
+    backgroundColor: TEAL_LIGHT,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 16,
+    marginRight: wp('4%'),
   },
   dateTimeInfo: {
     flex: 1,
   },
   dateTimeLabel: {
-    fontSize: 13,
-    color: '#6B7280',
-    marginBottom: 4,
+    fontSize: wp('3.2%'),
+    color: TEAL,
+    fontWeight: '600',
+    marginBottom: hp('0.3%'),
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   dateTimeValue: {
-    fontSize: 17,
+    fontSize: wp('4.2%'),
     fontWeight: '600',
-    color: '#111827',
+    color: TEXT_PRIMARY,
+  },
+  dateTimeChevron: {
+    width: wp('8%'),
+    height: wp('8%'),
+    borderRadius: wp('4%'),
+    backgroundColor: BG,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   noteBox: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FEF3C7',
-    borderRadius: 12,
-    padding: 12,
-    marginTop: 20,
-    gap: 12,
+    borderRadius: wp('3.5%'),
+    paddingVertical: hp('1.2%'),
+    paddingHorizontal: wp('3.5%'),
+    marginTop: hp('2%'),
+    marginHorizontal: wp('4%'),
+    gap: wp('2.5%'),
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  noteIconCircle: {
+    width: wp('8%'),
+    height: wp('8%'),
+    borderRadius: wp('4%'),
+    backgroundColor: '#FDE68A',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   noteText: {
-    fontSize: 13,
+    fontSize: wp('3.2%'),
     color: '#92400E',
     flex: 1,
+    fontWeight: '500',
   },
 
-  // Preferences
+  // --- Preferences ---
   preferencesContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 12,
-    marginTop: 20,
+    justifyContent: 'space-between',
+    paddingHorizontal: wp('4%'),
+    gap: hp('1%'),
   },
   preferenceCard: {
-    width: '31%',
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 16,
+    width: wp('28%'),
+    backgroundColor: CARD,
+    borderRadius: wp('4%'),
+    paddingVertical: hp('2%'),
+    paddingHorizontal: wp('2%'),
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: '#E5E7EB',
+    borderColor: BORDER,
     position: 'relative',
+    ...SHADOW_SM,
   },
   preferenceCardActive: {
-    borderColor: GREEN,
+    borderColor: TEAL,
     backgroundColor: '#F0FDF4',
   },
+  prefIconCircle: {
+    width: wp('12%'),
+    height: wp('12%'),
+    borderRadius: wp('6%'),
+    backgroundColor: BG,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: hp('0.8%'),
+  },
   preferenceText: {
-    fontSize: 13,
+    fontSize: wp('3%'),
     fontWeight: '600',
-    color: '#6B7280',
-    marginTop: 8,
+    color: TEXT_SECONDARY,
+    marginTop: hp('0.5%'),
     textAlign: 'center',
   },
   preferenceTextActive: {
-    color: GREEN,
+    color: TEAL_DEEP,
   },
   preferenceCheck: {
     position: 'absolute',
-    top: 8,
-    right: 8,
+    top: wp('1.5%'),
+    right: wp('1.5%'),
   },
   textInputContainer: {
-    marginTop: 24,
+    marginTop: hp('2.5%'),
+    paddingHorizontal: wp('4%'),
   },
   textInputLabel: {
-    fontSize: 14,
+    fontSize: wp('3.5%'),
     fontWeight: '600',
-    color: '#374151',
-    marginBottom: 8,
+    color: TEXT_PRIMARY,
+    marginBottom: hp('1%'),
   },
   textArea: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 16,
-    fontSize: 15,
-    color: '#111827',
+    backgroundColor: CARD,
+    borderRadius: wp('4%'),
+    paddingHorizontal: wp('4%'),
+    paddingVertical: hp('1.5%'),
+    fontSize: wp('3.8%'),
+    color: TEXT_PRIMARY,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
-    minHeight: 120,
+    borderColor: BORDER,
+    minHeight: hp('14%'),
+    ...SHADOW_SM,
   },
   skipButton: {
     alignSelf: 'center',
-    marginTop: 20,
-    paddingVertical: 12,
-    paddingHorizontal: 24,
+    marginTop: hp('2%'),
+    paddingVertical: hp('1.2%'),
+    paddingHorizontal: wp('6%'),
+    borderRadius: wp('3%'),
+    backgroundColor: BG,
   },
   skipButtonText: {
-    fontSize: 14,
+    fontSize: wp('3.5%'),
     fontWeight: '600',
-    color: '#6B7280',
+    color: TEXT_SECONDARY,
   },
 
-  // Confirmation
+  // --- Confirmation ---
   confirmationContainer: {
     alignItems: 'center',
-    paddingVertical: 40,
+    paddingVertical: hp('4%'),
+    paddingHorizontal: wp('5%'),
   },
   successCircle: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: GREEN,
+    width: wp('28%'),
+    height: wp('28%'),
+    borderRadius: wp('14%'),
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: hp('2.5%'),
+    ...SHADOW_LG,
   },
   confirmTitle: {
-    fontSize: 28,
+    fontSize: wp('6.5%'),
     fontWeight: '700',
-    color: '#111827',
+    color: TEXT_PRIMARY,
     textAlign: 'center',
-    marginBottom: 12,
+    marginBottom: hp('1%'),
   },
   confirmSubtitle: {
-    fontSize: 15,
-    color: '#6B7280',
+    fontSize: wp('3.5%'),
+    color: TEXT_SECONDARY,
     textAlign: 'center',
-    lineHeight: 22,
-    paddingHorizontal: 20,
-    marginBottom: 32,
+    lineHeight: hp('2.8%'),
+    paddingHorizontal: wp('4%'),
+    marginBottom: hp('3%'),
   },
   confirmCard: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 20,
+    backgroundColor: CARD,
+    borderRadius: wp('5%'),
+    paddingVertical: hp('2%'),
+    paddingHorizontal: wp('5%'),
     width: '100%',
-    gap: 16,
-    marginBottom: 24,
+    marginBottom: hp('3%'),
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: BORDER,
+    ...SHADOW_MD,
   },
   confirmRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    paddingVertical: hp('1.2%'),
+  },
+  confirmIconCircle: {
+    width: wp('10%'),
+    height: wp('10%'),
+    borderRadius: wp('5%'),
+    backgroundColor: TEAL_LIGHT,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  confirmDivider: {
+    height: 1,
+    backgroundColor: '#F3F4F6',
+    marginVertical: hp('0.3%'),
   },
   confirmLabel: {
-    fontSize: 13,
-    color: '#6B7280',
-    marginBottom: 4,
+    fontSize: wp('3%'),
+    color: TEXT_SECONDARY,
+    marginBottom: hp('0.2%'),
   },
   confirmValue: {
-    fontSize: 16,
+    fontSize: wp('4%'),
     fontWeight: '600',
-    color: '#111827',
+    color: TEXT_PRIMARY,
   },
   primaryBtn: {
+    width: '100%',
+    borderRadius: wp('4%'),
+    overflow: 'hidden',
+    marginBottom: hp('1.2%'),
+    ...SHADOW_MD,
+  },
+  primaryBtnGradient: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: GREEN,
-    borderRadius: 16,
-    paddingVertical: 16,
-    paddingHorizontal: 32,
-    width: '100%',
-    gap: 8,
-    marginBottom: 12,
+    paddingVertical: hp('2%'),
+    paddingHorizontal: wp('8%'),
+    gap: wp('2%'),
   },
   primaryBtnText: {
-    fontSize: 17,
+    fontSize: wp('4.2%'),
     fontWeight: '700',
     color: '#fff',
   },
@@ -1501,114 +2001,164 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#F0FDF4',
-    borderRadius: 16,
-    paddingVertical: 16,
-    paddingHorizontal: 32,
+    backgroundColor: TEAL_LIGHT,
+    borderRadius: wp('4%'),
+    paddingVertical: hp('2%'),
+    paddingHorizontal: wp('8%'),
     width: '100%',
-    gap: 8,
+    gap: wp('2%'),
     borderWidth: 2,
-    borderColor: GREEN,
+    borderColor: TEAL,
   },
   secondaryBtnText: {
-    fontSize: 17,
+    fontSize: wp('4.2%'),
     fontWeight: '700',
-    color: GREEN,
+    color: TEAL_DEEP,
   },
 
-  // Footer
+  // --- Footer ---
   footer: {
-    padding: 16,
-    backgroundColor: '#fff',
+    paddingHorizontal: wp('4%'),
+    paddingVertical: hp('1.2%'),
+    backgroundColor: CARD,
     borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
+    borderTopColor: BORDER,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: -2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 6,
+      },
+      android: {
+        elevation: 8,
+      },
+    }),
   },
   nextButton: {
+    borderRadius: wp('4%'),
+    overflow: 'hidden',
+  },
+  nextButtonGradient: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: GREEN,
-    borderRadius: 16,
-    paddingVertical: 16,
-    gap: 8,
-  },
-  nextButtonDisabled: {
-    backgroundColor: '#9CA3AF',
+    paddingVertical: hp('2%'),
+    gap: wp('2%'),
   },
   nextButtonText: {
-    fontSize: 17,
+    fontSize: wp('4.2%'),
     fontWeight: '700',
     color: '#fff',
   },
+
+  // --- Phone Modal ---
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
     justifyContent: 'flex-end',
   },
   phoneModal: {
-    backgroundColor: '#fff',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    backgroundColor: CARD,
+    borderTopLeftRadius: wp('6%'),
+    borderTopRightRadius: wp('6%'),
     maxHeight: '70%',
     width: '100%',
+  },
+  phoneModalHandle: {
+    width: wp('10%'),
+    height: hp('0.5%'),
+    backgroundColor: '#D1D5DB',
+    borderRadius: hp('0.25%'),
+    alignSelf: 'center',
+    marginTop: hp('1%'),
   },
   phoneModalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 16,
+    paddingHorizontal: wp('5%'),
+    paddingVertical: hp('1.5%'),
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: BORDER,
   },
   phoneModalTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#333',
+    fontSize: wp('4.5%'),
+    fontWeight: '700',
+    color: TEXT_PRIMARY,
   },
-  phoneModalContent: {
-    padding: 24,
+  phoneModalClose: {
+    width: wp('9%'),
+    height: wp('9%'),
+    borderRadius: wp('4.5%'),
+    backgroundColor: BG,
+    justifyContent: 'center',
     alignItems: 'center',
   },
-  phoneIcon: {
-    marginBottom: 16,
+  phoneModalContent: {
+    paddingHorizontal: wp('6%'),
+    paddingVertical: hp('3%'),
+    alignItems: 'center',
+  },
+  phoneIconCircle: {
+    width: wp('18%'),
+    height: wp('18%'),
+    borderRadius: wp('9%'),
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: hp('2%'),
+    ...SHADOW_SM,
   },
   phoneModalText: {
-    fontSize: 15,
-    color: '#666',
+    fontSize: wp('3.5%'),
+    color: TEXT_SECONDARY,
     textAlign: 'center',
-    marginBottom: 24,
-    lineHeight: 22,
+    marginBottom: hp('2.5%'),
+    lineHeight: hp('2.8%'),
   },
   phoneInputGroup: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f8f8f8',
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    marginBottom: 20,
+    backgroundColor: BG,
+    borderRadius: wp('3.5%'),
+    paddingHorizontal: wp('3%'),
+    marginBottom: hp('2.5%'),
     width: '100%',
-    borderWidth: 1,
-    borderColor: '#ddd',
+    borderWidth: 1.5,
+    borderColor: BORDER,
+  },
+  phoneInputIcon: {
+    width: wp('9%'),
+    height: wp('9%'),
+    borderRadius: wp('4.5%'),
+    backgroundColor: TEAL_LIGHT,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: wp('2%'),
   },
   phoneInput: {
     flex: 1,
-    paddingVertical: 14,
-    paddingHorizontal: 8,
-    fontSize: 16,
+    paddingVertical: hp('1.8%'),
+    paddingHorizontal: wp('2%'),
+    fontSize: wp('4%'),
+    color: TEXT_PRIMARY,
   },
   phoneSubmitBtn: {
-    backgroundColor: GREEN,
-    borderRadius: 10,
-    paddingVertical: 14,
-    alignItems: 'center',
     width: '100%',
+    borderRadius: wp('3.5%'),
+    overflow: 'hidden',
   },
   phoneSubmitBtnDisabled: {
     opacity: 0.6,
   },
+  phoneSubmitGradient: {
+    paddingVertical: hp('2%'),
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   phoneSubmitBtnText: {
     color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: wp('4%'),
+    fontWeight: '700',
   },
 });

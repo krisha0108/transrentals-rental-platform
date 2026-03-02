@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -7,16 +7,18 @@ import {
   TouchableOpacity,
   RefreshControl,
   ActivityIndicator,
+  Platform,
+  StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import LinearGradient from 'react-native-linear-gradient';
+import { widthPercentageToDP as wp, heightPercentageToDP as hp } from 'react-native-responsive-screen';
 import bookingService from '../../services/bookingService';
+import { TEAL_DEEP, TEAL_MID, TEAL, TEAL_LIGHT, BG, CARD, TEXT_PRIMARY, TEXT_SECONDARY, TEXT_MUTED, SHADOW_SM, SHADOW_MD } from '../../../theme';
 
-const GREEN = '#09B368';
-const BG = '#F5F5F7';
-
+/* ── Tab config ───────────────────────────── */
 const TABS = [
   { key: 'quotes', label: 'Quote Requests', icon: 'document-text-outline' },
   { key: 'bookings', label: 'Bookings', icon: 'bus-outline' },
@@ -30,6 +32,23 @@ export default function MyBusBookingsScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
+  /* ── StatusBar management ─────────────── */
+  useFocusEffect(
+    useCallback(() => {
+      StatusBar.setBarStyle('light-content');
+      if (Platform.OS === 'android') {
+        StatusBar.setBackgroundColor(TEAL_DEEP);
+      }
+      return () => {
+        StatusBar.setBarStyle('dark-content');
+        if (Platform.OS === 'android') {
+          StatusBar.setBackgroundColor('#FFFFFF');
+        }
+      };
+    }, [])
+  );
+
+  /* ── Fetch data on focus ──────────────── */
   useFocusEffect(
     useCallback(() => {
       fetchData();
@@ -68,52 +87,55 @@ export default function MyBusBookingsScreen() {
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'PENDING':
-        return '#f39c12';
-      case 'QUOTES_RECEIVED':
-        return '#3498db';
+      case 'PENDING': return '#f39c12';
+      case 'QUOTES_RECEIVED': return '#3498db';
       case 'ACCEPTED':
-      case 'CONFIRMED':
-        return GREEN;
-      case 'COMPLETED':
-        return '#27ae60';
+      case 'CONFIRMED': return TEAL;
+      case 'COMPLETED': return '#27ae60';
       case 'CANCELLED':
-      case 'EXPIRED':
-        return '#e74c3c';
-      case 'PENDING_PAYMENT':
-        return '#f39c12';
-      case 'IN_PROGRESS':
-        return '#2980b9';
-      default:
-        return '#666';
+      case 'EXPIRED': return '#e74c3c';
+      case 'PENDING_PAYMENT': return '#f39c12';
+      case 'IN_PROGRESS': return '#2980b9';
+      default: return '#666';
     }
   };
 
   const getStatusLabel = (status) => {
     switch (status) {
-      case 'PENDING':
-        return 'Awaiting Quotes';
-      case 'QUOTES_RECEIVED':
-        return 'Quotes Received';
-      case 'ACCEPTED':
-        return 'Quote Accepted';
-      case 'PENDING_PAYMENT':
-        return 'Payment Pending';
-      case 'CONFIRMED':
-        return 'Confirmed';
-      case 'IN_PROGRESS':
-        return 'In Progress';
-      case 'COMPLETED':
-        return 'Completed';
-      case 'CANCELLED':
-        return 'Cancelled';
-      case 'EXPIRED':
-        return 'Expired';
-      default:
-        return status;
+      case 'PENDING': return 'Awaiting Quotes';
+      case 'QUOTES_RECEIVED': return 'Quotes Received';
+      case 'ACCEPTED': return 'Quote Accepted';
+      case 'PENDING_PAYMENT': return 'Payment Pending';
+      case 'CONFIRMED': return 'Confirmed';
+      case 'IN_PROGRESS': return 'In Progress';
+      case 'COMPLETED': return 'Completed';
+      case 'CANCELLED': return 'Cancelled';
+      case 'EXPIRED': return 'Expired';
+      default: return status;
     }
   };
 
+  /* ── Gradient Header Component ────────── */
+  const renderHeader = () => (
+    <LinearGradient
+      colors={[TEAL_DEEP, TEAL_MID, '#047857']}
+      style={styles.headerGrad}
+    >
+      <View style={[styles.decoCircle, { top: -30, right: -20, width: wp('25%'), height: wp('25%') }]} pointerEvents="none" />
+      <View style={[styles.decoCircle, { bottom: -15, left: -15, width: wp('15%'), height: wp('15%') }]} pointerEvents="none" />
+      <View style={styles.headerRow}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+          <Ionicons name="chevron-back" size={wp('5.5%')} color="#FFF" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>My Bus Rentals</Text>
+        <TouchableOpacity onPress={onRefresh} style={styles.headerIconBtn}>
+          <Ionicons name="refresh" size={wp('4.5%')} color="#FFF" />
+        </TouchableOpacity>
+      </View>
+    </LinearGradient>
+  );
+
+  /* ── Quote Request Card ───────────────── */
   const renderQuoteRequestCard = (request) => (
     <TouchableOpacity
       key={request.id}
@@ -121,92 +143,123 @@ export default function MyBusBookingsScreen() {
       onPress={() => navigation.navigate('BusQuoteRequestDetail', { requestId: request.id })}
       activeOpacity={0.7}
     >
-      <View style={styles.cardHeader}>
-        <View style={styles.cardHeaderLeft}>
-          <View style={styles.iconCircle}>
-            <Ionicons name="bus" size={24} color={GREEN} />
-          </View>
-          <View>
-            <Text style={styles.requestNumber}>#{request.requestNumber || request.id}</Text>
-            <Text style={styles.dateText}>{formatDate(request.createdAt)}</Text>
-          </View>
-        </View>
-        <View style={[styles.statusBadge, { backgroundColor: getStatusColor(request.status) }]}>
-          <Text style={styles.statusText}>{getStatusLabel(request.status)}</Text>
-        </View>
-      </View>
+      {/* Left accent bar */}
+      <View style={[styles.cardAccent, { backgroundColor: getStatusColor(request.status) }]} />
 
-      <View style={styles.cardBody}>
-        <View style={styles.tripTypeRow}>
-          <View style={styles.tripTypeBadge}>
-            <Text style={styles.tripTypeBadgeText}>{request.tripType?.toUpperCase() || 'BUS'}</Text>
-          </View>
-          <Text style={styles.busType}>{request.vehicleCategoryName || request.vehicleCategory || 'Standard Bus'}</Text>
-        </View>
-
-        <View style={styles.passengerRow}>
-          <Ionicons name="people" size={16} color="#666" />
-          <Text style={styles.passengerText}>{request.passengers || 1} Passengers</Text>
-        </View>
-
-        <View style={styles.locationSection}>
-          <View style={styles.locationRow}>
-            <View style={[styles.locationDot, { backgroundColor: GREEN }]} />
-            <View style={styles.locationInfo}>
-              <Text style={styles.locationLabel}>Pickup</Text>
-              <Text style={styles.locationText} numberOfLines={1}>
-                {request.pickupCity || request.pickupAddress || 'N/A'}
-              </Text>
+      <View style={styles.cardInner}>
+        {/* Card Header */}
+        <View style={styles.cardHeader}>
+          <View style={styles.cardHeaderLeft}>
+            <View style={styles.iconCircle}>
+              <Ionicons name="bus" size={wp('5.5%')} color={TEAL} />
+            </View>
+            <View>
+              <Text style={styles.requestNumber}>#{request.requestNumber || request.id}</Text>
+              <Text style={styles.dateText}>{formatDate(request.createdAt)}</Text>
             </View>
           </View>
-          {request.dropCity && (
+          <View style={[styles.statusBadge, { backgroundColor: getStatusColor(request.status) + '18' }]}>
+            <View style={[styles.statusDot, { backgroundColor: getStatusColor(request.status) }]} />
+            <Text style={[styles.statusText, { color: getStatusColor(request.status) }]}>
+              {getStatusLabel(request.status)}
+            </Text>
+          </View>
+        </View>
+
+        {/* Card Body */}
+        <View style={styles.cardBody}>
+          <View style={styles.tripTypeRow}>
+            <View style={styles.tripTypeBadge}>
+              <Text style={styles.tripTypeBadgeText}>{request.tripType?.toUpperCase() || 'BUS'}</Text>
+            </View>
+            <Text style={styles.busType}>{request.vehicleCategoryName || request.vehicleCategory || 'Standard Bus'}</Text>
+          </View>
+
+          <View style={styles.passengerRow}>
+            <View style={styles.passengerIconCircle}>
+              <Ionicons name="people" size={wp('3.5%')} color={TEAL_MID} />
+            </View>
+            <Text style={styles.passengerText}>{request.passengers || 1} Passengers</Text>
+          </View>
+
+          <View style={styles.locationSection}>
             <View style={styles.locationRow}>
-              <View style={[styles.locationDot, { backgroundColor: '#e74c3c' }]} />
+              <View style={styles.locationDotWrap}>
+                <View style={[styles.locationDot, { backgroundColor: TEAL }]} />
+              </View>
               <View style={styles.locationInfo}>
-                <Text style={styles.locationLabel}>Drop</Text>
+                <Text style={styles.locationLabel}>Pickup</Text>
                 <Text style={styles.locationText} numberOfLines={1}>
-                  {request.dropCity || request.dropAddress}
+                  {request.pickupCity || request.pickupAddress || 'N/A'}
                 </Text>
               </View>
             </View>
-          )}
-        </View>
-
-        <View style={styles.dateRow}>
-          <View style={styles.dateItem}>
-            <Text style={styles.dateLabel}>Pickup Date</Text>
-            <Text style={styles.dateValue}>{formatDate(request.pickupDate)}</Text>
+            {request.dropCity && (
+              <>
+                <View style={styles.locationConnector} />
+                <View style={styles.locationRow}>
+                  <View style={styles.locationDotWrap}>
+                    <View style={[styles.locationDot, { backgroundColor: '#e74c3c' }]} />
+                  </View>
+                  <View style={styles.locationInfo}>
+                    <Text style={styles.locationLabel}>Drop</Text>
+                    <Text style={styles.locationText} numberOfLines={1}>
+                      {request.dropCity || request.dropAddress}
+                    </Text>
+                  </View>
+                </View>
+              </>
+            )}
           </View>
-          {request.returnDate && (
-            <>
-              <Ionicons name="arrow-forward" size={16} color="#ccc" />
-              <View style={styles.dateItem}>
-                <Text style={styles.dateLabel}>Return</Text>
-                <Text style={styles.dateValue}>{formatDate(request.returnDate)}</Text>
-              </View>
-            </>
-          )}
-        </View>
-      </View>
 
-      {request.quotes && request.quotes.length > 0 && (
-        <View style={styles.quotesSection}>
-          <View style={styles.quotesHeader}>
+          <View style={styles.dateRow}>
+            <View style={styles.dateItem}>
+              <Ionicons name="calendar-outline" size={wp('3.5%')} color={TEXT_MUTED} />
+              <View style={styles.dateItemContent}>
+                <Text style={styles.dateLabel}>Pickup Date</Text>
+                <Text style={styles.dateValue}>{formatDate(request.pickupDate)}</Text>
+              </View>
+            </View>
+            {request.returnDate && (
+              <>
+                <View style={styles.dateDivider} />
+                <View style={styles.dateItem}>
+                  <Ionicons name="calendar-outline" size={wp('3.5%')} color={TEXT_MUTED} />
+                  <View style={styles.dateItemContent}>
+                    <Text style={styles.dateLabel}>Return</Text>
+                    <Text style={styles.dateValue}>{formatDate(request.returnDate)}</Text>
+                  </View>
+                </View>
+              </>
+            )}
+          </View>
+        </View>
+
+        {/* Quotes Received Section */}
+        {request.quotes && request.quotes.length > 0 && (
+          <View style={styles.quotesSection}>
+            <View style={styles.quotesIconCircle}>
+              <Ionicons name="chatbubbles-outline" size={wp('4%')} color={TEAL} />
+            </View>
             <Text style={styles.quotesTitle}>
               {request.quotes.length} Quote{request.quotes.length > 1 ? 's' : ''} Received
             </Text>
-            <Ionicons name="chevron-forward" size={20} color={GREEN} />
+            <Ionicons name="chevron-forward" size={wp('4.5%')} color={TEAL} />
+          </View>
+        )}
+
+        {/* Card Footer */}
+        <View style={styles.cardFooter}>
+          <Text style={styles.viewDetailsText}>View Details</Text>
+          <View style={styles.viewDetailsArrow}>
+            <Ionicons name="chevron-forward" size={wp('3.5%')} color="#FFF" />
           </View>
         </View>
-      )}
-
-      <View style={styles.cardFooter}>
-        <Text style={styles.viewDetailsText}>View Details</Text>
-        <Ionicons name="chevron-forward" size={18} color={GREEN} />
       </View>
     </TouchableOpacity>
   );
 
+  /* ── Booking Card ─────────────────────── */
   const renderBookingCard = (booking) => (
     <TouchableOpacity
       key={booking.id}
@@ -214,86 +267,123 @@ export default function MyBusBookingsScreen() {
       onPress={() => navigation.navigate('BusBookingDetail', { bookingId: booking.id })}
       activeOpacity={0.7}
     >
-      <View style={styles.cardHeader}>
-        <View style={styles.cardHeaderLeft}>
-          <View style={styles.iconCircle}>
-            <Ionicons name="bus" size={24} color={GREEN} />
-          </View>
-          <View>
-            <Text style={styles.requestNumber}>#{booking.bookingNumber || booking.id}</Text>
-            <Text style={styles.dateText}>{formatDate(booking.createdAt)}</Text>
-          </View>
-        </View>
-        <View style={[styles.statusBadge, { backgroundColor: getStatusColor(booking.status) }]}>
-          <Text style={styles.statusText}>{getStatusLabel(booking.status)}</Text>
-        </View>
-      </View>
+      {/* Left accent bar */}
+      <View style={[styles.cardAccent, { backgroundColor: getStatusColor(booking.status) }]} />
 
-      <View style={styles.cardBody}>
-        <View style={styles.tripTypeRow}>
-          <View style={styles.tripTypeBadge}>
-            <Text style={styles.tripTypeBadgeText}>{booking.tripType?.toUpperCase() || 'BUS'}</Text>
-          </View>
-          <Text style={styles.busType}>{booking.vehicleCategoryName || booking.vehicleCategory || booking.vehicleName || 'Standard Bus'}</Text>
-        </View>
-
-        <View style={styles.passengerRow}>
-          <Ionicons name="people" size={16} color="#666" />
-          <Text style={styles.passengerText}>{booking.passengers || 1} Passengers</Text>
-        </View>
-
-        <View style={styles.locationSection}>
-          <View style={styles.locationRow}>
-            <View style={[styles.locationDot, { backgroundColor: GREEN }]} />
-            <View style={styles.locationInfo}>
-              <Text style={styles.locationLabel}>Pickup</Text>
-              <Text style={styles.locationText} numberOfLines={1}>
-                {booking.pickupCity || booking.pickupAddress || 'N/A'}
-              </Text>
+      <View style={styles.cardInner}>
+        {/* Card Header */}
+        <View style={styles.cardHeader}>
+          <View style={styles.cardHeaderLeft}>
+            <View style={styles.iconCircle}>
+              <Ionicons name="bus" size={wp('5.5%')} color={TEAL} />
+            </View>
+            <View>
+              <Text style={styles.requestNumber}>#{booking.bookingNumber || booking.id}</Text>
+              <Text style={styles.dateText}>{formatDate(booking.createdAt)}</Text>
             </View>
           </View>
-          {booking.dropCity && (
+          <View style={[styles.statusBadge, { backgroundColor: getStatusColor(booking.status) + '18' }]}>
+            <View style={[styles.statusDot, { backgroundColor: getStatusColor(booking.status) }]} />
+            <Text style={[styles.statusText, { color: getStatusColor(booking.status) }]}>
+              {getStatusLabel(booking.status)}
+            </Text>
+          </View>
+        </View>
+
+        {/* Card Body */}
+        <View style={styles.cardBody}>
+          <View style={styles.tripTypeRow}>
+            <View style={styles.tripTypeBadge}>
+              <Text style={styles.tripTypeBadgeText}>{booking.tripType?.toUpperCase() || 'BUS'}</Text>
+            </View>
+            <Text style={styles.busType}>{booking.vehicleCategoryName || booking.vehicleCategory || booking.vehicleName || 'Standard Bus'}</Text>
+          </View>
+
+          <View style={styles.passengerRow}>
+            <View style={styles.passengerIconCircle}>
+              <Ionicons name="people" size={wp('3.5%')} color={TEAL_MID} />
+            </View>
+            <Text style={styles.passengerText}>{booking.passengers || 1} Passengers</Text>
+          </View>
+
+          <View style={styles.locationSection}>
             <View style={styles.locationRow}>
-              <View style={[styles.locationDot, { backgroundColor: '#e74c3c' }]} />
+              <View style={styles.locationDotWrap}>
+                <View style={[styles.locationDot, { backgroundColor: TEAL }]} />
+              </View>
               <View style={styles.locationInfo}>
-                <Text style={styles.locationLabel}>Drop</Text>
+                <Text style={styles.locationLabel}>Pickup</Text>
                 <Text style={styles.locationText} numberOfLines={1}>
-                  {booking.dropCity || booking.dropAddress}
+                  {booking.pickupCity || booking.pickupAddress || 'N/A'}
                 </Text>
               </View>
+            </View>
+            {booking.dropCity && (
+              <>
+                <View style={styles.locationConnector} />
+                <View style={styles.locationRow}>
+                  <View style={styles.locationDotWrap}>
+                    <View style={[styles.locationDot, { backgroundColor: '#e74c3c' }]} />
+                  </View>
+                  <View style={styles.locationInfo}>
+                    <Text style={styles.locationLabel}>Drop</Text>
+                    <Text style={styles.locationText} numberOfLines={1}>
+                      {booking.dropCity || booking.dropAddress}
+                    </Text>
+                  </View>
+                </View>
+              </>
+            )}
+          </View>
+
+          {/* Price Row */}
+          {booking.totalAmount ? (
+            <View style={styles.priceRow}>
+              <Text style={styles.priceLabel}>Total Amount</Text>
+              <Text style={styles.priceValue}>
+                <Text style={styles.priceCurrency}>₹</Text>
+                {booking.totalAmount?.toLocaleString('en-IN') || '0'}
+              </Text>
+            </View>
+          ) : null}
+
+          {/* Vendor Row */}
+          {booking.vendor && (
+            <View style={styles.infoRow}>
+              <View style={styles.infoIconCircle}>
+                <Ionicons name="storefront-outline" size={wp('3.5%')} color={TEAL_MID} />
+              </View>
+              <Text style={styles.infoRowText}>{booking.vendor.businessName || booking.vendor.name}</Text>
             </View>
           )}
         </View>
 
-        {booking.totalAmount ? (
-          <View style={styles.priceRow}>
-            <Text style={styles.priceLabel}>Total Amount</Text>
-            <Text style={styles.priceValue}>₹{booking.totalAmount?.toLocaleString('en-IN') || '0'}</Text>
+        {/* Card Footer */}
+        <View style={styles.cardFooter}>
+          <Text style={styles.viewDetailsText}>View Details</Text>
+          <View style={styles.viewDetailsArrow}>
+            <Ionicons name="chevron-forward" size={wp('3.5%')} color="#FFF" />
           </View>
-        ) : null}
-
-        {booking.vendor && (
-          <View style={styles.vendorRow}>
-            <Ionicons name="storefront-outline" size={16} color="#666" />
-            <Text style={styles.vendorName}>{booking.vendor.businessName || booking.vendor.name}</Text>
-          </View>
-        )}
-      </View>
-
-      <View style={styles.cardFooter}>
-        <Text style={styles.viewDetailsText}>View Details</Text>
-        <Ionicons name="chevron-forward" size={18} color={GREEN} />
+        </View>
       </View>
     </TouchableOpacity>
   );
 
+  /* ── Empty State ──────────────────────── */
   const renderEmpty = (type) => (
     <View style={styles.emptyContainer}>
-      <Ionicons
-        name={type === 'quotes' ? 'document-text-outline' : 'bus-outline'}
-        size={80}
-        color="#ddd"
-      />
+      <LinearGradient
+        colors={[TEAL_LIGHT, '#A7F3D0']}
+        style={styles.emptyIconCircle}
+      >
+        <View style={styles.emptyIconInner}>
+          <Ionicons
+            name={type === 'quotes' ? 'document-text-outline' : 'bus-outline'}
+            size={wp('10%')}
+            color={TEAL}
+          />
+        </View>
+      </LinearGradient>
       <Text style={styles.emptyTitle}>
         {type === 'quotes' ? 'No Quote Requests' : 'No Bookings Yet'}
       </Text>
@@ -303,402 +393,579 @@ export default function MyBusBookingsScreen() {
           : 'Your confirmed bus bookings will appear here'}
       </Text>
       <TouchableOpacity
-        style={styles.exploreBtn}
+        style={styles.exploreBtnWrap}
         onPress={() => navigation.navigate('BusRentalScreen')}
+        activeOpacity={0.8}
       >
-        <Text style={styles.exploreBtnText}>Book a Bus</Text>
+        <LinearGradient
+          colors={[TEAL_MID, TEAL_DEEP]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={styles.exploreBtn}
+        >
+          <Ionicons name="bus-outline" size={wp('4.5%')} color="#FFF" />
+          <Text style={styles.exploreBtnText}>Book a Bus</Text>
+        </LinearGradient>
       </TouchableOpacity>
     </View>
   );
 
+  /* ── Loading State ────────────────────── */
   if (loading) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={styles.container} edges={['bottom']}>
+        <StatusBar barStyle="light-content" backgroundColor={TEAL_DEEP} />
+        <LinearGradient
+          colors={[TEAL_DEEP, TEAL_MID, '#047857']}
+          style={styles.headerGrad}
+        >
+          <View style={[styles.decoCircle, { top: -30, right: -20, width: wp('25%'), height: wp('25%') }]} pointerEvents="none" />
+          <View style={[styles.decoCircle, { bottom: -15, left: -15, width: wp('15%'), height: wp('15%') }]} pointerEvents="none" />
+          <View style={styles.headerRow}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+              <Ionicons name="chevron-back" size={wp('5.5%')} color="#FFF" />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>My Bus Rentals</Text>
+            <View style={styles.headerIconBtn} />
+          </View>
+        </LinearGradient>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={GREEN} />
+          <ActivityIndicator size="large" color={TEAL} />
           <Text style={styles.loadingText}>Loading your bookings...</Text>
         </View>
       </SafeAreaView>
     );
   }
 
+  /* ── Main Render ──────────────────────── */
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Ionicons name="arrow-back" size={24} color="#333" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>My Bus Rentals</Text>
-        <TouchableOpacity onPress={onRefresh} style={styles.refreshBtn}>
-          <Ionicons name="refresh" size={22} color="#333" />
-        </TouchableOpacity>
-      </View>
+    <SafeAreaView style={styles.container} edges={['bottom']}>
+      <StatusBar barStyle="light-content" backgroundColor={TEAL_DEEP} />
 
+      {renderHeader()}
+
+      {/* Tabs */}
       <View style={styles.tabsContainer}>
-        {TABS.map((tab) => (
-          <TouchableOpacity
-            key={tab.key}
-            style={[styles.tab, activeTab === tab.key && styles.tabActive]}
-            onPress={() => setActiveTab(tab.key)}
-          >
-            <Ionicons
-              name={tab.icon}
-              size={20}
-              color={activeTab === tab.key ? GREEN : '#666'}
-            />
-            <Text style={[styles.tabText, activeTab === tab.key && styles.tabTextActive]}>
-              {tab.label}
-            </Text>
-            <View style={[styles.tabBadge, activeTab === tab.key && styles.tabBadgeActive]}>
-              <Text style={[styles.tabBadgeText, activeTab === tab.key && styles.tabBadgeTextActive]}>
-                {tab.key === 'quotes' ? quoteRequests.length : bookings.length}
+        {TABS.map((tab) => {
+          const isActive = activeTab === tab.key;
+          const count = tab.key === 'quotes' ? quoteRequests.length : bookings.length;
+          return (
+            <TouchableOpacity
+              key={tab.key}
+              style={[styles.tab, isActive && styles.tabActive]}
+              onPress={() => setActiveTab(tab.key)}
+              activeOpacity={0.7}
+            >
+              <Ionicons
+                name={tab.icon}
+                size={wp('4.2%')}
+                color={isActive ? '#FFF' : TEXT_SECONDARY}
+              />
+              <Text style={[styles.tabText, isActive && styles.tabTextActive]}>
+                {tab.label}
               </Text>
-            </View>
-          </TouchableOpacity>
-        ))}
+              <View style={[styles.tabBadge, isActive && styles.tabBadgeActive]}>
+                <Text style={[styles.tabBadgeText, isActive && styles.tabBadgeTextActive]}>
+                  {count}
+                </Text>
+              </View>
+            </TouchableOpacity>
+          );
+        })}
       </View>
 
+      {/* Content */}
       <ScrollView
         style={styles.content}
+        contentContainerStyle={styles.contentContainer}
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[GREEN]} />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[TEAL]} tintColor={TEAL} />
         }
       >
         {activeTab === 'quotes' ? (
-          quoteRequests.length > 0 ? (
-            quoteRequests.map(renderQuoteRequestCard)
-          ) : (
-            renderEmpty('quotes')
-          )
+          quoteRequests.length > 0 ? quoteRequests.map(renderQuoteRequestCard) : renderEmpty('quotes')
         ) : (
-          bookings.length > 0 ? (
-            bookings.map(renderBookingCard)
-          ) : (
-            renderEmpty('bookings')
-          )
+          bookings.length > 0 ? bookings.map(renderBookingCard) : renderEmpty('bookings')
         )}
-        <View style={{ height: 40 }} />
+        <View style={{ height: hp('5%') }} />
       </ScrollView>
     </SafeAreaView>
   );
 }
 
+/* ══════════════════════════════════════════
+   STYLES
+   ══════════════════════════════════════════ */
 const styles = StyleSheet.create({
+  /* ── Container ───────────────────────── */
   container: {
     flex: 1,
     backgroundColor: BG,
   },
-  header: {
+
+  /* ── Header Gradient ─────────────────── */
+  headerGrad: {
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + hp('1%') : hp('1%'),
+    paddingBottom: hp('2.5%'),
+    paddingHorizontal: wp('4%'),
+    borderBottomLeftRadius: wp('6%'),
+    borderBottomRightRadius: wp('6%'),
+    overflow: 'hidden',
+  },
+  decoCircle: {
+    position: 'absolute',
+    borderRadius: wp('50%'),
+    backgroundColor: 'rgba(255,255,255,0.06)',
+  },
+  headerRow: {
+    zIndex: 2,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
   },
   backBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: wp('10%'),
+    height: wp('10%'),
+    borderRadius: wp('5%'),
+    backgroundColor: 'rgba(255,255,255,0.15)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   headerTitle: {
-    fontSize: 18,
+    fontSize: wp('5%'),
     fontWeight: '700',
-    color: '#333',
+    color: '#FFF',
+    letterSpacing: 0.3,
   },
-  refreshBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+  headerIconBtn: {
+    width: wp('10%'),
+    height: wp('10%'),
+    borderRadius: wp('5%'),
+    backgroundColor: 'rgba(255,255,255,0.15)',
     justifyContent: 'center',
     alignItems: 'center',
   },
+
+  /* ── Loading ─────────────────────────── */
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
   loadingText: {
-    marginTop: 12,
-    color: '#666',
-    fontSize: 14,
+    marginTop: hp('1.5%'),
+    color: TEXT_SECONDARY,
+    fontSize: wp('3.5%'),
+    fontWeight: '500',
   },
+
+  /* ── Tabs ─────────────────────────────── */
   tabsContainer: {
     flexDirection: 'row',
-    backgroundColor: '#fff',
-    paddingHorizontal: 16,
-    paddingBottom: 12,
+    paddingHorizontal: wp('4%'),
+    paddingTop: hp('1.8%'),
+    paddingBottom: hp('0.8%'),
+    gap: wp('2.5%'),
   },
   tab: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 12,
-    marginHorizontal: 4,
-    borderRadius: 12,
-    backgroundColor: '#f5f5f5',
-    gap: 6,
+    paddingVertical: hp('1.3%'),
+    borderRadius: wp('3%'),
+    backgroundColor: CARD,
+    gap: wp('1.5%'),
+    ...SHADOW_SM,
   },
   tabActive: {
-    backgroundColor: 'rgba(9,179,104,0.1)',
+    backgroundColor: TEAL_MID,
   },
   tabText: {
-    fontSize: 13,
+    fontSize: wp('3.1%'),
     fontWeight: '600',
-    color: '#666',
+    color: TEXT_SECONDARY,
   },
   tabTextActive: {
-    color: GREEN,
+    color: '#FFF',
   },
   tabBadge: {
-    backgroundColor: '#ddd',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 10,
+    backgroundColor: '#E5E7EB',
+    paddingHorizontal: wp('2%'),
+    paddingVertical: hp('0.2%'),
+    borderRadius: wp('3%'),
+    minWidth: wp('5.5%'),
+    alignItems: 'center',
   },
   tabBadgeActive: {
-    backgroundColor: GREEN,
+    backgroundColor: 'rgba(255,255,255,0.25)',
   },
   tabBadgeText: {
-    fontSize: 12,
+    fontSize: wp('2.8%'),
     fontWeight: '700',
-    color: '#666',
+    color: TEXT_SECONDARY,
   },
   tabBadgeTextActive: {
-    color: '#fff',
+    color: '#FFF',
   },
+
+  /* ── Content ─────────────────────────── */
   content: {
     flex: 1,
-    padding: 16,
   },
+  contentContainer: {
+    paddingHorizontal: wp('4%'),
+    paddingTop: hp('1.5%'),
+  },
+
+  /* ── Card ─────────────────────────────── */
   card: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    marginBottom: 16,
+    flexDirection: 'row',
+    backgroundColor: CARD,
+    borderRadius: wp('4%'),
+    marginBottom: hp('1.8%'),
     overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
+    ...SHADOW_SM,
+  },
+  cardAccent: {
+    width: wp('1.2%'),
+    borderTopLeftRadius: wp('4%'),
+    borderBottomLeftRadius: wp('4%'),
+  },
+  cardInner: {
+    flex: 1,
   },
   cardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: 16,
+    paddingHorizontal: wp('3.5%'),
+    paddingTop: hp('1.5%'),
+    paddingBottom: hp('1.2%'),
     borderBottomWidth: 1,
-    borderBottomColor: '#f5f5f5',
+    borderBottomColor: '#F3F4F6',
   },
   cardHeaderLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: wp('3%'),
   },
   iconCircle: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: 'rgba(9,179,104,0.1)',
+    width: wp('11%'),
+    height: wp('11%'),
+    borderRadius: wp('5.5%'),
+    backgroundColor: TEAL_LIGHT,
     justifyContent: 'center',
     alignItems: 'center',
   },
   requestNumber: {
-    fontSize: 16,
+    fontSize: wp('3.8%'),
     fontWeight: '700',
-    color: '#333',
+    color: TEXT_PRIMARY,
   },
   dateText: {
-    fontSize: 12,
-    color: '#999',
-    marginTop: 2,
+    fontSize: wp('2.8%'),
+    color: TEXT_MUTED,
+    marginTop: hp('0.2%'),
   },
+
+  /* ── Status Badge ────────────────────── */
   statusBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: wp('2.5%'),
+    paddingVertical: hp('0.5%'),
+    borderRadius: wp('4%'),
+    gap: wp('1.2%'),
+  },
+  statusDot: {
+    width: wp('1.5%'),
+    height: wp('1.5%'),
+    borderRadius: wp('0.75%'),
   },
   statusText: {
-    color: '#fff',
-    fontSize: 11,
+    fontSize: wp('2.6%'),
     fontWeight: '700',
   },
+
+  /* ── Card Body ───────────────────────── */
   cardBody: {
-    padding: 16,
+    paddingHorizontal: wp('3.5%'),
+    paddingVertical: hp('1.5%'),
   },
   tripTypeRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
-    gap: 12,
+    marginBottom: hp('1.2%'),
+    gap: wp('3%'),
   },
   tripTypeBadge: {
-    backgroundColor: '#e8f5e9',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 8,
+    backgroundColor: TEAL_LIGHT,
+    paddingHorizontal: wp('2.5%'),
+    paddingVertical: hp('0.4%'),
+    borderRadius: wp('2%'),
   },
   tripTypeBadgeText: {
-    fontSize: 11,
+    fontSize: wp('2.6%'),
     fontWeight: '700',
-    color: GREEN,
+    color: TEAL_MID,
+    letterSpacing: 0.5,
   },
   busType: {
-    fontSize: 16,
+    fontSize: wp('3.8%'),
     fontWeight: '600',
-    color: '#333',
+    color: TEXT_PRIMARY,
   },
+
+  /* ── Passenger Row ────────────────────── */
   passengerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    marginBottom: 12,
+    gap: wp('2.5%'),
+    marginBottom: hp('1.2%'),
+  },
+  passengerIconCircle: {
+    width: wp('7%'),
+    height: wp('7%'),
+    borderRadius: wp('3.5%'),
+    backgroundColor: TEAL_LIGHT,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   passengerText: {
-    fontSize: 14,
-    color: '#666',
+    fontSize: wp('3.2%'),
+    color: TEXT_SECONDARY,
+    fontWeight: '500',
   },
+
+  /* ── Location ────────────────────────── */
   locationSection: {
-    marginBottom: 12,
+    marginBottom: hp('1.2%'),
   },
   locationRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    marginBottom: 8,
+  },
+  locationDotWrap: {
+    width: wp('5%'),
+    alignItems: 'center',
+    paddingTop: hp('0.5%'),
   },
   locationDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    marginRight: 12,
-    marginTop: 4,
+    width: wp('2.5%'),
+    height: wp('2.5%'),
+    borderRadius: wp('1.25%'),
+  },
+  locationConnector: {
+    width: 2,
+    height: hp('1.5%'),
+    backgroundColor: '#D1D5DB',
+    marginLeft: wp('2.3%'),
   },
   locationInfo: {
     flex: 1,
+    marginLeft: wp('2%'),
   },
   locationLabel: {
-    fontSize: 11,
-    color: '#999',
+    fontSize: wp('2.6%'),
+    color: TEXT_MUTED,
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
   },
   locationText: {
-    fontSize: 14,
-    color: '#333',
-    marginTop: 2,
+    fontSize: wp('3.2%'),
+    color: TEXT_PRIMARY,
+    marginTop: hp('0.2%'),
+    fontWeight: '500',
   },
+
+  /* ── Date Row ────────────────────────── */
   dateRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#f8f8f8',
-    padding: 12,
-    borderRadius: 10,
+    backgroundColor: '#F9FAFB',
+    paddingVertical: hp('1.2%'),
+    paddingHorizontal: wp('3%'),
+    borderRadius: wp('2.5%'),
   },
   dateItem: {
     flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: wp('2%'),
+  },
+  dateItemContent: {
+    flex: 1,
+  },
+  dateDivider: {
+    width: 1,
+    height: hp('3%'),
+    backgroundColor: '#E5E7EB',
+    marginHorizontal: wp('3%'),
   },
   dateLabel: {
-    fontSize: 11,
-    color: '#999',
+    fontSize: wp('2.5%'),
+    color: TEXT_MUTED,
     textTransform: 'uppercase',
+    letterSpacing: 0.3,
   },
   dateValue: {
-    fontSize: 14,
+    fontSize: wp('3.2%'),
     fontWeight: '600',
-    color: '#333',
-    marginTop: 2,
+    color: TEXT_PRIMARY,
+    marginTop: hp('0.1%'),
   },
+
+  /* ── Quotes Section ──────────────────── */
   quotesSection: {
-    backgroundColor: '#f8f8f8',
-    padding: 12,
-    marginHorizontal: 16,
-    marginBottom: 12,
-    borderRadius: 10,
-  },
-  quotesHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: TEAL_LIGHT,
+    paddingVertical: hp('1%'),
+    paddingHorizontal: wp('3.5%'),
+    marginHorizontal: wp('3.5%'),
+    marginBottom: hp('1%'),
+    borderRadius: wp('2.5%'),
+    gap: wp('2%'),
+  },
+  quotesIconCircle: {
+    width: wp('7%'),
+    height: wp('7%'),
+    borderRadius: wp('3.5%'),
+    backgroundColor: 'rgba(255,255,255,0.7)',
+    justifyContent: 'center',
     alignItems: 'center',
   },
   quotesTitle: {
-    fontSize: 14,
+    flex: 1,
+    fontSize: wp('3.2%'),
     fontWeight: '700',
-    color: GREEN,
+    color: TEAL_DEEP,
   },
+
+  /* ── Price Row ───────────────────────── */
   priceRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 12,
-    paddingTop: 12,
+    marginTop: hp('1%'),
+    paddingTop: hp('1.2%'),
     borderTopWidth: 1,
-    borderTopColor: '#f0f0f0',
+    borderTopColor: '#F3F4F6',
   },
   priceLabel: {
-    fontSize: 14,
-    color: '#666',
+    fontSize: wp('3.2%'),
+    color: TEXT_SECONDARY,
   },
   priceValue: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: GREEN,
+    fontSize: wp('5%'),
+    fontWeight: '800',
+    color: TEAL_DEEP,
   },
-  vendorRow: {
+  priceCurrency: {
+    fontSize: wp('3.5%'),
+    fontWeight: '600',
+  },
+
+  /* ── Info Rows (Vendor) ────────────────── */
+  infoRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    marginTop: 12,
+    gap: wp('2.5%'),
+    marginTop: hp('1%'),
   },
-  vendorName: {
-    fontSize: 14,
-    color: '#333',
+  infoIconCircle: {
+    width: wp('7%'),
+    height: wp('7%'),
+    borderRadius: wp('3.5%'),
+    backgroundColor: TEAL_LIGHT,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
+  infoRowText: {
+    fontSize: wp('3.2%'),
+    color: TEXT_PRIMARY,
+    fontWeight: '500',
+  },
+
+  /* ── Card Footer ─────────────────────── */
   cardFooter: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 12,
+    paddingVertical: hp('1.2%'),
     borderTopWidth: 1,
-    borderTopColor: '#f5f5f5',
-    gap: 4,
+    borderTopColor: '#F3F4F6',
+    gap: wp('2%'),
   },
   viewDetailsText: {
-    fontSize: 14,
+    fontSize: wp('3.2%'),
     fontWeight: '600',
-    color: GREEN,
+    color: TEAL,
   },
+  viewDetailsArrow: {
+    width: wp('5%'),
+    height: wp('5%'),
+    borderRadius: wp('2.5%'),
+    backgroundColor: TEAL,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  /* ── Empty State ─────────────────────── */
   emptyContainer: {
     alignItems: 'center',
-    paddingVertical: 60,
+    paddingVertical: hp('8%'),
+  },
+  emptyIconCircle: {
+    width: wp('22%'),
+    height: wp('22%'),
+    borderRadius: wp('11%'),
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  emptyIconInner: {
+    width: wp('16%'),
+    height: wp('16%'),
+    borderRadius: wp('8%'),
+    backgroundColor: '#FFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...SHADOW_SM,
   },
   emptyTitle: {
-    fontSize: 18,
+    fontSize: wp('4.5%'),
     fontWeight: '700',
-    color: '#333',
-    marginTop: 16,
+    color: TEXT_PRIMARY,
+    marginTop: hp('2.5%'),
   },
   emptyText: {
-    fontSize: 14,
-    color: '#999',
-    marginTop: 8,
+    fontSize: wp('3.3%'),
+    color: TEXT_MUTED,
+    marginTop: hp('0.8%'),
     textAlign: 'center',
-    paddingHorizontal: 40,
+    paddingHorizontal: wp('10%'),
+    lineHeight: wp('5%'),
+  },
+  exploreBtnWrap: {
+    marginTop: hp('3%'),
+    borderRadius: wp('3%'),
+    overflow: 'hidden',
+    ...SHADOW_MD,
   },
   exploreBtn: {
-    marginTop: 20,
-    backgroundColor: GREEN,
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: wp('7%'),
+    paddingVertical: hp('1.6%'),
+    borderRadius: wp('3%'),
+    gap: wp('2%'),
   },
   exploreBtnText: {
-    color: '#fff',
-    fontWeight: '600',
-    fontSize: 14,
+    color: '#FFF',
+    fontWeight: '700',
+    fontSize: wp('3.5%'),
+    letterSpacing: 0.3,
   },
 });

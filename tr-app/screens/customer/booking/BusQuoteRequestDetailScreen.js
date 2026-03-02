@@ -9,15 +9,19 @@ import {
   ActivityIndicator,
   Alert,
   Modal,
+  StatusBar,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useRoute, useNavigation, useFocusEffect } from '@react-navigation/native';
+import LinearGradient from 'react-native-linear-gradient';
+import {
+  widthPercentageToDP as wp,
+  heightPercentageToDP as hp,
+} from 'react-native-responsive-screen';
 import api from '../../api';
-
-const GREEN = '#09B368';
-const BRAND_TEAL = '#0B6E4F';
-const BG = '#F5F5F7';
+import { TEAL_DEEP, TEAL_MID, TEAL, TEAL_LIGHT, BG, CARD, TEXT_PRIMARY, TEXT_SECONDARY, TEXT_MUTED, SHADOW_SM, SHADOW_MD } from '../../../theme';
 
 const STATUS_CONFIG = {
   PENDING: { label: 'Awaiting Quotes', color: '#F59E0B', icon: 'time-outline' },
@@ -43,6 +47,21 @@ export default function BusQuoteRequestDetailScreen() {
   const [selectedQuote, setSelectedQuote] = useState(null);
   const [acceptError, setAcceptError] = useState(null);
   const [acceptSuccess, setAcceptSuccess] = useState(null);
+
+  useFocusEffect(
+    useCallback(() => {
+      StatusBar.setBarStyle('light-content', true);
+      if (Platform.OS === 'android') {
+        StatusBar.setBackgroundColor(TEAL_DEEP, true);
+      }
+      return () => {
+        StatusBar.setBarStyle('dark-content', true);
+        if (Platform.OS === 'android') {
+          StatusBar.setBackgroundColor('#FFFFFF', true);
+        }
+      };
+    }, [])
+  );
 
   useFocusEffect(
     useCallback(() => {
@@ -121,6 +140,7 @@ export default function BusQuoteRequestDetailScreen() {
         setAcceptSuccess({
           bookingId: response.data.bookingId,
           bookingNumber: response.data.bookingNumber || 'N/A',
+          advanceAmount: response.data.advanceAmount || response.data.booking?.advanceAmount,
         });
       } else {
         setAcceptError(response.data?.message || 'Failed to accept quote. Please try again.');
@@ -160,16 +180,12 @@ export default function BusQuoteRequestDetailScreen() {
 
     // Navigate after state reset
     if (successData && successData.bookingId) {
-      // Navigate to Payment Screen with advance amount (not total amount)
-      const advanceAmount = quoteData?.advanceAmount ||
-                           (quoteData?.totalAmount * (quoteData?.advancePercent || 30) / 100) ||
-                           0;
-
       navigation.replace('PaymentScreen', {
         bookingId: successData.bookingId,
         bookingNumber: successData.bookingNumber,
         bookingType: 'bus',
-        amount: advanceAmount,
+        amount: successData.advanceAmount || quoteData?.advanceAmount ||
+               (quoteData?.totalAmount * (quoteData?.advancePercent || 30) / 100) || 0,
       });
     }
   };
@@ -187,9 +203,22 @@ export default function BusQuoteRequestDetailScreen() {
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={GREEN} />
-          <Text style={styles.loadingText}>Loading quote request...</Text>
+        <LinearGradient colors={[TEAL_DEEP, TEAL_MID, '#047857']} style={styles.headerGrad}>
+          <View style={[styles.decoCircle, { top: -30, right: -20, width: 100, height: 100 }]} pointerEvents="none" />
+          <View style={[styles.decoCircle, { bottom: -15, left: -15, width: 60, height: 60 }]} pointerEvents="none" />
+          <View style={styles.headerRow}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+              <Ionicons name="chevron-back" size={22} color="#FFF" />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>Loading...</Text>
+            <View style={{ width: wp('9%') }} />
+          </View>
+        </LinearGradient>
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: BG }}>
+          <ActivityIndicator size="large" color={TEAL} />
+          <Text style={{ color: TEXT_SECONDARY, marginTop: hp('1.5%'), fontSize: wp('3.5%'), fontWeight: '500' }}>
+            Loading quote request...
+          </Text>
         </View>
       </SafeAreaView>
     );
@@ -198,16 +227,31 @@ export default function BusQuoteRequestDetailScreen() {
   if (!request) {
     return (
       <SafeAreaView style={styles.container}>
-        <View style={styles.errorContainer}>
-          <Ionicons name="alert-circle-outline" size={80} color="#ccc" />
-          <Text style={styles.errorText}>Quote request not found</Text>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => navigation.goBack()}
-          >
-            <Text style={styles.backButtonText}>Go Back</Text>
-          </TouchableOpacity>
-        </View>
+        <LinearGradient colors={[TEAL_DEEP, TEAL_MID, '#047857']} style={styles.headerGrad}>
+          <View style={[styles.decoCircle, { top: -30, right: -20, width: 100, height: 100 }]} pointerEvents="none" />
+          <View style={[styles.decoCircle, { bottom: -15, left: -15, width: 60, height: 60 }]} pointerEvents="none" />
+          <View style={styles.headerRow}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+              <Ionicons name="chevron-back" size={22} color="#FFF" />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>Quote Request</Text>
+            <View style={{ width: wp('9%') }} />
+          </View>
+        </LinearGradient>
+        <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'center' }}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[TEAL]} />}>
+          <View style={{ alignItems: 'center', paddingHorizontal: wp('8%') }}>
+            <LinearGradient colors={[TEAL_LIGHT, '#A7F3D0']} style={styles.emptyCircle}>
+              <Ionicons name="document-text" size={wp('12%')} color={TEAL_MID} />
+            </LinearGradient>
+            <Text style={styles.emptyTitle}>Quote Request Not Found</Text>
+            <Text style={styles.emptyDesc}>We couldn't find this quote request. It may have been removed.</Text>
+            <TouchableOpacity style={styles.refreshBtnStyle} onPress={() => navigation.goBack()}>
+              <Ionicons name="arrow-back" size={16} color={TEAL_MID} />
+              <Text style={styles.refreshBtnText}>Go Back</Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
       </SafeAreaView>
     );
   }
@@ -217,37 +261,62 @@ export default function BusQuoteRequestDetailScreen() {
   return (
     <SafeAreaView style={styles.container}>
       {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Ionicons name="arrow-back" size={24} color="#333" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Quote Request Details</Text>
-        <TouchableOpacity onPress={onRefresh} style={styles.refreshBtn}>
-          <Ionicons name="refresh" size={22} color="#333" />
-        </TouchableOpacity>
-      </View>
+      <LinearGradient colors={[TEAL_DEEP, TEAL_MID, '#047857']} style={styles.headerGrad}>
+        <View style={[styles.decoCircle, { top: -30, right: -20, width: 100, height: 100 }]} pointerEvents="none" />
+        <View style={[styles.decoCircle, { bottom: -15, left: -15, width: 60, height: 60 }]} pointerEvents="none" />
+        <View style={[styles.decoCircle, { top: hp('3%'), left: wp('25%'), width: 40, height: 40 }]} pointerEvents="none" />
+        <View style={styles.headerRow}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+            <Ionicons name="chevron-back" size={22} color="#FFF" />
+          </TouchableOpacity>
+          <View style={styles.headerCenter}>
+            <Text style={styles.headerTitle}>Quote Request</Text>
+            <Text style={styles.headerSub}>Bus · #{request.requestNumber}</Text>
+          </View>
+          <TouchableOpacity style={styles.headerActionBtn} onPress={onRefresh}>
+            <Ionicons name="refresh" size={18} color="#FFF" />
+          </TouchableOpacity>
+        </View>
+
+        {/* Glass summary card */}
+        <View style={styles.glassCard}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.glassLabel}>STATUS</Text>
+              <Text style={styles.glassValue}>{statusConfig.label}</Text>
+            </View>
+            <View style={[styles.statusPill, { backgroundColor: statusConfig.color }]}>
+              <Ionicons name={statusConfig.icon} size={14} color="#FFF" />
+              <Text style={styles.statusPillText}>{statusConfig.label}</Text>
+            </View>
+          </View>
+          <View style={styles.metaRow}>
+            <View style={styles.metaChip}>
+              <Ionicons name="calendar-outline" size={14} color="rgba(255,255,255,0.8)" />
+              <Text style={styles.metaChipText}>{formatDate(request.pickupDate)}</Text>
+            </View>
+            {request.pickupTime && (
+              <View style={styles.metaChip}>
+                <Ionicons name="time-outline" size={14} color="rgba(255,255,255,0.8)" />
+                <Text style={styles.metaChipText}>{request.pickupTime}</Text>
+              </View>
+            )}
+          </View>
+        </View>
+      </LinearGradient>
 
       <ScrollView
         style={styles.content}
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[GREEN]} />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[TEAL]} />
         }
       >
-        {/* Request Status Card */}
-        <View style={styles.statusCard}>
-          <View style={styles.statusHeader}>
-            <View style={[styles.statusIconCircle, { backgroundColor: statusConfig.color + '20' }]}>
-              <Ionicons name={statusConfig.icon} size={32} color={statusConfig.color} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.requestNumber}>#{request.requestNumber}</Text>
-              <View style={[styles.statusBadge, { backgroundColor: statusConfig.color }]}>
-                <Text style={styles.statusText}>{statusConfig.label}</Text>
-              </View>
-            </View>
+        {/* Status Message Card */}
+        <View style={styles.statusMsgCard}>
+          <View style={[styles.statusIconCircle, { backgroundColor: statusConfig.color + '15' }]}>
+            <Ionicons name={statusConfig.icon} size={wp('6%')} color={statusConfig.color} />
           </View>
-
           <Text style={styles.statusMessage}>
             {request.status === 'PENDING' &&
               'Your quote request is being sent to verified bus rental vendors. You will receive quotes within 24-48 hours.'}
@@ -261,8 +330,13 @@ export default function BusQuoteRequestDetailScreen() {
         </View>
 
         {/* Trip Details */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Trip Details</Text>
+        <View style={styles.detailsCard}>
+          <View style={styles.detailsHeader}>
+            <View style={styles.detailsIcon}>
+              <Ionicons name="document-text" size={wp('4.5%')} color={TEAL_MID} />
+            </View>
+            <Text style={styles.detailsTitle}>Trip Details</Text>
+          </View>
 
           <View style={styles.detailRow}>
             <Text style={styles.detailLabel}>Trip Type</Text>
@@ -283,7 +357,7 @@ export default function BusQuoteRequestDetailScreen() {
 
           <View style={styles.locationSection}>
             <View style={styles.locationRow}>
-              <View style={[styles.locationDot, { backgroundColor: GREEN }]} />
+              <View style={[styles.locationDot, { backgroundColor: TEAL }]} />
               <View>
                 <Text style={styles.locationLabel}>Pickup</Text>
                 <Text style={styles.locationText}>{request.pickupCity || request.pickupAddress}</Text>
@@ -316,7 +390,7 @@ export default function BusQuoteRequestDetailScreen() {
             </View>
           )}
 
-          {request.tripDays && (
+          {request.tripDays > 0 && (
             <View style={styles.detailRow}>
               <Text style={styles.detailLabel}>Trip Duration</Text>
               <Text style={styles.detailValue}>{request.tripDays} day{request.tripDays > 1 ? 's' : ''}</Text>
@@ -341,9 +415,12 @@ export default function BusQuoteRequestDetailScreen() {
             {quotes.map((quote) => (
               <View key={quote.id} style={styles.quoteCard}>
                 <View style={styles.quoteHeader}>
-                  <View style={{ flex: 1 }}>
+                  <View style={styles.vendorAvatarCircle}>
+                    <Ionicons name="bus" size={wp('5%')} color={TEAL_MID} />
+                  </View>
+                  <View style={{ flex: 1, marginLeft: wp('3%') }}>
                     <Text style={styles.vendorName}>{quote.vendor?.businessName || 'Vendor'}</Text>
-                    {quote.vendor?.rating && (
+                    {quote.vendor?.rating > 0 && (
                       <View style={styles.ratingRow}>
                         <Ionicons name="star" size={14} color="#F59E0B" />
                         <Text style={styles.ratingText}>
@@ -352,7 +429,7 @@ export default function BusQuoteRequestDetailScreen() {
                       </View>
                     )}
                   </View>
-                  <View style={styles.priceContainer}>
+                  <View style={styles.priceWrap}>
                     <Text style={styles.priceLabel}>Total</Text>
                     <Text style={styles.priceValue}>₹{quote.totalAmount?.toLocaleString('en-IN') || '0'}</Text>
                   </View>
@@ -361,13 +438,13 @@ export default function BusQuoteRequestDetailScreen() {
                 <View style={styles.quoteDetails}>
                   {quote.vehicleName && (
                     <View style={styles.quoteDetailRow}>
-                      <Ionicons name="bus-outline" size={16} color="#666" />
+                      <Ionicons name="bus-outline" size={16} color={TEAL_MID} />
                       <Text style={styles.quoteDetailText}>{quote.vehicleName}</Text>
                     </View>
                   )}
                   {quote.inclusions && (
                     <View style={styles.quoteDetailRow}>
-                      <Ionicons name="checkmark-circle-outline" size={16} color={GREEN} />
+                      <Ionicons name="checkmark-circle-outline" size={16} color={TEAL} />
                       <Text style={styles.quoteDetailText}>{quote.inclusions}</Text>
                     </View>
                   )}
@@ -385,18 +462,23 @@ export default function BusQuoteRequestDetailScreen() {
                     onPress={() => handleAcceptQuote(quote)}
                     disabled={acceptingQuote === quote.id}
                   >
-                    {acceptingQuote === quote.id ? (
-                      <ActivityIndicator color="#fff" size="small" />
-                    ) : (
-                      <>
-                        <Text style={styles.acceptBtnText}>Accept Quote</Text>
-                        <Ionicons name="checkmark-circle" size={18} color="#fff" />
-                      </>
-                    )}
+                    <LinearGradient
+                      colors={acceptingQuote === quote.id ? ['#9CA3AF', '#9CA3AF'] : [TEAL_MID, '#047857']}
+                      style={styles.acceptBtnGrad}
+                    >
+                      {acceptingQuote === quote.id ? (
+                        <ActivityIndicator color="#fff" size="small" />
+                      ) : (
+                        <>
+                          <Text style={styles.acceptBtnText}>Accept Quote</Text>
+                          <Ionicons name="checkmark-circle" size={18} color="#fff" />
+                        </>
+                      )}
+                    </LinearGradient>
                   </TouchableOpacity>
                 ) : quote.status === 'ACCEPTED' ? (
                   <View style={styles.acceptedBadge}>
-                    <Ionicons name="checkmark-circle" size={18} color={GREEN} />
+                    <Ionicons name="checkmark-circle" size={18} color={TEAL_MID} />
                     <Text style={styles.acceptedText}>Accepted</Text>
                   </View>
                 ) : null}
@@ -406,14 +488,14 @@ export default function BusQuoteRequestDetailScreen() {
         ) : (
           <View style={styles.noQuotesContainer}>
             <View style={styles.noQuotesIconCircle}>
-              <Ionicons name="receipt-outline" size={60} color={GREEN} />
+              <Ionicons name="receipt-outline" size={wp('12%')} color={TEAL} />
             </View>
             <Text style={styles.noQuotesTitle}>No Quotations Yet</Text>
             <Text style={styles.noQuotesMessage}>
               Your request has been sent to vendors. They will review and send you competitive quotes soon.
             </Text>
             <View style={styles.noQuotesInfoBox}>
-              <Ionicons name="time-outline" size={20} color="#666" />
+              <Ionicons name="time-outline" size={20} color={TEXT_SECONDARY} />
               <Text style={styles.noQuotesInfoText}>
                 Usually within 24-48 hours
               </Text>
@@ -438,7 +520,7 @@ export default function BusQuoteRequestDetailScreen() {
             {acceptSuccess ? (
               <View style={styles.modalContent}>
                 <View style={styles.successIconContainer}>
-                  <Ionicons name="checkmark-circle" size={70} color={GREEN} />
+                  <Ionicons name="checkmark-circle" size={70} color={TEAL} />
                 </View>
                 <Text style={styles.modalTitle}>Booking Confirmed!</Text>
                 <Text style={styles.successBookingNumber}>
@@ -469,7 +551,7 @@ export default function BusQuoteRequestDetailScreen() {
                     style={styles.modalCloseBtn}
                     disabled={!!acceptingQuote}
                   >
-                    <Ionicons name="close" size={24} color="#666" />
+                    <Ionicons name="close" size={24} color={TEXT_SECONDARY} />
                   </TouchableOpacity>
                 </View>
 
@@ -477,7 +559,7 @@ export default function BusQuoteRequestDetailScreen() {
                 {acceptError && (
                   <View style={styles.errorContainerModal}>
                     <View style={styles.errorIconWrap}>
-                      <Ionicons name="alert-circle" size={50} color="#e74c3c" />
+                      <Ionicons name="alert-circle" size={50} color="#DC2626" />
                     </View>
                     <Text style={styles.errorTitle}>Something went wrong</Text>
                     <Text style={styles.errorMessage}>{acceptError}</Text>
@@ -503,7 +585,7 @@ export default function BusQuoteRequestDetailScreen() {
                           navigation.navigate('BusBookingsScreen');
                         }}
                       >
-                        <Ionicons name="list" size={18} color={GREEN} />
+                        <Ionicons name="list" size={18} color={TEAL_MID} />
                         <Text style={styles.checkBookingsBtnText}>Check My Bookings</Text>
                       </TouchableOpacity>
                     </View>
@@ -519,13 +601,13 @@ export default function BusQuoteRequestDetailScreen() {
                     <View style={styles.confirmQuoteCard}>
                       <View style={styles.confirmVendorRow}>
                         <View style={styles.confirmVendorAvatar}>
-                          <Ionicons name="bus" size={24} color={GREEN} />
+                          <Ionicons name="bus" size={24} color={TEAL_MID} />
                         </View>
                         <View style={styles.confirmVendorInfo}>
                           <Text style={styles.confirmVendorName}>
                             {selectedQuote.vendor?.businessName || 'Vendor'}
                           </Text>
-                          {selectedQuote.vendor?.rating && (
+                          {selectedQuote.vendor?.rating > 0 && (
                             <View style={styles.confirmRating}>
                               <Ionicons name="star" size={14} color="#f39c12" />
                               <Text style={styles.confirmRatingText}>
@@ -538,7 +620,7 @@ export default function BusQuoteRequestDetailScreen() {
 
                       {selectedQuote.vehicleName && (
                         <View style={styles.confirmVehicle}>
-                          <Ionicons name="bus-outline" size={20} color="#666" />
+                          <Ionicons name="bus-outline" size={20} color={TEAL_MID} />
                           <Text style={styles.confirmVehicleName}>
                             {selectedQuote.vehicleName}
                           </Text>
@@ -555,7 +637,7 @@ export default function BusQuoteRequestDetailScreen() {
                         {(selectedQuote.advanceAmount > 0 || selectedQuote.advancePercent > 0) && (
                           <View style={styles.confirmAdvanceRow}>
                             <View style={styles.confirmAdvanceLabel}>
-                              <Ionicons name="wallet-outline" size={16} color={GREEN} />
+                              <Ionicons name="wallet-outline" size={16} color={TEAL_MID} />
                               <Text style={styles.confirmAdvanceLabelText}>
                                 Advance Payment ({selectedQuote.advancePercent || 30}%)
                               </Text>
@@ -569,7 +651,7 @@ export default function BusQuoteRequestDetailScreen() {
 
                         {selectedQuote.inclusions && (
                           <View style={styles.inclusionsBox}>
-                            <Ionicons name="checkmark-circle" size={16} color={GREEN} />
+                            <Ionicons name="checkmark-circle" size={16} color={TEAL} />
                             <Text style={styles.inclusionsText}>{selectedQuote.inclusions}</Text>
                           </View>
                         )}
@@ -618,660 +700,122 @@ export default function BusQuoteRequestDetailScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: BG,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-  },
-  backBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#333',
-  },
-  refreshBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: 12,
-    color: '#666',
-    fontSize: 14,
-  },
-  errorContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 40,
-  },
-  errorText: {
-    fontSize: 16,
-    color: '#666',
-    marginTop: 16,
-  },
-  backButton: {
-    marginTop: 20,
-    backgroundColor: GREEN,
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 10,
-  },
-  backButtonText: {
-    color: '#fff',
-    fontWeight: '600',
-  },
-  content: {
-    flex: 1,
-    padding: 16,
-  },
-  statusCard: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
-  },
-  statusHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
-    gap: 16,
-  },
-  statusIconCircle: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  requestNumber: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#333',
-    marginBottom: 8,
-  },
-  statusBadge: {
-    alignSelf: 'flex-start',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
-  },
-  statusText: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  statusMessage: {
-    fontSize: 14,
-    color: '#666',
-    lineHeight: 20,
-  },
-  card: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
-  },
-  cardTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#333',
-    marginBottom: 16,
-  },
-  detailRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f5f5f5',
-  },
-  detailLabel: {
-    fontSize: 14,
-    color: '#999',
-    flex: 1,
-  },
-  detailValue: {
-    fontSize: 14,
-    color: '#333',
-    fontWeight: '600',
-    flex: 1,
-    textAlign: 'right',
-  },
-  locationSection: {
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f5f5f5',
-  },
-  locationRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginVertical: 6,
-  },
-  locationDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    marginRight: 12,
-    marginTop: 4,
-  },
-  locationLabel: {
-    fontSize: 11,
-    color: '#999',
-    marginBottom: 2,
-  },
-  locationText: {
-    fontSize: 14,
-    color: '#333',
-    fontWeight: '600',
-  },
-  quotesSection: {
-    marginBottom: 16,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#333',
-    marginBottom: 12,
-  },
-  quoteCard: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
-  },
-  quoteHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 12,
-  },
-  vendorName: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#333',
-    marginBottom: 4,
-  },
-  ratingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  ratingText: {
-    fontSize: 12,
-    color: '#666',
-  },
-  priceContainer: {
-    alignItems: 'flex-end',
-  },
-  priceLabel: {
-    fontSize: 11,
-    color: '#999',
-    marginBottom: 2,
-  },
-  priceValue: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: GREEN,
-  },
-  quoteDetails: {
-    marginBottom: 12,
-  },
-  quoteDetailRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginVertical: 4,
-  },
-  quoteDetailText: {
-    fontSize: 13,
-    color: '#666',
-    flex: 1,
-  },
-  acceptBtn: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: GREEN,
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 10,
-    gap: 8,
-  },
-  acceptBtnDisabled: {
-    backgroundColor: '#ccc',
-  },
-  acceptBtnText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  acceptedBadge: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: GREEN + '20',
-    paddingVertical: 12,
-    borderRadius: 10,
-    gap: 8,
-  },
-  acceptedText: {
-    color: GREEN,
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  noQuotesCard: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 40,
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  noQuotesContainer: {
-    backgroundColor: '#fff',
-    borderRadius: 20,
-    padding: 40,
-    alignItems: 'center',
-    marginVertical: 10,
-  },
-  noQuotesIconCircle: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: '#E8F9F1',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 20,
-  },
-  noQuotesTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#333',
-    marginTop: 10,
-    marginBottom: 12,
-  },
-  noQuotesMessage: {
-    fontSize: 14,
-    color: '#666',
-    textAlign: 'center',
-    lineHeight: 22,
-    paddingHorizontal: 10,
-    marginBottom: 20,
-  },
-  noQuotesInfoBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F5F5F5',
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 20,
-    marginTop: 10,
-  },
-  noQuotesInfoText: {
-    fontSize: 13,
-    color: '#666',
-    marginLeft: 8,
-    fontWeight: '500',
-  },
-  noQuotesPullRefresh: {
-    fontSize: 12,
-    color: '#999',
-    marginTop: 16,
-    fontStyle: 'italic',
-  },
-  noQuotesText: {
-    fontSize: 14,
-    color: '#999',
-    marginTop: 8,
-    textAlign: 'center',
-  },
-
-  // Modal Styles
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  modalContainer: {
-    backgroundColor: '#fff',
-    borderRadius: 24,
-    width: '100%',
-    maxWidth: 400,
+  container: { flex: 1, backgroundColor: BG },
+  headerGrad: {
+    paddingHorizontal: wp('4%'),
+    paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 0) + hp('1%') : hp('1%'),
+    paddingBottom: hp('2%'),
     overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.25,
-    shadowRadius: 20,
-    elevation: 10,
   },
-  modalContent: {
-    padding: 24,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  modalTitle: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: '#1a1a1a',
-  },
-  modalCloseBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#f5f5f5',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalMessage: {
-    fontSize: 14,
-    color: '#666',
-    textAlign: 'center',
-    lineHeight: 20,
-    marginVertical: 16,
-  },
-
-  // Success State
-  successIconContainer: {
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  successBookingNumber: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: GREEN,
-    textAlign: 'center',
-    marginTop: 8,
-  },
-  successBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: GREEN,
-    paddingVertical: 16,
-    borderRadius: 14,
-    marginTop: 20,
-    gap: 8,
-  },
-  successBtnText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '700',
-  },
-
-  // Error State
-  errorContainerModal: {
-    alignItems: 'center',
-    paddingVertical: 10,
-  },
-  errorIconWrap: {
-    marginBottom: 16,
-  },
-  errorTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#333',
-    marginBottom: 8,
-  },
-  errorMessage: {
-    fontSize: 14,
-    color: '#e74c3c',
-    textAlign: 'center',
-    lineHeight: 20,
-    marginBottom: 16,
-    paddingHorizontal: 12,
-    backgroundColor: '#fef2f2',
-    paddingVertical: 12,
-    borderRadius: 10,
-    width: '100%',
-  },
-  errorActions: {
-    flexDirection: 'row',
-    marginBottom: 12,
-    gap: 12,
-  },
-  retryBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#e74c3c',
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 12,
-    flex: 1,
-    gap: 8,
-  },
-  retryBtnText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  checkBookingsBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#fff',
-    borderWidth: 1.5,
-    borderColor: GREEN,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 12,
-    flex: 1,
-    gap: 8,
-  },
-  checkBookingsBtnText: {
-    color: GREEN,
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  errorHint: {
-    fontSize: 12,
-    color: '#999',
-    textAlign: 'center',
-    marginTop: 4,
-  },
-
-  // Confirm Quote Card
-  confirmQuoteCard: {
-    backgroundColor: '#f8f9fa',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 16,
-  },
-  confirmVendorRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 14,
-  },
-  confirmVendorAvatar: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: 'rgba(9,179,104,0.15)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  confirmVendorInfo: {
-    marginLeft: 12,
-    flex: 1,
-  },
-  confirmVendorName: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#333',
-  },
-  confirmRating: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 4,
-  },
-  confirmRatingText: {
-    fontSize: 13,
-    color: '#f39c12',
-    fontWeight: '600',
-    marginLeft: 4,
-  },
-  confirmVehicle: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    padding: 12,
-    borderRadius: 10,
-    marginBottom: 14,
-    gap: 8,
-  },
-  confirmVehicleName: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#333',
-  },
-  confirmPriceSection: {
-    borderTopWidth: 1,
-    borderTopColor: '#e5e5e5',
-    paddingTop: 12,
-  },
-  confirmPriceRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 8,
-  },
-  confirmPriceLabel: {
-    fontSize: 14,
-    color: '#666',
-  },
-  confirmPriceValue: {
-    fontSize: 14,
-    color: '#333',
-    fontWeight: '500',
-  },
-  confirmTotal: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: GREEN,
-  },
-  confirmAdvanceRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: 'rgba(9,179,104,0.1)',
-    marginTop: 8,
-    marginHorizontal: -16,
-    marginBottom: -16,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomLeftRadius: 16,
-    borderBottomRightRadius: 16,
-  },
-  confirmAdvanceLabel: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  confirmAdvanceLabelText: {
-    fontSize: 14,
-    color: GREEN,
-    fontWeight: '600',
-  },
-  confirmAdvanceValue: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: GREEN,
-  },
-  inclusionsBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(9,179,104,0.1)',
-    padding: 10,
-    borderRadius: 8,
-    marginTop: 8,
-    gap: 8,
-  },
-  inclusionsText: {
-    fontSize: 13,
-    color: '#666',
-    flex: 1,
-  },
-  confirmNote: {
-    fontSize: 12,
-    color: '#999',
-    textAlign: 'center',
-    lineHeight: 18,
-    marginBottom: 20,
-  },
-  confirmActions: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  cancelModalBtn: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#f5f5f5',
-    paddingVertical: 14,
-    borderRadius: 12,
-  },
-  cancelModalBtnText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#666',
-  },
-  confirmBtn: {
-    flex: 2,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: GREEN,
-    paddingVertical: 14,
-    borderRadius: 12,
-    gap: 8,
-  },
-  confirmBtnDisabled: {
-    opacity: 0.7,
-  },
-  confirmBtnText: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#fff',
-  },
+  decoCircle: { position: 'absolute', borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.05)' },
+  headerRow: {
+    zIndex: 2, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: hp('1.5%') },
+  backBtn: { width: wp('9%'), height: wp('9%'), borderRadius: wp('4.5%'), backgroundColor: 'rgba(255,255,255,0.15)', justifyContent: 'center', alignItems: 'center' },
+  headerCenter: { flex: 1, alignItems: 'center' },
+  headerTitle: { fontSize: wp('4.5%'), fontWeight: '700', color: '#FFFFFF', letterSpacing: 0.3 },
+  headerSub: { fontSize: wp('3%'), color: 'rgba(255,255,255,0.7)', marginTop: hp('0.3%'), fontWeight: '500' },
+  headerActionBtn: { width: wp('9%'), height: wp('9%'), borderRadius: wp('4.5%'), backgroundColor: 'rgba(255,255,255,0.15)', justifyContent: 'center', alignItems: 'center' },
+  glassCard: { backgroundColor: 'rgba(255,255,255,0.12)', borderRadius: wp('4%'), padding: wp('4%'), borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)' },
+  glassLabel: { fontSize: wp('2.8%'), color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: 0.5, fontWeight: '600' },
+  glassValue: { fontSize: wp('3.5%'), fontWeight: '600', color: '#FFFFFF', marginTop: hp('0.3%') },
+  statusPill: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: wp('3%'), paddingVertical: hp('0.5%'), borderRadius: 999, gap: wp('1.5%') },
+  statusPillText: { color: '#FFF', fontSize: wp('2.8%'), fontWeight: '700' },
+  metaRow: { flexDirection: 'row', alignItems: 'center', gap: wp('3%'), marginTop: hp('1.2%') },
+  metaChip: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.1)', paddingHorizontal: wp('3%'), paddingVertical: hp('0.6%'), borderRadius: wp('5%'), gap: wp('1.5%') },
+  metaChipText: { fontSize: wp('3%'), color: 'rgba(255,255,255,0.85)', fontWeight: '500' },
+  emptyCircle: { width: wp('22%'), height: wp('22%'), borderRadius: wp('11%'), justifyContent: 'center', alignItems: 'center', marginBottom: hp('2%') },
+  emptyTitle: { fontSize: wp('4.5%'), fontWeight: '800', color: TEXT_PRIMARY, marginBottom: hp('0.8%') },
+  emptyDesc: { textAlign: 'center', color: TEXT_SECONDARY, fontSize: wp('3.3%'), lineHeight: wp('5%'), marginBottom: hp('2%') },
+  refreshBtnStyle: { flexDirection: 'row', alignItems: 'center', backgroundColor: TEAL_LIGHT, borderRadius: wp('3%'), paddingHorizontal: wp('4%'), paddingVertical: hp('1.2%'), borderWidth: 1, borderColor: '#A7F3D0', gap: wp('2%') },
+  refreshBtnText: { color: TEAL_MID, fontWeight: '700', fontSize: wp('3.3%') },
+  content: { flex: 1 },
+  statusMsgCard: { flexDirection: 'row', backgroundColor: CARD, borderRadius: wp('4%'), padding: wp('4%'), marginHorizontal: wp('4%'), marginTop: hp('1.5%'), gap: wp('3%'), ...SHADOW_SM },
+  statusIconCircle: { width: wp('12%'), height: wp('12%'), borderRadius: wp('6%'), justifyContent: 'center', alignItems: 'center' },
+  statusMessage: { flex: 1, fontSize: wp('3.2%'), color: TEXT_SECONDARY, lineHeight: wp('4.8%') },
+  detailsCard: { backgroundColor: CARD, borderRadius: wp('4%'), padding: wp('4%'), marginHorizontal: wp('4%'), marginTop: hp('1.5%'), ...SHADOW_SM },
+  detailsHeader: { flexDirection: 'row', alignItems: 'center', gap: wp('2.5%'), marginBottom: hp('1.5%') },
+  detailsIcon: { width: wp('9%'), height: wp('9%'), borderRadius: wp('3%'), backgroundColor: TEAL_LIGHT, justifyContent: 'center', alignItems: 'center' },
+  detailsTitle: { fontSize: wp('3.8%'), fontWeight: '700', color: TEXT_PRIMARY },
+  detailRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', paddingVertical: hp('1.2%'), borderBottomWidth: 1, borderBottomColor: '#F3F4F6' },
+  detailLabel: { fontSize: wp('3.2%'), color: TEXT_MUTED, flex: 1, fontWeight: '500' },
+  detailValue: { fontSize: wp('3.2%'), color: TEXT_PRIMARY, fontWeight: '600', flex: 1, textAlign: 'right' },
+  locationSection: { paddingVertical: hp('1.2%'), borderBottomWidth: 1, borderBottomColor: '#F3F4F6' },
+  locationRow: { flexDirection: 'row', alignItems: 'flex-start', marginVertical: hp('0.5%') },
+  locationDot: { width: wp('2.5%'), height: wp('2.5%'), borderRadius: wp('1.25%'), marginRight: wp('3%'), marginTop: hp('0.5%') },
+  locationLabel: { fontSize: wp('2.8%'), color: TEXT_MUTED, marginBottom: 2, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.3 },
+  locationText: { fontSize: wp('3.3%'), color: TEXT_PRIMARY, fontWeight: '600' },
+  quotesSection: { marginHorizontal: wp('4%'), marginTop: hp('1.5%') },
+  sectionTitle: { fontSize: wp('4.2%'), fontWeight: '800', color: TEXT_PRIMARY, marginBottom: hp('1.2%') },
+  quoteCard: { backgroundColor: CARD, borderRadius: wp('4%'), padding: wp('4%'), marginBottom: hp('1.5%'), ...SHADOW_MD },
+  quoteHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: hp('1.2%') },
+  vendorAvatarCircle: { width: wp('11%'), height: wp('11%'), borderRadius: wp('5.5%'), backgroundColor: TEAL_LIGHT, justifyContent: 'center', alignItems: 'center' },
+  vendorName: { fontSize: wp('3.5%'), fontWeight: '700', color: TEXT_PRIMARY, marginBottom: hp('0.3%') },
+  ratingRow: { flexDirection: 'row', alignItems: 'center', gap: wp('1%') },
+  ratingText: { fontSize: wp('2.8%'), color: TEXT_SECONDARY, fontWeight: '500' },
+  priceWrap: { alignItems: 'flex-end' },
+  priceLabel: { fontSize: wp('2.6%'), color: TEXT_MUTED, marginBottom: 2, textTransform: 'uppercase', letterSpacing: 0.3, fontWeight: '600' },
+  priceValue: { fontSize: wp('4.5%'), fontWeight: '800', color: TEAL_MID },
+  quoteDetails: { marginBottom: hp('1.2%'), paddingTop: hp('1%'), borderTopWidth: 1, borderTopColor: '#F3F4F6' },
+  quoteDetailRow: { flexDirection: 'row', alignItems: 'center', gap: wp('2%'), marginVertical: hp('0.4%') },
+  quoteDetailText: { fontSize: wp('3%'), color: TEXT_SECONDARY, flex: 1 },
+  acceptBtn: { borderRadius: wp('3%'), overflow: 'hidden' },
+  acceptBtnDisabled: { opacity: 0.7 },
+  acceptBtnGrad: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', paddingVertical: hp('1.5%'), paddingHorizontal: wp('5%'), borderRadius: wp('3%'), gap: wp('2%') },
+  acceptBtnText: { color: '#fff', fontSize: wp('3.3%'), fontWeight: '700' },
+  acceptedBadge: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', backgroundColor: TEAL_LIGHT, paddingVertical: hp('1.2%'), borderRadius: wp('3%'), gap: wp('2%') },
+  acceptedText: { color: TEAL_MID, fontSize: wp('3.3%'), fontWeight: '700' },
+  noQuotesContainer: { backgroundColor: CARD, borderRadius: wp('4%'), padding: wp('8%'), alignItems: 'center', marginHorizontal: wp('4%'), marginTop: hp('1.5%'), ...SHADOW_SM },
+  noQuotesIconCircle: { width: wp('25%'), height: wp('25%'), borderRadius: wp('12.5%'), backgroundColor: TEAL_LIGHT, alignItems: 'center', justifyContent: 'center', marginBottom: hp('2%') },
+  noQuotesTitle: { fontSize: wp('4.2%'), fontWeight: '800', color: TEXT_PRIMARY, marginBottom: hp('1%') },
+  noQuotesMessage: { fontSize: wp('3.2%'), color: TEXT_SECONDARY, textAlign: 'center', lineHeight: wp('5%'), marginBottom: hp('2%') },
+  noQuotesInfoBox: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F3F4F6', paddingVertical: hp('1%'), paddingHorizontal: wp('4%'), borderRadius: wp('5%'), gap: wp('2%') },
+  noQuotesInfoText: { fontSize: wp('3%'), color: TEXT_SECONDARY, fontWeight: '500' },
+  noQuotesPullRefresh: { fontSize: wp('2.8%'), color: TEXT_MUTED, marginTop: hp('1.5%'), fontStyle: 'italic' },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.6)', justifyContent: 'center', alignItems: 'center', padding: wp('5%') },
+  modalContainer: { backgroundColor: CARD, borderRadius: wp('5%'), width: '100%', maxWidth: 400, overflow: 'hidden', ...SHADOW_MD },
+  modalContent: { padding: wp('5%') },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: hp('2%') },
+  modalTitle: { fontSize: wp('5%'), fontWeight: '800', color: TEXT_PRIMARY, textAlign: 'center' },
+  modalCloseBtn: { width: wp('9%'), height: wp('9%'), borderRadius: wp('4.5%'), backgroundColor: '#F3F4F6', justifyContent: 'center', alignItems: 'center' },
+  modalMessage: { fontSize: wp('3.2%'), color: TEXT_SECONDARY, textAlign: 'center', lineHeight: wp('5%'), marginVertical: hp('1.5%') },
+  successIconContainer: { alignItems: 'center', marginBottom: hp('1.5%') },
+  successBookingNumber: { fontSize: wp('4%'), fontWeight: '700', color: TEAL_MID, textAlign: 'center', marginTop: hp('0.8%') },
+  successBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: TEAL_MID, paddingVertical: hp('1.8%'), borderRadius: wp('3%'), marginTop: hp('2%'), gap: wp('2%') },
+  successBtnText: { color: '#fff', fontSize: wp('3.5%'), fontWeight: '700' },
+  errorContainerModal: { alignItems: 'center', paddingVertical: hp('1%') },
+  errorIconWrap: { marginBottom: hp('1.5%') },
+  errorTitle: { fontSize: wp('4%'), fontWeight: '700', color: TEXT_PRIMARY, marginBottom: hp('0.8%') },
+  errorMessage: { fontSize: wp('3.2%'), color: '#DC2626', textAlign: 'center', lineHeight: wp('5%'), marginBottom: hp('1.5%'), paddingHorizontal: wp('3%'), backgroundColor: '#FEF2F2', paddingVertical: hp('1.2%'), borderRadius: wp('2.5%'), width: '100%', overflow: 'hidden' },
+  errorActions: { flexDirection: 'row', marginBottom: hp('1.2%'), gap: wp('3%') },
+  retryBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#DC2626', paddingVertical: hp('1.5%'), paddingHorizontal: wp('5%'), borderRadius: wp('3%'), flex: 1, gap: wp('2%') },
+  retryBtnText: { color: '#fff', fontSize: wp('3.2%'), fontWeight: '600' },
+  checkBookingsBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: CARD, borderWidth: 1.5, borderColor: TEAL_MID, paddingVertical: hp('1.5%'), paddingHorizontal: wp('3%'), borderRadius: wp('3%'), flex: 1, gap: wp('2%') },
+  checkBookingsBtnText: { color: TEAL_MID, fontSize: wp('3.2%'), fontWeight: '600' },
+  errorHint: { fontSize: wp('2.8%'), color: TEXT_MUTED, textAlign: 'center', marginTop: hp('0.5%') },
+  confirmQuoteCard: { backgroundColor: '#F9FAFB', borderRadius: wp('4%'), padding: wp('4%'), marginBottom: hp('1.5%') },
+  confirmVendorRow: { flexDirection: 'row', alignItems: 'center', marginBottom: hp('1.5%') },
+  confirmVendorAvatar: { width: wp('12%'), height: wp('12%'), borderRadius: wp('6%'), backgroundColor: TEAL_LIGHT, justifyContent: 'center', alignItems: 'center' },
+  confirmVendorInfo: { marginLeft: wp('3%'), flex: 1 },
+  confirmVendorName: { fontSize: wp('3.5%'), fontWeight: '700', color: TEXT_PRIMARY },
+  confirmRating: { flexDirection: 'row', alignItems: 'center', marginTop: hp('0.3%') },
+  confirmRatingText: { fontSize: wp('3%'), color: '#F59E0B', fontWeight: '600', marginLeft: wp('1%') },
+  confirmVehicle: { flexDirection: 'row', alignItems: 'center', backgroundColor: CARD, padding: wp('3%'), borderRadius: wp('2.5%'), marginBottom: hp('1.5%'), gap: wp('2%') },
+  confirmVehicleName: { fontSize: wp('3.5%'), fontWeight: '600', color: TEXT_PRIMARY },
+  confirmPriceSection: { borderTopWidth: 1, borderTopColor: '#E5E7EB', paddingTop: hp('1.2%') },
+  confirmPriceRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: hp('0.8%') },
+  confirmPriceLabel: { fontSize: wp('3.2%'), color: TEXT_SECONDARY },
+  confirmPriceValue: { fontSize: wp('3.2%'), color: TEXT_PRIMARY, fontWeight: '500' },
+  confirmAdvanceRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: TEAL_LIGHT, marginTop: hp('0.8%'), marginHorizontal: wp('-4%'), marginBottom: wp('-4%'), paddingHorizontal: wp('4%'), paddingVertical: hp('1.2%'), borderBottomLeftRadius: wp('4%'), borderBottomRightRadius: wp('4%') },
+  confirmAdvanceLabel: { flexDirection: 'row', alignItems: 'center', gap: wp('1.5%') },
+  confirmAdvanceLabelText: { fontSize: wp('3.2%'), color: TEAL_MID, fontWeight: '600' },
+  confirmAdvanceValue: { fontSize: wp('4%'), fontWeight: '700', color: TEAL_MID },
+  inclusionsBox: { flexDirection: 'row', alignItems: 'center', backgroundColor: TEAL_LIGHT, padding: wp('2.5%'), borderRadius: wp('2%'), marginTop: hp('0.8%'), gap: wp('2%') },
+  inclusionsText: { fontSize: wp('3%'), color: TEXT_SECONDARY, flex: 1 },
+  confirmNote: { fontSize: wp('2.8%'), color: TEXT_MUTED, textAlign: 'center', lineHeight: wp('4.5%'), marginBottom: hp('2%') },
+  confirmActions: { flexDirection: 'row', gap: wp('3%') },
+  cancelModalBtn: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#F3F4F6', paddingVertical: hp('1.8%'), borderRadius: wp('3%') },
+  cancelModalBtnText: { fontSize: wp('3.5%'), fontWeight: '600', color: TEXT_SECONDARY },
+  confirmBtn: { flex: 2, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: TEAL_MID, paddingVertical: hp('1.8%'), borderRadius: wp('3%'), gap: wp('2%') },
+  confirmBtnDisabled: { opacity: 0.7 },
+  confirmBtnText: { fontSize: wp('3.5%'), fontWeight: '700', color: '#fff' },
 });

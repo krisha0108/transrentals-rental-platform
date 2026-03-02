@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -9,21 +9,31 @@ import {
   TextInput,
   Image,
   Platform,
-  Dimensions,
-  Animated,
+  StatusBar,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Feather';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import LinearGradient from 'react-native-linear-gradient';
+import { widthPercentageToDP as wp, heightPercentageToDP as hp } from 'react-native-responsive-screen';
 import { locationService } from '../../services';
-
-const { width } = Dimensions.get('window');
-const GREEN = '#09B368';
-const BG = '#F5F5F7';
+import {
+  TEAL_DEEP,
+  TEAL_MID,
+  TEAL,
+  TEAL_LIGHT,
+  BG,
+  CARD,
+  TEXT_PRIMARY,
+  TEXT_SECONDARY,
+  TEXT_MUTED,
+  SHADOW_SM,
+  SHADOW_MD,
+} from '../../../theme';
 
 // Popular cities for quick selection
 const popularCities = [
@@ -79,17 +89,27 @@ export default function BikeRentalScreen() {
   // FAQ
   const [expandedIndex, setExpandedIndex] = useState(null);
 
-  // Animation
-  const heroAnim = useRef(new Animated.Value(0)).current;
+  // Animation ref (kept for dropdown touch tracking)
+  const dropdownTouching = useRef(false);
+
+  /* -- StatusBar management -- */
+  useFocusEffect(
+    useCallback(() => {
+      StatusBar.setBarStyle('light-content');
+      if (Platform.OS === 'android') {
+        StatusBar.setBackgroundColor(TEAL_DEEP);
+      }
+      return () => {
+        StatusBar.setBarStyle('dark-content');
+        if (Platform.OS === 'android') {
+          StatusBar.setBackgroundColor('#FFFFFF');
+        }
+      };
+    }, []),
+  );
 
   useEffect(() => {
     fetchLocations();
-    // Animate hero section
-    Animated.timing(heroAnim, {
-      toValue: 1,
-      duration: 800,
-      useNativeDriver: true,
-    }).start();
   }, []);
 
   const fetchLocations = async () => {
@@ -232,51 +252,63 @@ export default function BikeRentalScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safe}>
-      {/* TOP BAR */}
-      <View style={styles.topBar}>
-        <TouchableOpacity
-          onPress={() => navigation.goBack()}
-          style={styles.backBtn}
-        >
-          <Icon name="arrow-left" size={22} color="#0F172A" />
-        </TouchableOpacity>
-        <Text style={styles.topTitle}>Bike Rental</Text>
-        <TouchableOpacity
-          onPress={() => navigation.navigate('MyBikeBookings')}
-          style={styles.myBookingsBtn}
-        >
-          <Ionicons name="document-text-outline" size={20} color={GREEN} />
-        </TouchableOpacity>
-      </View>
+    <SafeAreaView style={styles.safe} edges={['bottom']}>
+      {/* GRADIENT HEADER */}
+      <LinearGradient
+        colors={[TEAL_DEEP, TEAL_MID, '#047857']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.headerGradient}
+      >
+        {/* Decorative circles */}
+        <View style={styles.decoCircle1} pointerEvents="none" />
+        <View style={styles.decoCircle2} pointerEvents="none" />
+        <View style={styles.decoCircle3} pointerEvents="none" />
+
+        <View style={styles.headerRow}>
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            style={styles.backBtn}
+          >
+            <Ionicons name="chevron-back" size={wp('5%')} color="#FFF" />
+          </TouchableOpacity>
+          <Text style={styles.topTitle}>Bike Rental</Text>
+          <TouchableOpacity
+            onPress={() => navigation.navigate('MyBikeBookings')}
+            style={styles.bookingsBtn}
+          >
+            <Ionicons name="list" size={wp('5%')} color="#FFF" />
+          </TouchableOpacity>
+        </View>
+      </LinearGradient>
 
       <ScrollView
-        style={styles.container}
         showsVerticalScrollIndicator={false}
+        nestedScrollEnabled
         keyboardShouldPersistTaps="handled"
-        onScrollBeginDrag={() => setShowSuggestions(false)}
+        onScrollBeginDrag={() => {
+          if (!dropdownTouching.current) setShowSuggestions(false);
+        }}
       >
         {/* HERO SECTION */}
-        <Animated.View
-          style={[
-            styles.heroSection,
-            {
-              opacity: heroAnim,
-              transform: [
-                {
-                  translateY: heroAnim.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [20, 0],
-                  }),
-                },
-              ],
-            },
-          ]}
-        >
-          <View style={styles.heroGradient}>
+        <View style={styles.heroSection}>
+          <LinearGradient
+            colors={[TEAL_DEEP, '#0F172A']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.heroGradient}
+          >
             <View style={styles.heroGlow} />
             <View style={styles.heroContent}>
-              <Text style={styles.heroPill}>Self-drive • Delivery • Hourly</Text>
+              <View style={styles.heroPillWrap}>
+                <LinearGradient
+                  colors={['rgba(16,185,129,0.25)', 'rgba(16,185,129,0.1)']}
+                  style={styles.heroPill}
+                >
+                  <Ionicons name="bicycle" size={wp('3%')} color={TEAL} />
+                  <Text style={styles.heroPillText}>Self-drive  ·  Delivery  ·  Hourly</Text>
+                </LinearGradient>
+              </View>
               <Text style={styles.heroHeading}>Find Your Perfect Ride</Text>
               <Text style={styles.heroSub}>
                 Browse bikes from verified vendors, compare prices & book instantly
@@ -286,25 +318,37 @@ export default function BikeRentalScreen() {
               source={require('../../../assets/BikeHome.png')}
               style={styles.heroImg}
             />
-          </View>
-        </Animated.View>
+          </LinearGradient>
+        </View>
 
         {/* SEARCH CARD */}
-        <View style={styles.searchCard}>
-          <Text style={styles.searchTitle}>Search Bikes</Text>
+        <View style={styles.formCard}>
+          <View style={styles.formHeaderRow}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.formTitle}>Search Bikes</Text>
+              <Text style={styles.formDesc}>Find & compare bikes near you</Text>
+            </View>
+            <View style={styles.securePill}>
+              <Ionicons name="bicycle" size={wp('3.5%')} color="#fff" />
+              <Text style={styles.securePillText}>Bike</Text>
+            </View>
+          </View>
 
           {/* LOCATION INPUT */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Pickup Location</Text>
-            <View style={styles.inputRow}>
-              <Ionicons name="location-outline" size={20} color={GREEN} />
+          <View style={styles.locationBlock}>
+            <Text style={styles.smallLabel}>Pickup Location</Text>
+            <View style={styles.locationRow}>
+              <View style={styles.locationIconCircle}>
+                <Ionicons name="location" size={wp('4.2%')} color={TEAL} />
+              </View>
               <TextInput
                 value={query.length ? query : pickupLocation}
                 onChangeText={handleInputChange}
                 placeholder="Enter city or area"
-                placeholderTextColor="#94A3B8"
-                style={styles.textInput}
+                placeholderTextColor={TEXT_MUTED}
+                style={styles.locationInput}
                 onFocus={() => setShowSuggestions(true)}
+                onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
               />
               {pickupLocation ? (
                 <TouchableOpacity
@@ -316,7 +360,7 @@ export default function BikeRentalScreen() {
                     setShowSuggestions(false);
                   }}
                 >
-                  <Ionicons name="close-circle" size={22} color="#CBD5E1" />
+                  <Ionicons name="close-circle" size={wp('5%')} color={TEXT_MUTED} />
                 </TouchableOpacity>
               ) : null}
             </View>
@@ -325,9 +369,11 @@ export default function BikeRentalScreen() {
             {showSuggestions && (
               <View style={styles.suggestionBox}>
                 <ScrollView
-                  style={{ maxHeight: 200 }}
-                  nestedScrollEnabled={true}
-                  keyboardShouldPersistTaps="handled"
+                  style={{ maxHeight: hp('26%') }}
+                  nestedScrollEnabled
+                  keyboardShouldPersistTaps="always"
+                  onTouchStart={() => (dropdownTouching.current = true)}
+                  onTouchEnd={() => (dropdownTouching.current = false)}
                 >
                   {filteredLocations.length ? (
                     filteredLocations.map((loc) => (
@@ -336,7 +382,7 @@ export default function BikeRentalScreen() {
                         style={styles.suggestionItem}
                         onPress={() => handleLocationSelect(loc)}
                       >
-                        <Ionicons name="location" size={16} color={GREEN} />
+                        <Ionicons name="navigate-outline" size={wp('3.8%')} color={TEAL} style={{ marginRight: wp('2%') }} />
                         <Text style={styles.suggestionText}>{loc.name}</Text>
                       </TouchableOpacity>
                     ))
@@ -364,7 +410,11 @@ export default function BikeRentalScreen() {
                     pickupLocation === city.name && styles.cityChipActive,
                   ]}
                   onPress={() => handleCityQuickSelect(city)}
+                  activeOpacity={0.7}
                 >
+                  <View style={styles.cityIconCircle}>
+                    <Ionicons name="location" size={wp('2.8%')} color={TEAL} />
+                  </View>
                   <Text
                     style={[
                       styles.cityChipText,
@@ -379,7 +429,7 @@ export default function BikeRentalScreen() {
           </View>
 
           {/* DATE TIME ROW */}
-          <View style={styles.dateTimeRow}>
+          <View style={styles.dateRow}>
             {/* Pickup Date */}
             <TouchableOpacity
               style={styles.dateCard}
@@ -390,25 +440,23 @@ export default function BikeRentalScreen() {
                   setShowPickupDatePicker(true);
                 }
               }}
+              activeOpacity={0.7}
             >
-              <View style={styles.dateIconWrap}>
-                <Ionicons name="calendar-outline" size={18} color={GREEN} />
-              </View>
-              <View style={styles.dateInfo}>
-                <Text style={styles.dateLabel}>PICKUP</Text>
-                <Text style={styles.dateValue}>{formatDate(pickupDate)}</Text>
-                <Text style={styles.timeValue}>{formatTime(pickupDate)}</Text>
+              <Text style={styles.dateLabel}>PICKUP</Text>
+              <View style={styles.dateContent}>
+                <View style={styles.dateIconWrap}>
+                  <Ionicons name="calendar-outline" size={wp('4%')} color={TEAL} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.dateMainText}>{formatDate(pickupDate)}</Text>
+                  <Text style={styles.dateSubText}>{formatTime(pickupDate)}</Text>
+                </View>
               </View>
             </TouchableOpacity>
 
-            {/* Arrow */}
-            <View style={styles.arrowWrap}>
-              <Ionicons name="arrow-forward" size={20} color="#94A3B8" />
-            </View>
-
             {/* Drop Date */}
             <TouchableOpacity
-              style={styles.dateCard}
+              style={[styles.dateCard, { marginRight: 0, marginLeft: wp('2%') }]}
               onPress={() => {
                 if (Platform.OS === 'android') {
                   openAndroidPicker('drop');
@@ -416,14 +464,17 @@ export default function BikeRentalScreen() {
                   setShowDropDatePicker(true);
                 }
               }}
+              activeOpacity={0.7}
             >
-              <View style={styles.dateIconWrap}>
-                <Ionicons name="calendar-outline" size={18} color={GREEN} />
-              </View>
-              <View style={styles.dateInfo}>
-                <Text style={styles.dateLabel}>DROP</Text>
-                <Text style={styles.dateValue}>{formatDate(dropDate)}</Text>
-                <Text style={styles.timeValue}>{formatTime(dropDate)}</Text>
+              <Text style={styles.dateLabel}>DROP</Text>
+              <View style={styles.dateContent}>
+                <View style={styles.dateIconWrap}>
+                  <Ionicons name="calendar-outline" size={wp('4%')} color={TEAL} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.dateMainText}>{formatDate(dropDate)}</Text>
+                  <Text style={styles.dateSubText}>{formatTime(dropDate)}</Text>
+                </View>
               </View>
             </TouchableOpacity>
           </View>
@@ -439,10 +490,18 @@ export default function BikeRentalScreen() {
                 minimumDate={new Date()}
               />
               <TouchableOpacity
-                style={styles.iosDoneBtn}
+                style={styles.iosBtnWrap}
                 onPress={() => setShowPickupDatePicker(false)}
+                activeOpacity={0.85}
               >
-                <Text style={styles.iosDoneText}>Done</Text>
+                <LinearGradient
+                  colors={[TEAL_MID, TEAL]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.iosBtnGradient}
+                >
+                  <Text style={styles.iosBtnText}>Done</Text>
+                </LinearGradient>
               </TouchableOpacity>
             </View>
           )}
@@ -457,45 +516,89 @@ export default function BikeRentalScreen() {
                 minimumDate={pickupDate}
               />
               <TouchableOpacity
-                style={styles.iosDoneBtn}
+                style={styles.iosBtnWrap}
                 onPress={() => setShowDropDatePicker(false)}
+                activeOpacity={0.85}
               >
-                <Text style={styles.iosDoneText}>Done</Text>
+                <LinearGradient
+                  colors={[TEAL_MID, TEAL]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.iosBtnGradient}
+                >
+                  <Text style={styles.iosBtnText}>Done</Text>
+                </LinearGradient>
               </TouchableOpacity>
             </View>
           )}
 
           {/* EXPLORE BUTTON */}
-          <TouchableOpacity style={styles.exploreBtn} onPress={handleExplore}>
-            <Ionicons name="search" size={20} color="#fff" />
-            <Text style={styles.exploreBtnText}>Explore Available Bikes</Text>
+          <TouchableOpacity style={styles.exploreBtnWrap} onPress={handleExplore} activeOpacity={0.85}>
+            <LinearGradient
+              colors={[TEAL_MID, TEAL]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.exploreBtnGradient}
+            >
+              <Ionicons name="search" size={wp('5%')} color="#fff" />
+              <Text style={styles.exploreBtnText}>Explore Available Bikes</Text>
+            </LinearGradient>
           </TouchableOpacity>
         </View>
 
+        {/* MY BOOKINGS QUICK ACCESS */}
+        <TouchableOpacity
+          style={styles.myBookingsCard}
+          onPress={() => navigation.navigate('MyBikeBookings')}
+          activeOpacity={0.8}
+        >
+          <View style={styles.myBookingsLeft}>
+            <View style={styles.myBookingsIcon}>
+              <Ionicons name="bicycle" size={wp('5.5%')} color={TEAL} />
+            </View>
+            <View>
+              <Text style={styles.myBookingsTitle}>My Bike Bookings</Text>
+              <Text style={styles.myBookingsDesc}>View your quote requests & bookings</Text>
+            </View>
+          </View>
+          <View style={styles.myBookingsArrow}>
+            <Ionicons name="chevron-forward" size={wp('4%')} color={TEAL} />
+          </View>
+        </TouchableOpacity>
+
         {/* HOW IT WORKS */}
-        <View style={styles.howItWorks}>
+        <View style={styles.sectionCard}>
           <Text style={styles.sectionTitle}>How It Works</Text>
           <View style={styles.stepsRow}>
             <View style={styles.stepItem}>
-              <View style={styles.stepCircle}>
-                <Ionicons name="search" size={22} color="#fff" />
-              </View>
+              <LinearGradient
+                colors={[TEAL_MID, TEAL]}
+                style={styles.stepCircle}
+              >
+                <Ionicons name="search" size={wp('5%')} color="#fff" />
+              </LinearGradient>
               <Text style={styles.stepTitle}>Search</Text>
               <Text style={styles.stepDesc}>Find bikes in your city</Text>
             </View>
             <View style={styles.stepLine} />
             <View style={styles.stepItem}>
-              <View style={styles.stepCircle}>
-                <Ionicons name="bicycle" size={22} color="#fff" />
-              </View>
+              <LinearGradient
+                colors={[TEAL_MID, TEAL]}
+                style={styles.stepCircle}
+              >
+                <Ionicons name="bicycle" size={wp('5%')} color="#fff" />
+              </LinearGradient>
               <Text style={styles.stepTitle}>Select</Text>
               <Text style={styles.stepDesc}>Choose your bike</Text>
             </View>
             <View style={styles.stepLine} />
             <View style={styles.stepItem}>
-              <View style={styles.stepCircle}>
-                <Ionicons name="checkmark-circle" size={22} color="#fff" />
-              </View>
+              <LinearGradient
+                colors={[TEAL_MID, TEAL]}
+                style={styles.stepCircle}
+              >
+                <Ionicons name="checkmark-circle" size={wp('5%')} color="#fff" />
+              </LinearGradient>
               <Text style={styles.stepTitle}>Book</Text>
               <Text style={styles.stepDesc}>Request & ride</Text>
             </View>
@@ -503,33 +606,33 @@ export default function BikeRentalScreen() {
         </View>
 
         {/* WHY TRANSRENTALS */}
-        <View style={styles.whySection}>
+        <View style={styles.sectionCard}>
           <Text style={styles.sectionTitle}>Why TransRentals?</Text>
           <View style={styles.featuresGrid}>
             <View style={styles.featureCard}>
               <View style={styles.featureIcon}>
-                <Ionicons name="shield-checkmark" size={24} color={GREEN} />
+                <Ionicons name="shield-checkmark" size={wp('5.5%')} color={TEAL} />
               </View>
               <Text style={styles.featureTitle}>Verified Vendors</Text>
               <Text style={styles.featureDesc}>All partners are verified</Text>
             </View>
             <View style={styles.featureCard}>
               <View style={styles.featureIcon}>
-                <Ionicons name="pricetags" size={24} color={GREEN} />
+                <Ionicons name="pricetags" size={wp('5.5%')} color={TEAL} />
               </View>
               <Text style={styles.featureTitle}>Best Prices</Text>
               <Text style={styles.featureDesc}>Compare & choose</Text>
             </View>
             <View style={styles.featureCard}>
               <View style={styles.featureIcon}>
-                <Ionicons name="time" size={24} color={GREEN} />
+                <Ionicons name="time" size={wp('5.5%')} color={TEAL} />
               </View>
               <Text style={styles.featureTitle}>Flexible Duration</Text>
               <Text style={styles.featureDesc}>Hourly to monthly</Text>
             </View>
             <View style={styles.featureCard}>
               <View style={styles.featureIcon}>
-                <Ionicons name="location" size={24} color={GREEN} />
+                <Ionicons name="location" size={wp('5.5%')} color={TEAL} />
               </View>
               <Text style={styles.featureTitle}>Doorstep Delivery</Text>
               <Text style={styles.featureDesc}>Get bike at your location</Text>
@@ -539,345 +642,530 @@ export default function BikeRentalScreen() {
 
         {/* FAQ */}
         <View style={styles.faqSection}>
-          <Text style={styles.faqSectionTitle}>Frequently Asked Questions</Text>
+          <View style={styles.faqHeaderRow}>
+            <Ionicons name="help-circle-outline" size={wp('5.5%')} color={TEAL} />
+            <Text style={styles.faqSectionTitle}>Frequently Asked Questions</Text>
+          </View>
           {faqs.map((item, idx) => {
             const open = expandedIndex === idx;
+            const isLast = idx === faqs.length - 1;
             return (
-              <TouchableOpacity
-                key={idx}
-                style={styles.faqItem}
-                onPress={() => toggleFAQ(idx)}
-                activeOpacity={0.8}
-              >
-                <View style={styles.faqHeader}>
+              <View key={idx} style={[styles.faqItem, isLast && { borderBottomWidth: 0 }]}>
+                <TouchableOpacity
+                  style={styles.faqHead}
+                  onPress={() => toggleFAQ(idx)}
+                  activeOpacity={0.75}
+                >
                   <Text style={styles.faqQuestion}>{item.question}</Text>
-                  <Ionicons
-                    name={open ? 'chevron-up' : 'chevron-down'}
-                    size={20}
-                    color="#E2E8F0"
-                  />
-                </View>
+                  <View style={styles.faqChevronWrap}>
+                    <Ionicons
+                      name={open ? 'chevron-up' : 'chevron-down'}
+                      size={wp('3.5%')}
+                      color={TEAL}
+                    />
+                  </View>
+                </TouchableOpacity>
                 {open && <Text style={styles.faqAnswer}>{item.answer}</Text>}
-              </TouchableOpacity>
+              </View>
             );
           })}
         </View>
 
-        <View style={{ height: 40 }} />
+        {/* BOTTOM CTA */}
+        <TouchableOpacity
+          onPress={() => navigation.navigate('MyBikeBookings')}
+          activeOpacity={0.85}
+          style={styles.bottomCTAWrap}
+        >
+          <LinearGradient
+            colors={[TEAL_MID, TEAL_DEEP]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.bottomCTA}
+          >
+            <View style={styles.ctaDecoCircle} />
+            <View style={styles.ctaContent}>
+              <View style={styles.ctaIconWrap}>
+                <Ionicons name="bicycle" size={wp('5.5%')} color={TEAL_DEEP} />
+              </View>
+              <View style={styles.ctaTextWrap}>
+                <Text style={styles.ctaTitle}>View My Bookings</Text>
+                <Text style={styles.ctaSubtitle}>Track your bike rental requests</Text>
+              </View>
+            </View>
+            <View style={styles.ctaArrowWrap}>
+              <Ionicons name="chevron-forward" size={wp('5%')} color="#FFF" />
+            </View>
+          </LinearGradient>
+        </TouchableOpacity>
+
+        <View style={{ height: hp('5%') }} />
       </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: BG },
-  container: { flex: 1 },
-
-  // Top Bar
-  topBar: {
-    height: 56,
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    justifyContent: 'space-between',
+  safe: {
+    flex: 1,
     backgroundColor: BG,
   },
+
+  /* -- HEADER -- */
+  headerGradient: {
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + 8 : 8,
+    paddingBottom: hp('2.5%'),
+    paddingHorizontal: wp('4%'),
+    borderBottomLeftRadius: wp('6%'),
+    borderBottomRightRadius: wp('6%'),
+    overflow: 'hidden',
+  },
+  decoCircle1: {
+    position: 'absolute',
+    top: -hp('4%'),
+    right: -wp('8%'),
+    width: wp('40%'),
+    height: wp('40%'),
+    borderRadius: wp('20%'),
+    backgroundColor: 'rgba(255,255,255,0.06)',
+  },
+  decoCircle2: {
+    position: 'absolute',
+    bottom: -hp('3%'),
+    left: -wp('10%'),
+    width: wp('30%'),
+    height: wp('30%'),
+    borderRadius: wp('15%'),
+    backgroundColor: 'rgba(255,255,255,0.04)',
+  },
+  decoCircle3: {
+    position: 'absolute',
+    top: hp('2%'),
+    left: wp('25%'),
+    width: wp('18%'),
+    height: wp('18%'),
+    borderRadius: wp('9%'),
+    backgroundColor: 'rgba(255,255,255,0.03)',
+  },
+  headerRow: {
+    zIndex: 2,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
   backBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#FFFFFF',
+    width: wp('10%'),
+    height: wp('10%'),
+    borderRadius: wp('5%'),
+    backgroundColor: 'rgba(255,255,255,0.15)',
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
   },
-  topTitle: { fontSize: 18, fontWeight: '700', color: '#0F172A' },
-  myBookingsBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(9,179,104,0.1)',
+  topTitle: {
+    fontSize: wp('4.6%'),
+    fontWeight: '700',
+    color: '#FFFFFF',
+    letterSpacing: 0.3,
+  },
+  bookingsBtn: {
+    width: wp('10%'),
+    height: wp('10%'),
+    borderRadius: wp('5%'),
+    backgroundColor: 'rgba(255,255,255,0.15)',
     justifyContent: 'center',
     alignItems: 'center',
   },
 
-  // Hero Section
+  /* -- HERO SECTION -- */
   heroSection: {
-    marginHorizontal: 16,
-    marginTop: 8,
-    marginBottom: 16,
+    marginHorizontal: wp('3.5%'),
+    marginTop: hp('1.5%'),
+    marginBottom: hp('1.5%'),
+    borderRadius: wp('5%'),
+    overflow: 'hidden',
+    ...SHADOW_MD,
   },
   heroGradient: {
-    backgroundColor: '#0F172A',
-    borderRadius: 24,
+    borderRadius: wp('5%'),
     overflow: 'hidden',
-    minHeight: 180,
+    minHeight: hp('22%'),
     position: 'relative',
   },
   heroGlow: {
     position: 'absolute',
-    top: -40,
-    right: -50,
-    width: 180,
-    height: 180,
-    backgroundColor: 'rgba(9,179,104,0.3)',
-    borderRadius: 999,
+    top: -hp('3%'),
+    right: -wp('8%'),
+    width: wp('40%'),
+    height: wp('40%'),
+    backgroundColor: 'rgba(16,185,129,0.2)',
+    borderRadius: wp('20%'),
   },
   heroContent: {
     position: 'absolute',
-    left: 20,
-    top: 24,
-    width: width * 0.55,
+    left: wp('5%'),
+    top: hp('2.5%'),
+    width: wp('55%'),
+  },
+  heroPillWrap: {
+    alignSelf: 'flex-start',
+    marginBottom: hp('1%'),
   },
   heroPill: {
-    backgroundColor: 'rgba(255,255,255,0.15)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: wp('3%'),
+    paddingVertical: hp('0.5%'),
+    borderRadius: wp('10%'),
+    gap: wp('1.5%'),
+  },
+  heroPillText: {
     color: '#fff',
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    borderRadius: 20,
-    fontSize: 11,
+    fontSize: wp('2.8%'),
     fontWeight: '600',
-    alignSelf: 'flex-start',
-    marginBottom: 10,
   },
   heroHeading: {
-    fontSize: 24,
+    fontSize: wp('5.5%'),
     fontWeight: '800',
     color: '#fff',
-    lineHeight: 30,
+    lineHeight: wp('7%'),
   },
   heroSub: {
-    fontSize: 13,
+    fontSize: wp('3%'),
     color: 'rgba(255,255,255,0.7)',
-    marginTop: 8,
-    lineHeight: 18,
+    marginTop: hp('0.8%'),
+    lineHeight: wp('4.5%'),
   },
   heroImg: {
     position: 'absolute',
-    right: -15,
-    bottom: -10,
-    width: 170,
-    height: 140,
+    right: -wp('3%'),
+    bottom: -hp('1%'),
+    width: wp('42%'),
+    height: hp('17%'),
     resizeMode: 'contain',
   },
 
-  // Search Card
-  searchCard: {
-    backgroundColor: '#FFFFFF',
-    marginHorizontal: 16,
-    borderRadius: 24,
-    padding: 20,
-    shadowColor: '#000',
-    shadowOpacity: 0.06,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 4,
+  /* -- FORM CARD -- */
+  formCard: {
+    backgroundColor: CARD,
+    marginHorizontal: wp('3.5%'),
+    borderRadius: wp('5%'),
+    paddingVertical: hp('1.5%'),
+    paddingHorizontal: wp('4%'),
+    ...SHADOW_MD,
   },
-  searchTitle: {
-    fontSize: 20,
+  formHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: hp('1.5%'),
+  },
+  formTitle: {
+    fontSize: wp('4.5%'),
     fontWeight: '700',
-    color: '#0F172A',
-    marginBottom: 16,
+    color: TEXT_PRIMARY,
   },
-  inputGroup: {
-    marginBottom: 16,
-    position: 'relative',
-    zIndex: 100,
+  formDesc: {
+    fontSize: wp('3%'),
+    color: TEXT_MUTED,
+    marginTop: hp('0.3%'),
   },
-  inputLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#64748B',
-    marginBottom: 8,
-  },
-  inputRow: {
+  securePill: {
+    backgroundColor: TEAL,
+    borderRadius: wp('10%'),
+    paddingHorizontal: wp('2.8%'),
+    paddingVertical: hp('0.5%'),
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F8FAFC',
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    paddingHorizontal: 14,
-    height: 54,
-    gap: 10,
+    gap: wp('1%'),
   },
-  textInput: {
+  securePillText: {
+    color: '#fff',
+    fontSize: wp('3%'),
+    fontWeight: '600',
+  },
+
+  /* -- LOCATION -- */
+  locationBlock: {
+    backgroundColor: '#F8FAFB',
+    borderRadius: wp('4%'),
+    borderWidth: 1,
+    borderColor: 'rgba(16,185,129,0.08)',
+    padding: wp('3%'),
+    marginBottom: hp('1.5%'),
+    zIndex: 100,
+  },
+  smallLabel: {
+    fontSize: wp('2.9%'),
+    fontWeight: '600',
+    color: TEAL_MID,
+    marginBottom: hp('0.5%'),
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  locationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: CARD,
+    borderRadius: wp('3%'),
+    borderWidth: 1,
+    borderColor: 'rgba(16,185,129,0.15)',
+    paddingHorizontal: wp('3%'),
+    minHeight: hp('6.5%'),
+    gap: wp('2%'),
+    ...SHADOW_SM,
+  },
+  locationIconCircle: {
+    width: wp('8.5%'),
+    height: wp('8.5%'),
+    borderRadius: wp('4.25%'),
+    backgroundColor: TEAL_LIGHT,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  locationInput: {
     flex: 1,
-    fontSize: 15,
-    color: '#0F172A',
+    fontSize: wp('3.8%'),
+    color: TEXT_PRIMARY,
+    paddingVertical: hp('0.8%'),
   },
   suggestionBox: {
     position: 'absolute',
-    top: 85,
+    top: hp('11%'),
     left: 0,
     right: 0,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 14,
+    backgroundColor: CARD,
+    borderRadius: wp('3.5%'),
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: 'rgba(16,185,129,0.12)',
     zIndex: 999,
-    elevation: 10,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
+    ...SHADOW_MD,
   },
   suggestionItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
+    paddingHorizontal: wp('3%'),
+    paddingVertical: hp('1.1%'),
+    borderBottomWidth: 0.5,
+    borderColor: '#F0F4F3',
   },
-  suggestionText: { color: '#0F172A', fontSize: 14 },
-  noResult: { padding: 16, textAlign: 'center', color: '#94A3B8' },
+  suggestionText: {
+    fontSize: wp('3.5%'),
+    color: TEXT_PRIMARY,
+  },
+  noResult: {
+    padding: wp('3%'),
+    textAlign: 'center',
+    color: TEXT_MUTED,
+    fontSize: wp('3.2%'),
+  },
 
-  // Popular Cities
+  /* -- POPULAR CITIES -- */
   popularCitiesSection: {
-    marginBottom: 16,
+    marginBottom: hp('1.5%'),
   },
   popularLabel: {
-    fontSize: 13,
+    fontSize: wp('2.9%'),
     fontWeight: '600',
-    color: '#64748B',
-    marginBottom: 10,
+    color: TEAL_MID,
+    marginBottom: hp('0.8%'),
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   citiesRow: {
     flexDirection: 'row',
-    gap: 8,
+    gap: wp('2%'),
   },
   cityChip: {
-    backgroundColor: '#F1F5F9',
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: TEAL_LIGHT,
+    borderRadius: wp('10%'),
+    paddingHorizontal: wp('3%'),
+    paddingVertical: hp('0.7%'),
+    gap: wp('1.5%'),
     borderWidth: 1,
     borderColor: 'transparent',
   },
   cityChipActive: {
-    backgroundColor: 'rgba(9,179,104,0.1)',
-    borderColor: GREEN,
+    backgroundColor: 'rgba(16,185,129,0.15)',
+    borderColor: TEAL,
+  },
+  cityIconCircle: {
+    width: wp('5%'),
+    height: wp('5%'),
+    borderRadius: wp('2.5%'),
+    backgroundColor: 'rgba(16,185,129,0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   cityChipText: {
-    fontSize: 13,
-    color: '#475569',
-    fontWeight: '500',
-  },
-  cityChipTextActive: {
-    color: GREEN,
+    fontSize: wp('3%'),
+    color: TEAL_DEEP,
     fontWeight: '600',
   },
+  cityChipTextActive: {
+    color: TEAL,
+    fontWeight: '700',
+  },
 
-  // Date Time
-  dateTimeRow: {
+  /* -- DATE ROW -- */
+  dateRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: hp('1.5%'),
   },
   dateCard: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F8FAFC',
-    borderRadius: 14,
-    padding: 12,
+    backgroundColor: CARD,
+    borderRadius: wp('3.5%'),
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    gap: 10,
-  },
-  dateIconWrap: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: 'rgba(9,179,104,0.1)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  dateInfo: {
-    flex: 1,
+    borderColor: 'rgba(16,185,129,0.12)',
+    paddingHorizontal: wp('3%'),
+    paddingVertical: hp('1%'),
+    marginRight: wp('2%'),
+    ...SHADOW_SM,
   },
   dateLabel: {
-    fontSize: 10,
+    fontSize: wp('2.9%'),
     fontWeight: '700',
-    color: '#94A3B8',
+    color: TEAL_MID,
+    textTransform: 'uppercase',
     letterSpacing: 0.5,
+    marginBottom: hp('0.7%'),
   },
-  dateValue: {
-    fontSize: 14,
+  dateContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: wp('2%'),
+  },
+  dateIconWrap: {
+    width: wp('8%'),
+    height: wp('8%'),
+    borderRadius: wp('2.5%'),
+    backgroundColor: TEAL_LIGHT,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  dateMainText: {
+    fontSize: wp('3.5%'),
     fontWeight: '700',
-    color: '#0F172A',
-    marginTop: 2,
+    color: TEXT_PRIMARY,
   },
-  timeValue: {
-    fontSize: 12,
-    color: '#64748B',
-    marginTop: 1,
-  },
-  arrowWrap: {
-    paddingHorizontal: 8,
+  dateSubText: {
+    fontSize: wp('2.8%'),
+    color: TEXT_MUTED,
+    marginTop: hp('0.2%'),
   },
 
-  // iOS Picker
+  /* -- iOS PICKER -- */
   iosPickerContainer: {
-    backgroundColor: '#fff',
-    borderRadius: 14,
-    marginBottom: 16,
-    padding: 10,
+    backgroundColor: CARD,
+    borderRadius: wp('3%'),
+    marginBottom: hp('1.2%'),
+    padding: wp('2.5%'),
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: 'rgba(16,185,129,0.08)',
   },
-  iosDoneBtn: {
-    alignSelf: 'flex-end',
-    backgroundColor: GREEN,
-    paddingHorizontal: 20,
-    paddingVertical: 8,
-    borderRadius: 8,
-    marginTop: 8,
+  iosBtnWrap: {
+    borderRadius: wp('2.5%'),
+    overflow: 'hidden',
+    marginTop: hp('0.8%'),
   },
-  iosDoneText: {
+  iosBtnGradient: {
+    borderRadius: wp('2.5%'),
+    paddingVertical: hp('1.2%'),
+    alignItems: 'center',
+  },
+  iosBtnText: {
     color: '#fff',
-    fontWeight: '600',
+    fontWeight: '700',
+    fontSize: wp('3.5%'),
   },
 
-  // Explore Button
-  exploreBtn: {
-    backgroundColor: GREEN,
+  /* -- EXPLORE BUTTON -- */
+  exploreBtnWrap: {
+    marginTop: hp('0.5%'),
+    borderRadius: wp('10%'),
+    overflow: 'hidden',
+    ...SHADOW_MD,
+  },
+  exploreBtnGradient: {
+    borderRadius: wp('10%'),
+    paddingVertical: hp('1.8%'),
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 10,
-    paddingVertical: 16,
-    borderRadius: 16,
-    shadowColor: GREEN,
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 4,
+    gap: wp('2%'),
   },
   exploreBtnText: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: wp('4%'),
     fontWeight: '700',
+    letterSpacing: 0.3,
   },
 
-  // How It Works
-  howItWorks: {
-    marginHorizontal: 16,
-    marginTop: 24,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    padding: 20,
+  /* -- MY BOOKINGS CARD -- */
+  myBookingsCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: CARD,
+    marginHorizontal: wp('3.5%'),
+    marginTop: hp('2%'),
+    borderRadius: wp('4%'),
+    padding: wp('4%'),
+    ...SHADOW_SM,
+  },
+  myBookingsLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  myBookingsIcon: {
+    width: wp('12%'),
+    height: wp('12%'),
+    borderRadius: wp('3.5%'),
+    backgroundColor: TEAL_LIGHT,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: wp('3%'),
+  },
+  myBookingsTitle: {
+    fontSize: wp('3.8%'),
+    fontWeight: '600',
+    color: TEXT_PRIMARY,
+  },
+  myBookingsDesc: {
+    fontSize: wp('3%'),
+    color: TEXT_MUTED,
+    marginTop: hp('0.3%'),
+  },
+  myBookingsArrow: {
+    width: wp('8%'),
+    height: wp('8%'),
+    borderRadius: wp('4%'),
+    backgroundColor: TEAL_LIGHT,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  /* -- SECTION CARD -- */
+  sectionCard: {
+    backgroundColor: CARD,
+    marginHorizontal: wp('3.5%'),
+    marginTop: hp('2%'),
+    borderRadius: wp('4%'),
+    padding: wp('4%'),
+    ...SHADOW_SM,
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: wp('4%'),
     fontWeight: '700',
-    color: '#0F172A',
-    marginBottom: 16,
+    color: TEXT_PRIMARY,
+    marginBottom: hp('1.2%'),
+    letterSpacing: 0.2,
   },
+
+  /* -- HOW IT WORKS -- */
   stepsRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -888,105 +1176,179 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   stepCircle: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: GREEN,
+    width: wp('12%'),
+    height: wp('12%'),
+    borderRadius: wp('6%'),
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: hp('1%'),
   },
   stepTitle: {
-    fontSize: 14,
+    fontSize: wp('3.3%'),
     fontWeight: '700',
-    color: '#0F172A',
-    marginBottom: 4,
+    color: TEXT_PRIMARY,
+    marginBottom: hp('0.3%'),
   },
   stepDesc: {
-    fontSize: 11,
-    color: '#94A3B8',
+    fontSize: wp('2.8%'),
+    color: TEXT_MUTED,
     textAlign: 'center',
   },
   stepLine: {
-    width: 30,
+    width: wp('6%'),
     height: 2,
-    backgroundColor: '#E2E8F0',
-    marginTop: 24,
+    backgroundColor: TEAL_LIGHT,
+    marginTop: wp('6%'),
   },
 
-  // Why Section
-  whySection: {
-    marginHorizontal: 16,
-    marginTop: 24,
-  },
+  /* -- WHY SECTION -- */
   featuresGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 12,
+    gap: wp('2.5%'),
   },
   featureCard: {
-    width: (width - 56) / 2,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 16,
+    width: wp('40%'),
+    backgroundColor: '#F8FAFB',
+    borderRadius: wp('4%'),
+    padding: wp('3.5%'),
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(16,185,129,0.08)',
   },
   featureIcon: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: 'rgba(9,179,104,0.1)',
+    width: wp('12%'),
+    height: wp('12%'),
+    borderRadius: wp('6%'),
+    backgroundColor: TEAL_LIGHT,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: hp('0.8%'),
   },
   featureTitle: {
-    fontSize: 14,
+    fontSize: wp('3.3%'),
     fontWeight: '700',
-    color: '#0F172A',
-    marginBottom: 4,
+    color: TEXT_PRIMARY,
+    marginBottom: hp('0.3%'),
+    textAlign: 'center',
   },
   featureDesc: {
-    fontSize: 12,
-    color: '#94A3B8',
+    fontSize: wp('2.8%'),
+    color: TEXT_MUTED,
     textAlign: 'center',
   },
 
-  // FAQ
+  /* -- FAQ SECTION -- */
   faqSection: {
-    marginHorizontal: 16,
-    marginTop: 24,
-    backgroundColor: '#0F172A',
-    borderRadius: 20,
-    padding: 20,
+    backgroundColor: TEAL_DEEP,
+    marginHorizontal: wp('3.5%'),
+    marginTop: hp('2%'),
+    borderRadius: wp('4.5%'),
+    padding: wp('4.5%'),
+    ...SHADOW_MD,
+  },
+  faqHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: wp('2%'),
+    marginBottom: hp('1.5%'),
   },
   faqSectionTitle: {
-    fontSize: 18,
+    fontSize: wp('4.2%'),
     fontWeight: '700',
     color: '#FFFFFF',
-    marginBottom: 16,
+    letterSpacing: 0.3,
   },
   faqItem: {
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.1)',
-    paddingVertical: 14,
+    borderBottomColor: 'rgba(255,255,255,0.08)',
+    paddingVertical: hp('1.5%'),
   },
-  faqHeader: {
+  faqHead: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
   faqQuestion: {
     flex: 1,
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: wp('3.5%'),
+    fontWeight: '500',
     color: '#FFFFFF',
-    marginRight: 10,
+    marginRight: wp('2.5%'),
+  },
+  faqChevronWrap: {
+    width: wp('7%'),
+    height: wp('7%'),
+    borderRadius: wp('3.5%'),
+    backgroundColor: 'rgba(16,185,129,0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   faqAnswer: {
-    marginTop: 10,
-    fontSize: 13,
-    color: '#CBD5E1',
-    lineHeight: 20,
+    marginTop: hp('1%'),
+    fontSize: wp('3.2%'),
+    color: 'rgba(255,255,255,0.6)',
+    lineHeight: wp('5%'),
+  },
+
+  /* -- BOTTOM CTA -- */
+  bottomCTAWrap: {
+    marginHorizontal: wp('3.5%'),
+    marginTop: hp('2%'),
+    borderRadius: wp('4.5%'),
+    overflow: 'hidden',
+    ...SHADOW_MD,
+  },
+  bottomCTA: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: wp('4.5%'),
+    overflow: 'hidden',
+  },
+  ctaDecoCircle: {
+    position: 'absolute',
+    top: -wp('4%'),
+    right: -wp('3%'),
+    width: wp('16%'),
+    height: wp('16%'),
+    borderRadius: wp('50%'),
+    backgroundColor: 'rgba(255,255,255,0.06)',
+  },
+  ctaContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: wp('3%'),
+    flex: 1,
+  },
+  ctaIconWrap: {
+    width: wp('12%'),
+    height: wp('12%'),
+    borderRadius: wp('3.5%'),
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  ctaTextWrap: {
+    flex: 1,
+  },
+  ctaTitle: {
+    fontSize: wp('4%'),
+    fontWeight: '700',
+    color: '#FFFFFF',
+    letterSpacing: 0.2,
+  },
+  ctaSubtitle: {
+    fontSize: wp('3%'),
+    color: 'rgba(255,255,255,0.7)',
+    marginTop: hp('0.3%'),
+  },
+  ctaArrowWrap: {
+    width: wp('9%'),
+    height: wp('9%'),
+    borderRadius: wp('4.5%'),
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });

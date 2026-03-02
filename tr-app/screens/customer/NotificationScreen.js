@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -13,22 +13,20 @@ import {
   Dimensions,
   Platform,
   Pressable,
+  StatusBar,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import notifee from '@notifee/react-native';
 import { Alert } from 'react-native';
+import LinearGradient from 'react-native-linear-gradient';
+import { widthPercentageToDP as wp, heightPercentageToDP as hp } from 'react-native-responsive-screen';
 import { notificationService } from '../services';
-
+import { TEAL_DEEP, TEAL_MID, TEAL, TEAL_LIGHT, BG, CARD, TEXT_PRIMARY, TEXT_SECONDARY, TEXT_MUTED, SHADOW_SM, SHADOW_MD } from '../../theme';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
-
-// Responsive scaling functions
-const scaleWidth = (size) => (SCREEN_WIDTH / 375) * size;
-const scaleHeight = (size) => (SCREEN_HEIGHT / 812) * size;
-const moderateScale = (size, factor = 0.5) => size + (scaleWidth(size) - size) * factor;
 
 const NotificationScreen = () => {
   const [notifications, setNotifications] = useState([]);
@@ -40,19 +38,31 @@ const NotificationScreen = () => {
   const fadeAnim = useState(new Animated.Value(0))[0];
   const slideAnim = useState(new Animated.Value(50))[0];
 
+  /* -- StatusBar management -- */
+  useFocusEffect(
+    useCallback(() => {
+      StatusBar.setBarStyle('light-content');
+      if (Platform.OS === 'android') {
+        StatusBar.setBackgroundColor(TEAL_DEEP);
+      }
+      return () => {
+        StatusBar.setBarStyle('dark-content');
+        if (Platform.OS === 'android') {
+          StatusBar.setBackgroundColor('#FFFFFF');
+        }
+      };
+    }, [])
+  );
+
   const fetchNotifications = async (isRefresh = false) => {
     if (!isRefresh) setLoading(true);
     else setRefreshing(true);
 
     try {
-      // console.log('[NotificationScreen] Fetching notifications...');
       const response = await notificationService.getNotifications();
-      // console.log('[NotificationScreen] API Response:', JSON.stringify(response, null, 2));
 
       if (response.success) {
         const notifs = response.notifications || [];
-        // console.log(`[NotificationScreen] Loaded ${notifs.length} notifications`);
-        // console.log(`[NotificationScreen] Unread count: ${notifs.filter(n => !n.is_read).length}`);
 
         setNotifications(notifs);
 
@@ -69,12 +79,9 @@ const NotificationScreen = () => {
             useNativeDriver: true,
           }),
         ]).start();
-      } else {
-        // console.log('[NotificationScreen] API returned success: false');
       }
     } catch (error) {
-      // console.log('[NotificationScreen] Failed to load notifications:', error);
-      // console.log('[NotificationScreen] Error details:', error.message);
+      // silently handle
     } finally {
       if (!isRefresh) setLoading(false);
       setRefreshing(false);
@@ -90,68 +97,97 @@ const NotificationScreen = () => {
     fetchNotifications(true);
   };
 
-  
+  /* -- Mark all as read -- */
+  const handleMarkAllRead = async () => {
+    try {
+      const unreadIds = notifications.filter(n => !n.is_read).map(n => n.id);
+      if (unreadIds.length === 0) return;
+      await Promise.all(unreadIds.map(id => notificationService.markAsRead(id)));
+      setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+    } catch (error) {
+      // silently handle
+    }
+  };
 
-  // // Simple Skeleton
-  // const SimpleSkeleton = () => (
-  //   <SafeAreaView style={styles.container}>
-  //     <View style={styles.MainHeader}>
-  //       <View style={styles.header}>
-  //         <TouchableOpacity onPress={() => navigation.goBack()}>
-  //           <Ionicons name="arrow-back" size={scaleWidth(26)} color="#000000ff" />
-  //         </TouchableOpacity>
-  //         <Text style={styles.headerText}>Notifications</Text>
-  //       </View>
-  //     </View>
+  /* -- Gradient Header Component -- */
+  const Header = () => {
+    const unreadCount = notifications.filter(n => !n.is_read).length;
+    return (
+      <View style={styles.headerWrapper}>
+        <LinearGradient
+          colors={[TEAL_DEEP, TEAL_MID, '#047857']}
+          style={styles.headerGrad}
+        >
+          {/* Decorative circles */}
+          <View style={[styles.decoCircle, { top: -hp('3%'), right: -wp('5%'), width: wp('25%'), height: wp('25%') }]} pointerEvents="none" />
+          <View style={[styles.decoCircle, { bottom: -hp('2%'), left: -wp('4%'), width: wp('15%'), height: wp('15%') }]} pointerEvents="none" />
+          <View style={[styles.decoCircle, { top: hp('1%'), left: wp('30%'), width: wp('10%'), height: wp('10%'), opacity: 0.04 }]} pointerEvents="none" />
 
-   const Header = () => (
-    <View style={styles.headerBar}>
-    <Pressable
-      onPress={() => navigation.goBack()}
-      style={styles.left}
-      hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-    >
-      <View style={styles.backButtonCircle}>
-        <Ionicons name="chevron-back" size={scaleWidth(20)} color="#111827" />
+          <View style={styles.headerRow}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+              <Ionicons name="chevron-back" size={wp('5.5%')} color="#FFF" />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>Notifications</Text>
+            {/* Mark all read button in header */}
+            {unreadCount > 0 && !loading ? (
+              <TouchableOpacity onPress={handleMarkAllRead} style={styles.headerActionBtn}>
+                <Ionicons name="checkmark-done" size={wp('4.5%')} color="#FFF" />
+              </TouchableOpacity>
+            ) : (
+              <View style={styles.headerActionPlaceholder} />
+            )}
+          </View>
+        </LinearGradient>
       </View>
-    </Pressable>
+    );
+  };
 
-    <View style={styles.center}>
-      <Text numberOfLines={1} style={styles.headerTitle}>Notifications</Text>
-    </View>
-
-    {/* Right placeholder to keep title perfectly centered */}
-    <View style={styles.right} />
-  </View>
-  );
-  // Simple Skeleton - AB SAME HEADER USE KARENGE
+  /* -- Skeleton Loading -- */
   const SimpleSkeleton = () => (
     <SafeAreaView style={styles.container}>
-      {/* YAHAN BHI SAME HEADER USE KARO */}
-      <Header />
+      <StatusBar barStyle="light-content" backgroundColor={TEAL_DEEP} />
+      <View style={styles.headerWrapper}>
+        <LinearGradient
+          colors={[TEAL_DEEP, TEAL_MID, '#047857']}
+          style={styles.headerGrad}
+        >
+          <View style={[styles.decoCircle, { top: -hp('3%'), right: -wp('5%'), width: wp('25%'), height: wp('25%') }]} pointerEvents="none" />
+          <View style={[styles.decoCircle, { bottom: -hp('2%'), left: -wp('4%'), width: wp('15%'), height: wp('15%') }]} pointerEvents="none" />
+          <View style={styles.headerRow}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+              <Ionicons name="chevron-back" size={wp('5.5%')} color="#FFF" />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>Notifications</Text>
+            <View style={styles.headerActionPlaceholder} />
+          </View>
+        </LinearGradient>
+      </View>
 
       <ScrollView
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: scaleHeight(90) }}
+        contentContainerStyle={{ paddingBottom: hp('12%') }}
       >
         <View style={styles.notificationContainer}>
           {[...Array(6)].map((_, index) => (
             <View key={index} style={styles.skeletonCard}>
-              <View style={styles.skeletonHeader}>
-                <View style={styles.skeletonIcon} />
-                <View style={styles.skeletonTexts}>
-                  <View style={[styles.skeletonLine, { width: '70%' }]} />
-                  <View style={[styles.skeletonLine, { width: '90%' }]} />
+              <View style={styles.skeletonAccent} />
+              <View style={styles.skeletonInner}>
+                <View style={styles.skeletonHeaderRow}>
+                  <View style={styles.skeletonIcon} />
+                  <View style={styles.skeletonTexts}>
+                    <View style={[styles.skeletonLine, { width: '65%', height: hp('1.2%') }]} />
+                    <View style={[styles.skeletonLine, { width: '90%', height: hp('1%') }]} />
+                  </View>
                 </View>
-              </View>
-              <View style={styles.skeletonContent}>
-                <View style={[styles.skeletonLine, { width: '100%' }]} />
-                <View style={[styles.skeletonLine, { width: '95%' }]} />
-                <View style={[styles.skeletonLine, { width: '60%' }]} />
-              </View>
-              <View style={styles.skeletonFooter}>
-                <View style={[styles.skeletonLine, { width: '30%', height: scaleHeight(12) }]} />
+                <View style={styles.skeletonContent}>
+                  <View style={[styles.skeletonLine, { width: '100%', height: hp('1%') }]} />
+                  <View style={[styles.skeletonLine, { width: '85%', height: hp('1%') }]} />
+                  <View style={[styles.skeletonLine, { width: '50%', height: hp('1%') }]} />
+                </View>
+                <View style={styles.skeletonFooter}>
+                  <View style={[styles.skeletonLine, { width: '28%', height: hp('1%') }]} />
+                </View>
               </View>
             </View>
           ))}
@@ -164,7 +200,7 @@ const NotificationScreen = () => {
     return <SimpleSkeleton />;
   }
 
-  // ⬇⬇⬇ CHANGED THIS PART ONLY
+  // Notification Item Component
   const NotificationItem = ({ item, index }) => {
     const cardAnim = useState(new Animated.Value(0))[0];
 
@@ -184,7 +220,6 @@ const NotificationScreen = () => {
 const handlePress = async () => {
   try {
     // Mark notification as read first
-    // console.log(`[NotificationScreen] Marking notification ${item.id} as read`);
     await notificationService.markAsRead(item.id);
 
     // Update local state to reflect read status
@@ -200,18 +235,17 @@ const handlePress = async () => {
     let serviceType = item.service_type;
 
     if (!serviceType || serviceType === 'general') {
-      if (title.includes('bike') || title.includes('🏍') || body.includes('bike')) serviceType = 'bike';
+      if (title.includes('bike') || title.includes('\u{1F3CD}') || body.includes('bike')) serviceType = 'bike';
       else if (title.includes('self-drive') || title.includes('self drive') || body.includes('self-drive')) serviceType = 'self-drive';
-      else if (title.includes('luxury') || title.includes('💎') || body.includes('luxury')) serviceType = 'luxury';
-      else if (title.includes('bus') || title.includes('🚌') || body.includes('bus')) serviceType = 'bus';
-      else if (title.includes('truck') || title.includes('🚚') || body.includes('truck')) serviceType = 'truck';
-      else if (title.includes('equipment') || title.includes('🏗') || body.includes('equipment')) serviceType = 'equipment';
-      else if (title.includes('packers') || title.includes('movers') || title.includes('📦') || body.includes('packers') || body.includes('movers')) serviceType = 'packers';
-      else if (title.includes('chauffeur') || title.includes('driver') || title.includes('👨‍✈️') || body.includes('chauffeur') || body.includes('driver assigned')) serviceType = 'chauffeur-service';
-      else if (title.includes('car') || title.includes('🚗') || body.includes('car rental')) serviceType = 'car';
+      else if (title.includes('luxury') || title.includes('\u{1F48E}') || body.includes('luxury')) serviceType = 'luxury';
+      else if (title.includes('bus') || title.includes('\u{1F68C}') || body.includes('bus')) serviceType = 'bus';
+      else if (title.includes('truck') || title.includes('\u{1F69A}') || body.includes('truck')) serviceType = 'truck';
+      else if (title.includes('equipment') || title.includes('\u{1F3D7}') || body.includes('equipment')) serviceType = 'equipment';
+      else if (title.includes('packers') || title.includes('movers') || title.includes('\u{1F4E6}') || body.includes('packers') || body.includes('movers')) serviceType = 'packers';
+      else if (title.includes('chauffeur') || title.includes('driver') || title.includes('\u{1F468}\u200D\u2708\uFE0F') || body.includes('chauffeur') || body.includes('driver assigned')) serviceType = 'chauffeur-service';
+      else if (title.includes('car') || title.includes('\u{1F697}') || body.includes('car rental')) serviceType = 'car';
       else {
         // Can't determine - go to MyBookings
-        // console.log('[NotificationScreen] Cannot determine service type, going to MyBookings');
         navigation.navigate('MyBookings');
         return;
       }
@@ -223,12 +257,9 @@ const handlePress = async () => {
 
     // Validate ID
     if (!itemId || itemId === 'null' || itemId.length < 10 || itemId.endsWith('-')) {
-      // console.log('[NotificationScreen] Invalid ID:', itemId);
       navigation.navigate('MyBookings');
       return;
     }
-
-    // console.log(`[NotificationScreen] Service: ${serviceType}, IsQuote: ${isQuoteRequest}, ID: ${itemId}`);
 
     // Navigate using same logic as MyBookingsScreen.handleBookingPress
     if (serviceType === 'self-drive') {
@@ -260,7 +291,6 @@ const handlePress = async () => {
     }
 
   } catch (error) {
-    // console.log('[NotificationScreen] Error:', error);
     navigation.navigate('MyBookings');
   }
 };
@@ -270,7 +300,6 @@ const handlePress = async () => {
         <Animated.View
           style={[
             styles.notificationCard,
-            !item.is_read && styles.unreadNotificationCard, // Add unread styling
             {
               opacity: fadeAnim,
               transform: [
@@ -285,75 +314,78 @@ const handlePress = async () => {
             },
           ]}
         >
-          {/* Header */}
-          <View style={[styles.cardHeader, !item.is_read && styles.unreadCardHeader]}>
-            <View style={styles.headerLeft}>
-              <View style={[styles.iconContainer, !item.is_read && styles.unreadIconContainer]}>
-                <MaterialIcons name="notifications" size={scaleWidth(18)} color="#FFFFFF" />
+          {/* Left accent bar for unread */}
+          {!item.is_read && <View style={styles.cardAccent} />}
+
+          <View style={styles.cardInner}>
+            {/* Card Header */}
+            <View style={[styles.cardHeader, !item.is_read && styles.unreadCardHeader]}>
+              <View style={styles.headerLeft}>
+                <View style={[styles.iconCircle, !item.is_read && styles.unreadIconCircle]}>
+                  <MaterialIcons
+                    name={item.is_read ? 'notifications-none' : 'notifications-active'}
+                    size={wp('4.5%')}
+                    color={!item.is_read ? '#FFF' : TEAL_MID}
+                  />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.notificationTitle, !item.is_read && styles.unreadTitle]} numberOfLines={2}>
+                    {item.title}
+                  </Text>
+                </View>
               </View>
-              <Text style={styles.notificationTitle}>{item.title}</Text>
+              {/* Unread indicator dot */}
+              {!item.is_read && (
+                <View style={styles.unreadDot} />
+              )}
             </View>
-            {/* Unread indicator dot */}
-            {!item.is_read && (
-              <View style={styles.unreadDot} />
-            )}
-          </View>
 
-          {/* Dashed Divider */}
-          <View style={styles.dashedDivider} />
+            {/* Card Content */}
+            <View style={styles.cardContent}>
+              <Text style={[styles.notificationBody, item.is_read && styles.readBody]}>{item.body}</Text>
 
-          {/* Card Content */}
-          <View style={styles.cardContent}>
-            <Text style={styles.notificationBody}>{item.body}</Text>
+              {item.image && (
+                <View style={styles.imageContainer}>
+                  <Image source={{ uri: item.image }} style={styles.notificationImage} resizeMode="cover" />
+                </View>
+              )}
+            </View>
 
-            {/* Show Booking ID */}
-            {/* {item.booking_id && (
-              <View style={styles.bookingIdContainer}>
-                <Text style={styles.bookingIdLabel}>Booking ID:</Text>
-                <Text style={styles.bookingIdValue}>#{item.booking_id}</Text>
+            {/* Footer with Time */}
+            <View style={styles.cardFooter}>
+              <View style={styles.timeContainer}>
+                <MaterialIcons name="access-time" size={wp('3.2%')} color={TEXT_MUTED} />
+                <Text style={styles.timeText}>{item.relative_time}</Text>
               </View>
-            )} */}
-
-            {/* Show Quote ID (optional) */}
-            {/* {item.quote_id && (
-              <View style={[styles.bookingIdContainer, { backgroundColor: '#EFF6FF', borderColor: '#DBEAFE' }]}>
-                <Text style={[styles.bookingIdLabel, { color: '#1D4ED8' }]}>Quote ID:</Text>
-                <Text style={[styles.bookingIdValue, { color: '#1D4ED8' }]}>#{item.quote_id}</Text>
+              <View style={styles.tapHint}>
+                <Text style={styles.tapHintText}>Tap to view</Text>
+                <Ionicons name="chevron-forward" size={wp('3%')} color={TEAL} />
               </View>
-            )} */}
-
-            {item.image && (
-              <View style={styles.imageContainer}>
-                <Image source={{ uri: item.image }} style={styles.notificationImage} resizeMode="cover" />
-              </View>
-            )}
-          </View>
-
-          {/* Footer with Time */}
-          <View style={styles.cardFooter}>
-            <View style={styles.timeContainer}>
-              <MaterialIcons name="access-time" size={scaleWidth(14)} color="#065F46" />
-              <Text style={styles.timeText}>{item.relative_time}</Text>
             </View>
           </View>
         </Animated.View>
       </TouchableOpacity>
     );
   };
-  // ⬆⬆⬆ END CHANGE
 
   return (
     <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor={TEAL_DEEP} />
+
       {/* Header */}
-      {/* <View style={styles.MainHeader}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()}>
-            <Ionicons name="arrow-back" size={scaleWidth(24)} color="#2c2e2eff" />
-          </TouchableOpacity>
-          <Text style={styles.headerText}>Notifications</Text>
-        </View>
-      </View> */}
       <Header />
+
+      {/* Unread summary pill */}
+      {notifications.filter(n => !n.is_read).length > 0 && (
+        <View style={styles.unreadSummaryRow}>
+          <View style={styles.unreadSummaryPill}>
+            <View style={styles.unreadSummaryDot} />
+            <Text style={styles.unreadSummaryText}>
+              {notifications.filter(n => !n.is_read).length} unread notification{notifications.filter(n => !n.is_read).length !== 1 ? 's' : ''}
+            </Text>
+          </View>
+        </View>
+      )}
 
       {/* Notifications List */}
       <ScrollView
@@ -362,19 +394,24 @@ const handlePress = async () => {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            colors={['#2ECC71']}
-            tintColor="#2ECC71"
+            colors={[TEAL]}
+            tintColor={TEAL}
           />
         }
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: scaleHeight(90) }}
+        contentContainerStyle={{ paddingBottom: hp('12%') }}
       >
         <View style={styles.notificationContainer}>
           {notifications.length === 0 ? (
             <View style={styles.emptyState}>
-              <View style={styles.emptyIconContainer}>
-                <Ionicons name="notifications-off" size={scaleWidth(64)} color="#CCCCCC" />
-              </View>
+              <LinearGradient
+                colors={[TEAL_LIGHT, '#A7F3D0']}
+                style={styles.emptyIconGradient}
+              >
+                <View style={styles.emptyIconInner}>
+                  <Ionicons name="notifications-off-outline" size={wp('10%')} color={TEAL} />
+                </View>
+              </LinearGradient>
               <Text style={styles.emptyTitle}>No notifications yet</Text>
               <Text style={styles.emptySubtitle}>
                 You're all caught up!{'\n'}
@@ -393,230 +430,328 @@ const handlePress = async () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F9F7F7', marginTop: 40 },
-   headerContainer: {
-    backgroundColor: '#FFFFFF',
-    width: '100%',
-    borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9', // softer
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 6,
-      },
-      android: {
-        elevation: 3,
-      },
-    }),
+  /* -- Container -- */
+  container: {
+    flex: 1,
+    backgroundColor: BG,
   },
 
-  // Bar row
-  headerBar: {
+  /* -- Header Gradient Wrapper -- */
+  headerWrapper: {
+    overflow: 'hidden',
+    borderBottomLeftRadius: wp('6%'),
+    borderBottomRightRadius: wp('6%'),
+    ...SHADOW_MD,
+  },
+  headerGrad: {
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + hp('1%') : hp('1%'),
+    paddingBottom: hp('2.5%'),
+    paddingHorizontal: wp('4%'),
+  },
+  decoCircle: {
+    position: 'absolute',
+    borderRadius: wp('50%'),
+    backgroundColor: 'rgba(255,255,255,0.06)',
+  },
+  headerRow: {
+    zIndex: 2,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 10, // tighter than before
-    minHeight: scaleHeight(64),
+    justifyContent: 'space-between',
   },
-
-  // Left/Right fixed width slots so title stays centered
-  left: {
-    width: scaleWidth(44),
-    justifyContent: 'center',
-    alignItems: 'flex-start',
-  },
-  right: {
-    width: scaleWidth(44),
-  },
-
-  // Center title
-  center: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  // Back button chip
-  backButtonCircle: {
-    width: scaleWidth(35),
-    height: scaleWidth(35),
-    borderRadius: scaleWidth(10),
-    backgroundColor: '#F8FAFC',
+  backBtn: {
+    width: wp('10%'),
+    height: wp('10%'),
+    borderRadius: wp('5%'),
+    backgroundColor: 'rgba(255,255,255,0.15)',
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
   },
-
-  // Title styling
   headerTitle: {
-    color: '#111827',
-    fontSize: scaleWidth(18),
+    fontSize: wp('5%'),
     fontWeight: '700',
-    letterSpacing: 0.2,
+    color: '#FFF',
+    letterSpacing: 0.3,
   },
-  scrollView: { flex: 1, backgroundColor: '#F9F7F7' },
-  notificationContainer: { padding: scaleWidth(8) },
+  headerActionBtn: {
+    width: wp('10%'),
+    height: wp('10%'),
+    borderRadius: wp('5%'),
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerActionPlaceholder: {
+    width: wp('10%'),
+    height: wp('10%'),
+  },
+
+  /* -- Unread Summary Pill -- */
+  unreadSummaryRow: {
+    paddingHorizontal: wp('4%'),
+    paddingTop: hp('1.5%'),
+    paddingBottom: hp('0.5%'),
+  },
+  unreadSummaryPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: TEAL_LIGHT,
+    paddingHorizontal: wp('3.5%'),
+    paddingVertical: hp('0.8%'),
+    borderRadius: wp('5%'),
+    alignSelf: 'flex-start',
+    gap: wp('2%'),
+  },
+  unreadSummaryDot: {
+    width: wp('2%'),
+    height: wp('2%'),
+    borderRadius: wp('1%'),
+    backgroundColor: TEAL,
+  },
+  unreadSummaryText: {
+    fontSize: wp('3%'),
+    fontWeight: '600',
+    color: TEAL_DEEP,
+  },
+
+  /* -- ScrollView & Container -- */
+  scrollView: {
+    flex: 1,
+    backgroundColor: BG,
+  },
+  notificationContainer: {
+    paddingHorizontal: wp('4%'),
+    paddingTop: hp('1%'),
+  },
+
+  /* -- Notification Card -- */
   notificationCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: scaleWidth(8),
-    marginBottom: scaleHeight(8),
-    marginTop: scaleHeight(8),
-    marginHorizontal: scaleWidth(8),
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: scaleHeight(2) },
-    shadowOpacity: 0.05,
-    shadowRadius: scaleWidth(8),
-    elevation: 4,
-    borderWidth: 1,
-    borderColor: '#E8E8E8',
-    position: 'relative',
+    flexDirection: 'row',
+    backgroundColor: CARD,
+    borderRadius: wp('4%'),
+    marginBottom: hp('1.5%'),
     overflow: 'hidden',
+    ...SHADOW_SM,
+  },
+  cardAccent: {
+    width: wp('1.2%'),
+    backgroundColor: TEAL,
+    borderTopLeftRadius: wp('4%'),
+    borderBottomLeftRadius: wp('4%'),
+  },
+  cardInner: {
+    flex: 1,
   },
   cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: scaleWidth(10),
-    paddingBottom: scaleHeight(6),
-    backgroundColor: '#FAFAFA',
-    borderTopLeftRadius: scaleWidth(8),
-    borderTopRightRadius: scaleWidth(8),
+    paddingHorizontal: wp('3.5%'),
+    paddingTop: hp('1.5%'),
+    paddingBottom: hp('1.2%'),
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
   },
-  headerLeft: { flexDirection: 'row', alignItems: 'center', flex: 1 },
-  iconContainer: {
-    width: scaleWidth(28),
-    height: scaleWidth(28),
-    borderRadius: scaleWidth(8),
-    backgroundColor: '#065F46',
+  unreadCardHeader: {
+    backgroundColor: '#ECFDF5',
+  },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    gap: wp('2.5%'),
+  },
+  iconCircle: {
+    width: wp('9.5%'),
+    height: wp('9.5%'),
+    borderRadius: wp('4.75%'),
+    backgroundColor: TEAL_LIGHT,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: scaleWidth(10),
-    shadowColor: '#065F46',
-    shadowOffset: { width: 0, height: scaleHeight(2) },
-    shadowOpacity: 0.2,
-    shadowRadius: scaleWidth(4),
-    elevation: 2,
   },
-  notificationTitle: { fontSize: moderateScale(14), fontWeight: '700', color: '#1A1A1A', flex: 1 },
-  dashedDivider: { borderTopWidth: 1, borderStyle: 'dashed', borderColor: '#D1D5DB', marginHorizontal: scaleWidth(10) },
-  cardContent: { padding: scaleWidth(10), paddingTop: scaleHeight(6) },
+  unreadIconCircle: {
+    backgroundColor: TEAL,
+    ...Platform.select({
+      ios: {
+        shadowColor: TEAL,
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.3,
+        shadowRadius: 6,
+      },
+      android: { elevation: 4 },
+    }),
+  },
+  notificationTitle: {
+    fontSize: wp('3.5%'),
+    fontWeight: '600',
+    color: TEXT_PRIMARY,
+    lineHeight: wp('5%'),
+  },
+  unreadTitle: {
+    fontWeight: '700',
+    color: TEAL_DEEP,
+  },
+  unreadDot: {
+    width: wp('2.5%'),
+    height: wp('2.5%'),
+    borderRadius: wp('1.25%'),
+    backgroundColor: TEAL,
+    marginLeft: wp('2%'),
+    ...Platform.select({
+      ios: {
+        shadowColor: TEAL,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.5,
+        shadowRadius: 4,
+      },
+      android: { elevation: 3 },
+    }),
+  },
+
+  /* -- Card Content -- */
+  cardContent: {
+    paddingHorizontal: wp('3.5%'),
+    paddingTop: hp('1.2%'),
+    paddingBottom: hp('0.5%'),
+  },
   notificationBody: {
-    fontSize: moderateScale(12),
-    color: '#4B5563',
-    lineHeight: scaleHeight(18),
+    fontSize: wp('3.2%'),
+    color: TEXT_SECONDARY,
+    lineHeight: wp('5%'),
     fontWeight: '500',
-    marginBottom: scaleHeight(8),
+    marginBottom: hp('0.8%'),
   },
-  imageContainer: { borderRadius: scaleWidth(8), overflow: 'hidden', marginTop: scaleHeight(6) },
-  notificationImage: { width: '100%', height: scaleHeight(140), borderRadius: scaleWidth(8) },
+  readBody: {
+    color: TEXT_MUTED,
+  },
+  imageContainer: {
+    borderRadius: wp('3%'),
+    overflow: 'hidden',
+    marginTop: hp('0.8%'),
+  },
+  notificationImage: {
+    width: '100%',
+    height: hp('18%'),
+    borderRadius: wp('3%'),
+  },
+
+  /* -- Card Footer -- */
   cardFooter: {
     flexDirection: 'row',
-    justifyContent: 'flex-end',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    padding: scaleWidth(10),
-    paddingTop: scaleHeight(4),
+    paddingHorizontal: wp('3.5%'),
+    paddingVertical: hp('1%'),
     borderTopWidth: 1,
     borderTopColor: '#F3F4F6',
   },
   timeContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F8FAFC',
-    paddingHorizontal: scaleWidth(4),
-    paddingVertical: scaleHeight(4),
-    borderRadius: scaleWidth(8),
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
+    gap: wp('1.2%'),
   },
-  timeText: { fontSize: moderateScale(11), color: '#065F46', fontWeight: '600', marginLeft: scaleWidth(4) },
-  emptyState: { alignItems: 'center', justifyContent: 'center', paddingVertical: scaleHeight(60), paddingHorizontal: scaleWidth(20) },
-  emptyIconContainer: {
-    width: scaleWidth(100),
-    height: scaleWidth(100),
-    borderRadius: scaleWidth(50),
-    backgroundColor: '#F8FAFC',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: scaleHeight(20),
-    borderWidth: 2,
-    borderColor: '#E2E8F0',
-    borderStyle: 'dashed',
+  timeText: {
+    fontSize: wp('2.8%'),
+    color: TEXT_MUTED,
+    fontWeight: '500',
   },
-  emptyTitle: { fontSize: moderateScale(18), fontWeight: '700', color: '#374151', marginBottom: scaleHeight(8), textAlign: 'center' },
-  emptySubtitle: {
-    fontSize: moderateScale(13),
-    color: '#6B7280',
-    textAlign: 'center',
-    lineHeight: scaleHeight(18),
-    fontWeight: '400',
-  },
-  skeletonCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: scaleWidth(8),
-    padding: scaleWidth(12),
-    marginBottom: scaleHeight(12),
-    marginHorizontal: scaleWidth(8),
-    borderWidth: 1,
-    borderColor: '#F0F0F0',
-  },
-  skeletonHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: scaleHeight(10) },
-  skeletonIcon: {
-    width: scaleWidth(28),
-    height: scaleWidth(28),
-    borderRadius: scaleWidth(8),
-    backgroundColor: '#E5E7EB',
-    marginRight: scaleWidth(10),
-  },
-  skeletonTexts: { flex: 1, gap: scaleHeight(6) },
-  skeletonContent: { marginBottom: scaleHeight(10), gap: scaleHeight(6) },
-  skeletonFooter: { alignItems: 'flex-end' },
-  skeletonLine: {
-    height: scaleHeight(10),
-    borderRadius: scaleWidth(4),
-    backgroundColor: '#E5E7EB',
-    marginBottom: scaleHeight(4),
-  },
-  bookingIdContainer: {
+  tapHint: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: scaleHeight(6),
-    backgroundColor: '#F0FDF4',
-    borderRadius: scaleWidth(6),
-    paddingVertical: scaleHeight(4),
-    paddingHorizontal: scaleWidth(8),
-    borderWidth: 1,
-    borderColor: '#DCFCE7',
-    alignSelf: 'flex-start',
+    gap: wp('0.8%'),
   },
-  bookingIdLabel: { fontSize: moderateScale(11), fontWeight: '600', color: '#166534', marginRight: scaleWidth(4) },
-  bookingIdValue: { fontSize: moderateScale(12), fontWeight: '700', color: '#065F46' },
+  tapHintText: {
+    fontSize: wp('2.8%'),
+    color: TEAL,
+    fontWeight: '600',
+  },
 
-  // Unread notification styles
-  unreadNotificationCard: {
-    borderWidth: 2,
-    borderColor: '#10B981', // Green border for unread
-    backgroundColor: '#F0FDF4', // Light green background
+  /* -- Empty State -- */
+  emptyState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: hp('10%'),
+    paddingHorizontal: wp('8%'),
   },
-  unreadCardHeader: {
-    backgroundColor: '#ECFDF5', // Slightly darker green for header
+  emptyIconGradient: {
+    width: wp('22%'),
+    height: wp('22%'),
+    borderRadius: wp('11%'),
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  unreadIconContainer: {
-    backgroundColor: '#10B981', // Brighter green for unread
+  emptyIconInner: {
+    width: wp('16%'),
+    height: wp('16%'),
+    borderRadius: wp('8%'),
+    backgroundColor: '#FFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...SHADOW_SM,
   },
-  unreadDot: {
-    width: scaleWidth(10),
-    height: scaleWidth(10),
-    borderRadius: scaleWidth(5),
-    backgroundColor: '#10B981',
-    marginLeft: scaleWidth(8),
-    shadowColor: '#10B981',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.4,
-    shadowRadius: 3,
-    elevation: 3,
+  emptyTitle: {
+    fontSize: wp('4.5%'),
+    fontWeight: '700',
+    color: TEXT_PRIMARY,
+    marginTop: hp('2.5%'),
+    textAlign: 'center',
+  },
+  emptySubtitle: {
+    fontSize: wp('3.3%'),
+    color: TEXT_MUTED,
+    textAlign: 'center',
+    lineHeight: wp('5.2%'),
+    fontWeight: '400',
+    marginTop: hp('1%'),
+    paddingHorizontal: wp('6%'),
+  },
+
+  /* -- Skeleton Loading -- */
+  skeletonCard: {
+    flexDirection: 'row',
+    backgroundColor: CARD,
+    borderRadius: wp('4%'),
+    marginBottom: hp('1.5%'),
+    overflow: 'hidden',
+    ...SHADOW_SM,
+  },
+  skeletonAccent: {
+    width: wp('1.2%'),
+    backgroundColor: TEAL_LIGHT,
+    borderTopLeftRadius: wp('4%'),
+    borderBottomLeftRadius: wp('4%'),
+  },
+  skeletonInner: {
+    flex: 1,
+    padding: wp('3.5%'),
+  },
+  skeletonHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: hp('1.2%'),
+  },
+  skeletonIcon: {
+    width: wp('9.5%'),
+    height: wp('9.5%'),
+    borderRadius: wp('4.75%'),
+    backgroundColor: TEAL_LIGHT,
+    marginRight: wp('2.5%'),
+  },
+  skeletonTexts: {
+    flex: 1,
+    gap: hp('0.6%'),
+  },
+  skeletonContent: {
+    marginBottom: hp('1.2%'),
+    gap: hp('0.6%'),
+  },
+  skeletonFooter: {
+    alignItems: 'flex-end',
+  },
+  skeletonLine: {
+    height: hp('1%'),
+    borderRadius: wp('1.5%'),
+    backgroundColor: '#E5E7EB',
   },
 });
 

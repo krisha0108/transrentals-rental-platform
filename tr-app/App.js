@@ -10,8 +10,6 @@ import OnboardingScreen from './screens/OnboardingScreen';
 import LoginScreen from './screens/customer/auth/LoginScreen';
 import ForgotPasswordScreen from './screens/customer/auth/ForgotPasswordScreen';
 import RegisterScreen from './screens/customer/auth/RegisterScreen';
-import OtpScreen from './screens/customer/auth/OtpScreen';
-import LoginOtpScreen from './screens/customer/auth/LoginOtpScreen';
 import CustomerDashboard from './screens/customer/CustomerDashboard';
 import NotificationScreen from './screens/customer/NotificationScreen';
 import BookingDetailScreen from './screens/customer/booking/BookingDetailScreen';
@@ -43,8 +41,6 @@ import MyCarBookingsScreen from './screens/customer/booking/MyCarBookingsScreen'
 // Review & Invoice Screens
 import ReviewScreen from './screens/customer/booking/ReviewScreen';
 import InvoiceScreen from './screens/customer/booking/InvoiceScreen';
-import ChatBookingsScreen from './screens/customer/ChatBookingsScreen';
-import BookingVendorsScreen from './screens/customer/BookingVendorsScreen';
 import ChatScreen from './screens/customer/ChatScreen';
 import BookingChatListScreen from './screens/customer/booking/ChatListScreen';
 import BikeRentalScreen from './screens/customer/HomePage/BikeRentalScreen';
@@ -53,7 +49,6 @@ import BusRentalScreen from './screens/customer/HomePage/BusRentalScreen';
 import TruckRentalScreen from './screens/customer/HomePage/TruckRentalScreen';
 import EquipmentScreen from './screens/customer/HomePage/EquipmentScreen';
 import PackerMoverScreen from './screens/customer/HomePage/PackerMoverScreen';
-import AirportScreen from './screens/customer/HomePage/AirportScreen';
 import SelfDriveScreen from './screens/customer/HomePage/SelfDriveScreen';
 import LuxuryScreen from './screens/customer/HomePage/LuxuryScreen';
 // Luxury Car Rental Screens
@@ -61,37 +56,19 @@ import LuxuryCarRentalScreen from './screens/customer/luxury/LuxuryCarRentalScre
 import MyLuxuryQuotesScreen from './screens/customer/luxury/MyLuxuryQuotesScreen';
 import LuxuryQuoteDetailScreen from './screens/customer/luxury/LuxuryQuoteDetailScreen';
 import LuxuryBookingDetailScreen from './screens/customer/luxury/LuxuryBookingDetailScreen';
-import OnewayScreenHome from './screens/customer/HomePage/OnewayScreenHome';
 import ViewQuoteScreen from './screens/customer/quote/ViewQuoteScreen';
 import MyBookingsScreen from './screens/customer/booking/MyBookingsScreen';
-import BikeBookingScreen from './screens/booking/BikeBookingScreen';
 import BikeFleetScreen from './screens/booking/BikeFleetScreen';
 import BookingConfirmationScreen from './screens/booking/BookingConfirmationScreen';
 import ExpensesScreen from './screens/customer/ExpensesScreen';
-import BusBookingScreen from './screens/booking/bus/BusBookingScreen';
 import BusRentalFleetScreen from './screens/booking/bus/BusRentalFleetScreen';
 import OutstationScreen from './screens/booking/bus/OutstationScreen';
-// Old truck booking screens removed - TruckRentalScreen uses modern API
-// import TruckBookingScreen from './screens/booking/truck/TruckBookingScreen';
-// import CommercialBookingScreen from './screens/booking/truck/CommercialBookingScreen';
-// import PersonalBookingScreen from './screens/booking/truck/PersonalBookingScreen';
 import LocalScreen from './screens/booking/bus/LocalScreen';
-import EquipmentBookingScreen from './screens/booking/equipment/EquipmentBookingScreen';
-// Old luxury and standard car booking screens removed - LuxuryScreen and CarRentalFleetScreen use modern API
-// import LuxuryCarBookingScreen from './screens/booking/luxuryCar/LuxuryCarBookingScreen';
-// import StandardCarBookingScreen from './screens/booking/StandardCar/StandardCarBookingScreen';
-// import RoundTripBookingScreen from './screens/booking/StandardCar/RoundTripBookingScreen';
-// import OneWayBookingScreen from './screens/booking/StandardCar/OneWayBookingScreen';
-// import AirportBookingScreen from './screens/booking/StandardCar/AirportBookingScreen';
-import SelfDriveBookingScreen from './screens/booking/selfdrive/SelfDriveBookingScreen';
-import PackersMoversBookingScreen from './screens/booking/PM/PackersMoversBookingScreen';
 // Chauffeur (Car Rental with Driver)
 import CarRentalFleetScreen from './screens/booking/chauffeur/CarRentalFleetScreen';
 import HomeBookingScreen from './screens/booking/PM/HomeBookingScreen';
 import OfficeBookingScreen from './screens/booking/PM/OfficeBookingScreen';
 import VehicleBookingScreen from './screens/booking/PM/VehicleBookingScreen';
-import ChatListScreen from './screens/customer/chat/ChatListScreen';
-import ChatDetailScreen from './screens/customer/chat/ChatDetailScreen';
 import EditProfileScreen from './screens/customer/profile/EditProfileScreen';
 import SettingScreen from './screens/customer/profile/SettingScreen';
 import AboutUsScreen from './screens/AboutUsScreen';
@@ -102,19 +79,36 @@ import { LogBox } from 'react-native';
 import BackrTokensScreen from './screens/customer/BackrTokensScreen';
 import TokenHistoryScreen from './screens/customer/TokenHistoryScreen';
 import EarnBackrTasksScreen from './screens/customer/EarnBackrTasksScreen';
-import ServiceDetails from './screens/customer/ServiceDetails';
 import messaging from '@react-native-firebase/messaging';
-import notifee, { AndroidStyle,AndroidImportance } from '@notifee/react-native';
+import notifee, { AndroidStyle, AndroidImportance, EventType } from '@notifee/react-native';
 import { NotificationProvider, useInAppNotification } from './contexts/NotificationContext';
 import { AppState } from 'react-native';
 import { BASE_URL } from './screens/api';
 
 let badgeCount = 0;
+let pendingNotificationData = null; // Store notification data when app opens from background press
+let onNotificationPressCallback = null; // Callback set by AppContent for navigation
 LogBox.ignoreLogs(['useInsertionEffect must not schedule updates']);
 
-// Notifee event handler for notification actions (Copy OTP button)
+// Notifee event handler for background actions
 notifee.onBackgroundEvent(async ({ type, detail }) => {
   const { notification, pressAction } = detail;
+
+  // Handle notification press from background/killed state
+  if (type === EventType.PRESS) {
+    const data = {
+      ...notification?.data,
+      title: notification?.title,
+      body: notification?.body,
+    };
+    // If app is running and callback is set, navigate immediately
+    if (onNotificationPressCallback) {
+      onNotificationPressCallback(data);
+    } else {
+      // App not yet ready, store for later
+      pendingNotificationData = data;
+    }
+  }
 
   // Handle Copy OTP action
   if (pressAction?.id === 'copy_otp') {
@@ -219,14 +213,22 @@ function CustomerDashboardTab() {
         },
         headerShown: false,
         tabBarStyle: {
-          height: 70,  
-          paddingBottom: 10,  
+          height: 70,
+          paddingBottom: 10,
           zIndex: 100,
-          elevation: 10,
-          position: 'absolute', 
-          bottom: 0,  
+          position: 'absolute',
+          bottom: 0,
           left: 0,
           right: 0,
+          borderTopWidth: 0,
+          borderTopLeftRadius: 20,
+          borderTopRightRadius: 20,
+          backgroundColor: 'rgba(255,255,255,0.98)',
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: -3 },
+          shadowOpacity: 0.06,
+          shadowRadius: 12,
+          elevation: 10,
         },
         tabBarButton: (props) => (
           <TouchableOpacity {...props} style={[props.style, { overflow: 'hidden' }]} />
@@ -432,21 +434,134 @@ function AppContent() {
         }
       });
 
-      // Handle notification opened app from background state
+      // Helper: navigate to the right screen based on notification data
+      const navigateFromNotification = (data) => {
+        if (!data) {
+          navigation.navigate('Notifications');
+          return;
+        }
+
+        const title = (data.title || '').toLowerCase();
+        const body = (data.body || '').toLowerCase();
+        let serviceType = data.serviceType || data.service_type;
+
+        if (!serviceType || serviceType === 'general') {
+          if (title.includes('bike') || body.includes('bike')) serviceType = 'bike';
+          else if (title.includes('self-drive') || title.includes('self drive') || body.includes('self-drive')) serviceType = 'self-drive';
+          else if (title.includes('luxury') || body.includes('luxury')) serviceType = 'luxury';
+          else if (title.includes('bus') || body.includes('bus')) serviceType = 'bus';
+          else if (title.includes('truck') || body.includes('truck')) serviceType = 'truck';
+          else if (title.includes('equipment') || body.includes('equipment')) serviceType = 'equipment';
+          else if (title.includes('packers') || title.includes('movers') || body.includes('packers') || body.includes('movers')) serviceType = 'packers';
+          else if (title.includes('chauffeur') || title.includes('driver') || body.includes('chauffeur') || body.includes('driver assigned')) serviceType = 'car';
+          else if (title.includes('car') || body.includes('car rental')) serviceType = 'car';
+        }
+
+        // Detect quote vs booking - backend sends type as 'new_quote', 'quote', 'new_booking', 'booking', etc.
+        const notifType = (data.type || '').toLowerCase();
+        const isQuote = notifType.includes('quote') || (data.requestId && !data.bookingId);
+        const requestId = data.requestId || data.request_id;
+        const bookingId = data.bookingId || data.booking_id;
+
+        // For quote notifications, use requestId; for bookings, use bookingId
+        const itemId = isQuote ? requestId : bookingId;
+
+        if (!itemId || itemId === 'null' || itemId.length < 10) {
+          navigation.navigate('Notifications');
+          return;
+        }
+
+        try {
+          if (serviceType === 'self-drive') {
+            navigation.navigate(isQuote ? 'SelfDriveQuoteRequestDetail' : 'SelfDriveBookingDetail', isQuote ? { requestId: itemId } : { bookingId: itemId });
+          } else if (serviceType === 'bike') {
+            navigation.navigate(isQuote ? 'BikeQuoteRequestDetail' : 'BikeBookingDetail', isQuote ? { requestId: itemId } : { bookingId: itemId });
+          } else if (serviceType === 'luxury') {
+            navigation.navigate(isQuote ? 'LuxuryQuoteDetail' : 'LuxuryBookingDetail', isQuote ? { requestId: itemId } : { bookingId: itemId });
+          } else if (serviceType === 'bus') {
+            navigation.navigate(isQuote ? 'BusQuoteRequestDetail' : 'BusBookingDetail', isQuote ? { requestId: itemId } : { bookingId: itemId });
+          } else if (serviceType === 'truck') {
+            navigation.navigate(isQuote ? 'TruckQuoteRequestDetail' : 'TruckBookingDetail', isQuote ? { requestId: itemId } : { bookingId: itemId });
+          } else if (serviceType === 'packers') {
+            navigation.navigate(isQuote ? 'PackersQuoteRequestDetail' : 'PackersBookingDetail', isQuote ? { requestId: itemId } : { bookingId: itemId });
+          } else if (serviceType === 'equipment') {
+            navigation.navigate(isQuote ? 'EquipmentQuoteRequestDetail' : 'EquipmentBookingDetail', isQuote ? { requestId: itemId } : { bookingId: itemId });
+          } else if (serviceType === 'chauffeur-service' || serviceType === 'car') {
+            navigation.navigate('BookingDetail', { bookingId: itemId, bookingType: 'car' });
+          } else {
+            navigation.navigate('Notifications');
+          }
+        } catch (error) {
+          console.error('Notification navigation error:', error);
+          navigation.navigate('Notifications');
+        }
+      };
+
+      // Register callback so background event handler can trigger navigation
+      onNotificationPressCallback = navigateFromNotification;
+
+      // Handle notification opened app from background state (FCM)
       messaging().onNotificationOpenedApp(async remoteMessage => {
-        console.log('🔔 Notification opened app from background:', remoteMessage);
-        // Navigation will be handled by NotificationScreen logic
+        console.log('Notification opened app from background:', remoteMessage);
+        const data = {
+          ...remoteMessage.data,
+          title: remoteMessage.notification?.title,
+          body: remoteMessage.notification?.body,
+        };
+        navigateFromNotification(data);
       });
 
-      // Check if app was opened from a notification (killed state)
+      // Check if app was opened from a notification (killed state - FCM)
       messaging().getInitialNotification().then(async remoteMessage => {
         if (remoteMessage) {
-          console.log('💀 Notification opened app from killed state:', remoteMessage);
-          // Navigation will be handled by NotificationScreen logic
+          console.log('Notification opened app from killed state:', remoteMessage);
+          const data = {
+            ...remoteMessage.data,
+            title: remoteMessage.notification?.title,
+            body: remoteMessage.notification?.body,
+          };
+          // Small delay to let navigation mount
+          setTimeout(() => navigateFromNotification(data), 1000);
         }
       });
 
-      return unsubscribe;
+      // Handle Notifee notification press (for notifications displayed via notifee - app in foreground)
+      const unsubscribeNotifee = notifee.onForegroundEvent(({ type, detail }) => {
+        if (type === EventType.PRESS) {
+          const data = {
+            ...detail.notification?.data,
+            title: detail.notification?.title,
+            body: detail.notification?.body,
+          };
+          navigateFromNotification(data);
+        }
+      });
+
+      // Check if app was opened by tapping a Notifee notification (killed state)
+      notifee.getInitialNotification().then(initialNotification => {
+        if (initialNotification) {
+          console.log('Notifee initial notification:', initialNotification);
+          const data = {
+            ...initialNotification.notification?.data,
+            title: initialNotification.notification?.title,
+            body: initialNotification.notification?.body,
+          };
+          setTimeout(() => navigateFromNotification(data), 1000);
+        }
+      });
+
+      // Fallback: check if pending data was stored by background event handler
+      if (pendingNotificationData) {
+        const data = pendingNotificationData;
+        pendingNotificationData = null;
+        setTimeout(() => navigateFromNotification(data), 1200);
+      }
+
+      return () => {
+        unsubscribe();
+        unsubscribeNotifee();
+        onNotificationPressCallback = null;
+      };
     }
 
     const unsubscribePromise = setupNotifications();
@@ -484,30 +599,18 @@ function AppContent() {
         <Stack.Screen name="PaymentScreen" component={PaymentScreen} />
         <Stack.Screen name="ViewQuote" component={ViewQuoteScreen} />
         <Stack.Screen name="MyBookings" component={MyBookingsScreen} />
-        <Stack.Screen name="BikeBookingScreen" component={BikeBookingScreen} />
         <Stack.Screen name="BikeFleetScreen" component={BikeFleetScreen} />
         <Stack.Screen name="BookingConfirmation" component={BookingConfirmationScreen} />
-        <Stack.Screen name="OtpScreen" component={OtpScreen} />
-        <Stack.Screen name="LoginOtpScreen" component={LoginOtpScreen} />
         <Stack.Screen name="ExpensesScreen" component={ExpensesScreen} />
-        <Stack.Screen name="BusBookingScreen" component={BusBookingScreen} />
         <Stack.Screen name="BusRentalFleetScreen" component={BusRentalFleetScreen} />
         <Stack.Screen name="LocalScreen" component={LocalScreen} />
         <Stack.Screen name="OutstationScreen" component={OutstationScreen} />
         {/* Old truck booking screens removed - TruckRentalScreen uses modern API */}
-        <Stack.Screen name="EquipmentBookingScreen" component={EquipmentBookingScreen} />
         {/* Old luxury and standard car booking screens removed - LuxuryScreen and CarRentalFleetScreen use modern API */}
         <Stack.Screen name="Chatsvendor" component={ChatScreen} />
-        <Stack.Screen name="BookingVendors" component={BookingVendorsScreen} />
-        <Stack.Screen name="ChatBookings" component={ChatBookingsScreen} />
-        {/* Old individual trip booking screens removed - CarRentalFleetScreen handles all trip types */}
-        <Stack.Screen name="SelfDriveBookingScreen" component={SelfDriveBookingScreen} />
-        <Stack.Screen name="PackersMoversBookingScreen" component={PackersMoversBookingScreen} />
         <Stack.Screen name="HomeBookingScreen" component={HomeBookingScreen} />
         <Stack.Screen name="OfficeBookingScreen" component={OfficeBookingScreen} />
         <Stack.Screen name="VehicleBookingScreen" component={VehicleBookingScreen} />
-        <Stack.Screen name="ChatList" component={ChatListScreen} />
-        <Stack.Screen name="ChatDetail" component={ChatDetailScreen} />
         <Stack.Screen name="EditProfileScreen" component={EditProfileScreen} />
         <Stack.Screen name="SettingScreen" component={SettingScreen} />
         <Stack.Screen name="BikeRentalScreen" component={BikeRentalScreen} />
@@ -517,7 +620,6 @@ function AppContent() {
         <Stack.Screen name="TruckRentalScreen" component={TruckRentalScreen} />
         <Stack.Screen name="EquipmentScreen" component={EquipmentScreen} />
         <Stack.Screen name="PackerMoverScreen" component={PackerMoverScreen} />
-        <Stack.Screen name="AirportScreen" component={AirportScreen} />
         <Stack.Screen name="SelfDriveScreen" component={SelfDriveScreen} />
         <Stack.Screen name="SelfDriveFleetScreen" component={SelfDriveFleetScreen} />
         <Stack.Screen name="MySelfDriveBookings" component={MySelfDriveBookingsScreen} />
@@ -537,10 +639,8 @@ function AppContent() {
         <Stack.Screen name="MyLuxuryQuotes" component={MyLuxuryQuotesScreen} />
         <Stack.Screen name="LuxuryQuoteDetail" component={LuxuryQuoteDetailScreen} />
         <Stack.Screen name="LuxuryBookingDetail" component={LuxuryBookingDetailScreen} />
-        <Stack.Screen name="OnewayScreenHome" component={OnewayScreenHome} />
         <Stack.Screen name="AboutUsScreen" component={AboutUsScreen} />
 <Stack.Screen name="HelpdeskScreen" component={HelpdeskScreen} />
-<Stack.Screen name="ServiceDetails" component={ServiceDetails} options={{ title: "Service Details" }}/>
 
 
       </Stack.Navigator>
@@ -573,21 +673,23 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   tabBarLabel: {
-    fontSize: 12,
-    fontWeight: '500',
+    fontSize: 11,
+    fontWeight: '600',
     marginTop: 4,
+    letterSpacing: 0.3,
   },
   tabBarLabelFocused: {
-    color: '#000',
+    color: '#1A1A1A',
+    fontWeight: '700',
   },
   tabBarLabelDefault: {
-    color: '#000',
+    color: '#9CA3AF',
   },
   iconFocusedColor: {
-    color: '#404040',
+    color: '#09B368',
   },
   iconDefaultColor: {
-    color: '#757575',
+    color: '#9CA3AF',
   },
   tabBarStyle: {
     paddingBottom: 20,
@@ -595,357 +697,14 @@ const styles = StyleSheet.create({
   },
   iconContainernavi: {
     alignItems: 'center',
+    paddingTop: 4,
   },
   activeTabDiv: {
-    width: 35,
-    height: 4,
+    width: 28,
+    height: 3,
     marginTop: 0,
-    backgroundColor: '#4CAF50',
+    backgroundColor: '#09B368',
     borderRadius: 1.5,
     marginBottom: 5,
   },
 });
-// import React, { useEffect } from 'react';
-// import { View, Text, StyleSheet, TouchableOpacity, Alert, Platform } from 'react-native';
-// import { NavigationContainer } from '@react-navigation/native';
-// import { createNativeStackNavigator } from '@react-navigation/native-stack';
-// import AsyncStorage from '@react-native-async-storage/async-storage';
-// import { useNavigation } from '@react-navigation/native';
-
-// import SplashScreen from './screens/SplashScreen';
-// import OnboardingScreen from './screens/OnboardingScreen';
-// import LoginScreen from './screens/customer/auth/LoginScreen';
-// import ForgotPasswordScreen from './screens/customer/auth/ForgotPasswordScreen';
-
-// import RegisterScreen from './screens/customer/auth/RegisterScreen';
-// import OtpScreen from './screens/customer/auth/OtpScreen';
-// import LoginOtpScreen from './screens/customer/auth/LoginOtpScreen';
-// import CustomerDashboard from './screens/customer/CustomerDashboard';
-// import NotificationScreen from './screens/customer/NotificationScreen';
-// import BookingDetailScreen from './screens/customer/booking/BookingDetailScreen';
-// import ChatBookingsScreen from './screens/customer/ChatBookingsScreen';
-// import BookingVendorsScreen from './screens/customer/BookingVendorsScreen';
-// import ChatScreen from './screens/customer/ChatScreen';
-// import BikeRentalScreen from './screens/customer/HomePage/BikeRentalScreen';
-// import CarRentalScreen from './screens/customer/HomePage/CarRentalScreen';
-// import BusRentalScreen from './screens/customer/HomePage/BusRentalScreen';
-// import TruckRentalScreen from './screens/customer/HomePage/TruckRentalScreen';
-// import EquipmentScreen from './screens/customer/HomePage/EquipmentScreen';
-// import PackerMoverScreen from './screens/customer/HomePage/PackerMoverScreen';
-// import AirportScreen from './screens/customer/HomePage/AirportScreen';
-// import SelfDriveScreen from './screens/customer/HomePage/SelfDriveScreen';
-// import LuxuryScreen from './screens/customer/HomePage/LuxuryScreen';
-// import OnewayScreenHome from './screens/customer/HomePage/OnewayScreenHome';
-// import ViewQuoteScreen from './screens/customer/quote/ViewQuoteScreen';
-// import MyBookingsScreen from './screens/customer/booking/MyBookingsScreen';
-// import BikeBookingScreen from './screens/booking/BikeBookingScreen';
-// import BookingConfirmationScreen from './screens/booking/BookingConfirmationScreen';
-// import VendorLoginScreen from './screens/vendor/auth/LoginScreen';
-// import VendorRegisterScreen from './screens/vendor/auth/RegisterScreen';
-// import VendorDashboardScreen from './screens/vendor/DashboardScreen';
-// import ExpensesScreen from './screens/customer/ExpensesScreen';
-// import BusBookingScreen from './screens/booking/bus/BusBookingScreen';
-// import OutstationScreen from './screens/booking/bus/OutstationScreen';
-// import TruckBookingScreen from './screens/booking/truck/TruckBookingScreen';
-// import CommercialBookingScreen from './screens/booking/truck/CommercialBookingScreen';
-// import PersonalBookingScreen from './screens/booking/truck/PersonalBookingScreen';
-// import LocalScreen from './screens/booking/bus/LocalScreen';
-// import EquipmentBookingScreen from './screens/booking/equipment/EquipmentBookingScreen';
-// import LuxuryCarBookingScreen from './screens/booking/luxuryCar/LuxuryCarBookingScreen';
-// import StandardCarBookingScreen from './screens/booking/StandardCar/StandardCarBookingScreen';
-
-// import RoundTripBookingScreen from './screens/booking/StandardCar/RoundTripBookingScreen';
-// import OneWayBookingScreen from './screens/booking/StandardCar/OneWayBookingScreen';
-// import AirportBookingScreen from './screens/booking/StandardCar/AirportBookingScreen';
-// import SelfDriveBookingScreen from './screens/booking/selfdrive/SelfDriveBookingScreen';
-// import PackersMoversBookingScreen from './screens/booking/PM/PackersMoversBookingScreen';
-// import HomeBookingScreen from './screens/booking/PM/HomeBookingScreen';
-// import OfficeBookingScreen from './screens/booking/PM/OfficeBookingScreen';
-// import VehicleBookingScreen from './screens/booking/PM/VehicleBookingScreen';
-// import ChatListScreen from './screens/customer/chat/ChatListScreen';
-// import ChatDetailScreen from './screens/customer/chat/ChatDetailScreen';
-// import EditProfileScreen from './screens/customer/profile/EditProfileScreen';
-// import SettingScreen from './screens/customer/profile/SettingScreen';
-// import AboutUsScreen from './screens/AboutUsScreen';
-// import HelpdeskScreen from './screens/customer/profile/HelpdeskScreen';
-// import Ionicons from 'react-native-vector-icons/Ionicons'; 
-// import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-// import { LogBox } from 'react-native';
-
-// import messaging from '@react-native-firebase/messaging';
-// import notifee, { AndroidStyle,AndroidImportance } from '@notifee/react-native';
-// let badgeCount = 0;
-
-// LogBox.ignoreLogs(['useInsertionEffect must not schedule updates']);
-
-// // Background notification handler (must be outside component)
-// messaging().setBackgroundMessageHandler(async remoteMessage => {
-//   const { title, body, image } = remoteMessage.data;
-//   // console.log('Background message received:', remoteMessage);
-
-//  await notifee.displayNotification({
-//     title,
-//     body,
-//     android: {
-//       channelId: 'default',
-//       smallIcon: 'ic_launcher',
-//       importance: AndroidImportance.HIGH,
-//       sound: 'default',
-//       style: image && image !== 'null'
-//   ? {
-//       type: AndroidStyle.BIGPICTURE,
-//       picture: image,
-//     }
-//   : undefined,
-//     },
-//   });
-// });
-
-// const Stack = createNativeStackNavigator();
-// const Tab = createBottomTabNavigator();  
-
-// function CustomerDashboardTab() {
-//   return (
-//     <Tab.Navigator
-//       initialRouteName="Home"
-//       screenOptions={({ route }) => ({
-//         tabBarIcon: ({ focused }) => {
-//           let iconName;
-//           if (route.name === 'Home') {
-//             iconName = focused ? 'home' : 'home-outline';
-//           } else if (route.name === 'Payments') {
-//             iconName = focused ? 'card' : 'card-outline';
-//           } else if (route.name === 'Bookings') {
-//             iconName = focused ? 'add-circle' : 'add-circle-outline';
-//           } else if (route.name === 'Chat') {
-//             iconName = focused ? 'chatbubble-ellipses' : 'chatbubble-ellipses-outline';
-//           }
-//           return (
-//             <View style={styles.iconContainernavi}>
-//               {focused && <View style={styles.activeTabDiv} />} 
-//               <Ionicons
-//                 name={iconName}
-//                 size={25}
-//                 color={focused ? styles.iconFocusedColor.color : styles.iconDefaultColor.color}
-//               />
-//             </View>
-//           );
-//         },
-//         tabBarLabel: ({ focused }) => {
-//           return (
-//             <Text style={[styles.tabBarLabel, focused ? styles.tabBarLabelFocused : styles.tabBarLabelDefault]}>
-//               {route.name}
-//             </Text>
-//           );
-//         },
-//         headerShown: false,
-//         tabBarStyle: {
-//           height: 70,  
-//           paddingBottom: 10,  
-//           zIndex: 100,
-//           elevation: 10,
-//           position: 'absolute', 
-//           bottom: 0,  
-//           left: 0,
-//           right: 0,
-//         },
-//         tabBarButton: (props) => (
-//           <TouchableOpacity {...props} style={[props.style, { overflow: 'hidden' }]} />
-//         ),
-//       })}
-//     >
-//       <Tab.Screen name="Home" component={CustomerDashboard} />
-//       <Tab.Screen name="Payments" component={ExpensesScreen} />
-//       <Tab.Screen name="Bookings" component={MyBookingsScreen} />
-//       <Tab.Screen name="Chat" component={ChatBookingsScreen} />
-//     </Tab.Navigator>
-//   );
-// }
-
-// function SplashScreenWrapper() {
-//   const navigation = useNavigation();
-//   const handleFinish = async () => {
-//     try {
-//       const customerData = await AsyncStorage.getItem('customer');  
-//       console.log(':key: Customer Data:', customerData); 
-//       if (customerData) {
-//         navigation.replace('CustomerDashboard');
-//       } else {
-//         navigation.replace('Onboarding');
-//       }
-//     } catch (error) {
-//       console.log("Session check error:", error);
-//       navigation.replace('Onboarding');
-//     }
-//   };
-//   return <SplashScreen onFinish={handleFinish} />;
-// }
-
-// export default function App() {
-//   useEffect(() => {
-//     async function setupNotifications() {
-//       console.log('Requesting permissions...');
-//       if (Platform.OS === 'android' && Platform.Version >= 33) {
-//         const status = await notifee.requestPermission();
-//         console.log('Android permission status:', status);
-//         if (!status) {
-//           Alert.alert('Notification permission denied');
-//           return;
-//         }
-//       } else {
-//         const authStatus = await messaging().requestPermission();
-//         console.log('iOS permission status:', authStatus);
-//         if (
-//           authStatus !== messaging.AuthorizationStatus.AUTHORIZED &&
-//           authStatus !== messaging.AuthorizationStatus.PROVISIONAL
-//         ) {
-//           Alert.alert('Notification permission denied');
-//           return;
-//         }
-//       }
-// console.log('Creating channel...');
-//       await notifee.createChannel({
-//         id: 'default',
-//         name: 'Default Channel',
-//         importance: AndroidImportance.HIGH,
-//         badge: true,
-//       });
-//       const fcmToken = await messaging().getToken();
-//       console.log('FCM Token:', fcmToken);
-//       // TODO: Send this token to your backend here
-//      const unsubscribe = messaging().onMessage(async remoteMessage => {
-//   console.log('Received foreground message:', remoteMessage);
-// badgeCount += 1; // increase badge count
-//   await notifee.setBadgeCount(badgeCount); // :white_check_mark: set on icon
-//   const { title, body, image } = remoteMessage.data;
-//   await notifee.displayNotification({
-//     title: title,
-//     body: body,
-//     android: {
-//       channelId: 'default',
-//       smallIcon: 'ic_launcher',
-//       badgeIconType: 1,
-//       importance: AndroidImportance.HIGH,
-//       style: image && image !== 'null'
-//   ? {
-//       type: AndroidStyle.BIGPICTURE,
-//       picture: image,
-//     }
-//   : undefined,
-//     },
-//   });
-// });
-//       return unsubscribe;
-//     }
-// const testBadge = async () => {
-//     await notifee.setBadgeCount(5);
-//   };
-//   testBadge();
-
-//     const unsubscribePromise = setupNotifications();
-
-//     return () => {
-//       unsubscribePromise.then(unsubscribe => unsubscribe && unsubscribe());
-//     };
-//   }, []);
-
-//   return (
-//     <NavigationContainer>
-//       <Stack.Navigator initialRouteName="Splash" screenOptions={{ headerShown: false }}>
-//         <Stack.Screen name="Splash" component={SplashScreenWrapper} />
-//         <Stack.Screen name="Onboarding" component={OnboardingScreen} />
-//         <Stack.Screen name="Login" component={LoginScreen} />
-//         <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
-// <Stack.Screen name="Notifications" component={NotificationScreen} />
-//         <Stack.Screen name="Register" component={RegisterScreen} />
-//         <Stack.Screen name="CustomerDashboard" component={CustomerDashboardTab} />
-//         <Stack.Screen name="BookingDetail" component={BookingDetailScreen} />
-//         <Stack.Screen name="ViewQuote" component={ViewQuoteScreen} />
-//         <Stack.Screen name="MyBookings" component={MyBookingsScreen} />
-//         <Stack.Screen name="BikeBookingScreen" component={BikeBookingScreen} />
-//         <Stack.Screen name="BookingConfirmation" component={BookingConfirmationScreen} />
-//         <Stack.Screen name="VendorLogin" component={VendorLoginScreen} />
-//         <Stack.Screen name="VendorRegister" component={VendorRegisterScreen} />
-//         <Stack.Screen name="VendorDashboard" component={VendorDashboardScreen} />
-//         <Stack.Screen name="OtpScreen" component={OtpScreen} />
-//         <Stack.Screen name="LoginOtpScreen" component={LoginOtpScreen} />
-//         <Stack.Screen name="ExpensesScreen" component={ExpensesScreen} />
-//         <Stack.Screen name="BusBookingScreen" component={BusBookingScreen} />
-//         <Stack.Screen name="LocalScreen" component={LocalScreen} />
-//         <Stack.Screen name="OutstationScreen" component={OutstationScreen} />
-//         <Stack.Screen name="TruckBookingScreen" component={TruckBookingScreen} />
-//         <Stack.Screen name="CommercialBookingScreen" component={CommercialBookingScreen} />
-//         <Stack.Screen name="PersonalBookingScreen" component={PersonalBookingScreen} />
-//         <Stack.Screen name="EquipmentBookingScreen" component={EquipmentBookingScreen} />
-//         <Stack.Screen name="LuxuryCarBookingScreen" component={LuxuryCarBookingScreen} />
-//         <Stack.Screen name="StandardCarBookingScreen" component={StandardCarBookingScreen} />
-//         <Stack.Screen name="Chatsvendor" component={ChatScreen} />
-//         <Stack.Screen name="BookingVendors" component={BookingVendorsScreen} />
-//         <Stack.Screen name="ChatBookings" component={ChatBookingsScreen} />
-//         <Stack.Screen name="RoundTripBookingScreen" component={RoundTripBookingScreen} />
-//         <Stack.Screen name="OneWayBookingScreen" component={OneWayBookingScreen} />
-//         <Stack.Screen name="AirportBookingScreen" component={AirportBookingScreen} />
-//         <Stack.Screen name="SelfDriveBookingScreen" component={SelfDriveBookingScreen} />
-//         <Stack.Screen name="PackersMoversBookingScreen" component={PackersMoversBookingScreen} />
-//         <Stack.Screen name="HomeBookingScreen" component={HomeBookingScreen} />
-//         <Stack.Screen name="OfficeBookingScreen" component={OfficeBookingScreen} />
-//         <Stack.Screen name="VehicleBookingScreen" component={VehicleBookingScreen} />
-//         <Stack.Screen name="ChatList" component={ChatListScreen} />
-//         <Stack.Screen name="ChatDetail" component={ChatDetailScreen} />
-//         <Stack.Screen name="EditProfileScreen" component={EditProfileScreen} />
-//         <Stack.Screen name="SettingScreen" component={SettingScreen} />
-//         <Stack.Screen name="BikeRentalScreen" component={BikeRentalScreen} />
-//         <Stack.Screen name="CarRentalScreen" component={CarRentalScreen} />
-//         <Stack.Screen name="BusRentalScreen" component={BusRentalScreen} />
-//         <Stack.Screen name="TruckRentalScreen" component={TruckRentalScreen} />
-//         <Stack.Screen name="EquipmentScreen" component={EquipmentScreen} />
-//         <Stack.Screen name="PackerMoverScreen" component={PackerMoverScreen} />
-//         <Stack.Screen name="AirportScreen" component={AirportScreen} />
-//         <Stack.Screen name="SelfDriveScreen" component={SelfDriveScreen} />
-//         <Stack.Screen name="LuxuryScreen" component={LuxuryScreen} />
-//         <Stack.Screen name="OnewayScreenHome" component={OnewayScreenHome} />
-//         <Stack.Screen name="AboutUsScreen" component={AboutUsScreen} />
-// <Stack.Screen name="HelpdeskScreen" component={HelpdeskScreen} />
-//       </Stack.Navigator>
-//     </NavigationContainer>
-//   );
-// }
-
-// const styles = StyleSheet.create({
-//   tabBar: {
-//     paddingBottom: 20,
-//     marginBottom: 10,
-//   },
-//   tabBarLabel: {
-//     fontSize: 12,
-//     fontWeight: '500',
-//     marginTop: 4,
-//   },
-//   tabBarLabelFocused: {
-//     color: '#000',
-//   },
-//   tabBarLabelDefault: {
-//     color: '#000',
-//   },
-//   iconFocusedColor: {
-//     color: '#404040',
-//   },
-//   iconDefaultColor: {
-//     color: '#757575',
-//   },
-//   tabBarStyle: {
-//     paddingBottom: 20,
-//     height: '7%',
-//   },
-//   iconContainernavi: {
-//     alignItems: 'center',
-//   },
-//   activeTabDiv: {
-//     width: 35,
-//     height: 4,
-//     marginTop: 0,
-//     backgroundColor: '#4CAF50',
-//     borderRadius: 1.5,
-//     marginBottom: 5,
-//   },
-// });

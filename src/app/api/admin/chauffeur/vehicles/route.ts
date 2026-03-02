@@ -24,6 +24,11 @@ export async function GET() {
             chauffeur_route_packages: true,
           },
         },
+        vehicle_models: {
+          where: { isActive: true, sideImage: { not: null } },
+          select: { sideImage: true },
+          take: 1,
+        },
       },
     });
 
@@ -38,7 +43,7 @@ export async function GET() {
         luggageCapacity: c.luggageCapacity,
         acType: c.acType,
         fuelType: c.fuelType,
-        image: c.image,
+        image: c.image || c.vehicle_models?.[0]?.sideImage || null,
         icon: c.icon,
         displayOrder: c.displayOrder,
         isActive: c.isActive,

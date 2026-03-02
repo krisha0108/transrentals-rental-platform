@@ -9,6 +9,7 @@ import { sendNotificationToCustomer } from '@/lib/services/push-notification-ser
 
 import logger from '@/lib/security/logger';
 import { sendVendorDirectNotification } from '@/lib/utils/vendor-notification-sender';
+import { creditBackrTokens } from '@/lib/utils/backr-tokens';
 export const dynamic = 'force-dynamic';
 
 // POST - Vendor completes Bus Booking trip
@@ -157,6 +158,15 @@ export async function POST(
       bookingId: booking.id,
       bookingNumber: booking.bookingNumber,
     }).catch((err: any) => console.error('[BusComplete] Vendor notify failed:', err));
+
+    // Credit 10% Backr tokens to customer
+    creditBackrTokens({
+      customerId: booking.customerId,
+      bookingAmount: finalAmount,
+      bookingId: booking.id,
+      bookingNumber: booking.bookingNumber,
+      serviceType: 'bus',
+    });
 
     return NextResponse.json({
       success: true,

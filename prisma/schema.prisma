@@ -1221,6 +1221,7 @@ model customers {
   self_drive_quote_requests self_drive_quote_requests[]
   truck_bookings            truck_bookings[]
   truck_quote_requests      truck_quote_requests[]
+  customer_wallet           customer_wallets?
 
   @@index([email])
   @@index([isActive])
@@ -4919,4 +4920,35 @@ enum p2p_urgency {
   HIGH
   MEDIUM
   LOW
+}
+
+// Backr Token Wallet
+model customer_wallets {
+  id              String   @id @default(cuid())
+  customerId      String   @unique
+  balance         Float    @default(0)
+  totalEarned     Float    @default(0)
+  totalRedeemed   Float    @default(0)
+  solanaWallet    String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  customers       customers @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([customerId])
+}
+
+model backr_transactions {
+  id              String   @id @default(cuid())
+  customerId      String
+  type            String   // 'CREDIT' or 'DEBIT'
+  amount          Float
+  balance         Float    // balance after transaction
+  bookingId       String?
+  bookingNumber   String?
+  serviceType     String?  // bike, car, bus, truck, equipment, packers, luxury, chauffeur
+  description     String?  @db.Text
+  createdAt       DateTime @default(now())
+
+  @@index([customerId])
+  @@index([bookingId])
 }

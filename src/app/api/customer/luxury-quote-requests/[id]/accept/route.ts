@@ -45,8 +45,8 @@ export async function POST(
     const quote = await prisma.luxury_quotes.findUnique({
       where: { id: quoteId },
       include: {
-        request: true,
-        vendor: true,
+        luxury_quote_requests: true,
+        vendors: true,
       },
     });
 
@@ -80,8 +80,55 @@ export async function POST(
       );
     }
 
-    // Check if request is already accepted
-    if (quote.request.status === 'QUOTE_ACCEPTED') {
+    const quoteRequest = quote.luxury_quote_requests;
+
+    // Idempotency: check if a booking already exists for this quote (handles retries)
+    const existingBookingByQuote = await prisma.luxury_bookings.findUnique({
+      where: { acceptedQuoteId: quoteId },
+    });
+    if (existingBookingByQuote) {
+      // Booking already created from a previous attempt — return it as success
+      // Also ensure the quote request and quote statuses are updated (in case they weren't)
+      await prisma.luxury_quote_requests.update({
+        where: { id: resolvedParams.id },
+        data: { status: 'QUOTE_ACCEPTED', acceptedQuoteId: quoteId },
+      }).catch(() => {});
+      await prisma.luxury_quotes.update({
+        where: { id: quoteId },
+        data: { status: 'ACCEPTED' },
+      }).catch(() => {});
+
+      return NextResponse.json({
+        success: true,
+        message: 'Quote accepted successfully',
+        booking: {
+          id: existingBookingByQuote.id,
+          bookingNumber: existingBookingByQuote.bookingNumber,
+          grandTotal: existingBookingByQuote.grandTotal,
+          advanceAmount: existingBookingByQuote.advanceAmount,
+        },
+      });
+    }
+
+    // Also check by quoteRequestId (another unique field)
+    const existingBookingByRequest = await prisma.luxury_bookings.findUnique({
+      where: { quoteRequestId: resolvedParams.id },
+    });
+    if (existingBookingByRequest) {
+      return NextResponse.json({
+        success: true,
+        message: 'Quote accepted successfully',
+        booking: {
+          id: existingBookingByRequest.id,
+          bookingNumber: existingBookingByRequest.bookingNumber,
+          grandTotal: existingBookingByRequest.grandTotal,
+          advanceAmount: existingBookingByRequest.advanceAmount,
+        },
+      });
+    }
+
+    // Check if request is already accepted (but no booking found — shouldn't happen, but handle it)
+    if (quoteRequest.status === 'QUOTE_ACCEPTED') {
       return NextResponse.json(
         { success: false, message: 'A quote has already been accepted for this request' },
         { status: 400 }
@@ -92,109 +139,114 @@ export async function POST(
     const pickupOtp = generateOTP();
     const dropOtp = generateOTP();
 
-    // Create booking from quote
-    const booking = await prisma.luxury_bookings.create({
-      data: {
-        bookingNumber,
-        customerName: quote.request.customerName,
-        customerEmail: quote.request.customerEmail,
-        customerPhone: quote.request.customerPhone,
-        ...(quote.request.customerId ? { customer: { connect: { id: quote.request.customerId } } } : {}),
-        ...(quote.request.locationId ? { location: { connect: { id: quote.request.locationId } } } : {}),
-        locationName: quote.request.pickupCity,
+    // Use transaction for atomicity — all-or-nothing
+    const booking = await prisma.$transaction(async (tx) => {
+      // Create booking from quote
+      const newBooking = await tx.luxury_bookings.create({
+        data: {
+          bookingNumber,
+          customerName: quoteRequest.customerName,
+          customerEmail: quoteRequest.customerEmail,
+          customerPhone: quoteRequest.customerPhone,
+          ...(quoteRequest.customerId ? { customers: { connect: { id: quoteRequest.customerId } } } : {}),
+          ...(quoteRequest.locationId ? { locations: { connect: { id: quoteRequest.locationId } } } : {}),
+          locationName: quoteRequest.pickupCity,
 
-        // Trip Details
-        tripType: quote.request.tripType,
-        eventType: null,
-        occasion: quote.request.occasion,
+          // Trip Details
+          tripType: quoteRequest.tripType,
+          eventType: null,
+          occasion: quoteRequest.occasion,
 
-        // Vehicle Details from quote
-        carCategory: quote.vehicle_category,
-        carCategoryName: quote.request.vehicleCategoryName || quote.vehicle_category,
-        vehicleNumber: quote.vehicleNumber,
-        vehicleModel: quote.vehicleModel,
-        vehicleBrand: quote.vehicleName?.split(' ')[0] || null,
-        vehicleColor: null,
-        vehicleImages: typeof quote.vehicleImages === 'string'
-          ? quote.vehicleImages
-          : JSON.stringify(quote.vehicleImages),
+          // Vehicle Details from quote
+          carCategory: quote.vehicleCategory,
+          carCategoryName: quoteRequest.vehicleCategoryName || quote.vehicleCategory,
+          vehicleNumber: quote.vehicleNumber,
+          vehicleModel: quote.vehicleModel,
+          vehicleBrand: quote.vehicleName?.split(' ')[0] || null,
+          vehicleColor: null,
+          vehicleImages: typeof quote.vehicleImages === 'string'
+            ? quote.vehicleImages
+            : JSON.stringify(quote.vehicleImages),
 
-        // Route
-        pickupCity: quote.request.pickupCity,
-        pickupAddress: quote.request.pickupAddress,
-        dropCity: quote.request.dropCity,
-        dropAddress: quote.request.dropAddress,
+          // Route
+          pickupCity: quoteRequest.pickupCity,
+          pickupAddress: quoteRequest.pickupAddress,
+          dropCity: quoteRequest.dropCity,
+          dropAddress: quoteRequest.dropAddress,
 
-        // Schedule
-        pickupDate: quote.request.pickupDate,
-        pickupTime: quote.request.pickupTime,
-        returnDate: quote.request.returnDate,
-        returnTime: quote.request.returnTime,
-        totalDays: quote.request.tripDays,
-        totalHours: quote.request.tripHours,
+          // Schedule
+          pickupDate: quoteRequest.pickupDate,
+          pickupTime: quoteRequest.pickupTime,
+          returnDate: quoteRequest.returnDate,
+          returnTime: quoteRequest.returnTime,
+          totalDays: quoteRequest.tripDays,
+          totalHours: quoteRequest.tripHours,
 
-        // Requirements
-        needDecoration: quote.request.needDecoration,
-        decorationType: quote.request.decorationType,
-        needChauffeur: quote.request.needChauffeur,
+          // Requirements
+          needDecoration: quoteRequest.needDecoration,
+          decorationType: quoteRequest.decorationType,
+          needChauffeur: quoteRequest.needChauffeur,
 
-        // Driver Details from quote
-        driverName: quote.driverName,
-        driverPhone: quote.driverPhone,
+          // Driver Details from quote
+          driverName: quote.driverName,
+          driverPhone: quote.driverPhone,
 
-        // Pricing from quote
-        baseFare: quote.baseAmount,
-        decorationCharges: quote.decorationCharges || 0,
-        chauffeurCharges: quote.chauffeurCharges || 0,
-        gstAmount: quote.gstAmount || 0,
-        grandTotal: quote.totalAmount,
-        advanceAmount: quote.advanceAmount || 0,
-        advancePercent: quote.advancePercent || 0,
+          // Pricing from quote
+          baseFare: quote.baseAmount,
+          decorationCharges: quote.decorationCharges || 0,
+          chauffeurCharges: quote.chauffeurCharges || 0,
+          gstAmount: quote.gstAmount || 0,
+          grandTotal: quote.totalAmount,
+          advanceAmount: quote.advanceAmount || 0,
+          advancePercent: quote.advancePercent || 0,
 
-        // Status
-        status: 'PENDING_PAYMENT',
-        paymentStatus: 'PENDING',
+          // Status
+          status: 'PENDING_PAYMENT',
+          paymentStatus: 'PENDING',
 
-        // Vendor Assignment (use scalar field directly — relation name is auto-generated and long)
-        acceptedVendorId: quote.vendorId,
-        acceptedAt: new Date(),
+          // Vendor Assignment
+          vendors_luxury_bookings_acceptedVendorIdTovendors: { connect: { id: quote.vendorId } },
+          acceptedAt: new Date(),
 
-        // Link to source quote request and accepted quote
-        quoteRequestId: resolvedParams.id,
-        acceptedQuoteId: quoteId,
+          // Link to source quote request and accepted quote
+          luxury_quote_requests: { connect: { id: resolvedParams.id } },
+          luxury_quotes: { connect: { id: quoteId } },
 
-        // OTPs
-        tripStartOtp: pickupOtp,
-        tripEndOtp: dropOtp,
+          // OTPs
+          tripStartOtp: pickupOtp,
+          tripEndOtp: dropOtp,
 
-        // Notes
-        customerNotes: quote.request.requirements,
-      },
-    });
+          // Notes
+          customerNotes: quoteRequest.requirements,
+        },
+      });
 
-    // Update quote request status
-    await prisma.luxury_quote_requests.update({
-      where: { id: resolvedParams.id },
-      data: {
-        status: 'QUOTE_ACCEPTED',
-        acceptedQuoteId: quoteId,
-      },
-    });
+      // Update quote request status
+      await tx.luxury_quote_requests.update({
+        where: { id: resolvedParams.id },
+        data: {
+          status: 'QUOTE_ACCEPTED',
+          acceptedQuoteId: quoteId,
+        },
+      });
 
-    // Update accepted quote status
-    await prisma.luxury_quotes.update({
-      where: { id: quoteId },
-      data: { status: 'ACCEPTED' },
-    });
+      // Update accepted quote status
+      await tx.luxury_quotes.update({
+        where: { id: quoteId },
+        data: { status: 'ACCEPTED' },
+      });
 
-    // Reject other quotes for this request
-    await prisma.luxury_quotes.updateMany({
-      where: {
-        requestId: resolvedParams.id,
-        id: { not: quoteId },
-        status: { in: ['SENT', 'VIEWED'] },
-      },
-      data: { status: 'REJECTED' },
+      // Reject other quotes for this request
+      await tx.luxury_quotes.updateMany({
+        where: {
+          requestId: resolvedParams.id,
+          id: { not: quoteId },
+          status: { in: ['SENT', 'VIEWED'] },
+        },
+        data: { status: 'REJECTED' },
+      });
+
+      return newBooking;
     });
 
     logger.info('Luxury quote accepted and booking created', {
@@ -226,9 +278,17 @@ export async function POST(
       },
     });
   } catch (error: any) {
-    logger.error('Failed to accept luxury quote', error);
+    logger.error('Failed to accept luxury quote', {
+      message: error?.message,
+      code: error?.code,
+      meta: error?.meta,
+    });
     return NextResponse.json(
-      { success: false, message: 'Failed to accept quote', details: error?.message },
+      {
+        success: false,
+        message: error?.message || 'Failed to accept quote',
+        code: error?.code || null,
+      },
       { status: 500 }
     );
   }

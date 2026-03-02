@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -13,28 +13,31 @@ import {
   Modal,
   Dimensions,
   Animated,
+  StatusBar,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import LinearGradient from 'react-native-linear-gradient';
+import {
+  widthPercentageToDP as wp,
+  heightPercentageToDP as hp,
+} from 'react-native-responsive-screen';
 import api from '../../api';
+import { TEAL_DEEP, TEAL_MID, TEAL, TEAL_LIGHT, BG, CARD, TEXT_PRIMARY, TEXT_SECONDARY, TEXT_MUTED, SHADOW_SM, SHADOW_MD } from '../../../theme';
 
 const { width, height } = Dimensions.get('window');
 
-// Light Mode Colors
-const AMBER = '#F59E0B';
-const AMBER_DARK = '#D97706';
-const AMBER_LIGHT = '#FEF3C7';
-const LUXURY_GOLD = '#D4AF37';
-const BG = '#F9FAFB';
-const CARD_BG = '#FFFFFF';
-const TEXT_PRIMARY = '#111827';
-const TEXT_SECONDARY = '#6B7280';
-const BORDER_COLOR = '#E5E7EB';
-const GREEN = '#09B368';
+const STATUS_CONFIG = {
+  PENDING: { label: 'Awaiting Quotes', color: '#F59E0B', icon: 'time-outline' },
+  QUOTES_RECEIVED: { label: 'Quotes Received', color: '#3B82F6', icon: 'mail-outline' },
+  ACCEPTED: { label: 'Quote Accepted', color: '#10B981', icon: 'checkmark-circle' },
+  EXPIRED: { label: 'Expired', color: '#EF4444', icon: 'close-circle-outline' },
+  CANCELLED: { label: 'Cancelled', color: '#6B7280', icon: 'close-circle' },
+};
 
 export default function LuxuryQuoteDetailScreen() {
   const navigation = useNavigation();
@@ -53,6 +56,22 @@ export default function LuxuryQuoteDetailScreen() {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [successData, setSuccessData] = useState(null);
   const [successAnimation] = useState(new Animated.Value(0));
+
+  // StatusBar management
+  useFocusEffect(
+    useCallback(() => {
+      StatusBar.setBarStyle('light-content', true);
+      if (Platform.OS === 'android') {
+        StatusBar.setBackgroundColor(TEAL_DEEP, true);
+      }
+      return () => {
+        StatusBar.setBarStyle('dark-content', true);
+        if (Platform.OS === 'android') {
+          StatusBar.setBackgroundColor('#FFFFFF', true);
+        }
+      };
+    }, [])
+  );
 
   useEffect(() => {
     loadData();
@@ -173,6 +192,8 @@ export default function LuxuryQuoteDetailScreen() {
       }
     } catch (error) {
       console.error('Error accepting quote:', error);
+      console.error('Server response data:', JSON.stringify(error.response?.data));
+      console.error('Server status:', error.response?.status);
       const errorMessage = error.response?.data?.message || error.message || 'Failed to accept quote';
       Alert.alert('Error', errorMessage);
     } finally {
@@ -232,21 +253,28 @@ export default function LuxuryQuoteDetailScreen() {
   };
 
   const formatCurrency = (amount) => {
-    return `₹${amount.toLocaleString('en-IN')}`;
+    return `\u20B9${amount.toLocaleString('en-IN')}`;
   };
 
   if (loading) {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-            <Ionicons name="arrow-back" size={24} color={TEXT_PRIMARY} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Quote Details</Text>
-        </View>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={AMBER} />
-          <Text style={styles.loadingText}>Loading quote details...</Text>
+        <LinearGradient colors={[TEAL_DEEP, TEAL_MID, '#047857']} style={styles.headerGrad}>
+          <View style={[styles.decoCircle, { top: -30, right: -20, width: 100, height: 100 }]} pointerEvents="none" />
+          <View style={[styles.decoCircle, { bottom: -15, left: -15, width: 60, height: 60 }]} pointerEvents="none" />
+          <View style={styles.headerRow}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+              <Ionicons name="chevron-back" size={22} color="#FFF" />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>Loading...</Text>
+            <View style={{ width: wp('9%') }} />
+          </View>
+        </LinearGradient>
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: BG }}>
+          <ActivityIndicator size="large" color={TEAL} />
+          <Text style={{ color: TEXT_SECONDARY, marginTop: hp('1.5%'), fontSize: wp('3.5%'), fontWeight: '500' }}>
+            Loading quote details...
+          </Text>
         </View>
       </SafeAreaView>
     );
@@ -255,138 +283,184 @@ export default function LuxuryQuoteDetailScreen() {
   if (!quoteRequest) {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-            <Ionicons name="arrow-back" size={24} color={TEXT_PRIMARY} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Quote Details</Text>
-        </View>
-        <View style={styles.errorContainer}>
-          <MaterialCommunityIcons name="alert-circle-outline" size={64} color={TEXT_SECONDARY} />
-          <Text style={styles.errorText}>Quote request not found</Text>
-        </View>
+        <LinearGradient colors={[TEAL_DEEP, TEAL_MID, '#047857']} style={styles.headerGrad}>
+          <View style={[styles.decoCircle, { top: -30, right: -20, width: 100, height: 100 }]} pointerEvents="none" />
+          <View style={[styles.decoCircle, { bottom: -15, left: -15, width: 60, height: 60 }]} pointerEvents="none" />
+          <View style={styles.headerRow}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+              <Ionicons name="chevron-back" size={22} color="#FFF" />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>Quote Request</Text>
+            <View style={{ width: wp('9%') }} />
+          </View>
+        </LinearGradient>
+        <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'center' }}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[TEAL]} />}>
+          <View style={{ alignItems: 'center', paddingHorizontal: wp('8%') }}>
+            <LinearGradient colors={[TEAL_LIGHT, '#A7F3D0']} style={styles.emptyCircle}>
+              <MaterialCommunityIcons name="alert-circle-outline" size={wp('12%')} color={TEAL_MID} />
+            </LinearGradient>
+            <Text style={styles.emptyTitle}>Quote Request Not Found</Text>
+            <Text style={styles.emptyDesc}>We couldn't find this quote request. It may have been removed.</Text>
+            <TouchableOpacity style={styles.refreshBtnStyle} onPress={() => navigation.goBack()}>
+              <Ionicons name="arrow-back" size={16} color={TEAL_MID} />
+              <Text style={styles.refreshBtnText}>Go Back</Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
       </SafeAreaView>
     );
   }
 
   const hasQuotes = quoteRequest.quotes && quoteRequest.quotes.length > 0;
+  const statusConfig = STATUS_CONFIG[quoteRequest.status] || STATUS_CONFIG.PENDING;
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Ionicons name="arrow-back" size={24} color={TEXT_PRIMARY} />
-        </TouchableOpacity>
-        <View style={styles.headerCenter}>
-          <Text style={styles.headerTitle}>Quote Details</Text>
-          <Text style={styles.headerSubtitle}>{quoteRequest.requestNumber}</Text>
+      <LinearGradient colors={[TEAL_DEEP, TEAL_MID, '#047857']} style={styles.headerGrad}>
+        <View style={[styles.decoCircle, { top: -30, right: -20, width: 100, height: 100 }]} pointerEvents="none" />
+        <View style={[styles.decoCircle, { bottom: -15, left: -15, width: 60, height: 60 }]} pointerEvents="none" />
+        <View style={[styles.decoCircle, { top: hp('3%'), left: wp('25%'), width: 40, height: 40 }]} pointerEvents="none" />
+        <View style={styles.headerRow}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+            <Ionicons name="chevron-back" size={22} color="#FFF" />
+          </TouchableOpacity>
+          <View style={styles.headerCenter}>
+            <Text style={styles.headerTitle}>Quote Request</Text>
+            <Text style={styles.headerSub}>Luxury · #{quoteRequest.requestNumber}</Text>
+          </View>
+          <TouchableOpacity style={styles.headerActionBtn} onPress={onRefresh}>
+            <Ionicons name="refresh" size={18} color="#FFF" />
+          </TouchableOpacity>
         </View>
-        <View style={{ width: 40 }} />
-      </View>
+
+        {/* Glass summary card */}
+        <View style={styles.glassCard}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.glassLabel}>STATUS</Text>
+              <Text style={styles.glassValue}>{statusConfig.label}</Text>
+            </View>
+            <View style={[styles.statusPill, { backgroundColor: statusConfig.color }]}>
+              <Ionicons name={statusConfig.icon} size={14} color="#FFF" />
+              <Text style={styles.statusPillText}>{statusConfig.label}</Text>
+            </View>
+          </View>
+          <View style={styles.metaRow}>
+            <View style={styles.metaChip}>
+              <Ionicons name="calendar-outline" size={14} color="rgba(255,255,255,0.8)" />
+              <Text style={styles.metaChipText}>{formatDate(quoteRequest.pickupDate)}</Text>
+            </View>
+            {quoteRequest.pickupTime && (
+              <View style={styles.metaChip}>
+                <Ionicons name="time-outline" size={14} color="rgba(255,255,255,0.8)" />
+                <Text style={styles.metaChipText}>{quoteRequest.pickupTime}</Text>
+              </View>
+            )}
+          </View>
+        </View>
+      </LinearGradient>
 
       <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
+        style={styles.content}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            colors={[AMBER]}
-            tintColor={AMBER}
+            colors={[TEAL]}
+            tintColor={TEAL}
           />
         }
       >
         {/* Request Summary Card */}
         <View style={styles.summaryCard}>
-          <LinearGradient
-            colors={[AMBER, AMBER_DARK]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.summaryGradient}
-          >
-            <MaterialCommunityIcons name="crown" size={32} color={AMBER} style={styles.crownIcon} />
-            <Text style={styles.summaryTitle}>{quoteRequest.vehicleCategoryName || quoteRequest.vehicleCategory}</Text>
-            <Text style={styles.summarySubtitle}>{quoteRequest.tripType.toUpperCase()}</Text>
-
-            <View style={styles.summaryRow}>
-              <View style={styles.summaryItem}>
-                <Ionicons name="location" size={18} color={TEXT_PRIMARY} />
-                <Text style={styles.summaryItemText}>{quoteRequest.pickupCity}</Text>
-              </View>
-              {quoteRequest.dropCity && (
-                <>
-                  <Ionicons name="arrow-forward" size={16} color={TEXT_SECONDARY} />
-                  <View style={styles.summaryItem}>
-                    <Ionicons name="location" size={18} color={TEXT_PRIMARY} />
-                    <Text style={styles.summaryItemText}>{quoteRequest.dropCity}</Text>
-                  </View>
-                </>
-              )}
+          <View style={styles.summaryIconRow}>
+            <View style={styles.crownCircle}>
+              <MaterialCommunityIcons name="crown" size={wp('6%')} color={TEAL_MID} />
             </View>
+          </View>
+          <Text style={styles.summaryTitle}>{quoteRequest.vehicleCategoryName || quoteRequest.vehicleCategory}</Text>
+          <View style={styles.summaryTripBadge}>
+            <Text style={styles.summaryTripText}>{quoteRequest.tripType.toUpperCase()}</Text>
+          </View>
 
-            <View style={styles.summaryRow}>
-              <View style={styles.summaryItem}>
-                <Ionicons name="calendar" size={18} color={TEXT_PRIMARY} />
-                <Text style={styles.summaryItemText}>{formatDate(quoteRequest.pickupDate)}</Text>
-              </View>
-              <View style={styles.summaryItem}>
-                <Ionicons name="time" size={18} color={TEXT_PRIMARY} />
-                <Text style={styles.summaryItemText}>{quoteRequest.pickupTime}</Text>
-              </View>
+          <View style={styles.summaryRow}>
+            <View style={styles.summaryItem}>
+              <Ionicons name="location" size={16} color={TEAL} />
+              <Text style={styles.summaryItemText}>{quoteRequest.pickupCity}</Text>
             </View>
-          </LinearGradient>
-        </View>
-
-        {/* Trip Details */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Trip Details</Text>
-          <View style={styles.detailsCard}>
-            <DetailRow icon="car-sports" label="Vehicle Category" value={quoteRequest.vehicleCategoryName} />
-            {quoteRequest.specificModel && (
-              <DetailRow icon="car-luxury" label="Preferred Model" value={quoteRequest.specificModel} />
-            )}
-            <DetailRow icon="account-group" label="Passengers" value={`${quoteRequest.passengers} persons`} />
-            {quoteRequest.occasion && (
-              <DetailRow icon="calendar-star" label="Occasion" value={quoteRequest.occasion} />
-            )}
-            {quoteRequest.tripDays > 1 && (
-              <DetailRow icon="calendar-range" label="Trip Duration" value={`${quoteRequest.tripDays} days`} />
-            )}
-            {quoteRequest.packageType && (
-              <DetailRow icon="package-variant" label="Package" value={quoteRequest.packageType} />
-            )}
-            {quoteRequest.needDecoration && (
-              <DetailRow
-                icon="flower"
-                label="Decoration"
-                value={quoteRequest.decorationType || 'Required'}
-                valueColor={GREEN}
-              />
+            {quoteRequest.dropCity && (
+              <>
+                <Ionicons name="arrow-forward" size={14} color={TEXT_MUTED} />
+                <View style={styles.summaryItem}>
+                  <Ionicons name="location" size={16} color="#EF4444" />
+                  <Text style={styles.summaryItemText}>{quoteRequest.dropCity}</Text>
+                </View>
+              </>
             )}
           </View>
         </View>
 
+        {/* Trip Details */}
+        <View style={styles.detailsCard}>
+          <View style={styles.detailsHeader}>
+            <View style={styles.detailsIcon}>
+              <MaterialCommunityIcons name="car-sports" size={wp('4.5%')} color={TEAL_MID} />
+            </View>
+            <Text style={styles.detailsTitle}>Trip Details</Text>
+          </View>
+
+          <DetailRow icon="car-sports" label="Vehicle Category" value={quoteRequest.vehicleCategoryName} />
+          {quoteRequest.specificModel && (
+            <DetailRow icon="car-luxury" label="Preferred Model" value={quoteRequest.specificModel} />
+          )}
+          <DetailRow icon="account-group" label="Passengers" value={`${quoteRequest.passengers} persons`} />
+          {quoteRequest.occasion && (
+            <DetailRow icon="calendar-star" label="Occasion" value={quoteRequest.occasion} />
+          )}
+          {quoteRequest.tripDays > 1 && (
+            <DetailRow icon="calendar-range" label="Trip Duration" value={`${quoteRequest.tripDays} days`} />
+          )}
+          {quoteRequest.packageType && (
+            <DetailRow icon="package-variant" label="Package" value={quoteRequest.packageType} />
+          )}
+          {quoteRequest.needDecoration && (
+            <DetailRow
+              icon="flower"
+              label="Decoration"
+              value={quoteRequest.decorationType || 'Required'}
+              valueColor={TEAL}
+            />
+          )}
+        </View>
+
         {/* Addresses */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Addresses</Text>
-          <View style={styles.detailsCard}>
-            <View style={styles.addressBlock}>
-              <View style={styles.addressHeader}>
-                <Ionicons name="location" size={18} color={GREEN} />
-                <Text style={styles.addressLabel}>Pickup</Text>
+        <View style={styles.detailsCard}>
+          <View style={styles.detailsHeader}>
+            <View style={styles.detailsIcon}>
+              <Ionicons name="location" size={wp('4.5%')} color={TEAL_MID} />
+            </View>
+            <Text style={styles.detailsTitle}>Addresses</Text>
+          </View>
+
+          <View style={styles.locationSection}>
+            <View style={styles.locationRow}>
+              <View style={[styles.locationDot, { backgroundColor: TEAL }]} />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.locationLabel}>Pickup</Text>
+                <Text style={styles.locationText}>{quoteRequest.pickupAddress || quoteRequest.pickupCity}</Text>
               </View>
-              <Text style={styles.addressText}>{quoteRequest.pickupAddress || quoteRequest.pickupCity}</Text>
             </View>
 
             {quoteRequest.dropAddress && (
-              <View style={[styles.addressBlock, { marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#E5E7EB' }]}>
-                <View style={styles.addressHeader}>
-                  <Ionicons name="location" size={18} color={AMBER} />
-                  <Text style={styles.addressLabel}>Drop</Text>
+              <View style={[styles.locationRow, { marginTop: hp('1%'), paddingTop: hp('1%'), borderTopWidth: 1, borderTopColor: '#F3F4F6' }]}>
+                <View style={[styles.locationDot, { backgroundColor: '#EF4444' }]} />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.locationLabel}>Drop</Text>
+                  <Text style={styles.locationText}>{quoteRequest.dropAddress}</Text>
                 </View>
-                <Text style={styles.addressText}>{quoteRequest.dropAddress}</Text>
               </View>
             )}
           </View>
@@ -394,17 +468,20 @@ export default function LuxuryQuoteDetailScreen() {
 
         {/* Special Requirements */}
         {quoteRequest.requirements && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Special Requirements</Text>
-            <View style={styles.detailsCard}>
-              <Text style={styles.requirementsText}>{quoteRequest.requirements}</Text>
+          <View style={styles.detailsCard}>
+            <View style={styles.detailsHeader}>
+              <View style={styles.detailsIcon}>
+                <Ionicons name="document-text" size={wp('4.5%')} color={TEAL_MID} />
+              </View>
+              <Text style={styles.detailsTitle}>Special Requirements</Text>
             </View>
+            <Text style={styles.requirementsText}>{quoteRequest.requirements}</Text>
           </View>
         )}
 
         {/* Vendor Quotes */}
-        <View style={styles.section}>
-          <View style={styles.quotesHeader}>
+        <View style={styles.quotesSection}>
+          <View style={styles.quotesHeaderRow}>
             <Text style={styles.sectionTitle}>Vendor Quotes</Text>
             {hasQuotes && (
               <View style={styles.quotesCountBadge}>
@@ -416,14 +493,14 @@ export default function LuxuryQuoteDetailScreen() {
           {!hasQuotes ? (
             <View style={styles.noQuotesContainer}>
               <View style={styles.noQuotesIconCircle}>
-                <MaterialCommunityIcons name="receipt-text-outline" size={60} color={LUXURY_GOLD} />
+                <MaterialCommunityIcons name="crown" size={wp('12%')} color={TEAL} />
               </View>
               <Text style={styles.noQuotesTitle}>No Quotations Yet</Text>
               <Text style={styles.noQuotesMessage}>
                 Your request has been sent to vendors. They will review and send you competitive quotes soon.
               </Text>
               <View style={styles.noQuotesInfoBox}>
-                <MaterialCommunityIcons name="clock-outline" size={20} color="#666" />
+                <MaterialCommunityIcons name="clock-outline" size={20} color={TEXT_SECONDARY} />
                 <Text style={styles.noQuotesInfoText}>
                   Usually within 24-48 hours
                 </Text>
@@ -443,16 +520,16 @@ export default function LuxuryQuoteDetailScreen() {
                     {quote.vendor?.logo ? (
                       <Image source={{ uri: quote.vendor.logo }} style={styles.vendorImage} />
                     ) : (
-                      <View style={[styles.vendorImage, styles.vendorPlaceholder]}>
-                        <MaterialCommunityIcons name="store" size={20} color={AMBER} />
+                      <View style={styles.vendorAvatarCircle}>
+                        <MaterialCommunityIcons name="store" size={wp('5%')} color={TEAL_MID} />
                       </View>
                     )}
                     <View style={styles.vendorDetails}>
                       <Text style={styles.vendorName}>{quote.vendor?.businessName || 'Vendor'}</Text>
                       <View style={styles.vendorMeta}>
-                        {quote.vendor?.rating && (
+                        {quote.vendor?.rating > 0 && (
                           <View style={styles.ratingRow}>
-                            <Ionicons name="star" size={12} color={AMBER} />
+                            <Ionicons name="star" size={12} color="#F59E0B" />
                             <Text style={styles.ratingText}>{quote.vendor.rating.toFixed(1)}</Text>
                           </View>
                         )}
@@ -464,11 +541,12 @@ export default function LuxuryQuoteDetailScreen() {
                   </View>
 
                   <View style={styles.quotePriceContainer}>
+                    <Text style={styles.priceLabel}>Total</Text>
                     <Text style={styles.quotePrice}>{formatCurrency(quote.totalAmount)}</Text>
                     <Ionicons
                       name={expandedQuote === quote.id ? 'chevron-up' : 'chevron-down'}
-                      size={20}
-                      color={TEXT_SECONDARY}
+                      size={18}
+                      color={TEXT_MUTED}
                     />
                   </View>
                 </TouchableOpacity>
@@ -486,7 +564,7 @@ export default function LuxuryQuoteDetailScreen() {
                       {quote.vehicleNumber && (
                         <DetailRow icon="numeric" label="Number" value={quote.vehicleNumber} small />
                       )}
-                      {quote.vehicleYear && (
+                      {!!quote.vehicleYear && (
                         <DetailRow icon="calendar" label="Year" value={quote.vehicleYear.toString()} small />
                       )}
                     </View>
@@ -499,7 +577,7 @@ export default function LuxuryQuoteDetailScreen() {
                         {quote.driverPhone && (
                           <DetailRow icon="phone" label="Phone" value={quote.driverPhone} small />
                         )}
-                        {quote.driverExperience && (
+                        {quote.driverExperience > 0 && (
                           <DetailRow
                             icon="certificate"
                             label="Experience"
@@ -539,7 +617,7 @@ export default function LuxuryQuoteDetailScreen() {
                         <Text style={styles.totalLabel}>Total Amount</Text>
                         <Text style={styles.totalValue}>{formatCurrency(quote.totalAmount)}</Text>
                       </View>
-                      {quote.advanceAmount && (
+                      {quote.advanceAmount > 0 && (
                         <View style={styles.advanceRow}>
                           <Text style={styles.advanceLabel}>Advance to Pay</Text>
                           <Text style={styles.advanceValue}>{formatCurrency(quote.advanceAmount)}</Text>
@@ -548,19 +626,19 @@ export default function LuxuryQuoteDetailScreen() {
                     </View>
 
                     {/* Rates */}
-                    {(quote.perKmRate || quote.perHourRate) && (
+                    {(quote.perKmRate > 0 || quote.perHourRate > 0) && (
                       <View style={styles.quoteSection}>
                         <Text style={styles.quoteSectionTitle}>Additional Rates</Text>
-                        {quote.perKmRate && (
+                        {quote.perKmRate > 0 && (
                           <DetailRow icon="road" label="Per KM Rate" value={formatCurrency(quote.perKmRate)} small />
                         )}
-                        {quote.perHourRate && (
+                        {quote.perHourRate > 0 && (
                           <DetailRow icon="clock" label="Per Hour Rate" value={formatCurrency(quote.perHourRate)} small />
                         )}
-                        {quote.extraKmRate && (
+                        {quote.extraKmRate > 0 && (
                           <DetailRow icon="plus" label="Extra KM" value={formatCurrency(quote.extraKmRate)} small />
                         )}
-                        {quote.extraHourRate && (
+                        {quote.extraHourRate > 0 && (
                           <DetailRow icon="plus" label="Extra Hour" value={formatCurrency(quote.extraHourRate)} small />
                         )}
                       </View>
@@ -580,7 +658,7 @@ export default function LuxuryQuoteDetailScreen() {
                         style={styles.callBtn}
                         onPress={() => handleCallVendor(quote.vendor?.phone)}
                       >
-                        <Ionicons name="call" size={18} color={GREEN} />
+                        <Ionicons name="call" size={18} color={TEAL_MID} />
                         <Text style={styles.callBtnText}>Call Vendor</Text>
                       </TouchableOpacity>
 
@@ -590,16 +668,16 @@ export default function LuxuryQuoteDetailScreen() {
                         disabled={acceptingQuote === quote.id}
                       >
                         <LinearGradient
-                          colors={[AMBER, AMBER_DARK]}
+                          colors={[TEAL_MID, '#047857']}
                           start={{ x: 0, y: 0 }}
                           end={{ x: 1, y: 0 }}
                           style={styles.acceptGradient}
                         >
                           {acceptingQuote === quote.id ? (
-                            <ActivityIndicator size="small" color={BG} />
+                            <ActivityIndicator size="small" color="#FFF" />
                           ) : (
                             <>
-                              <MaterialCommunityIcons name="check-circle" size={18} color={BG} />
+                              <MaterialCommunityIcons name="check-circle" size={18} color="#FFF" />
                               <Text style={styles.acceptBtnText}>Accept Quote</Text>
                             </>
                           )}
@@ -641,7 +719,7 @@ export default function LuxuryQuoteDetailScreen() {
             ]}
           >
             <LinearGradient
-              colors={['#FFF', AMBER_LIGHT]}
+              colors={['#FFF', TEAL_LIGHT]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={styles.modalGradient}
@@ -649,12 +727,12 @@ export default function LuxuryQuoteDetailScreen() {
               {/* Crown Icon */}
               <View style={styles.modalIconContainer}>
                 <LinearGradient
-                  colors={[AMBER, AMBER_DARK]}
+                  colors={[TEAL_MID, '#047857']}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 1 }}
                   style={styles.modalIconBg}
                 >
-                  <MaterialCommunityIcons name="crown" size={48} color="#FFF" />
+                  <MaterialCommunityIcons name="crown" size={wp('10%')} color="#FFF" />
                 </LinearGradient>
               </View>
 
@@ -686,7 +764,7 @@ export default function LuxuryQuoteDetailScreen() {
                   {/* Total Amount */}
                   <View style={[styles.modalRow, styles.modalTotalRow]}>
                     <View style={styles.modalRowLeft}>
-                      <MaterialCommunityIcons name="cash" size={20} color={AMBER} />
+                      <MaterialCommunityIcons name="cash" size={20} color={TEAL} />
                       <Text style={styles.modalTotalLabel}>Total Amount</Text>
                     </View>
                     <Text style={styles.modalTotalValue}>
@@ -697,7 +775,7 @@ export default function LuxuryQuoteDetailScreen() {
                   {/* Advance Amount */}
                   {selectedQuote.advanceAmount > 0 && (
                     <View style={styles.modalAdvanceRow}>
-                      <Ionicons name="information-circle" size={16} color={GREEN} />
+                      <Ionicons name="information-circle" size={16} color={TEAL} />
                       <Text style={styles.modalAdvanceText}>
                         Pay {formatCurrency(selectedQuote.advanceAmount)} advance to confirm
                       </Text>
@@ -722,7 +800,7 @@ export default function LuxuryQuoteDetailScreen() {
                   disabled={acceptingQuote === selectedQuote?.id}
                 >
                   <LinearGradient
-                    colors={[AMBER, AMBER_DARK]}
+                    colors={[TEAL_MID, '#047857']}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 0 }}
                     style={styles.modalConfirmGradient}
@@ -768,7 +846,7 @@ export default function LuxuryQuoteDetailScreen() {
             ]}
           >
             <LinearGradient
-              colors={['#FFFFFF', '#FEF3C7', '#FFFFFF']}
+              colors={['#FFFFFF', TEAL_LIGHT, '#FFFFFF']}
               start={{ x: 0, y: 0 }}
               end={{ x: 0, y: 1 }}
               style={styles.successGradient}
@@ -777,17 +855,17 @@ export default function LuxuryQuoteDetailScreen() {
               <View style={styles.successIconContainer}>
                 <View style={styles.successIconOuter}>
                   <LinearGradient
-                    colors={['#10B981', '#059669']}
+                    colors={[TEAL, '#059669']}
                     style={styles.successIconBg}
                   >
-                    <MaterialCommunityIcons name="check-circle" size={64} color="#FFF" />
+                    <MaterialCommunityIcons name="check-circle" size={wp('14%')} color="#FFF" />
                   </LinearGradient>
                 </View>
                 {/* Confetti/Sparkles */}
                 <View style={styles.sparkleContainer}>
-                  <MaterialCommunityIcons name="star-four-points" size={20} color={AMBER} style={styles.sparkle1} />
-                  <MaterialCommunityIcons name="star-four-points" size={16} color="#10B981" style={styles.sparkle2} />
-                  <MaterialCommunityIcons name="star-four-points" size={18} color={AMBER_DARK} style={styles.sparkle3} />
+                  <MaterialCommunityIcons name="star-four-points" size={20} color={TEAL} style={styles.sparkle1} />
+                  <MaterialCommunityIcons name="star-four-points" size={16} color={TEAL_MID} style={styles.sparkle2} />
+                  <MaterialCommunityIcons name="star-four-points" size={18} color="#047857" style={styles.sparkle3} />
                 </View>
               </View>
 
@@ -800,7 +878,7 @@ export default function LuxuryQuoteDetailScreen() {
                 <View style={styles.successDetailsCard}>
                   <View style={styles.successDetailRow}>
                     <View style={styles.successDetailLeft}>
-                      <MaterialCommunityIcons name="ticket-confirmation" size={20} color={AMBER} />
+                      <MaterialCommunityIcons name="ticket-confirmation" size={20} color={TEAL} />
                       <Text style={styles.successDetailLabel}>Booking ID</Text>
                     </View>
                     <Text style={styles.successDetailValue}>{successData.bookingNumber}</Text>
@@ -810,21 +888,21 @@ export default function LuxuryQuoteDetailScreen() {
 
                   <View style={styles.successDetailRow}>
                     <View style={styles.successDetailLeft}>
-                      <MaterialCommunityIcons name="cash-multiple" size={20} color={GREEN} />
+                      <MaterialCommunityIcons name="cash-multiple" size={20} color={TEAL} />
                       <Text style={styles.successDetailLabel}>Total Amount</Text>
                     </View>
                     <Text style={styles.successTotalValue}>
-                      ₹{successData.grandTotal?.toLocaleString('en-IN')}
+                      {'\u20B9'}{successData.grandTotal?.toLocaleString('en-IN')}
                     </Text>
                   </View>
 
                   <View style={styles.successAdvanceBox}>
                     <View style={styles.successAdvanceHeader}>
-                      <Ionicons name="wallet" size={18} color={AMBER_DARK} />
+                      <Ionicons name="wallet" size={18} color={TEAL_MID} />
                       <Text style={styles.successAdvanceTitle}>Advance Payment Required</Text>
                     </View>
                     <Text style={styles.successAdvanceAmount}>
-                      ₹{successData.advanceAmount?.toLocaleString('en-IN')}
+                      {'\u20B9'}{successData.advanceAmount?.toLocaleString('en-IN')}
                     </Text>
                     <Text style={styles.successAdvanceHint}>
                       Pay now to confirm your booking
@@ -839,7 +917,7 @@ export default function LuxuryQuoteDetailScreen() {
                   style={styles.successViewBtn}
                   onPress={handleViewBooking}
                 >
-                  <Ionicons name="document-text-outline" size={20} color={AMBER_DARK} />
+                  <Ionicons name="document-text-outline" size={20} color={TEAL_MID} />
                   <Text style={styles.successViewText}>View Details</Text>
                 </TouchableOpacity>
 
@@ -848,7 +926,7 @@ export default function LuxuryQuoteDetailScreen() {
                   onPress={handlePayNow}
                 >
                   <LinearGradient
-                    colors={[AMBER, AMBER_DARK]}
+                    colors={[TEAL_MID, '#047857']}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 0 }}
                     style={styles.successPayGradient}
@@ -870,11 +948,11 @@ export default function LuxuryQuoteDetailScreen() {
 // Helper Components
 const DetailRow = ({ icon, label, value, valueColor, small }) => (
   <View style={[styles.detailRow, small && styles.detailRowSmall]}>
-    <View style={styles.detailLabel}>
+    <View style={styles.detailLabelWrap}>
       <MaterialCommunityIcons name={icon} size={small ? 14 : 16} color={TEXT_SECONDARY} />
       <Text style={[styles.detailLabelText, small && styles.detailLabelTextSmall]}>{label}</Text>
     </View>
-    <Text style={[styles.detailValue, valueColor && { color: valueColor }, small && styles.detailValueSmall]}>
+    <Text style={[styles.detailValueText, valueColor && { color: valueColor }, small && styles.detailValueSmall]}>
       {value}
     </Text>
   </View>
@@ -882,8 +960,8 @@ const DetailRow = ({ icon, label, value, valueColor, small }) => (
 
 const PriceRow = ({ label, value }) => (
   <View style={styles.priceRow}>
-    <Text style={styles.priceLabel}>{label}</Text>
-    <Text style={styles.priceValue}>₹{value.toLocaleString('en-IN')}</Text>
+    <Text style={styles.priceLabelText}>{label}</Text>
+    <Text style={styles.priceValueText}>{'\u20B9'}{value.toLocaleString('en-IN')}</Text>
   </View>
 );
 
@@ -892,20 +970,31 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: BG,
   },
-  header: {
+
+  // Gradient Header
+  headerGrad: {
+    paddingHorizontal: wp('4%'),
+    paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 0) + hp('1%') : hp('1%'),
+    paddingBottom: hp('2%'),
+    overflow: 'hidden',
+  },
+  decoCircle: {
+    position: 'absolute',
+    borderRadius: 999,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+  },
+  headerRow: {
+    zIndex: 2,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    marginBottom: hp('1.5%'),
   },
   backBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: CARD_BG,
+    width: wp('9%'),
+    height: wp('9%'),
+    borderRadius: wp('4.5%'),
+    backgroundColor: 'rgba(255,255,255,0.15)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -914,253 +1003,378 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   headerTitle: {
-    fontSize: 16,
+    fontSize: wp('4.5%'),
     fontWeight: '700',
-    color: TEXT_PRIMARY,
+    color: '#FFFFFF',
+    letterSpacing: 0.3,
   },
-  headerSubtitle: {
-    fontSize: 12,
-    color: AMBER,
-    marginTop: 2,
+  headerSub: {
+    fontSize: wp('3%'),
+    color: 'rgba(255,255,255,0.7)',
+    marginTop: hp('0.3%'),
+    fontWeight: '500',
   },
-  loadingContainer: {
-    flex: 1,
+  headerActionBtn: {
+    width: wp('9%'),
+    height: wp('9%'),
+    borderRadius: wp('4.5%'),
+    backgroundColor: 'rgba(255,255,255,0.15)',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  loadingText: {
-    marginTop: 12,
-    fontSize: 14,
-    color: TEXT_SECONDARY,
+
+  // Glass card
+  glassCard: {
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    borderRadius: wp('4%'),
+    padding: wp('4%'),
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.15)',
   },
-  errorContainer: {
-    flex: 1,
+  glassLabel: {
+    fontSize: wp('2.8%'),
+    color: 'rgba(255,255,255,0.6)',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    fontWeight: '600',
+  },
+  glassValue: {
+    fontSize: wp('3.5%'),
+    fontWeight: '600',
+    color: '#FFFFFF',
+    marginTop: hp('0.3%'),
+  },
+  statusPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: wp('3%'),
+    paddingVertical: hp('0.5%'),
+    borderRadius: 999,
+    gap: wp('1.5%'),
+  },
+  statusPillText: {
+    color: '#FFF',
+    fontSize: wp('2.8%'),
+    fontWeight: '700',
+  },
+  metaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: wp('3%'),
+    marginTop: hp('1.2%'),
+  },
+  metaChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    paddingHorizontal: wp('3%'),
+    paddingVertical: hp('0.6%'),
+    borderRadius: wp('5%'),
+    gap: wp('1.5%'),
+  },
+  metaChipText: {
+    fontSize: wp('3%'),
+    color: 'rgba(255,255,255,0.85)',
+    fontWeight: '500',
+  },
+
+  // Empty state
+  emptyCircle: {
+    width: wp('22%'),
+    height: wp('22%'),
+    borderRadius: wp('11%'),
     justifyContent: 'center',
     alignItems: 'center',
+    marginBottom: hp('2%'),
   },
-  errorText: {
-    fontSize: 16,
-    color: TEXT_SECONDARY,
-    marginTop: 16,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    padding: 16,
-  },
-  summaryCard: {
-    marginBottom: 24,
-    borderRadius: 16,
-    overflow: 'hidden',
-  },
-  summaryGradient: {
-    padding: 20,
-    alignItems: 'center',
-  },
-  crownIcon: {
-    marginBottom: 8,
-  },
-  summaryTitle: {
-    fontSize: 22,
+  emptyTitle: {
+    fontSize: wp('4.5%'),
     fontWeight: '800',
     color: TEXT_PRIMARY,
-    marginBottom: 4,
+    marginBottom: hp('0.8%'),
   },
-  summarySubtitle: {
-    fontSize: 13,
-    color: AMBER,
-    fontWeight: '600',
-    marginBottom: 16,
+  emptyDesc: {
+    textAlign: 'center',
+    color: TEXT_SECONDARY,
+    fontSize: wp('3.3%'),
+    lineHeight: wp('5%'),
+    marginBottom: hp('2%'),
+  },
+  refreshBtnStyle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: TEAL_LIGHT,
+    borderRadius: wp('3%'),
+    paddingHorizontal: wp('4%'),
+    paddingVertical: hp('1.2%'),
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+    gap: wp('2%'),
+  },
+  refreshBtnText: {
+    color: TEAL_MID,
+    fontWeight: '700',
+    fontSize: wp('3.3%'),
+  },
+
+  // Scroll content
+  content: {
+    flex: 1,
+  },
+
+  // Summary card
+  summaryCard: {
+    backgroundColor: CARD,
+    borderRadius: wp('4%'),
+    padding: wp('5%'),
+    marginHorizontal: wp('4%'),
+    marginTop: hp('1.5%'),
+    alignItems: 'center',
+    ...SHADOW_SM,
+  },
+  summaryIconRow: {
+    marginBottom: hp('1%'),
+  },
+  crownCircle: {
+    width: wp('12%'),
+    height: wp('12%'),
+    borderRadius: wp('6%'),
+    backgroundColor: TEAL_LIGHT,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  summaryTitle: {
+    fontSize: wp('5%'),
+    fontWeight: '800',
+    color: TEXT_PRIMARY,
+    marginBottom: hp('0.5%'),
+    textAlign: 'center',
+  },
+  summaryTripBadge: {
+    backgroundColor: TEAL_LIGHT,
+    paddingHorizontal: wp('3%'),
+    paddingVertical: hp('0.3%'),
+    borderRadius: wp('3%'),
+    marginBottom: hp('1.5%'),
+  },
+  summaryTripText: {
+    fontSize: wp('2.8%'),
+    color: TEAL_MID,
+    fontWeight: '700',
+    letterSpacing: 0.5,
   },
   summaryRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 12,
-    marginTop: 8,
+    gap: wp('3%'),
+    marginTop: hp('0.5%'),
   },
   summaryItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: wp('1.5%'),
   },
   summaryItemText: {
-    fontSize: 14,
+    fontSize: wp('3.2%'),
     color: TEXT_PRIMARY,
     fontWeight: '600',
   },
-  section: {
-    marginBottom: 24,
+
+  // Details card
+  detailsCard: {
+    backgroundColor: CARD,
+    borderRadius: wp('4%'),
+    padding: wp('4%'),
+    marginHorizontal: wp('4%'),
+    marginTop: hp('1.5%'),
+    ...SHADOW_SM,
   },
-  sectionTitle: {
-    fontSize: 17,
+  detailsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: wp('2.5%'),
+    marginBottom: hp('1.5%'),
+  },
+  detailsIcon: {
+    width: wp('9%'),
+    height: wp('9%'),
+    borderRadius: wp('3%'),
+    backgroundColor: TEAL_LIGHT,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  detailsTitle: {
+    fontSize: wp('3.8%'),
     fontWeight: '700',
     color: TEXT_PRIMARY,
-    marginBottom: 12,
-  },
-  detailsCard: {
-    backgroundColor: CARD_BG,
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
   },
   detailRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 12,
+    paddingVertical: hp('1%'),
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
   },
   detailRowSmall: {
-    marginBottom: 8,
+    paddingVertical: hp('0.7%'),
   },
-  detailLabel: {
+  detailLabelWrap: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: wp('2%'),
     flex: 1,
   },
   detailLabelText: {
-    fontSize: 14,
-    color: TEXT_SECONDARY,
+    fontSize: wp('3.2%'),
+    color: TEXT_MUTED,
+    fontWeight: '500',
   },
   detailLabelTextSmall: {
-    fontSize: 13,
+    fontSize: wp('3%'),
   },
-  detailValue: {
-    fontSize: 14,
+  detailValueText: {
+    fontSize: wp('3.2%'),
+    color: TEXT_PRIMARY,
+    fontWeight: '600',
+    flex: 1,
+    textAlign: 'right',
+  },
+  detailValueSmall: {
+    fontSize: wp('3%'),
+  },
+
+  // Location
+  locationSection: {
+    paddingVertical: hp('0.5%'),
+  },
+  locationRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginVertical: hp('0.5%'),
+  },
+  locationDot: {
+    width: wp('2.5%'),
+    height: wp('2.5%'),
+    borderRadius: wp('1.25%'),
+    marginRight: wp('3%'),
+    marginTop: hp('0.5%'),
+  },
+  locationLabel: {
+    fontSize: wp('2.8%'),
+    color: TEXT_MUTED,
+    marginBottom: 2,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.3,
+  },
+  locationText: {
+    fontSize: wp('3.3%'),
     color: TEXT_PRIMARY,
     fontWeight: '600',
   },
-  detailValueSmall: {
-    fontSize: 13,
-  },
-  addressBlock: {
-    marginBottom: 0,
-  },
-  addressHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 8,
-  },
-  addressLabel: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: TEXT_PRIMARY,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  addressText: {
-    fontSize: 14,
-    color: TEXT_SECONDARY,
-    lineHeight: 20,
-  },
+
   requirementsText: {
-    fontSize: 14,
+    fontSize: wp('3.2%'),
     color: TEXT_SECONDARY,
-    lineHeight: 20,
+    lineHeight: wp('5%'),
   },
-  quotesHeader: {
+
+  // Quotes section
+  quotesSection: {
+    marginHorizontal: wp('4%'),
+    marginTop: hp('1.5%'),
+  },
+  quotesHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 12,
+    marginBottom: hp('1.2%'),
+  },
+  sectionTitle: {
+    fontSize: wp('4.2%'),
+    fontWeight: '800',
+    color: TEXT_PRIMARY,
   },
   quotesCountBadge: {
-    backgroundColor: AMBER + '30',
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    backgroundColor: TEAL + '25',
+    width: wp('7%'),
+    height: wp('7%'),
+    borderRadius: wp('3.5%'),
     justifyContent: 'center',
     alignItems: 'center',
   },
   quotesCountText: {
-    fontSize: 13,
+    fontSize: wp('3%'),
     fontWeight: '700',
-    color: AMBER,
+    color: TEAL_MID,
   },
-  noQuotesCard: {
-    backgroundColor: CARD_BG,
-    borderRadius: 12,
-    padding: 32,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-  },
-  noQuotesTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: TEXT_PRIMARY,
-    marginTop: 16,
-  },
-  noQuotesText: {
-    fontSize: 14,
-    color: TEXT_SECONDARY,
-    marginTop: 8,
-    textAlign: 'center',
-  },
+
+  // No quotes
   noQuotesContainer: {
-    backgroundColor: CARD_BG,
-    borderRadius: 20,
-    padding: 40,
+    backgroundColor: CARD,
+    borderRadius: wp('4%'),
+    padding: wp('8%'),
     alignItems: 'center',
-    marginVertical: 10,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
+    ...SHADOW_SM,
   },
   noQuotesIconCircle: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: '#FFF9E6',
+    width: wp('25%'),
+    height: wp('25%'),
+    borderRadius: wp('12.5%'),
+    backgroundColor: TEAL_LIGHT,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 20,
+    marginBottom: hp('2%'),
+  },
+  noQuotesTitle: {
+    fontSize: wp('4.2%'),
+    fontWeight: '800',
+    color: TEXT_PRIMARY,
+    marginBottom: hp('1%'),
   },
   noQuotesMessage: {
-    fontSize: 14,
-    color: '#666',
+    fontSize: wp('3.2%'),
+    color: TEXT_SECONDARY,
     textAlign: 'center',
-    lineHeight: 22,
-    paddingHorizontal: 10,
-    marginBottom: 20,
+    lineHeight: wp('5%'),
+    marginBottom: hp('2%'),
   },
   noQuotesInfoBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F5F5F5',
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 20,
-    marginTop: 10,
+    backgroundColor: '#F3F4F6',
+    paddingVertical: hp('1%'),
+    paddingHorizontal: wp('4%'),
+    borderRadius: wp('5%'),
+    gap: wp('2%'),
   },
   noQuotesInfoText: {
-    fontSize: 13,
-    color: '#666',
-    marginLeft: 8,
+    fontSize: wp('3%'),
+    color: TEXT_SECONDARY,
     fontWeight: '500',
   },
   noQuotesPullRefresh: {
-    fontSize: 12,
-    color: '#999',
-    marginTop: 16,
+    fontSize: wp('2.8%'),
+    color: TEXT_MUTED,
+    marginTop: hp('1.5%'),
     fontStyle: 'italic',
   },
+
+  // Quote card
   quoteCard: {
-    backgroundColor: CARD_BG,
-    borderRadius: 12,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
+    backgroundColor: CARD,
+    borderRadius: wp('4%'),
+    marginBottom: hp('1.5%'),
     overflow: 'hidden',
+    ...SHADOW_SM,
   },
   quoteHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: 16,
+    padding: wp('4%'),
   },
   vendorInfo: {
     flexDirection: 'row',
@@ -1168,314 +1382,330 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   vendorImage: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    marginRight: 12,
+    width: wp('11%'),
+    height: wp('11%'),
+    borderRadius: wp('5.5%'),
+    marginRight: wp('3%'),
   },
-  vendorPlaceholder: {
-    backgroundColor: AMBER + '20',
+  vendorAvatarCircle: {
+    width: wp('11%'),
+    height: wp('11%'),
+    borderRadius: wp('5.5%'),
+    backgroundColor: TEAL_LIGHT,
     justifyContent: 'center',
     alignItems: 'center',
+    marginRight: wp('3%'),
   },
   vendorDetails: {
     flex: 1,
   },
   vendorName: {
-    fontSize: 15,
+    fontSize: wp('3.5%'),
     fontWeight: '700',
     color: TEXT_PRIMARY,
-    marginBottom: 4,
+    marginBottom: hp('0.3%'),
   },
   vendorMeta: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: wp('2%'),
   },
   ratingRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: wp('1%'),
   },
   ratingText: {
-    fontSize: 12,
+    fontSize: wp('2.8%'),
     color: TEXT_SECONDARY,
-    fontWeight: '600',
+    fontWeight: '500',
   },
   vendorCity: {
-    fontSize: 12,
-    color: TEXT_SECONDARY,
+    fontSize: wp('2.8%'),
+    color: TEXT_MUTED,
   },
   quotePriceContainer: {
     alignItems: 'flex-end',
-    gap: 4,
+    gap: 2,
+  },
+  priceLabel: {
+    fontSize: wp('2.6%'),
+    color: TEXT_MUTED,
+    textTransform: 'uppercase',
+    letterSpacing: 0.3,
+    fontWeight: '600',
   },
   quotePrice: {
-    fontSize: 18,
+    fontSize: wp('4.5%'),
     fontWeight: '800',
-    color: AMBER,
+    color: TEAL_MID,
   },
   quoteExpanded: {
     borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
-    padding: 16,
-    paddingTop: 12,
+    borderTopColor: '#F3F4F6',
+    padding: wp('4%'),
+    paddingTop: wp('3%'),
   },
   quoteSection: {
-    marginBottom: 16,
+    marginBottom: hp('1.5%'),
   },
   quoteSectionTitle: {
-    fontSize: 14,
+    fontSize: wp('3%'),
     fontWeight: '700',
-    color: TEXT_PRIMARY,
-    marginBottom: 12,
+    color: TEAL_MID,
+    marginBottom: hp('1%'),
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
   priceRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 8,
+    marginBottom: hp('0.6%'),
   },
-  priceLabel: {
-    fontSize: 13,
+  priceLabelText: {
+    fontSize: wp('3%'),
     color: TEXT_SECONDARY,
   },
-  priceValue: {
-    fontSize: 13,
+  priceValueText: {
+    fontSize: wp('3%'),
     color: TEXT_PRIMARY,
     fontWeight: '600',
   },
   totalRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingTop: 12,
-    marginTop: 12,
+    paddingTop: hp('1.2%'),
+    marginTop: hp('1%'),
     borderTopWidth: 1,
     borderTopColor: '#E5E7EB',
   },
   totalLabel: {
-    fontSize: 15,
+    fontSize: wp('3.5%'),
     fontWeight: '700',
     color: TEXT_PRIMARY,
   },
   totalValue: {
-    fontSize: 16,
+    fontSize: wp('4%'),
     fontWeight: '800',
-    color: AMBER,
+    color: TEAL_MID,
   },
   advanceRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 8,
-    paddingTop: 8,
+    marginTop: hp('0.8%'),
+    paddingTop: hp('0.8%'),
     borderTopWidth: 1,
-    borderTopColor: AMBER + '30',
+    borderTopColor: TEAL + '30',
   },
   advanceLabel: {
-    fontSize: 14,
+    fontSize: wp('3.2%'),
     fontWeight: '600',
-    color: GREEN,
+    color: TEAL,
   },
   advanceValue: {
-    fontSize: 15,
+    fontSize: wp('3.3%'),
     fontWeight: '700',
-    color: GREEN,
+    color: TEAL,
   },
   notesText: {
-    fontSize: 13,
+    fontSize: wp('3%'),
     color: TEXT_SECONDARY,
-    lineHeight: 18,
+    lineHeight: wp('4.5%'),
   },
   quoteActions: {
     flexDirection: 'row',
-    gap: 12,
-    marginTop: 8,
+    gap: wp('3%'),
+    marginTop: hp('0.5%'),
   },
   callBtn: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: GREEN + '20',
-    padding: 14,
-    borderRadius: 12,
+    backgroundColor: TEAL_LIGHT,
+    paddingVertical: hp('1.5%'),
+    borderRadius: wp('3%'),
     borderWidth: 1,
-    borderColor: GREEN + '50',
-    gap: 6,
+    borderColor: TEAL + '40',
+    gap: wp('1.5%'),
   },
   callBtnText: {
-    fontSize: 14,
+    fontSize: wp('3.2%'),
     fontWeight: '700',
-    color: GREEN,
+    color: TEAL_MID,
   },
   acceptBtn: {
     flex: 1,
-    borderRadius: 12,
+    borderRadius: wp('3%'),
     overflow: 'hidden',
   },
   acceptGradient: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 14,
-    gap: 6,
+    paddingVertical: hp('1.5%'),
+    gap: wp('1.5%'),
   },
   acceptBtnText: {
-    fontSize: 14,
+    fontSize: wp('3.2%'),
     fontWeight: '700',
-    color: BG,
+    color: '#FFF',
   },
+
   // Modal Styles
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
+    padding: wp('5%'),
   },
   modalContent: {
     width: '100%',
     maxWidth: 400,
-    borderRadius: 24,
+    borderRadius: wp('5%'),
     overflow: 'hidden',
-    elevation: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.3,
-    shadowRadius: 20,
+    ...SHADOW_MD,
   },
   modalGradient: {
-    padding: 24,
+    padding: wp('5%'),
   },
   modalIconContainer: {
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: hp('1.5%'),
   },
   modalIconBg: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: wp('18%'),
+    height: wp('18%'),
+    borderRadius: wp('9%'),
     justifyContent: 'center',
     alignItems: 'center',
-    elevation: 5,
-    shadowColor: AMBER,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
+    ...Platform.select({
+      ios: {
+        shadowColor: TEAL_MID,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+      },
+      android: { elevation: 5 },
+    }),
   },
   modalTitle: {
-    fontSize: 24,
+    fontSize: wp('5.5%'),
     fontWeight: '800',
     color: TEXT_PRIMARY,
     textAlign: 'center',
-    marginBottom: 4,
+    marginBottom: hp('0.3%'),
   },
   modalSubtitle: {
-    fontSize: 14,
+    fontSize: wp('3.2%'),
     color: TEXT_SECONDARY,
     textAlign: 'center',
-    marginBottom: 24,
+    marginBottom: hp('2.5%'),
   },
   modalQuoteCard: {
-    backgroundColor: CARD_BG,
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 24,
+    backgroundColor: CARD,
+    borderRadius: wp('4%'),
+    padding: wp('4%'),
+    marginBottom: hp('2.5%'),
     borderWidth: 1,
-    borderColor: BORDER_COLOR,
+    borderColor: '#E5E7EB',
   },
   modalRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: hp('1.2%'),
   },
   modalRowLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: wp('2%'),
     flex: 1,
   },
   modalLabel: {
-    fontSize: 14,
+    fontSize: wp('3.2%'),
     color: TEXT_SECONDARY,
   },
   modalValue: {
-    fontSize: 14,
+    fontSize: wp('3.2%'),
     fontWeight: '600',
     color: TEXT_PRIMARY,
     maxWidth: '50%',
     textAlign: 'right',
   },
   modalTotalRow: {
-    paddingTop: 12,
-    marginTop: 8,
+    paddingTop: hp('1.2%'),
+    marginTop: hp('0.5%'),
     borderTopWidth: 2,
-    borderTopColor: AMBER + '30',
+    borderTopColor: TEAL + '30',
     marginBottom: 0,
   },
   modalTotalLabel: {
-    fontSize: 16,
+    fontSize: wp('3.8%'),
     fontWeight: '700',
     color: TEXT_PRIMARY,
   },
   modalTotalValue: {
-    fontSize: 20,
+    fontSize: wp('5%'),
     fontWeight: '800',
-    color: AMBER,
+    color: TEAL_MID,
   },
   modalAdvanceRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    marginTop: 12,
-    paddingTop: 12,
+    gap: wp('1.5%'),
+    marginTop: hp('1.2%'),
+    paddingTop: hp('1.2%'),
     borderTopWidth: 1,
-    borderTopColor: GREEN + '30',
+    borderTopColor: TEAL + '30',
   },
   modalAdvanceText: {
-    fontSize: 13,
-    color: GREEN,
+    fontSize: wp('3%'),
+    color: TEAL_MID,
     fontWeight: '600',
     flex: 1,
   },
   modalActions: {
     flexDirection: 'row',
-    gap: 12,
+    gap: wp('3%'),
   },
   modalCancelBtn: {
     flex: 1,
-    paddingVertical: 14,
-    borderRadius: 12,
+    paddingVertical: hp('1.8%'),
+    borderRadius: wp('3%'),
     backgroundColor: '#F3F4F6',
     alignItems: 'center',
     justifyContent: 'center',
   },
   modalCancelText: {
-    fontSize: 15,
+    fontSize: wp('3.5%'),
     fontWeight: '700',
     color: TEXT_SECONDARY,
   },
   modalConfirmBtn: {
     flex: 1,
-    borderRadius: 12,
+    borderRadius: wp('3%'),
     overflow: 'hidden',
-    elevation: 3,
-    shadowColor: AMBER,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
+    ...Platform.select({
+      ios: {
+        shadowColor: TEAL_MID,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.3,
+        shadowRadius: 4,
+      },
+      android: { elevation: 3 },
+    }),
   },
   modalConfirmGradient: {
-    paddingVertical: 14,
+    paddingVertical: hp('1.8%'),
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
+    gap: wp('2%'),
   },
   modalConfirmText: {
-    fontSize: 15,
+    fontSize: wp('3.5%'),
     fontWeight: '700',
     color: '#FFF',
   },
@@ -1484,44 +1714,48 @@ const styles = StyleSheet.create({
   successModalContent: {
     width: width * 0.9,
     maxWidth: 400,
-    borderRadius: 24,
+    borderRadius: wp('5%'),
     overflow: 'hidden',
-    elevation: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.3,
-    shadowRadius: 20,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.3,
+        shadowRadius: 20,
+      },
+      android: { elevation: 10 },
+    }),
   },
   successGradient: {
-    padding: 24,
+    padding: wp('5%'),
     alignItems: 'center',
   },
   successIconContainer: {
     position: 'relative',
-    marginBottom: 20,
+    marginBottom: hp('2%'),
   },
   successIconOuter: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: '#D1FAE5',
+    width: wp('28%'),
+    height: wp('28%'),
+    borderRadius: wp('14%'),
+    backgroundColor: TEAL_LIGHT,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 8,
+    padding: wp('2%'),
   },
   successIconBg: {
-    width: 104,
-    height: 104,
-    borderRadius: 52,
+    width: wp('24%'),
+    height: wp('24%'),
+    borderRadius: wp('12%'),
     justifyContent: 'center',
     alignItems: 'center',
   },
   sparkleContainer: {
     position: 'absolute',
-    width: 140,
-    height: 140,
-    left: -10,
-    top: -10,
+    width: wp('32%'),
+    height: wp('32%'),
+    left: -wp('2%'),
+    top: -wp('2%'),
   },
   sparkle1: {
     position: 'absolute',
@@ -1542,26 +1776,26 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   successTitle: {
-    fontSize: 26,
+    fontSize: wp('5.5%'),
     fontWeight: '800',
     color: TEXT_PRIMARY,
-    marginBottom: 8,
+    marginBottom: hp('0.8%'),
     textAlign: 'center',
   },
   successSubtitle: {
-    fontSize: 14,
+    fontSize: wp('3.2%'),
     color: TEXT_SECONDARY,
     textAlign: 'center',
-    marginBottom: 24,
-    paddingHorizontal: 16,
-    lineHeight: 20,
+    marginBottom: hp('2.5%'),
+    paddingHorizontal: wp('4%'),
+    lineHeight: wp('5%'),
   },
   successDetailsCard: {
     width: '100%',
     backgroundColor: '#FFF',
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 20,
+    borderRadius: wp('4%'),
+    padding: wp('4%'),
+    marginBottom: hp('2%'),
     borderWidth: 1,
     borderColor: '#E5E7EB',
   },
@@ -1569,68 +1803,68 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: hp('1%'),
   },
   successDetailLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: wp('2.5%'),
     flex: 1,
   },
   successDetailLabel: {
-    fontSize: 14,
+    fontSize: wp('3.2%'),
     color: TEXT_SECONDARY,
     fontWeight: '500',
   },
   successDetailValue: {
-    fontSize: 14,
+    fontSize: wp('3.2%'),
     color: TEXT_PRIMARY,
     fontWeight: '700',
   },
   successDivider: {
     height: 1,
     backgroundColor: '#E5E7EB',
-    marginVertical: 12,
+    marginVertical: hp('1%'),
   },
   successTotalValue: {
-    fontSize: 18,
+    fontSize: wp('4.2%'),
     fontWeight: '800',
-    color: GREEN,
+    color: TEAL,
   },
   successAdvanceBox: {
-    marginTop: 16,
-    backgroundColor: AMBER_LIGHT,
-    borderRadius: 12,
-    padding: 16,
+    marginTop: hp('1.5%'),
+    backgroundColor: TEAL_LIGHT,
+    borderRadius: wp('3%'),
+    padding: wp('4%'),
     borderWidth: 2,
-    borderColor: AMBER,
+    borderColor: TEAL,
     borderStyle: 'dashed',
   },
   successAdvanceHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    marginBottom: 8,
+    gap: wp('2%'),
+    marginBottom: hp('0.8%'),
   },
   successAdvanceTitle: {
-    fontSize: 13,
+    fontSize: wp('3%'),
     fontWeight: '600',
-    color: AMBER_DARK,
+    color: TEAL_MID,
   },
   successAdvanceAmount: {
-    fontSize: 28,
+    fontSize: wp('6.5%'),
     fontWeight: '800',
-    color: AMBER_DARK,
-    marginBottom: 4,
+    color: TEAL_MID,
+    marginBottom: hp('0.3%'),
   },
   successAdvanceHint: {
-    fontSize: 12,
+    fontSize: wp('2.8%'),
     color: TEXT_SECONDARY,
     fontStyle: 'italic',
   },
   successActions: {
     flexDirection: 'row',
-    gap: 12,
+    gap: wp('3%'),
     width: '100%',
   },
   successViewBtn: {
@@ -1638,37 +1872,41 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
+    gap: wp('2%'),
     backgroundColor: '#FFF',
-    paddingVertical: 14,
-    borderRadius: 12,
+    paddingVertical: hp('1.8%'),
+    borderRadius: wp('3%'),
     borderWidth: 2,
-    borderColor: AMBER,
+    borderColor: TEAL,
   },
   successViewText: {
-    fontSize: 15,
+    fontSize: wp('3.3%'),
     fontWeight: '700',
-    color: AMBER_DARK,
+    color: TEAL_MID,
   },
   successPayBtn: {
     flex: 1.5,
-    borderRadius: 12,
+    borderRadius: wp('3%'),
     overflow: 'hidden',
-    elevation: 4,
-    shadowColor: AMBER,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 8,
+    ...Platform.select({
+      ios: {
+        shadowColor: TEAL_MID,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.4,
+        shadowRadius: 8,
+      },
+      android: { elevation: 4 },
+    }),
   },
   successPayGradient: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 14,
+    gap: wp('2%'),
+    paddingVertical: hp('1.8%'),
   },
   successPayText: {
-    fontSize: 15,
+    fontSize: wp('3.3%'),
     fontWeight: '700',
     color: '#FFF',
   },

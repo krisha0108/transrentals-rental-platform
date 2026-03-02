@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -14,27 +14,23 @@ import {
   Platform,
   Modal,
   FlatList,
+  StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import LinearGradient from 'react-native-linear-gradient';
+import {
+  widthPercentageToDP as wp,
+  heightPercentageToDP as hp,
+} from 'react-native-responsive-screen';
 import api from '../../api';
+import { TEAL_DEEP, TEAL_MID, TEAL, TEAL_LIGHT, BG, CARD, TEXT_PRIMARY, TEXT_SECONDARY, TEXT_MUTED, SHADOW_SM, SHADOW_MD } from '../../../theme';
 
 const { width } = Dimensions.get('window');
-// Light Mode Colors
-const AMBER = '#F59E0B';
-const AMBER_DARK = '#D97706';
-const AMBER_LIGHT = '#FEF3C7';
-const GREEN = '#09B368';
-const BG = '#F9FAFB';
-const CARD_BG = '#FFFFFF';
-const TEXT_PRIMARY = '#111827';
-const TEXT_SECONDARY = '#6B7280';
-const BORDER_COLOR = '#E5E7EB';
 
 export default function LuxuryCarRentalScreen() {
   const navigation = useNavigation();
@@ -91,6 +87,22 @@ export default function LuxuryCarRentalScreen() {
   const [locations, setLocations] = useState([]);
   const [locationsLoading, setLocationsLoading] = useState(false);
   const [locationSearch, setLocationSearch] = useState('');
+
+  // StatusBar management
+  useFocusEffect(
+    useCallback(() => {
+      StatusBar.setBarStyle('light-content', true);
+      if (Platform.OS === 'android') {
+        StatusBar.setBackgroundColor(TEAL_DEEP, true);
+      }
+      return () => {
+        StatusBar.setBarStyle('dark-content', true);
+        if (Platform.OS === 'android') {
+          StatusBar.setBackgroundColor('#FFFFFF', true);
+        }
+      };
+    }, [])
+  );
 
   useEffect(() => {
     loadCustomerData();
@@ -270,13 +282,14 @@ export default function LuxuryCarRentalScreen() {
       const response = await api.post('/customer/luxury-quote-requests', requestData);
 
       if (response.data.success) {
+        const newRequestId = response.data.quoteRequest?.id;
         Alert.alert(
           'Success!',
           `Quote request submitted successfully!\n\nRequest Number: ${response.data.quoteRequest.requestNumber}\n\nVendors will send you quotes within 24-48 hours.`,
           [
             {
-              text: 'View My Requests',
-              onPress: () => navigation.navigate('MyLuxuryQuotes'),
+              text: 'View Request',
+              onPress: () => navigation.navigate('LuxuryQuoteDetail', { requestId: newRequestId }),
             },
             {
               text: 'OK',
@@ -347,18 +360,18 @@ export default function LuxuryCarRentalScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      {/* Animated Header */}
-      <Animated.View style={[styles.header, { opacity: headerOpacity }]}>
+      {/* Animated Sticky Header */}
+      <Animated.View style={[styles.stickyHeader, { opacity: headerOpacity }]}>
         <LinearGradient
-          colors={[AMBER, AMBER_DARK]}
+          colors={[TEAL_DEEP, TEAL_MID, '#047857']}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 0 }}
           style={StyleSheet.absoluteFill}
         />
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Ionicons name="arrow-back" size={24} color="#000" />
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.stickyBackBtn}>
+          <Ionicons name="chevron-back" size={22} color="#FFF" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Luxury Car Rental</Text>
+        <Text style={styles.stickyHeaderTitle}>Luxury Car Rental</Text>
       </Animated.View>
 
       <Animated.ScrollView
@@ -374,30 +387,42 @@ export default function LuxuryCarRentalScreen() {
         {/* Hero Section */}
         <Animated.View style={[styles.hero, { opacity: fadeAnim }]}>
           <LinearGradient
-            colors={['#1F2937', '#374151', AMBER_DARK]}
+            colors={[TEAL_DEEP, TEAL_MID, '#047857']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.heroGradient}
           >
+            {/* Decorative Circles */}
+            <View style={[styles.decoCircle, { top: -wp('8%'), right: -wp('5%'), width: wp('25%'), height: wp('25%') }]} pointerEvents="none" />
+            <View style={[styles.decoCircle, { bottom: -wp('4%'), left: -wp('4%'), width: wp('16%'), height: wp('16%') }]} pointerEvents="none" />
+            <View style={[styles.decoCircle, { top: hp('5%'), left: wp('30%'), width: wp('10%'), height: wp('10%') }]} pointerEvents="none" />
+
             <TouchableOpacity onPress={() => navigation.goBack()} style={styles.heroBackBtn}>
-              <Ionicons name="arrow-back" size={24} color="#FFF" />
+              <Ionicons name="chevron-back" size={22} color="#FFF" />
             </TouchableOpacity>
-            <MaterialCommunityIcons name="crown" size={48} color={AMBER} style={styles.crownIcon} />
+
+            <MaterialCommunityIcons name="crown" size={wp('12%')} color={TEAL_LIGHT} style={styles.crownIcon} />
             <Text style={styles.heroTitle}>Luxury Experience</Text>
-            <Text style={styles.heroSubtitle}>BMW • Mercedes • Audi • Ferrari</Text>
-              <TouchableOpacity
-          onPress={() => navigation.navigate('MyLuxuryBookings')}
-          style={styles.myBookingsBtn}
-        >
-          <Ionicons name="document-text-outline" size={20} color={GREEN} />
-        </TouchableOpacity>
+            <Text style={styles.heroSubtitle}>BMW  ·  Mercedes  ·  Audi  ·  Ferrari</Text>
+
+            <TouchableOpacity
+              onPress={() => navigation.navigate('MyLuxuryBookings')}
+              style={styles.myBookingsBtn}
+            >
+              <Ionicons name="document-text-outline" size={wp('4.5%')} color="#FFF" />
+            </TouchableOpacity>
           </LinearGradient>
         </Animated.View>
 
         {/* Featured Fleet Preview */}
         {!fleetLoading && luxuryFleet.length > 0 && (
-          <View style={styles.fleetPreview}>
-            <Text style={styles.sectionTitle}>Premium Collection</Text>
+          <View style={styles.fleetSection}>
+            <View style={styles.sectionHeaderRow}>
+              <View style={styles.sectionIconCircle}>
+                <MaterialCommunityIcons name="car-luxury" size={wp('4.5%')} color={TEAL_MID} />
+              </View>
+              <Text style={styles.sectionTitle}>Premium Collection</Text>
+            </View>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.fleetScroll}>
               {luxuryFleet.slice(0, 5).map((vehicle) => (
                 <View key={vehicle.id} style={styles.fleetCard}>
@@ -405,11 +430,13 @@ export default function LuxuryCarRentalScreen() {
                     <Image source={{ uri: vehicle.primaryImage }} style={styles.fleetImage} />
                   ) : (
                     <View style={[styles.fleetImage, styles.fleetPlaceholder]}>
-                      <MaterialCommunityIcons name="car-luxury" size={40} color={AMBER} />
+                      <MaterialCommunityIcons name="car-luxury" size={wp('10%')} color={TEAL} />
                     </View>
                   )}
-                  <Text style={styles.fleetName} numberOfLines={1}>{vehicle.name}</Text>
-                  <Text style={styles.fleetPrice}>₹{vehicle.price.toLocaleString('en-IN')}/day</Text>
+                  <View style={styles.fleetInfo}>
+                    <Text style={styles.fleetName} numberOfLines={1}>{vehicle.name}</Text>
+                    <Text style={styles.fleetPrice}>{'\u20B9'}{vehicle.price.toLocaleString('en-IN')}/day</Text>
+                  </View>
                 </View>
               ))}
             </ScrollView>
@@ -417,35 +444,58 @@ export default function LuxuryCarRentalScreen() {
         )}
 
         {/* Trip Type Selection */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Select Trip Type</Text>
-          <View style={styles.chipGrid}>
-            {TRIP_TYPES.map((type) => (
-              <TouchableOpacity
-                key={type.id}
-                style={[
-                  styles.tripTypeCard,
-                  tripType === type.id && styles.tripTypeCardActive,
-                ]}
-                onPress={() => setTripType(type.id)}
-              >
-                <MaterialCommunityIcons
-                  name={type.icon}
-                  size={32}
-                  color={tripType === type.id ? AMBER : TEXT_SECONDARY}
-                />
-                <Text style={[styles.tripTypeLabel, tripType === type.id && styles.tripTypeLabelActive]}>
-                  {type.label}
-                </Text>
-                <Text style={styles.tripTypeDesc}>{type.desc}</Text>
-              </TouchableOpacity>
-            ))}
+        <View style={styles.formCard}>
+          <View style={styles.sectionHeaderRow}>
+            <View style={styles.sectionIconCircle}>
+              <MaterialCommunityIcons name="map-marker-path" size={wp('4.5%')} color={TEAL_MID} />
+            </View>
+            <Text style={styles.sectionTitle}>Select Trip Type</Text>
+          </View>
+          <View style={styles.tripTypeRow}>
+            {TRIP_TYPES.map((type) => {
+              const isActive = tripType === type.id;
+              return (
+                <TouchableOpacity
+                  key={type.id}
+                  style={[
+                    styles.tripTypeCard,
+                    isActive && styles.tripTypeCardActive,
+                  ]}
+                  onPress={() => setTripType(type.id)}
+                  activeOpacity={0.7}
+                >
+                  <View style={[styles.tripTypeIconWrap, isActive && styles.tripTypeIconWrapActive]}>
+                    <MaterialCommunityIcons
+                      name={type.icon}
+                      size={wp('5.5%')}
+                      color={isActive ? TEAL_MID : TEXT_MUTED}
+                    />
+                  </View>
+                  <Text style={[styles.tripTypeLabel, isActive && styles.tripTypeLabelActive]}>
+                    {type.label}
+                  </Text>
+                  <Text style={[styles.tripTypeDesc, isActive && styles.tripTypeDescActive]}>
+                    {type.desc}
+                  </Text>
+                  {isActive && (
+                    <View style={styles.tripTypeCheck}>
+                      <Ionicons name="checkmark-circle" size={wp('4.5%')} color={TEAL} />
+                    </View>
+                  )}
+                </TouchableOpacity>
+              );
+            })}
           </View>
         </View>
 
         {/* Occasion */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Occasion (Optional)</Text>
+        <View style={styles.formCard}>
+          <View style={styles.sectionHeaderRow}>
+            <View style={styles.sectionIconCircle}>
+              <MaterialCommunityIcons name="party-popper" size={wp('4.5%')} color={TEAL_MID} />
+            </View>
+            <Text style={styles.sectionTitle}>Occasion (Optional)</Text>
+          </View>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipRow}>
             {OCCASIONS.map((occ) => (
               <TouchableOpacity
@@ -455,8 +505,8 @@ export default function LuxuryCarRentalScreen() {
               >
                 <MaterialCommunityIcons
                   name={occ.icon}
-                  size={18}
-                  color={occasion === occ.id ? AMBER_DARK : TEXT_SECONDARY}
+                  size={wp('4%')}
+                  color={occasion === occ.id ? '#FFF' : TEXT_SECONDARY}
                 />
                 <Text style={[styles.chipText, occasion === occ.id && styles.chipTextActive]}>
                   {occ.label}
@@ -467,8 +517,13 @@ export default function LuxuryCarRentalScreen() {
         </View>
 
         {/* Vehicle Category */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Vehicle Category</Text>
+        <View style={styles.formCard}>
+          <View style={styles.sectionHeaderRow}>
+            <View style={styles.sectionIconCircle}>
+              <MaterialCommunityIcons name="car-sports" size={wp('4.5%')} color={TEAL_MID} />
+            </View>
+            <Text style={styles.sectionTitle}>Vehicle Category</Text>
+          </View>
           {VEHICLE_CATEGORIES.map((cat) => (
             <TouchableOpacity
               key={cat.id}
@@ -478,11 +533,13 @@ export default function LuxuryCarRentalScreen() {
               ]}
               onPress={() => setVehicleCategory(cat.id)}
             >
-              <MaterialCommunityIcons
-                name={cat.icon}
-                size={28}
-                color={vehicleCategory === cat.id ? AMBER : TEXT_SECONDARY}
-              />
+              <View style={[styles.catIconCircle, vehicleCategory === cat.id && styles.catIconCircleActive]}>
+                <MaterialCommunityIcons
+                  name={cat.icon}
+                  size={wp('5.5%')}
+                  color={vehicleCategory === cat.id ? '#FFF' : TEAL_MID}
+                />
+              </View>
               <View style={styles.vehicleCategoryInfo}>
                 <Text style={[styles.vehicleCategoryLabel, vehicleCategory === cat.id && styles.vehicleCategoryLabelActive]}>
                   {cat.label}
@@ -490,27 +547,37 @@ export default function LuxuryCarRentalScreen() {
                 <Text style={styles.vehicleCategoryDesc}>{cat.desc}</Text>
               </View>
               {vehicleCategory === cat.id && (
-                <MaterialCommunityIcons name="check-circle" size={24} color={AMBER} />
+                <MaterialCommunityIcons name="check-circle" size={wp('5.5%')} color={TEAL} />
               )}
             </TouchableOpacity>
           ))}
         </View>
 
         {/* Specific Model Preference */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Specific Model (Optional)</Text>
+        <View style={styles.formCard}>
+          <View style={styles.sectionHeaderRow}>
+            <View style={styles.sectionIconCircle}>
+              <MaterialCommunityIcons name="car-info" size={wp('4.5%')} color={TEAL_MID} />
+            </View>
+            <Text style={styles.sectionTitle}>Specific Model (Optional)</Text>
+          </View>
           <TextInput
             style={styles.input}
             placeholder="e.g., BMW 7 Series, Mercedes S-Class"
-            placeholderTextColor={TEXT_SECONDARY}
+            placeholderTextColor={TEXT_MUTED}
             value={specificModel}
             onChangeText={setSpecificModel}
           />
         </View>
 
         {/* Passengers */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Number of Passengers</Text>
+        <View style={styles.formCard}>
+          <View style={styles.sectionHeaderRow}>
+            <View style={styles.sectionIconCircle}>
+              <Ionicons name="people" size={wp('4.5%')} color={TEAL_MID} />
+            </View>
+            <Text style={styles.sectionTitle}>Number of Passengers</Text>
+          </View>
           <View style={styles.passengerRow}>
             {['2', '4', '6', '7+'].map((count) => (
               <TouchableOpacity
@@ -527,24 +594,29 @@ export default function LuxuryCarRentalScreen() {
         </View>
 
         {/* Pickup Details */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Pickup Details</Text>
+        <View style={styles.formCard}>
+          <View style={styles.sectionHeaderRow}>
+            <View style={styles.sectionIconCircle}>
+              <MaterialCommunityIcons name="map-marker" size={wp('4.5%')} color={TEAL_MID} />
+            </View>
+            <Text style={styles.sectionTitle}>Pickup Details</Text>
+          </View>
           <TouchableOpacity
             style={styles.input}
             onPress={() => openLocationPicker('pickup')}
           >
             <View style={styles.inputRow}>
-              <MaterialCommunityIcons name="map-marker" size={20} color={pickupCity ? TEXT_PRIMARY : TEXT_SECONDARY} />
+              <MaterialCommunityIcons name="map-marker" size={wp('4.5%')} color={pickupCity ? TEAL_MID : TEXT_MUTED} />
               <Text style={[styles.inputText, !pickupCity && styles.placeholder]}>
                 {pickupCity || 'Select Pickup City *'}
               </Text>
-              <Ionicons name="chevron-down" size={20} color={TEXT_SECONDARY} />
+              <Ionicons name="chevron-down" size={wp('4.5%')} color={TEXT_MUTED} />
             </View>
           </TouchableOpacity>
           <TextInput
             style={[styles.input, styles.inputMultiline]}
             placeholder="Pickup Address (with landmark) *"
-            placeholderTextColor={TEXT_SECONDARY}
+            placeholderTextColor={TEXT_MUTED}
             value={pickupAddress}
             onChangeText={setPickupAddress}
             multiline
@@ -554,24 +626,29 @@ export default function LuxuryCarRentalScreen() {
 
         {/* Drop Details (for outstation) */}
         {tripType === 'outstation' && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Drop Details</Text>
+          <View style={styles.formCard}>
+            <View style={styles.sectionHeaderRow}>
+              <View style={styles.sectionIconCircle}>
+                <MaterialCommunityIcons name="map-marker-check" size={wp('4.5%')} color={TEAL_MID} />
+              </View>
+              <Text style={styles.sectionTitle}>Drop Details</Text>
+            </View>
             <TouchableOpacity
               style={styles.input}
               onPress={() => openLocationPicker('drop')}
             >
               <View style={styles.inputRow}>
-                <MaterialCommunityIcons name="map-marker" size={20} color={dropCity ? TEXT_PRIMARY : TEXT_SECONDARY} />
+                <MaterialCommunityIcons name="map-marker" size={wp('4.5%')} color={dropCity ? TEAL_MID : TEXT_MUTED} />
                 <Text style={[styles.inputText, !dropCity && styles.placeholder]}>
                   {dropCity || 'Select Drop City *'}
                 </Text>
-                <Ionicons name="chevron-down" size={20} color={TEXT_SECONDARY} />
+                <Ionicons name="chevron-down" size={wp('4.5%')} color={TEXT_MUTED} />
               </View>
             </TouchableOpacity>
             <TextInput
               style={[styles.input, styles.inputMultiline]}
               placeholder="Drop Address (with landmark)"
-              placeholderTextColor={TEXT_SECONDARY}
+              placeholderTextColor={TEXT_MUTED}
               value={dropAddress}
               onChangeText={setDropAddress}
               multiline
@@ -581,21 +658,30 @@ export default function LuxuryCarRentalScreen() {
         )}
 
         {/* Date & Time */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Pickup Date & Time</Text>
+        <View style={styles.formCard}>
+          <View style={styles.sectionHeaderRow}>
+            <View style={styles.sectionIconCircle}>
+              <Ionicons name="calendar" size={wp('4.5%')} color={TEAL_MID} />
+            </View>
+            <Text style={styles.sectionTitle}>Pickup Date & Time</Text>
+          </View>
           <View style={styles.dateTimeRow}>
             <TouchableOpacity
               style={styles.dateTimeBtn}
               onPress={() => setShowPickupDatePicker(true)}
             >
-              <Ionicons name="calendar-outline" size={20} color={AMBER} />
+              <View style={styles.dateTimeIconCircle}>
+                <Ionicons name="calendar-outline" size={wp('4%')} color={TEAL_MID} />
+              </View>
               <Text style={styles.dateTimeText}>{formatDate(pickupDate)}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.dateTimeBtn}
               onPress={() => setShowPickupTimePicker(true)}
             >
-              <Ionicons name="time-outline" size={20} color={AMBER} />
+              <View style={styles.dateTimeIconCircle}>
+                <Ionicons name="time-outline" size={wp('4%')} color={TEAL_MID} />
+              </View>
               <Text style={styles.dateTimeText}>{formatTime(pickupTime)}</Text>
             </TouchableOpacity>
           </View>
@@ -632,21 +718,30 @@ export default function LuxuryCarRentalScreen() {
 
         {/* Return Date & Time (for outstation/round trip) */}
         {tripType === 'outstation' && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Return Date & Time</Text>
+          <View style={styles.formCard}>
+            <View style={styles.sectionHeaderRow}>
+              <View style={styles.sectionIconCircle}>
+                <Ionicons name="calendar" size={wp('4.5%')} color={TEAL_MID} />
+              </View>
+              <Text style={styles.sectionTitle}>Return Date & Time</Text>
+            </View>
             <View style={styles.dateTimeRow}>
               <TouchableOpacity
                 style={styles.dateTimeBtn}
                 onPress={() => setShowReturnDatePicker(true)}
               >
-                <Ionicons name="calendar-outline" size={20} color={AMBER} />
+                <View style={styles.dateTimeIconCircle}>
+                  <Ionicons name="calendar-outline" size={wp('4%')} color={TEAL_MID} />
+                </View>
                 <Text style={styles.dateTimeText}>{formatDate(returnDate)}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.dateTimeBtn}
                 onPress={() => setShowReturnTimePicker(true)}
               >
-                <Ionicons name="time-outline" size={20} color={AMBER} />
+                <View style={styles.dateTimeIconCircle}>
+                  <Ionicons name="time-outline" size={wp('4%')} color={TEAL_MID} />
+                </View>
                 <Text style={styles.dateTimeText}>{formatTime(returnTime)}</Text>
               </TouchableOpacity>
             </View>
@@ -684,8 +779,13 @@ export default function LuxuryCarRentalScreen() {
 
         {/* Package (for local trips) */}
         {tripType === 'local' && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Select Package</Text>
+          <View style={styles.formCard}>
+            <View style={styles.sectionHeaderRow}>
+              <View style={styles.sectionIconCircle}>
+                <MaterialCommunityIcons name="package-variant" size={wp('4.5%')} color={TEAL_MID} />
+              </View>
+              <Text style={styles.sectionTitle}>Select Package</Text>
+            </View>
             {PACKAGES.map((pkg) => (
               <TouchableOpacity
                 key={pkg.id}
@@ -699,7 +799,7 @@ export default function LuxuryCarRentalScreen() {
                   {pkg.label}
                 </Text>
                 {packageType === pkg.id && (
-                  <MaterialCommunityIcons name="check-circle" size={22} color={AMBER} />
+                  <MaterialCommunityIcons name="check-circle" size={wp('5%')} color={TEAL} />
                 )}
               </TouchableOpacity>
             ))}
@@ -707,9 +807,14 @@ export default function LuxuryCarRentalScreen() {
         )}
 
         {/* Decoration */}
-        <View style={styles.section}>
+        <View style={styles.formCard}>
           <View style={styles.decorationHeader}>
-            <Text style={styles.sectionTitle}>Car Decoration</Text>
+            <View style={[styles.sectionHeaderRow, { flex: 1, marginBottom: 0 }]}>
+              <View style={styles.sectionIconCircle}>
+                <MaterialCommunityIcons name="flower" size={wp('4.5%')} color={TEAL_MID} />
+              </View>
+              <Text style={styles.sectionTitle}>Car Decoration</Text>
+            </View>
             <TouchableOpacity
               style={styles.toggleSwitch}
               onPress={() => {
@@ -734,14 +839,19 @@ export default function LuxuryCarRentalScreen() {
                   ]}
                   onPress={() => setDecorationType(dec.id)}
                 >
-                  <MaterialCommunityIcons
-                    name={dec.icon}
-                    size={24}
-                    color={decorationType === dec.id ? AMBER : TEXT_SECONDARY}
-                  />
+                  <View style={[styles.decoItemIcon, decorationType === dec.id && styles.decoItemIconActive]}>
+                    <MaterialCommunityIcons
+                      name={dec.icon}
+                      size={wp('5%')}
+                      color={decorationType === dec.id ? '#FFF' : TEAL_MID}
+                    />
+                  </View>
                   <Text style={[styles.decorationText, decorationType === dec.id && styles.decorationTextActive]}>
                     {dec.label}
                   </Text>
+                  {decorationType === dec.id && (
+                    <MaterialCommunityIcons name="check-circle" size={wp('5%')} color={TEAL} style={{ marginLeft: 'auto' }} />
+                  )}
                 </TouchableOpacity>
               ))}
             </View>
@@ -749,12 +859,17 @@ export default function LuxuryCarRentalScreen() {
         </View>
 
         {/* Special Requirements */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Special Requirements (Optional)</Text>
+        <View style={styles.formCard}>
+          <View style={styles.sectionHeaderRow}>
+            <View style={styles.sectionIconCircle}>
+              <MaterialCommunityIcons name="text-box-outline" size={wp('4.5%')} color={TEAL_MID} />
+            </View>
+            <Text style={styles.sectionTitle}>Special Requirements (Optional)</Text>
+          </View>
           <TextInput
             style={[styles.input, styles.inputMultiline]}
             placeholder="Any special requests or requirements..."
-            placeholderTextColor={TEXT_SECONDARY}
+            placeholderTextColor={TEXT_MUTED}
             value={requirements}
             onChangeText={setRequirements}
             multiline
@@ -769,23 +884,23 @@ export default function LuxuryCarRentalScreen() {
           disabled={loading}
         >
           <LinearGradient
-            colors={loading ? [TEXT_SECONDARY, TEXT_SECONDARY] : [AMBER, AMBER_DARK]}
+            colors={loading ? [TEXT_SECONDARY, TEXT_SECONDARY] : [TEAL_MID, '#047857']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
             style={styles.submitGradient}
           >
             {loading ? (
-              <ActivityIndicator color={TEXT_PRIMARY} size="small" />
+              <ActivityIndicator color="#FFF" size="small" />
             ) : (
               <>
-                <MaterialCommunityIcons name="send" size={22} color="#000" />
+                <MaterialCommunityIcons name="send" size={wp('5%')} color="#FFF" />
                 <Text style={styles.submitText}>Request Quotes</Text>
               </>
             )}
           </LinearGradient>
         </TouchableOpacity>
 
-        <View style={{ height: 40 }} />
+        <View style={{ height: hp('5%') }} />
       </Animated.ScrollView>
 
       {/* Location Picker Modal */}
@@ -798,22 +913,28 @@ export default function LuxuryCarRentalScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.locationModal}>
             {/* Header */}
-            <View style={styles.locationModalHeader}>
+            <LinearGradient
+              colors={[TEAL_DEEP, TEAL_MID, '#047857']}
+              style={styles.locationModalHeader}
+            >
               <Text style={styles.locationModalTitle}>
                 {locationPickerType === 'pickup' ? 'Select Pickup City' : 'Select Drop City'}
               </Text>
-              <TouchableOpacity onPress={() => setShowLocationPicker(false)}>
-                <Ionicons name="close" size={24} color={TEXT_PRIMARY} />
+              <TouchableOpacity
+                onPress={() => setShowLocationPicker(false)}
+                style={styles.modalCloseBtn}
+              >
+                <Ionicons name="close" size={wp('5%')} color="#FFF" />
               </TouchableOpacity>
-            </View>
+            </LinearGradient>
 
             {/* Search */}
             <View style={styles.locationSearchContainer}>
-              <Ionicons name="search" size={20} color={TEXT_SECONDARY} />
+              <Ionicons name="search" size={wp('4.5%')} color={TEXT_MUTED} />
               <TextInput
                 style={styles.locationSearchInput}
                 placeholder="Search city..."
-                placeholderTextColor={TEXT_SECONDARY}
+                placeholderTextColor={TEXT_MUTED}
                 value={locationSearch}
                 onChangeText={(text) => {
                   setLocationSearch(text);
@@ -825,12 +946,14 @@ export default function LuxuryCarRentalScreen() {
             {/* Locations List */}
             {locationsLoading ? (
               <View style={styles.locationLoadingContainer}>
-                <ActivityIndicator size="large" color={AMBER} />
+                <ActivityIndicator size="large" color={TEAL} />
                 <Text style={styles.locationLoadingText}>Loading locations...</Text>
               </View>
             ) : locations.length === 0 ? (
               <View style={styles.locationEmptyContainer}>
-                <MaterialCommunityIcons name="map-marker-off" size={48} color={TEXT_SECONDARY} />
+                <View style={styles.emptyIconCircle}>
+                  <MaterialCommunityIcons name="map-marker-off" size={wp('10%')} color={TEAL_MID} />
+                </View>
                 <Text style={styles.locationEmptyText}>No locations available</Text>
                 <Text style={styles.locationEmptySubtext}>
                   {locationSearch ? 'Try a different search term' : 'Please contact support'}
@@ -845,14 +968,16 @@ export default function LuxuryCarRentalScreen() {
                     style={styles.locationItem}
                     onPress={() => selectLocation(item)}
                   >
-                    <MaterialCommunityIcons name="map-marker" size={22} color={AMBER} />
+                    <View style={styles.locationItemIconCircle}>
+                      <MaterialCommunityIcons name="map-marker" size={wp('4.5%')} color={TEAL_MID} />
+                    </View>
                     <View style={styles.locationItemContent}>
                       <Text style={styles.locationItemName}>{item.displayName || item.name}</Text>
                       {item.state && (
                         <Text style={styles.locationItemState}>{item.state}</Text>
                       )}
                     </View>
-                    <Ionicons name="chevron-forward" size={20} color={TEXT_SECONDARY} />
+                    <Ionicons name="chevron-forward" size={wp('4%')} color={TEXT_MUTED} />
                   </TouchableOpacity>
                 )}
                 ItemSeparatorComponent={() => <View style={styles.locationItemSeparator} />}
@@ -871,21 +996,29 @@ export default function LuxuryCarRentalScreen() {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.phoneModal}>
-            <View style={styles.phoneModalHeader}>
+            <LinearGradient
+              colors={[TEAL_DEEP, TEAL_MID, '#047857']}
+              style={styles.phoneModalHeader}
+            >
               <Text style={styles.phoneModalTitle}>Add Phone Number</Text>
-              <TouchableOpacity onPress={() => setShowPhoneModal(false)}>
-                <Ionicons name="close" size={24} color={TEXT_PRIMARY} />
+              <TouchableOpacity
+                onPress={() => setShowPhoneModal(false)}
+                style={styles.modalCloseBtn}
+              >
+                <Ionicons name="close" size={wp('5%')} color="#FFF" />
               </TouchableOpacity>
-            </View>
+            </LinearGradient>
 
             <View style={styles.phoneModalContent}>
-              <Ionicons name="call-outline" size={60} color={AMBER} style={styles.phoneIcon} />
+              <View style={styles.phoneIconCircle}>
+                <Ionicons name="call-outline" size={wp('8%')} color={TEAL_MID} />
+              </View>
               <Text style={styles.phoneModalText}>
                 We need your phone number to process your luxury car booking request and send you quotes from vendors.
               </Text>
 
               <View style={styles.phoneInputGroup}>
-                <Ionicons name="call" size={20} color={AMBER} />
+                <Ionicons name="call" size={wp('4.5%')} color={TEAL_MID} />
                 <TextInput
                   style={styles.phoneInput}
                   placeholder="Enter your 10-digit phone number"
@@ -894,7 +1027,7 @@ export default function LuxuryCarRentalScreen() {
                   keyboardType="phone-pad"
                   maxLength={10}
                   autoFocus={true}
-                  placeholderTextColor={TEXT_SECONDARY}
+                  placeholderTextColor={TEXT_MUTED}
                 />
               </View>
 
@@ -903,11 +1036,18 @@ export default function LuxuryCarRentalScreen() {
                 onPress={handlePhoneSubmit}
                 disabled={phoneLoading}
               >
-                {phoneLoading ? (
-                  <ActivityIndicator color="#fff" />
-                ) : (
-                  <Text style={styles.phoneSubmitBtnText}>Continue</Text>
-                )}
+                <LinearGradient
+                  colors={phoneLoading ? [TEXT_SECONDARY, TEXT_SECONDARY] : [TEAL_MID, '#047857']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.phoneSubmitGradient}
+                >
+                  {phoneLoading ? (
+                    <ActivityIndicator color="#FFF" />
+                  ) : (
+                    <Text style={styles.phoneSubmitBtnText}>Continue</Text>
+                  )}
+                </LinearGradient>
               </TouchableOpacity>
             </View>
           </View>
@@ -922,550 +1062,729 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: BG,
   },
-  header: {
+
+  // Sticky Header (on scroll)
+  stickyHeader: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
-    height: 60,
+    height: hp('7.5%'),
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
+    paddingHorizontal: wp('4%'),
     zIndex: 100,
   },
-  backBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(0,0,0,0.2)',
+  stickyBackBtn: {
+    width: wp('9%'),
+    height: wp('9%'),
+    borderRadius: wp('4.5%'),
+    backgroundColor: 'rgba(255,255,255,0.15)',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  headerTitle: {
+  stickyHeaderTitle: {
     flex: 1,
-    fontSize: 18,
+    fontSize: wp('4.5%'),
     fontWeight: '700',
-    color: '#000',
-    marginLeft: 12,
+    color: '#FFF',
+    marginLeft: wp('3%'),
+    letterSpacing: 0.3,
   },
+
   scrollView: {
     flex: 1,
   },
   scrollContent: {
-    paddingBottom: 100,
+    paddingBottom: hp('12%'),
   },
+
+  // Hero
   hero: {
-    height: 200,
-    marginBottom: 24,
+    marginBottom: hp('2%'),
   },
   heroGradient: {
-    flex: 1,
+    paddingTop: hp('3%'),
+    paddingBottom: hp('3.5%'),
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 20,
+    paddingHorizontal: wp('5%'),
+    overflow: 'hidden',
+  },
+  decoCircle: {
+    position: 'absolute',
+    borderRadius: 999,
+    backgroundColor: 'rgba(255,255,255,0.06)',
   },
   heroBackBtn: {
     position: 'absolute',
-    top: 16,
-    left: 16,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    top: hp('2%'),
+    left: wp('4%'),
+    width: wp('9%'),
+    height: wp('9%'),
+    borderRadius: wp('4.5%'),
+    backgroundColor: 'rgba(255,255,255,0.15)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   crownIcon: {
-    marginBottom: 12,
+    marginBottom: hp('1%'),
   },
   heroTitle: {
-    fontSize: 32,
+    fontSize: wp('7.5%'),
     fontWeight: '800',
     color: '#FFF',
-    marginBottom: 8,
+    marginBottom: hp('0.6%'),
+    letterSpacing: 0.5,
   },
   heroSubtitle: {
-    fontSize: 16,
-    color: '#FFF',
+    fontSize: wp('3.5%'),
+    color: 'rgba(255,255,255,0.8)',
     fontWeight: '600',
+    letterSpacing: 0.5,
   },
-  fleetPreview: {
-    marginBottom: 24,
+  myBookingsBtn: {
+    position: 'absolute',
+    top: hp('2%'),
+    right: wp('4%'),
+    width: wp('9%'),
+    height: wp('9%'),
+    borderRadius: wp('4.5%'),
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: TEXT_PRIMARY,
-    marginBottom: 16,
-    paddingHorizontal: 20,
+
+  // Fleet Preview
+  fleetSection: {
+    marginBottom: hp('1.5%'),
+    paddingVertical: hp('1.5%'),
   },
   fleetScroll: {
-    paddingLeft: 20,
+    paddingLeft: wp('4%'),
+    marginTop: hp('0.5%'),
   },
   fleetCard: {
-    width: 140,
-    marginRight: 16,
-    backgroundColor: CARD_BG,
-    borderRadius: 12,
+    width: wp('38%'),
+    marginRight: wp('3%'),
+    backgroundColor: CARD,
+    borderRadius: wp('3.5%'),
     overflow: 'hidden',
+    ...SHADOW_SM,
   },
   fleetImage: {
     width: '100%',
-    height: 90,
-    backgroundColor: '#E5E7EB',
+    height: hp('11%'),
+    backgroundColor: '#F0F0F0',
   },
   fleetPlaceholder: {
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: TEAL_LIGHT,
+  },
+  fleetInfo: {
+    padding: wp('2.5%'),
   },
   fleetName: {
-    fontSize: 13,
-    fontWeight: '600',
+    fontSize: wp('3.2%'),
+    fontWeight: '700',
     color: TEXT_PRIMARY,
-    paddingHorizontal: 8,
-    paddingTop: 8,
+    marginBottom: hp('0.3%'),
   },
   fleetPrice: {
-    fontSize: 12,
-    color: AMBER,
-    fontWeight: '600',
-    paddingHorizontal: 8,
-    paddingBottom: 8,
+    fontSize: wp('3%'),
+    color: TEAL_MID,
+    fontWeight: '700',
   },
-  section: {
-    marginBottom: 24,
+
+  // Form Card
+  formCard: {
+    backgroundColor: CARD,
+    borderRadius: wp('4%'),
+    marginHorizontal: wp('4%'),
+    marginBottom: hp('1.5%'),
+    padding: wp('4%'),
+    overflow: 'hidden',
+    ...SHADOW_SM,
   },
+
+  // Section Header
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: hp('1.5%'),
+    gap: wp('2.5%'),
+  },
+  sectionIconCircle: {
+    width: wp('9%'),
+    height: wp('9%'),
+    borderRadius: wp('4.5%'),
+    backgroundColor: TEAL_LIGHT,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  sectionTitle: {
+    fontSize: wp('4%'),
+    fontWeight: '700',
+    color: TEXT_PRIMARY,
+    flex: 1,
+  },
+
+  // Trip Type Cards
   chipGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    paddingHorizontal: 16,
+    gap: wp('2%'),
+  },
+  tripTypeRow: {
+    flexDirection: 'row',
+    gap: wp('2.5%'),
   },
   tripTypeCard: {
-    width: (width - 48) / 3,
-    aspectRatio: 1,
-    backgroundColor: CARD_BG,
-    borderRadius: 12,
-    justifyContent: 'center',
+    flex: 1,
+    backgroundColor: '#F8FAFC',
+    borderRadius: wp('4%'),
+    paddingVertical: hp('1.8%'),
+    paddingHorizontal: wp('2%'),
     alignItems: 'center',
-    margin: 4,
-    borderWidth: 2,
-    borderColor: 'transparent',
+    borderWidth: 1.5,
+    borderColor: '#E8ECF0',
+    position: 'relative',
   },
   tripTypeCardActive: {
-    borderColor: AMBER,
-    backgroundColor: '#FEF3C7',
+    borderColor: TEAL,
+    backgroundColor: TEAL_LIGHT,
+    ...SHADOW_SM,
+  },
+  tripTypeIconWrap: {
+    width: wp('11%'),
+    height: wp('11%'),
+    borderRadius: wp('5.5%'),
+    backgroundColor: '#EEF2F6',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: hp('0.8%'),
+  },
+  tripTypeIconWrapActive: {
+    backgroundColor: '#FFFFFF',
   },
   tripTypeLabel: {
-    fontSize: 13,
-    fontWeight: '600',
+    fontSize: wp('3.2%'),
+    fontWeight: '700',
     color: TEXT_SECONDARY,
-    marginTop: 8,
+    marginTop: hp('0.3%'),
+    textAlign: 'center',
   },
   tripTypeLabelActive: {
-    color: AMBER,
+    color: TEAL_DEEP,
   },
   tripTypeDesc: {
-    fontSize: 10,
-    color: TEXT_SECONDARY,
-    marginTop: 2,
+    fontSize: wp('2.4%'),
+    color: TEXT_MUTED,
+    marginTop: hp('0.2%'),
+    textAlign: 'center',
   },
+  tripTypeDescActive: {
+    color: TEAL_MID,
+  },
+  tripTypeCheck: {
+    position: 'absolute',
+    top: wp('2%'),
+    right: wp('2%'),
+  },
+
+  // Chips (Occasion)
   chipRow: {
-    paddingLeft: 20,
+    marginHorizontal: -wp('1%'),
   },
   chip: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: CARD_BG,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 999,
-    marginRight: 12,
-    borderWidth: 1,
-    borderColor: 'transparent',
-    gap: 6,
+    backgroundColor: BG,
+    paddingHorizontal: wp('3.5%'),
+    paddingVertical: hp('1%'),
+    borderRadius: wp('6%'),
+    marginRight: wp('2.5%'),
+    borderWidth: 1.5,
+    borderColor: '#E5E7EB',
+    gap: wp('1.5%'),
   },
   chipActive: {
-    backgroundColor: AMBER + '20',
-    borderColor: AMBER,
+    backgroundColor: TEAL_MID,
+    borderColor: TEAL_MID,
   },
   chipText: {
-    fontSize: 13,
+    fontSize: wp('3.2%'),
     fontWeight: '600',
     color: TEXT_SECONDARY,
   },
   chipTextActive: {
-    color: AMBER,
+    color: '#FFF',
   },
+
+  // Vehicle Category
   vehicleCategoryCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: CARD_BG,
-    padding: 16,
-    borderRadius: 12,
-    marginHorizontal: 20,
-    marginBottom: 12,
-    borderWidth: 2,
-    borderColor: 'transparent',
+    backgroundColor: BG,
+    padding: wp('3.5%'),
+    borderRadius: wp('3%'),
+    marginBottom: hp('1%'),
+    borderWidth: 1.5,
+    borderColor: '#E5E7EB',
   },
   vehicleCategoryCardActive: {
-    borderColor: AMBER,
-    backgroundColor: '#FEF3C7',
+    borderColor: TEAL,
+    backgroundColor: TEAL_LIGHT,
+  },
+  catIconCircle: {
+    width: wp('10%'),
+    height: wp('10%'),
+    borderRadius: wp('5%'),
+    backgroundColor: TEAL_LIGHT,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  catIconCircleActive: {
+    backgroundColor: TEAL_MID,
   },
   vehicleCategoryInfo: {
     flex: 1,
-    marginLeft: 12,
+    marginLeft: wp('3%'),
   },
   vehicleCategoryLabel: {
-    fontSize: 16,
+    fontSize: wp('3.8%'),
     fontWeight: '700',
     color: TEXT_PRIMARY,
-    marginBottom: 4,
+    marginBottom: hp('0.3%'),
   },
   vehicleCategoryLabelActive: {
-    color: AMBER,
+    color: TEAL_DEEP,
   },
   vehicleCategoryDesc: {
-    fontSize: 12,
+    fontSize: wp('3%'),
     color: TEXT_SECONDARY,
   },
+
+  // Inputs
   input: {
-    backgroundColor: CARD_BG,
-    borderWidth: 1,
+    backgroundColor: BG,
+    borderWidth: 1.5,
     borderColor: '#E5E7EB',
-    borderRadius: 12,
-    padding: 16,
-    fontSize: 15,
+    borderRadius: wp('3%'),
+    padding: wp('3.5%'),
+    fontSize: wp('3.5%'),
     color: TEXT_PRIMARY,
-    marginHorizontal: 20,
-    marginBottom: 12,
+    marginBottom: hp('1%'),
   },
   inputMultiline: {
-    minHeight: 80,
+    minHeight: hp('10%'),
     textAlignVertical: 'top',
   },
+  inputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: wp('2.5%'),
+  },
+  inputText: {
+    flex: 1,
+    fontSize: wp('3.5%'),
+    color: TEXT_PRIMARY,
+  },
+  placeholder: {
+    color: TEXT_MUTED,
+  },
+
+  // Passengers
   passengerRow: {
     flexDirection: 'row',
-    paddingHorizontal: 20,
-    gap: 12,
+    gap: wp('2.5%'),
   },
   passengerBtn: {
     flex: 1,
-    paddingVertical: 16,
-    backgroundColor: CARD_BG,
-    borderRadius: 12,
+    paddingVertical: hp('1.8%'),
+    backgroundColor: BG,
+    borderRadius: wp('3%'),
     alignItems: 'center',
-    borderWidth: 2,
-    borderColor: 'transparent',
+    borderWidth: 1.5,
+    borderColor: '#E5E7EB',
   },
   passengerBtnActive: {
-    borderColor: AMBER,
-    backgroundColor: '#FEF3C7',
+    borderColor: TEAL_MID,
+    backgroundColor: TEAL_MID,
   },
   passengerText: {
-    fontSize: 16,
+    fontSize: wp('4%'),
     fontWeight: '700',
     color: TEXT_SECONDARY,
   },
   passengerTextActive: {
-    color: AMBER,
+    color: '#FFF',
   },
+
+  // Date/Time
   dateTimeRow: {
     flexDirection: 'row',
-    paddingHorizontal: 20,
-    gap: 12,
+    gap: wp('2.5%'),
   },
   dateTimeBtn: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: CARD_BG,
-    padding: 16,
-    borderRadius: 12,
-    gap: 8,
+    backgroundColor: BG,
+    paddingVertical: hp('1.5%'),
+    paddingHorizontal: wp('3%'),
+    borderRadius: wp('3%'),
+    borderWidth: 1.5,
+    borderColor: '#E5E7EB',
+    gap: wp('2%'),
+  },
+  dateTimeIconCircle: {
+    width: wp('8%'),
+    height: wp('8%'),
+    borderRadius: wp('4%'),
+    backgroundColor: TEAL_LIGHT,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   dateTimeText: {
     flex: 1,
-    fontSize: 14,
+    fontSize: wp('3.3%'),
     fontWeight: '600',
     color: TEXT_PRIMARY,
   },
+
+  // Package
   packageCard: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: CARD_BG,
-    padding: 16,
-    borderRadius: 12,
-    marginHorizontal: 20,
-    marginBottom: 12,
-    borderWidth: 2,
-    borderColor: 'transparent',
+    backgroundColor: BG,
+    paddingVertical: hp('1.8%'),
+    paddingHorizontal: wp('4%'),
+    borderRadius: wp('3%'),
+    marginBottom: hp('1%'),
+    borderWidth: 1.5,
+    borderColor: '#E5E7EB',
   },
   packageCardActive: {
-    borderColor: AMBER,
-    backgroundColor: '#FEF3C7',
+    borderColor: TEAL,
+    backgroundColor: TEAL_LIGHT,
   },
   packageLabel: {
-    fontSize: 15,
+    fontSize: wp('3.5%'),
     fontWeight: '600',
     color: TEXT_PRIMARY,
   },
   packageLabelActive: {
-    color: AMBER,
+    color: TEAL_DEEP,
+    fontWeight: '700',
   },
+
+  // Decoration
   decorationHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    marginBottom: 16,
+    marginBottom: hp('1%'),
   },
   toggleSwitch: {
-    padding: 4,
+    paddingVertical: wp('1%'),
+    paddingLeft: wp('2%'),
   },
   toggleTrack: {
-    width: 50,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: '#3A3A3A',
+    width: wp('10%'),
+    height: wp('5.5%'),
+    borderRadius: wp('2.75%'),
+    backgroundColor: '#D1D5DB',
     justifyContent: 'center',
-    paddingHorizontal: 2,
+    paddingHorizontal: wp('0.4%'),
   },
   toggleTrackActive: {
-    backgroundColor: AMBER,
+    backgroundColor: TEAL,
   },
   toggleThumb: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: TEXT_PRIMARY,
+    width: wp('4.5%'),
+    height: wp('4.5%'),
+    borderRadius: wp('2.25%'),
+    backgroundColor: '#FFF',
+    ...Platform.select({
+      ios: { shadowColor: '#000', shadowOpacity: 0.15, shadowOffset: { width: 0, height: 1 }, shadowRadius: 3 },
+      android: { elevation: 2 },
+    }),
   },
   toggleThumbActive: {
     alignSelf: 'flex-end',
   },
   decorationOptions: {
-    paddingHorizontal: 20,
-    gap: 12,
+    gap: hp('1%'),
   },
   decorationCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: CARD_BG,
-    padding: 16,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: 'transparent',
-    gap: 12,
+    backgroundColor: BG,
+    paddingVertical: hp('1.5%'),
+    paddingHorizontal: wp('3.5%'),
+    borderRadius: wp('3%'),
+    borderWidth: 1.5,
+    borderColor: '#E5E7EB',
+    gap: wp('3%'),
   },
   decorationCardActive: {
-    borderColor: AMBER,
-    backgroundColor: '#FEF3C7',
+    borderColor: TEAL,
+    backgroundColor: TEAL_LIGHT,
+  },
+  decoItemIcon: {
+    width: wp('10%'),
+    height: wp('10%'),
+    borderRadius: wp('5%'),
+    backgroundColor: TEAL_LIGHT,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  decoItemIconActive: {
+    backgroundColor: TEAL_MID,
   },
   decorationText: {
-    fontSize: 15,
+    fontSize: wp('3.5%'),
     fontWeight: '600',
     color: TEXT_PRIMARY,
   },
   decorationTextActive: {
-    color: AMBER,
+    color: TEAL_DEEP,
+    fontWeight: '700',
   },
+
+  // Submit Button
   submitBtn: {
-    marginHorizontal: 20,
-    marginTop: 12,
-    borderRadius: 12,
+    marginHorizontal: wp('4%'),
+    marginTop: hp('1%'),
+    borderRadius: wp('3.5%'),
     overflow: 'hidden',
-    elevation: 8,
-    shadowColor: AMBER,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
+    ...SHADOW_MD,
   },
   submitBtnDisabled: {
-    elevation: 0,
-    shadowOpacity: 0,
+    ...Platform.select({
+      ios: { shadowOpacity: 0 },
+      android: { elevation: 0 },
+    }),
   },
   submitGradient: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 18,
-    gap: 8,
+    paddingVertical: hp('2.2%'),
+    gap: wp('2%'),
   },
   submitText: {
-    fontSize: 17,
+    fontSize: wp('4.2%'),
     fontWeight: '700',
-    color: '#000',
+    color: '#FFF',
+    letterSpacing: 0.3,
   },
-  // Location Picker Styles
-  inputRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  inputText: {
-    flex: 1,
-    fontSize: 15,
-    color: TEXT_PRIMARY,
-  },
-  placeholder: {
-    color: TEXT_SECONDARY,
-  },
+
+  // Modal Overlay
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'flex-end',
   },
+
+  // Location Picker Modal
   locationModal: {
-    backgroundColor: CARD_BG,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    backgroundColor: CARD,
+    borderTopLeftRadius: wp('6%'),
+    borderTopRightRadius: wp('6%'),
     maxHeight: '80%',
-    paddingBottom: Platform.OS === 'android' ? 20 : 0,
+    paddingBottom: Platform.OS === 'android' ? hp('2.5%') : 0,
   },
   locationModalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: BORDER_COLOR,
+    paddingHorizontal: wp('5%'),
+    paddingVertical: hp('2%'),
+    borderTopLeftRadius: wp('6%'),
+    borderTopRightRadius: wp('6%'),
   },
   locationModalTitle: {
-    fontSize: 18,
+    fontSize: wp('4.5%'),
     fontWeight: '700',
-    color: TEXT_PRIMARY,
+    color: '#FFF',
+    letterSpacing: 0.3,
+  },
+  modalCloseBtn: {
+    width: wp('8%'),
+    height: wp('8%'),
+    borderRadius: wp('4%'),
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   locationSearchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: BG,
-    margin: 16,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 12,
-    gap: 10,
+    margin: wp('4%'),
+    paddingHorizontal: wp('4%'),
+    paddingVertical: hp('1.3%'),
+    borderRadius: wp('3%'),
+    borderWidth: 1.5,
+    borderColor: '#E5E7EB',
+    gap: wp('2.5%'),
   },
   locationSearchInput: {
     flex: 1,
-    fontSize: 15,
+    fontSize: wp('3.5%'),
     color: TEXT_PRIMARY,
     padding: 0,
   },
   locationLoadingContainer: {
-    padding: 40,
+    padding: hp('5%'),
     alignItems: 'center',
   },
   locationLoadingText: {
-    marginTop: 12,
-    fontSize: 14,
+    marginTop: hp('1.2%'),
+    fontSize: wp('3.3%'),
     color: TEXT_SECONDARY,
+    fontWeight: '500',
   },
   locationEmptyContainer: {
-    padding: 40,
+    padding: hp('5%'),
     alignItems: 'center',
   },
+  emptyIconCircle: {
+    width: wp('18%'),
+    height: wp('18%'),
+    borderRadius: wp('9%'),
+    backgroundColor: TEAL_LIGHT,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: hp('1.5%'),
+  },
   locationEmptyText: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: wp('4%'),
+    fontWeight: '700',
     color: TEXT_PRIMARY,
-    marginTop: 12,
+    marginTop: hp('0.5%'),
   },
   locationEmptySubtext: {
-    fontSize: 14,
+    fontSize: wp('3.3%'),
     color: TEXT_SECONDARY,
-    marginTop: 4,
+    marginTop: hp('0.5%'),
     textAlign: 'center',
   },
   locationItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    gap: 12,
+    paddingHorizontal: wp('5%'),
+    paddingVertical: hp('1.8%'),
+    gap: wp('3%'),
+  },
+  locationItemIconCircle: {
+    width: wp('9%'),
+    height: wp('9%'),
+    borderRadius: wp('4.5%'),
+    backgroundColor: TEAL_LIGHT,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   locationItemContent: {
     flex: 1,
   },
   locationItemName: {
-    fontSize: 15,
+    fontSize: wp('3.5%'),
     fontWeight: '600',
     color: TEXT_PRIMARY,
   },
   locationItemState: {
-    fontSize: 13,
+    fontSize: wp('3%'),
     color: TEXT_SECONDARY,
-    marginTop: 2,
+    marginTop: hp('0.3%'),
   },
   locationItemSeparator: {
     height: 1,
-    backgroundColor: BORDER_COLOR,
-    marginHorizontal: 20,
+    backgroundColor: '#F3F4F6',
+    marginHorizontal: wp('5%'),
   },
+
+  // Phone Modal
   phoneModal: {
-    backgroundColor: CARD_BG,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    backgroundColor: CARD,
+    borderTopLeftRadius: wp('6%'),
+    borderTopRightRadius: wp('6%'),
     maxHeight: '70%',
     width: '100%',
+    overflow: 'hidden',
   },
   phoneModalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: BORDER_COLOR,
+    paddingHorizontal: wp('5%'),
+    paddingVertical: hp('2%'),
   },
   phoneModalTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: TEXT_PRIMARY,
+    fontSize: wp('4.5%'),
+    fontWeight: '700',
+    color: '#FFF',
+    letterSpacing: 0.3,
   },
   phoneModalContent: {
-    padding: 24,
+    padding: wp('6%'),
     alignItems: 'center',
   },
-  phoneIcon: {
-    marginBottom: 16,
+  phoneIconCircle: {
+    width: wp('18%'),
+    height: wp('18%'),
+    borderRadius: wp('9%'),
+    backgroundColor: TEAL_LIGHT,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: hp('2%'),
   },
   phoneModalText: {
-    fontSize: 15,
+    fontSize: wp('3.5%'),
     color: TEXT_SECONDARY,
     textAlign: 'center',
-    marginBottom: 24,
-    lineHeight: 22,
+    marginBottom: hp('3%'),
+    lineHeight: wp('5.2%'),
   },
   phoneInputGroup: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: BG,
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    marginBottom: 20,
+    borderRadius: wp('3%'),
+    paddingHorizontal: wp('3.5%'),
+    marginBottom: hp('2.5%'),
     width: '100%',
-    borderWidth: 1,
-    borderColor: BORDER_COLOR,
+    borderWidth: 1.5,
+    borderColor: '#E5E7EB',
   },
   phoneInput: {
     flex: 1,
-    paddingVertical: 14,
-    paddingHorizontal: 8,
-    fontSize: 16,
+    paddingVertical: hp('1.6%'),
+    paddingHorizontal: wp('2%'),
+    fontSize: wp('4%'),
     color: TEXT_PRIMARY,
   },
   phoneSubmitBtn: {
-    backgroundColor: AMBER,
-    borderRadius: 10,
-    paddingVertical: 14,
-    alignItems: 'center',
+    borderRadius: wp('3%'),
+    overflow: 'hidden',
     width: '100%',
   },
   phoneSubmitBtnDisabled: {
     opacity: 0.6,
   },
+  phoneSubmitGradient: {
+    paddingVertical: hp('1.8%'),
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   phoneSubmitBtnText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
+    color: '#FFF',
+    fontSize: wp('4%'),
+    fontWeight: '700',
+    letterSpacing: 0.3,
   },
 });

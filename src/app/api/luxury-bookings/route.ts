@@ -233,7 +233,7 @@ export async function GET(request: NextRequest) {
       include: {
         vendors_luxury_bookings_acceptedVendorIdTovendors: { select: { id: true, businessName: true, phone: true, rating: true } },
         vendors_luxury_bookings_assignedVendorIdTovendors: { select: { id: true, businessName: true, phone: true, rating: true } },
-        acceptedQuote: {
+        luxury_quotes: {
           select: {
             id: true,
             quoteNumber: true,
@@ -248,7 +248,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       success: true,
       bookings: bookings.map((b) => {
-        const vendor = b.acceptedVendor || b.assignedVendor;
+        const vendor = b.vendors_luxury_bookings_acceptedVendorIdTovendors || b.vendors_luxury_bookings_assignedVendorIdTovendors;
         return {
           id: b.id,
           bookingNumber: b.bookingNumber,
@@ -270,7 +270,7 @@ export async function GET(request: NextRequest) {
           chauffeurPhone: b.chauffeurPhone,
           rating: b.rating,
           vendor: vendor ? { name: vendor.businessName, phone: vendor.phone, rating: vendor.rating } : null,
-          quote: b.acceptedQuote || null,
+          quote: b.luxury_quotes || null,
           broadcastExpiresAt: b.broadcastExpiresAt,
           createdAt: b.createdAt,
         };

@@ -182,7 +182,16 @@ export default function TicketDetailPage() {
     );
   }
 
-  const images = ticket.images ? JSON.parse(ticket.images) : [];
+  const images = (() => {
+    if (!ticket.images) return [];
+    try {
+      const parsed = JSON.parse(ticket.images);
+      return Array.isArray(parsed) ? parsed : [parsed];
+    } catch {
+      // images field is a plain string path, not JSON
+      return [ticket.images];
+    }
+  })();
 
   return (
     <div className="space-y-6">
@@ -258,17 +267,20 @@ export default function TicketDetailPage() {
                     Attached Images ({images.length})
                   </p>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                    {images.map((img: string, idx: number) => (
-                      <a
-                        key={idx}
-                        href={img}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="aspect-video bg-slate-100 rounded-lg overflow-hidden hover:opacity-90 transition"
-                      >
-                        <img src={img} alt={`Attachment ${idx + 1}`} className="w-full h-full object-cover" />
-                      </a>
-                    ))}
+                    {images.map((img: string, idx: number) => {
+                      const src = img.startsWith('/') || img.startsWith('http') ? img : `/${img}`;
+                      return (
+                        <a
+                          key={idx}
+                          href={src}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="aspect-video bg-slate-100 rounded-lg overflow-hidden hover:opacity-90 transition"
+                        >
+                          <img src={src} alt={`Attachment ${idx + 1}`} className="w-full h-full object-cover" />
+                        </a>
+                      );
+                    })}
                   </div>
                 </div>
               )}

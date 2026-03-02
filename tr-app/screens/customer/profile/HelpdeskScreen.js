@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from 'react';
+import React, {useState, useEffect, useCallback} from 'react';
 import {
   View,
   Text,
@@ -13,13 +13,30 @@ import {
   RefreshControl,
   Animated,
   Dimensions,
+  StatusBar,
+  Platform,
 } from 'react-native';
 import {launchImageLibrary} from 'react-native-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import {useNavigation} from '@react-navigation/native';
+import {useNavigation, useFocusEffect} from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import {SafeAreaView} from 'react-native-safe-area-context';
-import api, { IMAGE_BASE_URL } from '../../api';
+import LinearGradient from 'react-native-linear-gradient';
+import {widthPercentageToDP as wp, heightPercentageToDP as hp} from 'react-native-responsive-screen';
+import api, {IMAGE_BASE_URL} from '../../api';
+import {
+  TEAL_DEEP,
+  TEAL_MID,
+  TEAL,
+  TEAL_LIGHT,
+  BG,
+  CARD,
+  TEXT_PRIMARY,
+  TEXT_SECONDARY,
+  TEXT_MUTED,
+  SHADOW_SM,
+  SHADOW_MD,
+} from '../../../theme';
 
 const {width} = Dimensions.get('window');
 
@@ -41,6 +58,22 @@ const HelpDeskScreen = () => {
   // Animation values
   const slideAnim = useState(new Animated.Value(300))[0];
   const fadeAnim = useState(new Animated.Value(0))[0];
+
+  /* -- StatusBar management -- */
+  useFocusEffect(
+    useCallback(() => {
+      StatusBar.setBarStyle('light-content');
+      if (Platform.OS === 'android') {
+        StatusBar.setBackgroundColor(TEAL_DEEP);
+      }
+      return () => {
+        StatusBar.setBarStyle('dark-content');
+        if (Platform.OS === 'android') {
+          StatusBar.setBackgroundColor('#FFFFFF');
+        }
+      };
+    }, []),
+  );
 
   const fetchTickets = async () => {
     try {
@@ -155,113 +188,324 @@ const HelpDeskScreen = () => {
     }
   };
 
-  const getStatusConfig = (status) => {
+  const getStatusConfig = status => {
     const configs = {
-      open: { color: '#10B981', icon: 'time-outline' },
-      pending: { color: '#F59E0B', icon: 'hourglass-outline' },
-      closed: { color: '#6B7280', icon: 'checkmark-done' },
-      resolved: { color: '#10B981', icon: 'checkmark-circle' },
-      completed: { color: '#10B981', icon: 'checkmark-done' },
+      open: {color: TEAL, icon: 'time-outline'},
+      pending: {color: '#F59E0B', icon: 'hourglass-outline'},
+      closed: {color: '#EF4444', icon: 'checkmark-done'},
+      resolved: {color: TEAL, icon: 'checkmark-circle'},
+      completed: {color: TEAL, icon: 'checkmark-done'},
     };
-    return configs[status?.toLowerCase()] || { color: '#95A5A6', icon: 'help-outline' };
+    return (
+      configs[status?.toLowerCase()] || {color: '#95A5A6', icon: 'help-outline'}
+    );
   };
 
   const filteredTickets = tickets.filter(ticket => {
-  if (activeTab === 'all') return true;
-  if (activeTab === 'resolved') {
-    return ticket.status?.toLowerCase() === 'resolved' || ticket.status?.toLowerCase() === 'completed';
-  }
-  return ticket.status?.toLowerCase() === activeTab;
-});
+    if (activeTab === 'all') return true;
+    if (activeTab === 'resolved') {
+      return (
+        ticket.status?.toLowerCase() === 'resolved' ||
+        ticket.status?.toLowerCase() === 'completed'
+      );
+    }
+    return ticket.status?.toLowerCase() === activeTab;
+  });
+
+  // Build full image URL handling both "uploads/..." and bare paths
+  const getImageUrl = (imageUrl) => {
+    if (!imageUrl) return '';
+    if (imageUrl.startsWith('http')) return imageUrl;
+    const cleanPath = imageUrl.startsWith('uploads/') ? imageUrl.replace('uploads/', '') : imageUrl;
+    return `${IMAGE_BASE_URL}/${cleanPath}`;
+  };
 
   // Add image click handler
-  const handleImagePress = (imageUrl) => {
-    setSelectedImage(`${IMAGE_BASE_URL}/${imageUrl}`);
+  const handleImagePress = imageUrl => {
+    setSelectedImage(getImageUrl(imageUrl));
     setImageModalVisible(true);
   };
 
-  const TicketBubble = ({ ticket }) => {
+  const TicketBubble = ({ticket}) => {
     const config = getStatusConfig(ticket.status);
-    
+
     return (
       <View style={styles.bubbleCard}>
-        <View style={styles.bubbleHeader}>
-          <View style={[styles.bubbleIcon, { backgroundColor: config.color + '20' }]}>
-            <Ionicons name={config.icon} size={16} color={config.color} />
+        {/* Left accent bar */}
+        <View style={[styles.cardAccent, {backgroundColor: config.color}]} />
+        <View style={styles.cardInner}>
+          <View style={styles.bubbleHeader}>
+            <View
+              style={[
+                styles.bubbleIcon,
+                {backgroundColor: config.color + '18'},
+              ]}>
+              <Ionicons
+                name={config.icon}
+                size={wp('4.2%')}
+                color={config.color}
+              />
+            </View>
+            <View style={styles.bubbleContent}>
+              <Text style={styles.bubbleTitle}>{ticket.heading}</Text>
+              <Text style={styles.bubbleDate}>
+                {new Date(ticket.created_at).toLocaleDateString()}
+              </Text>
+            </View>
+            <View
+              style={[styles.statusPill, {backgroundColor: config.color + '18'}]}>
+              <Ionicons
+                name={config.icon}
+                size={wp('2.5%')}
+                color={config.color}
+              />
+              <Text style={[styles.statusPillText, {color: config.color}]}>
+                {ticket.status}
+              </Text>
+            </View>
           </View>
-          <View style={styles.bubbleContent}>
-            <Text style={styles.bubbleTitle}>{ticket.heading}</Text>
-            <Text style={styles.bubbleDate}>
-              {new Date(ticket.created_at).toLocaleDateString()}
-            </Text>
-          </View>
-          <View style={[styles.statusPill, { backgroundColor: config.color }]}>
-            <Ionicons name={config.icon} size={10} color="#FFFFFF" />
-            <Text style={styles.statusPillText}>{ticket.status}</Text>
+
+          <Text style={styles.bubbleDescription} numberOfLines={2}>
+            {ticket.problem}
+          </Text>
+
+          {ticket.image && (
+            <TouchableOpacity
+              style={styles.bubbleImage}
+              onPress={() => handleImagePress(ticket.image)}>
+              <Image
+                source={{uri: getImageUrl(ticket.image)}}
+                style={styles.previewImage}
+                resizeMode="cover"
+              />
+              <View style={styles.imageBadge}>
+                <Ionicons name="expand" size={wp('2.5%')} color="#FFFFFF" />
+              </View>
+            </TouchableOpacity>
+          )}
+
+          {/* Ticket ID footer */}
+          <View style={styles.ticketFooter}>
+            <View style={styles.ticketIdRow}>
+              <Ionicons
+                name="pricetag-outline"
+                size={wp('2.8%')}
+                color={TEXT_MUTED}
+              />
+              <Text style={styles.ticketIdText}>#{ticket.id}</Text>
+            </View>
           </View>
         </View>
-        
-        <Text style={styles.bubbleDescription} numberOfLines={2}>
-          {ticket.problem}
-        </Text>
-
-        {ticket.image && (
-          <TouchableOpacity
-            style={styles.bubbleImage}
-            onPress={() => handleImagePress(ticket.image)}>
-            <Image
-              source={{ uri: `${IMAGE_BASE_URL}/${ticket.image}` }}
-              style={styles.previewImage}
-              resizeMode="cover"
-            />
-            <View style={styles.imageBadge}>
-              <Ionicons name="expand" size={10} color="#FFFFFF" />
-            </View>
-          </TouchableOpacity>
-        )}
       </View>
     );
   };
 
-  const TabButton = ({ tab, label, count }) => (
+  const TabButton = ({tab, label, count}) => (
     <TouchableOpacity
       style={[styles.tabButton, activeTab === tab && styles.tabButtonActive]}
       onPress={() => setActiveTab(tab)}>
-      <Text style={[styles.tabText, activeTab === tab && styles.tabTextActive]}>
+      <Text
+        style={[styles.tabText, activeTab === tab && styles.tabTextActive]}>
         {label}
       </Text>
-      <View style={[styles.tabCount, activeTab === tab && styles.tabCountActive]}>
-        <Text style={styles.tabCountText}>{count}</Text>
+      <View
+        style={[styles.tabCount, activeTab === tab && styles.tabCountActive]}>
+        <Text
+          style={[
+            styles.tabCountText,
+            activeTab === tab && styles.tabCountTextActive,
+          ]}>
+          {count}
+        </Text>
       </View>
     </TouchableOpacity>
   );
 
+  /* -- Loading Skeleton -- */
+  if (loading && !refreshing) {
+    return (
+      <SafeAreaView style={styles.safe}>
+        <StatusBar barStyle="light-content" backgroundColor={TEAL_DEEP} />
+        {/* Gradient Header */}
+        <View style={styles.headerClip}>
+          <LinearGradient
+            colors={[TEAL_DEEP, TEAL_MID, '#047857']}
+            style={styles.headerGrad}>
+            <View
+              style={[
+                styles.decoCircle,
+                {
+                  top: -hp('3%'),
+                  right: -wp('5%'),
+                  width: wp('25%'),
+                  height: wp('25%'),
+                },
+              ]}
+              pointerEvents="none"
+            />
+            <View
+              style={[
+                styles.decoCircle,
+                {
+                  bottom: -hp('2%'),
+                  left: -wp('4%'),
+                  width: wp('15%'),
+                  height: wp('15%'),
+                },
+              ]}
+              pointerEvents="none"
+            />
+            <View style={styles.headerRow}>
+              <TouchableOpacity
+                onPress={() => navigation.goBack()}
+                style={styles.backBtn}>
+                <Ionicons name="chevron-back" size={wp('5.5%')} color="#FFF" />
+              </TouchableOpacity>
+              <Text style={styles.headerTitle}>Help Center</Text>
+              <View style={styles.headerActionPlaceholder} />
+            </View>
+          </LinearGradient>
+        </View>
+        {/* Skeleton Cards */}
+        <ScrollView
+          style={{flex: 1, backgroundColor: BG}}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{paddingBottom: hp('12%')}}>
+          <View style={styles.skeletonTabRow}>
+            {[1, 2, 3].map(i => (
+              <View key={i} style={styles.skeletonTab} />
+            ))}
+          </View>
+          <View style={styles.bubblesContainer}>
+            {[...Array(5)].map((_, index) => (
+              <View key={index} style={styles.skeletonCard}>
+                <View style={styles.skeletonAccent} />
+                <View style={styles.skeletonInner}>
+                  <View style={styles.skeletonHeaderRow}>
+                    <View style={styles.skeletonIcon} />
+                    <View style={styles.skeletonTexts}>
+                      <View
+                        style={[
+                          styles.skeletonLine,
+                          {width: '65%', height: hp('1.2%')},
+                        ]}
+                      />
+                      <View
+                        style={[
+                          styles.skeletonLine,
+                          {width: '40%', height: hp('1%')},
+                        ]}
+                      />
+                    </View>
+                  </View>
+                  <View style={styles.skeletonContentArea}>
+                    <View
+                      style={[
+                        styles.skeletonLine,
+                        {width: '100%', height: hp('1%')},
+                      ]}
+                    />
+                    <View
+                      style={[
+                        styles.skeletonLine,
+                        {width: '75%', height: hp('1%')},
+                      ]}
+                    />
+                  </View>
+                </View>
+              </View>
+            ))}
+          </View>
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.safe}>
-      {/* Header with Status */}
-      <View style={styles.header}>
-        <View style={styles.headerTop}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-            <Ionicons name="chevron-back" size={20} color="#065F46" />
-          </TouchableOpacity>
-          <View style={styles.headerCenter}>
+      <StatusBar barStyle="light-content" backgroundColor={TEAL_DEEP} />
+
+      {/* Gradient Header */}
+      <View style={styles.headerClip}>
+        <LinearGradient
+          colors={[TEAL_DEEP, TEAL_MID, '#047857']}
+          style={styles.headerGrad}>
+          {/* Decorative circles */}
+          <View
+            style={[
+              styles.decoCircle,
+              {
+                top: -hp('3%'),
+                right: -wp('5%'),
+                width: wp('25%'),
+                height: wp('25%'),
+              },
+            ]}
+            pointerEvents="none"
+          />
+          <View
+            style={[
+              styles.decoCircle,
+              {
+                bottom: -hp('2%'),
+                left: -wp('4%'),
+                width: wp('15%'),
+                height: wp('15%'),
+              },
+            ]}
+            pointerEvents="none"
+          />
+          <View
+            style={[
+              styles.decoCircle,
+              {
+                top: hp('1%'),
+                left: wp('30%'),
+                width: wp('10%'),
+                height: wp('10%'),
+                opacity: 0.04,
+              },
+            ]}
+            pointerEvents="none"
+          />
+
+          <View style={styles.headerRow}>
+            <TouchableOpacity
+              onPress={() => navigation.goBack()}
+              style={styles.backBtn}>
+              <Ionicons name="chevron-back" size={wp('5.5%')} color="#FFF" />
+            </TouchableOpacity>
             <Text style={styles.headerTitle}>Help Center</Text>
-            
+            <TouchableOpacity
+              style={styles.newTicketBtn}
+              onPress={() => setModalVisible(true)}>
+              <Ionicons name="add" size={wp('4.5%')} color="#FFF" />
+            </TouchableOpacity>
           </View>
-          <TouchableOpacity
-            style={styles.createBtn}
-            onPress={() => setModalVisible(true)}>
-            <Ionicons name="add" size={16} color="#FFFFFF" />
-          </TouchableOpacity>
-        </View>
+        </LinearGradient>
       </View>
 
       {/* Floating Tab Bar */}
       <View style={styles.tabContainer}>
         <TabButton tab="all" label="All" count={tickets.length} />
-       
-        <TabButton tab="pending" label="Pending" count={tickets.filter(t => t.status?.toLowerCase() === 'pending').length} />
-        <TabButton tab="resolved" label="Resolved" count={tickets.filter(t => t.status?.toLowerCase() === 'resolved' || t.status?.toLowerCase() === 'completed').length} />
+        <TabButton
+          tab="pending"
+          label="Pending"
+          count={
+            tickets.filter(t => t.status?.toLowerCase() === 'pending').length
+          }
+        />
+        <TabButton
+          tab="resolved"
+          label="Resolved"
+          count={
+            tickets.filter(
+              t =>
+                t.status?.toLowerCase() === 'resolved' ||
+                t.status?.toLowerCase() === 'completed',
+            ).length
+          }
+        />
       </View>
 
       {/* Main Content */}
@@ -271,35 +515,49 @@ const HelpDeskScreen = () => {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={handleRefresh}
-              colors={['#10B981']}
-              tintColor="#10B981"
+              colors={[TEAL]}
+              tintColor={TEAL}
             />
           }
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}>
-
           {filteredTickets.length === 0 ? (
             <View style={styles.creativeEmpty}>
-              <View style={styles.emptyAnimation}>
-                <Ionicons name="chatbubble-ellipses" size={32} color="#10B981" />
-              </View>
+              <LinearGradient
+                colors={[TEAL_LIGHT, '#A7F3D0']}
+                style={styles.emptyIconGradient}>
+                <View style={styles.emptyIconInner}>
+                  <Ionicons
+                    name="chatbubble-ellipses"
+                    size={wp('10%')}
+                    color={TEAL}
+                  />
+                </View>
+              </LinearGradient>
               <Text style={styles.emptyTitle}>No Tickets Found</Text>
               <Text style={styles.emptyDescription}>
-                {activeTab === 'all' 
+                {activeTab === 'all'
                   ? "You haven't created any support tickets yet"
-                  : `No ${activeTab} tickets found`
-                }
+                  : `No ${activeTab} tickets found`}
               </Text>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.ctaButton}
                 onPress={() => setModalVisible(true)}>
-                <Ionicons name="add-circle" size={14} color="#FFFFFF" />
-                <Text style={styles.ctaText}>Create First Ticket</Text>
+                <LinearGradient
+                  colors={[TEAL_MID, TEAL]}
+                  style={styles.ctaGradient}>
+                  <Ionicons
+                    name="add-circle"
+                    size={wp('3.8%')}
+                    color="#FFFFFF"
+                  />
+                  <Text style={styles.ctaText}>Create First Ticket</Text>
+                </LinearGradient>
               </TouchableOpacity>
             </View>
           ) : (
             <View style={styles.bubblesContainer}>
-              {filteredTickets.map((ticket) => (
+              {filteredTickets.map(ticket => (
                 <TicketBubble key={ticket.id} ticket={ticket} />
               ))}
             </View>
@@ -309,65 +567,118 @@ const HelpDeskScreen = () => {
 
       {/* Slide-up Modal */}
       <Modal visible={modalVisible} transparent animationType="none">
-        <Animated.View style={[styles.modalOverlay, { opacity: fadeAnim }]}>
-          <TouchableOpacity 
+        <Animated.View style={[styles.modalOverlay, {opacity: fadeAnim}]}>
+          <TouchableOpacity
             style={styles.modalBackdrop}
             onPress={() => setModalVisible(false)}
           />
-          <Animated.View style={[
-            styles.modalSheet,
-            { transform: [{ translateY: slideAnim }] }
-          ]}>
+          <Animated.View
+            style={[
+              styles.modalSheet,
+              {transform: [{translateY: slideAnim}]},
+            ]}>
+            {/* Gradient accent stripe */}
+            <LinearGradient
+              colors={[TEAL_DEEP, TEAL_MID, TEAL]}
+              start={{x: 0, y: 0}}
+              end={{x: 1, y: 0}}
+              style={styles.modalAccentStripe}
+            />
+
             {/* Handle Bar */}
             <View style={styles.handleBar} />
-            
+
             <View style={styles.modalHeader}>
               <View style={styles.modalTitleRow}>
-                <Ionicons name="help-buoy" size={18} color="#065F46" />
-                <Text style={styles.modalTitle}>New Support Request</Text>
+                <View style={styles.modalIconCircle}>
+                  <Ionicons
+                    name="help-buoy"
+                    size={wp('4.5%')}
+                    color={TEAL_MID}
+                  />
+                </View>
+                <View>
+                  <Text style={styles.modalTitle}>New Support Request</Text>
+                  <Text style={styles.modalSubtitle}>
+                    Tell us what you need help with
+                  </Text>
+                </View>
               </View>
-              <Text style={styles.modalSubtitle}>Tell us what you need help with</Text>
+              <TouchableOpacity
+                style={styles.modalCloseBtn}
+                onPress={() => setModalVisible(false)}>
+                <Ionicons
+                  name="close"
+                  size={wp('4.5%')}
+                  color={TEXT_SECONDARY}
+                />
+              </TouchableOpacity>
             </View>
 
-            <ScrollView style={styles.modalContent} showsVerticalScrollIndicator={false}>
-                <Text style={styles.Text}>Ticket Title</Text>
+            <ScrollView
+              style={styles.modalContent}
+              showsVerticalScrollIndicator={false}>
+              <Text style={styles.fieldLabel}>Ticket Title</Text>
               <View style={styles.inputField}>
-                <Ionicons name="chatbubble" size={16} color="#A0AEC0" style={styles.inputIcon} />
-                
+                <Ionicons
+                  name="chatbubble"
+                  size={wp('4%')}
+                  color={TEXT_MUTED}
+                  style={styles.inputIcon}
+                />
                 <TextInput
                   style={styles.textInput}
-                
                   placeholder="Ticket Title"
-                  placeholderTextColor="#A0AEC0"
+                  placeholderTextColor={TEXT_MUTED}
                   value={heading}
                   onChangeText={setHeading}
                 />
               </View>
-  <Text style={styles.Text}>Describe the isuues</Text>
+
+              <Text style={styles.fieldLabel}>Describe the issues</Text>
               <View style={styles.inputField}>
-                <Ionicons name="document-text" size={16} color="#A0AEC0" style={styles.inputIcon} />
+                <Ionicons
+                  name="document-text"
+                  size={wp('4%')}
+                  color={TEXT_MUTED}
+                  style={[styles.inputIcon, {alignSelf: 'flex-start', marginTop: hp('1.5%')}]}
+                />
                 <TextInput
                   style={[styles.textInput, styles.textArea]}
                   placeholder="Describe the issue in detail..."
-                  placeholderTextColor="#A0AEC0"
+                  placeholderTextColor={TEXT_MUTED}
                   value={problem}
                   onChangeText={setProblem}
                   multiline
                   numberOfLines={4}
                 />
               </View>
-  <Text style={styles.Text}>Upload Photo</Text>
+
+              <Text style={styles.fieldLabel}>Upload Photo</Text>
               <TouchableOpacity style={styles.uploadCard} onPress={pickImage}>
                 {imageUri ? (
                   <View style={styles.uploadedImage}>
-                    <Image source={{uri: imageUri}} style={styles.uploadPreview} />
+                    <Image
+                      source={{uri: imageUri}}
+                      style={styles.uploadPreview}
+                    />
                     <View style={styles.uploadSuccess}>
-                      <Ionicons name="checkmark" size={12} color="#FFFFFF" />
+                      <Ionicons
+                        name="checkmark"
+                        size={wp('3%')}
+                        color="#FFFFFF"
+                      />
                     </View>
                   </View>
                 ) : (
                   <View style={styles.uploadPlaceholder}>
-                    <Ionicons name="cloud-upload" size={24} color="#CBD5E0" />
+                    <View style={styles.uploadIconCircle}>
+                      <Ionicons
+                        name="cloud-upload"
+                        size={wp('6%')}
+                        color={TEAL}
+                      />
+                    </View>
                     <Text style={styles.uploadText}>Upload photo</Text>
                     <Text style={styles.uploadHint}>Optional</Text>
                   </View>
@@ -377,17 +688,28 @@ const HelpDeskScreen = () => {
 
             <View style={styles.modalActions}>
               <TouchableOpacity
-                style={[styles.submitBtn, submitLoading && styles.submitBtnDisabled]}
+                style={[
+                  styles.submitBtn,
+                  submitLoading && styles.submitBtnDisabled,
+                ]}
                 onPress={handleSubmit}
                 disabled={submitLoading}>
-                {submitLoading ? (
-                  <ActivityIndicator size="small" color="#FFFFFF" />
-                ) : (
-                  <>
-                    <Ionicons name="send" size={14} color="#FFFFFF" />
-                    <Text style={styles.submitText}>Submit Request</Text>
-                  </>
-                )}
+                <LinearGradient
+                  colors={[TEAL_MID, TEAL]}
+                  style={styles.submitGradient}>
+                  {submitLoading ? (
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                  ) : (
+                    <>
+                      <Ionicons
+                        name="send"
+                        size={wp('3.8%')}
+                        color="#FFFFFF"
+                      />
+                      <Text style={styles.submitText}>Submit Request</Text>
+                    </>
+                  )}
+                </LinearGradient>
               </TouchableOpacity>
             </View>
           </Animated.View>
@@ -397,25 +719,27 @@ const HelpDeskScreen = () => {
       {/* Image Preview Modal */}
       <Modal visible={imageModalVisible} transparent animationType="fade">
         <View style={styles.imageModalOverlay}>
-          <TouchableOpacity 
-            style={styles.imageModalBackdrop}
-            onPress={() => setImageModalVisible(false)}
-          />
-          <View style={styles.imageModalContent}>
-            <View style={styles.imageModalHeader}>
-              <Text style={styles.imageModalTitle}>Image Preview</Text>
-              <TouchableOpacity 
-                onPress={() => setImageModalVisible(false)}
-                style={styles.closeImageButton}>
-                <Ionicons name="close" size={20} color="#FFFFFF" />
-              </TouchableOpacity>
-            </View>
-            <Image
-              source={{ uri: selectedImage }}
-              style={styles.fullSizeImage}
-              resizeMode="contain"
-            />
+          <View style={styles.imageModalHeader}>
+            <Text style={styles.imageModalTitle}>Image Preview</Text>
+            <TouchableOpacity
+              onPress={() => setImageModalVisible(false)}
+              style={styles.closeImageButton}>
+              <Ionicons name="close" size={wp('5%')} color="#FFFFFF" />
+            </TouchableOpacity>
           </View>
+          <TouchableOpacity
+            activeOpacity={1}
+            style={styles.imageModalBody}
+            onPress={() => setImageModalVisible(false)}
+          >
+            {selectedImage ? (
+              <Image
+                source={{uri: selectedImage}}
+                style={styles.fullSizeImage}
+                resizeMode="contain"
+              />
+            ) : null}
+          </TouchableOpacity>
         </View>
       </Modal>
     </SafeAreaView>
@@ -425,242 +749,287 @@ const HelpDeskScreen = () => {
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: '#F7FAFC',
+    backgroundColor: BG,
   },
-  // Header with Status
-  header: {
-    backgroundColor: '#FFFFFF',
-    paddingTop: 12,
-    paddingBottom: 16,
-    paddingHorizontal: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+
+  /* -- Header Gradient Wrapper -- */
+  headerClip: {
+    overflow: 'hidden',
+    borderBottomLeftRadius: wp('6%'),
+    borderBottomRightRadius: wp('6%'),
+    ...SHADOW_MD,
   },
-  headerTop: {
+  headerGrad: {
+    paddingTop:
+      Platform.OS === 'android' ? StatusBar.currentHeight + hp('1%') : hp('1%'),
+    paddingBottom: hp('2.5%'),
+    paddingHorizontal: wp('4%'),
+  },
+  decoCircle: {
+    position: 'absolute',
+    borderRadius: wp('50%'),
+    backgroundColor: 'rgba(255,255,255,0.06)',
+  },
+  headerRow: {
+    zIndex: 2,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
   backBtn: {
-    padding: 6,
-    backgroundColor: '#F3F4F6',
-    borderRadius: 10,
-  },
-  headerCenter: {
-    alignItems: 'center',
-    flex: 1,
-    marginHorizontal: 12,
-  },
-  headerTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#000',
-    // marginBottom: 6,
-  },
-  statusRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    width: '100%',
-  },
-  statusItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  statusText: {
-    fontSize: 10,
-    color: '#6B7280',
-    fontWeight: '500',
-  },
-  createBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 18,
-    backgroundColor: '#10B981',
+    width: wp('10%'),
+    height: wp('10%'),
+    borderRadius: wp('5%'),
+    backgroundColor: 'rgba(255,255,255,0.15)',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  // Floating Tab Bar
+  headerTitle: {
+    fontSize: wp('5%'),
+    fontWeight: '700',
+    color: '#FFF',
+    letterSpacing: 0.3,
+  },
+  newTicketBtn: {
+    width: wp('10%'),
+    height: wp('10%'),
+    borderRadius: wp('5%'),
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerActionPlaceholder: {
+    width: wp('10%'),
+    height: wp('10%'),
+  },
+
+  /* -- Floating Tab Bar -- */
   tabContainer: {
     flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
-    marginHorizontal: 16,
-    marginTop: 12,
-    borderRadius: 12,
-    padding: 6,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
+    backgroundColor: CARD,
+    marginHorizontal: wp('4%'),
+    marginTop: hp('1.5%'),
+    borderRadius: wp('3.5%'),
+    padding: wp('1.2%'),
+    ...SHADOW_SM,
   },
   tabButton: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 8,
-    borderRadius: 8,
-    marginHorizontal: 2,
+    paddingVertical: hp('1%'),
+    borderRadius: wp('2.5%'),
+    marginHorizontal: wp('0.5%'),
   },
   tabButtonActive: {
-    backgroundColor: '#10B981',
+    backgroundColor: TEAL_MID,
   },
   tabText: {
-    fontSize: 11,
+    fontSize: wp('3%'),
     fontWeight: '600',
-    color: '#A0AEC0',
-    marginRight: 4,
+    color: TEXT_MUTED,
+    marginRight: wp('1%'),
   },
   tabTextActive: {
     color: '#FFFFFF',
   },
   tabCount: {
-    backgroundColor: '#E2E8F0',
-    paddingHorizontal: 5,
-    paddingVertical: 2,
-    borderRadius: 6,
+    backgroundColor: '#E5E7EB',
+    paddingHorizontal: wp('1.8%'),
+    paddingVertical: hp('0.3%'),
+    borderRadius: wp('2%'),
   },
   tabCountActive: {
-    backgroundColor: 'rgba(255,255,255,0.3)',
+    backgroundColor: 'rgba(255,255,255,0.25)',
   },
   tabCountText: {
-    fontSize: 9,
+    fontSize: wp('2.5%'),
     fontWeight: '700',
-    color: '#4A5568',
+    color: TEXT_SECONDARY,
   },
-  // Content Area
+  tabCountTextActive: {
+    color: '#FFFFFF',
+  },
+
+  /* -- Content Area -- */
   content: {
     flex: 1,
-    paddingTop: 16,
+    paddingTop: hp('1.5%'),
   },
   scrollContent: {
-    paddingBottom: 20,
+    paddingBottom: hp('4%'),
   },
-  // Bubble Cards - No Shadow
+
+  /* -- Ticket Cards -- */
   bubblesContainer: {
-    paddingHorizontal: 16,
-    gap: 12,
+    paddingHorizontal: wp('4%'),
+    gap: hp('1.5%'),
   },
   bubbleCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
+    flexDirection: 'row',
+    backgroundColor: CARD,
+    borderRadius: wp('4%'),
+    overflow: 'hidden',
+    ...SHADOW_SM,
+  },
+  cardAccent: {
+    width: wp('1.2%'),
+    borderTopLeftRadius: wp('4%'),
+    borderBottomLeftRadius: wp('4%'),
+  },
+  cardInner: {
+    flex: 1,
+    padding: wp('3.5%'),
   },
   bubbleHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: hp('1%'),
   },
   bubbleIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
+    width: wp('9.5%'),
+    height: wp('9.5%'),
+    borderRadius: wp('3%'),
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 10,
+    marginRight: wp('2.5%'),
   },
   bubbleContent: {
     flex: 1,
   },
   bubbleTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1F2937',
-    marginBottom: 2,
+    fontSize: wp('3.5%'),
+    fontWeight: '700',
+    color: TEXT_PRIMARY,
+    marginBottom: hp('0.3%'),
   },
   bubbleDate: {
-    fontSize: 11,
-    color: '#9CA3AF',
+    fontSize: wp('2.8%'),
+    color: TEXT_MUTED,
     fontWeight: '500',
   },
   bubbleDescription: {
-    fontSize: 12,
-    color: '#6B7280',
-    lineHeight: 16,
-    marginBottom: 12,
+    fontSize: wp('3.2%'),
+    color: TEXT_SECONDARY,
+    lineHeight: wp('5%'),
+    marginBottom: hp('1%'),
   },
   bubbleImage: {
     position: 'relative',
-    marginBottom: 12,
+    marginBottom: hp('1%'),
+    borderRadius: wp('3%'),
+    overflow: 'hidden',
   },
   previewImage: {
     width: '100%',
-    height: 100,
-    borderRadius: 8,
+    height: hp('12%'),
+    borderRadius: wp('3%'),
   },
   imageBadge: {
     position: 'absolute',
-    top: 6,
-    right: 6,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    width: 20,
-    height: 20,
-    borderRadius: 10,
+    top: wp('2%'),
+    right: wp('2%'),
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    width: wp('6%'),
+    height: wp('6%'),
+    borderRadius: wp('3%'),
     justifyContent: 'center',
     alignItems: 'center',
   },
   statusPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-    gap: 4,
+    paddingHorizontal: wp('2.5%'),
+    paddingVertical: hp('0.4%'),
+    borderRadius: wp('3%'),
+    gap: wp('1%'),
   },
   statusPillText: {
-    fontSize: 10,
+    fontSize: wp('2.5%'),
     fontWeight: '700',
-    color: '#FFFFFF',
     textTransform: 'capitalize',
   },
-  // Empty State
+  ticketFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderTopWidth: 1,
+    borderTopColor: '#F3F4F6',
+    paddingTop: hp('0.8%'),
+    marginTop: hp('0.5%'),
+  },
+  ticketIdRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: wp('1%'),
+  },
+  ticketIdText: {
+    fontSize: wp('2.8%'),
+    color: TEXT_MUTED,
+    fontWeight: '500',
+  },
+
+  /* -- Empty State -- */
   creativeEmpty: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 50,
-    paddingHorizontal: 32,
+    paddingVertical: hp('10%'),
+    paddingHorizontal: wp('8%'),
   },
-  emptyAnimation: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: '#F3F4F6',
+  emptyIconGradient: {
+    width: wp('22%'),
+    height: wp('22%'),
+    borderRadius: wp('11%'),
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 16,
+  },
+  emptyIconInner: {
+    width: wp('16%'),
+    height: wp('16%'),
+    borderRadius: wp('8%'),
+    backgroundColor: '#FFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...SHADOW_SM,
   },
   emptyTitle: {
-    fontSize: 16,
+    fontSize: wp('4.5%'),
     fontWeight: '700',
-    color: '#1F2937',
-    marginBottom: 6,
+    color: TEXT_PRIMARY,
+    marginTop: hp('2.5%'),
     textAlign: 'center',
   },
   emptyDescription: {
-    fontSize: 12,
-    color: '#6B7280',
+    fontSize: wp('3.3%'),
+    color: TEXT_MUTED,
     textAlign: 'center',
-    lineHeight: 16,
-    marginBottom: 20,
+    lineHeight: wp('5.2%'),
+    fontWeight: '400',
+    marginTop: hp('1%'),
+    marginBottom: hp('2.5%'),
+    paddingHorizontal: wp('4%'),
   },
   ctaButton: {
+    borderRadius: wp('3%'),
+    overflow: 'hidden',
+  },
+  ctaGradient: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#10B981',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 12,
-    gap: 6,
+    paddingHorizontal: wp('6%'),
+    paddingVertical: hp('1.5%'),
+    gap: wp('2%'),
   },
   ctaText: {
     color: '#FFFFFF',
-    fontWeight: '600',
-    fontSize: 12,
+    fontWeight: '700',
+    fontSize: wp('3.2%'),
   },
-  // Modal Styles
+
+  /* -- Create Ticket Modal -- */
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(0,0,0,0.55)',
   },
   modalBackdrop: {
     flex: 1,
@@ -670,174 +1039,269 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    paddingBottom: 20,
+    backgroundColor: CARD,
+    borderTopLeftRadius: wp('6%'),
+    borderTopRightRadius: wp('6%'),
+    paddingBottom: hp('2.5%'),
     maxHeight: '85%',
+    overflow: 'hidden',
+  },
+  modalAccentStripe: {
+    height: hp('0.5%'),
+    width: '100%',
   },
   handleBar: {
-    width: 32,
-    height: 3,
-    backgroundColor: '#E2E8F0',
-    borderRadius: 2,
+    width: wp('8%'),
+    height: hp('0.4%'),
+    backgroundColor: '#E5E7EB',
+    borderRadius: wp('1%'),
     alignSelf: 'center',
-    marginTop: 8,
-    marginBottom: 6,
+    marginTop: hp('1%'),
+    marginBottom: hp('0.8%'),
   },
   modalHeader: {
-    padding: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: wp('5%'),
+    paddingVertical: hp('1.5%'),
     borderBottomWidth: 1,
-    borderBottomColor: '#F7FAFC',
+    borderBottomColor: '#F3F4F6',
   },
   modalTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 4,
-    gap: 6,
+    gap: wp('3%'),
+    flex: 1,
+  },
+  modalIconCircle: {
+    width: wp('10%'),
+    height: wp('10%'),
+    borderRadius: wp('5%'),
+    backgroundColor: TEAL_LIGHT,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   modalTitle: {
-    fontSize: 16,
+    fontSize: wp('4%'),
     fontWeight: '700',
-    color: '#065F46',
+    color: TEXT_PRIMARY,
   },
   modalSubtitle: {
-    fontSize: 12,
-    color: '#6B7280',
+    fontSize: wp('2.8%'),
+    color: TEXT_MUTED,
+    marginTop: hp('0.2%'),
+  },
+  modalCloseBtn: {
+    width: wp('8%'),
+    height: wp('8%'),
+    borderRadius: wp('4%'),
+    backgroundColor: '#F3F4F6',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   modalContent: {
-    padding: 20,
+    paddingHorizontal: wp('5%'),
+    paddingTop: hp('2%'),
+  },
+  fieldLabel: {
+    fontSize: wp('3.3%'),
+    color: TEXT_PRIMARY,
+    fontWeight: '700',
+    marginBottom: hp('0.8%'),
   },
   inputField: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F7FAFC',
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    marginBottom: 12,
+    backgroundColor: '#F9FAFB',
+    borderRadius: wp('3%'),
+    paddingHorizontal: wp('3%'),
+    marginBottom: hp('2%'),
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E5E7EB',
   },
   inputIcon: {
-    marginRight: 10,
+    marginRight: wp('2.5%'),
   },
   textInput: {
     flex: 1,
-    paddingVertical: 12,
-    fontSize: 13,
-    color: '#1F2937',
+    paddingVertical: hp('1.5%'),
+    fontSize: wp('3.3%'),
+    color: TEXT_PRIMARY,
   },
   textArea: {
-    height: 80,
+    height: hp('10%'),
     textAlignVertical: 'top',
   },
   uploadCard: {
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderWidth: 1.5,
+    borderColor: TEAL_LIGHT,
     borderStyle: 'dashed',
-    borderRadius: 12,
-    padding: 16,
+    borderRadius: wp('3%'),
+    padding: wp('4%'),
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 12,
+    marginBottom: hp('2%'),
+    backgroundColor: '#F0FDF4',
   },
   uploadPlaceholder: {
     alignItems: 'center',
   },
+  uploadIconCircle: {
+    width: wp('12%'),
+    height: wp('12%'),
+    borderRadius: wp('6%'),
+    backgroundColor: TEAL_LIGHT,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: hp('0.8%'),
+  },
   uploadText: {
-    fontSize: 13,
+    fontSize: wp('3.3%'),
     fontWeight: '600',
-    color: '#4A5568',
-    marginTop: 6,
-    marginBottom: 2,
+    color: TEXT_SECONDARY,
+    marginTop: hp('0.5%'),
+    marginBottom: hp('0.2%'),
   },
   uploadHint: {
-    fontSize: 11,
-    color: '#A0AEC0',
+    fontSize: wp('2.8%'),
+    color: TEXT_MUTED,
   },
   uploadedImage: {
     position: 'relative',
   },
   uploadPreview: {
-    width: 80,
-    height: 80,
-    borderRadius: 8,
+    width: wp('20%'),
+    height: wp('20%'),
+    borderRadius: wp('3%'),
   },
   uploadSuccess: {
     position: 'absolute',
-    top: -6,
-    right: -6,
-    backgroundColor: '#10B981',
-    width: 18,
-    height: 18,
-    borderRadius: 9,
+    top: -wp('1.5%'),
+    right: -wp('1.5%'),
+    backgroundColor: TEAL,
+    width: wp('5%'),
+    height: wp('5%'),
+    borderRadius: wp('2.5%'),
     justifyContent: 'center',
     alignItems: 'center',
   },
   modalActions: {
-    paddingHorizontal: 20,
+    paddingHorizontal: wp('5%'),
+    paddingTop: hp('1%'),
   },
   submitBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#10B981',
-    paddingVertical: 12,
-    borderRadius: 12,
-    gap: 6,
+    borderRadius: wp('3%'),
+    overflow: 'hidden',
   },
   submitBtnDisabled: {
     opacity: 0.6,
   },
+  submitGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: hp('1.8%'),
+    gap: wp('2%'),
+  },
   submitText: {
     color: '#FFFFFF',
-    fontWeight: '600',
-    fontSize: 13,
+    fontWeight: '700',
+    fontSize: wp('3.5%'),
   },
-  // Image Preview Modal Styles
+
+  /* -- Image Preview Modal -- */
   imageModalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.9)',
-    justifyContent: 'center',
-  },
-  imageModalBackdrop: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-  },
-  imageModalContent: {
-    margin: 20,
-    backgroundColor: '#000000',
-    borderRadius: 12,
-    overflow: 'hidden',
+    backgroundColor: 'rgba(0,0,0,0.95)',
   },
   imageModalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 16,
-    backgroundColor: 'rgba(0,0,0,0.8)',
+    paddingHorizontal: wp('4%'),
+    paddingTop: hp('5%'),
+    paddingBottom: hp('1.5%'),
   },
   imageModalTitle: {
-    fontSize: 16,
+    fontSize: wp('4%'),
     fontWeight: '600',
     color: '#FFFFFF',
   },
   closeImageButton: {
-    padding: 4,
+    width: wp('8%'),
+    height: wp('8%'),
+    borderRadius: wp('4%'),
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  imageModalBody: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   fullSizeImage: {
     width: '100%',
-    height: 400,
+    height: '100%',
   },
-  Text:{
-    fontSize:14,
-    color:'#4A5568',
-    fontWeight:700,
-    marginBottom:10,
-  }
+
+  /* -- Skeleton Loading -- */
+  skeletonTabRow: {
+    flexDirection: 'row',
+    marginHorizontal: wp('4%'),
+    marginTop: hp('1.5%'),
+    marginBottom: hp('1.5%'),
+    gap: wp('2%'),
+  },
+  skeletonTab: {
+    flex: 1,
+    height: hp('4%'),
+    borderRadius: wp('2.5%'),
+    backgroundColor: '#E5E7EB',
+  },
+  skeletonCard: {
+    flexDirection: 'row',
+    backgroundColor: CARD,
+    borderRadius: wp('4%'),
+    marginBottom: hp('1.5%'),
+    overflow: 'hidden',
+    ...SHADOW_SM,
+  },
+  skeletonAccent: {
+    width: wp('1.2%'),
+    backgroundColor: TEAL_LIGHT,
+    borderTopLeftRadius: wp('4%'),
+    borderBottomLeftRadius: wp('4%'),
+  },
+  skeletonInner: {
+    flex: 1,
+    padding: wp('3.5%'),
+  },
+  skeletonHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: hp('1.2%'),
+  },
+  skeletonIcon: {
+    width: wp('9.5%'),
+    height: wp('9.5%'),
+    borderRadius: wp('3%'),
+    backgroundColor: TEAL_LIGHT,
+    marginRight: wp('2.5%'),
+  },
+  skeletonTexts: {
+    flex: 1,
+    gap: hp('0.6%'),
+  },
+  skeletonContentArea: {
+    gap: hp('0.6%'),
+  },
+  skeletonLine: {
+    height: hp('1%'),
+    borderRadius: wp('1.5%'),
+    backgroundColor: '#E5E7EB',
+  },
 });
 
 export default HelpDeskScreen;

@@ -1817,7 +1817,7 @@ export default function QuoteDetailScreen({ route, navigation }) {
                         <Text style={styles.confirmPriceLabel}>Total Amount</Text>
                         <Text style={styles.confirmPriceValue}>₹{selectedQuote.totalAmount || 0}</Text>
                       </View>
-                      {selectedQuote.advanceAmount && (
+                      {selectedQuote.advanceAmount > 0 && (
                         <View style={styles.confirmAdvanceRow}>
                           <Text style={styles.confirmAdvanceLabel}>Advance Payment</Text>
                           <Text style={styles.confirmAdvanceValue}>₹{selectedQuote.advanceAmount}</Text>

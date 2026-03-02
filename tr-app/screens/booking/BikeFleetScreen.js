@@ -12,18 +12,64 @@ import {
   ActivityIndicator,
   Modal,
   RefreshControl,
+  StatusBar,
+  Platform,
 } from 'react-native';
 import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import LinearGradient from 'react-native-linear-gradient';
+import { widthPercentageToDP as wp, heightPercentageToDP as hp } from 'react-native-responsive-screen';
 import fleetService from '../services/fleetService';
 import locationService from '../services/locationService';
 import api, { BASE_URL } from '../api';
 
+/* ── Premium Dark Teal Design System ── */
+const TEAL_DEEP = '#064E3B';
+const TEAL_MID = '#065F46';
+const TEAL = '#10B981';
+const TEAL_LIGHT = '#D1FAE5';
+const BG = '#F0FDF4';
+const CARD = '#FFFFFF';
+const TEXT_PRIMARY = '#1E293B';
+const TEXT_SECONDARY = '#64748B';
+const TEXT_MUTED = '#94A3B8';
+const BORDER = '#E2E8F0';
+const DIVIDER = '#F1F5F9';
+
+const SHADOW_SM = Platform.select({
+  ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 8 },
+  android: { elevation: 3 },
+});
+const SHADOW_MD = Platform.select({
+  ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.12, shadowRadius: 16 },
+  android: { elevation: 6 },
+});
+const SHADOW_TEAL = Platform.select({
+  ios: { shadowColor: TEAL, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.30, shadowRadius: 12 },
+  android: { elevation: 8 },
+});
+
 const BikeFleetScreen = () => {
   const navigation = useNavigation();
   const route = useRoute();
+
+  // StatusBar management
+  useFocusEffect(
+    useCallback(() => {
+      StatusBar.setBarStyle('light-content');
+      if (Platform.OS === 'android') {
+        StatusBar.setBackgroundColor(TEAL_DEEP);
+      }
+      return () => {
+        StatusBar.setBarStyle('dark-content');
+        if (Platform.OS === 'android') {
+          StatusBar.setBackgroundColor('#FFFFFF');
+        }
+      };
+    }, [])
+  );
 
   // Get params from navigation (if coming from BikeBookingScreen or BikeRentalScreen)
   const passedLocation = route.params?.location || null;
@@ -386,11 +432,11 @@ const BikeFleetScreen = () => {
     return `${BASE_URL}${imagePath.startsWith('/') ? '' : '/'}${imagePath}`;
   };
 
-  const renderBikeCard = ({ item, index }) => (
+  const renderBikeCard = ({ item }) => (
     <TouchableOpacity
-      style={[styles.bikeCard, index % 2 === 0 ? styles.bikeCardLeft : styles.bikeCardRight]}
+      style={styles.bikeCard}
       onPress={() => openBookingModal(item)}
-      activeOpacity={0.7}
+      activeOpacity={0.85}
     >
       <View style={styles.bikeImageContainer}>
         {item.sideImage ? (
@@ -401,46 +447,72 @@ const BikeFleetScreen = () => {
           />
         ) : (
           <View style={styles.noImagePlaceholder}>
-            <Ionicons name="bicycle" size={50} color="#ccc" />
+            <View style={styles.noImageIconWrap}>
+              <Ionicons name="bicycle" size={wp('12%')} color={TEXT_MUTED} />
+            </View>
           </View>
         )}
         {item.vendorCount > 1 && (
           <View style={styles.vendorBadge}>
-            <Text style={styles.vendorBadgeText}>{item.vendorCount}</Text>
+            <LinearGradient
+              colors={[TEAL_MID, TEAL]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.vendorBadgeGradient}
+            >
+              <Ionicons name="people" size={wp('3%')} color="#fff" />
+              <Text style={styles.vendorBadgeText}>{item.vendorCount} Vendors</Text>
+            </LinearGradient>
           </View>
         )}
       </View>
 
       <View style={styles.bikeInfo}>
-        <Text style={styles.bikeBrand} numberOfLines={1}>{item.brandName}</Text>
+        <Text style={styles.bikeBrand}>{item.brandName}</Text>
         <Text style={styles.bikeName} numberOfLines={2}>{item.name}</Text>
 
         <View style={styles.bikeSpecs}>
           {item.engineCC && (
             <View style={styles.specItem}>
-              <Ionicons name="speedometer-outline" size={12} color="#666" />
+              <View style={styles.specIconWrap}>
+                <Ionicons name="speedometer-outline" size={wp('3.2%')} color={TEAL} />
+              </View>
               <Text style={styles.specText}>{item.engineCC}cc</Text>
             </View>
           )}
           {item.fuelType && (
             <View style={styles.specItem}>
-              <Ionicons name="water-outline" size={12} color="#666" />
+              <View style={styles.specIconWrap}>
+                <Ionicons name="water-outline" size={wp('3.2%')} color={TEAL} />
+              </View>
               <Text style={styles.specText}>{item.fuelType}</Text>
             </View>
           )}
         </View>
 
-        <View style={styles.priceContainer}>
-          <Text style={styles.priceLabel}>From</Text>
-          <Text style={styles.price}>₹{item.lowestPrice}</Text>
-          <Text style={styles.pricePer}>/day</Text>
+        <View style={styles.priceRow}>
+          <Text style={styles.priceLabel}>Starting from</Text>
+          <View style={styles.priceValueWrap}>
+            <Text style={styles.priceCurrency}>&#8377;</Text>
+            <Text style={styles.price}>{item.lowestPrice}</Text>
+            <Text style={styles.priceUnit}>/day</Text>
+          </View>
         </View>
 
         <TouchableOpacity
-          style={styles.bookBtn}
+          style={styles.bookBtnWrap}
           onPress={() => openBookingModal(item)}
+          activeOpacity={0.85}
         >
-          <Text style={styles.bookBtnText}>View & Book</Text>
+          <LinearGradient
+            colors={[TEAL_MID, TEAL]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.bookBtn}
+          >
+            <Ionicons name="document-text-outline" size={wp('4%')} color="#fff" />
+            <Text style={styles.bookBtnText}>View & Book</Text>
+          </LinearGradient>
         </TouchableOpacity>
       </View>
     </TouchableOpacity>
@@ -455,14 +527,25 @@ const BikeFleetScreen = () => {
     >
       <View style={styles.modalOverlay}>
         <View style={styles.filterModal}>
+          {/* Accent stripe */}
+          <LinearGradient colors={[TEAL_DEEP, TEAL_MID]} style={styles.modalAccentStripe} />
+
           <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Filters</Text>
-            <TouchableOpacity onPress={() => setShowFilterModal(false)}>
-              <Ionicons name="close" size={24} color="#333" />
+            <View style={styles.modalTitleRow}>
+              <View style={styles.modalTitleIcon}>
+                <Ionicons name="options" size={wp('4.5%')} color={TEAL} />
+              </View>
+              <Text style={styles.modalTitle}>Filters</Text>
+            </View>
+            <TouchableOpacity
+              style={styles.modalCloseBtn}
+              onPress={() => setShowFilterModal(false)}
+            >
+              <Ionicons name="close" size={wp('5%')} color={TEXT_SECONDARY} />
             </TouchableOpacity>
           </View>
 
-          <ScrollView style={styles.filterContent}>
+          <ScrollView style={styles.filterContent} showsVerticalScrollIndicator={false}>
             {/* Sort */}
             <Text style={styles.filterLabel}>Sort By</Text>
             <View style={styles.filterOptions}>
@@ -570,8 +653,15 @@ const BikeFleetScreen = () => {
             <TouchableOpacity style={styles.clearBtn} onPress={clearFilters}>
               <Text style={styles.clearBtnText}>Clear All</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.applyBtn} onPress={applyFilters}>
-              <Text style={styles.applyBtnText}>Apply Filters</Text>
+            <TouchableOpacity style={styles.applyBtnWrap} onPress={applyFilters}>
+              <LinearGradient
+                colors={[TEAL_MID, TEAL]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.applyBtn}
+              >
+                <Text style={styles.applyBtnText}>Apply Filters</Text>
+              </LinearGradient>
             </TouchableOpacity>
           </View>
         </View>
@@ -588,27 +678,47 @@ const BikeFleetScreen = () => {
     >
       <View style={styles.modalOverlay}>
         <View style={styles.phoneModal}>
+          {/* Accent stripe */}
+          <LinearGradient colors={[TEAL_DEEP, TEAL_MID]} style={styles.modalAccentStripe} />
+
           <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Add Phone Number</Text>
-            <TouchableOpacity onPress={() => setShowPhoneModal(false)}>
-              <Ionicons name="close" size={24} color="#333" />
+            <View style={styles.modalTitleRow}>
+              <View style={styles.modalTitleIcon}>
+                <Ionicons name="call" size={wp('4.5%')} color={TEAL} />
+              </View>
+              <Text style={styles.modalTitle}>Add Phone Number</Text>
+            </View>
+            <TouchableOpacity
+              style={styles.modalCloseBtn}
+              onPress={() => setShowPhoneModal(false)}
+            >
+              <Ionicons name="close" size={wp('5%')} color={TEXT_SECONDARY} />
             </TouchableOpacity>
           </View>
 
           <View style={styles.phoneModalContent}>
-            <Ionicons name="call-outline" size={60} color="#09B368" style={styles.phoneIcon} />
+            <View style={styles.phoneIconCircle}>
+              <LinearGradient
+                colors={[TEAL_DEEP, TEAL_MID]}
+                style={styles.phoneIconGradient}
+              >
+                <Ionicons name="call-outline" size={wp('8%')} color="#fff" />
+              </LinearGradient>
+            </View>
             <Text style={styles.phoneModalText}>
               We need your phone number to process your booking request and send you quotes from vendors.
             </Text>
 
             <View style={styles.phoneInputGroup}>
-              <Ionicons name="call" size={20} color="#09B368" />
+              <View style={styles.phoneInputIcon}>
+                <Ionicons name="call" size={wp('4.5%')} color={TEAL} />
+              </View>
               <TextInput
                 style={styles.phoneInput}
                 placeholder="Enter your 10-digit phone number"
                 value={phoneNumber}
                 onChangeText={setPhoneNumber}
-                placeholderTextColor={"#888"}
+                placeholderTextColor={TEXT_MUTED}
                 keyboardType="phone-pad"
                 maxLength={10}
                 autoFocus={true}
@@ -616,15 +726,23 @@ const BikeFleetScreen = () => {
             </View>
 
             <TouchableOpacity
-              style={[styles.phoneSubmitBtn, phoneLoading && styles.disabledBtn]}
+              style={[styles.phoneSubmitBtnWrap, phoneLoading && styles.disabledBtn]}
               onPress={handlePhoneSubmit}
               disabled={phoneLoading}
+              activeOpacity={0.85}
             >
-              {phoneLoading ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <Text style={styles.phoneSubmitBtnText}>Continue</Text>
-              )}
+              <LinearGradient
+                colors={phoneLoading ? [TEXT_MUTED, TEXT_MUTED] : [TEAL_MID, TEAL]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.phoneSubmitBtn}
+              >
+                {phoneLoading ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={styles.phoneSubmitBtnText}>Continue</Text>
+                )}
+              </LinearGradient>
             </TouchableOpacity>
           </View>
         </View>
@@ -641,14 +759,25 @@ const BikeFleetScreen = () => {
     >
       <View style={styles.modalOverlay}>
         <View style={styles.bookingModal}>
+          {/* Accent stripe */}
+          <LinearGradient colors={[TEAL_DEEP, TEAL_MID]} style={styles.modalAccentStripe} />
+
           <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>{selectedBike?.name}</Text>
-            <TouchableOpacity onPress={() => setShowBookingModal(false)}>
-              <Ionicons name="close" size={24} color="#333" />
+            <View style={styles.modalTitleRow}>
+              <View style={styles.modalTitleIcon}>
+                <Ionicons name="document-text" size={wp('4.5%')} color={TEAL} />
+              </View>
+              <Text style={styles.modalTitle}>Request Quote</Text>
+            </View>
+            <TouchableOpacity
+              style={styles.modalCloseBtn}
+              onPress={() => setShowBookingModal(false)}
+            >
+              <Ionicons name="close" size={wp('5%')} color={TEXT_SECONDARY} />
             </TouchableOpacity>
           </View>
 
-          <ScrollView style={styles.bookingContent}>
+          <ScrollView style={styles.bookingContent} showsVerticalScrollIndicator={false}>
             {/* Bike Image */}
             <View style={styles.bookingBikeImage}>
               {selectedBike?.sideImage ? (
@@ -659,7 +788,9 @@ const BikeFleetScreen = () => {
                 />
               ) : (
                 <View style={styles.noImagePlaceholder}>
-                  <Ionicons name="bicycle" size={80} color="#ccc" />
+                  <View style={styles.noImageIconWrap}>
+                    <Ionicons name="bicycle" size={wp('16%')} color={TEXT_MUTED} />
+                  </View>
                 </View>
               )}
             </View>
@@ -671,51 +802,44 @@ const BikeFleetScreen = () => {
               </Text>
 
               {/* Bike Specifications */}
-              <View style={styles.modalSpecsContainer}>
+              <View style={styles.bikeSpecsRow}>
                 {selectedBike?.engineCC && (
-                  <View style={styles.modalSpecCard}>
-                    <Ionicons name="speedometer-outline" size={24} color="#09B368" />
-                    <Text style={styles.modalSpecValue}>{selectedBike.engineCC}cc</Text>
-                    <Text style={styles.modalSpecLabel}>Engine</Text>
+                  <View style={styles.specBadge}>
+                    <Ionicons name="speedometer" size={wp('3.2%')} color={TEAL_MID} />
+                    <Text style={styles.specBadgeText}>{selectedBike.engineCC}cc</Text>
                   </View>
                 )}
                 {selectedBike?.fuelType && (
-                  <View style={styles.modalSpecCard}>
-                    <Ionicons name="water-outline" size={24} color="#09B368" />
-                    <Text style={styles.modalSpecValue}>{selectedBike.fuelType}</Text>
-                    <Text style={styles.modalSpecLabel}>Fuel Type</Text>
+                  <View style={styles.specBadge}>
+                    <Ionicons name="water" size={wp('3.2%')} color={TEAL_MID} />
+                    <Text style={styles.specBadgeText}>{selectedBike.fuelType}</Text>
                   </View>
                 )}
                 {selectedBike?.transmission && (
-                  <View style={styles.modalSpecCard}>
-                    <Ionicons name="cog-outline" size={24} color="#09B368" />
-                    <Text style={styles.modalSpecValue}>{selectedBike.transmission}</Text>
-                    <Text style={styles.modalSpecLabel}>Transmission</Text>
+                  <View style={styles.specBadge}>
+                    <Ionicons name="cog" size={wp('3.2%')} color={TEAL_MID} />
+                    <Text style={styles.specBadgeText}>{selectedBike.transmission}</Text>
                   </View>
                 )}
               </View>
 
-              {/* Price Info */}
-              <View style={styles.modalPriceCard}>
-                <Text style={styles.modalPriceLabel}>Starting Price</Text>
-                <Text style={styles.modalPrice}>₹{selectedBike?.lowestPrice}/day</Text>
-                <Text style={styles.modalPriceHint}>
-                  {selectedBike?.vendorCount || 0} vendor{selectedBike?.vendorCount > 1 ? 's' : ''} available
-                </Text>
-              </View>
-
               {/* Rental Duration */}
-              <Text style={styles.sectionTitle}>Rental Duration</Text>
               <View style={styles.bookingDateRow}>
                 <View style={styles.bookingDateItem}>
-                  <Ionicons name="calendar-outline" size={18} color="#09B368" />
+                  <View style={styles.dateIconCircle}>
+                    <Ionicons name="calendar-outline" size={wp('4%')} color={TEAL} />
+                  </View>
                   <Text style={styles.bookingDateLabel}>Pickup</Text>
                   <Text style={styles.bookingDateValue}>{formatDate(pickupDate)}</Text>
                   <Text style={styles.bookingTimeValue}>{pickupTime}</Text>
                 </View>
-                <Ionicons name="arrow-forward" size={20} color="#999" />
+                <View style={styles.dateArrowWrap}>
+                  <Ionicons name="arrow-forward" size={wp('4.5%')} color={TEAL} />
+                </View>
                 <View style={styles.bookingDateItem}>
-                  <Ionicons name="calendar-outline" size={18} color="#e74c3c" />
+                  <View style={[styles.dateIconCircle, { backgroundColor: '#FEE2E2' }]}>
+                    <Ionicons name="calendar-outline" size={wp('4%')} color="#EF4444" />
+                  </View>
                   <Text style={styles.bookingDateLabel}>Drop</Text>
                   <Text style={styles.bookingDateValue}>{formatDate(dropDate)}</Text>
                   <Text style={styles.bookingTimeValue}>{dropTime}</Text>
@@ -723,31 +847,88 @@ const BikeFleetScreen = () => {
               </View>
 
               <View style={styles.durationBox}>
-                <Ionicons name="time-outline" size={16} color="#09B368" style={{ marginRight: 6 }} />
+                <Ionicons name="time-outline" size={wp('4%')} color={TEAL_MID} />
                 <Text style={styles.durationText}>
                   {calculateDays()} Day{calculateDays() > 1 ? 's' : ''} Rental
                 </Text>
               </View>
             </View>
+
+            {/* Pricing Info */}
+            <View style={styles.pricingInfo}>
+              <Text style={styles.sectionTitle}>Estimated Price</Text>
+              <View style={styles.priceRangeBox}>
+                <LinearGradient
+                  colors={[TEAL_DEEP, TEAL_MID]}
+                  style={styles.priceRangeGradient}
+                >
+                  <Text style={styles.priceStartingLabel}>Starting from</Text>
+                  <Text style={styles.priceRangeText}>
+                    &#8377;{(selectedBike?.lowestPrice * calculateDays()).toLocaleString('en-IN')}
+                  </Text>
+                  <Text style={styles.priceNote}>for {calculateDays()} day{calculateDays() > 1 ? 's' : ''}</Text>
+                </LinearGradient>
+              </View>
+              <View style={styles.vendorCountWrap}>
+                <Ionicons name="people-circle-outline" size={wp('4.5%')} color={TEAL} />
+                <Text style={styles.vendorCountText}>
+                  {selectedBike?.vendorCount || 0} vendor{selectedBike?.vendorCount > 1 ? 's' : ''} available
+                </Text>
+              </View>
+            </View>
+
+            {/* How it works */}
+            <View style={styles.howItWorks}>
+              <Text style={styles.sectionTitle}>How It Works</Text>
+              <View style={styles.stepItem}>
+                <LinearGradient colors={[TEAL_DEEP, TEAL_MID]} style={styles.stepNumber}>
+                  <Text style={styles.stepNumberText}>1</Text>
+                </LinearGradient>
+                <Text style={styles.stepText}>Submit your request for this bike</Text>
+              </View>
+              <View style={styles.stepItem}>
+                <LinearGradient colors={[TEAL_DEEP, TEAL_MID]} style={styles.stepNumber}>
+                  <Text style={styles.stepNumberText}>2</Text>
+                </LinearGradient>
+                <Text style={styles.stepText}>Vendors send you their best quotes</Text>
+              </View>
+              <View style={styles.stepItem}>
+                <LinearGradient colors={[TEAL_DEEP, TEAL_MID]} style={styles.stepNumber}>
+                  <Text style={styles.stepNumberText}>3</Text>
+                </LinearGradient>
+                <Text style={styles.stepText}>Compare & accept the best offer</Text>
+              </View>
+              <View style={styles.stepItem}>
+                <LinearGradient colors={[TEAL_DEEP, TEAL_MID]} style={styles.stepNumber}>
+                  <Text style={styles.stepNumberText}>4</Text>
+                </LinearGradient>
+                <Text style={styles.stepText}>Pay advance & confirm your booking</Text>
+              </View>
+            </View>
           </ScrollView>
 
           <View style={styles.bookingActions}>
-            <Text style={styles.quoteHint}>
-              Your request will be sent to all available vendors. They will send you quotes to compare.
-            </Text>
             <TouchableOpacity
-              style={[styles.confirmBookingBtn, bookingLoading && styles.disabledBtn]}
+              style={[styles.confirmBookingBtnWrap, bookingLoading && styles.disabledBtn]}
               onPress={handleBooking}
               disabled={bookingLoading}
+              activeOpacity={0.85}
             >
-              {bookingLoading ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <>
-                  <Ionicons name="paper-plane-outline" size={18} color="#fff" style={{ marginRight: 8 }} />
-                  <Text style={styles.confirmBookingBtnText}>Request Quotes from All Vendors</Text>
-                </>
-              )}
+              <LinearGradient
+                colors={bookingLoading ? [TEXT_MUTED, TEXT_MUTED] : [TEAL_MID, TEAL]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.confirmBookingBtn}
+              >
+                {bookingLoading ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <>
+                    <Ionicons name="send-outline" size={wp('4.5%')} color="#fff" />
+                    <Text style={styles.confirmBookingBtnText}>Request Quotes from All Vendors</Text>
+                  </>
+                )}
+              </LinearGradient>
             </TouchableOpacity>
           </View>
         </View>
@@ -757,31 +938,52 @@ const BikeFleetScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Ionicons name="arrow-back" size={24} color="#333" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Rent a Bike</Text>
-        <TouchableOpacity
-          style={styles.filterBtn}
-          onPress={() => setShowFilterModal(true)}
-        >
-          <Ionicons name="options-outline" size={24} color="#333" />
-        </TouchableOpacity>
-      </View>
+      <StatusBar barStyle="light-content" backgroundColor={TEAL_DEEP} />
+
+      {/* Header with Dark Teal Gradient */}
+      <LinearGradient
+        colors={[TEAL_DEEP, TEAL_MID, '#047857']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.header}
+      >
+        {/* Decorative circles */}
+        <View style={[styles.decoCircle, { top: -wp('8%'), right: -wp('5%'), width: wp('26%'), height: wp('26%') }]} pointerEvents="none" />
+        <View style={[styles.decoCircle, { bottom: -wp('4%'), left: -wp('4%'), width: wp('16%'), height: wp('16%') }]} pointerEvents="none" />
+
+        <View style={styles.headerInner}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+            <Ionicons name="chevron-back" size={wp('5.5%')} color="#FFF" />
+          </TouchableOpacity>
+          <View style={styles.headerCenter}>
+            <Text style={styles.headerTitle}>Rent a Bike</Text>
+            {selectedLocation?.name && (
+              <Text style={styles.headerSubtitle}>{selectedLocation.name}</Text>
+            )}
+          </View>
+          <TouchableOpacity
+            style={styles.filterHeaderBtn}
+            onPress={() => setShowFilterModal(true)}
+          >
+            <Ionicons name="options-outline" size={wp('5%')} color="#FFF" />
+          </TouchableOpacity>
+        </View>
+      </LinearGradient>
 
       {/* Search Section */}
       <View style={styles.searchSection}>
         {/* Location Input */}
         <View style={styles.inputGroup}>
-          <Ionicons name="location-outline" size={20} color="#09B368" />
+          <View style={styles.inputIconWrap}>
+            <Ionicons name="location" size={wp('4%')} color={TEAL} />
+          </View>
           <TextInput
             style={styles.input}
             placeholder="Select pickup location"
             value={locationQuery}
             onChangeText={handleLocationInput}
             onFocus={() => setShowLocationDropdown(true)}
+            placeholderTextColor={TEXT_MUTED}
           />
         </View>
 
@@ -795,7 +997,9 @@ const BikeFleetScreen = () => {
                   style={styles.dropdownItem}
                   onPress={() => selectLocation(loc)}
                 >
-                  <Ionicons name="location" size={16} color="#666" />
+                  <View style={styles.dropdownIconWrap}>
+                    <Ionicons name="location" size={wp('3.5%')} color={TEAL} />
+                  </View>
                   <Text style={styles.dropdownText}>{loc.name}</Text>
                 </TouchableOpacity>
               ))}
@@ -806,19 +1010,25 @@ const BikeFleetScreen = () => {
         {/* Date Selection */}
         <View style={styles.dateRow}>
           <TouchableOpacity style={styles.dateBox} onPress={openPickupDatePicker}>
-            <Ionicons name="calendar-outline" size={18} color="#09B368" />
-            <View>
+            <View style={styles.dateIconWrap}>
+              <Ionicons name="calendar" size={wp('3.5%')} color={TEAL} />
+            </View>
+            <View style={styles.dateTextWrap}>
               <Text style={styles.dateLabel}>Pickup</Text>
               <Text style={styles.dateValue}>{formatDate(pickupDate)}</Text>
               <Text style={styles.timeValue}>{pickupTime}</Text>
             </View>
           </TouchableOpacity>
 
-          <Ionicons name="arrow-forward" size={20} color="#999" />
+          <View style={styles.dateArrowSmall}>
+            <Ionicons name="arrow-forward" size={wp('4%')} color={TEAL} />
+          </View>
 
           <TouchableOpacity style={styles.dateBox} onPress={openDropDatePicker}>
-            <Ionicons name="calendar-outline" size={18} color="#e74c3c" />
-            <View>
+            <View style={[styles.dateIconWrap, { backgroundColor: '#FEE2E2' }]}>
+              <Ionicons name="calendar" size={wp('3.5%')} color="#EF4444" />
+            </View>
+            <View style={styles.dateTextWrap}>
               <Text style={styles.dateLabel}>Drop</Text>
               <Text style={styles.dateValue}>{formatDate(dropDate)}</Text>
               <Text style={styles.timeValue}>{dropTime}</Text>
@@ -828,18 +1038,26 @@ const BikeFleetScreen = () => {
 
         {/* Search Button */}
         <TouchableOpacity
-          style={[styles.searchBtn, loading && styles.disabledBtn]}
+          style={[styles.searchBtnWrap, loading && styles.disabledBtn]}
           onPress={() => handleSearch()}
           disabled={loading}
+          activeOpacity={0.85}
         >
-          {loading ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <>
-              <Ionicons name="search" size={20} color="#fff" />
-              <Text style={styles.searchBtnText}>Search Bikes</Text>
-            </>
-          )}
+          <LinearGradient
+            colors={loading ? [TEXT_MUTED, TEXT_MUTED] : [TEAL_MID, TEAL]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.searchBtn}
+          >
+            {loading ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <>
+                <Ionicons name="search" size={wp('4.5%')} color="#fff" />
+                <Text style={styles.searchBtnText}>Search Bikes</Text>
+              </>
+            )}
+          </LinearGradient>
         </TouchableOpacity>
       </View>
 
@@ -847,14 +1065,32 @@ const BikeFleetScreen = () => {
       <View style={styles.resultsContainer}>
         {error && (
           <View style={styles.errorBox}>
-            <Ionicons name="alert-circle" size={20} color="#e74c3c" />
+            <View style={styles.errorIconCircle}>
+              <Ionicons name="alert-circle" size={wp('6%')} color="#EF4444" />
+            </View>
             <Text style={styles.errorText}>{error}</Text>
+            <TouchableOpacity style={styles.retryBtnWrap} onPress={() => handleSearch()}>
+              <LinearGradient
+                colors={['#EF4444', '#DC2626']}
+                style={styles.retryBtn}
+              >
+                <Ionicons name="refresh" size={wp('4%')} color="#fff" />
+                <Text style={styles.retryBtnText}>Retry</Text>
+              </LinearGradient>
+            </TouchableOpacity>
           </View>
         )}
 
         {!hasSearched && !loading && (
           <View style={styles.emptyState}>
-            <Ionicons name="bicycle-outline" size={80} color="#ddd" />
+            <View style={styles.emptyIconCircle}>
+              <LinearGradient
+                colors={[TEAL_DEEP, TEAL_MID]}
+                style={styles.emptyIconGradient}
+              >
+                <Ionicons name="bicycle-outline" size={wp('12%')} color="#fff" />
+              </LinearGradient>
+            </View>
             <Text style={styles.emptyTitle}>Find Your Perfect Ride</Text>
             <Text style={styles.emptyText}>
               Select a location and dates to browse available bikes
@@ -864,7 +1100,14 @@ const BikeFleetScreen = () => {
 
         {hasSearched && bikes.length === 0 && !loading && (
           <View style={styles.emptyState}>
-            <Ionicons name="sad-outline" size={80} color="#ddd" />
+            <View style={styles.emptyIconCircle}>
+              <LinearGradient
+                colors={[TEAL_DEEP, TEAL_MID]}
+                style={styles.emptyIconGradient}
+              >
+                <Ionicons name="sad-outline" size={wp('12%')} color="#fff" />
+              </LinearGradient>
+            </View>
             <Text style={styles.emptyTitle}>No Bikes Found</Text>
             <Text style={styles.emptyText}>
               Try a different location or adjust your filters
@@ -874,18 +1117,25 @@ const BikeFleetScreen = () => {
 
         {bikes.length > 0 && (
           <>
-            <Text style={styles.resultsCount}>
-              {bikes.length} Bike{bikes.length > 1 ? 's' : ''} Available
-            </Text>
+            <View style={styles.resultsHeader}>
+              <Text style={styles.resultsCount}>
+                {bikes.length} Bike{bikes.length > 1 ? 's' : ''} Available
+              </Text>
+              <View style={styles.resultsAccent} />
+            </View>
             <FlatList
               data={bikes}
               renderItem={renderBikeCard}
               keyExtractor={item => item.id}
-              numColumns={2}
               contentContainerStyle={styles.bikesList}
               showsVerticalScrollIndicator={false}
               refreshControl={
-                <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+                <RefreshControl
+                  refreshing={refreshing}
+                  onRefresh={onRefresh}
+                  colors={[TEAL]}
+                  tintColor={TEAL}
+                />
               }
             />
           </>
@@ -899,163 +1149,260 @@ const BikeFleetScreen = () => {
   );
 };
 
+/* ===================================================================
+   STYLES -- Premium Dark Teal Design System
+   =================================================================== */
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: BG,
   },
+
+  /* -- Header -- */
   header: {
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + hp('1%') : hp('1%'),
+    paddingBottom: hp('2.5%'),
+    paddingHorizontal: wp('4%'),
+    borderBottomLeftRadius: wp('6%'),
+    borderBottomRightRadius: wp('6%'),
+    overflow: 'hidden',
+    ...Platform.select({
+      ios: { shadowColor: TEAL_DEEP, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 12 },
+      android: { elevation: 8 },
+    }),
+  },
+  decoCircle: {
+    position: 'absolute',
+    borderRadius: wp('50%'),
+    backgroundColor: 'rgba(255,255,255,0.06)',
+  },
+  headerInner: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
   },
   backBtn: {
-    padding: 4,
+    width: wp('10.5%'),
+    height: wp('10.5%'),
+    borderRadius: wp('5.25%'),
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerCenter: {
+    flex: 1,
+    alignItems: 'center',
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#333',
+    fontSize: wp('4.8%'),
+    fontWeight: '800',
+    color: '#FFFFFF',
+    letterSpacing: 0.4,
   },
-  filterBtn: {
-    padding: 4,
+  headerSubtitle: {
+    fontSize: wp('3%'),
+    color: 'rgba(255,255,255,0.75)',
+    marginTop: hp('0.3%'),
   },
+  filterHeaderBtn: {
+    width: wp('10.5%'),
+    height: wp('10.5%'),
+    borderRadius: wp('5.25%'),
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+  },
+
+  /* -- Search Section -- */
   searchSection: {
-    backgroundColor: '#fff',
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    backgroundColor: CARD,
+    padding: wp('4%'),
+    marginHorizontal: wp('4%'),
+    marginTop: hp('1.5%'),
+    borderRadius: wp('5%'),
+    ...SHADOW_MD,
   },
   inputGroup: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f8f8f8',
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    marginBottom: 12,
+    backgroundColor: '#F8FAFC',
+    borderRadius: wp('4%'),
+    paddingHorizontal: wp('3%'),
+    marginBottom: hp('1.5%'),
+    borderWidth: 1.5,
+    borderColor: BORDER,
+    minHeight: hp('6.5%'),
+    gap: wp('2.5%'),
+  },
+  inputIconWrap: {
+    width: wp('8%'),
+    height: wp('8%'),
+    borderRadius: wp('4%'),
+    backgroundColor: TEAL_LIGHT,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   input: {
     flex: 1,
-    paddingVertical: 12,
-    paddingHorizontal: 8,
-    fontSize: 16,
+    paddingVertical: hp('1.5%'),
+    fontSize: wp('3.8%'),
+    color: TEXT_PRIMARY,
+    fontWeight: '500',
   },
   dropdown: {
     position: 'absolute',
-    top: 60,
-    left: 16,
-    right: 16,
-    backgroundColor: '#fff',
-    borderRadius: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 5,
+    top: hp('8%'),
+    left: wp('4%'),
+    right: wp('4%'),
+    backgroundColor: CARD,
+    borderRadius: wp('4%'),
+    ...SHADOW_MD,
     zIndex: 100,
-    maxHeight: 200,
+    maxHeight: hp('25%'),
+    borderWidth: 1,
+    borderColor: BORDER,
   },
   dropdownScroll: {
-    maxHeight: 200,
+    maxHeight: hp('25%'),
   },
   dropdownItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 12,
+    padding: wp('3.5%'),
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    borderBottomColor: DIVIDER,
+    gap: wp('2.5%'),
+  },
+  dropdownIconWrap: {
+    width: wp('7%'),
+    height: wp('7%'),
+    borderRadius: wp('3.5%'),
+    backgroundColor: TEAL_LIGHT,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   dropdownText: {
-    marginLeft: 8,
-    fontSize: 15,
-    color: '#333',
+    fontSize: wp('3.5%'),
+    color: TEXT_PRIMARY,
+    fontWeight: '500',
   },
   dateRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 12,
+    marginBottom: hp('1.5%'),
+    gap: wp('2%'),
   },
   dateBox: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f8f8f8',
-    borderRadius: 10,
-    padding: 12,
-    marginHorizontal: 4,
+    backgroundColor: '#F8FAFC',
+    borderRadius: wp('4%'),
+    padding: wp('3%'),
+    borderWidth: 1.5,
+    borderColor: BORDER,
+    gap: wp('2.5%'),
+  },
+  dateIconWrap: {
+    width: wp('8%'),
+    height: wp('8%'),
+    borderRadius: wp('4%'),
+    backgroundColor: TEAL_LIGHT,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  dateTextWrap: {
+    flex: 1,
   },
   dateLabel: {
-    fontSize: 12,
-    color: '#999',
-    marginLeft: 8,
+    fontSize: wp('2.5%'),
+    color: TEXT_MUTED,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   dateValue: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#333',
-    marginLeft: 8,
+    fontSize: wp('3.2%'),
+    fontWeight: '700',
+    color: TEXT_PRIMARY,
+    marginTop: hp('0.2%'),
   },
   timeValue: {
-    fontSize: 12,
-    color: '#666',
-    marginLeft: 8,
+    fontSize: wp('2.8%'),
+    color: TEXT_SECONDARY,
+    marginTop: hp('0.2%'),
+    fontWeight: '500',
+  },
+  dateArrowSmall: {
+    width: wp('7%'),
+    height: wp('7%'),
+    borderRadius: wp('3.5%'),
+    backgroundColor: TEAL_LIGHT,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  searchBtnWrap: {
+    borderRadius: wp('3.5%'),
+    overflow: 'hidden',
   },
   searchBtn: {
+    borderRadius: wp('3.5%'),
+    paddingVertical: hp('1.8%'),
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#09B368',
-    borderRadius: 10,
-    paddingVertical: 14,
+    gap: wp('2%'),
+    ...SHADOW_TEAL,
   },
   searchBtnText: {
     color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-    marginLeft: 8,
+    fontSize: wp('4%'),
+    fontWeight: '700',
+    letterSpacing: 0.3,
   },
-  disabledBtn: {
-    backgroundColor: '#ccc',
-  },
+
+  /* -- Results -- */
   resultsContainer: {
     flex: 1,
-    padding: 16,
+    paddingHorizontal: wp('4%'),
+    marginTop: hp('1%'),
+  },
+  resultsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: hp('1.5%'),
+    gap: wp('2%'),
   },
   resultsCount: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 12,
+    fontSize: wp('3.5%'),
+    fontWeight: '700',
+    color: TEXT_PRIMARY,
+  },
+  resultsAccent: {
+    flex: 1,
+    height: 2,
+    backgroundColor: TEAL_LIGHT,
+    borderRadius: 1,
   },
   bikesList: {
-    paddingBottom: 20,
+    paddingBottom: hp('3%'),
   },
+
+  /* -- Bike Card -- */
   bikeCard: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    marginBottom: 12,
+    backgroundColor: CARD,
+    borderRadius: wp('5%'),
+    marginBottom: hp('2%'),
     overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 3,
-    flex: 1,
-  },
-  bikeCardLeft: {
-    marginRight: 6,
-  },
-  bikeCardRight: {
-    marginLeft: 6,
+    borderWidth: 1,
+    borderColor: BORDER,
+    ...SHADOW_MD,
   },
   bikeImageContainer: {
-    height: 140,
-    backgroundColor: '#f8f8f8',
+    height: hp('22%'),
+    backgroundColor: '#F8FAFC',
     position: 'relative',
   },
   bikeImage: {
@@ -1066,517 +1413,657 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#f0f0f0',
+    backgroundColor: DIVIDER,
+  },
+  noImageIconWrap: {
+    width: wp('22%'),
+    height: wp('22%'),
+    borderRadius: wp('11%'),
+    backgroundColor: 'rgba(255,255,255,0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   vendorBadge: {
     position: 'absolute',
-    top: 8,
-    right: 8,
-    backgroundColor: '#09B368',
-    paddingHorizontal: 6,
-    paddingVertical: 3,
-    borderRadius: 10,
-    minWidth: 24,
+    top: wp('3%'),
+    right: wp('3%'),
+  },
+  vendorBadgeGradient: {
+    flexDirection: 'row',
     alignItems: 'center',
+    gap: wp('1%'),
+    paddingHorizontal: wp('2.5%'),
+    paddingVertical: hp('0.5%'),
+    borderRadius: wp('3%'),
   },
   vendorBadgeText: {
     color: '#fff',
-    fontSize: 10,
+    fontSize: wp('2.8%'),
     fontWeight: '700',
   },
   bikeInfo: {
-    padding: 10,
+    padding: wp('4%'),
   },
   bikeBrand: {
-    fontSize: 10,
-    color: '#999',
+    fontSize: wp('2.8%'),
+    color: TEAL_MID,
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    letterSpacing: 1,
+    fontWeight: '700',
   },
   bikeName: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#333',
-    marginTop: 2,
-    minHeight: 36,
+    fontSize: wp('4.8%'),
+    fontWeight: '800',
+    color: TEXT_PRIMARY,
+    marginTop: hp('0.3%'),
   },
   bikeSpecs: {
-    flexDirection: 'column',
-    marginTop: 6,
-    marginBottom: 8,
+    flexDirection: 'row',
+    marginTop: hp('1.2%'),
+    flexWrap: 'wrap',
+    gap: wp('2%'),
   },
   specItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 3,
+    gap: wp('1%'),
+    backgroundColor: '#F8FAFC',
+    paddingHorizontal: wp('2.5%'),
+    paddingVertical: hp('0.5%'),
+    borderRadius: wp('2%'),
+  },
+  specIconWrap: {
+    width: wp('5.5%'),
+    height: wp('5.5%'),
+    borderRadius: wp('2.75%'),
+    backgroundColor: TEAL_LIGHT,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   specText: {
-    fontSize: 11,
-    color: '#666',
-    marginLeft: 4,
+    fontSize: wp('3%'),
+    color: TEXT_SECONDARY,
+    fontWeight: '500',
   },
-  priceContainer: {
+  priceRow: {
     flexDirection: 'row',
-    alignItems: 'baseline',
-    marginTop: 8,
-    paddingTop: 8,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: hp('1.5%'),
+    paddingTop: hp('1.5%'),
     borderTopWidth: 1,
-    borderTopColor: '#f0f0f0',
+    borderTopColor: DIVIDER,
   },
   priceLabel: {
-    fontSize: 10,
-    color: '#999',
-    marginRight: 4,
+    fontSize: wp('3%'),
+    color: TEXT_MUTED,
+    fontWeight: '500',
+  },
+  priceValueWrap: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+  },
+  priceCurrency: {
+    fontSize: wp('4%'),
+    fontWeight: '800',
+    color: TEAL,
   },
   price: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#09B368',
+    fontSize: wp('5.5%'),
+    fontWeight: '900',
+    color: TEAL,
   },
-  pricePer: {
-    fontSize: 10,
-    color: '#999',
-    marginLeft: 2,
+  priceUnit: {
+    fontSize: wp('3%'),
+    color: TEXT_SECONDARY,
+    fontWeight: '500',
+  },
+  bookBtnWrap: {
+    marginTop: hp('1.5%'),
+    borderRadius: wp('3.5%'),
+    overflow: 'hidden',
   },
   bookBtn: {
-    backgroundColor: '#09B368',
-    borderRadius: 6,
-    paddingVertical: 8,
+    borderRadius: wp('3.5%'),
+    paddingVertical: hp('1.6%'),
     alignItems: 'center',
-    marginTop: 8,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: wp('2%'),
+    ...SHADOW_TEAL,
   },
   bookBtnText: {
     color: '#fff',
-    fontSize: 12,
-    fontWeight: '600',
+    fontSize: wp('3.8%'),
+    fontWeight: '700',
+    letterSpacing: 0.3,
   },
+
+  /* -- Empty State -- */
   emptyState: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 60,
+    paddingVertical: hp('8%'),
+  },
+  emptyIconCircle: {
+    marginBottom: hp('2%'),
+  },
+  emptyIconGradient: {
+    width: wp('24%'),
+    height: wp('24%'),
+    borderRadius: wp('12%'),
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...Platform.select({
+      ios: { shadowColor: TEAL_DEEP, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 10 },
+      android: { elevation: 6 },
+    }),
   },
   emptyTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#333',
-    marginTop: 16,
+    fontSize: wp('4.8%'),
+    fontWeight: '800',
+    color: TEXT_PRIMARY,
+    marginTop: hp('1%'),
   },
   emptyText: {
-    fontSize: 14,
-    color: '#999',
+    fontSize: wp('3.5%'),
+    color: TEXT_SECONDARY,
     textAlign: 'center',
-    marginTop: 8,
-    paddingHorizontal: 40,
-  },
-  errorBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fdecea',
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 16,
-  },
-  errorText: {
-    color: '#e74c3c',
-    marginLeft: 8,
-    flex: 1,
+    marginTop: hp('1%'),
+    paddingHorizontal: wp('10%'),
+    lineHeight: wp('5.2%'),
   },
 
-  // Filter Modal
+  /* -- Error -- */
+  errorBox: {
+    alignItems: 'center',
+    backgroundColor: CARD,
+    padding: wp('6%'),
+    borderRadius: wp('5%'),
+    marginTop: hp('3%'),
+    borderWidth: 1,
+    borderColor: '#FECACA',
+    ...SHADOW_SM,
+  },
+  errorIconCircle: {
+    width: wp('14%'),
+    height: wp('14%'),
+    borderRadius: wp('7%'),
+    backgroundColor: '#FEE2E2',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: hp('1.5%'),
+  },
+  errorText: {
+    color: '#DC2626',
+    fontSize: wp('3.5%'),
+    textAlign: 'center',
+    lineHeight: wp('5%'),
+    fontWeight: '500',
+  },
+  retryBtnWrap: {
+    marginTop: hp('2%'),
+    borderRadius: wp('3%'),
+    overflow: 'hidden',
+  },
+  retryBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: wp('1.5%'),
+    paddingHorizontal: wp('6%'),
+    paddingVertical: hp('1.2%'),
+    borderRadius: wp('3%'),
+  },
+  retryBtnText: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: wp('3.5%'),
+  },
+
+  /* -- Modal Shared -- */
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'flex-end',
   },
-  filterModal: {
-    backgroundColor: '#fff',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    maxHeight: '70%',
+  modalAccentStripe: {
+    height: hp('0.5%'),
+    width: '100%',
   },
   modalHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: 16,
+    paddingHorizontal: wp('5%'),
+    paddingVertical: hp('2%'),
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: DIVIDER,
+  },
+  modalTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: wp('2.5%'),
+  },
+  modalTitleIcon: {
+    width: wp('9%'),
+    height: wp('9%'),
+    borderRadius: wp('2.5%'),
+    backgroundColor: TEAL_LIGHT,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   modalTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#333',
+    fontSize: wp('4.5%'),
+    fontWeight: '800',
+    color: TEXT_PRIMARY,
+  },
+  modalCloseBtn: {
+    width: wp('9%'),
+    height: wp('9%'),
+    borderRadius: wp('4.5%'),
+    backgroundColor: DIVIDER,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  /* -- Filter Modal -- */
+  filterModal: {
+    backgroundColor: CARD,
+    borderTopLeftRadius: wp('6%'),
+    borderTopRightRadius: wp('6%'),
+    maxHeight: '70%',
+    overflow: 'hidden',
   },
   filterContent: {
-    padding: 16,
+    padding: wp('5%'),
   },
   filterLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 10,
-    marginTop: 16,
+    fontSize: wp('3%'),
+    fontWeight: '700',
+    color: TEXT_SECONDARY,
+    marginBottom: hp('1%'),
+    marginTop: hp('2%'),
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
   },
   filterOptions: {
     flexDirection: 'row',
     flexWrap: 'wrap',
+    gap: wp('2%'),
   },
   filterChip: {
-    backgroundColor: '#f0f0f0',
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
-    marginRight: 8,
-    marginBottom: 8,
+    backgroundColor: DIVIDER,
+    paddingHorizontal: wp('4%'),
+    paddingVertical: hp('1%'),
+    borderRadius: wp('5%'),
+    borderWidth: 1.5,
+    borderColor: 'transparent',
   },
   filterChipActive: {
-    backgroundColor: '#09B368',
+    backgroundColor: TEAL_LIGHT,
+    borderColor: TEAL,
   },
   filterChipText: {
-    fontSize: 13,
-    color: '#666',
+    fontSize: wp('3.2%'),
+    color: TEXT_SECONDARY,
+    fontWeight: '500',
   },
   filterChipTextActive: {
-    color: '#fff',
+    color: TEAL_MID,
+    fontWeight: '700',
   },
   filterActions: {
     flexDirection: 'row',
-    padding: 16,
+    padding: wp('4%'),
+    gap: wp('2.5%'),
     borderTopWidth: 1,
-    borderTopColor: '#eee',
+    borderTopColor: DIVIDER,
+    backgroundColor: CARD,
   },
   clearBtn: {
     flex: 1,
-    paddingVertical: 14,
+    paddingVertical: hp('1.8%'),
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    marginRight: 8,
+    borderWidth: 1.5,
+    borderColor: BORDER,
+    borderRadius: wp('3.5%'),
+    backgroundColor: CARD,
   },
   clearBtnText: {
-    color: '#666',
-    fontWeight: '600',
+    color: TEXT_SECONDARY,
+    fontWeight: '700',
+    fontSize: wp('3.5%'),
+  },
+  applyBtnWrap: {
+    flex: 2,
+    borderRadius: wp('3.5%'),
+    overflow: 'hidden',
   },
   applyBtn: {
-    flex: 2,
-    paddingVertical: 14,
+    paddingVertical: hp('1.8%'),
     alignItems: 'center',
-    backgroundColor: '#09B368',
-    borderRadius: 8,
+    borderRadius: wp('3.5%'),
   },
   applyBtnText: {
     color: '#fff',
-    fontWeight: '600',
+    fontWeight: '700',
+    fontSize: wp('3.8%'),
   },
 
-  // Booking Modal
+  /* -- Booking Modal -- */
   bookingModal: {
-    backgroundColor: '#fff',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    backgroundColor: CARD,
+    borderTopLeftRadius: wp('6%'),
+    borderTopRightRadius: wp('6%'),
     maxHeight: '90%',
+    overflow: 'hidden',
   },
   bookingContent: {
-    padding: 16,
+    padding: wp('5%'),
   },
   bookingBikeImage: {
-    height: 180,
-    backgroundColor: '#f8f8f8',
-    borderRadius: 12,
+    height: hp('22%'),
+    backgroundColor: '#F8FAFC',
+    borderRadius: wp('4%'),
     overflow: 'hidden',
-    marginBottom: 16,
+    marginBottom: hp('2%'),
+    borderWidth: 1,
+    borderColor: BORDER,
   },
   modalBikeImage: {
     width: '100%',
     height: '100%',
   },
   bookingDetails: {
-    marginBottom: 16,
+    marginBottom: hp('2%'),
   },
   bookingBikeName: {
-    fontSize: 20,
+    fontSize: wp('5.2%'),
+    fontWeight: '800',
+    color: TEXT_PRIMARY,
+    marginBottom: hp('1.5%'),
+  },
+  bikeSpecsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginBottom: hp('1.5%'),
+    gap: wp('2%'),
+  },
+  specBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: TEAL_LIGHT,
+    paddingHorizontal: wp('3%'),
+    paddingVertical: hp('0.7%'),
+    borderRadius: wp('4%'),
+    gap: wp('1.5%'),
+  },
+  specBadgeText: {
+    fontSize: wp('3%'),
+    color: TEAL_MID,
     fontWeight: '600',
-    color: '#333',
-    marginBottom: 12,
   },
   bookingDateRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#f8f8f8',
-    borderRadius: 10,
-    padding: 12,
+    backgroundColor: '#F8FAFC',
+    borderRadius: wp('4%'),
+    padding: wp('4%'),
+    borderWidth: 1,
+    borderColor: BORDER,
   },
   bookingDateItem: {
     alignItems: 'center',
+    flex: 1,
+  },
+  dateIconCircle: {
+    width: wp('9%'),
+    height: wp('9%'),
+    borderRadius: wp('4.5%'),
+    backgroundColor: TEAL_LIGHT,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: hp('0.5%'),
+  },
+  dateArrowWrap: {
+    width: wp('8%'),
+    height: wp('8%'),
+    borderRadius: wp('4%'),
+    backgroundColor: TEAL_LIGHT,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   bookingDateLabel: {
-    fontSize: 11,
-    color: '#999',
-    marginTop: 4,
+    fontSize: wp('2.5%'),
+    color: TEXT_MUTED,
+    marginTop: hp('0.3%'),
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   bookingDateValue: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#333',
-    marginTop: 2,
+    fontSize: wp('3.2%'),
+    fontWeight: '700',
+    color: TEXT_PRIMARY,
+    marginTop: hp('0.2%'),
   },
   bookingTimeValue: {
-    fontSize: 12,
-    color: '#666',
-    marginTop: 2,
+    fontSize: wp('2.8%'),
+    color: TEXT_SECONDARY,
+    marginTop: hp('0.2%'),
+    fontWeight: '500',
   },
   durationBox: {
-    backgroundColor: '#e8f5e9',
-    borderRadius: 8,
-    padding: 10,
-    marginTop: 12,
-    flexDirection: 'row',
+    backgroundColor: TEAL_LIGHT,
+    borderRadius: wp('3%'),
+    padding: wp('3%'),
+    marginTop: hp('1.5%'),
     alignItems: 'center',
+    flexDirection: 'row',
     justifyContent: 'center',
+    gap: wp('1.5%'),
   },
   durationText: {
-    color: '#09B368',
-    fontWeight: '600',
-  },
-  modalSpecsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginVertical: 16,
-  },
-  modalSpecCard: {
-    alignItems: 'center',
-    backgroundColor: '#f8f8f8',
-    borderRadius: 10,
-    padding: 12,
-    minWidth: 90,
-  },
-  modalSpecValue: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#333',
-    marginTop: 6,
-  },
-  modalSpecLabel: {
-    fontSize: 11,
-    color: '#999',
-    marginTop: 2,
-  },
-  modalPriceCard: {
-    backgroundColor: '#e8f5e9',
-    borderRadius: 12,
-    padding: 16,
-    alignItems: 'center',
-    marginVertical: 12,
-  },
-  modalPriceLabel: {
-    fontSize: 12,
-    color: '#666',
-    marginBottom: 4,
-  },
-  modalPrice: {
-    fontSize: 28,
+    color: TEAL_MID,
     fontWeight: '700',
-    color: '#09B368',
-  },
-  modalPriceHint: {
-    fontSize: 12,
-    color: '#666',
-    marginTop: 6,
+    fontSize: wp('3.5%'),
   },
   sectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
-    marginTop: 16,
-    marginBottom: 12,
+    fontSize: wp('4%'),
+    fontWeight: '800',
+    color: TEXT_PRIMARY,
+    marginBottom: hp('1.5%'),
   },
-  vendorCard: {
-    backgroundColor: '#f8f8f8',
-    borderRadius: 10,
-    padding: 14,
-    marginBottom: 10,
-    borderWidth: 2,
-    borderColor: 'transparent',
-    position: 'relative',
+  pricingInfo: {
+    backgroundColor: CARD,
+    borderRadius: wp('4.5%'),
+    padding: wp('4%'),
+    marginBottom: hp('2%'),
+    borderWidth: 1,
+    borderColor: BORDER,
+    ...SHADOW_SM,
   },
-  vendorCardSelected: {
-    borderColor: '#09B368',
-    backgroundColor: '#e8f5e9',
+  priceRangeBox: {
+    borderRadius: wp('3.5%'),
+    overflow: 'hidden',
+    marginBottom: hp('1.5%'),
   },
-  vendorInfo: {
-    flexDirection: 'row',
+  priceRangeGradient: {
     alignItems: 'center',
-    marginBottom: 8,
+    paddingVertical: hp('2%'),
+    borderRadius: wp('3.5%'),
   },
-  vendorName: {
-    fontSize: 15,
+  priceStartingLabel: {
+    fontSize: wp('3%'),
     fontWeight: '600',
-    color: '#333',
-    marginRight: 8,
+    color: 'rgba(255,255,255,0.75)',
+    marginBottom: hp('0.3%'),
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
   },
-  verifiedBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginRight: 8,
+  priceRangeText: {
+    fontSize: wp('6%'),
+    fontWeight: '900',
+    color: '#FFFFFF',
   },
-  verifiedText: {
-    fontSize: 11,
-    color: '#09B368',
-    marginLeft: 2,
+  priceNote: {
+    fontSize: wp('3%'),
+    color: 'rgba(255,255,255,0.75)',
+    marginTop: hp('0.3%'),
+    fontWeight: '500',
   },
-  ratingBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fff9e6',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-  },
-  ratingText: {
-    fontSize: 11,
-    color: '#f39c12',
-    marginLeft: 2,
-  },
-  vendorPriceInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  vendorPrice: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#09B368',
-  },
-  depositText: {
-    fontSize: 12,
-    color: '#666',
-    marginLeft: 8,
-  },
-  lowestPriceBadge: {
-    position: 'absolute',
-    top: 10,
-    right: 10,
-    backgroundColor: '#09B368',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 10,
-  },
-  lowestPriceText: {
-    color: '#fff',
-    fontSize: 10,
-    fontWeight: '600',
-  },
-  priceBreakdown: {
-    backgroundColor: '#f8f8f8',
-    borderRadius: 10,
-    padding: 14,
-    marginTop: 8,
-  },
-  priceRow2: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 8,
-  },
-  priceLabel2: {
-    fontSize: 14,
-    color: '#666',
-  },
-  priceValue: {
-    fontSize: 14,
-    color: '#333',
-  },
-  totalRow: {
-    borderTopWidth: 1,
-    borderTopColor: '#ddd',
-    paddingTop: 10,
-    marginTop: 4,
-  },
-  totalLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
-  },
-  totalValue: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#09B368',
-  },
-  bookingActions: {
-    padding: 16,
-    borderTopWidth: 1,
-    borderTopColor: '#eee',
-  },
-  confirmBookingBtn: {
-    backgroundColor: '#09B368',
-    borderRadius: 10,
-    paddingVertical: 16,
+  vendorCountWrap: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    gap: wp('1.5%'),
+  },
+  vendorCountText: {
+    fontSize: wp('3.2%'),
+    color: TEXT_SECONDARY,
+    fontWeight: '600',
+  },
+  howItWorks: {
+    backgroundColor: CARD,
+    borderRadius: wp('4.5%'),
+    padding: wp('4%'),
+    borderWidth: 1,
+    borderColor: BORDER,
+    ...SHADOW_SM,
+  },
+  stepItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: hp('1.5%'),
+    gap: wp('3%'),
+  },
+  stepNumber: {
+    width: wp('7.5%'),
+    height: wp('7.5%'),
+    borderRadius: wp('3.75%'),
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...SHADOW_TEAL,
+  },
+  stepNumberText: {
+    color: '#fff',
+    fontSize: wp('3.2%'),
+    fontWeight: '700',
+  },
+  stepText: {
+    flex: 1,
+    fontSize: wp('3.3%'),
+    color: TEXT_SECONDARY,
+    fontWeight: '500',
+    lineHeight: wp('5%'),
+  },
+  bookingActions: {
+    padding: wp('4%'),
+    borderTopWidth: 1,
+    borderTopColor: DIVIDER,
+    backgroundColor: CARD,
+  },
+  confirmBookingBtnWrap: {
+    borderRadius: wp('3.5%'),
+    overflow: 'hidden',
+  },
+  confirmBookingBtn: {
+    borderRadius: wp('3.5%'),
+    paddingVertical: hp('2%'),
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: wp('2%'),
+    ...SHADOW_TEAL,
   },
   confirmBookingBtnText: {
     color: '#fff',
-    fontSize: 15,
-    fontWeight: '600',
+    fontSize: wp('4%'),
+    fontWeight: '800',
+    letterSpacing: 0.3,
   },
-  quoteHint: {
-    fontSize: 13,
-    color: '#666',
-    textAlign: 'center',
-    marginBottom: 12,
-    lineHeight: 18,
-  },
+
+  /* -- Phone Modal -- */
   phoneModal: {
-    backgroundColor: '#fff',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    backgroundColor: CARD,
+    borderTopLeftRadius: wp('6%'),
+    borderTopRightRadius: wp('6%'),
     maxHeight: '70%',
     width: '100%',
+    overflow: 'hidden',
   },
   phoneModalContent: {
-    padding: 24,
+    padding: wp('6%'),
     alignItems: 'center',
   },
-  phoneIcon: {
-    marginBottom: 16,
+  phoneIconCircle: {
+    marginBottom: hp('2%'),
+  },
+  phoneIconGradient: {
+    width: wp('18%'),
+    height: wp('18%'),
+    borderRadius: wp('9%'),
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...Platform.select({
+      ios: { shadowColor: TEAL_DEEP, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 10 },
+      android: { elevation: 6 },
+    }),
   },
   phoneModalText: {
-    fontSize: 15,
-    color: '#666',
+    fontSize: wp('3.5%'),
+    color: TEXT_SECONDARY,
     textAlign: 'center',
-    marginBottom: 24,
-    lineHeight: 22,
+    marginBottom: hp('3%'),
+    lineHeight: wp('5.5%'),
+    fontWeight: '500',
   },
   phoneInputGroup: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f8f8f8',
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    marginBottom: 20,
+    backgroundColor: '#F8FAFC',
+    borderRadius: wp('4%'),
+    paddingHorizontal: wp('3%'),
+    marginBottom: hp('2.5%'),
     width: '100%',
-    borderWidth: 1,
-    borderColor: '#ddd',
+    borderWidth: 1.5,
+    borderColor: BORDER,
+    minHeight: hp('6.5%'),
+    gap: wp('2.5%'),
+  },
+  phoneInputIcon: {
+    width: wp('9%'),
+    height: wp('9%'),
+    borderRadius: wp('4.5%'),
+    backgroundColor: TEAL_LIGHT,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   phoneInput: {
     flex: 1,
-    paddingVertical: 14,
-    paddingHorizontal: 8,
-    fontSize: 16,
+    paddingVertical: hp('1.5%'),
+    fontSize: wp('4%'),
+    color: TEXT_PRIMARY,
+    fontWeight: '600',
+  },
+  phoneSubmitBtnWrap: {
+    width: '100%',
+    borderRadius: wp('3.5%'),
+    overflow: 'hidden',
   },
   phoneSubmitBtn: {
-    backgroundColor: '#09B368',
-    borderRadius: 10,
-    paddingVertical: 14,
+    borderRadius: wp('3.5%'),
+    paddingVertical: hp('1.8%'),
     alignItems: 'center',
-    width: '100%',
+    ...SHADOW_TEAL,
   },
   phoneSubmitBtnText: {
     color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: wp('4%'),
+    fontWeight: '800',
+    letterSpacing: 0.3,
   },
   disabledBtn: {
     opacity: 0.6,

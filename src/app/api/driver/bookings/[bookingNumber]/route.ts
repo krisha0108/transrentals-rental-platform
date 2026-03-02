@@ -6,6 +6,7 @@ import crypto from 'crypto';
 
 import logger from '@/lib/security/logger';
 import { sendVendorDirectNotification } from '@/lib/utils/vendor-notification-sender';
+import { creditBackrTokens } from '@/lib/utils/backr-tokens';
 export const dynamic = 'force-dynamic';
 
 // Generate 4-digit OTP
@@ -541,58 +542,62 @@ export async function PATCH(
       });
 
       // Send OTP notification to customer
-      try {
-        const notificationId = 'NOTIF_' + crypto.randomBytes(8).toString('hex');
+      if (booking.customerId) {
+        try {
+          const notificationId = 'NOTIF_' + crypto.randomBytes(8).toString('hex');
 
-        // Map service types to display names
-        const serviceTypeMap: any = {
-          car: 'chauffeur-service',
-          bus: 'bus-rental',
-          truck: 'truck-rental',
-          packers: 'packers-and-movers',
-          equipment: 'equipment-rental',
-          luxury: 'luxury-car-rental',
-        };
+          // Map service types to display names
+          const serviceTypeMap: any = {
+            car: 'chauffeur-service',
+            bus: 'bus-rental',
+            truck: 'truck-rental',
+            packers: 'packers-and-movers',
+            equipment: 'equipment-rental',
+            luxury: 'luxury-car-rental',
+          };
 
-        const serviceTypeName = serviceTypeMap[serviceType] || serviceType;
+          const serviceTypeName = serviceTypeMap[serviceType] || serviceType;
 
-        await prisma.notifications.create({
-          data: {
-            id: notificationId,
-            customerId: booking.customerId,
-            title: `🔑 ${otpType} OTP`,
-            body: `Your OTP for ${otpType.toLowerCase()} is: ${newOtp}. Valid for verification.`,
-            type: 'booking',
-            serviceType: serviceTypeName,
-            bookingId: booking.id,
-            isRead: false,
-          },
-        });
-        console.log(`✅ Driver ${otpType} OTP in-app notification created:`, notificationId);
+          await prisma.notifications.create({
+            data: {
+              id: notificationId,
+              customerId: booking.customerId,
+              title: `🔑 ${otpType} OTP`,
+              body: `Your OTP for ${otpType.toLowerCase()} is: ${newOtp}. Valid for verification.`,
+              type: 'booking',
+              serviceType: serviceTypeName,
+              bookingId: booking.id,
+              isRead: false,
+            },
+          });
+          console.log(`✅ Driver ${otpType} OTP in-app notification created:`, notificationId);
 
-        console.log(`📤 Sending ${otpType} OTP push notification to customer:`, booking.customerId);
-        const pushResult = await sendNotificationToCustomer(
-          booking.customerId,
-          {
-            title: `🔑 ${otpType} OTP`,
-            body: `Your OTP for ${otpType.toLowerCase()} is: ${newOtp}. Valid for verification.`,
-          },
-          {
-            type: 'otp',
-            serviceType: serviceTypeName,
-            bookingId: booking.id,
-            otp: newOtp,
+          console.log(`📤 Sending ${otpType} OTP push notification to customer:`, booking.customerId);
+          const pushResult = await sendNotificationToCustomer(
+            booking.customerId,
+            {
+              title: `🔑 ${otpType} OTP`,
+              body: `Your OTP for ${otpType.toLowerCase()} is: ${newOtp}. Valid for verification.`,
+            },
+            {
+              type: 'otp',
+              serviceType: serviceTypeName,
+              bookingId: booking.id,
+              otp: newOtp,
+            }
+          );
+
+          if (pushResult.success) {
+            console.log(`✅ ${otpType} OTP push notification sent successfully:`, pushResult.messageId);
+          } else {
+            console.error(`❌ ${otpType} OTP push notification failed:`, pushResult.error);
           }
-        );
-
-        if (pushResult.success) {
-          console.log(`✅ ${otpType} OTP push notification sent successfully:`, pushResult.messageId);
-        } else {
-          console.error(`❌ ${otpType} OTP push notification failed:`, pushResult.error);
+        } catch (notificationError: any) {
+          console.error(`❌ ${otpType} OTP notification error:`, notificationError);
+          logger.error(`Failed to send ${otpType} OTP notification`, notificationError);
         }
-      } catch (notificationError: any) {
-        console.error(`❌ ${otpType} OTP notification error:`, notificationError);
-        logger.error(`Failed to send ${otpType} OTP notification`, notificationError);
+      } else {
+        console.log(`⚠️ [OTP] No customerId on booking ${bookingNumber}, skipping notification`);
       }
 
       console.log(`[OTP] Booking ${bookingNumber}: ${otpType} OTP ${newOtp} sent to customer ${booking.customerPhone}`);
@@ -790,6 +795,39 @@ export async function PATCH(
         },
       });
 
+      // Notify customer: transit started
+      try {
+        const transitNotifId = 'NOTIF_' + crypto.randomBytes(8).toString('hex');
+        const transitTitle = '🚛 Your Truck is On the Way!';
+        const transitBody = `Loading is complete and your truck for booking #${updatedBooking.bookingNumber} is now in transit to the destination.`;
+
+        await prisma.notifications.create({
+          data: {
+            id: transitNotifId,
+            customerId: booking.customerId,
+            title: transitTitle,
+            body: transitBody,
+            type: 'booking',
+            serviceType: 'truck-rental',
+            bookingId: booking.id,
+            isRead: false,
+          },
+        });
+
+        sendNotificationToCustomer(
+          booking.customerId,
+          { title: transitTitle, body: transitBody },
+          {
+            type: 'transit_started',
+            serviceType: 'truck-rental',
+            bookingId: booking.id,
+            bookingNumber: updatedBooking.bookingNumber || '',
+          }
+        ).catch((err: any) => console.error('[TruckTransit] Customer push failed:', err));
+      } catch (transitNotifErr: any) {
+        console.error('[TruckTransit] Customer notification failed:', transitNotifErr);
+      }
+
       return NextResponse.json({
         success: true,
         message: 'Loading complete! Transit started.',
@@ -840,6 +878,39 @@ export async function PATCH(
         },
       });
 
+      // Notify customer: unloading started
+      try {
+        const unloadNotifId = 'NOTIF_' + crypto.randomBytes(8).toString('hex');
+        const unloadTitle = '📦 Unloading Started!';
+        const unloadBody = `Your truck has arrived at the destination! Unloading for booking #${updatedBooking.bookingNumber} has started.`;
+
+        await prisma.notifications.create({
+          data: {
+            id: unloadNotifId,
+            customerId: booking.customerId,
+            title: unloadTitle,
+            body: unloadBody,
+            type: 'booking',
+            serviceType: 'truck-rental',
+            bookingId: booking.id,
+            isRead: false,
+          },
+        });
+
+        sendNotificationToCustomer(
+          booking.customerId,
+          { title: unloadTitle, body: unloadBody },
+          {
+            type: 'unloading_started',
+            serviceType: 'truck-rental',
+            bookingId: booking.id,
+            bookingNumber: updatedBooking.bookingNumber || '',
+          }
+        ).catch((err: any) => console.error('[TruckUnload] Customer push failed:', err));
+      } catch (unloadNotifErr: any) {
+        console.error('[TruckUnload] Customer notification failed:', unloadNotifErr);
+      }
+
       return NextResponse.json({
         success: true,
         message: 'Arrived at destination! Unloading started.',
@@ -868,6 +939,15 @@ export async function PATCH(
         },
       });
 
+      // Credit 10% Backr tokens
+      creditBackrTokens({
+        customerId: booking.customerId,
+        bookingAmount: booking.totalAmount || 0,
+        bookingId: booking.id,
+        bookingNumber: updatedBooking.bookingNumber,
+        serviceType: 'truck',
+      });
+
       if (driver.vendorId) {
         sendVendorDirectNotification({
           vendorId: driver.vendorId,
@@ -878,6 +958,39 @@ export async function PATCH(
           bookingId: booking.id,
           bookingNumber: updatedBooking.bookingNumber || '',
         }).catch((err: any) => console.error('[DriverTruckComplete] Vendor notify failed:', err));
+      }
+
+      // Notify customer: delivery completed
+      try {
+        const completeNotifId = 'NOTIF_' + crypto.randomBytes(8).toString('hex');
+        const completeTitle = '✅ Delivery Completed!';
+        const completeBody = `Your truck delivery for booking #${updatedBooking.bookingNumber} has been completed successfully! Backr tokens have been credited to your account. 🎉`;
+
+        await prisma.notifications.create({
+          data: {
+            id: completeNotifId,
+            customerId: booking.customerId,
+            title: completeTitle,
+            body: completeBody,
+            type: 'booking',
+            serviceType: 'truck-rental',
+            bookingId: booking.id,
+            isRead: false,
+          },
+        });
+
+        sendNotificationToCustomer(
+          booking.customerId,
+          { title: completeTitle, body: completeBody },
+          {
+            type: 'delivery_completed',
+            serviceType: 'truck-rental',
+            bookingId: booking.id,
+            bookingNumber: updatedBooking.bookingNumber || '',
+          }
+        ).catch((err: any) => console.error('[TruckComplete] Customer push failed:', err));
+      } catch (completeNotifErr: any) {
+        console.error('[TruckComplete] Customer notification failed:', completeNotifErr);
       }
 
       return NextResponse.json({
@@ -1068,6 +1181,15 @@ export async function PATCH(
         },
       });
 
+      // Credit 10% Backr tokens
+      creditBackrTokens({
+        customerId: booking.customerId,
+        bookingAmount: booking.totalAmount || 0,
+        bookingId: booking.id,
+        bookingNumber: updatedBooking.bookingNumber,
+        serviceType: 'packers',
+      });
+
       if (driver.vendorId) {
         sendVendorDirectNotification({
           vendorId: driver.vendorId,
@@ -1110,6 +1232,41 @@ export async function PATCH(
         },
       });
 
+      // Notify customer: equipment now in use
+      if (booking.customerId) {
+        try {
+          const useNotifId = 'NOTIF_' + crypto.randomBytes(8).toString('hex');
+          const useTitle = '⚙️ Equipment Rental Started!';
+          const useBody = `Your equipment for booking #${updatedBooking.bookingNumber} is now in use. Enjoy your rental!`;
+
+          await prisma.notifications.create({
+            data: {
+              id: useNotifId,
+              customerId: booking.customerId,
+              title: useTitle,
+              body: useBody,
+              type: 'booking',
+              serviceType: 'equipment-rental',
+              bookingId: booking.id,
+              isRead: false,
+            },
+          });
+
+          sendNotificationToCustomer(
+            booking.customerId,
+            { title: useTitle, body: useBody },
+            {
+              type: 'equipment_in_use',
+              serviceType: 'equipment-rental',
+              bookingId: booking.id,
+              bookingNumber: updatedBooking.bookingNumber || '',
+            }
+          ).catch((err: any) => console.error('[EquipStartUse] Customer push failed:', err));
+        } catch (useNotifErr: any) {
+          console.error('[EquipStartUse] Customer notification failed:', useNotifErr);
+        }
+      }
+
       return NextResponse.json({
         success: true,
         message: 'Equipment is now in use.',
@@ -1130,17 +1287,86 @@ export async function PATCH(
         );
       }
 
+      // Auto-generate return OTP when scheduling pickup
+      const returnOtp = generateOTP();
+
       const updatedBooking = await (Model as any).update({
         where: { bookingNumber },
         data: {
           status: 'PICKUP_SCHEDULED',
           scheduledPickup: new Date(),
+          returnOtp,
         },
       });
 
+      // Notify customer: pickup scheduled + return OTP
+      if (booking.customerId) {
+        try {
+          // Pickup scheduled notification
+          const pickupNotifId = 'NOTIF_' + crypto.randomBytes(8).toString('hex');
+          const pickupTitle = '📋 Equipment Pickup Scheduled!';
+          const pickupBody = `Equipment pickup has been scheduled for booking #${updatedBooking.bookingNumber}. Our operator will arrive to collect the equipment.`;
+
+          await prisma.notifications.create({
+            data: {
+              id: pickupNotifId,
+              customerId: booking.customerId,
+              title: pickupTitle,
+              body: pickupBody,
+              type: 'booking',
+              serviceType: 'equipment-rental',
+              bookingId: booking.id,
+              isRead: false,
+            },
+          });
+
+          sendNotificationToCustomer(
+            booking.customerId,
+            { title: pickupTitle, body: pickupBody },
+            {
+              type: 'pickup_scheduled',
+              serviceType: 'equipment-rental',
+              bookingId: booking.id,
+              bookingNumber: updatedBooking.bookingNumber || '',
+            }
+          ).catch((err: any) => console.error('[EquipPickup] Customer push failed:', err));
+
+          // Return OTP notification
+          const otpNotifId = 'NOTIF_' + crypto.randomBytes(8).toString('hex');
+          const otpTitle = '🔑 Return OTP';
+          const otpBody = `Your OTP for equipment return is: ${returnOtp}. Share this with the operator at pickup.`;
+
+          await prisma.notifications.create({
+            data: {
+              id: otpNotifId,
+              customerId: booking.customerId,
+              title: otpTitle,
+              body: otpBody,
+              type: 'booking',
+              serviceType: 'equipment-rental',
+              bookingId: booking.id,
+              isRead: false,
+            },
+          });
+
+          sendNotificationToCustomer(
+            booking.customerId,
+            { title: otpTitle, body: otpBody },
+            {
+              type: 'otp',
+              serviceType: 'equipment-rental',
+              bookingId: booking.id,
+              otp: returnOtp,
+            }
+          ).catch((err: any) => console.error('[EquipPickup] Return OTP push failed:', err));
+        } catch (pickupNotifErr: any) {
+          console.error('[EquipPickup] Customer notification failed:', pickupNotifErr);
+        }
+      }
+
       return NextResponse.json({
         success: true,
-        message: 'Pickup scheduled.',
+        message: 'Pickup scheduled. Return OTP sent to customer.',
         booking: {
           id: updatedBooking.id,
           bookingNumber: updatedBooking.bookingNumber,
@@ -1215,6 +1441,15 @@ export async function PATCH(
         },
       });
 
+      // Credit 10% Backr tokens
+      creditBackrTokens({
+        customerId: booking.customerId,
+        bookingAmount: booking.totalAmount || 0,
+        bookingId: booking.id,
+        bookingNumber: updatedBooking.bookingNumber,
+        serviceType: 'equipment',
+      });
+
       if (driver.vendorId) {
         sendVendorDirectNotification({
           vendorId: driver.vendorId,
@@ -1225,6 +1460,41 @@ export async function PATCH(
           bookingId: booking.id,
           bookingNumber: updatedBooking.bookingNumber || '',
         }).catch((err: any) => console.error('[DriverEquipmentComplete] Vendor notify failed:', err));
+      }
+
+      // Notify customer: rental completed
+      if (booking.customerId) {
+        try {
+          const completeNotifId = 'NOTIF_' + crypto.randomBytes(8).toString('hex');
+          const completeTitle = '✅ Equipment Rental Completed!';
+          const completeBody = `Your equipment rental for booking #${updatedBooking.bookingNumber} is complete! Backr tokens have been credited to your account. 🎉`;
+
+          await prisma.notifications.create({
+            data: {
+              id: completeNotifId,
+              customerId: booking.customerId,
+              title: completeTitle,
+              body: completeBody,
+              type: 'booking',
+              serviceType: 'equipment-rental',
+              bookingId: booking.id,
+              isRead: false,
+            },
+          });
+
+          sendNotificationToCustomer(
+            booking.customerId,
+            { title: completeTitle, body: completeBody },
+            {
+              type: 'rental_completed',
+              serviceType: 'equipment-rental',
+              bookingId: booking.id,
+              bookingNumber: updatedBooking.bookingNumber || '',
+            }
+          ).catch((err: any) => console.error('[EquipComplete] Customer push failed:', err));
+        } catch (completeNotifErr: any) {
+          console.error('[EquipComplete] Customer notification failed:', completeNotifErr);
+        }
       }
 
       return NextResponse.json({
@@ -1345,6 +1615,15 @@ export async function PATCH(
         },
       });
 
+      // Credit 10% Backr tokens
+      creditBackrTokens({
+        customerId: booking.customerId,
+        bookingAmount: booking.grandTotal || 0,
+        bookingId: booking.id,
+        bookingNumber: updatedBooking.bookingNumber,
+        serviceType: 'luxury',
+      });
+
       if (driver.vendorId) {
         sendVendorDirectNotification({
           vendorId: driver.vendorId,
@@ -1452,6 +1731,15 @@ export async function PATCH(
         console.error('❌ Trip completed notification error:', notificationError);
         logger.error('Failed to send trip completed notification', notificationError);
       }
+
+      // Credit 10% Backr tokens
+      creditBackrTokens({
+        customerId: booking.customerId,
+        bookingAmount: booking.grandTotal || booking.totalAmount || 0,
+        bookingId: booking.id,
+        bookingNumber: updatedBooking.bookingNumber,
+        serviceType: serviceType,
+      });
 
       // Notify vendor that driver has completed the trip
       if (driver.vendorId) {

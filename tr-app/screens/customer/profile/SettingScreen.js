@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -9,30 +9,123 @@ import {
   SafeAreaView,
   ScrollView,
   RefreshControl,
+  Platform,
+  StatusBar,
+  Animated,
+  Easing,
+  Share,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import Icon from 'react-native-vector-icons/Feather';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import {useNavigation} from '@react-navigation/native';
-import {Share} from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import DeviceInfo from 'react-native-device-info';
+import LinearGradient from 'react-native-linear-gradient';
+import {
+  widthPercentageToDP as wp,
+  heightPercentageToDP as hp,
+} from 'react-native-responsive-screen';
 import { IMAGE_BASE_URL } from '../../api';
+import { TEAL_DEEP, TEAL_MID, TEAL, TEAL_LIGHT, BG, CARD, TEXT_PRIMARY, TEXT_SECONDARY, TEXT_MUTED } from '../../../theme';
 
-const SettingScreen = ({navigation}) => {
+const CARD_BORDER  = '#F0F2F5';
+
+/* ── Shadows ───────────────────────── */
+const SHADOW = Platform.select({
+  ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 12 },
+  android: { elevation: 6 },
+});
+const SHADOW_SM = Platform.select({
+  ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 6 },
+  android: { elevation: 3 },
+});
+
+/* ── Quick Action Item ───────────────────────── */
+const QuickAction = ({ icon, label, bgColor, onPress, index }) => {
+  const scaleAnim = useRef(new Animated.Value(0)).current;
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    const delay = 200 + index * 80;
+    Animated.parallel([
+      Animated.spring(scaleAnim, { toValue: 1, tension: 60, friction: 8, delay, useNativeDriver: true }),
+      Animated.timing(fadeAnim, { toValue: 1, duration: 400, delay, useNativeDriver: true }),
+    ]).start();
+  }, []);
+
+  return (
+    <Animated.View style={{ flex: 1, opacity: fadeAnim, transform: [{ scale: scaleAnim }] }}>
+      <TouchableOpacity style={styles.actionCard} onPress={onPress} activeOpacity={0.7}>
+        <View style={[styles.actionIconWrap, { backgroundColor: bgColor }]}>
+          {icon}
+        </View>
+        <Text style={styles.actionLabel}>{label}</Text>
+      </TouchableOpacity>
+    </Animated.View>
+  );
+};
+
+/* ── Menu Item ───────────────────────── */
+const MenuItem = ({ icon, iconBg, title, subtitle, onPress, isLast, isLogout }) => (
+  <TouchableOpacity
+    style={[styles.menuItem, !isLast && styles.menuItemBorder]}
+    onPress={onPress}
+    activeOpacity={0.6}
+  >
+    <View style={styles.menuLeft}>
+      <View style={[styles.menuIconWrap, { backgroundColor: iconBg }]}>
+        {icon}
+      </View>
+      <View style={styles.menuTextWrap}>
+        <Text style={[styles.menuTitle, isLogout && { color: '#EF4444' }]}>{title}</Text>
+        <Text style={styles.menuSub}>{subtitle}</Text>
+      </View>
+    </View>
+    <Ionicons name="chevron-forward" size={18} color={TEXT_MUTED} />
+  </TouchableOpacity>
+);
+
+/* ── Main Screen ───────────────────────── */
+const SettingScreen = ({ navigation }) => {
   const currentVersion = DeviceInfo.getVersion();
   const [customer, setCustomer] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [isUpdateAvailable, setIsUpdateAvailable] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+
+  // Entrance animations
+  const profileSlide = useRef(new Animated.Value(30)).current;
+  const profileFade = useRef(new Animated.Value(0)).current;
+  const contentFade = useRef(new Animated.Value(0)).current;
+
+  const animateEntrance = () => {
+    Animated.parallel([
+      Animated.timing(profileSlide, { toValue: 0, duration: 500, easing: Easing.out(Easing.back(1.1)), useNativeDriver: true }),
+      Animated.timing(profileFade, { toValue: 1, duration: 400, useNativeDriver: true }),
+    ]).start();
+    Animated.timing(contentFade, { toValue: 1, duration: 500, delay: 150, useNativeDriver: true }).start();
+  };
+
+  useFocusEffect(
+    useCallback(() => {
+      StatusBar.setBarStyle('light-content', true);
+      if (Platform.OS === 'android') {
+        StatusBar.setBackgroundColor(TEAL_DEEP, true);
+      }
+      return () => {
+        StatusBar.setBarStyle('light-content', true);
+        if (Platform.OS === 'android') {
+          StatusBar.setBackgroundColor('#0A6B3F', true);
+        }
+      };
+    }, [])
+  );
 
   const onRefresh = async () => {
     setRefreshing(true);
     try {
       const customerData = await AsyncStorage.getItem('customer');
       if (customerData) {
-        const parsedCustomer = JSON.parse(customerData);
-        setCustomer(parsedCustomer);
+        setCustomer(JSON.parse(customerData));
       }
     } catch (error) {
       console.log('Error refreshing customer data:', error);
@@ -41,38 +134,45 @@ const SettingScreen = ({navigation}) => {
   };
 
   const handleShareApp = async () => {
+    const firstName = customer?.name ? customer.name.split(' ')[0] : '';
+    const playStoreUrl = 'https://play.google.com/store/apps/details?id=com.transrentals.app';
+
+    const shareMessage =
+`${firstName ? `Hey! ${firstName} here. ` : ''}I've been using *TransRentals* for all my vehicle rental needs and it's amazing!
+
+🚗 Car Rentals with Driver
+🏍️ Bike Rentals
+🚛 Truck & Tempo Hire
+🚌 Bus Rentals
+🏎️ Self-Drive Cars
+🏠 Packers & Movers
+🔧 Equipment Rentals
+
+✅ Best prices with multiple vendor quotes
+✅ Real-time booking tracking
+✅ Secure payments
+
+Download now and make your next ride hassle-free!
+👉 ${playStoreUrl}`;
+
     try {
-      const result = await Share.share({
-        message:
-          'TransRentals - Your trusted vehicle rental service! Rent cars, bikes, trucks with ease. Visit https://play.google.com/store/apps/details?id=com.transrentals.app&pcampaignid=web_share  to download our app and get started!',
-        url: 'https://transrentals.in/',
+      await Share.share({
+        message: shareMessage,
         title: 'TransRentals - Vehicle Rentals Made Easy',
       });
-
-      if (result.action === Share.sharedAction) {
-        if (result.activityType) {
-          console.log('Shared with activity type: ', result.activityType);
-        } else {
-          console.log('Shared successfully');
-        }
-      } else if (result.action === Share.dismissedAction) {
-        console.log('Share dismissed');
-      }
     } catch (error) {
-      alert('Error sharing app: ' + error.message);
+      console.log('Share error:', error);
     }
   };
 
   useEffect(() => {
     const fetchCustomerData = async () => {
       const customerData = await AsyncStorage.getItem('customer');
-      console.log('Customer Data:', customerData);
       if (customerData) {
-        const parsedCustomer = JSON.parse(customerData);
-        setCustomer(parsedCustomer);
+        setCustomer(JSON.parse(customerData));
       }
+      setTimeout(animateEntrance, 100);
     };
-
     fetchCustomerData();
     GoogleSignin.configure({
       webClientId: '365663447950-o996ep372bp2ejippsphe3ktjpen221e.apps.googleusercontent.com',
@@ -93,12 +193,11 @@ const SettingScreen = ({navigation}) => {
       if (user) {
         await GoogleSignin.revokeAccess();
         await GoogleSignin.signOut();
-        console.log(':white_check_mark: Google user signed out');
       }
       await AsyncStorage.multiRemove(['customer', 'customer_id', 'token']);
       navigation.replace('Login');
     } catch (error) {
-      console.log(':x: Logout error:', error);
+      console.log('Logout error:', error);
     }
   };
 
@@ -107,475 +206,519 @@ const SettingScreen = ({navigation}) => {
     : null;
 
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }>
+    <SafeAreaView style={styles.safe}>
+      <StatusBar barStyle="light-content" backgroundColor={TEAL_DEEP} />
 
-        {/* Normal Header */}
-        <View style={styles.header}>
+      {/* ── Gradient Header ── */}
+      <LinearGradient
+        colors={[TEAL_DEEP, TEAL_MID, '#047857']}
+        style={styles.headerGrad}
+      >
+        {/* Decorative circles */}
+        <View style={[styles.decoCircle, { top: -40, right: -30, width: 120, height: 120 }]} pointerEvents="none" />
+        <View style={[styles.decoCircle, { bottom: -20, left: -20, width: 80, height: 80 }]} pointerEvents="none" />
+
+        <View style={styles.headerRow}>
+          <View style={{ width: 34 }} />
           <Text style={styles.headerTitle}>My Account</Text>
-          <TouchableOpacity style={styles.closeButton} onPress={handleClose}>
-            <Ionicons name="close" size={24} color="#2D3748" />
+          <TouchableOpacity onPress={handleClose} style={styles.closeBtn}>
+            <Ionicons name="close" size={20} color="#FFF" />
           </TouchableOpacity>
         </View>
 
-        {/* Modern Profile Section - Redesigned */}
-        <View style={styles.profileSection}>
-          <View style={styles.profileBackground} />
-          <View style={styles.profileContent}>
+        {/* ── Profile Card (Glass) ── */}
+        <Animated.View style={{ opacity: profileFade, transform: [{ translateY: profileSlide }] }}>
+          <View style={styles.profileCard}>
             <View style={styles.profileRow}>
-              <View style={styles.avatarWrapper}>
+              <View style={styles.avatarWrap}>
                 {imageUrl ? (
-                  <Image source={{uri: imageUrl}} style={styles.avatar} />
+                  <Image source={{ uri: imageUrl }} style={styles.avatar} />
                 ) : (
-                  <View style={styles.avatarPlaceholder}>
-                    <Ionicons name="person" size={28} color="#4A5568" />
-                  </View>
+                  <LinearGradient
+                    colors={[TEAL_LIGHT, '#A7F3D0']}
+                    style={styles.avatarPlaceholder}
+                  >
+                    <Ionicons name="person" size={30} color={TEAL_MID} />
+                  </LinearGradient>
                 )}
-                    <TouchableOpacity 
-    style={styles.editIconButton}
-    onPress={() => navigation.navigate('EditProfileScreen')}>
-    <Ionicons name="create" size={13} color="#FFFFFF" />
-  </TouchableOpacity>
-  
+                <TouchableOpacity
+                  style={styles.editBadge}
+                  onPress={() => navigation.navigate('EditProfileScreen')}
+                >
+                  <Ionicons name="camera" size={12} color="#FFF" />
+                </TouchableOpacity>
               </View>
-              
+
               <View style={styles.userInfo}>
-                <Text style={styles.userName}>
+                <Text style={styles.userName} numberOfLines={1}>
                   {String(customer?.name || 'No Name')}
                 </Text>
-                <Text style={styles.userEmail}>
+                <Text style={styles.userEmail} numberOfLines={1}>
                   {String(customer?.email || 'Email not submitted')}
                 </Text>
-                {/* <View style={styles.memberBadge}>
-                  <Ionicons name="shield-checkmark" size={12} color="#10B981" />
-                  <Text style={styles.memberText}>Premium Member</Text>
-                </View> */}
-                 <View style={styles.memberBadge}>
-            <Ionicons name="shield-checkmark" size={14} color="#09b97fff" />
-            <Text style={styles.badgeText}>Verified</Text>
+                {customer?.phone ? (
+                  <Text style={styles.userPhone} numberOfLines={1}>
+                    {String(customer.phone)}
+                  </Text>
+                ) : null}
+              </View>
+            </View>
+
+            <View style={styles.profileActions}>
+              <LinearGradient
+                colors={['#ECFDF5', '#D1FAE5']}
+                style={styles.verifiedPill}
+              >
+                <Ionicons name="shield-checkmark" size={13} color={TEAL_MID} />
+                <Text style={styles.verifiedText}>Verified</Text>
+              </LinearGradient>
+              <TouchableOpacity
+                style={styles.editProfileBtn}
+                onPress={() => navigation.navigate('EditProfileScreen')}
+              >
+                <Text style={styles.editProfileText}>Edit Profile</Text>
+                <Ionicons name="chevron-forward" size={14} color={TEAL} />
+              </TouchableOpacity>
+            </View>
           </View>
-              </View>
-              
-            </View>
-       
+        </Animated.View>
+      </LinearGradient>
 
-      
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={TEAL} colors={[TEAL]} />
+        }
+      >
+        <Animated.View style={{ opacity: contentFade }}>
+          {/* ── Quick Actions ── */}
+          <View style={styles.quickActions}>
+            <QuickAction
+              index={0}
+              label="Backr Coin"
+              bgColor="#FEF3C7"
+              icon={<Image source={require('../../../assets/backerCoin2.png')} style={styles.actionImg} />}
+              onPress={() => navigation.navigate('BackrTokensScreen')}
+            />
+            <QuickAction
+              index={1}
+              label="Helpdesk"
+              bgColor="#DBEAFE"
+              icon={<Image source={require('../../../assets/helpdesk.png')} style={styles.actionImg} />}
+              onPress={() => navigation.navigate('HelpdeskScreen')}
+            />
+            <QuickAction
+              index={2}
+              label="Payments"
+              bgColor="#EDE9FE"
+              icon={<Image source={require('../../../assets/payments.png')} style={styles.actionImg} />}
+              onPress={() => navigation.navigate('ExpensesScreen')}
+            />
+            <QuickAction
+              index={3}
+              label="Bookings"
+              bgColor="#FCE7F3"
+              icon={<Image source={require('../../../assets/mybooking.png')} style={styles.actionImg} />}
+              onPress={() => navigation.navigate('MyBookings')}
+            />
           </View>
-        </View>
 
-        {/* Quick Actions */}
-        <View style={styles.quickActions}>
-          <TouchableOpacity style={styles.actionCard} onPress={() => navigation.navigate('BackrTokensScreen')}>
-            <View style={[styles.actionIcon, {backgroundColor: '#EBF8FF'}]}>
-              <Image source={require('../../../assets/backerCoin2.png')} style={styles.actionImage} />
+          {/* ── Connect With Us ── */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Connect With Us</Text>
+            <View style={styles.socialRow}>
+              <TouchableOpacity
+                style={styles.socialCard}
+                activeOpacity={0.7}
+                onPress={() => Linking.openURL('http://instagram.com/transrentals_in/')}
+              >
+                <LinearGradient colors={['#F9FAFB', '#F3F4F6']} style={styles.socialIconBg}>
+                  <Image source={require('../../../assets/insta.png')} style={styles.socialIcon} />
+                </LinearGradient>
+                <Text style={styles.socialLabel}>Instagram</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.socialCard}
+                activeOpacity={0.7}
+                onPress={() => Linking.openURL('https://www.facebook.com/Transrentalsindia/')}
+              >
+                <LinearGradient colors={['#F9FAFB', '#F3F4F6']} style={styles.socialIconBg}>
+                  <Image source={require('../../../assets/facebook.png')} style={styles.socialIcon} />
+                </LinearGradient>
+                <Text style={styles.socialLabel}>Facebook</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.socialCard}
+                activeOpacity={0.7}
+                onPress={() => Linking.openURL('https://www.linkedin.com/company/transrentals/')}
+              >
+                <LinearGradient colors={['#F9FAFB', '#F3F4F6']} style={styles.socialIconBg}>
+                  <Image source={require('../../../assets/linkedin.png')} style={styles.socialIcon} />
+                </LinearGradient>
+                <Text style={styles.socialLabel}>LinkedIn</Text>
+              </TouchableOpacity>
             </View>
-            <Text style={styles.actionText}>Backr Coin</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.actionCard} onPress={() => navigation.navigate('HelpdeskScreen')}>
-            <View style={[styles.actionIcon, {backgroundColor: '#F0FFF4'}]}>
-              <Image source={require('../../../assets/helpdesk.png')} style={styles.actionImage} />
-            </View>
-            <Text style={styles.actionText}>Helpdesk</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.actionCard} onPress={() => navigation.navigate('ExpensesScreen')}>
-            <View style={[styles.actionIcon, {backgroundColor: '#FFF5F5'}]}>
-              <Image source={require('../../../assets/payments.png')} style={styles.actionImage} />
-            </View>
-            <Text style={styles.actionText}>Payments</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.actionCard} onPress={() => navigation.navigate('MyBookings')}>
-            <View style={[styles.actionIcon, {backgroundColor: '#FAF5FF'}]}>
-              <Image source={require('../../../assets/mybooking.png')} style={styles.actionImage} />
-            </View>
-            <Text style={styles.actionText}>Bookings</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Social Links */}
-        <View style={styles.socialSection}>
-          <Text style={styles.sectionTitle}>Connect With Us</Text>
-          <View style={styles.socialGrid}>
-            <TouchableOpacity 
-              style={styles.socialCard}
-              onPress={() => Linking.openURL('http://instagram.com/transrentals_in/')}>
-              <View style={styles.socialIconWrapper}>
-                <Image source={require('../../../assets/insta.png')} style={styles.socialIcon} />
-              </View>
-              <Text style={styles.socialLabel}>Instagram</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity 
-              style={styles.socialCard}
-              onPress={() => Linking.openURL('https://www.facebook.com/Transrentalsindia/')}>
-              <View style={styles.socialIconWrapper}>
-                <Image source={require('../../../assets/facebook.png')} style={styles.socialIcon} />
-              </View>
-              <Text style={styles.socialLabel}>Facebook</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity 
-              style={styles.socialCard}
-              onPress={() => Linking.openURL('https://www.linkedin.com/company/transrentals/')}>
-              <View style={styles.socialIconWrapper}>
-                <Image source={require('../../../assets/linkedin.png')} style={styles.socialIcon} />
-              </View>
-              <Text style={styles.socialLabel}>LinkedIn</Text>
-            </TouchableOpacity>
           </View>
-        </View>
 
-        {/* Settings Menu */}
-        <View style={styles.menuSection}>
-          <Text style={styles.sectionTitle}>Settings</Text>
-          <View style={styles.menuContainer}>
-            <TouchableOpacity style={styles.menuItem} onPress={handleShareApp}>
-              <View style={styles.menuItemLeft}>
-                <View style={styles.menuIconWrapper}>
-                  <Image source={require('../../../assets/shareApp.png')} style={styles.menuIcon} />
-                </View>
-                <View>
-                  <Text style={styles.menuTitle}>Share App</Text>
-                  <Text style={styles.menuSubtitle}>Invite friends to TransRentals</Text>
-                </View>
-              </View>
-              <Ionicons name="chevron-forward" size={18} color="#A0AEC0" />
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.menuItem} onPress={() => navigation.navigate('AboutUsScreen')}>
-              <View style={styles.menuItemLeft}>
-                <View style={styles.menuIconWrapper}>
-                  <Image source={require('../../../assets/AboutUss.png')} style={styles.menuIcon} />
-                </View>
-                <View>
-                  <Text style={styles.menuTitle}>About Us</Text>
-                  <Text style={styles.menuSubtitle}>Learn more about TransRentals</Text>
-                </View>
-              </View>
-              <Ionicons name="chevron-forward" size={18} color="#A0AEC0" />
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.menuItem} onPress={() => navigation.navigate('AboutUsScreen')}>
-              <View style={styles.menuItemLeft}>
-                <View style={[styles.menuIconWrapper, {backgroundColor: '#EBF8FF'}]}>
-                  <Ionicons name="call-outline" size={20} color="#3B82F6" />
-                </View>
-                <View>
-                  <Text style={styles.menuTitle}>Contact Us</Text>
-                  <Text style={styles.menuSubtitle}>+91 9737965551 · book@transrentals.in</Text>
-                </View>
-              </View>
-              <Ionicons name="chevron-forward" size={18} color="#A0AEC0" />
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.menuItem} onPress={handleLogout}>
-              <View style={styles.menuItemLeft}>
-                <View style={[styles.menuIconWrapper, {backgroundColor: '#FED7D7'}]}>
-                  <Image source={require('../../../assets/LogOut.png')} style={styles.menuIcon} />
-                </View>
-                <View>
-                  <Text style={[styles.menuTitle, styles.logoutTitle]}>Log Out</Text>
-                  <Text style={styles.menuSubtitle}>Sign out of your account</Text>
-                </View>
-              </View>
-              <Ionicons name="chevron-forward" size={18} color="#A0AEC0" />
-            </TouchableOpacity>
+          {/* ── Settings Menu ── */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Settings</Text>
+            <View style={styles.menuCard}>
+              <MenuItem
+                icon={<Image source={require('../../../assets/shareApp.png')} style={styles.menuImg} />}
+                iconBg="#E7F0FE"
+                title="Share App"
+                subtitle="Invite friends to TransRentals"
+                onPress={handleShareApp}
+              />
+              <MenuItem
+                icon={<Image source={require('../../../assets/AboutUss.png')} style={styles.menuImg} />}
+                iconBg="#E0F4FC"
+                title="About Us"
+                subtitle="Learn more about TransRentals"
+                onPress={() => navigation.navigate('AboutUsScreen')}
+              />
+              <MenuItem
+                icon={<Ionicons name="call-outline" size={20} color="#3B82F6" />}
+                iconBg="#DBEAFE"
+                title="Contact Us"
+                subtitle="+91 9737965551"
+                onPress={() => navigation.navigate('AboutUsScreen')}
+              />
+              <MenuItem
+                icon={<Image source={require('../../../assets/LogOut.png')} style={styles.menuImg} />}
+                iconBg="#FEE2E2"
+                title="Log Out"
+                subtitle="Sign out of your account"
+                onPress={handleLogout}
+                isLast
+                isLogout
+              />
+            </View>
           </View>
-        </View>
 
-        {/* Footer */}
-        <View style={styles.footer}>
-          <View style={styles.footerContent}>
+          {/* ── Footer ── */}
+          <View style={styles.footer}>
             <Image
               source={require('../../../assets/LogoGreySc.png')}
-              style={styles.logo}
+              style={styles.footerLogo}
               resizeMode="contain"
             />
-            <Text style={styles.version}>Version {currentVersion}</Text>
-            <Text style={styles.copyright}>© 2024 TransRentals</Text>
+            <Text style={styles.footerVersion}>Version {currentVersion}</Text>
+            <Text style={styles.footerCopy}>{'\u00A9'} 2024 TransRentals</Text>
           </View>
-        </View>
+        </Animated.View>
       </ScrollView>
     </SafeAreaView>
   );
 };
+
+/* ── Styles ───────────────────────── */
 const styles = StyleSheet.create({
-  container: {
+  safe: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: TEAL_DEEP,
+  },
+  scroll: {
+    flex: 1,
+    backgroundColor: BG,
   },
   scrollContent: {
-    paddingBottom: 0,
+    paddingBottom: hp('4%'),
   },
-  header: {
+
+  /* Header */
+  headerGrad: {
+    paddingHorizontal: wp('4%'),
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + 8 : 8,
+    paddingBottom: wp('5%'),
+    overflow: 'hidden',
+  },
+  decoCircle: {
+    position: 'absolute',
+    borderRadius: 999,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+  },
+  headerRow: {
+    zIndex: 2,
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
-    backgroundColor: '#FFFFFF',
+    justifyContent: 'space-between',
+    marginBottom: wp('4%'),
   },
   headerTitle: {
-    fontSize: 20,
+    fontSize: wp('5%'),
     fontWeight: '700',
-    color: '#2D3748',
+    color: '#FFFFFF',
+    letterSpacing: 0.3,
   },
-  closeButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#F3F4F6',
+  closeBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: 'rgba(255,255,255,0.15)',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  profileSection: {
-    position: 'relative',
-    marginTop: 20,
-    marginHorizontal: 20,
-    marginBottom: 24,
-  },
-  profileBackground: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 120,
-    backgroundColor: '#F7FAFC',
+
+  /* Profile Card */
+  profileCard: {
+    backgroundColor: 'rgba(255,255,255,0.12)',
     borderRadius: 20,
-  },
-  profileContent: {
-    position: 'relative',
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 20,
+    padding: wp('4%'),
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.15)',
   },
   profileRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: wp('3%'),
   },
-  avatarWrapper: {
+  avatarWrap: {
     position: 'relative',
-    marginRight: 16,
+    marginRight: wp('3.5%'),
   },
   avatar: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
+    width: wp('18%'),
+    height: wp('18%'),
+    borderRadius: wp('9%'),
     borderWidth: 3,
-    borderColor: '#FFFFFF',
+    borderColor: 'rgba(255,255,255,0.3)',
   },
   avatarPlaceholder: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
-    backgroundColor: '#E2E8F0',
+    width: wp('18%'),
+    height: wp('18%'),
+    borderRadius: wp('9%'),
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 3,
-    borderColor: '#FFFFFF',
+    borderColor: 'rgba(255,255,255,0.3)',
   },
-  editIconButton: {
+  editBadge: {
     position: 'absolute',
     bottom: 0,
     right: 0,
     width: 26,
     height: 26,
-    borderRadius: 14,
-    backgroundColor: '#10B981',
+    borderRadius: 13,
+    backgroundColor: TEAL,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: '#FFFFFF',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
-    elevation: 3,
+    borderColor: TEAL_DEEP,
   },
   userInfo: {
     flex: 1,
   },
   userName: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#2D3748',
-    marginBottom: 4,
+    fontSize: wp('4.5%'),
+    fontWeight: '800',
+    color: '#FFFFFF',
+    marginBottom: 2,
   },
   userEmail: {
-    fontSize: 14,
-    color: '#718096',
-    marginBottom: 8,
+    fontSize: wp('3%'),
+    color: 'rgba(255,255,255,0.65)',
+    fontWeight: '500',
   },
-  memberBadge: {
+  userPhone: {
+    fontSize: wp('2.8%'),
+    color: 'rgba(255,255,255,0.5)',
+    fontWeight: '500',
+    marginTop: 2,
+  },
+  profileActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#e4fceaff',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+    justifyContent: 'space-between',
+  },
+  verifiedPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 5,
     borderRadius: 10,
-    alignSelf: 'flex-start',
+    gap: 4,
   },
-  badgeText: {
-    fontSize: 11,
+  verifiedText: {
+    fontSize: wp('2.8%'),
+    fontWeight: '700',
+    color: TEAL_MID,
+  },
+  editProfileBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 10,
+    gap: 3,
+  },
+  editProfileText: {
+    fontSize: wp('2.8%'),
     fontWeight: '600',
-    color: '#374151',
-    marginLeft: 4,
+    color: 'rgba(255,255,255,0.85)',
   },
+
+  /* Quick Actions */
   quickActions: {
     flexDirection: 'row',
-    paddingHorizontal: 20,
-    marginBottom: 20,
+    paddingHorizontal: wp('3%'),
+    paddingTop: wp('4%'),
+    paddingBottom: wp('2%'),
+    gap: 4,
   },
   actionCard: {
-    flex: 1,
     alignItems: 'center',
-    padding: 12,
+    paddingVertical: wp('3%'),
+    paddingHorizontal: wp('1%'),
+    backgroundColor: CARD,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: CARD_BORDER,
+    ...SHADOW_SM,
   },
-  actionIcon: {
-    width: 50,
-    height: 50,
-    borderRadius: 15,
+  actionIconWrap: {
+    width: wp('12%'),
+    height: wp('12%'),
+    borderRadius: wp('3.5%'),
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 8,
   },
-  actionImage: {
-    width: 22,
-    height: 22,
+  actionImg: {
+    width: 24,
+    height: 24,
   },
-  actionText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#4A5568',
+  actionLabel: {
+    fontSize: wp('2.8%'),
+    fontWeight: '700',
+    color: TEXT_PRIMARY,
     textAlign: 'center',
   },
-  socialSection: {
-    paddingHorizontal: 20,
-    marginBottom: 30,
+
+  /* Sections */
+  section: {
+    paddingHorizontal: wp('4%'),
+    marginTop: wp('4%'),
   },
   sectionTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#2D3748',
-    marginBottom: 16,
+    fontSize: wp('3.8%'),
+    fontWeight: '800',
+    color: TEXT_PRIMARY,
+    marginBottom: wp('3%'),
+    letterSpacing: 0.2,
   },
-  socialGrid: {
+
+  /* Social */
+  socialRow: {
     flexDirection: 'row',
-    backgroundColor: '#F7FAFC',
-    borderRadius: 16,
-    padding: 16,
+    gap: 10,
   },
   socialCard: {
     flex: 1,
     alignItems: 'center',
+    backgroundColor: CARD,
+    borderRadius: 16,
+    paddingVertical: wp('3.5%'),
+    borderWidth: 1,
+    borderColor: CARD_BORDER,
+    ...SHADOW_SM,
   },
-  socialIconWrapper: {
+  socialIconBg: {
     width: 44,
     height: 44,
-    borderRadius: 12,
-    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 2,
   },
   socialIcon: {
-    width: 20,
-    height: 20,
+    width: 22,
+    height: 22,
   },
   socialLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#4A5568',
+    fontSize: wp('2.8%'),
+    fontWeight: '700',
+    color: TEXT_PRIMARY,
   },
-  menuSection: {
-    paddingHorizontal: 20,
-    marginBottom: 30,
-  },
-  menuContainer: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
+
+  /* Menu */
+  menuCard: {
+    backgroundColor: CARD,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: CARD_BORDER,
     overflow: 'hidden',
+    ...SHADOW_SM,
   },
   menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F7FAFC',
+    paddingVertical: wp('3.5%'),
+    paddingHorizontal: wp('4%'),
   },
-  menuItemLeft: {
+  menuItemBorder: {
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  menuLeft: {
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
   },
-  menuIconWrapper: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    backgroundColor: '#F7FAFC',
+  menuIconWrap: {
+    width: 42,
+    height: 42,
+    borderRadius: 13,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
   },
-  menuIcon: {
+  menuImg: {
     width: 20,
     height: 20,
   },
+  menuTextWrap: {
+    flex: 1,
+  },
   menuTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#2D3748',
+    fontSize: wp('3.5%'),
+    fontWeight: '700',
+    color: TEXT_PRIMARY,
     marginBottom: 2,
   },
-  logoutTitle: {
-    color: '#E53E3E',
+  menuSub: {
+    fontSize: wp('2.8%'),
+    color: TEXT_MUTED,
+    fontWeight: '500',
   },
-  menuSubtitle: {
-    fontSize: 12,
-    color: '#718096',
-  },
+
+  /* Footer */
   footer: {
-    backgroundColor: '#1A202C',
-    paddingVertical: 30,
-  },
-  footerContent: {
     alignItems: 'center',
+    paddingVertical: hp('4%'),
+    marginTop: wp('4%'),
   },
-  logo: {
-    width: 100,
-    height: 35,
-    marginBottom: 12,
-    opacity: 0.7,
+  footerLogo: {
+    width: 90,
+    height: 32,
+    marginBottom: 10,
+    opacity: 0.4,
   },
-  version: {
-    fontSize: 12,
-    color: '#A0AEC0',
-    marginBottom: 4,
+  footerVersion: {
+    fontSize: wp('2.8%'),
+    color: TEXT_MUTED,
+    marginBottom: 3,
   },
-  copyright: {
-    fontSize: 11,
-    color: '#718096',
+  footerCopy: {
+    fontSize: wp('2.5%'),
+    color: '#D1D5DB',
   },
 });
 

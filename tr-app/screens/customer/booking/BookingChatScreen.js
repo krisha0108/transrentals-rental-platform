@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -11,15 +11,28 @@ import {
   ActivityIndicator,
   Alert,
   Keyboard,
+  StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { useRoute, useNavigation } from '@react-navigation/native';
+import { useRoute, useNavigation, useFocusEffect } from '@react-navigation/native';
+import LinearGradient from 'react-native-linear-gradient';
+import { widthPercentageToDP as wp, heightPercentageToDP as hp } from 'react-native-responsive-screen';
 import chatService from '../../services/chatService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { TEAL_DEEP, TEAL_MID, TEAL, TEAL_LIGHT, CARD, TEXT_PRIMARY, TEXT_SECONDARY, TEXT_MUTED } from '../../../theme';
 
-const GREEN = '#09B368';
-const BG = '#F5F5F7';
+const BG = '#F0FDF4';
+
+const SHADOW_SM = Platform.select({
+  ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.08, shadowRadius: 2 },
+  android: { elevation: 2 },
+});
+
+const SHADOW_MD = Platform.select({
+  ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.12, shadowRadius: 6 },
+  android: { elevation: 5 },
+});
 
 export default function BookingChatScreen() {
   const route = useRoute();
@@ -34,6 +47,22 @@ export default function BookingChatScreen() {
   const [customerName, setCustomerName] = useState('');
   const [showScrollButton, setShowScrollButton] = useState(false);
   const flatListRef = useRef(null);
+
+  // ── StatusBar management ──────────────────────────────────
+  useFocusEffect(
+    useCallback(() => {
+      StatusBar.setBarStyle('light-content', true);
+      if (Platform.OS === 'android') {
+        StatusBar.setBackgroundColor(TEAL_DEEP, true);
+      }
+      return () => {
+        StatusBar.setBarStyle('dark-content', true);
+        if (Platform.OS === 'android') {
+          StatusBar.setBackgroundColor('#0A6B3F', true);
+        }
+      };
+    }, [])
+  );
 
   useEffect(() => {
     loadCustomerData();
@@ -108,101 +137,148 @@ export default function BookingChatScreen() {
   const renderMessage = ({ item }) => {
     const isCustomer = item.sender_type === 'customer';
     return (
-      <View
-        style={[
-          styles.messageBubble,
-          isCustomer ? styles.customerMessage : styles.vendorMessage,
-        ]}
-      >
-        <Text style={isCustomer ? styles.customerText : styles.vendorText}>
-          {item.message}
-        </Text>
-        <Text style={styles.messageTime}>
-          {new Date(item.created_at).toLocaleTimeString('en-IN', {
-            hour: '2-digit',
-            minute: '2-digit',
-          })}
-        </Text>
+      <View style={[styles.messageBubbleOuter, isCustomer ? styles.customerOuter : styles.vendorOuter]}>
+        {isCustomer ? (
+          <View style={styles.customerBubble}>
+            <Text style={styles.customerText}>{item.message}</Text>
+            <Text style={styles.customerTime}>
+              {new Date(item.created_at).toLocaleTimeString('en-IN', {
+                hour: '2-digit',
+                minute: '2-digit',
+              })}
+            </Text>
+          </View>
+        ) : (
+          <View style={styles.vendorBubble}>
+            <Text style={styles.vendorText}>{item.message}</Text>
+            <Text style={styles.vendorTime}>
+              {new Date(item.created_at).toLocaleTimeString('en-IN', {
+                hour: '2-digit',
+                minute: '2-digit',
+              })}
+            </Text>
+          </View>
+        )}
       </View>
     );
   };
 
+  // ── Loading State ─────────────────────────────────────────
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <LinearGradient colors={[TEAL_DEEP, TEAL_MID, '#047857']} style={styles.header}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+            <Ionicons name="arrow-back" size={wp(5.5)} color="#FFFFFF" />
+          </TouchableOpacity>
+          <View style={styles.headerInfo}>
+            <Text style={styles.headerTitle} numberOfLines={1}>
+              {vendorName || 'Vendor'}
+            </Text>
+            <Text style={styles.headerSubtitle}>
+              Booking #{bookingNumber || bookingId?.slice(-8)}
+            </Text>
+          </View>
+          <View style={styles.phoneBtn}>
+            <Ionicons name="call-outline" size={wp(5)} color="rgba(255,255,255,0.4)" />
+          </View>
+        </LinearGradient>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={TEAL} />
+          <Text style={styles.loadingText}>Loading messages...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      {/* Header */}
-      <View style={styles.header}>
+      {/* ── Header ─────────────────────────────────────────── */}
+      <LinearGradient colors={[TEAL_DEEP, TEAL_MID, '#047857']} style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Ionicons name="arrow-back" size={24} color="#000" />
+          <Ionicons name="arrow-back" size={wp(5.5)} color="#FFFFFF" />
         </TouchableOpacity>
         <View style={styles.headerInfo}>
-          <Text style={styles.headerTitle}>{vendor?.name || vendorName || 'Vendor'}</Text>
-          <Text style={styles.headerSubtitle}>Booking #{bookingNumber || bookingId.slice(-8)}</Text>
+          <Text style={styles.headerTitle} numberOfLines={1}>
+            {vendor?.name || vendorName || 'Vendor'}
+          </Text>
+          <Text style={styles.headerSubtitle}>
+            Booking #{bookingNumber || bookingId.slice(-8)}
+          </Text>
         </View>
         <TouchableOpacity style={styles.phoneBtn}>
-          <Ionicons name="call-outline" size={22} color={GREEN} />
+          <Ionicons name="call-outline" size={wp(5)} color="#FFFFFF" />
         </TouchableOpacity>
-      </View>
+      </LinearGradient>
 
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 80 : 0}
       >
-        {/* Messages */}
-        {loading ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={GREEN} />
-          </View>
-        ) : (
-          <FlatList
-            ref={flatListRef}
-            data={messages}
-            keyExtractor={(item, index) => item.id || index.toString()}
-            renderItem={renderMessage}
-            contentContainerStyle={styles.messagesList}
-            onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
-            onLayout={() => flatListRef.current?.scrollToEnd({ animated: false })}
-            onScroll={handleScroll}
-            scrollEventThrottle={16}
-          />
-        )}
+        {/* ── Messages ───────────────────────────────────── */}
+        <FlatList
+          ref={flatListRef}
+          data={messages}
+          keyExtractor={(item, index) => item.id || index.toString()}
+          renderItem={renderMessage}
+          contentContainerStyle={styles.messagesList}
+          onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
+          onLayout={() => flatListRef.current?.scrollToEnd({ animated: false })}
+          onScroll={handleScroll}
+          scrollEventThrottle={16}
+        />
 
-        {/* Floating Scroll Down Button */}
+        {/* ── Floating Scroll Down Button ────────────────── */}
         {showScrollButton && (
           <TouchableOpacity
             style={styles.scrollDownButton}
             onPress={scrollToBottom}
             activeOpacity={0.8}
           >
-            <Ionicons name="arrow-down" size={24} color="#fff" />
+            <LinearGradient
+              colors={[TEAL_MID, TEAL]}
+              style={styles.scrollDownGradient}
+            >
+              <Ionicons name="arrow-down" size={wp(5.5)} color="#FFFFFF" />
+            </LinearGradient>
           </TouchableOpacity>
         )}
 
-        {/* Input */}
+        {/* ── Input ──────────────────────────────────────── */}
         <View style={styles.inputContainer}>
-          <TextInput
-            style={styles.input}
-            placeholder="Type a message..."
-            value={messageText}
-            onChangeText={setMessageText}
-            onFocus={() => {
-              setTimeout(() => {
-                flatListRef.current?.scrollToEnd({ animated: true });
-              }, 100);
-            }}
-            multiline
-            maxLength={500}
-          />
+          <View style={styles.inputWrapper}>
+            <TextInput
+              style={styles.input}
+              placeholder="Type a message..."
+              placeholderTextColor={TEXT_MUTED}
+              value={messageText}
+              onChangeText={setMessageText}
+              onFocus={() => {
+                setTimeout(() => {
+                  flatListRef.current?.scrollToEnd({ animated: true });
+                }, 100);
+              }}
+              multiline
+              maxLength={500}
+            />
+          </View>
           <TouchableOpacity
             style={[styles.sendBtn, !messageText.trim() && styles.sendBtnDisabled]}
             onPress={sendMessage}
             disabled={!messageText.trim() || sending}
+            activeOpacity={0.7}
           >
-            {sending ? (
-              <ActivityIndicator size="small" color="#fff" />
-            ) : (
-              <Ionicons name="send" size={20} color="#fff" />
-            )}
+            <LinearGradient
+              colors={[TEAL_MID, TEAL]}
+              style={styles.sendBtnGradient}
+            >
+              {sending ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : (
+                <Ionicons name="send" size={wp(4.5)} color="#FFFFFF" />
+              )}
+            </LinearGradient>
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
@@ -210,88 +286,193 @@ export default function BookingChatScreen() {
   );
 }
 
+// ── Styles ────────────────────────────────────────────────────
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: BG },
+  container: {
+    flex: 1,
+    backgroundColor: BG,
+  },
+
+  // ── Header ──────────────────────────────────────────────
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+    paddingHorizontal: wp(4),
+    paddingVertical: hp(1.8),
+    borderBottomLeftRadius: wp(6),
+    borderBottomRightRadius: wp(6),
+    overflow: 'hidden',
   },
-  backBtn: { padding: 4, marginRight: 12 },
-  headerInfo: { flex: 1 },
-  headerTitle: { fontSize: 16, fontWeight: '600', color: '#000' },
-  headerSubtitle: { fontSize: 12, color: '#666', marginTop: 2 },
-  phoneBtn: { padding: 8 },
-  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  messagesList: { padding: 16, paddingBottom: 8 },
-  messageBubble: {
-    maxWidth: '75%',
-    padding: 12,
-    borderRadius: 16,
-    marginBottom: 12,
-  },
-  customerMessage: {
-    alignSelf: 'flex-end',
-    backgroundColor: GREEN,
-  },
-  vendorMessage: {
-    alignSelf: 'flex-start',
-    backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-  },
-  customerText: { color: '#fff', fontSize: 14 },
-  vendorText: { color: '#000', fontSize: 14 },
-  messageTime: {
-    fontSize: 10,
-    color: '#999',
-    marginTop: 4,
-    alignSelf: 'flex-end',
-  },
-  inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 12,
-    backgroundColor: '#fff',
-    borderTopWidth: 1,
-    borderTopColor: '#e0e0e0',
-  },
-  input: {
-    flex: 1,
-    backgroundColor: BG,
-    borderRadius: 24,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    maxHeight: 100,
-    fontSize: 14,
-  },
-  sendBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: GREEN,
+  backBtn: {
+    width: wp(9.5),
+    height: wp(9.5),
+    borderRadius: wp(4.75),
+    backgroundColor: 'rgba(255,255,255,0.15)',
     justifyContent: 'center',
     alignItems: 'center',
-    marginLeft: 8,
+    marginRight: wp(3),
   },
-  sendBtnDisabled: { opacity: 0.5 },
+  headerInfo: {
+    flex: 1,
+    marginRight: wp(2),
+  },
+  headerTitle: {
+    fontSize: wp(4.2),
+    fontWeight: '700',
+    color: '#FFFFFF',
+    letterSpacing: 0.2,
+  },
+  headerSubtitle: {
+    fontSize: wp(3),
+    color: 'rgba(255,255,255,0.7)',
+    marginTop: hp(0.3),
+    fontWeight: '500',
+  },
+  phoneBtn: {
+    width: wp(9.5),
+    height: wp(9.5),
+    borderRadius: wp(4.75),
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  // ── Loading ─────────────────────────────────────────────
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: BG,
+  },
+  loadingText: {
+    fontSize: wp(3.5),
+    color: TEXT_SECONDARY,
+    marginTop: hp(1.5),
+    fontWeight: '500',
+  },
+
+  // ── Messages List ───────────────────────────────────────
+  messagesList: {
+    paddingHorizontal: wp(4),
+    paddingTop: hp(1.5),
+    paddingBottom: hp(1),
+  },
+
+  // ── Message Bubbles ─────────────────────────────────────
+  messageBubbleOuter: {
+    marginBottom: hp(1.2),
+    maxWidth: '78%',
+  },
+  customerOuter: {
+    alignSelf: 'flex-end',
+  },
+  vendorOuter: {
+    alignSelf: 'flex-start',
+  },
+  customerBubble: {
+    paddingHorizontal: wp(3.5),
+    paddingVertical: hp(1.2),
+    borderRadius: wp(4.5),
+    borderTopRightRadius: wp(1),
+    backgroundColor: TEAL_MID,
+    ...SHADOW_SM,
+  },
+  vendorBubble: {
+    paddingHorizontal: wp(3.5),
+    paddingVertical: hp(1.2),
+    borderRadius: wp(4.5),
+    borderTopLeftRadius: wp(1),
+    backgroundColor: CARD,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    ...SHADOW_SM,
+  },
+  customerText: {
+    color: '#FFFFFF',
+    fontSize: wp(3.6),
+    lineHeight: wp(5.2),
+    fontWeight: '400',
+  },
+  vendorText: {
+    color: TEXT_PRIMARY,
+    fontSize: wp(3.6),
+    lineHeight: wp(5.2),
+    fontWeight: '400',
+  },
+  customerTime: {
+    fontSize: wp(2.6),
+    color: 'rgba(255,255,255,0.7)',
+    marginTop: hp(0.5),
+    alignSelf: 'flex-end',
+    fontWeight: '500',
+  },
+  vendorTime: {
+    fontSize: wp(2.6),
+    color: TEXT_MUTED,
+    marginTop: hp(0.5),
+    alignSelf: 'flex-end',
+    fontWeight: '500',
+  },
+
+  // ── Scroll Down Button ──────────────────────────────────
   scrollDownButton: {
     position: 'absolute',
-    bottom: 80,
-    right: 20,
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: GREEN,
+    bottom: hp(9),
+    right: wp(5),
+    borderRadius: wp(5.5),
+    overflow: 'hidden',
+    ...SHADOW_MD,
+  },
+  scrollDownGradient: {
+    width: wp(11),
+    height: wp(11),
+    borderRadius: wp(5.5),
     justifyContent: 'center',
     alignItems: 'center',
-    elevation: 5,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
+  },
+
+  // ── Input Area ──────────────────────────────────────────
+  inputContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    paddingHorizontal: wp(3),
+    paddingVertical: hp(1),
+    backgroundColor: CARD,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
+    ...SHADOW_SM,
+  },
+  inputWrapper: {
+    flex: 1,
+    borderRadius: wp(6),
+    borderWidth: 1.5,
+    borderColor: '#E5E7EB',
+    backgroundColor: BG,
+    overflow: 'hidden',
+  },
+  input: {
+    paddingHorizontal: wp(4),
+    paddingVertical: Platform.OS === 'ios' ? hp(1.2) : hp(0.8),
+    maxHeight: hp(12),
+    fontSize: wp(3.6),
+    color: TEXT_PRIMARY,
+    lineHeight: wp(5),
+  },
+  sendBtn: {
+    marginLeft: wp(2),
+    marginBottom: Platform.OS === 'ios' ? hp(0.2) : 0,
+    borderRadius: wp(5.5),
+    overflow: 'hidden',
+    ...SHADOW_SM,
+  },
+  sendBtnGradient: {
+    width: wp(11),
+    height: wp(11),
+    borderRadius: wp(5.5),
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  sendBtnDisabled: {
+    opacity: 0.45,
   },
 });
