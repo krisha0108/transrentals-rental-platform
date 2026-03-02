@@ -382,14 +382,70 @@ function SplashScreenWrapper() {
   return <SplashScreen onFinish={handleFinish} />;
 }
 
+// Bump this version whenever you add/change notification sounds
+// This forces channels to be deleted and recreated with new sounds
+const NOTIF_CHANNEL_VERSION = '4';
+
 // Notification Channel Setup
-async function createNotificationChannel() {
-  await notifee.createChannel({
-    id: 'default_v3',
-    name: 'Default Channel',
-    importance: AndroidImportance.HIGH,
-    sound: 'notification_sound',
-  });
+async function createNotificationChannels() {
+  try {
+    const storedVersion = await AsyncStorage.getItem('notif_channel_version');
+    if (storedVersion === NOTIF_CHANNEL_VERSION) return; // already up to date
+
+    // Delete old channels so Android picks up new sounds
+    const channelIds = [
+      'default_v3',
+      'payment_channel',
+      'chat_channel',
+      'trip_complete_channel',
+      'trip_started_channel',
+      'booking_confirmed_channel',
+    ];
+    await Promise.all(channelIds.map((id) => notifee.deleteChannel(id).catch(() => {})));
+
+    // Recreate all channels with correct sounds
+    await notifee.createChannel({
+      id: 'default_v3',
+      name: 'Quote Requests',
+      importance: AndroidImportance.HIGH,
+      sound: 'notification_sound',
+    });
+    await notifee.createChannel({
+      id: 'payment_channel',
+      name: 'Payment Notifications',
+      importance: AndroidImportance.HIGH,
+      sound: 'payment',
+    });
+    await notifee.createChannel({
+      id: 'chat_channel',
+      name: 'Chat Notifications',
+      importance: AndroidImportance.HIGH,
+      sound: 'chat',
+    });
+    await notifee.createChannel({
+      id: 'trip_complete_channel',
+      name: 'Trip Complete',
+      importance: AndroidImportance.HIGH,
+      sound: 'trip_completed',
+    });
+    await notifee.createChannel({
+      id: 'trip_started_channel',
+      name: 'Trip Started',
+      importance: AndroidImportance.HIGH,
+      sound: 'trip_started',
+    });
+    await notifee.createChannel({
+      id: 'booking_confirmed_channel',
+      name: 'Booking Confirmed',
+      importance: AndroidImportance.HIGH,
+      sound: 'booking_confirmed',
+    });
+
+    await AsyncStorage.setItem('notif_channel_version', NOTIF_CHANNEL_VERSION);
+    console.log('[Channels] Notification channels created/updated successfully');
+  } catch (err) {
+    console.error('[Channels] Failed to create notification channels:', err);
+  }
 }
 
 // Navigation ref for notification handling
@@ -407,20 +463,68 @@ const QUOTE_SCREEN_MAP = {
   'self-drive': 'SelfDriveQuoteRequestDetail',
 };
 
+const BOOKING_DETAIL_SCREEN_MAP = {
+  bike: 'BikeBookingDetail',
+  car: 'CarRentalBookingDetail',
+  chauffeur: 'CarRentalBookingDetail',
+  'chauffeur-service': 'CarRentalBookingDetail',
+  'self-drive': 'SelfDriveBookingDetail',
+  bus: 'BusBookingDetail',
+  'bus-rental': 'BusBookingDetail',
+  truck: 'TruckBookingDetail',
+  'truck-rental': 'TruckBookingDetail',
+  luxury: 'LuxuryBookingDetail',
+  'luxury-car-rental': 'LuxuryBookingDetail',
+  packers: 'PackersBookingDetail',
+  'packers-and-movers': 'PackersBookingDetail',
+  equipment: 'EquipmentBookingDetail',
+  'equipment-rental': 'EquipmentBookingDetail',
+};
+
+function getNotifChannelForType(type) {
+  if (type === 'payment_received' || type === 'payment' || type === 'advance_paid') {
+    return { channelId: 'payment_channel', sound: 'payment' };
+  }
+  if (type === 'chat' || type === 'new_message') {
+    return { channelId: 'chat_channel', sound: 'chat' };
+  }
+  if (type === 'trip_started') {
+    return { channelId: 'trip_started_channel', sound: 'trip_started' };
+  }
+  if (type === 'trip_complete' || type === 'trip_completed') {
+    return { channelId: 'trip_complete_channel', sound: 'trip_completed' };
+  }
+  if (
+    type === 'booking_confirmed' ||
+    type === 'booking_assigned' ||
+    type === 'booking_accepted' ||
+    type === 'quote_accepted'
+  ) {
+    return { channelId: 'booking_confirmed_channel', sound: 'booking_confirmed' };
+  }
+  return { channelId: 'default_v3', sound: 'notification_sound' };
+}
+
 function navigateByData(data) {
   if (!data || !navigationRef.current) return;
 
   const screen = data.screen;
   const bookingId = data.booking_id || data.bookingId;
 
-  if (screen === 'ViewBookingScreen' && bookingId) {
-    navigationRef.current.navigate('BookingDetailScreen', { bookingId: Number(bookingId) });
+  // Payment / booking confirmed → service-specific booking detail
+  if ((screen === 'BookingDetail' || screen === 'ViewBookingScreen') && bookingId) {
+    const serviceScreen = BOOKING_DETAIL_SCREEN_MAP[data.serviceType];
+    if (serviceScreen) {
+      navigationRef.current.navigate(serviceScreen, { bookingId });
+      return;
+    }
+  }
+  // Chat notification → open chat screen
+  if ((screen === 'ChatDetail' || screen === 'ChatScreen') && bookingId) {
+    navigationRef.current.navigate('ChatScreen', { bookingId });
     return;
   }
-  if (screen === 'ChatScreen' && bookingId) {
-    navigationRef.current.navigate('ChatScreen', { bookingId: Number(bookingId) });
-    return;
-  }
+  // Quote request → service-specific quote detail
   if (screen === 'QuoteRequestDetail' && data.serviceType && data.requestId) {
     const screenName = QUOTE_SCREEN_MAP[data.serviceType];
     if (screenName) {
@@ -428,7 +532,7 @@ function navigateByData(data) {
       return;
     }
   }
-  console.log('Unknown screen for navigation:', screen);
+  console.log('[Nav] Unknown screen for navigation:', screen, data);
 }
 
 export default function App() {
@@ -447,7 +551,7 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    createNotificationChannel();
+    createNotificationChannels();
     checkNotificationPermission();
     refreshBadge();
 
@@ -459,17 +563,19 @@ export default function App() {
         remoteMessage?.data?.image ||
         remoteMessage?.notification?.android?.imageUrl ||
         null;
+      const notifType = remoteMessage?.data?.type || '';
+      const { channelId, sound } = getNotifChannelForType(notifType);
       await notifee.displayNotification({
         title: remoteMessage.notification?.title || 'New Message',
         body: remoteMessage.notification?.body || '',
         data: remoteMessage?.data || {},
         ios: { sound: 'default' },
         android: {
-          channelId: 'default_v3',
+          channelId,
           importance: AndroidImportance.HIGH,
-          sound: 'notification_sound',
+          sound,
           smallIcon: 'ic_notification',
-          pressAction: { id: 'default_v3' },
+          pressAction: { id: 'default' },
           style:
             image && image !== 'null'
               ? {

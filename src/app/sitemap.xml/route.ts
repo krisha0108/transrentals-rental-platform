@@ -11,6 +11,7 @@ const SUB_SITEMAPS = [
   { url: `${BASE_URL}/sitemap-services.xml`, label: 'Service + city pages' },
   { url: `${BASE_URL}/sitemap-states.xml`,   label: 'State hub pages' },
   { url: `${BASE_URL}/sitemap-routes.xml`,   label: 'Route pages (one-way, round-trip, airport)' },
+  { url: `${BASE_URL}/sitemap-blog.xml`,     label: 'Blog posts + categories' },
 ];
 
 export async function GET() {

@@ -113,7 +113,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
       {/* Hero Section */}
       <div className="relative">
         {/* Featured Image Hero */}
-        <div className="relative h-[50vh] md:h-[60vh] lg:h-[70vh] overflow-hidden">
+        <div className="relative h-[85vh] md:h-[65vh] lg:h-[70vh] overflow-hidden">
           {normalizedFeaturedImage && normalizedFeaturedImage !== '/images/blog-default.jpg' ? (
             <Image
               src={normalizedFeaturedImage}
@@ -137,28 +137,31 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
           )}
 
           {/* Gradient overlay */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-black/20" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-black/10" />
 
-          {/* Content overlay */}
-          <div className="absolute inset-0 flex flex-col justify-end">
-                <div className="container relative mx-auto px-4 pb-12 md:pb-16">
-                  <Link
-                    href="/blog"
-                    className="absolute -top-8 left-0 inline-flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-md text-white rounded-full hover:bg-white/20 transition-all font-medium text-sm"
-                  >
-                    <ArrowLeft size={18} />
-                    <span>Back to Reflections</span>
-                  </Link>
-                <div className="max-w-4xl space-y-4">
+          {/* Content overlay — top: back button; bottom: post info */}
+          <div className="absolute inset-0 flex flex-col justify-between">
+
+            {/* Back button — sits just below the fixed header */}
+            <div className="container mx-auto px-4 pt-20 md:pt-28">
+              <Link
+                href="/blog"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-md text-white rounded-full hover:bg-white/20 transition-all font-medium text-sm"
+              >
+                <ArrowLeft size={18} />
+                <span>Back to Reflections</span>
+              </Link>
+            </div>
+
+            {/* Post info — pinned to bottom */}
+            <div className="container mx-auto px-4 pb-8 md:pb-12">
+              <div className="max-w-4xl space-y-3 md:space-y-4">
+
                 {/* Breadcrumbs */}
-                <nav className="flex items-center gap-2 text-sm text-white/70 mb-6 mt-10">
-                  <Link href="/" className="hover:text-white transition-colors">
-                    Home
-                  </Link>
+                <nav className="flex items-center gap-2 text-sm text-white/70">
+                  <Link href="/" className="hover:text-white transition-colors">Home</Link>
                   <ChevronRight size={14} />
-                  <Link href="/blog" className="hover:text-white transition-colors">
-                    Reflections
-                  </Link>
+                  <Link href="/blog" className="hover:text-white transition-colors">Reflections</Link>
                   <ChevronRight size={14} />
                   <Link
                     href={`/blog/category/${post.category.slug}`}
@@ -171,7 +174,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                 {/* Category Badge */}
                 <Link
                   href={`/blog/category/${post.category.slug}`}
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold text-white mb-6 backdrop-blur-sm transition-transform hover:scale-105"
+                  className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-semibold text-white backdrop-blur-sm transition-transform hover:scale-105"
                   style={{ backgroundColor: `${categoryColor}dd` }}
                 >
                   <span>{categoryIcon}</span>
@@ -179,22 +182,19 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                 </Link>
 
                 {/* Title */}
-                <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-6 leading-tight drop-shadow-lg">
+                <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-white leading-tight drop-shadow-lg font-[family-name:var(--font-blog-heading)]">
                   {post.title}
                 </h1>
 
-                {/* Excerpt */}
-                <p className="text-lg md:text-xl text-white/90 mb-8 max-w-3xl leading-relaxed">
+                {/* Excerpt — hidden on small screens to save space */}
+                <p className="hidden sm:block text-base md:text-xl text-white/90 max-w-3xl leading-relaxed">
                   {post.excerpt}
                 </p>
 
                 {/* Meta Info */}
-                <div className="flex flex-wrap items-center gap-6">
-                  <Link
-                    href={`/blog/author/${post.author.slug}`}
-                    className="flex items-center gap-3 hover:opacity-80 transition-opacity"
-                  >
-                    <div className="relative w-12 h-12 rounded-full overflow-hidden ring-2 ring-white/30">
+                <div className="flex flex-wrap items-center gap-4 md:gap-6">
+                  <div className="flex items-center gap-3">
+                    <div className="relative w-10 h-10 md:w-12 md:h-12 rounded-full overflow-hidden ring-2 ring-white/30 shrink-0">
                       <Image
                         src={post.author.avatar}
                         alt={post.author.name}
@@ -203,13 +203,13 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                       />
                     </div>
                     <div>
-                      <div className="font-semibold text-white">{post.author.name}</div>
+                      <div className="font-semibold text-white text-sm md:text-base">{post.author.name}</div>
                       <div className="text-xs text-white/70">{post.author.role}</div>
                     </div>
-                  </Link>
-                  <div className="flex items-center gap-4 text-sm text-white/80">
+                  </div>
+                  <div className="flex flex-wrap items-center gap-3 text-xs md:text-sm text-white/80">
                     <span className="flex items-center gap-1.5">
-                      <Calendar size={16} />
+                      <Calendar size={14} />
                       {new Date(post.publishedAt).toLocaleDateString('en-IN', {
                         day: 'numeric',
                         month: 'long',
@@ -217,11 +217,11 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                       })}
                     </span>
                     <span className="flex items-center gap-1.5">
-                      <Clock size={16} />
+                      <Clock size={14} />
                       {post.readTime} min read
                     </span>
                     <span className="flex items-center gap-1.5">
-                      <Eye size={16} />
+                      <Eye size={14} />
                       {post.views.toLocaleString()} views
                     </span>
                   </div>
@@ -234,8 +234,10 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                     />
                   </div>
                 </div>
+
               </div>
             </div>
+
           </div>
         </div>
 
@@ -251,20 +253,22 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
               <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
                 <div className="p-8 md:p-12">
                   <div
-                    className="prose prose-lg max-w-none
-                      prose-headings:font-bold prose-headings:text-gray-900
-                      prose-h2:text-3xl prose-h2:mt-10 prose-h2:mb-4
-                      prose-h3:text-2xl prose-h3:mt-8 prose-h3:mb-3
-                      prose-p:text-gray-700 prose-p:leading-relaxed prose-p:my-4
-                      prose-a:text-emerald-600 prose-a:no-underline hover:prose-a:underline
+                    className="prose prose-lg max-w-none blog-content
+                      [font-family:var(--font-blog-body)] text-gray-800
+                      prose-headings:[font-family:var(--font-blog-heading)] prose-headings:font-bold prose-headings:text-gray-900 prose-headings:tracking-tight
+                      prose-h2:text-[1.85rem] prose-h2:leading-snug prose-h2:mt-12 prose-h2:mb-4 prose-h2:pb-2 prose-h2:border-b prose-h2:border-gray-100
+                      prose-h3:text-[1.45rem] prose-h3:leading-snug prose-h3:mt-9 prose-h3:mb-3
+                      prose-p:text-[1.0625rem] prose-p:leading-[1.85] prose-p:text-gray-700 prose-p:my-5
+                      prose-a:text-emerald-600 prose-a:no-underline hover:prose-a:underline prose-a:font-medium
                       prose-strong:text-gray-900 prose-strong:font-semibold
-                      prose-ul:my-4 prose-ul:list-disc prose-ul:pl-6
-                      prose-ol:my-4 prose-ol:list-decimal prose-ol:pl-6
-                      prose-li:text-gray-700 prose-li:my-1
-                      prose-blockquote:border-l-4 prose-blockquote:border-emerald-500 prose-blockquote:pl-6 prose-blockquote:my-6 prose-blockquote:italic prose-blockquote:bg-emerald-50 prose-blockquote:py-4 prose-blockquote:pr-6 prose-blockquote:rounded-r-lg
-                      prose-code:text-emerald-600 prose-code:bg-emerald-50 prose-code:px-2 prose-code:py-1 prose-code:rounded-md prose-code:text-sm
-                      prose-pre:bg-gray-900 prose-pre:text-gray-100 prose-pre:p-6 prose-pre:rounded-xl prose-pre:my-6
-                      prose-img:rounded-xl prose-img:shadow-lg"
+                      prose-ul:my-5 prose-ul:list-disc prose-ul:pl-6 prose-ul:space-y-1
+                      prose-ol:my-5 prose-ol:list-decimal prose-ol:pl-6 prose-ol:space-y-1
+                      prose-li:text-gray-700 prose-li:leading-relaxed
+                      prose-blockquote:border-l-[3px] prose-blockquote:border-emerald-500 prose-blockquote:pl-6 prose-blockquote:my-8 prose-blockquote:italic prose-blockquote:bg-emerald-50/60 prose-blockquote:py-4 prose-blockquote:pr-6 prose-blockquote:rounded-r-xl prose-blockquote:text-gray-600 prose-blockquote:not-italic
+                      prose-code:text-emerald-700 prose-code:bg-emerald-50 prose-code:px-2 prose-code:py-0.5 prose-code:rounded-md prose-code:text-[0.875em] prose-code:font-medium
+                      prose-pre:bg-gray-900 prose-pre:text-gray-100 prose-pre:p-6 prose-pre:rounded-xl prose-pre:my-6 prose-pre:text-sm
+                      prose-img:rounded-xl prose-img:shadow-md prose-img:my-8
+                      prose-hr:border-gray-200 prose-hr:my-10"
                     dangerouslySetInnerHTML={{ __html: renderBlogContent(post.content) }}
                   />
                 </div>
@@ -345,7 +349,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
             author: {
               '@type': 'Person',
               name: post.author.name,
-              url: `https://transrentals.com/blog/author/${post.author.slug}`,
+              url: `https://transrentals.com/blog`,
             },
             publisher: {
               '@type': 'Organization',

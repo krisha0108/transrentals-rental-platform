@@ -46,8 +46,22 @@ export async function GET(
     // Check if vendor already has a quote for this request
     const hasQuoted = quoteRequest.self_drive_quotes_self_drive_quotes_requestIdToself_drive_quote_requests.length > 0;
 
+    // If request is accepted, find the booking created from this request
+    // Try by quoteRequestId first, then fall back to finding via the accepted quote
+    let booking = await prisma.car_bookings.findFirst({
+      where: { quoteRequestId: id },
+      select: { id: true },
+    });
+    if (!booking && quoteRequest.acceptedQuoteId) {
+      booking = await prisma.car_bookings.findFirst({
+        where: { acceptedQuoteId: quoteRequest.acceptedQuoteId },
+        select: { id: true },
+      });
+    }
+
     return NextResponse.json({
       success: true,
+      bookingId: booking?.id || null,
       request: {
         id: quoteRequest.id,
         requestNumber: quoteRequest.requestNumber,

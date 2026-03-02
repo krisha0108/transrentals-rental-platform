@@ -48,12 +48,19 @@ export async function GET(
     // Check if vendor already has a quote for this request
     const hasQuoted = quoteRequest.bus_quotes_bus_quotes_requestIdTobus_quote_requests.length > 0;
 
+    // If request is accepted, find the booking created from this request
+    const booking = await prisma.bus_bookings.findFirst({
+      where: { quoteRequestId: id },
+      select: { id: true },
+    });
+
     // Use location from relation if available, fallback to city fields
     const pickupCityName = quoteRequest.locations?.name || quoteRequest.pickupCity || 'N/A';
     const dropCityName = quoteRequest.dropCity || 'N/A';
 
     return NextResponse.json({
       success: true,
+      bookingId: booking?.id || null,
       request: {
         id: quoteRequest.id,
         requestNumber: quoteRequest.requestNumber,

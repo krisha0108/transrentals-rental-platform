@@ -116,6 +116,8 @@ const carRentalSubMenu = (slug: string): NavItem[] => [
   { name: 'Locations', href: `/admin/services/${slug}/locations`, icon: MapPin },
   { name: 'Location Inventory', href: `/admin/services/${slug}/location-inventory`, icon: BarChart3 },
   { name: 'Page Content', href: `/admin/services/${slug}/page-content`, icon: FileText },
+  { name: 'Blog', href: `/admin/services/${slug}/blog`, icon: FileEdit },
+  { name: 'Media', href: `/admin/services/${slug}/media`, icon: Image },
   { name: 'SEO', href: `/admin/services/${slug}/seo`, icon: Globe },
   { name: 'Settings', href: `/admin/services/${slug}/settings`, icon: Settings },
 ];
@@ -388,6 +390,7 @@ const adminItems: NavItem[] = [
 // Website Controls (Global site management)
 const websiteItems: NavItem[] = [
   { name: 'Homepage', href: '/admin/website/homepage', icon: LayoutDashboard },
+  { name: 'General Blog', href: '/admin/blog', icon: FileEdit },
   { name: 'Media Library', href: '/admin/media', icon: Image },
   { name: 'Navigation', href: '/admin/website/navigation', icon: List },
   { name: 'Footer', href: '/admin/website/footer', icon: FileCheck },

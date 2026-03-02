@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { submitComment } from '@/lib/api/blog';
 import { Send } from 'lucide-react';
 
 interface CommentFormProps {
@@ -27,17 +26,19 @@ export function CommentForm({ postId, onSuccess }: CommentFormProps) {
     setMessage(null);
 
     try {
-      const result = await submitComment({
-        postId,
-        ...formData,
+      const res = await fetch('/api/blog/comments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ postId, ...formData }),
       });
+      const result = await res.json();
 
-      if (result.success) {
-        setMessage({ type: 'success', text: result.message });
+      if (res.ok && result.success) {
+        setMessage({ type: 'success', text: result.message || 'Comment submitted!' });
         setFormData({ name: '', email: '', content: '' });
         if (onSuccess) onSuccess();
       } else {
-        setMessage({ type: 'error', text: result.message });
+        setMessage({ type: 'error', text: result.message || 'Failed to submit.' });
       }
     } catch (error) {
       setMessage({

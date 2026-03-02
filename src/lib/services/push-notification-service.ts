@@ -62,11 +62,15 @@ export async function sendPushNotification(
     body: string;
     imageUrl?: string;
   },
-  data?: Record<string, string>
+  data?: Record<string, string>,
+  options?: { channelId?: string; sound?: string }
 ) {
   try {
     // Initialize Firebase if not already initialized
     initializeFirebase();
+
+    const channelId = options?.channelId || 'default_v3';
+    const sound = options?.sound || 'notification_sound';
 
     const message: admin.messaging.Message = {
       token: fcmToken,
@@ -79,8 +83,8 @@ export async function sendPushNotification(
       android: {
         priority: 'high',
         notification: {
-          channelId: 'default_v3',
-          sound: 'notification_sound',
+          channelId,
+          sound,
         },
       },
       apns: {
@@ -97,8 +101,19 @@ export async function sendPushNotification(
     console.log('✅ Push notification sent successfully:', response);
     return { success: true, messageId: response };
   } catch (error: any) {
+    // Detect stale / unregistered token
+    const isStaleToken =
+      error.code === 'messaging/registration-token-not-registered' ||
+      error.code === 'messaging/invalid-registration-token' ||
+      (error.message && error.message.includes('Requested entity was not found'));
+
+    if (isStaleToken) {
+      console.warn('⚠️  Stale FCM token detected — should be cleaned up:', fcmToken.substring(0, 20) + '...');
+      return { success: false, error: error.message, tokenInvalid: true };
+    }
+
     console.error('❌ Failed to send push notification:', error);
-    return { success: false, error: error.message };
+    return { success: false, error: error.message, tokenInvalid: false };
   }
 }
 
@@ -185,7 +200,18 @@ export async function sendNotificationToCustomer(
     }
 
     // Send push notification
-    return await sendPushNotification(customer.fcmToken, notification, data);
+    const result = await sendPushNotification(customer.fcmToken, notification, data);
+
+    // Auto-clean stale customer token
+    if ((result as any)?.tokenInvalid) {
+      await prisma.customers.update({
+        where: { id: customerId },
+        data: { fcmToken: null },
+      }).catch(() => {});
+      console.warn(`⚠️  Cleared stale FCM token for customer ${customerId}`);
+    }
+
+    return result;
   } catch (error: any) {
     console.error('❌ Failed to send notification to customer:', error);
     return { success: false, error: error.message };

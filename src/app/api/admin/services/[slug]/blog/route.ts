@@ -1,15 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth/auth-options';
 import { prisma } from '@/lib/db/prisma';
-import { transformPrismaResponse } from '@/lib/utils/api-transform';
 import crypto from 'crypto';
-
 import logger from '@/lib/security/logger';
 
-// Helper to generate a cuid-like unique ID
 function generateId(): string {
   return 'c' + crypto.randomBytes(12).toString('base64url').toLowerCase().slice(0, 24);
 }
-const getSettingKey = (slug: string) => `service_blog_${slug}`;
+
+function calcReadTime(content: string): number {
+  const text = content.replace(/<[^>]*>/g, '');
+  return Math.max(1, Math.ceil(text.split(/\s+/).length / 200));
+}
 
 // GET - Fetch all blog posts for a service
 export async function GET(
@@ -17,6 +20,9 @@ export async function GET(
   { params }: { params: Promise<{ slug: string }> }
 ) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
     const { slug } = await params;
 
     const service = await prisma.services.findFirst({
@@ -28,15 +34,51 @@ export async function GET(
       return NextResponse.json({ error: 'Service not found' }, { status: 404 });
     }
 
-    const setting = await prisma.settings.findUnique({
-      where: { key: getSettingKey(slug) },
-    });
+    const { searchParams } = new URL(request.url);
+    const status = searchParams.get('status');
+    const page = parseInt(searchParams.get('page') || '1');
+    const limit = parseInt(searchParams.get('limit') || '20');
 
-    const data = (setting?.value as any) || { posts: [] };
+    const where: any = { serviceSlug: slug };
+    if (status) where.status = status.toUpperCase();
+
+    const [posts, total] = await Promise.all([
+      prisma.blog_posts.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * limit,
+        take: limit,
+        include: {
+          blog_categories: { select: { id: true, name: true, slug: true } },
+          admin_users: { select: { id: true, name: true, email: true } },
+          seo_meta: true,
+        },
+      }),
+      prisma.blog_posts.count({ where }),
+    ]);
+
+    const formatted = posts.map((p: any) => ({
+      id: p.id,
+      title: p.title,
+      slug: p.slug,
+      excerpt: p.excerpt,
+      status: p.status,
+      featuredImage: p.featuredImage,
+      publishedAt: p.publishedAt?.toISOString() || null,
+      createdAt: p.createdAt.toISOString(),
+      updatedAt: p.updatedAt.toISOString(),
+      viewCount: p.viewCount,
+      readTime: p.readTime,
+      category: p.blog_categories,
+      author: p.admin_users,
+      tags: p.tags ? JSON.parse(p.tags) : [],
+      seo: p.seo_meta,
+    }));
 
     return NextResponse.json({
       serviceName: service.name,
-      posts: data.posts || [],
+      posts: formatted,
+      pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
     });
   } catch (error) {
     logger.error('Failed to fetch blog posts', error);
@@ -50,51 +92,82 @@ export async function POST(
   { params }: { params: Promise<{ slug: string }> }
 ) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
     const { slug } = await params;
     const body = await request.json();
 
-    const service = await prisma.services.findFirst({
-      where: { slug },
-      select: { id: true },
-    });
-
-    if (!service) {
-      return NextResponse.json({ error: 'Service not found' }, { status: 404 });
+    // Validate required fields
+    if (!body.title?.trim()) {
+      return NextResponse.json({ error: 'Title is required' }, { status: 400 });
+    }
+    if (!body.slug?.trim()) {
+      return NextResponse.json({ error: 'Slug is required' }, { status: 400 });
     }
 
-    const settingKey = getSettingKey(slug);
-    const existing = await prisma.settings.findUnique({
-      where: { key: settingKey },
+    // Check slug uniqueness
+    const existing = await prisma.blog_posts.findUnique({ where: { slug: body.slug } });
+    if (existing) {
+      return NextResponse.json({ error: 'Slug already exists' }, { status: 400 });
+    }
+
+    // Get admin user
+    const adminUser = await prisma.admin_users.findUnique({
+      where: { email: session.user?.email as string },
+      select: { id: true },
+    });
+    if (!adminUser) {
+      return NextResponse.json({ error: 'Admin user not found' }, { status: 403 });
+    }
+
+    const postId = generateId();
+    const now = new Date();
+    const isPublished = body.status === 'PUBLISHED';
+
+    const post = await prisma.blog_posts.create({
+      data: {
+        id: postId,
+        title: body.title.trim(),
+        slug: body.slug.trim(),
+        content: body.content || '',
+        excerpt: body.excerpt?.trim() || null,
+        featuredImage: body.featuredImage || null,
+        status: isPublished ? 'PUBLISHED' : 'DRAFT',
+        publishedAt: isPublished ? now : null,
+        readTime: calcReadTime(body.content || ''),
+        serviceSlug: slug,
+        categoryId: body.categoryId || null,
+        authorId: adminUser.id,
+        tags: body.tags?.length ? JSON.stringify(body.tags) : null,
+      } as any,
     });
 
-    const data = (existing?.value as any) || { posts: [] };
-    const newPost = {
-      id: Math.random().toString(36).substr(2, 9),
-      title: body.title,
-      slug: body.slug,
-      excerpt: body.excerpt,
-      content: body.content,
-      category: body.chauffeur_vehicle_categories,
-      author: body.author,
-      status: body.status || 'draft',
-      featuredImage: body.featuredImage,
-      tags: body.tags ? body.tags.split(',').map((t: string) => t.trim()) : [],
-      metaTitle: body.metaTitle,
-      metaDescription: body.metaDescription,
-      publishedAt: body.status === 'published' ? new Date().toISOString() : null,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
+    // Create SEO meta
+    if (body.seo) {
+      await prisma.seo_meta.create({
+        data: {
+          id: generateId(),
+          blogPostId: postId,
+          metaTitle: body.seo.metaTitle || body.title,
+          metaDescription: body.seo.metaDescription || body.excerpt || null,
+          metaKeywords: body.seo.metaKeywords || null,
+          ogTitle: body.seo.ogTitle || body.title,
+          ogDescription: body.seo.ogDescription || body.excerpt || null,
+          ogImage: body.seo.ogImage || body.featuredImage || null,
+          ogType: 'article',
+          twitterCard: 'summary_large_image',
+          twitterTitle: body.seo.metaTitle || body.title,
+          twitterDescription: body.seo.metaDescription || body.excerpt || null,
+          twitterImage: body.seo.ogImage || body.featuredImage || null,
+          canonicalUrl: body.seo.canonicalUrl || null,
+          noindex: body.seo.noindex || false,
+          nofollow: body.seo.nofollow || false,
+        },
+      });
+    }
 
-    data.posts.push(newPost);
-
-    await prisma.settings.upsert({
-      where: { key: settingKey },
-      create: { id: generateId(), key: settingKey, value: data },
-      update: { value: data },
-    });
-
-    return NextResponse.json({ success: true, post: newPost });
+    return NextResponse.json({ success: true, post: { id: post.id, slug: post.slug } }, { status: 201 });
   } catch (error) {
     logger.error('Failed to create blog post', error);
     return NextResponse.json({ error: 'Failed to create blog post' }, { status: 500 });

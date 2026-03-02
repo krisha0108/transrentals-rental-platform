@@ -7,6 +7,7 @@ import { transformPrismaResponse } from '@/lib/utils/api-transform';
 
 import logger from '@/lib/security/logger';
 import { releaseDatesForBooking } from '@/lib/utils/fleet-availability';
+import { sendVendorDirectNotification } from '@/lib/utils/vendor-notification-sender';
 export const dynamic = 'force-dynamic';
 
 // GET - Get Equipment Booking details for vendor
@@ -311,6 +312,16 @@ export async function PATCH(
             paymentStatus: 'COMPLETED',
           },
         });
+
+        sendVendorDirectNotification({
+          vendorId: vendor.id,
+          title: '✅ Equipment Booking Completed!',
+          body: `Equipment booking #${updatedBooking.bookingNumber} has been completed successfully.`,
+          type: 'trip_completed',
+          serviceType: 'equipment',
+          bookingId: id,
+          bookingNumber: updatedBooking.bookingNumber,
+        }).catch((err: any) => logger.error('[EquipmentComplete] Vendor notify failed:', err));
 
         return NextResponse.json({
           success: true,

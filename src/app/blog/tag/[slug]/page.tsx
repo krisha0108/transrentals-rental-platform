@@ -15,8 +15,7 @@ interface TagPageProps {
   };
 }
 
-// Revalidate tag pages every 60 seconds (ISR)
-export const revalidate = 60;
+export const dynamic = 'force-dynamic';
 
 export async function generateStaticParams() {
   const slugs = await getTagSlugs();
