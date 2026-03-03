@@ -24,6 +24,7 @@ interface Document {
   status: 'PENDING' | 'APPROVED' | 'REJECTED';
   rejectionReason: string | null;
   createdAt: string;
+  uploadedBy?: { id: string; name: string; role: string } | null;
 }
 
 const documentTypes = [
@@ -244,6 +245,11 @@ export default function VendorDocumentsPage() {
                         <h4 className="font-medium text-gray-900">{docType.name}</h4>
                         {docType.required && (
                           <span className="text-xs text-red-500">*Required</span>
+                        )}
+                        {uploadedDoc?.uploadedBy && (
+                          <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                            Uploaded by Manager
+                          </span>
                         )}
                       </div>
                       <p className="text-sm text-gray-500">{docType.description}</p>

@@ -21,6 +21,10 @@ import {
   Play,
   Flag,
   IndianRupee,
+  Star,
+  Truck,
+  Navigation,
+  MessageSquare,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -28,45 +32,15 @@ interface Booking {
   id: string;
   bookingNumber: string;
   status: string;
+  serviceName: string;
+  serviceSlug: string;
   customerName: string;
   customerEmail: string | null;
   customerPhone: string | null;
-  vendorName: string | null;
-  vendorPhone: string | null;
-  vendorEmail: string | null;
-  locationId: string;
-  locationName: string | null;
-  requestedVehicleName: string | null;
-  requestedCategory: string | null;
-  pickupDate: string;
-  pickupTime: string;
-  dropDate: string;
-  dropTime: string;
-  totalDays: number;
-  dailyRate: number | null;
-  totalAmount: number;
-  gstAmount: number | null;
-  securityDeposit: number | null;
-  grandTotal: number | null;
-  advanceAmount: number | null;
-  advancePaymentRef: string | null;
-  advancePaymentProof: string | null;
-  advancePaymentDate: string | null;
-  advancePaymentVerified: boolean;
-  advanceVerifiedAt: string | null;
-  paymentMethod: string | null;
-  paymentStatus: string | null;
-  paidAmount: number | null;
-  tripStartOtp: string | null;
-  tripOtpVerified: boolean;
-  pickedUpAt: string | null;
-  returnedAt: string | null;
-  customerNotes: string | null;
-  adminNotes: string | null;
-  createdAt: string;
   customer: { id: string; name: string; email: string; phone: string } | null;
   assignedVendor: { id: string; businessName: string; phone: string; email: string } | null;
   acceptedVendor: { id: string; businessName: string; phone: string; email: string } | null;
+  [key: string]: any;
 }
 
 export default function ManagerBookingDetailPage() {
@@ -215,11 +189,53 @@ export default function ManagerBookingDetailPage() {
   };
 
   const formatTime = (timeString: string) => {
+    if (!timeString) return '';
     const [hours, minutes] = timeString.split(':');
     const h = parseInt(hours);
     const ampm = h >= 12 ? 'PM' : 'AM';
     const hour12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
     return `${hour12}:${minutes} ${ampm}`;
+  };
+
+  const formatDateTime = (dateString: string | null | undefined) => {
+    if (!dateString) return null;
+    return new Date(dateString).toLocaleString('en-IN', {
+      day: 'numeric', month: 'short', year: 'numeric',
+      hour: '2-digit', minute: '2-digit',
+    });
+  };
+
+  const currency = (val: any) => {
+    if (val === null || val === undefined) return null;
+    const num = Number(val);
+    if (isNaN(num)) return null;
+    return num.toLocaleString('en-IN');
+  };
+
+  // Render a detail row only when the value exists
+  const DetailRow = ({ label, value, className }: { label: string; value: any; className?: string }) => {
+    if (value === null || value === undefined || value === '' || value === 0) return null;
+    return (
+      <div>
+        <p className="text-sm text-gray-500">{label}</p>
+        <p className={`font-medium ${className || ''}`}>{String(value)}</p>
+      </div>
+    );
+  };
+
+  // Render a currency row only when value > 0
+  const ChargeRow = ({ label, value }: { label: string; value: any }) => {
+    const formatted = currency(value);
+    if (!formatted || Number(value) === 0) return null;
+    return (
+      <div className="flex justify-between text-sm">
+        <span className="text-gray-600">{label}</span>
+        <span className="font-medium flex items-center">
+          <IndianRupee className="w-3 h-3" />
+          {formatted}
+        </span>
+      </div>
+    );
   };
 
   if (loading) {
@@ -261,8 +277,20 @@ export default function ManagerBookingDetailPage() {
         <Link href="/manager/dashboard" className="p-2 hover:bg-gray-100 rounded-lg">
           <ArrowLeft className="w-5 h-5" />
         </Link>
-        <div>
-          <h1 className="text-xl font-bold text-gray-900">Booking #{booking.bookingNumber}</h1>
+        <div className="flex-1">
+          <div className="flex items-center gap-2 flex-wrap">
+            <h1 className="text-xl font-bold text-gray-900">Booking #{booking.bookingNumber}</h1>
+            {booking.serviceName && (
+              <span className="text-xs px-2 py-0.5 rounded-full bg-purple-100 text-purple-700">
+                {booking.serviceName}
+              </span>
+            )}
+            {booking.tripType && (
+              <span className="text-xs px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700">
+                {booking.tripType}
+              </span>
+            )}
+          </div>
           <span className={`text-xs px-2 py-0.5 rounded-full ${statusConfig.bg} ${statusConfig.text}`}>
             {statusConfig.label}
           </span>
@@ -444,42 +472,73 @@ export default function ManagerBookingDetailPage() {
           <Bike className="w-5 h-5 text-gray-400" />
           Booking Details
         </h2>
-        <div className="grid md:grid-cols-2 gap-4">
-          <div className="space-y-3">
-            <div>
-              <p className="text-sm text-gray-500">Vehicle</p>
-              <p className="font-medium">{booking.requestedVehicleName || 'Any'}</p>
-            </div>
-            <div>
-              <p className="text-sm text-gray-500">Location</p>
-              <p className="font-medium flex items-center gap-1">
-                <MapPin className="w-4 h-4 text-gray-400" />
-                {booking.locationName}
-              </p>
-            </div>
-            <div>
-              <p className="text-sm text-gray-500">Duration</p>
-              <p className="font-medium">{booking.totalDays} Day{booking.totalDays > 1 ? 's' : ''}</p>
-            </div>
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div>
+            <p className="text-sm text-gray-500">Vehicle</p>
+            <p className="font-medium">{booking.requestedVehicleName || 'Any'}</p>
           </div>
-          <div className="space-y-3">
-            <div>
-              <p className="text-sm text-gray-500">Pickup</p>
-              <p className="font-medium flex items-center gap-1">
-                <Calendar className="w-4 h-4 text-gray-400" />
-                {formatDate(booking.pickupDate)} at {formatTime(booking.pickupTime)}
-              </p>
-            </div>
-            <div>
-              <p className="text-sm text-gray-500">Drop-off</p>
-              <p className="font-medium flex items-center gap-1">
-                <Calendar className="w-4 h-4 text-gray-400" />
-                {formatDate(booking.dropDate)} at {formatTime(booking.dropTime)}
-              </p>
-            </div>
+          {booking.requestedCategory && <DetailRow label="Category" value={booking.requestedCategory} />}
+          <div>
+            <p className="text-sm text-gray-500">Location</p>
+            <p className="font-medium flex items-center gap-1">
+              <MapPin className="w-4 h-4 text-gray-400" />
+              {booking.locationName}
+            </p>
           </div>
+          <div>
+            <p className="text-sm text-gray-500">Pickup</p>
+            <p className="font-medium flex items-center gap-1">
+              <Calendar className="w-4 h-4 text-gray-400" />
+              {booking.pickupDate ? formatDate(booking.pickupDate) : 'N/A'}
+              {booking.pickupTime ? ` at ${formatTime(booking.pickupTime)}` : ''}
+            </p>
+          </div>
+          <div>
+            <p className="text-sm text-gray-500">Drop-off</p>
+            <p className="font-medium flex items-center gap-1">
+              <Calendar className="w-4 h-4 text-gray-400" />
+              {booking.dropDate ? `${formatDate(booking.dropDate)}${booking.dropTime ? ` at ${formatTime(booking.dropTime)}` : ''}` : 'N/A'}
+            </p>
+          </div>
+          {booking.totalDays > 0 && <DetailRow label="Duration" value={`${booking.totalDays} Day${booking.totalDays > 1 ? 's' : ''}`} />}
+          <DetailRow label="Trip Type" value={booking.tripType} />
+          {booking.localPackageHours && <DetailRow label="Package" value={`${booking.localPackageHours}hrs / ${booking.localPackageKm || 0}km`} />}
+          <DetailRow label="Total Hours" value={booking.totalHours} />
+          <DetailRow label="Estimated Distance" value={booking.estimatedDistance ? `${booking.estimatedDistance} km` : null} />
+          <DetailRow label="Transmission" value={booking.requestedTransmission} />
+          <DetailRow label="Fuel Type" value={booking.requestedFuelType} />
+          <DetailRow label="Seats" value={booking.requestedSeats} />
+          <DetailRow label="Helmets Required" value={booking.helmetsRequired} />
+          <DetailRow label="Passengers" value={booking.passengers} />
+          <DetailRow label="Goods Type" value={booking.goodsType} />
+          <DetailRow label="Equipment Category" value={booking.equipmentCategory} />
+          <DetailRow label="Event Type" value={booking.eventType} />
+          <DetailRow label="Decoration" value={booking.decoration} />
         </div>
       </div>
+
+      {/* Location Details */}
+      {(booking.pickupAddress || booking.dropAddress || booking.pickupCity || booking.dropCity || booking.airportName || booking.routeDetails || booking.venueName) && (
+        <div className="bg-white rounded-xl shadow-sm p-6">
+          <h2 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            <Navigation className="w-5 h-5 text-gray-400" />
+            Location Details
+          </h2>
+          <div className="grid md:grid-cols-2 gap-4">
+            <DetailRow label="Pickup City" value={booking.pickupCity} />
+            <DetailRow label="Pickup Address" value={booking.pickupAddress} />
+            <DetailRow label="Pickup Floor" value={booking.pickupFloor} />
+            <DetailRow label="Drop City" value={booking.dropCity} />
+            <DetailRow label="Drop Address" value={booking.dropAddress} />
+            <DetailRow label="Drop Floor" value={booking.dropFloor} />
+            <DetailRow label="Airport" value={booking.airportName} />
+            <DetailRow label="Flight Number" value={booking.flightNumber} />
+            <DetailRow label="Terminal" value={booking.terminalNumber} />
+            <DetailRow label="Route Details" value={booking.routeDetails} />
+            <DetailRow label="Venue" value={booking.venueName} />
+          </div>
+        </div>
+      )}
 
       {/* Payment Details */}
       <div className="bg-white rounded-xl shadow-sm p-6">
@@ -491,29 +550,28 @@ export default function ManagerBookingDetailPage() {
           {/* Payment Breakdown */}
           <div className="bg-gray-50 rounded-lg p-4">
             <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-600">Daily Rate</span>
-                <span className="font-medium flex items-center">
-                  <IndianRupee className="w-3 h-3" />
-                  {booking.dailyRate?.toLocaleString() || '0'} x {booking.totalDays} days
-                </span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-600">Rental Amount</span>
-                <span className="font-medium flex items-center">
-                  <IndianRupee className="w-3 h-3" />
-                  {booking.totalAmount?.toLocaleString()}
-                </span>
-              </div>
-              {booking.securityDeposit && (
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Security Deposit</span>
-                  <span className="font-medium flex items-center">
-                    <IndianRupee className="w-3 h-3" />
-                    {booking.securityDeposit?.toLocaleString()}
-                  </span>
-                </div>
-              )}
+              <ChargeRow label={`Daily Rate${booking.totalDays ? ` x ${booking.totalDays} days` : ''}`} value={booking.dailyRate} />
+              <ChargeRow label="Base Fare" value={booking.baseFare} />
+              <ChargeRow label="Rental Amount" value={booking.totalAmount} />
+              <ChargeRow label="KM Charges" value={booking.kmCharges} />
+              <ChargeRow label="Per KM Rate" value={booking.perKmRate} />
+              <ChargeRow label="Driver Batta" value={booking.driverBatta} />
+              <ChargeRow label="Night Charges" value={booking.nightCharges} />
+              <ChargeRow label="Waiting Charges" value={booking.waitingCharges} />
+              <ChargeRow label="Extra Hour Charges" value={booking.extraHourCharges} />
+              <ChargeRow label="Extra KM Charges" value={booking.extraKmCharges} />
+              <ChargeRow label="Toll Charges" value={booking.tollCharges} />
+              <ChargeRow label="State Permit Charges" value={booking.statePermitCharges} />
+              <ChargeRow label="Packing Charges" value={booking.packingCharges} />
+              <ChargeRow label="Loading Charges" value={booking.loadingCharges} />
+              <ChargeRow label="Transport Charges" value={booking.transportCharges} />
+              <ChargeRow label="Decoration Charges" value={booking.decorationCharges} />
+              <ChargeRow label="Operator Charges" value={booking.operatorCharges} />
+              <ChargeRow label="Delivery Charges" value={booking.deliveryCharges} />
+              <ChargeRow label="Installation Charges" value={booking.installationCharges} />
+              <ChargeRow label="Security Deposit" value={booking.securityDeposit} />
+              <ChargeRow label="Platform Fee" value={booking.platformFee} />
+              <ChargeRow label="GST" value={booking.gstAmount} />
               <div className="border-t pt-2 mt-2">
                 <div className="flex justify-between">
                   <span className="font-semibold text-gray-900">Grand Total</span>
@@ -653,61 +711,84 @@ export default function ManagerBookingDetailPage() {
         </div>
       </div>
 
-      {/* Vendor Details */}
-      {(booking.acceptedVendor || booking.assignedVendor) && (
+      {/* Vendor & Driver Details */}
+      {(booking.acceptedVendor || booking.assignedVendor || booking.driverName || booking.teamLeaderName || booking.operatorName) && (
         <div className="bg-white rounded-xl shadow-sm p-6">
           <h2 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
-            <User className="w-5 h-5 text-gray-400" />
-            Vendor Details
+            <Truck className="w-5 h-5 text-gray-400" />
+            Vendor & Driver Details
           </h2>
-          {(() => {
-            const vendor = booking.acceptedVendor || booking.assignedVendor;
-            return (
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium">{vendor?.businessName}</p>
-                  <p className="text-sm text-gray-500">{vendor?.phone}</p>
-                  <p className="text-sm text-gray-400">{vendor?.email}</p>
+          <div className="space-y-4">
+            {/* Vendor */}
+            {(booking.acceptedVendor || booking.assignedVendor) && (() => {
+              const v = booking.acceptedVendor || booking.assignedVendor;
+              return (
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs text-gray-500 uppercase tracking-wide">Vendor</p>
+                    <p className="font-medium">{v?.businessName}</p>
+                    <p className="text-sm text-gray-500">{v?.phone}</p>
+                    <p className="text-sm text-gray-400">{v?.email}</p>
+                  </div>
+                  <a href={`tel:${v?.phone}`}>
+                    <Button variant="outline" size="sm">
+                      <Phone className="w-4 h-4 mr-2" />
+                      Call
+                    </Button>
+                  </a>
                 </div>
-                <a href={`tel:${vendor?.phone}`}>
-                  <Button variant="outline">
-                    <Phone className="w-4 h-4 mr-2" />
-                    Call
-                  </Button>
-                </a>
-              </div>
-            );
-          })()}
-        </div>
-      )}
+              );
+            })()}
 
-      {/* Trip Status */}
-      {(booking.pickedUpAt || booking.returnedAt) && (
-        <div className="bg-white rounded-xl shadow-sm p-6">
-          <h2 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
-            <Play className="w-5 h-5 text-gray-400" />
-            Trip Status
-          </h2>
-          <div className="space-y-3">
-            {booking.pickedUpAt && (
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-                  <Play className="w-4 h-4 text-green-600" />
-                </div>
-                <div>
-                  <p className="font-medium text-gray-900">Trip Started</p>
-                  <p className="text-sm text-gray-500">{formatDate(booking.pickedUpAt)}</p>
+            {/* Driver */}
+            {booking.driverName && (
+              <div className="border-t pt-4">
+                <p className="text-xs text-gray-500 uppercase tracking-wide mb-2">Driver</p>
+                <div className="grid md:grid-cols-3 gap-4">
+                  <DetailRow label="Name" value={booking.driverName} />
+                  {booking.driverPhone && (
+                    <div>
+                      <p className="text-sm text-gray-500">Phone</p>
+                      <a href={`tel:${booking.driverPhone}`} className="font-medium text-blue-600">{booking.driverPhone}</a>
+                    </div>
+                  )}
+                  <DetailRow label="Vehicle Number" value={booking.vehicleNumber} />
+                  <DetailRow label="Vehicle Model" value={booking.vehicleModel} />
+                  <DetailRow label="Vehicle Brand" value={booking.vehicleBrand} />
+                  <DetailRow label="Vehicle Color" value={booking.vehicleColor} />
                 </div>
               </div>
             )}
-            {booking.returnedAt && (
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                  <Flag className="w-4 h-4 text-blue-600" />
+
+            {/* Team Leader (for packers, events) */}
+            {booking.teamLeaderName && (
+              <div className="border-t pt-4">
+                <p className="text-xs text-gray-500 uppercase tracking-wide mb-2">Team Leader</p>
+                <div className="grid md:grid-cols-3 gap-4">
+                  <DetailRow label="Name" value={booking.teamLeaderName} />
+                  {booking.teamLeaderPhone && (
+                    <div>
+                      <p className="text-sm text-gray-500">Phone</p>
+                      <a href={`tel:${booking.teamLeaderPhone}`} className="font-medium text-blue-600">{booking.teamLeaderPhone}</a>
+                    </div>
+                  )}
+                  <DetailRow label="Team Size" value={booking.teamSize} />
                 </div>
-                <div>
-                  <p className="font-medium text-gray-900">Trip Completed</p>
-                  <p className="text-sm text-gray-500">{formatDate(booking.returnedAt)}</p>
+              </div>
+            )}
+
+            {/* Operator */}
+            {booking.operatorName && (
+              <div className="border-t pt-4">
+                <p className="text-xs text-gray-500 uppercase tracking-wide mb-2">Operator</p>
+                <div className="grid md:grid-cols-3 gap-4">
+                  <DetailRow label="Name" value={booking.operatorName} />
+                  {booking.operatorPhone && (
+                    <div>
+                      <p className="text-sm text-gray-500">Phone</p>
+                      <a href={`tel:${booking.operatorPhone}`} className="font-medium text-blue-600">{booking.operatorPhone}</a>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -715,15 +796,156 @@ export default function ManagerBookingDetailPage() {
         </div>
       )}
 
-      {/* Admin Notes */}
-      {booking.adminNotes && (
+      {/* Trip Actuals */}
+      {(booking.actualKmTravelled || booking.actualHours || booking.odometerStart || booking.odometerEnd) && (
         <div className="bg-white rounded-xl shadow-sm p-6">
           <h2 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
-            <FileText className="w-5 h-5 text-gray-400" />
-            Admin Notes
+            <Flag className="w-5 h-5 text-gray-400" />
+            Trip Actuals
           </h2>
-          <div className="bg-gray-50 rounded-lg p-4">
-            <pre className="text-sm text-gray-600 whitespace-pre-wrap font-sans">{booking.adminNotes}</pre>
+          <div className="grid md:grid-cols-3 gap-4">
+            <DetailRow label="Actual KM Travelled" value={booking.actualKmTravelled ? `${booking.actualKmTravelled} km` : null} />
+            <DetailRow label="Actual Hours" value={booking.actualHours} />
+            <DetailRow label="Odometer Start" value={booking.odometerStart} />
+            <DetailRow label="Odometer End" value={booking.odometerEnd} />
+            <ChargeRow label="Actual Toll Charges" value={booking.actualTollCharges} />
+            <ChargeRow label="Actual Parking Charges" value={booking.actualParkingCharges} />
+            <DetailRow label="Fuel Level (start)" value={booking.fuelLevel} />
+            <DetailRow label="Fuel Level (return)" value={booking.returnFuelLevel} />
+          </div>
+        </div>
+      )}
+
+      {/* Booking Timeline */}
+      {(() => {
+        const timelineEvents = [
+          { label: 'Created', time: booking.createdAt },
+          { label: 'Broadcasted', time: booking.broadcastedAt },
+          { label: 'Accepted', time: booking.acceptedAt },
+          { label: 'Driver Assigned', time: booking.driverAssignedAt },
+          { label: 'Packing Started', time: booking.packingStartedAt },
+          { label: 'Transit Started', time: booking.transitStartedAt },
+          { label: 'Trip Started', time: booking.tripStartedAt || booking.pickedUpAt },
+          { label: 'Trip Ended', time: booking.tripEndedAt || booking.returnedAt },
+          { label: 'Completed', time: booking.completedAt },
+          { label: 'Cancelled', time: booking.cancelledAt },
+        ].filter(e => e.time);
+
+        if (timelineEvents.length === 0) return null;
+
+        return (
+          <div className="bg-white rounded-xl shadow-sm p-6">
+            <h2 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+              <Clock className="w-5 h-5 text-gray-400" />
+              Booking Timeline
+            </h2>
+            <div className="space-y-3">
+              {timelineEvents.map((event, i) => (
+                <div key={i} className="flex items-center gap-3">
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                    event.label === 'Cancelled' ? 'bg-red-100' :
+                    event.label === 'Completed' ? 'bg-green-100' :
+                    'bg-blue-100'
+                  }`}>
+                    <div className={`w-2.5 h-2.5 rounded-full ${
+                      event.label === 'Cancelled' ? 'bg-red-500' :
+                      event.label === 'Completed' ? 'bg-green-500' :
+                      'bg-blue-500'
+                    }`} />
+                  </div>
+                  <div>
+                    <p className="font-medium text-gray-900 text-sm">{event.label}</p>
+                    <p className="text-xs text-gray-500">{formatDateTime(event.time)}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* Cancellation Details */}
+      {booking.cancelledAt && (
+        <div className="bg-red-50 rounded-xl border border-red-200 p-6">
+          <h2 className="font-semibold text-red-900 mb-4 flex items-center gap-2">
+            <XCircle className="w-5 h-5 text-red-400" />
+            Cancellation Details
+          </h2>
+          <div className="grid md:grid-cols-3 gap-4">
+            <DetailRow label="Cancelled At" value={formatDateTime(booking.cancelledAt)} />
+            <DetailRow label="Cancelled By" value={booking.cancelledBy} />
+            <DetailRow label="Reason" value={booking.cancellationReason} />
+            {booking.refundAmount && <ChargeRow label="Refund Amount" value={booking.refundAmount} />}
+          </div>
+        </div>
+      )}
+
+      {/* Notes */}
+      {(booking.customerNotes || booking.vendorNotes || booking.adminNotes) && (
+        <div className="bg-white rounded-xl shadow-sm p-6">
+          <h2 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            <MessageSquare className="w-5 h-5 text-gray-400" />
+            Notes
+          </h2>
+          <div className="space-y-3">
+            {booking.customerNotes && (
+              <div className="bg-blue-50 rounded-lg p-4 border border-blue-100">
+                <p className="text-xs font-semibold text-blue-700 mb-1">Customer Notes</p>
+                <pre className="text-sm text-gray-700 whitespace-pre-wrap font-sans">{booking.customerNotes}</pre>
+              </div>
+            )}
+            {booking.vendorNotes && (
+              <div className="bg-green-50 rounded-lg p-4 border border-green-100">
+                <p className="text-xs font-semibold text-green-700 mb-1">Vendor Notes</p>
+                <pre className="text-sm text-gray-700 whitespace-pre-wrap font-sans">{booking.vendorNotes}</pre>
+              </div>
+            )}
+            {booking.adminNotes && (
+              <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                <p className="text-xs font-semibold text-gray-700 mb-1">Admin Notes</p>
+                <pre className="text-sm text-gray-600 whitespace-pre-wrap font-sans">{booking.adminNotes}</pre>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Rating & Review */}
+      {(booking.rating || booking.review || booking.driverRating || booking.driverReview) && (
+        <div className="bg-white rounded-xl shadow-sm p-6">
+          <h2 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            <Star className="w-5 h-5 text-gray-400" />
+            Rating & Review
+          </h2>
+          <div className="space-y-4">
+            {(booking.rating || booking.review) && (
+              <div>
+                <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Service Rating</p>
+                {booking.rating && (
+                  <div className="flex items-center gap-1 mb-1">
+                    {[1, 2, 3, 4, 5].map((s) => (
+                      <Star key={s} className={`w-5 h-5 ${s <= booking.rating ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'}`} />
+                    ))}
+                    <span className="ml-2 text-sm font-medium text-gray-700">{booking.rating}/5</span>
+                  </div>
+                )}
+                {booking.review && <p className="text-sm text-gray-600 mt-1">{booking.review}</p>}
+              </div>
+            )}
+            {(booking.driverRating || booking.driverReview) && (
+              <div className="border-t pt-4">
+                <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Driver Rating</p>
+                {booking.driverRating && (
+                  <div className="flex items-center gap-1 mb-1">
+                    {[1, 2, 3, 4, 5].map((s) => (
+                      <Star key={s} className={`w-5 h-5 ${s <= booking.driverRating ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'}`} />
+                    ))}
+                    <span className="ml-2 text-sm font-medium text-gray-700">{booking.driverRating}/5</span>
+                  </div>
+                )}
+                {booking.driverReview && <p className="text-sm text-gray-600 mt-1">{booking.driverReview}</p>}
+              </div>
+            )}
           </div>
         </div>
       )}
