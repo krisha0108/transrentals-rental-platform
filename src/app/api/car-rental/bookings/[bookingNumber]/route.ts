@@ -77,6 +77,7 @@ export async function GET(
         gstAmount: booking.gstAmount,
         platformFee: booking.platformFee,
         grandTotal: booking.grandTotal,
+        advanceAmount: booking.advanceAmount,
         status: booking.status,
         paymentStatus: booking.paymentStatus,
         paidAmount: booking.paidAmount,

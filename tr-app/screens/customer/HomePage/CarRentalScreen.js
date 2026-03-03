@@ -1,5 +1,4 @@
-
-import React from 'react';
+import React, { useCallback } from 'react';
 import {
   View,
   Text,
@@ -7,14 +6,27 @@ import {
   TouchableOpacity,
   Image,
   ScrollView,
+  Platform,
+  StatusBar,
 } from 'react-native';
-import Icon from 'react-native-vector-icons/Feather';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { useNavigation } from '@react-navigation/native';
-
-const GREEN = '#09B368';
-const BG = '#F5F5F7';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import LinearGradient from 'react-native-linear-gradient';
+import { widthPercentageToDP as wp, heightPercentageToDP as hp } from 'react-native-responsive-screen';
+import {
+  TEAL_DEEP,
+  TEAL_MID,
+  TEAL,
+  TEAL_LIGHT,
+  BG,
+  CARD,
+  TEXT_PRIMARY,
+  TEXT_SECONDARY,
+  TEXT_MUTED,
+  SHADOW_SM,
+  SHADOW_MD,
+} from '../../../theme';
 
 // Car types for display
 const CAR_TYPES = [
@@ -26,10 +38,10 @@ const CAR_TYPES = [
 
 // Trip types
 const TRIP_TYPES = [
-  { id: 'local', label: 'Local', icon: 'map-pin', desc: 'City rides with packages' },
-  { id: 'one_way', label: 'One-Way', icon: 'arrow-right', desc: 'Drop to destination' },
-  { id: 'round_trip', label: 'Round Trip', icon: 'repeat', desc: 'To & back journey' },
-  { id: 'airport', label: 'Airport', icon: 'navigation', desc: 'Pickup or drop' },
+  { id: 'local', label: 'Local', icon: 'location-outline', desc: 'City rides with packages' },
+  { id: 'one_way', label: 'One-Way', icon: 'arrow-forward-outline', desc: 'Drop to destination' },
+  { id: 'round_trip', label: 'Round Trip', icon: 'repeat-outline', desc: 'To & back journey' },
+  { id: 'airport', label: 'Airport', icon: 'airplane-outline', desc: 'Pickup or drop' },
 ];
 
 const faqs = [
@@ -55,24 +67,53 @@ export default function CarRentalScreen() {
   const navigation = useNavigation();
   const [expandedFAQ, setExpandedFAQ] = React.useState(null);
 
+  useFocusEffect(
+    useCallback(() => {
+      StatusBar.setBarStyle('light-content');
+      if (Platform.OS === 'android') {
+        StatusBar.setBackgroundColor(TEAL_DEEP);
+      }
+      return () => {
+        StatusBar.setBarStyle('dark-content');
+        if (Platform.OS === 'android') {
+          StatusBar.setBackgroundColor('#FFFFFF');
+        }
+      };
+    }, []),
+  );
+
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView style={styles.safe} edges={['bottom']}>
       {/* Header */}
-      <View style={styles.topBar}>
-        <TouchableOpacity
-          onPress={() => navigation.goBack()}
-          style={styles.backBtn}
-        >
-          <Icon name="arrow-left" size={22} color="#0F172A" />
-        </TouchableOpacity>
-        <Text style={styles.topTitle}>Car Rental</Text>
-        <View style={{ width: 40 }} />
-        
-      </View>
+      <LinearGradient
+        colors={[TEAL_DEEP, TEAL_MID, '#047857']}
+        style={styles.headerGrad}
+      >
+        <View style={[styles.decoCircle, { top: -30, right: -20, width: wp('25%'), height: wp('25%') }]} pointerEvents="none" />
+        <View style={[styles.decoCircle, { bottom: -15, left: -15, width: wp('15%'), height: wp('15%') }]} pointerEvents="none" />
+        <View style={styles.headerRow}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+            <Ionicons name="chevron-back" size={22} color="#FFF" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Car Rental</Text>
+          <View style={{ width: wp('9%') }} />
+        </View>
+      </LinearGradient>
 
       <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
         {/* Hero Section */}
-        <View style={styles.heroSection}>
+        <LinearGradient
+          colors={[TEAL_MID, TEAL_DEEP]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.heroSection}
+        >
+          <View style={[styles.heroDecoCircle, { top: -wp('8%'), right: -wp('5%'), width: wp('30%'), height: wp('30%') }]} />
+          <View style={[styles.heroDecoCircle, { bottom: -wp('6%'), left: -wp('4%'), width: wp('20%'), height: wp('20%') }]} />
+          <View style={styles.heroBadge}>
+            <Ionicons name="star" size={wp('3%')} color={TEAL} />
+            <Text style={styles.heroBadgeText}>Premium Service</Text>
+          </View>
           <Text style={styles.heroTitle}>Book a Chauffeur-Driven Car</Text>
           <Text style={styles.heroSubtitle}>
             Real-time pricing, verified drivers, instant booking
@@ -83,11 +124,11 @@ export default function CarRentalScreen() {
             onPress={() => navigation.navigate('CarRentalFleetScreen')}
             activeOpacity={0.85}
           >
-            <Ionicons name="car-sport" size={22} color="#fff" />
+            <Ionicons name="car-sport" size={wp('5%')} color={TEAL_DEEP} />
             <Text style={styles.bookNowBtnText}>Book Now</Text>
-            <Icon name="arrow-right" size={18} color="#fff" />
+            <Ionicons name="arrow-forward" size={wp('4.5%')} color={TEAL_DEEP} />
           </TouchableOpacity>
-        </View>
+        </LinearGradient>
 
         {/* Trip Types */}
         <View style={styles.section}>
@@ -101,7 +142,7 @@ export default function CarRentalScreen() {
                 activeOpacity={0.8}
               >
                 <View style={styles.tripTypeIcon}>
-                  <Icon name={type.icon} size={18} color={GREEN} />
+                  <Ionicons name={type.icon} size={wp('4.5%')} color={TEAL} />
                 </View>
                 <Text style={styles.tripTypeLabel}>{type.label}</Text>
                 <Text style={styles.tripTypeDesc}>{type.desc}</Text>
@@ -113,7 +154,7 @@ export default function CarRentalScreen() {
         {/* Car Types */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Our Fleet</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingRight: wp('4%') }}>
             {CAR_TYPES.map((car) => (
               <TouchableOpacity
                 key={car.id}
@@ -121,9 +162,18 @@ export default function CarRentalScreen() {
                 onPress={() => navigation.navigate('CarRentalFleetScreen')}
                 activeOpacity={0.85}
               >
-                <Image source={car.img} style={styles.carImage} />
+                <LinearGradient
+                  colors={[TEAL_LIGHT, '#F0FDF9']}
+                  style={styles.carImageWrap}
+                >
+                  <Image source={car.img} style={styles.carImage} />
+                </LinearGradient>
                 <Text style={styles.carName}>{car.name}</Text>
                 <Text style={styles.carDesc}>{car.desc}</Text>
+                <View style={styles.carViewBtn}>
+                  <Text style={styles.carViewBtnText}>View</Text>
+                  <Ionicons name="chevron-forward" size={wp('3%')} color={TEAL} />
+                </View>
               </TouchableOpacity>
             ))}
           </ScrollView>
@@ -140,7 +190,9 @@ export default function CarRentalScreen() {
               { icon: 'headset', label: '24/7 Support' },
             ].map((feature, idx) => (
               <View key={idx} style={styles.featureCard}>
-                <Ionicons name={feature.icon} size={24} color={GREEN} />
+                <View style={styles.featureIconWrap}>
+                  <Ionicons name={feature.icon} size={wp('5%')} color={TEAL} />
+                </View>
                 <Text style={styles.featureLabel}>{feature.label}</Text>
               </View>
             ))}
@@ -149,21 +201,27 @@ export default function CarRentalScreen() {
 
         {/* FAQs */}
         <View style={styles.faqSection}>
-          <Text style={styles.faqTitle}>FAQs</Text>
+          <View style={styles.faqHeaderRow}>
+            <Ionicons name="help-circle-outline" size={wp('5.5%')} color={TEAL} />
+            <Text style={styles.faqTitle}>FAQs</Text>
+          </View>
           {faqs.map((item, idx) => {
             const isOpen = expandedFAQ === idx;
+            const isLast = idx === faqs.length - 1;
             return (
-              <View key={idx} style={styles.faqItem}>
+              <View key={idx} style={[styles.faqItem, isLast && { borderBottomWidth: 0 }]}>
                 <TouchableOpacity
                   style={styles.faqHead}
                   onPress={() => setExpandedFAQ(isOpen ? null : idx)}
                 >
                   <Text style={styles.faqQ}>{item.question}</Text>
-                  <Ionicons
-                    name={isOpen ? 'chevron-up' : 'chevron-down'}
-                    size={18}
-                    color="#94A3B8"
-                  />
+                  <View style={styles.faqChevronWrap}>
+                    <Ionicons
+                      name={isOpen ? 'chevron-up' : 'chevron-down'}
+                      size={wp('3.5%')}
+                      color={TEAL}
+                    />
+                  </View>
                 </TouchableOpacity>
                 {isOpen && <Text style={styles.faqA}>{item.answer}</Text>}
               </View>
@@ -173,23 +231,33 @@ export default function CarRentalScreen() {
 
         {/* Bottom CTA */}
         <TouchableOpacity
-          style={styles.bottomCTA}
           onPress={() => navigation.navigate('CarRentalFleetScreen')}
           activeOpacity={0.85}
+          style={styles.bottomCTAWrap}
         >
-          <View style={styles.ctaContent}>
-            <View style={styles.ctaIconWrap}>
-              <Ionicons name="flash" size={24} color="#fff" />
+          <LinearGradient
+            colors={[TEAL_MID, TEAL_DEEP]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.bottomCTA}
+          >
+            <View style={[styles.ctaDecoCircle, { top: -wp('4%'), right: -wp('3%'), width: wp('16%'), height: wp('16%') }]} />
+            <View style={styles.ctaContent}>
+              <View style={styles.ctaIconWrap}>
+                <Ionicons name="flash" size={wp('5.5%')} color={TEAL_DEEP} />
+              </View>
+              <View style={styles.ctaText}>
+                <Text style={styles.ctaTitle}>Ready to Book?</Text>
+                <Text style={styles.ctaSubtitle}>See real-time prices & book instantly</Text>
+              </View>
             </View>
-            <View style={styles.ctaText}>
-              <Text style={styles.ctaTitle}>Ready to Book?</Text>
-              <Text style={styles.ctaSubtitle}>See real-time prices & book instantly</Text>
+            <View style={styles.ctaArrowWrap}>
+              <Ionicons name="chevron-forward" size={wp('5%')} color="#FFF" />
             </View>
-          </View>
-          <Icon name="chevron-right" size={24} color={GREEN} />
+          </LinearGradient>
         </TouchableOpacity>
 
-        <View style={{ height: 40 }} />
+        <View style={{ height: hp('5%') }} />
       </ScrollView>
     </SafeAreaView>
   );
@@ -199,190 +267,330 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: BG },
   container: { flex: 1 },
 
-  topBar: {
-    height: 52,
+  /* ── Header ── */
+  headerGrad: {
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + hp('1%') : hp('6%'),
+    paddingBottom: hp('1.8%'),
+    paddingHorizontal: wp('4%'),
+    borderBottomLeftRadius: wp('6%'),
+    borderBottomRightRadius: wp('6%'),
+    overflow: 'hidden',
+  },
+  decoCircle: {
+    position: 'absolute',
+    borderRadius: wp('50%'),
+    backgroundColor: 'rgba(255,255,255,0.06)',
+  },
+  headerRow: {
+    zIndex: 2,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
     justifyContent: 'space-between',
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
   },
   backBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: BG,
+    width: wp('9%'),
+    height: wp('9%'),
+    borderRadius: wp('4.5%'),
+    backgroundColor: 'rgba(255,255,255,0.15)',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  topTitle: { fontSize: 17, fontWeight: '700', color: '#0F172A' },
+  headerTitle: {
+    fontSize: wp('4.5%'),
+    fontWeight: '700',
+    color: '#FFFFFF',
+    letterSpacing: 0.3,
+  },
 
-  // Hero
+  /* ── Hero ── */
   heroSection: {
-    backgroundColor: GREEN,
-    paddingHorizontal: 20,
-    paddingVertical: 30,
+    paddingHorizontal: wp('5%'),
+    paddingTop: hp('3.5%'),
+    paddingBottom: hp('3.5%'),
     alignItems: 'center',
+    overflow: 'hidden',
+  },
+  heroDecoCircle: {
+    position: 'absolute',
+    borderRadius: wp('50%'),
+    backgroundColor: 'rgba(255,255,255,0.05)',
+  },
+  heroBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+    paddingHorizontal: wp('3.5%'),
+    paddingVertical: hp('0.5%'),
+    borderRadius: wp('5%'),
+    gap: wp('1.5%'),
+    marginBottom: hp('1.5%'),
+  },
+  heroBadgeText: {
+    fontSize: wp('3%'),
+    fontWeight: '600',
+    color: TEAL_LIGHT,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
   },
   heroTitle: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: '#fff',
+    fontSize: wp('5.8%'),
+    fontWeight: '800',
+    color: '#FFFFFF',
     textAlign: 'center',
-    marginBottom: 8,
+    marginBottom: hp('0.8%'),
+    letterSpacing: 0.2,
   },
   heroSubtitle: {
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.85)',
+    fontSize: wp('3.5%'),
+    color: 'rgba(255,255,255,0.75)',
     textAlign: 'center',
-    marginBottom: 20,
+    marginBottom: hp('2.5%'),
+    lineHeight: wp('5%'),
   },
   bookNowBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
-    paddingHorizontal: 24,
-    paddingVertical: 14,
-    borderRadius: 30,
-    gap: 10,
-    shadowColor: '#000',
-    shadowOpacity: 0.15,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 5,
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: wp('7%'),
+    paddingVertical: hp('1.6%'),
+    borderRadius: wp('8%'),
+    gap: wp('2.5%'),
+    ...Platform.select({
+      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.2, shadowRadius: 14 },
+      android: { elevation: 8 },
+    }),
   },
   bookNowBtnText: {
-    fontSize: 16,
+    fontSize: wp('4%'),
     fontWeight: '700',
-    color: GREEN,
+    color: TEAL_DEEP,
   },
 
-  // Section
+  /* ── Section ── */
   section: {
-    padding: 16,
+    paddingHorizontal: wp('4%'),
+    paddingTop: hp('2.5%'),
+    paddingBottom: hp('0.5%'),
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: wp('4.5%'),
     fontWeight: '700',
-    color: '#0F172A',
-    marginBottom: 14,
+    color: TEXT_PRIMARY,
+    marginBottom: hp('1.5%'),
+    letterSpacing: 0.2,
   },
 
-  // Trip Types
+  /* ── Trip Types ── */
   tripTypeGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 10,
+    justifyContent: 'space-between',
   },
   tripTypeCard: {
-    width: '48%',
-    backgroundColor: '#fff',
-    borderRadius: 14,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
+    width: wp('44%'),
+    backgroundColor: CARD,
+    borderRadius: wp('4%'),
+    padding: wp('3.5%'),
+    marginBottom: hp('1.2%'),
+    ...SHADOW_SM,
   },
   tripTypeIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    backgroundColor: 'rgba(9, 179, 104, 0.1)',
+    width: wp('10%'),
+    height: wp('10%'),
+    borderRadius: wp('3%'),
+    backgroundColor: TEAL_LIGHT,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: hp('0.8%'),
   },
-  tripTypeLabel: { fontSize: 15, fontWeight: '600', color: '#0F172A' },
-  tripTypeDesc: { fontSize: 12, color: '#94A3B8', marginTop: 2 },
+  tripTypeLabel: {
+    fontSize: wp('3.8%'),
+    fontWeight: '600',
+    color: TEXT_PRIMARY,
+  },
+  tripTypeDesc: {
+    fontSize: wp('2.8%'),
+    color: TEXT_MUTED,
+    marginTop: hp('0.3%'),
+  },
 
-  // Car Cards
+  /* ── Car Cards ── */
   carCard: {
-    width: 130,
-    backgroundColor: '#fff',
-    borderRadius: 14,
-    padding: 12,
-    marginRight: 12,
+    width: wp('38%'),
+    backgroundColor: CARD,
+    borderRadius: wp('4%'),
+    padding: wp('3%'),
+    marginRight: wp('3%'),
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
+    ...SHADOW_SM,
   },
-  carImage: { width: 80, height: 50, resizeMode: 'contain', marginBottom: 8 },
-  carName: { fontSize: 14, fontWeight: '600', color: '#0F172A' },
-  carDesc: { fontSize: 11, color: '#94A3B8', marginTop: 2 },
+  carImageWrap: {
+    width: '100%',
+    height: hp('9%'),
+    borderRadius: wp('3%'),
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: hp('1%'),
+  },
+  carImage: {
+    width: wp('24%'),
+    height: hp('6%'),
+    resizeMode: 'contain',
+  },
+  carName: {
+    fontSize: wp('3.5%'),
+    fontWeight: '700',
+    color: TEXT_PRIMARY,
+  },
+  carDesc: {
+    fontSize: wp('2.8%'),
+    color: TEXT_MUTED,
+    marginTop: hp('0.3%'),
+  },
+  carViewBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: hp('0.8%'),
+    gap: wp('1%'),
+  },
+  carViewBtnText: {
+    fontSize: wp('2.8%'),
+    fontWeight: '600',
+    color: TEAL,
+  },
 
-  // Features
+  /* ── Features ── */
   featuresGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 10,
+    justifyContent: 'space-between',
   },
   featureCard: {
-    width: '48%',
+    width: wp('44%'),
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 14,
-    gap: 10,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
+    backgroundColor: CARD,
+    borderRadius: wp('3.5%'),
+    padding: wp('3.5%'),
+    marginBottom: hp('1.2%'),
+    gap: wp('2.5%'),
+    ...SHADOW_SM,
   },
-  featureLabel: { fontSize: 13, fontWeight: '600', color: '#0F172A' },
+  featureIconWrap: {
+    width: wp('10%'),
+    height: wp('10%'),
+    borderRadius: wp('5%'),
+    backgroundColor: TEAL_LIGHT,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  featureLabel: {
+    fontSize: wp('3.2%'),
+    fontWeight: '600',
+    color: TEXT_PRIMARY,
+    flex: 1,
+  },
 
-  // FAQ
+  /* ── FAQ ── */
   faqSection: {
-    backgroundColor: '#0F172A',
-    margin: 16,
-    borderRadius: 16,
-    padding: 16,
+    backgroundColor: TEAL_DEEP,
+    marginHorizontal: wp('4%'),
+    marginTop: hp('1.5%'),
+    borderRadius: wp('4.5%'),
+    padding: wp('4.5%'),
+    ...SHADOW_MD,
+  },
+  faqHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: wp('2%'),
+    marginBottom: hp('1.5%'),
   },
   faqTitle: {
-    fontSize: 18,
+    fontSize: wp('4.5%'),
     fontWeight: '700',
-    color: '#fff',
-    marginBottom: 14,
+    color: '#FFFFFF',
+    letterSpacing: 0.3,
   },
   faqItem: {
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.1)',
-    paddingVertical: 12,
+    borderBottomColor: 'rgba(255,255,255,0.08)',
+    paddingVertical: hp('1.5%'),
   },
   faqHead: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  faqQ: { fontSize: 14, color: '#fff', flex: 1, marginRight: 10 },
-  faqA: { fontSize: 13, color: '#94A3B8', marginTop: 8, lineHeight: 20 },
+  faqQ: {
+    fontSize: wp('3.5%'),
+    fontWeight: '500',
+    color: '#FFFFFF',
+    flex: 1,
+    marginRight: wp('2.5%'),
+  },
+  faqChevronWrap: {
+    width: wp('7%'),
+    height: wp('7%'),
+    borderRadius: wp('3.5%'),
+    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  faqA: {
+    fontSize: wp('3.2%'),
+    color: 'rgba(255,255,255,0.6)',
+    marginTop: hp('1%'),
+    lineHeight: wp('5%'),
+  },
 
-  // Bottom CTA
+  /* ── Bottom CTA ── */
+  bottomCTAWrap: {
+    marginHorizontal: wp('4%'),
+    marginTop: hp('2%'),
+    borderRadius: wp('4.5%'),
+    overflow: 'hidden',
+    ...SHADOW_MD,
+  },
   bottomCTA: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#fff',
-    marginHorizontal: 16,
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: 2,
-    borderColor: GREEN,
-    shadowColor: GREEN,
-    shadowOpacity: 0.15,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 4,
+    padding: wp('4.5%'),
+    overflow: 'hidden',
   },
-  ctaContent: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  ctaDecoCircle: {
+    position: 'absolute',
+    borderRadius: wp('50%'),
+    backgroundColor: 'rgba(255,255,255,0.06)',
+  },
+  ctaContent: { flexDirection: 'row', alignItems: 'center', gap: wp('3%'), flex: 1 },
   ctaIconWrap: {
-    width: 48,
-    height: 48,
-    borderRadius: 14,
-    backgroundColor: GREEN,
+    width: wp('12%'),
+    height: wp('12%'),
+    borderRadius: wp('3.5%'),
+    backgroundColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  ctaText: {},
-  ctaTitle: { fontSize: 16, fontWeight: '700', color: '#0F172A' },
-  ctaSubtitle: { fontSize: 12, color: '#64748B', marginTop: 2 },
+  ctaText: { flex: 1 },
+  ctaTitle: {
+    fontSize: wp('4%'),
+    fontWeight: '700',
+    color: '#FFFFFF',
+    letterSpacing: 0.2,
+  },
+  ctaSubtitle: {
+    fontSize: wp('3%'),
+    color: 'rgba(255,255,255,0.7)',
+    marginTop: hp('0.3%'),
+  },
+  ctaArrowWrap: {
+    width: wp('9%'),
+    height: wp('9%'),
+    borderRadius: wp('4.5%'),
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
 });

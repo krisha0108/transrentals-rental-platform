@@ -259,7 +259,7 @@
 //   },
 // });
 
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -269,6 +269,7 @@ import {
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
+  StatusBar,
   Animated, Easing
 } from 'react-native';
 import axios from 'axios';
@@ -277,13 +278,30 @@ import { Pusher } from '@pusher/pusher-websocket-react-native';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import ShimmerPlaceHolder from 'react-native-shimmer-placeholder';
+import LinearGradient from 'react-native-linear-gradient';
+import { useFocusEffect } from '@react-navigation/native';
+import {
+  widthPercentageToDP as wp,
+  heightPercentageToDP as hp,
+} from 'react-native-responsive-screen';
 import api from '../api';
+import { TEAL_DEEP, TEAL_MID, TEAL, TEAL_LIGHT, TEXT_PRIMARY, TEXT_SECONDARY, TEXT_MUTED } from '../../theme';
 
+const BG = '#F0FDF4';
+
+const SHADOW_SM = Platform.select({
+  ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 3 },
+  android: { elevation: 2 },
+});
+const SHADOW_MD = Platform.select({
+  ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.1, shadowRadius: 8 },
+  android: { elevation: 5 },
+});
 
 const pusher = Pusher.getInstance();
 
 export default function ChatScreen({ route, navigation }) {
-  const { bookingId, vendorId, vendorName, bookingstatus, bookinglocation, bookingdate, bookingtime,service_name  } = route.params;
+  const { bookingId, vendorId, vendorName, bookingstatus, bookinglocation, bookingdate, bookingtime, service_name } = route.params;
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const flatListRef = useRef();
@@ -291,6 +309,24 @@ export default function ChatScreen({ route, navigation }) {
   const [loading, setLoading] = useState(true);
 
   const slideAnim = useRef(new Animated.Value(0)).current;
+
+  /* ── StatusBar management ──────────────── */
+  useFocusEffect(
+    useCallback(() => {
+      StatusBar.setBarStyle('light-content');
+      if (Platform.OS === 'android') {
+        StatusBar.setBackgroundColor(TEAL_DEEP);
+        StatusBar.setTranslucent(false);
+      }
+      return () => {
+        StatusBar.setBarStyle('dark-content');
+        if (Platform.OS === 'android') {
+          StatusBar.setBackgroundColor('#0A6B3F');
+        }
+      };
+    }, [])
+  );
+
   useEffect(() => {
     console.log('[ChatScreen] useEffect start');
     fetchMessages();
@@ -304,6 +340,7 @@ export default function ChatScreen({ route, navigation }) {
       // Optionally keep connected for app lifetime, so no disconnect here
     };
   }, []);
+
   const toggleBookingDetails = () => {
     const toValue = showDetails ? 0 : 1;
     setShowDetails(!showDetails);
@@ -333,7 +370,7 @@ export default function ChatScreen({ route, navigation }) {
       );
       console.log('[fetchMessages] Response data count:', res.data.length);
       setMessages(res.data);
-       // ✅ Mark vendor messages as read (Important)
+       // Mark vendor messages as read (Important)
     await api.post(
       `/customer/bookings/${bookingId}/vendor/${vendorId}/read-messages`,
       {},
@@ -348,40 +385,41 @@ export default function ChatScreen({ route, navigation }) {
     } catch (error) {
       console.log('[fetchMessages] Error fetching messages:', error);
     } finally {
-    setLoading(false); // ← Stop loading
+    setLoading(false);
   }
   };
-const SkeletonBubble = ({ isRight, index }) => {
-  // Use index to control variation: every 3rd bubble will be shorter
-  const isShort = index % 3 === 0;
 
-  const width = Math.floor(Math.random() * (240 - 140 + 1)) + 140; // width 140–240
-  const height = isShort
-    ? Math.floor(Math.random() * (25 - 20 + 1)) + 20   // small bubble: 20–25
-    : Math.floor(Math.random() * (50 - 40 + 1)) + 40;  // large bubble: 40–50
+  const SkeletonBubble = ({ isRight, index }) => {
+    // Use index to control variation: every 3rd bubble will be shorter
+    const isShort = index % 3 === 0;
 
-  return (
-    <View
-      style={{
-        alignSelf: isRight ? 'flex-end' : 'flex-start',
-        marginBottom: 12,
-        maxWidth: '80%',
-      }}
-    >
-      <ShimmerPlaceHolder
+    const width = Math.floor(Math.random() * (240 - 140 + 1)) + 140; // width 140-240
+    const height = isShort
+      ? Math.floor(Math.random() * (25 - 20 + 1)) + 20   // small bubble: 20-25
+      : Math.floor(Math.random() * (50 - 40 + 1)) + 40;  // large bubble: 40-50
+
+    return (
+      <View
         style={{
-          width,
-          height,
-          borderRadius: 16,
-          backgroundColor: '#f0f0f0',
+          alignSelf: isRight ? 'flex-end' : 'flex-start',
+          marginBottom: hp(1.5),
+          maxWidth: '80%',
         }}
-        shimmerStyle={{ borderRadius: 16 }}
-        visible={false}
-      />
-    </View>
-  );
-};
-
+      >
+        <ShimmerPlaceHolder
+          style={{
+            width,
+            height,
+            borderRadius: wp(4),
+            backgroundColor: TEAL_LIGHT,
+          }}
+          shimmerStyle={{ borderRadius: wp(4) }}
+          shimmerColors={['#E6F7F0', '#D1FAE5', '#E6F7F0']}
+          visible={false}
+        />
+      </View>
+    );
+  };
 
   const setupPusher = async () => {
     try {
@@ -485,19 +523,6 @@ const SkeletonBubble = ({ isRight, index }) => {
   const renderItem = ({ item }) => {
     const isCustomer = item.sender_type === 'customer';
     return (
-      // <View
-      //   style={[
-      //     styles.messageContainer,
-      //     isCustomer ? styles.messageRight : styles.messageLeft,
-      //   ]}
-      // >
-      //   <Text style={[styles.messageText, isCustomer ? styles.textWhite : styles.textBlack]}>
-      //     {item.message}
-      //   </Text>
-      //   <Text style={styles.messageTime}>
-      //     {new Date(item.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-      //   </Text>
-      // </View>
       <View
         style={[
           styles.messageWrapper,
@@ -510,10 +535,10 @@ const SkeletonBubble = ({ isRight, index }) => {
             isCustomer ? styles.bubbleRight : styles.bubbleLeft,
           ]}
         >
-          <Text style={[styles.messageText, isCustomer ? styles.textWhite : styles.textBlack]}>
+          <Text style={[styles.messageText, isCustomer ? styles.textWhite : styles.textDark]}>
             {item.message}
           </Text>
-          <Text style={styles.timeText}>
+          <Text style={[styles.timeText, isCustomer && styles.timeTextCustomer]}>
             {new Date(item.created_at).toLocaleTimeString([], {
               hour: '2-digit',
               minute: '2-digit',
@@ -526,31 +551,52 @@ const SkeletonBubble = ({ isRight, index }) => {
 
   return (
     <KeyboardAvoidingView
-      style={{ flex: 1, backgroundColor: 'rgb(249, 250, 251)', }}
+      style={{ flex: 1, backgroundColor: BG }}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={22} color="#111" />
+      {/* ── Teal Gradient Header ─────────────── */}
+      <LinearGradient
+        colors={[TEAL_DEEP, TEAL_MID, '#047857']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.header}
+      >
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={styles.backButton}
+        >
+          <Ionicons name="arrow-back" size={wp(5.5)} color="#fff" />
         </TouchableOpacity>
 
         <View style={styles.headerTextContainer}>
-          <View style={styles.avatar}>
+          <LinearGradient
+            colors={[TEAL, '#059669']}
+            style={styles.avatar}
+          >
             <Text style={styles.avatarText}>
               {vendorName?.charAt(0).toUpperCase() || 'V'}
             </Text>
-          </View>
-          <View>
-            <Text style={styles.vendorName}>{vendorName}</Text>
+          </LinearGradient>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.vendorName} numberOfLines={1}>{vendorName}</Text>
             <Text style={styles.serviceName}>{service_name || 'N/A'}</Text>
           </View>
         </View>
 
-        <TouchableOpacity onPress={toggleBookingDetails}>
-          <Ionicons name={showDetails ? 'chevron-up' : 'chevron-down'} size={24} color="#111" />
+        <TouchableOpacity
+          onPress={toggleBookingDetails}
+          style={styles.dropdownToggle}
+        >
+          <Ionicons
+            name={showDetails ? 'chevron-up' : 'chevron-down'}
+            size={wp(5)}
+            color="rgba(255,255,255,0.85)"
+          />
         </TouchableOpacity>
-      </View>
-      <Animated.View style={[styles.bookingDropdown, { height: dropdownHeight , borderBottomWidth:1, borderColor: 'rgb(243, 244, 246)',}]}>
+      </LinearGradient>
+
+      {/* ── Booking Details Dropdown ─────────── */}
+      <Animated.View style={[styles.bookingDropdown, { height: dropdownHeight }]}>
         {showDetails && (
           <View style={styles.bookingCard}>
             <View style={styles.bookingHeaderRow}>
@@ -561,19 +607,19 @@ const SkeletonBubble = ({ isRight, index }) => {
             </View>
 
             <View style={styles.detailRow}>
-              <MaterialIcons name="date-range" size={18} color="#6b7280" />
+              <MaterialIcons name="date-range" size={wp(4.2)} color={TEAL} />
               <Text style={styles.detailLabel}>Date</Text>
               <Text style={styles.detailValue}>{bookingdate || 'N/A'}</Text>
             </View>
 
             <View style={styles.detailRow}>
-              <MaterialIcons name="access-time" size={18} color="#6b7280" />
+              <MaterialIcons name="access-time" size={wp(4.2)} color={TEAL} />
               <Text style={styles.detailLabel}>Time</Text>
               <Text style={styles.detailValue}>{bookingtime || 'N/A'}</Text>
             </View>
 
             <View style={styles.detailRow}>
-              <Ionicons name="location-sharp" size={18} color="#6b7280" />
+              <Ionicons name="location-sharp" size={wp(4.2)} color={TEAL} />
               <Text style={styles.detailLabel}>Location</Text>
               <Text style={styles.detailValue}>{bookinglocation || 'N/A'}</Text>
             </View>
@@ -581,36 +627,38 @@ const SkeletonBubble = ({ isRight, index }) => {
         )}
       </Animated.View>
 
-
+      {/* ── Messages / Skeleton ─────────────── */}
       {loading ? (
-  <View style={{ padding: 16 , height: '82%' }}>
-    {[...Array(8)].map((_, i) => (
-      <SkeletonBubble key={i} isRight={i % 2 === 0} />
-    ))}
-  </View>
-) : (
-  <FlatList
-    ref={flatListRef}
-    data={messages}
-    renderItem={renderItem}
-    keyExtractor={(item) => item.id.toString()}
-    contentContainerStyle={{ padding: 16 }}
-    onContentSizeChange={() => flatListRef.current.scrollToEnd({ animated: true })}
-    onLayout={() => flatListRef.current.scrollToEnd({ animated: true })}
-  />
-)}
+        <View style={styles.skeletonContainer}>
+          {[...Array(8)].map((_, i) => (
+            <SkeletonBubble key={i} isRight={i % 2 === 0} index={i} />
+          ))}
+        </View>
+      ) : (
+        <FlatList
+          ref={flatListRef}
+          data={messages}
+          renderItem={renderItem}
+          keyExtractor={(item) => item.id.toString()}
+          contentContainerStyle={{ paddingHorizontal: wp(4), paddingVertical: hp(1.5) }}
+          onContentSizeChange={() => flatListRef.current.scrollToEnd({ animated: true })}
+          onLayout={() => flatListRef.current.scrollToEnd({ animated: true })}
+        />
+      )}
+
+      {/* ── Input Bar ────────────────────────── */}
       <View style={styles.inputContainer}>
         <TextInput
           style={styles.input}
           placeholder="Type a message..."
-          placeholderTextColor="#6B7280"
+          placeholderTextColor={TEXT_MUTED}
           value={input}
           onChangeText={setInput}
           onSubmitEditing={sendMessage}
           returnKeyType="send"
         />
         <TouchableOpacity style={styles.sendIconButton} onPress={sendMessage}>
-          <Ionicons name="send" size={18} color="#fff" />
+          <Ionicons name="send" size={wp(4.5)} color="#fff" />
         </TouchableOpacity>
       </View>
     </KeyboardAvoidingView>
@@ -618,20 +666,123 @@ const SkeletonBubble = ({ isRight, index }) => {
 }
 
 const styles = StyleSheet.create({
-  messageContainer: {
-    maxWidth: '70%',
-    marginBottom: 12,
-    padding: 10,
+  /* ── Header ──────────────────────────── */
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingTop: Platform.OS === 'ios' ? hp(6) : hp(1.8),
+    paddingBottom: hp(1.8),
+    paddingHorizontal: wp(4),
+    borderBottomLeftRadius: wp(6),
+    borderBottomRightRadius: wp(6),
+    overflow: 'hidden',
+  },
+  backButton: {
+    width: wp(9.5),
+    height: wp(9.5),
+    borderRadius: wp(4.75),
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerTextContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    marginLeft: wp(3),
+  },
+  avatar: {
+    width: wp(10.5),
+    height: wp(10.5),
+    borderRadius: wp(5.25),
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: wp(2.5),
+  },
+  avatarText: {
+    fontSize: wp(4.5),
+    fontWeight: '700',
+    color: '#fff',
+  },
+  vendorName: {
+    fontWeight: '700',
+    fontSize: wp(4),
+    color: '#fff',
+  },
+  serviceName: {
+    fontSize: wp(3.2),
+    color: 'rgba(255,255,255,0.7)',
+    marginTop: hp(0.2),
+  },
+  dropdownToggle: {
+    width: wp(9),
+    height: wp(9),
+    borderRadius: wp(4.5),
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
 
-    borderRadius: 10,
+  /* ── Booking Dropdown ────────────────── */
+  bookingDropdown: {
+    overflow: 'hidden',
+    backgroundColor: '#fff',
+    paddingHorizontal: wp(4),
+    borderBottomWidth: 1,
+    borderColor: '#E5E7EB',
   },
-  messageRight: {
-    backgroundColor: '#3B82F6',
-    alignSelf: 'flex-end',
+  bookingCard: {
+    backgroundColor: BG,
+    borderRadius: wp(3),
+    padding: wp(4),
+    marginTop: hp(0.5),
+    borderWidth: 1,
+    borderColor: TEAL_LIGHT,
   },
+  bookingHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: hp(1.5),
+  },
+  bookingTitle: {
+    fontSize: wp(3.8),
+    fontWeight: '700',
+    color: TEXT_PRIMARY,
+  },
+  statusBadge: {
+    backgroundColor: TEAL,
+    paddingHorizontal: wp(2.8),
+    paddingVertical: hp(0.4),
+    borderRadius: wp(3),
+  },
+  statusBadgeText: {
+    color: '#fff',
+    fontSize: wp(2.8),
+    fontWeight: '700',
+  },
+  detailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: hp(1),
+  },
+  detailLabel: {
+    flex: 1,
+    marginLeft: wp(2.5),
+    fontSize: wp(3.4),
+    color: TEXT_SECONDARY,
+  },
+  detailValue: {
+    fontSize: wp(3.4),
+    fontWeight: '600',
+    color: TEXT_PRIMARY,
+    textAlign: 'right',
+    flex: 1.5,
+  },
+
+  /* ── Messages ────────────────────────── */
   messageWrapper: {
-    
-    marginBottom: 10,
+    marginBottom: hp(1.2),
     maxWidth: '80%',
   },
   alignLeft: {
@@ -641,215 +792,79 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-end',
   },
   bubble: {
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    borderRadius: 16,
+    paddingVertical: hp(1.2),
+    paddingHorizontal: wp(3.8),
+    borderRadius: wp(4),
   },
   bubbleLeft: {
     backgroundColor: '#fff',
-    borderWidth:1,
-    borderColor:'rgb(229, 231, 235)',
-    borderRadius:10,
+    borderWidth: 1,
+    borderColor: TEAL_LIGHT,
+    borderTopLeftRadius: wp(1),
+    ...SHADOW_SM,
   },
   bubbleRight: {
-    backgroundColor: '#111827',
-    borderRadius:10,
+    backgroundColor: TEAL_MID,
+    borderTopRightRadius: wp(1),
+    ...SHADOW_SM,
   },
   messageText: {
-    fontSize: 15,
-    lineHeight: 20,
+    fontSize: wp(3.7),
+    lineHeight: wp(5.2),
   },
   textWhite: {
-    color: 'white',
+    color: '#fff',
   },
-  textBlack: {
-    color: '#111',
+  textDark: {
+    color: TEXT_PRIMARY,
   },
   timeText: {
-    fontSize: 11,
-    color: '#9CA3AF',
-    marginTop: 6,
+    fontSize: wp(2.7),
+    color: TEXT_MUTED,
+    marginTop: hp(0.5),
     textAlign: 'right',
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 12,
-    backgroundColor: '#fff',
-    elevation: 4,
+  timeTextCustomer: {
+    color: 'rgba(255,255,255,0.6)',
   },
-  headerTextContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+
+  /* ── Skeleton ────────────────────────── */
+  skeletonContainer: {
+    paddingHorizontal: wp(4),
+    paddingTop: hp(2),
     flex: 1,
-    marginLeft: 10,
-  },
-  avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#e5e7eb',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 10,
-  },
-  avatarText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#374151',
-  },
-  vendorName: {
-    fontWeight: '600',
-    fontSize: 15,
-    color: '#111827',
-  },
-  serviceName: {
-    fontSize: 13,
-    color: '#6B7280',
-  },
-  bookingDropdown: {
-    overflow: 'hidden',
-    backgroundColor: '#fff',
-    paddingHorizontal: 16,
-    paddingTop: 2,
-  },
-  bookingHeaderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 14,
   },
 
-  bookingTitle: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#111827',
-  },
-
-  statusBadge: {
-    backgroundColor: '#2563EB',
-    paddingHorizontal: 10,
-    paddingVertical: 10,
-    borderRadius: 12,
-  },
-
-  statusBadgeText: {
-    color: '#fff',
-    fontSize: 11,
-    fontWeight: '600',
-  },
-
-  detailRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-
-  detailLabel: {
-    flex: 1,
-    marginLeft: 10,
-    fontSize: 14,
-    color: '#374151',
-  },
-
-  detailValue: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#111827',
-    textAlign: 'right',
-    flex: 1.5,
-  },
-  bookingCard: {
-    backgroundColor: 'rgb(249, 250, 251)',
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: 'rgb(243, 244, 246)'
-    // shadowColor: '#000',
-    // shadowOpacity: 0.05,
-    // shadowRadius: 6,
-    // shadowOffset: { width: 0, height: 2 },
-    // elevation: 3,
-  },
-  bookingHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  bookingTitle: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#111827',
-  },
-  statusBadge: {
-    backgroundColor: '#2563EB',
-    paddingHorizontal: 10,
-    paddingVertical: 2,
-    borderRadius: 12,
-  },
-  statusBadgeText: {
-    color: 'white',
-    fontSize: 11,
-    fontWeight: 'bold',
-  },
-  bookingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 6,
-  },
-  bookingInfo: {
-    marginLeft: 8,
-    fontSize: 14,
-    color: '#374151',
-  },
-  messageLeft: {
-    backgroundColor: '#E5E7EB',
-    alignSelf: 'flex-start',
-  },
-  messageText: {
-    fontSize: 16,
-  },
-  textWhite: {
-    color: 'white',
-  },
-  textBlack: {
-    color: 'black',
-  },
-  messageTime: {
-    fontSize: 10,
-    marginTop: 4,
-    color: '#9CA3AF',
-    alignSelf: 'flex-end',
-  },
+  /* ── Input Bar ───────────────────────── */
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 12,
+    paddingVertical: hp(1),
+    paddingHorizontal: wp(3.5),
     borderTopWidth: 1,
     borderColor: '#E5E7EB',
     backgroundColor: '#fff',
+    ...SHADOW_SM,
   },
-
   input: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
-    borderRadius: 999,
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    fontSize: 15,
+    backgroundColor: BG,
+    borderRadius: wp(6),
+    paddingVertical: Platform.OS === 'ios' ? hp(1.3) : hp(1),
+    paddingHorizontal: wp(4),
+    fontSize: wp(3.6),
     borderWidth: 1,
-    borderColor: '#D1D5DB',
-    color: '#111827',
+    borderColor: TEAL_LIGHT,
+    color: TEXT_PRIMARY,
   },
-
   sendIconButton: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: '#000',
+    width: wp(10),
+    height: wp(10),
+    borderRadius: wp(5),
+    backgroundColor: TEAL,
     justifyContent: 'center',
     alignItems: 'center',
-    marginLeft: 10,
+    marginLeft: wp(2.5),
+    ...SHADOW_SM,
   },
 });

@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -7,16 +7,19 @@ import {
   TouchableOpacity,
   RefreshControl,
   ActivityIndicator,
+  Platform,
+  StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import LinearGradient from 'react-native-linear-gradient';
+import { widthPercentageToDP as wp, heightPercentageToDP as hp } from 'react-native-responsive-screen';
 import bookingService from '../../services/bookingService';
+import { TEAL_DEEP, TEAL_MID, TEAL, TEAL_LIGHT, BG, CARD, TEXT_PRIMARY, TEXT_SECONDARY, TEXT_MUTED, SHADOW_SM, SHADOW_MD } from '../../../theme';
 
-const GREEN = '#09B368';
-const BG = '#F5F5F7';
-
+/* ── Tab config ───────────────────────────── */
 const TABS = [
   { key: 'quotes', label: 'Quote Requests', icon: 'document-text-outline' },
   { key: 'bookings', label: 'Bookings', icon: 'hammer-wrench' },
@@ -30,6 +33,23 @@ export default function MyEquipmentBookingsScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
+  /* ── StatusBar management ─────────────── */
+  useFocusEffect(
+    useCallback(() => {
+      StatusBar.setBarStyle('light-content');
+      if (Platform.OS === 'android') {
+        StatusBar.setBackgroundColor(TEAL_DEEP);
+      }
+      return () => {
+        StatusBar.setBarStyle('dark-content');
+        if (Platform.OS === 'android') {
+          StatusBar.setBackgroundColor('#FFFFFF');
+        }
+      };
+    }, [])
+  );
+
+  /* ── Fetch data on focus ──────────────── */
   useFocusEffect(
     useCallback(() => {
       fetchData();
@@ -71,7 +91,7 @@ export default function MyEquipmentBookingsScreen() {
       case 'PENDING': return '#f39c12';
       case 'QUOTES_RECEIVED': return '#3498db';
       case 'ACCEPTED':
-      case 'CONFIRMED': return GREEN;
+      case 'CONFIRMED': return TEAL;
       case 'COMPLETED': return '#27ae60';
       case 'CANCELLED':
       case 'EXPIRED': return '#e74c3c';
@@ -96,6 +116,27 @@ export default function MyEquipmentBookingsScreen() {
     }
   };
 
+  /* ── Gradient Header Component ────────── */
+  const renderHeader = () => (
+    <LinearGradient
+      colors={[TEAL_DEEP, TEAL_MID, '#047857']}
+      style={styles.headerGrad}
+    >
+      <View style={[styles.decoCircle, { top: -30, right: -20, width: wp('25%'), height: wp('25%') }]} pointerEvents="none" />
+      <View style={[styles.decoCircle, { bottom: -15, left: -15, width: wp('15%'), height: wp('15%') }]} pointerEvents="none" />
+      <View style={styles.headerRow}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+          <Ionicons name="chevron-back" size={wp('5.5%')} color="#FFF" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>My Equipment Rentals</Text>
+        <TouchableOpacity onPress={onRefresh} style={styles.headerIconBtn}>
+          <Ionicons name="refresh" size={wp('4.5%')} color="#FFF" />
+        </TouchableOpacity>
+      </View>
+    </LinearGradient>
+  );
+
+  /* ── Quote Request Card ───────────────── */
   const renderQuoteRequestCard = (request) => (
     <TouchableOpacity
       key={request.id}
@@ -103,75 +144,103 @@ export default function MyEquipmentBookingsScreen() {
       onPress={() => navigation.navigate('EquipmentQuoteRequestDetail', { requestId: request.id })}
       activeOpacity={0.7}
     >
-      <View style={styles.cardHeader}>
-        <View style={styles.cardHeaderLeft}>
-          <View style={styles.iconCircle}>
-            <MaterialCommunityIcons name="hammer-wrench" size={24} color={GREEN} />
-          </View>
-          <View>
-            <Text style={styles.requestNumber}>#{request.requestNumber || request.id}</Text>
-            <Text style={styles.dateText}>{formatDate(request.createdAt)}</Text>
-          </View>
-        </View>
-        <View style={[styles.statusBadge, { backgroundColor: getStatusColor(request.status) }]}>
-          <Text style={styles.statusText}>{getStatusLabel(request.status)}</Text>
-        </View>
-      </View>
+      {/* Left accent bar */}
+      <View style={[styles.cardAccent, { backgroundColor: getStatusColor(request.status) }]} />
 
-      <View style={styles.cardBody}>
-        <View style={styles.equipmentRow}>
-          <Text style={styles.equipmentType}>{request.equipmentType || 'Equipment'}</Text>
-          <View style={styles.categoryBadge}>
-            <Text style={styles.categoryBadgeText}>{request.equipmentCategory || 'General'}</Text>
-          </View>
-        </View>
-
-        <View style={styles.durationRow}>
-          <Ionicons name="time-outline" size={16} color="#666" />
-          <Text style={styles.durationText}>
-            {request.rentalDays || request.rentalDuration} days
-          </Text>
-          {request.needOperator && (
-            <View style={styles.operatorBadge}>
-              <MaterialCommunityIcons name="account-hard-hat" size={14} color="#fff" />
-              <Text style={styles.operatorText}>With Operator</Text>
+      <View style={styles.cardInner}>
+        {/* Card Header */}
+        <View style={styles.cardHeader}>
+          <View style={styles.cardHeaderLeft}>
+            <View style={styles.iconCircle}>
+              <MaterialCommunityIcons name="hammer-wrench" size={wp('5.5%')} color={TEAL} />
             </View>
-          )}
-        </View>
-
-        <View style={styles.locationSection}>
-          <View style={styles.locationRow}>
-            <Ionicons name="location" size={16} color={GREEN} />
-            <Text style={styles.locationText} numberOfLines={1}>
-              {request.deliveryCity || request.deliveryAddress || 'N/A'}
+            <View>
+              <Text style={styles.requestNumber}>#{request.requestNumber || request.id}</Text>
+              <Text style={styles.dateText}>{formatDate(request.createdAt)}</Text>
+            </View>
+          </View>
+          <View style={[styles.statusBadge, { backgroundColor: getStatusColor(request.status) + '18' }]}>
+            <View style={[styles.statusDot, { backgroundColor: getStatusColor(request.status) }]} />
+            <Text style={[styles.statusText, { color: getStatusColor(request.status) }]}>
+              {getStatusLabel(request.status)}
             </Text>
           </View>
         </View>
 
-        <View style={styles.dateRowSimple}>
-          <Ionicons name="calendar" size={16} color="#666" />
-          <Text style={styles.dateValue}>Start: {formatDate(request.startDate)}</Text>
-        </View>
-      </View>
+        {/* Card Body */}
+        <View style={styles.cardBody}>
+          <View style={styles.equipmentRow}>
+            <Text style={styles.equipmentType}>{request.equipmentType || 'Equipment'}</Text>
+            <View style={styles.categoryBadge}>
+              <Text style={styles.categoryBadgeText}>{request.equipmentCategory || 'General'}</Text>
+            </View>
+          </View>
 
-      {request.quotes && request.quotes.length > 0 && (
-        <View style={styles.quotesSection}>
-          <View style={styles.quotesHeader}>
+          <View style={styles.durationRow}>
+            <View style={styles.durationIconCircle}>
+              <Ionicons name="time-outline" size={wp('3.5%')} color={TEAL_MID} />
+            </View>
+            <Text style={styles.durationText}>
+              {request.rentalDays || request.rentalDuration} days
+            </Text>
+            {request.needOperator && (
+              <View style={styles.operatorBadge}>
+                <MaterialCommunityIcons name="account-hard-hat" size={wp('3%')} color="#fff" />
+                <Text style={styles.operatorText}>With Operator</Text>
+              </View>
+            )}
+          </View>
+
+          <View style={styles.locationSection}>
+            <View style={styles.locationRow}>
+              <View style={styles.locationDotWrap}>
+                <View style={[styles.locationDot, { backgroundColor: TEAL }]} />
+              </View>
+              <View style={styles.locationInfo}>
+                <Text style={styles.locationLabel}>Delivery</Text>
+                <Text style={styles.locationText} numberOfLines={1}>
+                  {request.deliveryCity || request.deliveryAddress || 'N/A'}
+                </Text>
+              </View>
+            </View>
+          </View>
+
+          <View style={styles.dateRow}>
+            <View style={styles.dateItem}>
+              <Ionicons name="calendar-outline" size={wp('3.5%')} color={TEXT_MUTED} />
+              <View style={styles.dateItemContent}>
+                <Text style={styles.dateLabel}>Start Date</Text>
+                <Text style={styles.dateValue}>{formatDate(request.startDate)}</Text>
+              </View>
+            </View>
+          </View>
+        </View>
+
+        {/* Quotes Received Section */}
+        {request.quotes && request.quotes.length > 0 && (
+          <View style={styles.quotesSection}>
+            <View style={styles.quotesIconCircle}>
+              <Ionicons name="chatbubbles-outline" size={wp('4%')} color={TEAL} />
+            </View>
             <Text style={styles.quotesTitle}>
               {request.quotes.length} Quote{request.quotes.length > 1 ? 's' : ''} Received
             </Text>
-            <Ionicons name="chevron-forward" size={20} color={GREEN} />
+            <Ionicons name="chevron-forward" size={wp('4.5%')} color={TEAL} />
+          </View>
+        )}
+
+        {/* Card Footer */}
+        <View style={styles.cardFooter}>
+          <Text style={styles.viewDetailsText}>View Details</Text>
+          <View style={styles.viewDetailsArrow}>
+            <Ionicons name="chevron-forward" size={wp('3.5%')} color="#FFF" />
           </View>
         </View>
-      )}
-
-      <View style={styles.cardFooter}>
-        <Text style={styles.viewDetailsText}>View Details</Text>
-        <Ionicons name="chevron-forward" size={18} color={GREEN} />
       </View>
     </TouchableOpacity>
   );
 
+  /* ── Booking Card ─────────────────────── */
   const renderBookingCard = (booking) => (
     <TouchableOpacity
       key={booking.id}
@@ -179,56 +248,84 @@ export default function MyEquipmentBookingsScreen() {
       onPress={() => navigation.navigate('EquipmentBookingDetail', { bookingId: booking.id })}
       activeOpacity={0.7}
     >
-      <View style={styles.cardHeader}>
-        <View style={styles.cardHeaderLeft}>
-          <View style={styles.iconCircle}>
-            <MaterialCommunityIcons name="hammer-wrench" size={24} color={GREEN} />
+      {/* Left accent bar */}
+      <View style={[styles.cardAccent, { backgroundColor: getStatusColor(booking.status) }]} />
+
+      <View style={styles.cardInner}>
+        {/* Card Header */}
+        <View style={styles.cardHeader}>
+          <View style={styles.cardHeaderLeft}>
+            <View style={styles.iconCircle}>
+              <MaterialCommunityIcons name="hammer-wrench" size={wp('5.5%')} color={TEAL} />
+            </View>
+            <View>
+              <Text style={styles.requestNumber}>#{booking.bookingNumber || booking.id}</Text>
+              <Text style={styles.dateText}>{formatDate(booking.createdAt)}</Text>
+            </View>
           </View>
-          <View>
-            <Text style={styles.requestNumber}>#{booking.bookingNumber || booking.id}</Text>
-            <Text style={styles.dateText}>{formatDate(booking.createdAt)}</Text>
+          <View style={[styles.statusBadge, { backgroundColor: getStatusColor(booking.status) + '18' }]}>
+            <View style={[styles.statusDot, { backgroundColor: getStatusColor(booking.status) }]} />
+            <Text style={[styles.statusText, { color: getStatusColor(booking.status) }]}>
+              {getStatusLabel(booking.status)}
+            </Text>
           </View>
         </View>
-        <View style={[styles.statusBadge, { backgroundColor: getStatusColor(booking.status) }]}>
-          <Text style={styles.statusText}>{getStatusLabel(booking.status)}</Text>
-        </View>
-      </View>
 
-      <View style={styles.cardBody}>
-        <View style={styles.equipmentRow}>
-          <Text style={styles.equipmentType}>{booking.equipmentType || 'Equipment'}</Text>
-          <View style={styles.categoryBadge}>
-            <Text style={styles.categoryBadgeText}>{booking.equipmentCategory || 'General'}</Text>
+        {/* Card Body */}
+        <View style={styles.cardBody}>
+          <View style={styles.equipmentRow}>
+            <Text style={styles.equipmentType}>{booking.equipmentType || 'Equipment'}</Text>
+            <View style={styles.categoryBadge}>
+              <Text style={styles.categoryBadgeText}>{booking.equipmentCategory || 'General'}</Text>
+            </View>
+          </View>
+
+          {/* Price Row */}
+          <View style={styles.priceRow}>
+            <Text style={styles.priceLabel}>Total Amount</Text>
+            <Text style={styles.priceValue}>
+              <Text style={styles.priceCurrency}>₹</Text>
+              {booking.totalAmount || booking.grandTotal || 0}
+            </Text>
+          </View>
+
+          {/* Vendor Row */}
+          {booking.vendor && (
+            <View style={styles.infoRow}>
+              <View style={styles.infoIconCircle}>
+                <Ionicons name="storefront-outline" size={wp('3.5%')} color={TEAL_MID} />
+              </View>
+              <Text style={styles.infoRowText}>{booking.vendor.businessName || booking.vendor.name}</Text>
+            </View>
+          )}
+        </View>
+
+        {/* Card Footer */}
+        <View style={styles.cardFooter}>
+          <Text style={styles.viewDetailsText}>View Details</Text>
+          <View style={styles.viewDetailsArrow}>
+            <Ionicons name="chevron-forward" size={wp('3.5%')} color="#FFF" />
           </View>
         </View>
-
-        <View style={styles.priceRow}>
-          <Text style={styles.priceLabel}>Total Amount</Text>
-          <Text style={styles.priceValue}>₹{booking.totalAmount || booking.grandTotal || 0}</Text>
-        </View>
-
-        {booking.vendor && (
-          <View style={styles.vendorRow}>
-            <Ionicons name="storefront-outline" size={16} color="#666" />
-            <Text style={styles.vendorName}>{booking.vendor.businessName || booking.vendor.name}</Text>
-          </View>
-        )}
-      </View>
-
-      <View style={styles.cardFooter}>
-        <Text style={styles.viewDetailsText}>View Details</Text>
-        <Ionicons name="chevron-forward" size={18} color={GREEN} />
       </View>
     </TouchableOpacity>
   );
 
+  /* ── Empty State ──────────────────────── */
   const renderEmpty = (type) => (
     <View style={styles.emptyContainer}>
-      <MaterialCommunityIcons
-        name={type === 'quotes' ? 'file-document-outline' : 'hammer-wrench'}
-        size={80}
-        color="#ddd"
-      />
+      <LinearGradient
+        colors={[TEAL_LIGHT, '#A7F3D0']}
+        style={styles.emptyIconCircle}
+      >
+        <View style={styles.emptyIconInner}>
+          <MaterialCommunityIcons
+            name={type === 'quotes' ? 'file-document-outline' : 'hammer-wrench'}
+            size={wp('10%')}
+            color={TEAL}
+          />
+        </View>
+      </LinearGradient>
       <Text style={styles.emptyTitle}>
         {type === 'quotes' ? 'No Quote Requests' : 'No Bookings Yet'}
       </Text>
@@ -238,74 +335,102 @@ export default function MyEquipmentBookingsScreen() {
           : 'Your confirmed equipment rentals will appear here'}
       </Text>
       <TouchableOpacity
-        style={styles.exploreBtn}
+        style={styles.exploreBtnWrap}
         onPress={() => navigation.navigate('EquipmentScreen')}
+        activeOpacity={0.8}
       >
-        <Text style={styles.exploreBtnText}>Rent Equipment</Text>
+        <LinearGradient
+          colors={[TEAL_MID, TEAL_DEEP]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={styles.exploreBtn}
+        >
+          <MaterialCommunityIcons name="hammer-wrench" size={wp('4.5%')} color="#FFF" />
+          <Text style={styles.exploreBtnText}>Rent Equipment</Text>
+        </LinearGradient>
       </TouchableOpacity>
     </View>
   );
 
+  /* ── Loading State ────────────────────── */
   if (loading) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={styles.container} edges={['bottom']}>
+        <StatusBar barStyle="light-content" backgroundColor={TEAL_DEEP} />
+        <LinearGradient
+          colors={[TEAL_DEEP, TEAL_MID, '#047857']}
+          style={styles.headerGrad}
+        >
+          <View style={[styles.decoCircle, { top: -30, right: -20, width: wp('25%'), height: wp('25%') }]} pointerEvents="none" />
+          <View style={[styles.decoCircle, { bottom: -15, left: -15, width: wp('15%'), height: wp('15%') }]} pointerEvents="none" />
+          <View style={styles.headerRow}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+              <Ionicons name="chevron-back" size={wp('5.5%')} color="#FFF" />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>My Equipment Rentals</Text>
+            <View style={styles.headerIconBtn} />
+          </View>
+        </LinearGradient>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={GREEN} />
+          <ActivityIndicator size="large" color={TEAL} />
           <Text style={styles.loadingText}>Loading your bookings...</Text>
         </View>
       </SafeAreaView>
     );
   }
 
+  /* ── Main Render ──────────────────────── */
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Ionicons name="arrow-back" size={24} color="#333" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>My Equipment Rentals</Text>
-        <TouchableOpacity onPress={onRefresh} style={styles.refreshBtn}>
-          <Ionicons name="refresh" size={22} color="#333" />
-        </TouchableOpacity>
-      </View>
+    <SafeAreaView style={styles.container} edges={['bottom']}>
+      <StatusBar barStyle="light-content" backgroundColor={TEAL_DEEP} />
 
+      {renderHeader()}
+
+      {/* Tabs */}
       <View style={styles.tabsContainer}>
-        {TABS.map((tab) => (
-          <TouchableOpacity
-            key={tab.key}
-            style={[styles.tab, activeTab === tab.key && styles.tabActive]}
-            onPress={() => setActiveTab(tab.key)}
-          >
-            {tab.icon === 'hammer-wrench' ? (
-              <MaterialCommunityIcons
-                name={tab.icon}
-                size={20}
-                color={activeTab === tab.key ? GREEN : '#666'}
-              />
-            ) : (
-              <Ionicons
-                name={tab.icon}
-                size={20}
-                color={activeTab === tab.key ? GREEN : '#666'}
-              />
-            )}
-            <Text style={[styles.tabText, activeTab === tab.key && styles.tabTextActive]}>
-              {tab.label}
-            </Text>
-            <View style={[styles.tabBadge, activeTab === tab.key && styles.tabBadgeActive]}>
-              <Text style={[styles.tabBadgeText, activeTab === tab.key && styles.tabBadgeTextActive]}>
-                {tab.key === 'quotes' ? quoteRequests.length : bookings.length}
+        {TABS.map((tab) => {
+          const isActive = activeTab === tab.key;
+          const count = tab.key === 'quotes' ? quoteRequests.length : bookings.length;
+          return (
+            <TouchableOpacity
+              key={tab.key}
+              style={[styles.tab, isActive && styles.tabActive]}
+              onPress={() => setActiveTab(tab.key)}
+              activeOpacity={0.7}
+            >
+              {tab.icon === 'hammer-wrench' ? (
+                <MaterialCommunityIcons
+                  name="hammer-wrench"
+                  size={wp('4.2%')}
+                  color={isActive ? '#FFF' : TEXT_SECONDARY}
+                />
+              ) : (
+                <Ionicons
+                  name={tab.icon}
+                  size={wp('4.2%')}
+                  color={isActive ? '#FFF' : TEXT_SECONDARY}
+                />
+              )}
+              <Text style={[styles.tabText, isActive && styles.tabTextActive]}>
+                {tab.label}
               </Text>
-            </View>
-          </TouchableOpacity>
-        ))}
+              <View style={[styles.tabBadge, isActive && styles.tabBadgeActive]}>
+                <Text style={[styles.tabBadgeText, isActive && styles.tabBadgeTextActive]}>
+                  {count}
+                </Text>
+              </View>
+            </TouchableOpacity>
+          );
+        })}
       </View>
 
+      {/* Content */}
       <ScrollView
         style={styles.content}
+        contentContainerStyle={styles.contentContainer}
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[GREEN]} />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[TEAL]} tintColor={TEAL} />
         }
       >
         {activeTab === 'quotes' ? (
@@ -313,65 +438,487 @@ export default function MyEquipmentBookingsScreen() {
         ) : (
           bookings.length > 0 ? bookings.map(renderBookingCard) : renderEmpty('bookings')
         )}
-        <View style={{ height: 40 }} />
+        <View style={{ height: hp('5%') }} />
       </ScrollView>
     </SafeAreaView>
   );
 }
 
+/* ══════════════════════════════════════════
+   STYLES
+   ══════════════════════════════════════════ */
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: BG },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#eee' },
-  backBtn: { width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center' },
-  headerTitle: { fontSize: 18, fontWeight: '700', color: '#333' },
-  refreshBtn: { width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center' },
-  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  loadingText: { marginTop: 12, color: '#666', fontSize: 14 },
-  tabsContainer: { flexDirection: 'row', backgroundColor: '#fff', paddingHorizontal: 16, paddingBottom: 12 },
-  tab: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 12, marginHorizontal: 4, borderRadius: 12, backgroundColor: '#f5f5f5', gap: 6 },
-  tabActive: { backgroundColor: 'rgba(9,179,104,0.1)' },
-  tabText: { fontSize: 13, fontWeight: '600', color: '#666' },
-  tabTextActive: { color: GREEN },
-  tabBadge: { backgroundColor: '#ddd', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10 },
-  tabBadgeActive: { backgroundColor: GREEN },
-  tabBadgeText: { fontSize: 12, fontWeight: '700', color: '#666' },
-  tabBadgeTextActive: { color: '#fff' },
-  content: { flex: 1, padding: 16 },
-  card: { backgroundColor: '#fff', borderRadius: 16, marginBottom: 16, overflow: 'hidden', shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 10, shadowOffset: { width: 0, height: 2 }, elevation: 2 },
-  cardHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, borderBottomWidth: 1, borderBottomColor: '#f5f5f5' },
-  cardHeaderLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  iconCircle: { width: 48, height: 48, borderRadius: 24, backgroundColor: 'rgba(9,179,104,0.1)', justifyContent: 'center', alignItems: 'center' },
-  requestNumber: { fontSize: 16, fontWeight: '700', color: '#333' },
-  dateText: { fontSize: 12, color: '#999', marginTop: 2 },
-  statusBadge: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 12 },
-  statusText: { color: '#fff', fontSize: 11, fontWeight: '700' },
-  cardBody: { padding: 16 },
-  equipmentRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
-  equipmentType: { fontSize: 18, fontWeight: '700', color: '#333' },
-  categoryBadge: { backgroundColor: '#e8f5e9', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
-  categoryBadgeText: { fontSize: 11, fontWeight: '700', color: GREEN },
-  durationRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
-  durationText: { fontSize: 14, color: '#666' },
-  operatorBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#f39c12', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
-  operatorText: { fontSize: 11, fontWeight: '600', color: '#fff' },
-  locationSection: { marginBottom: 12 },
-  locationRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  locationText: { fontSize: 14, color: '#333', flex: 1 },
-  dateRowSimple: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  dateValue: { fontSize: 14, color: '#333' },
-  quotesSection: { backgroundColor: '#f8f8f8', padding: 12, marginHorizontal: 16, marginBottom: 12, borderRadius: 10 },
-  quotesHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  quotesTitle: { fontSize: 14, fontWeight: '700', color: GREEN },
-  priceRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#f0f0f0' },
-  priceLabel: { fontSize: 14, color: '#666' },
-  priceValue: { fontSize: 20, fontWeight: '700', color: GREEN },
-  vendorRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 12 },
-  vendorName: { fontSize: 14, color: '#333' },
-  cardFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 12, borderTopWidth: 1, borderTopColor: '#f5f5f5', gap: 4 },
-  viewDetailsText: { fontSize: 14, fontWeight: '600', color: GREEN },
-  emptyContainer: { alignItems: 'center', paddingVertical: 60 },
-  emptyTitle: { fontSize: 18, fontWeight: '700', color: '#333', marginTop: 16 },
-  emptyText: { fontSize: 14, color: '#999', marginTop: 8, textAlign: 'center', paddingHorizontal: 40 },
-  exploreBtn: { marginTop: 20, backgroundColor: GREEN, paddingHorizontal: 24, paddingVertical: 12, borderRadius: 10 },
-  exploreBtnText: { color: '#fff', fontWeight: '600', fontSize: 14 },
+  /* ── Container ───────────────────────── */
+  container: {
+    flex: 1,
+    backgroundColor: BG,
+  },
+
+  /* ── Header Gradient ─────────────────── */
+  headerGrad: {
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + hp('1%') : hp('1%'),
+    paddingBottom: hp('2.5%'),
+    paddingHorizontal: wp('4%'),
+    borderBottomLeftRadius: wp('6%'),
+    borderBottomRightRadius: wp('6%'),
+    overflow: 'hidden',
+  },
+  decoCircle: {
+    position: 'absolute',
+    borderRadius: wp('50%'),
+    backgroundColor: 'rgba(255,255,255,0.06)',
+  },
+  headerRow: {
+    zIndex: 2,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  backBtn: {
+    width: wp('10%'),
+    height: wp('10%'),
+    borderRadius: wp('5%'),
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerTitle: {
+    fontSize: wp('5%'),
+    fontWeight: '700',
+    color: '#FFF',
+    letterSpacing: 0.3,
+  },
+  headerIconBtn: {
+    width: wp('10%'),
+    height: wp('10%'),
+    borderRadius: wp('5%'),
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  /* ── Loading ─────────────────────────── */
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: hp('1.5%'),
+    color: TEXT_SECONDARY,
+    fontSize: wp('3.5%'),
+    fontWeight: '500',
+  },
+
+  /* ── Tabs ─────────────────────────────── */
+  tabsContainer: {
+    flexDirection: 'row',
+    paddingHorizontal: wp('4%'),
+    paddingTop: hp('1.8%'),
+    paddingBottom: hp('0.8%'),
+    gap: wp('2.5%'),
+  },
+  tab: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: hp('1.3%'),
+    borderRadius: wp('3%'),
+    backgroundColor: CARD,
+    gap: wp('1.5%'),
+    ...SHADOW_SM,
+  },
+  tabActive: {
+    backgroundColor: TEAL_MID,
+  },
+  tabText: {
+    fontSize: wp('3.1%'),
+    fontWeight: '600',
+    color: TEXT_SECONDARY,
+  },
+  tabTextActive: {
+    color: '#FFF',
+  },
+  tabBadge: {
+    backgroundColor: '#E5E7EB',
+    paddingHorizontal: wp('2%'),
+    paddingVertical: hp('0.2%'),
+    borderRadius: wp('3%'),
+    minWidth: wp('5.5%'),
+    alignItems: 'center',
+  },
+  tabBadgeActive: {
+    backgroundColor: 'rgba(255,255,255,0.25)',
+  },
+  tabBadgeText: {
+    fontSize: wp('2.8%'),
+    fontWeight: '700',
+    color: TEXT_SECONDARY,
+  },
+  tabBadgeTextActive: {
+    color: '#FFF',
+  },
+
+  /* ── Content ─────────────────────────── */
+  content: {
+    flex: 1,
+  },
+  contentContainer: {
+    paddingHorizontal: wp('4%'),
+    paddingTop: hp('1.5%'),
+  },
+
+  /* ── Card ─────────────────────────────── */
+  card: {
+    flexDirection: 'row',
+    backgroundColor: CARD,
+    borderRadius: wp('4%'),
+    marginBottom: hp('1.8%'),
+    overflow: 'hidden',
+    ...SHADOW_SM,
+  },
+  cardAccent: {
+    width: wp('1.2%'),
+    borderTopLeftRadius: wp('4%'),
+    borderBottomLeftRadius: wp('4%'),
+  },
+  cardInner: {
+    flex: 1,
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: wp('3.5%'),
+    paddingTop: hp('1.5%'),
+    paddingBottom: hp('1.2%'),
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  cardHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: wp('3%'),
+  },
+  iconCircle: {
+    width: wp('11%'),
+    height: wp('11%'),
+    borderRadius: wp('5.5%'),
+    backgroundColor: TEAL_LIGHT,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  requestNumber: {
+    fontSize: wp('3.8%'),
+    fontWeight: '700',
+    color: TEXT_PRIMARY,
+  },
+  dateText: {
+    fontSize: wp('2.8%'),
+    color: TEXT_MUTED,
+    marginTop: hp('0.2%'),
+  },
+
+  /* ── Status Badge ────────────────────── */
+  statusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: wp('2.5%'),
+    paddingVertical: hp('0.5%'),
+    borderRadius: wp('4%'),
+    gap: wp('1.2%'),
+  },
+  statusDot: {
+    width: wp('1.5%'),
+    height: wp('1.5%'),
+    borderRadius: wp('0.75%'),
+  },
+  statusText: {
+    fontSize: wp('2.6%'),
+    fontWeight: '700',
+  },
+
+  /* ── Card Body ───────────────────────── */
+  cardBody: {
+    paddingHorizontal: wp('3.5%'),
+    paddingVertical: hp('1.5%'),
+  },
+  equipmentRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: hp('1.2%'),
+  },
+  equipmentType: {
+    fontSize: wp('4.2%'),
+    fontWeight: '700',
+    color: TEXT_PRIMARY,
+    flex: 1,
+  },
+  categoryBadge: {
+    backgroundColor: TEAL_LIGHT,
+    paddingHorizontal: wp('2.5%'),
+    paddingVertical: hp('0.4%'),
+    borderRadius: wp('2%'),
+  },
+  categoryBadgeText: {
+    fontSize: wp('2.6%'),
+    fontWeight: '700',
+    color: TEAL_MID,
+    letterSpacing: 0.5,
+  },
+
+  /* ── Duration Row ─────────────────────── */
+  durationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: wp('2.5%'),
+    marginBottom: hp('1.2%'),
+  },
+  durationIconCircle: {
+    width: wp('7%'),
+    height: wp('7%'),
+    borderRadius: wp('3.5%'),
+    backgroundColor: TEAL_LIGHT,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  durationText: {
+    fontSize: wp('3.2%'),
+    color: TEXT_SECONDARY,
+    fontWeight: '500',
+  },
+  operatorBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: wp('1%'),
+    backgroundColor: '#f39c12',
+    paddingHorizontal: wp('2%'),
+    paddingVertical: hp('0.4%'),
+    borderRadius: wp('2%'),
+  },
+  operatorText: {
+    fontSize: wp('2.6%'),
+    fontWeight: '600',
+    color: '#fff',
+  },
+
+  /* ── Location ────────────────────────── */
+  locationSection: {
+    marginBottom: hp('1.2%'),
+  },
+  locationRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  locationDotWrap: {
+    width: wp('5%'),
+    alignItems: 'center',
+    paddingTop: hp('0.5%'),
+  },
+  locationDot: {
+    width: wp('2.5%'),
+    height: wp('2.5%'),
+    borderRadius: wp('1.25%'),
+  },
+  locationInfo: {
+    flex: 1,
+    marginLeft: wp('2%'),
+  },
+  locationLabel: {
+    fontSize: wp('2.6%'),
+    color: TEXT_MUTED,
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+  },
+  locationText: {
+    fontSize: wp('3.2%'),
+    color: TEXT_PRIMARY,
+    marginTop: hp('0.2%'),
+    fontWeight: '500',
+  },
+
+  /* ── Date Row ────────────────────────── */
+  dateRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F9FAFB',
+    paddingVertical: hp('1.2%'),
+    paddingHorizontal: wp('3%'),
+    borderRadius: wp('2.5%'),
+  },
+  dateItem: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: wp('2%'),
+  },
+  dateItemContent: {
+    flex: 1,
+  },
+  dateLabel: {
+    fontSize: wp('2.5%'),
+    color: TEXT_MUTED,
+    textTransform: 'uppercase',
+    letterSpacing: 0.3,
+  },
+  dateValue: {
+    fontSize: wp('3.2%'),
+    fontWeight: '600',
+    color: TEXT_PRIMARY,
+    marginTop: hp('0.1%'),
+  },
+
+  /* ── Quotes Section ──────────────────── */
+  quotesSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: TEAL_LIGHT,
+    paddingVertical: hp('1%'),
+    paddingHorizontal: wp('3.5%'),
+    marginHorizontal: wp('3.5%'),
+    marginBottom: hp('1%'),
+    borderRadius: wp('2.5%'),
+    gap: wp('2%'),
+  },
+  quotesIconCircle: {
+    width: wp('7%'),
+    height: wp('7%'),
+    borderRadius: wp('3.5%'),
+    backgroundColor: 'rgba(255,255,255,0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  quotesTitle: {
+    flex: 1,
+    fontSize: wp('3.2%'),
+    fontWeight: '700',
+    color: TEAL_DEEP,
+  },
+
+  /* ── Price Row ───────────────────────── */
+  priceRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: hp('1%'),
+    paddingTop: hp('1.2%'),
+    borderTopWidth: 1,
+    borderTopColor: '#F3F4F6',
+  },
+  priceLabel: {
+    fontSize: wp('3.2%'),
+    color: TEXT_SECONDARY,
+  },
+  priceValue: {
+    fontSize: wp('5%'),
+    fontWeight: '800',
+    color: TEAL_DEEP,
+  },
+  priceCurrency: {
+    fontSize: wp('3.5%'),
+    fontWeight: '600',
+  },
+
+  /* ── Info Rows (Vendor) ────────────────── */
+  infoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: wp('2.5%'),
+    marginTop: hp('1%'),
+  },
+  infoIconCircle: {
+    width: wp('7%'),
+    height: wp('7%'),
+    borderRadius: wp('3.5%'),
+    backgroundColor: TEAL_LIGHT,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  infoRowText: {
+    fontSize: wp('3.2%'),
+    color: TEXT_PRIMARY,
+    fontWeight: '500',
+  },
+
+  /* ── Card Footer ─────────────────────── */
+  cardFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: hp('1.2%'),
+    borderTopWidth: 1,
+    borderTopColor: '#F3F4F6',
+    gap: wp('2%'),
+  },
+  viewDetailsText: {
+    fontSize: wp('3.2%'),
+    fontWeight: '600',
+    color: TEAL,
+  },
+  viewDetailsArrow: {
+    width: wp('5%'),
+    height: wp('5%'),
+    borderRadius: wp('2.5%'),
+    backgroundColor: TEAL,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  /* ── Empty State ─────────────────────── */
+  emptyContainer: {
+    alignItems: 'center',
+    paddingVertical: hp('8%'),
+  },
+  emptyIconCircle: {
+    width: wp('22%'),
+    height: wp('22%'),
+    borderRadius: wp('11%'),
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  emptyIconInner: {
+    width: wp('16%'),
+    height: wp('16%'),
+    borderRadius: wp('8%'),
+    backgroundColor: '#FFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...SHADOW_SM,
+  },
+  emptyTitle: {
+    fontSize: wp('4.5%'),
+    fontWeight: '700',
+    color: TEXT_PRIMARY,
+    marginTop: hp('2.5%'),
+  },
+  emptyText: {
+    fontSize: wp('3.3%'),
+    color: TEXT_MUTED,
+    marginTop: hp('0.8%'),
+    textAlign: 'center',
+    paddingHorizontal: wp('10%'),
+    lineHeight: wp('5%'),
+  },
+  exploreBtnWrap: {
+    marginTop: hp('3%'),
+    borderRadius: wp('3%'),
+    overflow: 'hidden',
+    ...SHADOW_MD,
+  },
+  exploreBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: wp('7%'),
+    paddingVertical: hp('1.6%'),
+    borderRadius: wp('3%'),
+    gap: wp('2%'),
+  },
+  exploreBtnText: {
+    color: '#FFF',
+    fontWeight: '700',
+    fontSize: wp('3.5%'),
+    letterSpacing: 0.3,
+  },
 });

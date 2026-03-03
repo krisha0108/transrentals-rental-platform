@@ -1,117 +1,218 @@
 // BackrTokensScreen.js
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View, Text, StyleSheet, SafeAreaView, ScrollView, RefreshControl,
-  Animated, Easing, Image, TextInput, TouchableOpacity, Modal, Alert,
-  ActivityIndicator, KeyboardAvoidingView, Platform
+  Animated, Easing, Image, TouchableOpacity, Alert, ActivityIndicator,
+  Platform, StatusBar,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import api, { API_BASE_URL } from '../api';
+import LinearGradient from 'react-native-linear-gradient';
+import {
+  widthPercentageToDP as wp,
+  heightPercentageToDP as hp,
+} from 'react-native-responsive-screen';
+import api from '../api';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
+import { BG, CARD, TEXT_PRIMARY, TEXT_SECONDARY, TEXT_MUTED } from '../../theme';
 
-const Coin = ({ size = 80 }) => {
+const BACKR_COIN_IMG = require('../../assets/backr-coin.png');
+
+/* ── Color Palette ───────────────────────── */
+const EMERALD       = '#10B981';
+const EMERALD_DARK  = '#059669';
+const EMERALD_DEEP  = '#065F46';
+const GOLD          = '#F59E0B';
+const GOLD_DARK     = '#D97706';
+const GOLD_LIGHT    = '#FEF3C7';
+const CARD_BORDER   = '#F0F2F5';
+
+const SERVICE_META = {
+  bike:       { icon: 'bicycle',          color: '#3B82F6', bg: '#EFF6FF'  },
+  car:        { icon: 'car-sport',        color: '#8B5CF6', bg: '#F5F3FF'  },
+  bus:        { icon: 'bus',              color: '#F59E0B', bg: '#FFFBEB'  },
+  truck:      { icon: 'cube',            color: '#EF4444', bg: '#FEF2F2'  },
+  equipment:  { icon: 'construct',       color: '#06B6D4', bg: '#ECFEFF'  },
+  packers:    { icon: 'archive',         color: '#EC4899', bg: '#FDF2F8'  },
+  luxury:     { icon: 'diamond',         color: '#D97706', bg: '#FFFBEB'  },
+  chauffeur:  { icon: 'person',          color: '#7C3AED', bg: '#F5F3FF'  },
+  'self-drive': { icon: 'key',           color: '#0EA5E9', bg: '#F0F9FF'  },
+};
+
+/* ── Animated Backr Coin ───────────────────────── */
+const Coin = ({ size = wp('24%') }) => {
   const spin = useRef(new Animated.Value(0)).current;
+  const glow = useRef(new Animated.Value(0)).current;
+  const bounce = useRef(new Animated.Value(0)).current;
+
   useEffect(() => {
-    const loop = Animated.loop(
-      Animated.timing(spin, { toValue: 1, duration: 5000, easing: Easing.linear, useNativeDriver: true })
-    );
-    loop.start();
-    return () => loop.stop();
-  }, [spin]);
+    // Y-axis 3D spin
+    Animated.loop(
+      Animated.timing(spin, { toValue: 1, duration: 4000, easing: Easing.linear, useNativeDriver: true })
+    ).start();
+    // Glow pulse
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(glow, { toValue: 1, duration: 1800, easing: Easing.inOut(Easing.ease), useNativeDriver: false }),
+        Animated.timing(glow, { toValue: 0, duration: 1800, easing: Easing.inOut(Easing.ease), useNativeDriver: false }),
+      ])
+    ).start();
+    // Gentle float up/down
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(bounce, { toValue: -8, duration: 2000, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+        Animated.timing(bounce, { toValue: 0, duration: 2000, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+      ])
+    ).start();
+  }, []);
+
   const rotateY = spin.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] });
-  const translateY = spin.interpolate({ inputRange: [0, 0.5, 1], outputRange: [0, -4, 0] });
-  const frontUri = `https://app.transrentals.in/assets/images/coin-front.png`;
-  const backUri = `https://app.transrentals.in/assets/images/coin-back.png`;
+  const glowScale = glow.interpolate({ inputRange: [0, 1], outputRange: [1, 1.2] });
+  const glowOpacity = glow.interpolate({ inputRange: [0, 1], outputRange: [0.15, 0.45] });
+
   return (
-    <View style={styles.coinWrap}>
-      <Animated.View style={[styles.coin, { width: size, height: size, transform: [{ rotateY }, { translateY }] }]}>
-        <Image source={{ uri: frontUri }} style={styles.coinFace} />
-        <Image source={{ uri: backUri }} style={[styles.coinFace, styles.coinBack]} />
+    <View style={{ alignItems: 'center', justifyContent: 'center', height: size * 1.3 }}>
+      {/* Outer glow ring */}
+      <Animated.View style={{
+        position: 'absolute', width: size * 1.35, height: size * 1.35, borderRadius: size * 0.7,
+        backgroundColor: GOLD, opacity: glowOpacity, transform: [{ scale: glowScale }],
+      }} />
+      {/* Coin */}
+      <Animated.View style={{ transform: [{ rotateY }, { translateY: bounce }] }}>
+        <Image
+          source={BACKR_COIN_IMG}
+          style={{ width: size, height: size, borderRadius: size / 2 }}
+          resizeMode="contain"
+        />
       </Animated.View>
     </View>
   );
 };
 
-const StatCard = ({ label, value, color = '#10B981' }) => (
-  <View style={styles.statCard}>
-    <Text style={[styles.statValue, { color }]}>{value ?? 0}</Text>
-    <Text style={styles.statLabel}>{label}</Text>
-  </View>
-);
+/* ── Date Formatter ───────────────────────── */
+const formatDate = (dateStr) => {
+  const d = new Date(dateStr);
+  const day = d.getDate();
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const h = d.getHours() % 12 || 12;
+  const mins = d.getMinutes().toString().padStart(2, '0');
+  const ampm = d.getHours() >= 12 ? 'PM' : 'AM';
+  return `${day} ${months[d.getMonth()]} ${d.getFullYear()}, ${h}:${mins} ${ampm}`;
+};
 
-const Section = ({ title, children, right }) => (
-  <View style={styles.section}>
-    <View style={styles.sectionHead}>
-      <Text style={styles.sectionTitle}>{title}</Text>
-      {right}
+/* ── Transaction Row ───────────────────────── */
+const TransactionItem = ({ item, index }) => {
+  const meta = SERVICE_META[item.serviceType] || { icon: 'swap-horizontal', color: EMERALD, bg: '#ECFDF5' };
+  const label = item.serviceType
+    ? item.serviceType.charAt(0).toUpperCase() + item.serviceType.slice(1).replace('-', ' ')
+    : 'Booking';
+
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(30)).current;
+
+  useEffect(() => {
+    const delay = index * 80;
+    Animated.parallel([
+      Animated.timing(fadeAnim, { toValue: 1, duration: 400, delay, useNativeDriver: true }),
+      Animated.timing(slideAnim, { toValue: 0, duration: 400, delay, easing: Easing.out(Easing.back(1.2)), useNativeDriver: true }),
+    ]).start();
+  }, []);
+
+  return (
+    <Animated.View style={[styles.txnCard, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
+      <View style={[styles.txnIcon, { backgroundColor: meta.bg }]}>
+        <Icon name={meta.icon} size={20} color={meta.color} />
+      </View>
+      <View style={styles.txnInfo}>
+        <Text style={styles.txnService}>{label} Booking</Text>
+        {item.bookingNumber ? <Text style={styles.txnBookingNum}>#{item.bookingNumber}</Text> : null}
+        <Text style={styles.txnDate}>{formatDate(item.createdAt)}</Text>
+      </View>
+      <View style={styles.txnRight}>
+        <LinearGradient
+          colors={item.type === 'CREDIT' ? ['#ECFDF5', '#D1FAE5'] : ['#FEF2F2', '#FECACA']}
+          style={styles.txnBadge}
+        >
+          <Text style={[styles.txnAmount, { color: item.type === 'CREDIT' ? EMERALD_DARK : '#DC2626' }]}>
+            {item.type === 'CREDIT' ? '+' : '-'}{item.amount}
+          </Text>
+        </LinearGradient>
+        <Text style={styles.txnTokens}>tokens</Text>
+      </View>
+    </Animated.View>
+  );
+};
+
+/* ── Skeleton Loader ───────────────────────── */
+const SkeletonLoader = () => {
+  const pulse = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulse, { toValue: 1, duration: 1000, useNativeDriver: true }),
+        Animated.timing(pulse, { toValue: 0, duration: 1000, useNativeDriver: true }),
+      ])
+    ).start();
+  }, []);
+  const opacity = pulse.interpolate({ inputRange: [0, 1], outputRange: [0.3, 0.7] });
+
+  const Bar = ({ w, h = 14, mt = 0 }) => (
+    <Animated.View style={{ width: w, height: h, borderRadius: h / 2, backgroundColor: '#E5E7EB', opacity, marginTop: mt }} />
+  );
+
+  return (
+    <View style={styles.skeletonWrap}>
+      <View style={styles.skeletonHero}>
+        <Bar w={wp('22%')} h={wp('22%')} />
+        <Bar w={wp('30%')} h={32} mt={16} />
+        <Bar w={wp('20%')} h={14} mt={8} />
+      </View>
+      {[1, 2, 3].map(i => (
+        <View key={i} style={styles.skeletonCard}>
+          <Bar w={38} h={38} />
+          <View style={{ flex: 1, marginLeft: 12 }}>
+            <Bar w={wp('30%')} h={14} />
+            <Bar w={wp('20%')} h={12} mt={6} />
+          </View>
+          <Bar w={wp('15%')} h={24} />
+        </View>
+      ))}
     </View>
-    {children}
-  </View>
-);
+  );
+};
 
+/* ── Main Screen ───────────────────────── */
 export default function BackrTokensScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [customerId, setCustomerId] = useState(null);
-  const [wallet, setWallet] = useState('');
-  const [initialWallet, setInitialWallet] = useState('');
-  const hasWallet = useMemo(() => !!initialWallet?.trim(), [initialWallet]);
   const [earned, setEarned] = useState(0);
-  const [redeemed, setRedeemed] = useState(0);
   const [remaining, setRemaining] = useState(0);
-  const [pendingModalVisible, setPendingModalVisible] = useState(false);
-  const [pendingAmount, setPendingAmount] = useState(0);
-  const [countdown, setCountdown] = useState(10);
-  const [modalVisible, setModalVisible] = useState(false);
-  const [redeemValue, setRedeemValue] = useState('');
-  const [submitting, setSubmitting] = useState(false);
-  const [savingWallet, setSavingWallet] = useState(false);
+  const [transactions, setTransactions] = useState([]);
   const navigation = useNavigation();
-  
-  const canSaveWallet = useMemo(
-    () => wallet?.trim().length > 0 && wallet !== initialWallet,
-    [wallet, initialWallet]
-  );
-  
-  const progress = useRef(new Animated.Value(0)).current;
-  const timerRef = useRef(null);
-  
-  const startPendingCountdown = () => {
-    setCountdown(10);
-    progress.setValue(0);
 
-    Animated.timing(progress, {
-      toValue: 1,
-      duration: 10000,
-      easing: Easing.linear,
-      useNativeDriver: false,
-    }).start();
+  // Hero entrance animations
+  const heroScale = useRef(new Animated.Value(0.8)).current;
+  const heroOpacity = useRef(new Animated.Value(0)).current;
+  const bannerSlide = useRef(new Animated.Value(40)).current;
+  const bannerOpacity = useRef(new Animated.Value(0)).current;
 
-    if (timerRef.current) clearInterval(timerRef.current);
-    timerRef.current = setInterval(() => {
-      setCountdown((c) => {
-        if (c <= 1) {
-          clearInterval(timerRef.current);
-          setPendingModalVisible(false);
-          return 0;
-        }
-        return c - 1;
-      });
-    }, 1000);
+  const animateEntrance = () => {
+    Animated.parallel([
+      Animated.spring(heroScale, { toValue: 1, tension: 60, friction: 8, useNativeDriver: true }),
+      Animated.timing(heroOpacity, { toValue: 1, duration: 500, useNativeDriver: true }),
+    ]).start();
+    Animated.parallel([
+      Animated.timing(bannerSlide, { toValue: 0, duration: 500, delay: 200, easing: Easing.out(Easing.back(1.2)), useNativeDriver: true }),
+      Animated.timing(bannerOpacity, { toValue: 1, duration: 400, delay: 200, useNativeDriver: true }),
+    ]).start();
   };
-
-  useEffect(() => {
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
-  }, []);
 
   const bootstrap = async () => {
     try {
-      const customerData = await AsyncStorage.getItem('customer');
-      if (!customerData) throw new Error('No customer found in storage.');
-      const customer = JSON.parse(customerData);
+      const raw = await AsyncStorage.getItem('customer');
+      if (!raw) throw new Error('No customer');
+      const customer = JSON.parse(raw);
       setCustomerId(customer.id);
       await fetchData(customer.id, false);
     } catch (e) {
@@ -125,13 +226,10 @@ export default function BackrTokensScreen() {
     try {
       if (!silent) setLoading(true);
       const { data } = await api.get('/backr', { params: { customer_id: cid } });
-      const w = data?.customer?.solana_wallet || '';
-      console.log('wallet:', data);
-      setWallet(w);
-      setInitialWallet(w);
       setEarned(data?.tokens?.earned_tokens ?? 0);
-      setRedeemed(data?.tokens?.redeemed_tokens ?? 0);
       setRemaining(data?.tokens?.remaining_tokens ?? 0);
+      setTransactions(data?.transactions ?? []);
+      if (!silent) setTimeout(animateEntrance, 100);
     } catch (e) {
       console.log('GET /api/backr error:', e?.response?.data || e.message);
       Alert.alert('Error', 'Failed to load Backr data.');
@@ -141,9 +239,7 @@ export default function BackrTokensScreen() {
     }
   };
 
-  useEffect(() => {
-    bootstrap();
-  }, []);
+  useEffect(() => { bootstrap(); }, []);
 
   const onRefresh = () => {
     if (!customerId) return;
@@ -151,758 +247,430 @@ export default function BackrTokensScreen() {
     fetchData(customerId, true);
   };
 
-  const handleSaveWallet = async () => {
-    if (!wallet?.trim()) {
-      Alert.alert('Wallet required', 'Please enter your Solana wallet address.');
-      return;
-    }
-    if (wallet.trim().length > 44) {
-      Alert.alert('Invalid Wallet', 'Wallet address must be up to 44 characters.');
-      return;
-    }
-    try {
-      setSavingWallet(true);
-      await api.post('/backr/update-wallet', {
-        customer_id: customerId,
-        solana_wallet: wallet.trim(),
-      });
-      setInitialWallet(wallet.trim());
-      Alert.alert('Saved', 'Solana wallet updated.');
-    } catch (e) {
-      console.log('POST /backr/update-wallet error:', e?.response?.data || e.message);
-      const msg = e?.response?.data?.message || 'Could not update wallet. Please try again.';
-      Alert.alert('Error', msg);
-    } finally {
-      setSavingWallet(false);
-    }
-  };
-
-  const openRedeem = () => {
-    if (!wallet?.trim()) {
-      Alert.alert('Wallet required', 'Please submit your Solana wallet address before redeeming tokens.');
-      return;
-    }
-    if (!remaining || remaining <= 0) {
-      Alert.alert('No tokens', 'You have no backer tokens to redeem.');
-      return;
-    }
-    setRedeemValue('');
-    setModalVisible(true);
-  };
-
-  const submitRedeem = async () => {
-    const val = Number(redeemValue);
-    if (!val || val < 1) {
-      Alert.alert('Invalid amount', 'Enter a token amount of at least 1.');
-      return;
-    }
-    if (val > remaining) {
-      Alert.alert('Too many tokens', 'You cannot redeem more than your available tokens.');
-      return;
-    }
-    try {
-      setSubmitting(true);
-      await api.post('/backr/redeem', {
-        customer_id: customerId,
-        redeem_value: val,
-      });
-      setModalVisible(false);
-      setPendingAmount(val);
-      setPendingModalVisible(true);
-      startPendingCountdown();
-      fetchData(customerId, true);
-    } catch (e) {
-      console.log('POST /backr/redeem error:', e?.response?.data || e.message);
-      const msg =
-        e?.response?.data?.errors?.redeem_value?.[0] ||
-        e?.response?.data?.errors?.redeem_error?.[0] ||
-        e?.response?.data?.message ||
-        'Could not submit redemption. Please try again.';
-      Alert.alert('Error', msg);
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
   if (loading) {
     return (
       <SafeAreaView style={styles.safe}>
-        <View style={styles.center}>
-          <ActivityIndicator size="small" color="#10B981" />
-          <Text style={styles.loadingText}>Loading...</Text>
-        </View>
+        <StatusBar barStyle="light-content" backgroundColor={EMERALD_DEEP} />
+        <LinearGradient colors={[EMERALD_DEEP, EMERALD_DARK]} style={styles.headerGrad}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+            <Icon name="chevron-back" size={22} color="#FFF" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Backr Tokens</Text>
+          <View style={{ width: 30 }} />
+        </LinearGradient>
+        <SkeletonLoader />
       </SafeAreaView>
     );
   }
 
+  const bookingsCount = transactions.filter(t => t.type === 'CREDIT').length;
+
   return (
     <SafeAreaView style={styles.safe}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Icon name="chevron-back" size={20} color="#065F46" />
+      <StatusBar barStyle="light-content" backgroundColor={EMERALD_DEEP} />
+
+      {/* ── Header ── */}
+      <LinearGradient colors={[EMERALD_DEEP, EMERALD_DARK]} style={styles.headerGrad}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+          <Icon name="chevron-back" size={22} color="#FFF" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Backr Tokens</Text>
-        <View style={styles.headerRight} />
-      </View>
+        <View style={{ width: 30 }} />
+      </LinearGradient>
 
       <ScrollView
-        style={styles.scrollView}
+        style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={EMERALD} colors={[EMERALD]} />}
         showsVerticalScrollIndicator={false}
       >
-        {/* Main Balance Card */}
-        <View style={styles.balanceCard}>
-          <View style={styles.balanceHeader}>
-            <Text style={styles.balanceLabel}>Available Balance</Text>
-            <TouchableOpacity
-              onPress={() => navigation.navigate('TokenHistoryScreen')}
-              style={styles.historyButton}
-            >
-              <Text style={styles.historyText}>History</Text>
-              <Icon name="chevron-forward" size={14} color="#10B981" />
-            </TouchableOpacity>
-          </View>
-          
-          <View style={styles.balanceContent}>
-            <Coin size={80} />
-            <Text style={styles.balanceAmount}>{remaining}</Text>
-            <Text style={styles.balanceSubtitle}>Backr Tokens</Text>
-          </View>
+        {/* ── Hero Balance Card ── */}
+        <Animated.View style={{ opacity: heroOpacity, transform: [{ scale: heroScale }] }}>
+          <LinearGradient
+            colors={[EMERALD_DEEP, '#047857', EMERALD]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.heroCard}
+          >
+            {/* Decorative circles */}
+            <View style={[styles.heroCircle, { top: -30, right: -30, width: 120, height: 120 }]} />
+            <View style={[styles.heroCircle, { bottom: -20, left: -20, width: 80, height: 80 }]} />
 
-          {/* Wallet Section */}
-          {hasWallet ? (
-            <View style={styles.walletDisplay}>
-              <View style={styles.walletInfo}>
-                <Icon name="checkmark-circle" size={14} color="#10B981" />
-                <Text style={styles.walletVerified}>Wallet Connected</Text>
+            <Coin />
+
+            <Text style={styles.heroBalance}>{remaining}</Text>
+            <Text style={styles.heroLabel}>Backr Tokens</Text>
+
+            {/* Stats Row */}
+            <View style={styles.heroStats}>
+              <View style={styles.heroStatItem}>
+                <View style={styles.heroStatIcon}>
+                  <Icon name="trending-up" size={14} color={EMERALD} />
+                </View>
+                <View>
+                  <Text style={styles.heroStatVal}>{earned}</Text>
+                  <Text style={styles.heroStatLbl}>Total Earned</Text>
+                </View>
               </View>
-              <Text style={styles.walletAddress}>{initialWallet}</Text>
+              <View style={styles.heroStatDivider} />
+              <View style={styles.heroStatItem}>
+                <View style={styles.heroStatIcon}>
+                  <Icon name="receipt" size={14} color={GOLD} />
+                </View>
+                <View>
+                  <Text style={styles.heroStatVal}>{bookingsCount}</Text>
+                  <Text style={styles.heroStatLbl}>Bookings</Text>
+                </View>
+              </View>
             </View>
-          ) : (
-            <View style={styles.walletInputSection}>
-              <Text style={styles.walletLabel}>Connect Solana Wallet</Text>
-              <TextInput
-                placeholder="Enter wallet address"
-                value={wallet}
-                onChangeText={setWallet}
-                style={styles.walletInput}
-                maxLength={44}
-                autoCapitalize="none"
-                autoCorrect={false}
-                placeholderTextColor="#9CA3AF"
-              />
-              <TouchableOpacity
-                disabled={!canSaveWallet || savingWallet}
-                onPress={handleSaveWallet}
-                style={[styles.saveBtn, (!canSaveWallet || savingWallet) && styles.saveBtnDisabled]}
-              >
-                {savingWallet ? (
-                  <ActivityIndicator size="small" color="#FFFFFF" />
-                ) : (
-                  <Text style={styles.saveBtnText}>Connect Wallet</Text>
-                )}
-              </TouchableOpacity>
+          </LinearGradient>
+        </Animated.View>
+
+        {/* ── 10% Banner ── */}
+        <Animated.View style={{ opacity: bannerOpacity, transform: [{ translateY: bannerSlide }] }}>
+          <LinearGradient
+            colors={[GOLD_LIGHT, '#FFF7ED']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.banner}
+          >
+            <LinearGradient
+              colors={[GOLD, GOLD_DARK]}
+              style={styles.bannerBadge}
+            >
+              <Text style={styles.bannerBadgeText}>10%</Text>
+            </LinearGradient>
+            <View style={styles.bannerText}>
+              <Text style={styles.bannerTitle}>Earn on every booking!</Text>
+              <Text style={styles.bannerDesc}>
+                You automatically earn 10% of your booking amount as Backr tokens on every completed trip.
+              </Text>
+            </View>
+          </LinearGradient>
+        </Animated.View>
+
+        {/* ── Recent Earnings ── */}
+        <View style={styles.sectionRow}>
+          <Text style={styles.sectionTitle}>Recent Earnings</Text>
+          {transactions.length > 0 && (
+            <View style={styles.countBadge}>
+              <Text style={styles.countText}>{transactions.length}</Text>
             </View>
           )}
         </View>
 
-        {/* Stats Overview */}
-        <View style={styles.statsOverview}>
-          <StatCard label="Total Earned" value={earned} color="#10B981" />
-          <StatCard label="Total Redeemed" value={redeemed} color="#EF4444" />
-          <StatCard label="Available" value={remaining} color="#3B82F6" />
-        </View>
-
-        {/* Action Cards */}
-        <View style={styles.actionsGrid}>
-          {/* Earn Card */}
-          <View style={styles.actionCard}>
-            <View style={styles.actionHeader}>
-              <View style={[styles.actionIcon, { backgroundColor: '#ECFDF5' }]}>
-                <Icon name="add-circle" size={20} color="#10B981" />
-              </View>
-              <Text style={styles.actionTitle}>Earn Tokens</Text>
-            </View>
-            <Text style={styles.actionDescription}>
-              Complete bookings to earn more Backr tokens
-            </Text>
-            <TouchableOpacity 
-              style={styles.actionButton}
-              onPress={() => navigation.navigate('EarnBackrTasksScreen')}
+        {transactions.length === 0 ? (
+          <View style={styles.emptyCard}>
+            <LinearGradient
+              colors={['#F0FDF4', '#ECFDF5']}
+              style={styles.emptyIcon}
             >
-              <Text style={styles.actionButtonText}>Start Earning</Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Redeem Card */}
-          <View style={styles.actionCard}>
-            <View style={styles.actionHeader}>
-              <View style={[styles.actionIcon, { backgroundColor: '#F0F9FF' }]}>
-                <Icon name="gift" size={20} color="#3B82F6" />
-              </View>
-              <Text style={styles.actionTitle}>Redeem Tokens</Text>
-            </View>
-            <Text style={styles.actionDescription}>
-              Convert your tokens to rewards
+              <Icon name="wallet-outline" size={32} color={EMERALD} />
+            </LinearGradient>
+            <Text style={styles.emptyTitle}>No earnings yet</Text>
+            <Text style={styles.emptyDesc}>
+              Complete your first booking and earn{'\n'}10% back as Backr tokens!
             </Text>
-            <TouchableOpacity 
-              style={[styles.actionButton, styles.redeemButton]}
-              onPress={openRedeem}
-            >
-              <Text style={styles.actionButtonText}>Redeem Now</Text>
-            </TouchableOpacity>
           </View>
-        </View>
+        ) : (
+          <View style={styles.txnList}>
+            {transactions.map((txn, idx) => (
+              <TransactionItem key={txn.id} item={txn} index={idx} />
+            ))}
+          </View>
+        )}
 
-        {/* Info Section */}
-        <View style={styles.infoSection}>
-          <View style={styles.infoHeader}>
-            <Icon name="information-circle" size={16} color="#6B7280" />
-            <Text style={styles.infoTitle}>How it works</Text>
-          </View>
-          <Text style={styles.infoText}>
-            • Earn 1 Backr token for every completed booking{'\n'}
-            • Redeem tokens for exclusive rewards{'\n'}
-            • Connect your Solana wallet to receive tokens
-          </Text>
-        </View>
+        <View style={{ height: hp('4%') }} />
       </ScrollView>
-
-      {/* Redeem Modal */}
-      <Modal visible={modalVisible} transparent animationType="fade" onRequestClose={() => setModalVisible(false)}>
-        <KeyboardAvoidingView style={styles.modalOverlay} behavior={Platform.select({ ios: 'padding', android: undefined })}>
-          <View style={styles.modalContainer}>
-            <View style={styles.modalCard}>
-              <View style={styles.modalHeader}>
-                <View style={styles.modalIcon}>
-                  <Icon name="gift" size={24} color="#10B981" />
-                </View>
-                <Text style={styles.modalTitle}>Redeem Tokens</Text>
-                <Text style={styles.modalSubtitle}>
-                  Available: <Text style={styles.bold}>{remaining}</Text> tokens
-                </Text>
-              </View>
-
-              <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Amount to Redeem</Text>
-                <TextInput
-                  placeholder="Enter amount"
-                  keyboardType="numeric"
-                  value={redeemValue}
-                  onChangeText={setRedeemValue}
-                  style={styles.modalInput}
-                  placeholderTextColor="#9CA3AF"
-                />
-              </View>
-
-              <TouchableOpacity 
-                style={[styles.modalButton, submitting && styles.modalButtonDisabled]} 
-                onPress={submitRedeem} 
-                disabled={submitting}
-              >
-                {submitting ? (
-                  <ActivityIndicator size="small" color="#FFFFFF" />
-                ) : (
-                  <Text style={styles.modalButtonText}>Confirm Redeem</Text>
-                )}
-              </TouchableOpacity>
-
-              <TouchableOpacity 
-                style={styles.modalCancel}
-                onPress={() => setModalVisible(false)}
-              >
-                <Text style={styles.modalCancelText}>Cancel</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </KeyboardAvoidingView>
-      </Modal>
-
-      {/* Pending Modal */}
-      <Modal visible={pendingModalVisible} transparent animationType="fade" onRequestClose={() => setPendingModalVisible(false)}>
-        <View style={styles.modalOverlay}>
-          <View style={styles.pendingModalContainer}>
-            <View style={styles.pendingCard}>
-              <View style={styles.pendingHeader}>
-                <View style={styles.successIcon}>
-                  <Icon name="checkmark-circle" size={32} color="#10B981" />
-                </View>
-                <Text style={styles.pendingTitle}>Request Submitted</Text>
-                <Text style={styles.pendingSubtitle}>
-                  Redeeming <Text style={styles.bold}>{pendingAmount}</Text> tokens
-                </Text>
-              </View>
-
-              <View style={styles.progressContainer}>
-                <Text style={styles.pendingText}>Waiting for approval...</Text>
-                <View style={styles.progressTrack}>
-                  <Animated.View
-                    style={[
-                      styles.progressFill,
-                      {
-                        width: progress.interpolate({
-                          inputRange: [0, 1],
-                          outputRange: ['0%', '100%'],
-                        }),
-                      },
-                    ]}
-                  />
-                </View>
-                <View style={styles.progressFooter}>
-                  <Text style={styles.countdownText}>Auto close in {countdown}s</Text>
-                  <TouchableOpacity
-                    onPress={() => {
-                      if (timerRef.current) clearInterval(timerRef.current);
-                      setPendingModalVisible(false);
-                    }}
-                    style={styles.okButton}
-                  >
-                    <Text style={styles.okButtonText}>OK</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </View>
-          </View>
-        </View>
-      </Modal>
     </SafeAreaView>
   );
 }
 
+/* ── Styles ───────────────────────── */
+const SHADOW = Platform.select({
+  ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 12 },
+  android: { elevation: 6 },
+});
+
+const SHADOW_SM = Platform.select({
+  ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 6 },
+  android: { elevation: 3 },
+});
+
 const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-  },
-  header: {
+  safe: { flex: 1, backgroundColor: BG },
+  scroll: { flex: 1 },
+  scrollContent: { padding: wp('4%'), paddingTop: wp('4%') },
+
+  // Header
+  headerGrad: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    paddingHorizontal: wp('4%'),
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + 8 : 8,
+    paddingBottom: 14,
   },
-  backButton: {
-    padding: 4,
+  backBtn: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   headerTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#000',
-  },
-  headerRight: {
-    width: 28,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    padding: 16,
-  },
-  center: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  loadingText: {
-    marginTop: 8,
-    fontSize: 13,
-    color: '#6B7280',
-  },
-  // Balance Card
-  balanceCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#F3F4F6',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  balanceHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  balanceLabel: {
-    fontSize: 13,
-    fontWeight: '500',
-    color: '#6B7280',
-  },
-  historyButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  historyText: {
-    fontSize: 12,
-    color: '#10B981',
-    fontWeight: '600',
-    marginRight: 2,
-  },
-  balanceContent: {
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  balanceAmount: {
-    fontSize: 32,
+    fontSize: wp('4.5%'),
     fontWeight: '700',
-    color: '#065F46',
-    marginTop: 8,
+    color: '#FFFFFF',
+    letterSpacing: 0.3,
   },
-  balanceSubtitle: {
-    fontSize: 12,
-    color: '#6B7280',
+
+  // Hero Card
+  heroCard: {
+    borderRadius: 24,
+    padding: wp('6%'),
+    paddingTop: wp('8%'),
+    paddingBottom: wp('6%'),
+    alignItems: 'center',
+    marginBottom: wp('4%'),
+    overflow: 'hidden',
+    ...SHADOW,
+  },
+  heroCircle: {
+    position: 'absolute',
+    borderRadius: 999,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+  },
+  heroBalance: {
+    fontSize: wp('12%'),
+    fontWeight: '900',
+    color: '#FFFFFF',
+    marginTop: wp('3%'),
+    letterSpacing: 1,
+  },
+  heroLabel: {
+    fontSize: wp('3.5%'),
+    color: 'rgba(255,255,255,0.7)',
+    fontWeight: '600',
+    marginTop: 4,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+  },
+  heroStats: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: wp('5%'),
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    borderRadius: 16,
+    paddingVertical: wp('3%'),
+    paddingHorizontal: wp('5%'),
+    width: '100%',
+  },
+  heroStatItem: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  heroStatIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255,255,255,0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  heroStatVal: {
+    fontSize: wp('4%'),
+    fontWeight: '800',
+    color: '#FFFFFF',
+  },
+  heroStatLbl: {
+    fontSize: wp('2.8%'),
+    color: 'rgba(255,255,255,0.65)',
+    fontWeight: '500',
+    marginTop: 1,
+  },
+  heroStatDivider: {
+    width: 1,
+    height: 30,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    marginHorizontal: wp('3%'),
+  },
+
+  // Banner
+  banner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 16,
+    padding: wp('4%'),
+    marginBottom: wp('5%'),
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+    ...SHADOW_SM,
+  },
+  bannerBadge: {
+    width: wp('14%'),
+    height: wp('14%'),
+    borderRadius: wp('4%'),
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: wp('3.5%'),
+    ...Platform.select({
+      ios: { shadowColor: GOLD, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.35, shadowRadius: 8 },
+      android: { elevation: 6 },
+    }),
+  },
+  bannerBadgeText: {
+    fontSize: wp('5%'),
+    fontWeight: '900',
+    color: '#FFFFFF',
+  },
+  bannerText: { flex: 1 },
+  bannerTitle: {
+    fontSize: wp('3.8%'),
+    fontWeight: '800',
+    color: '#92400E',
+    marginBottom: 4,
+  },
+  bannerDesc: {
+    fontSize: wp('3%'),
+    color: '#A16207',
+    lineHeight: wp('4.2%'),
+  },
+
+  // Section Header
+  sectionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: wp('3%'),
+  },
+  sectionTitle: {
+    fontSize: wp('4%'),
+    fontWeight: '800',
+    color: TEXT_PRIMARY,
+    letterSpacing: 0.2,
+  },
+  countBadge: {
+    backgroundColor: EMERALD,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: 12,
+  },
+  countText: {
+    fontSize: wp('2.8%'),
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+
+  // Empty State
+  emptyCard: {
+    alignItems: 'center',
+    paddingVertical: hp('5%'),
+    backgroundColor: CARD,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: CARD_BORDER,
+    ...SHADOW_SM,
+  },
+  emptyIcon: {
+    width: 64,
+    height: 64,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  emptyTitle: {
+    fontSize: wp('4%'),
+    fontWeight: '700',
+    color: TEXT_PRIMARY,
+  },
+  emptyDesc: {
+    fontSize: wp('3.2%'),
+    color: TEXT_MUTED,
+    textAlign: 'center',
+    marginTop: 8,
+    lineHeight: wp('4.5%'),
+  },
+
+  // Transactions
+  txnList: {
+    gap: 10,
+  },
+  txnCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: CARD,
+    borderRadius: 16,
+    padding: wp('3.5%'),
+    borderWidth: 1,
+    borderColor: CARD_BORDER,
+    ...SHADOW_SM,
+  },
+  txnIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  txnInfo: { flex: 1 },
+  txnService: {
+    fontSize: wp('3.5%'),
+    fontWeight: '700',
+    color: TEXT_PRIMARY,
+  },
+  txnBookingNum: {
+    fontSize: wp('2.8%'),
+    color: TEXT_SECONDARY,
+    fontWeight: '500',
     marginTop: 2,
   },
-  // Wallet Section
-  walletDisplay: {
-    backgroundColor: '#F8FAFC',
-    borderRadius: 8,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
+  txnDate: {
+    fontSize: wp('2.6%'),
+    color: TEXT_MUTED,
+    marginTop: 2,
   },
-  walletInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 6,
+  txnRight: {
+    alignItems: 'flex-end',
   },
-  walletVerified: {
-    fontSize: 12,
-    color: '#10B981',
-    fontWeight: '600',
-    marginLeft: 4,
-  },
-  walletAddress: {
-    fontSize: 13,
-    color: '#374151',
-    fontWeight: '500',
-  },
-  walletInputSection: {
-    backgroundColor: '#F8FAFC',
-    borderRadius: 8,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-  },
-  walletLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#374151',
-    marginBottom: 8,
-  },
-  walletInput: {
-    borderWidth: 1,
-    borderColor: '#D1D5DB',
-    borderRadius: 8,
+  txnBadge: {
     paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 13,
-    backgroundColor: '#FFFFFF',
-    marginBottom: 10,
+    paddingVertical: 6,
+    borderRadius: 10,
   },
-  saveBtn: {
-    backgroundColor: '#10B981',
-    paddingVertical: 10,
-    borderRadius: 8,
-    alignItems: 'center',
+  txnAmount: {
+    fontSize: wp('3.8%'),
+    fontWeight: '800',
   },
-  saveBtnDisabled: {
-    opacity: 0.6,
-  },
-  saveBtnText: {
-    color: '#FFFFFF',
-    fontWeight: '600',
-    fontSize: 13,
-  },
-  // Stats Overview
-  statsOverview: {
-    flexDirection: 'row',
-    gap: 8,
-    marginBottom: 16,
-  },
-  statCard: {
-    flex: 1,
-    backgroundColor: '#F8FAFC',
-    borderRadius: 8,
-    padding: 12,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#F1F5F9',
-  },
-  statValue: {
-    fontSize: 16,
-    fontWeight: '700',
-    marginBottom: 4,
-  },
-  statLabel: {
-    fontSize: 11,
-    color: '#6B7280',
+  txnTokens: {
+    fontSize: wp('2.5%'),
+    color: TEXT_MUTED,
+    marginTop: 3,
     fontWeight: '500',
-    textAlign: 'center',
   },
-  // Actions Grid
-  actionsGrid: {
-    flexDirection: 'row',
-    gap: 12,
-    marginBottom: 16,
+
+  // Skeleton
+  skeletonWrap: {
+    padding: wp('4%'),
   },
-  actionCard: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#F3F4F6',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  actionHeader: {
-    flexDirection: 'row',
+  skeletonHero: {
     alignItems: 'center',
-    marginBottom: 8,
-  },
-  actionIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 8,
-  },
-  actionTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1F2937',
-  },
-  actionDescription: {
-    fontSize: 12,
-    color: '#6B7280',
-    lineHeight: 16,
-    marginBottom: 12,
-  },
-  actionButton: {
-    backgroundColor: '#10B981',
-    paddingVertical: 8,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  redeemButton: {
-    backgroundColor: '#3B82F6',
-  },
-  actionButtonText: {
-    color: '#FFFFFF',
-    fontWeight: '600',
-    fontSize: 12,
-  },
-  // Info Section
-  infoSection: {
-    backgroundColor: '#F8FAFC',
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-  },
-  infoHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  infoTitle: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#374151',
-    marginLeft: 6,
-  },
-  infoText: {
-    fontSize: 12,
-    color: '#6B7280',
-    lineHeight: 16,
-  },
-  // Coin Styles
-  coinWrap: {
-    alignItems: 'center',
-  },
-  coin: {
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  coinFace: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-  },
-  coinBack: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    opacity: 0.0,
-  },
-  bold: {
-    fontWeight: '700',
-  },
-  // Modal Styles
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    padding: 20,
-  },
-  modalContainer: {
-    width: '100%',
-    alignItems: 'center',
-  },
-  modalCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 20,
-    width: '100%',
-  },
-  modalHeader: {
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  modalIcon: {
-    width: 48,
-    height: 48,
+    backgroundColor: CARD,
     borderRadius: 24,
-    backgroundColor: '#ECFDF5',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1F2937',
-    marginBottom: 4,
-  },
-  modalSubtitle: {
-    fontSize: 13,
-    color: '#6B7280',
-  },
-  inputGroup: {
-    marginBottom: 20,
-  },
-  inputLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#374151',
-    marginBottom: 8,
-  },
-  modalInput: {
-    borderWidth: 1,
-    borderColor: '#D1D5DB',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 15,
-    backgroundColor: '#FFFFFF',
-  },
-  modalButton: {
-    backgroundColor: '#10B981',
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  modalButtonDisabled: {
-    opacity: 0.6,
-  },
-  modalButtonText: {
-    color: '#FFFFFF',
-    fontWeight: '600',
-    fontSize: 14,
-  },
-  modalCancel: {
-    paddingVertical: 10,
-    alignItems: 'center',
-  },
-  modalCancelText: {
-    color: '#6B7280',
-    fontWeight: '500',
-    fontSize: 14,
-  },
-  // Pending Modal
-  pendingModalContainer: {
-    width: '100%',
-    alignItems: 'center',
-  },
-  pendingCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 20,
-    width: '100%',
-  },
-  pendingHeader: {
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  successIcon: {
-    marginBottom: 12,
-  },
-  pendingTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1F2937',
-    marginBottom: 4,
-  },
-  pendingSubtitle: {
-    fontSize: 13,
-    color: '#6B7280',
-    textAlign: 'center',
-  },
-  pendingText: {
-    fontSize: 13,
-    color: '#6B7280',
-    textAlign: 'center',
-    marginBottom: 12,
-  },
-  progressContainer: {
-    marginTop: 8,
-  },
-  progressTrack: {
-    height: 4,
-    backgroundColor: '#F3F4F6',
-    borderRadius: 2,
-    overflow: 'hidden',
+    paddingVertical: hp('4%'),
     marginBottom: 16,
   },
-  progressFill: {
-    height: '100%',
-    backgroundColor: '#10B981',
-    borderRadius: 2,
-  },
-  progressFooter: {
+  skeletonCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  countdownText: {
-    fontSize: 12,
-    color: '#6B7280',
-    fontWeight: '500',
-  },
-  okButton: {
-    backgroundColor: '#10B981',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 6,
-  },
-  okButtonText: {
-    color: '#FFFFFF',
-    fontWeight: '600',
-    fontSize: 12,
+    backgroundColor: CARD,
+    borderRadius: 16,
+    padding: wp('3.5%'),
+    marginBottom: 10,
   },
 });

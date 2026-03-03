@@ -9,6 +9,7 @@ import crypto from 'crypto';
 
 import logger from '@/lib/security/logger';
 import { sendVendorDirectNotification } from '@/lib/utils/vendor-notification-sender';
+import { creditBackrTokens } from '@/lib/utils/backr-tokens';
 export const dynamic = 'force-dynamic';
 
 // POST - Vendor completes the car rental trip
@@ -174,6 +175,15 @@ export async function POST(
     const totalKmDriven = odometerEnd && booking.odometerStart
       ? odometerEnd - booking.odometerStart
       : null;
+
+    // Credit 10% Backr tokens to customer
+    creditBackrTokens({
+      customerId: booking.customerId,
+      bookingAmount: booking.grandTotal,
+      bookingId: booking.id,
+      bookingNumber: booking.bookingNumber,
+      serviceType: 'self-drive',
+    });
 
     return NextResponse.json({
       success: true,

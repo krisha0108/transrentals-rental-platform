@@ -23,6 +23,7 @@ import {
   HelpCircle,
 } from 'lucide-react';
 import { BikeBookingChat } from '@/components/bike/BikeBookingChat';
+import { BookingPayment } from '@/components/payment/BookingPayment';
 import { useCustomerAuth } from '@/hooks/useCustomer';
 
 interface BookingDetails {
@@ -47,6 +48,7 @@ interface BookingDetails {
   gstAmount: number;
   platformFee: number;
   grandTotal: number;
+  advanceAmount?: number;
   status: string;
   driverName?: string;
   driverPhone?: string;
@@ -395,12 +397,13 @@ export default function CarRentalBookingDetailPage() {
             {/* Actions */}
             <div className="bg-white rounded-xl shadow-sm border p-6 space-y-3">
               {booking.status === 'PENDING_PAYMENT' && (
-                <Link
-                  href={`/pay/${booking.bookingNumber}`}
-                  className="w-full px-4 py-3 bg-amber-500 text-white font-medium rounded-lg hover:bg-amber-600 flex items-center justify-center gap-2"
-                >
-                  Pay Now
-                </Link>
+                <BookingPayment
+                  bookingId={booking.id}
+                  bookingType="chauffeur"
+                  amount={booking.advanceAmount || Math.round(booking.grandTotal * 0.3)}
+                  bookingNumber={booking.bookingNumber}
+                  onSuccess={() => window.location.reload()}
+                />
               )}
 
               {canRate && (

@@ -2,7 +2,7 @@
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const dev = true; // 🚀 PRODUCTION MODE - App will call https://transrentals.in/api
+const dev = true; // 🏠 LOCAL DEV MODE - App will call local backend
 
 // For Android Emulator: Use 10.0.2.2 (this is the host machine's localhost)
 // For Physical Device: Use your computer's IP address
@@ -10,7 +10,7 @@ const dev = true; // 🚀 PRODUCTION MODE - App will call https://transrentals.i
 
 // CHANGE THIS BASED ON YOUR SETUP:
 // const LOCAL_HOST = '192.168.29.144'; // Physical Device -> Your PC's WiFi IP Address
-const LOCAL_HOST = 'localhost'; // Using ADB Reverse (USB connection) ✅
+const LOCAL_HOST = '192.168.29.58'; // Physical Device -> Your PC's WiFi IP Address ✅
 // const LOCAL_HOST = '10.0.2.2'; // Android Emulator -> Use this for emulator
 const LOCAL_PORT = 3000; // Next.js dev server port
 

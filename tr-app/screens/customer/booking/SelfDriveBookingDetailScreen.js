@@ -9,14 +9,20 @@ import {
   ActivityIndicator,
   Linking,
   Alert,
+  Platform,
+  StatusBar,
+  Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useRoute, useNavigation, useFocusEffect } from '@react-navigation/native';
+import LinearGradient from 'react-native-linear-gradient';
+import {
+  widthPercentageToDP as wp,
+  heightPercentageToDP as hp,
+} from 'react-native-responsive-screen';
 import api from '../../api';
-
-const GREEN = '#09B368';
-const BG = '#F5F5F7';
+import { TEAL_DEEP, TEAL_MID, TEAL, TEAL_LIGHT, BG, CARD, TEXT_PRIMARY, TEXT_SECONDARY, TEXT_MUTED, SHADOW_SM, SHADOW_MD } from '../../../theme';
 
 const SelfDriveBookingDetailScreen = () => {
   const route = useRoute();
@@ -27,6 +33,24 @@ const SelfDriveBookingDetailScreen = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
+  const [quoteDetailsVisible, setQuoteDetailsVisible] = useState(false);
+  const [detailsTab, setDetailsTab] = useState('overview');
+
+  // StatusBar management
+  useFocusEffect(
+    useCallback(() => {
+      StatusBar.setBarStyle('light-content');
+      if (Platform.OS === 'android') {
+        StatusBar.setBackgroundColor(TEAL_DEEP);
+      }
+      return () => {
+        StatusBar.setBarStyle('dark-content');
+        if (Platform.OS === 'android') {
+          StatusBar.setBackgroundColor('#FFFFFF');
+        }
+      };
+    }, [])
+  );
 
   // Refresh data when screen comes into focus
   useFocusEffect(
@@ -101,6 +125,22 @@ const SelfDriveBookingDetailScreen = () => {
     );
   };
 
+  // Parse array data from API (handles both string and array formats)
+  const parseListData = (data) => {
+    if (!data) return [];
+    if (Array.isArray(data)) return data.filter(item => item && item.trim());
+    if (typeof data === 'string') {
+      if (data.trim().startsWith('[')) {
+        try {
+          const parsed = JSON.parse(data);
+          if (Array.isArray(parsed)) return parsed.filter(item => item && item.trim());
+        } catch (e) {}
+      }
+      return data.split(/\n|,/).map(item => item.trim()).filter(item => item && item !== '');
+    }
+    return [];
+  };
+
   const formatDate = (dateStr) => {
     if (!dateStr) return '-';
     const date = new Date(dateStr);
@@ -130,7 +170,7 @@ const SelfDriveBookingDetailScreen = () => {
       case 'ACCEPTED':
       case 'CONFIRMED':
       case 'READY_FOR_PICKUP':
-        return GREEN;
+        return TEAL;
       case 'IN_PROGRESS':
         return '#2980b9';
       case 'COMPLETED':
@@ -183,73 +223,99 @@ const SelfDriveBookingDetailScreen = () => {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.container}>
+      <View style={styles.container}>
+        <LinearGradient colors={[TEAL_DEEP, TEAL_MID, '#047857']} style={styles.loadingHeader}>
+          <View style={styles.decorCircle1} />
+          <View style={styles.decorCircle2} />
+          <View style={styles.decorCircle3} />
+        </LinearGradient>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={GREEN} />
+          <ActivityIndicator size="large" color={TEAL} />
           <Text style={styles.loadingText}>Loading booking details...</Text>
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
   if (error) {
     return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-            <Ionicons name="arrow-back" size={24} color="#333" />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Booking Details</Text>
-          <View style={{ width: 40 }} />
-        </View>
+      <View style={styles.container}>
+        <LinearGradient colors={[TEAL_DEEP, TEAL_MID, '#047857']} style={styles.headerGradient}>
+          <View style={styles.decorCircle1} />
+          <View style={styles.decorCircle2} />
+          <View style={styles.decorCircle3} />
+          <SafeAreaView edges={['top']}>
+            <View style={styles.headerRow}>
+              <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+                <Ionicons name="arrow-back" size={wp('5.5%')} color="#fff" />
+              </TouchableOpacity>
+              <Text style={styles.headerTitle}>Booking Details</Text>
+              <View style={{ width: wp('10%') }} />
+            </View>
+          </SafeAreaView>
+        </LinearGradient>
         <View style={styles.errorContainer}>
-          <Ionicons name="alert-circle-outline" size={60} color="#e74c3c" />
+          <View style={styles.errorIconCircle}>
+            <Ionicons name="alert-circle-outline" size={wp('12%')} color="#e74c3c" />
+          </View>
           <Text style={styles.errorTitle}>Oops!</Text>
           <Text style={styles.errorText}>{error}</Text>
-          <TouchableOpacity style={styles.retryBtn} onPress={fetchBookingDetails}>
-            <Text style={styles.retryBtnText}>Try Again</Text>
+          <TouchableOpacity onPress={fetchBookingDetails}>
+            <LinearGradient colors={[TEAL_DEEP, TEAL_MID]} style={styles.retryBtn}>
+              <Text style={styles.retryBtnText}>Try Again</Text>
+            </LinearGradient>
           </TouchableOpacity>
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
   const canCancel = booking && !['COMPLETED', 'CANCELLED', 'EXPIRED', 'REFUNDED', 'IN_PROGRESS'].includes(booking.status);
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Ionicons name="arrow-back" size={24} color="#333" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Booking Details</Text>
-        <TouchableOpacity
-          style={styles.chatBtn}
-          onPress={() => navigation.navigate('BookingChat', {
-            bookingId: booking?.id,
-            bookingNumber: booking?.bookingNumber,
-            vendorName: booking?.acceptedVendor?.businessName || booking?.assignedVendor?.businessName || 'Vendor'
-          })}
-        >
-          <Ionicons name="chatbubble-outline" size={22} color={GREEN} />
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.refreshBtn} onPress={onRefresh}>
-          <Ionicons name="refresh" size={20} color={GREEN} />
-        </TouchableOpacity>
-      </View>
+      <LinearGradient colors={[TEAL_DEEP, TEAL_MID, '#047857']} style={styles.headerGradient}>
+        <View style={styles.decorCircle1} />
+        <View style={styles.decorCircle2} />
+        <View style={styles.decorCircle3} />
+        <SafeAreaView edges={['top']}>
+          <View style={styles.headerRow}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+              <Ionicons name="arrow-back" size={wp('5.5%')} color="#fff" />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>Booking Details</Text>
+            <View style={styles.headerActions}>
+              <TouchableOpacity
+                style={styles.headerActionBtn}
+                onPress={() => navigation.navigate('BookingChat', {
+                  bookingId: booking?.id,
+                  bookingNumber: booking?.bookingNumber,
+                  vendorName: booking?.acceptedVendor?.businessName || booking?.assignedVendor?.businessName || 'Vendor'
+                })}
+              >
+                <Ionicons name="chatbubble-outline" size={wp('5%')} color="#fff" />
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.headerActionBtn} onPress={onRefresh}>
+                <Ionicons name="refresh" size={wp('4.8%')} color="#fff" />
+              </TouchableOpacity>
+            </View>
+          </View>
+        </SafeAreaView>
+      </LinearGradient>
 
       <ScrollView
         style={styles.content}
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[GREEN]} />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[TEAL]} />
         }
       >
         {/* Status Card */}
         <View style={styles.statusCard}>
-          <View style={[styles.statusBadge, { backgroundColor: getStatusColor(booking.status) }]}>
-            <Text style={styles.statusText}>{getStatusLabel(booking.status)}</Text>
+          <View style={[styles.statusBadge, { backgroundColor: getStatusColor(booking.status) + '18' }]}>
+            <View style={[styles.statusDot, { backgroundColor: getStatusColor(booking.status) }]} />
+            <Text style={[styles.statusText, { color: getStatusColor(booking.status) }]}>{getStatusLabel(booking.status)}</Text>
           </View>
           <Text style={styles.bookingNumber}>#{booking.bookingNumber}</Text>
           <Text style={styles.bookingDate}>
@@ -260,7 +326,9 @@ const SelfDriveBookingDetailScreen = () => {
         {/* Vehicle Card */}
         <View style={styles.card}>
           <View style={styles.cardHeader}>
-            <Ionicons name="car-sport" size={22} color={GREEN} />
+            <View style={[styles.cardIconCircle, { backgroundColor: TEAL_LIGHT }]}>
+              <Ionicons name="car-sport" size={wp('5%')} color={TEAL} />
+            </View>
             <Text style={styles.cardTitle}>Vehicle Details</Text>
           </View>
           <View style={styles.vehicleInfo}>
@@ -269,19 +337,19 @@ const SelfDriveBookingDetailScreen = () => {
             <View style={styles.specsRow}>
               {booking.transmission && (
                 <View style={styles.specBadge}>
-                  <Ionicons name="cog" size={14} color={GREEN} />
+                  <Ionicons name="cog" size={wp('3.5%')} color={TEAL} />
                   <Text style={styles.specBadgeText}>{booking.transmission}</Text>
                 </View>
               )}
               {booking.fuelType && (
                 <View style={styles.specBadge}>
-                  <Ionicons name="water" size={14} color={GREEN} />
+                  <Ionicons name="water" size={wp('3.5%')} color={TEAL} />
                   <Text style={styles.specBadgeText}>{booking.fuelType}</Text>
                 </View>
               )}
               {booking.seats && (
                 <View style={styles.specBadge}>
-                  <Ionicons name="people" size={14} color={GREEN} />
+                  <Ionicons name="people" size={wp('3.5%')} color={TEAL} />
                   <Text style={styles.specBadgeText}>{booking.seats} Seats</Text>
                 </View>
               )}
@@ -292,13 +360,15 @@ const SelfDriveBookingDetailScreen = () => {
         {/* Trip Details */}
         <View style={styles.card}>
           <View style={styles.cardHeader}>
-            <Ionicons name="calendar-outline" size={22} color={GREEN} />
+            <View style={[styles.cardIconCircle, { backgroundColor: '#EEF2FF' }]}>
+              <Ionicons name="calendar-outline" size={wp('5%')} color="#6366F1" />
+            </View>
             <Text style={styles.cardTitle}>Trip Details</Text>
           </View>
 
           <View style={styles.tripRow}>
             <View style={styles.tripPoint}>
-              <View style={[styles.tripDot, { backgroundColor: GREEN }]} />
+              <View style={[styles.tripDot, { backgroundColor: TEAL }]} />
               <View style={styles.tripInfo}>
                 <Text style={styles.tripLabel}>PICKUP</Text>
                 <Text style={styles.tripDate}>{formatDate(booking.pickupDate)}</Text>
@@ -317,66 +387,86 @@ const SelfDriveBookingDetailScreen = () => {
           </View>
 
           <View style={styles.locationRow}>
-            <Ionicons name="location" size={18} color="#666" />
+            <View style={[styles.locationIconCircle]}>
+              <Ionicons name="location" size={wp('4%')} color={TEAL} />
+            </View>
             <Text style={styles.locationText}>{booking.locationName || booking.location?.name || booking.pickupAddress}</Text>
           </View>
 
           <View style={styles.durationBadge}>
-            <Ionicons name="time-outline" size={16} color={GREEN} />
+            <Ionicons name="time-outline" size={wp('4%')} color={TEAL} />
             <Text style={styles.durationText}>{booking.totalDays} Day{booking.totalDays > 1 ? 's' : ''} Rental</Text>
           </View>
         </View>
 
         {/* KM Limit Info */}
-        {(booking.kmLimitPerDay || booking.extraKmRate) && (
+        {(booking.kmLimitPerDay > 0 || booking.extraKmRate > 0) && (
           <View style={styles.card}>
             <View style={styles.cardHeader}>
-              <Ionicons name="speedometer-outline" size={22} color={GREEN} />
+              <View style={[styles.cardIconCircle, { backgroundColor: '#FFF7ED' }]}>
+                <Ionicons name="speedometer-outline" size={wp('5%')} color="#F97316" />
+              </View>
               <Text style={styles.cardTitle}>KM Limit</Text>
             </View>
-            {booking.kmLimitPerDay && (
+            {booking.kmLimitPerDay > 0 && (
               <View style={styles.kmRow}>
                 <Text style={styles.kmLabel}>Daily KM Limit</Text>
                 <Text style={styles.kmValue}>{booking.kmLimitPerDay} km/day</Text>
               </View>
             )}
-            {booking.extraKmRate && (
+            {booking.extraKmRate > 0 && (
               <View style={styles.kmRow}>
                 <Text style={styles.kmLabel}>Extra KM Charge</Text>
-                <Text style={styles.kmValue}>₹{booking.extraKmRate}/km</Text>
+                <Text style={styles.kmValue}>{'\u20B9'}{booking.extraKmRate}/km</Text>
               </View>
             )}
           </View>
         )}
 
+        {/* View Quote Details Button */}
+        {booking.quote && (
+          <TouchableOpacity
+            style={styles.viewQuoteDetailsBtn}
+            onPress={() => setQuoteDetailsVisible(true)}
+          >
+            <LinearGradient colors={[TEAL_DEEP, TEAL_MID]} style={styles.viewQuoteGradient}>
+              <Ionicons name="document-text-outline" size={wp('5.5%')} color="#FFF" />
+              <Text style={styles.viewQuoteDetailsText}>View Quote Details</Text>
+              <Ionicons name="chevron-forward" size={wp('5%')} color="#FFF" />
+            </LinearGradient>
+          </TouchableOpacity>
+        )}
+
         {/* Price Breakdown */}
         <View style={styles.card}>
           <View style={styles.cardHeader}>
-            <Ionicons name="pricetag-outline" size={22} color={GREEN} />
+            <View style={[styles.cardIconCircle, { backgroundColor: '#F0FDF4' }]}>
+              <Ionicons name="pricetag-outline" size={wp('5%')} color={TEAL} />
+            </View>
             <Text style={styles.cardTitle}>Price Breakdown</Text>
           </View>
 
           <View style={styles.priceRow}>
             <Text style={styles.priceLabel}>Daily Rate x {booking.totalDays}</Text>
-            <Text style={styles.priceValue}>₹{booking.dailyRate * booking.totalDays}</Text>
+            <Text style={styles.priceValue}>{'\u20B9'}{booking.dailyRate * booking.totalDays}</Text>
           </View>
 
           {booking.securityDeposit > 0 && (
             <View style={styles.priceRow}>
               <Text style={styles.priceLabel}>Security Deposit (Refundable)</Text>
-              <Text style={styles.priceValue}>₹{booking.securityDeposit}</Text>
+              <Text style={styles.priceValue}>{'\u20B9'}{booking.securityDeposit}</Text>
             </View>
           )}
 
           <View style={[styles.priceRow, styles.totalRow]}>
             <Text style={styles.totalLabel}>Total Amount</Text>
-            <Text style={styles.totalValue}>₹{booking.grandTotal}</Text>
+            <Text style={styles.totalValue}>{'\u20B9'}{booking.grandTotal}</Text>
           </View>
 
           {booking.paidAmount > 0 && (
             <View style={styles.paidRow}>
-              <Ionicons name="checkmark-circle" size={18} color={GREEN} />
-              <Text style={styles.paidText}>₹{booking.paidAmount} Paid</Text>
+              <Ionicons name="checkmark-circle" size={wp('4.5%')} color={TEAL} />
+              <Text style={styles.paidText}>{'\u20B9'}{booking.paidAmount} Paid</Text>
             </View>
           )}
         </View>
@@ -384,28 +474,29 @@ const SelfDriveBookingDetailScreen = () => {
         {/* Advance Payment Card - Show when payment is pending */}
         {booking.status === 'PENDING_PAYMENT' && booking.advanceAmount > 0 && (
           <View style={styles.advanceCard}>
-            <View style={styles.advanceHeader}>
-              <Ionicons name="wallet-outline" size={22} color="#fff" />
+            <LinearGradient colors={[TEAL_DEEP, TEAL_MID]} style={styles.advanceHeader}>
+              <Ionicons name="wallet-outline" size={wp('5.5%')} color="#fff" />
               <Text style={styles.advanceHeaderText}>Advance Payment Required</Text>
-            </View>
+            </LinearGradient>
             <View style={styles.advanceBody}>
               <View style={styles.advanceAmountRow}>
                 <Text style={styles.advanceLabel}>Advance ({booking.advancePercentage || 30}%)</Text>
-                <Text style={styles.advanceAmount}>₹{booking.advanceAmount}</Text>
+                <Text style={styles.advanceAmount}>{'\u20B9'}{booking.advanceAmount}</Text>
               </View>
               <Text style={styles.advanceNote}>
-                Pay advance to confirm your booking. Balance amount of ₹{booking.grandTotal - booking.advanceAmount} to be paid at pickup.
+                Pay advance to confirm your booking. Balance amount of {'\u20B9'}{booking.grandTotal - booking.advanceAmount} to be paid at pickup.
               </Text>
               <TouchableOpacity
-                style={styles.payNowBtn}
                 onPress={() => navigation.navigate('PaymentScreen', {
                   bookingId: booking.id,
                   bookingType: 'self-drive',
                   amount: booking.advanceAmount
                 })}
               >
-                <Ionicons name="card-outline" size={18} color="#fff" />
-                <Text style={styles.payNowBtnText}>Pay ₹{booking.advanceAmount} Now</Text>
+                <LinearGradient colors={[TEAL, '#059669']} style={styles.payNowBtn}>
+                  <Ionicons name="card-outline" size={wp('4.5%')} color="#fff" />
+                  <Text style={styles.payNowBtnText}>Pay {'\u20B9'}{booking.advanceAmount} Now</Text>
+                </LinearGradient>
               </TouchableOpacity>
             </View>
           </View>
@@ -415,12 +506,12 @@ const SelfDriveBookingDetailScreen = () => {
         {booking.status === 'PAYMENT_SUBMITTED' && (
           <View style={styles.verificationCard}>
             <View style={styles.verificationIconWrap}>
-              <Ionicons name="hourglass-outline" size={32} color="#f39c12" />
+              <Ionicons name="hourglass-outline" size={wp('7%')} color="#f39c12" />
             </View>
             <View style={styles.verificationContent}>
               <Text style={styles.verificationTitle}>Payment Verification Pending</Text>
               <Text style={styles.verificationText}>
-                Your payment of ₹{booking.advanceAmount || booking.paidAmount} has been submitted. Our team is verifying it. You'll be notified once confirmed.
+                Your payment of {'\u20B9'}{booking.advanceAmount || booking.paidAmount} has been submitted. Our team is verifying it. You'll be notified once confirmed.
               </Text>
             </View>
           </View>
@@ -430,7 +521,7 @@ const SelfDriveBookingDetailScreen = () => {
         {(booking.status === 'PAYMENT_VERIFIED' || booking.status === 'BROADCASTED') && (
           <View style={styles.findingVendorCard}>
             <View style={styles.findingVendorIconWrap}>
-              <Ionicons name="search-outline" size={32} color="#3498db" />
+              <Ionicons name="search-outline" size={wp('7%')} color="#3498db" />
             </View>
             <View style={styles.findingVendorContent}>
               <Text style={styles.findingVendorTitle}>Finding Best Vendor</Text>
@@ -444,10 +535,10 @@ const SelfDriveBookingDetailScreen = () => {
         {/* OTP Card - Show when vendor requests trip start */}
         {booking.tripStartOtp && !booking.tripOtpVerified && (
           <View style={styles.otpCard}>
-            <View style={styles.otpHeader}>
-              <Ionicons name="key-outline" size={22} color="#fff" />
+            <LinearGradient colors={['#2563EB', '#3B82F6']} style={styles.otpHeader}>
+              <Ionicons name="key-outline" size={wp('5.5%')} color="#fff" />
               <Text style={styles.otpHeaderText}>Trip Start OTP</Text>
-            </View>
+            </LinearGradient>
             <View style={styles.otpBody}>
               <Text style={styles.otpInstruction}>
                 Share this OTP with the vendor to start your trip
@@ -465,7 +556,9 @@ const SelfDriveBookingDetailScreen = () => {
         {/* Trip Started Confirmation */}
         {booking.tripOtpVerified && booking.status === 'IN_PROGRESS' && (
           <View style={styles.tripStartedCard}>
-            <Ionicons name="checkmark-circle" size={24} color={GREEN} />
+            <View style={styles.tripStartedIconCircle}>
+              <Ionicons name="checkmark-circle" size={wp('6%')} color={TEAL} />
+            </View>
             <View style={styles.tripStartedInfo}>
               <Text style={styles.tripStartedTitle}>Trip Started</Text>
               <Text style={styles.tripStartedText}>
@@ -479,15 +572,17 @@ const SelfDriveBookingDetailScreen = () => {
         {booking.vendor && (
           <View style={styles.card}>
             <View style={styles.cardHeader}>
-              <Ionicons name="storefront-outline" size={22} color={GREEN} />
+              <View style={[styles.cardIconCircle, { backgroundColor: '#FDF2F8' }]}>
+                <Ionicons name="storefront-outline" size={wp('5%')} color="#EC4899" />
+              </View>
               <Text style={styles.cardTitle}>Vendor Details</Text>
             </View>
 
             <View style={styles.vendorInfoRow}>
               <Text style={styles.vendorName}>{booking.vendor.name || booking.vendor.businessName}</Text>
-              {booking.vendor.rating && (
+              {booking.vendor.rating > 0 && (
                 <View style={styles.ratingRow}>
-                  <Ionicons name="star" size={16} color="#f39c12" />
+                  <Ionicons name="star" size={wp('3.8%')} color="#f39c12" />
                   <Text style={styles.ratingText}>{booking.vendor.rating.toFixed(1)}</Text>
                 </View>
               )}
@@ -495,11 +590,12 @@ const SelfDriveBookingDetailScreen = () => {
 
             {booking.vendor.phone && (
               <TouchableOpacity
-                style={styles.callBtn}
                 onPress={() => handleCall(booking.vendor.phone)}
               >
-                <Ionicons name="call" size={18} color="#fff" />
-                <Text style={styles.callBtnText}>Call Vendor</Text>
+                <LinearGradient colors={[TEAL, '#059669']} style={styles.callBtn}>
+                  <Ionicons name="call" size={wp('4.5%')} color="#fff" />
+                  <Text style={styles.callBtnText}>Call Vendor</Text>
+                </LinearGradient>
               </TouchableOpacity>
             )}
           </View>
@@ -509,7 +605,9 @@ const SelfDriveBookingDetailScreen = () => {
         {booking.customerNotes && (
           <View style={styles.card}>
             <View style={styles.cardHeader}>
-              <Ionicons name="document-text-outline" size={22} color={GREEN} />
+              <View style={[styles.cardIconCircle, { backgroundColor: '#FEF3C7' }]}>
+                <Ionicons name="document-text-outline" size={wp('5%')} color="#D97706" />
+              </View>
               <Text style={styles.cardTitle}>Your Notes</Text>
             </View>
             <Text style={styles.notesText}>{booking.customerNotes}</Text>
@@ -520,7 +618,9 @@ const SelfDriveBookingDetailScreen = () => {
         {booking.vendorNotes && (
           <View style={styles.card}>
             <View style={styles.cardHeader}>
-              <Ionicons name="chatbubble-ellipses-outline" size={22} color={GREEN} />
+              <View style={[styles.cardIconCircle, { backgroundColor: '#EDE9FE' }]}>
+                <Ionicons name="chatbubble-ellipses-outline" size={wp('5%')} color="#7C3AED" />
+              </View>
               <Text style={styles.cardTitle}>Vendor Notes</Text>
             </View>
             <Text style={styles.notesText}>{booking.vendorNotes}</Text>
@@ -529,31 +629,22 @@ const SelfDriveBookingDetailScreen = () => {
 
         {/* Action Buttons */}
         <View style={styles.actions}>
-          {/* Review & Invoice for completed bookings */}
-          {booking.status === 'COMPLETED' && (
+          {/* Review & Invoice for completed bookings — temporarily disabled, will redesign invoice format */}
+          {/* {booking.status === 'COMPLETED' && (
             <>
-              {!booking.rating && (
-                <TouchableOpacity
-                  style={styles.reviewBtn}
-                  onPress={() => navigation.navigate('ReviewScreen', { booking, bookingType: 'self-drive' })}
-                >
-                  <Ionicons name="star-outline" size={20} color="#FFB800" />
-                  <Text style={styles.reviewBtnText}>Rate & Review</Text>
-                </TouchableOpacity>
-              )}
               <TouchableOpacity
                 style={styles.invoiceBtn}
                 onPress={() => navigation.navigate('InvoiceScreen', { booking, bookingType: 'self-drive' })}
               >
-                <Ionicons name="receipt-outline" size={20} color={GREEN} />
+                <Ionicons name="receipt-outline" size={wp('5%')} color={TEAL} />
                 <Text style={styles.invoiceBtnText}>View Invoice</Text>
               </TouchableOpacity>
             </>
-          )}
+          )} */}
 
           {canCancel && (
             <TouchableOpacity style={styles.cancelBtn} onPress={handleCancelBooking}>
-              <Ionicons name="close-circle-outline" size={20} color="#e74c3c" />
+              <Ionicons name="close-circle-outline" size={wp('5%')} color="#e74c3c" />
               <Text style={styles.cancelBtnText}>Cancel Booking</Text>
             </TouchableOpacity>
           )}
@@ -562,14 +653,255 @@ const SelfDriveBookingDetailScreen = () => {
             style={styles.supportBtn}
             onPress={() => Linking.openURL('tel:+919737965551')}
           >
-            <Ionicons name="headset-outline" size={20} color={GREEN} />
+            <Ionicons name="headset-outline" size={wp('5%')} color={TEAL} />
             <Text style={styles.supportBtnText}>Contact Support</Text>
           </TouchableOpacity>
         </View>
 
-        <View style={{ height: 40 }} />
+        <View style={{ height: hp('5%') }} />
       </ScrollView>
-    </SafeAreaView>
+
+      {/* Quote Details Modal */}
+      {booking && booking.quote && (
+        <Modal
+          visible={quoteDetailsVisible}
+          transparent={false}
+          animationType="slide"
+          onRequestClose={() => setQuoteDetailsVisible(false)}
+        >
+          <SafeAreaView style={styles.quoteModalContainer}>
+            {/* Modal Header */}
+            <LinearGradient colors={[TEAL_DEEP, TEAL_MID, '#047857']} style={styles.quoteModalHeaderGrad}>
+              <View style={styles.quoteModalHeaderRow}>
+                <TouchableOpacity onPress={() => setQuoteDetailsVisible(false)} style={styles.backBtn}>
+                  <Ionicons name="close" size={wp('6%')} color="#FFF" />
+                </TouchableOpacity>
+                <Text style={styles.quoteModalTitle}>Quote Details</Text>
+                <View style={{ width: wp('10%') }} />
+              </View>
+            </LinearGradient>
+
+            <ScrollView style={styles.quoteModalContent} showsVerticalScrollIndicator={false}>
+              {/* Tabs */}
+              <View style={styles.quoteTabs}>
+                {['overview', 'inclusions', 'exclusions', 'terms'].map((tab) => (
+                  <TouchableOpacity
+                    key={tab}
+                    style={[styles.quoteTab, detailsTab === tab && styles.quoteTabActive]}
+                    onPress={() => setDetailsTab(tab)}
+                  >
+                    <Text style={[styles.quoteTabText, detailsTab === tab && styles.quoteTabTextActive]}>
+                      {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              <View style={styles.quoteTabContent}>
+                {/* Overview Tab */}
+                {detailsTab === 'overview' && (
+                  <View>
+                    {/* Vehicle Features */}
+                    {(() => {
+                      const features = parseListData(booking.quote.vehicleFeatures);
+                      return features.length > 0 && (
+                        <View style={styles.quoteSection}>
+                          <View style={styles.quoteSectionHeader}>
+                            <View style={[styles.quoteSectionIcon, { backgroundColor: TEAL_LIGHT }]}>
+                              <Ionicons name="car-sport" size={wp('4.5%')} color={TEAL} />
+                            </View>
+                            <Text style={styles.quoteSectionTitle}>Vehicle Features</Text>
+                          </View>
+                          <View style={styles.quoteListCard}>
+                            {features.map((item, idx) => (
+                              <View key={idx} style={[styles.quoteFeatureItem, idx === features.length - 1 && styles.quoteFeatureItemLast]}>
+                                <Ionicons name="checkmark-circle" size={wp('4%')} color={TEAL} />
+                                <Text style={styles.quoteFeatureText}>{item}</Text>
+                              </View>
+                            ))}
+                          </View>
+                        </View>
+                      );
+                    })()}
+
+                    {/* Quote Overview Card */}
+                    <View style={styles.quoteSection}>
+                      <View style={styles.quoteSectionHeader}>
+                        <View style={[styles.quoteSectionIcon, { backgroundColor: '#EDE9FE' }]}>
+                          <Ionicons name="receipt-outline" size={wp('4.5%')} color="#7C3AED" />
+                        </View>
+                        <Text style={styles.quoteSectionTitle}>Quote Summary</Text>
+                      </View>
+                      <View style={styles.quoteListCard}>
+                        <View style={styles.quoteOverviewRow}>
+                          <Text style={styles.quoteOverviewLabel}>Vehicle</Text>
+                          <Text style={styles.quoteOverviewValue}>{booking.quote.vehicleName}</Text>
+                        </View>
+                        {booking.quote.vehicleBrand && (
+                          <View style={styles.quoteOverviewRow}>
+                            <Text style={styles.quoteOverviewLabel}>Brand</Text>
+                            <Text style={styles.quoteOverviewValue}>{booking.quote.vehicleBrand}</Text>
+                          </View>
+                        )}
+                        {booking.quote.registrationNumber && (
+                          <View style={styles.quoteOverviewRow}>
+                            <Text style={styles.quoteOverviewLabel}>Reg. Number</Text>
+                            <Text style={styles.quoteOverviewValue}>{booking.quote.registrationNumber}</Text>
+                          </View>
+                        )}
+                        <View style={styles.quoteOverviewRow}>
+                          <Text style={styles.quoteOverviewLabel}>Daily Rate</Text>
+                          <Text style={styles.quoteOverviewValue}>{'\u20B9'}{booking.quote.dailyRate}</Text>
+                        </View>
+                        <View style={styles.quoteOverviewRow}>
+                          <Text style={styles.quoteOverviewLabel}>KM Limit/Day</Text>
+                          <Text style={styles.quoteOverviewValue}>{booking.quote.kmLimitPerDay} km</Text>
+                        </View>
+                        <View style={styles.quoteOverviewRow}>
+                          <Text style={styles.quoteOverviewLabel}>Extra KM Rate</Text>
+                          <Text style={styles.quoteOverviewValue}>{'\u20B9'}{booking.quote.extraKmRate}/km</Text>
+                        </View>
+                        <View style={styles.quoteOverviewRow}>
+                          <Text style={styles.quoteOverviewLabel}>Security Deposit</Text>
+                          <Text style={styles.quoteOverviewValue}>{'\u20B9'}{booking.quote.securityDeposit}</Text>
+                        </View>
+                        <View style={[styles.quoteOverviewRow, { borderBottomWidth: 0 }]}>
+                          <Text style={[styles.quoteOverviewLabel, { fontWeight: '700', color: TEXT_PRIMARY }]}>Grand Total</Text>
+                          <Text style={[styles.quoteOverviewValue, { color: TEAL, fontSize: wp('4.2%') }]}>{'\u20B9'}{booking.quote.grandTotal}</Text>
+                        </View>
+                      </View>
+                    </View>
+
+                    {/* Vendor Message */}
+                    {booking.quote.vendorMessage && (
+                      <View style={styles.quoteSection}>
+                        <View style={styles.quoteVendorMessage}>
+                          <View style={styles.quoteMessageHeader}>
+                            <Ionicons name="chatbox-outline" size={wp('4.5%')} color={TEAL} />
+                            <Text style={styles.quoteMessageTitle}>Message from Vendor</Text>
+                          </View>
+                          <Text style={styles.quoteMessageText}>{booking.quote.vendorMessage}</Text>
+                        </View>
+                      </View>
+                    )}
+                  </View>
+                )}
+
+                {/* Inclusions Tab */}
+                {detailsTab === 'inclusions' && (
+                  <View style={styles.quoteSection}>
+                    <View style={styles.quoteSectionHeader}>
+                      <View style={[styles.quoteSectionIcon, { backgroundColor: TEAL_LIGHT }]}>
+                        <Ionicons name="checkmark-done-circle" size={wp('4.5%')} color={TEAL} />
+                      </View>
+                      <Text style={styles.quoteSectionTitle}>What's Included</Text>
+                    </View>
+                    {(() => {
+                      const inclusions = parseListData(booking.quote.inclusions);
+                      return inclusions.length > 0 ? (
+                        <View style={styles.quoteListCard}>
+                          {inclusions.map((item, idx) => (
+                            <View key={idx} style={[styles.quoteListItem, idx === inclusions.length - 1 && styles.quoteListItemLast]}>
+                              <View style={styles.quoteListBullet}>
+                                <Ionicons name="checkmark" size={wp('4.5%')} color={TEAL} />
+                              </View>
+                              <Text style={styles.quoteListText}>{item}</Text>
+                            </View>
+                          ))}
+                        </View>
+                      ) : (
+                        <View style={styles.quoteEmptyState}>
+                          <Ionicons name="document-text-outline" size={wp('10%')} color={TEXT_MUTED} />
+                          <Text style={styles.quoteEmptyText}>No inclusions specified</Text>
+                        </View>
+                      );
+                    })()}
+                  </View>
+                )}
+
+                {/* Exclusions Tab */}
+                {detailsTab === 'exclusions' && (
+                  <View style={styles.quoteSection}>
+                    <View style={styles.quoteSectionHeader}>
+                      <View style={[styles.quoteSectionIcon, { backgroundColor: '#FEE2E2' }]}>
+                        <Ionicons name="close-circle" size={wp('4.5%')} color="#DC2626" />
+                      </View>
+                      <Text style={styles.quoteSectionTitle}>What's Not Included</Text>
+                    </View>
+                    {(() => {
+                      const exclusions = parseListData(booking.quote.exclusions);
+                      return exclusions.length > 0 ? (
+                        <View style={styles.quoteListCard}>
+                          {exclusions.map((item, idx) => (
+                            <View key={idx} style={[styles.quoteListItem, idx === exclusions.length - 1 && styles.quoteListItemLast]}>
+                              <View style={[styles.quoteListBullet, { backgroundColor: '#FEE2E2' }]}>
+                                <Ionicons name="close" size={wp('4.5%')} color="#DC2626" />
+                              </View>
+                              <Text style={styles.quoteListText}>{item}</Text>
+                            </View>
+                          ))}
+                        </View>
+                      ) : (
+                        <View style={styles.quoteEmptyState}>
+                          <Ionicons name="document-text-outline" size={wp('10%')} color={TEXT_MUTED} />
+                          <Text style={styles.quoteEmptyText}>No exclusions specified</Text>
+                        </View>
+                      );
+                    })()}
+                  </View>
+                )}
+
+                {/* Terms Tab */}
+                {detailsTab === 'terms' && (
+                  <View style={styles.quoteSection}>
+                    <View style={styles.quoteSectionHeader}>
+                      <View style={[styles.quoteSectionIcon, { backgroundColor: '#DBEAFE' }]}>
+                        <Ionicons name="document-text" size={wp('4.5%')} color="#2563EB" />
+                      </View>
+                      <Text style={styles.quoteSectionTitle}>Terms & Conditions</Text>
+                    </View>
+                    {(() => {
+                      const terms = parseListData(booking.quote.termsConditions);
+                      if (terms.length > 1) {
+                        return (
+                          <View style={styles.quoteListCard}>
+                            {terms.map((item, idx) => (
+                              <View key={idx} style={[styles.quoteListItem, idx === terms.length - 1 && styles.quoteListItemLast]}>
+                                <View style={[styles.quoteListBullet, { backgroundColor: TEAL_LIGHT }]}>
+                                  <Text style={styles.quoteTermsNumber}>{idx + 1}</Text>
+                                </View>
+                                <Text style={styles.quoteListText}>{item}</Text>
+                              </View>
+                            ))}
+                          </View>
+                        );
+                      }
+                      if (terms.length === 1 || booking.quote.termsConditions) {
+                        return (
+                          <View style={styles.quoteListCard}>
+                            <Text style={styles.quoteTermsText}>
+                              {terms[0] || booking.quote.termsConditions}
+                            </Text>
+                          </View>
+                        );
+                      }
+                      return (
+                        <View style={styles.quoteEmptyState}>
+                          <Ionicons name="document-text-outline" size={wp('10%')} color={TEXT_MUTED} />
+                          <Text style={styles.quoteEmptyText}>No terms specified</Text>
+                        </View>
+                      );
+                    })()}
+                  </View>
+                )}
+              </View>
+
+              <View style={{ height: hp('5%') }} />
+            </ScrollView>
+          </SafeAreaView>
+        </Modal>
+      )}
+    </View>
   );
 };
 
@@ -578,49 +910,11 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: BG,
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-  },
-  backBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#333',
-    flex: 1,
-  },
-  chatBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#F0FDF4',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 8,
-  },
-  refreshBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#F0FDF4',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  content: {
-    flex: 1,
-    padding: 16,
+
+  /* ── Loading ───────────────────────── */
+  loadingHeader: {
+    height: hp('15%'),
+    overflow: 'hidden',
   },
   loadingContainer: {
     flex: 1,
@@ -628,133 +922,237 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   loadingText: {
-    marginTop: 12,
-    color: '#666',
-    fontSize: 14,
+    marginTop: hp('1.5%'),
+    color: TEXT_SECONDARY,
+    fontSize: wp('3.5%'),
+    fontWeight: '500',
   },
+
+  /* ── Decorative Circles ───────────────────────── */
+  decorCircle1: {
+    position: 'absolute',
+    width: wp('40%'),
+    height: wp('40%'),
+    borderRadius: wp('20%'),
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    top: -wp('15%'),
+    right: -wp('10%'),
+  },
+  decorCircle2: {
+    position: 'absolute',
+    width: wp('25%'),
+    height: wp('25%'),
+    borderRadius: wp('12.5%'),
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    bottom: -wp('5%'),
+    left: -wp('8%'),
+  },
+  decorCircle3: {
+    position: 'absolute',
+    width: wp('15%'),
+    height: wp('15%'),
+    borderRadius: wp('7.5%'),
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    top: hp('3%'),
+    left: wp('30%'),
+  },
+
+  /* ── Header ───────────────────────── */
+  headerGradient: {
+    paddingBottom: hp('2%'),
+    overflow: 'hidden',
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: wp('4%'),
+    paddingTop: hp('1%'),
+    paddingBottom: hp('0.5%'),
+  },
+  backBtn: {
+    width: wp('10%'),
+    height: wp('10%'),
+    borderRadius: wp('5%'),
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerTitle: {
+    fontSize: wp('4.8%'),
+    fontWeight: '700',
+    color: '#fff',
+    flex: 1,
+    marginLeft: wp('3%'),
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: wp('2%'),
+  },
+  headerActionBtn: {
+    width: wp('9.5%'),
+    height: wp('9.5%'),
+    borderRadius: wp('4.75%'),
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  /* ── Content ───────────────────────── */
+  content: {
+    flex: 1,
+    padding: wp('4%'),
+  },
+
+  /* ── Error ───────────────────────── */
   errorContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
+    paddingHorizontal: wp('8%'),
+  },
+  errorIconCircle: {
+    width: wp('20%'),
+    height: wp('20%'),
+    borderRadius: wp('10%'),
+    backgroundColor: '#FEF2F2',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: hp('2%'),
   },
   errorTitle: {
-    fontSize: 22,
+    fontSize: wp('5.5%'),
     fontWeight: '700',
-    color: '#333',
-    marginTop: 16,
+    color: TEXT_PRIMARY,
+    marginBottom: hp('0.8%'),
   },
   errorText: {
-    fontSize: 14,
-    color: '#666',
-    marginTop: 8,
+    fontSize: wp('3.5%'),
+    color: TEXT_SECONDARY,
     textAlign: 'center',
+    lineHeight: wp('5%'),
   },
   retryBtn: {
-    marginTop: 20,
-    backgroundColor: GREEN,
-    paddingHorizontal: 30,
-    paddingVertical: 12,
-    borderRadius: 10,
+    marginTop: hp('2.5%'),
+    paddingHorizontal: wp('10%'),
+    paddingVertical: hp('1.5%'),
+    borderRadius: wp('3%'),
   },
   retryBtnText: {
     color: '#fff',
-    fontWeight: '600',
-    fontSize: 14,
+    fontWeight: '700',
+    fontSize: wp('3.8%'),
   },
 
-  // Status Card
+  /* ── Status Card ───────────────────────── */
   statusCard: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 20,
+    backgroundColor: CARD,
+    borderRadius: wp('4%'),
+    padding: wp('5%'),
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: hp('1.8%'),
+    ...SHADOW_SM,
   },
   statusBadge: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: wp('4%'),
+    paddingVertical: hp('0.8%'),
+    borderRadius: wp('5%'),
+  },
+  statusDot: {
+    width: wp('2%'),
+    height: wp('2%'),
+    borderRadius: wp('1%'),
+    marginRight: wp('2%'),
   },
   statusText: {
-    color: '#fff',
     fontWeight: '700',
-    fontSize: 14,
+    fontSize: wp('3.5%'),
   },
   bookingNumber: {
-    fontSize: 20,
+    fontSize: wp('5%'),
     fontWeight: '700',
-    color: '#333',
-    marginTop: 12,
+    color: TEXT_PRIMARY,
+    marginTop: hp('1.2%'),
   },
   bookingDate: {
-    fontSize: 13,
-    color: '#999',
-    marginTop: 4,
+    fontSize: wp('3.2%'),
+    color: TEXT_MUTED,
+    marginTop: hp('0.4%'),
   },
 
-  // Cards
+  /* ── Cards ───────────────────────── */
   card: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 16,
+    backgroundColor: CARD,
+    borderRadius: wp('4%'),
+    padding: wp('4%'),
+    marginBottom: hp('1.8%'),
+    ...SHADOW_SM,
   },
   cardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: hp('1.8%'),
+  },
+  cardIconCircle: {
+    width: wp('10%'),
+    height: wp('10%'),
+    borderRadius: wp('5%'),
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   cardTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
-    marginLeft: 10,
+    fontSize: wp('4%'),
+    fontWeight: '700',
+    color: TEXT_PRIMARY,
+    marginLeft: wp('3%'),
   },
 
-  // Vehicle
+  /* ── Vehicle ───────────────────────── */
   vehicleInfo: {
     alignItems: 'flex-start',
   },
   vehicleBrand: {
-    fontSize: 12,
-    color: '#999',
+    fontSize: wp('3%'),
+    color: TEXT_MUTED,
     textTransform: 'uppercase',
     letterSpacing: 1,
+    fontWeight: '600',
   },
   vehicleName: {
-    fontSize: 20,
+    fontSize: wp('5%'),
     fontWeight: '700',
-    color: '#333',
-    marginTop: 4,
-    marginBottom: 12,
+    color: TEXT_PRIMARY,
+    marginTop: hp('0.4%'),
+    marginBottom: hp('1.2%'),
   },
   specsRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: wp('2%'),
   },
   specBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#e8f5e9',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 12,
-    gap: 4,
+    backgroundColor: TEAL_LIGHT,
+    paddingHorizontal: wp('3%'),
+    paddingVertical: hp('0.8%'),
+    borderRadius: wp('3%'),
+    gap: wp('1%'),
   },
   specBadgeText: {
-    fontSize: 12,
-    color: GREEN,
-    fontWeight: '500',
+    fontSize: wp('3%'),
+    color: TEAL_MID,
+    fontWeight: '600',
   },
 
-  // Trip Details
+  /* ── Trip Details ───────────────────────── */
   tripRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 16,
+    marginBottom: hp('1.8%'),
   },
   tripPoint: {
     flex: 1,
@@ -762,454 +1160,672 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
   },
   tripDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    marginTop: 4,
-    marginRight: 10,
+    width: wp('3%'),
+    height: wp('3%'),
+    borderRadius: wp('1.5%'),
+    marginTop: hp('0.5%'),
+    marginRight: wp('2.5%'),
   },
   tripInfo: {},
   tripLabel: {
-    fontSize: 10,
-    color: '#999',
+    fontSize: wp('2.6%'),
+    color: TEXT_MUTED,
     fontWeight: '700',
     letterSpacing: 0.5,
   },
   tripDate: {
-    fontSize: 14,
+    fontSize: wp('3.5%'),
     fontWeight: '600',
-    color: '#333',
-    marginTop: 2,
+    color: TEXT_PRIMARY,
+    marginTop: hp('0.2%'),
   },
   tripTime: {
-    fontSize: 13,
-    color: '#666',
-    marginTop: 1,
+    fontSize: wp('3.2%'),
+    color: TEXT_SECONDARY,
+    marginTop: hp('0.1%'),
   },
   tripLine: {
-    width: 40,
+    width: wp('8%'),
     height: 2,
     backgroundColor: '#E2E8F0',
-    marginHorizontal: 8,
+    marginHorizontal: wp('2%'),
   },
   locationRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingTop: 12,
+    paddingTop: hp('1.5%'),
     borderTopWidth: 1,
-    borderTopColor: '#f0f0f0',
+    borderTopColor: '#F3F4F6',
+  },
+  locationIconCircle: {
+    width: wp('8%'),
+    height: wp('8%'),
+    borderRadius: wp('4%'),
+    backgroundColor: TEAL_LIGHT,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   locationText: {
-    fontSize: 14,
-    color: '#333',
-    marginLeft: 8,
+    fontSize: wp('3.5%'),
+    color: TEXT_PRIMARY,
+    marginLeft: wp('2.5%'),
     flex: 1,
   },
   durationBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(9,179,104,0.1)',
+    backgroundColor: TEAL_LIGHT,
     alignSelf: 'flex-start',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
-    marginTop: 12,
+    paddingHorizontal: wp('3%'),
+    paddingVertical: hp('0.7%'),
+    borderRadius: wp('3%'),
+    marginTop: hp('1.5%'),
   },
   durationText: {
-    color: GREEN,
+    color: TEAL_MID,
     fontWeight: '600',
-    fontSize: 13,
-    marginLeft: 6,
+    fontSize: wp('3.2%'),
+    marginLeft: wp('1.5%'),
   },
 
-  // KM Limit
+  /* ── KM Limit ───────────────────────── */
   kmRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 8,
+    marginBottom: hp('1%'),
+    paddingVertical: hp('0.5%'),
   },
   kmLabel: {
-    fontSize: 14,
-    color: '#666',
+    fontSize: wp('3.5%'),
+    color: TEXT_SECONDARY,
   },
   kmValue: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#333',
+    fontSize: wp('3.5%'),
+    fontWeight: '700',
+    color: TEXT_PRIMARY,
   },
 
-  // Price
+  /* ── View Quote Details Button ───────────────────────── */
+  viewQuoteDetailsBtn: {
+    marginBottom: hp('1.8%'),
+    borderRadius: wp('3.5%'),
+    overflow: 'hidden',
+    ...SHADOW_MD,
+  },
+  viewQuoteGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: hp('1.8%'),
+    paddingHorizontal: wp('5%'),
+  },
+  viewQuoteDetailsText: {
+    color: '#FFF',
+    fontSize: wp('3.8%'),
+    fontWeight: '700',
+    marginLeft: wp('2.5%'),
+    marginRight: wp('1.5%'),
+  },
+
+  /* ── Price ───────────────────────── */
   priceRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 10,
+    marginBottom: hp('1.2%'),
+    paddingVertical: hp('0.3%'),
   },
   priceLabel: {
-    fontSize: 14,
-    color: '#666',
+    fontSize: wp('3.5%'),
+    color: TEXT_SECONDARY,
   },
   priceValue: {
-    fontSize: 14,
-    color: '#333',
-    fontWeight: '500',
+    fontSize: wp('3.5%'),
+    color: TEXT_PRIMARY,
+    fontWeight: '600',
   },
   totalRow: {
     borderTopWidth: 1,
-    borderTopColor: '#f0f0f0',
-    paddingTop: 12,
-    marginTop: 4,
+    borderTopColor: '#F3F4F6',
+    paddingTop: hp('1.5%'),
+    marginTop: hp('0.5%'),
   },
   totalLabel: {
-    fontSize: 16,
+    fontSize: wp('4%'),
     fontWeight: '700',
-    color: '#333',
+    color: TEXT_PRIMARY,
   },
   totalValue: {
-    fontSize: 20,
+    fontSize: wp('5%'),
     fontWeight: '700',
-    color: GREEN,
+    color: TEAL,
   },
   paidRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 12,
-    backgroundColor: 'rgba(9,179,104,0.1)',
-    padding: 10,
-    borderRadius: 10,
+    marginTop: hp('1.5%'),
+    backgroundColor: TEAL_LIGHT,
+    padding: wp('3%'),
+    borderRadius: wp('3%'),
   },
   paidText: {
-    color: GREEN,
-    fontWeight: '600',
-    marginLeft: 8,
+    color: TEAL_MID,
+    fontWeight: '700',
+    marginLeft: wp('2%'),
+    fontSize: wp('3.5%'),
   },
 
-  // Advance Payment Card
+  /* ── Advance Payment Card ───────────────────────── */
   advanceCard: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
+    backgroundColor: CARD,
+    borderRadius: wp('4%'),
     overflow: 'hidden',
-    marginBottom: 16,
-    borderWidth: 2,
-    borderColor: GREEN,
+    marginBottom: hp('1.8%'),
+    ...SHADOW_MD,
   },
   advanceHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: GREEN,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
+    paddingVertical: hp('1.5%'),
+    paddingHorizontal: wp('4%'),
   },
   advanceHeaderText: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: wp('4%'),
     fontWeight: '700',
-    marginLeft: 10,
+    marginLeft: wp('2.5%'),
   },
   advanceBody: {
-    padding: 16,
+    padding: wp('4%'),
   },
   advanceAmountRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: hp('1.5%'),
   },
   advanceLabel: {
-    fontSize: 15,
-    color: '#666',
+    fontSize: wp('3.8%'),
+    color: TEXT_SECONDARY,
     fontWeight: '500',
   },
   advanceAmount: {
-    fontSize: 24,
+    fontSize: wp('6%'),
     fontWeight: '700',
-    color: GREEN,
+    color: TEAL,
   },
   advanceNote: {
-    fontSize: 13,
-    color: '#999',
-    lineHeight: 18,
-    marginBottom: 16,
+    fontSize: wp('3.2%'),
+    color: TEXT_MUTED,
+    lineHeight: wp('4.8%'),
+    marginBottom: hp('2%'),
   },
   payNowBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: GREEN,
-    paddingVertical: 14,
-    borderRadius: 12,
-    gap: 8,
+    paddingVertical: hp('1.8%'),
+    borderRadius: wp('3%'),
+    gap: wp('2%'),
   },
   payNowBtnText: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: wp('4%'),
     fontWeight: '700',
   },
 
-  // OTP Card
+  /* ── OTP Card ───────────────────────── */
   otpCard: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
+    backgroundColor: CARD,
+    borderRadius: wp('4%'),
     overflow: 'hidden',
-    marginBottom: 16,
-    borderWidth: 2,
-    borderColor: '#3498db',
+    marginBottom: hp('1.8%'),
+    ...SHADOW_MD,
   },
   otpHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#3498db',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
+    paddingVertical: hp('1.5%'),
+    paddingHorizontal: wp('4%'),
   },
   otpHeaderText: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: wp('4%'),
     fontWeight: '700',
-    marginLeft: 10,
+    marginLeft: wp('2.5%'),
   },
   otpBody: {
-    padding: 16,
+    padding: wp('4%'),
     alignItems: 'center',
   },
   otpInstruction: {
-    fontSize: 14,
-    color: '#666',
+    fontSize: wp('3.5%'),
+    color: TEXT_SECONDARY,
     textAlign: 'center',
-    marginBottom: 16,
+    marginBottom: hp('2%'),
   },
   otpCodeContainer: {
-    backgroundColor: '#f8f9fa',
-    paddingVertical: 16,
-    paddingHorizontal: 32,
-    borderRadius: 12,
+    backgroundColor: '#F0F9FF',
+    paddingVertical: hp('2%'),
+    paddingHorizontal: wp('8%'),
+    borderRadius: wp('3%'),
     borderWidth: 2,
-    borderColor: '#3498db',
+    borderColor: '#3B82F6',
     borderStyle: 'dashed',
-    marginBottom: 12,
+    marginBottom: hp('1.5%'),
   },
   otpCode: {
-    fontSize: 32,
+    fontSize: wp('8%'),
     fontWeight: '700',
-    color: '#3498db',
+    color: '#2563EB',
     letterSpacing: 8,
   },
   otpNote: {
-    fontSize: 12,
+    fontSize: wp('3%'),
     color: '#e74c3c',
     textAlign: 'center',
     fontStyle: 'italic',
   },
 
-  // Trip Started Card
+  /* ── Trip Started Card ───────────────────────── */
   tripStartedCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(9,179,104,0.1)',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: GREEN,
+    backgroundColor: CARD,
+    borderRadius: wp('4%'),
+    padding: wp('4%'),
+    marginBottom: hp('1.8%'),
+    borderWidth: 1.5,
+    borderColor: TEAL_LIGHT,
+    ...SHADOW_SM,
+  },
+  tripStartedIconCircle: {
+    width: wp('12%'),
+    height: wp('12%'),
+    borderRadius: wp('6%'),
+    backgroundColor: TEAL_LIGHT,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   tripStartedInfo: {
-    marginLeft: 12,
+    marginLeft: wp('3%'),
     flex: 1,
   },
   tripStartedTitle: {
-    fontSize: 16,
+    fontSize: wp('4%'),
     fontWeight: '700',
-    color: GREEN,
+    color: TEAL_MID,
   },
   tripStartedText: {
-    fontSize: 13,
-    color: '#666',
-    marginTop: 2,
+    fontSize: wp('3.2%'),
+    color: TEXT_SECONDARY,
+    marginTop: hp('0.3%'),
   },
 
-  // Vendor
+  /* ── Vendor ───────────────────────── */
   vendorInfoRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 12,
+    marginBottom: hp('1.5%'),
   },
   vendorName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
+    fontSize: wp('4%'),
+    fontWeight: '700',
+    color: TEXT_PRIMARY,
   },
   ratingRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff9e6',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-    gap: 4,
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: wp('2.5%'),
+    paddingVertical: hp('0.5%'),
+    borderRadius: wp('2%'),
+    gap: wp('1%'),
   },
   ratingText: {
-    fontSize: 14,
-    color: '#f39c12',
-    fontWeight: '600',
+    fontSize: wp('3.5%'),
+    color: '#D97706',
+    fontWeight: '700',
   },
   callBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: GREEN,
-    paddingVertical: 12,
-    borderRadius: 10,
-    gap: 8,
+    paddingVertical: hp('1.5%'),
+    borderRadius: wp('3%'),
+    gap: wp('2%'),
   },
   callBtnText: {
     color: '#fff',
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: wp('3.5%'),
+    fontWeight: '700',
   },
 
-  // Notes
+  /* ── Notes ───────────────────────── */
   notesText: {
-    fontSize: 14,
-    color: '#666',
-    lineHeight: 20,
+    fontSize: wp('3.5%'),
+    color: TEXT_SECONDARY,
+    lineHeight: wp('5.5%'),
   },
 
-  // Actions
+  /* ── Actions ───────────────────────── */
   actions: {
-    marginTop: 8,
-  },
-  reviewBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#FFF7E6',
-    borderWidth: 1,
-    borderColor: '#FFB800',
-    paddingVertical: 14,
-    borderRadius: 12,
-    marginBottom: 12,
-  },
-  reviewBtnText: {
-    color: '#B8860B',
-    fontWeight: '600',
-    marginLeft: 8,
+    marginTop: hp('1%'),
   },
   invoiceBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(9, 179, 104, 0.1)',
-    borderWidth: 1,
-    borderColor: GREEN,
-    paddingVertical: 14,
-    borderRadius: 12,
-    marginBottom: 12,
+    backgroundColor: TEAL_LIGHT,
+    borderWidth: 1.5,
+    borderColor: TEAL,
+    paddingVertical: hp('1.8%'),
+    borderRadius: wp('3%'),
+    marginBottom: hp('1.5%'),
+    gap: wp('2%'),
   },
   invoiceBtnText: {
-    color: GREEN,
-    fontWeight: '600',
-    marginLeft: 8,
+    color: TEAL_MID,
+    fontWeight: '700',
+    fontSize: wp('3.5%'),
   },
   cancelBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#fdecea',
-    paddingVertical: 14,
-    borderRadius: 12,
-    marginBottom: 12,
-    gap: 8,
+    backgroundColor: '#FEF2F2',
+    paddingVertical: hp('1.8%'),
+    borderRadius: wp('3%'),
+    marginBottom: hp('1.5%'),
+    gap: wp('2%'),
+    borderWidth: 1,
+    borderColor: '#FECACA',
   },
   cancelBtnText: {
     color: '#e74c3c',
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: wp('3.5%'),
+    fontWeight: '700',
   },
   supportBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#fff',
-    paddingVertical: 14,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: GREEN,
-    gap: 8,
+    backgroundColor: CARD,
+    paddingVertical: hp('1.8%'),
+    borderRadius: wp('3%'),
+    borderWidth: 1.5,
+    borderColor: TEAL,
+    gap: wp('2%'),
+    ...SHADOW_SM,
   },
   supportBtnText: {
-    color: GREEN,
-    fontSize: 14,
-    fontWeight: '600',
+    color: TEAL_MID,
+    fontSize: wp('3.5%'),
+    fontWeight: '700',
   },
 
-  // Payment Verification Card
+  /* ── Payment Verification Card ───────────────────────── */
   verificationCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 16,
-    borderWidth: 2,
-    borderColor: '#f39c12',
+    backgroundColor: CARD,
+    borderRadius: wp('4%'),
+    padding: wp('4%'),
+    marginBottom: hp('1.8%'),
+    borderWidth: 1.5,
+    borderColor: '#FDE68A',
+    ...SHADOW_SM,
   },
   verificationIconWrap: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: '#fff9e6',
+    width: wp('14%'),
+    height: wp('14%'),
+    borderRadius: wp('7%'),
+    backgroundColor: '#FEF3C7',
     justifyContent: 'center',
     alignItems: 'center',
   },
   verificationContent: {
     flex: 1,
-    marginLeft: 14,
+    marginLeft: wp('3.5%'),
   },
   verificationTitle: {
-    fontSize: 16,
+    fontSize: wp('3.8%'),
     fontWeight: '700',
-    color: '#f39c12',
-    marginBottom: 4,
+    color: '#D97706',
+    marginBottom: hp('0.4%'),
   },
   verificationText: {
-    fontSize: 13,
-    color: '#666',
-    lineHeight: 18,
+    fontSize: wp('3.2%'),
+    color: TEXT_SECONDARY,
+    lineHeight: wp('4.8%'),
   },
 
-  // Finding Vendor Card
+  /* ── Finding Vendor Card ───────────────────────── */
   findingVendorCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 16,
-    borderWidth: 2,
-    borderColor: '#3498db',
+    backgroundColor: CARD,
+    borderRadius: wp('4%'),
+    padding: wp('4%'),
+    marginBottom: hp('1.8%'),
+    borderWidth: 1.5,
+    borderColor: '#BFDBFE',
+    ...SHADOW_SM,
   },
   findingVendorIconWrap: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: '#e3f2fd',
+    width: wp('14%'),
+    height: wp('14%'),
+    borderRadius: wp('7%'),
+    backgroundColor: '#EFF6FF',
     justifyContent: 'center',
     alignItems: 'center',
   },
   findingVendorContent: {
     flex: 1,
-    marginLeft: 14,
+    marginLeft: wp('3.5%'),
   },
   findingVendorTitle: {
-    fontSize: 16,
+    fontSize: wp('3.8%'),
     fontWeight: '700',
-    color: '#3498db',
-    marginBottom: 4,
+    color: '#2563EB',
+    marginBottom: hp('0.4%'),
   },
   findingVendorText: {
-    fontSize: 13,
-    color: '#666',
-    lineHeight: 18,
+    fontSize: wp('3.2%'),
+    color: TEXT_SECONDARY,
+    lineHeight: wp('4.8%'),
+  },
+
+  /* ── Quote Details Modal ───────────────────────── */
+  quoteModalContainer: {
+    flex: 1,
+    backgroundColor: BG,
+  },
+  quoteModalHeaderGrad: {
+    paddingTop: Platform.OS === 'android' ? hp('1.5%') : hp('0.5%'),
+    paddingBottom: hp('2%'),
+    paddingHorizontal: wp('4%'),
+    overflow: 'hidden',
+  },
+  quoteModalHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  quoteModalTitle: {
+    fontSize: wp('4.8%'),
+    fontWeight: '700',
+    color: '#FFF',
+  },
+  quoteModalContent: {
+    flex: 1,
+  },
+  quoteTabs: {
+    flexDirection: 'row',
+    backgroundColor: CARD,
+    paddingHorizontal: wp('4%'),
+    paddingTop: hp('1.5%'),
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+    ...SHADOW_SM,
+  },
+  quoteTab: {
+    flex: 1,
+    paddingVertical: hp('1.5%'),
+    alignItems: 'center',
+    borderBottomWidth: 2.5,
+    borderBottomColor: 'transparent',
+  },
+  quoteTabActive: {
+    borderBottomColor: TEAL,
+  },
+  quoteTabText: {
+    fontSize: wp('3.2%'),
+    fontWeight: '600',
+    color: TEXT_MUTED,
+  },
+  quoteTabTextActive: {
+    color: TEAL_MID,
+  },
+  quoteTabContent: {
+    padding: wp('4%'),
+  },
+  quoteSection: {
+    marginBottom: hp('2.5%'),
+  },
+  quoteSectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: hp('1.5%'),
+  },
+  quoteSectionIcon: {
+    width: wp('9%'),
+    height: wp('9%'),
+    borderRadius: wp('4.5%'),
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  quoteSectionTitle: {
+    fontSize: wp('4.2%'),
+    fontWeight: '700',
+    color: TEXT_PRIMARY,
+    marginLeft: wp('2.5%'),
+  },
+  quoteFeatureItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: hp('1.5%'),
+    paddingBottom: hp('1.5%'),
+    borderBottomWidth: 1,
+    borderBottomColor: '#F9FAFB',
+  },
+  quoteFeatureItemLast: {
+    borderBottomWidth: 0,
+    marginBottom: 0,
+    paddingBottom: 0,
+  },
+  quoteFeatureText: {
+    fontSize: wp('3.5%'),
+    color: TEXT_PRIMARY,
+    marginLeft: wp('2.5%'),
+    flex: 1,
+    lineHeight: wp('5.5%'),
+    paddingTop: 1,
+  },
+  quoteListCard: {
+    backgroundColor: CARD,
+    padding: wp('4%'),
+    borderRadius: wp('3.5%'),
+    ...SHADOW_SM,
+  },
+  quoteListItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: hp('2%'),
+    paddingBottom: hp('2%'),
+    borderBottomWidth: 1,
+    borderBottomColor: '#F9FAFB',
+  },
+  quoteListItemLast: {
+    borderBottomWidth: 0,
+    marginBottom: 0,
+    paddingBottom: 0,
+  },
+  quoteListBullet: {
+    width: wp('7.5%'),
+    height: wp('7.5%'),
+    borderRadius: wp('3.75%'),
+    backgroundColor: TEAL_LIGHT,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: wp('3%'),
+    marginTop: hp('0.3%'),
+  },
+  quoteListText: {
+    fontSize: wp('3.8%'),
+    color: TEXT_PRIMARY,
+    lineHeight: wp('5.8%'),
+    flex: 1,
+    paddingTop: hp('0.4%'),
+  },
+  quoteOverviewRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: hp('1.2%'),
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  quoteOverviewLabel: {
+    fontSize: wp('3.5%'),
+    color: TEXT_SECONDARY,
+  },
+  quoteOverviewValue: {
+    fontSize: wp('3.5%'),
+    fontWeight: '700',
+    color: TEXT_PRIMARY,
+  },
+  quoteVendorMessage: {
+    backgroundColor: CARD,
+    padding: wp('4%'),
+    borderRadius: wp('3.5%'),
+    ...SHADOW_SM,
+  },
+  quoteMessageHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: hp('1.2%'),
+  },
+  quoteMessageTitle: {
+    fontSize: wp('3.5%'),
+    fontWeight: '700',
+    color: TEAL_MID,
+    marginLeft: wp('2%'),
+  },
+  quoteMessageText: {
+    fontSize: wp('3.5%'),
+    color: TEXT_SECONDARY,
+    lineHeight: wp('5.5%'),
+  },
+  quoteTermsText: {
+    fontSize: wp('3.5%'),
+    color: TEXT_SECONDARY,
+    lineHeight: wp('5.5%'),
+  },
+  quoteTermsNumber: {
+    fontSize: wp('3.3%'),
+    fontWeight: '700',
+    color: TEAL_MID,
+  },
+  quoteEmptyState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: hp('5%'),
+  },
+  quoteEmptyText: {
+    fontSize: wp('3.5%'),
+    color: TEXT_MUTED,
+    marginTop: hp('1%'),
   },
 });
 

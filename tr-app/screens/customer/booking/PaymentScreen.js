@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -11,18 +11,31 @@ import {
   Linking,
   Image,
   Modal,
+  StatusBar,
+  Platform,
 } from 'react-native';
 import Clipboard from '@react-native-clipboard/clipboard';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { useRoute, useNavigation } from '@react-navigation/native';
+import { useRoute, useNavigation, useFocusEffect } from '@react-navigation/native';
+import LinearGradient from 'react-native-linear-gradient';
+import { widthPercentageToDP as wp, heightPercentageToDP as hp } from 'react-native-responsive-screen';
 import api from '../../api';
 import RazorpayCheckout from 'react-native-razorpay';
 import paymentService from '../../services/paymentService';
+import { TEAL_DEEP, TEAL_MID, TEAL, TEAL_LIGHT, TEXT_PRIMARY, TEXT_SECONDARY, TEXT_MUTED } from '../../../theme';
 
-const GREEN = '#09B368';
-const BG = '#F5F5F7';
+const BG = '#F0FDF4';
 const SUPPORT_PHONE = '+91 97379 65551';
+
+const SHADOW_SM = Platform.select({
+  ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 8 },
+  android: { elevation: 3 },
+});
+const SHADOW_MD = Platform.select({
+  ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.12, shadowRadius: 12 },
+  android: { elevation: 6 },
+});
 
 export default function PaymentScreen() {
   const route = useRoute();
@@ -42,6 +55,18 @@ export default function PaymentScreen() {
 
   // Custom success modal
   const [successModal, setSuccessModal] = useState(false);
+
+  // ── StatusBar ──
+  useFocusEffect(
+    useCallback(() => {
+      StatusBar.setBarStyle('light-content');
+      if (Platform.OS === 'android') StatusBar.setBackgroundColor(TEAL_DEEP);
+      return () => {
+        StatusBar.setBarStyle('dark-content');
+        if (Platform.OS === 'android') StatusBar.setBackgroundColor('#ffffff');
+      };
+    }, [])
+  );
 
   const getServiceSlug = () => {
     switch (bookingType) {
@@ -175,14 +200,13 @@ export default function PaymentScreen() {
         Alert.alert('Verification Failed', 'Payment received but verification failed. Please contact support.');
       }
     } catch (error) {
-      // Razorpay fires code=0 or description containing "cancel"/"dismiss" when user goes back
       const desc = (error?.description || '').toLowerCase();
       const isCancelled =
         error?.code === 0 ||
         error?.code === 'PAYMENT_CANCELLED' ||
         desc.includes('cancel') ||
         desc.includes('dismiss') ||
-        !error?.description; // no description → user closed the sheet
+        !error?.description;
       if (!isCancelled) {
         Alert.alert('Payment Failed', error?.description || error?.message || 'Payment failed. Please try again.');
       }
@@ -234,64 +258,74 @@ export default function PaymentScreen() {
   const paymentAmount = amount || booking?.advanceAmount || 0;
   const qrCodeUrl = getQrCodeUrl();
 
+  // ── Loading State ──
   if (loading) {
     return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={GREEN} />
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <LinearGradient colors={[TEAL_DEEP, TEAL_MID, '#047857']} style={styles.loadingHeader}>
+          <View style={styles.decorCircle1} />
+          <View style={styles.decorCircle2} />
+          <ActivityIndicator size="large" color="#fff" />
           <Text style={styles.loadingText}>Loading payment details...</Text>
-        </View>
+        </LinearGradient>
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Ionicons name="arrow-back" size={24} color="#333" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Pay Advance</Text>
-        <View style={{ width: 40 }} />
-      </View>
+    <SafeAreaView style={styles.container} edges={['top']}>
+      {/* ── Gradient Header ── */}
+      <LinearGradient colors={[TEAL_DEEP, TEAL_MID, '#047857']} style={styles.header}>
+        <View style={styles.decorCircle1} />
+        <View style={styles.decorCircle2} />
+        <View style={styles.headerRow}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+            <Ionicons name="arrow-back" size={wp('5.5%')} color="#fff" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Pay Advance</Text>
+          <View style={{ width: wp('10%') }} />
+        </View>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
-
-        {/* Amount Card */}
-        <View style={styles.amountCard}>
+        {/* Amount Display in Header */}
+        <View style={styles.amountSection}>
           <View style={styles.amountIconWrap}>
-            <Ionicons name="shield-checkmark" size={28} color="rgba(255,255,255,0.9)" />
+            <Ionicons name="shield-checkmark" size={wp('7%')} color="rgba(255,255,255,0.9)" />
           </View>
           <Text style={styles.amountLabel}>Advance Payment</Text>
           <Text style={styles.amountValue}>₹{paymentAmount.toLocaleString()}</Text>
           {booking?.bookingNumber && (
             <View style={styles.bookingRefPill}>
+              <Ionicons name="receipt-outline" size={wp('3%')} color="rgba(255,255,255,0.8)" />
               <Text style={styles.bookingRef}>#{booking.bookingNumber}</Text>
             </View>
           )}
         </View>
+      </LinearGradient>
 
-        {/* Razorpay Primary Card */}
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: hp('5%') }}>
+
+        {/* ── Razorpay Primary Card ── */}
         <View style={styles.primaryCard}>
           <View style={styles.primaryCardHeader}>
-            <View style={styles.primaryCardIconBg}>
-              <Ionicons name="card" size={22} color={GREEN} />
-            </View>
-            <View style={{ flex: 1, marginLeft: 12 }}>
+            <LinearGradient colors={[TEAL_LIGHT, '#A7F3D0']} style={styles.primaryCardIconBg}>
+              <Ionicons name="card" size={wp('5.5%')} color={TEAL_MID} />
+            </LinearGradient>
+            <View style={{ flex: 1, marginLeft: wp('3%') }}>
               <Text style={styles.primaryCardTitle}>Pay Online</Text>
               <Text style={styles.primaryCardSub}>Cards · UPI · NetBanking · Wallets</Text>
             </View>
-            <View style={styles.fastBadge}>
-              <Ionicons name="flash" size={11} color="#fff" />
+            <LinearGradient colors={[TEAL, '#059669']} style={styles.fastBadge}>
+              <Ionicons name="flash" size={wp('2.8%')} color="#fff" />
               <Text style={styles.fastBadgeText}>INSTANT</Text>
-            </View>
+            </LinearGradient>
           </View>
 
           <View style={styles.primaryCardFeatures}>
             {['100% Secure & Encrypted', 'Instant confirmation', 'All payment methods accepted'].map((f, i) => (
               <View key={i} style={styles.featureRow}>
-                <Ionicons name="checkmark-circle" size={16} color={GREEN} />
+                <View style={styles.featureCheckCircle}>
+                  <Ionicons name="checkmark" size={wp('2.5%')} color={TEAL} />
+                </View>
                 <Text style={styles.featureText}>{f}</Text>
               </View>
             ))}
@@ -306,39 +340,48 @@ export default function PaymentScreen() {
             {submitting ? (
               <ActivityIndicator size="small" color="#fff" />
             ) : (
-              <>
-                <Ionicons name="lock-closed" size={18} color="#fff" />
+              <LinearGradient colors={[TEAL, '#059669']} style={styles.payNowBtnGradient}>
+                <Ionicons name="lock-closed" size={wp('4.5%')} color="#fff" />
                 <Text style={styles.payNowBtnText}>Pay ₹{paymentAmount.toLocaleString()} Now</Text>
-                <Ionicons name="arrow-forward" size={18} color="#fff" />
-              </>
+                <Ionicons name="arrow-forward" size={wp('4.5%')} color="#fff" />
+              </LinearGradient>
             )}
           </TouchableOpacity>
         </View>
 
-        {/* Manual Payment Toggle */}
+        {/* ── Manual Payment Toggle ── */}
         <TouchableOpacity
           style={styles.manualToggle}
           onPress={() => setShowManual(v => !v)}
           activeOpacity={0.7}
         >
-          <Ionicons name="alert-circle-outline" size={18} color="#888" />
+          <View style={styles.manualToggleIconWrap}>
+            <Ionicons name="alert-circle-outline" size={wp('4%')} color={TEXT_MUTED} />
+          </View>
           <Text style={styles.manualToggleText}>
             Online payment not working? Use manual payment
           </Text>
           <Ionicons
             name={showManual ? 'chevron-up' : 'chevron-down'}
-            size={18}
-            color="#888"
+            size={wp('4.5%')}
+            color={TEXT_MUTED}
           />
         </TouchableOpacity>
 
-        {/* Manual Payment Section — collapsed by default */}
+        {/* ── Manual Payment Section ── */}
         {showManual && (
           <View style={styles.manualSection}>
-            <Text style={styles.manualSectionTitle}>Manual Payment</Text>
-            <Text style={styles.manualSectionNote}>
-              Transfer the advance amount and submit your transaction ID below.
-            </Text>
+            <View style={styles.manualSectionHeader}>
+              <View style={styles.manualSectionIconWrap}>
+                <Ionicons name="swap-horizontal" size={wp('4.5%')} color={TEAL_MID} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.manualSectionTitle}>Manual Payment</Text>
+                <Text style={styles.manualSectionNote}>
+                  Transfer the advance amount and submit your transaction ID below.
+                </Text>
+              </View>
+            </View>
 
             {/* Method Tabs */}
             <View style={styles.methodTabs}>
@@ -347,10 +390,15 @@ export default function PaymentScreen() {
                   style={[styles.methodTab, manualMethod === 'upi' && styles.methodTabActive]}
                   onPress={() => setManualMethod('upi')}
                 >
-                  <Ionicons name="phone-portrait-outline" size={16} color={manualMethod === 'upi' ? GREEN : '#666'} />
+                  <Ionicons name="phone-portrait-outline" size={wp('4%')} color={manualMethod === 'upi' ? TEAL_MID : TEXT_MUTED} />
                   <Text style={[styles.methodTabText, manualMethod === 'upi' && styles.methodTabTextActive]}>
                     UPI
                   </Text>
+                  {manualMethod === 'upi' && (
+                    <View style={styles.methodTabCheck}>
+                      <Ionicons name="checkmark" size={wp('2.5%')} color="#fff" />
+                    </View>
+                  )}
                 </TouchableOpacity>
               )}
               {paymentDetails && (
@@ -358,10 +406,15 @@ export default function PaymentScreen() {
                   style={[styles.methodTab, manualMethod === 'bank' && styles.methodTabActive]}
                   onPress={() => setManualMethod('bank')}
                 >
-                  <Ionicons name="business-outline" size={16} color={manualMethod === 'bank' ? GREEN : '#666'} />
+                  <Ionicons name="business-outline" size={wp('4%')} color={manualMethod === 'bank' ? TEAL_MID : TEXT_MUTED} />
                   <Text style={[styles.methodTabText, manualMethod === 'bank' && styles.methodTabTextActive]}>
                     Bank Transfer
                   </Text>
+                  {manualMethod === 'bank' && (
+                    <View style={styles.methodTabCheck}>
+                      <Ionicons name="checkmark" size={wp('2.5%')} color="#fff" />
+                    </View>
+                  )}
                 </TouchableOpacity>
               )}
             </View>
@@ -390,14 +443,18 @@ export default function PaymentScreen() {
                   <View style={styles.detailValueRow}>
                     <Text style={styles.detailValue}>{paymentDetails.upiId}</Text>
                     <TouchableOpacity onPress={() => copyToClipboard(paymentDetails.upiId, 'UPI ID')} style={styles.copyBtn}>
-                      <Ionicons name="copy-outline" size={18} color={GREEN} />
+                      <View style={styles.copyBtnInner}>
+                        <Ionicons name="copy-outline" size={wp('3.8%')} color={TEAL} />
+                      </View>
                     </TouchableOpacity>
                   </View>
                 </View>
 
-                <TouchableOpacity style={styles.upiPayBtn} onPress={openUPIApp}>
-                  <Ionicons name="wallet-outline" size={20} color="#fff" />
-                  <Text style={styles.upiPayBtnText}>Open UPI App</Text>
+                <TouchableOpacity style={styles.upiPayBtn} onPress={openUPIApp} activeOpacity={0.8}>
+                  <LinearGradient colors={[TEAL, '#059669']} style={styles.upiPayBtnGradient}>
+                    <Ionicons name="wallet-outline" size={wp('5%')} color="#fff" />
+                    <Text style={styles.upiPayBtnText}>Open UPI App</Text>
+                  </LinearGradient>
                 </TouchableOpacity>
               </View>
             )}
@@ -406,23 +463,28 @@ export default function PaymentScreen() {
             {manualMethod === 'bank' && paymentDetails && (
               <View style={styles.detailsCard}>
                 {[
-                  { label: 'Bank Name', value: paymentDetails.bankName },
-                  { label: 'Account Name', value: paymentDetails.accountHolderName },
-                  { label: 'Account Number', value: paymentDetails.accountNumber, copy: true },
-                  { label: 'IFSC Code', value: paymentDetails.ifscCode, copy: true },
-                  paymentDetails.branchName && { label: 'Branch', value: paymentDetails.branchName },
-                  paymentDetails.accountType && { label: 'Account Type', value: paymentDetails.accountType },
+                  { label: 'Bank Name', value: paymentDetails.bankName, icon: 'business' },
+                  { label: 'Account Name', value: paymentDetails.accountHolderName, icon: 'person' },
+                  { label: 'Account Number', value: paymentDetails.accountNumber, copy: true, icon: 'card' },
+                  { label: 'IFSC Code', value: paymentDetails.ifscCode, copy: true, icon: 'code-working' },
+                  paymentDetails.branchName && { label: 'Branch', value: paymentDetails.branchName, icon: 'location' },
+                  paymentDetails.accountType && { label: 'Account Type', value: paymentDetails.accountType, icon: 'wallet' },
                 ].filter(Boolean).map((row, i, arr) => (
-                  <View key={i} style={[styles.detailRow, i === arr.length - 1 && { borderBottomWidth: 0 }]}>
-                    <Text style={styles.detailLabel}>{row.label}</Text>
-                    <View style={styles.detailValueRow}>
-                      <Text style={styles.detailValue}>{row.value}</Text>
-                      {row.copy && (
-                        <TouchableOpacity onPress={() => copyToClipboard(row.value, row.label)} style={styles.copyBtn}>
-                          <Ionicons name="copy-outline" size={18} color={GREEN} />
-                        </TouchableOpacity>
-                      )}
+                  <View key={i} style={[styles.bankDetailRow, i === arr.length - 1 && { borderBottomWidth: 0 }]}>
+                    <View style={styles.bankDetailIconWrap}>
+                      <Ionicons name={row.icon} size={wp('3.5%')} color={TEAL} />
                     </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.detailLabel}>{row.label}</Text>
+                      <Text style={styles.detailValue}>{row.value}</Text>
+                    </View>
+                    {row.copy && (
+                      <TouchableOpacity onPress={() => copyToClipboard(row.value, row.label)} style={styles.copyBtn}>
+                        <View style={styles.copyBtnInner}>
+                          <Ionicons name="copy-outline" size={wp('3.8%')} color={TEAL} />
+                        </View>
+                      </TouchableOpacity>
+                    )}
                   </View>
                 ))}
               </View>
@@ -433,36 +495,43 @@ export default function PaymentScreen() {
               <View style={styles.manualInputSection}>
                 <View style={styles.inputGroup}>
                   <Text style={styles.inputLabel}>Transaction / Reference ID *</Text>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Enter UTR or transaction ID"
-                    value={transactionId}
-                    onChangeText={setTransactionId}
-                    placeholderTextColor="#bbb"
-                  />
+                  <View style={styles.inputWrap}>
+                    <Ionicons name="document-text-outline" size={wp('4%')} color={TEXT_MUTED} style={{ marginRight: wp('2%') }} />
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Enter UTR or transaction ID"
+                      value={transactionId}
+                      onChangeText={setTransactionId}
+                      placeholderTextColor={TEXT_MUTED}
+                    />
+                  </View>
                 </View>
                 <View style={styles.inputGroup}>
                   <Text style={styles.inputLabel}>Payer Name (Optional)</Text>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Name as per bank / UPI"
-                    value={payerName}
-                    onChangeText={setPayerName}
-                    placeholderTextColor="#bbb"
-                  />
+                  <View style={styles.inputWrap}>
+                    <Ionicons name="person-outline" size={wp('4%')} color={TEXT_MUTED} style={{ marginRight: wp('2%') }} />
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Name as per bank / UPI"
+                      value={payerName}
+                      onChangeText={setPayerName}
+                      placeholderTextColor={TEXT_MUTED}
+                    />
+                  </View>
                 </View>
                 <TouchableOpacity
                   style={[styles.submitBtn, submitting && styles.btnDisabled]}
                   onPress={handleSubmitManualPayment}
                   disabled={submitting}
+                  activeOpacity={0.8}
                 >
                   {submitting ? (
                     <ActivityIndicator size="small" color="#fff" />
                   ) : (
-                    <>
-                      <Ionicons name="checkmark-circle" size={20} color="#fff" />
+                    <LinearGradient colors={[TEAL_MID, TEAL_DEEP]} style={styles.submitBtnGradient}>
+                      <Ionicons name="checkmark-circle" size={wp('5%')} color="#fff" />
                       <Text style={styles.submitBtnText}>Submit Payment Details</Text>
-                    </>
+                    </LinearGradient>
                   )}
                 </TouchableOpacity>
               </View>
@@ -470,22 +539,23 @@ export default function PaymentScreen() {
           </View>
         )}
 
-        {/* Help */}
+        {/* ── Help ── */}
         <View style={styles.helpSection}>
-          <Ionicons name="headset-outline" size={18} color="#aaa" />
+          <View style={styles.helpIconWrap}>
+            <Ionicons name="headset-outline" size={wp('4%')} color={TEAL} />
+          </View>
           <Text style={styles.helpText}>Need help? Call {SUPPORT_PHONE}</Text>
         </View>
       </ScrollView>
 
-      {/* ── Custom Success Modal ── */}
+      {/* ── Success Modal ── */}
       <Modal visible={successModal} transparent animationType="fade">
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
-            {/* Animated circle checkmark */}
             <View style={styles.successCircle}>
-              <View style={styles.successCircleInner}>
-                <Ionicons name="checkmark" size={44} color="#fff" />
-              </View>
+              <LinearGradient colors={[TEAL, '#059669']} style={styles.successCircleInner}>
+                <Ionicons name="checkmark" size={wp('11%')} color="#fff" />
+              </LinearGradient>
             </View>
 
             <Text style={styles.successTitle}>Payment Successful!</Text>
@@ -493,21 +563,25 @@ export default function PaymentScreen() {
               Your advance payment has been received and confirmed.
             </Text>
 
-            <View style={styles.successAmountRow}>
-              <Text style={styles.successAmountLabel}>Amount Paid</Text>
-              <Text style={styles.successAmountValue}>₹{paymentAmount.toLocaleString()}</Text>
+            <View style={styles.successInfoCard}>
+              <View style={styles.successAmountRow}>
+                <Text style={styles.successAmountLabel}>Amount Paid</Text>
+                <Text style={styles.successAmountValue}>₹{paymentAmount.toLocaleString()}</Text>
+              </View>
+
+              {booking?.bookingNumber && (
+                <View style={[styles.successAmountRow, { borderBottomWidth: 0, paddingBottom: 0 }]}>
+                  <Text style={styles.successAmountLabel}>Booking ID</Text>
+                  <Text style={styles.successAmountValue}>#{booking.bookingNumber}</Text>
+                </View>
+              )}
             </View>
 
-            {booking?.bookingNumber && (
-              <View style={[styles.successAmountRow, { borderBottomWidth: 0, marginBottom: 0 }]}>
-                <Text style={styles.successAmountLabel}>Booking ID</Text>
-                <Text style={styles.successAmountValue}>#{booking.bookingNumber}</Text>
-              </View>
-            )}
-
-            <TouchableOpacity style={styles.viewBookingBtn} onPress={handleViewBooking}>
-              <Ionicons name="document-text-outline" size={20} color="#fff" />
-              <Text style={styles.viewBookingBtnText}>View Booking</Text>
+            <TouchableOpacity style={styles.viewBookingBtn} onPress={handleViewBooking} activeOpacity={0.8}>
+              <LinearGradient colors={[TEAL, '#059669']} style={styles.viewBookingBtnGradient}>
+                <Ionicons name="document-text-outline" size={wp('5%')} color="#fff" />
+                <Text style={styles.viewBookingBtnText}>View Booking</Text>
+              </LinearGradient>
             </TouchableOpacity>
           </View>
         </View>
@@ -519,315 +593,579 @@ export default function PaymentScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: BG },
 
+  // ── Decorative Circles ──
+  decorCircle1: {
+    position: 'absolute',
+    width: wp('35%'),
+    height: wp('35%'),
+    borderRadius: wp('17.5%'),
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    top: -wp('10%'),
+    right: -wp('8%'),
+  },
+  decorCircle2: {
+    position: 'absolute',
+    width: wp('25%'),
+    height: wp('25%'),
+    borderRadius: wp('12.5%'),
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    bottom: -wp('5%'),
+    left: -wp('5%'),
+  },
+
+  // ── Header ──
   header: {
+    paddingTop: hp('1%'),
+    paddingBottom: hp('3%'),
+    paddingHorizontal: wp('5%'),
+    overflow: 'hidden',
+  },
+  headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    marginBottom: hp('2%'),
   },
-  backBtn: { width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center' },
-  headerTitle: { fontSize: 18, fontWeight: '700', color: '#1a1a1a' },
-
-  content: { flex: 1, paddingHorizontal: 16, paddingTop: 20 },
-
-  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  loadingText: { marginTop: 12, color: '#666', fontSize: 14 },
-
-  // Amount Card
-  amountCard: {
-    backgroundColor: GREEN,
-    borderRadius: 24,
-    padding: 28,
-    alignItems: 'center',
-    marginBottom: 20,
-    shadowColor: GREEN,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.35,
-    shadowRadius: 16,
-    elevation: 8,
-  },
-  amountIconWrap: { marginBottom: 8 },
-  amountLabel: { color: 'rgba(255,255,255,0.75)', fontSize: 13, fontWeight: '500', marginBottom: 6 },
-  amountValue: { color: '#fff', fontSize: 40, fontWeight: '800', letterSpacing: -1 },
-  bookingRefPill: {
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    borderRadius: 20,
-    paddingHorizontal: 14,
-    paddingVertical: 4,
-    marginTop: 10,
-  },
-  bookingRef: { color: 'rgba(255,255,255,0.9)', fontSize: 12, fontWeight: '600' },
-
-  // Primary Razorpay Card
-  primaryCard: {
-    backgroundColor: '#fff',
-    borderRadius: 20,
-    padding: 20,
-    marginBottom: 14,
-    borderWidth: 2,
-    borderColor: GREEN,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 10,
-    elevation: 4,
-  },
-  primaryCardHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 16 },
-  primaryCardIconBg: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    backgroundColor: 'rgba(9,179,104,0.1)',
+  backBtn: {
+    width: wp('10%'),
+    height: wp('10%'),
+    borderRadius: wp('5%'),
+    backgroundColor: 'rgba(255,255,255,0.15)',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  primaryCardTitle: { fontSize: 16, fontWeight: '700', color: '#1a1a1a' },
-  primaryCardSub: { fontSize: 12, color: '#888', marginTop: 2 },
+  headerTitle: {
+    fontSize: wp('5%'),
+    fontWeight: '700',
+    color: '#fff',
+    letterSpacing: 0.3,
+  },
+
+  // ── Amount Section (in header) ──
+  amountSection: {
+    alignItems: 'center',
+    paddingVertical: hp('1%'),
+  },
+  amountIconWrap: {
+    width: wp('14%'),
+    height: wp('14%'),
+    borderRadius: wp('7%'),
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: hp('1%'),
+  },
+  amountLabel: {
+    color: 'rgba(255,255,255,0.7)',
+    fontSize: wp('3.2%'),
+    fontWeight: '500',
+    marginBottom: hp('0.5%'),
+  },
+  amountValue: {
+    color: '#fff',
+    fontSize: wp('10%'),
+    fontWeight: '800',
+    letterSpacing: -1,
+  },
+  bookingRefPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderRadius: wp('5%'),
+    paddingHorizontal: wp('3.5%'),
+    paddingVertical: hp('0.5%'),
+    marginTop: hp('1%'),
+    gap: wp('1.5%'),
+  },
+  bookingRef: {
+    color: 'rgba(255,255,255,0.85)',
+    fontSize: wp('3%'),
+    fontWeight: '600',
+  },
+
+  // ── Loading ──
+  loadingHeader: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    overflow: 'hidden',
+  },
+  loadingText: {
+    marginTop: hp('2%'),
+    color: 'rgba(255,255,255,0.8)',
+    fontSize: wp('3.5%'),
+    fontWeight: '500',
+  },
+
+  // ── Content ──
+  content: {
+    flex: 1,
+    paddingHorizontal: wp('4%'),
+    paddingTop: hp('2%'),
+  },
+
+  // ── Primary Razorpay Card ──
+  primaryCard: {
+    backgroundColor: '#fff',
+    borderRadius: wp('4.5%'),
+    padding: wp('5%'),
+    marginBottom: hp('1.5%'),
+    borderWidth: 1.5,
+    borderColor: TEAL_LIGHT,
+    ...SHADOW_MD,
+  },
+  primaryCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: hp('2%'),
+  },
+  primaryCardIconBg: {
+    width: wp('12%'),
+    height: wp('12%'),
+    borderRadius: wp('3.5%'),
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  primaryCardTitle: {
+    fontSize: wp('4%'),
+    fontWeight: '700',
+    color: TEXT_PRIMARY,
+  },
+  primaryCardSub: {
+    fontSize: wp('3%'),
+    color: TEXT_MUTED,
+    marginTop: hp('0.3%'),
+  },
   fastBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: GREEN,
-    borderRadius: 6,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    gap: 3,
+    borderRadius: wp('2%'),
+    paddingHorizontal: wp('2.5%'),
+    paddingVertical: hp('0.4%'),
+    gap: wp('1%'),
   },
-  fastBadgeText: { color: '#fff', fontSize: 10, fontWeight: '800' },
+  fastBadgeText: {
+    color: '#fff',
+    fontSize: wp('2.5%'),
+    fontWeight: '800',
+  },
 
-  primaryCardFeatures: { marginBottom: 18 },
-  featureRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 6, gap: 8 },
-  featureText: { fontSize: 13, color: '#555' },
+  primaryCardFeatures: {
+    marginBottom: hp('2%'),
+  },
+  featureRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: hp('0.8%'),
+    gap: wp('2.5%'),
+  },
+  featureCheckCircle: {
+    width: wp('5%'),
+    height: wp('5%'),
+    borderRadius: wp('2.5%'),
+    backgroundColor: TEAL_LIGHT,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  featureText: {
+    fontSize: wp('3.2%'),
+    color: TEXT_SECONDARY,
+    fontWeight: '500',
+  },
 
   payNowBtn: {
+    borderRadius: wp('3.5%'),
+    overflow: 'hidden',
+    ...SHADOW_SM,
+  },
+  payNowBtnGradient: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: GREEN,
-    paddingVertical: 16,
-    borderRadius: 14,
-    gap: 8,
-    shadowColor: GREEN,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
+    paddingVertical: hp('2%'),
+    gap: wp('2%'),
   },
-  payNowBtnText: { color: '#fff', fontSize: 17, fontWeight: '700' },
-  btnDisabled: { opacity: 0.65 },
+  payNowBtnText: {
+    color: '#fff',
+    fontSize: wp('4.2%'),
+    fontWeight: '700',
+  },
+  btnDisabled: { opacity: 0.6 },
 
-  // Manual Toggle
+  // ── Manual Toggle ──
   manualToggle: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#fff',
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 13,
-    marginBottom: 10,
-    gap: 8,
-    borderWidth: 1,
-    borderColor: '#e8e8e8',
+    borderRadius: wp('3.5%'),
+    paddingHorizontal: wp('4%'),
+    paddingVertical: hp('1.6%'),
+    marginBottom: hp('1.5%'),
+    gap: wp('2.5%'),
+    ...SHADOW_SM,
   },
-  manualToggleText: { flex: 1, fontSize: 13, color: '#777', fontWeight: '500' },
+  manualToggleIconWrap: {
+    width: wp('8%'),
+    height: wp('8%'),
+    borderRadius: wp('4%'),
+    backgroundColor: '#F3F4F6',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  manualToggleText: {
+    flex: 1,
+    fontSize: wp('3.2%'),
+    color: TEXT_SECONDARY,
+    fontWeight: '500',
+  },
 
-  // Manual Section
+  // ── Manual Section ──
   manualSection: {
     backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 14,
-    borderWidth: 1,
-    borderColor: '#e8e8e8',
+    borderRadius: wp('4.5%'),
+    padding: wp('4.5%'),
+    marginBottom: hp('1.5%'),
+    ...SHADOW_SM,
   },
-  manualSectionTitle: { fontSize: 15, fontWeight: '700', color: '#333', marginBottom: 4 },
-  manualSectionNote: { fontSize: 12, color: '#999', marginBottom: 14, lineHeight: 18 },
+  manualSectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: hp('2%'),
+    gap: wp('3%'),
+  },
+  manualSectionIconWrap: {
+    width: wp('10%'),
+    height: wp('10%'),
+    borderRadius: wp('5%'),
+    backgroundColor: TEAL_LIGHT,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  manualSectionTitle: {
+    fontSize: wp('3.8%'),
+    fontWeight: '700',
+    color: TEXT_PRIMARY,
+    marginBottom: hp('0.3%'),
+  },
+  manualSectionNote: {
+    fontSize: wp('3%'),
+    color: TEXT_MUTED,
+    lineHeight: wp('4.5%'),
+  },
 
-  // Method Tabs
-  methodTabs: { flexDirection: 'row', gap: 10, marginBottom: 16 },
+  // ── Method Tabs ──
+  methodTabs: {
+    flexDirection: 'row',
+    gap: wp('3%'),
+    marginBottom: hp('2%'),
+  },
   methodTab: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 10,
-    borderRadius: 10,
+    paddingVertical: hp('1.3%'),
+    borderRadius: wp('3%'),
     borderWidth: 1.5,
-    borderColor: '#ddd',
-    gap: 6,
+    borderColor: '#E5E7EB',
+    backgroundColor: '#F9FAFB',
+    gap: wp('1.5%'),
   },
-  methodTabActive: { borderColor: GREEN, backgroundColor: 'rgba(9,179,104,0.07)' },
-  methodTabText: { fontSize: 13, fontWeight: '600', color: '#666' },
-  methodTabTextActive: { color: GREEN },
+  methodTabActive: {
+    borderColor: TEAL,
+    backgroundColor: TEAL_LIGHT,
+  },
+  methodTabText: {
+    fontSize: wp('3.2%'),
+    fontWeight: '600',
+    color: TEXT_MUTED,
+  },
+  methodTabTextActive: { color: TEAL_MID },
+  methodTabCheck: {
+    width: wp('4%'),
+    height: wp('4%'),
+    borderRadius: wp('2%'),
+    backgroundColor: TEAL,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
 
-  // Details Card
-  detailsCard: { backgroundColor: '#F9FAFB', borderRadius: 12, padding: 14, marginBottom: 14 },
+  // ── Details Card ──
+  detailsCard: {
+    backgroundColor: '#F8FAF9',
+    borderRadius: wp('3.5%'),
+    padding: wp('4%'),
+    marginBottom: hp('1.5%'),
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
   detailRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 10,
+    paddingVertical: hp('1.2%'),
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: '#F3F4F6',
   },
-  detailLabel: { fontSize: 12, color: '#888' },
-  detailValueRow: { flexDirection: 'row', alignItems: 'center' },
-  detailValue: { fontSize: 13, fontWeight: '600', color: '#333' },
-  copyBtn: { marginLeft: 8, padding: 4 },
+  detailLabel: {
+    fontSize: wp('2.8%'),
+    color: TEXT_MUTED,
+    fontWeight: '500',
+    textTransform: 'uppercase',
+    letterSpacing: 0.3,
+  },
+  detailValueRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  detailValue: {
+    fontSize: wp('3.3%'),
+    fontWeight: '600',
+    color: TEXT_PRIMARY,
+  },
+  copyBtn: { marginLeft: wp('2%'), padding: wp('1%') },
+  copyBtnInner: {
+    width: wp('8%'),
+    height: wp('8%'),
+    borderRadius: wp('4%'),
+    backgroundColor: TEAL_LIGHT,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
 
-  // QR
-  qrContainer: { alignItems: 'center', paddingVertical: 12 },
-  qrTitle: { fontSize: 14, fontWeight: '600', color: '#333', marginBottom: 12 },
+  // ── Bank Detail Rows ──
+  bankDetailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: hp('1.3%'),
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+    gap: wp('3%'),
+  },
+  bankDetailIconWrap: {
+    width: wp('8%'),
+    height: wp('8%'),
+    borderRadius: wp('4%'),
+    backgroundColor: TEAL_LIGHT,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  // ── QR ──
+  qrContainer: {
+    alignItems: 'center',
+    paddingVertical: hp('1.5%'),
+  },
+  qrTitle: {
+    fontSize: wp('3.5%'),
+    fontWeight: '700',
+    color: TEXT_PRIMARY,
+    marginBottom: hp('1.5%'),
+  },
   qrWrapper: {
     backgroundColor: '#fff',
-    padding: 10,
-    borderRadius: 14,
+    padding: wp('3%'),
+    borderRadius: wp('4%'),
     borderWidth: 2,
-    borderColor: GREEN,
-    elevation: 2,
+    borderColor: TEAL_LIGHT,
+    ...SHADOW_SM,
   },
-  qrImage: { width: 180, height: 180 },
-  qrHint: { fontSize: 11, color: '#aaa', marginTop: 10 },
+  qrImage: {
+    width: wp('44%'),
+    height: wp('44%'),
+  },
+  qrHint: {
+    fontSize: wp('2.8%'),
+    color: TEXT_MUTED,
+    marginTop: hp('1.2%'),
+  },
 
-  // Divider
-  divider: { flexDirection: 'row', alignItems: 'center', marginVertical: 14 },
-  dividerLine: { flex: 1, height: 1, backgroundColor: '#e8e8e8' },
-  dividerText: { marginHorizontal: 10, fontSize: 10, color: '#bbb', fontWeight: '700' },
+  // ── Divider ──
+  divider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: hp('1.5%'),
+  },
+  dividerLine: { flex: 1, height: 1, backgroundColor: '#E5E7EB' },
+  dividerText: {
+    marginHorizontal: wp('3%'),
+    fontSize: wp('2.5%'),
+    color: TEXT_MUTED,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+  },
 
+  // ── UPI Pay Button ──
   upiPayBtn: {
+    borderRadius: wp('3%'),
+    overflow: 'hidden',
+    marginTop: hp('1.2%'),
+  },
+  upiPayBtnGradient: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: GREEN,
-    paddingVertical: 12,
-    borderRadius: 10,
-    marginTop: 10,
-    gap: 8,
+    paddingVertical: hp('1.5%'),
+    gap: wp('2%'),
   },
-  upiPayBtnText: { color: '#fff', fontSize: 14, fontWeight: '600' },
+  upiPayBtnText: {
+    color: '#fff',
+    fontSize: wp('3.5%'),
+    fontWeight: '700',
+  },
 
-  // Manual Input Section
-  manualInputSection: { marginTop: 4 },
-  inputGroup: { marginBottom: 12 },
-  inputLabel: { fontSize: 12, fontWeight: '600', color: '#555', marginBottom: 6 },
-  input: {
+  // ── Manual Input Section ──
+  manualInputSection: { marginTop: hp('0.5%') },
+  inputGroup: { marginBottom: hp('1.5%') },
+  inputLabel: {
+    fontSize: wp('3%'),
+    fontWeight: '600',
+    color: TEXT_SECONDARY,
+    marginBottom: hp('0.8%'),
+  },
+  inputWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: '#F9FAFB',
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 13,
-    fontSize: 14,
-    color: '#333',
+    borderRadius: wp('3%'),
+    paddingHorizontal: wp('3.5%'),
     borderWidth: 1,
-    borderColor: '#e0e0e0',
+    borderColor: '#E5E7EB',
+  },
+  input: {
+    flex: 1,
+    paddingVertical: hp('1.5%'),
+    fontSize: wp('3.3%'),
+    color: TEXT_PRIMARY,
   },
 
   submitBtn: {
+    borderRadius: wp('3%'),
+    overflow: 'hidden',
+    marginTop: hp('0.5%'),
+  },
+  submitBtnGradient: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#334155',
-    paddingVertical: 14,
-    borderRadius: 12,
-    marginTop: 4,
-    gap: 8,
+    paddingVertical: hp('1.8%'),
+    gap: wp('2%'),
   },
-  submitBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
+  submitBtnText: {
+    color: '#fff',
+    fontSize: wp('3.5%'),
+    fontWeight: '700',
+  },
 
-  // Help
+  // ── Help ──
   helpSection: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 18,
-    gap: 6,
+    marginTop: hp('2%'),
+    gap: wp('2%'),
   },
-  helpText: { fontSize: 12, color: '#aaa' },
+  helpIconWrap: {
+    width: wp('8%'),
+    height: wp('8%'),
+    borderRadius: wp('4%'),
+    backgroundColor: TEAL_LIGHT,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  helpText: {
+    fontSize: wp('3%'),
+    color: TEXT_MUTED,
+    fontWeight: '500',
+  },
 
   // ── Success Modal ──
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.55)',
+    backgroundColor: 'rgba(0,0,0,0.6)',
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 24,
+    paddingHorizontal: wp('6%'),
   },
   modalCard: {
     backgroundColor: '#fff',
-    borderRadius: 28,
-    padding: 28,
+    borderRadius: wp('6%'),
+    padding: wp('7%'),
     width: '100%',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.2,
-    shadowRadius: 24,
-    elevation: 20,
+    ...SHADOW_MD,
   },
   successCircle: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
-    backgroundColor: 'rgba(9,179,104,0.12)',
+    width: wp('24%'),
+    height: wp('24%'),
+    borderRadius: wp('12%'),
+    backgroundColor: TEAL_LIGHT,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: hp('2.5%'),
   },
   successCircleInner: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    backgroundColor: GREEN,
+    width: wp('18%'),
+    height: wp('18%'),
+    borderRadius: wp('9%'),
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: GREEN,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 12,
-    elevation: 6,
+    ...SHADOW_SM,
   },
   successTitle: {
-    fontSize: 22,
+    fontSize: wp('5.5%'),
     fontWeight: '800',
-    color: '#1a1a1a',
-    marginBottom: 8,
+    color: TEXT_PRIMARY,
+    marginBottom: hp('1%'),
   },
   successSubtitle: {
-    fontSize: 13,
-    color: '#888',
+    fontSize: wp('3.2%'),
+    color: TEXT_SECONDARY,
     textAlign: 'center',
-    lineHeight: 20,
-    marginBottom: 24,
-    paddingHorizontal: 10,
+    lineHeight: wp('5%'),
+    marginBottom: hp('2.5%'),
+    paddingHorizontal: wp('3%'),
+  },
+  successInfoCard: {
+    width: '100%',
+    backgroundColor: '#F8FAF9',
+    borderRadius: wp('3%'),
+    padding: wp('4%'),
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    marginBottom: hp('2.5%'),
   },
   successAmountRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    width: '100%',
-    paddingVertical: 12,
+    paddingVertical: hp('1%'),
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-    marginBottom: 0,
+    borderBottomColor: '#F3F4F6',
   },
-  successAmountLabel: { fontSize: 13, color: '#888' },
-  successAmountValue: { fontSize: 14, fontWeight: '700', color: '#1a1a1a' },
+  successAmountLabel: {
+    fontSize: wp('3.2%'),
+    color: TEXT_MUTED,
+  },
+  successAmountValue: {
+    fontSize: wp('3.5%'),
+    fontWeight: '700',
+    color: TEXT_PRIMARY,
+  },
   viewBookingBtn: {
+    width: '100%',
+    borderRadius: wp('3.5%'),
+    overflow: 'hidden',
+  },
+  viewBookingBtnGradient: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: GREEN,
-    paddingVertical: 16,
-    borderRadius: 14,
-    width: '100%',
-    marginTop: 24,
-    gap: 8,
-    shadowColor: GREEN,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
+    paddingVertical: hp('2%'),
+    gap: wp('2%'),
   },
-  viewBookingBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  viewBookingBtnText: {
+    color: '#fff',
+    fontSize: wp('4%'),
+    fontWeight: '700',
+  },
 });

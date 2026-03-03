@@ -32,6 +32,8 @@ import {
   ChevronRight,
   ChevronDown,
   FolderTree,
+  Upload,
+  Plus,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -147,6 +149,13 @@ export default function VendorDetailPage({ params }: { params: { id: string } })
   const [selectedDocument, setSelectedDocument] = useState<VendorDocument | null>(null);
   const [documentPreviewError, setDocumentPreviewError] = useState(false);
   const [documentLoading, setDocumentLoading] = useState(true);
+
+  // Upload form state
+  const [showUploadForm, setShowUploadForm] = useState(false);
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [uploadDocType, setUploadDocType] = useState('');
+  const [uploadDocNumber, setUploadDocNumber] = useState('');
+  const [uploading, setUploading] = useState(false);
 
   // Check if document URL is accessible
   useEffect(() => {
@@ -434,6 +443,40 @@ export default function VendorDetailPage({ params }: { params: { id: string } })
     }
   };
 
+  const handleDocumentUpload = async () => {
+    if (!uploadFile || !uploadDocType) return;
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', uploadFile);
+      formData.append('documentType', uploadDocType);
+      if (uploadDocNumber.trim()) {
+        formData.append('documentNumber', uploadDocNumber.trim());
+      }
+
+      const res = await fetch(`/api/manager/vendors/${id}/documents`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (res.ok) {
+        setShowUploadForm(false);
+        setUploadFile(null);
+        setUploadDocType('');
+        setUploadDocNumber('');
+        await fetchVendor();
+      } else {
+        const error = await res.json();
+        alert(error.error || 'Upload failed');
+      }
+    } catch (error) {
+      console.error('Upload failed:', error);
+      alert('Upload failed. Please try again.');
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-IN', {
       day: '2-digit',
@@ -714,6 +757,101 @@ export default function VendorDetailPage({ params }: { params: { id: string } })
       )}
 
       {activeTab === 'documents' && (
+        <div className="space-y-4">
+          {/* Upload Form */}
+          <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
+            <div className="p-4 flex items-center justify-between">
+              <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+                <FileText className="w-5 h-5" />
+                Vendor Documents
+              </h3>
+              <Button
+                size="sm"
+                onClick={() => setShowUploadForm(!showUploadForm)}
+                variant={showUploadForm ? 'outline' : 'default'}
+              >
+                {showUploadForm ? (
+                  <>
+                    <X className="w-4 h-4 mr-2" />
+                    Cancel
+                  </>
+                ) : (
+                  <>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add Document
+                  </>
+                )}
+              </Button>
+            </div>
+
+            {showUploadForm && (
+              <div className="px-4 pb-4 border-t pt-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Document Type <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      value={uploadDocType}
+                      onChange={(e) => setUploadDocType(e.target.value)}
+                      className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    >
+                      <option value="">Select type...</option>
+                      <option value="GST_CERTIFICATE">GST Certificate</option>
+                      <option value="PAN_CARD">PAN Card</option>
+                      <option value="BUSINESS_REGISTRATION">Business Registration</option>
+                      <option value="ADDRESS_PROOF">Address Proof</option>
+                      <option value="BANK_DETAILS">Bank Details</option>
+                      <option value="CANCELLED_CHEQUE">Cancelled Cheque</option>
+                      <option value="OWNER_AADHAAR">Owner Aadhaar</option>
+                      <option value="OWNER_PAN">Owner PAN</option>
+                      <option value="OTHER">Other</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Document Number <span className="text-gray-400">(optional)</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={uploadDocNumber}
+                      onChange={(e) => setUploadDocNumber(e.target.value)}
+                      placeholder="e.g. GSTIN, PAN number"
+                      className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+                </div>
+                <div className="mt-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    File <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="file"
+                    accept=".jpg,.jpeg,.png,.webp,.pdf"
+                    onChange={(e) => setUploadFile(e.target.files?.[0] || null)}
+                    className="w-full px-3 py-2 border rounded-lg text-sm file:mr-4 file:py-1 file:px-3 file:rounded file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Accepted: JPG, PNG, WebP, PDF (max 25MB)
+                  </p>
+                </div>
+                <div className="mt-4 flex justify-end">
+                  <Button
+                    onClick={handleDocumentUpload}
+                    disabled={!uploadFile || !uploadDocType || uploading}
+                  >
+                    {uploading ? (
+                      <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                    ) : (
+                      <Upload className="w-4 h-4 mr-2" />
+                    )}
+                    {uploading ? 'Uploading...' : 'Upload Document'}
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+
         <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
           {/* Bulk Action Buttons */}
           {vendor.documents.filter((d) => d.status === 'PENDING').length > 0 && (
@@ -762,9 +900,16 @@ export default function VendorDetailPage({ params }: { params: { id: string } })
                         <FileText className="w-6 h-6 text-gray-600" />
                       </div>
                       <div>
-                        <p className="font-medium text-gray-900">
-                          {documentTypeLabels[doc.documentType] || doc.documentType.replace(/_/g, ' ')}
-                        </p>
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium text-gray-900">
+                            {documentTypeLabels[doc.documentType] || doc.documentType.replace(/_/g, ' ')}
+                          </p>
+                          {doc.uploadedBy && (
+                            <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                              Uploaded by Manager
+                            </span>
+                          )}
+                        </div>
                         {doc.documentNumber && (
                           <p className="text-xs text-gray-500">Number: {doc.documentNumber}</p>
                         )}
@@ -834,6 +979,7 @@ export default function VendorDetailPage({ params }: { params: { id: string } })
               ))}
             </div>
           )}
+        </div>
         </div>
       )}
 

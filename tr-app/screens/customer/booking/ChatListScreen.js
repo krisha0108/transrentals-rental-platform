@@ -9,17 +9,42 @@ import {
   RefreshControl,
   Alert,
   TextInput,
+  StatusBar,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import LinearGradient from 'react-native-linear-gradient';
+import { widthPercentageToDP as wp, heightPercentageToDP as hp } from 'react-native-responsive-screen';
 import api from '../../api';
+import { TEAL_DEEP, TEAL_MID, TEAL, TEAL_LIGHT, BG, CARD, TEXT_PRIMARY, TEXT_SECONDARY, TEXT_MUTED } from '../../../theme';
 
-const GREEN = '#09B368';
-const BRAND_TEAL = '#0B6E4F';
-const BG = '#F5F5F7';
+const SHADOW_SM = Platform.select({
+  ios: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+  },
+  android: {
+    elevation: 2,
+  },
+});
+
+const SHADOW_MD = Platform.select({
+  ios: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+  },
+  android: {
+    elevation: 4,
+  },
+});
 
 const SERVICE_ICONS = {
   bus: 'bus',
@@ -60,12 +85,23 @@ export default function ChatListScreen() {
 
   useFocusEffect(
     useCallback(() => {
+      StatusBar.setBarStyle('light-content', true);
+      if (Platform.OS === 'android') {
+        StatusBar.setBackgroundColor(TEAL_DEEP, true);
+      }
+
       loadCustomerData();
       fetchBookings();
 
       // Auto-refresh every 10 seconds
       const interval = setInterval(fetchBookings, 10000);
-      return () => clearInterval(interval);
+      return () => {
+        clearInterval(interval);
+        StatusBar.setBarStyle('light-content', true);
+        if (Platform.OS === 'android') {
+          StatusBar.setBackgroundColor('#0A6B3F', true);
+        }
+      };
     }, [])
   );
 
@@ -146,7 +182,7 @@ export default function ChatListScreen() {
       >
         {/* Service Icon */}
         <View style={[styles.serviceIcon, { backgroundColor: serviceColor + '15' }]}>
-          <MaterialCommunityIcons name={serviceIcon} size={24} color={serviceColor} />
+          <MaterialCommunityIcons name={serviceIcon} size={wp('5.5%')} color={serviceColor} />
         </View>
 
         {/* Content */}
@@ -170,7 +206,7 @@ export default function ChatListScreen() {
 
           {/* Route Info */}
           <View style={styles.routeRow}>
-            <Ionicons name="location" size={12} color="#64748B" />
+            <Ionicons name="location" size={wp('3%')} color={TEXT_SECONDARY} />
             <Text style={styles.routeText} numberOfLines={1}>
               {item.pickupCity}
               {item.dropCity && ` → ${item.dropCity}`}
@@ -186,8 +222,8 @@ export default function ChatListScreen() {
             <View style={styles.messageRow}>
               <Ionicons
                 name={item.lastMessageSender === 'vendor' ? 'arrow-down' : 'arrow-up'}
-                size={12}
-                color={item.lastMessageSender === 'vendor' ? GREEN : '#64748B'}
+                size={wp('3%')}
+                color={item.lastMessageSender === 'vendor' ? TEAL : TEXT_SECONDARY}
               />
               <Text
                 style={[
@@ -202,21 +238,23 @@ export default function ChatListScreen() {
             </View>
           ) : (
             <View style={styles.messageRow}>
-              <Ionicons name="chatbubble-outline" size={12} color="#94A3B8" />
+              <Ionicons name="chatbubble-outline" size={wp('3%')} color={TEXT_MUTED} />
               <Text style={styles.noMessage}>No messages yet</Text>
             </View>
           )}
         </View>
 
         {/* Arrow */}
-        <Ionicons name="chevron-forward" size={20} color="#CBD5E1" />
+        <Ionicons name="chevron-forward" size={wp('5%')} color="#CBD5E1" />
       </TouchableOpacity>
     );
   };
 
   const renderEmptyState = () => (
     <View style={styles.emptyContainer}>
-      <MaterialCommunityIcons name="chat-outline" size={64} color="#CBD5E1" />
+      <View style={styles.emptyIconCircle}>
+        <MaterialCommunityIcons name="chat-outline" size={wp('10%')} color={TEAL} />
+      </View>
       <Text style={styles.emptyTitle}>
         {searchQuery ? 'No Results Found' : 'No Chats Yet'}
       </Text>
@@ -230,7 +268,15 @@ export default function ChatListScreen() {
           style={styles.browseBtn}
           onPress={() => navigation.navigate('Home')}
         >
-          <Text style={styles.browseBtnText}>Browse Services</Text>
+          <LinearGradient
+            colors={[TEAL_DEEP, TEAL_MID, '#047857']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.browseBtnGradient}
+          >
+            <Ionicons name="compass-outline" size={wp('4.5%')} color="#FFFFFF" />
+            <Text style={styles.browseBtnText}>Browse Services</Text>
+          </LinearGradient>
         </TouchableOpacity>
       )}
     </View>
@@ -238,13 +284,27 @@ export default function ChatListScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.container}>
-        {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>Chats</Text>
-        </View>
+      <SafeAreaView style={styles.container} edges={['bottom', 'left', 'right']}>
+        {/* Gradient Header */}
+        <LinearGradient
+          colors={[TEAL_DEEP, TEAL_MID, '#047857']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.header}
+        >
+          <View style={styles.headerDecoCircle1} />
+          <View style={styles.headerDecoCircle2} />
+          <View style={styles.headerInner}>
+            <View style={styles.headerLeft}>
+              <Text style={styles.headerTitle}>Chats</Text>
+              <Text style={styles.headerSubtitle}>Your conversations</Text>
+            </View>
+          </View>
+        </LinearGradient>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={GREEN} />
+          <View style={styles.loadingSpinnerWrap}>
+            <ActivityIndicator size="large" color={TEAL} />
+          </View>
           <Text style={styles.loadingText}>Loading chats...</Text>
         </View>
       </SafeAreaView>
@@ -274,30 +334,42 @@ export default function ChatListScreen() {
   const totalUnread = filteredBookings.reduce((sum, b) => sum + (b.unreadCount || 0), 0);
 
   return (
-    <SafeAreaView style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Chats</Text>
-        {totalUnread > 0 && (
-          <View style={styles.headerBadge}>
-            <Text style={styles.headerBadgeText}>{totalUnread}</Text>
+    <SafeAreaView style={styles.container} edges={['bottom', 'left', 'right']}>
+      {/* Gradient Header */}
+      <LinearGradient
+        colors={[TEAL_DEEP, TEAL_MID, '#047857']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.header}
+      >
+        <View style={styles.headerDecoCircle1} />
+        <View style={styles.headerDecoCircle2} />
+        <View style={styles.headerInner}>
+          <View style={styles.headerLeft}>
+            <Text style={styles.headerTitle}>Chats</Text>
+            <Text style={styles.headerSubtitle}>Your conversations</Text>
           </View>
-        )}
-      </View>
+          {totalUnread > 0 && (
+            <View style={styles.headerBadge}>
+              <Text style={styles.headerBadgeText}>{totalUnread}</Text>
+            </View>
+          )}
+        </View>
+      </LinearGradient>
 
       {/* Search Bar */}
       <View style={styles.searchContainer}>
-        <Ionicons name="search" size={20} color="#64748B" style={styles.searchIcon} />
+        <Ionicons name="search" size={wp('5%')} color={TEXT_SECONDARY} style={styles.searchIcon} />
         <TextInput
           style={styles.searchInput}
           placeholder="Search by vendor, booking, or city..."
-          placeholderTextColor="#94A3B8"
+          placeholderTextColor={TEXT_MUTED}
           value={searchQuery}
           onChangeText={setSearchQuery}
         />
         {searchQuery !== '' && (
           <TouchableOpacity onPress={() => setSearchQuery('')} style={styles.clearButton}>
-            <Ionicons name="close-circle" size={20} color="#64748B" />
+            <Ionicons name="close-circle" size={wp('5%')} color={TEXT_SECONDARY} />
           </TouchableOpacity>
         )}
       </View>
@@ -313,8 +385,8 @@ export default function ChatListScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            colors={[GREEN]}
-            tintColor={GREEN}
+            colors={[TEAL]}
+            tintColor={TEAL}
           />
         }
         showsVerticalScrollIndicator={false}
@@ -328,103 +400,156 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: BG,
   },
+
+  // --- Header ---
   header: {
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight || hp('4%') : hp('5.5%'),
+    paddingBottom: hp('2%'),
+    paddingHorizontal: wp('5%'),
+    borderBottomLeftRadius: wp('6%'),
+    borderBottomRightRadius: wp('6%'),
+    overflow: 'hidden',
+  },
+  headerDecoCircle1: {
+    position: 'absolute',
+    top: -hp('4%'),
+    right: -wp('8%'),
+    width: wp('40%'),
+    height: wp('40%'),
+    borderRadius: wp('20%'),
+    backgroundColor: 'rgba(255,255,255,0.06)',
+  },
+  headerDecoCircle2: {
+    position: 'absolute',
+    bottom: -hp('3%'),
+    left: -wp('10%'),
+    width: wp('30%'),
+    height: wp('30%'),
+    borderRadius: wp('15%'),
+    backgroundColor: 'rgba(255,255,255,0.04)',
+  },
+  headerInner: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+  },
+  headerLeft: {
+    flex: 1,
   },
   headerTitle: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#0F172A',
+    fontSize: wp('6.5%'),
+    fontWeight: '800',
+    color: '#FFFFFF',
+    letterSpacing: 0.3,
+  },
+  headerSubtitle: {
+    fontSize: wp('3.2%'),
+    color: 'rgba(255,255,255,0.7)',
+    marginTop: hp('0.3%'),
+    fontWeight: '500',
   },
   headerBadge: {
     backgroundColor: '#EF4444',
-    borderRadius: 12,
-    minWidth: 24,
-    height: 24,
+    borderRadius: wp('3%'),
+    minWidth: wp('6.5%'),
+    height: wp('6.5%'),
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 8,
+    paddingHorizontal: wp('2%'),
+    ...Platform.select({
+      ios: {
+        shadowColor: '#EF4444',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.4,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 4,
+      },
+    }),
   },
   headerBadgeText: {
-    color: '#fff',
-    fontSize: 12,
+    color: '#FFFFFF',
+    fontSize: wp('3%'),
     fontWeight: '700',
   },
+
+  // --- Search ---
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
-    marginHorizontal: 16,
-    marginTop: 12,
-    marginBottom: 8,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    paddingHorizontal: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
+    backgroundColor: CARD,
+    marginHorizontal: wp('4%'),
+    marginTop: hp('1.5%'),
+    marginBottom: hp('1%'),
+    borderRadius: wp('3%'),
+    paddingHorizontal: wp('3.5%'),
+    ...SHADOW_SM,
   },
   searchIcon: {
-    marginRight: 8,
+    marginRight: wp('2%'),
   },
   searchInput: {
     flex: 1,
-    fontSize: 14,
-    color: '#0F172A',
-    paddingVertical: 12,
+    fontSize: wp('3.5%'),
+    color: TEXT_PRIMARY,
+    paddingVertical: hp('1.5%'),
   },
   clearButton: {
-    padding: 4,
+    padding: wp('1%'),
   },
+
+  // --- Loading ---
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: BG,
+  },
+  loadingSpinnerWrap: {
+    width: wp('16%'),
+    height: wp('16%'),
+    borderRadius: wp('8%'),
+    backgroundColor: TEAL_LIGHT,
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...SHADOW_SM,
   },
   loadingText: {
-    marginTop: 12,
-    fontSize: 14,
-    color: '#64748B',
+    marginTop: hp('1.5%'),
+    fontSize: wp('3.5%'),
+    color: TEXT_SECONDARY,
+    fontWeight: '500',
   },
+
+  // --- List ---
   listContent: {
-    paddingHorizontal: 16,
-    paddingTop: 8,
-    paddingBottom: 100,
+    paddingHorizontal: wp('4%'),
+    paddingTop: hp('0.5%'),
+    paddingBottom: hp('12%'),
   },
+
+  // --- Booking Card ---
   bookingCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
-    padding: 12,
-    borderRadius: 12,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 2,
+    backgroundColor: CARD,
+    padding: wp('3.5%'),
+    borderRadius: wp('4%'),
+    marginBottom: hp('1.2%'),
+    ...SHADOW_SM,
   },
   serviceIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: wp('12.5%'),
+    height: wp('12.5%'),
+    borderRadius: wp('6.25%'),
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
+    marginRight: wp('3%'),
   },
   bookingContent: {
     flex: 1,
-    gap: 4,
+    gap: hp('0.4%'),
   },
   headerRow: {
     flexDirection: 'row',
@@ -432,106 +557,124 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   vendorName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#0F172A',
+    fontSize: wp('3.8%'),
+    fontWeight: '700',
+    color: TEXT_PRIMARY,
   },
   bookingNumber: {
-    fontSize: 12,
-    color: '#64748B',
-    marginTop: 2,
+    fontSize: wp('2.8%'),
+    color: TEXT_SECONDARY,
+    marginTop: hp('0.2%'),
   },
   unreadBadge: {
     backgroundColor: '#EF4444',
-    borderRadius: 10,
-    minWidth: 20,
-    height: 20,
+    borderRadius: wp('2.5%'),
+    minWidth: wp('5.5%'),
+    height: wp('5.5%'),
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 6,
+    paddingHorizontal: wp('1.5%'),
   },
   unreadText: {
-    color: '#fff',
-    fontSize: 11,
+    color: '#FFFFFF',
+    fontSize: wp('2.8%'),
     fontWeight: '700',
   },
   routeRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    marginTop: 2,
+    gap: wp('1%'),
+    marginTop: hp('0.2%'),
   },
   routeText: {
-    fontSize: 12,
-    color: '#64748B',
+    fontSize: wp('2.8%'),
+    color: TEXT_SECONDARY,
     flex: 1,
   },
   statusDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    marginLeft: 4,
+    width: wp('1.5%'),
+    height: wp('1.5%'),
+    borderRadius: wp('0.75%'),
+    marginLeft: wp('1%'),
   },
   statusText: {
-    fontSize: 11,
+    fontSize: wp('2.6%'),
     fontWeight: '600',
     textTransform: 'capitalize',
   },
   messageRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    marginTop: 4,
+    gap: wp('1.5%'),
+    marginTop: hp('0.4%'),
   },
   lastMessage: {
     flex: 1,
-    fontSize: 13,
-    color: '#64748B',
+    fontSize: wp('3.1%'),
+    color: TEXT_SECONDARY,
   },
   unreadMessage: {
-    color: '#0F172A',
+    color: TEXT_PRIMARY,
     fontWeight: '600',
   },
   timeAgo: {
-    fontSize: 11,
-    color: '#94A3B8',
+    fontSize: wp('2.6%'),
+    color: TEXT_MUTED,
   },
   noMessage: {
     flex: 1,
-    fontSize: 13,
-    color: '#94A3B8',
+    fontSize: wp('3.1%'),
+    color: TEXT_MUTED,
     fontStyle: 'italic',
   },
+
+  // --- Empty State ---
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingTop: 100,
+    paddingTop: hp('12%'),
+  },
+  emptyIconCircle: {
+    width: wp('22%'),
+    height: wp('22%'),
+    borderRadius: wp('11%'),
+    backgroundColor: TEAL_LIGHT,
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...SHADOW_SM,
   },
   emptyTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#0F172A',
-    marginTop: 16,
+    fontSize: wp('5%'),
+    fontWeight: '800',
+    color: TEXT_PRIMARY,
+    marginTop: hp('2%'),
   },
   emptyText: {
-    fontSize: 14,
-    color: '#64748B',
-    marginTop: 8,
+    fontSize: wp('3.5%'),
+    color: TEXT_SECONDARY,
+    marginTop: hp('1%'),
     textAlign: 'center',
-    lineHeight: 20,
-    paddingHorizontal: 20,
+    lineHeight: hp('2.5%'),
+    paddingHorizontal: wp('10%'),
   },
   browseBtn: {
-    marginTop: 24,
-    backgroundColor: GREEN,
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 999,
+    marginTop: hp('3%'),
+    borderRadius: wp('7%'),
+    overflow: 'hidden',
+    ...SHADOW_MD,
+  },
+  browseBtnGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: wp('2%'),
+    paddingHorizontal: wp('7%'),
+    paddingVertical: hp('1.6%'),
+    borderRadius: wp('7%'),
   },
   browseBtnText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '600',
+    color: '#FFFFFF',
+    fontSize: wp('3.5%'),
+    fontWeight: '700',
   },
 });

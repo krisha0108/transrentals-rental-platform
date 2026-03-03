@@ -232,6 +232,9 @@ export async function GET(request: NextRequest) {
             ...quoteRequestFilter,
             ...(bikeQuoteRequestStatusArray ? { status: { in: bikeQuoteRequestStatusArray as any } } : {}),
           },
+          include: {
+            vehicle_models: { select: { sideImage: true } },
+          },
           orderBy: { createdAt: 'desc' },
           take: 50,
         }).catch((e) => { logger.error('Error fetching bike quote requests', e); return []; })
@@ -246,12 +249,14 @@ export async function GET(request: NextRequest) {
         include: {
           locations: { select: { name: true } },
           vendors_bike_bookings_assignedVendorIdTovendors: { select: { businessName: true, phone: true } },
+          bike_quotes: { select: { vehicleImages: true } },
+          vehicle_models: { select: { sideImage: true } },
         },
         orderBy: { createdAt: 'desc' },
         take: 50,
       }).catch((e) => { logger.error('Error fetching bike bookings', e); return []; }),
 
-      // Car bookings
+      // Car bookings (self-drive)
       prisma.car_bookings.findMany({
         where: {
           ...customerFilter,
@@ -260,6 +265,7 @@ export async function GET(request: NextRequest) {
         include: {
           locations: { select: { name: true } },
           vendors_car_bookings_assignedVendorIdTovendors: { select: { businessName: true, phone: true } },
+          self_drive_quotes: { select: { vehicleImages: true } },
         },
         orderBy: { createdAt: 'desc' },
         take: 50,
@@ -271,6 +277,9 @@ export async function GET(request: NextRequest) {
           where: {
             ...quoteRequestFilter,
             ...(selfDriveQuoteRequestStatusArray ? { status: { in: selfDriveQuoteRequestStatusArray as any } } : {}),
+          },
+          include: {
+            vehicle_models: { select: { sideImage: true } },
           },
           orderBy: { createdAt: 'desc' },
           take: 50,
@@ -431,6 +440,47 @@ export async function GET(request: NextRequest) {
         : Promise.resolve([]),
     ]);
 
+    // Helper to extract first image from vehicleImages JSON string
+    const getFirstVehicleImage = (vehicleImages: string | null | undefined): string | null => {
+      if (!vehicleImages) return null;
+      try {
+        const parsed = JSON.parse(vehicleImages);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed[0];
+        if (typeof parsed === 'string') return parsed;
+      } catch {
+        // If it's a plain URL string, return as-is
+        if (vehicleImages.startsWith('http')) return vehicleImages;
+      }
+      return null;
+    };
+
+    // Fetch vehicle category images for chauffeur bookings
+    const categoryIds = [...new Set(chauffeurBookings.map(b => b.carCategory).filter(Boolean))];
+
+    // Fetch fleet vehicle sideImage for self-drive bookings (car_bookings has no vehicle_models relation)
+    const carRequestedVehicleIds = [...new Set(carBookings.map(b => b.requestedVehicleId).filter(Boolean))] as string[];
+
+    const [vehicleCategories, carFleetModels] = await Promise.all([
+      categoryIds.length > 0
+        ? prisma.chauffeur_vehicle_categories.findMany({
+            where: { id: { in: categoryIds } },
+            select: { id: true, image: true },
+          })
+        : Promise.resolve([]),
+      carRequestedVehicleIds.length > 0
+        ? prisma.vehicle_models.findMany({
+            where: { id: { in: carRequestedVehicleIds } },
+            select: { id: true, sideImage: true },
+          })
+        : Promise.resolve([]),
+    ]);
+
+    const categoryImageMap: Record<string, string | null> = {};
+    vehicleCategories.forEach(c => { categoryImageMap[c.id] = c.image; });
+
+    const carFleetImageMap: Record<string, string | null> = {};
+    carFleetModels.forEach(m => { carFleetImageMap[m.id] = m.sideImage; });
+
     // Transform to common format
     const transformedBookings = [
       // Bike quote requests
@@ -444,14 +494,17 @@ export async function GET(request: NextRequest) {
         journey_datetime: b.pickupDate.toISOString(),
         return_datetime: b.dropDate?.toISOString() || null,
         status: mapBikeQuoteRequestStatus(b.status),
+        raw_status: b.status,
         created_at: b.createdAt.toISOString(),
         vehicle_name: b.requestedCategory || 'Bike',
+        vehicle_image: b.vehicle_models?.sideImage || null,
         brand: b.requestedBrand || null,
         category: b.requestedCategory,
         total_amount: null,
         vendor: null,
         quotations: [],
         is_quote_request: true,
+        quote_count: b.totalQuotesReceived || 0,
       })),
       // Bike bookings
       ...bikeBookings.map((b) => ({
@@ -466,6 +519,7 @@ export async function GET(request: NextRequest) {
         status: mapStatusToDisplay(b.status),
         created_at: b.createdAt.toISOString(),
         vehicle_name: b.requestedVehicleName,
+        vehicle_image: getFirstVehicleImage(b.bike_quotes?.vehicleImages) || b.vehicle_models?.sideImage || null,
         brand: b.requestedBrand,
         category: b.requestedCategory,
         total_amount: b.totalAmount,
@@ -499,6 +553,7 @@ export async function GET(request: NextRequest) {
           status: mapStatusToDisplay(b.status),
           created_at: b.createdAt.toISOString(),
           vehicle_name: b.requestedVehicleName,
+          vehicle_image: getFirstVehicleImage(b.self_drive_quotes?.vehicleImages) || (b.requestedVehicleId ? carFleetImageMap[b.requestedVehicleId] : null) || null,
           brand: b.requestedBrand,
           category: b.requestedCategory,
           total_amount: b.grandTotal,
@@ -520,14 +575,17 @@ export async function GET(request: NextRequest) {
         journey_datetime: b.pickupDate.toISOString(),
         return_datetime: b.dropDate?.toISOString() || null,
         status: mapSelfDriveQuoteRequestStatus(b.status),
+        raw_status: b.status,
         created_at: b.createdAt.toISOString(),
         vehicle_name: b.vehicleCategoryName || b.specificModel || 'Car',
+        vehicle_image: b.vehicle_models?.sideImage || null,
         brand: b.specificBrand || null,
         category: b.vehicleCategory,
         total_amount: null,
         vendor: null,
         quotations: [],
         is_quote_request: true,
+        quote_count: b.totalQuotesReceived || 0,
       })),
       ...chauffeurBookings.map((b) => ({
         id: b.id,
@@ -541,6 +599,7 @@ export async function GET(request: NextRequest) {
         status: mapStatusToDisplay(b.status),
         created_at: b.createdAt.toISOString(),
         vehicle_name: b.vehicle_models || b.carCategoryName || b.carCategory || 'Car with Driver',
+        vehicle_image: categoryImageMap[b.carCategory] || null,
         brand: null,
         category: b.carCategory,
         total_amount: b.grandTotal,
@@ -560,6 +619,7 @@ export async function GET(request: NextRequest) {
         journey_datetime: b.pickupDate.toISOString(),
         return_datetime: b.returnDate?.toISOString() || null,
         status: mapBusQuoteRequestStatus(b.status),
+        raw_status: b.status,
         created_at: b.createdAt.toISOString(),
         vehicle_name: b.vehicleCategoryName || b.vehicle_category || 'Bus',
         brand: null,
@@ -569,7 +629,8 @@ export async function GET(request: NextRequest) {
         trip_type: b.tripType,
         vendor: null,
         quotations: [],
-        is_quote_request: true, // Flag to indicate this is a quote request
+        is_quote_request: true,
+        quote_count: b.totalQuotesReceived || 0,
       })),
       // Bus bookings (confirmed bookings)
       ...busBookings.map((b) => ({
@@ -606,6 +667,7 @@ export async function GET(request: NextRequest) {
         journey_datetime: b.pickupDate.toISOString(),
         return_datetime: null,
         status: mapQuoteRequestStatus(b.status),
+        raw_status: b.status,
         created_at: b.createdAt.toISOString(),
         vehicle_name: b.vehicleCategoryName || b.vehicle_category || 'Truck',
         brand: null,
@@ -615,6 +677,7 @@ export async function GET(request: NextRequest) {
         vendor: null,
         quotations: [],
         is_quote_request: true,
+        quote_count: b.totalQuotesReceived || 0,
       })),
       // Truck bookings
       ...truckBookings.map((b) => ({
@@ -650,6 +713,7 @@ export async function GET(request: NextRequest) {
         journey_datetime: b.preferredDate?.toISOString() || b.createdAt.toISOString(),
         return_datetime: null,
         status: mapQuoteRequestStatus(b.status),
+        raw_status: b.status,
         created_at: b.createdAt.toISOString(),
         vehicle_name: b.shiftingType || b.propertySize || 'Moving Service',
         brand: null,
@@ -658,6 +722,7 @@ export async function GET(request: NextRequest) {
         vendor: null,
         quotations: [],
         is_quote_request: true,
+        quote_count: b.totalQuotesReceived || 0,
       })),
       // Packers bookings
       ...packersBookings.map((b) => ({
@@ -692,6 +757,7 @@ export async function GET(request: NextRequest) {
         journey_datetime: b.startDate.toISOString(),
         return_datetime: b.endDate?.toISOString() || null,
         status: mapQuoteRequestStatus(b.status),
+        raw_status: b.status,
         created_at: b.createdAt.toISOString(),
         vehicle_name: b.equipmentType || b.equipmentCategory || 'Equipment',
         brand: null,
@@ -700,6 +766,7 @@ export async function GET(request: NextRequest) {
         vendor: null,
         quotations: [],
         is_quote_request: true,
+        quote_count: b.totalQuotesReceived || 0,
       })),
       // Equipment bookings
       ...equipmentBookings.map((b) => ({
@@ -734,6 +801,7 @@ export async function GET(request: NextRequest) {
         journey_datetime: b.pickupDate.toISOString(),
         return_datetime: b.returnDate?.toISOString() || null,
         status: mapQuoteRequestStatus(b.status),
+        raw_status: b.status,
         created_at: b.createdAt.toISOString(),
         vehicle_name: b.vehicleCategoryName || b.vehicle_category || b.specificModel || 'Luxury Car',
         brand: null,
@@ -744,6 +812,7 @@ export async function GET(request: NextRequest) {
         vendor: null,
         quotations: [],
         is_quote_request: true,
+        quote_count: b.totalQuotesReceived || 0,
       })),
       // Luxury bookings
       ...luxuryBookings.map((b) => ({
@@ -771,14 +840,25 @@ export async function GET(request: NextRequest) {
       })),
     ];
 
+    // Filter out accepted/confirmed quote requests (the booking entry already exists for these)
+    const dedupedBookings = transformedBookings.filter(b => {
+      if (b.is_quote_request && (b.raw_status === 'QUOTE_ACCEPTED' || b.raw_status === 'BOOKING_CONFIRMED')) {
+        return false;
+      }
+      return true;
+    });
+
     // Sort by created date descending
-    transformedBookings.sort(
+    dedupedBookings.sort(
       (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
     );
 
+    // Remove raw_status from response (internal use only)
+    const cleanBookings = dedupedBookings.map(({ raw_status, ...rest }) => rest);
+
     return NextResponse.json({
       success: true,
-      bookings: transformedBookings,
+      bookings: cleanBookings,
     });
   } catch (error) {
     logger.error('Customer bookings error', error);

@@ -33,27 +33,28 @@ model active_sessions {
 }
 
 model admin_users {
-  id                       String                     @id
-  email                    String                     @unique
-  password                 String
-  name                     String
-  role                     admin_users_role           @default(ADMIN)
-  isActive                 Boolean                    @default(true)
-  createdAt                DateTime                   @default(now())
-  updatedAt                DateTime                   @updatedAt
-  createdById              String?
-  phone                    String?
-  admin_users              admin_users?               @relation("admin_usersToadmin_users", fields: [createdById], references: [id])
-  other_admin_users        admin_users[]              @relation("admin_usersToadmin_users")
-  blog_posts               blog_posts[]
-  manager_locations        manager_locations[]
-  manager_services         manager_services[]
-  pages                    pages[]
-  vendor_documents         vendor_documents[]
-  vendor_location_requests vendor_location_requests[]
-  vendor_payout_batches    vendor_payout_batches[]
-  vendor_service_requests  vendor_service_requests[]
-  vendors                  vendors[]
+  id                        String                     @id
+  email                     String                     @unique
+  password                  String
+  name                      String
+  role                      admin_users_role           @default(ADMIN)
+  isActive                  Boolean                    @default(true)
+  createdAt                 DateTime                   @default(now())
+  updatedAt                 DateTime                   @updatedAt
+  createdById               String?
+  phone                     String?
+  admin_users               admin_users?               @relation("admin_usersToadmin_users", fields: [createdById], references: [id])
+  other_admin_users         admin_users[]              @relation("admin_usersToadmin_users")
+  blog_posts                blog_posts[]
+  manager_locations         manager_locations[]
+  manager_services          manager_services[]
+  pages                     pages[]
+  vendor_documents_uploaded vendor_documents[]         @relation("vendor_documents_uploadedBy")
+  vendor_documents          vendor_documents[]         @relation("vendor_documents_verifiedBy")
+  vendor_location_requests  vendor_location_requests[]
+  vendor_payout_batches     vendor_payout_batches[]
+  vendor_service_requests   vendor_service_requests[]
+  vendors                   vendors[]
 
   @@index([createdById], map: "admin_users_createdById_fkey")
 }
@@ -1223,6 +1224,7 @@ model customers {
   self_drive_quote_requests self_drive_quote_requests[]
   truck_bookings            truck_bookings[]
   truck_quote_requests      truck_quote_requests[]
+  customer_wallet           customer_wallets?
 
   @@index([email])
   @@index([isActive])
@@ -3219,15 +3221,18 @@ model vendor_documents {
   status          vendor_documents_status       @default(PENDING)
   verifiedAt      DateTime?
   verifiedById    String?
+  uploadedById    String?
   rejectionReason String?                       @db.Text
   createdAt       DateTime                      @default(now())
   updatedAt       DateTime                      @updatedAt
+  uploadedByAdmin admin_users?                  @relation("vendor_documents_uploadedBy", fields: [uploadedById], references: [id])
   vendors         vendors                       @relation(fields: [vendorId], references: [id], onDelete: Cascade)
-  admin_users     admin_users?                  @relation(fields: [verifiedById], references: [id])
+  admin_users     admin_users?                  @relation("vendor_documents_verifiedBy", fields: [verifiedById], references: [id])
 
   @@index([documentType])
   @@index([status])
   @@index([vendorId])
+  @@index([uploadedById])
   @@index([verifiedById], map: "vendor_documents_verifiedById_fkey")
 }
 
@@ -3615,7 +3620,7 @@ model vendors {
   createdAt                                                       DateTime                         @default(now())
   updatedAt                                                       DateTime                         @updatedAt
   fcmToken                                                        String?                          @db.Text
-  slug                                                            String?                          @unique
+  slug                                                            String?                          @unique(map: "slug")
   bike_bookings_bike_bookings_acceptedVendorIdTovendors           bike_bookings[]                  @relation("bike_bookings_acceptedVendorIdTovendors")
   bike_bookings_bike_bookings_assignedVendorIdTovendors           bike_bookings[]                  @relation("bike_bookings_assignedVendorIdTovendors")
   bike_quotes                                                     bike_quotes[]
@@ -3711,7 +3716,6 @@ model web_vitals {
   createdAt      DateTime              @default(now())
 
   @@index([createdAt])
-  @@index([sessionId])
   @@index([lcpRating])
   @@index([pagePath])
 }
@@ -4067,7 +4071,7 @@ model vendor_booking_links {
   serviceType            String
   isActive               Boolean                  @default(true)
   formTitle              String?
-  welcomeMsg             String?                  @db.Text
+  welcomeMsg             String?                  @db.LongText
   visibleFields          String?                  @db.LongText
   requireAdvance         Boolean                  @default(false)
   advanceAmount          Float?
@@ -4096,16 +4100,16 @@ model vendor_direct_bookings {
   customerEmail     String?
   pickupDate        DateTime?
   returnDate        DateTime?
-  pickupLocation    String?                          @db.Text
-  dropLocation      String?                          @db.Text
-  notes             String?                          @db.Text
+  pickupLocation    String?                          @db.LongText
+  dropLocation      String?                          @db.LongText
+  notes             String?                          @db.LongText
   status            String                           @default("inquiry")
   totalAmount       Float?
   paymentStatus     String                           @default("pending")
   paymentMode       String?
   paidAmount        Float                            @default(0)
   razorpayLinkId    String?
-  vendorNotes       String?                          @db.Text
+  vendorNotes       String?                          @db.LongText
   assignedDriverId  String?
   assignedVehicleId String?
   assignedAt        DateTime?
@@ -4133,7 +4137,7 @@ model vendor_direct_booking_expenses {
   vendorId    String
   category    String
   amount      Float
-  note        String?                @db.Text
+  note        String?                @db.LongText
   expenseDate DateTime               @default(now())
   createdAt   DateTime               @default(now())
   updatedAt   DateTime               @updatedAt
@@ -4824,4 +4828,35 @@ enum p2p_urgency {
   HIGH
   MEDIUM
   LOW
+}
+
+// Backr Token Wallet
+model customer_wallets {
+  id              String   @id @default(cuid())
+  customerId      String   @unique
+  balance         Float    @default(0)
+  totalEarned     Float    @default(0)
+  totalRedeemed   Float    @default(0)
+  solanaWallet    String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  customers       customers @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([customerId])
+}
+
+model backr_transactions {
+  id              String   @id @default(cuid())
+  customerId      String
+  type            String   // 'CREDIT' or 'DEBIT'
+  amount          Float
+  balance         Float    // balance after transaction
+  bookingId       String?
+  bookingNumber   String?
+  serviceType     String?  // bike, car, bus, truck, equipment, packers, luxury, chauffeur
+  description     String?  @db.Text
+  createdAt       DateTime @default(now())
+
+  @@index([customerId])
+  @@index([bookingId])
 }

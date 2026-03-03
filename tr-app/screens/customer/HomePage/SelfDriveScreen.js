@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -9,16 +9,29 @@ import {
   Platform,
   Image,
   Alert,
+  StatusBar,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Feather';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { locationService } from '../../services';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { useNavigation } from '@react-navigation/native';
-
-const BG = '#F5F5F7';
-const GREEN = '#09B368';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import LinearGradient from 'react-native-linear-gradient';
+import { widthPercentageToDP as wp, heightPercentageToDP as hp } from 'react-native-responsive-screen';
+import {
+  TEAL_DEEP,
+  TEAL_MID,
+  TEAL,
+  TEAL_LIGHT,
+  BG,
+  CARD,
+  TEXT_PRIMARY,
+  TEXT_SECONDARY,
+  TEXT_MUTED,
+  SHADOW_SM,
+  SHADOW_MD,
+} from '../../../theme';
 
 const faqList = [
   { q: 'Do I need to pay deposit?', a: 'Some vendors may ask for a refundable security deposit depending on the car.' },
@@ -53,6 +66,22 @@ export default function SelfDriveScreen() {
 
   const [expandedFaq, setExpandedFaq] = useState(null);
   const dropdownTouching = useRef(false);
+
+  /* -- StatusBar management -- */
+  useFocusEffect(
+    useCallback(() => {
+      StatusBar.setBarStyle('light-content');
+      if (Platform.OS === 'android') {
+        StatusBar.setBackgroundColor(TEAL_DEEP);
+      }
+      return () => {
+        StatusBar.setBarStyle('dark-content');
+        if (Platform.OS === 'android') {
+          StatusBar.setBackgroundColor('#FFFFFF');
+        }
+      };
+    }, []),
+  );
 
   useEffect(() => {
     fetchLocations();
@@ -191,20 +220,32 @@ export default function SelfDriveScreen() {
   ];
 
   return (
-    <SafeAreaView style={styles.safe}>
-      {/* Top Bar */}
-      <View style={styles.topBar}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Icon name="arrow-left" size={22} color="#0F172A" />
-        </TouchableOpacity>
-        <Text style={styles.topTitle}>Self Drive Car</Text>
-        <TouchableOpacity
-          onPress={() => navigation.navigate('MySelfDriveBookings')}
-          style={styles.bookingsBtn}
-        >
-          <Ionicons name="list" size={20} color={GREEN} />
-        </TouchableOpacity>
-      </View>
+    <SafeAreaView style={styles.safe} edges={['bottom']}>
+      {/* Gradient Header */}
+      <LinearGradient
+        colors={[TEAL_DEEP, TEAL_MID, '#047857']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.headerGradient}
+      >
+        {/* Decorative circles */}
+        <View style={styles.decoCircle1} pointerEvents="none" />
+        <View style={styles.decoCircle2} pointerEvents="none" />
+        <View style={styles.decoCircle3} pointerEvents="none" />
+
+        <View style={styles.headerRow}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+            <Ionicons name="chevron-back" size={wp('5%')} color="#FFF" />
+          </TouchableOpacity>
+          <Text style={styles.topTitle}>Self Drive Car</Text>
+          <TouchableOpacity
+            onPress={() => navigation.navigate('MySelfDriveBookings')}
+            style={styles.bookingsBtn}
+          >
+            <Ionicons name="list" size={wp('5%')} color="#FFF" />
+          </TouchableOpacity>
+        </View>
+      </LinearGradient>
 
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -217,12 +258,12 @@ export default function SelfDriveScreen() {
         {/* Search Card */}
         <View style={styles.formCard}>
           <View style={styles.formHeaderRow}>
-            <View>
+            <View style={{ flex: 1 }}>
               <Text style={styles.formTitle}>Find Self Drive Cars</Text>
               <Text style={styles.formDesc}>Browse cars, request quotes from vendors</Text>
             </View>
             <View style={styles.securePill}>
-              <Ionicons name="car-sport" size={14} color="#fff" />
+              <Ionicons name="car-sport" size={wp('3.5%')} color="#fff" />
               <Text style={styles.securePillText}>Self Drive</Text>
             </View>
           </View>
@@ -231,12 +272,14 @@ export default function SelfDriveScreen() {
           <View style={styles.locationBlock}>
             <Text style={styles.smallLabel}>Pickup City</Text>
             <View style={styles.locationRow}>
-              <Ionicons name="location" size={20} color={GREEN} />
+              <View style={styles.locationIconCircle}>
+                <Ionicons name="location" size={wp('4.2%')} color={TEAL} />
+              </View>
               <TextInput
                 value={query.length ? query : pickupLocation}
                 onChangeText={handleInputChange}
                 placeholder="Enter pickup city"
-                placeholderTextColor="#94A3B8"
+                placeholderTextColor={TEXT_MUTED}
                 style={styles.locationInput}
                 onFocus={() => setShowSuggestions(true)}
                 onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
@@ -250,7 +293,7 @@ export default function SelfDriveScreen() {
                     setShowSuggestions(false);
                   }}
                 >
-                  <Ionicons name="close-circle" size={22} color="#CBD5E1" />
+                  <Ionicons name="close-circle" size={wp('5%')} color={TEXT_MUTED} />
                 </TouchableOpacity>
               ) : null}
             </View>
@@ -259,7 +302,7 @@ export default function SelfDriveScreen() {
             {showSuggestions && (
               <View style={styles.suggestionBox}>
                 <ScrollView
-                  style={{ maxHeight: 200 }}
+                  style={{ maxHeight: hp('26%') }}
                   nestedScrollEnabled
                   keyboardShouldPersistTaps="always"
                   onTouchStart={() => (dropdownTouching.current = true)}
@@ -272,7 +315,7 @@ export default function SelfDriveScreen() {
                         style={styles.suggestionItem}
                         onPress={() => handleLocationSelect(loc)}
                       >
-                        <Ionicons name="location-outline" size={16} color="#64748B" />
+                        <Ionicons name="navigate-outline" size={wp('3.8%')} color={TEAL} style={{ marginRight: wp('2%') }} />
                         <Text style={styles.suggestionText}>{loc.name}</Text>
                       </TouchableOpacity>
                     ))
@@ -293,11 +336,12 @@ export default function SelfDriveScreen() {
                 if (Platform.OS === 'android') openAndroidPicker('pickup');
                 else setShowPickupPickerIOS(true);
               }}
+              activeOpacity={0.7}
             >
               <Text style={styles.dateLabel}>PICKUP</Text>
               <View style={styles.dateContent}>
                 <View style={styles.dateIconWrap}>
-                  <Ionicons name="calendar" size={18} color={GREEN} />
+                  <Ionicons name="calendar-outline" size={wp('4%')} color={TEAL} />
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.dateMainText}>
@@ -319,16 +363,17 @@ export default function SelfDriveScreen() {
 
             {/* Drop Date */}
             <TouchableOpacity
-              style={styles.dateCard}
+              style={[styles.dateCard, { marginRight: 0, marginLeft: wp('2%') }]}
               onPress={() => {
                 if (Platform.OS === 'android') openAndroidPicker('drop');
                 else setShowDropPickerIOS(true);
               }}
+              activeOpacity={0.7}
             >
               <Text style={styles.dateLabel}>DROP</Text>
               <View style={styles.dateContent}>
                 <View style={styles.dateIconWrap}>
-                  <Ionicons name="calendar" size={18} color={GREEN} />
+                  <Ionicons name="calendar-outline" size={wp('4%')} color={TEAL} />
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.dateMainText}>
@@ -351,7 +396,9 @@ export default function SelfDriveScreen() {
 
           {/* Duration Display */}
           <View style={styles.durationRow}>
-            <Ionicons name="time-outline" size={16} color="#64748B" />
+            <View style={styles.durationIconWrap}>
+              <Ionicons name="time-outline" size={wp('3.5%')} color={TEAL} />
+            </View>
             <Text style={styles.durationText}>
               Duration: <Text style={styles.durationBold}>{calculateDays()} day{calculateDays() > 1 ? 's' : ''}</Text>
             </Text>
@@ -373,8 +420,15 @@ export default function SelfDriveScreen() {
                 }}
                 minimumDate={new Date()}
               />
-              <TouchableOpacity style={styles.iosBtn} onPress={() => setShowPickupPickerIOS(false)}>
-                <Text style={styles.iosBtnText}>Done</Text>
+              <TouchableOpacity style={styles.iosBtnWrap} onPress={() => setShowPickupPickerIOS(false)} activeOpacity={0.85}>
+                <LinearGradient
+                  colors={[TEAL_MID, TEAL]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.iosBtnGradient}
+                >
+                  <Text style={styles.iosBtnText}>Done</Text>
+                </LinearGradient>
               </TouchableOpacity>
             </View>
           )}
@@ -391,16 +445,30 @@ export default function SelfDriveScreen() {
                 }}
                 minimumDate={pickupDate}
               />
-              <TouchableOpacity style={styles.iosBtn} onPress={() => setShowDropPickerIOS(false)}>
-                <Text style={styles.iosBtnText}>Done</Text>
+              <TouchableOpacity style={styles.iosBtnWrap} onPress={() => setShowDropPickerIOS(false)} activeOpacity={0.85}>
+                <LinearGradient
+                  colors={[TEAL_MID, TEAL]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.iosBtnGradient}
+                >
+                  <Text style={styles.iosBtnText}>Done</Text>
+                </LinearGradient>
               </TouchableOpacity>
             </View>
           )}
 
           {/* Explore Button */}
-          <TouchableOpacity style={styles.exploreBtn} onPress={handleExplore}>
-            <Ionicons name="search" size={20} color="#fff" />
-            <Text style={styles.exploreBtnText}>Explore Cars</Text>
+          <TouchableOpacity style={styles.exploreBtnWrap} onPress={handleExplore} activeOpacity={0.85}>
+            <LinearGradient
+              colors={[TEAL_MID, TEAL]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.exploreBtnGradient}
+            >
+              <Ionicons name="search" size={wp('5%')} color="#fff" />
+              <Text style={styles.exploreBtnText}>Explore Cars</Text>
+            </LinearGradient>
           </TouchableOpacity>
         </View>
 
@@ -408,26 +476,34 @@ export default function SelfDriveScreen() {
         <TouchableOpacity
           style={styles.myBookingsCard}
           onPress={() => navigation.navigate('MySelfDriveBookings')}
+          activeOpacity={0.8}
         >
           <View style={styles.myBookingsLeft}>
             <View style={styles.myBookingsIcon}>
-              <Ionicons name="car" size={24} color={GREEN} />
+              <Ionicons name="car" size={wp('5.5%')} color={TEAL} />
             </View>
             <View>
               <Text style={styles.myBookingsTitle}>My Self Drive Bookings</Text>
               <Text style={styles.myBookingsDesc}>View your quote requests & bookings</Text>
             </View>
           </View>
-          <Ionicons name="chevron-forward" size={22} color="#94A3B8" />
+          <View style={styles.myBookingsArrow}>
+            <Ionicons name="chevron-forward" size={wp('4%')} color={TEAL} />
+          </View>
         </TouchableOpacity>
 
         {/* Popular Cars */}
         <View style={styles.sectionCard}>
           <Text style={styles.sectionTitle}>Popular Self Drive Cars</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingRight: wp('4%') }}>
             {popularCars.map((car) => (
               <View key={car.id} style={styles.carCard}>
-                <Image source={car.image} style={styles.carImage} />
+                <LinearGradient
+                  colors={[TEAL_LIGHT, '#F0FDF9']}
+                  style={styles.carImageWrap}
+                >
+                  <Image source={car.image} style={styles.carImage} />
+                </LinearGradient>
                 <Text style={styles.carName}>{car.name}</Text>
               </View>
             ))}
@@ -451,8 +527,11 @@ export default function SelfDriveScreen() {
                       handleLocationSelect(loc);
                     }
                   }}
+                  activeOpacity={0.7}
                 >
-                  <Ionicons name="location" size={14} color={GREEN} />
+                  <View style={styles.cityIconCircle}>
+                    <Ionicons name="location" size={wp('3%')} color={TEAL} />
+                  </View>
                   <Text style={styles.cityText}>{city}</Text>
                 </TouchableOpacity>
               )
@@ -462,26 +541,60 @@ export default function SelfDriveScreen() {
 
         {/* FAQ */}
         <View style={styles.faqSection}>
-          <Text style={styles.faqTitle}>FAQs</Text>
+          <View style={styles.faqHeaderRow}>
+            <Ionicons name="help-circle-outline" size={wp('5.5%')} color={TEAL} />
+            <Text style={styles.faqTitle}>FAQs</Text>
+          </View>
           {faqList.map((faq, idx) => {
             const isOpen = expandedFaq === idx;
+            const isLast = idx === faqList.length - 1;
             return (
-              <TouchableOpacity
-                key={idx}
-                style={styles.faqItem}
-                onPress={() => setExpandedFaq(isOpen ? null : idx)}
-              >
-                <View style={styles.faqHeader}>
+              <View key={idx} style={[styles.faqItem, isLast && { borderBottomWidth: 0 }]}>
+                <TouchableOpacity
+                  style={styles.faqHead}
+                  onPress={() => setExpandedFaq(isOpen ? null : idx)}
+                  activeOpacity={0.75}
+                >
                   <Text style={styles.faqQuestion}>{faq.q}</Text>
-                  <Ionicons name={isOpen ? 'chevron-up' : 'chevron-down'} size={18} color="#64748B" />
-                </View>
+                  <View style={styles.faqChevronWrap}>
+                    <Ionicons name={isOpen ? 'chevron-up' : 'chevron-down'} size={wp('3.5%')} color={TEAL} />
+                  </View>
+                </TouchableOpacity>
                 {isOpen && <Text style={styles.faqAnswer}>{faq.a}</Text>}
-              </TouchableOpacity>
+              </View>
             );
           })}
         </View>
 
-        <View style={{ height: 30 }} />
+        {/* Bottom CTA */}
+        <TouchableOpacity
+          onPress={() => navigation.navigate('MySelfDriveBookings')}
+          activeOpacity={0.85}
+          style={styles.bottomCTAWrap}
+        >
+          <LinearGradient
+            colors={[TEAL_MID, TEAL_DEEP]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.bottomCTA}
+          >
+            <View style={styles.ctaDecoCircle} />
+            <View style={styles.ctaContent}>
+              <View style={styles.ctaIconWrap}>
+                <Ionicons name="car-sport" size={wp('5.5%')} color={TEAL_DEEP} />
+              </View>
+              <View style={styles.ctaTextWrap}>
+                <Text style={styles.ctaTitle}>View My Bookings</Text>
+                <Text style={styles.ctaSubtitle}>Track your self drive requests</Text>
+              </View>
+            </View>
+            <View style={styles.ctaArrowWrap}>
+              <Ionicons name="chevron-forward" size={wp('5%')} color="#FFF" />
+            </View>
+          </LinearGradient>
+        </TouchableOpacity>
+
+        <View style={{ height: hp('5%') }} />
       </ScrollView>
 
       {/* Android DateTimePicker */}
@@ -503,304 +616,405 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: BG,
   },
-  topBar: {
-    height: 56,
+
+  /* -- HEADER -- */
+  headerGradient: {
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + 8 : 8,
+    paddingBottom: hp('2.5%'),
+    paddingHorizontal: wp('4%'),
+    borderBottomLeftRadius: wp('6%'),
+    borderBottomRightRadius: wp('6%'),
+    overflow: 'hidden',
+  },
+  decoCircle1: {
+    position: 'absolute',
+    top: -hp('4%'),
+    right: -wp('8%'),
+    width: wp('40%'),
+    height: wp('40%'),
+    borderRadius: wp('20%'),
+    backgroundColor: 'rgba(255,255,255,0.06)',
+  },
+  decoCircle2: {
+    position: 'absolute',
+    bottom: -hp('3%'),
+    left: -wp('10%'),
+    width: wp('30%'),
+    height: wp('30%'),
+    borderRadius: wp('15%'),
+    backgroundColor: 'rgba(255,255,255,0.04)',
+  },
+  decoCircle3: {
+    position: 'absolute',
+    top: hp('2%'),
+    left: wp('25%'),
+    width: wp('18%'),
+    height: wp('18%'),
+    borderRadius: wp('9%'),
+    backgroundColor: 'rgba(255,255,255,0.03)',
+  },
+  headerRow: {
+    zIndex: 2,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
   },
   backBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#F8FAFC',
+    width: wp('10%'),
+    height: wp('10%'),
+    borderRadius: wp('5%'),
+    backgroundColor: 'rgba(255,255,255,0.15)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   topTitle: {
-    fontSize: 18,
+    fontSize: wp('4.6%'),
     fontWeight: '700',
-    color: '#0F172A',
+    color: '#FFFFFF',
+    letterSpacing: 0.3,
   },
   bookingsBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(9,179,104,0.1)',
+    width: wp('10%'),
+    height: wp('10%'),
+    borderRadius: wp('5%'),
+    backgroundColor: 'rgba(255,255,255,0.15)',
     justifyContent: 'center',
     alignItems: 'center',
   },
 
+  /* -- FORM CARD -- */
   formCard: {
-    backgroundColor: '#fff',
-    marginHorizontal: 16,
-    marginTop: 16,
-    borderRadius: 20,
-    padding: 16,
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 3,
+    backgroundColor: CARD,
+    marginHorizontal: wp('3.5%'),
+    borderRadius: wp('5%'),
+    paddingVertical: hp('1.5%'),
+    paddingHorizontal: wp('4%'),
+    marginTop: -hp('0.5%'),
+    ...SHADOW_MD,
   },
   formHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 16,
+    alignItems: 'center',
+    marginBottom: hp('1.5%'),
   },
   formTitle: {
-    fontSize: 18,
+    fontSize: wp('4.5%'),
     fontWeight: '700',
-    color: '#0F172A',
+    color: TEXT_PRIMARY,
   },
   formDesc: {
-    fontSize: 13,
-    color: '#64748B',
-    marginTop: 2,
+    fontSize: wp('3%'),
+    color: TEXT_MUTED,
+    marginTop: hp('0.3%'),
   },
   securePill: {
-    backgroundColor: GREEN,
-    borderRadius: 20,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
+    backgroundColor: TEAL,
+    borderRadius: wp('10%'),
+    paddingHorizontal: wp('2.8%'),
+    paddingVertical: hp('0.5%'),
     flexDirection: 'row',
     alignItems: 'center',
+    gap: wp('1%'),
   },
   securePillText: {
     color: '#fff',
-    fontSize: 11,
+    fontSize: wp('3%'),
     fontWeight: '600',
-    marginLeft: 4,
   },
 
+  /* -- LOCATION -- */
   locationBlock: {
-    marginBottom: 16,
+    backgroundColor: '#F8FAFB',
+    borderRadius: wp('4%'),
+    borderWidth: 1,
+    borderColor: 'rgba(16,185,129,0.08)',
+    padding: wp('3%'),
+    marginBottom: hp('1.5%'),
   },
   smallLabel: {
-    fontSize: 12,
+    fontSize: wp('2.9%'),
     fontWeight: '600',
-    color: '#64748B',
-    marginBottom: 8,
+    color: TEAL_MID,
+    marginBottom: hp('0.5%'),
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   locationRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F8FAFC',
-    borderRadius: 12,
+    backgroundColor: CARD,
+    borderRadius: wp('3%'),
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    paddingHorizontal: 12,
-    height: 52,
+    borderColor: 'rgba(16,185,129,0.15)',
+    paddingHorizontal: wp('3%'),
+    minHeight: hp('6.5%'),
+    gap: wp('2%'),
+    ...SHADOW_SM,
+  },
+  locationIconCircle: {
+    width: wp('8.5%'),
+    height: wp('8.5%'),
+    borderRadius: wp('4.25%'),
+    backgroundColor: TEAL_LIGHT,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   locationInput: {
     flex: 1,
-    fontSize: 15,
-    color: '#0F172A',
-    marginLeft: 10,
+    fontSize: wp('3.8%'),
+    color: TEXT_PRIMARY,
+    paddingVertical: hp('0.8%'),
   },
   suggestionBox: {
     position: 'absolute',
-    top: 82,
+    top: hp('11%'),
     left: 0,
     right: 0,
-    backgroundColor: '#fff',
-    borderRadius: 12,
+    backgroundColor: CARD,
+    borderRadius: wp('3.5%'),
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: 'rgba(16,185,129,0.12)',
     zIndex: 100,
-    elevation: 5,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
+    ...SHADOW_MD,
   },
   suggestionItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
+    paddingHorizontal: wp('3%'),
+    paddingVertical: hp('1.1%'),
+    borderBottomWidth: 0.5,
+    borderColor: '#F0F4F3',
   },
   suggestionText: {
-    fontSize: 14,
-    color: '#0F172A',
-    marginLeft: 10,
+    fontSize: wp('3.5%'),
+    color: TEXT_PRIMARY,
   },
   noResult: {
-    padding: 16,
+    padding: wp('3%'),
     textAlign: 'center',
-    color: '#94A3B8',
+    color: TEXT_MUTED,
+    fontSize: wp('3.2%'),
   },
 
+  /* -- DATE ROW -- */
   dateRow: {
     flexDirection: 'row',
-    marginBottom: 12,
+    marginBottom: hp('1.2%'),
   },
   dateCard: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
-    borderRadius: 12,
+    backgroundColor: CARD,
+    borderRadius: wp('3.5%'),
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    padding: 12,
-    marginRight: 8,
+    borderColor: 'rgba(16,185,129,0.12)',
+    paddingHorizontal: wp('3%'),
+    paddingVertical: hp('1%'),
+    marginRight: wp('2%'),
+    ...SHADOW_SM,
   },
   dateLabel: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#94A3B8',
-    marginBottom: 8,
+    fontSize: wp('2.9%'),
+    fontWeight: '700',
+    color: TEAL_MID,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: hp('0.7%'),
   },
   dateContent: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: wp('2%'),
   },
   dateIconWrap: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    backgroundColor: 'rgba(9,179,104,0.1)',
+    width: wp('8%'),
+    height: wp('8%'),
+    borderRadius: wp('2.5%'),
+    backgroundColor: TEAL_LIGHT,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 10,
   },
   dateMainText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#0F172A',
+    fontSize: wp('3.5%'),
+    fontWeight: '700',
+    color: TEXT_PRIMARY,
   },
   dateSubText: {
-    fontSize: 12,
-    color: '#64748B',
-    marginTop: 2,
+    fontSize: wp('2.8%'),
+    color: TEXT_MUTED,
+    marginTop: hp('0.2%'),
   },
 
+  /* -- DURATION -- */
   durationRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F8FAFC',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    marginBottom: 16,
+    backgroundColor: TEAL_LIGHT,
+    borderRadius: wp('3%'),
+    paddingHorizontal: wp('3%'),
+    paddingVertical: hp('1%'),
+    marginBottom: hp('1.5%'),
+    gap: wp('2%'),
+  },
+  durationIconWrap: {
+    width: wp('7%'),
+    height: wp('7%'),
+    borderRadius: wp('3.5%'),
+    backgroundColor: 'rgba(16,185,129,0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   durationText: {
-    fontSize: 13,
-    color: '#64748B',
-    marginLeft: 8,
+    fontSize: wp('3.2%'),
+    color: TEXT_SECONDARY,
   },
   durationBold: {
     fontWeight: '700',
-    color: GREEN,
+    color: TEAL_DEEP,
   },
 
+  /* -- iOS PICKER -- */
   iosPickerContainer: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    marginBottom: 12,
-    padding: 10,
+    backgroundColor: CARD,
+    borderRadius: wp('3%'),
+    marginBottom: hp('1.2%'),
+    padding: wp('2.5%'),
+    borderWidth: 1,
+    borderColor: 'rgba(16,185,129,0.08)',
   },
-  iosBtn: {
-    backgroundColor: GREEN,
-    borderRadius: 8,
-    paddingVertical: 10,
+  iosBtnWrap: {
+    borderRadius: wp('2.5%'),
+    overflow: 'hidden',
+    marginTop: hp('0.8%'),
+  },
+  iosBtnGradient: {
+    borderRadius: wp('2.5%'),
+    paddingVertical: hp('1.2%'),
     alignItems: 'center',
-    marginTop: 8,
   },
   iosBtnText: {
     color: '#fff',
-    fontWeight: '600',
+    fontWeight: '700',
+    fontSize: wp('3.5%'),
   },
 
-  exploreBtn: {
-    backgroundColor: GREEN,
-    borderRadius: 14,
-    paddingVertical: 16,
+  /* -- EXPLORE BUTTON -- */
+  exploreBtnWrap: {
+    marginTop: hp('0.5%'),
+    borderRadius: wp('10%'),
+    overflow: 'hidden',
+    ...SHADOW_MD,
+  },
+  exploreBtnGradient: {
+    borderRadius: wp('10%'),
+    paddingVertical: hp('1.8%'),
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    gap: wp('2%'),
   },
   exploreBtnText: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: wp('4%'),
     fontWeight: '700',
-    marginLeft: 8,
+    letterSpacing: 0.3,
   },
 
+  /* -- MY BOOKINGS CARD -- */
   myBookingsCard: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#fff',
-    marginHorizontal: 16,
-    marginTop: 16,
-    borderRadius: 16,
-    padding: 16,
+    backgroundColor: CARD,
+    marginHorizontal: wp('3.5%'),
+    marginTop: hp('2%'),
+    borderRadius: wp('4%'),
+    padding: wp('4%'),
+    ...SHADOW_SM,
   },
   myBookingsLeft: {
     flexDirection: 'row',
     alignItems: 'center',
+    flex: 1,
   },
   myBookingsIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
-    backgroundColor: 'rgba(9,179,104,0.1)',
+    width: wp('12%'),
+    height: wp('12%'),
+    borderRadius: wp('3.5%'),
+    backgroundColor: TEAL_LIGHT,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
+    marginRight: wp('3%'),
   },
   myBookingsTitle: {
-    fontSize: 15,
+    fontSize: wp('3.8%'),
     fontWeight: '600',
-    color: '#0F172A',
+    color: TEXT_PRIMARY,
   },
   myBookingsDesc: {
-    fontSize: 12,
-    color: '#64748B',
-    marginTop: 2,
+    fontSize: wp('3%'),
+    color: TEXT_MUTED,
+    marginTop: hp('0.3%'),
+  },
+  myBookingsArrow: {
+    width: wp('8%'),
+    height: wp('8%'),
+    borderRadius: wp('4%'),
+    backgroundColor: TEAL_LIGHT,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 
+  /* -- SECTION CARD -- */
   sectionCard: {
-    backgroundColor: '#fff',
-    marginHorizontal: 16,
-    marginTop: 16,
-    borderRadius: 16,
-    padding: 16,
+    backgroundColor: CARD,
+    marginHorizontal: wp('3.5%'),
+    marginTop: hp('2%'),
+    borderRadius: wp('4%'),
+    padding: wp('4%'),
+    ...SHADOW_SM,
   },
   sectionTitle: {
-    fontSize: 16,
+    fontSize: wp('4%'),
     fontWeight: '700',
-    color: '#0F172A',
-    marginBottom: 12,
+    color: TEXT_PRIMARY,
+    marginBottom: hp('1.2%'),
+    letterSpacing: 0.2,
   },
+
+  /* -- CAR CARDS -- */
   carCard: {
-    width: 120,
-    backgroundColor: '#F8FAFC',
-    borderRadius: 12,
-    padding: 12,
+    width: wp('32%'),
+    backgroundColor: CARD,
+    borderRadius: wp('4%'),
+    padding: wp('2.5%'),
     alignItems: 'center',
-    marginRight: 12,
+    marginRight: wp('3%'),
+    borderWidth: 1,
+    borderColor: 'rgba(16,185,129,0.08)',
+    ...SHADOW_SM,
+  },
+  carImageWrap: {
+    width: '100%',
+    height: hp('8%'),
+    borderRadius: wp('3%'),
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: hp('0.8%'),
   },
   carImage: {
-    width: 80,
-    height: 50,
+    width: wp('22%'),
+    height: hp('5.5%'),
     resizeMode: 'contain',
   },
   carName: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#0F172A',
-    marginTop: 8,
+    fontSize: wp('3.2%'),
+    fontWeight: '700',
+    color: TEXT_PRIMARY,
     textAlign: 'center',
   },
 
+  /* -- CITY CHIPS -- */
   cityWrap: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -808,51 +1022,139 @@ const styles = StyleSheet.create({
   cityChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(9,179,104,0.1)',
-    borderRadius: 20,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    marginRight: 8,
-    marginBottom: 8,
+    backgroundColor: TEAL_LIGHT,
+    borderRadius: wp('10%'),
+    paddingHorizontal: wp('3%'),
+    paddingVertical: hp('0.8%'),
+    marginRight: wp('2%'),
+    marginBottom: hp('0.8%'),
+    gap: wp('1.5%'),
+  },
+  cityIconCircle: {
+    width: wp('5.5%'),
+    height: wp('5.5%'),
+    borderRadius: wp('2.75%'),
+    backgroundColor: 'rgba(16,185,129,0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   cityText: {
-    fontSize: 13,
-    color: '#0F172A',
-    fontWeight: '500',
-    marginLeft: 4,
+    fontSize: wp('3.2%'),
+    color: TEAL_DEEP,
+    fontWeight: '600',
   },
 
+  /* -- FAQ SECTION -- */
   faqSection: {
-    backgroundColor: '#0F172A',
-    marginTop: 16,
-    padding: 16,
+    backgroundColor: TEAL_DEEP,
+    marginHorizontal: wp('3.5%'),
+    marginTop: hp('2%'),
+    borderRadius: wp('4.5%'),
+    padding: wp('4.5%'),
+    ...SHADOW_MD,
+  },
+  faqHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: wp('2%'),
+    marginBottom: hp('1.5%'),
   },
   faqTitle: {
-    fontSize: 18,
+    fontSize: wp('4.5%'),
     fontWeight: '700',
-    color: '#fff',
-    marginBottom: 12,
+    color: '#FFFFFF',
+    letterSpacing: 0.3,
   },
   faqItem: {
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.1)',
-    paddingVertical: 12,
+    borderBottomColor: 'rgba(255,255,255,0.08)',
+    paddingVertical: hp('1.5%'),
   },
-  faqHeader: {
+  faqHead: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
   faqQuestion: {
-    fontSize: 14,
-    color: '#fff',
+    fontSize: wp('3.5%'),
+    fontWeight: '500',
+    color: '#FFFFFF',
     flex: 1,
-    marginRight: 10,
+    marginRight: wp('2.5%'),
+  },
+  faqChevronWrap: {
+    width: wp('7%'),
+    height: wp('7%'),
+    borderRadius: wp('3.5%'),
+    backgroundColor: 'rgba(16,185,129,0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   faqAnswer: {
-    fontSize: 13,
-    color: '#94A3B8',
-    marginTop: 8,
-    lineHeight: 20,
+    fontSize: wp('3.2%'),
+    color: 'rgba(255,255,255,0.6)',
+    marginTop: hp('1%'),
+    lineHeight: wp('5%'),
+  },
+
+  /* -- BOTTOM CTA -- */
+  bottomCTAWrap: {
+    marginHorizontal: wp('3.5%'),
+    marginTop: hp('2%'),
+    borderRadius: wp('4.5%'),
+    overflow: 'hidden',
+    ...SHADOW_MD,
+  },
+  bottomCTA: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: wp('4.5%'),
+    overflow: 'hidden',
+  },
+  ctaDecoCircle: {
+    position: 'absolute',
+    top: -wp('4%'),
+    right: -wp('3%'),
+    width: wp('16%'),
+    height: wp('16%'),
+    borderRadius: wp('50%'),
+    backgroundColor: 'rgba(255,255,255,0.06)',
+  },
+  ctaContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: wp('3%'),
+    flex: 1,
+  },
+  ctaIconWrap: {
+    width: wp('12%'),
+    height: wp('12%'),
+    borderRadius: wp('3.5%'),
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  ctaTextWrap: {
+    flex: 1,
+  },
+  ctaTitle: {
+    fontSize: wp('4%'),
+    fontWeight: '700',
+    color: '#FFFFFF',
+    letterSpacing: 0.2,
+  },
+  ctaSubtitle: {
+    fontSize: wp('3%'),
+    color: 'rgba(255,255,255,0.7)',
+    marginTop: hp('0.3%'),
+  },
+  ctaArrowWrap: {
+    width: wp('9%'),
+    height: wp('9%'),
+    borderRadius: wp('4.5%'),
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });

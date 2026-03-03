@@ -8,9 +8,10 @@ const paymentService = {
   /**
    * Create Razorpay order for booking payment
    */
-  createOrder: async (bookingId) => {
+  createOrder: async (bookingId, bookingType) => {
     const response = await api.post('/payments/create-order', {
-      bookingId
+      bookingId,
+      bookingType,
     });
     return response.data;
   },
@@ -18,12 +19,13 @@ const paymentService = {
   /**
    * Verify payment after Razorpay callback
    */
-  verifyPayment: async (razorpayOrderId, razorpayPaymentId, razorpaySignature, bookingId) => {
+  verifyPayment: async (razorpayOrderId, razorpayPaymentId, razorpaySignature, bookingId, bookingType) => {
     const response = await api.post('/payments/verify', {
       razorpay_order_id: razorpayOrderId,
       razorpay_payment_id: razorpayPaymentId,
       razorpay_signature: razorpaySignature,
-      bookingId
+      bookingId,
+      bookingType,
     });
     return response.data;
   },

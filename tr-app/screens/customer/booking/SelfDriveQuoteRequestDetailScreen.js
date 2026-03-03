@@ -11,14 +11,27 @@ import {
   Alert,
   Image,
   Dimensions,
+  StatusBar,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useRoute, useNavigation, useFocusEffect, CommonActions } from '@react-navigation/native';
+import LinearGradient from 'react-native-linear-gradient';
+import {
+  widthPercentageToDP as wp,
+  heightPercentageToDP as hp,
+} from 'react-native-responsive-screen';
 import api, { BASE_URL, IMAGE_BASE_URL } from '../../api';
+import { TEAL_DEEP, TEAL_MID, TEAL, TEAL_LIGHT, BG, CARD, TEXT_PRIMARY, TEXT_SECONDARY, TEXT_MUTED, SHADOW_SM, SHADOW_MD } from '../../../theme';
 
-const GREEN = '#09B368';
-const BG = '#F5F5F7';
+const STATUS_CONFIG = {
+  PENDING: { label: 'Awaiting Quotes', color: '#F59E0B', icon: 'time-outline' },
+  QUOTES_RECEIVED: { label: 'Quotes Received', color: '#3B82F6', icon: 'mail-outline' },
+  ACCEPTED: { label: 'Quote Accepted', color: '#10B981', icon: 'checkmark-circle' },
+  EXPIRED: { label: 'Expired', color: '#EF4444', icon: 'close-circle-outline' },
+  CANCELLED: { label: 'Cancelled', color: '#6B7280', icon: 'close-circle' },
+};
 
 export default function SelfDriveQuoteRequestDetailScreen() {
   const route = useRoute();
@@ -46,6 +59,22 @@ export default function SelfDriveQuoteRequestDetailScreen() {
   const [imageViewerVisible, setImageViewerVisible] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [viewingImages, setViewingImages] = useState([]);
+
+  // StatusBar management
+  useFocusEffect(
+    useCallback(() => {
+      StatusBar.setBarStyle('light-content', true);
+      if (Platform.OS === 'android') {
+        StatusBar.setBackgroundColor(TEAL_DEEP, true);
+      }
+      return () => {
+        StatusBar.setBarStyle('dark-content', true);
+        if (Platform.OS === 'android') {
+          StatusBar.setBackgroundColor('#FFFFFF', true);
+        }
+      };
+    }, [])
+  );
 
   // Refresh data when screen comes into focus
   useFocusEffect(
@@ -207,7 +236,7 @@ export default function SelfDriveQuoteRequestDetailScreen() {
       navigation.replace('PaymentScreen', {
         bookingId: successData.bookingId,
         bookingNumber: successData.bookingNumber,
-        bookingType: 'car',
+        bookingType: 'self-drive',
         amount: quoteData?.advanceAmount || 0,
       });
     }
@@ -223,45 +252,25 @@ export default function SelfDriveQuoteRequestDetailScreen() {
     });
   };
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'PENDING':
-        return '#f39c12';
-      case 'QUOTES_RECEIVED':
-        return '#3498db';
-      case 'ACCEPTED':
-        return GREEN;
-      case 'EXPIRED':
-      case 'CANCELLED':
-        return '#e74c3c';
-      default:
-        return '#666';
-    }
-  };
-
-  const getStatusLabel = (status) => {
-    switch (status) {
-      case 'PENDING':
-        return 'Awaiting Quotes';
-      case 'QUOTES_RECEIVED':
-        return 'Quotes Received';
-      case 'ACCEPTED':
-        return 'Quote Accepted';
-      case 'EXPIRED':
-        return 'Expired';
-      case 'CANCELLED':
-        return 'Cancelled';
-      default:
-        return status;
-    }
-  };
-
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={GREEN} />
-          <Text style={styles.loadingText}>Loading request details...</Text>
+        <LinearGradient colors={[TEAL_DEEP, TEAL_MID, '#047857']} style={styles.headerGrad}>
+          <View style={[styles.decoCircle, { top: -30, right: -20, width: 100, height: 100 }]} pointerEvents="none" />
+          <View style={[styles.decoCircle, { bottom: -15, left: -15, width: 60, height: 60 }]} pointerEvents="none" />
+          <View style={styles.headerRow}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+              <Ionicons name="chevron-back" size={22} color="#FFF" />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>Loading...</Text>
+            <View style={{ width: wp('9%') }} />
+          </View>
+        </LinearGradient>
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: BG }}>
+          <ActivityIndicator size="large" color={TEAL} />
+          <Text style={{ color: TEXT_SECONDARY, marginTop: hp('1.5%'), fontSize: wp('3.5%'), fontWeight: '500' }}>
+            Loading request details...
+          </Text>
         </View>
       </SafeAreaView>
     );
@@ -270,63 +279,100 @@ export default function SelfDriveQuoteRequestDetailScreen() {
   if (!request) {
     return (
       <SafeAreaView style={styles.container}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-            <Ionicons name="arrow-back" size={24} color="#333" />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Quote Request</Text>
-          <View style={{ width: 40 }} />
-        </View>
-        <View style={styles.errorContainer}>
-          <Ionicons name="alert-circle-outline" size={60} color="#e74c3c" />
-          <Text style={styles.errorText}>Request not found</Text>
-          <TouchableOpacity style={styles.retryBtn} onPress={fetchRequestDetails}>
-            <Text style={styles.retryBtnText}>Try Again</Text>
-          </TouchableOpacity>
-        </View>
+        <LinearGradient colors={[TEAL_DEEP, TEAL_MID, '#047857']} style={styles.headerGrad}>
+          <View style={[styles.decoCircle, { top: -30, right: -20, width: 100, height: 100 }]} pointerEvents="none" />
+          <View style={[styles.decoCircle, { bottom: -15, left: -15, width: 60, height: 60 }]} pointerEvents="none" />
+          <View style={styles.headerRow}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+              <Ionicons name="chevron-back" size={22} color="#FFF" />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>Quote Request</Text>
+            <View style={{ width: wp('9%') }} />
+          </View>
+        </LinearGradient>
+        <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'center' }}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[TEAL]} />}>
+          <View style={{ alignItems: 'center', paddingHorizontal: wp('8%') }}>
+            <LinearGradient colors={[TEAL_LIGHT, '#A7F3D0']} style={styles.emptyCircle}>
+              <Ionicons name="document-text" size={wp('12%')} color={TEAL_MID} />
+            </LinearGradient>
+            <Text style={styles.emptyTitle}>Request not found</Text>
+            <Text style={styles.emptyDesc}>We couldn't find this quote request. It may have been removed.</Text>
+            <TouchableOpacity style={styles.refreshBtnStyle} onPress={fetchRequestDetails}>
+              <Ionicons name="refresh" size={16} color={TEAL_MID} />
+              <Text style={styles.refreshBtnText}>Try Again</Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
       </SafeAreaView>
     );
   }
 
   // quotes is now a separate state variable set from API response
   const hasQuotes = quotes.length > 0;
+  const statusConfig = STATUS_CONFIG[request.status] || STATUS_CONFIG.PENDING;
 
   return (
     <SafeAreaView style={styles.container}>
       {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Ionicons name="arrow-back" size={24} color="#333" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Quote Request</Text>
-        <TouchableOpacity onPress={onRefresh} style={styles.refreshBtn}>
-          <Ionicons name="refresh" size={22} color="#333" />
-        </TouchableOpacity>
-      </View>
+      <LinearGradient colors={[TEAL_DEEP, TEAL_MID, '#047857']} style={styles.headerGrad}>
+        <View style={[styles.decoCircle, { top: -30, right: -20, width: 100, height: 100 }]} pointerEvents="none" />
+        <View style={[styles.decoCircle, { bottom: -15, left: -15, width: 60, height: 60 }]} pointerEvents="none" />
+        <View style={[styles.decoCircle, { top: hp('3%'), left: wp('25%'), width: 40, height: 40 }]} pointerEvents="none" />
+        <View style={styles.headerRow}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+            <Ionicons name="chevron-back" size={22} color="#FFF" />
+          </TouchableOpacity>
+          <View style={styles.headerCenter}>
+            <Text style={styles.headerTitle}>Quote Request</Text>
+            <Text style={styles.headerSub}>Self-Drive · #{request.requestNumber}</Text>
+          </View>
+          <TouchableOpacity style={styles.headerActionBtn} onPress={onRefresh}>
+            <Ionicons name="refresh" size={18} color="#FFF" />
+          </TouchableOpacity>
+        </View>
+
+        {/* Glass summary card */}
+        <View style={styles.glassCard}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.glassLabel}>STATUS</Text>
+              <Text style={styles.glassValue}>{statusConfig.label}</Text>
+            </View>
+            <View style={[styles.statusPill, { backgroundColor: statusConfig.color }]}>
+              <Ionicons name={statusConfig.icon} size={14} color="#FFF" />
+              <Text style={styles.statusPillText}>{statusConfig.label}</Text>
+            </View>
+          </View>
+          <View style={styles.metaRow}>
+            <View style={styles.metaChip}>
+              <Ionicons name="calendar-outline" size={14} color="rgba(255,255,255,0.8)" />
+              <Text style={styles.metaChipText}>{formatDate(request.createdAt)}</Text>
+            </View>
+            {request.pickupTime && (
+              <View style={styles.metaChip}>
+                <Ionicons name="time-outline" size={14} color="rgba(255,255,255,0.8)" />
+                <Text style={styles.metaChipText}>{request.pickupTime}</Text>
+              </View>
+            )}
+          </View>
+        </View>
+      </LinearGradient>
 
       <ScrollView
         style={styles.content}
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[GREEN]} />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[TEAL]} />
         }
       >
-        {/* Status Card */}
-        <View style={styles.statusCard}>
-          <View style={[styles.statusBadge, { backgroundColor: getStatusColor(request.status) }]}>
-            <Text style={styles.statusText}>{getStatusLabel(request.status)}</Text>
-          </View>
-          <Text style={styles.requestNumber}>#{request.requestNumber}</Text>
-          <Text style={styles.requestDate}>
-            Requested on {formatDate(request.createdAt)}
-          </Text>
-        </View>
-
-        {/* Vehicle Card */}
-        <View style={styles.card}>
-          <View style={styles.cardHeader}>
-            <Ionicons name="bicycle" size={22} color={GREEN} />
-            <Text style={styles.cardTitle}>Vehicle Request</Text>
+        {/* Vehicle Request Card */}
+        <View style={styles.detailsCard}>
+          <View style={styles.detailsHeader}>
+            <View style={styles.detailsIcon}>
+              <Ionicons name="car-sport" size={wp('4.5%')} color={TEAL_MID} />
+            </View>
+            <Text style={styles.detailsTitle}>Vehicle Request</Text>
           </View>
           <View style={styles.vehicleInfo}>
             <Text style={styles.vehicleBrand}>{request.vehicleBrand || 'Any Brand'}</Text>
@@ -337,10 +383,12 @@ export default function SelfDriveQuoteRequestDetailScreen() {
         </View>
 
         {/* Trip Details */}
-        <View style={styles.card}>
-          <View style={styles.cardHeader}>
-            <Ionicons name="calendar-outline" size={22} color={GREEN} />
-            <Text style={styles.cardTitle}>Trip Details</Text>
+        <View style={styles.detailsCard}>
+          <View style={styles.detailsHeader}>
+            <View style={styles.detailsIcon}>
+              <Ionicons name="calendar-outline" size={wp('4.5%')} color={TEAL_MID} />
+            </View>
+            <Text style={styles.detailsTitle}>Trip Details</Text>
           </View>
 
           <View style={styles.tripRow}>
@@ -350,7 +398,7 @@ export default function SelfDriveQuoteRequestDetailScreen() {
               <Text style={styles.tripTime}>{request.pickupTime || '10:00 AM'}</Text>
             </View>
             <View style={styles.tripArrow}>
-              <Ionicons name="arrow-forward" size={20} color="#ccc" />
+              <Ionicons name="arrow-forward" size={20} color={TEXT_MUTED} />
             </View>
             <View style={styles.tripItem}>
               <Text style={styles.tripLabel}>DROP</Text>
@@ -360,12 +408,12 @@ export default function SelfDriveQuoteRequestDetailScreen() {
           </View>
 
           <View style={styles.locationRow}>
-            <Ionicons name="location" size={18} color={GREEN} />
+            <Ionicons name="location" size={18} color={TEAL} />
             <Text style={styles.locationText}>{request.locationName}</Text>
           </View>
 
           <View style={styles.durationBadge}>
-            <Ionicons name="time-outline" size={16} color={GREEN} />
+            <Ionicons name="time-outline" size={16} color={TEAL_MID} />
             <Text style={styles.durationText}>
               {request.totalDays} Day{request.totalDays > 1 ? 's' : ''} Rental
             </Text>
@@ -374,19 +422,17 @@ export default function SelfDriveQuoteRequestDetailScreen() {
 
         {/* Quotes Section */}
         <View style={styles.quotesSection}>
-          <View style={styles.quotesHeader}>
-            <Text style={styles.quotesTitle}>
-              {hasQuotes ? `${quotes.length} Quote${quotes.length > 1 ? 's' : ''} Received` : 'Awaiting Quotes'}
+          <Text style={styles.sectionTitle}>
+            {hasQuotes ? `${quotes.length} Quote${quotes.length > 1 ? 's' : ''} Received` : 'Awaiting Quotes'}
+          </Text>
+          {!hasQuotes && (
+            <Text style={styles.quotesSubtitle}>
+              Vendors will send you quotes within 24-48 hours
             </Text>
-            {!hasQuotes && (
-              <Text style={styles.quotesSubtitle}>
-                Vendors will send you quotes within 24-48 hours
-              </Text>
-            )}
-          </View>
+          )}
 
           {hasQuotes ? (
-            <View style={styles.quotesList}>
+            <View>
               {quotes.map((quote, idx) => (
                 <View key={quote.id} style={styles.quoteCard}>
                   {/* Best Deal Badge */}
@@ -399,16 +445,16 @@ export default function SelfDriveQuoteRequestDetailScreen() {
 
                   {/* Vendor Info */}
                   <View style={styles.quoteVendor}>
-                    <View style={styles.vendorAvatar}>
-                      <Ionicons name="storefront" size={20} color={GREEN} />
+                    <View style={styles.vendorAvatarCircle}>
+                      <Ionicons name="storefront" size={wp('5%')} color={TEAL_MID} />
                     </View>
                     <View style={styles.vendorInfo}>
                       <Text style={styles.vendorName}>
                         {quote.vendor?.businessName || 'Vendor'}
                       </Text>
-                      {quote.vendor?.rating && (
+                      {quote.vendor?.rating > 0 && (
                         <View style={styles.ratingRow}>
-                          <Ionicons name="star" size={14} color="#f39c12" />
+                          <Ionicons name="star" size={14} color="#F59E0B" />
                           <Text style={styles.ratingText}>{quote.vendor.rating.toFixed(1)}</Text>
                         </View>
                       )}
@@ -495,9 +541,9 @@ export default function SelfDriveQuoteRequestDetailScreen() {
                     style={styles.viewDetailsBtn}
                     onPress={() => handleViewQuoteDetails(quote)}
                   >
-                    <Ionicons name="information-circle-outline" size={18} color={GREEN} />
+                    <Ionicons name="information-circle-outline" size={18} color={TEAL_MID} />
                     <Text style={styles.viewDetailsBtnText}>View Full Details</Text>
-                    <Ionicons name="chevron-forward" size={16} color={GREEN} />
+                    <Ionicons name="chevron-forward" size={16} color={TEAL_MID} />
                   </TouchableOpacity>
 
                   {/* Accept Button */}
@@ -507,20 +553,25 @@ export default function SelfDriveQuoteRequestDetailScreen() {
                       onPress={() => handleAcceptQuote(quote)}
                       disabled={acceptingQuote === quote.id}
                     >
-                      {acceptingQuote === quote.id ? (
-                        <ActivityIndicator size="small" color="#fff" />
-                      ) : (
-                        <>
-                          <Ionicons name="checkmark-circle" size={20} color="#fff" />
-                          <Text style={styles.acceptBtnText}>Accept & Book</Text>
-                        </>
-                      )}
+                      <LinearGradient
+                        colors={acceptingQuote === quote.id ? ['#9CA3AF', '#9CA3AF'] : [TEAL_MID, '#047857']}
+                        style={styles.acceptBtnGrad}
+                      >
+                        {acceptingQuote === quote.id ? (
+                          <ActivityIndicator size="small" color="#fff" />
+                        ) : (
+                          <>
+                            <Ionicons name="checkmark-circle" size={20} color="#fff" />
+                            <Text style={styles.acceptBtnText}>Accept & Book</Text>
+                          </>
+                        )}
+                      </LinearGradient>
                     </TouchableOpacity>
                   )}
 
                   {quote.status === 'ACCEPTED' && (
                     <View style={styles.acceptedBadge}>
-                      <Ionicons name="checkmark-circle" size={18} color={GREEN} />
+                      <Ionicons name="checkmark-circle" size={18} color={TEAL_MID} />
                       <Text style={styles.acceptedText}>Accepted</Text>
                     </View>
                   )}
@@ -528,8 +579,8 @@ export default function SelfDriveQuoteRequestDetailScreen() {
               ))}
             </View>
           ) : request.status === 'QUOTES_RECEIVED' ? (
-            <View style={styles.noQuotes}>
-              <Ionicons name="time-outline" size={50} color="#e74c3c" />
+            <View style={styles.noQuotesCard}>
+              <Ionicons name="time-outline" size={wp('12%')} color="#EF4444" />
               <Text style={styles.noQuotesText}>Quotes Expired or Withdrawn</Text>
               <Text style={styles.noQuotesSubtext}>
                 The quotes you received have expired or been withdrawn by the vendors.
@@ -539,37 +590,41 @@ export default function SelfDriveQuoteRequestDetailScreen() {
                 style={styles.newRequestBtn}
                 onPress={() => navigation.navigate('BikeRentalScreen')}
               >
-                <Ionicons name="add-circle" size={20} color="#fff" />
-                <Text style={styles.newRequestBtnText}>Submit New Request</Text>
+                <LinearGradient colors={[TEAL_MID, '#047857']} style={styles.newRequestBtnGrad}>
+                  <Ionicons name="add-circle" size={20} color="#fff" />
+                  <Text style={styles.newRequestBtnText}>Submit New Request</Text>
+                </LinearGradient>
               </TouchableOpacity>
             </View>
           ) : request.status === 'QUOTE_ACCEPTED' || request.status === 'BOOKING_CONFIRMED' ? (
-            <View style={styles.noQuotes}>
-              <Ionicons name="checkmark-circle" size={50} color={GREEN} />
+            <View style={styles.noQuotesCard}>
+              <Ionicons name="checkmark-circle" size={wp('12%')} color={TEAL} />
               <Text style={styles.noQuotesText}>Quote Already Accepted</Text>
               <Text style={styles.noQuotesSubtext}>
                 You have already accepted a quote for this request.
                 Check your bookings for details.
               </Text>
               <TouchableOpacity
-                style={styles.viewBookingsBtn}
+                style={styles.newRequestBtn}
                 onPress={() => navigation.navigate('MyBikeBookings')}
               >
-                <Ionicons name="list" size={20} color="#fff" />
-                <Text style={styles.newRequestBtnText}>View Bookings</Text>
+                <LinearGradient colors={[TEAL_MID, '#047857']} style={styles.newRequestBtnGrad}>
+                  <Ionicons name="list" size={20} color="#fff" />
+                  <Text style={styles.newRequestBtnText}>View Bookings</Text>
+                </LinearGradient>
               </TouchableOpacity>
             </View>
           ) : (
             <View style={styles.noQuotesContainer}>
               <View style={styles.noQuotesIconCircle}>
-                <Ionicons name="receipt-outline" size={60} color={GREEN} />
+                <Ionicons name="receipt-outline" size={wp('12%')} color={TEAL} />
               </View>
               <Text style={styles.noQuotesTitle}>No Quotations Yet</Text>
               <Text style={styles.noQuotesMessage}>
                 Your request has been sent to vendors. They will review and send you competitive quotes soon.
               </Text>
               <View style={styles.noQuotesInfoBox}>
-                <Ionicons name="time-outline" size={20} color="#666" />
+                <Ionicons name="time-outline" size={20} color={TEXT_SECONDARY} />
                 <Text style={styles.noQuotesInfoText}>
                   Usually within 24-48 hours
                 </Text>
@@ -581,10 +636,12 @@ export default function SelfDriveQuoteRequestDetailScreen() {
 
         {/* Customer Notes */}
         {request.customerNotes && (
-          <View style={styles.card}>
-            <View style={styles.cardHeader}>
-              <Ionicons name="document-text-outline" size={22} color={GREEN} />
-              <Text style={styles.cardTitle}>Your Notes</Text>
+          <View style={styles.detailsCard}>
+            <View style={styles.detailsHeader}>
+              <View style={styles.detailsIcon}>
+                <Ionicons name="document-text-outline" size={wp('4.5%')} color={TEAL_MID} />
+              </View>
+              <Text style={styles.detailsTitle}>Your Notes</Text>
             </View>
             <Text style={styles.notesText}>{request.customerNotes}</Text>
           </View>
@@ -606,7 +663,7 @@ export default function SelfDriveQuoteRequestDetailScreen() {
             {acceptSuccess ? (
               <View style={styles.modalContent}>
                 <View style={styles.successIconContainer}>
-                  <Ionicons name="checkmark-circle" size={70} color={GREEN} />
+                  <Ionicons name="checkmark-circle" size={70} color={TEAL} />
                 </View>
                 <Text style={styles.modalTitle}>Booking Confirmed!</Text>
                 <Text style={styles.successBookingNumber}>
@@ -637,15 +694,15 @@ export default function SelfDriveQuoteRequestDetailScreen() {
                     style={styles.modalCloseBtn}
                     disabled={!!acceptingQuote}
                   >
-                    <Ionicons name="close" size={24} color="#666" />
+                    <Ionicons name="close" size={24} color={TEXT_SECONDARY} />
                   </TouchableOpacity>
                 </View>
 
                 {/* Error Display */}
                 {acceptError && (
-                  <View style={styles.errorContainer}>
+                  <View style={styles.errorContainerModal}>
                     <View style={styles.errorIconWrap}>
-                      <Ionicons name="alert-circle" size={50} color="#e74c3c" />
+                      <Ionicons name="alert-circle" size={50} color="#DC2626" />
                     </View>
                     <Text style={styles.errorTitle}>Something went wrong</Text>
                     <Text style={styles.errorMessage}>{acceptError}</Text>
@@ -671,7 +728,7 @@ export default function SelfDriveQuoteRequestDetailScreen() {
                           navigation.navigate('MyBikeBookings');
                         }}
                       >
-                        <Ionicons name="list" size={18} color={GREEN} />
+                        <Ionicons name="list" size={18} color={TEAL_MID} />
                         <Text style={styles.checkBookingsBtnText}>Check My Bookings</Text>
                       </TouchableOpacity>
                     </View>
@@ -687,15 +744,15 @@ export default function SelfDriveQuoteRequestDetailScreen() {
                     <View style={styles.confirmQuoteCard}>
                       <View style={styles.confirmVendorRow}>
                         <View style={styles.confirmVendorAvatar}>
-                          <Ionicons name="storefront" size={24} color={GREEN} />
+                          <Ionicons name="storefront" size={24} color={TEAL_MID} />
                         </View>
                         <View style={styles.confirmVendorInfo}>
                           <Text style={styles.confirmVendorName}>
                             {selectedQuote.vendor?.businessName || 'Vendor'}
                           </Text>
-                          {selectedQuote.vendor?.rating && (
+                          {selectedQuote.vendor?.rating > 0 && (
                             <View style={styles.confirmRating}>
-                              <Ionicons name="star" size={14} color="#f39c12" />
+                              <Ionicons name="star" size={12} color="#F59E0B" />
                               <Text style={styles.confirmRatingText}>
                                 {selectedQuote.vendor.rating.toFixed(1)}
                               </Text>
@@ -705,7 +762,7 @@ export default function SelfDriveQuoteRequestDetailScreen() {
                       </View>
 
                       <View style={styles.confirmVehicle}>
-                        <Ionicons name="bicycle" size={20} color="#666" />
+                        <Ionicons name="car-sport" size={20} color={TEXT_SECONDARY} />
                         <Text style={styles.confirmVehicleName}>
                           {selectedQuote.vehicleName}
                         </Text>
@@ -721,7 +778,7 @@ export default function SelfDriveQuoteRequestDetailScreen() {
                         {selectedQuote.advanceAmount > 0 && (
                           <View style={styles.confirmAdvanceRow}>
                             <View style={styles.confirmAdvanceLabel}>
-                              <Ionicons name="wallet-outline" size={16} color={GREEN} />
+                              <Ionicons name="wallet-outline" size={16} color={TEAL_MID} />
                               <Text style={styles.confirmAdvanceLabelText}>
                                 Advance ({selectedQuote.advancePercent || 30}%)
                               </Text>
@@ -781,13 +838,17 @@ export default function SelfDriveQuoteRequestDetailScreen() {
       >
         <SafeAreaView style={styles.detailsModalContainer}>
           {/* Header */}
-          <View style={styles.detailsHeader}>
-            <TouchableOpacity onPress={handleCloseQuoteDetails} style={styles.detailsCloseBtn}>
-              <Ionicons name="close" size={28} color="#333" />
-            </TouchableOpacity>
-            <Text style={styles.detailsHeaderTitle}>Quote Details</Text>
-            <View style={{ width: 40 }} />
-          </View>
+          <LinearGradient colors={[TEAL_DEEP, TEAL_MID, '#047857']} style={styles.detailsModalHeader}>
+            <View style={[styles.decoCircle, { top: -20, right: -15, width: 70, height: 70 }]} pointerEvents="none" />
+            <View style={[styles.decoCircle, { bottom: -10, left: -10, width: 45, height: 45 }]} pointerEvents="none" />
+            <View style={styles.detailsModalHeaderRow}>
+              <TouchableOpacity onPress={handleCloseQuoteDetails} style={styles.backBtn}>
+                <Ionicons name="close" size={22} color="#FFF" />
+              </TouchableOpacity>
+              <Text style={styles.detailsModalHeaderTitle}>Quote Details</Text>
+              <View style={{ width: wp('9%') }} />
+            </View>
+          </LinearGradient>
 
           {viewingQuote && (
             <ScrollView style={styles.detailsContent} showsVerticalScrollIndicator={false}>
@@ -795,15 +856,15 @@ export default function SelfDriveQuoteRequestDetailScreen() {
               <View style={styles.detailsVendorCard}>
                 <View style={styles.detailsVendorRow}>
                   <View style={styles.detailsVendorAvatar}>
-                    <Ionicons name="storefront" size={28} color={GREEN} />
+                    <Ionicons name="storefront" size={wp('6%')} color={TEAL_MID} />
                   </View>
                   <View style={styles.detailsVendorInfo}>
                     <Text style={styles.detailsVendorName}>
                       {viewingQuote.vendor?.businessName || 'Vendor'}
                     </Text>
-                    {viewingQuote.vendor?.rating && (
+                    {viewingQuote.vendor?.rating > 0 && (
                       <View style={styles.detailsRating}>
-                        <Ionicons name="star" size={16} color="#f39c12" />
+                        <Ionicons name="star" size={16} color="#F59E0B" />
                         <Text style={styles.detailsRatingText}>
                           {viewingQuote.vendor.rating.toFixed(1)} Rating
                         </Text>
@@ -893,7 +954,9 @@ export default function SelfDriveQuoteRequestDetailScreen() {
                       return vehicleImages.length > 0 && (
                         <View style={styles.detailsSection}>
                           <View style={styles.detailsSectionHeader}>
-                            <Ionicons name="images" size={22} color={GREEN} />
+                            <View style={styles.detailsSectionIcon}>
+                              <Ionicons name="images" size={wp('4%')} color={TEAL_MID} />
+                            </View>
                             <Text style={styles.detailsSectionTitle}>Vehicle Images</Text>
                           </View>
                           <ScrollView
@@ -948,7 +1011,9 @@ export default function SelfDriveQuoteRequestDetailScreen() {
                     {/* Vehicle Info */}
                     <View style={styles.detailsSection}>
                       <View style={styles.detailsSectionHeader}>
-                        <Ionicons name="bicycle" size={22} color={GREEN} />
+                        <View style={styles.detailsSectionIcon}>
+                          <Ionicons name="car-sport" size={wp('4%')} color={TEAL_MID} />
+                        </View>
                         <Text style={styles.detailsSectionTitle}>Vehicle Details</Text>
                       </View>
                       <View style={styles.detailsVehicleCard}>
@@ -958,7 +1023,7 @@ export default function SelfDriveQuoteRequestDetailScreen() {
                         )}
                         {viewingQuote.registrationNumber && (
                           <View style={styles.detailsRegRow}>
-                            <Ionicons name="card-outline" size={16} color="#666" />
+                            <Ionicons name="card-outline" size={16} color={TEXT_SECONDARY} />
                             <Text style={styles.detailsRegNumber}>{viewingQuote.registrationNumber}</Text>
                           </View>
                         )}
@@ -979,7 +1044,7 @@ export default function SelfDriveQuoteRequestDetailScreen() {
                                     idx === features.length - 1 && styles.detailsFeatureItemLast,
                                   ]}
                                 >
-                                  <Ionicons name="checkmark-circle" size={16} color={GREEN} />
+                                  <Ionicons name="checkmark-circle" size={16} color={TEAL} />
                                   <Text style={styles.detailsFeatureText}>{feature}</Text>
                                 </View>
                               ))}
@@ -992,7 +1057,9 @@ export default function SelfDriveQuoteRequestDetailScreen() {
                     {/* Pricing Details */}
                     <View style={styles.detailsSection}>
                       <View style={styles.detailsSectionHeader}>
-                        <Ionicons name="cash-outline" size={22} color={GREEN} />
+                        <View style={styles.detailsSectionIcon}>
+                          <Ionicons name="cash-outline" size={wp('4%')} color={TEAL_MID} />
+                        </View>
                         <Text style={styles.detailsSectionTitle}>Pricing Breakdown</Text>
                       </View>
                       <View style={styles.detailsPricingCard}>
@@ -1015,7 +1082,7 @@ export default function SelfDriveQuoteRequestDetailScreen() {
                         {viewingQuote.advanceAmount > 0 && (
                           <View style={styles.detailsAdvanceCard}>
                             <View style={styles.detailsAdvanceHeader}>
-                              <Ionicons name="wallet-outline" size={18} color={GREEN} />
+                              <Ionicons name="wallet-outline" size={18} color={TEAL_MID} />
                               <Text style={styles.detailsAdvanceLabel}>
                                 Advance Payment ({viewingQuote.advancePercent || 30}%)
                               </Text>
@@ -1026,7 +1093,7 @@ export default function SelfDriveQuoteRequestDetailScreen() {
                         {viewingQuote.securityDeposit > 0 && (
                           <View style={styles.detailsDepositRow}>
                             <View style={styles.detailsDepositLabel}>
-                              <Ionicons name="shield-checkmark-outline" size={16} color="#666" />
+                              <Ionicons name="shield-checkmark-outline" size={16} color={TEXT_SECONDARY} />
                               <Text style={styles.detailsDepositText}>Security Deposit (Refundable)</Text>
                             </View>
                             <Text style={styles.detailsDepositAmount}>₹{viewingQuote.securityDeposit}</Text>
@@ -1038,7 +1105,9 @@ export default function SelfDriveQuoteRequestDetailScreen() {
                     {/* Additional Info */}
                     <View style={styles.detailsSection}>
                       <View style={styles.detailsSectionHeader}>
-                        <Ionicons name="information-circle-outline" size={22} color={GREEN} />
+                        <View style={styles.detailsSectionIcon}>
+                          <Ionicons name="information-circle-outline" size={wp('4%')} color={TEAL_MID} />
+                        </View>
                         <Text style={styles.detailsSectionTitle}>Additional Information</Text>
                       </View>
                       <View style={styles.detailsInfoCard}>
@@ -1047,24 +1116,24 @@ export default function SelfDriveQuoteRequestDetailScreen() {
                             <Ionicons
                               name={viewingQuote.helmetsIncluded ? 'checkmark-circle' : 'close-circle'}
                               size={20}
-                              color={viewingQuote.helmetsIncluded ? GREEN : '#e74c3c'}
+                              color={viewingQuote.helmetsIncluded ? TEAL : '#EF4444'}
                             />
                             <Text style={styles.detailsInfoText}>
                               Helmets {viewingQuote.helmetsIncluded ? 'Included' : 'Not Included'}
                             </Text>
                           </View>
                         )}
-                        {viewingQuote.kmLimitPerDay && (
+                        {viewingQuote.kmLimitPerDay > 0 && (
                           <View style={styles.detailsInfoRow}>
-                            <Ionicons name="speedometer-outline" size={20} color="#666" />
+                            <Ionicons name="speedometer-outline" size={20} color={TEXT_SECONDARY} />
                             <Text style={styles.detailsInfoText}>
                               {viewingQuote.kmLimitPerDay} KM per day limit
                             </Text>
                           </View>
                         )}
-                        {viewingQuote.extraKmRate && (
+                        {viewingQuote.extraKmRate > 0 && (
                           <View style={styles.detailsInfoRow}>
-                            <Ionicons name="cash-outline" size={20} color="#666" />
+                            <Ionicons name="cash-outline" size={20} color={TEXT_SECONDARY} />
                             <Text style={styles.detailsInfoText}>
                               ₹{viewingQuote.extraKmRate} per extra KM
                             </Text>
@@ -1072,7 +1141,7 @@ export default function SelfDriveQuoteRequestDetailScreen() {
                         )}
                         {viewingQuote.validTill && (
                           <View style={styles.detailsInfoRow}>
-                            <Ionicons name="time-outline" size={20} color="#666" />
+                            <Ionicons name="time-outline" size={20} color={TEXT_SECONDARY} />
                             <Text style={styles.detailsInfoText}>
                               Valid till {formatDate(viewingQuote.validTill)}
                             </Text>
@@ -1084,7 +1153,7 @@ export default function SelfDriveQuoteRequestDetailScreen() {
                       {viewingQuote.vendorMessage && (
                         <View style={styles.detailsVendorMessage}>
                           <View style={styles.detailsMessageHeader}>
-                            <Ionicons name="chatbox-outline" size={18} color={GREEN} />
+                            <Ionicons name="chatbox-outline" size={18} color={TEAL_MID} />
                             <Text style={styles.detailsMessageTitle}>Message from Vendor</Text>
                           </View>
                           <Text style={styles.detailsMessageText}>
@@ -1102,7 +1171,9 @@ export default function SelfDriveQuoteRequestDetailScreen() {
                 {detailsTab === 'inclusions' && (
                   <View style={styles.detailsSection}>
                     <View style={styles.detailsSectionHeader}>
-                      <Ionicons name="checkmark-done-circle" size={22} color={GREEN} />
+                      <View style={styles.detailsSectionIcon}>
+                        <Ionicons name="checkmark-done-circle" size={wp('4%')} color={TEAL_MID} />
+                      </View>
                       <Text style={styles.detailsSectionTitle}>What's Included</Text>
                     </View>
                     {(() => {
@@ -1118,7 +1189,7 @@ export default function SelfDriveQuoteRequestDetailScreen() {
                               ]}
                             >
                               <View style={styles.detailsListBullet}>
-                                <Ionicons name="checkmark" size={18} color={GREEN} />
+                                <Ionicons name="checkmark" size={18} color={TEAL} />
                               </View>
                               <Text style={styles.detailsListText}>{item}</Text>
                             </View>
@@ -1126,7 +1197,7 @@ export default function SelfDriveQuoteRequestDetailScreen() {
                         </View>
                       ) : (
                         <View style={styles.detailsEmptyState}>
-                          <Ionicons name="document-text-outline" size={40} color="#ccc" />
+                          <Ionicons name="document-text-outline" size={40} color={TEXT_MUTED} />
                           <Text style={styles.detailsEmptyText}>No inclusions specified</Text>
                         </View>
                       );
@@ -1138,7 +1209,9 @@ export default function SelfDriveQuoteRequestDetailScreen() {
                 {detailsTab === 'exclusions' && (
                   <View style={styles.detailsSection}>
                     <View style={styles.detailsSectionHeader}>
-                      <Ionicons name="close-circle" size={22} color="#e74c3c" />
+                      <View style={styles.detailsSectionIcon}>
+                        <Ionicons name="close-circle" size={wp('4%')} color="#EF4444" />
+                      </View>
                       <Text style={styles.detailsSectionTitle}>What's Not Included</Text>
                     </View>
                     {(() => {
@@ -1154,7 +1227,7 @@ export default function SelfDriveQuoteRequestDetailScreen() {
                               ]}
                             >
                               <View style={[styles.detailsListBullet, styles.detailsExclusionBullet]}>
-                                <Ionicons name="close" size={18} color="#e74c3c" />
+                                <Ionicons name="close" size={18} color="#EF4444" />
                               </View>
                               <Text style={styles.detailsListText}>{item}</Text>
                             </View>
@@ -1162,7 +1235,7 @@ export default function SelfDriveQuoteRequestDetailScreen() {
                         </View>
                       ) : (
                         <View style={styles.detailsEmptyState}>
-                          <Ionicons name="document-text-outline" size={40} color="#ccc" />
+                          <Ionicons name="document-text-outline" size={40} color={TEXT_MUTED} />
                           <Text style={styles.detailsEmptyText}>No exclusions specified</Text>
                         </View>
                       );
@@ -1174,7 +1247,9 @@ export default function SelfDriveQuoteRequestDetailScreen() {
                 {detailsTab === 'terms' && (
                   <View style={styles.detailsSection}>
                     <View style={styles.detailsSectionHeader}>
-                      <Ionicons name="document-text" size={22} color={GREEN} />
+                      <View style={styles.detailsSectionIcon}>
+                        <Ionicons name="document-text" size={wp('4%')} color={TEAL_MID} />
+                      </View>
                       <Text style={styles.detailsSectionTitle}>Terms & Conditions</Text>
                     </View>
                     {(() => {
@@ -1216,7 +1291,7 @@ export default function SelfDriveQuoteRequestDetailScreen() {
                       // No terms
                       return (
                         <View style={styles.detailsEmptyState}>
-                          <Ionicons name="document-text-outline" size={40} color="#ccc" />
+                          <Ionicons name="document-text-outline" size={40} color={TEXT_MUTED} />
                           <Text style={styles.detailsEmptyText}>No terms and conditions specified</Text>
                         </View>
                       );
@@ -1235,8 +1310,10 @@ export default function SelfDriveQuoteRequestDetailScreen() {
                       setTimeout(() => handleAcceptQuote(viewingQuote), 300);
                     }}
                   >
-                    <Ionicons name="checkmark-circle" size={22} color="#fff" />
-                    <Text style={styles.detailsAcceptBtnText}>Accept & Book This Quote</Text>
+                    <LinearGradient colors={[TEAL_MID, '#047857']} style={styles.detailsAcceptBtnGrad}>
+                      <Ionicons name="checkmark-circle" size={22} color="#fff" />
+                      <Text style={styles.detailsAcceptBtnText}>Accept & Book This Quote</Text>
+                    </LinearGradient>
                   </TouchableOpacity>
                 )}
               </View>
@@ -1312,138 +1389,184 @@ export default function SelfDriveQuoteRequestDetailScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: BG,
+  container: { flex: 1, backgroundColor: BG },
+
+  // Gradient Header
+  headerGrad: {
+    paddingHorizontal: wp('4%'),
+    paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 0) + hp('1%') : hp('1%'),
+    paddingBottom: hp('2%'),
+    overflow: 'hidden',
   },
-  header: {
+  decoCircle: {
+    position: 'absolute',
+    borderRadius: 999,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+  },
+  headerRow: {
+    zIndex: 2,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    marginBottom: hp('1.5%'),
   },
   backBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: wp('9%'),
+    height: wp('9%'),
+    borderRadius: wp('4.5%'),
+    backgroundColor: 'rgba(255,255,255,0.15)',
     justifyContent: 'center',
     alignItems: 'center',
   },
+  headerCenter: { flex: 1, alignItems: 'center' },
   headerTitle: {
-    fontSize: 18,
+    fontSize: wp('4.5%'),
     fontWeight: '700',
-    color: '#333',
+    color: '#FFFFFF',
+    letterSpacing: 0.3,
   },
-  refreshBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+  headerSub: {
+    fontSize: wp('3%'),
+    color: 'rgba(255,255,255,0.7)',
+    marginTop: hp('0.3%'),
+    fontWeight: '500',
+  },
+  headerActionBtn: {
+    width: wp('9%'),
+    height: wp('9%'),
+    borderRadius: wp('4.5%'),
+    backgroundColor: 'rgba(255,255,255,0.15)',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  content: {
-    flex: 1,
-    padding: 16,
+
+  // Glass card
+  glassCard: {
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    borderRadius: wp('4%'),
+    padding: wp('4%'),
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.15)',
   },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: 12,
-    color: '#666',
-    fontSize: 14,
-  },
-  errorContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  errorText: {
-    fontSize: 16,
-    color: '#666',
-    marginTop: 16,
-  },
-  retryBtn: {
-    marginTop: 20,
-    backgroundColor: GREEN,
-    paddingHorizontal: 30,
-    paddingVertical: 12,
-    borderRadius: 10,
-  },
-  retryBtnText: {
-    color: '#fff',
+  glassLabel: {
+    fontSize: wp('2.8%'),
+    color: 'rgba(255,255,255,0.6)',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
     fontWeight: '600',
   },
-
-  // Status Card
-  statusCard: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 20,
-    alignItems: 'center',
-    marginBottom: 16,
+  glassValue: {
+    fontSize: wp('3.5%'),
+    fontWeight: '600',
+    color: '#FFFFFF',
+    marginTop: hp('0.3%'),
   },
-  statusBadge: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-  },
-  statusText: {
-    color: '#fff',
-    fontWeight: '700',
-    fontSize: 14,
-  },
-  requestNumber: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#333',
-    marginTop: 12,
-  },
-  requestDate: {
-    fontSize: 13,
-    color: '#999',
-    marginTop: 4,
-  },
-
-  // Cards
-  card: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 16,
-  },
-  cardHeader: {
+  statusPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
+    paddingHorizontal: wp('3%'),
+    paddingVertical: hp('0.5%'),
+    borderRadius: 999,
+    gap: wp('1.5%'),
   },
-  cardTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
-    marginLeft: 10,
+  statusPillText: {
+    color: '#FFF',
+    fontSize: wp('2.8%'),
+    fontWeight: '700',
+  },
+  metaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: wp('3%'),
+    marginTop: hp('1.2%'),
+  },
+  metaChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    paddingHorizontal: wp('3%'),
+    paddingVertical: hp('0.6%'),
+    borderRadius: wp('5%'),
+    gap: wp('1.5%'),
+  },
+  metaChipText: {
+    fontSize: wp('3%'),
+    color: 'rgba(255,255,255,0.85)',
+    fontWeight: '500',
+  },
+
+  // Empty state
+  emptyCircle: {
+    width: wp('22%'),
+    height: wp('22%'),
+    borderRadius: wp('11%'),
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: hp('2%'),
+  },
+  emptyTitle: { fontSize: wp('4.5%'), fontWeight: '800', color: TEXT_PRIMARY, marginBottom: hp('0.8%') },
+  emptyDesc: { textAlign: 'center', color: TEXT_SECONDARY, fontSize: wp('3.3%'), lineHeight: wp('5%'), marginBottom: hp('2%') },
+  refreshBtnStyle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: TEAL_LIGHT,
+    borderRadius: wp('3%'),
+    paddingHorizontal: wp('4%'),
+    paddingVertical: hp('1.2%'),
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+    gap: wp('2%'),
+  },
+  refreshBtnText: { color: TEAL_MID, fontWeight: '700', fontSize: wp('3.3%') },
+
+  // Scroll content
+  content: { flex: 1 },
+
+  // Details card
+  detailsCard: {
+    backgroundColor: CARD,
+    borderRadius: wp('4%'),
+    padding: wp('4%'),
+    marginHorizontal: wp('4%'),
+    marginTop: hp('1.5%'),
+    ...SHADOW_SM,
+  },
+  detailsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: wp('2.5%'),
+    marginBottom: hp('1.5%'),
+  },
+  detailsIcon: {
+    width: wp('9%'),
+    height: wp('9%'),
+    borderRadius: wp('3%'),
+    backgroundColor: TEAL_LIGHT,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  detailsTitle: {
+    fontSize: wp('3.8%'),
+    fontWeight: '700',
+    color: TEXT_PRIMARY,
   },
 
   // Vehicle
-  vehicleInfo: {},
+  vehicleInfo: {
+    marginTop: hp('0.5%'),
+  },
   vehicleBrand: {
-    fontSize: 12,
-    color: '#999',
+    fontSize: wp('2.8%'),
+    color: TEXT_MUTED,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
+    fontWeight: '600',
   },
   vehicleName: {
-    fontSize: 20,
+    fontSize: wp('4.5%'),
     fontWeight: '700',
-    color: '#333',
-    marginTop: 4,
+    color: TEXT_PRIMARY,
+    marginTop: hp('0.3%'),
   },
 
   // Trip
@@ -1451,98 +1574,100 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 16,
+    marginBottom: hp('1.5%'),
   },
   tripItem: {
     flex: 1,
   },
   tripLabel: {
-    fontSize: 10,
-    color: '#999',
+    fontSize: wp('2.5%'),
+    color: TEXT_MUTED,
     fontWeight: '700',
     letterSpacing: 0.5,
   },
   tripValue: {
-    fontSize: 14,
+    fontSize: wp('3.2%'),
     fontWeight: '600',
-    color: '#333',
-    marginTop: 2,
+    color: TEXT_PRIMARY,
+    marginTop: hp('0.3%'),
   },
   tripTime: {
-    fontSize: 12,
-    color: '#666',
+    fontSize: wp('2.8%'),
+    color: TEXT_SECONDARY,
   },
   tripArrow: {
-    paddingHorizontal: 10,
+    paddingHorizontal: wp('3%'),
   },
   locationRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingTop: 12,
+    paddingTop: hp('1.2%'),
     borderTopWidth: 1,
-    borderTopColor: '#f0f0f0',
+    borderTopColor: '#F3F4F6',
   },
   locationText: {
-    fontSize: 14,
-    color: '#333',
-    marginLeft: 8,
+    fontSize: wp('3.2%'),
+    color: TEXT_PRIMARY,
+    marginLeft: wp('2%'),
+    fontWeight: '500',
   },
   durationBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(9,179,104,0.1)',
+    backgroundColor: TEAL_LIGHT,
     alignSelf: 'flex-start',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
-    marginTop: 12,
+    paddingHorizontal: wp('3%'),
+    paddingVertical: hp('0.6%'),
+    borderRadius: wp('5%'),
+    marginTop: hp('1.2%'),
+    gap: wp('1.5%'),
   },
   durationText: {
-    color: GREEN,
+    color: TEAL_MID,
     fontWeight: '600',
-    fontSize: 13,
-    marginLeft: 6,
+    fontSize: wp('3%'),
   },
 
   // Quotes Section
   quotesSection: {
-    marginBottom: 16,
+    marginHorizontal: wp('4%'),
+    marginTop: hp('1.5%'),
   },
-  quotesHeader: {
-    marginBottom: 12,
-  },
-  quotesTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#333',
+  sectionTitle: {
+    fontSize: wp('4.2%'),
+    fontWeight: '800',
+    color: TEXT_PRIMARY,
+    marginBottom: hp('0.5%'),
   },
   quotesSubtitle: {
-    fontSize: 13,
-    color: '#999',
-    marginTop: 4,
+    fontSize: wp('3%'),
+    color: TEXT_MUTED,
+    marginBottom: hp('1%'),
   },
-  quotesList: {},
   quoteCard: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
+    backgroundColor: CARD,
+    borderRadius: wp('4%'),
+    padding: wp('4%'),
+    marginBottom: hp('1.5%'),
     position: 'relative',
+    ...SHADOW_MD,
   },
   bestDealBadge: {
     position: 'absolute',
-    top: 12,
-    right: 12,
+    top: wp('3%'),
+    right: wp('3%'),
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f39c12',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
+    backgroundColor: TEAL,
+    paddingHorizontal: wp('2.5%'),
+    paddingVertical: hp('0.4%'),
+    borderRadius: wp('5%'),
+    gap: wp('1%'),
+    zIndex: 1,
   },
   bestDealText: {
     color: '#fff',
-    fontSize: 11,
+    fontSize: wp('2.6%'),
     fontWeight: '700',
   },
 
@@ -1550,245 +1675,266 @@ const styles = StyleSheet.create({
   quoteVendor: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: hp('1.2%'),
   },
-  vendorAvatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: 'rgba(9,179,104,0.1)',
+  vendorAvatarCircle: {
+    width: wp('11%'),
+    height: wp('11%'),
+    borderRadius: wp('5.5%'),
+    backgroundColor: TEAL_LIGHT,
     justifyContent: 'center',
     alignItems: 'center',
   },
   vendorInfo: {
-    marginLeft: 12,
+    marginLeft: wp('3%'),
+    flex: 1,
   },
   vendorName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
+    fontSize: wp('3.5%'),
+    fontWeight: '700',
+    color: TEXT_PRIMARY,
+    marginBottom: hp('0.3%'),
   },
   ratingRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 2,
+    gap: wp('1%'),
   },
   ratingText: {
-    fontSize: 13,
-    color: '#f39c12',
-    fontWeight: '600',
-    marginLeft: 4,
+    fontSize: wp('2.8%'),
+    color: TEXT_SECONDARY,
+    fontWeight: '500',
   },
 
   // Quote Vehicle
   quoteVehicle: {
-    backgroundColor: '#f8f8f8',
-    padding: 10,
-    borderRadius: 10,
-    marginBottom: 12,
+    backgroundColor: '#F9FAFB',
+    padding: wp('3%'),
+    borderRadius: wp('3%'),
+    marginBottom: hp('1.2%'),
   },
   quoteVehicleName: {
-    fontSize: 15,
+    fontSize: wp('3.3%'),
     fontWeight: '600',
-    color: '#333',
-    marginBottom: 8,
+    color: TEXT_PRIMARY,
+    marginBottom: hp('0.5%'),
   },
   vehicleImagesContainer: {
-    marginTop: 8,
-    marginHorizontal: -10,
-    paddingHorizontal: 10,
+    marginTop: hp('0.8%'),
+    marginHorizontal: wp('-3%'),
+    paddingHorizontal: wp('3%'),
   },
   vehicleImage: {
-    width: 120,
-    height: 90,
-    borderRadius: 8,
-    marginRight: 8,
-    backgroundColor: '#e0e0e0',
+    width: wp('28%'),
+    height: hp('10%'),
+    borderRadius: wp('2%'),
+    marginRight: wp('2%'),
+    backgroundColor: '#E5E7EB',
   },
 
   // Quote Pricing
   quotePricing: {
     borderTopWidth: 1,
-    borderTopColor: '#f0f0f0',
-    paddingTop: 12,
+    borderTopColor: '#F3F4F6',
+    paddingTop: hp('1.2%'),
   },
   priceRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 6,
+    marginBottom: hp('0.6%'),
   },
   priceLabel: {
-    fontSize: 14,
-    color: '#666',
+    fontSize: wp('3.2%'),
+    color: TEXT_SECONDARY,
   },
   priceValue: {
-    fontSize: 14,
-    color: '#333',
+    fontSize: wp('3.2%'),
+    color: TEXT_PRIMARY,
     fontWeight: '500',
   },
   totalPrice: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: GREEN,
+    fontSize: wp('4.5%'),
+    fontWeight: '800',
+    color: TEAL_MID,
   },
   advanceLabel: {
-    fontSize: 13,
-    color: '#999',
+    fontSize: wp('3%'),
+    color: TEAL_MID,
+    fontWeight: '600',
   },
   advanceValue: {
-    fontSize: 13,
-    color: '#666',
+    fontSize: wp('3%'),
+    color: TEAL_MID,
+    fontWeight: '700',
+  },
+  advanceRow: {
+    backgroundColor: TEAL_LIGHT,
+    marginHorizontal: wp('-3%'),
+    paddingHorizontal: wp('3%'),
+    paddingVertical: hp('0.8%'),
+    marginTop: hp('0.8%'),
+    borderRadius: wp('2%'),
   },
   validTill: {
-    fontSize: 12,
-    color: '#999',
-    marginTop: 8,
+    fontSize: wp('2.8%'),
+    color: TEXT_MUTED,
+    marginTop: hp('0.8%'),
     textAlign: 'center',
+  },
+
+  // View Details Button
+  viewDetailsBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: TEAL_LIGHT,
+    paddingVertical: hp('1.2%'),
+    borderRadius: wp('3%'),
+    marginTop: hp('1%'),
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+    gap: wp('1.5%'),
+  },
+  viewDetailsBtnText: {
+    color: TEAL_MID,
+    fontSize: wp('3.2%'),
+    fontWeight: '600',
   },
 
   // Accept Button
   acceptBtn: {
+    borderRadius: wp('3%'),
+    overflow: 'hidden',
+    marginTop: hp('1%'),
+  },
+  acceptBtnGrad: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: GREEN,
-    paddingVertical: 14,
-    borderRadius: 12,
-    marginTop: 12,
+    alignItems: 'center',
+    paddingVertical: hp('1.5%'),
+    paddingHorizontal: wp('5%'),
+    borderRadius: wp('3%'),
+    gap: wp('2%'),
   },
   acceptBtnText: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: wp('3.5%'),
     fontWeight: '700',
-    marginLeft: 8,
   },
   acceptedBadge: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(9,179,104,0.1)',
-    paddingVertical: 12,
-    borderRadius: 12,
-    marginTop: 12,
+    alignItems: 'center',
+    backgroundColor: TEAL_LIGHT,
+    paddingVertical: hp('1.2%'),
+    borderRadius: wp('3%'),
+    marginTop: hp('1%'),
+    gap: wp('2%'),
   },
   acceptedText: {
-    color: GREEN,
-    fontSize: 14,
-    fontWeight: '600',
+    color: TEAL_MID,
+    fontSize: wp('3.3%'),
+    fontWeight: '700',
   },
 
-  // No Quotes
-  noQuotes: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 40,
+  // No Quotes (expired/accepted states)
+  noQuotesCard: {
+    backgroundColor: CARD,
+    borderRadius: wp('4%'),
+    padding: wp('8%'),
     alignItems: 'center',
+    ...SHADOW_SM,
   },
   noQuotesText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#666',
-    marginTop: 16,
+    fontSize: wp('3.8%'),
+    fontWeight: '700',
+    color: TEXT_PRIMARY,
+    marginTop: hp('1.5%'),
   },
   noQuotesSubtext: {
-    fontSize: 13,
-    color: '#999',
-    marginTop: 4,
+    fontSize: wp('3%'),
+    color: TEXT_SECONDARY,
+    marginTop: hp('0.5%'),
     textAlign: 'center',
-    paddingHorizontal: 10,
+    paddingHorizontal: wp('2%'),
+    lineHeight: wp('4.8%'),
   },
-  noQuotesContainer: {
-    backgroundColor: '#fff',
-    borderRadius: 20,
-    padding: 40,
-    alignItems: 'center',
-    marginVertical: 10,
+  newRequestBtn: {
+    borderRadius: wp('3%'),
+    overflow: 'hidden',
+    marginTop: hp('2%'),
   },
-  noQuotesIconCircle: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: '#E8F9F1',
+  newRequestBtnGrad: {
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 20,
+    paddingVertical: hp('1.5%'),
+    paddingHorizontal: wp('6%'),
+    borderRadius: wp('3%'),
+    gap: wp('2%'),
+  },
+  newRequestBtnText: {
+    color: '#fff',
+    fontSize: wp('3.2%'),
+    fontWeight: '700',
+  },
+
+  // No Quotes (pending state)
+  noQuotesContainer: {
+    backgroundColor: CARD,
+    borderRadius: wp('4%'),
+    padding: wp('8%'),
+    alignItems: 'center',
+    ...SHADOW_SM,
+  },
+  noQuotesIconCircle: {
+    width: wp('25%'),
+    height: wp('25%'),
+    borderRadius: wp('12.5%'),
+    backgroundColor: TEAL_LIGHT,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: hp('2%'),
   },
   noQuotesTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#333',
-    marginTop: 10,
-    marginBottom: 12,
+    fontSize: wp('4.2%'),
+    fontWeight: '800',
+    color: TEXT_PRIMARY,
+    marginBottom: hp('1%'),
   },
   noQuotesMessage: {
-    fontSize: 14,
-    color: '#666',
+    fontSize: wp('3.2%'),
+    color: TEXT_SECONDARY,
     textAlign: 'center',
-    lineHeight: 22,
-    paddingHorizontal: 10,
-    marginBottom: 20,
+    lineHeight: wp('5%'),
+    marginBottom: hp('2%'),
   },
   noQuotesInfoBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F5F5F5',
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 20,
-    marginTop: 10,
+    backgroundColor: '#F3F4F6',
+    paddingVertical: hp('1%'),
+    paddingHorizontal: wp('4%'),
+    borderRadius: wp('5%'),
+    gap: wp('2%'),
   },
   noQuotesInfoText: {
-    fontSize: 13,
-    color: '#666',
-    marginLeft: 8,
+    fontSize: wp('3%'),
+    color: TEXT_SECONDARY,
     fontWeight: '500',
   },
   noQuotesPullRefresh: {
-    fontSize: 12,
-    color: '#999',
-    marginTop: 16,
+    fontSize: wp('2.8%'),
+    color: TEXT_MUTED,
+    marginTop: hp('1.5%'),
     fontStyle: 'italic',
-  },
-  newRequestBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: GREEN,
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 12,
-    marginTop: 20,
-  },
-  newRequestBtnText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '600',
-    marginLeft: 8,
-  },
-  viewBookingsBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: GREEN,
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 12,
-    marginTop: 20,
-  },
-  advanceRow: {
-    backgroundColor: 'rgba(9,179,104,0.08)',
-    marginHorizontal: -12,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    marginTop: 8,
-    borderRadius: 8,
   },
 
   // Notes
   notesText: {
-    fontSize: 14,
-    color: '#666',
-    lineHeight: 20,
+    fontSize: wp('3.2%'),
+    color: TEXT_SECONDARY,
+    lineHeight: wp('5%'),
   },
 
   // ========== Confirmation Modal Styles ==========
@@ -1797,312 +1943,290 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.6)',
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
+    padding: wp('5%'),
   },
   modalContainer: {
-    backgroundColor: '#fff',
-    borderRadius: 24,
+    backgroundColor: CARD,
+    borderRadius: wp('5%'),
     width: '100%',
     maxWidth: 400,
     overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.25,
-    shadowRadius: 20,
-    elevation: 10,
+    ...SHADOW_MD,
   },
   modalContent: {
-    padding: 24,
+    padding: wp('5%'),
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: hp('2%'),
   },
   modalTitle: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: '#1a1a1a',
+    fontSize: wp('5%'),
+    fontWeight: '800',
+    color: TEXT_PRIMARY,
+    textAlign: 'center',
   },
   modalCloseBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#f5f5f5',
+    width: wp('9%'),
+    height: wp('9%'),
+    borderRadius: wp('4.5%'),
+    backgroundColor: '#F3F4F6',
     justifyContent: 'center',
     alignItems: 'center',
   },
   modalMessage: {
-    fontSize: 14,
-    color: '#666',
+    fontSize: wp('3.2%'),
+    color: TEXT_SECONDARY,
     textAlign: 'center',
-    lineHeight: 20,
-    marginVertical: 16,
+    lineHeight: wp('5%'),
+    marginVertical: hp('1.5%'),
   },
 
   // Success State
   successIconContainer: {
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: hp('1.5%'),
   },
   successBookingNumber: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: GREEN,
+    fontSize: wp('4%'),
+    fontWeight: '700',
+    color: TEAL_MID,
     textAlign: 'center',
-    marginTop: 8,
+    marginTop: hp('0.8%'),
   },
   successBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: GREEN,
-    paddingVertical: 16,
-    borderRadius: 14,
-    marginTop: 20,
+    backgroundColor: TEAL_MID,
+    paddingVertical: hp('1.8%'),
+    borderRadius: wp('3%'),
+    marginTop: hp('2%'),
+    gap: wp('2%'),
   },
   successBtnText: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: wp('3.5%'),
     fontWeight: '700',
   },
 
   // Error State
-  errorContainer: {
+  errorContainerModal: {
     alignItems: 'center',
-    paddingVertical: 10,
+    paddingVertical: hp('1%'),
   },
   errorIconWrap: {
-    marginBottom: 16,
+    marginBottom: hp('1.5%'),
   },
   errorTitle: {
-    fontSize: 18,
+    fontSize: wp('4%'),
     fontWeight: '700',
-    color: '#333',
-    marginBottom: 8,
+    color: TEXT_PRIMARY,
+    marginBottom: hp('0.8%'),
   },
   errorMessage: {
-    fontSize: 14,
-    color: '#e74c3c',
+    fontSize: wp('3.2%'),
+    color: '#DC2626',
     textAlign: 'center',
-    lineHeight: 20,
-    marginBottom: 16,
-    paddingHorizontal: 12,
-    backgroundColor: '#fef2f2',
-    paddingVertical: 12,
-    borderRadius: 10,
+    lineHeight: wp('5%'),
+    marginBottom: hp('1.5%'),
+    paddingHorizontal: wp('3%'),
+    backgroundColor: '#FEF2F2',
+    paddingVertical: hp('1.2%'),
+    borderRadius: wp('2.5%'),
     width: '100%',
+    overflow: 'hidden',
   },
   errorActions: {
     flexDirection: 'row',
-    marginBottom: 12,
+    marginBottom: hp('1.2%'),
+    gap: wp('3%'),
   },
   retryBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#e74c3c',
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 12,
+    backgroundColor: '#DC2626',
+    paddingVertical: hp('1.5%'),
+    paddingHorizontal: wp('5%'),
+    borderRadius: wp('3%'),
     flex: 1,
-    marginRight: 6,
+    gap: wp('2%'),
   },
   retryBtnText: {
     color: '#fff',
-    fontSize: 14,
+    fontSize: wp('3.2%'),
     fontWeight: '600',
   },
   checkBookingsBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#fff',
+    backgroundColor: CARD,
     borderWidth: 1.5,
-    borderColor: GREEN,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 12,
+    borderColor: TEAL_MID,
+    paddingVertical: hp('1.5%'),
+    paddingHorizontal: wp('3%'),
+    borderRadius: wp('3%'),
     flex: 1,
-    marginLeft: 6,
+    gap: wp('2%'),
   },
   checkBookingsBtnText: {
-    color: GREEN,
-    fontSize: 14,
+    color: TEAL_MID,
+    fontSize: wp('3.2%'),
     fontWeight: '600',
   },
   errorHint: {
-    fontSize: 12,
-    color: '#999',
+    fontSize: wp('2.8%'),
+    color: TEXT_MUTED,
     textAlign: 'center',
-    marginTop: 4,
+    marginTop: hp('0.5%'),
   },
 
   // Confirm Quote Card
   confirmQuoteCard: {
-    backgroundColor: '#f8f9fa',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 16,
+    backgroundColor: '#F9FAFB',
+    borderRadius: wp('4%'),
+    padding: wp('4%'),
+    marginBottom: hp('1.5%'),
   },
   confirmVendorRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 14,
+    marginBottom: hp('1.5%'),
   },
   confirmVendorAvatar: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: 'rgba(9,179,104,0.15)',
+    width: wp('12%'),
+    height: wp('12%'),
+    borderRadius: wp('6%'),
+    backgroundColor: TEAL_LIGHT,
     justifyContent: 'center',
     alignItems: 'center',
   },
   confirmVendorInfo: {
-    marginLeft: 12,
+    marginLeft: wp('3%'),
     flex: 1,
   },
   confirmVendorName: {
-    fontSize: 16,
+    fontSize: wp('3.5%'),
     fontWeight: '700',
-    color: '#333',
+    color: TEXT_PRIMARY,
   },
   confirmRating: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 4,
+    marginTop: hp('0.3%'),
   },
   confirmRatingText: {
-    fontSize: 13,
-    color: '#f39c12',
+    fontSize: wp('3%'),
+    color: '#F59E0B',
     fontWeight: '600',
-    marginLeft: 4,
+    marginLeft: wp('1%'),
   },
   confirmVehicle: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
-    padding: 12,
-    borderRadius: 10,
-    marginBottom: 14,
+    backgroundColor: CARD,
+    padding: wp('3%'),
+    borderRadius: wp('2.5%'),
+    marginBottom: hp('1.5%'),
+    gap: wp('2%'),
   },
   confirmVehicleName: {
-    fontSize: 15,
+    fontSize: wp('3.3%'),
     fontWeight: '600',
-    color: '#333',
+    color: TEXT_PRIMARY,
   },
   confirmPriceSection: {
     borderTopWidth: 1,
-    borderTopColor: '#e5e5e5',
-    paddingTop: 12,
+    borderTopColor: '#E5E7EB',
+    paddingTop: hp('1.2%'),
   },
   confirmPriceRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 8,
+    marginBottom: hp('0.8%'),
   },
   confirmPriceLabel: {
-    fontSize: 14,
-    color: '#666',
-  },
-  confirmPriceValue: {
-    fontSize: 14,
-    color: '#333',
-    fontWeight: '500',
+    fontSize: wp('3.2%'),
+    color: TEXT_SECONDARY,
   },
   confirmTotal: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: GREEN,
+    fontSize: wp('4.5%'),
+    fontWeight: '800',
+    color: TEAL_MID,
   },
   confirmAdvanceRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: 'rgba(9,179,104,0.1)',
-    marginTop: 8,
-    marginHorizontal: -16,
-    marginBottom: -16,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomLeftRadius: 16,
-    borderBottomRightRadius: 16,
+    backgroundColor: TEAL_LIGHT,
+    marginTop: hp('0.8%'),
+    marginHorizontal: wp('-4%'),
+    marginBottom: wp('-4%'),
+    paddingHorizontal: wp('4%'),
+    paddingVertical: hp('1.2%'),
+    borderBottomLeftRadius: wp('4%'),
+    borderBottomRightRadius: wp('4%'),
   },
   confirmAdvanceLabel: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: wp('1.5%'),
   },
   confirmAdvanceLabelText: {
-    fontSize: 14,
-    color: GREEN,
+    fontSize: wp('3.2%'),
+    color: TEAL_MID,
     fontWeight: '600',
   },
   confirmAdvanceValue: {
-    fontSize: 18,
+    fontSize: wp('4%'),
     fontWeight: '700',
-    color: GREEN,
+    color: TEAL_MID,
   },
   confirmNote: {
-    fontSize: 12,
-    color: '#999',
+    fontSize: wp('2.8%'),
+    color: TEXT_MUTED,
     textAlign: 'center',
-    lineHeight: 18,
-    marginBottom: 20,
+    lineHeight: wp('4.5%'),
+    marginBottom: hp('2%'),
   },
   confirmActions: {
     flexDirection: 'row',
+    gap: wp('3%'),
   },
   cancelModalBtn: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#f5f5f5',
-    paddingVertical: 14,
-    borderRadius: 12,
-    marginRight: 6,
+    backgroundColor: '#F3F4F6',
+    paddingVertical: hp('1.5%'),
+    borderRadius: wp('3%'),
   },
   cancelModalBtnText: {
-    fontSize: 15,
+    fontSize: wp('3.3%'),
     fontWeight: '600',
-    color: '#666',
+    color: TEXT_SECONDARY,
   },
   confirmBtn: {
     flex: 2,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: GREEN,
-    paddingVertical: 14,
-    borderRadius: 12,
-    marginLeft: 6,
+    backgroundColor: TEAL_MID,
+    paddingVertical: hp('1.5%'),
+    borderRadius: wp('3%'),
+    gap: wp('2%'),
   },
   confirmBtnDisabled: {
     opacity: 0.7,
   },
   confirmBtnText: {
-    fontSize: 15,
+    fontSize: wp('3.3%'),
     fontWeight: '700',
     color: '#fff',
-  },
-
-  // View Details Button
-  viewDetailsBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(9,179,104,0.08)',
-    paddingVertical: 12,
-    borderRadius: 10,
-    marginTop: 10,
-    borderWidth: 1,
-    borderColor: 'rgba(9,179,104,0.2)',
-  },
-  viewDetailsBtnText: {
-    color: GREEN,
-    fontSize: 14,
-    fontWeight: '600',
-    marginHorizontal: 6,
   },
 
   // ========== Quote Details Modal Styles ==========
@@ -2110,27 +2234,22 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: BG,
   },
-  detailsHeader: {
+  detailsModalHeader: {
+    paddingHorizontal: wp('4%'),
+    paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 0) + hp('1%') : hp('1%'),
+    paddingBottom: hp('1.5%'),
+    overflow: 'hidden',
+  },
+  detailsModalHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
   },
-  detailsCloseBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  detailsHeaderTitle: {
-    fontSize: 18,
+  detailsModalHeaderTitle: {
+    fontSize: wp('4.5%'),
     fontWeight: '700',
-    color: '#333',
+    color: '#FFFFFF',
+    letterSpacing: 0.3,
   },
   detailsContent: {
     flex: 1,
@@ -2138,158 +2257,172 @@ const styles = StyleSheet.create({
 
   // Vendor Card
   detailsVendorCard: {
-    backgroundColor: '#fff',
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    backgroundColor: CARD,
+    padding: wp('4%'),
+    marginHorizontal: wp('4%'),
+    marginTop: hp('1.5%'),
+    borderRadius: wp('4%'),
+    ...SHADOW_SM,
   },
   detailsVendorRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: hp('0.8%'),
   },
   detailsVendorAvatar: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: 'rgba(9,179,104,0.1)',
+    width: wp('13%'),
+    height: wp('13%'),
+    borderRadius: wp('6.5%'),
+    backgroundColor: TEAL_LIGHT,
     justifyContent: 'center',
     alignItems: 'center',
   },
   detailsVendorInfo: {
-    marginLeft: 14,
+    marginLeft: wp('3.5%'),
     flex: 1,
   },
   detailsVendorName: {
-    fontSize: 18,
+    fontSize: wp('4%'),
     fontWeight: '700',
-    color: '#333',
+    color: TEXT_PRIMARY,
   },
   detailsRating: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 4,
+    marginTop: hp('0.3%'),
+    gap: wp('1%'),
   },
   detailsRatingText: {
-    fontSize: 14,
-    color: '#f39c12',
-    fontWeight: '600',
-    marginLeft: 4,
+    fontSize: wp('3.2%'),
+    color: TEXT_SECONDARY,
+    fontWeight: '500',
   },
   detailsQuoteNumber: {
-    fontSize: 13,
-    color: '#999',
+    fontSize: wp('3%'),
+    color: TEXT_MUTED,
     fontWeight: '500',
   },
 
   // Tabs
   detailsTabs: {
     flexDirection: 'row',
-    backgroundColor: '#fff',
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    backgroundColor: CARD,
+    marginHorizontal: wp('4%'),
+    marginTop: hp('1%'),
+    borderRadius: wp('3%'),
+    paddingHorizontal: wp('1%'),
+    paddingTop: hp('0.5%'),
+    ...SHADOW_SM,
   },
   detailsTab: {
     flex: 1,
-    paddingVertical: 12,
+    paddingVertical: hp('1.2%'),
     alignItems: 'center',
     borderBottomWidth: 2,
     borderBottomColor: 'transparent',
   },
   detailsTabActive: {
-    borderBottomColor: GREEN,
+    borderBottomColor: TEAL,
   },
   detailsTabText: {
-    fontSize: 13,
+    fontSize: wp('3%'),
     fontWeight: '600',
-    color: '#999',
+    color: TEXT_MUTED,
   },
   detailsTabTextActive: {
-    color: GREEN,
+    color: TEAL_MID,
   },
 
   // Tab Content
   detailsTabContent: {
-    padding: 16,
+    padding: wp('4%'),
   },
   detailsSection: {
-    marginBottom: 20,
+    marginBottom: hp('2%'),
   },
   detailsSectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: hp('1.2%'),
+    gap: wp('2.5%'),
+  },
+  detailsSectionIcon: {
+    width: wp('8%'),
+    height: wp('8%'),
+    borderRadius: wp('2.5%'),
+    backgroundColor: TEAL_LIGHT,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   detailsSectionTitle: {
-    fontSize: 17,
+    fontSize: wp('3.8%'),
     fontWeight: '700',
-    color: '#333',
-    marginLeft: 10,
+    color: TEXT_PRIMARY,
   },
 
-  // Vehicle Card
+  // Vehicle Card in details
   detailsVehicleCard: {
-    backgroundColor: '#fff',
-    padding: 16,
-    borderRadius: 14,
-    marginBottom: 12,
+    backgroundColor: CARD,
+    padding: wp('4%'),
+    borderRadius: wp('3.5%'),
+    marginBottom: hp('1.2%'),
+    ...SHADOW_SM,
   },
   detailsVehicleName: {
-    fontSize: 20,
+    fontSize: wp('4.5%'),
     fontWeight: '700',
-    color: '#333',
-    marginBottom: 4,
+    color: TEXT_PRIMARY,
+    marginBottom: hp('0.3%'),
   },
   detailsVehicleBrand: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 8,
+    fontSize: wp('3.2%'),
+    color: TEXT_SECONDARY,
+    marginBottom: hp('0.8%'),
   },
   detailsRegRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f8f8f8',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
+    backgroundColor: '#F9FAFB',
+    paddingHorizontal: wp('3%'),
+    paddingVertical: hp('0.8%'),
+    borderRadius: wp('2%'),
     alignSelf: 'flex-start',
+    gap: wp('1.5%'),
   },
   detailsRegNumber: {
-    fontSize: 13,
+    fontSize: wp('3%'),
     fontWeight: '600',
-    color: '#666',
-    marginLeft: 6,
+    color: TEXT_SECONDARY,
   },
 
   // Features
   detailsFeaturesContainer: {
-    backgroundColor: '#fff',
-    padding: 16,
-    borderRadius: 14,
+    backgroundColor: CARD,
+    padding: wp('4%'),
+    borderRadius: wp('3.5%'),
+    ...SHADOW_SM,
   },
   detailsFeaturesTitle: {
-    fontSize: 14,
+    fontSize: wp('3.2%'),
     fontWeight: '700',
-    color: '#333',
-    marginBottom: 14,
+    color: TEXT_PRIMARY,
+    marginBottom: hp('1.2%'),
   },
   detailsFeaturesList: {},
   detailsFeatureItem: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    marginBottom: 12,
-    paddingBottom: 12,
+    marginBottom: hp('1.2%'),
+    paddingBottom: hp('1.2%'),
     borderBottomWidth: 1,
-    borderBottomColor: '#f8f8f8',
+    borderBottomColor: '#F3F4F6',
   },
   detailsFeatureText: {
-    fontSize: 14,
-    color: '#333',
-    marginLeft: 10,
+    fontSize: wp('3.2%'),
+    color: TEXT_PRIMARY,
+    marginLeft: wp('2.5%'),
     flex: 1,
-    lineHeight: 20,
+    lineHeight: wp('5%'),
     paddingTop: 1,
   },
   detailsFeatureItemLast: {
@@ -2300,161 +2433,165 @@ const styles = StyleSheet.create({
 
   // Pricing Card
   detailsPricingCard: {
-    backgroundColor: '#fff',
-    padding: 16,
-    borderRadius: 14,
+    backgroundColor: CARD,
+    padding: wp('4%'),
+    borderRadius: wp('3.5%'),
+    ...SHADOW_SM,
   },
   detailsPriceRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 10,
+    marginBottom: hp('1%'),
   },
   detailsPriceLabel: {
-    fontSize: 14,
-    color: '#666',
+    fontSize: wp('3.2%'),
+    color: TEXT_SECONDARY,
   },
   detailsPriceValue: {
-    fontSize: 14,
+    fontSize: wp('3.2%'),
     fontWeight: '600',
-    color: '#333',
+    color: TEXT_PRIMARY,
   },
   detailsTotalRow: {
     borderTopWidth: 1,
-    borderTopColor: '#f0f0f0',
-    paddingTop: 12,
-    marginTop: 4,
-    marginBottom: 12,
+    borderTopColor: '#F3F4F6',
+    paddingTop: hp('1.2%'),
+    marginTop: hp('0.5%'),
+    marginBottom: hp('1.2%'),
   },
   detailsTotalLabel: {
-    fontSize: 16,
+    fontSize: wp('3.8%'),
     fontWeight: '700',
-    color: '#333',
+    color: TEXT_PRIMARY,
   },
   detailsTotalValue: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: GREEN,
+    fontSize: wp('5%'),
+    fontWeight: '800',
+    color: TEAL_MID,
   },
   detailsAdvanceCard: {
-    backgroundColor: 'rgba(9,179,104,0.08)',
-    padding: 14,
-    borderRadius: 10,
-    marginBottom: 10,
+    backgroundColor: TEAL_LIGHT,
+    padding: wp('3.5%'),
+    borderRadius: wp('2.5%'),
+    marginBottom: hp('1%'),
   },
   detailsAdvanceHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 6,
+    marginBottom: hp('0.5%'),
+    gap: wp('1.5%'),
   },
   detailsAdvanceLabel: {
-    fontSize: 13,
+    fontSize: wp('3%'),
     fontWeight: '600',
-    color: GREEN,
-    marginLeft: 6,
+    color: TEAL_MID,
   },
   detailsAdvanceAmount: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: GREEN,
+    fontSize: wp('4.5%'),
+    fontWeight: '800',
+    color: TEAL_MID,
   },
   detailsDepositRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#f8f8f8',
-    padding: 12,
-    borderRadius: 10,
+    backgroundColor: '#F9FAFB',
+    padding: wp('3%'),
+    borderRadius: wp('2.5%'),
   },
   detailsDepositLabel: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: wp('1.5%'),
   },
   detailsDepositText: {
-    fontSize: 13,
-    color: '#666',
-    marginLeft: 6,
+    fontSize: wp('3%'),
+    color: TEXT_SECONDARY,
   },
   detailsDepositAmount: {
-    fontSize: 15,
+    fontSize: wp('3.5%'),
     fontWeight: '700',
-    color: '#333',
+    color: TEXT_PRIMARY,
   },
 
   // Info Card
   detailsInfoCard: {
-    backgroundColor: '#fff',
-    padding: 16,
-    borderRadius: 14,
-    marginBottom: 12,
+    backgroundColor: CARD,
+    padding: wp('4%'),
+    borderRadius: wp('3.5%'),
+    marginBottom: hp('1.2%'),
+    ...SHADOW_SM,
   },
   detailsInfoRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: hp('1.2%'),
+    gap: wp('2.5%'),
   },
   detailsInfoText: {
-    fontSize: 14,
-    color: '#666',
-    marginLeft: 10,
+    fontSize: wp('3.2%'),
+    color: TEXT_SECONDARY,
     flex: 1,
   },
 
   // Vendor Message
   detailsVendorMessage: {
-    backgroundColor: '#fff',
-    padding: 16,
-    borderRadius: 14,
+    backgroundColor: CARD,
+    padding: wp('4%'),
+    borderRadius: wp('3.5%'),
+    ...SHADOW_SM,
   },
   detailsMessageHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: hp('1%'),
+    gap: wp('2%'),
   },
   detailsMessageTitle: {
-    fontSize: 14,
+    fontSize: wp('3.2%'),
     fontWeight: '700',
-    color: GREEN,
-    marginLeft: 8,
+    color: TEAL_MID,
   },
   detailsMessageText: {
-    fontSize: 14,
-    color: '#666',
-    lineHeight: 22,
+    fontSize: wp('3.2%'),
+    color: TEXT_SECONDARY,
+    lineHeight: wp('5%'),
   },
 
   // List Card (Inclusions/Exclusions)
   detailsListCard: {
-    backgroundColor: '#fff',
-    padding: 16,
-    borderRadius: 14,
+    backgroundColor: CARD,
+    padding: wp('4%'),
+    borderRadius: wp('3.5%'),
+    ...SHADOW_SM,
   },
   detailsListItem: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    marginBottom: 16,
-    paddingBottom: 16,
+    marginBottom: hp('1.5%'),
+    paddingBottom: hp('1.5%'),
     borderBottomWidth: 1,
-    borderBottomColor: '#f5f5f5',
+    borderBottomColor: '#F3F4F6',
   },
   detailsListBullet: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: 'rgba(9,179,104,0.1)',
+    width: wp('7.5%'),
+    height: wp('7.5%'),
+    borderRadius: wp('3.75%'),
+    backgroundColor: TEAL_LIGHT,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
-    marginTop: 2,
+    marginRight: wp('3%'),
+    marginTop: hp('0.2%'),
   },
   detailsExclusionBullet: {
-    backgroundColor: 'rgba(231,76,60,0.1)',
+    backgroundColor: '#FEF2F2',
   },
   detailsListText: {
-    fontSize: 15,
-    color: '#333',
-    lineHeight: 22,
+    fontSize: wp('3.3%'),
+    color: TEXT_PRIMARY,
+    lineHeight: wp('5%'),
     flex: 1,
-    paddingTop: 3,
+    paddingTop: hp('0.3%'),
   },
   detailsListItemLast: {
     borderBottomWidth: 0,
@@ -2464,83 +2601,83 @@ const styles = StyleSheet.create({
 
   // Terms Card
   detailsTermsCard: {
-    backgroundColor: '#fff',
-    padding: 16,
-    borderRadius: 14,
+    backgroundColor: CARD,
+    padding: wp('4%'),
+    borderRadius: wp('3.5%'),
+    ...SHADOW_SM,
   },
   detailsTermsText: {
-    fontSize: 14,
-    color: '#666',
-    lineHeight: 22,
+    fontSize: wp('3.2%'),
+    color: TEXT_SECONDARY,
+    lineHeight: wp('5%'),
   },
   detailsTermsBullet: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: 'rgba(9,179,104,0.1)',
+    width: wp('7%'),
+    height: wp('7%'),
+    borderRadius: wp('3.5%'),
+    backgroundColor: TEAL_LIGHT,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
+    marginRight: wp('3%'),
   },
   detailsTermsNumber: {
-    fontSize: 13,
+    fontSize: wp('3%'),
     fontWeight: '700',
-    color: GREEN,
+    color: TEAL_MID,
   },
 
   // Empty State
   detailsEmptyState: {
-    backgroundColor: '#fff',
-    padding: 40,
-    borderRadius: 14,
+    backgroundColor: CARD,
+    padding: wp('8%'),
+    borderRadius: wp('3.5%'),
     alignItems: 'center',
+    ...SHADOW_SM,
   },
   detailsEmptyText: {
-    fontSize: 14,
-    color: '#999',
-    marginTop: 12,
+    fontSize: wp('3.2%'),
+    color: TEXT_MUTED,
+    marginTop: hp('1.2%'),
   },
 
   // Bottom Actions
   detailsActions: {
-    padding: 16,
+    paddingHorizontal: wp('4%'),
   },
   detailsAcceptBtn: {
+    borderRadius: wp('3%'),
+    overflow: 'hidden',
+  },
+  detailsAcceptBtnGrad: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: GREEN,
-    paddingVertical: 16,
-    borderRadius: 14,
-    shadowColor: GREEN,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 5,
+    paddingVertical: hp('1.8%'),
+    borderRadius: wp('3%'),
+    gap: wp('2%'),
   },
   detailsAcceptBtnText: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: wp('3.5%'),
     fontWeight: '700',
-    marginLeft: 8,
   },
 
-  // Vehicle Images
+  // Vehicle Images in details
   detailsImageScroll: {
-    marginTop: 12,
+    marginTop: hp('1%'),
   },
   detailsImageContainer: {
-    marginRight: 12,
-    borderRadius: 12,
+    marginRight: wp('3%'),
+    borderRadius: wp('3%'),
     overflow: 'hidden',
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#F3F4F6',
     borderWidth: 1,
-    borderColor: '#e0e0e0',
+    borderColor: '#E5E7EB',
   },
   detailsImage: {
-    width: 280,
-    height: 200,
-    borderRadius: 12,
+    width: wp('65%'),
+    height: hp('22%'),
+    borderRadius: wp('3%'),
   },
 
   // Image Viewer Modal
@@ -2552,12 +2689,12 @@ const styles = StyleSheet.create({
   },
   imageViewerCloseButton: {
     position: 'absolute',
-    top: 50,
-    right: 20,
+    top: hp('6%'),
+    right: wp('5%'),
     zIndex: 10,
-    padding: 10,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    borderRadius: 25,
+    padding: wp('2.5%'),
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    borderRadius: wp('6%'),
   },
   imageViewerScroll: {
     flex: 1,
@@ -2575,16 +2712,16 @@ const styles = StyleSheet.create({
   },
   imageViewerCounter: {
     position: 'absolute',
-    bottom: 50,
+    bottom: hp('6%'),
     alignSelf: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    paddingHorizontal: wp('5%'),
+    paddingVertical: hp('1%'),
+    borderRadius: wp('5%'),
   },
   imageViewerCounterText: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: wp('3.5%'),
     fontWeight: '600',
   },
 });

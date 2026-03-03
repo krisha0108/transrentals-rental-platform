@@ -3,8 +3,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getVendorAuth } from '@/lib/auth/vendor-mobile-auth';
 import { prisma } from '@/lib/db/prisma';
 import { transformPrismaResponse } from '@/lib/utils/api-transform';
-import { sendPushNotification } from '@/lib/services/push-notification-service';
+import { sendPushNotification, sendNotificationToCustomer } from '@/lib/services/push-notification-service';
 import { saveDriverNotification } from '@/lib/utils/driver-notification-sender';
+import crypto from 'crypto';
 import logger from '@/lib/security/logger';
 
 export const dynamic = 'force-dynamic';
@@ -109,6 +110,47 @@ export async function POST(
         }
       } catch (operatorNotifErr) {
         console.error('[EquipAssign] Operator notification lookup failed:', operatorNotifErr);
+      }
+    }
+
+    // Notify customer that operator has been assigned
+    if (booking.customerId) {
+      try {
+        const custTitle = '⚙️ Operator Assigned!';
+        const custBody = `An operator has been assigned for your equipment booking #${booking.bookingNumber}. Operator: ${operatorName}. Track your booking in the app.`;
+        const notifId = 'NOTIF_' + crypto.randomBytes(8).toString('hex');
+
+        await prisma.notifications.create({
+          data: {
+            id: notifId,
+            customerId: booking.customerId,
+            title: custTitle,
+            body: custBody,
+            type: 'booking',
+            serviceType: 'equipment-rental',
+            bookingId: booking.id,
+            isRead: false,
+          },
+        });
+        console.log('✅ [EquipAssign] Customer in-app notification created:', notifId);
+
+        const pushResult = await sendNotificationToCustomer(
+          booking.customerId,
+          { title: custTitle, body: custBody },
+          {
+            type: 'operator_assigned',
+            serviceType: 'equipment-rental',
+            bookingId: booking.id,
+            bookingNumber: booking.bookingNumber || '',
+          }
+        );
+        if (pushResult.success) {
+          console.log('✅ [EquipAssign] Customer push sent:', pushResult.messageId);
+        } else {
+          console.error('❌ [EquipAssign] Customer push failed:', pushResult.error);
+        }
+      } catch (custNotifErr) {
+        console.error('❌ [EquipAssign] Customer notification failed:', custNotifErr);
       }
     }
 

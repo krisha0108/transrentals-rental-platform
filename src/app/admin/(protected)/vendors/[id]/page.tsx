@@ -958,9 +958,16 @@ export default function VendorDetailPage({ params }: { params: { id: string } })
                         <FileText className="w-6 h-6 text-gray-600" />
                       </div>
                       <div>
-                        <p className="font-medium text-gray-900">
-                          {documentTypeLabels[doc.documentType] || doc.documentType.replace(/_/g, ' ')}
-                        </p>
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium text-gray-900">
+                            {documentTypeLabels[doc.documentType] || doc.documentType.replace(/_/g, ' ')}
+                          </p>
+                          {doc.uploadedBy && (
+                            <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                              Uploaded by Manager
+                            </span>
+                          )}
+                        </div>
                         {doc.documentNumber && (
                           <p className="text-xs text-gray-500">Number: {doc.documentNumber}</p>
                         )}

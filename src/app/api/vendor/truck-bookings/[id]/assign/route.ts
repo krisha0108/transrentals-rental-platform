@@ -3,8 +3,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getVendorAuth } from '@/lib/auth/vendor-mobile-auth';
 import { prisma } from '@/lib/db/prisma';
 import { transformPrismaResponse } from '@/lib/utils/api-transform';
-import { sendPushNotification } from '@/lib/services/push-notification-service';
+import { sendPushNotification, sendNotificationToCustomer } from '@/lib/services/push-notification-service';
 import { saveDriverNotification } from '@/lib/utils/driver-notification-sender';
+import crypto from 'crypto';
 import logger from '@/lib/security/logger';
 
 export const dynamic = 'force-dynamic';
@@ -114,6 +115,49 @@ export async function POST(
       }
     } catch (driverNotifErr) {
       console.error('[TruckAssign] Driver notification lookup failed:', driverNotifErr);
+    }
+
+    // Notify customer that driver has been assigned
+    if (booking.customerId) {
+      try {
+        const custNotifTitle = '🚚 Driver Assigned!';
+        const custNotifBody = `A driver has been assigned for your truck booking #${booking.bookingNumber}. Driver: ${driverName}, Vehicle: ${vehicleNumber}. Track your booking in the app.`;
+        const notificationId = 'NOTIF_' + crypto.randomBytes(8).toString('hex');
+
+        await prisma.notifications.create({
+          data: {
+            id: notificationId,
+            customerId: booking.customerId,
+            title: custNotifTitle,
+            body: custNotifBody,
+            type: 'booking',
+            serviceType: 'truck-rental',
+            bookingId: booking.id,
+            isRead: false,
+          },
+        });
+        console.log('✅ [TruckAssign] Customer in-app notification created:', notificationId);
+
+        const pushResult = await sendNotificationToCustomer(
+          booking.customerId,
+          { title: custNotifTitle, body: custNotifBody },
+          {
+            type: 'driver_assigned',
+            serviceType: 'truck-rental',
+            bookingId: booking.id,
+            bookingNumber: booking.bookingNumber || '',
+          }
+        );
+        if (pushResult.success) {
+          console.log('✅ [TruckAssign] Customer push sent:', pushResult.messageId);
+        } else {
+          console.error('❌ [TruckAssign] Customer push failed:', pushResult.error);
+        }
+      } catch (custNotifErr) {
+        console.error('❌ [TruckAssign] Customer notification failed:', custNotifErr);
+      }
+    } else {
+      console.log('⚠️ [TruckAssign] No customerId on booking, skipping customer notification');
     }
 
     return NextResponse.json({

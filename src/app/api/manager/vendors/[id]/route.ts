@@ -44,6 +44,7 @@ export async function GET(
           orderBy: { createdAt: 'desc' },
           include: {
             admin_users: { select: { id: true, name: true, email: true } },
+            uploadedByAdmin: { select: { id: true, name: true, role: true } },
           },
         },
         vendor_service_requests: {
@@ -138,6 +139,8 @@ export async function GET(
         documents: vendor.vendor_documents.map((doc) => ({
           ...doc,
           verifiedBy: doc.admin_users,
+          uploadedBy: (doc as any).uploadedByAdmin,
+          uploadedByAdmin: undefined,
         })),
         serviceRequests: filteredServiceRequests.map((req) => ({
           ...req,

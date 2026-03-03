@@ -9,7 +9,7 @@ import { sendFCMNotification } from '@/lib/utils/fcm-helper';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { customer_id, type = 'test' } = body;
+    const { customer_id, type = 'test', bookingId: customBookingId } = body;
 
     if (!customer_id) {
       return NextResponse.json(
@@ -56,6 +56,12 @@ export async function POST(request: NextRequest) {
         serviceType = 'bike';
         notifType = 'booking';
         break;
+      case 'booking_accepted':
+        notifTitle = '✅ Booking Accepted!';
+        notifBody = `Hi ${customer.name}! Your booking has been accepted by a vendor! A driver will be assigned soon.`;
+        serviceType = 'chauffeur-service';
+        notifType = 'booking_accepted';
+        break;
       default:
         notifTitle = '🔔 Test Notification';
         notifBody = `Hi ${customer.name}! This is a test notification from TransRentals.`;
@@ -72,7 +78,7 @@ export async function POST(request: NextRequest) {
         type: notifType,
         serviceType: serviceType,
         quoteId: 'TEST_QUOTE_123',
-        bookingId: 'TEST_BOOKING_123',
+        bookingId: customBookingId || 'TEST_BOOKING_123',
       }),
     });
 
@@ -85,7 +91,7 @@ export async function POST(request: NextRequest) {
         type: notifType,
         serviceType: serviceType,
         quoteId: 'TEST_QUOTE_123',
-        bookingId: 'TEST_BOOKING_123',
+        bookingId: customBookingId || 'TEST_BOOKING_123',
       },
     });
 

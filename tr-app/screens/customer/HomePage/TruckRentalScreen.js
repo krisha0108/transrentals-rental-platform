@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -12,19 +12,21 @@ import {
   Dimensions,
   Animated,
   ActivityIndicator,
-   Pressable,
+  Pressable,
+  StatusBar,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Feather';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import LinearGradient from 'react-native-linear-gradient';
+import { widthPercentageToDP as wp, heightPercentageToDP as hp } from 'react-native-responsive-screen';
 import { locationService, bookingService } from '../../services';
+import { TEAL_DEEP, TEAL_MID, TEAL, TEAL_LIGHT, BG, CARD, TEXT_PRIMARY, TEXT_SECONDARY, TEXT_MUTED, SHADOW_SM, SHADOW_MD } from '../../../theme';
 
 const { width } = Dimensions.get('window');
-const GREEN = '#09B368';
-const BG = '#F5F5F7';
 
 const truckTypesList = [
   { name: 'Canter Jumbo', id: 1 },
@@ -162,12 +164,12 @@ export default function TruckRentalScreen() {
   const [showTruckDropdown, setShowTruckDropdown] = useState(false);
   const [selectedTruckType, setSelectedTruckType] = useState(null);
   const [selectedTruckTypeId, setSelectedTruckTypeId] = useState(null);
-  
- 
+
+
   const [showGoodsDropdown, setShowGoodsDropdown] = useState(false);
   const [selectedGoodsType, setSelectedGoodsType] = useState(null);
   const [selectedGoodsTypeId, setSelectedGoodsTypeId] = useState(null);
-  
+
   const [weightVal, setWeightVal] = useState('');
   const [weightUnit, setWeightUnit] = useState('KG');
   const [otherDetails, setOtherDetails] = useState('');
@@ -179,10 +181,19 @@ export default function TruckRentalScreen() {
   const [androidPickerMode, setAndroidPickerMode] = useState('date');
   const [showStartDatePicker, setShowStartDatePicker] = useState(false);
 
-  
+
   const getCurrentGoodsTypes = () => {
     return serviceType === 'personal' ? personalGoodsTypesList : commercialGoodsTypesList;
   };
+
+  useFocusEffect(
+    useCallback(() => {
+      StatusBar.setBarStyle('light-content');
+      if (Platform.OS === 'android') {
+        StatusBar.setBackgroundColor(TEAL_DEEP);
+      }
+    }, [])
+  );
 
   useEffect(() => {
     (async () => {
@@ -473,41 +484,58 @@ const handleDestinationOutsideClick = () => {
   };
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <View style={styles.topBar}>
-        <TouchableOpacity
-          onPress={() => navigation.goBack()}
-          style={styles.backBtn}
-        >
-          <Icon name="arrow-left" size={22} color="#0F172A" />
-        </TouchableOpacity>
-        <Text style={styles.topTitle}>Truck Rental</Text>
-        <View style={{ width: 40 }} />
+    <SafeAreaView style={styles.safe} edges={['bottom']}>
+      {/* Premium Gradient Header */}
+      <LinearGradient
+        colors={[TEAL_DEEP, TEAL_MID, '#047857']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.headerGradient}
+      >
+        {/* Decorative circles */}
+        <View style={styles.decorCircle1} />
+        <View style={styles.decorCircle2} />
+        <View style={styles.decorCircle3} />
+
+        <View style={styles.headerContent}>
           <TouchableOpacity
-          onPress={() => navigation.navigate('MyTruckBookings')}
-          style={styles.myBookingsBtn}
-        >
-          <Ionicons name="document-text-outline" size={20} color={GREEN} />
-        </TouchableOpacity>
-      </View>
+            onPress={() => navigation.goBack()}
+            style={styles.backBtn}
+          >
+            <Icon name="arrow-left" size={wp('5%')} color="#FFFFFF" />
+          </TouchableOpacity>
+          <Text style={styles.topTitle}>Truck Rental</Text>
+          <TouchableOpacity
+            onPress={() => navigation.navigate('MyTruckBookings')}
+            style={styles.myBookingsBtn}
+          >
+            <Ionicons name="document-text-outline" size={wp('5%')} color="#FFFFFF" />
+          </TouchableOpacity>
+        </View>
+      </LinearGradient>
 
       <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-        
+
         <View style={styles.formCard}>
           <View style={styles.formHeaderRow}>
-            <View>
+            <View style={{ flex: 1 }}>
               <Text style={styles.formTitle}>Book Your Truck</Text>
               <Text style={styles.formDesc}>
                 Fill details once, get multiple quotes from vendors.
               </Text>
             </View>
-            <View style={styles.securePill}>
-              <Ionicons name="shield-checkmark" size={14} color="#fff" />
+            <LinearGradient
+              colors={[TEAL_MID, TEAL]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.securePill}
+            >
+              <Ionicons name="shield-checkmark" size={wp('3.2%')} color="#fff" />
               <Text style={styles.securePillText}>Secure</Text>
-            </View>
+            </LinearGradient>
           </View>
 
-          
+
           <Text style={styles.label}>Service Type</Text>
           <View style={styles.serviceTypeBar}>
             <TouchableOpacity
@@ -515,22 +543,22 @@ const handleDestinationOutsideClick = () => {
               activeOpacity={0.9}
               style={[styles.serviceTypeTab, serviceType === 'personal' && styles.serviceTypeTabActive]}
             >
-              <View style={styles.serviceTypeIconCircle}>
-                <Ionicons name="person-outline" size={15} color="#0F172A" />
+              <View style={[styles.serviceTypeIconCircle, serviceType === 'personal' && styles.serviceTypeIconCircleActive]}>
+                <Ionicons name="person-outline" size={wp('3.8%')} color={serviceType === 'personal' ? '#FFFFFF' : TEXT_SECONDARY} />
               </View>
               <Text style={[styles.serviceTypeTitle, serviceType === 'personal' && styles.serviceTypeTitleActive]}>
                 Personal Use
               </Text>
               <Text style={styles.serviceTypeSub}>Household, Moving etc.</Text>
             </TouchableOpacity>
-            
+
             <TouchableOpacity
               onPress={() => setServiceType('commercial')}
               activeOpacity={0.9}
               style={[styles.serviceTypeTab, serviceType === 'commercial' && styles.serviceTypeTabActive]}
             >
-              <View style={styles.serviceTypeIconCircle}>
-                <Ionicons name="business-outline" size={15} color="#0F172A" />
+              <View style={[styles.serviceTypeIconCircle, serviceType === 'commercial' && styles.serviceTypeIconCircleActive]}>
+                <Ionicons name="business-outline" size={wp('3.8%')} color={serviceType === 'commercial' ? '#FFFFFF' : TEXT_SECONDARY} />
               </View>
               <Text style={[styles.serviceTypeTitle, serviceType === 'commercial' && styles.serviceTypeTitleActive]}>
                 Commercial Use
@@ -542,14 +570,18 @@ const handleDestinationOutsideClick = () => {
 
 {/* Pickup Location Block */}
 <View style={styles.locationBlock}>
-  <Text style={styles.smallLabel}>Pickup Location</Text>
+  <View style={styles.locationLabelRow}>
+    <View style={styles.tealIconCircle}>
+      <Ionicons name="location-outline" size={wp('3.5%')} color={TEAL} />
+    </View>
+    <Text style={styles.smallLabel}>Pickup Location</Text>
+  </View>
   <TouchableOpacity activeOpacity={0.9} style={styles.locationRow}>
-    <Ionicons name="location-outline" size={18} color="#0F172A" />
     <TextInput
       value={query.length ? query : pickupLocation}
       onChangeText={handleInputChange}
       placeholder="Enter pickup location"
-      placeholderTextColor="#94A3B8"
+      placeholderTextColor={TEXT_MUTED}
       style={styles.locationInput}
     />
     {pickupLocation ? (
@@ -560,7 +592,7 @@ const handleDestinationOutsideClick = () => {
           setQuery('');
         }}
       >
-        <Ionicons name="close-circle" size={24} color="#CBD5F5" />
+        <Ionicons name="close-circle" size={wp('5.5%')} color={TEXT_MUTED} />
       </TouchableOpacity>
     ) : null}
   </TouchableOpacity>
@@ -589,6 +621,7 @@ const handleDestinationOutsideClick = () => {
                 style={styles.suggestionItem}
                 onPress={() => handleLocationSelect(loc)}
               >
+                <Ionicons name="location-outline" size={wp('3.5%')} color={TEAL} style={{ marginRight: wp('2%') }} />
                 <Text style={styles.suggestionText}>{loc.name}</Text>
               </TouchableOpacity>
             ))
@@ -603,15 +636,19 @@ const handleDestinationOutsideClick = () => {
 
 {/* Destination Block - Separate container */}
 <View style={styles.locationBlock}>
-  <Text style={styles.smallLabel}>Destination</Text>
+  <View style={styles.locationLabelRow}>
+    <View style={styles.tealIconCircle}>
+      <Ionicons name="flag-outline" size={wp('3.5%')} color={TEAL} />
+    </View>
+    <Text style={styles.smallLabel}>Destination</Text>
+  </View>
   <TouchableOpacity activeOpacity={0.9} style={styles.locationRow}>
-    <Ionicons name="flag-outline" size={18} color="#0F172A" />
     <TextInput
       value={destinationQuery.length ? destinationQuery : destination}
       onChangeText={handleDestinationInputChange}
       onBlur={handleDestinationBlur}
       placeholder="Enter destination location"
-      placeholderTextColor="#94A3B8"
+      placeholderTextColor={TEXT_MUTED}
       style={styles.locationInput}
     />
     {destination ? (
@@ -621,7 +658,7 @@ const handleDestinationOutsideClick = () => {
           setDestinationQuery('');
         }}
       >
-        <Ionicons name="close-circle" size={24} color="#CBD5E1" />
+        <Ionicons name="close-circle" size={wp('5.5%')} color={TEXT_MUTED} />
       </TouchableOpacity>
     ) : null}
   </TouchableOpacity>
@@ -649,6 +686,7 @@ const handleDestinationOutsideClick = () => {
                 style={styles.suggestionItem}
                 onPress={() => handleDestinationSelect(loc)}
               >
+                <Ionicons name="location-outline" size={wp('3.5%')} color={TEAL} style={{ marginRight: wp('2%') }} />
                 <Text style={styles.suggestionText}>{loc.name}</Text>
               </TouchableOpacity>
             ))
@@ -661,7 +699,7 @@ const handleDestinationOutsideClick = () => {
   )}
 </View>
 
-        
+
           <Text style={styles.label}>Pickup Date & Time</Text>
           <TouchableOpacity
             style={styles.dateCard}
@@ -676,7 +714,7 @@ const handleDestinationOutsideClick = () => {
           >
             <View style={styles.dateContent}>
               <View style={styles.dateIconWrap}>
-                <Ionicons name="calendar-outline" size={16} color="#0F172A" />
+                <Ionicons name="calendar-outline" size={wp('4%')} color={TEAL} />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.dateMainText}>
@@ -695,10 +733,13 @@ const handleDestinationOutsideClick = () => {
                   })}
                 </Text>
               </View>
+              <View style={styles.dateEditBadge}>
+                <Ionicons name="pencil-outline" size={wp('3%')} color={TEAL} />
+              </View>
             </View>
           </TouchableOpacity>
 
-      
+
           {showStartDatePicker && Platform.OS === 'ios' && (
             <View style={styles.iosDatePickerContainer}>
               <DateTimePicker
@@ -719,27 +760,32 @@ const handleDestinationOutsideClick = () => {
             </View>
           )}
 
-   
-          <Text style={[styles.label, { marginTop: 16 }]}>Select Truck Type</Text>
+
+          <Text style={[styles.label, { marginTop: hp('2%') }]}>Select Truck Type</Text>
           <View style={styles.dropdownWrapper}>
             <TouchableOpacity
               style={[styles.dropdownButton, showTruckDropdown && styles.dropdownButtonActive]}
               onPress={() => setShowTruckDropdown(!showTruckDropdown)}
               activeOpacity={0.8}
             >
-              <Text style={selectedTruckType ? styles.dropdownButtonText : styles.dropdownButtonPlaceholder}>
-                {selectedTruckType || 'Select Truck Type'}
-              </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                <View style={styles.tealIconCircleSm}>
+                  <Ionicons name="bus-outline" size={wp('3.5%')} color={TEAL} />
+                </View>
+                <Text style={selectedTruckType ? styles.dropdownButtonText : styles.dropdownButtonPlaceholder}>
+                  {selectedTruckType || 'Select Truck Type'}
+                </Text>
+              </View>
               <Ionicons
                 name={showTruckDropdown ? 'chevron-up' : 'chevron-down'}
-                size={18}
-                color="#64748B"
+                size={wp('4.5%')}
+                color={TEXT_SECONDARY}
               />
             </TouchableOpacity>
 
             {showTruckDropdown && (
               <View style={styles.dropdownMenu}>
-                <ScrollView 
+                <ScrollView
                   style={styles.dropdownScrollView}
                   showsVerticalScrollIndicator={true}
                   persistentScrollbar={true}
@@ -760,7 +806,10 @@ const handleDestinationOutsideClick = () => {
                         setShowTruckDropdown(false);
                       }}
                     >
-                      <Text style={styles.dropdownItemText}>{type.name}</Text>
+                      {selectedTruckTypeId === type.id && (
+                        <Ionicons name="checkmark-circle" size={wp('4%')} color={TEAL} style={{ marginRight: wp('2%') }} />
+                      )}
+                      <Text style={[styles.dropdownItemText, selectedTruckTypeId === type.id && { color: TEAL_MID, fontWeight: '600' }]}>{type.name}</Text>
                     </TouchableOpacity>
                   ))}
                 </ScrollView>
@@ -768,8 +817,8 @@ const handleDestinationOutsideClick = () => {
             )}
           </View>
 
-         
-          <Text style={[styles.label, { marginTop: 16 }]}>
+
+          <Text style={[styles.label, { marginTop: hp('2%') }]}>
             Select Goods Type
           </Text>
           <View style={styles.dropdownWrapper}>
@@ -778,19 +827,24 @@ const handleDestinationOutsideClick = () => {
               onPress={() => setShowGoodsDropdown(!showGoodsDropdown)}
               activeOpacity={0.8}
             >
-              <Text style={selectedGoodsType ? styles.dropdownButtonText : styles.dropdownButtonPlaceholder}>
-                {selectedGoodsType || 'Select Goods Type'}
-              </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                <View style={styles.tealIconCircleSm}>
+                  <Ionicons name="cube-outline" size={wp('3.5%')} color={TEAL} />
+                </View>
+                <Text style={selectedGoodsType ? styles.dropdownButtonText : styles.dropdownButtonPlaceholder}>
+                  {selectedGoodsType || 'Select Goods Type'}
+                </Text>
+              </View>
               <Ionicons
                 name={showGoodsDropdown ? 'chevron-up' : 'chevron-down'}
-                size={18}
-                color="#64748B"
+                size={wp('4.5%')}
+                color={TEXT_SECONDARY}
               />
             </TouchableOpacity>
 
             {showGoodsDropdown && (
               <View style={styles.dropdownMenu}>
-                <ScrollView 
+                <ScrollView
                   style={styles.dropdownScrollView}
                   showsVerticalScrollIndicator={true}
                   persistentScrollbar={true}
@@ -811,7 +865,10 @@ const handleDestinationOutsideClick = () => {
                         setShowGoodsDropdown(false);
                       }}
                     >
-                      <Text style={styles.dropdownItemText}>{item.name}</Text>
+                      {selectedGoodsTypeId === item.id && (
+                        <Ionicons name="checkmark-circle" size={wp('4%')} color={TEAL} style={{ marginRight: wp('2%') }} />
+                      )}
+                      <Text style={[styles.dropdownItemText, selectedGoodsTypeId === item.id && { color: TEAL_MID, fontWeight: '600' }]}>{item.name}</Text>
                     </TouchableOpacity>
                   ))}
                 </ScrollView>
@@ -819,18 +876,20 @@ const handleDestinationOutsideClick = () => {
             )}
           </View>
 
-       
-          <Text style={[styles.label, { marginTop: 16 }]}>
+
+          <Text style={[styles.label, { marginTop: hp('2%') }]}>
             Enter Weight
           </Text>
           <View style={styles.weightRow}>
             <View style={[styles.inputPill, { flex: 1 }]}>
-              <Ionicons name="barbell-outline" size={15} color="#64748B" />
+              <View style={styles.tealIconCircleSm}>
+                <Ionicons name="barbell-outline" size={wp('3.5%')} color={TEAL} />
+              </View>
               <TextInput
                 value={weightVal}
                 onChangeText={setWeightVal}
                 placeholder="Weight (e.g. 1500)"
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor={TEXT_MUTED}
                 keyboardType="numeric"
                 style={styles.inputText}
               />
@@ -871,8 +930,8 @@ const handleDestinationOutsideClick = () => {
             </View>
           </View>
 
-       
-          <Text style={[styles.label, { marginTop: 16 }]}>
+
+          <Text style={[styles.label, { marginTop: hp('2%') }]}>
             Any Other Details
           </Text>
           <TextInput
@@ -880,24 +939,32 @@ const handleDestinationOutsideClick = () => {
             value={otherDetails}
             onChangeText={setOtherDetails}
             placeholder="Additional info"
-            placeholderTextColor="#9CA3AF"
+            placeholderTextColor={TEXT_MUTED}
             multiline
           />
 
           <TouchableOpacity
-            style={[styles.submitBtn, isSubmitting && { opacity: 0.4 }]}
+            style={[styles.submitBtnWrap, isSubmitting && { opacity: 0.4 }]}
             onPress={handleSubmit}
             disabled={isSubmitting}
+            activeOpacity={0.85}
           >
-            {isSubmitting ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.submitText}>Get Quotes from Vendors</Text>
-            )}
+            <LinearGradient
+              colors={[TEAL_MID, TEAL]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.submitBtn}
+            >
+              {isSubmitting ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.submitText}>Get Quotes from Vendors</Text>
+              )}
+            </LinearGradient>
           </TouchableOpacity>
         </View>
 
-       
+
         <View style={styles.faqSec}>
           <Text style={styles.faqTitle}>FAQs about Truck Rental</Text>
           {faqs.map((item, idx) => {
@@ -911,7 +978,7 @@ const handleDestinationOutsideClick = () => {
                   <Text style={styles.faqQ}>{item.question}</Text>
                   <Ionicons
                     name={open ? 'chevron-up' : 'chevron-down'}
-                    size={18}
+                    size={wp('4.5%')}
                     color="#E2E8F0"
                   />
                 </TouchableOpacity>
@@ -922,7 +989,7 @@ const handleDestinationOutsideClick = () => {
         </View>
       </ScrollView>
 
-      
+
       <Modal
         visible={isPhoneModal}
         transparent
@@ -931,30 +998,40 @@ const handleDestinationOutsideClick = () => {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
+            <View style={styles.modalIconWrap}>
+              <Ionicons name="call-outline" size={wp('7%')} color={TEAL} />
+            </View>
             <Text style={styles.modalTitle}>Phone Number Required</Text>
             <Text style={styles.modalBody}>
               Please add your phone number to complete the booking process.
             </Text>
             <TouchableOpacity
-              style={styles.modalBtn}
+              style={styles.modalBtnWrap}
               onPress={() => {
                 setIsPhoneModal(false);
                 navigation.navigate('EditProfileScreen');
               }}
             >
-              <Text style={styles.modalBtnText}>Go to Profile</Text>
+              <LinearGradient
+                colors={[TEAL_MID, TEAL]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.modalBtn}
+              >
+                <Text style={styles.modalBtnText}>Go to Profile</Text>
+              </LinearGradient>
             </TouchableOpacity>
             <TouchableOpacity
               onPress={() => setIsPhoneModal(false)}
-              style={{ marginTop: 10 }}
+              style={{ marginTop: hp('1.2%') }}
             >
-              <Text style={{ color: '#94A3B8' }}>Maybe later</Text>
+              <Text style={{ color: TEXT_MUTED, fontSize: wp('3.5%') }}>Maybe later</Text>
             </TouchableOpacity>
           </View>
         </View>
       </Modal>
 
-     
+
       {androidPickerVisible && Platform.OS === 'android' && (
         <DateTimePicker
           value={startDate}
@@ -969,502 +1046,669 @@ const handleDestinationOutsideClick = () => {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: BG },
-  container: { backgroundColor: 'transparent' },
-  topBar: {
-    height: 52,
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    justifyContent: 'space-between',
+  safe: {
+    flex: 1,
     backgroundColor: BG,
   },
+  container: {
+    backgroundColor: 'transparent',
+  },
+
+  /* ─── Premium Gradient Header ─── */
+  headerGradient: {
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + 8 : 8,
+    paddingBottom: hp('2.5%'),
+    paddingHorizontal: wp('4%'),
+    borderBottomLeftRadius: wp('6%'),
+    borderBottomRightRadius: wp('6%'),
+    overflow: 'hidden',
+  },
+  decorCircle1: {
+    position: 'absolute',
+    width: wp('35%'),
+    height: wp('35%'),
+    borderRadius: wp('17.5%'),
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    top: -wp('10%'),
+    right: -wp('8%'),
+  },
+  decorCircle2: {
+    position: 'absolute',
+    width: wp('25%'),
+    height: wp('25%'),
+    borderRadius: wp('12.5%'),
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    bottom: -wp('5%'),
+    left: -wp('5%'),
+  },
+  decorCircle3: {
+    position: 'absolute',
+    width: wp('15%'),
+    height: wp('15%'),
+    borderRadius: wp('7.5%'),
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    top: hp('2%'),
+    left: wp('30%'),
+  },
+  headerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
   backBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 999,
-    backgroundColor: '#FFFFFF',
+    width: wp('10%'),
+    height: wp('10%'),
+    borderRadius: wp('5%'),
+    backgroundColor: 'rgba(255,255,255,0.15)',
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOpacity: 0.03,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 3 },
   },
-  topTitle: { fontSize: 17, fontWeight: '700', color: '#0F172A' },
+  topTitle: {
+    fontSize: wp('4.8%'),
+    fontWeight: '700',
+    color: '#FFFFFF',
+    letterSpacing: 0.3,
+  },
+  myBookingsBtn: {
+    width: wp('10%'),
+    height: wp('10%'),
+    borderRadius: wp('5%'),
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
 
+  /* ─── Form Card ─── */
   formCard: {
-    backgroundColor: '#FFFFFF',
-    marginHorizontal: 14,
-    marginTop: 10,
-    borderRadius: 22,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    shadowColor: '#000',
-    shadowOpacity: 0.04,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 6 },
+    backgroundColor: CARD,
+    marginHorizontal: wp('3.5%'),
+    marginTop: hp('1.5%'),
+    borderRadius: wp('5.5%'),
+    paddingVertical: hp('1.5%'),
+    paddingHorizontal: wp('4%'),
+    ...SHADOW_SM,
   },
   formHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: hp('1%'),
   },
-  formTitle: { fontSize: 18, fontWeight: '700', color: '#0F172A' },
-  formDesc: { fontSize: 12, color: '#94A3B8', marginTop: 2 },
+  formTitle: {
+    fontSize: wp('4.5%'),
+    fontWeight: '700',
+    color: TEXT_PRIMARY,
+  },
+  formDesc: {
+    fontSize: wp('3%'),
+    color: TEXT_MUTED,
+    marginTop: hp('0.3%'),
+  },
   securePill: {
-    backgroundColor: GREEN,
-    borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+    borderRadius: wp('10%'),
+    paddingHorizontal: wp('3%'),
+    paddingVertical: hp('0.5%'),
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    marginBottom: 25,
-    marginLeft: -50,
+    gap: wp('1%'),
   },
-  securePillText: { color: '#fff', fontSize: 12, fontWeight: '600' },
+  securePillText: {
+    color: '#fff',
+    fontSize: wp('3%'),
+    fontWeight: '600',
+  },
 
+  /* ─── Labels ─── */
   label: {
-    fontSize: 15,
+    fontSize: wp('3.8%'),
     fontWeight: '700',
-    color: '#0F172A',
-    marginBottom: 5,
+    color: TEXT_PRIMARY,
+    marginBottom: hp('0.6%'),
   },
 
+  /* ─── Service Type Toggle ─── */
   serviceTypeBar: {
     flexDirection: 'row',
-    backgroundColor: '#EFF3F6',
-    borderRadius: 14,
+    backgroundColor: '#F0F4F8',
+    borderRadius: wp('3.5%'),
     overflow: 'hidden',
-    marginBottom: 14,
+    marginBottom: hp('1.8%'),
+    padding: wp('1%'),
   },
   serviceTypeTab: {
     flex: 1,
-    paddingVertical: 10,
-    paddingHorizontal: 10,
-    minHeight: 70,
+    paddingVertical: hp('1.2%'),
+    paddingHorizontal: wp('2.5%'),
+    minHeight: hp('8.5%'),
     justifyContent: 'center',
+    borderRadius: wp('3%'),
   },
   serviceTypeTabActive: {
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: 'rgba(9,179,104,0.25)',
-    borderRadius: 14,
-    elevation: 1,
+    backgroundColor: CARD,
+    borderWidth: 1.5,
+    borderColor: TEAL,
+    ...SHADOW_SM,
   },
   serviceTypeIconCircle: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    backgroundColor: 'rgba(9,179,104,0.12)',
+    width: wp('6.5%'),
+    height: wp('6.5%'),
+    borderRadius: wp('3.25%'),
+    backgroundColor: TEAL_LIGHT,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 4,
+    marginBottom: hp('0.5%'),
+  },
+  serviceTypeIconCircleActive: {
+    backgroundColor: TEAL,
   },
   serviceTypeTitle: {
-    fontSize: 15,
+    fontSize: wp('3.8%'),
     fontWeight: '600',
-    color: '#0F172A',
+    color: TEXT_PRIMARY,
   },
   serviceTypeTitleActive: {
-    color: '#0F172A',
+    color: TEAL_MID,
   },
   serviceTypeSub: {
-    fontSize: 11,
-    color: '#94A3B8',
-    marginTop: 2,
+    fontSize: wp('2.8%'),
+    color: TEXT_MUTED,
+    marginTop: hp('0.2%'),
   },
 
+  /* ─── Location Blocks ─── */
   locationBlock: {
-    backgroundColor: '#F8FAFC',
-    borderRadius: 16,
+    backgroundColor: '#F8FAFB',
+    borderRadius: wp('4%'),
     borderWidth: 1,
-    borderColor: 'rgba(15,23,42,0.04)',
-    padding: 12,
-    marginBottom: 12,
-      position: 'relative', 
-
+    borderColor: 'rgba(16,185,129,0.08)',
+    padding: wp('3%'),
+    marginBottom: hp('1.5%'),
+    position: 'relative',
+  },
+  locationLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: hp('0.5%'),
+    gap: wp('2%'),
+  },
+  tealIconCircle: {
+    width: wp('7%'),
+    height: wp('7%'),
+    borderRadius: wp('3.5%'),
+    backgroundColor: TEAL_LIGHT,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  tealIconCircleSm: {
+    width: wp('6.5%'),
+    height: wp('6.5%'),
+    borderRadius: wp('3.25%'),
+    backgroundColor: TEAL_LIGHT,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: wp('2.5%'),
   },
   smallLabel: {
-    fontSize: 13,
-    color: '#94A3B8',
-    marginBottom: 4,
+    fontSize: wp('3.3%'),
+    color: TEXT_SECONDARY,
+    fontWeight: '500',
   },
   locationRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    backgroundColor: CARD,
+    borderRadius: wp('3%'),
     borderWidth: 1,
-    borderColor: 'rgba(148,163,184,0.25)',
-    paddingHorizontal: 12,
-    minHeight: 54,
-    gap: 8,
+    borderColor: 'rgba(148,163,184,0.2)',
+    paddingHorizontal: wp('3%'),
+    minHeight: hp('6.5%'),
+    gap: wp('2%'),
   },
   locationInput: {
     flex: 1,
-    fontSize: 15,
-    color: '#0F172A',
-    paddingVertical: 6,
+    fontSize: wp('3.8%'),
+    color: TEXT_PRIMARY,
+    paddingVertical: hp('0.7%'),
   },
 
-suggestionBox: {
+  /* ─── Suggestion Dropdown ─── */
+  suggestionBox: {
     position: 'absolute',
-    top: 90, 
-    left: 12,
-    right: 12,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 14,
+    top: hp('10%'),
+    left: wp('3%'),
+    right: wp('3%'),
+    backgroundColor: CARD,
+    borderRadius: wp('3.5%'),
     borderWidth: 0.5,
     borderColor: '#E2E8F0',
     zIndex: 999,
-    maxHeight: 220,
+    maxHeight: hp('28%'),
     overflow: 'hidden',
-    elevation: 5,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 5 },
+    ...SHADOW_MD,
   },
-suggestionScrollView: {
-  width: '100%',
-  maxHeight: 220, 
-},
-suggestionScrollContent: {
-  paddingVertical: 6,
-},
-suggestionItem: {
-  paddingHorizontal: 12,
-  paddingVertical: 9,
-  borderBottomWidth: 0.5,
-  borderColor: '#EDF2F7',
-},
-suggestionText: { 
-  color: '#0F172A',
-  fontSize: 14,
-},
-noResult: { 
-  padding: 10, 
-  textAlign: 'center', 
-  color: '#94A3B8',
-  fontSize: 14,
-},
+  suggestionScrollView: {
+    width: '100%',
+    maxHeight: hp('28%'),
+  },
+  suggestionScrollContent: {
+    paddingVertical: hp('0.7%'),
+  },
+  suggestionItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: wp('3%'),
+    paddingVertical: hp('1.1%'),
+    borderBottomWidth: 0.5,
+    borderColor: '#EDF2F7',
+  },
+  suggestionText: {
+    color: TEXT_PRIMARY,
+    fontSize: wp('3.5%'),
+  },
+  noResult: {
+    padding: wp('3%'),
+    textAlign: 'center',
+    color: TEXT_MUTED,
+    fontSize: wp('3.5%'),
+  },
 
+  /* ─── Date Card ─── */
   dateCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 14,
+    backgroundColor: CARD,
+    borderRadius: wp('3.5%'),
     borderWidth: 1,
-    borderColor: 'rgba(148,163,184,0.25)',
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    shadowColor: '#000',
-    shadowOpacity: 0.01,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 3 },
+    borderColor: 'rgba(16,185,129,0.12)',
+    paddingHorizontal: wp('3%'),
+    paddingVertical: hp('1.5%'),
+    ...SHADOW_SM,
   },
   dateContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: wp('2.5%'),
   },
   dateIconWrap: {
-    width: 30,
-    height: 30,
-    borderRadius: 10,
-    backgroundColor: '#F1F5F9',
+    width: wp('9%'),
+    height: wp('9%'),
+    borderRadius: wp('3%'),
+    backgroundColor: TEAL_LIGHT,
     justifyContent: 'center',
     alignItems: 'center',
   },
   dateMainText: {
-    fontSize: 14,
+    fontSize: wp('3.6%'),
     fontWeight: '700',
-    color: '#0F172A',
+    color: TEXT_PRIMARY,
   },
   dateSubText: {
-    fontSize: 11,
-    color: '#94A3B8',
-    marginTop: 1,
+    fontSize: wp('2.8%'),
+    color: TEXT_MUTED,
+    marginTop: hp('0.15%'),
+  },
+  dateEditBadge: {
+    width: wp('7%'),
+    height: wp('7%'),
+    borderRadius: wp('3.5%'),
+    backgroundColor: TEAL_LIGHT,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 
+  /* ─── Dropdown Selectors ─── */
   dropdownWrapper: {
     position: 'relative',
-    marginBottom: 8,
+    marginBottom: hp('1%'),
     width: '100%',
   },
   dropdownButton: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#F8FAFC',
-    borderRadius: 12,
+    backgroundColor: '#F8FAFB',
+    borderRadius: wp('3%'),
     borderWidth: 1,
-    borderColor: 'rgba(148,163,184,0.25)',
-    paddingHorizontal: 15,
-    paddingVertical: 15,
-    minHeight: 56,
+    borderColor: 'rgba(148,163,184,0.2)',
+    paddingHorizontal: wp('3%'),
+    paddingVertical: hp('1.5%'),
+    minHeight: hp('7%'),
   },
   dropdownButtonActive: {
-    borderColor: GREEN,
+    borderColor: TEAL,
+    borderWidth: 1.5,
+    backgroundColor: CARD,
   },
   dropdownButtonText: {
-    fontSize: 14,
-    color: '#0F172A',
+    fontSize: wp('3.5%'),
+    color: TEXT_PRIMARY,
   },
   dropdownButtonPlaceholder: {
-    fontSize: 14,
-    color: '#94A3B8',
+    fontSize: wp('3.5%'),
+    color: TEXT_MUTED,
   },
   dropdownMenu: {
     position: 'absolute',
     top: '100%',
     left: 0,
     right: 0,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    backgroundColor: CARD,
+    borderRadius: wp('3%'),
     borderWidth: 1,
     borderColor: '#E2E8F0',
-    marginTop: 5,
-    maxHeight: 200,
+    marginTop: hp('0.6%'),
+    maxHeight: hp('25%'),
     zIndex: 1000,
-    elevation: 5,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 5 },
+    ...SHADOW_MD,
   },
   dropdownScrollView: {
     width: '100%',
-    maxHeight: 200,
+    maxHeight: hp('25%'),
   },
   dropdownScrollContent: {
-    paddingVertical: 5,
+    paddingVertical: hp('0.6%'),
   },
   dropdownItem: {
-    paddingHorizontal: 15,
-    paddingVertical: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: wp('4%'),
+    paddingVertical: hp('1.5%'),
     borderBottomWidth: 1,
     borderBottomColor: '#F1F5F9',
-    backgroundColor: '#FFFFFF',
-  },
-  dropdownItemText: {
-    fontSize: 14,
-    color: '#0F172A',
-  },
-  dropdownItem: {
-    paddingHorizontal: 15,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: CARD,
   },
   dropdownItemActive: {
-    backgroundColor: '#F8FAFC',
+    backgroundColor: TEAL_LIGHT,
+  },
+  dropdownItemText: {
+    fontSize: wp('3.5%'),
+    color: TEXT_PRIMARY,
   },
 
+  /* ─── iOS Date Picker ─── */
   iosDatePickerContainer: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    marginTop: 8,
-    padding: 10,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    backgroundColor: CARD,
+    borderRadius: wp('3%'),
+    marginTop: hp('1%'),
+    padding: wp('2.5%'),
+    ...SHADOW_SM,
   },
   iosButtonContainer: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
-    paddingTop: 8,
+    paddingTop: hp('1%'),
     borderTopWidth: 1,
     borderTopColor: '#f0f0f0',
-    marginTop: 8,
+    marginTop: hp('1%'),
   },
   iosButton: {
-    backgroundColor: '#09B368',
-    paddingHorizontal: 16,
-    paddingVertical: 6,
-    borderRadius: 6,
+    backgroundColor: TEAL,
+    paddingHorizontal: wp('4%'),
+    paddingVertical: hp('0.8%'),
+    borderRadius: wp('2%'),
   },
-  iosButtonText: { color: '#fff', fontWeight: '600' },
+  iosButtonText: {
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: wp('3.5%'),
+  },
 
+  /* ─── Weight Input ─── */
   inputPill: {
     flexDirection: 'row',
-    backgroundColor: '#F8FAFC',
-    borderRadius: 12,
-    borderColor: 'rgba(15,23,42,0.05)',
+    backgroundColor: '#F8FAFB',
+    borderRadius: wp('3%'),
+    borderColor: 'rgba(16,185,129,0.08)',
     borderWidth: 1,
-    paddingHorizontal: 15,
-    paddingVertical: 6,
-    gap: 6,
-    minHeight: 56,
+    paddingHorizontal: wp('3%'),
+    paddingVertical: hp('0.7%'),
+    gap: wp('1.5%'),
+    minHeight: hp('7%'),
     alignItems: 'center',
   },
-  inputText: { flex: 1, fontSize: 14, color: '#0F172A', paddingVertical: 2 },
-
+  inputText: {
+    flex: 1,
+    fontSize: wp('3.5%'),
+    color: TEXT_PRIMARY,
+    paddingVertical: hp('0.3%'),
+  },
   weightRow: {
     flexDirection: 'row',
-    gap: 10,
+    gap: wp('2.5%'),
     alignItems: 'center',
   },
   unitSelector: {
     flexDirection: 'row',
-    backgroundColor: '#F1F5F9',
-    borderRadius: 10,
-    padding: 2,
+    backgroundColor: '#F0F4F8',
+    borderRadius: wp('2.5%'),
+    padding: wp('0.5%'),
   },
   unitBtn: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
+    paddingHorizontal: wp('3.2%'),
+    paddingVertical: hp('1%'),
+    borderRadius: wp('2%'),
   },
   unitBtnActive: {
-    backgroundColor: '#FFFFFF',
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
+    backgroundColor: CARD,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOpacity: 0.08,
+        shadowRadius: 4,
+        shadowOffset: { width: 0, height: 2 },
+      },
+      android: { elevation: 2 },
+    }),
   },
   unitText: {
-    fontSize: 12,
-    color: '#64748B',
+    fontSize: wp('3%'),
+    color: TEXT_SECONDARY,
     fontWeight: '500',
   },
   unitTextActive: {
-    color: '#0F172A',
-    fontWeight: '600',
+    color: TEAL_MID,
+    fontWeight: '700',
   },
 
+  /* ─── Text Area ─── */
   textArea: {
-    backgroundColor: '#F8FAFC',
-    borderRadius: 10,
+    backgroundColor: '#F8FAFB',
+    borderRadius: wp('3%'),
     borderWidth: 1,
-    borderColor: 'rgba(15,23,42,0.05)',
-    minHeight: 84,
-    padding: 10,
+    borderColor: 'rgba(16,185,129,0.08)',
+    minHeight: hp('10%'),
+    padding: wp('3%'),
     textAlignVertical: 'top',
-    fontSize: 14,
+    fontSize: wp('3.5%'),
+    color: TEXT_PRIMARY,
+  },
+
+  /* ─── Submit Button ─── */
+  submitBtnWrap: {
+    marginTop: hp('2%'),
+    borderRadius: wp('10%'),
+    overflow: 'hidden',
   },
   submitBtn: {
-    marginTop: 15,
-    backgroundColor: GREEN,
-    borderRadius: 999,
-    paddingVertical: 11,
+    borderRadius: wp('10%'),
+    paddingVertical: hp('1.6%'),
     alignItems: 'center',
+    justifyContent: 'center',
   },
-  submitText: { color: '#FFFFFF', fontSize: 15, fontWeight: '700' },
-
-  quoteTitle: {
-    marginTop: 20,
-    marginLeft: 23,
-    fontSize: 16,
+  submitText: {
+    color: '#FFFFFF',
+    fontSize: wp('3.8%'),
     fontWeight: '700',
-    color: '#000',
+    letterSpacing: 0.3,
+  },
+
+  /* ─── Quote Cards ─── */
+  quoteTitle: {
+    marginTop: hp('2.5%'),
+    marginLeft: wp('6%'),
+    fontSize: wp('4%'),
+    fontWeight: '700',
+    color: TEXT_PRIMARY,
   },
   quoteTextWrapperMain: {
     width: '100%',
     flexDirection: 'row',
     alignContent: 'center',
-    marginBottom: 10,
+    marginBottom: hp('1.2%'),
   },
   quoteCard: {
-    marginHorizontal: 20,
-    marginTop: 10,
-    backgroundColor: 'white',
-    borderRadius: 10,
-    paddingVertical: 25,
-    paddingHorizontal: 20,
-    shadowColor: '#000',
-    shadowOpacity: 0.25,
-    shadowRadius: 3.55,
-    shadowOffset: { width: 0, height: 0 },
-    elevation: 4,
+    marginHorizontal: wp('5%'),
+    marginTop: hp('1.2%'),
+    backgroundColor: CARD,
+    borderRadius: wp('3%'),
+    paddingVertical: hp('3%'),
+    paddingHorizontal: wp('5%'),
+    ...SHADOW_MD,
   },
   quoteNumberCircle: {
-    width: 60,
+    width: wp('15%'),
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 10,
+    marginRight: wp('2.5%'),
     position: 'absolute',
     opacity: 0.8,
-    bottom: -70,
+    bottom: hp('-8%'),
   },
-  quoteNumber: { fontWeight: '700', fontSize: 100, color: '#DDF7E8' },
+  quoteNumber: {
+    fontWeight: '700',
+    fontSize: wp('25%'),
+    color: TEAL_LIGHT,
+  },
   quoteHeading: {
     fontWeight: '700',
-    fontSize: 17,
-    color: '#404040',
-    marginLeft: 65,
-    marginTop: 5,
+    fontSize: wp('4.3%'),
+    color: TEXT_PRIMARY,
+    marginLeft: wp('16%'),
+    marginTop: hp('0.6%'),
   },
   quoteBody: {
     fontWeight: '400',
-    fontSize: 15,
-    color: '#4D4C4C',
-    lineHeight: 18,
+    fontSize: wp('3.8%'),
+    color: TEXT_SECONDARY,
+    lineHeight: hp('2.3%'),
     textAlign: 'center',
-    marginTop: 10,
+    marginTop: hp('1.2%'),
   },
   quoteBodyMain: { width: '100%' },
   paginationDots: {
-    marginTop: 15,
+    marginTop: hp('1.8%'),
     flexDirection: 'row',
     justifyContent: 'center',
-    marginBottom: 20,
+    marginBottom: hp('2.5%'),
   },
   dot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
+    width: wp('2.5%'),
+    height: wp('2.5%'),
+    borderRadius: wp('1.25%'),
     backgroundColor: '#D9D9D9',
-    marginHorizontal: 5,
+    marginHorizontal: wp('1.2%'),
   },
-  activeDot: { backgroundColor: '#2FCD72' },
+  activeDot: {
+    backgroundColor: TEAL,
+  },
 
-  faqSec: { backgroundColor: '#0F172A', marginTop: 16, padding: 16 },
+  /* ─── FAQ Section ─── */
+  faqSec: {
+    backgroundColor: TEAL_DEEP,
+    marginTop: hp('2%'),
+    padding: wp('4%'),
+    borderTopLeftRadius: wp('5%'),
+    borderTopRightRadius: wp('5%'),
+  },
   faqTitle: {
-    fontSize: 18,
+    fontSize: wp('4.5%'),
     fontWeight: '700',
     color: '#FFFFFF',
-    marginBottom: 12,
+    marginBottom: hp('1.5%'),
   },
   faqItem: {
-    borderBottomColor: 'rgba(226,232,240,0.1)',
+    borderBottomColor: 'rgba(255,255,255,0.1)',
     borderBottomWidth: 1,
-    paddingVertical: 10,
+    paddingVertical: hp('1.2%'),
   },
   faqHead: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  faqQ: { color: '#FFFFFF', fontSize: 14, flex: 1, marginRight: 10 },
-  faqA: { color: '#CBD5F5', fontSize: 12.5, marginTop: 6, lineHeight: 18 },
-overlay: {
-  position: 'absolute',
-  top: 0,
-  left: 0,
-  right: 0,
-  bottom: 0,
-  zIndex: 998, 
-},
+  faqQ: {
+    color: '#FFFFFF',
+    fontSize: wp('3.5%'),
+    flex: 1,
+    marginRight: wp('2.5%'),
+    fontWeight: '500',
+  },
+  faqA: {
+    color: 'rgba(209,250,229,0.8)',
+    fontSize: wp('3.2%'),
+    marginTop: hp('0.7%'),
+    lineHeight: hp('2.2%'),
+  },
 
+  /* ─── Overlay ─── */
+  overlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 998,
+  },
+
+  /* ─── Modal ─── */
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(15,23,42,0.4)',
+    backgroundColor: 'rgba(6,78,59,0.5)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   modalCard: {
-    width: 300,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 18,
-    padding: 16,
+    width: wp('80%'),
+    backgroundColor: CARD,
+    borderRadius: wp('5%'),
+    padding: wp('5%'),
+    alignItems: 'center',
+    ...SHADOW_MD,
+  },
+  modalIconWrap: {
+    width: wp('14%'),
+    height: wp('14%'),
+    borderRadius: wp('7%'),
+    backgroundColor: TEAL_LIGHT,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: hp('1.5%'),
+  },
+  modalTitle: {
+    fontSize: wp('4.2%'),
+    fontWeight: '700',
+    color: TEXT_PRIMARY,
+    marginBottom: hp('0.7%'),
+  },
+  modalBody: {
+    textAlign: 'center',
+    color: TEXT_SECONDARY,
+    fontSize: wp('3.2%'),
+    marginBottom: hp('2%'),
+    lineHeight: hp('2.2%'),
+  },
+  modalBtnWrap: {
+    borderRadius: wp('10%'),
+    overflow: 'hidden',
+    width: '100%',
+  },
+  modalBtn: {
+    borderRadius: wp('10%'),
+    paddingHorizontal: wp('5%'),
+    paddingVertical: hp('1.3%'),
     alignItems: 'center',
   },
-  modalTitle: { fontSize: 16, fontWeight: '700', color: '#0F172A', marginBottom: 6 },
-  modalBody: { textAlign: 'center', color: '#94A3B8', fontSize: 12.5, marginBottom: 14 },
-  modalBtn: { backgroundColor: GREEN, borderRadius: 999, paddingHorizontal: 20, paddingVertical: 10 },
-  modalBtnText: { color: '#fff', fontWeight: '700' },
+  modalBtnText: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: wp('3.8%'),
+  },
 });

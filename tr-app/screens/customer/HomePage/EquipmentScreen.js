@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -12,21 +12,24 @@ import {
   TextInput,
   ActivityIndicator,
   Platform,
+  StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Feather';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import DateTimePicker, {
   DateTimePickerAndroid,
 } from '@react-native-community/datetimepicker';
 import { locationService, bookingService, fleetService } from '../../services';
 import { Animated } from 'react-native';
+import LinearGradient from 'react-native-linear-gradient';
+import { widthPercentageToDP as wp, heightPercentageToDP as hp } from 'react-native-responsive-screen';
+import { TEAL_DEEP, TEAL_MID, TEAL, TEAL_LIGHT, BG, CARD, TEXT_PRIMARY, TEXT_SECONDARY, TEXT_MUTED, SHADOW_SM, SHADOW_MD } from '../../../theme';
 
 const { width } = Dimensions.get('window');
-const BG = '#F5F5F7';
-const GREEN = '#09B368';
 
 // quick cities
 const QUICK_CITIES = [
@@ -41,9 +44,9 @@ const QUICK_CITIES = [
 ];
 
 const DURATIONS = [
-  { id: '1', label: '1–5 days' },
-  { id: '2', label: '6–15 days' },
-  { id: '3', label: '16–30 days' },
+  { id: '1', label: '1\u20135 days' },
+  { id: '2', label: '6\u201315 days' },
+  { id: '3', label: '16\u201330 days' },
   { id: '4', label: '30+ days' },
 ];
 
@@ -107,6 +110,16 @@ export default function EquipmentScreen() {
   const scrollX = useRef(new Animated.Value(0)).current;
   const [activeIndex, setActiveIndex] = useState(0);
 
+  /* ── StatusBar management ── */
+  useFocusEffect(
+    useCallback(() => {
+      StatusBar.setBarStyle('light-content');
+      if (Platform.OS === 'android') {
+        StatusBar.setBackgroundColor(TEAL_DEEP);
+      }
+    }, [])
+  );
+
   useEffect(() => {
     loadCustomer();
     fetchLocations();
@@ -131,7 +144,7 @@ export default function EquipmentScreen() {
     },
     {
       q: 'Can I extend?',
-      a: 'Yes, tell the vendor – they will revise the quote.',
+      a: 'Yes, tell the vendor \u2013 they will revise the quote.',
     },
   ];
 
@@ -287,13 +300,13 @@ export default function EquipmentScreen() {
         equipmentCategory: selectedEquipment?.name || 'Construction Equipment',
         equipmentType: selectedEquipment?.name || 'Heavy Machinery',
         equipmentName: selectedEquipment?.name || null,
-        quantity: parseInt(equipmentCount) || 1, // ✅ Int
+        quantity: parseInt(equipmentCount) || 1,
         rentalDuration: 'daily',
-        rentalDays: rentalDays, // ✅ Int
+        rentalDays: rentalDays,
         startDate: startDate.toISOString(),
         endDate: endDate.toISOString(),
         deliveryCity: pickupLocation,
-        deliveryAddress: pickupLocation, // ✅ Required field (String)
+        deliveryAddress: pickupLocation,
         siteType: 'construction',
         needOperator: false,
         needDelivery: true,
@@ -308,7 +321,7 @@ export default function EquipmentScreen() {
       const response = await bookingService.createEquipmentQuoteRequest(payload);
 
       if (response.success || response.quoteRequest) {
-        alert('Quote request submitted! ✅\n\nVendors will send quotes within 24-48 hours.');
+        alert('Quote request submitted! \u2705\n\nVendors will send quotes within 24-48 hours.');
         navigation.navigate('MyEquipmentBookings');
       } else {
         alert('Request could not be submitted. Please try again.');
@@ -332,44 +345,60 @@ export default function EquipmentScreen() {
       },
     },
   );
-const dropdownTouching = useRef(false);
+  const dropdownTouching = useRef(false);
 
   return (
-    <SafeAreaView style={styles.safe}>
-      {/* top bar */}
-      <View style={styles.topBar}>
-        <TouchableOpacity
-          onPress={() => navigation.goBack()}
-          style={styles.backBtn}
-          activeOpacity={0.8}
-        >
-          <Icon name="arrow-left" size={22} color="#0F172A" />
-        </TouchableOpacity>
-        <Text style={styles.topTitle}>Equipment Rental</Text>
-        <View style={{ width: 40 }} />
-          <TouchableOpacity
-          onPress={() => navigation.navigate('MyEquipmentBookings')}
-          style={styles.myBookingsBtn}
-        >
-          <Ionicons name="document-text-outline" size={20} color={GREEN} />
-        </TouchableOpacity>
-      </View>
+    <SafeAreaView style={styles.safe} edges={['bottom']}>
+      {/* ── GRADIENT HEADER ── */}
+      <LinearGradient
+        colors={[TEAL_DEEP, TEAL_MID, '#047857']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.headerGradient}
+      >
+        {/* Decorative circles */}
+        <View style={styles.decoCircle1} pointerEvents="none" />
+        <View style={styles.decoCircle2} pointerEvents="none" />
+        <View style={styles.decoCircle3} pointerEvents="none" />
 
-      <ScrollView showsVerticalScrollIndicator={false} nestedScrollEnabled={true}
-    keyboardShouldPersistTaps="handled"  onScrollBeginDrag={() => {
-    if (!dropdownTouching.current) setShowSuggestions(false);
-  }}>
+        <View style={styles.headerRow}>
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            style={styles.backBtn}
+            activeOpacity={0.8}
+          >
+            <Icon name="arrow-left" size={wp('5%')} color="#FFFFFF" />
+          </TouchableOpacity>
+          <Text style={styles.topTitle}>Equipment Rental</Text>
+          <TouchableOpacity
+            onPress={() => navigation.navigate('MyEquipmentBookings')}
+            style={styles.myBookingsBtn}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="document-text-outline" size={wp('5%')} color="#FFFFFF" />
+          </TouchableOpacity>
+        </View>
+      </LinearGradient>
+
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        nestedScrollEnabled={true}
+        keyboardShouldPersistTaps="handled"
+        onScrollBeginDrag={() => {
+          if (!dropdownTouching.current) setShowSuggestions(false);
+        }}
+      >
         {/* FORM CARD */}
         <View style={styles.formCard}>
           <View style={styles.formHeaderRow}>
-            <View>
+            <View style={{ flex: 1 }}>
               <Text style={styles.formTitle}>Post equipment requirement</Text>
               <Text style={styles.formDesc}>
                 Fill once, verified vendors will send quotes.
               </Text>
             </View>
             <View style={styles.securePill}>
-              <Ionicons name="construct-outline" size={14} color="#fff" />
+              <Ionicons name="construct-outline" size={wp('3.5%')} color="#fff" />
               <Text style={styles.securePillText}>Site job</Text>
             </View>
           </View>
@@ -378,12 +407,14 @@ const dropdownTouching = useRef(false);
           <View style={styles.locationBlock}>
             <Text style={styles.smallLabel}>Project / site location</Text>
             <View style={styles.locationRow}>
-              <Ionicons name="location-outline" size={18} color="#0F172A" />
+              <View style={styles.locationIconCircle}>
+                <Ionicons name="location-outline" size={wp('4.2%')} color={TEAL} />
+              </View>
               <TextInput
                 value={query.length ? query : pickupLocation}
                 onChangeText={handleLocationInput}
                 placeholder="Enter city / site / area"
-                placeholderTextColor="#94A3B8"
+                placeholderTextColor={TEXT_MUTED}
                 style={styles.locationInput}
               />
               {pickupLocation ? (
@@ -396,7 +427,7 @@ const dropdownTouching = useRef(false);
                   }}
                   activeOpacity={0.7}
                 >
-                  <Ionicons name="close-circle" size={20} color="#CBD5F5" />
+                  <Ionicons name="close-circle" size={wp('5%')} color={TEXT_MUTED} />
                 </TouchableOpacity>
               ) : null}
             </View>
@@ -404,14 +435,13 @@ const dropdownTouching = useRef(false);
             {/* location suggestions */}
             {showSuggestions && (
               <View style={styles.suggestionBox}>
-     <ScrollView
-  style={{ maxHeight: 210 }}
-  nestedScrollEnabled
-  keyboardShouldPersistTaps="always"
-  onTouchStart={() => (dropdownTouching.current = true)}
-  onTouchEnd={() => (dropdownTouching.current = false)}
->
-
+                <ScrollView
+                  style={{ maxHeight: hp('26%') }}
+                  nestedScrollEnabled
+                  keyboardShouldPersistTaps="always"
+                  onTouchStart={() => (dropdownTouching.current = true)}
+                  onTouchEnd={() => (dropdownTouching.current = false)}
+                >
                   {filteredLocations.length ? (
                     filteredLocations.map((loc) => (
                       <TouchableOpacity
@@ -420,6 +450,7 @@ const dropdownTouching = useRef(false);
                         onPress={() => handleLocationSelect(loc)}
                         activeOpacity={0.7}
                       >
+                        <Ionicons name="navigate-outline" size={wp('3.8%')} color={TEAL} style={{ marginRight: wp('2%') }} />
                         <Text style={styles.suggestionText}>{loc.name}</Text>
                       </TouchableOpacity>
                     ))
@@ -434,7 +465,7 @@ const dropdownTouching = useRef(false);
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
-              style={{ marginTop: 10 }}
+              style={{ marginTop: hp('1.2%') }}
             >
               {QUICK_CITIES.map((c) => {
                 const active = pickupLocationId === c.id;
@@ -475,7 +506,7 @@ const dropdownTouching = useRef(false);
             <Text style={styles.dateLabel}>JOB START</Text>
             <View style={styles.dateContent}>
               <View style={styles.dateIconWrap}>
-                <Ionicons name="calendar-outline" size={16} color="#0F172A" />
+                <Ionicons name="calendar-outline" size={wp('4%')} color={TEAL} />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.dateMainText}>
@@ -492,7 +523,7 @@ const dropdownTouching = useRef(false);
                   })}
                 </Text>
               </View>
-              <Ionicons name="chevron-forward" size={18} color="#94A3B8" />
+              <Ionicons name="chevron-forward" size={wp('4.5%')} color={TEXT_MUTED} />
             </View>
           </TouchableOpacity>
 
@@ -513,17 +544,18 @@ const dropdownTouching = useRef(false);
               }}
             />
           )}
- {/* EQUIPMENT TYPE — HORIZONTAL CHIPS */}
-          <View style={{ marginTop: 16 }}>
+
+          {/* EQUIPMENT TYPE — HORIZONTAL CHIPS */}
+          <View style={{ marginTop: hp('2%') }}>
             <View style={styles.rowHead}>
               <Text style={styles.label}>Equipment type</Text>
-              <Text style={styles.labelHint}>Crane, JCB, Excavator…</Text>
+              <Text style={styles.labelHint}>Crane, JCB, Excavator...</Text>
             </View>
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
-              contentContainerStyle={{ gap: 10, paddingVertical: 4 }}
-              style={{ marginHorizontal: -16, paddingHorizontal: 16 }}
+              contentContainerStyle={{ gap: wp('2.5%'), paddingVertical: hp('0.5%') }}
+              style={{ marginHorizontal: wp('-4%'), paddingHorizontal: wp('4%') }}
             >
               {(equipmentTypes.length ? equipmentTypes : localEquipFallback).map(
                 (eq) => {
@@ -538,11 +570,11 @@ const dropdownTouching = useRef(false);
                         active && styles.equipChipActive,
                       ]}
                     >
-                      <View style={styles.equipChipIcon}>
+                      <View style={[styles.equipChipIcon, active && styles.equipChipIconActive]}>
                         <Ionicons
                           name="construct-outline"
-                          size={16}
-                          color={active ? '#055F3B' : '#0F172A'}
+                          size={wp('4%')}
+                          color={active ? TEAL : TEXT_PRIMARY}
                         />
                       </View>
                       <Text
@@ -557,9 +589,9 @@ const dropdownTouching = useRef(false);
                       {active ? (
                         <Ionicons
                           name="checkmark-circle"
-                          size={18}
-                          color={GREEN}
-                          style={{ marginLeft: 2 }}
+                          size={wp('4.5%')}
+                          color={TEAL}
+                          style={{ marginLeft: wp('0.5%') }}
                         />
                       ) : null}
                     </TouchableOpacity>
@@ -570,7 +602,7 @@ const dropdownTouching = useRef(false);
           </View>
 
           {/* DURATION */}
-          <View style={{ marginTop: 16 }}>
+          <View style={{ marginTop: hp('2%') }}>
             <View style={styles.rowHead}>
               <Text style={styles.label}>Duration</Text>
               <Text style={styles.labelHint}>Approx. rental period</Text>
@@ -595,7 +627,7 @@ const dropdownTouching = useRef(false);
           </View>
 
           {/* NUMBER OF EQUIPMENTS */}
-          <View style={{ marginTop: 16 }}>
+          <View style={{ marginTop: hp('2%') }}>
             <View style={styles.rowHead}>
               <Text style={styles.label}>No. of equipments</Text>
               <Text style={styles.labelHint}>Example: 1 crane + 1 loader</Text>
@@ -606,35 +638,42 @@ const dropdownTouching = useRef(false);
               style={styles.inputPlain}
               keyboardType="number-pad"
               placeholder="Enter count"
-              placeholderTextColor="#94A3B8"
+              placeholderTextColor={TEXT_MUTED}
             />
           </View>
 
           {/* OTHER DETAILS */}
-          <View style={{ marginTop: 16 }}>
+          <View style={{ marginTop: hp('2%') }}>
             <Text style={styles.label}>Other details</Text>
             <TextInput
               value={otherDetails}
               onChangeText={setOtherDetails}
               style={styles.textArea}
               multiline
-              placeholder="Example: with operator, with fuel, 8hr shift, reach Bopal site…"
-              placeholderTextColor="#9CA3AF"
+              placeholder="Example: with operator, with fuel, 8hr shift, reach Bopal site..."
+              placeholderTextColor={TEXT_MUTED}
             />
           </View>
 
           {/* SUBMIT */}
           <TouchableOpacity
-            style={[styles.submitBtn, isSubmitting && { opacity: 0.5 }]}
+            style={[styles.submitBtnWrap, isSubmitting && { opacity: 0.5 }]}
             onPress={handleSubmit}
             disabled={isSubmitting}
             activeOpacity={0.85}
           >
-            {isSubmitting ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.submitText}>Get Quotes from Vendors</Text>
-            )}
+            <LinearGradient
+              colors={[TEAL_MID, TEAL]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.submitGradient}
+            >
+              {isSubmitting ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.submitText}>Get Quotes from Vendors</Text>
+              )}
+            </LinearGradient>
           </TouchableOpacity>
         </View>
 
@@ -661,8 +700,6 @@ const dropdownTouching = useRef(false);
           </View>
         </View>
 
-   
-
         {/* FAQ DARK */}
         <View style={styles.faqSec}>
           <Text style={styles.faqTitle}>FAQs about equipment rentals</Text>
@@ -676,11 +713,13 @@ const dropdownTouching = useRef(false);
                   activeOpacity={0.75}
                 >
                   <Text style={styles.faqQ}>{f.q}</Text>
-                  <Ionicons
-                    name={open ? 'chevron-up' : 'chevron-down'}
-                    size={18}
-                    color="#E2E8F0"
-                  />
+                  <View style={styles.faqChevronCircle}>
+                    <Ionicons
+                      name={open ? 'chevron-up' : 'chevron-down'}
+                      size={wp('4%')}
+                      color={TEAL}
+                    />
+                  </View>
                 </TouchableOpacity>
                 {open ? <Text style={styles.faqA}>{f.a}</Text> : null}
               </View>
@@ -702,19 +741,36 @@ const dropdownTouching = useRef(false);
               onPress={() => setModalVisible(false)}
               style={styles.closeButton}
             >
-              <Ionicons name="close" size={22} color="#333" />
+              <Ionicons name="close" size={wp('5.5%')} color={TEXT_SECONDARY} />
             </TouchableOpacity>
+
+            <View style={styles.modalIconCircle}>
+              <Ionicons name="call-outline" size={wp('6%')} color={TEAL} />
+            </View>
+
             <Text style={styles.modalTitle}>
               Please add your phone number first
             </Text>
+            <Text style={styles.modalSubText}>
+              We need your phone number so vendors can reach you with quotes.
+            </Text>
+
             <TouchableOpacity
-              style={styles.modalBtn}
+              style={styles.modalBtnWrap}
               onPress={() => {
                 setModalVisible(false);
                 navigation.navigate('EditProfileScreen');
               }}
+              activeOpacity={0.85}
             >
-              <Text style={styles.modalBtnText}>Go to Profile</Text>
+              <LinearGradient
+                colors={[TEAL_MID, TEAL]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.modalBtnGradient}
+              >
+                <Text style={styles.modalBtnText}>Go to Profile</Text>
+              </LinearGradient>
             </TouchableOpacity>
           </View>
         </View>
@@ -728,495 +784,542 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: BG,
   },
-  topBar: {
-    height: 52,
+
+  /* ── HEADER ── */
+  headerGradient: {
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + 8 : 8,
+    paddingBottom: hp('2.5%'),
+    paddingHorizontal: wp('4%'),
+    borderBottomLeftRadius: wp('6%'),
+    borderBottomRightRadius: wp('6%'),
+    overflow: 'hidden',
+  },
+  decoCircle1: {
+    position: 'absolute',
+    top: -hp('4%'),
+    right: -wp('8%'),
+    width: wp('40%'),
+    height: wp('40%'),
+    borderRadius: wp('20%'),
+    backgroundColor: 'rgba(255,255,255,0.06)',
+  },
+  decoCircle2: {
+    position: 'absolute',
+    bottom: -hp('3%'),
+    left: -wp('10%'),
+    width: wp('30%'),
+    height: wp('30%'),
+    borderRadius: wp('15%'),
+    backgroundColor: 'rgba(255,255,255,0.04)',
+  },
+  decoCircle3: {
+    position: 'absolute',
+    top: hp('2%'),
+    left: wp('25%'),
+    width: wp('18%'),
+    height: wp('18%'),
+    borderRadius: wp('9%'),
+    backgroundColor: 'rgba(255,255,255,0.03)',
+  },
+  headerRow: {
+    zIndex: 2,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    backgroundColor: BG,
   },
   backBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 999,
-    backgroundColor: '#FFFFFF',
+    width: wp('10%'),
+    height: wp('10%'),
+    borderRadius: wp('5%'),
+    backgroundColor: 'rgba(255,255,255,0.15)',
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOpacity: 0.03,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 3 },
   },
   topTitle: {
-    fontSize: 17,
+    fontSize: wp('4.6%'),
     fontWeight: '700',
-    color: '#0F172A',
+    color: '#FFFFFF',
+    letterSpacing: 0.3,
   },
+  myBookingsBtn: {
+    width: wp('10%'),
+    height: wp('10%'),
+    borderRadius: wp('5%'),
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  /* ── FORM CARD ── */
   formCard: {
-    backgroundColor: '#FFFFFF',
-    marginHorizontal: 14,
-    borderRadius: 22,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    shadowColor: '#000',
-    shadowOpacity: 0.04,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 6 },
-    marginTop: -8,
+    backgroundColor: CARD,
+    marginHorizontal: wp('3.5%'),
+    borderRadius: wp('5%'),
+    paddingVertical: hp('1.5%'),
+    paddingHorizontal: wp('4%'),
+    marginTop: -hp('0.5%'),
+    ...SHADOW_MD,
   },
   formHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 10,
+    marginBottom: hp('1.2%'),
     alignItems: 'center',
   },
   formTitle: {
-    fontSize: 18,
+    fontSize: wp('4.5%'),
     fontWeight: '700',
-    color: '#0F172A',
+    color: TEXT_PRIMARY,
   },
   formDesc: {
-    fontSize: 12,
-    color: '#94A3B8',
-    marginTop: 2,
+    fontSize: wp('3%'),
+    color: TEXT_MUTED,
+    marginTop: hp('0.3%'),
   },
   securePill: {
-    backgroundColor: GREEN,
-    borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+    backgroundColor: TEAL,
+    borderRadius: wp('10%'),
+    paddingHorizontal: wp('2.8%'),
+    paddingVertical: hp('0.5%'),
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: wp('1%'),
   },
   securePillText: {
     color: '#fff',
-    fontSize: 12,
+    fontSize: wp('3%'),
     fontWeight: '600',
   },
+
+  /* ── LOCATION ── */
   locationBlock: {
-    backgroundColor: '#F8FAFC',
-    borderRadius: 16,
+    backgroundColor: '#F8FAFB',
+    borderRadius: wp('4%'),
     borderWidth: 1,
-    borderColor: 'rgba(15,23,42,0.04)',
-    padding: 12,
-    marginBottom: 12,
+    borderColor: 'rgba(16,185,129,0.08)',
+    padding: wp('3%'),
+    marginBottom: hp('1.5%'),
   },
   smallLabel: {
-    fontSize: 11.5,
-    color: '#94A3B8',
-    marginBottom: 4,
+    fontSize: wp('2.9%'),
+    color: TEAL_MID,
+    fontWeight: '600',
+    marginBottom: hp('0.5%'),
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   locationRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    backgroundColor: CARD,
+    borderRadius: wp('3%'),
     borderWidth: 1,
-    borderColor: 'rgba(148,163,184,0.25)',
-    paddingHorizontal: 12,
-    minHeight: 54,
-    gap: 8,
+    borderColor: 'rgba(16,185,129,0.15)',
+    paddingHorizontal: wp('3%'),
+    minHeight: hp('6.5%'),
+    gap: wp('2%'),
+    ...SHADOW_SM,
+  },
+  locationIconCircle: {
+    width: wp('8.5%'),
+    height: wp('8.5%'),
+    borderRadius: wp('4.25%'),
+    backgroundColor: TEAL_LIGHT,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   locationInput: {
     flex: 1,
-    fontSize: 15,
-    color: '#0F172A',
-    paddingVertical: 6,
+    fontSize: wp('3.8%'),
+    color: TEXT_PRIMARY,
+    paddingVertical: hp('0.8%'),
   },
   suggestionBox: {
     position: 'absolute',
-    top: 100,
+    top: hp('11%'),
     left: 0,
     right: 0,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 14,
-    borderWidth: 0.6,
-    borderColor: '#E2E8F0',
+    backgroundColor: CARD,
+    borderRadius: wp('3.5%'),
+    borderWidth: 1,
+    borderColor: 'rgba(16,185,129,0.12)',
     zIndex: 99,
+    ...SHADOW_MD,
   },
   suggestionItem: {
-    paddingHorizontal: 12,
-    paddingVertical: 9,
-    borderBottomWidth: 0.4,
-    borderColor: '#EDF2F7',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: wp('3%'),
+    paddingVertical: hp('1.1%'),
+    borderBottomWidth: 0.5,
+    borderColor: '#F0F4F3',
   },
   suggestionText: {
-    color: '#0F172A',
+    color: TEXT_PRIMARY,
+    fontSize: wp('3.5%'),
   },
   noResult: {
-    padding: 10,
+    padding: wp('3%'),
     textAlign: 'center',
-    color: '#94A3B8',
+    color: TEXT_MUTED,
+    fontSize: wp('3.2%'),
   },
+
+  /* ── CITY CHIPS ── */
   cityChip: {
     flexDirection: 'row',
-    gap: 5,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    gap: wp('1.5%'),
+    backgroundColor: CARD,
+    borderRadius: wp('10%'),
+    paddingHorizontal: wp('2.8%'),
+    paddingVertical: hp('0.7%'),
     alignItems: 'center',
-    marginRight: 6,
+    marginRight: wp('1.5%'),
     borderWidth: 1,
-    borderColor: 'rgba(148,163,184,0.05)',
+    borderColor: 'rgba(16,185,129,0.08)',
+    ...SHADOW_SM,
   },
   cityChipActive: {
-    backgroundColor: 'rgba(9,179,104,0.12)',
-    borderColor: 'rgba(9,179,104,0.5)',
+    backgroundColor: TEAL_LIGHT,
+    borderColor: TEAL,
   },
   cityChipImg: {
-    width: 26,
-    height: 26,
-    borderRadius: 18,
+    width: wp('6.5%'),
+    height: wp('6.5%'),
+    borderRadius: wp('3.25%'),
   },
   cityChipText: {
-    fontSize: 13,
-    color: '#0F172A',
+    fontSize: wp('3.2%'),
+    color: TEXT_PRIMARY,
+    fontWeight: '500',
   },
   cityChipTextActive: {
-    color: '#055F3B',
-    fontWeight: '600',
+    color: TEAL_DEEP,
+    fontWeight: '700',
   },
+
+  /* ── DATE CARD ── */
   dateCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 14,
+    backgroundColor: CARD,
+    borderRadius: wp('3.5%'),
     borderWidth: 1,
-    borderColor: 'rgba(148,163,184,0.25)',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    borderColor: 'rgba(16,185,129,0.12)',
+    paddingHorizontal: wp('3%'),
+    paddingVertical: hp('1%'),
+    ...SHADOW_SM,
   },
   dateLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#94A3B8',
+    fontSize: wp('2.9%'),
+    fontWeight: '700',
+    color: TEAL_MID,
     textTransform: 'uppercase',
-    marginBottom: 6,
+    letterSpacing: 0.5,
+    marginBottom: hp('0.7%'),
   },
   dateContent: {
     flexDirection: 'row',
-    gap: 8,
+    gap: wp('2%'),
     alignItems: 'center',
   },
   dateIconWrap: {
-    width: 30,
-    height: 30,
-    borderRadius: 10,
-    backgroundColor: '#F1F5F9',
+    width: wp('8%'),
+    height: wp('8%'),
+    borderRadius: wp('2.5%'),
+    backgroundColor: TEAL_LIGHT,
     justifyContent: 'center',
     alignItems: 'center',
   },
   dateMainText: {
-    fontSize: 14,
+    fontSize: wp('3.5%'),
     fontWeight: '700',
-    color: '#0F172A',
+    color: TEXT_PRIMARY,
   },
   dateSubText: {
-    fontSize: 11,
-    color: '#94A3B8',
+    fontSize: wp('2.8%'),
+    color: TEXT_MUTED,
+    marginTop: hp('0.2%'),
   },
+
+  /* ── ROW HEAD / LABELS ── */
   rowHead: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 6,
+    marginBottom: hp('0.7%'),
   },
   label: {
-    fontSize: 15,
+    fontSize: wp('3.8%'),
     fontWeight: '700',
-    color: '#0F172A',
+    color: TEXT_PRIMARY,
   },
   labelHint: {
-    fontSize: 11,
-    color: '#94A3B8',
+    fontSize: wp('2.8%'),
+    color: TEXT_MUTED,
   },
-  // NEW EQUIP GRID
-  equipWrap: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-  },
+
+  /* ── EQUIPMENT CHIPS ── */
   equipChip: {
-    flexBasis: '47%',
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F8FAFC',
-    borderRadius: 14,
-    borderWidth: 1,
+    backgroundColor: '#F0F4F3',
+    borderRadius: wp('10%'),
+    paddingVertical: hp('1%'),
+    paddingHorizontal: wp('3.5%'),
+    borderWidth: 1.5,
     borderColor: 'transparent',
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    gap: 10,
+    gap: wp('1.5%'),
   },
   equipChipActive: {
-    backgroundColor: '#FFFFFF',
-    borderColor: 'rgba(9,179,104,0.38)',
-    shadowColor: '#000',
-    shadowOpacity: 0.03,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 3 },
+    backgroundColor: TEAL_LIGHT,
+    borderColor: TEAL,
+    ...SHADOW_SM,
   },
   equipChipIcon: {
-    width: 34,
-    height: 34,
-    borderRadius: 12,
-    backgroundColor: '#FFFFFF',
+    width: wp('6.5%'),
+    height: wp('6.5%'),
+    borderRadius: wp('3.25%'),
+    backgroundColor: CARD,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  equipChipName: {
-    fontSize: 13.5,
-    fontWeight: '600',
-    color: '#0F172A',
+  equipChipIconActive: {
+    backgroundColor: 'rgba(16,185,129,0.15)',
   },
-  equipChipNameActive: {
-    color: '#055F3B',
+  equipChipText: {
+    fontSize: wp('3.4%'),
+    color: TEXT_PRIMARY,
+    fontWeight: '500',
+    maxWidth: wp('30%'),
   },
-  equipChipSub: {
-    fontSize: 11,
-    color: '#94A3B8',
+  equipChipTextActive: {
+    color: TEAL_DEEP,
+    fontWeight: '700',
   },
-  equipChipSubActive: {
-    color: '#0F172A',
-  },
+
+  /* ── DURATION PILLS ── */
   pillWrap: {
     flexDirection: 'row',
-    gap: 8,
+    gap: wp('2%'),
     flexWrap: 'wrap',
   },
   pill: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    backgroundColor: '#EDF2F7',
-    borderRadius: 999,
-    borderWidth: 1,
+    paddingHorizontal: wp('3.5%'),
+    paddingVertical: hp('1%'),
+    backgroundColor: '#F0F4F3',
+    borderRadius: wp('10%'),
+    borderWidth: 1.5,
     borderColor: 'transparent',
   },
   pillActive: {
-    backgroundColor: 'rgba(9,179,104,0.14)',
-    borderColor: 'rgba(9,179,104,0.4)',
+    backgroundColor: TEAL_LIGHT,
+    borderColor: TEAL,
   },
   pillText: {
-    color: '#0F172A',
-    fontSize: 13,
+    color: TEXT_PRIMARY,
+    fontSize: wp('3.2%'),
     fontWeight: '500',
   },
   pillTextActive: {
-    color: '#055F3B',
+    color: TEAL_DEEP,
+    fontWeight: '700',
   },
+
+  /* ── INPUTS ── */
   inputPlain: {
-    backgroundColor: '#F8FAFC',
-    borderRadius: 10,
+    backgroundColor: '#F8FAFB',
+    borderRadius: wp('2.5%'),
     borderWidth: 1,
-    borderColor: 'rgba(15,23,42,0.05)',
-    minHeight: 50,
-    paddingHorizontal: 12,
-    fontSize: 14,
-    color: '#0F172A',
-    marginTop: 6,
+    borderColor: 'rgba(16,185,129,0.1)',
+    minHeight: hp('6%'),
+    paddingHorizontal: wp('3%'),
+    fontSize: wp('3.5%'),
+    color: TEXT_PRIMARY,
+    marginTop: hp('0.7%'),
+    ...SHADOW_SM,
   },
   textArea: {
-    backgroundColor: '#F8FAFC',
-    borderRadius: 10,
+    backgroundColor: '#F8FAFB',
+    borderRadius: wp('2.5%'),
     borderWidth: 1,
-    borderColor: 'rgba(15,23,42,0.05)',
-    minHeight: 84,
-    padding: 10,
+    borderColor: 'rgba(16,185,129,0.1)',
+    minHeight: hp('10%'),
+    padding: wp('2.5%'),
     textAlignVertical: 'top',
-    fontSize: 12.5,
-    marginTop: 6,
+    fontSize: wp('3.2%'),
+    color: TEXT_PRIMARY,
+    marginTop: hp('0.7%'),
+    ...SHADOW_SM,
   },
-  submitBtn: {
-    marginTop: 16,
-    backgroundColor: GREEN,
-    borderRadius: 999,
-    paddingVertical: 11,
+
+  /* ── SUBMIT BUTTON ── */
+  submitBtnWrap: {
+    marginTop: hp('2%'),
+    marginBottom: hp('0.8%'),
+    borderRadius: wp('10%'),
+    overflow: 'hidden',
+    ...SHADOW_MD,
+  },
+  submitGradient: {
+    borderRadius: wp('10%'),
+    paddingVertical: hp('1.6%'),
     alignItems: 'center',
-    marginBottom: 6,
+    justifyContent: 'center',
   },
   submitText: {
     color: '#FFFFFF',
-    fontSize: 15,
+    fontSize: wp('3.8%'),
     fontWeight: '700',
+    letterSpacing: 0.3,
   },
+
+  /* ── EQUIPMENT SHOWCASE ── */
   groupCard: {
-    backgroundColor: '#FFFFFF',
-    marginHorizontal: 14,
-    marginTop: 16,
-    borderRadius: 20,
-    padding: 14,
+    backgroundColor: CARD,
+    marginHorizontal: wp('3.5%'),
+    marginTop: hp('2%'),
+    borderRadius: wp('5%'),
+    padding: wp('3.5%'),
+    ...SHADOW_SM,
   },
   sectionTitleInside: {
-    fontSize: 16,
+    fontSize: wp('4%'),
     fontWeight: '700',
-    color: '#0F172A',
-    marginBottom: 10,
+    color: TEXT_PRIMARY,
+    marginBottom: hp('1.2%'),
   },
   equipGrid: {
     flexDirection: 'row',
-    gap: 12,
+    gap: wp('3%'),
   },
   equipBox: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
-    borderRadius: 16,
-    padding: 14,
+    backgroundColor: '#F8FAFB',
+    borderRadius: wp('4%'),
+    padding: wp('3.5%'),
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(16,185,129,0.08)',
   },
   equipImg: {
-    width: 70,
-    height: 50,
+    width: wp('18%'),
+    height: hp('6%'),
   },
   equipBoxName: {
-    marginTop: 8,
-    fontSize: 13,
+    marginTop: hp('1%'),
+    fontSize: wp('3.3%'),
     fontWeight: '600',
-    color: '#0F172A',
+    color: TEXT_PRIMARY,
   },
-  quoteCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 14,
-    marginRight: 10,
-  },
-  quoteCircle: {
-    width: 44,
-    height: 44,
-    borderRadius: 999,
-    backgroundColor: 'rgba(9,179,104,0.12)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 6,
-  },
-  quoteCircleText: {
-    fontWeight: '700',
-    color: '#055F3B',
-    fontSize: 16,
-  },
-  quoteHeading: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#0F172A',
-    marginBottom: 4,
-  },
-  quoteBody: {
-    fontSize: 13,
-    color: '#6B7280',
-    lineHeight: 19,
-  },
-  paginationDots: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 6,
-    marginTop: 10,
-  },
-  dot: {
-    width: 8,
-    height: 8,
-    borderRadius: 7,
-    backgroundColor: '#D9D9D9',
-  },
-  activeDot: {
-    backgroundColor: GREEN,
-    width: 18,
-  },
+
+  /* ── FAQ SECTION ── */
   faqSec: {
-    backgroundColor: '#0F172A',
-    marginTop: 18,
-    padding: 16,
-    paddingBottom: 26,
+    backgroundColor: TEAL_DEEP,
+    marginTop: hp('2.2%'),
+    padding: wp('4%'),
+    paddingBottom: hp('3.5%'),
   },
   faqTitle: {
-    fontSize: 18,
+    fontSize: wp('4.5%'),
     fontWeight: '700',
     color: '#FFFFFF',
-    marginBottom: 12,
+    marginBottom: hp('1.5%'),
   },
   faqItem: {
-    borderBottomColor: 'rgba(226,232,240,0.1)',
+    borderBottomColor: 'rgba(255,255,255,0.1)',
     borderBottomWidth: 1,
-    paddingVertical: 10,
+    paddingVertical: hp('1.3%'),
   },
   faqHead: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  faqQ: { color: '#FFFFFF', fontSize: 14, flex: 1, marginRight: 10 },
-  faqA: { color: '#CBD5F5', fontSize: 12.5, marginTop: 6, lineHeight: 18 },
-  modalOverlay: {
+  faqQ: {
+    color: '#FFFFFF',
+    fontSize: wp('3.5%'),
     flex: 1,
-    backgroundColor: 'rgba(15,23,42,0.4)',
+    marginRight: wp('2.5%'),
+    fontWeight: '500',
+  },
+  faqChevronCircle: {
+    width: wp('7%'),
+    height: wp('7%'),
+    borderRadius: wp('3.5%'),
+    backgroundColor: 'rgba(16,185,129,0.2)',
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 30,
+  },
+  faqA: {
+    color: TEAL_LIGHT,
+    fontSize: wp('3.1%'),
+    marginTop: hp('0.8%'),
+    lineHeight: hp('2.4%'),
+  },
+
+  /* ── PHONE MODAL ── */
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(6,78,59,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: wp('8%'),
   },
   modalContent: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    backgroundColor: CARD,
+    borderRadius: wp('5%'),
     width: '100%',
-    padding: 18,
+    padding: wp('5%'),
+    alignItems: 'center',
+    ...SHADOW_MD,
   },
   closeButton: {
     position: 'absolute',
-    top: 10,
-    right: 12,
+    top: hp('1.2%'),
+    right: wp('3%'),
+    width: wp('8%'),
+    height: wp('8%'),
+    borderRadius: wp('4%'),
+    backgroundColor: '#F0F4F3',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalIconCircle: {
+    width: wp('14%'),
+    height: wp('14%'),
+    borderRadius: wp('7%'),
+    backgroundColor: TEAL_LIGHT,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: hp('1.5%'),
+    marginTop: hp('0.5%'),
   },
   modalTitle: {
-    fontSize: 15,
+    fontSize: wp('3.8%'),
     fontWeight: '700',
-    color: '#0F172A',
-    marginBottom: 14,
-    marginTop: 8,
+    color: TEXT_PRIMARY,
+    marginBottom: hp('0.5%'),
+    textAlign: 'center',
   },
-  modalBtn: {
-    backgroundColor: GREEN,
-    borderRadius: 8,
-    paddingVertical: 9,
+  modalSubText: {
+    fontSize: wp('3%'),
+    color: TEXT_MUTED,
+    textAlign: 'center',
+    marginBottom: hp('2%'),
+    lineHeight: hp('2.2%'),
+  },
+  modalBtnWrap: {
+    width: '100%',
+    borderRadius: wp('2.5%'),
+    overflow: 'hidden',
+  },
+  modalBtnGradient: {
+    borderRadius: wp('2.5%'),
+    paddingVertical: hp('1.4%'),
     alignItems: 'center',
   },
   modalBtnText: {
     color: '#fff',
-    fontWeight: '600',
+    fontWeight: '700',
+    fontSize: wp('3.5%'),
   },
-  
-  // NEW EQUIP CHIPS
-  equipChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#EDF2F7',
-    borderRadius: 999,
-    paddingVertical: 8,
-    paddingHorizontal: 14,
-    borderWidth: 1,
-    borderColor: 'transparent',
-    gap: 6,
-  },
-  equipChipActive: {
-    backgroundColor: '#FFFFFF',
-    borderColor: 'rgba(9,179,104,0.55)',
-    shadowColor: '#000',
-    shadowOpacity: 0.03,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-  },
-  equipChipIcon: {
-    width: 26,
-    height: 26,
-    borderRadius: 999,
-    backgroundColor: '#FFFFFF',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  equipChipText: {
-    fontSize: 13.5,
-    color: '#0F172A',
-    fontWeight: '500',
-    maxWidth: 120,
-  },
-  equipChipTextActive: {
-    color: '#055F3B',
-  },
-
 });

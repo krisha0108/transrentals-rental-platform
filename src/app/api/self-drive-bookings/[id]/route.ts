@@ -14,42 +14,64 @@ export async function GET(
     const { id } = await params;
 
     // Try to find by ID first, then by booking number
-    let booking = await prisma.car_bookings.findUnique({
-      where: { id },
-      include: {
-        locations: { select: { id: true, name: true, slug: true } },
-        customers: { select: { id: true, name: true, email: true, phone: true } },
-        vendors_car_bookings_acceptedVendorIdTovendors: {
-          select: {
-            id: true,
-            businessName: true,
-            phone: true,
-            email: true,
-            address: true,
-            rating: true,
-          },
+    const includeRelations = {
+      locations: { select: { id: true, name: true, slug: true } },
+      customers: { select: { id: true, name: true, email: true, phone: true } },
+      vendors_car_bookings_acceptedVendorIdTovendors: {
+        select: {
+          id: true,
+          businessName: true,
+          phone: true,
+          email: true,
+          address: true,
+          rating: true,
         },
       },
+      self_drive_quote_requests: { select: { id: true, requestNumber: true } },
+      self_drive_quotes: {
+        select: {
+          id: true,
+          quoteNumber: true,
+          vehicleName: true,
+          vehicleBrand: true,
+          vehicleCategory: true,
+          vehicleType: true,
+          vehicleYear: true,
+          vehicleFeatures: true,
+          transmission: true,
+          fuelType: true,
+          seats: true,
+          registrationNumber: true,
+          dailyRate: true,
+          baseAmount: true,
+          gstAmount: true,
+          platformFee: true,
+          securityDeposit: true,
+          grandTotal: true,
+          advanceAmount: true,
+          advancePercent: true,
+          kmLimitPerDay: true,
+          extraKmRate: true,
+          pickupCharges: true,
+          deliveryCharges: true,
+          inclusions: true,
+          exclusions: true,
+          termsConditions: true,
+          vendorMessage: true,
+        },
+      },
+    };
+
+    let booking = await prisma.car_bookings.findUnique({
+      where: { id },
+      include: includeRelations,
     });
 
     // If not found by ID, try by booking number
     if (!booking) {
       booking = await prisma.car_bookings.findUnique({
         where: { bookingNumber: id },
-        include: {
-          locations: { select: { id: true, name: true, slug: true } },
-          customers: { select: { id: true, name: true, email: true, phone: true } },
-          vendors_car_bookings_acceptedVendorIdTovendors: {
-            select: {
-              id: true,
-              businessName: true,
-              phone: true,
-              email: true,
-              address: true,
-              rating: true,
-            },
-          },
-        },
+        include: includeRelations,
       });
     }
 
@@ -127,6 +149,8 @@ export async function GET(
         cancellationReason: booking.cancellationReason,
         rating: booking.rating,
         review: booking.review,
+        quote: booking.self_drive_quotes || null,
+        quoteRequest: booking.self_drive_quote_requests || null,
         createdAt: booking.createdAt,
         updatedAt: booking.updatedAt,
       },

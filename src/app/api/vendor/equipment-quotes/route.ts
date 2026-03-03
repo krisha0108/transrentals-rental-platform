@@ -5,6 +5,7 @@ import { prisma } from '@/lib/db/prisma';
 import { transformPrismaResponse } from '@/lib/utils/api-transform';
 import crypto from 'crypto';
 
+import { sendNotificationToCustomer } from '@/lib/services/push-notification-service';
 import logger from '@/lib/security/logger';
 export const dynamic = 'force-dynamic';
 
@@ -392,6 +393,24 @@ export async function POST(request: NextRequest) {
         },
       });
       logger.info('Notification created for equipment quote', { requestId, quoteId: quote.id, customerId: quoteRequest.customerId });
+
+      // Send FCM push notification to customer
+      if (quoteRequest.customerId) {
+        sendNotificationToCustomer(
+          quoteRequest.customerId,
+          {
+            title: '🏗️ New Equipment Quote Received!',
+            body: `${vendor.businessName} has sent you a quote for ${equipmentName}. Total: ₹${totalAmount}.`,
+          },
+          {
+            type: 'quote',
+            serviceType: 'equipment',
+            requestId: requestId,
+            quoteId: quote.id,
+            action: 'quote_received',
+          }
+        ).catch((err: any) => console.error('[EquipQuote] Customer push failed:', err));
+      }
     } catch (notifError) {
       logger.error('Failed to create notification for equipment quote', notifError);
     }

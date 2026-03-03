@@ -6,6 +6,7 @@ import { transformPrismaResponse } from '@/lib/utils/api-transform';
 import crypto from 'crypto';
 
 import logger from '@/lib/security/logger';
+import { sendNotificationToCustomer } from '@/lib/services/push-notification-service';
 import { checkFleetAvailability } from '@/lib/utils/fleet-availability';
 export const dynamic = 'force-dynamic';
 
@@ -424,6 +425,21 @@ export async function POST(request: NextRequest) {
         },
       });
       logger.info('Notification created for self-drive quote', { requestId, quoteId: quote.id, customerId: quoteRequest.customerId });
+
+      // Send FCM push notification
+      await sendNotificationToCustomer(
+        quoteRequest.customerId,
+        {
+          title: '🚗 New Self-Drive Quote Received!',
+          body: `${vendor.businessName} has sent you a quote for ${vehicleName}. Daily rate: ₹${dailyRate}. Total: ₹${grandTotal}.`,
+        },
+        {
+          type: 'new_quote',
+          serviceType: 'self-drive',
+          requestId: requestId,
+          quoteId: quote.id,
+        }
+      );
     } catch (notifError) {
       // Log but don't fail the request if notification creation fails
       logger.error('Failed to create notification for self-drive quote', notifError);

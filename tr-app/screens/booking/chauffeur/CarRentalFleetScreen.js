@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
   View,
   Text,
@@ -16,6 +16,7 @@ import {
   BackHandler,
   KeyboardAvoidingView,
   Keyboard,
+  StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Feather';
@@ -23,17 +24,43 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
+import LinearGradient from 'react-native-linear-gradient';
+import { widthPercentageToDP as wp, heightPercentageToDP as hp } from 'react-native-responsive-screen';
 import { locationService, bookingService } from '../../services';
 import { BASE_URL } from '../../api';
 
-const { width } = Dimensions.get('window');
-const GREEN = '#09B368';
-const BRAND_TEAL = '#09B368';
-const GOLD = '#FFD700';
-const BG = '#F8F9FA';
+const { width, height } = Dimensions.get('window');
+const isSmallScreen = width < 360;
+
+/* ── Premium Dark Teal Design System ── */
+const TEAL_DEEP = '#064E3B';
+const TEAL_MID = '#065F46';
+const TEAL = '#10B981';
+const TEAL_LIGHT = '#D1FAE5';
+const BG = '#F5F7FA';
 const CARD = '#FFFFFF';
-const TEXT_PRIMARY = '#0F172A';
-const TEXT_SECONDARY = '#64748B';
+const TEXT_PRIMARY = '#111827';
+const TEXT_SECONDARY = '#6B7280';
+const TEXT_MUTED = '#9CA3AF';
+const BORDER = '#E5E7EB';
+const DIVIDER = '#F3F4F6';
+
+const SHADOW_SM = Platform.select({
+  ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8 },
+  android: { elevation: 3 },
+});
+const SHADOW_MD = Platform.select({
+  ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.10, shadowRadius: 14 },
+  android: { elevation: 6 },
+});
+const SHADOW_LG = Platform.select({
+  ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.14, shadowRadius: 20 },
+  android: { elevation: 10 },
+});
+const SHADOW_TEAL = Platform.select({
+  ios: { shadowColor: TEAL, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.30, shadowRadius: 12 },
+  android: { elevation: 8 },
+});
 
 const TRIP_TYPES = [
   { id: 'local', label: 'Local', icon: 'map-pin', desc: 'City rides with packages' },
@@ -98,6 +125,14 @@ export default function CarRentalFleetScreen({ navigation, route }) {
   // Step management
   const [step, setStep] = useState(1); // 1: Trip details, 2: Select vehicle, 3: Confirm
 
+  // Search & Filter for Step 2
+  const [vehicleSearchQuery, setVehicleSearchQuery] = useState('');
+  const [showFilterModal, setShowFilterModal] = useState(false);
+  const [vehicleTypeFilter, setVehicleTypeFilter] = useState(null);
+  const [acFilter, setAcFilter] = useState(null); // null = All, 'AC', 'Non-AC'
+  const [seaterFilter, setSeaterFilter] = useState(null); // null = All, or a number
+  const [priceSortOrder, setPriceSortOrder] = useState(null);
+
   // ScrollView ref for keyboard handling
   const scrollViewRef = useRef(null);
   const fromInputRef = useRef(null);
@@ -115,30 +150,21 @@ export default function CarRentalFleetScreen({ navigation, route }) {
   // Handle Android hardware back button
   useEffect(() => {
     const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
-      if (step === 4 && bookingConfirmed) {
-        // After booking confirmation, redirect to booking details
-        navigation.navigate('BookingConfirmation', {
-          booking_id: confirmedBookingId,
-          bookingType: 'chauffeur',
-        });
-        return true;
-      } else if (step > 1) {
-        // Go to previous step
+      if (step > 1) {
         setStep(step - 1);
         return true;
       }
-      // On step 1, allow default back behavior
       return false;
     });
 
     return () => backHandler.remove();
-  }, [step, bookingConfirmed, confirmedBookingId, navigation]);
+  }, [step, navigation]);
 
   const loadInitialData = async () => {
     try {
       const [customerData, locationsRes, categoriesRes, bankDetailsRes] = await Promise.all([
         AsyncStorage.getItem('customer'),
-        locationService.getLocations(),
+        locationService.getLocations('CITY', true),
         bookingService.getChauffeurVehicleCategories(),
         fetch(`${BASE_URL}/api/payment-details?service=car-rental`).then(r => r.json()),
       ]);
@@ -148,7 +174,7 @@ export default function CarRentalFleetScreen({ navigation, route }) {
       if (locationsRes.success) {
         const locs = locationsRes.locations || [];
         setAllLocations(locs);
-        setAirports(locs.filter(l => l.type === 'airport'));
+        setAirports(locs.filter(l => l.type === 'AIRPORT' || l.isAirport));
       }
 
       if (categoriesRes.success) {
@@ -167,8 +193,6 @@ export default function CarRentalFleetScreen({ navigation, route }) {
 
   const fetchLocalPackages = async () => {
     try {
-      // Fetch all packages and filter/group them locally if needed
-      // To match web, we don't pass locationId here if we want global ones
       const res = await bookingService.getChauffeurLocalPackages();
       if (res.success) {
         setLocalPackages(res.packages || []);
@@ -195,7 +219,6 @@ export default function CarRentalFleetScreen({ navigation, route }) {
             };
 
             if (tripType === 'local') {
-              // For local, find the package matching selected hours/kms for this category
               const pkg = localPackages.find(p =>
                 p.vehicleCategoryId === category.id &&
                 p.hours === selectedPackage?.hours &&
@@ -205,12 +228,10 @@ export default function CarRentalFleetScreen({ navigation, route }) {
               if (pkg) {
                 params.packageId = pkg.id;
               } else {
-                // Fallback to first available package for this category if preferred
                 const catPkg = localPackages.find(p => p.vehicleCategoryId === category.id);
                 if (catPkg) params.packageId = catPkg.id;
               }
             } else {
-              // For outstation/airport
               params.from = fromLocation?.id;
               params.to = toLocation?.id;
               params.startDate = pickupDate.toISOString().split('T')[0];
@@ -365,10 +386,6 @@ export default function CarRentalFleetScreen({ navigation, route }) {
         baseFare: vehiclePrice?.totalBeforeGst || 0,
         gstAmount: 0,
         estimatedAmount: vehiclePrice?.totalBeforeGst || 0,
-        advancePaid: Math.round((vehiclePrice?.totalBeforeGst || 0) * 0.2),
-        paymentMethod: 'UPI',
-        transactionId: utr,
-        paymentStatus: 'pending_verification',
       };
 
       if (tripType === 'local') {
@@ -390,22 +407,15 @@ export default function CarRentalFleetScreen({ navigation, route }) {
       const response = await bookingService.createChauffeurBooking(bookingData);
 
       if (response.success || response.booking) {
-        setBookingConfirmed(true);
-        setConfirmedBookingId(response.booking?.id || 'unknown');
+        const bookingId = response.booking?.id || 'unknown';
+        const advanceAmount = Math.round((vehiclePrice?.totalBeforeGst || 0) * 0.2);
 
-        Alert.alert(
-          'Booking Confirmed!',
-          'Your booking has been successfully created.',
-          [
-            {
-              text: 'View Booking',
-              onPress: () => navigation.navigate('BookingConfirmation', {
-                booking_id: response.booking?.id || 'unknown',
-                bookingType: 'chauffeur',
-              }),
-            },
-          ]
-        );
+        // Navigate to PaymentScreen for Razorpay payment
+        navigation.replace('PaymentScreen', {
+          bookingId,
+          bookingType: 'chauffeur',
+          amount: advanceAmount,
+        });
       } else {
         Alert.alert('Error', response.message || 'Failed to create booking');
       }
@@ -417,6 +427,7 @@ export default function CarRentalFleetScreen({ navigation, route }) {
     }
   };
 
+  /* ─── Render: Location Input ─── */
   const renderLocationInput = (target) => {
     const isFrom = target === 'from';
     const location = isFrom ? fromLocation : toLocation;
@@ -433,10 +444,9 @@ export default function CarRentalFleetScreen({ navigation, route }) {
 
     const handleFocus = () => {
       setShowSuggestions(true);
-      // Scroll to show input field when keyboard appears
       setTimeout(() => {
         if (scrollViewRef.current) {
-          scrollViewRef.current.scrollTo({ y: isFrom ? 300 : 400, animated: true });
+          scrollViewRef.current.scrollTo({ y: isFrom ? width * 0.65 : width * 0.85, animated: true });
         }
       }, 100);
     };
@@ -447,11 +457,13 @@ export default function CarRentalFleetScreen({ navigation, route }) {
           {isFrom ? 'From' : 'To'} {showAirports ? '(Airport)' : '(City)'}
         </Text>
         <TouchableOpacity style={styles.locationRow} activeOpacity={0.9}>
-          <Ionicons
-            name={showAirports ? 'airplane-outline' : 'location-outline'}
-            size={18}
-            color="#0F172A"
-          />
+          <View style={styles.locationIconWrap}>
+            <Ionicons
+              name={showAirports ? 'airplane-outline' : 'location-outline'}
+              size={wp('4.2%')}
+              color={TEAL}
+            />
+          </View>
           <TextInput
             ref={isFrom ? fromInputRef : null}
             style={styles.locationInput}
@@ -464,27 +476,48 @@ export default function CarRentalFleetScreen({ navigation, route }) {
             }}
             onFocus={handleFocus}
             placeholder={showAirports ? 'Select airport' : 'Select city'}
-            placeholderTextColor="#94A3B8"
+            placeholderTextColor={TEXT_MUTED}
           />
           {location && (
             <TouchableOpacity onPress={() => {
               if (isFrom) setFromLocation(null);
               else setToLocation(null);
             }}>
-              <Ionicons name="close-circle" size={20} color="#CBD5E1" />
+              <Ionicons name="close-circle" size={wp('5%')} color="#CBD5E1" />
             </TouchableOpacity>
           )}
         </TouchableOpacity>
 
         {showSuggestions && (
-          <View style={styles.suggestionsBox}>
+          <View
+            style={styles.suggestionsBox}
+            onStartShouldSetResponder={() => true}
+            onMoveShouldSetResponder={() => true}
+            onResponderGrant={() => {
+              if (scrollViewRef.current) {
+                scrollViewRef.current.setNativeProps({ scrollEnabled: false });
+              }
+            }}
+            onResponderRelease={() => {
+              if (scrollViewRef.current) {
+                scrollViewRef.current.setNativeProps({ scrollEnabled: true });
+              }
+            }}
+            onResponderTerminate={() => {
+              if (scrollViewRef.current) {
+                scrollViewRef.current.setNativeProps({ scrollEnabled: true });
+              }
+            }}
+          >
             <ScrollView
-              style={{ maxHeight: 200 }}
-              nestedScrollEnabled
+              style={{ maxHeight: height * 0.35 }}
+              nestedScrollEnabled={true}
               keyboardShouldPersistTaps="handled"
-              showsVerticalScrollIndicator={false}
+              keyboardDismissMode="on-drag"
+              showsVerticalScrollIndicator={true}
               scrollEventThrottle={16}
-              bounces={true}
+              bounces={false}
+              onScrollBeginDrag={() => Keyboard.dismiss()}
             >
               {filteredLocations(query, showAirports).map((loc) => (
                 <TouchableOpacity
@@ -493,11 +526,11 @@ export default function CarRentalFleetScreen({ navigation, route }) {
                   onPress={() => handleLocationSelect(loc, target)}
                 >
                   <Ionicons
-                    name={loc.type === 'airport' ? 'airplane-outline' : 'location'}
-                    size={16}
-                    color="#64748B"
+                    name={loc.type === 'AIRPORT' || loc.isAirport ? 'airplane-outline' : 'location'}
+                    size={wp('4%')}
+                    color={TEXT_SECONDARY}
                   />
-                  <Text style={styles.suggestionText}>{loc.name}</Text>
+                  <Text style={styles.suggestionText}>{loc.displayName || loc.name}</Text>
                   {loc.code && <Text style={styles.suggestionCode}>{loc.code}</Text>}
                 </TouchableOpacity>
               ))}
@@ -508,8 +541,8 @@ export default function CarRentalFleetScreen({ navigation, route }) {
     );
   };
 
+  /* ─── Render: Package Selector ─── */
   const renderPackageSelector = () => {
-    // Group packages by vehicle category
     const packagesByCategory = {};
     localPackages.forEach(pkg => {
       const catId = pkg.vehicleCategoryId;
@@ -517,7 +550,6 @@ export default function CarRentalFleetScreen({ navigation, route }) {
       packagesByCategory[catId].push(pkg);
     });
 
-    // Get unique packages (one per hours/km combo)
     const uniquePackages = [];
     const seen = new Set();
     localPackages.forEach(pkg => {
@@ -556,11 +588,65 @@ export default function CarRentalFleetScreen({ navigation, route }) {
     );
   };
 
+  /* ─── Filtered Vehicles (Step 2) ─── */
+  const filteredVehicles = useMemo(() => {
+    let vehicles = vehicleCategories.filter(v => v.isActive);
+
+    if (vehicleSearchQuery.trim()) {
+      const q = vehicleSearchQuery.trim().toLowerCase();
+      vehicles = vehicles.filter(v => {
+        const name = (v.name || '').toLowerCase();
+        const examples = Array.isArray(v.exampleVehicles)
+          ? v.exampleVehicles.join(' ').toLowerCase()
+          : (v.exampleVehicles || '').toLowerCase();
+        return name.includes(q) || examples.includes(q);
+      });
+    }
+
+    if (vehicleTypeFilter) {
+      vehicles = vehicles.filter(v => {
+        const isStandard = v.name.includes('Sedan');
+        return vehicleTypeFilter === 'Standard' ? isStandard : !isStandard;
+      });
+    }
+
+    if (acFilter) {
+      vehicles = vehicles.filter(v => {
+        const isAC = v.acAvailable !== false; // default to AC if not specified
+        return acFilter === 'AC' ? isAC : !isAC;
+      });
+    }
+
+    if (seaterFilter) {
+      vehicles = vehicles.filter(v => v.seatingCapacity === seaterFilter);
+    }
+
+    vehicles.sort((a, b) => {
+      const aAvailable = pricing[a.id] && pricing[a.id].totalBeforeGst > 0;
+      const bAvailable = pricing[b.id] && pricing[b.id].totalBeforeGst > 0;
+      if (aAvailable && !bAvailable) return -1;
+      if (!aAvailable && bAvailable) return 1;
+      if (priceSortOrder && aAvailable && bAvailable) {
+        const aPrice = pricing[a.id].totalBeforeGst;
+        const bPrice = pricing[b.id].totalBeforeGst;
+        if (priceSortOrder === 'low_to_high') return aPrice - bPrice;
+        if (priceSortOrder === 'high_to_low') return bPrice - aPrice;
+      }
+      return 0;
+    });
+
+    return vehicles;
+  }, [vehicleCategories, vehicleSearchQuery, vehicleTypeFilter, acFilter, seaterFilter, priceSortOrder, pricing]);
+
+  /* ─── Render: Vehicle Card ─── */
+  const [failedImages, setFailedImages] = useState({});
+
   const renderVehicleCard = (vehicle) => {
     const vehiclePrice = pricing[vehicle.id];
     const isSelected = selectedVehicle?.id === vehicle.id;
     const isAvailable = vehiclePrice && vehiclePrice.totalBeforeGst > 0;
-
+    const imageUrl = vehicle.image ? `${BASE_URL}${vehicle.image}` : null;
+    const showImage = imageUrl && !failedImages[vehicle.id];
     return (
       <TouchableOpacity
         key={vehicle.id}
@@ -569,38 +655,43 @@ export default function CarRentalFleetScreen({ navigation, route }) {
           isSelected && styles.vehicleCardSelected,
           !isAvailable && styles.vehicleCardUnavailable
         ]}
-        onPress={() => isAvailable && setSelectedVehicle(vehicle)}
+        onPress={() => isAvailable && setSelectedVehicle(isSelected ? null : vehicle)}
         activeOpacity={isAvailable ? 0.9 : 1}
         disabled={!isAvailable}
       >
+        {/* Vehicle Type Badge */}
+        <View style={styles.vehicleTypeBadge}>
+          <Text style={styles.vehicleType}>{vehicle.name.includes('Sedan') ? 'Standard' : 'Premium'}</Text>
+        </View>
+
         <View style={styles.vehicleCardTop}>
-          <View style={styles.vehicleImageWrap}>
-            {vehicle.image ? (
+          <View style={[styles.vehicleImageWrap, isSelected && styles.vehicleImageWrapSelected]}>
+            {showImage ? (
               <Image
-                source={{ uri: `${BASE_URL}${vehicle.image}` }}
+                source={{ uri: imageUrl }}
                 style={styles.vehicleImage}
                 resizeMode="contain"
+                onError={() => setFailedImages(prev => ({ ...prev, [vehicle.id]: true }))}
               />
             ) : (
-              <MaterialCommunityIcons name="car" size={42} color="#CBD5E1" />
+              <MaterialCommunityIcons name="car" size={wp('10%')} color="#CBD5E1" />
             )}
           </View>
 
           <View style={styles.vehicleMainInfo}>
-            <Text style={styles.vehicleType}>{vehicle.name.includes('Sedan') ? 'Standard' : 'Premium'}</Text>
-            <Text style={styles.vehicleName}>{vehicle.name}</Text>
+            <Text style={[styles.vehicleName, isSelected && styles.vehicleNameSelected]}>{vehicle.name}</Text>
 
             <View style={styles.vehicleStats}>
               <View style={styles.statItem}>
-                <Ionicons name="people-outline" size={14} color={TEXT_SECONDARY} />
+                <Ionicons name="people-outline" size={wp('3.5%')} color={TEXT_SECONDARY} />
                 <Text style={styles.statText}>{vehicle.seatingCapacity}</Text>
               </View>
               <View style={styles.statItem}>
-                <Ionicons name="briefcase-outline" size={14} color={TEXT_SECONDARY} />
+                <Ionicons name="briefcase-outline" size={wp('3.5%')} color={TEXT_SECONDARY} />
                 <Text style={styles.statText}>{vehicle.luggageCapacity || '2-3'}</Text>
               </View>
               <View style={styles.statItem}>
-                <Ionicons name="snow-outline" size={14} color={TEXT_SECONDARY} />
+                <Ionicons name="snow-outline" size={wp('3.5%')} color={TEXT_SECONDARY} />
                 <Text style={styles.statText}>AC</Text>
               </View>
             </View>
@@ -621,17 +712,20 @@ export default function CarRentalFleetScreen({ navigation, route }) {
           {isAvailable ? (
             <>
               <View style={styles.priceBadge}>
-                <Text style={styles.currency}>₹</Text>
-                <Text style={styles.vehiclePrice}>
+                <Text style={styles.priceUnit}>starting from </Text>
+                <Text style={[styles.currency, isSelected && styles.currencySelected]}>&#8377;</Text>
+                <Text style={[styles.vehiclePrice, isSelected && styles.vehiclePriceSelected]}>
                   {vehiclePrice.totalBeforeGst?.toLocaleString()}
                 </Text>
-                <Text style={styles.priceUnit}> / total</Text>
               </View>
-              <Text style={styles.inclusiveLabel}>All inclusive</Text>
+              <View style={styles.inclusiveBadge}>
+                <Ionicons name="checkmark-circle" size={wp('3.5%')} color={TEAL} />
+                <Text style={styles.inclusiveLabel}>All inclusive</Text>
+              </View>
             </>
           ) : (
             <View style={styles.unavailableBadge}>
-              <Ionicons name="close-circle" size={16} color="#EF4444" />
+              <Ionicons name="close-circle" size={wp('4%')} color="#EF4444" />
               <Text style={styles.unavailableText}>Route Not Available</Text>
             </View>
           )}
@@ -639,56 +733,66 @@ export default function CarRentalFleetScreen({ navigation, route }) {
 
         {isSelected && (
           <View style={styles.selectedBadge}>
-            <Ionicons name="checkmark-circle" size={28} color={BRAND_TEAL} />
+            <LinearGradient colors={[TEAL, TEAL_MID]} style={styles.selectedBadgeGradient}>
+              <Icon name="check" size={wp('4%')} color="#fff" />
+            </LinearGradient>
           </View>
         )}
       </TouchableOpacity>
     );
   };
 
+  /* ─── Render: Step 1 — Trip Details ─── */
   const renderStep1 = () => (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={{ flex: 1 }}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
+    <ScrollView
+      ref={scrollViewRef}
+      style={styles.stepContent}
+      keyboardShouldPersistTaps="handled"
+      showsVerticalScrollIndicator={false}
+      scrollEventThrottle={16}
+      contentContainerStyle={{ paddingBottom: hp('3%') }}
     >
-      <ScrollView
-        ref={scrollViewRef}
-        style={styles.stepContent}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-        scrollEventThrottle={16}
-        contentContainerStyle={{ paddingBottom: 120 }}
+      {/* Hero Section with Dark Teal Gradient */}
+      <LinearGradient
+        colors={[TEAL_DEEP, TEAL_MID, '#047857']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.heroWrapper}
       >
-        {/* Compact Hero Section for Trip Type */}
-        <View style={styles.heroWrapper}>
-          <Text style={styles.heroTitle}>Select Trip Type</Text>
+        <View style={[styles.heroDecoCircle, { top: -wp('8%'), right: -wp('5%'), width: wp('25%'), height: wp('25%') }]} />
+        <View style={[styles.heroDecoCircle, { bottom: -wp('4%'), left: -wp('4%'), width: wp('16%'), height: wp('16%') }]} />
 
-          <View style={styles.tripTypeGrid}>
-            {TRIP_TYPES.map((type) => {
-              const isActive = tripType === type.id;
-              return (
-                <TouchableOpacity
-                  key={type.id}
-                  style={[styles.tripTypeCard, isActive && styles.tripTypeCardActive]}
-                  onPress={() => {
-                    setTripType(type.id);
-                    setFromLocation(null);
-                    setToLocation(null);
-                    setSelectedPackage(null);
-                  }}
-                >
-                  <View style={[styles.tripTypeIcon, isActive && styles.tripTypeIconActive]}>
-                    <Icon name={type.icon} size={16} color={isActive ? '#fff' : BRAND_TEAL} />
-                  </View>
-                  <Text style={[styles.tripTypeLabel, isActive && styles.tripTypeLabelActive]}>
-                    {type.label}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
+        <Text style={styles.heroTitle}>Select Trip Type</Text>
+        <Text style={styles.heroSubtitle}>Choose your preferred travel style</Text>
+
+        <View style={styles.tripTypeGrid}>
+          {TRIP_TYPES.map((type) => {
+            const isActive = tripType === type.id;
+            return (
+              <TouchableOpacity
+                key={type.id}
+                style={[styles.tripTypeCard, isActive && styles.tripTypeCardActive]}
+                onPress={() => {
+                  setTripType(type.id);
+                  setFromLocation(null);
+                  setToLocation(null);
+                  setSelectedPackage(null);
+                }}
+              >
+                <View style={[styles.tripTypeIcon, isActive && styles.tripTypeIconActive]}>
+                  <Icon name={type.icon} size={wp('4%')} color={isActive ? '#fff' : TEAL} />
+                </View>
+                <Text style={[styles.tripTypeLabel, isActive && styles.tripTypeLabelActive]}>
+                  {type.label}
+                </Text>
+                <Text style={[styles.tripTypeDesc, isActive && styles.tripTypeDescActive]}>
+                  {type.desc}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
         </View>
+      </LinearGradient>
 
       {/* Airport Direction (only for airport trips) */}
       {tripType === 'airport' && (
@@ -704,8 +808,8 @@ export default function CarRentalFleetScreen({ navigation, route }) {
             >
               <MaterialCommunityIcons
                 name={dir.icon}
-                size={22}
-                color={airportDirection === dir.id ? GREEN : '#64748B'}
+                size={wp('5.5%')}
+                color={airportDirection === dir.id ? TEAL : TEXT_SECONDARY}
               />
               <Text style={[
                 styles.airportDirLabel,
@@ -728,78 +832,189 @@ export default function CarRentalFleetScreen({ navigation, route }) {
       {tripType === 'local' && localPackages.length > 0 && renderPackageSelector()}
 
       {/* Date & Time */}
-      <View style={styles.dateTimeRow}>
-        <TouchableOpacity style={styles.dateCard} onPress={() => openDatePicker('pickup')}>
-          <Text style={styles.dateLabel}>PICKUP DATE</Text>
-          <View style={styles.dateContent}>
-            <Ionicons name="calendar-outline" size={16} color="#0F172A" />
-            <Text style={styles.dateValue}>
-              {pickupDate.toLocaleDateString('en-US', {
-                day: '2-digit', month: 'short', year: 'numeric'
-              })}
-            </Text>
-          </View>
-        </TouchableOpacity>
+      {tripType === 'round_trip' ? (
+        <>
+          <View style={styles.dateTimeRow}>
+            <TouchableOpacity style={styles.dateCard} onPress={() => openDatePicker('pickup')}>
+              <Text style={styles.dateLabel}>PICKUP DATE</Text>
+              <View style={styles.dateContent}>
+                <Ionicons name="calendar-outline" size={wp('4%')} color={TEAL_MID} />
+                <Text style={styles.dateValue}>
+                  {pickupDate.toLocaleDateString('en-US', {
+                    day: '2-digit', month: 'short', year: 'numeric'
+                  })}
+                </Text>
+              </View>
+            </TouchableOpacity>
 
-        {tripType === 'round_trip' && (
-          <TouchableOpacity style={styles.dateCard} onPress={() => openDatePicker('return')}>
-            <Text style={styles.dateLabel}>RETURN DATE</Text>
+            <TouchableOpacity style={styles.dateCard} onPress={() => openDatePicker('return')}>
+              <Text style={styles.dateLabel}>RETURN DATE</Text>
+              <View style={styles.dateContent}>
+                <Ionicons name="calendar-outline" size={wp('4%')} color={TEAL_MID} />
+                <Text style={styles.dateValue}>
+                  {returnDate.toLocaleDateString('en-US', {
+                    day: '2-digit', month: 'short', year: 'numeric'
+                  })}
+                </Text>
+              </View>
+            </TouchableOpacity>
+          </View>
+          <View style={styles.dateTimeRow}>
+            <TouchableOpacity style={styles.dateCard} onPress={openTimePicker}>
+              <Text style={styles.dateLabel}>PICKUP TIME</Text>
+              <View style={styles.dateContent}>
+                <Ionicons name="time-outline" size={wp('4%')} color={TEAL_MID} />
+                <Text style={styles.dateValue}>{pickupTime}</Text>
+              </View>
+            </TouchableOpacity>
+          </View>
+        </>
+      ) : (
+        <View style={styles.dateTimeRow}>
+          <TouchableOpacity style={styles.dateCard} onPress={() => openDatePicker('pickup')}>
+            <Text style={styles.dateLabel}>PICKUP DATE</Text>
             <View style={styles.dateContent}>
-              <Ionicons name="calendar-outline" size={16} color="#0F172A" />
+              <Ionicons name="calendar-outline" size={wp('4%')} color={TEAL_MID} />
               <Text style={styles.dateValue}>
-                {returnDate.toLocaleDateString('en-US', {
+                {pickupDate.toLocaleDateString('en-US', {
                   day: '2-digit', month: 'short', year: 'numeric'
                 })}
               </Text>
             </View>
           </TouchableOpacity>
-        )}
 
-        <TouchableOpacity style={styles.timeCard} onPress={openTimePicker}>
-          <Text style={styles.dateLabel}>TIME</Text>
-          <View style={styles.dateContent}>
-            <Ionicons name="time-outline" size={16} color="#0F172A" />
-            <Text style={styles.dateValue}>{pickupTime}</Text>
-          </View>
-        </TouchableOpacity>
-      </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+          <TouchableOpacity style={styles.timeCard} onPress={openTimePicker}>
+            <Text style={styles.dateLabel}>TIME</Text>
+            <View style={styles.dateContent}>
+              <Ionicons name="time-outline" size={wp('4%')} color={TEAL_MID} />
+              <Text style={styles.dateValue}>{pickupTime}</Text>
+            </View>
+          </TouchableOpacity>
+        </View>
+      )}
+    </ScrollView>
   );
 
+  /* ─── Render: Step 2 — Vehicle Selection ─── */
   const renderStep2 = () => (
     <View style={{ flex: 1 }}>
-      <View style={styles.stepInfoBox}>
-        <Text style={styles.sectionTitle}>Select Vehicle</Text>
-        <Text style={styles.sectionSubtitle}>
-          {tripType === 'local' ? `${selectedPackage?.hours}hr / ${selectedPackage?.kms}km` : `${fromLocation?.name} to ${toLocation?.name}`}
-        </Text>
-      </View>
 
-      <ScrollView style={styles.stepContent} showsVerticalScrollIndicator={false}>
+      {/* Search Bar + Filter Button */}
+      {!loadingPrices && vehicleCategories.filter(v => v.isActive).length > 0 && (
+        <View style={styles.searchFilterRow}>
+          <View style={styles.searchBar}>
+            <Ionicons name="search" size={wp('4.5%')} color={TEAL} />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search vehicles..."
+              placeholderTextColor={TEXT_MUTED}
+              value={vehicleSearchQuery}
+              onChangeText={setVehicleSearchQuery}
+              returnKeyType="search"
+            />
+            {vehicleSearchQuery.length > 0 && (
+              <TouchableOpacity onPress={() => setVehicleSearchQuery('')}>
+                <Ionicons name="close-circle" size={wp('4.5%')} color={TEXT_MUTED} />
+              </TouchableOpacity>
+            )}
+          </View>
+          <TouchableOpacity
+            style={[styles.filterButton, (vehicleTypeFilter || acFilter || seaterFilter || priceSortOrder) && styles.filterButtonActive]}
+            onPress={() => setShowFilterModal(true)}
+          >
+            <Ionicons name="options-outline" size={wp('5%')} color={(vehicleTypeFilter || acFilter || seaterFilter || priceSortOrder) ? '#fff' : TEAL} />
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* Active Filters */}
+      {(vehicleTypeFilter || acFilter || seaterFilter || priceSortOrder) && !loadingPrices && (
+        <View style={styles.activeFiltersRow}>
+          {vehicleTypeFilter && (
+            <View style={styles.activeFilterChip}>
+              <Text style={styles.activeFilterText}>{vehicleTypeFilter}</Text>
+              <TouchableOpacity onPress={() => setVehicleTypeFilter(null)}>
+                <Ionicons name="close-circle" size={wp('3.5%')} color={TEAL_MID} />
+              </TouchableOpacity>
+            </View>
+          )}
+          {acFilter && (
+            <View style={styles.activeFilterChip}>
+              <Text style={styles.activeFilterText}>{acFilter}</Text>
+              <TouchableOpacity onPress={() => setAcFilter(null)}>
+                <Ionicons name="close-circle" size={wp('3.5%')} color={TEAL_MID} />
+              </TouchableOpacity>
+            </View>
+          )}
+          {seaterFilter && (
+            <View style={styles.activeFilterChip}>
+              <Text style={styles.activeFilterText}>{seaterFilter} Seater</Text>
+              <TouchableOpacity onPress={() => setSeaterFilter(null)}>
+                <Ionicons name="close-circle" size={wp('3.5%')} color={TEAL_MID} />
+              </TouchableOpacity>
+            </View>
+          )}
+          {priceSortOrder && (
+            <View style={styles.activeFilterChip}>
+              <Text style={styles.activeFilterText}>
+                {priceSortOrder === 'low_to_high' ? 'Price: Low to High' : 'Price: High to Low'}
+              </Text>
+              <TouchableOpacity onPress={() => setPriceSortOrder(null)}>
+                <Ionicons name="close-circle" size={wp('3.5%')} color={TEAL_MID} />
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
+      )}
+
+      <ScrollView
+        style={styles.stepContent}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: hp('3%') }}
+        keyboardShouldPersistTaps="handled"
+      >
         {loadingPrices ? (
           <View style={styles.loadingWrap}>
-            <ActivityIndicator size="large" color={BRAND_TEAL} />
+            <ActivityIndicator size="large" color={TEAL} />
             <Text style={styles.loadingText}>Fetching best prices...</Text>
+          </View>
+        ) : filteredVehicles.length === 0 ? (
+          <View style={styles.emptySearchWrap}>
+            <Ionicons name="car-outline" size={wp('12%')} color={TEXT_MUTED} />
+            <Text style={styles.emptySearchTitle}>No vehicles found</Text>
+            <Text style={styles.emptySearchSubtitle}>Try adjusting your search or filters</Text>
+            <TouchableOpacity
+              style={styles.clearAllFiltersBtn}
+              onPress={() => { setVehicleSearchQuery(''); setVehicleTypeFilter(null); setAcFilter(null); setSeaterFilter(null); setPriceSortOrder(null); }}
+            >
+              <Text style={styles.clearAllFiltersBtnText}>Clear All Filters</Text>
+            </TouchableOpacity>
           </View>
         ) : (
           <View style={styles.vehicleList}>
-            {vehicleCategories.filter(v => v.isActive).map(renderVehicleCard)}
+            {filteredVehicles.map(renderVehicleCard)}
           </View>
         )}
-        <View style={{ height: 120 }} />
       </ScrollView>
     </View>
   );
 
+  /* ─── Render: Step 3 — Confirmation ─── */
   const renderStep3 = () => (
-    <ScrollView style={styles.stepContent} showsVerticalScrollIndicator={false}>
+    <ScrollView
+      style={styles.stepContent}
+      showsVerticalScrollIndicator={false}
+      contentContainerStyle={{ paddingBottom: hp('3%') }}
+    >
       <View style={styles.summaryCard}>
+        {/* Teal Accent Stripe */}
+        <LinearGradient colors={[TEAL_DEEP, TEAL_MID]} style={styles.summaryAccentStripe} />
+
         <View style={styles.summaryHeader}>
-          <View style={[styles.vehicleImageWrap, { width: 60, height: 40, marginRight: 12 }]}>
-            <MaterialCommunityIcons name="car-hatchback" size={32} color={BRAND_TEAL} />
-          </View>
-          <View>
+          <LinearGradient colors={[TEAL_DEEP, TEAL_MID]} style={styles.summaryVehicleIcon}>
+            <MaterialCommunityIcons name="car-hatchback" size={wp('7%')} color="#fff" />
+          </LinearGradient>
+          <View style={{ flex: 1 }}>
             <Text style={styles.summaryTitle}>{selectedVehicle?.name}</Text>
             <Text style={styles.summaryLabel}>{selectedVehicle?.seatingCapacity} Seating Capacity</Text>
           </View>
@@ -811,7 +1026,7 @@ export default function CarRentalFleetScreen({ navigation, route }) {
           <Text style={styles.summaryLabel}>Trip Type</Text>
           <Text style={styles.summaryValue}>{tripType.charAt(0).toUpperCase() + tripType.slice(1)}</Text>
         </View>
-        <View style={styles.summaryRow}>
+        <View style={[styles.summaryRow, styles.summaryRowAlt]}>
           <Text style={styles.summaryLabel}>Pickup</Text>
           <Text style={styles.summaryValue}>{fromLocation?.name}</Text>
         </View>
@@ -827,7 +1042,7 @@ export default function CarRentalFleetScreen({ navigation, route }) {
             <Text style={styles.summaryValue}>{selectedPackage?.hours}hr / {selectedPackage?.kms}km</Text>
           </View>
         )}
-        <View style={styles.summaryRow}>
+        <View style={[styles.summaryRow, styles.summaryRowAlt]}>
           <Text style={styles.summaryLabel}>Date & Time</Text>
           <Text style={styles.summaryValue}>
             {pickupDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })} | {pickupTime}
@@ -836,243 +1051,287 @@ export default function CarRentalFleetScreen({ navigation, route }) {
 
         <View style={styles.summaryDivider} />
 
-        <View style={[styles.summaryRow, styles.totalRow]}>
-          <Text style={styles.totalLabel}>Total Fare</Text>
-          <Text style={styles.totalValue}>₹{pricing[selectedVehicle?.id]?.totalBeforeGst?.toLocaleString() || '--'}</Text>
+        {/* Gradient Total Fare */}
+        <LinearGradient colors={[TEAL_DEEP, TEAL_MID]} style={styles.totalFareGradient}>
+          <Text style={styles.totalLabelWhite}>Total Fare</Text>
+          <Text style={styles.totalValueWhite}>&#8377;{pricing[selectedVehicle?.id]?.totalBeforeGst?.toLocaleString() || '--'}</Text>
+        </LinearGradient>
+
+        {/* Advance Payment Info */}
+        <View style={styles.advancePaymentBox}>
+          <View style={styles.advancePaymentRow}>
+            <View style={styles.advanceIconCircle}>
+              <Ionicons name="wallet-outline" size={wp('4.5%')} color={TEAL} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.advanceLabel}>Advance Payment (20%)</Text>
+              <Text style={styles.advanceHint}>Pay now to confirm your booking</Text>
+            </View>
+            <Text style={styles.advanceAmount}>
+              &#8377;{Math.round((pricing[selectedVehicle?.id]?.totalBeforeGst || 0) * 0.2).toLocaleString()}
+            </Text>
+          </View>
+          <View style={styles.advanceDivider} />
+          <View style={styles.advancePaymentRow}>
+            <View style={[styles.advanceIconCircle, { backgroundColor: '#FEF3C7' }]}>
+              <Ionicons name="time-outline" size={wp('4.5%')} color="#F59E0B" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.advanceLabel}>Remaining Balance</Text>
+              <Text style={styles.advanceHint}>Pay later before trip starts</Text>
+            </View>
+            <Text style={[styles.advanceAmount, { color: TEXT_SECONDARY }]}>
+              &#8377;{Math.round((pricing[selectedVehicle?.id]?.totalBeforeGst || 0) * 0.8).toLocaleString()}
+            </Text>
+          </View>
         </View>
       </View>
 
       <View style={styles.contactCard}>
         <Text style={styles.contactTitle}>Customer Details</Text>
         <View style={styles.contactRow}>
-          <Ionicons name="person-outline" size={16} color={TEXT_SECONDARY} />
-          <Text style={styles.contactValue}>{customer?.name}</Text>
+          <View style={styles.contactIconCircle}>
+            <Ionicons name="person-outline" size={wp('4%')} color={TEAL} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.contactFieldLabel}>Name</Text>
+            <Text style={styles.contactValue}>{customer?.name}</Text>
+          </View>
         </View>
         <View style={styles.contactRow}>
-          <Ionicons name="call-outline" size={16} color={TEXT_SECONDARY} />
-          <Text style={styles.contactValue}>{customer?.phone}</Text>
+          <View style={styles.contactIconCircle}>
+            <Ionicons name="call-outline" size={wp('4%')} color={TEAL} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.contactFieldLabel}>Phone</Text>
+            <Text style={styles.contactValue}>{customer?.phone}</Text>
+          </View>
         </View>
       </View>
-
-      <View style={{ height: 120 }} />
     </ScrollView>
   );
 
-  const [utr, setUtr] = useState('');
-
-  const handlePayVia = (app) => {
-    const advanceAmount = Math.round((pricing[selectedVehicle?.id]?.totalBeforeGst || 0) * 0.2);
-    const upiId = bankDetails?.upiId || 'transrentals@kotak';
-    const payeeName = bankDetails?.accountHolderName || 'TransRentals';
-
-    const upiUrl = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(payeeName)}&am=${advanceAmount}&cu=INR`;
-
-    let appUrl = '';
-    switch(app) {
-      case 'gpay':
-        appUrl = `gpay://upi/pay?pa=${upiId}&pn=${encodeURIComponent(payeeName)}&am=${advanceAmount}&cu=INR`;
-        break;
-      case 'phonepe':
-        appUrl = `phonepe://pay?pa=${upiId}&pn=${encodeURIComponent(payeeName)}&am=${advanceAmount}&cu=INR`;
-        break;
-      case 'paytm':
-        appUrl = `paytmmp://pay?pa=${upiId}&pn=${encodeURIComponent(payeeName)}&am=${advanceAmount}&cu=INR`;
-        break;
-      default:
-        appUrl = upiUrl;
-    }
-
-    Linking.canOpenURL(appUrl)
-      .then((supported) => {
-        if (supported) {
-          return Linking.openURL(appUrl);
-        } else {
-          // Fallback to generic UPI
-          return Linking.openURL(upiUrl);
-        }
-      })
-      .catch((err) => {
-        Alert.alert('Error', 'Unable to open payment app. Please pay manually using UPI ID.');
-        console.log('Payment app error:', err);
-      });
-  };
-
-  const renderStep4 = () => {
-    const advanceAmount = Math.round((pricing[selectedVehicle?.id]?.totalBeforeGst || 0) * 0.2);
-    const upiId = bankDetails?.upiId || 'transrentals@kotak';
-    const qrCodeUrl = bankDetails?.upiQrCode
-      ? `${BASE_URL}${bankDetails.upiQrCode}`
-      : `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=upi://pay?pa=${upiId}&pn=TransRentals&am=${advanceAmount}`;
-
-    return (
-      <ScrollView style={styles.stepContent} showsVerticalScrollIndicator={false}>
-        <View style={styles.paymentCard}>
-          <Text style={styles.paymentTitle}>Advance Payment</Text>
-          <Text style={styles.paymentSubtitle}>Please pay the advance amount using UPI</Text>
-
-          <View style={styles.advanceRow}>
-            <Text style={styles.advanceLabel}>Advance to Pay (20%):</Text>
-            <Text style={styles.advanceValue}>
-              ₹{advanceAmount.toLocaleString()}
-            </Text>
-          </View>
-
-          {/* Pay Via Buttons */}
-          <View style={styles.payViaSection}>
-            <Text style={styles.payViaTitle}>Pay via</Text>
-            <View style={styles.payViaButtons}>
-              <TouchableOpacity style={styles.payViaBtn} onPress={() => handlePayVia('gpay')}>
-                <Image
-                  source={require('../../../assets/google-logo.png')}
-                  style={styles.payViaIcon}
-                  resizeMode="contain"
-                />
-                <Text style={styles.payViaBtnText}>Google Pay</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity style={styles.payViaBtn} onPress={() => handlePayVia('phonepe')}>
-                <Image
-                  source={require('../../../assets/phonepe.png')}
-                  style={styles.payViaIcon}
-                  resizeMode="contain"
-                />
-                <Text style={styles.payViaBtnText}>PhonePe</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity style={styles.payViaBtn} onPress={() => handlePayVia('paytm')}>
-                <Image
-                  source={require('../../../assets/paytm.jpg')}
-                  style={styles.payViaIcon}
-                  resizeMode="contain"
-                />
-                <Text style={styles.payViaBtnText}>Paytm</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          <View style={styles.dividerWithText}>
-            <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>OR SCAN QR CODE</Text>
-            <View style={styles.dividerLine} />
-          </View>
-
-          <View style={styles.qrContainer}>
-            <Image
-              source={{ uri: qrCodeUrl }}
-              style={styles.qrImage}
-            />
-            <Text style={styles.upiId}>UPI ID: {upiId}</Text>
-          </View>
-
-          <View style={styles.utrSection}>
-            <Text style={styles.inputLabel}>Enter UTR / Transaction ID</Text>
-            <TextInput
-              style={styles.utrInput}
-              value={utr}
-              onChangeText={setUtr}
-              placeholder="e.g. 123456789012"
-              keyboardType="number-pad"
-            />
-            <Text style={styles.utrHint}>Please enter the 12-digit UTR number after payment</Text>
-          </View>
-        </View>
-
-        <View style={{ height: 120 }} />
-      </ScrollView>
-    );
-  };
-
-
+  /* ─── Loading State ─── */
   if (loading) {
     return (
-      <SafeAreaView style={styles.safe}>
+      <SafeAreaView style={styles.safe} edges={['bottom']}>
+        <StatusBar barStyle="light-content" backgroundColor={TEAL_DEEP} />
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={GREEN} />
+          <ActivityIndicator size="large" color={TEAL} />
         </View>
       </SafeAreaView>
     );
   }
 
-  return (
-    <SafeAreaView style={styles.safe}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backBtn}
-          onPress={() => {
-            if (step === 4 && bookingConfirmed) {
-              // After booking confirmation, redirect to booking details
-              navigation.navigate('BookingConfirmation', {
-                booking_id: confirmedBookingId,
-                bookingType: 'chauffeur',
-              });
-            } else if (step > 1) {
-              // Go to previous step
-              setStep(step - 1);
-            } else {
-              // On step 1, go back to previous screen
-              navigation.goBack();
-            }
-          }}
-        >
-          <Icon name="arrow-left" size={20} color="#0F172A" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>
-          {step === 1 ? 'Car Rental' : step === 2 ? 'Select Vehicle' : step === 3 ? 'Confirm Booking' : 'Payment'}
-        </Text>
-        <View style={{ width: 40 }} />
-          <TouchableOpacity
-                  onPress={() => navigation.navigate('MyCarBookings')}
-                  style={styles.myBookingsBtn}
-                >
-                  <Ionicons name="document-text-outline" size={20} color={GREEN} />
-                </TouchableOpacity>
-      </View>
+  /* ─── Render: Filter Modal ─── */
+  const renderFilterModal = () => (
+    <Modal
+      visible={showFilterModal}
+      animationType="slide"
+      transparent={true}
+      onRequestClose={() => setShowFilterModal(false)}
+    >
+      <View style={styles.filterModalOverlay}>
+        <View style={styles.filterModal}>
+          <LinearGradient colors={[TEAL_DEEP, TEAL_MID]} style={styles.filterModalAccent} />
 
-      {/* Steps Indicator */}
-      <View style={styles.stepsRow}>
-        {[1, 2, 3, 4].map((s) => (
-          <View key={s} style={styles.stepItem}>
-            <View style={[styles.stepCircle, step >= s && styles.stepCircleActive]}>
-              {step > s ? (
-                <Icon name="check" size={14} color="#fff" />
-              ) : (
-                <Text style={[styles.stepNumber, step >= s && styles.stepNumberActive]}>{s}</Text>
-              )}
+          <View style={styles.filterModalHeader}>
+            <View style={styles.filterModalTitleRow}>
+              <View style={styles.filterModalIcon}>
+                <Ionicons name="options" size={wp('4.5%')} color={TEAL} />
+              </View>
+              <Text style={styles.filterModalTitle}>Filters</Text>
             </View>
-            <Text style={[styles.stepLabel, step >= s && styles.stepLabelActive]}>
-              {s === 1 ? 'Details' : s === 2 ? 'Vehicle' : s === 3 ? 'Confirm' : 'Payment'}
-            </Text>
+            <TouchableOpacity style={styles.filterModalCloseBtn} onPress={() => setShowFilterModal(false)}>
+              <Ionicons name="close" size={wp('5%')} color={TEXT_SECONDARY} />
+            </TouchableOpacity>
           </View>
+
+          <ScrollView style={styles.filterModalContent} showsVerticalScrollIndicator={false}>
+            <Text style={styles.filterLabel}>Vehicle Type</Text>
+            <View style={styles.filterOptions}>
+              {[{ value: null, label: 'All' }, { value: 'Standard', label: 'Standard' }, { value: 'Premium', label: 'Premium' }].map(option => (
+                <TouchableOpacity
+                  key={option.label}
+                  style={[styles.filterChip, vehicleTypeFilter === option.value && styles.filterChipActive]}
+                  onPress={() => setVehicleTypeFilter(option.value)}
+                >
+                  <Text style={[styles.filterChipText, vehicleTypeFilter === option.value && styles.filterChipTextActive]}>
+                    {option.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <Text style={styles.filterLabel}>AC / Non-AC</Text>
+            <View style={styles.filterOptions}>
+              {[{ value: null, label: 'All' }, { value: 'AC', label: 'AC' }, { value: 'Non-AC', label: 'Non-AC' }].map(option => (
+                <TouchableOpacity
+                  key={option.label}
+                  style={[styles.filterChip, acFilter === option.value && styles.filterChipActive]}
+                  onPress={() => setAcFilter(option.value)}
+                >
+                  <Text style={[styles.filterChipText, acFilter === option.value && styles.filterChipTextActive]}>
+                    {option.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <Text style={styles.filterLabel}>Seater</Text>
+            <View style={styles.filterOptions}>
+              {[{ value: null, label: 'All' }, { value: 4, label: '4 Seater' }, { value: 5, label: '5 Seater' }, { value: 7, label: '7 Seater' }].map(option => (
+                <TouchableOpacity
+                  key={option.label}
+                  style={[styles.filterChip, seaterFilter === option.value && styles.filterChipActive]}
+                  onPress={() => setSeaterFilter(option.value)}
+                >
+                  <Text style={[styles.filterChipText, seaterFilter === option.value && styles.filterChipTextActive]}>
+                    {option.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <Text style={styles.filterLabel}>Sort By Price</Text>
+            <View style={styles.filterOptions}>
+              {[{ value: null, label: 'Default' }, { value: 'low_to_high', label: 'Low to High' }, { value: 'high_to_low', label: 'High to Low' }].map(option => (
+                <TouchableOpacity
+                  key={option.label}
+                  style={[styles.filterChip, priceSortOrder === option.value && styles.filterChipActive]}
+                  onPress={() => setPriceSortOrder(option.value)}
+                >
+                  <Text style={[styles.filterChipText, priceSortOrder === option.value && styles.filterChipTextActive]}>
+                    {option.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </ScrollView>
+
+          <View style={styles.filterModalActions}>
+            <TouchableOpacity
+              style={styles.filterClearBtn}
+              onPress={() => { setVehicleTypeFilter(null); setAcFilter(null); setSeaterFilter(null); setPriceSortOrder(null); }}
+            >
+              <Text style={styles.filterClearBtnText}>Clear All</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.filterApplyBtnWrap} onPress={() => setShowFilterModal(false)}>
+              <LinearGradient colors={[TEAL_MID, TEAL]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.filterApplyBtn}>
+                <Text style={styles.filterApplyBtnText}>Apply Filters</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+
+  /* ─── Main Return ─── */
+  return (
+    <SafeAreaView style={styles.safe} edges={['bottom']}>
+      <StatusBar barStyle="light-content" backgroundColor={TEAL_DEEP} />
+
+      {/* Header with Dark Teal Gradient */}
+      <LinearGradient
+        colors={[TEAL_DEEP, TEAL_MID, '#047857']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.header}
+      >
+        <View style={[styles.decoCircle, { top: -wp('8%'), right: -wp('5%'), width: wp('26%'), height: wp('26%') }]} pointerEvents="none" />
+        <View style={[styles.decoCircle, { bottom: -wp('4%'), left: -wp('4%'), width: wp('16%'), height: wp('16%') }]} pointerEvents="none" />
+        <View style={styles.headerInner}>
+          <TouchableOpacity
+            style={styles.backBtn}
+            onPress={() => {
+              if (step > 1) {
+                setStep(step - 1);
+              } else {
+                navigation.goBack();
+              }
+            }}
+          >
+            <Ionicons name="chevron-back" size={wp('5.5%')} color="#FFF" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>
+            {step === 1 ? 'Car Rental' : step === 2 ? 'Select Vehicle' : 'Confirm Booking'}
+          </Text>
+          <TouchableOpacity
+            onPress={() => navigation.navigate('MyCarBookings')}
+            style={styles.headerIconBtn}
+          >
+            <Ionicons name="document-text-outline" size={wp('5%')} color="#FFF" />
+          </TouchableOpacity>
+        </View>
+      </LinearGradient>
+
+      {/* Steps Indicator with Connectors */}
+      <View style={styles.stepsRow}>
+        {[1, 2, 3].map((s, index) => (
+          <React.Fragment key={s}>
+            <View style={styles.stepItem}>
+              {step >= s ? (
+                <LinearGradient colors={[TEAL_DEEP, TEAL_MID]} style={styles.stepCircleActive}>
+                  {step > s ? (
+                    <Icon name="check" size={wp('3.5%')} color="#fff" />
+                  ) : (
+                    <Text style={[styles.stepNumber, styles.stepNumberActive]}>{s}</Text>
+                  )}
+                </LinearGradient>
+              ) : (
+                <View style={styles.stepCircle}>
+                  <Text style={styles.stepNumber}>{s}</Text>
+                </View>
+              )}
+              <Text style={[styles.stepLabel, step >= s && styles.stepLabelActive]}>
+                {s === 1 ? 'Details' : s === 2 ? 'Vehicle' : 'Confirm'}
+              </Text>
+            </View>
+            {index < 2 && <View style={[styles.stepConnector, step > s && styles.stepConnectorActive]} />}
+          </React.Fragment>
         ))}
       </View>
 
-      {/* Content */}
-      {step === 1 && renderStep1()}
-      {step === 2 && renderStep2()}
-      {step === 3 && renderStep3()}
-      {step === 4 && renderStep4()}
+      {/* Content + Bottom Bar in KeyboardAvoidingView */}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={{ flex: 1 }}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
+      >
+        <View style={{ flex: 1 }}>
+          {step === 1 && renderStep1()}
+          {step === 2 && renderStep2()}
+          {step === 3 && renderStep3()}
+        </View>
 
-      {/* Bottom Button */}
-      <View style={styles.bottomBar}>
-        <TouchableOpacity
-          style={[styles.nextBtn, submitting && styles.nextBtnDisabled]}
-          onPress={() => {
-            if (step === 3) setStep(4);
-            else if (step === 4) handleBooking();
-            else handleNext();
-          }}
-          disabled={submitting || loadingPrices}
-        >
-          {submitting ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text style={styles.nextBtnText}>
-              {step === 3 ? 'Proceed to Payment' : step === 4 ? 'Confirm & Book' : 'Continue'}
-            </Text>
-          )}
-        </TouchableOpacity>
-      </View>
+        {/* Bottom Button with Gradient */}
+        <View style={styles.bottomBar}>
+          <TouchableOpacity
+            style={[styles.nextBtnWrap, submitting && styles.nextBtnDisabled]}
+            onPress={() => {
+              if (step === 3) handleBooking();
+              else handleNext();
+            }}
+            disabled={submitting || loadingPrices}
+          >
+            <LinearGradient
+              colors={submitting ? ['#94A3B8', '#94A3B8'] : [TEAL_MID, TEAL]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.nextBtn}
+            >
+              {submitting ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.nextBtnText}>
+                  {step === 3 ? 'Confirm & Pay' : 'Continue'}
+                </Text>
+              )}
+            </LinearGradient>
+          </TouchableOpacity>
+        </View>
+      </KeyboardAvoidingView>
 
       {/* iOS Date Picker Modal */}
       {showDatePicker && Platform.OS === 'ios' && (
@@ -1104,595 +1363,1131 @@ export default function CarRentalFleetScreen({ navigation, route }) {
           </View>
         </Modal>
       )}
+
+      {/* Vehicle Filter Modal */}
+      {renderFilterModal()}
     </SafeAreaView>
   );
 }
 
+/* ═══════════════════════════════════════════════════════════
+   STYLES — Premium Dark Teal Design System
+   ═══════════════════════════════════════════════════════════ */
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: BG },
-  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  safe: {
+    flex: 1,
+    backgroundColor: BG,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: BG,
+  },
 
-  // Header
+  /* ── Header ── */
   header: {
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + 8 : 8,
+    paddingBottom: hp('2%'),
+    paddingHorizontal: wp('4%'),
+    borderBottomLeftRadius: wp('6%'),
+    borderBottomRightRadius: wp('6%'),
+    overflow: 'hidden',
+    ...Platform.select({
+      ios: { shadowColor: TEAL_DEEP, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 12 },
+      android: { elevation: 8 },
+    }),
+  },
+  decoCircle: {
+    position: 'absolute',
+    borderRadius: wp('50%'),
+    backgroundColor: 'rgba(255,255,255,0.06)',
+  },
+  headerInner: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
   },
   backBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: BG,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  headerTitle: { fontSize: 17, fontWeight: '700', color: '#0F172A' },
-
-  // Steps
-  stepsRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: 16,
-    backgroundColor: '#fff',
-    gap: 32,
-  },
-  stepItem: { alignItems: 'center' },
-  stepCircle: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: '#E2E8F0',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
-  stepCircleActive: { backgroundColor: GREEN },
-  stepNumber: { fontSize: 13, fontWeight: '600', color: '#94A3B8' },
-  stepNumberActive: { color: '#fff' },
-  stepLabel: { fontSize: 12, color: '#94A3B8' },
-  stepLabelActive: { color: GREEN, fontWeight: '600' },
-
-  // Content
-  stepContent: { flex: 1, padding: 16 },
-  sectionTitle: { fontSize: 18, fontWeight: '700', color: '#0F172A', marginBottom: 12 },
-  sectionSubtitle: { fontSize: 14, color: '#64748B', marginBottom: 16 },
-
-  // Hero - Compact Version
-  heroWrapper: {
-    backgroundColor: BRAND_TEAL,
-    marginHorizontal: -16,
-    marginTop: -16,
-    padding: 16,
-    paddingBottom: 20,
-    borderBottomLeftRadius: 24,
-    borderBottomRightRadius: 24,
-    marginBottom: 20,
-  },
-  heroTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#fff',
-    marginBottom: 14,
-    textAlign: 'center',
-  },
-  heroSubtitle: {
-    fontSize: 12,
-    color: 'rgba(255,255,255,0.8)',
-    marginBottom: 16,
-  },
-
-  // Trip Type - Compact Version
-  tripTypeGrid: {
-    flexDirection: 'row',
-    gap: 6,
-  },
-  tripTypeCard: {
-    flex: 1,
+    width: wp('10.5%'),
+    height: wp('10.5%'),
+    borderRadius: wp('5.25%'),
     backgroundColor: 'rgba(255,255,255,0.15)',
-    borderRadius: 12,
-    padding: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerTitle: {
+    fontSize: wp('4.8%'),
+    fontWeight: '800',
+    color: '#FFFFFF',
+    letterSpacing: 0.4,
+  },
+  headerIconBtn: {
+    width: wp('10.5%'),
+    height: wp('10.5%'),
+    borderRadius: wp('5.25%'),
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.2)',
   },
+
+  /* ── Step Indicator ── */
+  stepsRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: hp('1%'),
+    backgroundColor: CARD,
+    ...Platform.select({
+      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 4 },
+      android: { elevation: 2 },
+    }),
+  },
+  stepItem: {
+    alignItems: 'center',
+  },
+  stepCircle: {
+    width: wp('7%'),
+    height: wp('7%'),
+    borderRadius: wp('3.5%'),
+    backgroundColor: '#E5E7EB',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: hp('0.3%'),
+    borderWidth: 1.5,
+    borderColor: '#E5E7EB',
+  },
+  stepCircleActive: {
+    width: wp('7%'),
+    height: wp('7%'),
+    borderRadius: wp('3.5%'),
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: hp('0.3%'),
+  },
+  stepNumber: {
+    fontSize: wp('2.8%'),
+    fontWeight: '600',
+    color: TEXT_MUTED,
+  },
+  stepNumberActive: {
+    color: '#fff',
+  },
+  stepLabel: {
+    fontSize: wp('2.4%'),
+    color: TEXT_MUTED,
+  },
+  stepLabelActive: {
+    color: TEAL,
+    fontWeight: '600',
+  },
+  stepConnector: {
+    width: wp('10%'),
+    height: 2,
+    backgroundColor: '#E5E7EB',
+    borderRadius: 1,
+    marginHorizontal: wp('1.5%'),
+  },
+  stepConnectorActive: {
+    backgroundColor: TEAL,
+  },
+
+  /* ── Content ── */
+  stepContent: {
+    flex: 1,
+    padding: wp('4%'),
+  },
+  sectionTitle: {
+    fontSize: wp('5.2%'),
+    fontWeight: '800',
+    color: TEXT_PRIMARY,
+    marginBottom: hp('0.4%'),
+  },
+  sectionSubtitle: {
+    fontSize: wp('3.5%'),
+    color: TEXT_SECONDARY,
+    marginBottom: 0,
+  },
+
+  /* ── Step 2 Info Box ── */
+  stepInfoBox: {
+    backgroundColor: CARD,
+    borderBottomWidth: 1,
+    borderBottomColor: DIVIDER,
+    overflow: 'hidden',
+  },
+  stepInfoAccent: {
+    height: 3,
+    backgroundColor: TEAL,
+  },
+  stepInfoContent: {
+    paddingHorizontal: wp('5%'),
+    paddingVertical: hp('1.6%'),
+  },
+
+  /* ── Hero — Dark Teal Gradient ── */
+  heroWrapper: {
+    marginHorizontal: -wp('4%'),
+    marginTop: -wp('4%'),
+    paddingTop: hp('3%'),
+    paddingHorizontal: wp('4%'),
+    paddingBottom: hp('3.5%'),
+    borderBottomLeftRadius: wp('7%'),
+    borderBottomRightRadius: wp('7%'),
+    marginBottom: hp('3%'),
+    overflow: 'hidden',
+    ...Platform.select({
+      ios: { shadowColor: TEAL_DEEP, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.30, shadowRadius: 16 },
+      android: { elevation: 10 },
+    }),
+  },
+  heroDecoCircle: {
+    position: 'absolute',
+    borderRadius: wp('50%'),
+    backgroundColor: 'rgba(255,255,255,0.06)',
+  },
+  heroTitle: {
+    fontSize: wp('5.2%'),
+    fontWeight: '800',
+    color: '#fff',
+    marginBottom: hp('0.5%'),
+    textAlign: 'center',
+    letterSpacing: 0.5,
+  },
+  heroSubtitle: {
+    fontSize: wp('3.2%'),
+    color: 'rgba(255,255,255,0.75)',
+    marginBottom: hp('2%'),
+    textAlign: 'center',
+  },
+
+  /* ── Trip Type — Glassmorphic Cards on Teal ── */
+  tripTypeGrid: {
+    flexDirection: 'row',
+    gap: isSmallScreen ? wp('1.5%') : wp('2.5%'),
+  },
+  tripTypeCard: {
+    flex: 1,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    borderRadius: wp('4%'),
+    padding: wp('2.5%'),
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.18)',
+  },
   tripTypeCardActive: {
     backgroundColor: '#fff',
     borderColor: '#fff',
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    ...Platform.select({
+      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.14, shadowRadius: 8 },
+      android: { elevation: 8 },
+    }),
+    transform: [{ scale: 1.02 }],
   },
   tripTypeIcon: {
-    width: 28,
-    height: 28,
-    borderRadius: 10,
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    width: wp('9%'),
+    height: wp('9%'),
+    borderRadius: wp('4.5%'),
+    backgroundColor: 'rgba(255,255,255,0.22)',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 6,
+    marginBottom: hp('0.7%'),
   },
-  tripTypeIconActive: { backgroundColor: BRAND_TEAL },
-  tripTypeLabel: { fontSize: 11, fontWeight: '700', color: '#fff' },
-  tripTypeLabelActive: { color: BRAND_TEAL },
+  tripTypeIconActive: {
+    backgroundColor: TEAL,
+    ...SHADOW_TEAL,
+  },
+  tripTypeLabel: {
+    fontSize: wp('2.8%'),
+    fontWeight: '700',
+    color: '#fff',
+  },
+  tripTypeLabelActive: {
+    color: TEAL_MID,
+  },
+  tripTypeDesc: {
+    fontSize: wp('2.3%'),
+    color: 'rgba(255,255,255,0.55)',
+    marginTop: hp('0.3%'),
+    textAlign: 'center',
+  },
+  tripTypeDescActive: {
+    color: TEXT_SECONDARY,
+  },
 
-  // Airport Direction
+  /* ── Airport Direction Cards ── */
   airportDirectionWrap: {
     flexDirection: 'row',
-    gap: 10,
-    marginBottom: 20,
+    gap: wp('2.5%'),
+    marginBottom: hp('2.5%'),
   },
   airportDirCard: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
+    gap: wp('2%'),
+    backgroundColor: CARD,
+    borderRadius: wp('4%'),
+    padding: wp('4%'),
+    borderWidth: 1.5,
+    borderColor: BORDER,
+    ...SHADOW_SM,
   },
   airportDirCardActive: {
-    borderColor: GREEN,
-    backgroundColor: 'rgba(9, 179, 104, 0.05)',
+    borderColor: TEAL,
+    borderWidth: 2,
+    backgroundColor: 'rgba(16, 185, 129, 0.04)',
+    ...Platform.select({
+      ios: { shadowColor: TEAL, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.15, shadowRadius: 8 },
+      android: { elevation: 4 },
+    }),
   },
-  airportDirLabel: { fontSize: 13, color: '#64748B', fontWeight: '500' },
-  airportDirLabelActive: { color: GREEN },
+  airportDirLabel: {
+    fontSize: wp('3.3%'),
+    color: TEXT_SECONDARY,
+    fontWeight: '500',
+  },
+  airportDirLabelActive: {
+    color: TEAL_MID,
+    fontWeight: '600',
+  },
 
-  // Location Inputs
-  locationsSection: { marginBottom: 16 },
-  inputGroup: { marginBottom: 16, position: 'relative', zIndex: 10 },
-  inputLabel: { fontSize: 13, fontWeight: '600', color: '#64748B', marginBottom: 6 },
+  /* ── Location Inputs ── */
+  locationsSection: {
+    marginBottom: hp('2%'),
+    zIndex: 30,
+    elevation: 30,
+    overflow: 'visible',
+  },
+  inputGroup: {
+    marginBottom: hp('2%'),
+    position: 'relative',
+    zIndex: 10,
+  },
+  inputLabel: {
+    fontSize: wp('3%'),
+    fontWeight: '700',
+    color: TEXT_SECONDARY,
+    marginBottom: hp('0.8%'),
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+  },
   locationRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    paddingHorizontal: 12,
-    minHeight: 50,
-    gap: 10,
+    backgroundColor: CARD,
+    borderRadius: wp('4%'),
+    borderWidth: 1.5,
+    borderColor: BORDER,
+    paddingHorizontal: wp('3%'),
+    minHeight: hp('6.5%'),
+    gap: wp('2.5%'),
+    ...SHADOW_SM,
   },
-  locationInput: { flex: 1, fontSize: 15, color: '#0F172A' },
+  locationIconWrap: {
+    width: wp('8%'),
+    height: wp('8%'),
+    borderRadius: wp('4%'),
+    backgroundColor: TEAL_LIGHT,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  locationInput: {
+    flex: 1,
+    fontSize: wp('3.8%'),
+    color: TEXT_PRIMARY,
+    paddingVertical: 0,
+  },
   suggestionsBox: {
     position: 'absolute',
     top: '100%',
     left: 0,
     right: 0,
-    backgroundColor: '#fff',
-    borderRadius: 12,
+    backgroundColor: CARD,
+    borderRadius: wp('4%'),
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    marginTop: 4,
+    borderColor: BORDER,
+    marginTop: hp('0.5%'),
     zIndex: 999,
-    elevation: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
+    ...Platform.select({
+      ios: { shadowColor: TEAL_DEEP, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.12, shadowRadius: 16 },
+      android: { elevation: 10 },
+    }),
   },
   suggestionItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 14,
-    paddingVertical: 12,
+    paddingHorizontal: wp('3.5%'),
+    paddingVertical: hp('1.5%'),
     borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
-    gap: 10,
+    borderBottomColor: DIVIDER,
+    gap: wp('2.5%'),
   },
-  suggestionText: { flex: 1, fontSize: 14, color: '#0F172A' },
-  suggestionCode: { fontSize: 12, color: '#94A3B8', fontWeight: '600' },
+  suggestionText: {
+    flex: 1,
+    fontSize: wp('3.5%'),
+    color: TEXT_PRIMARY,
+  },
+  suggestionCode: {
+    fontSize: wp('3%'),
+    color: TEAL_MID,
+    fontWeight: '600',
+    backgroundColor: TEAL_LIGHT,
+    paddingHorizontal: wp('1.5%'),
+    paddingVertical: hp('0.3%'),
+    borderRadius: wp('1%'),
+    overflow: 'hidden',
+  },
 
-  // Package Selector
+  /* ── Package Selector ── */
   packageChip: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    marginRight: 10,
+    paddingHorizontal: wp('5%'),
+    paddingVertical: hp('1.8%'),
+    backgroundColor: CARD,
+    borderRadius: wp('6%'),
+    borderWidth: 1.5,
+    borderColor: BORDER,
+    marginRight: wp('2.5%'),
     alignItems: 'center',
+    minWidth: wp('28%'),
+  
   },
   packageChipSelected: {
-    borderColor: GREEN,
-    backgroundColor: 'rgba(9, 179, 104, 0.05)',
+    borderColor: TEAL,
+    borderWidth: 2,
+    backgroundColor: 'rgba(16, 185, 129, 0.04)',
+  
   },
-  packageName: { fontSize: 14, fontWeight: '600', color: '#0F172A' },
-  packageNameSelected: { color: GREEN },
+  packageName: {
+    fontSize: wp('3.5%'),
+    fontWeight: '600',
+    color: TEXT_PRIMARY,
+  },
+  packageNameSelected: {
+    color: TEAL_MID,
+  },
   popularBadge: {
     backgroundColor: '#FEF3C7',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-    marginTop: 4,
+    paddingHorizontal: wp('1.5%'),
+    paddingVertical: hp('0.3%'),
+    borderRadius: wp('1%'),
+    marginTop: hp('0.5%'),
   },
-  popularText: { fontSize: 10, color: '#D97706', fontWeight: '600' },
+  popularText: {
+    fontSize: wp('2.5%'),
+    color: '#D97706',
+    fontWeight: '600',
+  },
 
-  // Date/Time
+  /* ── Date / Time Cards ── */
   dateTimeRow: {
     flexDirection: 'row',
-    gap: 10,
-    marginBottom: 16,
+    gap: wp('2.5%'),
+    marginBottom: hp('2%'),
   },
   dateCard: {
     flex: 1,
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    padding: 12,
+    backgroundColor: CARD,
+    borderRadius: wp('2%'),
+    borderWidth: 1.5,
+    borderColor: BORDER,
+    padding: wp('3.5%'),
+    ...SHADOW_SM,
   },
   timeCard: {
-    width: 100,
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    padding: 12,
+    width: wp('26%'),
+    backgroundColor: CARD,
+    borderRadius: wp('4%'),
+    borderWidth: 1.5,
+    borderColor: BORDER,
+    padding: wp('3.5%'),
+    ...SHADOW_SM,
   },
   dateLabel: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: '#94A3B8',
+    fontSize: wp('2.5%'),
+    fontWeight: '700',
+    color: TEAL,
     textTransform: 'uppercase',
-    marginBottom: 6,
+    marginBottom: hp('0.7%'),
+    letterSpacing: 0.8,
   },
-  dateContent: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  dateValue: { fontSize: 13, fontWeight: '600', color: '#0F172A' },
+  dateContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: wp('1.5%'),
+  },
+  dateValue: {
+    fontSize: wp('3.5%'),
+    fontWeight: '700',
+    color: TEXT_PRIMARY,
+  },
 
-  // Vehicle Cards
-  loadingWrap: { alignItems: 'center', paddingVertical: 40 },
-  loadingText: { marginTop: 12, color: TEXT_SECONDARY },
-  vehicleList: { gap: 16, padding: 16 },
+  /* ── Vehicle Cards ── */
+  loadingWrap: {
+    alignItems: 'center',
+    paddingVertical: hp('8%'),
+  },
+  loadingText: {
+    marginTop: hp('1.5%'),
+    color: TEAL,
+    fontSize: wp('3.8%'),
+    fontWeight: '600',
+  },
+  vehicleList: {
+    gap: hp('2%'),
+    padding: wp('4%'),
+  },
   vehicleCard: {
     backgroundColor: CARD,
-    borderRadius: 20,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
+    borderRadius: wp('5.5%'),
+    padding: wp('4.5%'),
+    borderWidth: 1.5,
+    borderColor: BORDER,
+    ...Platform.select({
+      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.08, shadowRadius: 10 },
+      android: { elevation: 4 },
+    }),
   },
   vehicleCardSelected: {
-    borderColor: BRAND_TEAL,
-    borderWidth: 2,
-    backgroundColor: 'rgba(9, 179, 104, 0.02)',
+    borderColor: TEAL,
+    borderWidth: 1.5,
+    backgroundColor: CARD,
+    ...Platform.select({
+      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.10, shadowRadius: 10 },
+      android: { elevation: 4 },
+    }),
   },
   vehicleCardUnavailable: {
     opacity: 0.5,
-    backgroundColor: '#F8F9FA',
+    backgroundColor: BG,
     borderColor: '#E5E7EB',
+    borderStyle: 'dashed',
+  },
+  vehicleTypeBadge: {
+    position: 'absolute',
+    top: wp('3.5%'),
+    left: wp('4.5%'),
+    backgroundColor: TEAL_LIGHT,
+    paddingHorizontal: wp('2.5%'),
+    paddingVertical: hp('0.4%'),
+    borderRadius: wp('2%'),
+    zIndex: 1,
   },
   vehicleCardTop: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: hp('1.5%'),
+    marginTop: hp('3%'),
   },
   vehicleImageWrap: {
-    width: 100,
-    height: 70,
+    width: wp('26%'),
+    height: wp('18%'),
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#F8FAFC',
-    borderRadius: 12,
-    marginRight: 16,
+    borderRadius: wp('4%'),
+    marginRight: wp('4%'),
+    borderWidth: 1,
+    borderColor: BORDER,
   },
-  vehicleImage: { width: 90, height: 60 },
-  vehicleMainInfo: { flex: 1 },
-  vehicleName: { fontSize: 18, fontWeight: '800', color: TEXT_PRIMARY, marginBottom: 2 },
-  vehicleType: { fontSize: 12, color: BRAND_TEAL, fontWeight: '700', textTransform: 'uppercase' },
+  vehicleImageWrapSelected: {
+    borderColor: TEAL,
+    backgroundColor: 'rgba(16, 185, 129, 0.06)',
+  },
+  vehicleImage: {
+    width: wp('22%'),
+    height: wp('15%'),
+  },
+  vehicleMainInfo: {
+    flex: 1,
+  },
+  vehicleName: {
+    fontSize: wp('4.8%'),
+    fontWeight: '800',
+    color: TEXT_PRIMARY,
+    marginBottom: hp('0.7%'),
+  },
+  vehicleNameSelected: {
+    color: TEAL_DEEP,
+  },
+  vehicleType: {
+    fontSize: wp('3%'),
+    color: TEAL_MID,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+  },
 
   vehicleStats: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    marginTop: 8,
+    gap: wp('3%'),
+    marginTop: hp('1%'),
   },
   statItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: wp('1%'),
+    backgroundColor: '#F8FAFC',
+    paddingHorizontal: wp('2%'),
+    paddingVertical: hp('0.5%'),
+    borderRadius: wp('2%'),
   },
-  statText: { fontSize: 13, color: TEXT_SECONDARY, fontWeight: '500' },
+  statText: {
+    fontSize: wp('3.2%'),
+    color: TEXT_SECONDARY,
+    fontWeight: '500',
+  },
 
   vehicleExamples: {
-    fontSize: 12,
+    fontSize: wp('3%'),
     color: TEXT_SECONDARY,
-    backgroundColor: '#F1F5F9',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 8,
-    marginTop: 12,
+    backgroundColor: DIVIDER,
+    paddingHorizontal: wp('2.5%'),
+    paddingVertical: hp('0.5%'),
+    borderRadius: wp('2%'),
+    marginTop: hp('1.5%'),
   },
 
   vehicleFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 16,
-    paddingTop: 16,
+    marginTop: hp('2%'),
+    paddingTop: hp('2%'),
     borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
+    borderTopColor: DIVIDER,
   },
   priceBadge: {
     flexDirection: 'row',
     alignItems: 'baseline',
     gap: 2,
   },
-  currency: { fontSize: 16, fontWeight: '700', color: TEXT_PRIMARY },
-  vehiclePrice: { fontSize: 24, fontWeight: '800', color: TEXT_PRIMARY },
-  priceUnit: { fontSize: 12, color: TEXT_SECONDARY, fontWeight: '500' },
+  currency: {
+    fontSize: wp('4.5%'),
+    fontWeight: '800',
+    color: TEAL,
+  },
+  currencySelected: {
+    color: TEAL_DEEP,
+  },
+  vehiclePrice: {
+    fontSize: wp('6.2%'),
+    fontWeight: '900',
+    color: TEAL,
+  },
+  vehiclePriceSelected: {
+    color: TEAL_DEEP,
+  },
+  priceUnit: {
+    fontSize: wp('3%'),
+    color: TEXT_SECONDARY,
+    fontWeight: '500',
+  },
 
+  inclusiveBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: TEAL_LIGHT,
+    paddingHorizontal: wp('2.5%'),
+    paddingVertical: hp('0.7%'),
+    borderRadius: wp('2.5%'),
+    gap: wp('1%'),
+  },
   inclusiveLabel: {
-    fontSize: 11,
-    color: BRAND_TEAL,
+    fontSize: wp('2.8%'),
+    color: TEAL_MID,
     fontWeight: '700',
-    backgroundColor: 'rgba(9, 179, 104, 0.1)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
   },
 
   unavailableBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: wp('1.5%'),
     backgroundColor: 'rgba(239, 68, 68, 0.1)',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 8,
+    paddingHorizontal: wp('2.5%'),
+    paddingVertical: hp('0.7%'),
+    borderRadius: wp('2%'),
   },
   unavailableText: {
-    fontSize: 12,
+    fontSize: wp('3%'),
     color: '#EF4444',
     fontWeight: '600',
   },
 
-  selectedBadge: { position: 'absolute', top: -10, right: -10, backgroundColor: '#fff', borderRadius: 15, elevation: 4 },
+  selectedBadge: {
+    position: 'absolute',
+    top: -hp('1%'),
+    right: wp('3.5%'),
+  },
+  selectedBadgeGradient: {
+    width: wp('8.5%'),
+    height: wp('8.5%'),
+    borderRadius: wp('4.25%'),
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2.5,
+    borderColor: '#fff',
+    ...SHADOW_TEAL,
+  },
 
-  // Summary Card
+  /* ── Summary Card (Step 3) ── */
   summaryCard: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
+    backgroundColor: CARD,
+    borderRadius: wp('5.5%'),
+    marginBottom: hp('2%'),
+    borderWidth: 0,
+    overflow: 'hidden',
+    ...SHADOW_MD,
+  },
+  summaryAccentStripe: {
+    height: hp('0.5%'),
+    width: '100%',
   },
   summaryHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    marginBottom: 12,
+    gap: wp('2.5%'),
+    marginBottom: hp('1.5%'),
+    paddingHorizontal: wp('5%'),
+    paddingTop: hp('2.5%'),
   },
-  summaryTitle: { fontSize: 18, fontWeight: '700', color: '#0F172A' },
+  summaryVehicleIcon: {
+    width: wp('13%'),
+    height: wp('13%'),
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: wp('4%'),
+    marginRight: wp('3%'),
+    ...Platform.select({
+      ios: { shadowColor: TEAL_DEEP, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 8 },
+      android: { elevation: 4 },
+    }),
+  },
+  summaryTitle: {
+    fontSize: wp('5%'),
+    fontWeight: '800',
+    color: TEXT_PRIMARY,
+  },
   summaryDivider: {
     height: 1,
-    backgroundColor: '#F1F5F9',
-    marginVertical: 12,
+    backgroundColor: DIVIDER,
+    marginVertical: hp('1.5%'),
+    marginHorizontal: wp('5%'),
   },
   summaryRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 8,
+    paddingHorizontal: wp('5%'),
+    paddingVertical: hp('1.5%'),
   },
-  summaryLabel: { fontSize: 14, color: '#64748B' },
-  summaryValue: { fontSize: 14, fontWeight: '600', color: '#0F172A' },
-  priceRow: {
+  summaryRowAlt: {
+    backgroundColor: '#FAFBFC',
+  },
+  summaryLabel: {
+    fontSize: wp('3.5%'),
+    color: TEXT_SECONDARY,
+  },
+  summaryValue: {
+    fontSize: wp('3.5%'),
+    fontWeight: '600',
+    color: TEXT_PRIMARY,
+  },
+  totalFareGradient: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 6,
+    alignItems: 'center',
+    paddingHorizontal: wp('5%'),
+    paddingVertical: hp('2.2%'),
   },
-  priceValue: { fontSize: 14, color: '#0F172A' },
-  totalRow: {
-    marginTop: 8,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
+  totalLabelWhite: {
+    fontSize: wp('4%'),
+    color: 'rgba(255,255,255,0.85)',
+    fontWeight: '600',
   },
-  totalLabel: { fontSize: 16, fontWeight: '700', color: '#0F172A' },
-  totalValue: { fontSize: 18, fontWeight: '700', color: GREEN },
+  totalValueWhite: {
+    fontSize: wp('6%'),
+    fontWeight: '900',
+    color: '#fff',
+  },
 
-  // Contact Card
-  contactCard: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 16,
+  /* ── Advance Payment ── */
+  advancePaymentBox: {
+    marginHorizontal: wp('4%'),
+    marginTop: hp('1.5%'),
+    marginBottom: hp('1%'),
+    backgroundColor: '#F0FDF4',
+    borderRadius: wp('4%'),
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: TEAL_LIGHT,
+    paddingVertical: hp('1.5%'),
+    paddingHorizontal: wp('4%'),
   },
-  contactTitle: { fontSize: 15, fontWeight: '600', color: '#0F172A', marginBottom: 12 },
+  advancePaymentRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: wp('3%'),
+    paddingVertical: hp('0.8%'),
+  },
+  advanceIconCircle: {
+    width: wp('10%'),
+    height: wp('10%'),
+    borderRadius: wp('5%'),
+    backgroundColor: TEAL_LIGHT,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  advanceLabel: {
+    fontSize: wp('3.5%'),
+    fontWeight: '700',
+    color: TEXT_PRIMARY,
+  },
+  advanceHint: {
+    fontSize: wp('2.8%'),
+    color: TEXT_MUTED,
+    marginTop: hp('0.2%'),
+  },
+  advanceAmount: {
+    fontSize: wp('4.5%'),
+    fontWeight: '800',
+    color: TEAL_DEEP,
+  },
+  advanceDivider: {
+    height: 1,
+    backgroundColor: TEAL_LIGHT,
+    marginVertical: hp('0.8%'),
+    marginLeft: wp('13%'),
+  },
+
+  /* ── Contact Card ── */
+  contactCard: {
+    backgroundColor: CARD,
+    borderRadius: wp('5.5%'),
+    padding: wp('5%'),
+    borderWidth: 0,
+    marginBottom: hp('2%'),
+    ...SHADOW_SM,
+  },
+  contactTitle: {
+    fontSize: wp('3.8%'),
+    fontWeight: '700',
+    color: TEXT_PRIMARY,
+    marginBottom: hp('1.5%'),
+  },
   contactRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    marginBottom: 8,
+    gap: wp('3.5%'),
+    padding: wp('3.5%'),
+    borderRadius: wp('3.5%'),
+    marginBottom: hp('1%'),
+    borderWidth: 1,
+    borderColor: DIVIDER,
+    backgroundColor: '#FAFBFC',
   },
-  contactValue: { fontSize: 14, color: '#64748B' },
-
-  // Bottom Bar
-  bottomBar: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: '#fff',
-    padding: 16,
-    borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
-  },
-  nextBtn: {
-    backgroundColor: GREEN,
-    borderRadius: 12,
-    paddingVertical: 16,
+  contactIconCircle: {
+    width: wp('10%'),
+    height: wp('10%'),
+    borderRadius: wp('5%'),
+    backgroundColor: TEAL_LIGHT,
+    justifyContent: 'center',
     alignItems: 'center',
   },
-  nextBtnDisabled: { opacity: 0.6 },
-  nextBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  contactFieldLabel: {
+    fontSize: wp('2.8%'),
+    color: TEXT_MUTED,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  contactValue: {
+    fontSize: wp('3.8%'),
+    color: TEXT_PRIMARY,
+    fontWeight: '600',
+  },
 
-  // Picker Modal
+  /* ── Bottom Bar ── */
+  bottomBar: {
+    backgroundColor: CARD,
+    padding: wp('4%'),
+    borderTopWidth: 0,
+    ...Platform.select({
+      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: -6 }, shadowOpacity: 0.10, shadowRadius: 16 },
+      android: { elevation: 12 },
+    }),
+  },
+  nextBtnWrap: {
+    borderRadius: wp('4%'),
+    overflow: 'hidden',
+  },
+  nextBtn: {
+    borderRadius: wp('4%'),
+    paddingVertical: hp('2.1%'),
+    alignItems: 'center',
+    ...SHADOW_TEAL,
+  },
+  nextBtnDisabled: {
+    opacity: 0.6,
+  },
+  nextBtnText: {
+    color: '#fff',
+    fontSize: wp('4.3%'),
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+
+  /* ── Picker Modal ── */
   pickerModal: {
     flex: 1,
     justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0,0,0,0.4)',
+    backgroundColor: 'rgba(0,0,0,0.5)',
   },
   pickerContent: {
-    backgroundColor: '#fff',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    padding: 20,
+    backgroundColor: CARD,
+    borderTopLeftRadius: wp('6%'),
+    borderTopRightRadius: wp('6%'),
+    padding: wp('6%'),
   },
   pickerDoneBtn: {
-    backgroundColor: GREEN,
-    borderRadius: 12,
-    paddingVertical: 14,
+    backgroundColor: TEAL,
+    borderRadius: wp('3%'),
+    paddingVertical: hp('1.8%'),
     alignItems: 'center',
-    marginTop: 10,
+    marginTop: hp('1.2%'),
   },
-  pickerDoneBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
-  // Payment Card
-  paymentCard: {
-    backgroundColor: '#fff',
-    borderRadius: 20,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
+  pickerDoneBtnText: {
+    color: '#fff',
+    fontSize: wp('4%'),
+    fontWeight: '700',
   },
-  paymentTitle: { fontSize: 20, fontWeight: '800', color: TEXT_PRIMARY, marginBottom: 4 },
-  paymentSubtitle: { fontSize: 13, color: TEXT_SECONDARY, marginBottom: 20 },
 
-  advanceRow: {
+  /* ── Search & Filter (Step 2) ── */
+  searchFilterRow: {
     flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: wp('4%'),
+    paddingVertical: hp('1%'),
+    gap: wp('2.5%'),
+    backgroundColor: CARD,
+    borderBottomWidth: 1,
+    borderBottomColor: DIVIDER,
+  },
+  searchBar: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: BG,
+    borderRadius: wp('3.5%'),
+    paddingHorizontal: wp('4%'),
+    paddingVertical: Platform.OS === 'ios' ? hp('1.5%') : hp('0.8%'),
+    borderWidth: 1,
+    borderColor: BORDER,
+  },
+  searchInput: {
+    flex: 1,
+    marginLeft: wp('2.5%'),
+    fontSize: wp('3.8%'),
+    color: TEXT_PRIMARY,
+    fontWeight: '500',
+    paddingVertical: hp('0.8%'),
+  },
+  filterButton: {
+    width: wp('11%'),
+    height: wp('11%'),
+    borderRadius: wp('3%'),
+    backgroundColor: BG,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: BORDER,
+  },
+  filterButtonActive: {
+    backgroundColor: TEAL,
+    borderColor: TEAL,
+  },
+  activeFiltersRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    paddingHorizontal: wp('4%'),
+    paddingVertical: hp('0.8%'),
+    gap: wp('2%'),
+    backgroundColor: CARD,
+    borderBottomWidth: 1,
+    borderBottomColor: DIVIDER,
+  },
+  activeFilterChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: TEAL_LIGHT,
+    paddingHorizontal: wp('3%'),
+    paddingVertical: hp('0.5%'),
+    borderRadius: wp('4%'),
+    gap: wp('1.5%'),
+    borderWidth: 1,
+    borderColor: TEAL,
+  },
+  activeFilterText: {
+    fontSize: wp('2.8%'),
+    color: TEAL_MID,
+    fontWeight: '600',
+  },
+  emptySearchWrap: {
+    alignItems: 'center',
+    paddingVertical: hp('8%'),
+    paddingHorizontal: wp('6%'),
+  },
+  emptySearchTitle: {
+    fontSize: wp('4.5%'),
+    fontWeight: '700',
+    color: TEXT_PRIMARY,
+    marginTop: hp('2%'),
+  },
+  emptySearchSubtitle: {
+    fontSize: wp('3.5%'),
+    color: TEXT_SECONDARY,
+    marginTop: hp('0.5%'),
+    textAlign: 'center',
+  },
+  clearAllFiltersBtn: {
+    marginTop: hp('2%'),
+    paddingHorizontal: wp('5%'),
+    paddingVertical: hp('1.2%'),
+    backgroundColor: TEAL_LIGHT,
+    borderRadius: wp('3%'),
+    borderWidth: 1,
+    borderColor: TEAL,
+  },
+  clearAllFiltersBtnText: {
+    fontSize: wp('3.2%'),
+    fontWeight: '700',
+    color: TEAL_MID,
+  },
+
+  /* ── Filter Modal ── */
+  filterModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  filterModal: {
+    backgroundColor: CARD,
+    borderTopLeftRadius: wp('6%'),
+    borderTopRightRadius: wp('6%'),
+    maxHeight: '70%',
+    overflow: 'hidden',
+  },
+  filterModalAccent: {
+    height: hp('0.5%'),
+    width: '100%',
+  },
+  filterModalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: 'rgba(9, 179, 104, 0.05)',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 24,
+    paddingHorizontal: wp('5%'),
+    paddingVertical: hp('2%'),
+    borderBottomWidth: 1,
+    borderBottomColor: DIVIDER,
   },
-  advanceLabel: { fontSize: 14, fontWeight: '600', color: TEXT_PRIMARY },
-  advanceValue: { fontSize: 20, fontWeight: '800', color: BRAND_TEAL },
-
-  // Pay Via Section
-  payViaSection: {
-    marginTop: 20,
-    marginBottom: 16,
-  },
-  payViaTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: TEXT_PRIMARY,
-    marginBottom: 12,
-    textAlign: 'center',
-  },
-  payViaButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    gap: 10,
-  },
-  payViaBtn: {
-    flex: 1,
-    backgroundColor: '#fff',
-    borderWidth: 2,
-    borderColor: BRAND_TEAL,
-    borderRadius: 12,
-    paddingVertical: 12,
-    paddingHorizontal: 8,
-    alignItems: 'center',
-    elevation: 2,
-    shadowColor: BRAND_TEAL,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
-  },
-  payViaIcon: {
-    width: 32,
-    height: 32,
-    marginBottom: 4,
-  },
-  payViaBtnText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: TEXT_PRIMARY,
-    textAlign: 'center',
-  },
-
-  // Divider with text
-  dividerWithText: {
+  filterModalTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: 20,
+    gap: wp('2.5%'),
   },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: '#E2E8F0',
-  },
-  dividerText: {
-    marginHorizontal: 16,
-    fontSize: 12,
-    fontWeight: '600',
-    color: TEXT_SECONDARY,
-  },
-
-  qrContainer: {
+  filterModalIcon: {
+    width: wp('9%'),
+    height: wp('9%'),
+    borderRadius: wp('2.5%'),
+    backgroundColor: TEAL_LIGHT,
+    justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 24,
   },
-  qrImage: {
-    width: 200,
-    height: 200,
-    borderRadius: 12,
-    backgroundColor: '#f8fafc',
-    marginBottom: 12,
+  filterModalTitle: {
+    fontSize: wp('4.5%'),
+    fontWeight: '800',
+    color: TEXT_PRIMARY,
   },
-  upiId: {
-    fontSize: 14,
+  filterModalCloseBtn: {
+    width: wp('9%'),
+    height: wp('9%'),
+    borderRadius: wp('4.5%'),
+    backgroundColor: DIVIDER,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  filterModalContent: {
+    padding: wp('5%'),
+  },
+  filterLabel: {
+    fontSize: wp('3%'),
     fontWeight: '700',
-    color: TEXT_PRIMARY,
-    backgroundColor: '#F1F5F9',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-  },
-
-  utrSection: {
-    marginTop: 8,
-  },
-  utrInput: {
-    backgroundColor: '#F8FAFC',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    fontSize: 16,
-    color: TEXT_PRIMARY,
-    fontWeight: '600',
-    marginTop: 8,
-  },
-  utrHint: {
-    fontSize: 12,
     color: TEXT_SECONDARY,
-    marginTop: 8,
-    fontStyle: 'italic',
+    marginBottom: hp('1%'),
+    marginTop: hp('2%'),
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+  },
+  filterOptions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: wp('2%'),
+  },
+  filterChip: {
+    backgroundColor: DIVIDER,
+    paddingHorizontal: wp('4%'),
+    paddingVertical: hp('1%'),
+    borderRadius: wp('5%'),
+    borderWidth: 1.5,
+    borderColor: 'transparent',
+  },
+  filterChipActive: {
+    backgroundColor: TEAL_LIGHT,
+    borderColor: TEAL,
+  },
+  filterChipText: {
+    fontSize: wp('3.2%'),
+    color: TEXT_SECONDARY,
+    fontWeight: '500',
+  },
+  filterChipTextActive: {
+    color: TEAL_MID,
+    fontWeight: '700',
+  },
+  filterModalActions: {
+    flexDirection: 'row',
+    padding: wp('4%'),
+    gap: wp('2.5%'),
+    borderTopWidth: 1,
+    borderTopColor: DIVIDER,
+    backgroundColor: CARD,
+  },
+  filterClearBtn: {
+    flex: 1,
+    paddingVertical: hp('1.8%'),
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: BORDER,
+    borderRadius: wp('3.5%'),
+    backgroundColor: CARD,
+  },
+  filterClearBtnText: {
+    color: TEXT_SECONDARY,
+    fontWeight: '700',
+    fontSize: wp('3.5%'),
+  },
+  filterApplyBtnWrap: {
+    flex: 2,
+    borderRadius: wp('3.5%'),
+    overflow: 'hidden',
+  },
+  filterApplyBtn: {
+    paddingVertical: hp('1.8%'),
+    alignItems: 'center',
+    borderRadius: wp('3.5%'),
+  },
+  filterApplyBtnText: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: wp('3.8%'),
   },
 });

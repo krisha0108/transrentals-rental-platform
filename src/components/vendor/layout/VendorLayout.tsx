@@ -62,7 +62,6 @@ export function VendorLayout({ children }: VendorLayoutProps) {
     return () => clearInterval(interval);
   }, [status]);
 
-
   // Fetch fresh vendor status from database
   useEffect(() => {
     const fetchVendorStatus = async () => {

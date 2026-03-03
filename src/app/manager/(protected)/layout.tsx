@@ -3,15 +3,17 @@
 import React, { useState } from 'react';
 import { SessionProvider, useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { Loader2, Menu, X, Home, FileText, MapPin, Briefcase, LogOut, Users, Store, MessageSquare, Headphones } from 'lucide-react';
+import { Loader2, Menu, X, Home, FileText, MapPin, Briefcase, LogOut, Users, Store, MessageSquare, Headphones, TrendingUp } from 'lucide-react';
 import Link from 'next/link';
 import { signOut } from 'next-auth/react';
+import { ToastProvider } from '@/components/ui/toast';
 
 const SIDEBAR_LINKS = [
   { href: '/manager/dashboard', label: 'Dashboard', icon: Home },
   { href: '/manager/inquiries', label: 'My Inquiries', icon: FileText },
   { href: '/manager/bookings', label: 'My Bookings', icon: Briefcase },
   { href: '/manager/vendors', label: 'Vendors', icon: Store },
+  { href: '/manager/vendor-performance', label: 'Performance', icon: TrendingUp },
   { href: '/manager/chats', label: 'Chats', icon: MessageSquare },
   { href: '/manager/locations', label: 'My Locations', icon: MapPin },
   { href: '/manager/helpdesk', label: 'Helpdesk', icon: Headphones },
@@ -32,9 +34,8 @@ function ManagerSidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => v
 
       {/* Sidebar */}
       <aside
-        className={`fixed top-0 left-0 h-full w-64 bg-gradient-to-b from-green-600 to-teal-700 text-white z-50 transform transition-transform duration-300 ease-in-out ${
-          isOpen ? 'translate-x-0' : '-translate-x-full'
-        } lg:translate-x-0`}
+        className={`fixed top-0 left-0 h-full w-64 bg-gradient-to-b from-green-600 to-teal-700 text-white z-50 transform transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : '-translate-x-full'
+          } lg:translate-x-0`}
       >
         <div className="flex flex-col h-full">
           {/* Header */}
@@ -153,7 +154,9 @@ function ManagerLayoutContent({ children }: { children: React.ReactNode }) {
 export default function ManagerLayout({ children }: { children: React.ReactNode }) {
   return (
     <SessionProvider>
-      <ManagerLayoutContent>{children}</ManagerLayoutContent>
+      <ToastProvider>
+        <ManagerLayoutContent>{children}</ManagerLayoutContent>
+      </ToastProvider>
     </SessionProvider>
   );
 }

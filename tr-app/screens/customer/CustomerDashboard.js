@@ -32,6 +32,7 @@ import {
   heightPercentageToDP as hp,
 } from 'react-native-responsive-screen';
 import Icon from 'react-native-vector-icons/Feather';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import LinearGradient from 'react-native-linear-gradient';
@@ -39,13 +40,11 @@ import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { WebView } from 'react-native-webview';
 import VendorCard from '../../components/VendorCard'; // update path accordingly
 import Geolocation from 'react-native-geolocation-service';
+import DeviceInfo from 'react-native-device-info';
 import api, { BASE_URL } from '../api';
 import { bookingService, notificationService, profileService, fleetService } from '../services';
 import { LocationPermissionModal, ExitConfirmationModal } from '../../components/CustomModals';
-// SPIN AND WIN - COMMENTED OUT
 // import SpinAndWinModal from './SpinAndWinModal';
-// import AnimatedSpinFab from './AnimatedSpinFab';
-// import { useRoute } from '@react-navigation/native';
 
 
 
@@ -63,6 +62,9 @@ const TEXT_LIGHT = '#9CA3AF';
 const BG = '#F5F7FA';
 const CARD = '#FFFFFF';
 const SHADOW_COLOR = '#000000';
+const GREEN_GRADIENT_START = '#09B368';
+const GREEN_GRADIENT_END = '#07A55E';
+const CARD_BORDER = '#F0F2F5';
 
 // ────── RESPONSIVE HELPERS ──────
 const CARD_WIDTH = wp('42%');
@@ -142,24 +144,14 @@ const HOW_IT_WORKS = [
 
 export default function CustomerDashboard() {
   const [isLoading, setIsLoading] = useState(true);
-  // SPIN AND WIN - COMMENTED OUT
-  // const route = useRoute();
-  // const { openSpinModal } = route.params || {};
-  // useEffect(() => {
-  //   if (openSpinModal) {
-  //     setSpinOpen(true);
-  //   }
-  // }, [openSpinModal]);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  // const [spinOpen, setSpinOpen] = useState(false);
 
   const navigation = useNavigation();
-  // VENDOR SPOTLIGHT - REMOVED
-  // const [vendors, setVendors] = useState([]);
   const [userName, setUserName] = useState('');
   const [customerImage, setCustomerImage] = useState(null);
 
   const { width: winWidth } = useWindowDimensions();
-  // const [spinOpen, setSpinOpen] = useState(false); // SPIN AND WIN COMMENTED OUT
 
   // ────── STATE ──────
   const [location, setLocation] = useState('Detecting...');
@@ -176,11 +168,13 @@ export default function CustomerDashboard() {
   const [upcomingTrips, setUpcomingTrips] = useState([]);
   const [showLocationPermissionModal, setShowLocationPermissionModal] = useState(false);
   const [showExitModal, setShowExitModal] = useState(false);
+  const [showUpdateModal, setShowUpdateModal] = useState(false);
+  const [updateInfo, setUpdateInfo] = useState(null);
 
   // ────── ANIMATIONS ──────
   const scrollY = useRef(new Animated.Value(0)).current;
-  const headerOpacity = scrollY.interpolate({ inputRange: [0, 120], outputRange: [1, 0], extrapolate: 'clamp' });
-  const headerScale = scrollY.interpolate({ inputRange: [0, 120], outputRange: [1, 0.93], extrapolate: 'clamp' });
+  // Header shadow on scroll
+  const headerElevation = scrollY.interpolate({ inputRange: [0, 30], outputRange: [0, 1], extrapolate: 'clamp' });
   const fabAnim = useRef(new Animated.Value(1)).current;
   const modalSlide = useRef(new Animated.Value(height)).current;
   const skeletonAnim = useRef(new Animated.Value(0)).current;
@@ -308,30 +302,43 @@ export default function CustomerDashboard() {
       setDashboardStats({ active_bookings: 0, total_earnings: 0 });
     }
   };
-  // BACKR FUNCTIONALITY - COMMENTED OUT
-  // const fetchBackrStats = async () => {
-  //   try {
-  //     const customerData = await AsyncStorage.getItem('customer');
-  //     if (!customerData) return;
-  //     const customer = JSON.parse(customerData);
-  //     // same as BackrTokensScreen
-  //     const response = await api.get('/backr', { params: { customer_id: customer.id } });
-  //     // response.data.tokens.earned_tokens is what you want
-  //     const earned = response.data?.tokens?.earned_tokens ?? 0;
-  //     console.log(':dart: backr for dashboard:', earned);
-  //     setDashboardStats(prev => ({
-  //       ...prev,
-  //       total_earnings: earned,   // :point_left: put token earnings here
-  //     }));
-  //   } catch (e) {
-  //     console.log('backr fetch for dashboard failed', e.message);
-  //   }
-  // };
+  /* const fetchBackrStats = async () => {
+    try {
+      const customerData = await AsyncStorage.getItem('customer');
+      if (!customerData) return;
+      const customer = JSON.parse(customerData);
+      const response = await api.get('/backr', { params: { customer_id: customer.id } });
+      const earned = response.data?.tokens?.earned_tokens ?? 0;
+      setDashboardStats(prev => ({
+        ...prev,
+        total_earnings: earned,
+      }));
+    } catch (e) {
+      console.log('backr fetch for dashboard failed', e.message);
+    }
+  }; */
 
   const requestLocationPermission = async () => {
-    // Show custom modal first
+    // Check if permission is already granted at OS level
+    if (Platform.OS === 'android') {
+      const alreadyGranted = await PermissionsAndroid.check(
+        PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION
+      );
+      if (alreadyGranted) {
+        setLocationPermissionGranted(true);
+        getCurrentLocation();
+        return;
+      }
+    }
+
+    // Check if user previously dismissed our modal
+    const dismissed = await AsyncStorage.getItem('locationPermissionDismissed');
+    if (dismissed === 'true') {
+      return; // Don't show modal again if user denied before
+    }
+
+    // Show custom modal only if permission not granted and not previously dismissed
     setShowLocationPermissionModal(true);
-    return false; // Will handle permission after user clicks allow
   };
 
   const handleLocationAllow = async () => {
@@ -362,6 +369,8 @@ export default function CustomerDashboard() {
   const handleLocationDeny = () => {
     setShowLocationPermissionModal(false);
     setLocationPermissionGranted(false);
+    // Remember that user dismissed, so we don't ask again
+    AsyncStorage.setItem('locationPermissionDismissed', 'true');
   };
 
   const getAddressFromCoords = async (latitude, longitude) => {
@@ -472,6 +481,7 @@ export default function CustomerDashboard() {
           .map(q => ({
             id: q.id,
             service_name: q.service_name,
+            service_type: q.service_type || '',
             location: q.location_name || '',
             destination: q.destination || '',
             date: q.journey_datetime,
@@ -493,6 +503,23 @@ export default function CustomerDashboard() {
   };
 
 
+  // ────── CHECK FOR APP UPDATE ──────
+  const checkForUpdate = async () => {
+    try {
+      const response = await api.get('/app-version');
+      if (response.data?.success) {
+        const { latestVersion, forceUpdate, updateMessage, playStoreUrl } = response.data;
+        const currentVersion = DeviceInfo.getVersion();
+        if (latestVersion && latestVersion !== currentVersion) {
+          setUpdateInfo({ latestVersion, forceUpdate, updateMessage, playStoreUrl });
+          setShowUpdateModal(true);
+        }
+      }
+    } catch (e) {
+      // Silently fail — update check is non-critical
+    }
+  };
+
   // ────── LIFECYCLE ──────
   useEffect(() => {
     // Fade-in the whole screen
@@ -505,6 +532,9 @@ export default function CustomerDashboard() {
 
     // Request location permission
     requestLocationPermission();
+
+    // Check for app updates
+    checkForUpdate();
 
   }, []);
 
@@ -611,7 +641,6 @@ export default function CustomerDashboard() {
         fetchRecentQuotes(),
         fetchUnreadNotificationCount(),
       ]);
-// console.log('[handleRefresh] Refresh completed successfully');
     } catch (e) {
 // console.log('[handleRefresh] Error:', e.message);
     } finally {
@@ -715,31 +744,51 @@ export default function CustomerDashboard() {
   );
 
   const QuickStats = () => (
-    <View style={styles.statsRow}>
-      <View style={styles.statBox}>
-        <Text style={styles.statValue}>{dashboardStats.active_bookings}</Text>
-        <Text style={styles.statLabel}>Active Bookings</Text>
-      </View>
-      {/* BACKR FUNCTIONALITY COMMENTED OUT */}
-      {/* <TouchableOpacity onPress={() => navigation.navigate('BackrTokensScreen')}>
-        <View style={styles.statBox}>
-          <Text style={styles.statValue}>
-            {Number(dashboardStats.total_earnings || 0).toLocaleString('en-IN')}
-          </Text>
-          <Text style={styles.statLabel}>Backr Earned</Text>
+    <TouchableOpacity activeOpacity={0.85} onPress={() => navigation.navigate('MyBookings')}>
+      <LinearGradient
+        colors={['#064E3B', '#065F46', '#047857']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.statsGlassCard}
+      >
+        {/* Deco circles */}
+        <View style={[styles.statsDecoCircle, { top: -20, right: -15, width: 80, height: 80 }]} />
+        <View style={[styles.statsDecoCircle, { bottom: -10, left: -10, width: 50, height: 50 }]} />
+
+        <View style={styles.statsInnerRow}>
+          {/* Active Bookings */}
+          <View style={styles.statItem}>
+            <View style={[styles.statIconWrap, { backgroundColor: 'rgba(16,185,129,0.25)' }]}>
+              <Icon name="calendar" size={20} color="#34D399" />
+            </View>
+            <Text style={styles.statValue}>{dashboardStats.active_bookings}</Text>
+            <Text style={styles.statLabel}>Active Bookings</Text>
+          </View>
+
+          <View style={styles.statDivider} />
+
+          {/* Upcoming Trips */}
+          <View style={styles.statItem}>
+            <View style={[styles.statIconWrap, { backgroundColor: 'rgba(96,165,250,0.25)' }]}>
+              <Icon name="map-pin" size={20} color="#60A5FA" />
+            </View>
+            <Text style={styles.statValue}>{upcomingTrips.length}</Text>
+            <Text style={styles.statLabel}>Upcoming Trips</Text>
+          </View>
+
+          <View style={styles.statDivider} />
+
+          {/* Active Quotes */}
+          <View style={styles.statItem}>
+            <View style={[styles.statIconWrap, { backgroundColor: 'rgba(251,191,36,0.25)' }]}>
+              <Icon name="file-text" size={20} color="#FBBF24" />
+            </View>
+            <Text style={styles.statValue}>{recentQuotes.length}</Text>
+            <Text style={styles.statLabel}>Active Quotes</Text>
+          </View>
         </View>
-      </TouchableOpacity> */}
-
-      <View style={styles.statBox}>
-        <Text style={styles.statValue}>{upcomingTrips.length}</Text>
-        <Text style={styles.statLabel}>Upcoming Trips</Text>
-      </View>
-
-      <View style={styles.statBox}>
-        <Text style={styles.statValue}>{recentQuotes.length}</Text>
-        <Text style={styles.statLabel}>Active Quotes</Text>
-      </View>
-    </View>
+      </LinearGradient>
+    </TouchableOpacity>
   );
 
   const HowItWorksSection = () => (
@@ -823,7 +872,9 @@ export default function CustomerDashboard() {
       <View style={styles.tipsGrid}>
         {SAFETY_TIPS.map((tip, i) => (
           <View key={i} style={styles.tipBox}>
-            <Icon name={tip.icon} size={wp('6%')} color={GOLD} />
+            <View style={styles.tipIconCircle}>
+              <Icon name={tip.icon} size={wp('5.5%')} color={BRAND_TEAL} />
+            </View>
             <Text style={styles.tipText}>{tip.label}</Text>
           </View>
         ))}
@@ -840,64 +891,64 @@ export default function CustomerDashboard() {
       {/* <AnimatedSpinFab onPress={() => setSpinOpen(true)} /> */}
 
 
-      <StatusBar barStyle="light-content" backgroundColor="#1C1C1C" />
+      <StatusBar barStyle="light-content" backgroundColor="#0A6B3F" />
 
-      {/* FIXED ANIMATED HEADER - REDESIGNED */}
-      <Animated.View style={[styles.fixedHeader, { opacity: headerOpacity, transform: [{ scale: headerScale }] }]}>
-        {/* Top Row - Profile & Notification */}
-        <View style={styles.headerTopRow}>
-          {/* Profile Section */}
-          <TouchableOpacity
-            onPress={() => navigation.navigate('SettingScreen')}
-            style={styles.profileSection}
-            activeOpacity={0.8}
-          >
-            {customerImage ? (
-              <Image source={{ uri: customerImage }} style={styles.profileAvatar} />
-            ) : (
-              <View style={styles.profileAvatarPlaceholder}>
-                <Icon name="user" size={20} color={BRAND_TEAL} />
-              </View>
-            )}
-            <View style={styles.profileInfo}>
-              <Text style={styles.greetingLabel}>Welcome back,</Text>
-              <Text style={styles.userName} numberOfLines={1} ellipsizeMode="tail">
-                {userName}
-              </Text>
-            </View>
-          </TouchableOpacity>
+      {/* FIXED PREMIUM HEADER */}
+      <View style={styles.fixedHeader}>
+        <LinearGradient colors={['#0A6B3F', '#09B368']} start={{x: 0, y: 0}} end={{x: 1, y: 1}} style={styles.headerGradientBg}>
 
-          {/* Notification Button */}
-          <TouchableOpacity
-            style={styles.notificationBtn}
-            onPress={() => navigation.navigate('Notifications')}
-            activeOpacity={0.7}
-          >
-            <View style={styles.notificationIconWrapper}>
-              <Icon name="bell" size={20} color={TEXT_PRIMARY} />
-              {unreadCount > 0 && (
-                <View style={styles.notificationBadge}>
-                  <Text style={styles.notificationBadgeText}>
-                    {unreadCount > 9 ? '9+' : unreadCount}
-                  </Text>
+          {/* Top Row - Profile & Actions */}
+          <View style={styles.headerTopRow}>
+            <TouchableOpacity
+              onPress={() => navigation.navigate('SettingScreen')}
+              style={styles.profileSection}
+              activeOpacity={0.8}
+            >
+              {customerImage ? (
+                <Image source={{ uri: customerImage }} style={styles.profileAvatar} />
+              ) : (
+                <View style={styles.profileAvatarPlaceholder}>
+                  <Icon name="user" size={18} color="#FFFFFF" />
                 </View>
               )}
-            </View>
-          </TouchableOpacity>
-        </View>
+              <View style={styles.profileInfo}>
+                <Text style={styles.greetingLabel}>Welcome back</Text>
+                <Text style={styles.userName} numberOfLines={1} ellipsizeMode="tail">
+                  {userName}
+                </Text>
+              </View>
+            </TouchableOpacity>
 
-        {/* Location Row */}
-        {locationPermissionGranted && location && location !== 'Detecting...' && location !== 'Unknown' && (
-          <View style={styles.locationRow}>
-            <View style={styles.locationIconWrapper}>
-              <Icon name="map-pin" size={14} color={BRAND_TEAL} />
-            </View>
-            <Text style={styles.locationLabel} numberOfLines={1}>
-              {location}
-            </Text>
+            <TouchableOpacity
+              style={styles.notificationBtn}
+              onPress={() => navigation.navigate('Notifications')}
+              activeOpacity={0.7}
+            >
+              <View style={styles.notificationIconWrapper}>
+                <Icon name="bell" size={19} color="#FFFFFF" />
+                {unreadCount > 0 && (
+                  <View style={styles.notificationBadge}>
+                    <Text style={styles.notificationBadgeText}>
+                      {unreadCount > 9 ? '9+' : unreadCount}
+                    </Text>
+                  </View>
+                )}
+              </View>
+            </TouchableOpacity>
           </View>
-        )}
-      </Animated.View>
+
+          {/* Location Row */}
+          {locationPermissionGranted && location && location !== 'Detecting...' && location !== 'Unknown' && (
+            <View style={styles.locationRow}>
+              <Icon name="map-pin" size={13} color="#FFFFFF" />
+              <Text style={styles.locationLabel} numberOfLines={1}>
+                {location}
+              </Text>
+            </View>
+          )}
+
+        </LinearGradient>
+      </View>
       {showSkeleton ? (
         <ScrollView
           contentContainerStyle={{ paddingTop: hp('16%'), paddingBottom: hp('12%') }}
@@ -918,13 +969,10 @@ export default function CustomerDashboard() {
           </View>
 
           {/* Stats Skeleton */}
-          <View style={styles.statsRow}>
-            {[...Array(3)].map((_, i) => (
-              <View key={i} style={styles.statBox}>
-                <Animated.View style={[styles.skeletonStatValue, { opacity: skeletonOpacity }]} />
-                <Animated.View style={[styles.skeletonStatLabel, { opacity: skeletonOpacity }]} />
-              </View>
-            ))}
+          <View style={{ marginTop: hp('2%'), marginHorizontal: wp('4%') }}>
+            <Animated.View style={[{
+              height: hp('14%'), borderRadius: 24, backgroundColor: '#D1D5DB', opacity: skeletonOpacity,
+            }]} />
           </View>
 
           {/* Bookings Skeleton */}
@@ -962,7 +1010,7 @@ export default function CustomerDashboard() {
           showsVerticalScrollIndicator={false}
           onScroll={Animated.event(
             [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-            { useNativeDriver: false }
+            { useNativeDriver: true }
           )}
           scrollEventThrottle={16}
           contentContainerStyle={{ paddingTop: hp('16%'), paddingBottom: hp('2%') }}
@@ -972,7 +1020,6 @@ export default function CustomerDashboard() {
               onRefresh={handleRefresh}
               colors={[BRAND_TEAL]}
               tintColor={BRAND_TEAL}
-              // 👇 push it a bit down, since you have a fixed header
               progressViewOffset={hp('8%')}
             />
           }
@@ -983,13 +1030,18 @@ export default function CustomerDashboard() {
             <Text style={styles.sectionTitle}>Browse by Category</Text>
             <View style={styles.catGrid}>
               {CATEGORIES.map(c => (
-                <TouchableOpacity key={c.id} style={styles.catTile} onPress={() => {
-                  if (c.screen) {
-                    navigation.navigate(c.screen);
-                  } else {
-                    Alert.alert('Coming Soon', `We're still working on ${c.label} rentals.`);
-                  }
-                }}>
+                <TouchableOpacity
+                  key={c.id}
+                  style={styles.catTile}
+                  activeOpacity={0.7}
+                  onPress={() => {
+                    if (c.screen) {
+                      navigation.navigate(c.screen);
+                    } else {
+                      Alert.alert('Coming Soon', `We're still working on ${c.label} rentals.`);
+                    }
+                  }}
+                >
                   <View style={styles.catImageBox}>
                     <Image source={c.image} style={styles.catImage} resizeMode="contain" />
                   </View>
@@ -1003,48 +1055,73 @@ export default function CustomerDashboard() {
           {/* QUICK STATS */}
           <QuickStats />
 
-          {/* UPCOMING BOOKINGS SECTION - Only show when there are bookings */}
+          {/* UPCOMING BOOKINGS SECTION */}
           {upcomingTrips.length > 0 && (
             <View style={styles.section}>
               <View style={styles.actHeader}>
                 <Text style={styles.sectionTitle}>Upcoming Bookings</Text>
-                <TouchableOpacity onPress={() => navigation.navigate('MyBookings')}>
+                <TouchableOpacity style={styles.viewAllPill} onPress={() => navigation.navigate('MyBookings')}>
                   <Text style={styles.seeAll}>View All</Text>
+                  <Icon name="chevron-right" size={14} color={BRAND_TEAL} />
                 </TouchableOpacity>
               </View>
 
-              <View>
-                {upcomingTrips.map(item => (
-                  <TouchableOpacity
-                    key={item.id}
-                    style={styles.upcomingCard}
-                    onPress={() => navigation.navigate('BookingDetail', { bookingId: item.id })}
-                  >
-                    <View style={styles.upcomingLeft}>
-                      <View style={styles.upcomingIconBox}>
-                        <Icon name="calendar" size={wp('5.5%')} color={BRAND_TEAL} />
+              <View style={styles.bookingsList}>
+                {upcomingTrips.map(item => {
+                  const typeKey = (item.type || '').toLowerCase();
+                  const svcMeta = {
+                    bike:        { icon: 'bicycle',    color: '#3B82F6', bg: '#EFF6FF' },
+                    car:         { icon: 'car-sport',  color: '#8B5CF6', bg: '#F5F3FF' },
+                    bus:         { icon: 'bus',        color: '#F59E0B', bg: '#FFFBEB' },
+                    truck:       { icon: 'cube',       color: '#EF4444', bg: '#FEF2F2' },
+                    'self-drive':{ icon: 'key',        color: '#0EA5E9', bg: '#F0F9FF' },
+                    equipment:   { icon: 'construct',  color: '#06B6D4', bg: '#ECFEFF' },
+                    packers:     { icon: 'archive',    color: '#EC4899', bg: '#FDF2F8' },
+                    luxury:      { icon: 'diamond',    color: '#D97706', bg: '#FFFBEB' },
+                  };
+                  const m = svcMeta[typeKey] || { icon: 'calendar-outline', color: BRAND_TEAL, bg: '#ECFDF5' };
+
+                  return (
+                    <TouchableOpacity
+                      key={item.id}
+                      style={styles.upcomingCard}
+                      activeOpacity={0.7}
+                      onPress={() => navigation.navigate('BookingDetail', { bookingId: item.id })}
+                    >
+                      {/* Left color accent */}
+                      <View style={[styles.upcomingAccent, { backgroundColor: m.color }]} />
+
+                      {/* Icon */}
+                      <View style={[styles.upcomingIcon, { backgroundColor: m.bg }]}>
+                        <Ionicons name={m.icon} size={22} color={m.color} />
                       </View>
-                      <View style={{ flex: 1 }}>
-                        <Text style={styles.upcomingRoute}>
-                          {item.type === 'bike' || item.type === 'car' || item.type?.toLowerCase() === 'self-drive'
+
+                      {/* Content */}
+                      <View style={styles.upcomingContent}>
+                        <Text style={styles.upcomingRoute} numberOfLines={1}>
+                          {typeKey === 'bike' || typeKey === 'car' || typeKey === 'self-drive'
                             ? item.from
                             : `${item.from} → ${item.to}`}
                         </Text>
-                        <View style={styles.upcomingMeta}>
-                          <Icon name="clock" size={14} color={TEXT_SECONDARY} />
+                        <View style={styles.upcomingMetaRow}>
+                          <Ionicons name="time-outline" size={13} color={TEXT_LIGHT} />
                           <Text style={styles.upcomingDate}>{item.date}</Text>
-                          <Text style={styles.upcomingDivider}>•</Text>
-                          <Text style={styles.upcomingType}>{item.type}</Text>
+                          <View style={styles.upcomingDot} />
+                          <Text style={[styles.upcomingTypeTxt, { color: m.color }]}>{item.type}</Text>
                         </View>
-                        <View style={styles.upcomingFooter}>
-                          <Icon name="check-circle" size={16} color={BRAND_TEAL} />
-                          <Text style={styles.upcomingStatus}>{item.status}</Text>
+                        <View style={styles.upcomingBadgeRow}>
+                          <LinearGradient colors={['#ECFDF5', '#D1FAE5']} style={styles.confirmedBadge}>
+                            <Ionicons name="checkmark-circle" size={14} color="#059669" />
+                            <Text style={styles.confirmedTxt}>{item.status}</Text>
+                          </LinearGradient>
                         </View>
                       </View>
-                    </View>
-                    <Icon name="chevron-right" size={20} color={BRAND_TEAL} />
-                  </TouchableOpacity>
-                ))}
+
+                      {/* Arrow */}
+                      <Ionicons name="chevron-forward" size={20} color={TEXT_LIGHT} />
+                    </TouchableOpacity>
+                  );
+                })}
               </View>
             </View>
           )}
@@ -1054,36 +1131,84 @@ export default function CustomerDashboard() {
             <View style={styles.section}>
               <View style={styles.actHeader}>
                 <Text style={styles.sectionTitle}>Active Quotes</Text>
-                <TouchableOpacity onPress={() => navigation.navigate('MyBookings')}>
+                <TouchableOpacity style={styles.viewAllPill} onPress={() => navigation.navigate('MyBookings')}>
                   <Text style={styles.seeAll}>View All</Text>
+                  <Icon name="chevron-right" size={14} color={BRAND_TEAL} />
                 </TouchableOpacity>
               </View>
 
-              {recentQuotes.map(item => (
-                <TouchableOpacity
-                  key={item.id}
-                  style={styles.quoteCard}
-                  onPress={() => navigation.navigate('ViewQuote', { quoteId: item.id })}
-                >
-                  <View style={styles.quoteLeft}>
-                    <View style={styles.quoteIconBox}>
-                      <Icon name="file-text" size={wp('5.5%')} color={GOLD} />
-                    </View>
-                    <View style={{ flex: 1 }}>
-                      <Text style={styles.quoteServiceName}>{item.service_name}</Text>
-                      <Text style={styles.quoteRouteTxt}>{item.location} → {item.destination || 'Multiple'}</Text>
-                      <View style={styles.quoteMeta}>
-                        <Icon name="calendar" size={14} color={TEXT_SECONDARY} />
-                        <Text style={styles.quoteDate}>{new Date(item.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</Text>
-                        <View style={styles.quoteStatusBadge}>
-                          <Text style={styles.quoteStatusText}>{item.status}</Text>
+              <View style={styles.bookingsList}>
+                {recentQuotes.map(item => {
+                  const typeKey = (item.service_type || '').toLowerCase();
+                  const nameKey = (item.service_name || '').toLowerCase();
+                  const qSvcMeta = {
+                    bike:        { icon: 'bicycle',    color: '#3B82F6', bg: '#EFF6FF' },
+                    car:         { icon: 'car-sport',  color: '#8B5CF6', bg: '#F5F3FF' },
+                    bus:         { icon: 'bus',        color: '#F59E0B', bg: '#FFFBEB' },
+                    truck:       { icon: 'cube',       color: '#EF4444', bg: '#FEF2F2' },
+                    transporter: { icon: 'cube',       color: '#EF4444', bg: '#FEF2F2' },
+                    equipment:   { icon: 'construct',  color: '#06B6D4', bg: '#ECFEFF' },
+                    packers:     { icon: 'archive',    color: '#EC4899', bg: '#FDF2F8' },
+                    luxury:      { icon: 'diamond',    color: '#D97706', bg: '#FFFBEB' },
+                  };
+                  let qm = qSvcMeta[typeKey];
+                  if (!qm && nameKey.includes('self-drive')) qm = { icon: 'key', color: '#0EA5E9', bg: '#F0F9FF' };
+                  if (!qm && nameKey.includes('self drive')) qm = { icon: 'key', color: '#0EA5E9', bg: '#F0F9FF' };
+                  if (!qm && nameKey.includes('luxury')) qm = { icon: 'diamond', color: '#D97706', bg: '#FFFBEB' };
+                  if (!qm && nameKey.includes('packer')) qm = { icon: 'archive', color: '#EC4899', bg: '#FDF2F8' };
+                  if (!qm) qm = { icon: 'document-text-outline', color: '#F59E0B', bg: '#FFFBEB' };
+
+                  return (
+                    <TouchableOpacity
+                      key={item.id}
+                      style={styles.quoteCard}
+                      activeOpacity={0.7}
+                      onPress={() => {
+                        const type = item.service_type?.toLowerCase();
+                        const name = item.service_name?.toLowerCase() || '';
+                        if (type === 'bike') navigation.navigate('BikeQuoteRequestDetail', { requestId: item.id });
+                        else if (type === 'bus') navigation.navigate('BusQuoteRequestDetail', { requestId: item.id });
+                        else if (type === 'truck' || type === 'transporter') navigation.navigate('TruckQuoteRequestDetail', { requestId: item.id });
+                        else if (type === 'equipment') navigation.navigate('EquipmentQuoteRequestDetail', { requestId: item.id });
+                        else if (type === 'packers' || name.includes('packer')) navigation.navigate('PackersQuoteRequestDetail', { requestId: item.id });
+                        else if (name.includes('self-drive') || name.includes('self drive')) navigation.navigate('SelfDriveQuoteRequestDetail', { requestId: item.id });
+                        else if (type === 'luxury' || name.includes('luxury')) navigation.navigate('LuxuryQuoteDetail', { requestId: item.id });
+                        else navigation.navigate('BikeQuoteRequestDetail', { requestId: item.id });
+                      }}
+                    >
+                      {/* Left amber accent */}
+                      <View style={[styles.upcomingAccent, { backgroundColor: qm.color }]} />
+
+                      {/* Icon */}
+                      <View style={[styles.upcomingIcon, { backgroundColor: qm.bg }]}>
+                        <Ionicons name={qm.icon} size={22} color={qm.color} />
+                      </View>
+
+                      {/* Content */}
+                      <View style={styles.upcomingContent}>
+                        <Text style={styles.upcomingRoute} numberOfLines={1}>{item.service_name}</Text>
+                        <View style={styles.upcomingMetaRow}>
+                          <Ionicons name="location-outline" size={13} color={TEXT_LIGHT} />
+                          <Text style={styles.upcomingDate} numberOfLines={1}>{item.location} → {item.destination || 'Multiple'}</Text>
+                        </View>
+                        <View style={styles.upcomingBadgeRow}>
+                          <View style={styles.quoteMetaDate}>
+                            <Ionicons name="calendar-outline" size={13} color={TEXT_SECONDARY} />
+                            <Text style={styles.quoteMetaDateTxt}>{new Date(item.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</Text>
+                          </View>
+                          <LinearGradient colors={['#FEF3C7', '#FDE68A']} style={styles.quoteBadge}>
+                            <View style={styles.quotePulseDot} />
+                            <Text style={styles.quoteBadgeTxt}>{item.status}</Text>
+                          </LinearGradient>
                         </View>
                       </View>
-                    </View>
-                  </View>
-                  <Icon name="chevron-right" size={20} color={GOLD} />
-                </TouchableOpacity>
-              ))}
+
+                      {/* Arrow */}
+                      <Ionicons name="chevron-forward" size={20} color={TEXT_LIGHT} />
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
             </View>
           )}
           {/* HOW IT WORKS */}
@@ -1116,34 +1241,13 @@ export default function CustomerDashboard() {
           {/* SAFETY TIPS */}
           <SafetyTips />
 
-          <View style={{ height: hp('12%') }} />
+          <View style={{ height: hp('10%') }} />
         </Animated.ScrollView>
       )}
       {/* FAB */}
 
 
-      {/* BOTTOM NAV */}
-
-
-
-
-      <View style={styles.bottomNav}>
-        {[
-          { icon: 'home', label: 'Home', active: true, screen: null },
-          { icon: 'book-open', label: 'Bookings', screen: 'MyBookings' },
-          { icon: 'bell', label: 'Notifications', screen: 'Notifications' },
-          { icon: 'user', label: 'Profile', screen: 'Profile' },
-        ].map((n, i) => (
-          <TouchableOpacity
-            key={i}
-            style={n.active ? styles.navActive : styles.navItem}
-            onPress={() => n.screen && navigation.navigate(n.screen)}
-          >
-            <Icon name={n.icon} size={wp('6.5%')} color={n.active ? BRAND_TEAL : TEXT_SECONDARY} />
-            <Text style={n.active ? styles.navActiveTxt : styles.navTxt}>{n.label}</Text>
-          </TouchableOpacity>
-        ))}
-      </View>
+      {/* BOTTOM NAV - Handled by App.js Tab.Navigator */}
 
       {/* REQUIREMENT MODAL */}
       <Modal visible={modalVisible} animationType="slide" transparent>
@@ -1207,8 +1311,10 @@ export default function CustomerDashboard() {
               )}
             </ScrollView>
 
-            <TouchableOpacity style={styles.postBtn} onPress={postRequirement}>
-              <Text style={styles.postBtnTxt}>Get Custom Quotes</Text>
+            <TouchableOpacity onPress={postRequirement} style={styles.postBtnWrap}>
+              <LinearGradient colors={[GREEN_GRADIENT_START, GREEN_GRADIENT_END]} style={styles.postBtn}>
+                <Text style={styles.postBtnTxt}>Get Custom Quotes</Text>
+              </LinearGradient>
             </TouchableOpacity>
           </View>
         </Animated.View>
@@ -1236,6 +1342,84 @@ export default function CustomerDashboard() {
         onExit={() => BackHandler.exitApp()}
       />
 
+      {/* App Update Modal */}
+      <Modal
+        visible={showUpdateModal}
+        transparent
+        animationType="fade"
+        statusBarTranslucent
+        onRequestClose={() => {
+          if (!updateInfo?.forceUpdate) setShowUpdateModal(false);
+        }}
+      >
+        <View style={styles.updateOverlay}>
+          <View style={styles.updateCard}>
+            {/* Close Button (only if not force update) */}
+            {!updateInfo?.forceUpdate && (
+              <TouchableOpacity
+                onPress={() => setShowUpdateModal(false)}
+                style={styles.updateCloseBtn}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="close" size={wp('5.5%')} color="#64748B" />
+              </TouchableOpacity>
+            )}
+            {/* Top Gradient Accent */}
+            <LinearGradient
+              colors={['#064E3B', '#065F46', '#047857']}
+              style={styles.updateTopAccent}
+            >
+              <View style={styles.updateIconRing}>
+                <Ionicons name="arrow-up-circle" size={wp('10%')} color="#FFFFFF" />
+              </View>
+            </LinearGradient>
+
+            {/* Content */}
+            <View style={styles.updateBody}>
+              <Text style={styles.updateTitle}>New Update Available!</Text>
+              <Text style={styles.updateVersion}>
+                Version {updateInfo?.latestVersion}
+              </Text>
+              <Text style={styles.updateMsg}>
+                {updateInfo?.updateMessage || 'A new version is available with improvements and bug fixes.'}
+              </Text>
+
+              {/* Update Button */}
+              <TouchableOpacity
+                activeOpacity={0.85}
+                onPress={() => {
+                  if (updateInfo?.playStoreUrl) {
+                    Linking.openURL(updateInfo.playStoreUrl);
+                  }
+                }}
+                style={styles.updateBtnWrap}
+              >
+                <LinearGradient
+                  colors={['#065F46', '#10B981']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.updateBtn}
+                >
+                  <Ionicons name="download-outline" size={wp('5%')} color="#FFFFFF" />
+                  <Text style={styles.updateBtnText}>Update Now</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+
+              {/* Skip Button (only if not force update) */}
+              {!updateInfo?.forceUpdate && (
+                <TouchableOpacity
+                  onPress={() => setShowUpdateModal(false)}
+                  style={styles.skipBtn}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.skipBtnText}>Skip for now</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+        </View>
+      </Modal>
+
     </SafeAreaView>
   );
 }
@@ -1244,32 +1428,43 @@ export default function CustomerDashboard() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: BG },
 
-  // Header (Modern Redesigned)
+  // Header (Premium Dark Green)
   fixedHeader: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
-    backgroundColor: CARD,
     zIndex: 10,
+    borderBottomLeftRadius: 22,
+    borderBottomRightRadius: 22,
+    overflow: 'hidden',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#064E2B',
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.2,
+        shadowRadius: 14,
+      },
+      android: {
+        elevation: 10,
+      },
+    }),
+  },
+  headerGradientBg: {
     paddingTop: Platform.select({
       ios: hp('6%'),
-      android: (StatusBar.currentHeight ?? 0) + hp('2%')
+      android: (StatusBar.currentHeight ?? 0) + hp('0.8%')
     }),
     paddingHorizontal: wp('4.5%'),
-    paddingBottom: hp('2%'),
-    borderBottomLeftRadius: 0,
-    borderBottomRightRadius: 0,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    paddingBottom: hp('1.8%'),
   },
 
-  // Header Top Row (Profile + Notification)
+  // Header Top Row
   headerTopRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: hp('1.2%'),
+    marginBottom: hp('0.8%'),
   },
 
   // Profile Section
@@ -1279,38 +1474,37 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   profileAvatar: {
-    width: wp('12%'),
-    height: wp('12%'),
-    borderRadius: wp('6%'),
+    width: wp('11%'),
+    height: wp('11%'),
+    borderRadius: wp('5.5%'),
     borderWidth: 2.5,
-    borderColor: BRAND_TEAL_LIGHT,
-    backgroundColor: '#F9FAFB',
+    borderColor: 'rgba(255,255,255,0.5)',
   },
   profileAvatarPlaceholder: {
-    width: wp('12%'),
-    height: wp('12%'),
-    borderRadius: wp('6%'),
-    backgroundColor: BRAND_TEAL_LIGHT,
+    width: wp('11%'),
+    height: wp('11%'),
+    borderRadius: wp('5.5%'),
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.18)',
     borderWidth: 2,
-    borderColor: BRAND_TEAL + '30',
+    borderColor: 'rgba(255,255,255,0.35)',
   },
   profileInfo: {
     marginLeft: wp('3%'),
     flex: 1,
   },
   greetingLabel: {
-    fontSize: wp('3%'),
-    color: TEXT_LIGHT,
+    fontSize: wp('2.8%'),
+    color: 'rgba(255,255,255,0.7)',
     fontWeight: '500',
     letterSpacing: 0.3,
-    marginBottom: hp('0.2%'),
+    marginBottom: hp('0.1%'),
   },
   userName: {
     fontSize: wp('4.8%'),
-    fontWeight: '700',
-    color: TEXT_PRIMARY,
+    fontWeight: '800',
+    color: '#FFFFFF',
     letterSpacing: -0.3,
   },
 
@@ -1319,14 +1513,14 @@ const styles = StyleSheet.create({
     marginLeft: wp('3%'),
   },
   notificationIconWrapper: {
-    width: wp('11%'),
-    height: wp('11%'),
-    borderRadius: wp('5.5%'),
-    backgroundColor: BG,
+    width: wp('10.5%'),
+    height: wp('10.5%'),
+    borderRadius: wp('5.25%'),
+    backgroundColor: 'rgba(255,255,255,0.15)',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: 'rgba(255,255,255,0.2)',
   },
   notificationBadge: {
     position: 'absolute',
@@ -1339,7 +1533,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: CARD,
+    borderColor: '#09B368',
   },
   notificationBadgeText: {
     color: '#fff',
@@ -1351,26 +1545,19 @@ const styles = StyleSheet.create({
   locationRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: BG,
+    backgroundColor: 'rgba(255,255,255,0.12)',
     paddingHorizontal: wp('3%'),
-    paddingVertical: hp('0.8%'),
-    borderRadius: 10,
+    paddingVertical: hp('0.5%'),
+    borderRadius: 20,
     alignSelf: 'flex-start',
-  },
-  locationIconWrapper: {
-    width: wp('6%'),
-    height: wp('6%'),
-    borderRadius: wp('3%'),
-    backgroundColor: BRAND_TEAL_LIGHT,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: wp('2%'),
+    marginTop: hp('0.3%'),
+    gap: wp('1.5%'),
   },
   locationLabel: {
-    fontSize: wp('3.3%'),
-    color: TEXT_SECONDARY,
-    fontWeight: '600',
-    maxWidth: wp('70%'),
+    fontSize: wp('3.1%'),
+    color: 'rgba(255,255,255,0.85)',
+    fontWeight: '500',
+    maxWidth: wp('65%'),
   },
   // Stories
   storiesWrap: { paddingLeft: wp('4%') },
@@ -1393,7 +1580,7 @@ const styles = StyleSheet.create({
     letterSpacing: -0.3,
   },
   seeAll: {
-    fontSize: wp('3.8%'),
+    fontSize: wp('3.4%'),
     color: BRAND_TEAL,
     fontWeight: '700',
   },
@@ -1411,152 +1598,138 @@ const styles = StyleSheet.create({
     fontSize: wp('3.4%'),
     color: TEXT_SECONDARY,
   },
+  bookingsList: {
+    gap: hp('1%'),
+  },
   upcomingCard: {
     backgroundColor: CARD,
-    borderRadius: 20,
-    padding: wp('4.5%'),
+    borderRadius: 18,
+    paddingVertical: wp('3.5%'),
+    paddingHorizontal: wp('3%'),
+    paddingLeft: wp('5%'),
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: hp('1.8%'),
-    borderLeftWidth: 5,
-    borderLeftColor: BRAND_TEAL,
+    borderWidth: 1,
+    borderColor: CARD_BORDER,
+    overflow: 'hidden',
     ...Platform.select({
-      ios: {
-        shadowColor: BRAND_TEAL,
-        shadowOffset: { width: 0, height: 3 },
-        shadowOpacity: 0.12,
-        shadowRadius: 10,
-      },
-      android: {
-        elevation: 4,
-      },
+      ios: { shadowColor: SHADOW_COLOR, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 12 },
+      android: { elevation: 5 },
     }),
   },
-  upcomingLeft: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: wp('3%'),
+  upcomingAccent: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: 5,
+    borderTopLeftRadius: 18,
+    borderBottomLeftRadius: 18,
   },
-  upcomingIconBox: {
+  upcomingIcon: {
     width: wp('12%'),
     height: wp('12%'),
-    borderRadius: 14,
-    backgroundColor: BRAND_TEAL_LIGHT,
+    borderRadius: wp('3.5%'),
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 1.5,
-    borderColor: BRAND_TEAL + '30',
+    marginRight: wp('3%'),
+  },
+  upcomingContent: {
+    flex: 1,
   },
   upcomingRoute: {
-    fontSize: wp('4.4%'),
+    fontSize: wp('4%'),
     fontWeight: '800',
     color: TEXT_PRIMARY,
-    marginBottom: hp('0.6%'),
-    letterSpacing: -0.3,
+    marginBottom: hp('0.4%'),
+    letterSpacing: -0.2,
   },
-  upcomingMeta: {
+  upcomingMetaRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: hp('0.5%'),
+    gap: wp('1.2%'),
+    marginBottom: hp('0.6%'),
   },
   upcomingDate: {
     fontSize: wp('3.2%'),
     color: TEXT_SECONDARY,
-    marginLeft: wp('1%'),
+    fontWeight: '500',
   },
-  upcomingDivider: {
+  upcomingDot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: TEXT_LIGHT,
+  },
+  upcomingTypeTxt: {
     fontSize: wp('3.2%'),
-    color: TEXT_SECONDARY,
-    marginHorizontal: wp('2%'),
+    fontWeight: '700',
+    textTransform: 'capitalize',
   },
-  upcomingType: {
-    fontSize: wp('3.2%'),
-    color: TEXT_SECONDARY,
-  },
-  upcomingFooter: {
+  upcomingBadgeRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: wp('2%'),
   },
-  upcomingStatus: {
-    fontSize: wp('3.5%'),
-    fontWeight: '600',
-    color: BRAND_TEAL,
-    marginLeft: wp('1%'),
+  confirmedBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: wp('2.5%'),
+    paddingVertical: hp('0.35%'),
+    borderRadius: 10,
+  },
+  confirmedTxt: {
+    fontSize: wp('3%'),
+    fontWeight: '700',
+    color: '#059669',
   },
 
-  // Quote Cards (Premium Design)
+  // Quote Cards – reuses upcomingCard styles + these extras
   quoteCard: {
     backgroundColor: CARD,
-    borderRadius: 20,
-    padding: wp('4.5%'),
+    borderRadius: 18,
+    paddingVertical: wp('3.5%'),
+    paddingHorizontal: wp('3%'),
+    paddingLeft: wp('5%'),
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: hp('1.8%'),
-    borderLeftWidth: 5,
-    borderLeftColor: GOLD,
+    borderWidth: 1,
+    borderColor: CARD_BORDER,
+    overflow: 'hidden',
     ...Platform.select({
-      ios: {
-        shadowColor: GOLD,
-        shadowOffset: { width: 0, height: 3 },
-        shadowOpacity: 0.12,
-        shadowRadius: 10,
-      },
-      android: {
-        elevation: 4,
-      },
+      ios: { shadowColor: SHADOW_COLOR, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 12 },
+      android: { elevation: 5 },
     }),
   },
-  quoteLeft: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: wp('3%'),
-  },
-  quoteIconBox: {
-    width: wp('12%'),
-    height: wp('12%'),
-    borderRadius: 14,
-    backgroundColor: GOLD_LIGHT,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1.5,
-    borderColor: GOLD + '30',
-  },
-  quoteServiceName: {
-    fontSize: wp('4.4%'),
-    fontWeight: '800',
-    color: TEXT_PRIMARY,
-    marginBottom: hp('0.4%'),
-    letterSpacing: -0.3,
-  },
-  quoteRouteTxt: {
-    fontSize: wp('3.6%'),
-    color: TEXT_SECONDARY,
-    marginBottom: hp('0.5%'),
-  },
-  quoteMeta: {
+  quoteMetaDate: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 4,
   },
-  quoteDate: {
-    fontSize: wp('3.2%'),
-    color: TEXT_SECONDARY,
-    marginLeft: wp('1%'),
-    marginRight: wp('2%'),
-  },
-  quoteStatusBadge: {
-    backgroundColor: GOLD + '20',
-    paddingHorizontal: wp('2%'),
-    paddingVertical: hp('0.3%'),
-    borderRadius: 8,
-  },
-  quoteStatusText: {
+  quoteMetaDateTxt: {
     fontSize: wp('3%'),
-    color: GOLD,
+    color: TEXT_SECONDARY,
     fontWeight: '600',
+  },
+  quoteBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: wp('2.5%'),
+    paddingVertical: hp('0.35%'),
+    borderRadius: 10,
+  },
+  quotePulseDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: '#D97706',
+  },
+  quoteBadgeTxt: {
+    fontSize: wp('2.8%'),
+    color: '#92400E',
+    fontWeight: '700',
   },
 
   quoteRoute: {
@@ -1598,36 +1771,39 @@ const styles = StyleSheet.create({
     }),
   },
   catLabel: {
-    fontSize: wp('3.4%'),
-    fontWeight: '700',
+    fontSize: wp('3.2%'),
+    fontWeight: '800',
     color: TEXT_PRIMARY,
     textAlign: 'center',
     marginTop: hp('0.5%'),
+    letterSpacing: 0.2,
   },
   catSub: {
-    fontSize: wp('2.6%'),
+    fontSize: wp('2.5%'),
     color: TEXT_SECONDARY,
     marginTop: hp('0.3%'),
     textAlign: 'center',
-    lineHeight: hp('1.8%'),
+    lineHeight: hp('1.6%'),
   },
   catImageBox: {
     width: wp('18%'),
     height: wp('18%'),
-    borderRadius: 16,
+    borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: hp('0.5%'),
     backgroundColor: CARD,
+    borderWidth: 1.5,
+    borderColor: CARD_BORDER,
     ...Platform.select({
       ios: {
         shadowColor: SHADOW_COLOR,
-        shadowOffset: { width: 0, height: 3 },
-        shadowOpacity: 0.1,
-        shadowRadius: 8,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.12,
+        shadowRadius: 10,
       },
       android: {
-        elevation: 4,
+        elevation: 5,
       },
     }),
   },
@@ -1645,44 +1821,57 @@ const styles = StyleSheet.create({
   vendorName: { fontSize: wp('4.2%'), fontWeight: 'bold', color: TEXT_PRIMARY },
   vendorVeh: { fontSize: wp('3%'), color: TEXT_SECONDARY },
 
-  // Quick Stats (Premium Design with Shadows)
-  statsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  // Quick Stats – Glass Card
+  statsGlassCard: {
     marginTop: hp('2%'),
-    paddingHorizontal: wp('4%'),
-  },
-  statBox: {
-    alignItems: 'center',
-    flex: 1,
-    backgroundColor: CARD,
-    paddingVertical: hp('2%'),
-    borderRadius: 16,
-    marginHorizontal: wp('1.5%'),
+    marginHorizontal: wp('4%'),
+    borderRadius: 24,
+    padding: wp('5%'),
+    overflow: 'hidden',
     ...Platform.select({
-      ios: {
-        shadowColor: SHADOW_COLOR,
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.08,
-        shadowRadius: 8,
-      },
-      android: {
-        elevation: 3,
-      },
+      ios: { shadowColor: '#064E3B', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 16 },
+      android: { elevation: 10 },
     }),
   },
+  statsDecoCircle: {
+    position: 'absolute',
+    borderRadius: 999,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+  },
+  statsInnerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  statItem: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  statIconWrap: {
+    width: wp('11%'),
+    height: wp('11%'),
+    borderRadius: wp('5.5%'),
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: hp('0.8%'),
+  },
+  statDivider: {
+    width: 1,
+    height: hp('7%'),
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    marginHorizontal: wp('1%'),
+  },
   statValue: {
-    fontSize: wp('6.5%'),
-    fontWeight: '800',
-    color: BRAND_TEAL,
-    marginBottom: hp('0.3%'),
+    fontSize: wp('7%'),
+    fontWeight: '900',
+    color: '#FFFFFF',
+    marginBottom: hp('0.2%'),
   },
   statLabel: {
-    fontSize: wp('3%'),
-    color: TEXT_SECONDARY,
-    marginTop: hp('0.3%'),
+    fontSize: wp('2.8%'),
+    color: 'rgba(255,255,255,0.7)',
     textAlign: 'center',
-    fontWeight: '500',
+    fontWeight: '600',
   },
 
   // Activity (Premium Headers)
@@ -1690,7 +1879,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: hp('2%'),
+    marginBottom: hp('1.5%'),
+  },
+  viewAllPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+    backgroundColor: BRAND_TEAL + '12',
+    paddingHorizontal: wp('3%'),
+    paddingVertical: hp('0.7%'),
+    borderRadius: 20,
   },
   segmentCtrl: { flexDirection: 'row', backgroundColor: '#e8e8e8', borderRadius: 12, padding: wp('1%'), marginBottom: hp('2%') },
   segment: { flex: 1, alignItems: 'center', paddingVertical: hp('1%'), borderRadius: 10 },
@@ -1738,8 +1936,36 @@ const styles = StyleSheet.create({
 
   // Safety Tips
   tipsGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
-  tipBox: { width: wp('44%'), backgroundColor: CARD, borderRadius: 14, padding: wp('4%'), alignItems: 'center', marginBottom: hp('2%'), elevation: 2 },
-  tipText: { marginTop: hp('1%'), fontSize: wp('3.6%'), color: TEXT_PRIMARY, textAlign: 'center' },
+  tipBox: {
+    width: wp('44%'),
+    backgroundColor: CARD,
+    borderRadius: 18,
+    padding: wp('5%'),
+    alignItems: 'center',
+    marginBottom: hp('2%'),
+    borderWidth: 1,
+    borderColor: CARD_BORDER,
+    ...Platform.select({
+      ios: {
+        shadowColor: SHADOW_COLOR,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 4,
+      },
+    }),
+  },
+  tipIconCircle: {
+    width: wp('12%'),
+    height: wp('12%'),
+    borderRadius: wp('6%'),
+    backgroundColor: BRAND_TEAL + '10',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  tipText: { marginTop: hp('1%'), fontSize: wp('3.4%'), fontWeight: '700', color: TEXT_PRIMARY, textAlign: 'center', letterSpacing: 0.2 },
 
   // FAB
   fab: { position: 'absolute', bottom: hp('10%'), alignSelf: 'center' },
@@ -1747,27 +1973,59 @@ const styles = StyleSheet.create({
   fabTxt: { color: '#fff', fontSize: wp('4.2%'), fontWeight: 'bold', marginLeft: wp('2%') },
 
   // Bottom Nav
-  bottomNav: { flexDirection: 'row', backgroundColor: CARD, paddingVertical: hp('1.5%'), justifyContent: 'space-around', borderTopWidth: 1, borderTopColor: '#eee', position: 'absolute', bottom: 0, left: 0, right: 0, paddingBottom: Platform.OS === 'ios' ? hp('4%') : hp('1.5%') },
-  navActive: { alignItems: 'center' },
+  bottomNav: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(255,255,255,0.97)',
+    paddingVertical: hp('1.2%'),
+    justifyContent: 'space-around',
+    borderTopWidth: 0,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingBottom: Platform.OS === 'ios' ? hp('4%') : hp('1.2%'),
+    ...Platform.select({
+      ios: {
+        shadowColor: SHADOW_COLOR,
+        shadowOffset: { width: 0, height: -4 },
+        shadowOpacity: 0.08,
+        shadowRadius: 12,
+      },
+      android: {
+        elevation: 10,
+      },
+    }),
+  },
+  bottomNavGlow: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 1,
+  },
   navItem: { alignItems: 'center' },
-  navActiveTxt: { color: BRAND_TEAL, fontSize: wp('3%'), marginTop: hp('0.4%'), fontWeight: '700' },
-  navTxt: { color: TEXT_SECONDARY, fontSize: wp('3%'), marginTop: hp('0.4%') },
+  navActiveTxt: { color: BRAND_TEAL, fontSize: wp('2.8%'), marginTop: hp('0.4%'), fontWeight: '800' },
+  navActiveDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: BRAND_TEAL, marginTop: 4 },
+  navTxt: { color: TEXT_LIGHT, fontSize: wp('2.8%'), marginTop: hp('0.4%') },
 
   // Modal
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'flex-end' },
-  modalSheet: { backgroundColor: CARD, borderTopLeftRadius: 30, borderTopRightRadius: 30, padding: wp('6%'), maxHeight: hp('85%') },
+  modalSheet: { backgroundColor: CARD, borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: wp('6%'), maxHeight: hp('85%') },
   modalHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: hp('2%') },
-  modalTitle: { fontSize: wp('5.5%'), fontWeight: 'bold', color: TEXT_PRIMARY },
+  modalTitle: { fontSize: wp('5.5%'), fontWeight: '800', color: TEXT_PRIMARY, letterSpacing: -0.3 },
   modalSub: { fontSize: wp('3.8%'), color: TEXT_SECONDARY, marginTop: hp('0.5%') },
   inputGroup: { marginBottom: hp('2.5%') },
   label: { fontSize: wp('3.8%'), fontWeight: '600', color: TEXT_PRIMARY, marginBottom: hp('1%') },
-  inputRow: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: '#ddd', borderRadius: 12, backgroundColor: '#f9f9f9', paddingHorizontal: wp('3%') },
+  inputRow: { flexDirection: 'row', alignItems: 'center', borderWidth: 1.5, borderColor: CARD_BORDER, borderRadius: 14, backgroundColor: '#f9f9f9', paddingHorizontal: wp('3%') },
   input: { flex: 1, paddingVertical: hp('1.8%'), fontSize: wp('4%'), color: TEXT_PRIMARY },
   dropdown: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderWidth: 1, borderColor: '#ddd', borderRadius: 12, padding: wp('4%'), backgroundColor: '#f9f9f9' },
   dropdownTxt: { fontSize: wp('4%'), color: TEXT_PRIMARY },
   dateBtn: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: BRAND_TEAL, borderRadius: 12, padding: wp('4%'), backgroundColor: BRAND_TEAL + '10' },
   dateTxt: { marginLeft: wp('2%'), fontSize: wp('4%'), color: TEXT_PRIMARY, fontWeight: '600' },
-  postBtn: { backgroundColor: BRAND_TEAL, paddingVertical: hp('2.2%'), borderRadius: 16, alignItems: 'center', marginTop: hp('1%') },
+  postBtnWrap: { borderRadius: 18, overflow: 'hidden', marginTop: hp('1%') },
+  postBtn: { paddingVertical: hp('2.2%'), borderRadius: 18, alignItems: 'center' },
   postBtnTxt: { color: '#fff', fontSize: wp('4.5%'), fontWeight: 'bold' },
 
   // Story Modal
@@ -1804,10 +2062,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginRight: wp('4%'),
     zIndex: 2,
-    elevation: 5,
+    elevation: 6,
     shadowColor: '#09B368',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.35,
     shadowRadius: 8,
   },
 
@@ -1821,14 +2079,14 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: CARD,
     padding: wp('3%'),
-    borderRadius: 12,
+    borderRadius: 16,
     elevation: 4,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 12,
     borderWidth: 1,
-    borderColor: '#f0f0f0',
+    borderColor: CARD_BORDER,
   },
 
   stepIconTitleRow: {
@@ -1866,7 +2124,7 @@ const styles = StyleSheet.create({
     left: wp('4.5%'),
     width: 2,
     height: '120%',
-    backgroundColor: 'rgba(9, 179, 104, 0.2)',
+    backgroundColor: 'rgba(9, 179, 104, 0.15)',
     zIndex: 1,
   },
 
@@ -1903,7 +2161,7 @@ const styles = StyleSheet.create({
   skeletonCategoryBox: {
     width: wp('18%'),
     height: wp('18%'),
-    borderRadius: 16,
+    borderRadius: 20,
     backgroundColor: '#E5E7EB',
     marginBottom: hp('0.5%'),
   },
@@ -1939,11 +2197,11 @@ const styles = StyleSheet.create({
   },
   skeletonBookingCard: {
     minHeight: hp('11%'),
-    borderRadius: 20,
+    borderRadius: 22,
     backgroundColor: CARD,
     marginBottom: hp('1.8%'),
     borderLeftWidth: 5,
-    borderLeftColor: BRAND_TEAL_LIGHT,
+    borderLeftColor: BRAND_TEAL + '30',
     padding: wp('4.5%'),
     flexDirection: 'row',
     alignItems: 'center',
@@ -1961,11 +2219,11 @@ const styles = StyleSheet.create({
   },
   skeletonQuoteCard: {
     minHeight: hp('11%'),
-    borderRadius: 20,
+    borderRadius: 22,
     backgroundColor: CARD,
     marginBottom: hp('1.8%'),
     borderLeftWidth: 5,
-    borderLeftColor: GOLD_LIGHT,
+    borderLeftColor: GOLD + '30',
     padding: wp('4.5%'),
     flexDirection: 'row',
     alignItems: 'center',
@@ -1991,5 +2249,103 @@ const styles = StyleSheet.create({
     height: hp('1.5%'),
     backgroundColor: '#E5E7EB',
     borderRadius: 4,
+  },
+
+  /* ── App Update Modal ── */
+  updateOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: wp('6%'),
+  },
+  updateCard: {
+    width: '100%',
+    backgroundColor: CARD,
+    borderRadius: 24,
+    overflow: 'hidden',
+    ...Platform.select({
+      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.15, shadowRadius: 20 },
+      android: { elevation: 12 },
+    }),
+  },
+  updateCloseBtn: {
+    position: 'absolute',
+    top: wp('2.5%'),
+    right: wp('2.5%'),
+    zIndex: 10,
+    width: wp('8%'),
+    height: wp('8%'),
+    borderRadius: wp('4%'),
+    backgroundColor: '#F1F5F9',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  updateTopAccent: {
+    alignItems: 'center',
+    paddingVertical: wp('7%'),
+  },
+  updateIconRing: {
+    width: wp('18%'),
+    height: wp('18%'),
+    borderRadius: wp('9%'),
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  updateBody: {
+    paddingHorizontal: wp('6%'),
+    paddingTop: wp('5%'),
+    paddingBottom: wp('6%'),
+    alignItems: 'center',
+  },
+  updateTitle: {
+    fontSize: wp('5%'),
+    fontWeight: '800',
+    color: TEXT_PRIMARY,
+    marginBottom: 6,
+    textAlign: 'center',
+  },
+  updateVersion: {
+    fontSize: wp('3.3%'),
+    fontWeight: '600',
+    color: BRAND_TEAL,
+    marginBottom: wp('3%'),
+  },
+  updateMsg: {
+    fontSize: wp('3.3%'),
+    color: TEXT_SECONDARY,
+    textAlign: 'center',
+    lineHeight: wp('5%'),
+    marginBottom: wp('5%'),
+    paddingHorizontal: wp('2%'),
+  },
+  updateBtnWrap: {
+    width: '100%',
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  updateBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: wp('3.8%'),
+    gap: 8,
+  },
+  updateBtnText: {
+    color: '#FFFFFF',
+    fontSize: wp('4%'),
+    fontWeight: '700',
+    letterSpacing: 0.3,
+  },
+  skipBtn: {
+    marginTop: wp('3%'),
+    paddingVertical: wp('2.5%'),
+    paddingHorizontal: wp('6%'),
+  },
+  skipBtnText: {
+    fontSize: wp('3.3%'),
+    color: TEXT_LIGHT,
+    fontWeight: '600',
   },
 });
