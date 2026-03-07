@@ -5,14 +5,17 @@ import Razorpay from 'razorpay';
 
 export const dynamic = 'force-dynamic';
 
-const razorpay = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY_ID!,
-  key_secret: process.env.RAZORPAY_KEY_SECRET!,
-});
-
 // POST - Create Razorpay order for invoice payment
 export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
   try {
+    if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
+      return NextResponse.json({ error: 'Payment gateway not configured' }, { status: 503 });
+    }
+
+    const razorpay = new Razorpay({
+      key_id: process.env.RAZORPAY_KEY_ID,
+      key_secret: process.env.RAZORPAY_KEY_SECRET,
+    });
     const invoice = await prisma.b2b_invoices.findUnique({
       where: { id: params.id },
       include: { booking: { select: { companyName: true, bookingNumber: true } } },
