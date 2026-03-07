@@ -293,7 +293,7 @@ function TabPanel({ slug, type, label, icon }: {
 // ── Main page ─────────────────────────────────────────────────────────────────
 export default function ServiceLocationPagesAdmin() {
   const params = useParams();
-  const slug = params.slug as string;
+  const slug = (params?.slug as string) || '';
   const isCarRental = slug === 'car-rental';
 
   const tabs = [

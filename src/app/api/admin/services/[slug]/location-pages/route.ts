@@ -10,7 +10,7 @@ export async function GET(
   try {
     const { slug } = await params;
     const url = new URL(request.url);
-    const type = url.searchParams.get('type') || 'location'; // location | routes | airport | static
+    const type = url.searchParams.get('type') || 'location';
 
     // ── Static pages ─────────────────────────────────────────────────────────
     if (type === 'static') {
@@ -20,58 +20,53 @@ export async function GET(
         select: { pageId: true, metaTitle: true, metaDescription: true, metaKeywords: true },
       });
       const overrideMap = Object.fromEntries(overrides.map((o) => [o.pageId, o]));
-
       const pages = STATIC_PAGES.map((p) => ({
         pageId: p.pageId,
         url: p.url,
         label: p.label,
+        templateTitle: '',
+        templateDescription: '',
+        templateKeywords: '',
         override: overrideMap[p.pageId] || null,
       }));
-
       return NextResponse.json({ pages });
     }
 
-    // ── Route pages (one-way & round-trip) ───────────────────────────────────
+    // ── Route / Airport pages ─────────────────────────────────────────────────
     if (type === 'routes' || type === 'airport') {
       const isAirport = type === 'airport';
 
-      const routeService = isAirport ? 'airport-transfer' : 'one-way-cab';
-      const roundTripService = 'round-trip';
-
-      const whereClause = isAirport
-        ? {
-            isActive: true,
-            OR: [
-              { locations_chauffeur_route_packages_fromLocationIdTolocations: { type: 'AIRPORT' } },
-              { locations_chauffeur_route_packages_toLocationIdTolocations: { type: 'AIRPORT' } },
-            ],
-          }
-        : {
-            isActive: true,
-            AND: [
-              { locations_chauffeur_route_packages_fromLocationIdTolocations: { type: { not: 'AIRPORT' } } },
-              { locations_chauffeur_route_packages_toLocationIdTolocations: { type: { not: 'AIRPORT' } } },
-            ],
-          };
-
       const routes = await prisma.chauffeur_route_packages.findMany({
-        where: whereClause,
-        select: {
-          fromLocationId: true,
-          toLocationId: true,
-          estimatedKm: true,
-          estimatedDuration: true,
-          basePrice: true,
-          locations_chauffeur_route_packages_fromLocationIdTolocations: { select: { slug: true, name: true, type: true } },
-          locations_chauffeur_route_packages_toLocationIdTolocations: { select: { slug: true, name: true, type: true } },
+        where: {
+          isActive: true,
+          ...(isAirport
+            ? {
+                OR: [
+                  { locations_chauffeur_route_packages_fromLocationIdTolocations: { type: 'AIRPORT' } },
+                  { locations_chauffeur_route_packages_toLocationIdTolocations: { type: 'AIRPORT' } },
+                ],
+              }
+            : {
+                AND: [
+                  { locations_chauffeur_route_packages_fromLocationIdTolocations: { type: { not: 'AIRPORT' } } },
+                  { locations_chauffeur_route_packages_toLocationIdTolocations: { type: { not: 'AIRPORT' } } },
+                ],
+              }),
+        },
+        include: {
+          locations_chauffeur_route_packages_fromLocationIdTolocations: true,
+          locations_chauffeur_route_packages_toLocationIdTolocations: true,
         },
         distinct: ['fromLocationId', 'toLocationId'],
-        take: 200,
+        take: 300,
       });
 
-      // Build unique route pages
       const seen = new Set<string>();
-      const routePages: { pageId: string; url: string; label: string; from: string; to: string; km: number; price: number }[] = [];
+      const routePages: {
+        pageId: string; url: string; label: string;
+        from: string; to: string; km: number; price: number;
+        templateTitle: string; templateDescription: string; templateKeywords: string;
+      }[] = [];
 
       for (const r of routes) {
         const from = r.locations_chauffeur_route_packages_fromLocationIdTolocations;
@@ -91,42 +86,43 @@ export async function GET(
             pageId: `airport-transfer:${routeSlug}`,
             url: `/airport-transfer/${routeSlug}`,
             label: `${from.name} → ${to.name}`,
-            from: from.name,
-            to: to.name,
-            km: r.estimatedKm,
-            price: r.basePrice,
+            from: from.name, to: to.name,
+            km: r.estimatedKm, price: r.basePrice,
+            templateTitle: `${from.name} to ${to.name} Cab | Airport Transfer @₹${Math.round(r.basePrice)}`,
+            templateDescription: `Airport transfer from ${from.name} to ${to.name}. ${r.estimatedKm} km. Starting @₹${Math.round(r.basePrice)}. 45 min free wait. Book now!`,
+            templateKeywords: `${from.name} to ${to.name} cab, airport transfer ${cityLoc.name}, airport taxi ${cityLoc.name}`,
           });
         } else {
           const routeSlug = `${from.slug}-to-${to.slug}`;
-          if (!seen.has(`oneway:${routeSlug}`)) {
-            seen.add(`oneway:${routeSlug}`);
+          if (!seen.has(`ow:${routeSlug}`)) {
+            seen.add(`ow:${routeSlug}`);
             routePages.push({
               pageId: `one-way-cab:${routeSlug}`,
               url: `/one-way-cab/${routeSlug}`,
               label: `${from.name} → ${to.name} (One Way)`,
-              from: from.name,
-              to: to.name,
-              km: r.estimatedKm,
-              price: r.basePrice,
+              from: from.name, to: to.name,
+              km: r.estimatedKm, price: r.basePrice,
+              templateTitle: `${from.name} to ${to.name} Cab | One Way @₹${Math.round(r.basePrice)} | No Return`,
+              templateDescription: `Book one way cab from ${from.name} to ${to.name}. ${r.estimatedKm} km. Starting @₹${Math.round(r.basePrice)}. No return charges. Book now!`,
+              templateKeywords: `${from.name} to ${to.name} cab, ${from.name} ${to.name} one way, one way taxi`,
             });
           }
-          const reverseSlug = `${to.slug}-to-${from.slug}`;
-          if (!seen.has(`roundtrip:${routeSlug}`)) {
-            seen.add(`roundtrip:${routeSlug}`);
+          if (!seen.has(`rt:${routeSlug}`)) {
+            seen.add(`rt:${routeSlug}`);
             routePages.push({
               pageId: `round-trip:${routeSlug}`,
               url: `/round-trip/${routeSlug}`,
               label: `${from.name} ↔ ${to.name} (Round Trip)`,
-              from: from.name,
-              to: to.name,
-              km: r.estimatedKm,
-              price: r.basePrice,
+              from: from.name, to: to.name,
+              km: r.estimatedKm, price: r.basePrice,
+              templateTitle: `${from.name} to ${to.name} Round Trip Cab | @₹${Math.round(r.basePrice * 1.8)}`,
+              templateDescription: `Book round trip cab from ${from.name} to ${to.name}. ${r.estimatedKm} km one way. Starting @₹${Math.round(r.basePrice * 1.8)}. Book now!`,
+              templateKeywords: `${from.name} to ${to.name} round trip, ${from.name} ${to.name} cab, round trip taxi`,
             });
           }
         }
       }
 
-      // Fetch DB overrides
       const pageIds = routePages.map((p) => p.pageId);
       const overrides = await prisma.seo_meta.findMany({
         where: { pageId: { in: pageIds } },
@@ -134,18 +130,7 @@ export async function GET(
       });
       const overrideMap = Object.fromEntries(overrides.map((o) => [o.pageId, o]));
 
-      const pages = routePages.map((p) => ({
-        ...p,
-        override: overrideMap[p.pageId] || null,
-        templateTitle: isAirport
-          ? `${p.from} to ${p.to} Cab | Airport Transfer @₹${Math.round(p.price)}`
-          : `${p.from} to ${p.to} Cab | @₹${Math.round(p.price)} | TransRentals`,
-        templateDescription: isAirport
-          ? `Airport transfer from ${p.from} to ${p.to}. ${p.km} km. Starting @₹${Math.round(p.price)}. 45 min free wait. Book now!`
-          : `Book ${p.pageId.startsWith('round-trip') ? 'round trip' : 'one way'} cab from ${p.from} to ${p.to}. ${p.km} km. Starting @₹${Math.round(p.price)}. Book now!`,
-        templateKeywords: `${p.from} to ${p.to} cab, ${p.from} ${p.to} taxi, ${p.from} to ${p.to} one way cab`,
-      }));
-
+      const pages = routePages.map((p) => ({ ...p, override: overrideMap[p.pageId] || null }));
       return NextResponse.json({ pages, total: pages.length });
     }
 
@@ -160,8 +145,10 @@ export async function GET(
 
     const serviceLocations = await prisma.service_locations.findMany({
       where: { serviceId: service.id, isActive: true },
-      include: { locations: { select: { slug: true, name: true, state: true } } },
-      orderBy: { locations: { name: 'asc' } },
+      include: {
+        locations: { select: { slug: true, name: true } },
+      },
+      take: 1000,
     });
 
     const pageIds = serviceLocations.map((sl) => `${slug}:${sl.locations.slug}`);
@@ -171,22 +158,23 @@ export async function GET(
     });
     const overrideMap = Object.fromEntries(overrides.map((o) => [o.pageId, o]));
 
-    const pages = serviceLocations.map((sl) => {
-      const loc = sl.locations;
-      const pageId = `${slug}:${loc.slug}`;
-      const template = getTemplateMeta(slug, loc.name);
-      return {
-        pageId,
-        url: `/${slug}/${loc.slug}`,
-        locationSlug: loc.slug,
-        locationName: loc.name,
-        state: loc.state || '',
-        templateTitle: template?.title || '',
-        templateDescription: template?.description || '',
-        templateKeywords: template?.keywords || '',
-        override: overrideMap[pageId] || null,
-      };
-    });
+    const pages = serviceLocations
+      .sort((a, b) => a.locations.name.localeCompare(b.locations.name))
+      .map((sl) => {
+        const loc = sl.locations;
+        const pageId = `${slug}:${loc.slug}`;
+        const template = getTemplateMeta(slug, loc.name);
+        return {
+          pageId,
+          url: `/${slug}/${loc.slug}`,
+          locationSlug: loc.slug,
+          locationName: loc.name,
+          templateTitle: template?.title || `${loc.name} | TransRentals`,
+          templateDescription: template?.description || '',
+          templateKeywords: template?.keywords || '',
+          override: overrideMap[pageId] || null,
+        };
+      });
 
     return NextResponse.json({ pages, total: pages.length, serviceName: service.name });
   } catch (error) {
