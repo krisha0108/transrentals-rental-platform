@@ -777,28 +777,58 @@ export default function EquipmentBookingDetailScreen() {
                 {/* Overview Tab */}
                 {detailsTab === 'overview' && (
                   <View>
-                    {/* Vehicle Features */}
+                    {/* Vendor Info */}
+                    {booking.vendor && (
+                      <View style={styles.quoteSection}>
+                        <View style={styles.quoteSectionHeader}>
+                          <View style={[styles.cardIconCircle, { backgroundColor: TEAL_LIGHT }]}>
+                            <Ionicons name="business-outline" size={wp('4.5%')} color={TEAL} />
+                          </View>
+                          <Text style={styles.quoteSectionTitle}>Vendor Information</Text>
+                        </View>
+                        <View style={styles.quoteListCard}>
+                          <View style={styles.quoteFeatureItem}>
+                            <Ionicons name="storefront-outline" size={wp('4%')} color={TEAL} />
+                            <Text style={styles.quoteFeatureText}>{booking.vendor.name}</Text>
+                          </View>
+                          {booking.vendor.rating > 0 && (
+                            <View style={styles.quoteFeatureItem}>
+                              <Ionicons name="star-outline" size={wp('4%')} color={TEAL} />
+                              <Text style={styles.quoteFeatureText}>{booking.vendor.rating.toFixed(1)} ★ Rating</Text>
+                            </View>
+                          )}
+                          {booking.vendor.phone && (
+                            <View style={[styles.quoteFeatureItem, styles.quoteFeatureItemLast]}>
+                              <Ionicons name="call-outline" size={wp('4%')} color={TEAL} />
+                              <Text style={styles.quoteFeatureText}>{booking.vendor.phone}</Text>
+                            </View>
+                          )}
+                        </View>
+                      </View>
+                    )}
+
+                    {/* Specifications */}
                     {(() => {
-                      const features = parseListData(booking.quote.vehicleFeatures);
-                      return features.length > 0 && (
+                      const specs = parseListData(booking.quote.specifications);
+                      return specs.length > 0 && (
                         <View style={styles.quoteSection}>
                           <View style={styles.quoteSectionHeader}>
                             <View style={[styles.cardIconCircle, { backgroundColor: TEAL_LIGHT }]}>
-                              <Ionicons name="checkmark-circle" size={18} color={TEAL} />
+                              <Ionicons name="construct-outline" size={18} color={TEAL} />
                             </View>
-                            <Text style={styles.quoteSectionTitle}>Vehicle Features</Text>
+                            <Text style={styles.quoteSectionTitle}>Specifications</Text>
                           </View>
                           <View style={styles.quoteListCard}>
-                            {features.map((feature, idx) => (
+                            {specs.map((spec, idx) => (
                               <View
                                 key={idx}
                                 style={[
                                   styles.quoteFeatureItem,
-                                  idx === features.length - 1 && styles.quoteFeatureItemLast,
+                                  idx === specs.length - 1 && styles.quoteFeatureItemLast,
                                 ]}
                               >
                                 <Ionicons name="checkmark-circle" size={16} color={TEAL} />
-                                <Text style={styles.quoteFeatureText}>{feature}</Text>
+                                <Text style={styles.quoteFeatureText}>{spec}</Text>
                               </View>
                             ))}
                           </View>
@@ -806,60 +836,61 @@ export default function EquipmentBookingDetailScreen() {
                       );
                     })()}
 
-                    {/* Additional Info */}
-                    <View style={styles.quoteSection}>
-                      <View style={styles.quoteSectionHeader}>
-                        <View style={[styles.cardIconCircle, { backgroundColor: '#E0E7FF' }]}>
-                          <Ionicons name="information-circle-outline" size={18} color="#4F46E5" />
+                    {/* Equipment Details */}
+                    {(booking.quote.equipmentName || booking.quote.equipmentModel || booking.quote.equipmentYear || booking.quote.dailyRate || booking.quote.securityDeposit || booking.quote.operatorCharges || booking.quote.notes) && (
+                      <View style={styles.quoteSection}>
+                        <View style={styles.quoteSectionHeader}>
+                          <View style={[styles.cardIconCircle, { backgroundColor: '#E0E7FF' }]}>
+                            <Ionicons name="information-circle-outline" size={18} color="#4F46E5" />
+                          </View>
+                          <Text style={styles.quoteSectionTitle}>Equipment Details</Text>
                         </View>
-                        <Text style={styles.quoteSectionTitle}>Additional Information</Text>
-                      </View>
-                      <View style={styles.quoteInfoCard}>
-                        {booking.quote.registrationNumber && (
-                          <View style={styles.quoteInfoRow}>
-                            <Ionicons name="card-outline" size={20} color={TEXT_SECONDARY} />
-                            <Text style={styles.quoteInfoText}>
-                              Registration: {booking.quote.registrationNumber}
-                            </Text>
-                          </View>
-                        )}
-                        {booking.quote.kmLimitPerDay > 0 && (
-                          <View style={styles.quoteInfoRow}>
-                            <Ionicons name="speedometer-outline" size={20} color={TEXT_SECONDARY} />
-                            <Text style={styles.quoteInfoText}>
-                              {booking.quote.kmLimitPerDay} KM per day limit
-                            </Text>
-                          </View>
-                        )}
-                        {booking.quote.extraKmCharge > 0 && (
-                          <View style={styles.quoteInfoRow}>
-                            <Ionicons name="cash-outline" size={20} color={TEXT_SECONDARY} />
-                            <Text style={styles.quoteInfoText}>
-                              {'\u20B9'}{booking.quote.extraKmCharge} per extra KM
-                            </Text>
-                          </View>
-                        )}
-                        {booking.quote.advancePercent > 0 && (
-                          <View style={styles.quoteInfoRow}>
-                            <Ionicons name="wallet-outline" size={20} color={TEXT_SECONDARY} />
-                            <Text style={styles.quoteInfoText}>
-                              {booking.quote.advancePercent}% Advance Required
-                            </Text>
-                          </View>
-                        )}
-                      </View>
-
-                      {/* Vendor Message */}
-                      {booking.quote.vendorMessage && (
-                        <View style={styles.quoteVendorMessage}>
-                          <View style={styles.quoteMessageHeader}>
-                            <Ionicons name="chatbox-outline" size={18} color={TEAL} />
-                            <Text style={styles.quoteMessageTitle}>Message from Vendor</Text>
-                          </View>
-                          <Text style={styles.quoteMessageText}>{booking.quote.vendorMessage}</Text>
+                        <View style={styles.quoteInfoCard}>
+                          {booking.quote.equipmentName && (
+                            <View style={styles.quoteInfoRow}>
+                              <Ionicons name="build-outline" size={20} color={TEXT_SECONDARY} />
+                              <Text style={styles.quoteInfoText}>Equipment: {booking.quote.equipmentName}</Text>
+                            </View>
+                          )}
+                          {booking.quote.equipmentModel && (
+                            <View style={styles.quoteInfoRow}>
+                              <Ionicons name="layers-outline" size={20} color={TEXT_SECONDARY} />
+                              <Text style={styles.quoteInfoText}>Model: {booking.quote.equipmentModel}</Text>
+                            </View>
+                          )}
+                          {booking.quote.equipmentYear > 0 && (
+                            <View style={styles.quoteInfoRow}>
+                              <Ionicons name="calendar-outline" size={20} color={TEXT_SECONDARY} />
+                              <Text style={styles.quoteInfoText}>Year: {booking.quote.equipmentYear}</Text>
+                            </View>
+                          )}
+                          {booking.quote.dailyRate > 0 && (
+                            <View style={styles.quoteInfoRow}>
+                              <Ionicons name="cash-outline" size={20} color={TEXT_SECONDARY} />
+                              <Text style={styles.quoteInfoText}>Daily Rate: ₹{booking.quote.dailyRate}</Text>
+                            </View>
+                          )}
+                          {booking.quote.operatorCharges > 0 && (
+                            <View style={styles.quoteInfoRow}>
+                              <Ionicons name="person-outline" size={20} color={TEXT_SECONDARY} />
+                              <Text style={styles.quoteInfoText}>Operator Charges: ₹{booking.quote.operatorCharges}</Text>
+                            </View>
+                          )}
+                          {booking.quote.securityDeposit > 0 && (
+                            <View style={styles.quoteInfoRow}>
+                              <Ionicons name="shield-outline" size={20} color={TEXT_SECONDARY} />
+                              <Text style={styles.quoteInfoText}>Security Deposit: ₹{booking.quote.securityDeposit}</Text>
+                            </View>
+                          )}
+                          {booking.quote.notes && (
+                            <View style={styles.quoteInfoRow}>
+                              <Ionicons name="document-text-outline" size={20} color={TEXT_SECONDARY} />
+                              <Text style={styles.quoteInfoText}>{booking.quote.notes}</Text>
+                            </View>
+                          )}
                         </View>
-                      )}
-                    </View>
+                      </View>
+                    )}
                   </View>
                 )}
 

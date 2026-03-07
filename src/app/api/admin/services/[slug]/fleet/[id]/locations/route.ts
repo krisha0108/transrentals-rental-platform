@@ -180,6 +180,9 @@ export async function GET(
             locationSlug: l.locations.slug,
             isActive: l.isActive,
             basePricePerDay: l.basePricePerDay,
+            kmLimit: l.kmLimit,
+            extraKmRate: l.extraKmRate,
+            securityDeposit: l.securityDeposit,
           }));
 
     return NextResponse.json({
@@ -216,7 +219,7 @@ export async function POST(
     const { id: vehicleId } = resolvedParams;
 
     const body = await request.json();
-    const { locationIds, basePricePerDay } = body;
+    const { locationIds, basePricePerDay, kmLimit, extraKmRate, securityDeposit } = body;
 
     if (!locationIds || !Array.isArray(locationIds)) {
       return NextResponse.json(
@@ -244,6 +247,9 @@ export async function POST(
             update: {
               isActive: true,
               basePricePerDay: basePricePerDay || null,
+              kmLimit: kmLimit ? parseInt(String(kmLimit)) : null,
+              extraKmRate: extraKmRate || null,
+              securityDeposit: securityDeposit || null,
             },
             create: {
               id: generateId('VML_'),
@@ -251,6 +257,9 @@ export async function POST(
               locationId,
               isActive: true,
               basePricePerDay: basePricePerDay || null,
+              kmLimit: kmLimit ? parseInt(String(kmLimit)) : null,
+              extraKmRate: extraKmRate || null,
+              securityDeposit: securityDeposit || null,
             },
           });
         })

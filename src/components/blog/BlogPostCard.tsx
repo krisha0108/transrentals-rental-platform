@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { BlogPost } from '@/types/blog';
 import { Clock, Eye, ArrowRight } from 'lucide-react';
 
@@ -53,7 +54,11 @@ export function BlogPostCard({ post, featured = false, variant = 'default' }: Bl
         href={`/blog/${post.slug}`}
         className="group relative block h-80 rounded-xl overflow-hidden shadow-sm hover:shadow-lg transition-shadow duration-300"
       >
-        <CategoryPlaceholder color={categoryColor} icon={categoryIcon} />
+        {post.featuredImage ? (
+          <img src={post.featuredImage} alt={post.title} className="absolute inset-0 w-full h-full object-cover" />
+        ) : (
+          <CategoryPlaceholder color={categoryColor} icon={categoryIcon} />
+        )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
         <div className="absolute top-4 left-4">
           <span
@@ -87,7 +92,13 @@ export function BlogPostCard({ post, featured = false, variant = 'default' }: Bl
         href={`/blog/${post.slug}`}
         className="group flex gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors"
       >
-        <CompactPlaceholder color={categoryColor} icon={categoryIcon} />
+        {post.featuredImage ? (
+          <div className="relative w-16 h-16 rounded-lg overflow-hidden flex-shrink-0">
+            <img src={post.featuredImage} alt={post.title} className="w-full h-full object-cover" />
+          </div>
+        ) : (
+          <CompactPlaceholder color={categoryColor} icon={categoryIcon} />
+        )}
         <div className="flex-1 min-w-0">
           <h4 className="text-sm font-medium text-gray-900 line-clamp-2">
             {post.title}
@@ -103,7 +114,13 @@ export function BlogPostCard({ post, featured = false, variant = 'default' }: Bl
       href={`/blog/${post.slug}`}
       className="group block bg-white rounded-xl overflow-hidden border border-gray-100 hover:border-gray-200 hover:shadow-md transition-all duration-300"
     >
-      <CategoryPlaceholder color={categoryColor} icon={categoryIcon} />
+      {post.featuredImage ? (
+        <div className="relative h-44 overflow-hidden">
+          <img src={post.featuredImage} alt={post.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+        </div>
+      ) : (
+        <CategoryPlaceholder color={categoryColor} icon={categoryIcon} />
+      )}
       <div className="p-4">
         <div className="flex items-center justify-between text-xs text-gray-400 mb-2">
           <span>{formattedDate}</span>

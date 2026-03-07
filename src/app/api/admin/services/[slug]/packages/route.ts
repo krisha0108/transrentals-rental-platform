@@ -181,6 +181,8 @@ export async function PATCH(
     const body = await request.json();
     const {
       id,
+      vehicleCategoryId,
+      locationId,
       name,
       basePrice,
       extraKmCharge,
@@ -202,6 +204,8 @@ export async function PATCH(
     const pkg = await prisma.chauffeur_local_packages.update({
       where: { id },
       data: {
+        ...(vehicleCategoryId && { vehicleCategoryId }),
+        locationId: locationId || null,
         name,
         basePrice,
         extraKmCharge,

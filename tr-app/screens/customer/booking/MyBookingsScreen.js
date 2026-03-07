@@ -3,6 +3,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import {
   View,
   Text,
+  TextInput,
   ScrollView,
   StyleSheet,
   RefreshControl,
@@ -65,6 +66,9 @@ const MyBookingsScreen = () => {
   const [filterVisible, setFilterVisible] = useState(false);
   const [tempService, setTempService] = useState('all');
   const [tempStatus, setTempStatus] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchFocused, setSearchFocused] = useState(false);
+  const [searchVisible, setSearchVisible] = useState(false);
 
   const activeFilterCount = (selectedService !== 'all' ? 1 : 0) + (selectedStatus !== 'all' ? 1 : 0);
 
@@ -242,7 +246,7 @@ const MyBookingsScreen = () => {
     }, [customerId, customerPhone, customerEmail, fetchAllBookings])
   );
 
-  // Filter bookings when filters change
+  // Filter bookings when filters or search change
   useEffect(() => {
     let filtered = [...allBookings];
 
@@ -264,8 +268,20 @@ const MyBookingsScreen = () => {
       filtered = filtered.filter(b => targetStatuses.includes(b.status?.toUpperCase()));
     }
 
+    // Filter by search query
+    if (searchQuery.trim()) {
+      const q = searchQuery.trim().toLowerCase();
+      filtered = filtered.filter(b =>
+        b.displayName?.toLowerCase().includes(q) ||
+        b.bookingNumber?.toLowerCase().includes(q) ||
+        b.serviceName?.toLowerCase().includes(q) ||
+        b.displayLocation?.toLowerCase().includes(q) ||
+        b.id?.toLowerCase().includes(q)
+      );
+    }
+
     setFilteredBookings(filtered);
-  }, [allBookings, selectedService, selectedStatus]);
+  }, [allBookings, selectedService, selectedStatus, searchQuery]);
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -426,10 +442,17 @@ const MyBookingsScreen = () => {
               {booking.displayName}
             </Text>
 
-            <View style={styles.infoRow}>
-              <Ionicons name="receipt-outline" size={13} color="#888" />
-              <Text style={styles.infoText}>#{booking.bookingNumber || booking.id?.slice(-8)}</Text>
-            </View>
+            {booking.grandTotal && !(booking.is_quote_request && !booking.grandTotal) ? (
+              <View style={styles.infoRow}>
+                <Ionicons name="cash-outline" size={13} color="#888" />
+                <Text style={styles.infoText}>₹{Number(booking.grandTotal).toLocaleString('en-IN')}</Text>
+              </View>
+            ) : booking.bookingNumber ? (
+              <View style={styles.infoRow}>
+                <Ionicons name="receipt-outline" size={13} color="#888" />
+                <Text style={styles.infoText}>#{booking.bookingNumber}</Text>
+              </View>
+            ) : null}
 
             <View style={styles.infoRow}>
               <Ionicons name="calendar-outline" size={13} color="#888" />
@@ -457,10 +480,12 @@ const MyBookingsScreen = () => {
 
         {/* Bottom Strip */}
         <View style={styles.cardStrip}>
-          <View style={styles.stripItem}>
-            <Text style={styles.stripLabel}>Total</Text>
-            <Text style={styles.stripValue}>₹{booking.grandTotal || booking.total_amount || '-'}</Text>
-          </View>
+          {(booking.grandTotal || booking.total_amount) ? (
+            <View style={styles.stripItem}>
+              <Text style={styles.stripLabel}>Total</Text>
+              <Text style={styles.stripValue}>₹{Number(booking.grandTotal || booking.total_amount).toLocaleString('en-IN')}</Text>
+            </View>
+          ) : null}
           {booking.totalDays > 0 && (
             <View style={styles.stripItem}>
               <Text style={styles.stripLabel}>Duration</Text>
@@ -481,21 +506,29 @@ const MyBookingsScreen = () => {
   const renderEmpty = () => (
     <View style={styles.emptyContainer}>
       <View style={styles.emptyIconWrap}>
-        <Ionicons name="car-outline" size={wp('12%')} color={TEAL} />
+        <Ionicons name={searchQuery.trim() ? 'search-outline' : 'car-outline'} size={wp('12%')} color={TEAL} />
       </View>
-      <Text style={styles.emptyTitle}>No Bookings Found</Text>
+      <Text style={styles.emptyTitle}>
+        {searchQuery.trim() ? 'No Results Found' : 'No Bookings Found'}
+      </Text>
       <Text style={styles.emptySubtitle}>
-        {selectedService !== 'all' || selectedStatus !== 'all'
+        {searchQuery.trim()
+          ? `No bookings match "${searchQuery.trim()}"`
+          : selectedService !== 'all' || selectedStatus !== 'all'
           ? 'Try changing the filters to see more bookings'
           : 'Your rental bookings will appear here'}
       </Text>
-      <TouchableOpacity
-        style={styles.exploreBtn}
-        onPress={() => navigation.navigate('Home')}
-      >
-        <Ionicons name="search-outline" size={18} color="#fff" />
-        <Text style={styles.exploreBtnText}>Explore Rentals</Text>
-      </TouchableOpacity>
+      {searchQuery.trim() ? (
+        <TouchableOpacity style={styles.exploreBtn} onPress={() => setSearchQuery('')}>
+          <Ionicons name="close-circle-outline" size={18} color="#fff" />
+          <Text style={styles.exploreBtnText}>Clear Search</Text>
+        </TouchableOpacity>
+      ) : (
+        <TouchableOpacity style={styles.exploreBtn} onPress={() => navigation.navigate('Home')}>
+          <Ionicons name="search-outline" size={18} color="#fff" />
+          <Text style={styles.exploreBtnText}>Explore Rentals</Text>
+        </TouchableOpacity>
+      )}
     </View>
   );
 
@@ -517,6 +550,21 @@ const MyBookingsScreen = () => {
             <Text style={styles.headerSubtitle}>All your rentals in one place</Text>
           </View>
           <View style={styles.headerBtns}>
+            <TouchableOpacity
+              style={[styles.headerIconBtn, searchVisible && styles.headerIconBtnActive]}
+              onPress={() => {
+                setSearchVisible(v => !v);
+                if (searchVisible) setSearchQuery('');
+              }}
+              activeOpacity={0.7}
+            >
+              <Ionicons name={searchVisible ? 'close' : 'search-outline'} size={wp('4.5%')} color="#fff" />
+              {searchQuery.length > 0 && !searchVisible && (
+                <View style={styles.filterBadge}>
+                  <View style={styles.filterBadgeDot} />
+                </View>
+              )}
+            </TouchableOpacity>
             <TouchableOpacity
               style={[styles.headerIconBtn, activeFilterCount > 0 && styles.headerIconBtnActive]}
               onPress={openFilter}
@@ -563,6 +611,31 @@ const MyBookingsScreen = () => {
           </View>
         )}
       </LinearGradient>
+
+      {/* Search Bar */}
+      {searchVisible && (
+        <View style={[styles.searchBarWrap, searchFocused && styles.searchBarWrapFocused]}>
+          <Ionicons name="search-outline" size={wp('4.5%')} color={searchFocused ? TEAL : TEXT_MUTED} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search by vehicle, booking #, location..."
+            placeholderTextColor={TEXT_MUTED}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            onFocus={() => setSearchFocused(true)}
+            onBlur={() => setSearchFocused(false)}
+            returnKeyType="search"
+            clearButtonMode="while-editing"
+            autoCorrect={false}
+            autoFocus
+          />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity onPress={() => setSearchQuery('')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+              <Ionicons name="close-circle" size={wp('4.5%')} color={TEXT_MUTED} />
+            </TouchableOpacity>
+          )}
+        </View>
+      )}
 
       {/* Active Filter Chips */}
       {!loading && activeFilterCount > 0 && (
@@ -853,6 +926,12 @@ const styles = StyleSheet.create({
     fontSize: wp('2.2%'),
     fontWeight: '800',
     color: '#fff',
+  },
+  filterBadgeDot: {
+    width: wp('1.8%'),
+    height: wp('1.8%'),
+    borderRadius: wp('1%'),
+    backgroundColor: '#fff',
   },
   activeFiltersRow: {
     flexDirection: 'row',
@@ -1253,5 +1332,31 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: wp('3.6%'),
     fontWeight: '700',
+  },
+  // Search Bar
+  searchBarWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: CARD,
+    marginHorizontal: wp('4%'),
+    marginTop: hp('1.2%'),
+    marginBottom: hp('0.5%'),
+    paddingHorizontal: wp('3.5%'),
+    paddingVertical: Platform.OS === 'ios' ? hp('2.2%') : hp('1.7%'),
+    borderRadius: wp('3%'),
+    borderWidth: 1.5,
+    borderColor: '#E5E7EB',
+    gap: wp('2.5%'),
+    ...SHADOW_SM,
+  },
+  searchBarWrapFocused: {
+    borderColor: TEAL,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: wp('3.5%'),
+    color: TEXT_PRIMARY,
+    fontWeight: '500',
+    paddingVertical: 0,
   },
 });

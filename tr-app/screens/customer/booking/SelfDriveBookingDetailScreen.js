@@ -701,6 +701,42 @@ const SelfDriveBookingDetailScreen = () => {
                 {/* Overview Tab */}
                 {detailsTab === 'overview' && (
                   <View>
+                    {/* Vendor Info */}
+                    {booking.vendor && (
+                      <View style={styles.quoteSection}>
+                        <View style={styles.quoteSectionHeader}>
+                          <View style={[styles.quoteSectionIcon, { backgroundColor: TEAL_LIGHT }]}>
+                            <Ionicons name="business-outline" size={wp('4.5%')} color={TEAL} />
+                          </View>
+                          <Text style={styles.quoteSectionTitle}>Vendor Information</Text>
+                        </View>
+                        <View style={styles.quoteListCard}>
+                          <View style={styles.quoteOverviewRow}>
+                            <Text style={styles.quoteOverviewLabel}>Vendor</Text>
+                            <Text style={styles.quoteOverviewValue}>{booking.vendor.name || booking.vendor.businessName}</Text>
+                          </View>
+                          {booking.vendor.rating > 0 && (
+                            <View style={styles.quoteOverviewRow}>
+                              <Text style={styles.quoteOverviewLabel}>Rating</Text>
+                              <Text style={styles.quoteOverviewValue}>{booking.vendor.rating.toFixed(1)} ★</Text>
+                            </View>
+                          )}
+                          {booking.vendor.city && (
+                            <View style={styles.quoteOverviewRow}>
+                              <Text style={styles.quoteOverviewLabel}>City</Text>
+                              <Text style={styles.quoteOverviewValue}>{booking.vendor.city}{booking.vendor.state ? `, ${booking.vendor.state}` : ''}</Text>
+                            </View>
+                          )}
+                          {booking.vendor.phone && (
+                            <View style={[styles.quoteOverviewRow, { borderBottomWidth: 0 }]}>
+                              <Text style={styles.quoteOverviewLabel}>Phone</Text>
+                              <Text style={styles.quoteOverviewValue}>{booking.vendor.phone}</Text>
+                            </View>
+                          )}
+                        </View>
+                      </View>
+                    )}
+
                     {/* Vehicle Features */}
                     {(() => {
                       const features = parseListData(booking.quote.vehicleFeatures);
