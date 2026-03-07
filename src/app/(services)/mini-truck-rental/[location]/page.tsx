@@ -11,6 +11,7 @@ import { getServiceLocations } from '@/lib/services/service-locations';;
 import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
 import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
+import { CityContentSection } from '@/components/location/CityContentSection';
 
 interface PageProps {
   params: {
@@ -216,6 +217,13 @@ export default async function MiniTruckLocationPage({ params }: PageProps) {
       <NearbyLocations
         locationSlug={params.location}
         service="mini-truck-rental"
+      />
+
+      <CityContentSection
+        citySlug={params.location}
+        serviceSlug="mini-truck-rental"
+        cityName={locationName}
+        stateCode={city?.stateCode}
       />
     </div>
   );

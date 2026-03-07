@@ -182,7 +182,7 @@ export default async function AuthorPage({
             description: author.bio,
             image: author.avatar,
             jobTitle: author.role,
-            url: `https://transrentals.com/blog/author/${author.slug}`,
+            url: `https://transrentals.in/blog/author/${author.slug}`,
             sameAs: Object.values(author.socialLinks || {}).filter(Boolean),
           }),
         }}

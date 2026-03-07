@@ -5,6 +5,7 @@ import { WhyRentHere } from '@/components/location/WhyRentHere';
 import { PopularRoutes } from '@/components/location/PopularRoutes';
 import { FAQSection } from '@/components/services/FAQSection';
 import { NearbyLocations } from '@/components/location/NearbyLocations';
+import { CityContentSection } from '@/components/location/CityContentSection';
 import { permanentRedirect } from 'next/navigation';
 import { capitalize } from '@/lib/utils';
 import { getCityBySlug } from '@/data/indian-cities';
@@ -29,9 +30,6 @@ export async function generateStaticParams() {
 // Enable ISR - Revalidate every hour
 export const revalidate = 3600;
 
-// Always fetch fresh data (reflect admin category changes)
-export const dynamic = 'force-dynamic';
-
 // Allow dynamic params for new cities without rebuild
 export const dynamicParams = true;
 
@@ -49,6 +47,9 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       `home shifting ${locationName}`,
       `office relocation ${locationName}`,
     ],
+    alternates: {
+      canonical: `https://transrentals.in/packers-and-movers/${params.location}`,
+    },
     openGraph: {
       title: `Packers and Movers in ${locationName} - TransRentals`,
       description: `Professional relocation services in ${locationName} starting @₹4999. Insured moves.`,
@@ -234,6 +235,13 @@ export default async function PackersMoversLocationPage({ params }: PageProps) {
       <NearbyLocations
         locationSlug={params.location}
         service="packers-and-movers"
+      />
+
+      <CityContentSection
+        citySlug={params.location}
+        serviceSlug="packers-and-movers"
+        cityName={locationName}
+        stateCode={cityData?.stateCode}
       />
 
       {/* Schema Markup for SEO */}

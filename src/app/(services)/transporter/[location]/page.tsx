@@ -12,6 +12,7 @@ import { getAllIndiaFleet } from '@/lib/fleet-utils';
 import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
 import { prisma } from '@/lib/db/prisma';
+import { CityContentSection } from '@/components/location/CityContentSection';
 
 interface PageProps {
   params: {
@@ -244,6 +245,14 @@ export default async function TransporterLocationPage({ params }: PageProps) {
       <NearbyLocations
         locationSlug={params.location}
         service="transporter"
+      />
+
+      
+      <CityContentSection
+        citySlug={params.location}
+        serviceSlug="transporter"
+        cityName={locationName}
+        stateCode={city?.stateCode}
       />
 
       {/* Schema Markup for SEO */}

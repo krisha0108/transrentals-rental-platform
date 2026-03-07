@@ -5,6 +5,7 @@ import type { Metadata } from 'next';
 import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
 import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
+import { CityContentSection } from '@/components/location/CityContentSection';
 
 interface Props {
   params: { location: string };
@@ -82,6 +83,13 @@ export default async function TrailerLocationPage({ params }: Props) {
         location={location.name}
         service="Trailer Rental"
         highlights={highlights}
+      />
+
+      <CityContentSection
+        citySlug={params.location}
+        serviceSlug="trailer-on-rent"
+        cityName={location.name}
+        stateCode={undefined}
       />
     </>
   );

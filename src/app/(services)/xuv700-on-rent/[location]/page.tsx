@@ -11,6 +11,7 @@ import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
 import { FAQSection } from '@/components/services/FAQSection';
 
 import { formatPriceHighlight } from '@/lib/utils';
+import { CityContentSection } from '@/components/location/CityContentSection';
 
 interface PageProps { params: { location: string }; }
 
@@ -127,6 +128,13 @@ export default async function XUV700LocationPage({ params }: PageProps) {
         </div>
       </section>
 
+      
+      <CityContentSection
+        citySlug={params.location}
+        serviceSlug="xuv700-on-rent"
+        cityName={locationName}
+        stateCode={undefined}
+      />
       <FAQSection service="self-drive-car-rental" location={locationName} />
     </>
   );

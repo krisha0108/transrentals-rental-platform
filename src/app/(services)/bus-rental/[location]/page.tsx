@@ -5,6 +5,7 @@ import { WhyRentHere } from '@/components/location/WhyRentHere';
 import { PopularRoutes } from '@/components/location/PopularRoutes';
 import { FAQSection } from '@/components/services/FAQSection';
 import { NearbyLocations } from '@/components/location/NearbyLocations';
+import { CityContentSection } from '@/components/location/CityContentSection';
 import { permanentRedirect } from 'next/navigation';
 import { capitalize, formatPriceHighlight } from '@/lib/utils';
 import { ALL_CITIES, STATIC_CITIES, getCityBySlug } from '@/data/indian-cities';
@@ -81,6 +82,9 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       `tempo traveller ${locationName}`,
       `mini bus rental ${locationName}`,
     ],
+    alternates: {
+      canonical: `https://transrentals.in/bus-rental/${params.location}`,
+    },
     openGraph: {
       title: formatPriceHighlight(`Bus Rental in ${locationName} - TransRentals`),
       description: formatPriceHighlight(`Rent buses in ${locationName} starting @₹2499/day. Best prices guaranteed.`),
@@ -268,6 +272,13 @@ export default async function BusLocationPage({ params }: PageProps) {
       <NearbyLocations
         locationSlug={params.location}
         service="bus-rental"
+      />
+
+      <CityContentSection
+        citySlug={params.location}
+        serviceSlug="bus-rental"
+        cityName={locationName}
+        stateCode={cityData?.stateCode}
       />
 
       {/* Schema Markup for SEO */}

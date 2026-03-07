@@ -35,7 +35,7 @@ export const metadata: Metadata = {
     title: 'TransRentals Travel Reflection - Road Trip Guides & Car Rental Tips',
     description: 'Expert travel guides, road trip itineraries, and car rental tips for exploring incredible India.',
     type: 'website',
-    url: 'https://transrentals.com/blog',
+    url: 'https://transrentals.in/blog',
     images: [
       {
         url: '/images/blog-og.jpg',
@@ -49,6 +49,9 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'TransRentals Travel Reflection',
     description: 'Expert travel guides and car rental tips for India',
+  },
+  alternates: {
+    canonical: 'https://transrentals.in/blog',
   },
 };
 
@@ -574,13 +577,13 @@ export default async function BlogPage({ searchParams }: BlogPageProps) {
             '@type': 'Blog',
             name: 'TransRentals Travel Reflection',
             description: 'Travel guides, road trip itineraries, and car rental tips for India',
-            url: 'https://transrentals.com/blog',
+            url: 'https://transrentals.in/blog',
             publisher: {
               '@type': 'Organization',
               name: 'TransRentals',
               logo: {
                 '@type': 'ImageObject',
-                url: 'https://transrentals.com/logo.png',
+                url: 'https://transrentals.in/logo.png',
               },
             },
           }),

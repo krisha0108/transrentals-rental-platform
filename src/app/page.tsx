@@ -1,4 +1,5 @@
 import React from 'react';
+import type { Metadata } from 'next';
 import { HeroSectionDynamic } from '@/components/home/HeroSectionDynamic';
 import { ServicesGridDynamic } from '@/components/home/ServicesGridDynamic';
 import { PopularDestinationsDynamic } from '@/components/home/PopularDestinationsDynamic';
@@ -9,6 +10,12 @@ import { BackrTokenSection } from '@/components/home/BackrTokenSection';
 import { AppDownloadSection } from '@/components/home/AppDownloadSection';
 import { BlogSectionDynamic } from '@/components/home/BlogSectionDynamic';
 import { CTASectionDynamic } from '@/components/home/CTASectionDynamic';
+
+export const metadata: Metadata = {
+  alternates: {
+    canonical: 'https://transrentals.in',
+  },
+};
 
 const homepageSchema = {
   '@context': 'https://schema.org',

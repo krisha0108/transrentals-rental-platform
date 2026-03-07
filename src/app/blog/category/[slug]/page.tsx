@@ -15,7 +15,7 @@ interface CategoryPageProps {
   };
 }
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 3600;
 
 export async function generateStaticParams() {
   const slugs = await getCategorySlugs();
@@ -38,6 +38,9 @@ export async function generateMetadata({
   return {
     title: `${category.name} - Travel Reflections | TransRentals`,
     description: category.description,
+    alternates: {
+      canonical: `https://transrentals.in/blog/category/${params.slug}`,
+    },
     openGraph: {
       title: `${category.name} - TransRentals Reflections`,
       description: category.description,

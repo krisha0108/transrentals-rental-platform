@@ -6,6 +6,7 @@ import { CarRentalBookingHero } from '@/components/car-rental/CarRentalBookingHe
 import { PopularRoutes } from '@/components/location/PopularRoutes';
 import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
+import { CityContentSection } from '@/components/location/CityContentSection';
 
 interface PageProps {
   params: {
@@ -297,6 +298,14 @@ export default async function OutstationCabLocationPage({ params }: PageProps) {
           </div>
         </div>
       </section>
+
+      
+      <CityContentSection
+        citySlug={params.location}
+        serviceSlug="outstation-cab"
+        cityName={locationName}
+        stateCode={city?.stateCode}
+      />
 
       {/* Schema Markup */}
       <script

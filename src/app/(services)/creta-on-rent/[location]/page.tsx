@@ -9,6 +9,7 @@ import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
 import { FAQSection } from '@/components/services/FAQSection';
 import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
+import { CityContentSection } from '@/components/location/CityContentSection';
 
 interface PageProps {
   params: {
@@ -170,6 +171,13 @@ export default async function CretaOnRentLocationPage({ params }: PageProps) {
         </div>
       </section>
 
+      
+      <CityContentSection
+        citySlug={params.location}
+        serviceSlug="creta-on-rent"
+        cityName={locationName}
+        stateCode={undefined}
+      />
       <FAQSection service="self-drive-car-rental" location={locationName} />
     </>
   );
