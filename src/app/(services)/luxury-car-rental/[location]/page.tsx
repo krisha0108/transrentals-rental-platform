@@ -8,6 +8,7 @@ import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
 import { prisma } from '@/lib/db/prisma';
 import { CityContentSection } from '@/components/location/CityContentSection';
+import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 
 interface PageProps {
   params: {
@@ -72,10 +73,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   const locationName = city.name;
 
+  const _seoDb = await resolvePageMeta(`luxury-car-rental:${params.location}`);
   return {
-    title: `Luxury Car Rental in ${locationName} | BMW, Mercedes, Audi, Ferrari | TransRentals`,
-    description: `Rent luxury & exotic cars in ${locationName}. BMW, Mercedes, Audi, Jaguar, Range Rover, Ferrari, Lamborghini. Premium car hire with professional chauffeur. Wedding, corporate events.`,
-    keywords: [
+    title: _seoDb?.metaTitle || `Luxury Car Rental in ${locationName} | BMW, Mercedes, Audi, Ferrari | TransRentals`,
+    description: _seoDb?.metaDescription || `Rent luxury & exotic cars in ${locationName}. BMW, Mercedes, Audi, Jaguar, Range Rover, Ferrari, Lamborghini. Premium car hire with professional chauffeur. Wedding, corporate events.`,
+    keywords: _seoDb?.metaKeywords ? _seoDb.metaKeywords.split(',').map((k) => k.trim()) : [
       `luxury car rental ${locationName.toLowerCase()}`,
       `exotic car hire ${locationName.toLowerCase()}`,
       `BMW rental ${locationName.toLowerCase()}`,

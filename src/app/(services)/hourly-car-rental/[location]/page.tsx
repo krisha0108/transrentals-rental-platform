@@ -10,6 +10,7 @@ import { FAQSection } from '@/components/services/FAQSection';
 import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
 import { CityContentSection } from '@/components/location/CityContentSection';
+import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 
 interface PageProps { params: { location: string }; }
 
@@ -27,9 +28,10 @@ export const dynamicParams = true;
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const city = getCityBySlug(params.location);
   const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
+  const _seoDb = await resolvePageMeta(`hourly-car-rental:${params.location}`);
   return {
-    title: `Hourly Car Rental in ${locationName} | @₹149/hr | TransRentals`,
-    description: `Rent a car by the hour in ${locationName}. Self-drive hourly packages from ₹149/hr. Perfect for meetings, shopping, errands.`,
+    title: _seoDb?.metaTitle || `Hourly Car Rental in ${locationName} | @₹149/hr | TransRentals`,
+    description: _seoDb?.metaDescription || `Rent a car by the hour in ${locationName}. Self-drive hourly packages from ₹149/hr. Perfect for meetings, shopping, errands.`,
     alternates: { canonical: `https://transrentals.in/hourly-car-rental/${params.location}` },
   };
 }

@@ -11,6 +11,7 @@ import { BikeServiceSchema } from '@/components/seo/schemas';
 import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
 import { CityContentSection } from '@/components/location/CityContentSection';
+import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 
 interface PageProps {
   params: {
@@ -36,10 +37,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
   const locationSlug = params.location;
 
+  const _seoDb = await resolvePageMeta(`monthly-bike-rental:${params.location}`);
   return {
-    title: `Monthly Bike Rental in ${locationName} | Scooty on Rent Monthly @₹2999 | TransRentals`,
-    description: `Rent bike or scooty on monthly basis in ${locationName}. Activa, Splendor, Pulsar, Royal Enfield available from ₹2999/month. Zero maintenance, doorstep delivery. Book now!`,
-    keywords: [
+    title: _seoDb?.metaTitle || `Monthly Bike Rental in ${locationName} | Scooty on Rent Monthly @₹2999 | TransRentals`,
+    description: _seoDb?.metaDescription || `Rent bike or scooty on monthly basis in ${locationName}. Activa, Splendor, Pulsar, Royal Enfield available from ₹2999/month. Zero maintenance, doorstep delivery. Book now!`,
+    keywords: _seoDb?.metaKeywords ? _seoDb.metaKeywords.split(',').map((k) => k.trim()) : [
       `monthly bike rental ${locationName}`,
       `monthly bike rental in ${locationName}`,
       `scooty on rent monthly ${locationName}`,

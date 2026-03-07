@@ -7,6 +7,7 @@ import { PopularRoutes } from '@/components/location/PopularRoutes';
 import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
 import { CityContentSection } from '@/components/location/CityContentSection';
+import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 
 interface PageProps {
   params: {
@@ -35,10 +36,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   const locationName = city.name;
 
+  const _seoDb = await resolvePageMeta(`outstation-cab:${params.location}`);
   return {
-    title: `Outstation Cab ${locationName} | Intercity Taxi @₹12/Km | Round Trip`,
-    description: `Book outstation cab from ${locationName}. Intercity taxi, round trip & one-way cabs. Sedan, SUV available. Station taxi @₹12/km.`,
-    keywords: [
+    title: _seoDb?.metaTitle || `Outstation Cab ${locationName} | Intercity Taxi @₹12/Km | Round Trip`,
+    description: _seoDb?.metaDescription || `Book outstation cab from ${locationName}. Intercity taxi, round trip & one-way cabs. Sedan, SUV available. Station taxi @₹12/km.`,
+    keywords: _seoDb?.metaKeywords ? _seoDb.metaKeywords.split(',').map((k) => k.trim()) : [
       `outstation cab ${locationName.toLowerCase()}`,
       `outstation taxi ${locationName.toLowerCase()}`,
       `intercity cab ${locationName.toLowerCase()}`,

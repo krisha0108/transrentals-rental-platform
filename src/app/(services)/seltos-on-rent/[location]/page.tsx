@@ -10,6 +10,7 @@ import { StateServicePage } from '@/components/location/StateServicePage';
 import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
 import { FAQSection } from '@/components/services/FAQSection';
 import { CityContentSection } from '@/components/location/CityContentSection';
+import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 
 interface PageProps { params: { location: string }; }
 
@@ -27,9 +28,10 @@ export const dynamicParams = true;
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const city = getCityBySlug(params.location);
   const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
+  const _seoDb = await resolvePageMeta(`seltos-on-rent:${params.location}`);
   return {
-    title: `Seltos on Rent in ${locationName} | @₹1899/Day | TransRentals`,
-    description: `Rent Kia Seltos without driver in ${locationName}. Self-drive Seltos with connected car features.`,
+    title: _seoDb?.metaTitle || `Seltos on Rent in ${locationName} | @₹1899/Day | TransRentals`,
+    description: _seoDb?.metaDescription || `Rent Kia Seltos without driver in ${locationName}. Self-drive Seltos with connected car features.`,
     alternates: { canonical: `https://transrentals.in/seltos-on-rent/${params.location}` },
   };
 }

@@ -6,6 +6,7 @@ import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
 import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
 import { CityContentSection } from '@/components/location/CityContentSection';
+import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 
 interface Props {
   params: { location: string };
@@ -22,10 +23,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     };
   }
 
+  const _seoDb = await resolvePageMeta(`trailer-on-rent:${params.location}`);
   return {
-    title: `Trailer on Rent in ${location.name} - Heavy Duty Trailer Rental | TransRentals`,
-    description: `Rent trailers in ${location.name} for heavy cargo transportation. 20ft to 40ft trailers available. Best rates guaranteed. Book now!`,
-    keywords: [
+    title: _seoDb?.metaTitle || `Trailer on Rent in ${location.name} - Heavy Duty Trailer Rental | TransRentals`,
+    description: _seoDb?.metaDescription || `Rent trailers in ${location.name} for heavy cargo transportation. 20ft to 40ft trailers available. Best rates guaranteed. Book now!`,
+    keywords: _seoDb?.metaKeywords ? _seoDb.metaKeywords.split(',').map((k) => k.trim()) : [
       `trailer on rent in ${location.name}`,
       `${location.name} trailer rental`,
       `heavy trailer ${location.name}`,

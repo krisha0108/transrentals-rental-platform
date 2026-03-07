@@ -5,6 +5,7 @@ import { CarFleetGridMultiVendor } from '@/components/car';
 import { capitalize } from '@/lib/utils';
 import { getCityBySlug } from '@/data/indian-cities';
 import { prisma } from '@/lib/db/prisma';
+import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 
 function parseJsonField<T>(value: unknown, defaultValue: T): T {
   if (value === null || value === undefined) return defaultValue;
@@ -32,10 +33,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
   const locationSlug = params.location;
 
+  const _seoDb = await resolvePageMeta(`self-drive-car-rentals:${params.location}`);
   return {
-    title: `Self-Drive Cars Available in ${locationName} | Compare Prices | TransRentals`,
-    description: `Browse ${locationName}'s largest self-drive car rental collection. Compare prices from multiple vendors. Starting @₹999/day with instant booking.`,
-    keywords: [
+    title: _seoDb?.metaTitle || `Self-Drive Cars Available in ${locationName} | Compare Prices | TransRentals`,
+    description: _seoDb?.metaDescription || `Browse ${locationName}'s largest self-drive car rental collection. Compare prices from multiple vendors. Starting @₹999/day with instant booking.`,
+    keywords: _seoDb?.metaKeywords ? _seoDb.metaKeywords.split(',').map((k) => k.trim()) : [
       `self drive car ${locationName}`,
       `car rental ${locationName}`,
       `rent car without driver ${locationName}`,

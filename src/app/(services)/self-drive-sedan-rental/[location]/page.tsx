@@ -10,6 +10,7 @@ import { StateServicePage } from '@/components/location/StateServicePage';
 import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
 import { FAQSection } from '@/components/services/FAQSection';
 import { CityContentSection } from '@/components/location/CityContentSection';
+import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 
 interface PageProps {
   params: {
@@ -33,10 +34,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
   const locationSlug = params.location;
 
+  const _seoDb = await resolvePageMeta(`self-drive-sedan-rental:${params.location}`);
   return {
-    title: `Self Drive Sedan Rental in ${locationName} | Rent Sedan @₹1299/Day | TransRentals`,
-    description: `Rent sedan without driver in ${locationName}. Honda City, Verna, Ciaz, Dzire available. Self-drive sedan for business & outstation travel.`,
-    keywords: [
+    title: _seoDb?.metaTitle || `Self Drive Sedan Rental in ${locationName} | Rent Sedan @₹1299/Day | TransRentals`,
+    description: _seoDb?.metaDescription || `Rent sedan without driver in ${locationName}. Honda City, Verna, Ciaz, Dzire available. Self-drive sedan for business & outstation travel.`,
+    keywords: _seoDb?.metaKeywords ? _seoDb.metaKeywords.split(',').map((k) => k.trim()) : [
       `self drive sedan rental ${locationName}`,
       `sedan on rent ${locationName}`,
       `rent sedan without driver ${locationName}`,

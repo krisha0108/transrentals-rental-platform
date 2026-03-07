@@ -12,6 +12,7 @@ import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
 import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
 import { CityContentSection } from '@/components/location/CityContentSection';
+import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 
 interface PageProps {
   params: {
@@ -35,10 +36,11 @@ export const dynamicParams = true;
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const locationName = capitalize(params.location.replace(/-/g, ' '));
 
+  const _seoDb = await resolvePageMeta(`jcb-on-rent:${params.location}`);
   return {
-    title: `JCB on Rent in ${locationName} | Backhoe Loader Rental @₹2999/Day | TransRentals`,
-    description: `Rent JCB backhoe loaders in ${locationName} for construction, excavation & road work. Expert operators included. Book JCB rental now!`,
-    keywords: [
+    title: _seoDb?.metaTitle || `JCB on Rent in ${locationName} | Backhoe Loader Rental @₹2999/Day | TransRentals`,
+    description: _seoDb?.metaDescription || `Rent JCB backhoe loaders in ${locationName} for construction, excavation & road work. Expert operators included. Book JCB rental now!`,
+    keywords: _seoDb?.metaKeywords ? _seoDb.metaKeywords.split(',').map((k) => k.trim()) : [
       `jcb on rent in ${locationName}`,
       `jcb rental ${locationName}`,
       `${locationName} backhoe loader rental`,

@@ -14,6 +14,7 @@ import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
 import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
 import { prisma } from '@/lib/db/prisma';
+import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 
 interface PageProps {
   params: {
@@ -37,10 +38,11 @@ export const dynamicParams = true;
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const locationName = capitalize(params.location.replace(/-/g, ' '));
 
+  const _seoDb = await resolvePageMeta(`packers-and-movers:${params.location}`);
   return {
-    title: `Packers and Movers in ${locationName} | Starting @₹4999 | TransRentals`,
-    description: `Professional packers and movers in ${locationName}. Local & intercity relocation, office shifting. Insured and reliable service. Book now!`,
-    keywords: [
+    title: _seoDb?.metaTitle || `Packers and Movers in ${locationName} | Starting @₹4999 | TransRentals`,
+    description: _seoDb?.metaDescription || `Professional packers and movers in ${locationName}. Local & intercity relocation, office shifting. Insured and reliable service. Book now!`,
+    keywords: _seoDb?.metaKeywords ? _seoDb.metaKeywords.split(',').map((k) => k.trim()) : [
       `packers and movers in ${locationName}`,
       `movers and packers ${locationName}`,
       `${locationName} relocation services`,

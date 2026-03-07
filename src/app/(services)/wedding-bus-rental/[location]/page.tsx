@@ -12,6 +12,7 @@ import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
 import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
 import { CityContentSection } from '@/components/location/CityContentSection';
+import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 
 interface PageProps {
   params: {
@@ -35,10 +36,11 @@ export const dynamicParams = true;
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const locationName = capitalize(params.location.replace(/-/g, ' '));
 
+  const _seoDb = await resolvePageMeta(`wedding-bus-rental:${params.location}`);
   return {
-    title: `Wedding Bus Rental in ${locationName} | Luxury Buses for Marriage @₹5999 | TransRentals`,
-    description: `Book luxury AC buses for weddings in ${locationName}. Guest transportation, baraat buses, decorated buses available. 20-50 seater options. Book now!`,
-    keywords: [
+    title: _seoDb?.metaTitle || `Wedding Bus Rental in ${locationName} | Luxury Buses for Marriage @₹5999 | TransRentals`,
+    description: _seoDb?.metaDescription || `Book luxury AC buses for weddings in ${locationName}. Guest transportation, baraat buses, decorated buses available. 20-50 seater options. Book now!`,
+    keywords: _seoDb?.metaKeywords ? _seoDb.metaKeywords.split(',').map((k) => k.trim()) : [
       `wedding bus rental in ${locationName}`,
       `marriage bus ${locationName}`,
       `${locationName} wedding bus`,

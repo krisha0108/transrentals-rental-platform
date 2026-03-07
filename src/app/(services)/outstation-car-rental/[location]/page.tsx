@@ -13,6 +13,7 @@ import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
 import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
 import { CityContentSection } from '@/components/location/CityContentSection';
+import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 
 interface PageProps {
   params: {
@@ -36,10 +37,11 @@ export const dynamicParams = true;
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const locationName = capitalize(params.location.replace(/-/g, ' '));
 
+  const _seoDb = await resolvePageMeta(`outstation-car-rental:${params.location}`);
   return {
-    title: `Outstation Car Rental in ${locationName} | Intercity Hire @₹10/Km | TransRentals`,
-    description: `Rent cars for outstation trips from ${locationName}. Round trips, one-way drops, multi-city tours. Professional drivers, all India permits. Book now!`,
-    keywords: [
+    title: _seoDb?.metaTitle || `Outstation Car Rental in ${locationName} | Intercity Hire @₹10/Km | TransRentals`,
+    description: _seoDb?.metaDescription || `Rent cars for outstation trips from ${locationName}. Round trips, one-way drops, multi-city tours. Professional drivers, all India permits. Book now!`,
+    keywords: _seoDb?.metaKeywords ? _seoDb.metaKeywords.split(',').map((k) => k.trim()) : [
       `outstation car rental in ${locationName}`,
       `intercity car hire ${locationName}`,
       `${locationName} outstation cab`,

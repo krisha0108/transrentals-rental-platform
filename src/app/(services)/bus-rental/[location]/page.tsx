@@ -13,6 +13,7 @@ import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
 import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
 import { prisma } from '@/lib/db/prisma';
+import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 
 interface PageProps {
   params: {
@@ -72,10 +73,11 @@ export const dynamicParams = true;
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const locationName = capitalize(params.location.replace(/-/g, ' '));
 
+  const _seoDb = await resolvePageMeta(`bus-rental:${params.location}`);
   return {
-    title: formatPriceHighlight(`Bus Rental in ${locationName} | Starting @₹2499/Day | TransRentals`),
-    description: formatPriceHighlight(`Rent buses in ${locationName} with TransRentals. Choose from mini buses, tempo travellers, luxury coaches. Best prices guaranteed. Book your bus rental now!`),
-    keywords: [
+    title: _seoDb?.metaTitle || formatPriceHighlight(`Bus Rental in ${locationName} | Starting @₹2499/Day | TransRentals`),
+    description: _seoDb?.metaDescription || formatPriceHighlight(`Rent buses in ${locationName} with TransRentals. Choose from mini buses, tempo travellers, luxury coaches. Best prices guaranteed. Book your bus rental now!`),
+    keywords: _seoDb?.metaKeywords ? _seoDb.metaKeywords.split(',').map((k) => k.trim()) : [
       `bus rental in ${locationName}`,
       `bus on rent ${locationName}`,
       `${locationName} bus rental`,

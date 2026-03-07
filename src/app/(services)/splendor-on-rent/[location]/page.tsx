@@ -14,6 +14,7 @@ import { StateServicePage } from '@/components/location/StateServicePage';
 import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
 import { BikeServiceSchema } from '@/components/seo/schemas';
 import { CityContentSection } from '@/components/location/CityContentSection';
+import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 
 interface PageProps {
   params: {
@@ -37,10 +38,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
   const locationSlug = params.location;
 
+  const _seoDb = await resolvePageMeta(`splendor-on-rent:${params.location}`);
   return {
-    title: `Splendor on Rent in ${locationName} | Hero Splendor Rental @₹299/Day | TransRentals`,
-    description: `Rent Hero Splendor bikes in ${locationName}. Splendor Plus, iSmart, Super Splendor available. Best mileage bike. Book now!`,
-    keywords: [
+    title: _seoDb?.metaTitle || `Splendor on Rent in ${locationName} | Hero Splendor Rental @₹299/Day | TransRentals`,
+    description: _seoDb?.metaDescription || `Rent Hero Splendor bikes in ${locationName}. Splendor Plus, iSmart, Super Splendor available. Best mileage bike. Book now!`,
+    keywords: _seoDb?.metaKeywords ? _seoDb.metaKeywords.split(',').map((k) => k.trim()) : [
       `splendor on rent in ${locationName}`,
       `hero splendor rental ${locationName}`,
       `${locationName} splendor rental`,

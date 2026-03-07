@@ -10,6 +10,7 @@ import { StateServicePage } from '@/components/location/StateServicePage';
 import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
 import { FAQSection } from '@/components/services/FAQSection';
 import { CityContentSection } from '@/components/location/CityContentSection';
+import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 
 interface PageProps { params: { location: string }; }
 
@@ -27,9 +28,10 @@ export const dynamicParams = true;
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const city = getCityBySlug(params.location);
   const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
+  const _seoDb = await resolvePageMeta(`20-seater-tempo-traveller:${params.location}`);
   return {
-    title: `20 Seater Tempo Traveller in ${locationName} | @₹22/km | TransRentals`,
-    description: `Book 20 seater tempo traveller in ${locationName}. AC/Non-AC with driver for large groups.`,
+    title: _seoDb?.metaTitle || `20 Seater Tempo Traveller in ${locationName} | @₹22/km | TransRentals`,
+    description: _seoDb?.metaDescription || `Book 20 seater tempo traveller in ${locationName}. AC/Non-AC with driver for large groups.`,
     alternates: { canonical: `https://transrentals.in/20-seater-tempo-traveller/${params.location}` },
   };
 }

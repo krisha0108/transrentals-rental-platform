@@ -10,6 +10,7 @@ import { StateServicePage } from '@/components/location/StateServicePage';
 import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
 import { FAQSection } from '@/components/services/FAQSection';
 import { CityContentSection } from '@/components/location/CityContentSection';
+import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 
 interface PageProps {
   params: {
@@ -33,10 +34,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
   const locationSlug = params.location;
 
+  const _seoDb = await resolvePageMeta(`self-drive-suv-rental:${params.location}`);
   return {
-    title: `Self Drive SUV Rental in ${locationName} | Rent SUV @₹1999/Day | TransRentals`,
-    description: `Rent SUV without driver in ${locationName}. Creta, Seltos, Scorpio, XUV700, Fortuner available. Self-drive SUV for road trips & family travel.`,
-    keywords: [
+    title: _seoDb?.metaTitle || `Self Drive SUV Rental in ${locationName} | Rent SUV @₹1999/Day | TransRentals`,
+    description: _seoDb?.metaDescription || `Rent SUV without driver in ${locationName}. Creta, Seltos, Scorpio, XUV700, Fortuner available. Self-drive SUV for road trips & family travel.`,
+    keywords: _seoDb?.metaKeywords ? _seoDb.metaKeywords.split(',').map((k) => k.trim()) : [
       `self drive suv rental ${locationName}`,
       `suv on rent ${locationName}`,
       `rent suv without driver ${locationName}`,

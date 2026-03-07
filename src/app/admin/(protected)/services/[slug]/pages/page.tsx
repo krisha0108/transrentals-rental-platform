@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'next/navigation';
-import { Search, ExternalLink, Edit2, Check, X, RotateCcw, ChevronDown, ChevronUp, Globe, MapPin, Route, Plane } from 'lucide-react';
+import { Search, ExternalLink, Check, RotateCcw, ChevronDown, ChevronUp, MapPin, Route, Plane } from 'lucide-react';
 
 interface PageRow {
   pageId: string;
@@ -302,7 +302,6 @@ export default function ServiceLocationPagesAdmin() {
       { key: 'routes', label: 'One Way & Round Trip', icon: <Route className="w-4 h-4" /> },
       { key: 'airport', label: 'Airport Transfers', icon: <Plane className="w-4 h-4" /> },
     ] : []),
-    { key: 'static', label: 'Website Pages', icon: <Globe className="w-4 h-4" /> },
   ];
 
   const [activeTab, setActiveTab] = useState('location');

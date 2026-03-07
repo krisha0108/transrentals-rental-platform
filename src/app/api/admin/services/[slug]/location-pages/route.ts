@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
-import { getTemplateMeta, STATIC_PAGES } from '@/lib/seo/service-meta-templates';
+import { getTemplateMeta, STATIC_PAGES, STATIC_PAGE_META } from '@/lib/seo/service-meta-templates';
 
 /** GET all location pages for a service with their meta (template + DB override) */
 export async function GET(
@@ -20,15 +20,18 @@ export async function GET(
         select: { pageId: true, metaTitle: true, metaDescription: true, metaKeywords: true },
       });
       const overrideMap = Object.fromEntries(overrides.map((o) => [o.pageId, o]));
-      const pages = STATIC_PAGES.map((p) => ({
-        pageId: p.pageId,
-        url: p.url,
-        label: p.label,
-        templateTitle: '',
-        templateDescription: '',
-        templateKeywords: '',
-        override: overrideMap[p.pageId] || null,
-      }));
+      const pages = STATIC_PAGES.map((p) => {
+        const tpl = STATIC_PAGE_META[p.pageId];
+        return {
+          pageId: p.pageId,
+          url: p.url,
+          label: p.label,
+          templateTitle: tpl?.templateTitle || '',
+          templateDescription: tpl?.templateDescription || '',
+          templateKeywords: tpl?.templateKeywords || '',
+          override: overrideMap[p.pageId] || null,
+        };
+      });
       return NextResponse.json({ pages });
     }
 

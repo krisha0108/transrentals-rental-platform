@@ -6,6 +6,7 @@ import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
 import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
 import { CityContentSection } from '@/components/location/CityContentSection';
+import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 
 interface PageProps {
   params: {
@@ -34,10 +35,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   const locationName = city.name;
 
+  const _seoDb = await resolvePageMeta(`sports-car-rental:${params.location}`);
   return {
-    title: `Sports Car Rental ${locationName} | Supercar Hire @₹25k | Ferrari Lamborghini`,
-    description: `Rent sports cars in ${locationName}. Ferrari, Lamborghini, Porsche available. Luxury supercar hire @₹25000/day. Self-drive & chauffeur.`,
-    keywords: [
+    title: _seoDb?.metaTitle || `Sports Car Rental ${locationName} | Supercar Hire @₹25k | Ferrari Lamborghini`,
+    description: _seoDb?.metaDescription || `Rent sports cars in ${locationName}. Ferrari, Lamborghini, Porsche available. Luxury supercar hire @₹25000/day. Self-drive & chauffeur.`,
+    keywords: _seoDb?.metaKeywords ? _seoDb.metaKeywords.split(',').map((k) => k.trim()) : [
       `sports car rental ${locationName.toLowerCase()}`,
       `supercar rental ${locationName.toLowerCase()}`,
       `Ferrari rental ${locationName.toLowerCase()}`,

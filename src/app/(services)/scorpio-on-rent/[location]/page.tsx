@@ -10,6 +10,7 @@ import { StateServicePage } from '@/components/location/StateServicePage';
 import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
 import { FAQSection } from '@/components/services/FAQSection';
 import { CityContentSection } from '@/components/location/CityContentSection';
+import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 
 interface PageProps { params: { location: string }; }
 
@@ -27,9 +28,10 @@ export const dynamicParams = true;
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const city = getCityBySlug(params.location);
   const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
+  const _seoDb = await resolvePageMeta(`scorpio-on-rent:${params.location}`);
   return {
-    title: `Scorpio on Rent in ${locationName} | @₹2499/Day | TransRentals`,
-    description: `Rent Mahindra Scorpio without driver in ${locationName}. Rugged SUV for adventure & outstation.`,
+    title: _seoDb?.metaTitle || `Scorpio on Rent in ${locationName} | @₹2499/Day | TransRentals`,
+    description: _seoDb?.metaDescription || `Rent Mahindra Scorpio without driver in ${locationName}. Rugged SUV for adventure & outstation.`,
     alternates: { canonical: `https://transrentals.in/scorpio-on-rent/${params.location}` },
   };
 }

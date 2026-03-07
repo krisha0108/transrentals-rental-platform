@@ -14,6 +14,7 @@ import { BikeServiceSchema } from '@/components/seo/schemas';
 import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
 import { CityContentSection } from '@/components/location/CityContentSection';
+import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 
 interface PageProps {
   params: {
@@ -37,10 +38,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
   const locationSlug = params.location;
 
+  const _seoDb = await resolvePageMeta(`pulsar-on-rent:${params.location}`);
   return {
-    title: `Pulsar on Rent in ${locationName} | Bajaj Pulsar Rental @₹499/Day | TransRentals`,
-    description: `Rent Bajaj Pulsar bikes in ${locationName}. Pulsar 150, 180, NS200, RS200 available. Reliable sports bikes. Book your Pulsar rental now!`,
-    keywords: [
+    title: _seoDb?.metaTitle || `Pulsar on Rent in ${locationName} | Bajaj Pulsar Rental @₹499/Day | TransRentals`,
+    description: _seoDb?.metaDescription || `Rent Bajaj Pulsar bikes in ${locationName}. Pulsar 150, 180, NS200, RS200 available. Reliable sports bikes. Book your Pulsar rental now!`,
+    keywords: _seoDb?.metaKeywords ? _seoDb.metaKeywords.split(',').map((k) => k.trim()) : [
       `pulsar on rent in ${locationName}`,
       `bajaj pulsar rental ${locationName}`,
       `${locationName} pulsar rental`,

@@ -6,6 +6,7 @@ import { CarRentalBookingHero } from '@/components/car-rental/CarRentalBookingHe
 import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
 import { CityContentSection } from '@/components/location/CityContentSection';
+import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 
 interface PageProps {
   params: {
@@ -34,10 +35,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   const locationName = city.name;
 
+  const _seoDb = await resolvePageMeta(`one-way-car-rental:${params.location}`);
   return {
-    title: `One Way Car Rental from ${locationName} | Drop at Different City @₹1299 | TransRentals`,
-    description: `One-way car rental from ${locationName}. Drop car at different city. No return trip needed. Convenient intercity travel. Book online instantly.`,
-    keywords: [
+    title: _seoDb?.metaTitle || `One Way Car Rental from ${locationName} | Drop at Different City @₹1299 | TransRentals`,
+    description: _seoDb?.metaDescription || `One-way car rental from ${locationName}. Drop car at different city. No return trip needed. Convenient intercity travel. Book online instantly.`,
+    keywords: _seoDb?.metaKeywords ? _seoDb.metaKeywords.split(',').map((k) => k.trim()) : [
       `one way car rental ${locationName.toLowerCase()}`,
       `one way car hire ${locationName.toLowerCase()}`,
       `${locationName.toLowerCase()} to other cities cab`,

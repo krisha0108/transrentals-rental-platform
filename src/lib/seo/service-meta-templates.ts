@@ -319,6 +319,185 @@ export const STATIC_PAGES = [
   { pageId: 'static:bike-trips-ladakh', url: '/bike-trips/ladakh', label: 'Bike Trips — Ladakh' },
 ];
 
+/** Template meta for static (non-dynamic) pages */
+export const STATIC_PAGE_META: Record<string, { templateTitle: string; templateDescription: string; templateKeywords: string }> = {
+  'static:homepage': {
+    templateTitle: 'TransRentals | Rent Cars, Bikes, Buses & More Across India',
+    templateDescription: 'TransRentals offers self-drive cars, bikes, buses, trucks, luxury cars, packers & movers across India. Best prices, doorstep delivery. Book online now!',
+    templateKeywords: 'car rental india, bike rental, bus rental, transrentals, vehicle rental india',
+  },
+  'static:about': {
+    templateTitle: 'About TransRentals | India\'s Trusted Vehicle Rental Platform',
+    templateDescription: 'Learn about TransRentals — India\'s fastest growing vehicle rental platform. Self-drive, chauffeur, bus, truck & equipment rentals across 100+ cities.',
+    templateKeywords: 'about transrentals, vehicle rental company india, car rental platform',
+  },
+  'static:contact': {
+    templateTitle: 'Contact TransRentals | 24/7 Support | Get in Touch',
+    templateDescription: 'Contact TransRentals for bookings, support & queries. Available 24/7. Call, WhatsApp or email us for the best vehicle rental deals across India.',
+    templateKeywords: 'contact transrentals, transrentals support, vehicle rental helpline',
+  },
+  'static:services': {
+    templateTitle: 'All Rental Services | Cars, Bikes, Buses, Trucks | TransRentals',
+    templateDescription: 'Explore all vehicle rental services on TransRentals — self-drive cars, bikes, buses, trucks, luxury cars, equipment & more. Book online across India.',
+    templateKeywords: 'vehicle rental services, all rentals india, transrentals services',
+  },
+  'static:blog': {
+    templateTitle: 'Blog | Vehicle Rental Tips, Guides & Travel Stories | TransRentals',
+    templateDescription: 'Read TransRentals blog for travel guides, rental tips, road trip ideas, and vehicle rental advice across India.',
+    templateKeywords: 'transrentals blog, vehicle rental tips, travel guide india',
+  },
+  'static:car-rental': {
+    templateTitle: 'Car Rental India | Self Drive & Chauffeur | TransRentals',
+    templateDescription: 'Rent cars across India with TransRentals. Self-drive and chauffeur options. Economy to luxury cars. Best prices, flexible plans. Book online now!',
+    templateKeywords: 'car rental india, self drive car rental, chauffeur car rental, rent a car india',
+  },
+  'static:bus-rental': {
+    templateTitle: 'Bus Rental India | Tempo Traveller, Mini Bus & Coach | TransRentals',
+    templateDescription: 'Rent buses across India. Mini bus, tempo traveller, luxury coach for school trips, corporate events, pilgrimages. Book online now!',
+    templateKeywords: 'bus rental india, tempo traveller rental, mini bus hire, coach rental',
+  },
+  'static:bike-on-rent': {
+    templateTitle: 'Bike on Rent India | Royal Enfield, KTM, Activa | TransRentals',
+    templateDescription: 'Rent bikes across India. Royal Enfield, KTM, Activa, Pulsar & more. Doorstep delivery, starting @₹299/day. Book online now!',
+    templateKeywords: 'bike on rent india, bike rental, motorcycle rental, scooty on rent india',
+  },
+  'static:self-drive-car-rentals': {
+    templateTitle: 'Self Drive Car Rental India | No Driver | TransRentals',
+    templateDescription: 'Book self drive cars across India. No driver needed. Economy, sedan, SUV options. 24/7 support. Starting @₹999/day. Book now!',
+    templateKeywords: 'self drive car rental india, car without driver, self drive india',
+  },
+  'static:tempo-traveller': {
+    templateTitle: 'Tempo Traveller Rental India | 12-17 Seater | TransRentals',
+    templateDescription: 'Rent tempo travellers across India for group travel. 12, 14, 17 seater. AC & non-AC. Starting @₹18/km. Book now!',
+    templateKeywords: 'tempo traveller rental india, 12 seater tempo traveller, group vehicle rental',
+  },
+  'static:transporter': {
+    templateTitle: 'Truck & Transporter Rental India | Goods Transport | TransRentals',
+    templateDescription: 'Rent trucks and transporters across India. 7-ton to 32-ton trucks for goods transport. GPS tracking. Best prices. Book now!',
+    templateKeywords: 'truck rental india, transporter india, goods transport, truck on rent',
+  },
+  'static:packers-and-movers': {
+    templateTitle: 'Packers and Movers India | Relocation Services | TransRentals',
+    templateDescription: 'Professional packers and movers across India. Home & office relocation. Insured, reliable service. Starting @₹4999. Book now!',
+    templateKeywords: 'packers and movers india, movers packers, relocation services india',
+  },
+  'static:equipment-rental': {
+    templateTitle: 'Equipment Rental India | Construction & Event Equipment | TransRentals',
+    templateDescription: 'Rent construction and event equipment across India. Excavators, cranes, generators, JCBs. With operator. Book now!',
+    templateKeywords: 'equipment rental india, construction equipment hire, machinery rental india',
+  },
+  'static:trailer-on-rent': {
+    templateTitle: 'Trailer on Rent India | Flatbed & Lowbed Trailers | TransRentals',
+    templateDescription: 'Rent trailers across India for heavy equipment transport. Flatbed, lowbed, container trailers. GPS tracking. Book now!',
+    templateKeywords: 'trailer rental india, flatbed trailer, lowbed trailer, heavy transport india',
+  },
+  'static:luxury-car-rental': {
+    templateTitle: 'Luxury Car Rental India | BMW, Mercedes, Audi | TransRentals',
+    templateDescription: 'Rent luxury cars across India. BMW, Mercedes, Audi, Jaguar, Ferrari. With or without driver. For weddings, events & business. Book now!',
+    templateKeywords: 'luxury car rental india, BMW rental, Mercedes rental, luxury car hire india',
+  },
+  'static:chauffeur-service': {
+    templateTitle: 'Chauffeur Service India | Driver on Hire | TransRentals',
+    templateDescription: 'Hire professional chauffeurs across India. Verified drivers for daily use, outstation trips. Starting @₹599/day. Book now!',
+    templateKeywords: 'chauffeur service india, driver on hire, personal driver india',
+  },
+  'static:outstation-cab': {
+    templateTitle: 'Outstation Cab India | Intercity Taxi | TransRentals',
+    templateDescription: 'Book outstation cabs across India. Round trip, one-way options. Sedan & SUV. Starting @₹12/km. Book now!',
+    templateKeywords: 'outstation cab india, intercity taxi, outstation taxi india',
+  },
+  'static:local-taxi': {
+    templateTitle: 'Local Taxi India | Hourly Cab Booking | TransRentals',
+    templateDescription: 'Book local taxis across India. Hourly packages, point-to-point drops. AC cabs, professional drivers. Book now!',
+    templateKeywords: 'local taxi india, cab booking, hourly cab india',
+  },
+  'static:one-way-cab': {
+    templateTitle: 'One Way Cab India | No Return Charges | TransRentals',
+    templateDescription: 'Book one way cabs across India. No return charges. Drop at destination city. Sedan, SUV options. Book now!',
+    templateKeywords: 'one way cab india, one way taxi, one side cab india',
+  },
+  'static:round-trip': {
+    templateTitle: 'Round Trip Cab India | Best Rates | TransRentals',
+    templateDescription: 'Book round trip cabs across India. Best rates, comfortable journey. Sedan, SUV options. 24/7 support. Book now!',
+    templateKeywords: 'round trip cab india, round trip taxi, return cab india',
+  },
+  'static:airport-transfer': {
+    templateTitle: 'Airport Transfer India | Airport Cab Booking | TransRentals',
+    templateDescription: 'Book airport transfers across India. 45 min free wait, flight tracking. Sedan, SUV options. Book now!',
+    templateKeywords: 'airport transfer india, airport cab, airport taxi india',
+  },
+  'static:corporate-car-rental': {
+    templateTitle: 'Corporate Car Rental India | Employee Transport | TransRentals',
+    templateDescription: 'Corporate car rental across India for employee transport, airport transfers. Monthly contracts, GST invoice. Book now!',
+    templateKeywords: 'corporate car rental india, employee transport, business cab india',
+  },
+  'static:corporate-bus-rental': {
+    templateTitle: 'Corporate Bus Rental India | Staff Transport | TransRentals',
+    templateDescription: 'Corporate bus rental across India for employee transportation. Daily, monthly & annual contracts. Book now!',
+    templateKeywords: 'corporate bus rental india, staff transport bus, employee bus india',
+  },
+  'static:wedding-car-rental': {
+    templateTitle: 'Wedding Car Rental India | Baraat & Bridal Cars | TransRentals',
+    templateDescription: 'Rent wedding cars across India. Decorated cars for baraat, bride entry. Luxury & vintage cars. Book now!',
+    templateKeywords: 'wedding car rental india, baraat car, bridal car rental india',
+  },
+  'static:wedding-bus-rental': {
+    templateTitle: 'Wedding Bus Rental India | Guest Transport | TransRentals',
+    templateDescription: 'Rent buses for weddings across India. Guest transport, baraat buses. Mini bus to luxury coaches. Book now!',
+    templateKeywords: 'wedding bus rental india, baraat bus, wedding transport india',
+  },
+  'static:monthly-car-rental': {
+    templateTitle: 'Monthly Car Rental India | Long Term Lease | TransRentals',
+    templateDescription: 'Monthly car rental across India. Zero maintenance, insurance included. Starting @₹12,000/month. Book now!',
+    templateKeywords: 'monthly car rental india, long term car rental, car subscription india',
+  },
+  'static:monthly-bike-rental': {
+    templateTitle: 'Monthly Bike Rental India | Scooty on Monthly Rent | TransRentals',
+    templateDescription: 'Rent bikes on monthly basis across India. Activa, Splendor, Pulsar, Royal Enfield. Starting @₹2999/month. Book now!',
+    templateKeywords: 'monthly bike rental india, bike on monthly rent, long term bike rental',
+  },
+  'static:hourly-car-rental': {
+    templateTitle: 'Hourly Car Rental India | Pay Per Hour | TransRentals',
+    templateDescription: 'Rent cars by the hour across India. Self-drive hourly packages from ₹149/hr. Perfect for meetings & errands. Book now!',
+    templateKeywords: 'hourly car rental india, car by hour, pay per hour car india',
+  },
+  'static:bike-tours': {
+    templateTitle: 'Bike Tours India | Guided Motorcycle Tours | TransRentals',
+    templateDescription: 'Explore India on guided bike tours. Goa, Leh Ladakh, Rajasthan, Spiti Valley & more. Royal Enfield, KTM available. Book now!',
+    templateKeywords: 'bike tours india, motorcycle tours india, guided bike tour',
+  },
+  'static:bike-tours-goa': {
+    templateTitle: 'Bike Tours Goa | Rent Royal Enfield in Goa | TransRentals',
+    templateDescription: 'Explore Goa on a guided bike tour. Royal Enfield, KTM, Activa available. Best coastal routes. Book your Goa bike tour now!',
+    templateKeywords: 'bike tours goa, motorcycle tour goa, Royal Enfield goa, bike rental goa',
+  },
+  'static:bike-tours-leh-ladakh': {
+    templateTitle: 'Leh Ladakh Bike Tour | Royal Enfield Himalayan | TransRentals',
+    templateDescription: 'Ride to Leh Ladakh on a guided bike tour. Royal Enfield Himalayan, KTM Adventure. Best Manali-Leh & Srinagar-Leh routes. Book now!',
+    templateKeywords: 'leh ladakh bike tour, ladakh motorcycle tour, Himalayan bike trip',
+  },
+  'static:bike-tours-rajasthan': {
+    templateTitle: 'Rajasthan Bike Tour | Royal Enfield Desert Ride | TransRentals',
+    templateDescription: 'Explore Rajasthan on a guided motorcycle tour. Jaipur, Jodhpur, Jaisalmer, Udaipur. Royal Enfield available. Book now!',
+    templateKeywords: 'rajasthan bike tour, rajasthan motorcycle tour, desert bike ride',
+  },
+  'static:bike-tours-spiti-valley': {
+    templateTitle: 'Spiti Valley Bike Tour | High Altitude Adventure | TransRentals',
+    templateDescription: 'Ride through Spiti Valley on a guided bike tour. Kaza, Key Monastery, Chandratal. Adventure biking at 14,000 ft. Book now!',
+    templateKeywords: 'spiti valley bike tour, spiti motorcycle tour, high altitude biking',
+  },
+  'static:bike-trips': {
+    templateTitle: 'Bike Trips India | Self Guided Motorcycle Trips | TransRentals',
+    templateDescription: 'Plan your own bike trip across India with TransRentals. Rent bikes for self-guided adventures. Best rates. Book now!',
+    templateKeywords: 'bike trips india, motorcycle trips, self guided bike trip',
+  },
+  'static:bike-trips-ladakh': {
+    templateTitle: 'Ladakh Bike Trip | Self Drive Motorcycle Adventure | TransRentals',
+    templateDescription: 'Plan your Ladakh bike trip with TransRentals. Rent Royal Enfield or KTM. Manali-Leh & Srinagar-Leh routes. Book now!',
+    templateKeywords: 'ladakh bike trip, leh ladakh self drive, motorcycle trip ladakh',
+  },
+};
+
 /** Get template meta for a service+city */
 export function getTemplateMeta(serviceSlug: string, cityName: string) {
   const tpl = SERVICE_META_TEMPLATES[serviceSlug];

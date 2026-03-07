@@ -1,6 +1,7 @@
 import { Metadata } from 'next';
 import { permanentRedirect } from 'next/navigation';
 import { prisma } from '@/lib/db/prisma';
+import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 import { OneWayRouteBookingHero } from '@/components/one-way-cab/OneWayRouteBookingHero';
 import { RouteOverview } from '@/components/routes/RouteOverview';
 import { RoutePricing } from '@/components/routes/RoutePricing';
@@ -288,10 +289,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const avgDistance = packages[0]?.estimatedKm || 0;
   const avgTime = packages[0]?.estimatedDuration || '';
 
+  const _seoDb = await resolvePageMeta(`one-way-cab:${params.route}`);
   return {
-    title: `${from.name} to ${to.name} Cab | One Way Taxi @₹${minPrice} | No Return Fare`,
-    description: `Book ${from.name} to ${to.name} one way cab (${avgDistance} km, ${avgTime}). Starting @₹${minPrice}. No return charges. Professional drivers. Instant booking. 24/7 support.`,
-    keywords: [
+    title: _seoDb?.metaTitle || `${from.name} to ${to.name} Cab | One Way Taxi @₹${minPrice} | No Return Fare`,
+    description: _seoDb?.metaDescription || `Book ${from.name} to ${to.name} one way cab (${avgDistance} km, ${avgTime}). Starting @₹${minPrice}. No return charges. Professional drivers. Instant booking. 24/7 support.`,
+    keywords: _seoDb?.metaKeywords ? _seoDb.metaKeywords.split(',').map((k) => k.trim()) : [
       `${from.name} to ${to.name} cab`,
       `${from.name} to ${to.name} taxi`,
       `one way cab ${from.name} to ${to.name}`,

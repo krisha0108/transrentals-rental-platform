@@ -9,22 +9,52 @@
 -- ============================================================
 -- STEP 2: Add B2B columns to customers table
 -- ============================================================
-ALTER TABLE `customers`
-  ADD COLUMN IF NOT EXISTS `isB2B` BOOLEAN NOT NULL DEFAULT false,
-  ADD COLUMN IF NOT EXISTS `companyName` VARCHAR(191) NULL,
-  ADD COLUMN IF NOT EXISTS `gstin` VARCHAR(191) NULL,
-  ADD COLUMN IF NOT EXISTS `businessType` VARCHAR(191) NULL,
-  ADD COLUMN IF NOT EXISTS `b2bStatus` ENUM('PENDING', 'APPROVED', 'REJECTED') NULL,
-  ADD COLUMN IF NOT EXISTS `b2bApprovedAt` DATETIME(3) NULL,
-  ADD COLUMN IF NOT EXISTS `b2bApprovedById` VARCHAR(191) NULL,
-  ADD COLUMN IF NOT EXISTS `b2bRejectionReason` TEXT NULL;
+DROP PROCEDURE IF EXISTS add_b2b_columns_to_customers;
+CREATE PROCEDURE add_b2b_columns_to_customers()
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'customers' AND COLUMN_NAME = 'isB2B') THEN
+        ALTER TABLE `customers` ADD COLUMN `isB2B` BOOLEAN NOT NULL DEFAULT false;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'customers' AND COLUMN_NAME = 'companyName') THEN
+        ALTER TABLE `customers` ADD COLUMN `companyName` VARCHAR(191) NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'customers' AND COLUMN_NAME = 'gstin') THEN
+        ALTER TABLE `customers` ADD COLUMN `gstin` VARCHAR(191) NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'customers' AND COLUMN_NAME = 'businessType') THEN
+        ALTER TABLE `customers` ADD COLUMN `businessType` VARCHAR(191) NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'customers' AND COLUMN_NAME = 'b2bStatus') THEN
+        ALTER TABLE `customers` ADD COLUMN `b2bStatus` ENUM('PENDING', 'APPROVED', 'REJECTED') NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'customers' AND COLUMN_NAME = 'b2bApprovedAt') THEN
+        ALTER TABLE `customers` ADD COLUMN `b2bApprovedAt` DATETIME(3) NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'customers' AND COLUMN_NAME = 'b2bApprovedById') THEN
+        ALTER TABLE `customers` ADD COLUMN `b2bApprovedById` VARCHAR(191) NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'customers' AND COLUMN_NAME = 'b2bRejectionReason') THEN
+        ALTER TABLE `customers` ADD COLUMN `b2bRejectionReason` TEXT NULL;
+    END IF;
+END;
+CALL add_b2b_columns_to_customers();
+DROP PROCEDURE IF EXISTS add_b2b_columns_to_customers;
 
 -- ============================================================
 -- STEP 3: Add B2B columns to chauffeur_bookings table
 -- ============================================================
-ALTER TABLE `chauffeur_bookings`
-  ADD COLUMN IF NOT EXISTS `numberOfVehicles` INTEGER NULL,
-  ADD COLUMN IF NOT EXISTS `numberOfEmployees` INTEGER NULL;
+DROP PROCEDURE IF EXISTS add_b2b_columns_to_chauffeur_bookings;
+CREATE PROCEDURE add_b2b_columns_to_chauffeur_bookings()
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'chauffeur_bookings' AND COLUMN_NAME = 'numberOfVehicles') THEN
+        ALTER TABLE `chauffeur_bookings` ADD COLUMN `numberOfVehicles` INTEGER NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'chauffeur_bookings' AND COLUMN_NAME = 'numberOfEmployees') THEN
+        ALTER TABLE `chauffeur_bookings` ADD COLUMN `numberOfEmployees` INTEGER NULL;
+    END IF;
+END;
+CALL add_b2b_columns_to_chauffeur_bookings();
+DROP PROCEDURE IF EXISTS add_b2b_columns_to_chauffeur_bookings;
 
 -- ============================================================
 -- STEP 4: Create b2b_bookings table
