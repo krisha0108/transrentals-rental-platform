@@ -8,6 +8,7 @@ import { StateServicePage } from '@/components/location/StateServicePage';
 import { NearbyActiveCities } from '@/components/location/NearbyActiveCities';
 import { ComingSoonHero } from '@/components/services/ComingSoonHero';
 import { CityContentSection } from '@/components/location/CityContentSection';
+import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 
 interface PageProps {
   params: {
@@ -37,10 +38,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   const locationName = city.name;
 
+  const _seoDb = await resolvePageMeta(`self-drive-car-rentals:${params.location}`);
   return {
-    title: `Self Drive Car Rental in ${locationName} | No Driver @₹899/Day | TransRentals`,
-    description: `Rent self-drive cars in ${locationName}. Drive yourself without driver. Hatchbacks, sedans, SUVs available. Book online. Flexible hours. 24/7 support.`,
-    keywords: [
+    title: _seoDb?.metaTitle || `Self Drive Car Rental in ${locationName} | No Driver @₹899/Day | TransRentals`,
+    description: _seoDb?.metaDescription || `Rent self-drive cars in ${locationName}. Drive yourself without driver. Hatchbacks, sedans, SUVs available. Book online. Flexible hours. 24/7 support.`,
+    keywords: _seoDb?.metaKeywords ? _seoDb.metaKeywords.split(',').map((k) => k.trim()) : [
       `self drive car rental ${locationName.toLowerCase()}`,
       `self drive cars ${locationName.toLowerCase()}`,
       `car rental without driver ${locationName.toLowerCase()}`,

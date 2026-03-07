@@ -16,7 +16,7 @@ export async function GET(
     // Try to find by ID first, then by booking number
     const includeRelations = {
       locations: { select: { id: true, name: true, slug: true } },
-      customers: { select: { id: true, name: true, email: true, phone: true } },
+      customers: { select: { id: true, name: true, email: true, phone: true, isB2B: true } },
       vendors_car_bookings_acceptedVendorIdTovendors: {
         select: {
           id: true,
@@ -151,6 +151,7 @@ export async function GET(
         review: booking.review,
         quote: booking.self_drive_quotes || null,
         quoteRequest: booking.self_drive_quote_requests || null,
+        isB2B: booking.customers?.isB2B || false,
         createdAt: booking.createdAt,
         updatedAt: booking.updatedAt,
       },

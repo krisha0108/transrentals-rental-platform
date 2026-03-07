@@ -6,6 +6,7 @@ import { CarRentalBookingHero } from '@/components/car-rental/CarRentalBookingHe
 import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
 import { CityContentSection } from '@/components/location/CityContentSection';
+import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 
 interface PageProps {
   params: {
@@ -34,10 +35,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   const locationName = city.name;
 
+  const _seoDb = await resolvePageMeta(`local-taxi:${params.location}`);
   return {
-    title: `Local Taxi ${locationName} | Hourly Cab @₹399 | 4 Hour 8 Hour Package`,
-    description: `Book local taxi in ${locationName}. Hourly cab rental - 4hr, 8hr, 12hr packages. City taxi service. AC sedan, SUV @₹399.`,
-    keywords: [
+    title: _seoDb?.metaTitle || `Local Taxi ${locationName} | Hourly Cab @₹399 | 4 Hour 8 Hour Package`,
+    description: _seoDb?.metaDescription || `Book local taxi in ${locationName}. Hourly cab rental - 4hr, 8hr, 12hr packages. City taxi service. AC sedan, SUV @₹399.`,
+    keywords: _seoDb?.metaKeywords ? _seoDb.metaKeywords.split(',').map((k) => k.trim()) : [
       `local taxi ${locationName.toLowerCase()}`,
       `hourly taxi ${locationName.toLowerCase()}`,
       `local cab ${locationName.toLowerCase()}`,

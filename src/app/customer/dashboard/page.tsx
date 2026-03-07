@@ -35,7 +35,12 @@ import {
   Bell,
   BarChart,
   HelpCircle,
+  Building2,
+  Briefcase,
+  Hash,
+  ShieldCheck,
 } from 'lucide-react';
+import B2BDashboard from './B2BDashboard';
 
 const currencyFormatter = new Intl.NumberFormat('en-IN', {
   style: 'currency',
@@ -57,6 +62,9 @@ interface Customer {
   phone: string;
   image?: string;
   avatar?: string;
+  isB2B?: boolean;
+  companyName?: string;
+  b2bStatus?: string;
 }
 
 interface Quotation {
@@ -173,6 +181,7 @@ export default function CustomerDashboardPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingBookings, setIsLoadingBookings] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [dashboardView, setDashboardView] = useState<'b2b' | 'personal'>('personal');
   const [currentPage, setCurrentPage] = useState(1);
 
   // Service filter
@@ -204,6 +213,11 @@ export default function CustomerDashboardPage() {
 
   // Mobile menu
   const [showMobileMenu, setShowMobileMenu] = useState(false);
+
+  // Company manage modal
+  const [showCompanyModal, setShowCompanyModal] = useState(false);
+  const [companyDetails, setCompanyDetails] = useState<any>(null);
+  const [isLoadingCompany, setIsLoadingCompany] = useState(false);
 
   // Chat state
   const [totalUnreadChats, setTotalUnreadChats] = useState(0);
@@ -239,6 +253,9 @@ export default function CustomerDashboardPage() {
     try {
       const parsed = JSON.parse(customerData);
       setCustomer(parsed);
+      if (parsed.isB2B && parsed.b2bStatus === 'APPROVED') {
+        setDashboardView('b2b');
+      }
       setProfileForm((prev) => ({
         ...prev,
         name: parsed.name || '',
@@ -1115,6 +1132,55 @@ export default function CustomerDashboardPage() {
 
       {/* Main Content with top padding for fixed header */}
       <div className="pt-16 md:pt-20">
+        {/* B2B / Personal Dashboard Toggle */}
+        {customer?.isB2B && customer?.b2bStatus === 'APPROVED' && (
+          <div className="bg-gradient-to-r from-slate-800 to-slate-900 border-b border-white/10">
+            <div className="container mx-auto px-4 max-w-6xl">
+              <div className="flex items-center justify-between py-2">
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => setDashboardView('b2b')}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2 ${
+                      dashboardView === 'b2b'
+                        ? 'bg-emerald-600 text-white shadow-lg'
+                        : 'text-gray-300 hover:bg-white/10'
+                    }`}
+                  >
+                    <Building2 className="w-4 h-4" /> B2B Dashboard
+                  </button>
+                  <button
+                    onClick={() => setDashboardView('personal')}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2 ${
+                      dashboardView === 'personal'
+                        ? 'bg-purple-600 text-white shadow-lg'
+                        : 'text-gray-300 hover:bg-white/10'
+                    }`}
+                  >
+                    <User className="w-4 h-4" /> Personal Dashboard
+                  </button>
+                </div>
+                <button
+                  onClick={() => setShowCompanyModal(true)}
+                  className="px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2 text-amber-300 hover:bg-white/10 border border-amber-500/30"
+                >
+                  <Edit3 className="w-4 h-4" /> Manage Company
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* B2B Dashboard View */}
+        {dashboardView === 'b2b' && customer?.isB2B ? (
+          <div className="container mx-auto px-4 max-w-6xl py-6">
+            <B2BDashboard
+              customerId={String(customer.id)}
+              customerName={customer.name}
+              companyName={customer.companyName || null}
+            />
+          </div>
+        ) : (
+        <>
         {/* Stats Section */}
         <div className="bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 pb-8 pt-6">
           <div className="container mx-auto px-4 max-w-6xl">
@@ -1659,6 +1725,8 @@ export default function CustomerDashboardPage() {
             </div>
           </div>
         </div>
+        </>
+        )}
       </div>
 
       {/* Profile Edit Modal */}
@@ -1890,6 +1958,123 @@ export default function CustomerDashboardPage() {
           className="fixed inset-0 z-40"
           onClick={() => setShowLocationFilter(false)}
         ></div>
+      )}
+
+      {/* Company Manage Modal */}
+      {showCompanyModal && (() => {
+        // Fetch company details on modal open
+        if (!companyDetails && !isLoadingCompany) {
+          setIsLoadingCompany(true);
+          const params = new URLSearchParams();
+          if (customer?.id) params.set('customer_id', String(customer.id));
+          else if (customer?.email) params.set('email', customer.email);
+          fetch(`/api/customer/b2b-status?${params}`)
+            .then(r => r.json())
+            .then(data => { setCompanyDetails(data); setIsLoadingCompany(false); })
+            .catch(() => setIsLoadingCompany(false));
+        }
+        return null;
+      })()}
+      {showCompanyModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={() => { setShowCompanyModal(false); setCompanyDetails(null); }}>
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            <div className="bg-gradient-to-r from-emerald-600 to-teal-600 text-white p-5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Building2 className="w-6 h-6" />
+                  <div>
+                    <h2 className="font-bold text-lg">Company Details</h2>
+                    <p className="text-emerald-100 text-sm">B2B Corporate Account</p>
+                  </div>
+                </div>
+                <button onClick={() => { setShowCompanyModal(false); setCompanyDetails(null); }} className="p-2 hover:bg-white/20 rounded-full transition">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+            <div className="p-5 space-y-4">
+              {isLoadingCompany ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="w-6 h-6 animate-spin text-emerald-600" />
+                </div>
+              ) : (
+                <>
+                  {/* Company Name + Status */}
+                  <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4">
+                    <div className="flex items-center gap-2 mb-1">
+                      <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                      <span className="text-xs font-semibold text-emerald-700 uppercase tracking-wider">
+                        {companyDetails?.b2bStatus || customer?.b2bStatus || 'Approved'}
+                      </span>
+                      {companyDetails?.b2bApprovedAt && (
+                        <span className="text-[10px] text-emerald-500 ml-auto">
+                          since {new Date(companyDetails.b2bApprovedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                        </span>
+                      )}
+                    </div>
+                    <h3 className="text-xl font-bold text-gray-900 mt-1">{companyDetails?.companyName || customer?.companyName || 'Company Name'}</h3>
+                  </div>
+
+                  {/* Company Details Section */}
+                  <div className="bg-green-50 rounded-xl p-4 space-y-2">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Building2 className="w-4 h-4 text-green-600" />
+                      <span className="text-sm font-semibold text-green-800">Company Information</span>
+                    </div>
+                    <div className="flex items-start gap-3 p-2.5 bg-white rounded-lg">
+                      <Hash className="w-4 h-4 text-gray-400 mt-0.5" />
+                      <div>
+                        <p className="text-xs text-gray-500 font-medium">GSTIN</p>
+                        <p className="font-semibold text-gray-900 font-mono">{companyDetails?.gstin || 'Not provided'}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3 p-2.5 bg-white rounded-lg">
+                      <Briefcase className="w-4 h-4 text-gray-400 mt-0.5" />
+                      <div>
+                        <p className="text-xs text-gray-500 font-medium">Business Type</p>
+                        <p className="font-semibold text-gray-900">{companyDetails?.businessType || 'Not specified'}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Contact Person */}
+                  <div className="space-y-2">
+                    <span className="text-sm font-semibold text-gray-700">Contact Person</span>
+                    <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
+                      <User className="w-5 h-5 text-gray-400 mt-0.5" />
+                      <div>
+                        <p className="text-xs text-gray-500 font-medium">Full Name</p>
+                        <p className="font-semibold text-gray-900">{customer?.name}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
+                      <Mail className="w-5 h-5 text-gray-400 mt-0.5" />
+                      <div>
+                        <p className="text-xs text-gray-500 font-medium">Email</p>
+                        <p className="font-semibold text-gray-900">{customer?.email}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
+                      <Phone className="w-5 h-5 text-gray-400 mt-0.5" />
+                      <div>
+                        <p className="text-xs text-gray-500 font-medium">Phone</p>
+                        <p className="font-semibold text-gray-900">{customer?.phone}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Account Type */}
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                    <p className="text-xs text-blue-600 font-medium mb-1">Account Type</p>
+                    <p className="text-sm font-semibold text-blue-800">B2B Corporate — Post-Paid Billing</p>
+                  </div>
+
+                  <p className="text-xs text-gray-400 text-center">To update company details, contact support at <a href="mailto:book@transrentals.in" className="text-emerald-600 font-medium">book@transrentals.in</a></p>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

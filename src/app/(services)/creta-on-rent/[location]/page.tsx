@@ -10,6 +10,7 @@ import { FAQSection } from '@/components/services/FAQSection';
 import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
 import { CityContentSection } from '@/components/location/CityContentSection';
+import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 
 interface PageProps {
   params: {
@@ -33,10 +34,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
   const locationSlug = params.location;
 
+  const _seoDb = await resolvePageMeta(`creta-on-rent:${params.location}`);
   return {
-    title: `Creta on Rent in ${locationName} | Rent Creta @₹1999/Day | TransRentals`,
-    description: `Rent Hyundai Creta without driver in ${locationName}. Self-drive Creta rental for family trips & outstation. Creta E, S, SX, SX(O) AT available.`,
-    keywords: [
+    title: _seoDb?.metaTitle || `Creta on Rent in ${locationName} | Rent Creta @₹1999/Day | TransRentals`,
+    description: _seoDb?.metaDescription || `Rent Hyundai Creta without driver in ${locationName}. Self-drive Creta rental for family trips & outstation. Creta E, S, SX, SX(O) AT available.`,
+    keywords: _seoDb?.metaKeywords ? _seoDb.metaKeywords.split(',').map((k) => k.trim()) : [
       `creta on rent ${locationName}`,
       `hyundai creta rental ${locationName}`,
       `rent creta without driver ${locationName}`,

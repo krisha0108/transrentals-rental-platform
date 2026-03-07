@@ -14,6 +14,7 @@ import { BikeServiceSchema } from '@/components/seo/schemas';
 import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
 import { CityContentSection } from '@/components/location/CityContentSection';
+import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 
 interface PageProps {
   params: {
@@ -39,10 +40,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
   const locationSlug = params.location;
 
+  const _seoDb = await resolvePageMeta(`activa-on-rent:${params.location}`);
   return {
-    title: `Activa on Rent in ${locationName} | Scooty Rental @₹299/Day | TransRentals`,
-    description: `Rent Activa & scooters in ${locationName}. Honda Activa, TVS Jupiter, Suzuki Access available. Fuel efficient, easy to ride. Book your scooty rental now!`,
-    keywords: [
+    title: _seoDb?.metaTitle || `Activa on Rent in ${locationName} | Scooty Rental @₹299/Day | TransRentals`,
+    description: _seoDb?.metaDescription || `Rent Activa & scooters in ${locationName}. Honda Activa, TVS Jupiter, Suzuki Access available. Fuel efficient, easy to ride. Book your scooty rental now!`,
+    keywords: _seoDb?.metaKeywords ? _seoDb.metaKeywords.split(',').map((k) => k.trim()) : [
       `activa on rent in ${locationName}`,
       `scooty rental ${locationName}`,
       `${locationName} activa rental`,

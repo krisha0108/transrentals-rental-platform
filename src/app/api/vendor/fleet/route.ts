@@ -158,8 +158,9 @@ export async function GET(request: NextRequest) {
               id: true, tripTypeId: true, localPackageId: true, priceType: true,
               basePrice: true, perKmRate: true, perHourRate: true, perDayRate: true,
               driverAllowance: true, nightCharges: true,
-              kmLimitPerDay: true, extraKmCharge: true, deposit: true,
+              kmLimitPerDay: true, extraKmCharge: true, extraHourCharge: true, deposit: true,
               locationId: true,
+              trip_types: { select: { id: true, name: true, slug: true } },
             },
           },
           vendor_fleet_blocked_dates: {

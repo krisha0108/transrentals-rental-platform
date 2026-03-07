@@ -1,0 +1,3 @@
+-- This migration was applied directly to the database before migration tracking.
+-- Placeholder to keep migration history in sync.
+-- The actual change (adding totalPrice to quotes) already exists in the database.

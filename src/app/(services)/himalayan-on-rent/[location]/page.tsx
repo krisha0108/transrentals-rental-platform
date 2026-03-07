@@ -10,6 +10,7 @@ import { FAQSection } from '@/components/services/FAQSection';
 import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
 import { CityContentSection } from '@/components/location/CityContentSection';
+import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 
 interface PageProps { params: { location: string }; }
 
@@ -27,9 +28,10 @@ export const dynamicParams = true;
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const city = getCityBySlug(params.location);
   const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
+  const _seoDb = await resolvePageMeta(`himalayan-on-rent:${params.location}`);
   return {
-    title: `Himalayan on Rent in ${locationName} | @₹1499/Day | TransRentals`,
-    description: `Rent Royal Enfield Himalayan in ${locationName}. Adventure touring bike for mountain trips.`,
+    title: _seoDb?.metaTitle || `Himalayan on Rent in ${locationName} | @₹1499/Day | TransRentals`,
+    description: _seoDb?.metaDescription || `Rent Royal Enfield Himalayan in ${locationName}. Adventure touring bike for mountain trips.`,
     alternates: { canonical: `https://transrentals.in/himalayan-on-rent/${params.location}` },
   };
 }

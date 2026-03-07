@@ -483,8 +483,21 @@ export default function CustomerSelfDriveBookingPage() {
 
           {/* Sidebar */}
           <div className="space-y-6">
+            {/* B2B Post-paid Banner */}
+            {booking.isB2B && (
+              <div className="bg-teal-50 border border-teal-200 rounded-xl p-4 flex items-center gap-3">
+                <div className="w-10 h-10 bg-teal-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                  <svg className="w-5 h-5 text-teal-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                </div>
+                <div>
+                  <p className="font-semibold text-teal-800">B2B Corporate Booking</p>
+                  <p className="text-sm text-teal-600">No advance payment required. Post-trip billing.</p>
+                </div>
+              </div>
+            )}
+
             {/* Payment Action */}
-            {booking.status === 'PENDING_PAYMENT' && (
+            {booking.status === 'PENDING_PAYMENT' && !booking.isB2B && (
               <div className="bg-white rounded-xl border p-4">
                 <h3 className="font-semibold text-gray-900 mb-3">Complete Your Booking</h3>
                 <BookingPayment

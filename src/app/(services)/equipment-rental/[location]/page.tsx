@@ -13,6 +13,7 @@ import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
 import { prisma } from '@/lib/db/prisma';
 import { CityContentSection } from '@/components/location/CityContentSection';
+import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 
 function parseJsonField<T>(value: unknown, defaultValue: T): T {
   if (value === null || value === undefined) return defaultValue;
@@ -83,10 +84,11 @@ export const dynamicParams = true;
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const locationName = capitalize(params.location.replace(/-/g, ' '));
 
+  const _seoDb = await resolvePageMeta(`equipment-rental:${params.location}`);
   return {
-    title: `Equipment Rental in ${locationName} | Starting @₹1499/Day | TransRentals`,
-    description: `Rent construction and event equipment in ${locationName}. Excavators, cranes, generators, DJ systems. Professional operators available. Book now!`,
-    keywords: [
+    title: _seoDb?.metaTitle || `Equipment Rental in ${locationName} | Starting @₹1499/Day | TransRentals`,
+    description: _seoDb?.metaDescription || `Rent construction and event equipment in ${locationName}. Excavators, cranes, generators, DJ systems. Professional operators available. Book now!`,
+    keywords: _seoDb?.metaKeywords ? _seoDb.metaKeywords.split(',').map((k) => k.trim()) : [
       `equipment rental in ${locationName}`,
       `construction equipment ${locationName}`,
       `${locationName} event equipment`,

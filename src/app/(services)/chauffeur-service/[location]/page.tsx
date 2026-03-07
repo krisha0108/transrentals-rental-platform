@@ -6,6 +6,7 @@ import { CarRentalBookingHero } from '@/components/car-rental/CarRentalBookingHe
 import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
 import { CityContentSection } from '@/components/location/CityContentSection';
+import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 
 interface PageProps {
   params: {
@@ -34,10 +35,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   const locationName = city.name;
 
+  const _seoDb = await resolvePageMeta(`chauffeur-service:${params.location}`);
   return {
-    title: `Chauffeur Service ${locationName} | Driver on Hire @₹599 | Car Driver`,
-    description: `Hire professional chauffeur in ${locationName}. Driver on hire for daily use, outstation. Verified car drivers @₹599/day.`,
-    keywords: [
+    title: _seoDb?.metaTitle || `Chauffeur Service ${locationName} | Driver on Hire @₹599 | Car Driver`,
+    description: _seoDb?.metaDescription || `Hire professional chauffeur in ${locationName}. Driver on hire for daily use, outstation. Verified car drivers @₹599/day.`,
+    keywords: _seoDb?.metaKeywords ? _seoDb.metaKeywords.split(',').map((k) => k.trim()) : [
       `chauffeur service ${locationName.toLowerCase()}`,
       `driver on hire ${locationName.toLowerCase()}`,
       `car driver ${locationName.toLowerCase()}`,

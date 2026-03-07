@@ -561,6 +561,19 @@ export default function BikeBookingDetailPage() {
           </div>
         )}
 
+        {/* B2B Post-paid Banner */}
+        {booking.isB2B && (
+          <div className="bg-teal-50 border border-teal-200 rounded-2xl p-4 flex items-center gap-3">
+            <div className="w-10 h-10 bg-teal-100 rounded-xl flex items-center justify-center flex-shrink-0">
+              <CheckCircle className="w-5 h-5 text-teal-600" />
+            </div>
+            <div>
+              <p className="font-semibold text-teal-800">B2B Corporate Booking</p>
+              <p className="text-sm text-teal-600">No advance payment required. Post-trip billing.</p>
+            </div>
+          </div>
+        )}
+
         {/* Payment Confirmation Section */}
         {showPaymentConfirmation && (
           <BookingPayment

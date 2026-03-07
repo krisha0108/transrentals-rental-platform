@@ -21,6 +21,8 @@ const noLayoutRoutes = [
   '/customer/login',
   '/book',
   '/track',
+  '/invoice',
+  '/trip',
 ];
 
 export function LayoutWrapper({ children }: { children: React.ReactNode }) {

@@ -12,6 +12,7 @@ import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
 import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
 import { CityContentSection } from '@/components/location/CityContentSection';
+import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 
 interface PageProps {
   params: {
@@ -35,10 +36,11 @@ export const dynamicParams = true;
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const locationName = capitalize(params.location.replace(/-/g, ' '));
 
+  const _seoDb = await resolvePageMeta(`corporate-bus-rental:${params.location}`);
   return {
-    title: `Corporate Bus Rental in ${locationName} | Employee Transport @₹4999 | TransRentals`,
-    description: `Corporate bus rental in ${locationName} for employee transportation, office events & team outings. Daily, monthly & annual contracts available. Book now!`,
-    keywords: [
+    title: _seoDb?.metaTitle || `Corporate Bus Rental in ${locationName} | Employee Transport @₹4999 | TransRentals`,
+    description: _seoDb?.metaDescription || `Corporate bus rental in ${locationName} for employee transportation, office events & team outings. Daily, monthly & annual contracts available. Book now!`,
+    keywords: _seoDb?.metaKeywords ? _seoDb.metaKeywords.split(',').map((k) => k.trim()) : [
       `corporate bus rental in ${locationName}`,
       `employee transport bus ${locationName}`,
       `${locationName} office bus rental`,

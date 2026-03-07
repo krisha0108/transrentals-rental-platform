@@ -6,6 +6,7 @@ import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
 import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
 import { CityContentSection } from '@/components/location/CityContentSection';
+import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 
 interface PageProps {
   params: {
@@ -34,10 +35,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   const locationName = city.name;
 
+  const _seoDb = await resolvePageMeta(`vintage-car-rental:${params.location}`);
   return {
-    title: `Vintage Car Rental ${locationName} | Classic Car Wedding @₹8999 | Ambassador`,
-    description: `Rent vintage cars in ${locationName}. Classic Ambassador, retro cars for weddings. Heritage car booking @₹8999. Photo shoot ready.`,
-    keywords: [
+    title: _seoDb?.metaTitle || `Vintage Car Rental ${locationName} | Classic Car Wedding @₹8999 | Ambassador`,
+    description: _seoDb?.metaDescription || `Rent vintage cars in ${locationName}. Classic Ambassador, retro cars for weddings. Heritage car booking @₹8999. Photo shoot ready.`,
+    keywords: _seoDb?.metaKeywords ? _seoDb.metaKeywords.split(',').map((k) => k.trim()) : [
       `vintage car rental ${locationName.toLowerCase()}`,
       `vintage car wedding ${locationName.toLowerCase()}`,
       `classic car ${locationName.toLowerCase()}`,

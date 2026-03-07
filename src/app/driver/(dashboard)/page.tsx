@@ -88,6 +88,7 @@ const SERVICE_ICONS: Record<string, any> = {
   packers: Package,
   equipment: Wrench,
   luxury: Crown,
+  b2b: Car,
 };
 
 export default function DriverDashboardPage() {
@@ -210,9 +211,11 @@ export default function DriverDashboardPage() {
               const isPackers = booking.serviceType === 'packers';
               const isEquipment = booking.serviceType === 'equipment';
               const isLuxury = booking.serviceType === 'luxury';
+              const isB2B = booking.serviceType === 'b2b';
 
               // Color config based on service type
               const getServiceColors = () => {
+                if (isB2B) return { bg: 'bg-teal-100', text: 'text-teal-600', badge: 'bg-teal-100 text-teal-700' };
                 if (isTruck) return { bg: 'bg-indigo-100', text: 'text-indigo-600', badge: 'bg-indigo-100 text-indigo-700' };
                 if (isBus) return { bg: 'bg-orange-100', text: 'text-orange-600', badge: 'bg-orange-100 text-orange-700' };
                 if (isPackers) return { bg: 'bg-cyan-100', text: 'text-cyan-600', badge: 'bg-cyan-100 text-cyan-700' };
@@ -223,6 +226,7 @@ export default function DriverDashboardPage() {
               const serviceColors = getServiceColors();
 
               const getServiceLabel = () => {
+                if (isB2B) return 'B2B';
                 if (isTruck) return 'Truck';
                 if (isBus) return 'Bus';
                 if (isPackers) return 'Packers';

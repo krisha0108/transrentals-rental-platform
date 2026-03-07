@@ -1,8 +1,10 @@
 import { Metadata } from 'next';
 import { permanentRedirect } from 'next/navigation';
 import { prisma } from '@/lib/db/prisma';
+import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 import { RouteOverview } from '@/components/routes/RouteOverview';
 import { RouteFAQs } from '@/components/routes/RouteFAQs';
+import { RouteNotAvailable } from '@/components/routes/RouteNotAvailable';
 import { RoundTripRouteBookingHeroWithForm } from '@/components/round-trip/RoundTripRouteBookingHeroWithForm';
 
 interface PageProps {
@@ -154,10 +156,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     const distance = routePackage?.estimatedKm || 0;
     const roundTripPrice = routePackage ? Math.round(routePackage.basePrice * routePackage.returnMultiplier) : 0;
 
+    const _seoDb = await resolvePageMeta(`round-trip:${params.route}`);
     return {
-      title: `${fromCity} to ${toCity} Round Trip Cab | ${distance}km @₹${roundTripPrice} | Book Return Trip`,
-      description: `Book round trip cab from ${fromCity} to ${toCity} and back. ${distance}km round trip @₹${roundTripPrice}. AC sedan, SUV, Innova available. Professional driver, all charges included.`,
-      keywords: [
+      title: _seoDb?.metaTitle || `${fromCity} to ${toCity} Round Trip Cab | ${distance}km @₹${roundTripPrice} | Book Return Trip`,
+      description: _seoDb?.metaDescription || `Book round trip cab from ${fromCity} to ${toCity} and back. ${distance}km round trip @₹${roundTripPrice}. AC sedan, SUV, Innova available. Professional driver, all charges included.`,
+      keywords: _seoDb?.metaKeywords ? _seoDb.metaKeywords.split(',').map((k) => k.trim()) : [
         `${fromCity} to ${toCity} round trip cab`,
         `${toCity} to ${fromCity} round trip`,
         `round trip taxi ${fromCity} ${toCity}`,
@@ -613,7 +616,7 @@ export default async function RoundTripRoutePage({ params }: PageProps) {
     );
   } catch (error) {
     console.error('[round-trip] Page error:', error);
-    return <RouteNotAvailable />;
+    return <RouteNotAvailable fromCity="" toCity="" />;
   }
 }
 

@@ -12,6 +12,7 @@ import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
 import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
 import { CityContentSection } from '@/components/location/CityContentSection';
+import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 
 interface PageProps {
   params: {
@@ -35,10 +36,11 @@ export const dynamicParams = true;
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const locationName = capitalize(params.location.replace(/-/g, ' '));
 
+  const _seoDb = await resolvePageMeta(`mini-truck-rental:${params.location}`);
   return {
-    title: `Mini Truck Rental in ${locationName} | Tata Ace on Rent @₹1499/Day | TransRentals`,
-    description: `Rent mini trucks in ${locationName}. Tata Ace, Mahindra Pickup available. Perfect for local deliveries, house shifting & goods transport. Book now!`,
-    keywords: [
+    title: _seoDb?.metaTitle || `Mini Truck Rental in ${locationName} | Tata Ace on Rent @₹1499/Day | TransRentals`,
+    description: _seoDb?.metaDescription || `Rent mini trucks in ${locationName}. Tata Ace, Mahindra Pickup available. Perfect for local deliveries, house shifting & goods transport. Book now!`,
+    keywords: _seoDb?.metaKeywords ? _seoDb.metaKeywords.split(',').map((k) => k.trim()) : [
       `mini truck rental in ${locationName}`,
       `tata ace on rent ${locationName}`,
       `${locationName} mini truck hire`,

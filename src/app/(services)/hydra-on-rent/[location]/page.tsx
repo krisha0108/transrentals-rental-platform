@@ -10,6 +10,7 @@ import { FAQSection } from '@/components/services/FAQSection';
 import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
 import { CityContentSection } from '@/components/location/CityContentSection';
+import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 
 interface PageProps { params: { location: string }; }
 
@@ -27,9 +28,10 @@ export const dynamicParams = true;
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const city = getCityBySlug(params.location);
   const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
+  const _seoDb = await resolvePageMeta(`hydra-on-rent:${params.location}`);
   return {
-    title: `Hydra on Rent in ${locationName} | @₹6000/Day | TransRentals`,
-    description: `Hire hydra crane in ${locationName} for loading, unloading, construction. 8T-14T capacity.`,
+    title: _seoDb?.metaTitle || `Hydra on Rent in ${locationName} | @₹6000/Day | TransRentals`,
+    description: _seoDb?.metaDescription || `Hire hydra crane in ${locationName} for loading, unloading, construction. 8T-14T capacity.`,
     alternates: { canonical: `https://transrentals.in/hydra-on-rent/${params.location}` },
   };
 }

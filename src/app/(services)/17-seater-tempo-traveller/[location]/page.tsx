@@ -10,6 +10,7 @@ import { StateServicePage } from '@/components/location/StateServicePage';
 import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
 import { FAQSection } from '@/components/services/FAQSection';
 import { CityContentSection } from '@/components/location/CityContentSection';
+import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 
 interface PageProps {
   params: { location: string };
@@ -30,10 +31,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const city = getCityBySlug(params.location);
   const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
 
+  const _seoDb = await resolvePageMeta(`17-seater-tempo-traveller:${params.location}`);
   return {
-    title: `17 Seater Tempo Traveller in ${locationName} | Hire @₹20/km | TransRentals`,
-    description: `Book 17 seater tempo traveller on rent in ${locationName}. AC/Non-AC options with driver. For large groups, weddings, corporate events.`,
-    keywords: [`17 seater tempo traveller ${locationName}`, `tempo traveller hire ${locationName}`],
+    title: _seoDb?.metaTitle || `17 Seater Tempo Traveller in ${locationName} | Hire @₹20/km | TransRentals`,
+    description: _seoDb?.metaDescription || `Book 17 seater tempo traveller on rent in ${locationName}. AC/Non-AC options with driver. For large groups, weddings, corporate events.`,
+    keywords: _seoDb?.metaKeywords ? _seoDb.metaKeywords.split(',').map((k) => k.trim()) : [`17 seater tempo traveller ${locationName}`, `tempo traveller hire ${locationName}`],
     openGraph: {
       title: `17 Seater Tempo Traveller in ${locationName} @₹20/km`,
       url: `https://transrentals.in/17-seater-tempo-traveller/${params.location}`,

@@ -9,6 +9,7 @@ import { StateServicePage } from '@/components/location/StateServicePage';
 import { prisma } from '@/lib/db/prisma';
 import { formatPriceHighlight } from '@/lib/utils';
 import { CityContentSection } from '@/components/location/CityContentSection';
+import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 
 interface PageProps {
   params: {
@@ -73,10 +74,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   const locationName = city.name;
 
+  const _seoDb = await resolvePageMeta(`tempo-traveller:${params.location}`);
   return {
-    title: formatPriceHighlight(`Tempo Traveller ${locationName} | 12-17 Seater @₹18/Km | Force Traveller`),
-    description: formatPriceHighlight(`Rent Tempo Traveller in ${locationName}. 12, 17, 20 seater AC tempo. Group travel, family trips, corporate events. Book online @₹18/km.`),
-    keywords: [
+    title: _seoDb?.metaTitle || formatPriceHighlight(`Tempo Traveller ${locationName} | 12-17 Seater @₹18/Km | Force Traveller`),
+    description: _seoDb?.metaDescription || formatPriceHighlight(`Rent Tempo Traveller in ${locationName}. 12, 17, 20 seater AC tempo. Group travel, family trips, corporate events. Book online @₹18/km.`),
+    keywords: _seoDb?.metaKeywords ? _seoDb.metaKeywords.split(',').map((k) => k.trim()) : [
       `tempo traveller ${locationName.toLowerCase()}`,
       `12 seater tempo ${locationName.toLowerCase()}`,
       `17 seater tempo ${locationName.toLowerCase()}`,

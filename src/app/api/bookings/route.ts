@@ -98,7 +98,7 @@ async function findLocation(cityName: string) {
 
 // ============= BIKE BOOKING HANDLER =============
 
-async function handleBikeBooking(customerInfo: { name: string; email: string; phone: string; password?: string }, bookingData: Record<string, unknown>) {
+async function handleBikeBooking(customerInfo: { name: string; email: string; phone: string; password?: string }, bookingData: Record<string, unknown>, isB2B: boolean = false) {
   const { customer } = await getOrCreateCustomer(customerInfo);
   const location = await findLocation(bookingData.location_name as string || bookingData.location_slug as string);
 
@@ -312,12 +312,11 @@ async function handleBikeBooking(customerInfo: { name: string; email: string; ph
       dropDate: returnDate,
       dropTime: returnDate.toTimeString().slice(0, 5),
       totalDays: rentalDays,
-      // CRITICAL: Start with PENDING_PAYMENT, NOT BROADCASTED
-      status: 'PENDING_PAYMENT',
-      paymentStatus: 'PENDING',
-      // Don't broadcast yet - wait for payment verification
-      broadcastedAt: null,
-      responseDeadline: null,
+      // B2B customers skip payment - go directly to BROADCASTED
+      status: isB2B ? 'BROADCASTED' : 'PENDING_PAYMENT',
+      paymentStatus: isB2B ? 'PAID' : 'PENDING',
+      broadcastedAt: isB2B ? new Date() : null,
+      responseDeadline: isB2B ? new Date(Date.now() + 4 * 60 * 60 * 1000) : null,
       dailyRate,
       totalAmount,
       gstAmount,
@@ -330,8 +329,10 @@ async function handleBikeBooking(customerInfo: { name: string; email: string; ph
     },
   });
 
-  // Message guides customer to payment step
-  const message = `Your booking has been created! Please pay ₹${advanceAmount} advance to confirm. Once payment is verified, ${isBroadcast ? 'vendors will be notified' : 'the vendor will be notified'}.`;
+  // Message guides customer to payment step (or confirms for B2B)
+  const message = isB2B
+    ? `Your B2B booking has been created! Vendors have been notified. No payment required now — post-trip billing.`
+    : `Your booking has been created! Please pay ₹${advanceAmount} advance to confirm. Once payment is verified, ${isBroadcast ? 'vendors will be notified' : 'the vendor will be notified'}.`;
 
   return {
     success: true,
@@ -346,8 +347,7 @@ async function handleBikeBooking(customerInfo: { name: string; email: string; ph
       phone: customer.phone,
     },
     redirect_to: `/customer/bike-bookings/${booking.bookingNumber}`,
-    // Payment info for customer to complete payment
-    payment_info: {
+    payment_info: isB2B ? null : {
       advance_amount: advanceAmount,
       total_amount: grandTotal,
       advance_percentage: 30,
@@ -435,7 +435,7 @@ async function handleCarBooking(customerInfo: { name: string; email: string; pho
 
 // ============= SELF-DRIVE BOOKING HANDLER =============
 
-async function handleSelfDriveBooking(customerInfo: { name: string; email: string; phone: string; password?: string }, bookingData: Record<string, unknown>) {
+async function handleSelfDriveBooking(customerInfo: { name: string; email: string; phone: string; password?: string }, bookingData: Record<string, unknown>, isB2B: boolean = false) {
   const { customer, isNewCustomer } = await getOrCreateCustomer(customerInfo);
   const location = await findLocation(bookingData.location_name as string || bookingData.location_slug as string);
 
@@ -589,8 +589,8 @@ async function handleSelfDriveBooking(customerInfo: { name: string; email: strin
       assignedVendorId: null, // Will be set after payment verification
       // Store vendor info for later broadcast/assignment after payment - STRINGIFY FOR JSON COLUMN
       notifiedVendorIds: vendorAssignmentInfo.length > 0 ? JSON.stringify(vendorAssignmentInfo) : undefined,
-      // Status starts as PENDING_PAYMENT
-      status: 'PENDING_PAYMENT',
+      // B2B customers skip payment
+      status: isB2B ? 'PENDING_VENDOR' : 'PENDING_PAYMENT',
       // Pricing
       dailyRate,
       baseAmount,
@@ -610,9 +610,11 @@ async function handleSelfDriveBooking(customerInfo: { name: string; email: strin
 
   return {
     success: true,
-    message: isNewCustomer
-      ? 'Your account has been created and booking submitted! Please complete the advance payment to confirm.'
-      : 'Your self-drive car booking has been created! Please complete the advance payment to confirm your booking.',
+    message: isB2B
+      ? 'Your B2B self-drive booking has been created! Vendor will be notified. No payment required — post-trip billing.'
+      : isNewCustomer
+        ? 'Your account has been created and booking submitted! Please complete the advance payment to confirm.'
+        : 'Your self-drive car booking has been created! Please complete the advance payment to confirm your booking.',
     booking_id: booking.id,
     booking_number: booking.bookingNumber,
     customer_id: customer.id,
@@ -1303,6 +1305,23 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Check if customer is B2B approved (skip payment)
+    let isB2B = false;
+    if (customerInfo.email || customerInfo.phone) {
+      const existingCustomer = await prisma.customers.findFirst({
+        where: {
+          OR: [
+            ...(customerInfo.email ? [{ email: customerInfo.email }] : []),
+            ...(customerInfo.phone ? [{ phone: customerInfo.phone }] : []),
+          ],
+        },
+        select: { isB2B: true, b2bStatus: true },
+      });
+      if (existingCustomer?.isB2B && existingCustomer?.b2bStatus === 'APPROVED') {
+        isB2B = true;
+      }
+    }
+
     let result;
 
     // Route to appropriate handler based on booking type
@@ -1316,7 +1335,7 @@ export async function POST(request: NextRequest) {
     }
     // BIKE SERVICES (direct booking - fleet bikes with known vendor)
     else if (bookingType === 'bike' || bookingType.includes('bike') || bookingType.includes('scooter') || bookingType.includes('activa')) {
-      result = await handleBikeBooking(customerInfo, bookingData);
+      result = await handleBikeBooking(customerInfo, bookingData, isB2B);
     }
     // CAR SERVICES (with driver)
     else if (bookingType === 'car-roundtrip' || bookingType === 'car-oneway' || bookingType === 'car-airport' || bookingType === 'car' || bookingType === 'one-way-cab') {
@@ -1324,7 +1343,7 @@ export async function POST(request: NextRequest) {
     }
     // SELF-DRIVE CAR (direct booking - fleet cars with known vendor)
     else if (bookingType === 'selfdrive' || bookingType.includes('self-drive')) {
-      result = await handleSelfDriveBooking(customerInfo, bookingData);
+      result = await handleSelfDriveBooking(customerInfo, bookingData, isB2B);
     }
     // TRUCK SERVICES
     else if (bookingType.startsWith('truck-') || bookingType === 'truck' || bookingType === 'transporter' || bookingType.includes('mini-truck')) {
@@ -1358,7 +1377,7 @@ export async function POST(request: NextRequest) {
     else {
       // Check if it looks like a bike service
       if (bookingData.bike_type || bookingData.bike_duration) {
-        result = await handleBikeBooking(customerInfo, bookingData);
+        result = await handleBikeBooking(customerInfo, bookingData, isB2B);
       }
       // Check if it looks like a car service
       else if (bookingData.trip_type || bookingData.car_type) {
@@ -1371,6 +1390,12 @@ export async function POST(request: NextRequest) {
           { status: 400 }
         );
       }
+    }
+
+    // Add B2B flag to result
+    if (isB2B && result) {
+      (result as any).isB2B = true;
+      (result as any).paymentRequired = false;
     }
 
     return NextResponse.json(result);
@@ -1564,6 +1589,8 @@ export async function GET(request: NextRequest) {
         },
       });
       if (bikeBooking) {
+        // Check if customer is B2B
+        const bikeCustomer = bikeBooking.customerId ? await prisma.customers.findUnique({ where: { id: bikeBooking.customerId }, select: { isB2B: true } }) : null;
         // Add vendor info to response
         const vendor = bikeBooking.vendors_bike_bookings_acceptedVendorIdTovendors || bikeBooking.vendors_bike_bookings_assignedVendorIdTovendors;
 
@@ -1609,6 +1636,7 @@ export async function GET(request: NextRequest) {
             vendorPhone: vendor?.phone || null,
             vendorEmail: vendor?.email || null,
             vehicleImage,
+            isB2B: bikeCustomer?.isB2B || false,
           },
           type: 'bike',
         });
@@ -1626,6 +1654,8 @@ export async function GET(request: NextRequest) {
         },
       });
       if (carBooking) {
+        // Check if customer is B2B
+        const carCustomer = carBooking.customerId ? await prisma.customers.findUnique({ where: { id: carBooking.customerId }, select: { isB2B: true } }) : null;
         // Add vendor info to response
         const vendor = carBooking.vendors_car_bookings_acceptedVendorIdTovendors || carBooking.vendors_car_bookings_assignedVendorIdTovendors;
 
@@ -1661,6 +1691,7 @@ export async function GET(request: NextRequest) {
             vendorPhone: vendor?.phone || null,
             vendorEmail: vendor?.email || null,
             vehicleImage,
+            isB2B: carCustomer?.isB2B || false,
           },
           type: 'car',
         });

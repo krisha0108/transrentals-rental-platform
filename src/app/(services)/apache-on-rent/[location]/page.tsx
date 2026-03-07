@@ -14,6 +14,7 @@ import { BikeServiceSchema } from '@/components/seo/schemas';
 import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
 import { CityContentSection } from '@/components/location/CityContentSection';
+import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 
 interface PageProps {
   params: {
@@ -37,10 +38,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
   const locationSlug = params.location;
 
+  const _seoDb = await resolvePageMeta(`apache-on-rent:${params.location}`);
   return {
-    title: `Apache on Rent in ${locationName} | TVS Apache Rental @₹499/Day | TransRentals`,
-    description: `Rent TVS Apache bikes in ${locationName}. Apache RTR 160, RTR 180, RTR 200 4V, RR 310 available. Racing DNA bikes. Book now!`,
-    keywords: [
+    title: _seoDb?.metaTitle || `Apache on Rent in ${locationName} | TVS Apache Rental @₹499/Day | TransRentals`,
+    description: _seoDb?.metaDescription || `Rent TVS Apache bikes in ${locationName}. Apache RTR 160, RTR 180, RTR 200 4V, RR 310 available. Racing DNA bikes. Book now!`,
+    keywords: _seoDb?.metaKeywords ? _seoDb.metaKeywords.split(',').map((k) => k.trim()) : [
       `apache on rent in ${locationName}`,
       `tvs apache rental ${locationName}`,
       `${locationName} apache rental`,

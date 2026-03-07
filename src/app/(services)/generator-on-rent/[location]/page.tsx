@@ -10,6 +10,7 @@ import { FAQSection } from '@/components/services/FAQSection';
 import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
 import { CityContentSection } from '@/components/location/CityContentSection';
+import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 
 interface PageProps { params: { location: string }; }
 
@@ -27,9 +28,10 @@ export const dynamicParams = true;
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const city = getCityBySlug(params.location);
   const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
+  const _seoDb = await resolvePageMeta(`generator-on-rent:${params.location}`);
   return {
-    title: `Generator on Rent in ${locationName} | DG Set @₹1500/Day | TransRentals`,
-    description: `Hire generator in ${locationName} for events, construction, industrial backup. 5KVA to 500KVA.`,
+    title: _seoDb?.metaTitle || `Generator on Rent in ${locationName} | DG Set @₹1500/Day | TransRentals`,
+    description: _seoDb?.metaDescription || `Hire generator in ${locationName} for events, construction, industrial backup. 5KVA to 500KVA.`,
     alternates: { canonical: `https://transrentals.in/generator-on-rent/${params.location}` },
   };
 }

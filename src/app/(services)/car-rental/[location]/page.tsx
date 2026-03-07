@@ -11,6 +11,7 @@ import { CityContentSection } from '@/components/location/CityContentSection';
 import { prisma } from '@/lib/db/prisma';
 import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
+import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 
 interface PageProps {
   params: {
@@ -78,10 +79,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   const locationName = city.name;
 
+  const _seoDb = await resolvePageMeta(`car-rental:${params.location}`);
   return {
-    title: `Car Rental in ${locationName} | Self Drive Cars @₹999/Day | TransRentals`,
-    description: `Rent cars in ${locationName}. Self-drive cars, SUVs, sedans, hatchbacks available. Book online. Best prices guaranteed. 24/7 support. Verified vendors.`,
-    keywords: [
+    title: _seoDb?.metaTitle || `Car Rental in ${locationName} | Self Drive Cars @₹999/Day | TransRentals`,
+    description: _seoDb?.metaDescription || `Rent cars in ${locationName}. Self-drive cars, SUVs, sedans, hatchbacks available. Book online. Best prices guaranteed. 24/7 support. Verified vendors.`,
+    keywords: _seoDb?.metaKeywords ? _seoDb.metaKeywords.split(',').map((k) => k.trim()) : [
       `car rental ${locationName.toLowerCase()}`,
       `car on rent in ${locationName.toLowerCase()}`,
       `self drive car ${locationName.toLowerCase()}`,

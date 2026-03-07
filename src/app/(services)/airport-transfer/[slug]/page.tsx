@@ -1,4 +1,5 @@
 import { Metadata } from 'next';
+import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 import { permanentRedirect } from 'next/navigation';
 import { prisma } from '@/lib/db/prisma';
 import { AirportRouteBookingHero } from '@/components/airport-transfer/AirportRouteBookingHero';
@@ -518,10 +519,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     isAirportPickup ? `${airportCode.toLowerCase()} airport pickup service` : `${cityName.toLowerCase()} to airport drop`,
   ];
 
+  const _seoDb = await resolvePageMeta(`airport-transfer:${params.slug}`);
   return {
-    title,
-    description,
-    keywords,
+    title: _seoDb?.metaTitle || title,
+    description: _seoDb?.metaDescription || description,
+    keywords: _seoDb?.metaKeywords ? _seoDb.metaKeywords.split(',').map((k) => k.trim()) : keywords,
     openGraph: {
       title: `${airportShortName} Airport ${serviceAction} City Taxi @₹${minPrice}`,
       description: `Travel ${avgDistance} km. Starting @₹${minPrice}. 45 min free wait. Book now!`,
