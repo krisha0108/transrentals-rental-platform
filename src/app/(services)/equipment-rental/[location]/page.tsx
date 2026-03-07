@@ -198,7 +198,8 @@ export default async function EquipmentLocationPage({ params }: PageProps) {
         vehicle_model_locations: {
           where: {
             locationId: location.id
-          }
+          },
+          select: { basePricePerDay: true }
         }
       },
       orderBy: { displayOrder: 'asc' }
