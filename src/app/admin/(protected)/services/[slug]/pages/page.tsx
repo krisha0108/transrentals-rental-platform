@@ -1,347 +1,354 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'next/navigation';
-import Link from 'next/link';
-import {
-  Plus,
-  Search,
-  Edit,
-  Trash2,
-  Eye,
-  EyeOff,
-  FileText,
-  Calendar,
-  ExternalLink,
-} from 'lucide-react';
+import { Search, ExternalLink, Edit2, Check, X, RotateCcw, ChevronDown, ChevronUp, Globe, MapPin, Route, Plane } from 'lucide-react';
 
-interface Page {
-  id: string;
-  title: string;
-  slug: string;
-  status: 'published' | 'draft';
-  template: string;
-  updatedAt: string;
-  createdAt: string;
+interface PageRow {
+  pageId: string;
+  url: string;
+  label?: string;
+  locationName?: string;
+  locationSlug?: string;
+  state?: string;
+  from?: string;
+  to?: string;
+  templateTitle: string;
+  templateDescription: string;
+  templateKeywords: string;
+  override: { metaTitle: string | null; metaDescription: string | null; metaKeywords: string | null } | null;
 }
 
-export default function ServicePagesPage() {
-  const params = useParams();
-  const slug = params.slug as string;
+interface EditState {
+  metaTitle: string;
+  metaDescription: string;
+  metaKeywords: string;
+}
 
-  const [pages, setPages] = useState<Page[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [serviceName, setServiceName] = useState('');
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [editingPage, setEditingPage] = useState<Page | null>(null);
-  const [formData, setFormData] = useState({
-    title: '',
-    slug: '',
-    content: '',
-    template: 'default',
-    status: 'draft' as 'published' | 'draft',
-    metaTitle: '',
-    metaDescription: '',
+// ── Single editable row ────────────────────────────────────────────────────────
+function PageRow({ row, onSave, onReset }: {
+  row: PageRow;
+  onSave: (pageId: string, data: EditState) => Promise<void>;
+  onReset: (pageId: string) => Promise<void>;
+}) {
+  const [open, setOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [edit, setEdit] = useState<EditState>({
+    metaTitle: row.override?.metaTitle || row.templateTitle,
+    metaDescription: row.override?.metaDescription || row.templateDescription,
+    metaKeywords: row.override?.metaKeywords || row.templateKeywords,
   });
 
-  useEffect(() => {
-    fetchPages();
-  }, [slug]);
-
-  const fetchPages = async () => {
-    try {
-      const response = await fetch(`/api/admin/services/${slug}/pages`);
-      if (response.ok) {
-        const data = await response.json();
-        setPages(data.pages || []);
-        setServiceName(data.serviceName || slug);
-      }
-    } catch (error) {
-      console.error('Failed to fetch pages:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const hasOverride = !!row.override;
+  const titleValue = row.override?.metaTitle || row.templateTitle;
 
   const handleSave = async () => {
-    try {
-      const url = editingPage
-        ? `/api/admin/services/${slug}/pages/${editingPage.id}`
-        : `/api/admin/services/${slug}/pages`;
-
-      const response = await fetch(url, {
-        method: editingPage ? 'PATCH' : 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
-      });
-
-      if (response.ok) {
-        fetchPages();
-        setShowAddModal(false);
-        setEditingPage(null);
-        setFormData({
-          title: '',
-          slug: '',
-          content: '',
-          template: 'default',
-          status: 'draft',
-          metaTitle: '',
-          metaDescription: '',
-        });
-      }
-    } catch (error) {
-      console.error('Failed to save page:', error);
-    }
+    setSaving(true);
+    await onSave(row.pageId, edit);
+    setSaving(false);
+    setOpen(false);
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this page?')) return;
-
-    try {
-      const response = await fetch(`/api/admin/services/${slug}/pages/${id}`, {
-        method: 'DELETE',
-      });
-
-      if (response.ok) {
-        fetchPages();
-      }
-    } catch (error) {
-      console.error('Failed to delete page:', error);
-    }
+  const handleReset = async () => {
+    if (!confirm('Remove custom meta and revert to template?')) return;
+    setSaving(true);
+    await onReset(row.pageId);
+    setSaving(false);
+    setOpen(false);
   };
-
-  const handleEdit = (page: Page) => {
-    setEditingPage(page);
-    setFormData({
-      title: page.title,
-      slug: page.slug,
-      content: '',
-      template: page.template,
-      status: page.status,
-      metaTitle: '',
-      metaDescription: '',
-    });
-    setShowAddModal(true);
-  };
-
-  const filteredPages = pages.filter(page =>
-    page.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    page.slug.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
-  const templates = ['default', 'landing', 'contact', 'about', 'faq', 'terms', 'privacy'];
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
-    );
-  }
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Pages</h1>
-          <p className="text-gray-600 mt-1">Manage pages for {serviceName}</p>
+    <div className={`border rounded-lg mb-2 ${hasOverride ? 'border-blue-300 bg-blue-50/30' : 'border-gray-200 bg-white'}`}>
+      {/* Row header */}
+      <div
+        className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-gray-50 transition"
+        onClick={() => {
+          setEdit({
+            metaTitle: row.override?.metaTitle || row.templateTitle,
+            metaDescription: row.override?.metaDescription || row.templateDescription,
+            metaKeywords: row.override?.metaKeywords || row.templateKeywords,
+          });
+          setOpen(!open);
+        }}
+      >
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            {hasOverride && (
+              <span className="px-1.5 py-0.5 bg-blue-100 text-blue-700 text-xs font-medium rounded">Custom</span>
+            )}
+            <span className="font-medium text-gray-900 text-sm truncate">{titleValue}</span>
+          </div>
+          <div className="flex items-center gap-2 mt-0.5">
+            <span className="text-xs text-gray-400 truncate">{row.url}</span>
+            {row.state && <span className="text-xs text-gray-400">• {row.state}</span>}
+          </div>
         </div>
-        <button
-          onClick={() => {
-            setEditingPage(null);
-            setFormData({
-              title: '',
-              slug: '',
-              content: '',
-              template: 'default',
-              status: 'draft',
-              metaTitle: '',
-              metaDescription: '',
-            });
-            setShowAddModal(true);
-          }}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
-        >
-          <Plus className="w-5 h-5" />
-          Add Page
-        </button>
-      </div>
-
-      {/* Search */}
-      <div className="mb-6">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-          <input
-            type="text"
-            placeholder="Search pages..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          />
+        <div className="flex items-center gap-2 shrink-0">
+          <a
+            href={`https://transrentals.in${row.url}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            className="p-1 text-gray-400 hover:text-blue-600 transition"
+            title="Open live page"
+          >
+            <ExternalLink className="w-3.5 h-3.5" />
+          </a>
+          {open ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
         </div>
       </div>
 
-      {/* Pages List */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200">
-        {filteredPages.length === 0 ? (
-          <div className="text-center py-12">
-            <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900">No pages yet</h3>
-            <p className="text-gray-500 mt-1">Create your first page to get started.</p>
-          </div>
-        ) : (
-          <div className="divide-y divide-gray-200">
-            {filteredPages.map((page) => (
-              <div key={page.id} className="p-4 hover:bg-gray-50 transition">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                      <FileText className="w-5 h-5 text-blue-600" />
-                    </div>
-                    <div>
-                      <h3 className="font-medium text-gray-900">{page.title}</h3>
-                      <p className="text-sm text-gray-500">/{slug}/{page.slug}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                      page.status === 'published'
-                        ? 'bg-green-100 text-green-700'
-                        : 'bg-yellow-100 text-yellow-700'
-                    }`}>
-                      {page.status}
-                    </span>
-                    <span className="text-sm text-gray-500">{page.template}</span>
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => handleEdit(page)}
-                        className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition"
-                      >
-                        <Edit className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(page.id)}
-                        className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+      {/* Edit panel */}
+      {open && (
+        <div className="px-4 pb-4 border-t border-gray-100 pt-3 space-y-3">
+          {/* Template preview */}
+          {hasOverride && (
+            <div className="text-xs text-gray-500 bg-gray-50 rounded p-2 space-y-1">
+              <p className="font-medium text-gray-600">Template (default):</p>
+              <p>Title: {row.templateTitle}</p>
+              <p>Desc: {row.templateDescription}</p>
+            </div>
+          )}
 
-      {/* Add/Edit Modal */}
-      {showAddModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-gray-200">
-              <h2 className="text-xl font-bold text-gray-900">
-                {editingPage ? 'Edit Page' : 'Add New Page'}
-              </h2>
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">
+              Meta Title <span className="text-gray-400">({edit.metaTitle.length}/70)</span>
+            </label>
+            <input
+              value={edit.metaTitle}
+              onChange={(e) => setEdit({ ...edit, metaTitle: e.target.value })}
+              className={`w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                edit.metaTitle.length > 70 ? 'border-red-300' : 'border-gray-300'
+              }`}
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">
+              Meta Description <span className="text-gray-400">({edit.metaDescription.length}/160)</span>
+            </label>
+            <textarea
+              value={edit.metaDescription}
+              onChange={(e) => setEdit({ ...edit, metaDescription: e.target.value })}
+              rows={3}
+              className={`w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none ${
+                edit.metaDescription.length > 160 ? 'border-red-300' : 'border-gray-300'
+              }`}
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">Keywords (comma separated)</label>
+            <input
+              value={edit.metaKeywords}
+              onChange={(e) => setEdit({ ...edit, metaKeywords: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+          </div>
+
+          {/* Google preview */}
+          <div className="bg-white border border-gray-200 rounded-lg p-3">
+            <p className="text-xs text-gray-500 mb-1.5 font-medium">Google Preview</p>
+            <p className="text-blue-700 text-sm font-medium leading-tight line-clamp-1">{edit.metaTitle || row.templateTitle}</p>
+            <p className="text-green-700 text-xs mt-0.5">transrentals.in{row.url}</p>
+            <p className="text-gray-600 text-xs mt-0.5 line-clamp-2">{edit.metaDescription || row.templateDescription}</p>
+          </div>
+
+          <div className="flex items-center justify-between pt-1">
+            <div>
+              {hasOverride && (
+                <button
+                  onClick={handleReset}
+                  disabled={saving}
+                  className="flex items-center gap-1.5 text-xs text-red-600 hover:text-red-700 transition"
+                >
+                  <RotateCcw className="w-3 h-3" />
+                  Revert to template
+                </button>
+              )}
             </div>
-            <div className="p-6 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
-                <input
-                  type="text"
-                  value={formData.title}
-                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Page title"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Slug</label>
-                <input
-                  type="text"
-                  value={formData.slug}
-                  onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="page-slug"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Template</label>
-                  <select
-                    value={formData.template}
-                    onChange={(e) => setFormData({ ...formData, template: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  >
-                    {templates.map(t => (
-                      <option key={t} value={t}>{t}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
-                  <select
-                    value={formData.status}
-                    onChange={(e) => setFormData({ ...formData, status: e.target.value as 'published' | 'draft' })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  >
-                    <option value="draft">Draft</option>
-                    <option value="published">Published</option>
-                  </select>
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Content</label>
-                <textarea
-                  value={formData.content}
-                  onChange={(e) => setFormData({ ...formData, content: e.target.value })}
-                  rows={8}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Page content (HTML or Markdown)"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Meta Title</label>
-                <input
-                  type="text"
-                  value={formData.metaTitle}
-                  onChange={(e) => setFormData({ ...formData, metaTitle: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="SEO title"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Meta Description</label>
-                <textarea
-                  value={formData.metaDescription}
-                  onChange={(e) => setFormData({ ...formData, metaDescription: e.target.value })}
-                  rows={2}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="SEO description"
-                />
-              </div>
-            </div>
-            <div className="p-6 border-t border-gray-200 flex justify-end gap-3">
+            <div className="flex items-center gap-2">
               <button
-                onClick={() => {
-                  setShowAddModal(false);
-                  setEditingPage(null);
-                }}
-                className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition"
+                onClick={() => setOpen(false)}
+                className="px-3 py-1.5 text-xs text-gray-600 hover:bg-gray-100 rounded-lg transition"
               >
                 Cancel
               </button>
               <button
                 onClick={handleSave}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+                disabled={saving}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white text-xs rounded-lg hover:bg-blue-700 transition disabled:opacity-50"
               >
-                {editingPage ? 'Update' : 'Create'} Page
+                {saving ? (
+                  <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                ) : (
+                  <Check className="w-3 h-3" />
+                )}
+                Save
               </button>
             </div>
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// ── Tab panel ─────────────────────────────────────────────────────────────────
+function TabPanel({ slug, type, label, icon }: {
+  slug: string;
+  type: string;
+  label: string;
+  icon: React.ReactNode;
+}) {
+  const [pages, setPages] = useState<PageRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [total, setTotal] = useState(0);
+
+  const fetchPages = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/admin/services/${slug}/location-pages?type=${type}`);
+      if (res.ok) {
+        const data = await res.json();
+        setPages(data.pages || []);
+        setTotal(data.total || data.pages?.length || 0);
+      }
+    } catch (e) {
+      console.error('Failed to fetch pages', e);
+    } finally {
+      setLoading(false);
+    }
+  }, [slug, type]);
+
+  useEffect(() => { fetchPages(); }, [fetchPages]);
+
+  const handleSave = async (pageId: string, data: EditState) => {
+    await fetch('/api/admin/seo/page-meta', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pageId, ...data }),
+    });
+    fetchPages();
+  };
+
+  const handleReset = async (pageId: string) => {
+    await fetch(`/api/admin/seo/page-meta?pageId=${encodeURIComponent(pageId)}`, { method: 'DELETE' });
+    fetchPages();
+  };
+
+  const filtered = pages.filter((p) => {
+    const q = search.toLowerCase();
+    return (
+      (p.locationName || p.label || p.from || '').toLowerCase().includes(q) ||
+      p.url.toLowerCase().includes(q) ||
+      (p.override?.metaTitle || p.templateTitle).toLowerCase().includes(q)
+    );
+  });
+
+  const customCount = pages.filter((p) => p.override).length;
+
+  return (
+    <div>
+      {/* Stats bar */}
+      <div className="flex items-center gap-4 mb-4 text-sm text-gray-600">
+        <span className="flex items-center gap-1">{icon} <strong>{total}</strong> pages</span>
+        {customCount > 0 && (
+          <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">
+            {customCount} custom meta
+          </span>
+        )}
+      </div>
+
+      {/* Search */}
+      <div className="relative mb-4">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+        <input
+          type="text"
+          placeholder={`Search ${label.toLowerCase()}...`}
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+        />
+      </div>
+
+      {loading ? (
+        <div className="flex items-center justify-center py-16">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="text-center py-12 text-gray-500">No pages found</div>
+      ) : (
+        <div>
+          {filtered.map((row) => (
+            <PageRow key={row.pageId} row={row} onSave={handleSave} onReset={handleReset} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Main page ─────────────────────────────────────────────────────────────────
+export default function ServiceLocationPagesAdmin() {
+  const params = useParams();
+  const slug = params.slug as string;
+  const isCarRental = slug === 'car-rental';
+
+  const tabs = [
+    { key: 'location', label: 'Location Pages', icon: <MapPin className="w-4 h-4" /> },
+    ...(isCarRental ? [
+      { key: 'routes', label: 'One Way & Round Trip', icon: <Route className="w-4 h-4" /> },
+      { key: 'airport', label: 'Airport Transfers', icon: <Plane className="w-4 h-4" /> },
+    ] : []),
+    { key: 'static', label: 'Website Pages', icon: <Globe className="w-4 h-4" /> },
+  ];
+
+  const [activeTab, setActiveTab] = useState('location');
+
+  const serviceName = slug
+    .split('-')
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(' ');
+
+  return (
+    <div className="p-6 max-w-5xl mx-auto">
+      {/* Header */}
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-gray-900">SEO Pages</h1>
+        <p className="text-gray-500 mt-1 text-sm">
+          View and edit meta title, description & keywords for all <strong>{serviceName}</strong> pages.
+          <span className="ml-1 text-blue-600">Blue = custom override</span> | <span className="text-gray-400">White = using template</span>
+        </p>
+      </div>
+
+      {/* Tabs */}
+      <div className="flex gap-1 bg-gray-100 p-1 rounded-xl mb-6 overflow-x-auto">
+        {tabs.map((tab) => (
+          <button
+            key={tab.key}
+            onClick={() => setActiveTab(tab.key)}
+            className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition whitespace-nowrap ${
+              activeTab === tab.key
+                ? 'bg-white text-gray-900 shadow-sm'
+                : 'text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            {tab.icon}
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Tab content */}
+      <TabPanel
+        key={activeTab}
+        slug={slug}
+        type={activeTab}
+        label={tabs.find((t) => t.key === activeTab)?.label || ''}
+        icon={tabs.find((t) => t.key === activeTab)?.icon}
+      />
     </div>
   );
 }
