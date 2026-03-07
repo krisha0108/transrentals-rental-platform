@@ -90,7 +90,8 @@ export function SelfDriveQuoteRequestModal({
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   // B2B state
-  const [isB2B, setIsB2B] = useState(false);
+  const [isB2BCustomer, setIsB2BCustomer] = useState(false);
+  const [bookingPurpose, setBookingPurpose] = useState<'personal' | 'company' | null>(null);
   const [numberOfVehicles, setNumberOfVehicles] = useState('');
   const [numberOfPersons, setNumberOfPersons] = useState('');
 
@@ -116,7 +117,7 @@ export function SelfDriveQuoteRequestModal({
             if (params.toString()) {
               fetch(`/api/customer/b2b-status?${params.toString()}`)
                 .then(res => res.json())
-                .then(data => { if (data.isB2B) setIsB2B(true); })
+                .then(data => { if (data.isB2B) setIsB2BCustomer(true); })
                 .catch(() => {});
             }
           } catch (e) {
@@ -150,7 +151,8 @@ export function SelfDriveQuoteRequestModal({
       setPassword('');
       setAuthMode('check');
       setShowPassword(false);
-      setIsB2B(false);
+      setIsB2BCustomer(false);
+      setBookingPurpose(null);
       setNumberOfVehicles('');
       setNumberOfPersons('');
     }
@@ -195,7 +197,7 @@ export function SelfDriveQuoteRequestModal({
         customerNotes: customerNotes.trim() || null,
 
         // B2B fields
-        ...(isB2B && {
+        ...(bookingPurpose === 'company' && {
           isB2B: true,
           numberOfVehicles: numberOfVehicles ? parseInt(numberOfVehicles) : undefined,
           numberOfPersons: numberOfPersons ? parseInt(numberOfPersons) : undefined,
@@ -310,7 +312,7 @@ export function SelfDriveQuoteRequestModal({
         try {
           const b2bRes = await fetch(`/api/customer/b2b-status?customer_id=${data.customers.id}`);
           const b2bData = await b2bRes.json();
-          if (b2bData.isB2B) setIsB2B(true);
+          if (b2bData.isB2B) setIsB2BCustomer(true);
         } catch {}
 
         await submitQuoteRequest(data.customers.id);
@@ -383,7 +385,7 @@ export function SelfDriveQuoteRequestModal({
 
   const handleViewQuotes = () => {
     onClose();
-    if (isB2B) {
+    if (bookingPurpose === 'company') {
       router.push(`/customer/b2b-bookings/${requestId}`);
     } else {
       router.push(`/customer/self-drive-quotes/${requestId}`);
@@ -423,21 +425,21 @@ export function SelfDriveQuoteRequestModal({
               <CheckCircle className="w-8 h-8 text-green-600" />
             </div>
             <h3 className="text-xl font-bold text-gray-900 mb-2">
-              {isB2B ? 'B2B Booking Created!' : 'Quote Request Sent!'}
+              {bookingPurpose === 'company' ? 'B2B Booking Created!' : 'Quote Request Sent!'}
             </h3>
             <p className="text-gray-600 mb-2">
-              Your {isB2B ? 'booking' : 'request'} number is <span className="font-mono font-bold text-blue-600">#{requestNumber}</span>
+              Your {bookingPurpose === 'company' ? 'booking' : 'request'} number is <span className="font-mono font-bold text-blue-600">#{requestNumber}</span>
             </p>
             <p className="text-sm text-gray-500 mb-6">
-              {isB2B
+              {bookingPurpose === 'company'
                 ? 'Vendors will assign vehicles and send quotes. You will be notified when your quote is ready for approval.'
                 : 'Vendors will review your request and send quotes within 24-48 hours. You\'ll receive notifications when quotes are available.'}
             </p>
 
-            <div className={`${isB2B ? 'bg-teal-50' : 'bg-blue-50'} rounded-xl p-4 mb-6 text-left`}>
-              <h4 className={`font-semibold ${isB2B ? 'text-teal-800' : 'text-blue-800'} mb-2`}>What's next?</h4>
-              <ul className={`text-sm ${isB2B ? 'text-teal-700' : 'text-blue-700'} space-y-1`}>
-                {isB2B ? (
+            <div className={`${bookingPurpose === 'company' ? 'bg-teal-50' : 'bg-blue-50'} rounded-xl p-4 mb-6 text-left`}>
+              <h4 className={`font-semibold ${bookingPurpose === 'company' ? 'text-teal-800' : 'text-blue-800'} mb-2`}>What's next?</h4>
+              <ul className={`text-sm ${bookingPurpose === 'company' ? 'text-teal-700' : 'text-blue-700'} space-y-1`}>
+                {bookingPurpose === 'company' ? (
                   <>
                     <li>1. Vendors will assign vehicles with pricing</li>
                     <li>2. Our team will prepare a consolidated quote</li>
@@ -464,9 +466,9 @@ export function SelfDriveQuoteRequestModal({
               </Button>
               <Button
                 onClick={handleViewQuotes}
-                className={`flex-1 ${isB2B ? 'bg-teal-600 hover:bg-teal-700' : 'bg-blue-600 hover:bg-blue-700'}`}
+                className={`flex-1 ${bookingPurpose === 'company' ? 'bg-teal-600 hover:bg-teal-700' : 'bg-blue-600 hover:bg-blue-700'}`}
               >
-                {isB2B ? 'View B2B Booking' : 'View My Requests'}
+                {bookingPurpose === 'company' ? 'View B2B Booking' : 'View My Requests'}
                 <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
             </div>
@@ -575,38 +577,63 @@ export function SelfDriveQuoteRequestModal({
                   </div>
                 </div>
 
-                {/* B2B Fields */}
-                {isB2B && (
-                  <div className="bg-teal-50 border border-teal-200 rounded-xl p-4 space-y-3 mb-4">
-                    <p className="text-sm font-semibold text-teal-800 flex items-center gap-2">
-                      <Users className="w-4 h-4" /> B2B Corporate Booking
-                    </p>
+                {/* Booking Purpose Toggle - Personal or Company */}
+                {isB2BCustomer && (
+                  <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 space-y-3 mb-4">
+                    <p className="text-sm font-semibold text-gray-800">This booking is for:</p>
                     <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-xs font-medium text-gray-700 mb-1">Number of Vehicles *</label>
-                        <input
-                          type="number"
-                          value={numberOfVehicles}
-                          onChange={(e) => setNumberOfVehicles(e.target.value)}
-                          placeholder="e.g. 10"
-                          min="1"
-                          max="500"
-                          className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:border-teal-500 focus:outline-none"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-medium text-gray-700 mb-1">Number of Persons</label>
-                        <input
-                          type="number"
-                          value={numberOfPersons}
-                          onChange={(e) => setNumberOfPersons(e.target.value)}
-                          placeholder="e.g. 50"
-                          min="1"
-                          className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:border-teal-500 focus:outline-none"
-                        />
-                      </div>
+                      <button type="button"
+                        onClick={() => setBookingPurpose('personal')}
+                        className={`flex items-center justify-center gap-2 px-4 py-3 rounded-lg border-2 text-sm font-medium transition-all ${
+                          bookingPurpose === 'personal'
+                            ? 'border-blue-500 bg-blue-50 text-blue-700'
+                            : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
+                        }`}
+                      >
+                        <User className="w-4 h-4" /> Personal
+                      </button>
+                      <button type="button"
+                        onClick={() => setBookingPurpose('company')}
+                        className={`flex items-center justify-center gap-2 px-4 py-3 rounded-lg border-2 text-sm font-medium transition-all ${
+                          bookingPurpose === 'company'
+                            ? 'border-teal-500 bg-teal-50 text-teal-700'
+                            : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
+                        }`}
+                      >
+                        <Users className="w-4 h-4" /> Company
+                      </button>
                     </div>
-                    <p className="text-xs text-teal-600">No advance payment required. Post-trip corporate billing.</p>
+
+                    {bookingPurpose === 'company' && (
+                      <div className="bg-teal-50 border border-teal-200 rounded-lg p-3 space-y-3 mt-2">
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="block text-xs font-medium text-gray-700 mb-1">Number of Vehicles *</label>
+                            <input
+                              type="number"
+                              value={numberOfVehicles}
+                              onChange={(e) => setNumberOfVehicles(e.target.value)}
+                              placeholder="e.g. 10"
+                              min="1"
+                              max="500"
+                              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 focus:border-teal-500 focus:outline-none"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium text-gray-700 mb-1">Number of Persons</label>
+                            <input
+                              type="number"
+                              value={numberOfPersons}
+                              onChange={(e) => setNumberOfPersons(e.target.value)}
+                              placeholder="e.g. 50"
+                              min="1"
+                              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 focus:border-teal-500 focus:outline-none"
+                            />
+                          </div>
+                        </div>
+                        <p className="text-xs text-teal-600">No advance payment required. Post-trip corporate billing.</p>
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -664,7 +691,7 @@ export function SelfDriveQuoteRequestModal({
                 <Button
                   type="submit"
                   disabled={isSubmitting}
-                  className={`w-full py-3 font-semibold ${isB2B ? 'bg-teal-600 hover:bg-teal-700' : 'bg-blue-600 hover:bg-blue-700'} text-white`}
+                  className={`w-full py-3 font-semibold ${bookingPurpose === 'company' ? 'bg-teal-600 hover:bg-teal-700' : 'bg-blue-600 hover:bg-blue-700'} text-white`}
                 >
                   {isSubmitting ? (
                     <>
@@ -674,13 +701,13 @@ export function SelfDriveQuoteRequestModal({
                   ) : (
                     <>
                       <Send className="w-5 h-5 mr-2" />
-                      {isB2B ? 'Submit B2B Booking Request' : 'Request Quotes'}
+                      {bookingPurpose === 'company' ? 'Submit B2B Booking Request' : 'Request Quotes'}
                     </>
                   )}
                 </Button>
 
                 <p className="text-xs text-gray-500 text-center mt-3">
-                  {isB2B
+                  {bookingPurpose === 'company'
                     ? 'B2B booking — no advance payment, corporate post-paid billing'
                     : 'By submitting, you agree to receive quotes from multiple vendors'}
                 </p>
@@ -739,38 +766,63 @@ export function SelfDriveQuoteRequestModal({
                       />
                     </div>
 
-                    {/* B2B Fields - Guest */}
-                    {isB2B && (
-                      <div className="bg-teal-50 border border-teal-200 rounded-xl p-4 space-y-3">
-                        <p className="text-sm font-semibold text-teal-800 flex items-center gap-2">
-                          <Users className="w-4 h-4" /> B2B Corporate Booking
-                        </p>
+                    {/* Booking Purpose Toggle - Guest */}
+                    {isB2BCustomer && (
+                      <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 space-y-3">
+                        <p className="text-sm font-semibold text-gray-800">This booking is for:</p>
                         <div className="grid grid-cols-2 gap-3">
-                          <div>
-                            <label className="block text-xs font-medium text-gray-700 mb-1">Number of Vehicles *</label>
-                            <input
-                              type="number"
-                              value={numberOfVehicles}
-                              onChange={(e) => setNumberOfVehicles(e.target.value)}
-                              placeholder="e.g. 10"
-                              min="1"
-                              max="500"
-                              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:border-teal-500 focus:outline-none"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-xs font-medium text-gray-700 mb-1">Number of Persons</label>
-                            <input
-                              type="number"
-                              value={numberOfPersons}
-                              onChange={(e) => setNumberOfPersons(e.target.value)}
-                              placeholder="e.g. 50"
-                              min="1"
-                              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:border-teal-500 focus:outline-none"
-                            />
-                          </div>
+                          <button type="button"
+                            onClick={() => setBookingPurpose('personal')}
+                            className={`flex items-center justify-center gap-2 px-4 py-3 rounded-lg border-2 text-sm font-medium transition-all ${
+                              bookingPurpose === 'personal'
+                                ? 'border-blue-500 bg-blue-50 text-blue-700'
+                                : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
+                            }`}
+                          >
+                            <User className="w-4 h-4" /> Personal
+                          </button>
+                          <button type="button"
+                            onClick={() => setBookingPurpose('company')}
+                            className={`flex items-center justify-center gap-2 px-4 py-3 rounded-lg border-2 text-sm font-medium transition-all ${
+                              bookingPurpose === 'company'
+                                ? 'border-teal-500 bg-teal-50 text-teal-700'
+                                : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
+                            }`}
+                          >
+                            <Users className="w-4 h-4" /> Company
+                          </button>
                         </div>
-                        <p className="text-xs text-teal-600">No advance payment required. Post-trip corporate billing.</p>
+
+                        {bookingPurpose === 'company' && (
+                          <div className="bg-teal-50 border border-teal-200 rounded-lg p-3 space-y-3 mt-2">
+                            <div className="grid grid-cols-2 gap-3">
+                              <div>
+                                <label className="block text-xs font-medium text-gray-700 mb-1">Number of Vehicles *</label>
+                                <input
+                                  type="number"
+                                  value={numberOfVehicles}
+                                  onChange={(e) => setNumberOfVehicles(e.target.value)}
+                                  placeholder="e.g. 10"
+                                  min="1"
+                                  max="500"
+                                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 focus:border-teal-500 focus:outline-none"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-xs font-medium text-gray-700 mb-1">Number of Persons</label>
+                                <input
+                                  type="number"
+                                  value={numberOfPersons}
+                                  onChange={(e) => setNumberOfPersons(e.target.value)}
+                                  placeholder="e.g. 50"
+                                  min="1"
+                                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 focus:border-teal-500 focus:outline-none"
+                                />
+                              </div>
+                            </div>
+                            <p className="text-xs text-teal-600">No advance payment required. Post-trip corporate billing.</p>
+                          </div>
+                        )}
                       </div>
                     )}
 

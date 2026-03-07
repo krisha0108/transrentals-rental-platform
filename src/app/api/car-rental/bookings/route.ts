@@ -325,7 +325,7 @@ export async function POST(request: NextRequest) {
         },
         token,
         isB2B: true,
-        redirect_to: `/customer/b2b-bookings`,
+        redirect_to: `/customer/b2b-bookings/${b2bBooking.id}?customer_id=${b2bCustomer.id}`,
       });
     }
 
