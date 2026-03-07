@@ -151,7 +151,8 @@ export default async function TransporterLocationPage({ params }: PageProps) {
         vehicle_model_locations: {
           where: {
             locationId: location.id
-          }
+          },
+          select: { basePricePerDay: true }
         }
       },
       orderBy: { displayOrder: 'asc' }
