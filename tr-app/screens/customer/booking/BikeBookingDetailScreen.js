@@ -715,6 +715,36 @@ const BikeBookingDetailScreen = () => {
                 {/* Overview Tab */}
                 {detailsTab === 'overview' && (
                   <View>
+                    {/* Vendor Info */}
+                    {booking.vendor && (
+                      <View style={styles.quoteSection}>
+                        <View style={styles.quoteSectionHeader}>
+                          <View style={[styles.cardIconCircle, { backgroundColor: TEAL_LIGHT }]}>
+                            <Ionicons name="business-outline" size={wp('4.5%')} color={TEAL} />
+                          </View>
+                          <Text style={styles.quoteSectionTitle}>Vendor Information</Text>
+                        </View>
+                        <View style={styles.quoteListCard}>
+                          <View style={styles.quoteFeatureItem}>
+                            <Ionicons name="storefront-outline" size={wp('4%')} color={TEAL} />
+                            <Text style={styles.quoteFeatureText}>{booking.vendor.name}</Text>
+                          </View>
+                          {booking.vendor.rating > 0 && (
+                            <View style={styles.quoteFeatureItem}>
+                              <Ionicons name="star-outline" size={wp('4%')} color={TEAL} />
+                              <Text style={styles.quoteFeatureText}>{booking.vendor.rating.toFixed(1)} ★ Rating</Text>
+                            </View>
+                          )}
+                          {booking.vendor.phone && (
+                            <View style={[styles.quoteFeatureItem, styles.quoteFeatureItemLast]}>
+                              <Ionicons name="call-outline" size={wp('4%')} color={TEAL} />
+                              <Text style={styles.quoteFeatureText}>{booking.vendor.phone}</Text>
+                            </View>
+                          )}
+                        </View>
+                      </View>
+                    )}
+
                     {/* Vehicle Images */}
                     {(() => {
                       let vehicleImages = [];

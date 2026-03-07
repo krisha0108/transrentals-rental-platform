@@ -13,6 +13,7 @@ import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
 import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
 import { BikeServiceSchema } from '@/components/seo/schemas';
+import { CityContentSection } from '@/components/location/CityContentSection';
 
 interface PageProps {
   params: {
@@ -215,6 +216,13 @@ export default async function SplendorLocationPage({ params }: PageProps) {
           locationSlug={params.location}
           service="splendor-on-rent"
         />
+
+      <CityContentSection
+        citySlug={params.location}
+        serviceSlug="splendor-on-rent"
+        cityName={locationName}
+        stateCode={city?.stateCode}
+      />
       </div>
     </>
   );

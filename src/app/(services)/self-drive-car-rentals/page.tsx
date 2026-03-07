@@ -1,5 +1,5 @@
 import { Metadata } from 'next';
-import { CarSearchHero } from '@/components/car';
+import { SimpleServiceHero } from '@/components/services/SimpleServiceHero';
 import { ServiceLocationsGrid } from '@/components/services/ServiceLocationsGrid';
 import { ServiceFleetDisplay } from '@/components/services/ServiceFleetDisplay';
 
@@ -16,8 +16,26 @@ export const metadata: Metadata = {
 export default function SelfDriveCarRentalPage() {
   return (
     <>
-      {/* Hero with Search Form - Same as location pages */}
-      <CarSearchHero city="Delhi" citySlug="delhi" />
+      {/* Simple Hero without booking form */}
+      <SimpleServiceHero
+        badge="Self Drive Car Rental"
+        title="Drive Yourself"
+        titleHighlight="Starting @₹899/Day"
+        description="Rent self-drive cars across 250+ cities. No driver needed — complete freedom. Hatchbacks, Sedans, SUVs available!"
+        features={[
+          { icon: 'star', text: '4.8/5 Rating', color: 'text-amber-500' },
+          { icon: 'shield', text: 'Fully Insured', color: 'text-blue-600' },
+          { icon: 'zap', text: 'Instant Booking', color: 'text-green-600' },
+        ]}
+        stats={[
+          { value: '200+', label: 'Cars Available' },
+          { value: '250+', label: 'Cities Covered' },
+          { value: '1L+', label: 'Happy Customers' },
+        ]}
+        gradientFrom="blue-50"
+        gradientTo="indigo-50"
+        gradientAccent="from-blue-600 to-indigo-600"
+      />
 
       {/* Fleet Display from Database */}
       <ServiceFleetDisplay

@@ -3022,6 +3022,9 @@ model vehicle_model_locations {
   locationId      String
   isActive        Boolean        @default(true)
   basePricePerDay Float?
+  kmLimit         Int?
+  extraKmRate     Float?
+  securityDeposit Float?
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
   locations       locations      @relation(fields: [locationId], references: [id], onDelete: Cascade)

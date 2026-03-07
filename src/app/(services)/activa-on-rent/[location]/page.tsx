@@ -13,6 +13,7 @@ import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
 import { BikeServiceSchema } from '@/components/seo/schemas';
 import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
+import { CityContentSection } from '@/components/location/CityContentSection';
 
 interface PageProps {
   params: {
@@ -148,6 +149,14 @@ export default async function ActivaLocationPage({ params }: PageProps) {
 
   return (
     <>
+      
+      <CityContentSection
+        citySlug={params.location}
+        serviceSlug="activa-on-rent"
+        cityName={locationName}
+        stateCode={city?.stateCode}
+      />
+
       {/* Schema Markup for SEO */}
       <BikeServiceSchema
         serviceName={`Activa on Rent in ${locationName}`}

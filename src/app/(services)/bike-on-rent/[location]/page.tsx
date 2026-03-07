@@ -4,13 +4,15 @@ import { BikeSearchHero } from '@/components/bike';
 import { WhyRentHere } from '@/components/location/WhyRentHere';
 import { FAQSection } from '@/components/services/FAQSection';
 import { NearbyLocations } from '@/components/location/NearbyLocations';
+import { NearbyActiveCities } from '@/components/location/NearbyActiveCities';
+import { CityContentSection } from '@/components/location/CityContentSection';
+import { ComingSoonHero } from '@/components/services/ComingSoonHero';
 import { permanentRedirect } from 'next/navigation';
 import { capitalize } from '@/lib/utils';
-import { ALL_CITIES, STATIC_CITIES, getCityBySlug } from '@/data/indian-cities';
+import { ALL_CITIES, getCityBySlug } from '@/data/indian-cities';
 import { BikeServiceSchema } from '@/components/seo/schemas';
 import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
-import { prisma } from '@/lib/db/prisma';
 
 interface PageProps {
   params: {
@@ -18,46 +20,11 @@ interface PageProps {
   };
 }
 
-// Generate static params from DATABASE - Only enabled locations
-export async function generateStaticParams() {
-  try {
-    // Skip database calls during CI/CD build
-    if (process.env.SKIP_DATABASE_CALLS === '1') {
-      console.log('[bike-on-rent] Skipping database calls during build');
-      return [];
-    }
-
-    // Fetch enabled locations from database
-    const service = await prisma.services.findUnique({
-      where: { slug: 'bike-on-rent' },
-      include: {
-        service_locations: {
-          where: { isActive: true },
-          include: {
-            locations: {
-              select: { slug: true, name: true }
-            }
-          }
-        }
-      }
-    });
-
-    if (!service) {
-      console.log('[bike-on-rent] Service not found in database');
-      return [];
-    }
-
-    const locations = service.service_locations.map((sl) => ({
-      location: sl.locations.slug,
-    }));
-
-    console.log(`[bike-on-rent] Generating ${locations.length} location pages from database`);
-    return locations;
-  } catch (error) {
-    console.error('[bike-on-rent] Error fetching locations:', error);
-    // Fallback to empty array if database error
-    return [];
-  }
+// Generate static params from ALL indian cities (static file - no DB needed)
+// Pages for DB-enabled cities → booking form hero
+// Pages for non-enabled cities → coming soon hero
+export function generateStaticParams() {
+  return ALL_CITIES.map((city) => ({ location: city.slug }));
 }
 
 // Enable ISR - Revalidate every hour
@@ -152,9 +119,163 @@ const schemaVehicles = [
 ];
 
 export default async function BikeLocationPage({ params }: PageProps) {
-  const pageContext = await resolveServicePage('bike-on-rent', params.location);
+  const pageContext = await resolveServicePage('bike-on-rent', params.location, { comingSoonIfUnavailable: true });
   if (pageContext.type === 'redirect') permanentRedirect(pageContext.to);
   if (pageContext.type === 'state') return <StateServicePage state={pageContext.state} activeCities={pageContext.activeCities} serviceSlug="bike-on-rent" serviceName="Bike on Rent" />;
+
+  // Coming soon — city exists but service not yet enabled
+  if (pageContext.type === 'coming-soon') {
+    const comingSoonCity = pageContext.city;
+    const cityName = comingSoonCity.name;
+    const cityFaqs = getLocationFaqs(cityName);
+    return (
+      <>
+        {/* Schema Markup */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              '@context': 'https://schema.org',
+              '@type': 'Service',
+              name: `Bike on Rent in ${cityName}`,
+              description: `Bike rental service coming soon to ${cityName}. Rent Royal Enfield, KTM, Activa & more starting @₹299/day.`,
+              provider: { '@type': 'Organization', name: 'TransRentals', url: 'https://transrentals.in' },
+              areaServed: { '@type': 'City', name: cityName },
+              serviceType: 'Bike Rental',
+            }),
+          }}
+        />
+
+        {/* Breadcrumbs */}
+        <div className="bg-gray-50 border-b border-gray-200">
+          <div className="container-custom py-3">
+            <nav className="text-sm text-gray-600" aria-label="Breadcrumb">
+              <a href="/" className="hover:text-primary">Home</a>
+              <span className="mx-2">/</span>
+              <a href="/bike-on-rent" className="hover:text-primary">Bike on Rent</a>
+              <span className="mx-2">/</span>
+              <span className="text-gray-900 font-medium">{cityName}</span>
+            </nav>
+          </div>
+        </div>
+
+        <ComingSoonHero
+          city={cityName}
+          citySlug={params.location}
+          serviceSlug="bike-on-rent"
+          serviceName="Bike on Rent"
+          themeColor="emerald"
+        />
+
+        <NearbyActiveCities
+          currentCitySlug={params.location}
+          serviceSlug="bike-on-rent"
+          serviceName="Bike on Rent"
+        />
+
+        {/* Popular Bikes */}
+        <section className="py-16 bg-white">
+          <div className="container-custom">
+            <h2 className="text-3xl font-bold text-gray-900 mb-3 text-center">
+              Popular Bikes for Rent in {cityName}
+            </h2>
+            <p className="text-gray-600 text-center mb-10">
+              When we launch in {cityName}, these top bikes will be available for rental
+            </p>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+              {POPULAR_BIKES.map((bike) => (
+                <div key={bike.name} className="bg-gray-50 rounded-xl p-4 text-center hover:shadow-lg transition-shadow">
+                  <div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <span className="text-3xl">🏍️</span>
+                  </div>
+                  <h3 className="font-semibold text-gray-900 mb-1">{bike.name}</h3>
+                  <p className="text-sm text-gray-500 mb-2">{bike.type}</p>
+                  <p className="text-emerald-600 font-bold">₹{bike.price}/day</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* Why TransRentals */}
+        <section className="py-16 bg-gray-50">
+          <div className="container-custom">
+            <h2 className="text-3xl font-bold text-gray-900 mb-3 text-center">
+              Why Choose TransRentals for Bike Rental in {cityName}?
+            </h2>
+            <p className="text-gray-600 text-center mb-10 max-w-2xl mx-auto">
+              We&apos;re bringing the best bike rental experience to {cityName} soon
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {[
+                { icon: '✅', title: 'Verified Vendors', desc: `All bike rental vendors in ${cityName} are background-checked and verified for quality` },
+                { icon: '💰', title: 'Best Prices', desc: `Starting from just ₹299/day — cheapest bike rentals in ${cityName} guaranteed` },
+                { icon: '🛵', title: 'Wide Selection', desc: `Scooters, cruisers, sports bikes — every type of two-wheeler available in ${cityName}` },
+                { icon: '🚪', title: 'Doorstep Delivery', desc: `Get your bike delivered right to your address in ${cityName} for free` },
+                { icon: '📞', title: '24/7 Support', desc: `Round the clock roadside assistance and customer support in ${cityName}` },
+                { icon: '📄', title: 'Easy Booking', desc: 'Book online in minutes — no long paperwork or advance deposits' },
+              ].map((item) => (
+                <div key={item.title} className="bg-white p-6 rounded-xl shadow-sm">
+                  <div className="text-3xl mb-3">{item.icon}</div>
+                  <h3 className="font-bold text-gray-900 mb-2">{item.title}</h3>
+                  <p className="text-gray-600 text-sm">{item.desc}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* FAQs */}
+        <section className="py-16 bg-white">
+          <div className="container-custom max-w-3xl">
+            <h2 className="text-3xl font-bold text-gray-900 mb-10 text-center">
+              Frequently Asked Questions — Bike Rental in {cityName}
+            </h2>
+            <div className="space-y-6">
+              {cityFaqs.map((faq) => (
+                <div key={faq.question} className="bg-gray-50 p-6 rounded-xl">
+                  <h3 className="font-semibold text-gray-900 mb-2">{faq.question}</h3>
+                  <p className="text-gray-600">{faq.answer}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* SEO Text */}
+        <section className="py-16 bg-gray-50">
+          <div className="container-custom max-w-4xl">
+            <h2 className="text-3xl font-bold text-gray-900 mb-6">
+              Bike Rental Services in {cityName}
+            </h2>
+            <div className="prose prose-lg text-gray-600 space-y-4">
+              <p>
+                TransRentals is expanding its bike rental services to {cityName}. We are working to onboard
+                verified bike rental vendors in {cityName} so you can rent two-wheelers at the best prices.
+                Our platform offers Royal Enfield, KTM, Honda Activa, TVS Jupiter, Bajaj Pulsar, and many
+                more bikes for daily, weekly, and monthly rentals.
+              </p>
+              <p>
+                Once we launch in {cityName}, you will be able to book bikes online with doorstep delivery,
+                flexible rental durations, and 24/7 roadside assistance. Till then, explore bike rentals
+                in nearby cities listed above where you can book instantly.
+              </p>
+              <h3 className="text-xl font-bold text-gray-900 mt-6">
+                Types of Bikes Available for Rent in {cityName}
+              </h3>
+              <ul className="list-disc pl-6 space-y-1">
+                <li>Scooters — Honda Activa, TVS Jupiter, Suzuki Access (₹299–₹499/day)</li>
+                <li>Commuter Bikes — Bajaj Pulsar, Hero Splendor, TVS Apache (₹399–₹599/day)</li>
+                <li>Cruisers — Royal Enfield Classic 350, Bullet 350, Thunderbird (₹799–₹999/day)</li>
+                <li>Adventure Bikes — Royal Enfield Himalayan, KTM Duke 390 (₹899–₹1299/day)</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+      </>
+    );
+  }
+
   const city = pageContext.city;
   const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
   const locationFaqs = getLocationFaqs(locationName);
@@ -270,6 +391,13 @@ export default async function BikeLocationPage({ params }: PageProps) {
 
       {/* Nearby Locations */}
       <NearbyLocations locationSlug={params.location} service="bike-on-rent" />
+
+      <CityContentSection
+        citySlug={params.location}
+        serviceSlug="bike-on-rent"
+        cityName={locationName}
+        stateCode={pageContext.city.stateCode}
+      />
 
       {/* SEO Content */}
       <section className="py-16 bg-gray-50">

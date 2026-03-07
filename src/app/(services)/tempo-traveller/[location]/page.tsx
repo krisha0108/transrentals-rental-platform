@@ -8,6 +8,7 @@ import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
 import { prisma } from '@/lib/db/prisma';
 import { formatPriceHighlight } from '@/lib/utils';
+import { CityContentSection } from '@/components/location/CityContentSection';
 
 interface PageProps {
   params: {
@@ -357,6 +358,14 @@ export default async function TempoTravellerLocationPage({ params }: PageProps) 
           </div>
         </div>
       </section>
+
+      
+      <CityContentSection
+        citySlug={params.location}
+        serviceSlug="tempo-traveller"
+        cityName={locationName}
+        stateCode={city?.stateCode}
+      />
 
       {/* Schema Markup */}
       <script

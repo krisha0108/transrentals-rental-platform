@@ -15,7 +15,7 @@ interface TagPageProps {
   };
 }
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 3600;
 
 export async function generateStaticParams() {
   const slugs = await getTagSlugs();
@@ -38,6 +38,9 @@ export async function generateMetadata({
   return {
     title: `#${tag.name} - Travel Reflections | TransRentals`,
     description: `Browse all blog posts tagged with #${tag.name}. Discover travel guides, tips, and itineraries related to ${tag.name}.`,
+    alternates: {
+      canonical: `https://transrentals.in/blog/tag/${params.slug}`,
+    },
     openGraph: {
       title: `#${tag.name} - TransRentals Reflections`,
       description: `Posts tagged with #${tag.name}`,

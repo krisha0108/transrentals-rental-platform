@@ -9,6 +9,7 @@ import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
 import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
 import { FAQSection } from '@/components/services/FAQSection';
+import { CityContentSection } from '@/components/location/CityContentSection';
 
 interface PageProps { params: { location: string }; }
 
@@ -124,6 +125,13 @@ export default async function ScorpioLocationPage({ params }: PageProps) {
         </div>
       </section>
 
+      
+      <CityContentSection
+        citySlug={params.location}
+        serviceSlug="scorpio-on-rent"
+        cityName={locationName}
+        stateCode={undefined}
+      />
       <FAQSection service="self-drive-car-rental" location={locationName} />
     </>
   );

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { buildUrlsetXml, BASE_URL, SitemapEntry, escapeXml } from '@/lib/sitemap/utils';
 import { prisma } from '@/lib/db/prisma';
+import { blogTags } from '@/data/blog-posts';
 
 // Revalidate every hour — new blogs show up quickly
 export const revalidate = 3600;
@@ -54,6 +55,15 @@ export async function GET() {
     }
   } catch {
     // DB unavailable — return just static entries
+  }
+
+  // Blog tag pages (static data)
+  for (const tag of blogTags) {
+    entries.push({
+      url: `${BASE_URL}/blog/tag/${tag.slug}`,
+      changeFrequency: 'weekly',
+      priority: 0.6,
+    });
   }
 
   return new NextResponse(buildUrlsetXml(entries), {

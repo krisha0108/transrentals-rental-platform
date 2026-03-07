@@ -13,6 +13,7 @@ import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
 import { BikeServiceSchema } from '@/components/seo/schemas';
 import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
+import { CityContentSection } from '@/components/location/CityContentSection';
 
 interface PageProps {
   params: {
@@ -215,6 +216,13 @@ export default async function ApacheLocationPage({ params }: PageProps) {
           locationSlug={params.location}
           service="apache-on-rent"
         />
+
+      <CityContentSection
+        citySlug={params.location}
+        serviceSlug="apache-on-rent"
+        cityName={locationName}
+        stateCode={city?.stateCode}
+      />
       </div>
     </>
   );

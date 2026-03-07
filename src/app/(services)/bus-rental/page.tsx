@@ -26,6 +26,9 @@ export const metadata: Metadata = {
     'mini bus rental',
     'volvo bus hire',
   ],
+  alternates: {
+    canonical: 'https://transrentals.in/bus-rental',
+  },
 };
 
 const TRIP_TYPES = [
@@ -95,6 +98,59 @@ const TESTIMONIALS = [
 export default function BusRentalPage() {
   return (
     <div className="min-h-screen">
+      {/* FAQ Schema Markup */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'FAQPage',
+            mainEntity: [
+              {
+                '@type': 'Question',
+                name: 'How do I book a bus?',
+                acceptedAnswer: {
+                  '@type': 'Answer',
+                  text: 'Simply select your city from the locations section, browse available buses, and book directly. Our team will confirm your booking.',
+                },
+              },
+              {
+                '@type': 'Question',
+                name: "What's included in the price?",
+                acceptedAnswer: {
+                  '@type': 'Answer',
+                  text: 'Prices typically include vehicle, driver, and basic inclusions. Fuel, tolls, and driver allowance may be extra depending on the package.',
+                },
+              },
+              {
+                '@type': 'Question',
+                name: 'How do I make payment?',
+                acceptedAnswer: {
+                  '@type': 'Answer',
+                  text: 'You can pay online through our secure payment gateway. Advance payment is required to confirm the booking.',
+                },
+              },
+              {
+                '@type': 'Question',
+                name: 'What if I need to cancel?',
+                acceptedAnswer: {
+                  '@type': 'Answer',
+                  text: 'Cancellation policies vary by operator. Many offer free cancellation up to 48-72 hours before the trip.',
+                },
+              },
+              {
+                '@type': 'Question',
+                name: 'Are the buses insured?',
+                acceptedAnswer: {
+                  '@type': 'Answer',
+                  text: 'Yes, all vehicles from our verified operators have valid insurance and permits.',
+                },
+              },
+            ],
+          }),
+        }}
+      />
+
       {/* Hero with Chat Booking System */}
       <ServiceHeroWithChat
         badge="Bus & Tempo Traveller Rental"

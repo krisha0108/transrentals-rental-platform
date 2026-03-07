@@ -5,6 +5,7 @@ import { getServiceLocations } from '@/lib/services/service-locations';;
 import { CarRentalBookingHero } from '@/components/car-rental/CarRentalBookingHero';
 import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
+import { CityContentSection } from '@/components/location/CityContentSection';
 
 interface PageProps {
   params: {
@@ -295,6 +296,14 @@ export default async function LocalTaxiLocationPage({ params }: PageProps) {
           </div>
         </div>
       </section>
+
+      
+      <CityContentSection
+        citySlug={params.location}
+        serviceSlug="local-taxi"
+        cityName={locationName}
+        stateCode={city?.stateCode}
+      />
 
       {/* Schema Markup */}
       <script

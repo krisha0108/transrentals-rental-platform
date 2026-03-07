@@ -5,6 +5,7 @@ import Link from 'next/link';
 import {
   Plus, Search, Edit, Trash2, Eye, FileEdit,
   BookOpen, Globe, Clock, FolderOpen, ChevronDown, ChevronUp, X, Loader2, Tag,
+  ChevronLeft, ChevronRight,
 } from 'lucide-react';
 
 interface BlogPost {
@@ -39,6 +40,10 @@ export default function GeneralBlogPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<FilterStatus>('ALL');
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
+  const LIMIT = 10;
 
   // Category state
   const [categories, setCategories] = useState<Category[]>([]);
@@ -53,17 +58,21 @@ export default function GeneralBlogPage() {
     try {
       const params = new URLSearchParams();
       if (statusFilter !== 'ALL') params.set('status', statusFilter);
+      params.set('page', String(page));
+      params.set('limit', String(LIMIT));
       const response = await fetch(`/api/admin/blog?${params}`);
       if (response.ok) {
         const data = await response.json();
         setPosts(data.posts || []);
+        setTotal(data.pagination?.total || 0);
+        setTotalPages(data.pagination?.totalPages || 1);
       }
     } catch (error) {
       console.error('Failed to fetch posts:', error);
     } finally {
       setLoading(false);
     }
-  }, [statusFilter]);
+  }, [statusFilter, page]);
 
   const fetchCategories = useCallback(async () => {
     try {
@@ -75,6 +84,7 @@ export default function GeneralBlogPage() {
     } catch {}
   }, []);
 
+  useEffect(() => { setPage(1); }, [statusFilter]);
   useEffect(() => { fetchPosts(); }, [fetchPosts]);
   useEffect(() => { fetchCategories(); }, [fetchCategories]);
 
@@ -132,6 +142,8 @@ export default function GeneralBlogPage() {
 
   const publishedCount = posts.filter((p) => p.status === 'PUBLISHED').length;
   const draftCount = posts.filter((p) => p.status === 'DRAFT').length;
+  const from = total === 0 ? 0 : (page - 1) * LIMIT + 1;
+  const to = Math.min(page * LIMIT, total);
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
@@ -160,7 +172,7 @@ export default function GeneralBlogPage() {
             <BookOpen className="w-5 h-5 text-blue-600" />
           </div>
           <div>
-            <div className="text-2xl font-bold text-gray-900">{posts.length}</div>
+            <div className="text-2xl font-bold text-gray-900">{total}</div>
             <div className="text-xs text-gray-500">Total Posts</div>
           </div>
         </div>
@@ -399,6 +411,57 @@ export default function GeneralBlogPage() {
                 ))}
               </tbody>
             </table>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100">
+                <p className="text-xs text-gray-500">
+                  Showing {from}–{to} of {total} posts
+                </p>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    disabled={page === 1}
+                    className="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </button>
+
+                  {Array.from({ length: totalPages }, (_, i) => i + 1)
+                    .filter((p) => p === 1 || p === totalPages || Math.abs(p - page) <= 1)
+                    .reduce<(number | '...')[]>((acc, p, idx, arr) => {
+                      if (idx > 0 && p - (arr[idx - 1] as number) > 1) acc.push('...');
+                      acc.push(p);
+                      return acc;
+                    }, [])
+                    .map((p, i) =>
+                      p === '...' ? (
+                        <span key={`ellipsis-${i}`} className="px-2 text-xs text-gray-400">…</span>
+                      ) : (
+                        <button
+                          key={p}
+                          onClick={() => setPage(p as number)}
+                          className={`min-w-[28px] h-7 px-2 text-xs rounded-lg font-medium transition-colors ${
+                            page === p
+                              ? 'bg-blue-600 text-white'
+                              : 'text-gray-600 hover:bg-gray-100'
+                          }`}
+                        >
+                          {p}
+                        </button>
+                      )
+                    )}
+
+                  <button
+                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={page === totalPages}
+                    className="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>

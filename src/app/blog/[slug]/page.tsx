@@ -63,7 +63,7 @@ export async function generateMetadata({
           alt: post.title,
         },
       ],
-      url: `https://transrentals.com/blog/${post.slug}`,
+      url: `https://transrentals.in/blog/${post.slug}`,
     },
     twitter: {
       card: 'summary_large_image',
@@ -72,7 +72,7 @@ export async function generateMetadata({
       images: [featuredImageUrl],
     },
     alternates: {
-      canonical: `https://transrentals.com/blog/${post.slug}`,
+      canonical: `https://transrentals.in/blog/${post.slug}`,
     },
   };
 }
@@ -227,7 +227,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                   </div>
                   <div className="flex items-center">
                     <ShareButtons
-                      url={`https://transrentals.com/blog/${post.slug}`}
+                      url={`https://transrentals.in/blog/${post.slug}`}
                       title={post.title}
                       description={post.excerpt}
                       showLabel={false}
@@ -349,19 +349,19 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
             author: {
               '@type': 'Person',
               name: post.author.name,
-              url: `https://transrentals.com/blog`,
+              url: `https://transrentals.in/blog`,
             },
             publisher: {
               '@type': 'Organization',
               name: 'TransRentals',
               logo: {
                 '@type': 'ImageObject',
-                url: 'https://transrentals.com/logo.png',
+                url: 'https://transrentals.in/logo.png',
               },
             },
             mainEntityOfPage: {
               '@type': 'WebPage',
-              '@id': `https://transrentals.com/blog/${post.slug}`,
+              '@id': `https://transrentals.in/blog/${post.slug}`,
             },
             keywords: post.seo.keywords.join(', '),
             articleSection: post.category.name,
@@ -381,25 +381,25 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                 '@type': 'ListItem',
                 position: 1,
                 name: 'Home',
-                item: 'https://transrentals.com',
+                item: 'https://transrentals.in',
               },
               {
                 '@type': 'ListItem',
                 position: 2,
                 name: 'Reflections',
-                item: 'https://transrentals.com/blog',
+                item: 'https://transrentals.in/blog',
               },
               {
                 '@type': 'ListItem',
                 position: 3,
                 name: post.category.name,
-                item: `https://transrentals.com/blog/category/${post.category.slug}`,
+                item: `https://transrentals.in/blog/category/${post.category.slug}`,
               },
               {
                 '@type': 'ListItem',
                 position: 4,
                 name: post.title,
-                item: `https://transrentals.com/blog/${post.slug}`,
+                item: `https://transrentals.in/blog/${post.slug}`,
               },
             ],
           }),

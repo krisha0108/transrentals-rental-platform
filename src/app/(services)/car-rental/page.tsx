@@ -8,6 +8,9 @@ export const metadata: Metadata = {
   title: 'Car Rental - Rent Self Drive Cars Starting @₹999/Day | TransRentals',
   description: 'Rent cars across India at the best prices. Self-drive cars, cars with drivers, SUVs, sedans, hatchbacks available in 250+ cities. Book online instantly!',
   keywords: ['car rental', 'car on rent', 'self drive car', 'car hire', 'rent a car', 'car booking', 'car rental near me'],
+  alternates: {
+    canonical: 'https://transrentals.in/car-rental',
+  },
   openGraph: {
     title: 'Car Rental India - Starting @₹999/Day | TransRentals',
     description: 'Book self-drive cars and cars with drivers across 250+ Indian cities. Verified vendors, best prices, instant booking.',
@@ -17,6 +20,40 @@ export const metadata: Metadata = {
 export default function CarRentalPage() {
   return (
     <>
+      {/* Schema Markup */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'Service',
+            name: 'Car Rental India',
+            description: 'Rent cars across India at the best prices. Self-drive cars, cars with drivers, SUVs, sedans, hatchbacks available in 250+ cities.',
+            url: 'https://transrentals.in/car-rental',
+            provider: {
+              '@type': 'Organization',
+              name: 'TransRentals',
+              url: 'https://transrentals.in',
+            },
+            areaServed: { '@type': 'Country', name: 'India' },
+            serviceType: 'Car Rental',
+            offers: {
+              '@type': 'AggregateOffer',
+              priceCurrency: 'INR',
+              lowPrice: '999',
+              highPrice: '9999',
+              priceSuffix: '/day',
+            },
+            aggregateRating: {
+              '@type': 'AggregateRating',
+              ratingValue: '4.8',
+              reviewCount: '10000',
+              bestRating: '5',
+            },
+          }),
+        }}
+      />
+
       {/* Simple Hero without booking form */}
       <SimpleServiceHero
         badge="Car Rental Services"

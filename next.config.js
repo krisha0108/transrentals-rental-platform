@@ -546,6 +546,7 @@ const nextConfig = {
       },
     ];
   },
+  trailingSlash: false,
   output: "standalone",
   compress: true,
   poweredByHeader: false,

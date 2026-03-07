@@ -7,6 +7,7 @@ import { PackagesGrid } from '@/components/location/PackagesGrid';
 import { WhyRentHere } from '@/components/location/WhyRentHere';
 import { FAQSection } from '@/components/services/FAQSection';
 import { NearbyLocations } from '@/components/location/NearbyLocations';
+import { CityContentSection } from '@/components/location/CityContentSection';
 import { prisma } from '@/lib/db/prisma';
 import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
@@ -235,6 +236,13 @@ export default async function CarRentalLocationPage({ params }: PageProps) {
       <NearbyLocations
         locationSlug={params.location}
         service="car-rental"
+      />
+
+      <CityContentSection
+        citySlug={params.location}
+        serviceSlug="car-rental"
+        cityName={locationName}
+        stateCode={city.stateCode}
       />
 
       {/* Schema Markup for SEO */}
