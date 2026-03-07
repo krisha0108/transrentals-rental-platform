@@ -10,6 +10,7 @@ import { ToastProvider } from '@/components/ui/toast';
 
 const SIDEBAR_LINKS = [
   { href: '/manager/dashboard', label: 'Dashboard', icon: Home },
+  { href: '/manager/b2b', label: 'B2B Bookings', icon: Briefcase },
   { href: '/manager/inquiries', label: 'My Inquiries', icon: FileText },
   { href: '/manager/bookings', label: 'My Bookings', icon: Briefcase },
   { href: '/manager/vendors', label: 'Vendors', icon: Store },

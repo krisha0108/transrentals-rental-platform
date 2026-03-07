@@ -356,6 +356,15 @@ const adminItems: NavItem[] = [
     icon: UserCog,
   },
   {
+    name: 'B2B Module',
+    href: '/admin/b2b',
+    icon: Headphones,
+    children: [
+      { name: 'B2B Customers', href: '/admin/b2b', icon: Headphones },
+      { name: 'B2B Bookings', href: '/admin/b2b/bookings', icon: Headphones },
+    ],
+  },
+  {
     name: 'Helpdesk',
     href: '/admin/helpdesk',
     icon: Headphones,

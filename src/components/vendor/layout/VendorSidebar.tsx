@@ -218,6 +218,15 @@ const approvedNavigationItems: NavItem[] = [
     href: '/vendor/bookings',
     icon: CalendarCheck,
   },
+  {
+    name: 'B2B Corporate',
+    href: '/vendor/b2b-bookings',
+    icon: Building2,
+    children: [
+      { name: 'Open Requests', href: '/vendor/b2b-bookings', icon: Inbox },
+      { name: 'My Assignments', href: '/vendor/b2b-bookings/my-quotes', icon: CalendarCheck },
+    ],
+  },
   // {
   //   name: 'Earnings',
   //   href: '/vendor/earnings',

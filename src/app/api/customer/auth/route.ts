@@ -259,6 +259,9 @@ async function handleLogin(
       email: customer.email,
       phone: customer.phone,
       avatar: customer.avatar || null,
+      isB2B: customer.isB2B || false,
+      companyName: customer.companyName || null,
+      b2bStatus: customer.b2bStatus || null,
     },
   });
 }
@@ -318,10 +321,10 @@ async function handleCheckExists(body: { phone?: string; email?: string }): Prom
 
 // Handle customer registration
 async function handleRegister(
-  body: { name: string; email: string; phone: string; password: string },
+  body: { name: string; email: string; phone: string; password: string; isB2B?: boolean; companyName?: string; gstin?: string; businessType?: string },
   ip: string
 ): Promise<NextResponse> {
-  const { name, email, phone, password } = body;
+  const { name, email, phone, password, isB2B, companyName, gstin, businessType } = body;
 
   if (!name || !email || !phone || !password) {
     return NextResponse.json(
@@ -378,14 +381,25 @@ async function handleRegister(
 
   // Create customer
   const customerId = await generateCustomerId();
+  const customerData: any = {
+    id: customerId,
+    name: name.trim(),
+    email: normalizedEmail,
+    phone: normalizedPhone,
+    password: hashedPassword,
+  };
+
+  // B2B fields
+  if (isB2B) {
+    customerData.isB2B = true;
+    customerData.companyName = companyName?.trim() || null;
+    customerData.gstin = gstin?.trim() || null;
+    customerData.businessType = businessType?.trim() || null;
+    customerData.b2bStatus = 'PENDING';
+  }
+
   const customer = await prisma.customers.create({
-    data: {
-      id: customerId,
-      name: name.trim(),
-      email: normalizedEmail,
-      phone: normalizedPhone,
-      password: hashedPassword,
-    },
+    data: customerData,
   });
 
   // Generate token
@@ -406,6 +420,9 @@ async function handleRegister(
       email: customer.email,
       phone: customer.phone,
       image: null,
+      isB2B: customer.isB2B || false,
+      companyName: customer.companyName || null,
+      b2bStatus: customer.b2bStatus || null,
     },
   });
 }
@@ -605,6 +622,9 @@ async function handleVerifyOTP(
       email: customer.email,
       phone: customer.phone,
       image: null,
+      isB2B: customer.isB2B || false,
+      companyName: customer.companyName || null,
+      b2bStatus: customer.b2bStatus || null,
     },
   });
 }
@@ -838,6 +858,9 @@ async function handleSetPassword(
       email: customer.email,
       phone: customer.phone,
       avatar: customer.avatar || null,
+      isB2B: customer.isB2B || false,
+      companyName: customer.companyName || null,
+      b2bStatus: customer.b2bStatus || null,
     },
   });
 }
@@ -974,6 +997,9 @@ async function handleGoogleLogin(
         email: customer.email,
         phone: customer.phone,
         avatar: customer.avatar || null,
+        isB2B: customer.isB2B || false,
+        companyName: customer.companyName || null,
+        b2bStatus: customer.b2bStatus || null,
       },
     });
   } catch (error) {

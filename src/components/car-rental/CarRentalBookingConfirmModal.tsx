@@ -99,6 +99,9 @@ export function CarRentalBookingConfirmModal({
   const [showPassword, setShowPassword] = useState(false);
   const [existingCustomer, setExistingCustomer] = useState<any>(null);
 
+  // B2B state
+  const [isB2B, setIsB2B] = useState(false);
+
   // Form data
   const [formData, setFormData] = useState({
     name: '',
@@ -107,6 +110,8 @@ export function CarRentalBookingConfirmModal({
     password: '',
     pickupAddress: '',
     dropAddress: '',
+    numberOfVehicles: '',
+    numberOfEmployees: '',
   });
 
   // Reset state when modal opens
@@ -115,7 +120,8 @@ export function CarRentalBookingConfirmModal({
       setStep('confirm');
       setAuthMode('check');
       setError('');
-      setFormData({ name: '', email: '', phone: '', password: '', pickupAddress: '', dropAddress: '' });
+      setIsB2B(false);
+      setFormData({ name: '', email: '', phone: '', password: '', pickupAddress: '', dropAddress: '', numberOfVehicles: '', numberOfEmployees: '' });
       setExistingCustomer(null);
 
       // Check if user is already logged in
@@ -132,6 +138,19 @@ export function CarRentalBookingConfirmModal({
               email: customer.email || '',
               phone: customer.phone || '',
             }));
+
+            // Check B2B status
+            const params = new URLSearchParams();
+            if (customer.id) params.set('customer_id', String(customer.id));
+            if (customer.email) params.set('email', customer.email);
+            if (params.toString()) {
+              fetch(`/api/customer/b2b-status?${params.toString()}`)
+                .then(res => res.json())
+                .then(data => {
+                  if (data.isB2B) setIsB2B(true);
+                })
+                .catch(() => {});
+            }
           } catch (e) {
             console.error('Failed to parse stored customer:', e);
           }
@@ -355,6 +374,11 @@ export function CarRentalBookingConfirmModal({
         customerName: customer.name,
         customerEmail: customer.email,
         customerPhone: customer.phone,
+        ...(isB2B && {
+          isB2B: true,
+          numberOfVehicles: formData.numberOfVehicles ? parseInt(formData.numberOfVehicles) : undefined,
+          numberOfEmployees: formData.numberOfEmployees ? parseInt(formData.numberOfEmployees) : undefined,
+        }),
       };
 
       const response = await fetch('/api/car-rental/bookings', {
@@ -494,6 +518,41 @@ export function CarRentalBookingConfirmModal({
         )}
       </div>
 
+      {/* B2B Fields */}
+      {isB2B && (
+        <div className="bg-teal-50 border border-teal-200 rounded-xl p-4 space-y-3">
+          <p className="text-sm font-semibold text-teal-800 flex items-center gap-2">
+            <Users className="w-4 h-4" /> B2B Corporate Booking
+          </p>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Number of Vehicles *</label>
+              <input
+                type="number"
+                value={formData.numberOfVehicles}
+                onChange={(e) => setFormData(prev => ({ ...prev, numberOfVehicles: e.target.value }))}
+                placeholder="e.g. 10"
+                min="1"
+                max="500"
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:border-teal-500 focus:outline-none"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Number of Employees</label>
+              <input
+                type="number"
+                value={formData.numberOfEmployees}
+                onChange={(e) => setFormData(prev => ({ ...prev, numberOfEmployees: e.target.value }))}
+                placeholder="e.g. 50"
+                min="1"
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:border-teal-500 focus:outline-none"
+              />
+            </div>
+          </div>
+          <p className="text-xs text-teal-600">No advance payment required. Post-trip corporate billing.</p>
+        </div>
+      )}
+
       {/* Price Breakdown */}
       <div className="border-t border-gray-200 pt-4">
         <h4 className="font-semibold text-gray-900 mb-3">Fare Details</h4>
@@ -526,10 +585,17 @@ export function CarRentalBookingConfirmModal({
             <span className="font-semibold text-gray-900">Total Fare</span>
             <span className="font-bold text-blue-600 text-lg">₹{pricing.grandTotal.toLocaleString()}</span>
           </div>
-          <div className="flex justify-between text-blue-700 bg-blue-50 p-2 rounded-lg mt-2">
-            <span className="font-medium">Advance Payment (30%)</span>
-            <span className="font-bold">₹{advanceAmount.toLocaleString()}</span>
-          </div>
+          {isB2B ? (
+            <div className="flex justify-between text-teal-700 bg-teal-50 p-2 rounded-lg mt-2">
+              <span className="font-medium">Payment Mode</span>
+              <span className="font-bold">Corporate Post-Paid</span>
+            </div>
+          ) : (
+            <div className="flex justify-between text-blue-700 bg-blue-50 p-2 rounded-lg mt-2">
+              <span className="font-medium">Advance Payment (30%)</span>
+              <span className="font-bold">₹{advanceAmount.toLocaleString()}</span>
+            </div>
+          )}
         </div>
       </div>
 
@@ -885,7 +951,7 @@ export function CarRentalBookingConfirmModal({
                   {existingCustomer ? (
                     <>
                       <Check className="w-5 h-5 mr-2" />
-                      Confirm Booking
+                      {isB2B ? 'Confirm B2B Booking' : 'Confirm Booking'}
                     </>
                   ) : (
                     <>

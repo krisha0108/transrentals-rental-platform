@@ -107,6 +107,8 @@ export async function POST(request: NextRequest) {
       advancePaid,
       transactionId,
       paymentMethod,
+      numberOfVehicles,
+      numberOfEmployees,
     } = body;
 
     // ===== INPUT SANITIZATION (XSS Protection) =====
@@ -250,6 +252,84 @@ export async function POST(request: NextRequest) {
 
     // Note: OTP will be generated when driver starts the trip, not at booking time
 
+    // Check if customer is B2B approved
+    let isB2B = false;
+    let b2bCustomer: any = null;
+    if (customerEmail || customerPhone) {
+      b2bCustomer = await prisma.customers.findFirst({
+        where: {
+          OR: [
+            ...(customerEmail ? [{ email: customerEmail.toLowerCase() }] : []),
+            ...(customerPhone ? [{ phone: customerPhone }] : []),
+          ],
+        },
+        select: { id: true, name: true, email: true, phone: true, companyName: true, isB2B: true, b2bStatus: true },
+      });
+      if (b2bCustomer?.isB2B && b2bCustomer?.b2bStatus === 'APPROVED') {
+        isB2B = true;
+      }
+    }
+
+    // ===== B2B FLOW: Create in b2b_bookings table =====
+    if (isB2B && numberOfVehicles && parseInt(numberOfVehicles) > 0) {
+      const b2bBookingNumber = `B2B-${new Date().getFullYear()}-${Math.floor(Math.random() * 100000).toString().padStart(5, '0')}`;
+
+      const b2bBooking = await prisma.b2b_bookings.create({
+        data: {
+          bookingNumber: b2bBookingNumber,
+          customerId: b2bCustomer.id,
+          customerName: b2bCustomer.name,
+          customerEmail: b2bCustomer.email,
+          customerPhone: b2bCustomer.phone,
+          companyName: b2bCustomer.companyName || b2bCustomer.name,
+          serviceType: 'car',
+          vehiclesRequired: parseInt(numberOfVehicles),
+          passengerCount: numberOfEmployees ? parseInt(numberOfEmployees) : null,
+          vehicleCategory: carCategoryName || carCategory || null,
+          pickupLocation: pickupCity,
+          dropLocation: dropCity || null,
+          tripType: mappedTripType === 'LOCAL' ? 'HOURLY' : (mappedTripType.includes('ROUNDTRIP') ? 'ROUND_TRIP' : 'ONE_WAY'),
+          scheduledDate: new Date(pickupDate),
+          scheduledTime: pickupTime,
+          returnDate: returnDate ? new Date(returnDate) : null,
+          specialNotes: customerNotes || null,
+          status: 'OPEN_FOR_QUOTES',
+        },
+      });
+
+      // Generate JWT token for auto-login
+      const token = await new SignJWT({
+        customerId: b2bCustomer.id,
+        email: b2bCustomer.email,
+        phone: b2bCustomer.phone,
+      })
+        .setProtectedHeader({ alg: 'HS256' })
+        .setIssuedAt()
+        .setExpirationTime('30d')
+        .sign(JWT_SECRET);
+
+      return NextResponse.json({
+        success: true,
+        message: 'B2B Booking created successfully. Vendors will send quotes.',
+        booking: {
+          id: b2bBooking.id,
+          bookingNumber: b2bBooking.bookingNumber,
+          status: b2bBooking.status,
+          vehiclesRequired: b2bBooking.vehiclesRequired,
+        },
+        customer: {
+          id: b2bCustomer.id,
+          name: b2bCustomer.name,
+          email: b2bCustomer.email,
+          phone: b2bCustomer.phone,
+        },
+        token,
+        isB2B: true,
+        redirect_to: `/customer/b2b-bookings`,
+      });
+    }
+
+    // ===== NORMAL FLOW: Create in chauffeur_bookings table =====
     // Build the booking data
     const bookingData: any = {
       bookingNumber,
@@ -380,6 +460,7 @@ export async function POST(request: NextRequest) {
         phone: customer.phone,
       },
       token,
+      isB2B: false,
       // Redirect to payment page
       redirect_to: `/pay/${booking.bookingNumber}`,
     });

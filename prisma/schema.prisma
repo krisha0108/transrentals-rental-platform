@@ -55,6 +55,8 @@ model admin_users {
   vendor_payout_batches     vendor_payout_batches[]
   vendor_service_requests   vendor_service_requests[]
   vendors                   vendors[]
+  b2b_super_quotes          b2b_super_quotes[]
+  b2b_invoices              b2b_invoices[]
 
   @@index([createdById], map: "admin_users_createdById_fkey")
 }
@@ -913,6 +915,8 @@ model chauffeur_bookings {
   refundAmount                                         Float?
   refundTransactionId                                  String?
   completedAt                                          DateTime?
+  numberOfVehicles                                     Int?
+  numberOfEmployees                                    Int?
   createdAt                                            DateTime                         @default(now())
   updatedAt                                            DateTime                         @updatedAt
   vendors_chauffeur_bookings_acceptedVendorIdTovendors vendors?                         @relation("chauffeur_bookings_acceptedVendorIdTovendors", fields: [acceptedVendorId], references: [id])
@@ -1206,6 +1210,15 @@ model customers {
   createdAt                 DateTime                    @default(now())
   updatedAt                 DateTime                    @updatedAt
   fcmToken                  String?                     @db.Text
+  isB2B                     Boolean                     @default(false)
+  companyName               String?
+  gstin                     String?
+  businessType              String?
+  b2bStatus                 b2b_customer_status?
+  b2bApprovedAt             DateTime?
+  b2bApprovedById           String?
+  b2bRejectionReason        String?                     @db.Text
+  b2b_bookings              b2b_bookings[]
   bike_bookings             bike_bookings[]
   bike_quote_requests       bike_quote_requests[]
   bus_bookings              bus_bookings[]
@@ -3357,6 +3370,8 @@ model vendor_fleets {
   chauffeur_vehicle_categories chauffeur_vehicle_categories? @relation(fields: [vehicleCategoryId], references: [id])
   vehicle_models               vehicle_models?               @relation(fields: [vehicleModelId], references: [id], onDelete: Cascade)
   vendors                      vendors                       @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  b2b_quote_vehicles           b2b_vendor_quote_vehicles[]
+  b2b_trips                    b2b_trips[]
 
   @@index([brandId])
   @@index([isActive])
@@ -3553,8 +3568,10 @@ model vendor_staff {
   lastLoginAt       DateTime?
   staff_attendance  staff_attendance[]
   truck_bookings    truck_bookings[]
-  assigned_bookings vendor_direct_bookings[] @relation("direct_booking_driver")
-  vendors           vendors                  @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  assigned_bookings    vendor_direct_bookings[]    @relation("direct_booking_driver")
+  b2b_quote_vehicles   b2b_vendor_quote_vehicles[]
+  b2b_trips            b2b_trips[]
+  vendors              vendors                     @relation(fields: [vendorId], references: [id], onDelete: Cascade)
 
   @@unique([vendorId, phone])
   @@index([email])
@@ -3675,6 +3692,8 @@ model vendors {
   vendor_service_requests                                         vendor_service_requests[]
   vendor_staff                                                    vendor_staff[]
   vendor_truck_templates                                          vendor_truck_templates[]
+  b2b_vendor_quotes                                               b2b_vendor_quotes[]
+  b2b_trips                                                       b2b_trips[]
   admin_users                                                     admin_users?                     @relation(fields: [approvedById], references: [id])
 
   @@index([approvedById], map: "vendors_approvedById_fkey")
@@ -4859,4 +4878,274 @@ model backr_transactions {
 
   @@index([customerId])
   @@index([bookingId])
+}
+
+// ============================================================
+// B2B MODULE
+// ============================================================
+
+enum b2b_customer_status {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum b2b_booking_status {
+  OPEN_FOR_QUOTES
+  QUOTES_RECEIVED
+  SUPER_QUOTE_SENT
+  CONFIRMED
+  TRIPS_CREATED
+  IN_PROGRESS
+  COMPLETED
+  INVOICED
+  PAID
+  CANCELLED
+}
+
+enum b2b_vendor_quote_status {
+  SUBMITTED
+  REVISION_REQUESTED
+  REVISED
+  CONFIRMED
+  REJECTED
+  WITHDRAWN
+}
+
+enum b2b_super_quote_status {
+  DRAFT
+  SENT
+  ACCEPTED
+  REJECTED
+  EXPIRED
+}
+
+enum b2b_trip_status {
+  PENDING
+  DRIVER_ARRIVED
+  STARTED
+  COMPLETED
+  CANCELLED
+  VENDOR_CANCELLED
+}
+
+enum b2b_invoice_status {
+  GENERATED
+  SENT
+  PAID
+  OVERDUE
+  CANCELLED
+}
+
+model b2b_bookings {
+  id                  String              @id @default(cuid())
+  bookingNumber       String              @unique
+  customerId          String
+  customerName        String
+  customerEmail       String?
+  customerPhone       String
+  companyName         String
+  serviceType         String              // car, bus, bike, truck, equipment, packers, self-drive, luxury
+  vehiclesRequired    Int
+  passengerCount      Int?
+  vehicleCategory     String?             // sedan, suv, hatchback, bus-ac, mini-bus etc.
+  pickupLocation      String
+  dropLocation        String?
+  tripType            String              // ONE_WAY, ROUND_TRIP, HOURLY
+  scheduledDate       DateTime
+  scheduledTime       String
+  returnDate          DateTime?
+  returnTime          String?
+  specialNotes        String?             @db.Text
+  status              b2b_booking_status  @default(OPEN_FOR_QUOTES)
+  totalVehiclesFilled Int                 @default(0)
+  vendorCostTotal     Float?
+  companyMargin       Float?
+  gstAmount           Float?
+  finalAmount         Float?
+  acceptedSuperQuoteId String?
+  cancelledAt         DateTime?
+  cancelledBy         String?
+  cancellationReason  String?             @db.Text
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+
+  customer            customers           @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  vendorQuotes        b2b_vendor_quotes[]
+  superQuotes         b2b_super_quotes[]
+  trips               b2b_trips[]
+  invoices            b2b_invoices[]
+
+  @@index([customerId])
+  @@index([status])
+  @@index([scheduledDate])
+  @@index([createdAt])
+}
+
+model b2b_vendor_quotes {
+  id              String                   @id @default(cuid())
+  quoteNumber     String                   @unique
+  bookingId       String
+  vendorId        String
+  vehicleCount    Int
+  pricePerVehicle Float?
+  totalPrice      Float
+  notes           String?                  @db.Text
+  status          b2b_vendor_quote_status  @default(SUBMITTED)
+  revisionNotes   String?                  @db.Text
+  createdAt       DateTime                 @default(now())
+  updatedAt       DateTime                 @updatedAt
+
+  booking         b2b_bookings             @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  vendor          vendors                  @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  quoteVehicles   b2b_vendor_quote_vehicles[]
+  superQuoteItems b2b_super_quote_items[]
+
+  @@index([bookingId])
+  @@index([vendorId])
+  @@index([status])
+}
+
+model b2b_vendor_quote_vehicles {
+  id              String            @id @default(cuid())
+  quoteId         String
+  vendorFleetId   String
+  driverStaffId   String?
+  vehicleName     String?
+  vehicleNumber   String?
+  driverName      String?
+  driverPhone     String?
+  basePrice       Float?
+  perKmRate       Float?
+  perHourRate     Float?
+  perDayRate      Float?
+  driverAllowance Float?
+  nightCharges    Float?
+  extraKmCharge   Float?
+  extraHourCharge Float?
+  createdAt       DateTime          @default(now())
+
+  quote           b2b_vendor_quotes @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  vehicle         vendor_fleets     @relation(fields: [vendorFleetId], references: [id], onDelete: Cascade)
+  driver          vendor_staff?     @relation(fields: [driverStaffId], references: [id], onDelete: SetNull)
+
+  @@index([quoteId])
+  @@index([vendorFleetId])
+}
+
+model b2b_super_quotes {
+  id              String                  @id @default(cuid())
+  quoteNumber     String                  @unique
+  bookingId       String
+  createdById     String                  // manager/admin who created
+  vendorCostTotal Float
+  companyMargin   Float
+  gstPercent      Float                   @default(18)
+  gstAmount       Float
+  finalAmount     Float
+  notes           String?                 @db.Text
+  status          b2b_super_quote_status  @default(DRAFT)
+  sentAt          DateTime?
+  acceptedAt      DateTime?
+  rejectedAt      DateTime?
+  rejectionReason String?                 @db.Text
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
+
+  booking         b2b_bookings            @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  createdBy       admin_users             @relation(fields: [createdById], references: [id])
+  items           b2b_super_quote_items[]
+
+  @@index([bookingId])
+  @@index([status])
+}
+
+model b2b_super_quote_items {
+  id              String            @id @default(cuid())
+  superQuoteId    String
+  vendorQuoteId   String
+  vehicleCount    Int
+  vendorPrice     Float
+  createdAt       DateTime          @default(now())
+
+  superQuote      b2b_super_quotes  @relation(fields: [superQuoteId], references: [id], onDelete: Cascade)
+  vendorQuote     b2b_vendor_quotes @relation(fields: [vendorQuoteId], references: [id], onDelete: Cascade)
+
+  @@index([superQuoteId])
+  @@index([vendorQuoteId])
+}
+
+model b2b_trips {
+  id              String          @id @default(cuid())
+  tripCode        String          @unique
+  bookingId       String
+  vendorId        String
+  vendorFleetId   String
+  driverStaffId   String?
+  vehicleName     String?
+  vehicleNumber   String?
+  driverName      String?
+  driverPhone     String?
+  pickupLocation  String
+  dropLocation    String?
+  scheduledDate   DateTime
+  scheduledTime   String
+  otp             String?
+  otpGeneratedAt  DateTime?
+  status          b2b_trip_status @default(PENDING)
+  driverArrivedAt DateTime?
+  startedAt       DateTime?
+  completedAt     DateTime?
+  cancelledAt     DateTime?
+  cancelledBy     String?
+  cancellationReason String?     @db.Text
+  passengerNotes  String?        @db.Text
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  booking         b2b_bookings   @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  vendor          vendors        @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  vehicle         vendor_fleets  @relation(fields: [vendorFleetId], references: [id], onDelete: Cascade)
+  driver          vendor_staff?  @relation(fields: [driverStaffId], references: [id], onDelete: SetNull)
+
+  @@index([bookingId])
+  @@index([vendorId])
+  @@index([tripCode])
+  @@index([status])
+  @@index([scheduledDate])
+}
+
+model b2b_invoices {
+  id                String             @id @default(cuid())
+  invoiceNumber     String             @unique
+  bookingId         String
+  companyName       String
+  customerEmail     String?
+  customerPhone     String?
+  totalVehicles     Int
+  tripsCompleted    Int
+  vendorCostTotal   Float
+  companyMargin     Float
+  subtotal          Float
+  gstPercent        Float              @default(18)
+  gstAmount         Float
+  totalAmount       Float
+  dueDate           DateTime
+  paidAt            DateTime?
+  paidAmount        Float?
+  paymentMethod     String?
+  transactionRef    String?
+  pdfUrl            String?            @db.Text
+  status            b2b_invoice_status @default(GENERATED)
+  generatedById     String
+  notes             String?            @db.Text
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+
+  booking           b2b_bookings       @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  generatedBy       admin_users        @relation(fields: [generatedById], references: [id])
+
+  @@index([bookingId])
+  @@index([status])
+  @@index([dueDate])
 }

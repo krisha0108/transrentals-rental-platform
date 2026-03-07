@@ -5,6 +5,7 @@ import { transformPrismaResponse } from '@/lib/utils/api-transform';
 import { calculateRentalDuration } from '@/lib/utils';
 import logger from '@/lib/security/logger';
 import { sendQuoteRequestNotificationToVendors } from '@/lib/utils/vendor-notification-sender';
+import crypto from 'crypto';
 export const dynamic = 'force-dynamic';
 
 // Helper to generate request number
@@ -15,6 +16,16 @@ function generateRequestNumber(): string {
     .toString()
     .padStart(4, '0');
   return `${prefix}-${year}-${random}`;
+}
+
+function generateB2BId(): string {
+  return 'c' + crypto.randomBytes(12).toString('base64url').toLowerCase().slice(0, 24);
+}
+
+function generateB2BBookingNumber(): string {
+  const year = new Date().getFullYear();
+  const random = Math.floor(Math.random() * 100000).toString().padStart(5, '0');
+  return `B2B-${year}-${random}`;
 }
 
 // POST - Customer creates a Self-Drive Quote Request
@@ -61,6 +72,11 @@ export async function POST(request: NextRequest) {
       // Budget hint
       budgetMin,
       budgetMax,
+
+      // B2B fields
+      isB2B,
+      numberOfVehicles,
+      numberOfPersons,
     } = body;
 
     // Validate required fields
@@ -91,6 +107,73 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // ============ B2B FLOW ============
+    // If B2B customer, create a b2b_bookings entry instead of self-drive quote request
+    if (isB2B && customerId) {
+      const customer = await prisma.customers.findUnique({
+        where: { id: customerId },
+        select: { id: true, name: true, email: true, phone: true, companyName: true, isB2B: true, b2bStatus: true },
+      });
+
+      if (!customer || !customer.isB2B || customer.b2bStatus !== 'APPROVED') {
+        return NextResponse.json({ error: 'B2B access not approved' }, { status: 403 });
+      }
+
+      const bookingId = generateB2BId();
+      const bookingNumber = generateB2BBookingNumber();
+
+      // Build vehicle preference JSON for specialNotes
+      const vehiclePreference = {
+        vehicleModelId: vehicleModelId || null,
+        vehicleModelName: vehicleModelName || null,
+        vehicleBrand: vehicleBrand || null,
+        vehicleCategory: vehicleCategoryName || null,
+        transmission: transmission || null,
+        fuelType: fuelType || null,
+        minSeats: minSeats || null,
+        isDeliveryRequested: isDeliveryRequested || false,
+        pickupAddress: pickupAddress || null,
+        customerNotes: customerNotes || null,
+      };
+
+      const booking = await prisma.b2b_bookings.create({
+        data: {
+          id: bookingId,
+          bookingNumber,
+          customerId: customer.id,
+          customerName: customer.name,
+          customerEmail: customer.email,
+          customerPhone: customer.phone,
+          companyName: customer.companyName || customer.name,
+          serviceType: 'self-drive',
+          vehiclesRequired: numberOfVehicles ? parseInt(numberOfVehicles) : 1,
+          passengerCount: numberOfPersons ? parseInt(numberOfPersons) : null,
+          vehicleCategory: vehicleCategoryName || null,
+          pickupLocation: location.name,
+          dropLocation: null,
+          tripType: 'SELF_DRIVE',
+          scheduledDate: new Date(pickupDate),
+          scheduledTime: pickupTime || '10:00',
+          returnDate: dropDate ? new Date(dropDate) : null,
+          returnTime: dropTime || null,
+          specialNotes: JSON.stringify(vehiclePreference),
+          status: 'OPEN_FOR_QUOTES',
+        },
+      });
+
+      return NextResponse.json({
+        success: true,
+        isB2B: true,
+        message: 'B2B self-drive booking created. Vendors will be notified.',
+        booking: {
+          id: booking.id,
+          bookingNumber: booking.bookingNumber,
+          status: booking.status,
+        },
+      });
+    }
+
+    // ============ REGULAR FLOW ============
     // Generate request number
     const requestNumber = generateRequestNumber();
 

@@ -35,7 +35,9 @@ import {
   Bell,
   BarChart,
   HelpCircle,
+  Building2,
 } from 'lucide-react';
+import B2BDashboard from './B2BDashboard';
 
 const currencyFormatter = new Intl.NumberFormat('en-IN', {
   style: 'currency',
@@ -57,6 +59,9 @@ interface Customer {
   phone: string;
   image?: string;
   avatar?: string;
+  isB2B?: boolean;
+  companyName?: string;
+  b2bStatus?: string;
 }
 
 interface Quotation {
@@ -173,6 +178,7 @@ export default function CustomerDashboardPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingBookings, setIsLoadingBookings] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [dashboardView, setDashboardView] = useState<'b2b' | 'personal'>('personal');
   const [currentPage, setCurrentPage] = useState(1);
 
   // Service filter
@@ -239,6 +245,9 @@ export default function CustomerDashboardPage() {
     try {
       const parsed = JSON.parse(customerData);
       setCustomer(parsed);
+      if (parsed.isB2B && parsed.b2bStatus === 'APPROVED') {
+        setDashboardView('b2b');
+      }
       setProfileForm((prev) => ({
         ...prev,
         name: parsed.name || '',
@@ -1115,6 +1124,47 @@ export default function CustomerDashboardPage() {
 
       {/* Main Content with top padding for fixed header */}
       <div className="pt-16 md:pt-20">
+        {/* B2B / Personal Dashboard Toggle */}
+        {customer?.isB2B && customer?.b2bStatus === 'APPROVED' && (
+          <div className="bg-gradient-to-r from-slate-800 to-slate-900 border-b border-white/10">
+            <div className="container mx-auto px-4 max-w-6xl">
+              <div className="flex items-center gap-1 py-2">
+                <button
+                  onClick={() => setDashboardView('b2b')}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2 ${
+                    dashboardView === 'b2b'
+                      ? 'bg-emerald-600 text-white shadow-lg'
+                      : 'text-gray-300 hover:bg-white/10'
+                  }`}
+                >
+                  <Building2 className="w-4 h-4" /> B2B Dashboard
+                </button>
+                <button
+                  onClick={() => setDashboardView('personal')}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2 ${
+                    dashboardView === 'personal'
+                      ? 'bg-purple-600 text-white shadow-lg'
+                      : 'text-gray-300 hover:bg-white/10'
+                  }`}
+                >
+                  <User className="w-4 h-4" /> Personal Dashboard
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* B2B Dashboard View */}
+        {dashboardView === 'b2b' && customer?.isB2B ? (
+          <div className="container mx-auto px-4 max-w-6xl py-6">
+            <B2BDashboard
+              customerId={String(customer.id)}
+              customerName={customer.name}
+              companyName={customer.companyName || null}
+            />
+          </div>
+        ) : (
+        <>
         {/* Stats Section */}
         <div className="bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 pb-8 pt-6">
           <div className="container mx-auto px-4 max-w-6xl">
@@ -1659,6 +1709,8 @@ export default function CustomerDashboardPage() {
             </div>
           </div>
         </div>
+        </>
+        )}
       </div>
 
       {/* Profile Edit Modal */}

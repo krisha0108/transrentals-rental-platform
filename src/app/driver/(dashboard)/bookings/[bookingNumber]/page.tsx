@@ -146,6 +146,7 @@ const SERVICE_ICONS: Record<string, any> = {
   packers: Package,
   equipment: Wrench,
   luxury: Crown,
+  b2b: Car,
 };
 
 export default function DriverBookingDetailPage() {
@@ -236,9 +237,15 @@ export default function DriverBookingDetailPage() {
       const data = await response.json();
 
       if (data.success) {
-        setOtpSent(true);
-        setShowOtpForm(true);
-        setSuccessMessage(data.message);
+        // For B2B, refresh to show OTP card instead of entry form
+        if (booking?.serviceType === 'b2b') {
+          setSuccessMessage(data.message);
+          fetchBooking();
+        } else {
+          setOtpSent(true);
+          setShowOtpForm(true);
+          setSuccessMessage(data.message);
+        }
       } else {
         setError(data.error || 'Failed to send OTP');
       }
@@ -336,11 +343,13 @@ export default function DriverBookingDetailPage() {
   const isPackers = booking.serviceType === 'packers';
   const isEquipment = booking.serviceType === 'equipment';
   const isLuxury = booking.serviceType === 'luxury';
+  const isB2B = booking.serviceType === 'b2b';
   const ServiceIcon = SERVICE_ICONS[booking.serviceType || 'car'] || Car;
   const statusConfig = STATUS_CONFIG[booking.status] || STATUS_CONFIG.DRIVER_ASSIGNED;
 
   // Get service-specific colors
   const getServiceColors = () => {
+    if (isB2B) return { bg: 'bg-teal-200', text: 'text-teal-700' };
     if (isTruck) return { bg: 'bg-indigo-200', text: 'text-indigo-700' };
     if (isBus) return { bg: 'bg-orange-200', text: 'text-orange-700' };
     if (isPackers) return { bg: 'bg-cyan-200', text: 'text-cyan-700' };
@@ -406,6 +415,9 @@ export default function DriverBookingDetailPage() {
               {isEquipment && booking.equipmentCategory && (
                 <p className="text-sm text-gray-600 mt-1">Category: {booking.equipmentCategory}</p>
               )}
+              {isB2B && booking.b2bBookingNumber && (
+                <p className="text-sm text-gray-600 mt-1">B2B Booking: {booking.b2bBookingNumber}</p>
+              )}
             </div>
           </div>
           {['IN_PROGRESS', 'LOADING', 'IN_TRANSIT', 'UNLOADING', 'PACKING', 'UNPACKING', 'DELIVERED', 'IN_USE'].includes(booking.status) && (
@@ -414,19 +426,92 @@ export default function DriverBookingDetailPage() {
         </div>
       </div>
 
-      {/* Action Buttons - Generic Car/Bus/Truck (NOT luxury - luxury has its own flow) */}
-      {(booking.status === 'DRIVER_ASSIGNED' || booking.status === 'VEHICLE_ASSIGNED') && !isLuxury && (
+      {/* B2B Vehicle Image */}
+      {isB2B && booking.vehicleImage && (
+        <div className="bg-white rounded-xl border overflow-hidden">
+          <div className="bg-gradient-to-br from-teal-50 to-cyan-50 p-6 flex items-center justify-center">
+            <img src={booking.vehicleImage} alt={booking.carCategoryName} className="max-h-[120px] object-contain" />
+          </div>
+          <div className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-bold text-gray-900">{booking.carCategoryName}</p>
+                <div className="flex items-center gap-2 mt-1 text-xs text-gray-500">
+                  {booking.vehicleBrand && <span>{booking.vehicleBrand}</span>}
+                  {booking.vehicleColor && <span>{booking.vehicleColor}</span>}
+                  {booking.vehicleSeats && <span>{booking.vehicleSeats} seats</span>}
+                  {booking.vehicleFuel && <span>{booking.vehicleFuel}</span>}
+                </div>
+              </div>
+              {booking.vehicleNumber && (
+                <span className="text-sm font-mono bg-gray-100 px-2.5 py-1 rounded-lg font-semibold">{booking.vehicleNumber}</span>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* B2B - Driver Arrived, waiting for OTP from customer */}
+      {isB2B && booking.b2bStatus === 'DRIVER_ARRIVED' && (
+        <div className="bg-white rounded-xl border p-6">
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+            <p className="text-sm text-blue-700">
+              You have arrived. The customer has received the OTP. Ask them to share it with you to start the trip.
+            </p>
+          </div>
+          <h2 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
+            <Play className="w-5 h-5 text-emerald-600" />
+            Enter OTP from Customer
+          </h2>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Enter 4-digit OTP
+            </label>
+            <div className="relative">
+              <KeyRound className="w-5 h-5 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                value={otp}
+                onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                className="w-full pl-12 pr-4 py-3 text-center text-2xl font-bold tracking-widest border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500"
+                placeholder="- - - -"
+                maxLength={4}
+                inputMode="numeric"
+              />
+            </div>
+          </div>
+          <button
+            onClick={handleStartTrip}
+            disabled={actionLoading || otp.length !== 4}
+            className="w-full mt-4 py-3 bg-emerald-600 text-white rounded-xl font-medium disabled:opacity-50 hover:bg-emerald-700 flex items-center justify-center gap-2"
+          >
+            {actionLoading ? (
+              <Loader2 className="w-5 h-5 animate-spin" />
+            ) : (
+              <>
+                <Play className="w-5 h-5" />
+                Verify OTP & Start Trip
+              </>
+            )}
+          </button>
+        </div>
+      )}
+
+      {/* Action Buttons - Generic Car/Bus/Truck (NOT luxury or B2B arrived - they have own flows) */}
+      {(booking.status === 'DRIVER_ASSIGNED' || booking.status === 'VEHICLE_ASSIGNED') && !isLuxury && !(isB2B && booking.b2bStatus === 'DRIVER_ARRIVED') && (
         <div className="bg-white rounded-xl border p-6">
           <h2 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
             {isTruck ? <Package className="w-5 h-5 text-indigo-600" /> : <Play className="w-5 h-5 text-emerald-600" />}
-            {isTruck ? 'Start Loading' : 'Start Trip'}
+            {isB2B ? 'Mark Arrival' : isTruck ? 'Start Loading' : 'Start Trip'}
           </h2>
 
           {/* Step 1: Send OTP to Customer */}
           {!otpSent && !showOtpForm && (
             <div>
               <p className="text-sm text-gray-600 mb-4">
-                {isTruck
+                {isB2B
+                  ? 'When you arrive at the pickup location, tap below to mark your arrival. An OTP will be generated for the passenger to verify.'
+                  : isTruck
                   ? 'When you arrive at the pickup location and are ready to start loading, send an OTP to the customer for verification.'
                   : 'When you\'re ready to start the trip, send an OTP to the customer. The customer will receive the OTP on their phone and will share it with you.'
                 }
@@ -446,7 +531,7 @@ export default function DriverBookingDetailPage() {
                 ) : (
                   <>
                     <Send className="w-5 h-5" />
-                    {isTruck ? 'Send Loading OTP' : 'Send OTP to Customer'}
+                    {isB2B ? "I've Arrived - Generate OTP" : isTruck ? 'Send Loading OTP' : 'Send OTP to Customer'}
                   </>
                 )}
               </button>
