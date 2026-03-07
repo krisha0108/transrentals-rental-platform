@@ -18,7 +18,7 @@ export async function GET(
       where: { id },
       include: {
         locations: { select: { id: true, name: true, slug: true } },
-        customers: { select: { id: true, name: true, email: true, phone: true } },
+        customers: { select: { id: true, name: true, email: true, phone: true, isB2B: true } },
         vendors_bike_bookings_acceptedVendorIdTovendors: {
           select: {
             id: true,
@@ -62,7 +62,7 @@ export async function GET(
         where: { bookingNumber: id },
         include: {
           locations: { select: { id: true, name: true, slug: true } },
-          customers: { select: { id: true, name: true, email: true, phone: true } },
+          customers: { select: { id: true, name: true, email: true, phone: true, isB2B: true } },
           vendors_bike_bookings_acceptedVendorIdTovendors: {
             select: {
               id: true,
@@ -180,6 +180,7 @@ export async function GET(
         pickedUpAt: booking.pickedUpAt,
         returnedAt: booking.returnedAt,
         cancellationReason: booking.cancellationReason,
+        isB2B: booking.customers?.isB2B || false,
         createdAt: booking.createdAt,
         updatedAt: booking.updatedAt,
       },

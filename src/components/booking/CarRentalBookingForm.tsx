@@ -39,6 +39,7 @@ export function CarRentalBookingForm() {
   const { customer, isAuthenticated } = useCustomerAuth();
   const { services } = useServices();
   const [currentStep, setCurrentStep] = useState(1);
+  const [isB2B, setIsB2B] = useState(false);
   const [formData, setFormData] = useState({
     tripType: '',
     airportType: '',
@@ -52,13 +53,15 @@ export function CarRentalBookingForm() {
     returnDate: '',
     returnTime: '',
     passengers: '',
+    numberOfVehicles: '',
+    numberOfEmployees: '',
     name: '',
     email: '',
     phone: '',
     additionalDetails: '',
   });
 
-  // Pre-fill user data if logged in
+  // Pre-fill user data if logged in & check B2B status
   useEffect(() => {
     if (isAuthenticated && customer) {
       setFormData(prev => ({
@@ -67,6 +70,21 @@ export function CarRentalBookingForm() {
         email: customer.email || '',
         phone: customer.phone || '',
       }));
+      // Check if customer is B2B approved
+      const custId = customer.id;
+      const custEmail = customer.email;
+      const params = new URLSearchParams();
+      if (custId) params.set('customer_id', String(custId));
+      if (custEmail) params.set('email', custEmail);
+      if (params.toString()) {
+        fetch(`/api/customer/b2b-status?${params.toString()}`)
+          .then(res => res.json())
+          .then(data => {
+            console.log('[B2B Check]', data);
+            if (data.isB2B) setIsB2B(true);
+          })
+          .catch(err => console.error('[B2B Check Error]', err));
+      }
     }
   }, [isAuthenticated, customer]);
 
@@ -193,6 +211,12 @@ export function CarRentalBookingForm() {
       airport_option: formData.airportType,
       total_passangers: parseInt(formData.passengers) || 1,
       other_info: formData.additionalDetails,
+      // B2B fields
+      ...(isB2B && {
+        number_of_vehicles: parseInt(formData.numberOfVehicles) || 1,
+        number_of_employees: parseInt(formData.numberOfEmployees) || 0,
+        is_b2b: true,
+      }),
     };
 
     await submitBooking(customerInfo, bookingData);
@@ -398,6 +422,28 @@ export function CarRentalBookingForm() {
                   placeholder="Number of passengers" min="1" className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-primary focus:outline-none" required />
               </div>
             </div>
+
+            {/* B2B Fields - Only visible for B2B customers */}
+            {isB2B && (
+              <div className="bg-teal-50 border border-teal-200 rounded-xl p-4 space-y-4">
+                <p className="text-sm font-semibold text-teal-800 flex items-center gap-2">
+                  <Users className="w-4 h-4" /> B2B Corporate Booking
+                </p>
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Number of Vehicles *</label>
+                    <input type="number" value={formData.numberOfVehicles} onChange={(e) => updateFormData('numberOfVehicles', e.target.value)}
+                      placeholder="e.g. 10" min="1" max="500" className="w-full text-gray-900 px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-teal-500 focus:outline-none" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Number of Employees</label>
+                    <input type="number" value={formData.numberOfEmployees} onChange={(e) => updateFormData('numberOfEmployees', e.target.value)}
+                      placeholder="e.g. 50" min="1" className="w-full text-gray-900 px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-teal-500 focus:outline-none" />
+                  </div>
+                </div>
+                <p className="text-xs text-teal-600">No payment required. Post-trip corporate billing.</p>
+              </div>
+            )}
           </motion.div>
         )}
 

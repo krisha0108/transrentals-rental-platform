@@ -89,6 +89,12 @@ export function SelfDriveQuoteRequestModal({
   const [existingCustomer, setExistingCustomer] = useState<any>(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
+  // B2B state
+  const [isB2BCustomer, setIsB2BCustomer] = useState(false);
+  const [bookingPurpose, setBookingPurpose] = useState<'personal' | 'company' | null>(null);
+  const [numberOfVehicles, setNumberOfVehicles] = useState('');
+  const [numberOfPersons, setNumberOfPersons] = useState('');
+
   // Check if user is already logged in on mount
   React.useEffect(() => {
     if (isOpen) {
@@ -103,6 +109,17 @@ export function SelfDriveQuoteRequestModal({
             setCustomerName(parsedCustomer.name || '');
             setCustomerEmail(parsedCustomer.email || '');
             setCustomerPhone(parsedCustomer.phone || '');
+
+            // Check B2B status
+            const params = new URLSearchParams();
+            if (parsedCustomer.id) params.set('customer_id', String(parsedCustomer.id));
+            if (parsedCustomer.email) params.set('email', parsedCustomer.email);
+            if (params.toString()) {
+              fetch(`/api/customer/b2b-status?${params.toString()}`)
+                .then(res => res.json())
+                .then(data => { if (data.isB2B) setIsB2BCustomer(true); })
+                .catch(() => {});
+            }
           } catch (e) {
             console.error('Failed to parse stored customer:', e);
             setIsLoggedIn(false);
@@ -134,6 +151,10 @@ export function SelfDriveQuoteRequestModal({
       setPassword('');
       setAuthMode('check');
       setShowPassword(false);
+      setIsB2BCustomer(false);
+      setBookingPurpose(null);
+      setNumberOfVehicles('');
+      setNumberOfPersons('');
     }
   }, [isOpen]);
 
@@ -174,6 +195,13 @@ export function SelfDriveQuoteRequestModal({
         // Requirements
         isDeliveryRequested,
         customerNotes: customerNotes.trim() || null,
+
+        // B2B fields
+        ...(bookingPurpose === 'company' && {
+          isB2B: true,
+          numberOfVehicles: numberOfVehicles ? parseInt(numberOfVehicles) : undefined,
+          numberOfPersons: numberOfPersons ? parseInt(numberOfPersons) : undefined,
+        }),
       };
 
       console.log('Sending self-drive quote request:', requestData);
@@ -189,6 +217,13 @@ export function SelfDriveQuoteRequestModal({
       console.log('Self-drive quote request response:', data);
 
       if (data.success) {
+        // B2B booking - redirect to B2B booking page
+        if (data.isB2B && data.booking) {
+          setRequestNumber(data.booking.bookingNumber || '');
+          setRequestId(data.booking.id || '');
+          setSubmitted(true);
+          return;
+        }
         setRequestNumber(data.quoteRequest?.requestNumber || data.request?.requestNumber || '');
         setRequestId(data.quoteRequest?.id || data.request?.id || '');
         setSubmitted(true);
@@ -273,6 +308,13 @@ export function SelfDriveQuoteRequestModal({
         setCustomerPhone(data.customers.phone);
         setIsLoggedIn(true);
 
+        // Check B2B status after login
+        try {
+          const b2bRes = await fetch(`/api/customer/b2b-status?customer_id=${data.customers.id}`);
+          const b2bData = await b2bRes.json();
+          if (b2bData.isB2B) setIsB2BCustomer(true);
+        } catch {}
+
         await submitQuoteRequest(data.customers.id);
       } else {
         setError(data.message || 'Invalid password. Please try again.');
@@ -343,7 +385,11 @@ export function SelfDriveQuoteRequestModal({
 
   const handleViewQuotes = () => {
     onClose();
-    router.push(`/customer/self-drive-quotes/${requestId}`);
+    if (bookingPurpose === 'company') {
+      router.push(`/customer/b2b-bookings/${requestId}`);
+    } else {
+      router.push(`/customer/self-drive-quotes/${requestId}`);
+    }
   };
 
   if (!isOpen || !carDetails) return null;
@@ -378,21 +424,35 @@ export function SelfDriveQuoteRequestModal({
             <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <CheckCircle className="w-8 h-8 text-green-600" />
             </div>
-            <h3 className="text-xl font-bold text-gray-900 mb-2">Quote Request Sent!</h3>
+            <h3 className="text-xl font-bold text-gray-900 mb-2">
+              {bookingPurpose === 'company' ? 'B2B Booking Created!' : 'Quote Request Sent!'}
+            </h3>
             <p className="text-gray-600 mb-2">
-              Your request number is <span className="font-mono font-bold text-blue-600">#{requestNumber}</span>
+              Your {bookingPurpose === 'company' ? 'booking' : 'request'} number is <span className="font-mono font-bold text-blue-600">#{requestNumber}</span>
             </p>
             <p className="text-sm text-gray-500 mb-6">
-              Vendors will review your request and send quotes within 24-48 hours.
-              You'll receive notifications when quotes are available.
+              {bookingPurpose === 'company'
+                ? 'Vendors will assign vehicles and send quotes. You will be notified when your quote is ready for approval.'
+                : 'Vendors will review your request and send quotes within 24-48 hours. You\'ll receive notifications when quotes are available.'}
             </p>
 
-            <div className="bg-blue-50 rounded-xl p-4 mb-6 text-left">
-              <h4 className="font-semibold text-blue-800 mb-2">What's next?</h4>
-              <ul className="text-sm text-blue-700 space-y-1">
-                <li>1. Vendors will send their quotes with pricing</li>
-                <li>2. Compare quotes and select the best one</li>
-                <li>3. Pay advance to confirm your booking</li>
+            <div className={`${bookingPurpose === 'company' ? 'bg-teal-50' : 'bg-blue-50'} rounded-xl p-4 mb-6 text-left`}>
+              <h4 className={`font-semibold ${bookingPurpose === 'company' ? 'text-teal-800' : 'text-blue-800'} mb-2`}>What's next?</h4>
+              <ul className={`text-sm ${bookingPurpose === 'company' ? 'text-teal-700' : 'text-blue-700'} space-y-1`}>
+                {bookingPurpose === 'company' ? (
+                  <>
+                    <li>1. Vendors will assign vehicles with pricing</li>
+                    <li>2. Our team will prepare a consolidated quote</li>
+                    <li>3. Review and accept the quote to confirm</li>
+                    <li>4. No advance payment — corporate post-paid billing</li>
+                  </>
+                ) : (
+                  <>
+                    <li>1. Vendors will send their quotes with pricing</li>
+                    <li>2. Compare quotes and select the best one</li>
+                    <li>3. Pay advance to confirm your booking</li>
+                  </>
+                )}
               </ul>
             </div>
 
@@ -406,9 +466,9 @@ export function SelfDriveQuoteRequestModal({
               </Button>
               <Button
                 onClick={handleViewQuotes}
-                className="flex-1 bg-blue-600 hover:bg-blue-700"
+                className={`flex-1 ${bookingPurpose === 'company' ? 'bg-teal-600 hover:bg-teal-700' : 'bg-blue-600 hover:bg-blue-700'}`}
               >
-                View My Requests
+                {bookingPurpose === 'company' ? 'View B2B Booking' : 'View My Requests'}
                 <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
             </div>
@@ -517,6 +577,66 @@ export function SelfDriveQuoteRequestModal({
                   </div>
                 </div>
 
+                {/* Booking Purpose Toggle - Personal or Company */}
+                {isB2BCustomer && (
+                  <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 space-y-3 mb-4">
+                    <p className="text-sm font-semibold text-gray-800">This booking is for:</p>
+                    <div className="grid grid-cols-2 gap-3">
+                      <button type="button"
+                        onClick={() => setBookingPurpose('personal')}
+                        className={`flex items-center justify-center gap-2 px-4 py-3 rounded-lg border-2 text-sm font-medium transition-all ${
+                          bookingPurpose === 'personal'
+                            ? 'border-blue-500 bg-blue-50 text-blue-700'
+                            : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
+                        }`}
+                      >
+                        <User className="w-4 h-4" /> Personal
+                      </button>
+                      <button type="button"
+                        onClick={() => setBookingPurpose('company')}
+                        className={`flex items-center justify-center gap-2 px-4 py-3 rounded-lg border-2 text-sm font-medium transition-all ${
+                          bookingPurpose === 'company'
+                            ? 'border-teal-500 bg-teal-50 text-teal-700'
+                            : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
+                        }`}
+                      >
+                        <Users className="w-4 h-4" /> Company
+                      </button>
+                    </div>
+
+                    {bookingPurpose === 'company' && (
+                      <div className="bg-teal-50 border border-teal-200 rounded-lg p-3 space-y-3 mt-2">
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="block text-xs font-medium text-gray-700 mb-1">Number of Vehicles *</label>
+                            <input
+                              type="number"
+                              value={numberOfVehicles}
+                              onChange={(e) => setNumberOfVehicles(e.target.value)}
+                              placeholder="e.g. 10"
+                              min="1"
+                              max="500"
+                              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 focus:border-teal-500 focus:outline-none"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium text-gray-700 mb-1">Number of Persons</label>
+                            <input
+                              type="number"
+                              value={numberOfPersons}
+                              onChange={(e) => setNumberOfPersons(e.target.value)}
+                              placeholder="e.g. 50"
+                              min="1"
+                              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 focus:border-teal-500 focus:outline-none"
+                            />
+                          </div>
+                        </div>
+                        <p className="text-xs text-teal-600">No advance payment required. Post-trip corporate billing.</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {/* Requirements */}
                 <div className="space-y-3 mb-6">
                   <h4 className="font-semibold text-gray-900">Requirements</h4>
@@ -571,7 +691,7 @@ export function SelfDriveQuoteRequestModal({
                 <Button
                   type="submit"
                   disabled={isSubmitting}
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 font-semibold"
+                  className={`w-full py-3 font-semibold ${bookingPurpose === 'company' ? 'bg-teal-600 hover:bg-teal-700' : 'bg-blue-600 hover:bg-blue-700'} text-white`}
                 >
                   {isSubmitting ? (
                     <>
@@ -581,13 +701,15 @@ export function SelfDriveQuoteRequestModal({
                   ) : (
                     <>
                       <Send className="w-5 h-5 mr-2" />
-                      Request Quotes
+                      {bookingPurpose === 'company' ? 'Submit B2B Booking Request' : 'Request Quotes'}
                     </>
                   )}
                 </Button>
 
                 <p className="text-xs text-gray-500 text-center mt-3">
-                  By submitting, you agree to receive quotes from multiple vendors
+                  {bookingPurpose === 'company'
+                    ? 'B2B booking — no advance payment, corporate post-paid billing'
+                    : 'By submitting, you agree to receive quotes from multiple vendors'}
                 </p>
               </form>
             ) : (
@@ -643,6 +765,66 @@ export function SelfDriveQuoteRequestModal({
                         className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       />
                     </div>
+
+                    {/* Booking Purpose Toggle - Guest */}
+                    {isB2BCustomer && (
+                      <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 space-y-3">
+                        <p className="text-sm font-semibold text-gray-800">This booking is for:</p>
+                        <div className="grid grid-cols-2 gap-3">
+                          <button type="button"
+                            onClick={() => setBookingPurpose('personal')}
+                            className={`flex items-center justify-center gap-2 px-4 py-3 rounded-lg border-2 text-sm font-medium transition-all ${
+                              bookingPurpose === 'personal'
+                                ? 'border-blue-500 bg-blue-50 text-blue-700'
+                                : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
+                            }`}
+                          >
+                            <User className="w-4 h-4" /> Personal
+                          </button>
+                          <button type="button"
+                            onClick={() => setBookingPurpose('company')}
+                            className={`flex items-center justify-center gap-2 px-4 py-3 rounded-lg border-2 text-sm font-medium transition-all ${
+                              bookingPurpose === 'company'
+                                ? 'border-teal-500 bg-teal-50 text-teal-700'
+                                : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
+                            }`}
+                          >
+                            <Users className="w-4 h-4" /> Company
+                          </button>
+                        </div>
+
+                        {bookingPurpose === 'company' && (
+                          <div className="bg-teal-50 border border-teal-200 rounded-lg p-3 space-y-3 mt-2">
+                            <div className="grid grid-cols-2 gap-3">
+                              <div>
+                                <label className="block text-xs font-medium text-gray-700 mb-1">Number of Vehicles *</label>
+                                <input
+                                  type="number"
+                                  value={numberOfVehicles}
+                                  onChange={(e) => setNumberOfVehicles(e.target.value)}
+                                  placeholder="e.g. 10"
+                                  min="1"
+                                  max="500"
+                                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 focus:border-teal-500 focus:outline-none"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-xs font-medium text-gray-700 mb-1">Number of Persons</label>
+                                <input
+                                  type="number"
+                                  value={numberOfPersons}
+                                  onChange={(e) => setNumberOfPersons(e.target.value)}
+                                  placeholder="e.g. 50"
+                                  min="1"
+                                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 focus:border-teal-500 focus:outline-none"
+                                />
+                              </div>
+                            </div>
+                            <p className="text-xs text-teal-600">No advance payment required. Post-trip corporate billing.</p>
+                          </div>
+                        )}
+                      </div>
+                    )}
 
                     {/* Requirements */}
                     <div className="space-y-3 pt-2">

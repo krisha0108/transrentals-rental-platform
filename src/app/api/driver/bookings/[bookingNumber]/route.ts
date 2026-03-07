@@ -82,6 +82,95 @@ export async function GET(
       if (booking) serviceType = 'luxury';
     }
 
+    // Try B2B Trip (uses tripCode as bookingNumber)
+    if (!booking) {
+      const b2bTrip = await prisma.b2b_trips.findUnique({
+        where: { tripCode: bookingNumber },
+        include: {
+          booking: {
+            select: {
+              bookingNumber: true, companyName: true, serviceType: true,
+              tripType: true, customerName: true, customerPhone: true,
+              customerEmail: true, vehicleCategory: true,
+            }
+          },
+          vehicle: {
+            select: {
+              id: true, vehicleName: true, registrationNumber: true,
+              seatingCapacity: true, fuelType: true, transmission: true,
+              color: true, yearOfManufacture: true, images: true,
+              brands: { select: { name: true } },
+              vehicle_models: { select: { name: true, sideImage: true, brands: { select: { name: true } } } },
+              chauffeur_vehicle_categories: { select: { name: true, image: true } },
+            }
+          },
+          driver: {
+            select: { id: true, name: true, phone: true, profilePhoto: true },
+          },
+        },
+      });
+
+      if (b2bTrip) {
+        // Verify trip belongs to this driver
+        const isDriverMatch = b2bTrip.driverStaffId === driver.id ||
+          b2bTrip.driverPhone === driver.phone;
+        if (!isDriverMatch || b2bTrip.vendorId !== driver.vendorId) {
+          return NextResponse.json(
+            { success: false, error: 'This trip is not assigned to you' },
+            { status: 403 }
+          );
+        }
+
+        const v = b2bTrip.vehicle;
+        const vehicleImage = v?.vehicle_models?.sideImage || v?.chauffeur_vehicle_categories?.image || (v?.images && v.images.length > 0 ? v.images[0] : null);
+        const brandName = v?.vehicle_models?.brands?.name || v?.brands?.name || '';
+        const modelName = v?.vehicle_models?.name || '';
+
+        return NextResponse.json({
+          success: true,
+          booking: {
+            id: b2bTrip.id,
+            bookingNumber: b2bTrip.tripCode,
+            tripType: b2bTrip.booking?.tripType || 'ONE_WAY',
+            carCategory: b2bTrip.booking?.vehicleCategory || 'car',
+            carCategoryName: v?.vehicleName || `${brandName} ${modelName}`.trim() || b2bTrip.vehicleName || 'Vehicle',
+            customerName: b2bTrip.booking?.companyName || b2bTrip.booking?.customerName || 'Corporate',
+            customerPhone: b2bTrip.booking?.customerPhone || '',
+            customerEmail: b2bTrip.booking?.customerEmail || '',
+            pickupCity: b2bTrip.pickupLocation,
+            dropCity: b2bTrip.dropLocation || '',
+            pickupAddress: b2bTrip.pickupLocation,
+            dropAddress: b2bTrip.dropLocation || '',
+            pickupDate: b2bTrip.scheduledDate,
+            pickupTime: b2bTrip.scheduledTime,
+            grandTotal: 0,
+            status: b2bTrip.status === 'PENDING' ? 'DRIVER_ASSIGNED' :
+                    b2bTrip.status === 'DRIVER_ARRIVED' ? 'DRIVER_ASSIGNED' :
+                    b2bTrip.status === 'STARTED' ? 'IN_PROGRESS' :
+                    b2bTrip.status,
+            b2bStatus: b2bTrip.status,
+            paymentStatus: 'CORPORATE',
+            otpSent: !!b2bTrip.otp,
+            tripStartedAt: b2bTrip.startedAt,
+            tripEndedAt: b2bTrip.completedAt,
+            driverArrivedAt: b2bTrip.driverArrivedAt,
+            vehicleNumber: b2bTrip.vehicleNumber || v?.registrationNumber || '',
+            vehicleModel: v?.vehicleName || b2bTrip.vehicleName || '',
+            vehicleImage,
+            vehicleColor: v?.color,
+            vehicleSeats: v?.seatingCapacity,
+            vehicleFuel: v?.fuelType,
+            vehicleTransmission: v?.transmission,
+            vehicleBrand: brandName,
+            createdAt: b2bTrip.createdAt,
+            serviceType: 'b2b',
+            b2bTripCode: b2bTrip.tripCode,
+            b2bBookingNumber: b2bTrip.booking?.bookingNumber,
+          },
+        });
+      }
+    }
+
     if (!booking) {
       return NextResponse.json(
         { success: false, error: 'Booking not found' },
@@ -419,6 +508,93 @@ export async function PATCH(
         where: { bookingNumber },
       });
       if (booking) serviceType = 'luxury';
+    }
+
+    // Try B2B Trip
+    if (!booking) {
+      const b2bTrip = await prisma.b2b_trips.findUnique({
+        where: { tripCode: bookingNumber },
+      });
+
+      if (b2bTrip) {
+        // Verify driver
+        const isDriverMatch = b2bTrip.driverStaffId === driver.id || b2bTrip.driverPhone === driver.phone;
+        if (!isDriverMatch || b2bTrip.vendorId !== driver.vendorId) {
+          return NextResponse.json({ success: false, error: 'Not assigned to you' }, { status: 403 });
+        }
+
+        // B2B trip actions
+        if (action === 'request_otp') {
+          // For B2B, "request_otp" = driver arrives and OTP is generated
+          if (b2bTrip.status !== 'PENDING') {
+            return NextResponse.json({ success: false, error: `Cannot mark arrival. Trip is ${b2bTrip.status}` }, { status: 400 });
+          }
+
+          const newOtp = generateOTP();
+          await prisma.b2b_trips.update({
+            where: { tripCode: bookingNumber },
+            data: { status: 'DRIVER_ARRIVED', driverArrivedAt: new Date(), otp: newOtp, otpGeneratedAt: new Date() },
+          });
+
+          return NextResponse.json({
+            success: true,
+            message: 'You have arrived! The customer has received the OTP. Ask them to share it with you to start the trip.',
+          });
+        }
+
+        if (action === 'start_trip') {
+          // B2B trip start is done by passenger entering OTP on trip page
+          // But driver can also verify OTP
+          if (b2bTrip.status !== 'DRIVER_ARRIVED') {
+            return NextResponse.json({ success: false, error: `Cannot start trip. Status is ${b2bTrip.status}` }, { status: 400 });
+          }
+
+          if (otp !== b2bTrip.otp) {
+            return NextResponse.json({ success: false, error: 'Invalid OTP' }, { status: 400 });
+          }
+
+          await prisma.b2b_trips.update({
+            where: { tripCode: bookingNumber },
+            data: { status: 'STARTED', startedAt: new Date() },
+          });
+
+          // Update booking status
+          await prisma.b2b_bookings.update({
+            where: { id: b2bTrip.bookingId },
+            data: { status: 'IN_PROGRESS' },
+          });
+
+          return NextResponse.json({ success: true, message: 'Trip started successfully!' });
+        }
+
+        if (action === 'complete_trip') {
+          if (b2bTrip.status !== 'STARTED') {
+            return NextResponse.json({ success: false, error: `Cannot complete. Trip is ${b2bTrip.status}` }, { status: 400 });
+          }
+
+          await prisma.b2b_trips.update({
+            where: { tripCode: bookingNumber },
+            data: { status: 'COMPLETED', completedAt: new Date() },
+          });
+
+          // Check if all trips for this booking are completed
+          const bookingTrips = await prisma.b2b_trips.findMany({
+            where: { bookingId: b2bTrip.bookingId },
+            select: { status: true },
+          });
+          const allDone = bookingTrips.every(t => ['COMPLETED', 'CANCELLED', 'VENDOR_CANCELLED'].includes(t.status));
+          if (allDone) {
+            await prisma.b2b_bookings.update({
+              where: { id: b2bTrip.bookingId },
+              data: { status: 'COMPLETED' },
+            });
+          }
+
+          return NextResponse.json({ success: true, message: 'Trip completed successfully!' });
+        }
+
+        return NextResponse.json({ success: false, error: 'Invalid action' }, { status: 400 });
+      }
     }
 
     if (!booking) {

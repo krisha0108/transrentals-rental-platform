@@ -103,12 +103,14 @@ export async function GET(request: NextRequest) {
     let packersBookings: any[] = [];
     let equipmentBookings: any[] = [];
     let luxuryBookings: any[] = [];
+    let b2bBookings: any[] = [];
     let carStats = { total: 0, active: 0, completed: 0, totalEarnings: 0 };
     let busStats = { total: 0, active: 0, completed: 0, totalEarnings: 0 };
     let truckStats = { total: 0, active: 0, completed: 0, totalEarnings: 0 };
     let packersStats = { total: 0, active: 0, completed: 0, totalEarnings: 0 };
     let equipmentStats = { total: 0, active: 0, completed: 0, totalEarnings: 0 };
     let luxuryStats = { total: 0, active: 0, completed: 0, totalEarnings: 0 };
+    let b2bStats = { total: 0, active: 0, completed: 0, totalEarnings: 0 };
 
     // Fetch car bookings if needed
     if (serviceType === 'car' || serviceType === 'all') {
@@ -540,6 +542,90 @@ export async function GET(request: NextRequest) {
       };
     }
 
+    // Fetch B2B trips if needed
+    if (serviceType === 'b2b' || serviceType === 'all') {
+      const driverPhoneNormalized = normalizePhone(driver.phone);
+
+      const b2bWhereConditions: any = {
+        vendorId: driver.vendorId,
+        OR: [
+          { driverStaffId: driver.id },
+          { driverPhone: driver.phone },
+        ],
+      };
+
+      if (filter === 'active') {
+        b2bWhereConditions.status = { in: ['PENDING', 'DRIVER_ARRIVED'] };
+      } else if (filter === 'completed') {
+        b2bWhereConditions.status = 'COMPLETED';
+      }
+      if (status && status !== 'all') {
+        b2bWhereConditions.status = status;
+      }
+
+      b2bBookings = await prisma.b2b_trips.findMany({
+        where: b2bWhereConditions,
+        orderBy: [{ scheduledDate: 'asc' }, { scheduledTime: 'asc' }],
+        include: {
+          booking: {
+            select: {
+              bookingNumber: true, companyName: true, serviceType: true,
+              tripType: true, customerName: true, customerPhone: true,
+            }
+          }
+        },
+      });
+
+      // Transform B2B trips to match common booking structure
+      b2bBookings = b2bBookings.map(t => ({
+        ...t,
+        id: t.id,
+        bookingNumber: t.tripCode,
+        serviceType: 'b2b',
+        carCategoryName: `B2B ${t.booking?.serviceType || 'Car'} Rental`.replace(/^\w/, (c: string) => c.toUpperCase()),
+        tripType: t.booking?.tripType || 'ONE_WAY',
+        customerName: t.booking?.companyName || t.booking?.customerName || 'Corporate',
+        customerPhone: t.booking?.customerPhone || '',
+        pickupCity: t.pickupLocation,
+        pickupAddress: t.pickupLocation,
+        dropCity: t.dropLocation || '',
+        pickupDate: t.scheduledDate,
+        pickupTime: t.scheduledTime,
+        grandTotal: 0,
+        driverBatta: 0,
+        otpSent: !!t.otp,
+        tripStartOtp: undefined,
+        tripStartedAt: t.startedAt,
+        tripEndedAt: t.completedAt,
+        status: t.status === 'PENDING' ? 'DRIVER_ASSIGNED' :
+                t.status === 'DRIVER_ARRIVED' ? 'DRIVER_ASSIGNED' :
+                t.status === 'STARTED' ? 'IN_PROGRESS' :
+                t.status,
+        b2bStatus: t.status, // keep original B2B status
+        b2bTripCode: t.tripCode,
+        b2bBookingNumber: t.booking?.bookingNumber,
+      }));
+
+      // B2B stats
+      const allB2bTrips = await prisma.b2b_trips.findMany({
+        where: {
+          vendorId: driver.vendorId,
+          OR: [
+            { driverStaffId: driver.id },
+            { driverPhone: driver.phone },
+          ],
+        },
+        select: { status: true },
+      });
+
+      b2bStats = {
+        total: allB2bTrips.length,
+        active: allB2bTrips.filter(t => ['PENDING', 'DRIVER_ARRIVED', 'STARTED'].includes(t.status)).length,
+        completed: allB2bTrips.filter(t => t.status === 'COMPLETED').length,
+        totalEarnings: 0,
+      };
+    }
+
     // Combine bookings based on service type
     let bookings: any[] = [];
     if (serviceType === 'car') {
@@ -554,9 +640,11 @@ export async function GET(request: NextRequest) {
       bookings = equipmentBookings;
     } else if (serviceType === 'luxury') {
       bookings = luxuryBookings;
+    } else if (serviceType === 'b2b') {
+      bookings = b2bBookings;
     } else {
       // Combine and sort by pickup date
-      bookings = [...carBookings, ...busBookings, ...truckBookings, ...packersBookings, ...equipmentBookings, ...luxuryBookings].sort((a, b) => {
+      bookings = [...carBookings, ...busBookings, ...truckBookings, ...packersBookings, ...equipmentBookings, ...luxuryBookings, ...b2bBookings].sort((a, b) => {
         const dateA = new Date(a.pickupDate).getTime();
         const dateB = new Date(b.pickupDate).getTime();
         return dateA - dateB;
@@ -565,16 +653,17 @@ export async function GET(request: NextRequest) {
 
     // Combined stats
     const stats = {
-      total: carStats.total + busStats.total + truckStats.total + packersStats.total + equipmentStats.total + luxuryStats.total,
-      active: carStats.active + busStats.active + truckStats.active + packersStats.active + equipmentStats.active + luxuryStats.active,
-      completed: carStats.completed + busStats.completed + truckStats.completed + packersStats.completed + equipmentStats.completed + luxuryStats.completed,
-      totalEarnings: carStats.totalEarnings + busStats.totalEarnings + truckStats.totalEarnings + packersStats.totalEarnings + equipmentStats.totalEarnings + luxuryStats.totalEarnings,
+      total: carStats.total + busStats.total + truckStats.total + packersStats.total + equipmentStats.total + luxuryStats.total + b2bStats.total,
+      active: carStats.active + busStats.active + truckStats.active + packersStats.active + equipmentStats.active + luxuryStats.active + b2bStats.active,
+      completed: carStats.completed + busStats.completed + truckStats.completed + packersStats.completed + equipmentStats.completed + luxuryStats.completed + b2bStats.completed,
+      totalEarnings: carStats.totalEarnings + busStats.totalEarnings + truckStats.totalEarnings + packersStats.totalEarnings + equipmentStats.totalEarnings + luxuryStats.totalEarnings + b2bStats.totalEarnings,
       carCount: carStats.total,
       busCount: busStats.total,
       truckCount: truckStats.total,
       packersCount: packersStats.total,
       equipmentCount: equipmentStats.total,
       luxuryCount: luxuryStats.total,
+      b2bCount: b2bStats.total,
     };
 
     return NextResponse.json({

@@ -874,6 +874,21 @@ export function ChatBookingHero({
     }, 800);
   };
 
+  const askForBookingPurpose = () => {
+    setIsTyping(true);
+    setTimeout(() => {
+      addShiviMessage(
+        'Is this booking for personal use or for your company/organization? 🏢',
+        [
+          { label: '👤 Personal', action: 'booking-purpose', value: 'personal' },
+          { label: '🏢 Company / Corporate', action: 'booking-purpose', value: 'company' },
+        ],
+        0
+      );
+      setCurrentStep('booking-purpose');
+    }, 800);
+  };
+
   const showSummary = () => {
     // God-level: Enhanced summary with better formatting
     const firstName = bookingData.name?.split(' ')[0] || 'there';
@@ -1269,6 +1284,100 @@ export function ChatBookingHero({
         ],
         800
       );
+    }
+  };
+
+  const handleB2BBusSubmit = async () => {
+    addShiviMessage(
+      '🏢 Processing your corporate booking request...',
+      undefined,
+      500
+    );
+
+    try {
+      // Check if customer is logged in and B2B approved
+      const customerData = loggedInCustomer;
+      if (!customerData || !customerData.isB2B || customerData.b2bStatus !== 'APPROVED') {
+        // Not a B2B customer - show message and redirect to B2B registration or submit as regular
+        addShiviMessage(
+          '⚠️ Corporate bookings require a B2B account.\n\n' +
+          'Your request has been submitted as a regular booking. To access B2B features:\n\n' +
+          '1. Register/Login as a customer\n' +
+          '2. Apply for B2B access from your dashboard\n' +
+          '3. Once approved, you can create corporate bookings\n\n' +
+          'Meanwhile, we\'ll process this as a standard quote request.',
+          undefined,
+          1000
+        );
+        // Fall back to normal submission
+        setTimeout(() => showSummary(), 1500);
+        return;
+      }
+
+      // Parse dates
+      const scheduledDate = bookingData.pickupDateTime ? new Date(bookingData.pickupDateTime).toISOString().split('T')[0] : '';
+      const scheduledTime = bookingData.pickupDateTime ? new Date(bookingData.pickupDateTime).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: false }) : '';
+      const returnDate = bookingData.returnDateTime ? new Date(bookingData.returnDateTime).toISOString().split('T')[0] : null;
+      const returnTime = bookingData.returnDateTime ? new Date(bookingData.returnDateTime).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: false }) : null;
+
+      // Determine trip type
+      const tripType = bookingData.busTripType === 'local' ? 'HOURLY' :
+        (returnDate ? 'ROUND_TRIP' : 'ONE_WAY');
+
+      const b2bPayload = {
+        customerId: String(customerData.id),
+        serviceType: 'bus',
+        vehiclesRequired: 1,
+        passengerCount: parseInt(bookingData.passengers) || 1,
+        vehicleCategory: bookingData.subService || 'standard',
+        pickupLocation: bookingData.pickupLocation || '',
+        dropLocation: bookingData.destination || '',
+        tripType,
+        scheduledDate,
+        scheduledTime,
+        returnDate,
+        returnTime,
+        specialNotes: bookingData.additionalDetails || '',
+      };
+
+      const response = await fetch('/api/b2b/bookings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(b2bPayload),
+      });
+
+      const result = await response.json();
+
+      if (response.ok && result.status === 'success') {
+        const firstName = bookingData.name?.split(' ')[0] || customerData.name?.split(' ')[0] || 'there';
+        addShiviMessage(
+          `🎉 Corporate Booking Created, ${firstName}!\n\n` +
+          `📋 Booking ID: ${result.booking.bookingNumber}\n` +
+          `🚌 Service: Bus Rental\n` +
+          `👥 Passengers: ${bookingData.passengers}\n` +
+          `📍 ${bookingData.pickupLocation}${bookingData.destination ? ' → ' + bookingData.destination : ''}\n\n` +
+          `Your request is now live! Vendors will send their quotes shortly.\n\n` +
+          `Track your booking on the B2B Dashboard.`,
+          [
+            { label: '📊 Go to B2B Dashboard', action: 'dashboard', value: '/customer/dashboard' },
+            { label: '📋 View Booking', action: 'dashboard', value: `/customer/b2b-bookings/${result.booking.id}` },
+            { label: '🔄 New Booking', action: 'restart', value: '' },
+          ],
+          1000
+        );
+        setCurrentStep('completed');
+      } else {
+        throw new Error(result.error || 'Failed to create B2B booking');
+      }
+    } catch (error: any) {
+      console.error('B2B Bus Submit Error:', error);
+      addShiviMessage(
+        `❌ ${error.message || 'Something went wrong.'}\n\nLet me submit this as a regular quote request instead.`,
+        undefined,
+        800
+      );
+      // Fallback to normal flow
+      setTimeout(() => showSummary(), 1500);
     }
   };
 
@@ -2099,8 +2208,25 @@ export function ChatBookingHero({
     } else if (action === 'skip-additional-details') {
       addUserMessage('Skip');
       setBookingData((prev: any) => ({ ...prev, additionalDetails: '' }));
-      setIsTyping(true);
-      setTimeout(() => showSummary(), 800);
+      // For bus services, ask if personal or company booking
+      const isBusForPurposeSkip = serviceType.includes('bus') || serviceType.includes('tempo');
+      if (isBusForPurposeSkip) {
+        askForBookingPurpose();
+      } else {
+        setIsTyping(true);
+        setTimeout(() => showSummary(), 800);
+      }
+    } else if (action === 'booking-purpose') {
+      if (value === 'company') {
+        addUserMessage('Company / Corporate');
+        setBookingData((prev: any) => ({ ...prev, bookingPurpose: 'company' }));
+        handleB2BBusSubmit();
+      } else {
+        addUserMessage('Personal');
+        setBookingData((prev: any) => ({ ...prev, bookingPurpose: 'personal' }));
+        setIsTyping(true);
+        setTimeout(() => showSummary(), 800);
+      }
     } else if (action === 'submit') {
       handleSubmit();
     } else if (action === 'restart') {
@@ -2436,11 +2562,17 @@ export function ChatBookingHero({
       // Ask for additional details after email
       askForAdditionalDetails();
     } else if (currentStep === 'additional-details') {
-      // Save additional details and show summary
+      // Save additional details
       setBookingData((prev: any) => ({ ...prev, additionalDetails: inputValue }));
       setInputValue('');
-      setIsTyping(true);
-      setTimeout(() => showSummary(), 800);
+      // For bus services, ask if personal or company booking
+      const isBusForPurpose = serviceType.includes('bus') || serviceType.includes('tempo');
+      if (isBusForPurpose) {
+        askForBookingPurpose();
+      } else {
+        setIsTyping(true);
+        setTimeout(() => showSummary(), 800);
+      }
     } else if (currentStep === 'awaiting-login-password') {
       // Handle login password input
       setInputValue('');

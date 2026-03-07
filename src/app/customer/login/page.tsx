@@ -436,6 +436,16 @@ export default function CustomerLoginPage() {
                 Register
               </button>
             </p>
+
+            {/* B2B Registration Link */}
+            <div className="mt-4 p-3 bg-teal-50 border border-teal-200 rounded-lg text-center">
+              <p className="text-sm text-teal-800">
+                Need bulk transport for your company?{' '}
+                <Link href="/customer/b2b-register" className="text-teal-700 hover:text-teal-900 font-semibold underline">
+                  Register as B2B Customer
+                </Link>
+              </p>
+            </div>
           </form>
         );
 
