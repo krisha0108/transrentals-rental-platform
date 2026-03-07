@@ -55,6 +55,7 @@ const EditProfileScreen = () => {
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [profileImage, setProfileImage] = useState(null);
+  const [removeImage, setRemoveImage] = useState(false);
   const [alertVisible, setAlertVisible] = useState(false);
   const [alertType, setAlertType] = useState('success'); // 'success' | 'error'
   const [alertMessage, setAlertMessage] = useState('');
@@ -108,6 +109,11 @@ const EditProfileScreen = () => {
     fetchCustomerData();
   }, []);
 
+  const handleRemoveImage = () => {
+    setProfileImage(null);
+    setRemoveImage(true);
+  };
+
   const handleSaveProfile = async () => {
     const formData = new FormData();
     formData.append('customer_id', customer.id);
@@ -116,7 +122,9 @@ const EditProfileScreen = () => {
     if (email !== customer.email) formData.append('email', email);
     if (phone) formData.append('phone', phone);
 
-    if (profileImage && !profileImage.startsWith('http')) {
+    if (removeImage) {
+      formData.append('remove_image', '1');
+    } else if (profileImage && !profileImage.startsWith('http')) {
       const localUri = profileImage;
       const filename = localUri.split('/').pop();
       formData.append('image', { uri: localUri, type: 'image/jpeg', name: filename });
@@ -147,7 +155,12 @@ const EditProfileScreen = () => {
         setName(updatedCustomer.name);
         setEmail(updatedCustomer.email);
         setPhone(updatedCustomer.phone);
-        setProfileImage(`${IMAGE_BASE_URL}/profile_images/${updatedCustomer.image}`);
+        setRemoveImage(false);
+        setProfileImage(
+          updatedCustomer.image
+            ? `${IMAGE_BASE_URL}/profile_images/${updatedCustomer.image}`
+            : null
+        );
       } else {
         showCustomAlert('error', 'Failed to update profile');
       }
@@ -215,6 +228,12 @@ const EditProfileScreen = () => {
           <TouchableOpacity onPress={handleImagePick}>
             <Text style={styles.changePhotoText}>Change Photo</Text>
           </TouchableOpacity>
+          {profileImage && (
+            <TouchableOpacity onPress={handleRemoveImage} style={styles.removePhotoBtn}>
+              <Icon name="trash-outline" size={12} color="rgba(255,255,255,0.6)" />
+              <Text style={styles.removePhotoText}>Remove Photo</Text>
+            </TouchableOpacity>
+          )}
         </View>
       </LinearGradient>
 
@@ -415,6 +434,17 @@ const styles = StyleSheet.create({
     fontSize: wp('3%'),
     color: 'rgba(255,255,255,0.7)',
     fontWeight: '600',
+  },
+  removePhotoBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 6,
+  },
+  removePhotoText: {
+    fontSize: wp('2.8%'),
+    color: 'rgba(255,255,255,0.5)',
+    fontWeight: '500',
   },
 
   /* Form */

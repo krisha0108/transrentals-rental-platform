@@ -791,131 +791,73 @@ export default function PackersBookingDetailScreen() {
                 {/* Overview Tab */}
                 {detailsTab === 'overview' && (
                   <View>
-                    {/* Service Details */}
-                    {(() => {
-                      const serviceDetails = parseListData(booking.quote.serviceDetails);
-                      return serviceDetails.length > 0 && (
-                        <View style={styles.quoteSection}>
-                          <View style={styles.quoteSectionHeader}>
-                            <View style={[styles.quoteSectionIconCircle, { backgroundColor: TEAL_LIGHT }]}>
-                              <Ionicons name="cube-outline" size={wp('4.5%')} color={TEAL_MID} />
+                    {/* Vendor Info */}
+                    {booking.vendor && (
+                      <View style={styles.quoteSection}>
+                        <View style={styles.quoteSectionHeader}>
+                          <View style={[styles.quoteSectionIconCircle, { backgroundColor: TEAL_LIGHT }]}>
+                            <Ionicons name="business-outline" size={wp('4.5%')} color={TEAL} />
+                          </View>
+                          <Text style={styles.quoteSectionTitle}>Vendor Information</Text>
+                        </View>
+                        <View style={styles.quoteListCard}>
+                          <View style={styles.quoteFeatureItem}>
+                            <Ionicons name="storefront-outline" size={wp('4%')} color={TEAL} />
+                            <Text style={styles.quoteFeatureText}>{booking.vendor.name}</Text>
+                          </View>
+                          {booking.vendor.rating > 0 && (
+                            <View style={styles.quoteFeatureItem}>
+                              <Ionicons name="star-outline" size={wp('4%')} color={TEAL} />
+                              <Text style={styles.quoteFeatureText}>{booking.vendor.rating.toFixed(1)} ★ Rating</Text>
                             </View>
-                            <Text style={styles.quoteSectionTitle}>Service Details</Text>
-                          </View>
-                          <View style={styles.quoteListCard}>
-                            {serviceDetails.map((detail, idx) => (
-                              <View
-                                key={idx}
-                                style={[
-                                  styles.quoteFeatureItem,
-                                  idx === serviceDetails.length - 1 && styles.quoteFeatureItemLast,
-                                ]}
-                              >
-                                <Ionicons name="checkmark-circle" size={wp('4%')} color={TEAL} />
-                                <Text style={styles.quoteFeatureText}>{detail}</Text>
-                              </View>
-                            ))}
-                          </View>
-                        </View>
-                      );
-                    })()}
-
-                    {/* Vehicle Details */}
-                    {(() => {
-                      const vehicleDetails = parseListData(booking.quote.vehicleDetails);
-                      return vehicleDetails.length > 0 && (
-                        <View style={styles.quoteSection}>
-                          <View style={styles.quoteSectionHeader}>
-                            <View style={[styles.quoteSectionIconCircle, { backgroundColor: '#EDE9FE' }]}>
-                              <Ionicons name="car-outline" size={wp('4.5%')} color="#7C3AED" />
+                          )}
+                          {booking.vendor.phone && (
+                            <View style={[styles.quoteFeatureItem, styles.quoteFeatureItemLast]}>
+                              <Ionicons name="call-outline" size={wp('4%')} color={TEAL} />
+                              <Text style={styles.quoteFeatureText}>{booking.vendor.phone}</Text>
                             </View>
-                            <Text style={styles.quoteSectionTitle}>Vehicle Details</Text>
-                          </View>
-                          <View style={styles.quoteListCard}>
-                            {vehicleDetails.map((detail, idx) => (
-                              <View
-                                key={idx}
-                                style={[
-                                  styles.quoteFeatureItem,
-                                  idx === vehicleDetails.length - 1 && styles.quoteFeatureItemLast,
-                                ]}
-                              >
-                                <Ionicons name="checkmark-circle" size={wp('4%')} color={TEAL} />
-                                <Text style={styles.quoteFeatureText}>{detail}</Text>
-                              </View>
-                            ))}
-                          </View>
+                          )}
                         </View>
-                      );
-                    })()}
-
-                    {/* Labor Details */}
-                    {(() => {
-                      const laborDetails = parseListData(booking.quote.laborDetails);
-                      return laborDetails.length > 0 && (
-                        <View style={styles.quoteSection}>
-                          <View style={styles.quoteSectionHeader}>
-                            <View style={[styles.quoteSectionIconCircle, { backgroundColor: '#DBEAFE' }]}>
-                              <Ionicons name="people-outline" size={wp('4.5%')} color="#2563EB" />
-                            </View>
-                            <Text style={styles.quoteSectionTitle}>Labor Details</Text>
-                          </View>
-                          <View style={styles.quoteListCard}>
-                            {laborDetails.map((detail, idx) => (
-                              <View
-                                key={idx}
-                                style={[
-                                  styles.quoteFeatureItem,
-                                  idx === laborDetails.length - 1 && styles.quoteFeatureItemLast,
-                                ]}
-                              >
-                                <Ionicons name="checkmark-circle" size={wp('4%')} color={TEAL} />
-                                <Text style={styles.quoteFeatureText}>{detail}</Text>
-                              </View>
-                            ))}
-                          </View>
-                        </View>
-                      );
-                    })()}
-
-                    {/* Additional Info */}
-                    <View style={styles.quoteSection}>
-                      <View style={styles.quoteSectionHeader}>
-                        <View style={[styles.quoteSectionIconCircle, { backgroundColor: '#FEF3C7' }]}>
-                          <Ionicons name="information-circle-outline" size={wp('4.5%')} color="#D97706" />
-                        </View>
-                        <Text style={styles.quoteSectionTitle}>Additional Information</Text>
                       </View>
-                      <View style={styles.quoteInfoCard}>
-                        {booking.quote.packingMaterials && (
-                          <View style={styles.quoteInfoRow}>
-                            <Ionicons name="cube-outline" size={wp('4.5%')} color={TEXT_SECONDARY} />
-                            <Text style={styles.quoteInfoText}>
-                              Packing Materials: {booking.quote.packingMaterials}
-                            </Text>
-                          </View>
-                        )}
-                        {booking.quote.advancePercent > 0 && (
-                          <View style={styles.quoteInfoRow}>
-                            <Ionicons name="cash-outline" size={wp('4.5%')} color={TEXT_SECONDARY} />
-                            <Text style={styles.quoteInfoText}>
-                              Advance Payment: {booking.quote.advancePercent}%
-                            </Text>
-                          </View>
-                        )}
-                      </View>
+                    )}
 
-                      {/* Vendor Message */}
-                      {booking.quote.vendorMessage && (
-                        <View style={styles.quoteVendorMessage}>
-                          <View style={styles.quoteMessageHeader}>
-                            <Ionicons name="chatbox-outline" size={wp('4%')} color={TEAL} />
-                            <Text style={styles.quoteMessageTitle}>Message from Vendor</Text>
+                    {/* Service Information */}
+                    {(booking.quote.vehicleType || booking.quote.teamSize || booking.quote.estimatedDuration) && (
+                      <View style={styles.quoteSection}>
+                        <View style={styles.quoteSectionHeader}>
+                          <View style={[styles.quoteSectionIconCircle, { backgroundColor: TEAL_LIGHT }]}>
+                            <Ionicons name="cube-outline" size={wp('4.5%')} color={TEAL_MID} />
                           </View>
-                          <Text style={styles.quoteMessageText}>{booking.quote.vendorMessage}</Text>
+                          <Text style={styles.quoteSectionTitle}>Service Information</Text>
                         </View>
-                      )}
-                    </View>
+                        <View style={styles.quoteInfoCard}>
+                          {booking.quote.vehicleType && (
+                            <View style={styles.quoteInfoRow}>
+                              <Ionicons name="car-outline" size={wp('4.5%')} color={TEXT_SECONDARY} />
+                              <Text style={styles.quoteInfoText}>Vehicle Type: {booking.quote.vehicleType}</Text>
+                            </View>
+                          )}
+                          {booking.quote.teamSize > 0 && (
+                            <View style={styles.quoteInfoRow}>
+                              <Ionicons name="people-outline" size={wp('4.5%')} color={TEXT_SECONDARY} />
+                              <Text style={styles.quoteInfoText}>Team Size: {booking.quote.teamSize} members</Text>
+                            </View>
+                          )}
+                          {booking.quote.estimatedDuration && (
+                            <View style={styles.quoteInfoRow}>
+                              <Ionicons name="time-outline" size={wp('4.5%')} color={TEXT_SECONDARY} />
+                              <Text style={styles.quoteInfoText}>Est. Duration: {booking.quote.estimatedDuration}</Text>
+                            </View>
+                          )}
+                          {booking.quote.packingMaterials && (
+                            <View style={styles.quoteInfoRow}>
+                              <Ionicons name="archive-outline" size={wp('4.5%')} color={TEXT_SECONDARY} />
+                              <Text style={styles.quoteInfoText}>Packing Materials: {booking.quote.packingMaterials}</Text>
+                            </View>
+                          )}
+                        </View>
+                      </View>
+                    )}
                   </View>
                 )}
 

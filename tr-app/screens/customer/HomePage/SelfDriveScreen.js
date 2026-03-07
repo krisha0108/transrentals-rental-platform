@@ -566,33 +566,6 @@ export default function SelfDriveScreen() {
           })}
         </View>
 
-        {/* Bottom CTA */}
-        <TouchableOpacity
-          onPress={() => navigation.navigate('MySelfDriveBookings')}
-          activeOpacity={0.85}
-          style={styles.bottomCTAWrap}
-        >
-          <LinearGradient
-            colors={[TEAL_MID, TEAL_DEEP]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={styles.bottomCTA}
-          >
-            <View style={styles.ctaDecoCircle} />
-            <View style={styles.ctaContent}>
-              <View style={styles.ctaIconWrap}>
-                <Ionicons name="car-sport" size={wp('5.5%')} color={TEAL_DEEP} />
-              </View>
-              <View style={styles.ctaTextWrap}>
-                <Text style={styles.ctaTitle}>View My Bookings</Text>
-                <Text style={styles.ctaSubtitle}>Track your self drive requests</Text>
-              </View>
-            </View>
-            <View style={styles.ctaArrowWrap}>
-              <Ionicons name="chevron-forward" size={wp('5%')} color="#FFF" />
-            </View>
-          </LinearGradient>
-        </TouchableOpacity>
 
         <View style={{ height: hp('5%') }} />
       </ScrollView>

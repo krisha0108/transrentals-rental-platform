@@ -10,6 +10,7 @@ export const LOCATION_SERVICES = [
   'himalayan-on-rent', 'splendor-on-rent', 'apache-on-rent', 'innova-on-rent',
   'creta-on-rent', 'fortuner-on-rent', 'scorpio-on-rent', 'seltos-on-rent',
   'swift-on-rent', 'mini-truck-rental', 'equipment-rental', 'trailer-on-rent',
+  'tempo-traveller', 'transporter', 'packers-and-movers',
   'crane-on-rent', 'excavator-on-rent', 'jcb-on-rent', 'hydra-on-rent',
   'generator-on-rent', 'corporate-car-rental', 'corporate-bus-rental',
   'wedding-car-rental', 'wedding-bus-rental', 'sports-car-rental',

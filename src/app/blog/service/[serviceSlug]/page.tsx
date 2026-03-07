@@ -39,7 +39,7 @@ export async function generateMetadata({ params }: ServiceBlogPageProps): Promis
       type: 'website',
     },
     alternates: {
-      canonical: `https://transrentals.com/blog/service/${params.serviceSlug}`,
+      canonical: `https://transrentals.in/blog/service/${params.serviceSlug}`,
     },
   };
 }
@@ -167,13 +167,13 @@ export default async function ServiceBlogPage({ params, searchParams }: ServiceB
             '@type': 'CollectionPage',
             name: `${service.name} Blog | TransRentals`,
             description: `Expert guides and tips for ${service.name}`,
-            url: `https://transrentals.com/blog/service/${params.serviceSlug}`,
+            url: `https://transrentals.in/blog/service/${params.serviceSlug}`,
             breadcrumb: {
               '@type': 'BreadcrumbList',
               itemListElement: [
-                { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://transrentals.com' },
-                { '@type': 'ListItem', position: 2, name: 'Blog', item: 'https://transrentals.com/blog' },
-                { '@type': 'ListItem', position: 3, name: `${service.name} Blog`, item: `https://transrentals.com/blog/service/${params.serviceSlug}` },
+                { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://transrentals.in' },
+                { '@type': 'ListItem', position: 2, name: 'Blog', item: 'https://transrentals.in/blog' },
+                { '@type': 'ListItem', position: 3, name: `${service.name} Blog`, item: `https://transrentals.in/blog/service/${params.serviceSlug}` },
               ],
             },
           }),

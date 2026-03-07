@@ -190,6 +190,21 @@ export default function ServiceFleetPage() {
   const [loadingLocations, setLoadingLocations] = useState(false);
   const [savingLocations, setSavingLocations] = useState(false);
 
+  // Form step state
+  const [formStep, setFormStep] = useState(1);
+
+  // City-wise pricing state
+  const [cityPrices, setCityPrices] = useState<Record<string, {
+    basePricePerDay: string;
+    kmLimit: string;
+    extraKmRate: string;
+    securityDeposit: string;
+  }>>({});
+  const [selectedCitiesForPricing, setSelectedCitiesForPricing] = useState<string[]>([]);
+  const [cityPriceSearch, setCityPriceSearch] = useState('');
+  const [serviceLocationsForPricing, setServiceLocationsForPricing] = useState<{ id: string; name: string; state: string }[]>([]);
+  const [loadingServiceLocations, setLoadingServiceLocations] = useState(false);
+
   // Image picker modal state
   const [showImagePicker, setShowImagePicker] = useState(false);
   const [mediaItems, setMediaItems] = useState<MediaItem[]>([]);
@@ -300,6 +315,29 @@ export default function ServiceFleetPage() {
     }
   }, [slug]);
 
+  // Load service locations for city pricing when modal opens
+  useEffect(() => {
+    if (!showModal || serviceLocationsForPricing.length > 0) return;
+    const fetchServiceLocations = async () => {
+      setLoadingServiceLocations(true);
+      try {
+        const res = await fetch(`/api/admin/services/${slug}/locations`);
+        if (res.ok) {
+          const data = await res.json();
+          const enabled = (data.locations || [])
+            .filter((l: any) => l.isEnabled)
+            .map((l: any) => ({ id: l.id, name: l.name, state: l.state }));
+          setServiceLocationsForPricing(enabled);
+        }
+      } catch (e) {
+        console.error('Failed to load service locations', e);
+      } finally {
+        setLoadingServiceLocations(false);
+      }
+    };
+    fetchServiceLocations();
+  }, [showModal, slug]);
+
   // Form handlers
   const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target;
@@ -351,6 +389,10 @@ export default function ServiceFleetPage() {
       sideImage: '',
       isActive: true,
     });
+    setCityPrices({});
+    setSelectedCitiesForPricing([]);
+    setCityPriceSearch('');
+    setFormStep(1);
     setShowModal(true);
   };
 
@@ -386,6 +428,31 @@ export default function ServiceFleetPage() {
       sideImage: vehicle.imageUrl || '',
       isActive: vehicle.isActive,
     });
+    // Load existing city prices for this vehicle
+    setFormStep(1);
+    setCityPrices({});
+    setSelectedCitiesForPricing([]);
+    setCityPriceSearch('');
+    fetch(`/api/admin/services/${slug}/fleet/${vehicle.id}/locations`)
+      .then(r => r.json())
+      .then(data => {
+        const existing: Record<string, { basePricePerDay: string; kmLimit: string; extraKmRate: string; securityDeposit: string }> = {};
+        const selected: string[] = [];
+        (data.assignedLocations || []).forEach((al: any) => {
+          if (al.basePricePerDay || al.kmLimit || al.extraKmRate || al.securityDeposit) {
+            existing[al.locationId] = {
+              basePricePerDay: al.basePricePerDay ? String(al.basePricePerDay) : '',
+              kmLimit: al.kmLimit ? String(al.kmLimit) : '',
+              extraKmRate: al.extraKmRate ? String(al.extraKmRate) : '',
+              securityDeposit: al.securityDeposit ? String(al.securityDeposit) : '',
+            };
+            selected.push(al.locationId);
+          }
+        });
+        setCityPrices(existing);
+        setSelectedCitiesForPricing(selected);
+      })
+      .catch(() => {});
     setShowModal(true);
   };
 
@@ -514,8 +581,8 @@ export default function ServiceFleetPage() {
     fileInputRef.current?.click();
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (e?: React.FormEvent) => {
+    e?.preventDefault();
     setSaving(true);
 
     try {
@@ -568,8 +635,32 @@ export default function ServiceFleetPage() {
       });
 
       if (res.ok) {
+        const data = await res.json();
+        const vehicleId = editingVehicle ? editingVehicle.id : (data.vehicle?.id || data.id);
+
+        // Save city-wise prices if any are set
+        const cityPriceEntries = Object.entries(cityPrices).filter(([, p]) =>
+          p.basePricePerDay || p.kmLimit || p.extraKmRate || p.securityDeposit
+        );
+        if (vehicleId && cityPriceEntries.length > 0) {
+          await Promise.all(
+            cityPriceEntries.map(([locationId, p]) =>
+              fetch(`/api/admin/services/${slug}/fleet/${vehicleId}/locations`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  locationIds: [locationId],
+                  basePricePerDay: p.basePricePerDay ? Number(p.basePricePerDay) : null,
+                  kmLimit: p.kmLimit ? Number(p.kmLimit) : null,
+                  extraKmRate: p.extraKmRate ? Number(p.extraKmRate) : null,
+                  securityDeposit: p.securityDeposit ? Number(p.securityDeposit) : null,
+                }),
+              })
+            )
+          );
+        }
+
         setShowModal(false);
-        // Refresh fleet list
         window.location.reload();
       } else {
         const error = await res.json();
@@ -1371,7 +1462,33 @@ export default function ServiceFleetPage() {
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Step Indicator */}
+            <div className="flex items-center gap-0 mb-6">
+              {['Basic Info', 'Specifications', 'Pricing', 'City Pricing'].map((label, i) => {
+                const step = i + 1;
+                const isActive = formStep === step;
+                const isDone = formStep > step;
+                return (
+                  <div key={step} className="flex items-center flex-1">
+                    <div className="flex flex-col items-center flex-1">
+                      <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold border-2 transition-all ${
+                        isDone ? 'bg-green-500 border-green-500 text-white' :
+                        isActive ? 'bg-blue-600 border-blue-600 text-white' :
+                        'bg-white border-gray-300 text-gray-400'
+                      }`}>
+                        {isDone ? <Check className="w-3.5 h-3.5" /> : step}
+                      </div>
+                      <span className={`text-xs mt-1 font-medium ${isActive ? 'text-blue-600' : isDone ? 'text-green-600' : 'text-gray-400'}`}>{label}</span>
+                    </div>
+                    {step < 4 && <div className={`h-0.5 flex-1 mx-1 mb-4 ${formStep > step ? 'bg-green-400' : 'bg-gray-200'}`} />}
+                  </div>
+                );
+              })}
+            </div>
+
+            <form onSubmit={e => e.preventDefault()} className="space-y-4">
+              {/* ── STEP 1: Basic Info ── */}
+              {formStep === 1 && <>
               {/* Name */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -1444,7 +1561,10 @@ export default function ServiceFleetPage() {
                   ))}
                 </select>
               </div>
+              </>}
 
+              {/* ── STEP 2: Specifications + Image ── */}
+              {formStep === 2 && <>
               {/* Conditional Fields based on Service Type */}
               {isEquipmentService ? (
                 <>
@@ -1716,10 +1836,13 @@ export default function ServiceFleetPage() {
                   Upload from your computer, select from media gallery, or add an image URL
                 </p>
               </div>
+              </>}
 
-              {/* Pricing Section */}
-              <div className="pt-4 border-t">
-                <h3 className="text-sm font-semibold text-gray-900 mb-3">Pricing</h3>
+              {/* ── STEP 3: Default Pricing ── */}
+              {formStep === 3 && <>
+              <div>
+                <h3 className="text-sm font-semibold text-gray-900 mb-3">Default Pricing</h3>
+                <p className="text-xs text-gray-500 mb-4">This is the default price shown across all cities. You can override per city in the next step.</p>
                 {isEquipmentService ? (
                   <>
                     {/* Equipment pricing - Daily/Weekly/Monthly Rates */}
@@ -1837,14 +1960,199 @@ export default function ServiceFleetPage() {
                       </div>
                     </div>
                     <p className="text-xs text-gray-500 mt-2">
-                      Set default pricing here. You can override prices per location when assigning locations.
+                      Set default pricing here. You can override prices per city in the next step.
                     </p>
                   </>
                 )}
               </div>
+              </>}
 
-              {/* Active Status */}
-              <label className="flex items-center gap-2">
+              {/* ── STEP 4: City-wise Pricing ── */}
+              {formStep === 4 && <>
+              {/* City-wise Pricing */}
+              <div className="border rounded-lg overflow-hidden">
+                <div className="px-4 py-3 bg-gray-50 border-b flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-semibold text-gray-700">City-wise Pricing <span className="text-gray-400 font-normal">(Optional)</span></p>
+                    <p className="text-xs text-gray-500 mt-0.5">Select cities and set a different price for each. Unselected cities will use the default price above.</p>
+                  </div>
+                  {selectedCitiesForPricing.length > 0 && (
+                    <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium flex-shrink-0">
+                      {selectedCitiesForPricing.length} selected
+                    </span>
+                  )}
+                </div>
+                <div className="p-4 space-y-4">
+                  {loadingServiceLocations ? (
+                    <div className="flex items-center gap-2 text-sm text-gray-500 py-2">
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Loading cities...
+                    </div>
+                  ) : serviceLocationsForPricing.length === 0 ? (
+                    <p className="text-sm text-gray-400 py-2">No cities configured for this service yet.</p>
+                  ) : (
+                    <>
+                      {/* Step 1 — Select cities */}
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <p className="text-xs font-medium text-gray-500">Step 1: Select cities</p>
+                          <div className="flex gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setSelectedCitiesForPricing(serviceLocationsForPricing.map(l => l.id))}
+                              className="text-xs text-blue-600 hover:underline"
+                            >
+                              Select All
+                            </button>
+                            {selectedCitiesForPricing.length > 0 && (
+                              <>
+                                <span className="text-xs text-gray-300">|</span>
+                                <button
+                                  type="button"
+                                  onClick={() => { setSelectedCitiesForPricing([]); setCityPrices({}); }}
+                                  className="text-xs text-gray-400 hover:text-red-500 hover:underline"
+                                >
+                                  Clear All
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                        <div className="relative mb-2">
+                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                          <input
+                            type="text"
+                            placeholder="Search cities..."
+                            value={cityPriceSearch}
+                            onChange={e => setCityPriceSearch(e.target.value)}
+                            className="w-full pl-9 pr-4 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-blue-500"
+                          />
+                        </div>
+                        <div className="flex flex-wrap gap-2 max-h-36 overflow-y-auto">
+                          {serviceLocationsForPricing
+                            .filter(loc =>
+                              !cityPriceSearch ||
+                              loc.name.toLowerCase().includes(cityPriceSearch.toLowerCase()) ||
+                              loc.state.toLowerCase().includes(cityPriceSearch.toLowerCase())
+                            )
+                            .map(loc => {
+                              const isSelected = selectedCitiesForPricing.includes(loc.id);
+                              return (
+                                <button
+                                  key={loc.id}
+                                  type="button"
+                                  onClick={() => {
+                                    setSelectedCitiesForPricing(prev =>
+                                      isSelected ? prev.filter(id => id !== loc.id) : [...prev, loc.id]
+                                    );
+                                    if (isSelected) {
+                                      setCityPrices(prev => { const n = { ...prev }; delete n[loc.id]; return n; });
+                                    }
+                                  }}
+                                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm border transition-all ${
+                                    isSelected
+                                      ? 'bg-blue-600 border-blue-600 text-white'
+                                      : 'bg-white border-gray-300 text-gray-700 hover:border-blue-400'
+                                  }`}
+                                >
+                                  {isSelected ? <CheckCircle className="w-3.5 h-3.5" /> : <MapPin className="w-3.5 h-3.5" />}
+                                  {loc.name}
+                                </button>
+                              );
+                            })}
+                        </div>
+                      </div>
+
+                      {/* Step 2 — Pricing per selected city */}
+                      {selectedCitiesForPricing.length > 0 && (
+                        <div>
+                          <p className="text-xs font-medium text-gray-500 mb-2">
+                            Step 2: Set pricing for each city <span className="font-normal text-gray-400">(leave blank to use default above)</span>
+                          </p>
+                          <div className="space-y-3">
+                            {selectedCitiesForPricing.map(locId => {
+                              const loc = serviceLocationsForPricing.find(l => l.id === locId);
+                              if (!loc) return null;
+                              const cp = cityPrices[locId] || { basePricePerDay: '', kmLimit: '', extraKmRate: '', securityDeposit: '' };
+                              const updateField = (field: string, val: string) =>
+                                setCityPrices(prev => ({ ...prev, [locId]: { ...cp, [field]: val } }));
+                              return (
+                                <div key={locId} className="rounded-lg border border-blue-200 bg-blue-50 overflow-hidden">
+                                  {/* City header */}
+                                  <div className="flex items-center justify-between px-3 py-2 bg-blue-100 border-b border-blue-200">
+                                    <div className="flex items-center gap-2">
+                                      <MapPin className="w-3.5 h-3.5 text-blue-600" />
+                                      <span className="text-sm font-semibold text-blue-800">{loc.name}</span>
+                                      <span className="text-xs text-blue-500">{loc.state}</span>
+                                    </div>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setSelectedCitiesForPricing(prev => prev.filter(id => id !== locId));
+                                        setCityPrices(prev => { const n = { ...prev }; delete n[locId]; return n; });
+                                      }}
+                                      className="p-0.5 rounded-full hover:bg-blue-200 text-blue-400 hover:text-red-500 transition-colors"
+                                      title="Remove city"
+                                    >
+                                      <X className="w-3.5 h-3.5" />
+                                    </button>
+                                  </div>
+                                  {/* 4 pricing fields */}
+                                  <div className="grid grid-cols-2 gap-3 p-3">
+                                    <div>
+                                      <label className="block text-xs text-gray-500 mb-1">Base Price/Day (₹)</label>
+                                      <input
+                                        type="number" min="0"
+                                        value={cp.basePricePerDay}
+                                        onChange={e => updateField('basePricePerDay', e.target.value)}
+                                        placeholder={formData.basePricePerDay || '—'}
+                                        className="w-full px-2 py-1.5 text-sm border rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
+                                      />
+                                    </div>
+                                    <div>
+                                      <label className="block text-xs text-gray-500 mb-1">Km Limit/Day</label>
+                                      <input
+                                        type="number" min="0"
+                                        value={cp.kmLimit}
+                                        onChange={e => updateField('kmLimit', e.target.value)}
+                                        placeholder="e.g. 150"
+                                        className="w-full px-2 py-1.5 text-sm border rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
+                                      />
+                                    </div>
+                                    <div>
+                                      <label className="block text-xs text-gray-500 mb-1">Extra Km Rate (₹/km)</label>
+                                      <input
+                                        type="number" min="0"
+                                        value={cp.extraKmRate}
+                                        onChange={e => updateField('extraKmRate', e.target.value)}
+                                        placeholder="e.g. 12"
+                                        className="w-full px-2 py-1.5 text-sm border rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
+                                      />
+                                    </div>
+                                    <div>
+                                      <label className="block text-xs text-gray-500 mb-1">Security Deposit (₹)</label>
+                                      <input
+                                        type="number" min="0"
+                                        value={cp.securityDeposit}
+                                        onChange={e => updateField('securityDeposit', e.target.value)}
+                                        placeholder="e.g. 5000"
+                                        className="w-full px-2 py-1.5 text-sm border rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
+                                      />
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {/* Active Status on step 4 */}
+              <label className="flex items-center gap-2 pt-2">
                 <input
                   type="checkbox"
                   name="isActive"
@@ -1854,34 +2162,44 @@ export default function ServiceFleetPage() {
                 />
                 <span className="text-sm text-gray-700">Active</span>
               </label>
+              </>}
 
-              {/* Submit Buttons */}
-              <div className="flex justify-end gap-3 pt-4 border-t">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setShowModal(false)}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  type="submit"
-                  disabled={saving}
-                  className="bg-gradient-to-r from-blue-600 to-purple-600"
-                >
-                  {saving ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Saving...
-                    </>
-                  ) : (
-                    <>
-                      {editingVehicle
-                        ? `Update ${isEquipmentService ? 'Equipment' : isPackersService ? 'Vehicle' : 'Vehicle'}`
-                        : `Add ${isEquipmentService ? 'Equipment' : isPackersService ? 'Vehicle' : 'Vehicle'}`}
-                    </>
+              {/* ── Navigation Buttons ── */}
+              <div className="flex justify-between gap-3 pt-4 border-t">
+                <div>
+                  {formStep > 1 && (
+                    <Button type="button" variant="outline" onClick={() => setFormStep(s => s - 1)}>
+                      <ChevronLeft className="w-4 h-4 mr-1" /> Back
+                    </Button>
                   )}
-                </Button>
+                </div>
+                <div className="flex gap-2">
+                  <Button type="button" variant="outline" onClick={() => setShowModal(false)}>
+                    Cancel
+                  </Button>
+                  {formStep < 4 ? (
+                    <Button
+                      type="button"
+                      onClick={() => setFormStep(s => s + 1)}
+                      disabled={formStep === 1 && !formData.name}
+                    >
+                      Next <ChevronRight className="w-4 h-4 ml-1" />
+                    </Button>
+                  ) : (
+                    <Button
+                      type="button"
+                      onClick={handleSubmit}
+                      disabled={saving}
+                      className="bg-gradient-to-r from-blue-600 to-purple-600"
+                    >
+                      {saving ? (
+                        <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Saving...</>
+                      ) : (
+                        editingVehicle ? 'Update' : 'Save'
+                      )}
+                    </Button>
+                  )}
+                </div>
               </div>
             </form>
           </div>

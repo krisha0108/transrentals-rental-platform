@@ -12,6 +12,7 @@ import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
 import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
 import { prisma } from '@/lib/db/prisma';
+import { CityContentSection } from '@/components/location/CityContentSection';
 
 function parseJsonField<T>(value: unknown, defaultValue: T): T {
   if (value === null || value === undefined) return defaultValue;
@@ -197,7 +198,8 @@ export default async function EquipmentLocationPage({ params }: PageProps) {
         vehicle_model_locations: {
           where: {
             locationId: location.id
-          }
+          },
+          select: { basePricePerDay: true }
         }
       },
       orderBy: { displayOrder: 'asc' }
@@ -289,6 +291,14 @@ export default async function EquipmentLocationPage({ params }: PageProps) {
       <NearbyLocations
         locationSlug={params.location}
         service="equipment-rental"
+      />
+
+      
+      <CityContentSection
+        citySlug={params.location}
+        serviceSlug="equipment-rental"
+        cityName={locationName}
+        stateCode={city?.stateCode}
       />
 
       {/* Schema Markup for SEO */}

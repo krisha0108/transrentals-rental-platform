@@ -83,9 +83,7 @@ export async function GET(request: NextRequest) {
         }
       }
 
-      const gstRate = 0.05; // 5% GST for cab services
-      const totalBeforeGst = localPackage.basePrice + nightCharge;
-      const gst = Math.round(totalBeforeGst * gstRate);
+      const grandTotal = localPackage.basePrice + nightCharge;
 
       return NextResponse.json({
         success: true,
@@ -99,9 +97,9 @@ export async function GET(request: NextRequest) {
           nightCharge,
           extraKmCharge: localPackage.extraKmCharge,
           extraHourCharge: localPackage.extraHourCharge,
-          totalBeforeGst,
-          gst,
-          grandTotal: totalBeforeGst + gst,
+          totalBeforeGst: grandTotal,
+          gst: 0,
+          grandTotal,
         },
       });
     }
@@ -164,9 +162,7 @@ export async function GET(request: NextRequest) {
 
       // Calculate totals
       const totalBeforeGst = basePrice + airportSurcharge + nightSurcharge;
-      const gstRate = 0.05;
-      const gst = Math.round(totalBeforeGst * gstRate);
-      const grandTotal = totalBeforeGst + gst;
+      const grandTotal = totalBeforeGst;
 
       return NextResponse.json({
         success: true,
@@ -185,7 +181,7 @@ export async function GET(request: NextRequest) {
           nightSurcharge,
           tollsEstimate: airportRoutePackage.tollsEstimate || 0,
           totalBeforeGst,
-          gst,
+          gst: 0,
           grandTotal,
         },
         inclusions: {
@@ -236,9 +232,6 @@ export async function GET(request: NextRequest) {
         ? Math.round(basePrice * routePackage.returnMultiplier)
         : basePrice;
 
-      const gstRate = 0.05;
-      const gst = Math.round(roundTripPrice * gstRate);
-
       return NextResponse.json({
         success: true,
         tripType,
@@ -253,8 +246,8 @@ export async function GET(request: NextRequest) {
           basePrice: routePackage.basePrice,
           roundTripMultiplier: tripType === 'round_trip' ? routePackage.returnMultiplier : 1,
           totalBeforeGst: roundTripPrice,
-          gst,
-          grandTotal: roundTripPrice + gst,
+          gst: 0,
+          grandTotal: roundTripPrice,
           tollsEstimate: routePackage.tollsEstimate || 0,
           statePermitCharge: routePackage.statePermitCharge || 0,
         },
@@ -350,9 +343,7 @@ export async function GET(request: NextRequest) {
 
     // Calculate totals
     const totalBeforeGst = baseKmCharge + driverAllowance + nightCharge + tollEstimate + statePermitCharge;
-    const gstRate = 0.05;
-    const gst = Math.round(totalBeforeGst * gstRate);
-    const grandTotal = totalBeforeGst + gst;
+    const grandTotal = totalBeforeGst;
 
     const breakdown: PriceBreakdown = {
       baseKmCharge,
@@ -362,7 +353,7 @@ export async function GET(request: NextRequest) {
       nightCharge,
       tollEstimate,
       statePermitCharge,
-      gst,
+      gst: 0,
       totalBeforeGst,
       grandTotal,
     };

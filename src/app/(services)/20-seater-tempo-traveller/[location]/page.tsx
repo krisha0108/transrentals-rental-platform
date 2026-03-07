@@ -9,6 +9,7 @@ import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
 import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
 import { FAQSection } from '@/components/services/FAQSection';
+import { CityContentSection } from '@/components/location/CityContentSection';
 
 interface PageProps { params: { location: string }; }
 
@@ -123,6 +124,13 @@ export default async function TwentySeaterLocationPage({ params }: PageProps) {
         </div>
       </section>
 
+      
+      <CityContentSection
+        citySlug={params.location}
+        serviceSlug="20-seater-tempo-traveller"
+        cityName={locationName}
+        stateCode={undefined}
+      />
       <FAQSection service="bus-rental" location={locationName} />
     </>
   );

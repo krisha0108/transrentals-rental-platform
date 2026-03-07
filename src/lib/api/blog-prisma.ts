@@ -353,11 +353,11 @@ export async function fetchBlogPostPrisma(slug: string): Promise<BlogPost | null
       return null;
     }
 
-    // Increment view count
-    await prisma.blog_posts.update({
+    // Increment view count (non-critical — fire-and-forget, ignore readonly DB errors)
+    prisma.blog_posts.update({
       where: { id: post.id },
       data: { viewCount: { increment: 1 } },
-    });
+    }).catch(() => {});
 
     return convertPrismaBlogPost(post);
   } catch (error) {

@@ -10,6 +10,7 @@ import { FAQSection } from '@/components/services/FAQSection';
 import { BikeServiceSchema } from '@/components/seo/schemas';
 import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
+import { CityContentSection } from '@/components/location/CityContentSection';
 
 interface PageProps {
   params: {
@@ -255,6 +256,13 @@ export default async function ElectricScooterLocationPage({ params }: PageProps)
         </div>
       </section>
 
+      
+      <CityContentSection
+        citySlug={params.location}
+        serviceSlug="electric-scooter-rental"
+        cityName={locationName}
+        stateCode={undefined}
+      />
       <FAQSection service="bike-on-rent" />
     </>
   );

@@ -5,6 +5,7 @@ import { getServiceLocations } from '@/lib/services/service-locations';;
 import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
 import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
+import { CityContentSection } from '@/components/location/CityContentSection';
 
 interface PageProps {
   params: {
@@ -299,6 +300,14 @@ export default async function WeddingCarRentalLocationPage({ params }: PageProps
           </div>
         </div>
       </section>
+
+      
+      <CityContentSection
+        citySlug={params.location}
+        serviceSlug="wedding-car-rental"
+        cityName={locationName}
+        stateCode={city?.stateCode}
+      />
 
       {/* Schema Markup */}
       <script

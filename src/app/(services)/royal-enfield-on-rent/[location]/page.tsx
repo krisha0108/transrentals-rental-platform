@@ -13,6 +13,7 @@ import { BikeServiceSchema } from '@/components/seo/schemas';
 import { getServiceLocations } from '@/lib/services/service-locations';
 import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
+import { CityContentSection } from '@/components/location/CityContentSection';
 
 interface PageProps {
   params: {
@@ -147,6 +148,14 @@ export default async function RoyalEnfieldLocationPage({ params }: PageProps) {
 
   return (
     <>
+      
+      <CityContentSection
+        citySlug={params.location}
+        serviceSlug="royal-enfield-on-rent"
+        cityName={locationName}
+        stateCode={city?.stateCode}
+      />
+
       {/* Schema Markup for SEO */}
       <BikeServiceSchema
         serviceName={`Royal Enfield on Rent in ${locationName}`}

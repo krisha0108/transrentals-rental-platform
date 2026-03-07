@@ -472,7 +472,6 @@ export default function ServicePackagesPage() {
                     }
                     className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
                     required
-                    disabled={!!formData.id}
                   >
                     <option value="">Select Category</option>
                     {categories.map((c) => (
@@ -491,7 +490,6 @@ export default function ServicePackagesPage() {
                     value={formData.locationId}
                     onChange={(e) => setFormData({ ...formData, locationId: e.target.value })}
                     className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
-                    disabled={!!formData.id}
                   >
                     <option value="">All Cities (Default)</option>
                     {locations.map((l) => (

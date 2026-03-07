@@ -703,28 +703,102 @@ export default function BusBookingDetailScreen() {
                 {/* Overview Tab */}
                 {detailsTab === 'overview' && (
                   <View>
-                    {/* Vehicle Details */}
+                    {/* Vendor Info */}
+                    {booking.vendor && (
+                      <View style={styles.quoteSection}>
+                        <View style={styles.quoteSectionHeader}>
+                          <View style={[styles.quoteSectionIcon, { backgroundColor: TEAL_LIGHT }]}>
+                            <Ionicons name="business-outline" size={wp('4.5%')} color={TEAL} />
+                          </View>
+                          <Text style={styles.quoteSectionTitle}>Vendor Information</Text>
+                        </View>
+                        <View style={styles.quoteListCard}>
+                          <View style={styles.quoteFeatureItem}>
+                            <Ionicons name="storefront-outline" size={wp('4%')} color={TEAL} />
+                            <Text style={styles.quoteFeatureText}>{booking.vendor.name}</Text>
+                          </View>
+                          {booking.vendor.rating > 0 && (
+                            <View style={styles.quoteFeatureItem}>
+                              <Ionicons name="star-outline" size={wp('4%')} color={TEAL} />
+                              <Text style={styles.quoteFeatureText}>{booking.vendor.rating.toFixed(1)} ★ Rating</Text>
+                            </View>
+                          )}
+                          {booking.vendor.phone && (
+                            <View style={styles.quoteFeatureItem}>
+                              <Ionicons name="call-outline" size={wp('4%')} color={TEAL} />
+                              <Text style={styles.quoteFeatureText}>{booking.vendor.phone}</Text>
+                            </View>
+                          )}
+                        </View>
+                      </View>
+                    )}
+
+                    {/* Bus / Vehicle Info Card */}
+                    {(booking.quote.vehicleName || booking.quote.vehicleCategory || booking.quote.seats) && (
+                      <View style={styles.quoteSection}>
+                        <View style={styles.quoteSectionHeader}>
+                          <View style={[styles.quoteSectionIcon, { backgroundColor: TEAL + '18' }]}>
+                            <MaterialCommunityIcons name="bus" size={wp('5%')} color={TEAL} />
+                          </View>
+                          <Text style={styles.quoteSectionTitle}>Vehicle Info</Text>
+                        </View>
+                        <View style={styles.quoteListCard}>
+                          {booking.quote.vehicleName ? (
+                            <View style={[styles.quoteFeatureItem]}>
+                              <Ionicons name="bus-outline" size={wp('4%')} color={TEAL} />
+                              <Text style={styles.quoteFeatureText}>{booking.quote.vehicleName}</Text>
+                            </View>
+                          ) : null}
+                          {booking.quote.vehicleCategory ? (
+                            <View style={[styles.quoteFeatureItem]}>
+                              <Ionicons name="layers-outline" size={wp('4%')} color={TEAL} />
+                              <Text style={styles.quoteFeatureText}>Category: {booking.quote.vehicleCategory}</Text>
+                            </View>
+                          ) : null}
+                          {booking.quote.seats ? (
+                            <View style={[styles.quoteFeatureItem]}>
+                              <Ionicons name="people-outline" size={wp('4%')} color={TEAL} />
+                              <Text style={styles.quoteFeatureText}>{booking.quote.seats} Seats</Text>
+                            </View>
+                          ) : null}
+                          {booking.quote.vehicleNumber ? (
+                            <View style={[styles.quoteFeatureItem]}>
+                              <Ionicons name="card-outline" size={wp('4%')} color={TEAL} />
+                              <Text style={styles.quoteFeatureText}>Reg: {booking.quote.vehicleNumber}</Text>
+                            </View>
+                          ) : null}
+                          {booking.quote.vehicleModel ? (
+                            <View style={[styles.quoteFeatureItem, styles.quoteFeatureItemLast]}>
+                              <Ionicons name="build-outline" size={wp('4%')} color={TEAL} />
+                              <Text style={styles.quoteFeatureText}>Model: {booking.quote.vehicleModel}{booking.quote.vehicleYear ? ` (${booking.quote.vehicleYear})` : ''}</Text>
+                            </View>
+                          ) : null}
+                        </View>
+                      </View>
+                    )}
+
+                    {/* Vehicle Features */}
                     {(() => {
-                      const vehicleDetails = parseListData(booking.quote.vehicleDetails);
-                      return vehicleDetails.length > 0 && (
+                      const features = parseListData(booking.quote.vehicleFeatures);
+                      return features.length > 0 && (
                         <View style={styles.quoteSection}>
                           <View style={styles.quoteSectionHeader}>
-                            <View style={[styles.quoteSectionIcon, { backgroundColor: TEAL + '18' }]}>
-                              <MaterialCommunityIcons name="bus" size={wp('5%')} color={TEAL} />
+                            <View style={[styles.quoteSectionIcon, { backgroundColor: '#F59E0B18' }]}>
+                              <Ionicons name="star-outline" size={wp('5%')} color="#F59E0B" />
                             </View>
-                            <Text style={styles.quoteSectionTitle}>Vehicle Details</Text>
+                            <Text style={styles.quoteSectionTitle}>Vehicle Features</Text>
                           </View>
                           <View style={styles.quoteListCard}>
-                            {vehicleDetails.map((detail, idx) => (
+                            {features.map((feature, idx) => (
                               <View
                                 key={idx}
                                 style={[
                                   styles.quoteFeatureItem,
-                                  idx === vehicleDetails.length - 1 && styles.quoteFeatureItemLast,
+                                  idx === features.length - 1 && styles.quoteFeatureItemLast,
                                 ]}
                               >
                                 <Ionicons name="checkmark-circle" size={wp('4%')} color={TEAL} />
-                                <Text style={styles.quoteFeatureText}>{detail}</Text>
+                                <Text style={styles.quoteFeatureText}>{feature}</Text>
                               </View>
                             ))}
                           </View>
@@ -733,62 +807,120 @@ export default function BusBookingDetailScreen() {
                     })()}
 
                     {/* Driver Details */}
-                    {(() => {
-                      const driverDetails = parseListData(booking.quote.driverDetails);
-                      return driverDetails.length > 0 && (
-                        <View style={styles.quoteSection}>
-                          <View style={styles.quoteSectionHeader}>
-                            <View style={[styles.quoteSectionIcon, { backgroundColor: '#3B82F618' }]}>
-                              <Ionicons name="person-circle-outline" size={wp('5%')} color="#3B82F6" />
-                            </View>
-                            <Text style={styles.quoteSectionTitle}>Driver Details</Text>
+                    {(booking.quote.driverName || booking.quote.driverPhone || booking.quote.driverExperience) && (
+                      <View style={styles.quoteSection}>
+                        <View style={styles.quoteSectionHeader}>
+                          <View style={[styles.quoteSectionIcon, { backgroundColor: '#3B82F618' }]}>
+                            <Ionicons name="person-circle-outline" size={wp('5%')} color="#3B82F6" />
                           </View>
-                          <View style={styles.quoteListCard}>
-                            {driverDetails.map((detail, idx) => (
-                              <View
-                                key={idx}
-                                style={[
-                                  styles.quoteFeatureItem,
-                                  idx === driverDetails.length - 1 && styles.quoteFeatureItemLast,
-                                ]}
-                              >
-                                <Ionicons name="checkmark-circle" size={wp('4%')} color={TEAL} />
-                                <Text style={styles.quoteFeatureText}>{detail}</Text>
-                              </View>
-                            ))}
-                          </View>
+                          <Text style={styles.quoteSectionTitle}>Driver Details</Text>
                         </View>
-                      );
-                    })()}
+                        <View style={styles.quoteListCard}>
+                          {booking.quote.driverName ? (
+                            <View style={[styles.quoteFeatureItem]}>
+                              <Ionicons name="person-outline" size={wp('4%')} color="#3B82F6" />
+                              <Text style={styles.quoteFeatureText}>{booking.quote.driverName}</Text>
+                            </View>
+                          ) : null}
+                          {booking.quote.driverPhone ? (
+                            <View style={[styles.quoteFeatureItem]}>
+                              <Ionicons name="call-outline" size={wp('4%')} color="#3B82F6" />
+                              <Text style={styles.quoteFeatureText}>{booking.quote.driverPhone}</Text>
+                            </View>
+                          ) : null}
+                          {booking.quote.driverExperience ? (
+                            <View style={[styles.quoteFeatureItem, styles.quoteFeatureItemLast]}>
+                              <Ionicons name="ribbon-outline" size={wp('4%')} color="#3B82F6" />
+                              <Text style={styles.quoteFeatureText}>{booking.quote.driverExperience} yrs experience</Text>
+                            </View>
+                          ) : null}
+                        </View>
+                      </View>
+                    )}
 
-                    {/* Amenities */}
-                    {(() => {
-                      const amenities = parseListData(booking.quote.amenities);
-                      return amenities.length > 0 && (
-                        <View style={styles.quoteSection}>
-                          <View style={styles.quoteSectionHeader}>
-                            <View style={[styles.quoteSectionIcon, { backgroundColor: '#F59E0B18' }]}>
-                              <Ionicons name="star-outline" size={wp('5%')} color="#F59E0B" />
-                            </View>
-                            <Text style={styles.quoteSectionTitle}>Amenities</Text>
+                    {/* Fare Breakdown */}
+                    {(booking.quote.baseAmount > 0 || booking.quote.perKmRate > 0 || booking.quote.perDayRate > 0) && (
+                      <View style={styles.quoteSection}>
+                        <View style={styles.quoteSectionHeader}>
+                          <View style={[styles.quoteSectionIcon, { backgroundColor: '#ECFDF5' }]}>
+                            <Ionicons name="wallet-outline" size={wp('5%')} color={TEAL} />
                           </View>
-                          <View style={styles.quoteListCard}>
-                            {amenities.map((amenity, idx) => (
-                              <View
-                                key={idx}
-                                style={[
-                                  styles.quoteFeatureItem,
-                                  idx === amenities.length - 1 && styles.quoteFeatureItemLast,
-                                ]}
-                              >
-                                <Ionicons name="checkmark-circle" size={wp('4%')} color={TEAL} />
-                                <Text style={styles.quoteFeatureText}>{amenity}</Text>
-                              </View>
-                            ))}
+                          <Text style={styles.quoteSectionTitle}>Fare Breakdown</Text>
+                        </View>
+                        <View style={styles.quoteListCard}>
+                          {booking.quote.baseAmount > 0 && (
+                            <View style={styles.quoteFareRow}>
+                              <Text style={styles.quoteFareLabel}>Base Amount</Text>
+                              <Text style={styles.quoteFareValue}>₹{booking.quote.baseAmount?.toLocaleString('en-IN')}</Text>
+                            </View>
+                          )}
+                          {booking.quote.perKmRate > 0 && (
+                            <View style={styles.quoteFareRow}>
+                              <Text style={styles.quoteFareLabel}>Per KM Rate</Text>
+                              <Text style={styles.quoteFareValue}>₹{booking.quote.perKmRate}/km</Text>
+                            </View>
+                          )}
+                          {booking.quote.perDayRate > 0 && (
+                            <View style={styles.quoteFareRow}>
+                              <Text style={styles.quoteFareLabel}>Per Day Rate</Text>
+                              <Text style={styles.quoteFareValue}>₹{booking.quote.perDayRate}/day</Text>
+                            </View>
+                          )}
+                          {booking.quote.includedKm > 0 && (
+                            <View style={styles.quoteFareRow}>
+                              <Text style={styles.quoteFareLabel}>Included KM</Text>
+                              <Text style={styles.quoteFareValue}>{booking.quote.includedKm} km</Text>
+                            </View>
+                          )}
+                          {booking.quote.includedHours > 0 && (
+                            <View style={styles.quoteFareRow}>
+                              <Text style={styles.quoteFareLabel}>Included Hours</Text>
+                              <Text style={styles.quoteFareValue}>{booking.quote.includedHours} hrs</Text>
+                            </View>
+                          )}
+                          {booking.quote.driverAllowance > 0 && (
+                            <View style={styles.quoteFareRow}>
+                              <Text style={styles.quoteFareLabel}>Driver Allowance</Text>
+                              <Text style={styles.quoteFareValue}>₹{booking.quote.driverAllowance}</Text>
+                            </View>
+                          )}
+                          {booking.quote.nightHaltCharges > 0 && (
+                            <View style={styles.quoteFareRow}>
+                              <Text style={styles.quoteFareLabel}>Night Halt</Text>
+                              <Text style={styles.quoteFareValue}>₹{booking.quote.nightHaltCharges}</Text>
+                            </View>
+                          )}
+                          {booking.quote.tollEstimate > 0 && (
+                            <View style={styles.quoteFareRow}>
+                              <Text style={styles.quoteFareLabel}>Toll (Est.)</Text>
+                              <Text style={styles.quoteFareValue}>₹{booking.quote.tollEstimate}</Text>
+                            </View>
+                          )}
+                          {booking.quote.permitCharges > 0 && (
+                            <View style={styles.quoteFareRow}>
+                              <Text style={styles.quoteFareLabel}>Permit Charges</Text>
+                              <Text style={styles.quoteFareValue}>₹{booking.quote.permitCharges}</Text>
+                            </View>
+                          )}
+                          {booking.quote.extraKmRate > 0 && (
+                            <View style={styles.quoteFareRow}>
+                              <Text style={styles.quoteFareLabel}>Extra KM Rate</Text>
+                              <Text style={styles.quoteFareValue}>₹{booking.quote.extraKmRate}/km</Text>
+                            </View>
+                          )}
+                          {booking.quote.gstAmount > 0 && (
+                            <View style={styles.quoteFareRow}>
+                              <Text style={styles.quoteFareLabel}>GST</Text>
+                              <Text style={styles.quoteFareValue}>₹{booking.quote.gstAmount?.toLocaleString('en-IN')}</Text>
+                            </View>
+                          )}
+                          <View style={[styles.quoteFareRow, styles.quoteFareTotalRow]}>
+                            <Text style={styles.quoteFareTotalLabel}>Total Amount</Text>
+                            <Text style={styles.quoteFareTotalValue}>₹{booking.quote.totalAmount?.toLocaleString('en-IN')}</Text>
                           </View>
                         </View>
-                      );
-                    })()}
+                      </View>
+                    )}
 
                     {/* Vendor Message */}
                     {booking.quote.vendorMessage && (
@@ -1627,6 +1759,42 @@ const styles = StyleSheet.create({
   },
   quoteTermsNumber: {
     fontSize: wp('3.3%'),
+    fontWeight: '700',
+    color: TEAL,
+  },
+
+  // Fare Breakdown Rows
+  quoteFareRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: hp('0.9%'),
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  quoteFareLabel: {
+    fontSize: wp('3.3%'),
+    color: TEXT_SECONDARY,
+  },
+  quoteFareValue: {
+    fontSize: wp('3.3%'),
+    fontWeight: '600',
+    color: TEXT_PRIMARY,
+  },
+  quoteFareTotalRow: {
+    borderBottomWidth: 0,
+    marginTop: hp('0.5%'),
+    paddingTop: hp('1%'),
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
+  },
+  quoteFareTotalLabel: {
+    fontSize: wp('3.8%'),
+    fontWeight: '700',
+    color: TEXT_PRIMARY,
+  },
+  quoteFareTotalValue: {
+    fontSize: wp('4.2%'),
     fontWeight: '700',
     color: TEAL,
   },

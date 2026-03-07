@@ -9,6 +9,7 @@ import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
 import { FAQSection } from '@/components/services/FAQSection';
 import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
+import { CityContentSection } from '@/components/location/CityContentSection';
 
 interface PageProps { params: { location: string }; }
 
@@ -127,6 +128,13 @@ export default async function HimalayanLocationPage({ params }: PageProps) {
         </div>
       </section>
 
+      
+      <CityContentSection
+        citySlug={params.location}
+        serviceSlug="himalayan-on-rent"
+        cityName={locationName}
+        stateCode={undefined}
+      />
       <FAQSection service="bike-rental" location={locationName} />
     </>
   );

@@ -155,6 +155,7 @@ export async function validateCityAndServiceOrRedirect(
 
 export type ServicePageContext =
   | { type: 'city'; city: NonNullable<ReturnType<typeof getCityBySlug>> }
+  | { type: 'coming-soon'; city: NonNullable<ReturnType<typeof getCityBySlug>> }
   | { type: 'state'; state: IndianState; activeCities: Array<{ name: string; slug: string; tier?: number }> }
   | { type: 'redirect'; to: string };
 
@@ -189,16 +190,23 @@ export async function getActiveLocationsInStateForService(
 /**
  * Resolves a [location] slug to city page, state hub page, or redirect.
  * Use this instead of validateCityAndServiceOrRedirect in page components.
+ *
+ * @param options.comingSoonIfUnavailable - If true, returns 'coming-soon' instead of 'redirect'
+ *   when city is known but service is not yet active there.
  */
 export async function resolveServicePage(
   serviceSlug: string,
-  locationSlug: string
+  locationSlug: string,
+  options?: { comingSoonIfUnavailable?: boolean }
 ): Promise<ServicePageContext> {
   // Step 1: Is it a known city?
   const city = getCityBySlug(locationSlug);
   if (city) {
     const isAvailable = await isServiceAvailableInLocation(serviceSlug, locationSlug);
-    if (!isAvailable) return { type: 'redirect', to: `/${serviceSlug}` };
+    if (!isAvailable) {
+      if (options?.comingSoonIfUnavailable) return { type: 'coming-soon', city };
+      return { type: 'redirect', to: `/${serviceSlug}` };
+    }
     return { type: 'city', city };
   }
 
@@ -206,7 +214,22 @@ export async function resolveServicePage(
   const state = getStateBySlug(locationSlug);
   if (state) {
     const activeCities = await getActiveLocationsInStateForService(serviceSlug, state.code);
-    if (activeCities.length === 0) return { type: 'redirect', to: `/${serviceSlug}` };
+    if (activeCities.length === 0) {
+      if (options?.comingSoonIfUnavailable) {
+        // Treat the state/UT as a "city" for the coming-soon page display
+        const stateAsCity = {
+          name: state.name,
+          slug: state.slug,
+          state: state.name,
+          stateCode: state.code,
+          tier: 3 as const,
+          keywords: [],
+          priority: 5,
+        };
+        return { type: 'coming-soon', city: stateAsCity };
+      }
+      return { type: 'redirect', to: `/${serviceSlug}` };
+    }
     return { type: 'state', state, activeCities };
   }
 

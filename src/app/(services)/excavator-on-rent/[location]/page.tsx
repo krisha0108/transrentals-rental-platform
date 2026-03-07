@@ -9,6 +9,7 @@ import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
 import { FAQSection } from '@/components/services/FAQSection';
 import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
+import { CityContentSection } from '@/components/location/CityContentSection';
 
 interface PageProps { params: { location: string }; }
 
@@ -119,6 +120,13 @@ export default async function ExcavatorLocationPage({ params }: PageProps) {
         </div>
       </section>
 
+      
+      <CityContentSection
+        citySlug={params.location}
+        serviceSlug="excavator-on-rent"
+        cityName={locationName}
+        stateCode={undefined}
+      />
       <FAQSection service="equipment-rental" location={locationName} />
     </>
   );

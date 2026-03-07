@@ -824,6 +824,40 @@ export default function LuxuryBookingDetailScreen() {
                       );
                     })()}
 
+                    {/* Vendor Info */}
+                    {booking.vendor && (
+                      <View style={styles.quoteSection}>
+                        <View style={styles.quoteSectionHeader}>
+                          <Ionicons name="business-outline" size={22} color={TEAL} />
+                          <Text style={styles.quoteSectionTitle}>Vendor Information</Text>
+                        </View>
+                        <View style={styles.quoteInfoCard}>
+                          <View style={styles.quoteInfoRow}>
+                            <Ionicons name="storefront-outline" size={20} color={TEXT_SECONDARY} />
+                            <Text style={styles.quoteInfoText}>{booking.vendor.businessName}</Text>
+                          </View>
+                          {booking.vendor.rating > 0 && (
+                            <View style={styles.quoteInfoRow}>
+                              <Ionicons name="star-outline" size={20} color={TEXT_SECONDARY} />
+                              <Text style={styles.quoteInfoText}>{booking.vendor.rating.toFixed(1)} ★ Rating</Text>
+                            </View>
+                          )}
+                          {booking.vendor.city && (
+                            <View style={styles.quoteInfoRow}>
+                              <Ionicons name="location-outline" size={20} color={TEXT_SECONDARY} />
+                              <Text style={styles.quoteInfoText}>{booking.vendor.city}{booking.vendor.state ? `, ${booking.vendor.state}` : ''}</Text>
+                            </View>
+                          )}
+                          {booking.vendor.phone && (
+                            <View style={styles.quoteInfoRow}>
+                              <Ionicons name="call-outline" size={20} color={TEXT_SECONDARY} />
+                              <Text style={styles.quoteInfoText}>{booking.vendor.phone}</Text>
+                            </View>
+                          )}
+                        </View>
+                      </View>
+                    )}
+
                     {/* Vehicle & Chauffeur Details */}
                     <View style={styles.quoteSection}>
                       <View style={styles.quoteSectionHeader}>
@@ -831,6 +865,12 @@ export default function LuxuryBookingDetailScreen() {
                         <Text style={styles.quoteSectionTitle}>Additional Information</Text>
                       </View>
                       <View style={styles.quoteInfoCard}>
+                        {booking.quote.vehicleName && (
+                          <View style={styles.quoteInfoRow}>
+                            <Ionicons name="car-sport-outline" size={20} color={TEXT_SECONDARY} />
+                            <Text style={styles.quoteInfoText}>Vehicle: {booking.quote.vehicleName}</Text>
+                          </View>
+                        )}
                         {booking.quote.vehicleModel && (
                           <View style={styles.quoteInfoRow}>
                             <Ionicons name="car-outline" size={20} color={TEXT_SECONDARY} />

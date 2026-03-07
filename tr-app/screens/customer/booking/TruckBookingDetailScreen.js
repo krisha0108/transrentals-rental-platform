@@ -756,6 +756,86 @@ export default function TruckBookingDetailScreen() {
                 {/* Overview Tab */}
                 {detailsTab === 'overview' && (
                   <View>
+                    {/* Vendor Info */}
+                    {booking.vendor && (
+                      <View style={styles.quoteSection}>
+                        <View style={styles.quoteSectionHeader}>
+                          <View style={[styles.quoteSectionIcon, { backgroundColor: TEAL_LIGHT }]}>
+                            <Ionicons name="business-outline" size={wp('4.5%')} color={TEAL} />
+                          </View>
+                          <Text style={styles.quoteSectionTitle}>Vendor Information</Text>
+                        </View>
+                        <View style={styles.quoteInfoCard}>
+                          <View style={styles.quoteInfoRow}>
+                            <Ionicons name="storefront-outline" size={20} color={TEXT_SECONDARY} />
+                            <Text style={styles.quoteInfoText}>{booking.vendor.name}</Text>
+                          </View>
+                          {booking.vendor.rating > 0 && (
+                            <View style={styles.quoteInfoRow}>
+                              <Ionicons name="star-outline" size={20} color={TEXT_SECONDARY} />
+                              <Text style={styles.quoteInfoText}>{booking.vendor.rating.toFixed(1)} ★ Rating</Text>
+                            </View>
+                          )}
+                          {booking.vendor.phone && (
+                            <View style={styles.quoteInfoRow}>
+                              <Ionicons name="call-outline" size={20} color={TEXT_SECONDARY} />
+                              <Text style={styles.quoteInfoText}>{booking.vendor.phone}</Text>
+                            </View>
+                          )}
+                        </View>
+                      </View>
+                    )}
+
+                    {/* Vehicle Info */}
+                    {(booking.quote.vehicleName || booking.quote.vehicleNumber || booking.quote.vehicleCategory) && (
+                      <View style={styles.quoteSection}>
+                        <View style={styles.quoteSectionHeader}>
+                          <View style={[styles.quoteSectionIcon, { backgroundColor: TEAL_LIGHT }]}>
+                            <MaterialCommunityIcons name="truck-outline" size={wp('4.5%')} color={TEAL} />
+                          </View>
+                          <Text style={styles.quoteSectionTitle}>Vehicle Information</Text>
+                        </View>
+                        <View style={styles.quoteInfoCard}>
+                          {booking.quote.vehicleName && (
+                            <View style={styles.quoteInfoRow}>
+                              <MaterialCommunityIcons name="truck" size={20} color={TEXT_SECONDARY} />
+                              <Text style={styles.quoteInfoText}>Vehicle: {booking.quote.vehicleName}</Text>
+                            </View>
+                          )}
+                          {booking.quote.vehicleCategory && (
+                            <View style={styles.quoteInfoRow}>
+                              <Ionicons name="layers-outline" size={20} color={TEXT_SECONDARY} />
+                              <Text style={styles.quoteInfoText}>Category: {booking.quote.vehicleCategory}</Text>
+                            </View>
+                          )}
+                          {booking.quote.vehicleNumber && (
+                            <View style={styles.quoteInfoRow}>
+                              <Ionicons name="card-outline" size={20} color={TEXT_SECONDARY} />
+                              <Text style={styles.quoteInfoText}>Reg: {booking.quote.vehicleNumber}</Text>
+                            </View>
+                          )}
+                          {booking.quote.vehicleCapacity && (
+                            <View style={styles.quoteInfoRow}>
+                              <Ionicons name="cube-outline" size={20} color={TEXT_SECONDARY} />
+                              <Text style={styles.quoteInfoText}>Capacity: {booking.quote.vehicleCapacity}</Text>
+                            </View>
+                          )}
+                          {booking.quote.driverName && (
+                            <View style={styles.quoteInfoRow}>
+                              <Ionicons name="person-outline" size={20} color={TEXT_SECONDARY} />
+                              <Text style={styles.quoteInfoText}>Driver: {booking.quote.driverName}</Text>
+                            </View>
+                          )}
+                          {booking.quote.driverPhone && (
+                            <View style={styles.quoteInfoRow}>
+                              <Ionicons name="call-outline" size={20} color={TEXT_SECONDARY} />
+                              <Text style={styles.quoteInfoText}>{booking.quote.driverPhone}</Text>
+                            </View>
+                          )}
+                        </View>
+                      </View>
+                    )}
+
                     {/* Vehicle Details */}
                     {(() => {
                       const vehicleDetails = parseListData(booking.quote.vehicleDetails);
@@ -1502,6 +1582,24 @@ const styles = StyleSheet.create({
   },
   quoteSection: {
     marginBottom: hp('2.5%'),
+  },
+  quoteInfoCard: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: wp('3%'),
+    padding: wp('3%'),
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  quoteInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: wp('2%'),
+    paddingVertical: hp('0.8%'),
+  },
+  quoteInfoText: {
+    fontSize: wp('3.5%'),
+    color: TEXT_PRIMARY,
+    flex: 1,
   },
   quoteSectionHeader: {
     flexDirection: 'row',
