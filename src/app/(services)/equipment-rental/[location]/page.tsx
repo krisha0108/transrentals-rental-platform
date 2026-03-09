@@ -14,6 +14,7 @@ import { StateServicePage } from '@/components/location/StateServicePage';
 import { prisma } from '@/lib/db/prisma';
 import { CityContentSection } from '@/components/location/CityContentSection';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
+import { B2BServiceNote } from '@/components/common/B2BServiceNote';
 
 function parseJsonField<T>(value: unknown, defaultValue: T): T {
   if (value === null || value === undefined) return defaultValue;
@@ -258,6 +259,8 @@ export default async function EquipmentLocationPage({ params }: PageProps) {
           </nav>
         </div>
       </div>
+
+      <B2BServiceNote serviceName="Equipment Rental" />
 
       <ServiceHeroWithChat
         badge={`Equipment Rental in ${locationName}`}

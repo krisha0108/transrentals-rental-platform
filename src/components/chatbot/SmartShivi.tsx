@@ -75,6 +75,11 @@ interface BookingData {
   packersPropertySize?: string; // 1bhk, 2bhk, villa, etc.
   packersPickupAddress?: string;
   packersDropAddress?: string;
+  // B2B specific fields
+  b2bPurpose?: 'personal' | 'company';
+  b2bVehiclesRequired?: number;
+  b2bPassengerCount?: number;
+  b2bCustomerId?: string;
 }
 
 // Fleet vehicle interface for Bike/Self-Drive
@@ -201,6 +206,16 @@ export function SmartShivi() {
   const { customer } = useCustomerAuth();
   const router = useRouter();
 
+  const [isB2B, setIsB2B] = useState(false);
+
+  // B2B eligible services (car rental, self-drive, bus, luxury)
+  const B2B_ELIGIBLE_SERVICES = [
+    'outstation-car-rental', 'one-way-car-rental', 'local-taxi', 'airport-transfer',
+    'self-drive-car-rentals', 'self-drive-rental',
+    'bus-rental', 'corporate-bus-rental', 'tempo-traveller', 'wedding-bus-rental',
+    'luxury-local', 'luxury-outstation', 'luxury-airport-transfer', 'luxury-car-rental',
+  ];
+
   // BROWSE_FIRST services - redirect to fleet pages after getting location + dates
   const BROWSE_FIRST_SERVICES = ['self-drive-car-rentals', 'self-drive-rental', 'bike-on-rent', 'activa-on-rent', 'royal-enfield-on-rent'];
 
@@ -231,6 +246,23 @@ export function SmartShivi() {
   };
 
   const pageContext = getPageContext();
+
+  // Check B2B status when customer is loaded
+  useEffect(() => {
+    if (!customer?.id && !customer?.phone) return;
+    const params = new URLSearchParams();
+    if (customer.id) params.set('customer_id', customer.id);
+    if (customer.phone) params.set('phone', customer.phone);
+    fetch(`/api/customer/b2b-status?${params.toString()}`)
+      .then(r => r.json())
+      .then(d => {
+        if (d.isB2B) {
+          setIsB2B(true);
+          setBookingData(prev => ({ ...prev, b2bCustomerId: customer.id }));
+        }
+      })
+      .catch(() => {});
+  }, [customer?.id, customer?.phone]);
 
   // Track chat opened
   const trackChatOpened = async () => {
@@ -1629,6 +1661,23 @@ export function SmartShivi() {
       await handleEmail(inputValue);
     } else if (bookingStep === 'requirements') {
       await handleRequirements(inputValue);
+    } else if (bookingStep === 'b2b-vehicles') {
+      const count = parseInt(inputValue) || 1;
+      addUserMessage(inputValue);
+      setBookingData(prev => ({ ...prev, b2bVehiclesRequired: count }));
+      addShiviMessage(
+        "👥 Total number of passengers?",
+        undefined,
+        'text',
+        'e.g., 10',
+        'b2b-passengers'
+      );
+      setBookingStep('b2b-passengers');
+    } else if (bookingStep === 'b2b-passengers') {
+      const count = parseInt(inputValue) || undefined;
+      addUserMessage(inputValue);
+      setBookingData(prev => ({ ...prev, b2bPassengerCount: count }));
+      await showBookingSummary();
     } else if (bookingStep === 'luxury-pickup-address') {
       await handleLuxuryPickupAddress(inputValue);
     } else {
@@ -1751,7 +1800,35 @@ export function SmartShivi() {
     } else if (action === 'add-requirements') {
       await askForRequirements();
     } else if (action === 'skip-requirements') {
-      await submitBooking();
+      await checkB2BOrShowSummary();
+    } else if (action === 'b2b-purpose') {
+      if (value === 'personal') {
+        addUserMessage('Personal Booking');
+        setBookingData(prev => ({ ...prev, b2bPurpose: 'personal' }));
+        await showBookingSummary();
+      } else {
+        addUserMessage('Company (B2B) Booking');
+        setBookingData(prev => ({ ...prev, b2bPurpose: 'company' }));
+        const currentSvcType = currentServiceTypeRef.current || '';
+        const isBusSvc = currentSvcType.includes('bus') || currentSvcType.includes('tempo');
+        const isSelfDriveSvc = currentSvcType.includes('self-drive');
+        const isLuxurySvc = currentSvcType.includes('luxury');
+        const vehicleQuestion = isBusSvc
+          ? "🚌 How many buses do you need?"
+          : isSelfDriveSvc
+          ? "🚗 How many self-drive cars do you need?"
+          : isLuxurySvc
+          ? "👑 How many luxury cars do you need?"
+          : "🚗 How many vehicles do you need?";
+        addShiviMessage(
+          vehicleQuestion,
+          undefined,
+          'text',
+          'e.g., 2',
+          'b2b-vehicles'
+        );
+        setBookingStep('b2b-vehicles');
+      }
     } else if (action === 'confirm-booking') {
       await submitBooking();
     } else if (action === 'new-booking') {
@@ -2668,6 +2745,17 @@ export function SmartShivi() {
     setBookingStep('name');
   };
 
+  // B2B: Ask Personal or Company booking purpose
+  const askB2BBookingPurpose = async () => {
+    addShiviMessage(
+      "🏢 Since you're a B2B corporate customer, is this booking for:\n\n• **Personal** – Regular booking (advance payment required)\n• **Company** – B2B booking (no advance, added to company account)",
+      [
+        { label: '👤 Personal Booking', action: 'b2b-purpose', value: 'personal' },
+        { label: '🏢 Company (B2B) Booking', action: 'b2b-purpose', value: 'company' },
+      ]
+    );
+  };
+
   const handleName = async (name: string) => {
     setBookingData((prev) => ({ ...prev, name }));
 
@@ -2747,7 +2835,35 @@ export function SmartShivi() {
 
   const handleRequirements = async (requirements: string) => {
     setBookingData((prev) => ({ ...prev, requirements }));
-    await showBookingSummary();
+    await checkB2BOrShowSummary();
+  };
+
+  // Check if B2B eligible before showing summary
+  const checkB2BOrShowSummary = async () => {
+    const currentServiceType = currentServiceTypeRef.current || bookingData.serviceType || '';
+    if (isB2B && B2B_ELIGIBLE_SERVICES.includes(currentServiceType) && !bookingData.b2bPurpose) {
+      await askB2BBookingPurpose();
+    } else {
+      // B2B customer booking a non-B2B service — show advance payment note
+      const NON_B2B_SERVICE_NOTES: Record<string, string> = {
+        'bike-on-rent': 'Bike rental',
+        'activa-on-rent': 'Bike rental',
+        'royal-enfield-on-rent': 'Bike rental',
+        'mini-truck-rental': 'Truck rental',
+        'transporter': 'Truck rental',
+        'trailer-on-rent': 'Truck rental',
+        'equipment-rental': 'Equipment rental',
+        'jcb-on-rent': 'Equipment rental',
+        'packers-and-movers': 'Packers & Movers',
+      };
+      const nonB2BLabel = NON_B2B_SERVICE_NOTES[currentServiceType];
+      if (isB2B && nonB2BLabel) {
+        addShiviMessage(
+          `ℹ️ **Note:** ${nonB2BLabel} is not covered under B2B corporate accounts. This booking will require **advance payment** like a regular booking.`
+        );
+      }
+      await showBookingSummary();
+    }
   };
 
   const showBookingSummary = async () => {
@@ -2791,16 +2907,23 @@ export function SmartShivi() {
     const summaryFirstName = resolvedSummaryName.split(' ')[0] || '';
 
     const hasPrice = bookingData.carEstimatedPrice || bookingData.selectedDailyRate;
-    const vendorMsg = hasPrice
+    const isB2BCompany = isB2B && bookingData.b2bPurpose === 'company';
+    const vendorMsg = isB2BCompany
+      ? '🏢 This will be added to your company\'s B2B account. No advance payment required!'
+      : hasPrice
       ? '✨ Your booking will be confirmed shortly!'
       : '✨ You\'ll receive quotations from multiple verified vendors!';
+
+    const b2bDetails = isB2BCompany
+      ? `\n\n🏢 B2B Company Booking:\n• Vehicles Required: ${bookingData.b2bVehiclesRequired || 1}${bookingData.b2bPassengerCount ? `\n• Passengers: ${bookingData.b2bPassengerCount}` : ''}`
+      : '';
 
     const summary = `
 🎯 Almost Done${resolvedSummaryName ? `, ${summaryFirstName}` : ''}! Here's your booking summary:
 
 🚗 Service: ${serviceTypeName}${carDetails}${vehicleDetails}
 📍 From: ${bookingData.pickupLocation}${bookingData.dropLocation && bookingData.dropLocation !== bookingData.pickupLocation ? `\n📍 To: ${bookingData.dropLocation}` : ''}
-📅 Pickup: ${bookingData.pickupDate} at ${bookingData.pickupTime}${bookingData.returnDate ? `\n📅 Return: ${bookingData.returnDate} at ${bookingData.returnTime}` : ''}${tripDuration}
+📅 Pickup: ${bookingData.pickupDate} at ${bookingData.pickupTime}${bookingData.returnDate ? `\n📅 Return: ${bookingData.returnDate} at ${bookingData.returnTime}` : ''}${tripDuration}${b2bDetails}
 
 👤 Contact Details:
 • Name: ${bookingData.name || customer?.name || 'N/A'}
@@ -2943,8 +3066,53 @@ Ready to confirm?
       let bookingId = '';
       let dashboardUrl = '/customer/dashboard';
 
+      // B2B Company booking — route to B2B API
+      if (isB2B && bookingData.b2bPurpose === 'company' && B2B_ELIGIBLE_SERVICES.includes(currentServiceType)) {
+        const b2bServiceType = currentServiceType.includes('self-drive') ? 'self-drive'
+          : currentServiceType.includes('bus') || currentServiceType.includes('tempo') ? 'bus'
+          : currentServiceType.includes('luxury') ? 'luxury'
+          : 'car';
+        const b2bTripType = currentServiceType.includes('local') || currentServiceType.includes('hourly') ? 'HOURLY'
+          : currentServiceType.includes('one-way') ? 'ONE_WAY'
+          : 'ONE_WAY';
+        const busVehicleCategoryMap: Record<string, string> = {
+          'tempo-traveller': 'Tempo Traveller',
+          'bus-rental': 'Bus (45 Seater)',
+          'corporate-bus-rental': 'Corporate Bus',
+          'wedding-bus-rental': 'Luxury Bus',
+        };
+        const b2bVehicleCategory = b2bServiceType === 'bus'
+          ? (busVehicleCategoryMap[currentServiceType] || 'Bus')
+          : b2bServiceType === 'self-drive'
+          ? (bookingData.selfDriveVehicleType || bookingData.selectedVehicleName || 'Car')
+          : b2bServiceType === 'luxury'
+          ? (bookingData.luxuryVehicleCategory || bookingData.luxuryVehiclePreference || 'Premium Sedan')
+          : (bookingData.selectedCarCategoryName || bookingData.selectedVehicleName || undefined);
+        const payload = {
+          customerId: bookingData.b2bCustomerId || customer?.id,
+          serviceType: b2bServiceType,
+          vehiclesRequired: bookingData.b2bVehiclesRequired || 1,
+          passengerCount: bookingData.b2bPassengerCount || undefined,
+          vehicleCategory: b2bVehicleCategory,
+          pickupLocation: bookingData.pickupLocation || '',
+          dropLocation: bookingData.dropLocation || undefined,
+          tripType: b2bTripType,
+          scheduledDate: bookingData.pickupDate || '',
+          scheduledTime: pickupTime24,
+          returnDate: bookingData.returnDate || undefined,
+          specialNotes: bookingData.requirements || undefined,
+        };
+        response = await fetch('/api/b2b/bookings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        result = await response.json();
+        bookingId = result.booking?.bookingNumber || result.booking?.id || '';
+        dashboardUrl = `/customer/b2b-bookings${result.booking?.id ? `/${result.booking.id}` : ''}${bookingData.b2bCustomerId ? `?customer_id=${bookingData.b2bCustomerId}` : ''}`;
+
       // Route to correct API based on service type
-      if (['bike-on-rent', 'activa-on-rent', 'royal-enfield-on-rent'].includes(currentServiceType)) {
+      } else if (['bike-on-rent', 'activa-on-rent', 'royal-enfield-on-rent'].includes(currentServiceType)) {
         // BIKE RENTAL - Use /api/bike-quote-requests (quote flow)
         const bikeCategory = currentServiceType.includes('activa') ? 'Scooter' : currentServiceType.includes('royal') ? 'Cruiser' : 'Bike';
         const payload = {
@@ -2972,7 +3140,7 @@ Ready to confirm?
           body: JSON.stringify(payload),
         });
         result = await response.json();
-        bookingId = result.request?.requestNumber || '';
+        bookingId = result.quoteRequest?.requestNumber || result.quoteRequest?.id || '';
         dashboardUrl = '/customer/bike-quotes';
 
       } else if (['self-drive-car-rentals', 'self-drive-rental'].includes(currentServiceType)) {
@@ -3001,7 +3169,7 @@ Ready to confirm?
           body: JSON.stringify(payload),
         });
         result = await response.json();
-        bookingId = result.request?.requestNumber || '';
+        bookingId = result.quoteRequest?.requestNumber || result.quoteRequest?.id || '';
         dashboardUrl = '/customer/self-drive-quotes';
 
       } else if (['outstation-car-rental', 'one-way-car-rental', 'airport-transfer', 'local-taxi'].includes(currentServiceType)) {

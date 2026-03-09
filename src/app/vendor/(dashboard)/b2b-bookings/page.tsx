@@ -57,15 +57,15 @@ const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
   CANCELLED: { label: 'Cancelled', color: 'bg-red-100 text-red-700' },
 };
 
-const SERVICE_CONFIG: Record<string, { label: string; icon: any; color: string; flow: 'direct' | 'quote' }> = {
-  car: { label: 'Car Rental', icon: Car, color: 'bg-blue-100 text-blue-700', flow: 'direct' },
-  'self-drive': { label: 'Self Drive', icon: Car, color: 'bg-sky-100 text-sky-700', flow: 'quote' },
-  bus: { label: 'Bus Rental', icon: Bus, color: 'bg-amber-100 text-amber-700', flow: 'quote' },
-  truck: { label: 'Truck Rental', icon: Truck, color: 'bg-red-100 text-red-700', flow: 'quote' },
-  bike: { label: 'Bike Rental', icon: Bike, color: 'bg-green-100 text-green-700', flow: 'direct' },
-  equipment: { label: 'Equipment', icon: Wrench, color: 'bg-cyan-100 text-cyan-700', flow: 'quote' },
-  packers: { label: 'Packers & Movers', icon: Package, color: 'bg-pink-100 text-pink-700', flow: 'quote' },
-  luxury: { label: 'Luxury Car', icon: Star, color: 'bg-yellow-100 text-yellow-700', flow: 'direct' },
+const SERVICE_CONFIG: Record<string, { label: string; icon: any; color: string; badgeColor: string; borderColor: string; iconBg: string; iconText: string; flow: 'direct' | 'quote' }> = {
+  car: { label: 'Car Rental', icon: Car, color: 'bg-blue-100 text-blue-700', badgeColor: 'bg-blue-600 text-white', borderColor: 'border-l-blue-500', iconBg: 'bg-blue-100', iconText: 'text-blue-700', flow: 'direct' },
+  'self-drive': { label: 'Self Drive', icon: Car, color: 'bg-sky-100 text-sky-700', badgeColor: 'bg-sky-600 text-white', borderColor: 'border-l-sky-500', iconBg: 'bg-sky-100', iconText: 'text-sky-700', flow: 'quote' },
+  bus: { label: 'Bus Rental', icon: Bus, color: 'bg-amber-100 text-amber-700', badgeColor: 'bg-amber-500 text-white', borderColor: 'border-l-amber-500', iconBg: 'bg-amber-100', iconText: 'text-amber-700', flow: 'quote' },
+  truck: { label: 'Truck Rental', icon: Truck, color: 'bg-red-100 text-red-700', badgeColor: 'bg-red-600 text-white', borderColor: 'border-l-red-500', iconBg: 'bg-red-100', iconText: 'text-red-700', flow: 'quote' },
+  bike: { label: 'Bike Rental', icon: Bike, color: 'bg-green-100 text-green-700', badgeColor: 'bg-green-600 text-white', borderColor: 'border-l-green-500', iconBg: 'bg-green-100', iconText: 'text-green-700', flow: 'direct' },
+  equipment: { label: 'Equipment', icon: Wrench, color: 'bg-cyan-100 text-cyan-700', badgeColor: 'bg-cyan-600 text-white', borderColor: 'border-l-cyan-500', iconBg: 'bg-cyan-100', iconText: 'text-cyan-700', flow: 'quote' },
+  packers: { label: 'Packers & Movers', icon: Package, color: 'bg-pink-100 text-pink-700', badgeColor: 'bg-pink-600 text-white', borderColor: 'border-l-pink-500', iconBg: 'bg-pink-100', iconText: 'text-pink-700', flow: 'quote' },
+  luxury: { label: 'Luxury Car', icon: Star, color: 'bg-yellow-100 text-yellow-700', badgeColor: 'bg-yellow-500 text-white', borderColor: 'border-l-yellow-500', iconBg: 'bg-yellow-100', iconText: 'text-yellow-700', flow: 'direct' },
 };
 
 const TRIP_TYPE_LABELS: Record<string, string> = {
@@ -106,6 +106,7 @@ const FILTER_TABS = [
   { value: 'bus', label: 'Bus' },
   { value: 'self-drive', label: 'Self Drive' },
   { value: 'truck', label: 'Truck' },
+  { value: 'luxury', label: 'Luxury Car' },
 ];
 
 export default function VendorB2BBookingsPage() {
@@ -282,18 +283,18 @@ export default function VendorB2BBookingsPage() {
             return (
               <div
                 key={booking.id}
-                className="bg-white rounded-xl border border-gray-200 hover:border-teal-300 hover:shadow-md transition overflow-hidden"
+                className={`bg-white rounded-xl border border-gray-200 border-l-4 ${svcConfig.borderColor} hover:shadow-md transition overflow-hidden`}
               >
                 {/* Header Bar */}
-                <div className="bg-gradient-to-r from-teal-50 to-cyan-50 border-b border-teal-100 px-6 py-3 flex items-center justify-between">
+                <div className="bg-gradient-to-r from-gray-50 to-gray-50 border-b border-gray-100 px-6 py-3 flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <Building2 className="w-5 h-5 text-teal-600" />
-                    <span className="text-xs font-mono text-teal-600 bg-teal-100 px-2 py-0.5 rounded">{booking.bookingNumber}</span>
+                    <Building2 className="w-5 h-5 text-gray-500" />
+                    <span className="text-xs font-mono text-gray-500 bg-gray-100 px-2 py-0.5 rounded">{booking.bookingNumber}</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    {/* Service Badge */}
-                    <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium ${svcConfig.color}`}>
-                      <SvcIcon className="w-3 h-3" />
+                    {/* Service Badge - prominent */}
+                    <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold ${svcConfig.badgeColor}`}>
+                      <SvcIcon className="w-3.5 h-3.5" />
                       {svcConfig.label}
                     </span>
                     {/* Status */}
@@ -309,10 +310,10 @@ export default function VendorB2BBookingsPage() {
                     <div className="flex-1 space-y-4">
                       {/* Requirement Cards */}
                       <div className="flex items-center gap-4">
-                        <div className="bg-teal-100 rounded-xl p-3 text-center min-w-[80px]">
-                          <SvcIcon className="w-6 h-6 text-teal-700 mx-auto mb-1" />
-                          <p className="text-2xl font-bold text-teal-800">{booking.vehiclesRequired}</p>
-                          <p className="text-xs text-teal-600">Vehicles</p>
+                        <div className={`${svcConfig.iconBg} rounded-xl p-3 text-center min-w-[80px]`}>
+                          <SvcIcon className={`w-6 h-6 ${svcConfig.iconText} mx-auto mb-1`} />
+                          <p className={`text-2xl font-bold ${svcConfig.iconText}`}>{booking.vehiclesRequired}</p>
+                          <p className={`text-xs ${svcConfig.iconText} opacity-80`}>Vehicles</p>
                         </div>
                         {booking.passengerCount && (
                           <div className="bg-blue-50 rounded-xl p-3 text-center min-w-[80px]">

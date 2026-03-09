@@ -9,6 +9,7 @@ import {
   Package,
   Wrench,
   Crown,
+  Building2,
   Calendar,
   MapPin,
   Clock,
@@ -91,10 +92,22 @@ const SERVICE_ICONS: Record<string, any> = {
   b2b: Car,
 };
 
+const SERVICE_FILTERS = [
+  { value: 'all', label: 'All', icon: Car },
+  { value: 'car', label: 'Car', icon: Car },
+  { value: 'bus', label: 'Bus', icon: Bus },
+  { value: 'truck', label: 'Truck', icon: Truck },
+  { value: 'luxury', label: 'Luxury', icon: Crown },
+  { value: 'packers', label: 'Packers', icon: Package },
+  { value: 'equipment', label: 'Equipment', icon: Wrench },
+  { value: 'b2b', label: 'B2B', icon: Building2 },
+];
+
 export default function DriverDashboardPage() {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [stats, setStats] = useState<Stats>({ total: 0, active: 0, completed: 0, totalEarnings: 0 });
   const [isLoading, setIsLoading] = useState(true);
+  const [serviceFilter, setServiceFilter] = useState('all');
 
   useEffect(() => {
     fetchBookings();
@@ -185,7 +198,7 @@ export default function DriverDashboardPage() {
 
       {/* Active Trips */}
       <div>
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-3">
           <h2 className="text-lg font-bold text-gray-900">Active Trips</h2>
           <Link
             href="/driver/bookings"
@@ -195,15 +208,55 @@ export default function DriverDashboardPage() {
           </Link>
         </div>
 
-        {bookings.length === 0 ? (
-          <div className="bg-white rounded-xl border p-8 text-center">
-            <Car className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-            <h3 className="font-medium text-gray-900 mb-1">No Active Trips</h3>
-            <p className="text-sm text-gray-500">You don't have any assigned trips right now</p>
-          </div>
-        ) : (
+        {/* Service Filter Tabs */}
+        <div className="flex gap-2 overflow-x-auto pb-2 mb-4">
+          {SERVICE_FILTERS.map((tab) => {
+            const TabIcon = tab.icon;
+            const count = tab.value === 'all'
+              ? bookings.length
+              : bookings.filter(b => (b.serviceType || 'car') === tab.value).length;
+            return (
+              <button
+                key={tab.value}
+                onClick={() => setServiceFilter(tab.value)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition ${
+                  serviceFilter === tab.value
+                    ? 'bg-emerald-600 text-white shadow'
+                    : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
+                }`}
+              >
+                <TabIcon className="w-3.5 h-3.5" />
+                {tab.label}
+                {count > 0 && (
+                  <span className={`ml-0.5 px-1.5 py-0.5 rounded-full text-xs font-bold ${
+                    serviceFilter === tab.value ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-500'
+                  }`}>{count}</span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        {(() => {
+          const filtered = serviceFilter === 'all'
+            ? bookings
+            : bookings.filter(b => (b.serviceType || 'car') === serviceFilter);
+
+          if (filtered.length === 0) {
+            return (
+              <div className="bg-white rounded-xl border p-8 text-center">
+                <Car className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                <h3 className="font-medium text-gray-900 mb-1">No Active Trips</h3>
+                <p className="text-sm text-gray-500">
+                  {serviceFilter === 'all' ? "You don't have any assigned trips right now" : `No active ${serviceFilter} trips`}
+                </p>
+              </div>
+            );
+          }
+
+          return (
           <div className="space-y-4">
-            {bookings.slice(0, 5).map((booking) => {
+            {filtered.slice(0, 5).map((booking) => {
               const statusConfig = STATUS_CONFIG[booking.status] || STATUS_CONFIG.DRIVER_ASSIGNED;
               const ServiceIcon = SERVICE_ICONS[booking.serviceType || 'car'] || Car;
               const isTruck = booking.serviceType === 'truck';
@@ -363,7 +416,8 @@ export default function DriverDashboardPage() {
               );
             })}
           </div>
-        )}
+          );
+        })()}
       </div>
     </div>
   );

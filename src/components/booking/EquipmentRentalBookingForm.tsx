@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Calendar, User, Mail, Phone, MessageSquare, ArrowRight, Check, CheckCircle } from 'lucide-react';
+import { Calendar, User, Mail, Phone, MessageSquare, ArrowRight, Check, CheckCircle, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useBookingSubmission } from './useBookingSubmission';
 import { LocationAutocomplete } from './LocationAutocomplete';
@@ -34,6 +34,7 @@ export function EquipmentRentalBookingForm() {
   const [currentStep, setCurrentStep] = useState(1);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [loggedInCustomer, setLoggedInCustomer] = useState<any>(null);
+  const [isB2B, setIsB2B] = useState(false);
   const [formData, setFormData] = useState({
     pickupLocationId: '',
     pickupLocation: '',
@@ -67,6 +68,16 @@ export function EquipmentRentalBookingForm() {
             email: customer.email || '',
             phone: customer.phone || '',
           }));
+          // Check B2B status
+          const params = new URLSearchParams();
+          if (customer.id) params.set('customer_id', String(customer.id));
+          if (customer.email) params.set('email', customer.email);
+          if (params.toString()) {
+            fetch(`/api/customer/b2b-status?${params.toString()}`)
+              .then(res => res.json())
+              .then(data => { if (data.isB2B) setIsB2B(true); })
+              .catch(() => {});
+          }
         } catch (e) {
           console.error('Failed to parse customer data:', e);
         }
@@ -172,6 +183,18 @@ export function EquipmentRentalBookingForm() {
           ))}
         </div>
       </div>
+
+      {isB2B && (
+        <div className="mb-4 flex items-start gap-3 bg-amber-50 border border-amber-300 rounded-2xl p-4">
+          <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="font-semibold text-amber-800">Advance Payment Required</p>
+            <p className="text-sm text-amber-700 mt-0.5">
+              Equipment Rental is <strong>not covered under your B2B agreement</strong>. This booking will not be counted as a B2B booking — advance payment will be required before confirmation.
+            </p>
+          </div>
+        </div>
+      )}
 
       <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-2xl p-8">
         {currentStep === 1 && (

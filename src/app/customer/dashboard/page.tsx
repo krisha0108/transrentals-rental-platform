@@ -316,14 +316,30 @@ export default function CustomerDashboardPage() {
     }));
   }, [customer]);
 
+  // Service type to name mapping for filter matching
+  const SERVICE_TYPE_NAMES: Record<string, string> = {
+    luxury: 'Luxury Car Rental',
+    bike: 'Bike Rental',
+    bus: 'Bus Rental',
+    truck: 'Truck Rental',
+    packers: 'Packers & Movers',
+    equipment: 'Equipment Rental',
+    car: 'Car Rental',
+    chauffeur: 'Chauffeur Service',
+  };
+
   // Filter bookings when service/location filters or bookings change
   useEffect(() => {
     let filtered = bookings;
 
     if (selectedService !== 'all') {
-      filtered = filtered.filter((b) =>
-        b.service_name.toLowerCase().includes(selectedService.toLowerCase())
-      );
+      filtered = filtered.filter((b) => {
+        const nameMatch = b.service_name.toLowerCase().includes(selectedService.toLowerCase());
+        const typeMatch = b.service_type
+          ? SERVICE_TYPE_NAMES[b.service_type]?.toLowerCase() === selectedService.toLowerCase()
+          : false;
+        return nameMatch || typeMatch;
+      });
     }
 
     if (selectedLocation !== 'all') {
@@ -337,10 +353,12 @@ export default function CustomerDashboardPage() {
     setFilteredBookings(filtered);
   }, [selectedService, selectedLocation, bookings]);
 
-  // Extract unique services from bookings
+  // Extract unique services from bookings, always include Luxury Car Rental
   useEffect(() => {
-    const services = [...new Set(bookings.map((b) => b.service_name))];
-    setServiceOptions(services);
+    const fromBookings = [...new Set(bookings.map((b) => b.service_name))];
+    const ALWAYS_AVAILABLE = ['Luxury Car Rental'];
+    const merged = [...new Set([...fromBookings, ...ALWAYS_AVAILABLE])];
+    setServiceOptions(merged);
   }, [bookings]);
 
   // Extract unique pickup/drop locations from bookings
@@ -700,43 +718,50 @@ export default function CustomerDashboardPage() {
     return configs[status] || configs.Open;
   };
 
-  const getServiceIcon = (serviceName: string) => {
+  const getServiceIcon = (serviceName: string, serviceType?: string) => {
     const name = serviceName.toLowerCase();
-    if (name.includes('bike') || name.includes('scooter')) return '🏍️';
-    if (name.includes('bus')) return '🚌';
-    if (name.includes('truck') || name.includes('transport')) return '🚛';
-    if (name.includes('luxury')) return '✨';
-    if (name.includes('packer') || name.includes('mover')) return '📦';
-    if (name.includes('equipment')) return '🏗️';
-    if (name.includes('self') || name.includes('drive')) return '🔑';
+    const type = serviceType || '';
+    if (type === 'bike' || name.includes('bike') || name.includes('scooter')) return '🏍️';
+    if (type === 'bus' || name.includes('bus') || name.includes('tempo')) return '🚌';
+    if (type === 'truck' || name.includes('truck') || name.includes('transport')) return '🚛';
+    if (type === 'luxury' || name.includes('luxury')) return '👑';
+    if (type === 'packers' || name.includes('packer') || name.includes('mover')) return '📦';
+    if (type === 'equipment' || name.includes('equipment') || name.includes('jcb') || name.includes('crane')) return '🏗️';
+    if (type === 'car' || name.includes('self') || name.includes('self-drive')) return '🔑';
+    if (type === 'chauffeur' || name.includes('chauffeur') || name.includes('driver')) return '🚖';
     return '🚗';
   };
 
-  // Get service badge color based on service type
+  // Get service badge color and label based on service type
   const getServiceBadge = (serviceType?: string, serviceName?: string) => {
-    const type = serviceType || serviceName?.toLowerCase() || '';
-    if (type.includes('bike')) {
-      return { bg: 'bg-blue-100', text: 'text-blue-700', label: 'Bike' };
+    const type = serviceType || '';
+    const name = serviceName?.toLowerCase() || '';
+
+    if (type === 'bike' || name.includes('bike') || name.includes('scooter')) {
+      return { bg: 'bg-blue-100', text: 'text-blue-700', border: 'border-blue-200', label: '🏍️ Bike Rental' };
     }
-    if (type.includes('bus')) {
-      return { bg: 'bg-orange-100', text: 'text-orange-700', label: 'Bus' };
+    if (type === 'bus' || name.includes('bus') || name.includes('tempo traveller')) {
+      return { bg: 'bg-orange-100', text: 'text-orange-700', border: 'border-orange-200', label: '🚌 Bus Rental' };
     }
-    if (type.includes('truck')) {
-      return { bg: 'bg-indigo-100', text: 'text-indigo-700', label: 'Truck' };
+    if (type === 'truck' || name.includes('truck') || name.includes('transporter')) {
+      return { bg: 'bg-red-100', text: 'text-red-700', border: 'border-red-200', label: '🚛 Truck Rental' };
     }
-    if (type.includes('packer') || type.includes('mover')) {
-      return { bg: 'bg-teal-100', text: 'text-teal-700', label: 'Packers' };
+    if (type === 'luxury' || name.includes('luxury')) {
+      return { bg: 'bg-yellow-100', text: 'text-yellow-700', border: 'border-yellow-200', label: '👑 Luxury Car' };
     }
-    if (type.includes('equipment')) {
-      return { bg: 'bg-amber-100', text: 'text-amber-700', label: 'Equipment' };
+    if (type === 'packers' || name.includes('packer') || name.includes('mover')) {
+      return { bg: 'bg-teal-100', text: 'text-teal-700', border: 'border-teal-200', label: '📦 Packers & Movers' };
     }
-    if (type.includes('chauffeur') || type.includes('driver')) {
-      return { bg: 'bg-purple-100', text: 'text-purple-700', label: 'Chauffeur' };
+    if (type === 'equipment' || name.includes('equipment') || name.includes('jcb') || name.includes('crane')) {
+      return { bg: 'bg-amber-100', text: 'text-amber-700', border: 'border-amber-200', label: '🏗️ Equipment' };
     }
-    if (type.includes('car') || type.includes('self')) {
-      return { bg: 'bg-emerald-100', text: 'text-emerald-700', label: 'Car' };
+    if (type === 'car' || name.includes('self-drive') || name.includes('self drive')) {
+      return { bg: 'bg-sky-100', text: 'text-sky-700', border: 'border-sky-200', label: '🔑 Self Drive' };
     }
-    return { bg: 'bg-gray-100', text: 'text-gray-700', label: 'Rental' };
+    if (type === 'chauffeur' || name.includes('chauffeur') || name.includes('outstation') || name.includes('airport') || name.includes('local')) {
+      return { bg: 'bg-emerald-100', text: 'text-emerald-700', border: 'border-emerald-200', label: '🚗 Car Rental' };
+    }
+    return { bg: 'bg-gray-100', text: 'text-gray-700', border: 'border-gray-200', label: '🚗 Car Rental' };
   };
 
   const getGreeting = () => {
@@ -1445,8 +1470,8 @@ export default function CustomerDashboardPage() {
                       <div className="flex items-start gap-3 md:gap-5">
                         {/* Service Icon */}
                         <div className="relative">
-                          <div className="w-12 h-12 md:w-16 md:h-16 bg-gradient-to-br from-purple-100 to-blue-100 rounded-xl md:rounded-2xl flex items-center justify-center text-2xl md:text-3xl flex-shrink-0 group-hover:scale-110 transition-transform duration-300 shadow-sm">
-                            {getServiceIcon(booking.service_name)}
+                          <div className={`w-12 h-12 md:w-16 md:h-16 ${serviceBadge.bg} border ${serviceBadge.border} rounded-xl md:rounded-2xl flex items-center justify-center text-2xl md:text-3xl flex-shrink-0 group-hover:scale-110 transition-transform duration-300 shadow-sm`}>
+                            {getServiceIcon(booking.service_name, booking.service_type)}
                           </div>
                           <div className={`absolute -top-1 -right-1 w-3 h-3 md:w-4 md:h-4 rounded-full ${statusConfig.dot} border-2 border-white`}></div>
                         </div>
@@ -1457,7 +1482,7 @@ export default function CustomerDashboardPage() {
                             <div className="flex-1">
                               <div className="flex flex-wrap items-center gap-2 md:gap-3 mb-1 md:mb-2">
                                 {/* Service Badge */}
-                                <span className={`px-2 py-0.5 rounded text-[10px] md:text-xs font-semibold ${serviceBadge.bg} ${serviceBadge.text}`}>
+                                <span className={`px-2 py-0.5 rounded-md border text-[10px] md:text-xs font-semibold ${serviceBadge.bg} ${serviceBadge.text} ${serviceBadge.border}`}>
                                   {serviceBadge.label}
                                 </span>
                                 <h3 className="font-bold text-gray-900 text-sm md:text-lg group-hover:text-purple-700 transition-colors">

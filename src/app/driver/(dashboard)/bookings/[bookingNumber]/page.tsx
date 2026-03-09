@@ -67,12 +67,20 @@ interface Booking {
   driverBatta?: number;
   nightCharges?: number;
   tollCharges?: number;
-  serviceType?: 'car' | 'bus' | 'truck' | 'packers' | 'equipment' | 'luxury';
+  serviceType?: 'car' | 'bus' | 'truck' | 'packers' | 'equipment' | 'luxury' | 'b2b';
   location?: {
     id: string;
     name: string;
   };
   createdAt: string;
+  // B2B-specific fields
+  b2bBookingNumber?: string;
+  b2bStatus?: string;
+  vehicleImage?: string;
+  vehicleBrand?: string;
+  vehicleColor?: string;
+  vehicleSeats?: number;
+  vehicleFuel?: string;
   // Truck-specific fields
   goodsType?: string;
   loadingOtp?: string;
@@ -150,7 +158,7 @@ const SERVICE_ICONS: Record<string, any> = {
 };
 
 export default function DriverBookingDetailPage() {
-  const params = useParams();
+  const params = useParams()!;
   const bookingNumber = params.bookingNumber as string;
   const router = useRouter();
   const [booking, setBooking] = useState<Booking | null>(null);

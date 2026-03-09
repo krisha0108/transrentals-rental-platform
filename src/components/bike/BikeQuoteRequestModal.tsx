@@ -21,6 +21,7 @@ import {
   Eye,
   EyeOff,
   AlertCircle,
+  AlertTriangle,
   Loader2,
   ChevronRight,
 } from 'lucide-react';
@@ -82,6 +83,7 @@ export function BikeQuoteRequestModal({
   const [authMode, setAuthMode] = useState<AuthMode>('check');
   const [existingCustomer, setExistingCustomer] = useState<any>(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isB2B, setIsB2B] = useState(false);
 
   // Check if user is already logged in on mount
   React.useEffect(() => {
@@ -98,6 +100,16 @@ export function BikeQuoteRequestModal({
             setCustomerName(parsedCustomer.name || '');
             setCustomerEmail(parsedCustomer.email || '');
             setCustomerPhone(parsedCustomer.phone || '');
+            // Check B2B status
+            const params = new URLSearchParams();
+            if (parsedCustomer.id) params.set('customer_id', String(parsedCustomer.id));
+            if (parsedCustomer.email) params.set('email', parsedCustomer.email);
+            if (params.toString()) {
+              fetch(`/api/customer/b2b-status?${params.toString()}`)
+                .then(res => res.json())
+                .then(data => { if (data.isB2B) setIsB2B(true); })
+                .catch(() => {});
+            }
           } catch (e) {
             console.error('Failed to parse stored customer:', e);
             setIsLoggedIn(false);
@@ -503,6 +515,19 @@ export function BikeQuoteRequestModal({
                     <CheckCircle className="w-5 h-5 text-emerald-600" />
                   </div>
                 </div>
+
+                {/* B2B Warning */}
+                {isB2B && (
+                  <div className="mb-4 flex items-start gap-3 bg-amber-50 border border-amber-300 rounded-xl p-3">
+                    <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-semibold text-amber-800 text-sm">Advance Payment Required</p>
+                      <p className="text-xs text-amber-700 mt-0.5">
+                        Bike Rental is <strong>not covered under your B2B agreement</strong>. This booking will not be counted as a B2B booking — advance payment will be required before confirmation.
+                      </p>
+                    </div>
+                  </div>
+                )}
 
                 {/* Requirements */}
                 <div className="space-y-3 mb-6">
