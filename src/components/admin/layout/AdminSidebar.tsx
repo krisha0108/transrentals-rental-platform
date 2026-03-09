@@ -58,6 +58,7 @@ import {
   Navigation,
   CircleDollarSign,
   Plane,
+  Building2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { signOut } from 'next-auth/react';
@@ -364,10 +365,10 @@ const adminItems: NavItem[] = [
   {
     name: 'B2B Module',
     href: '/admin/b2b',
-    icon: Headphones,
+    icon: Building2,
     children: [
-      { name: 'B2B Customers', href: '/admin/b2b', icon: Headphones },
-      { name: 'B2B Bookings', href: '/admin/b2b/bookings', icon: Headphones },
+      { name: 'Companies', href: '/admin/b2b', icon: Building2 },
+      { name: 'Bookings & Invoices', href: '/admin/b2b/bookings', icon: FileText },
     ],
   },
   {

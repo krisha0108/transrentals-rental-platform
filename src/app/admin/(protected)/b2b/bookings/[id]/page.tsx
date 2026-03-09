@@ -6,7 +6,7 @@ import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import {
   Loader2, ArrowLeft, Building2, Truck, Calendar, MapPin, Clock, CheckCircle,
-  XCircle, Users, FileText, DollarSign, Copy, ExternalLink, AlertCircle
+  XCircle, Users, FileText, DollarSign, Copy, ExternalLink, AlertCircle, Send, Eye
 } from 'lucide-react';
 
 const STATUS_COLORS = {
@@ -37,8 +37,33 @@ export default function AdminB2BBookingDetailPage() {
   const [tripStats, setTripStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
+  const [invoiceForm, setInvoiceForm] = useState({ dueDate: '', notes: '' });
+  const [creating, setCreating] = useState(false);
 
   useEffect(() => { fetchBooking(); }, []);
+
+  async function generateInvoice() {
+    if (!invoiceForm.dueDate) { alert('Please set a due date'); return; }
+    setCreating(true);
+    try {
+      const res = await fetch('/api/b2b/invoices', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bookingId: booking.id, dueDate: invoiceForm.dueDate, notes: invoiceForm.notes }),
+      });
+      const data = await res.json();
+      if (data.status === 'success') {
+        alert(`Invoice ${data.invoice.invoiceNumber} generated successfully!`);
+        fetchBooking();
+      } else {
+        alert(data.error || 'Failed to generate invoice');
+      }
+    } catch (e) {
+      alert('Failed to generate invoice');
+    } finally {
+      setCreating(false);
+    }
+  }
 
   async function fetchBooking() {
     try {
@@ -264,15 +289,66 @@ export default function AdminB2BBookingDetailPage() {
 
       {activeTab === 'invoices' && (
         <div className="space-y-4">
+          {/* Generate Invoice Form */}
+          {['COMPLETED', 'IN_PROGRESS', 'TRIPS_CREATED'].includes(booking.status) && !booking.invoices?.find((i: any) => i.status !== 'CANCELLED') && (
+            <div className="bg-white rounded-xl border p-5">
+              <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                <FileText className="w-4 h-4 text-orange-500" />
+                Generate Invoice
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Due Date <span className="text-red-500">*</span></label>
+                  <input
+                    type="date"
+                    value={invoiceForm.dueDate}
+                    onChange={e => setInvoiceForm(f => ({ ...f, dueDate: e.target.value }))}
+                    min={new Date().toISOString().split('T')[0]}
+                    className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Notes (optional)</label>
+                  <input
+                    type="text"
+                    value={invoiceForm.notes}
+                    onChange={e => setInvoiceForm(f => ({ ...f, notes: e.target.value }))}
+                    placeholder="Payment terms, remarks..."
+                    className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
+                  />
+                </div>
+              </div>
+              <div className="mt-4 flex items-center gap-3">
+                <button
+                  onClick={generateInvoice}
+                  disabled={creating || !invoiceForm.dueDate}
+                  className="flex items-center gap-2 bg-orange-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                  {creating ? 'Generating...' : 'Generate Invoice'}
+                </button>
+                {booking.finalAmount && (
+                  <span className="text-sm text-gray-500">Amount: <span className="font-semibold text-gray-800">₹{booking.finalAmount?.toLocaleString('en-IN')}</span></span>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Existing Invoices */}
           {booking.invoices?.length === 0 ? (
-            <div className="text-center py-8 bg-white rounded-xl border text-gray-500">No invoices generated</div>
+            <div className="text-center py-8 bg-white rounded-xl border text-gray-500">No invoices generated yet</div>
           ) : booking.invoices?.map((inv: any) => (
             <div key={inv.id} className="bg-white rounded-xl border p-5">
               <div className="flex items-center justify-between mb-3">
                 <span className="font-mono font-bold text-orange-600">{inv.invoiceNumber}</span>
-                <span className={`px-3 py-1 rounded-full text-xs font-medium ${inv.status === 'PAID' ? 'bg-green-100 text-green-700' : inv.status === 'OVERDUE' ? 'bg-red-100 text-red-700' : 'bg-orange-100 text-orange-700'}`}>
-                  {inv.status}
-                </span>
+                <div className="flex items-center gap-2">
+                  <a href={`/invoice/b2b/${inv.id}`} target="_blank" className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 px-2 py-1 border border-blue-200 rounded-lg">
+                    <Eye className="w-3 h-3" /> View
+                  </a>
+                  <span className={`px-3 py-1 rounded-full text-xs font-medium ${inv.status === 'PAID' ? 'bg-green-100 text-green-700' : inv.status === 'OVERDUE' ? 'bg-red-100 text-red-700' : 'bg-orange-100 text-orange-700'}`}>
+                    {inv.status}
+                  </span>
+                </div>
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
                 <div><div className="text-gray-500">Total</div><div className="font-bold">₹{inv.totalAmount?.toLocaleString('en-IN')}</div></div>
@@ -280,6 +356,7 @@ export default function AdminB2BBookingDetailPage() {
                 <div><div className="text-gray-500">Due Date</div><div className="font-bold">{new Date(inv.dueDate).toLocaleDateString('en-IN')}</div></div>
                 <div><div className="text-gray-500">Paid</div><div className="font-bold">{inv.paidAt ? new Date(inv.paidAt).toLocaleDateString('en-IN') : '-'}</div></div>
               </div>
+              {inv.notes && <div className="mt-2 pt-2 border-t text-sm text-gray-500">{inv.notes}</div>}
             </div>
           ))}
         </div>

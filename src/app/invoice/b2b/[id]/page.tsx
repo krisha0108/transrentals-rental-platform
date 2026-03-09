@@ -5,7 +5,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import {
   Loader2, Download, CheckCircle, Phone, Mail,
-  Calendar, MapPin, CreditCard, FileText, Clock, Users, Car,
+  Calendar, MapPin, CreditCard, FileText, Clock, Users, Car, Bell,
 } from 'lucide-react';
 
 declare global {
@@ -20,8 +20,17 @@ export default function B2BInvoicePage() {
   const [paying, setPaying] = useState(false);
   const [paymentSuccess, setPaymentSuccess] = useState(false);
   const [downloading, setDownloading] = useState(false);
+  const [viewerRole, setViewerRole] = useState<string | null>(null);
+  const [sendingReminder, setSendingReminder] = useState(false);
 
-  useEffect(() => { fetchInvoice(); }, []);
+  useEffect(() => {
+    fetchInvoice();
+    // Detect viewer role (admin/manager vs customer)
+    fetch('/api/auth/session')
+      .then(r => r.json())
+      .then(d => { if (d?.user?.role) setViewerRole(d.user.role); })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     const script = document.createElement('script');
@@ -120,6 +129,25 @@ export default function B2BInvoicePage() {
       setDownloading(false);
     }
   }
+
+  async function sendReminder() {
+    setSendingReminder(true);
+    try {
+      const res = await fetch(`/api/b2b/invoices/${params.id}/remind`, { method: 'POST' });
+      const data = await res.json();
+      if (data.status === 'success') {
+        alert('Payment reminder sent to the customer successfully!');
+      } else {
+        alert(data.error || 'Failed to send reminder');
+      }
+    } catch (e) {
+      alert('Failed to send reminder');
+    } finally {
+      setSendingReminder(false);
+    }
+  }
+
+  const isAdminOrManager = viewerRole === 'ADMIN' || viewerRole === 'MANAGER';
 
   const formatDate = (d: string) => d ? new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' }) : '';
   const formatShortDate = (d: string) => d ? new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
@@ -350,9 +378,40 @@ export default function B2BInvoicePage() {
             </div>
           )}
 
-          {/* Pay Button - hidden in PDF */}
+          {/* Pay / Reminder Section - hidden in PDF */}
           <div id="pay-section">
-            {!isPaid && !paymentSuccess && (
+            {/* Admin / Manager view: show reminder button instead of pay button */}
+            {isAdminOrManager && !isPaid && (
+              <div className={`border rounded-xl p-5 ${invoice.status === 'OVERDUE' ? 'bg-red-50 border-red-200' : 'bg-gray-50 border-gray-200'}`}>
+                <div className="flex items-center justify-between flex-wrap gap-3">
+                  <div>
+                    <p className={`font-semibold text-sm ${invoice.status === 'OVERDUE' ? 'text-red-700' : 'text-gray-700'}`}>
+                      {invoice.status === 'OVERDUE' ? '⚠️ Invoice is Overdue' : 'Invoice Pending Payment'}
+                    </p>
+                    <p className={`text-xs mt-0.5 ${invoice.status === 'OVERDUE' ? 'text-red-500' : 'text-gray-500'}`}>
+                      {invoice.status === 'OVERDUE'
+                        ? 'Customer has not paid. Send a reminder notification.'
+                        : 'Customer will pay via their invoice link. You can send a reminder if needed.'}
+                    </p>
+                  </div>
+                  <button
+                    onClick={sendReminder}
+                    disabled={sendingReminder}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-50 transition ${
+                      invoice.status === 'OVERDUE'
+                        ? 'bg-red-600 text-white hover:bg-red-700'
+                        : 'bg-gray-700 text-white hover:bg-gray-800'
+                    }`}
+                  >
+                    {sendingReminder ? <Loader2 className="w-4 h-4 animate-spin" /> : <Bell className="w-4 h-4" />}
+                    {sendingReminder ? 'Sending...' : 'Send Payment Reminder'}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Customer view: show Razorpay pay button */}
+            {!isAdminOrManager && !isPaid && !paymentSuccess && (
               <div className="bg-gradient-to-r from-teal-50 to-cyan-50 border border-teal-200 rounded-xl p-6 text-center">
                 <p className="text-gray-600 text-sm mb-3">Pay securely using Razorpay</p>
                 <button
