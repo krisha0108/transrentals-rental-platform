@@ -35,18 +35,22 @@ export async function GET(request: NextRequest) {
     const documents = await prisma.vendor_documents.findMany({
       where: { vendorId },
       orderBy: { createdAt: 'desc' },
-      include: {
-        uploadedByAdmin: { select: { id: true, name: true, role: true } },
+      select: {
+        id: true,
+        vendorId: true,
+        documentType: true,
+        documentName: true,
+        documentUrl: true,
+        documentNumber: true,
+        status: true,
+        verifiedAt: true,
+        rejectionReason: true,
+        createdAt: true,
+        updatedAt: true,
       },
     });
 
-    const mapped = documents.map((doc) => ({
-      ...doc,
-      uploadedBy: doc.uploadedByAdmin,
-      uploadedByAdmin: undefined,
-    }));
-
-    return NextResponse.json(mapped);
+    return NextResponse.json(documents);
   } catch (error: any) {
     logger.error('Get documents error', error);
     return NextResponse.json(

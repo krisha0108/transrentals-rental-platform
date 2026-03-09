@@ -1,7 +1,7 @@
 // @ts-nocheck
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import {
@@ -17,7 +17,7 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }
   CANCELLED: { label: 'Cancelled', color: 'text-gray-700', bg: 'bg-gray-100 border-gray-200' },
 };
 
-export default function CustomerB2BInvoicesPage() {
+function CustomerB2BInvoicesContent() {
   const searchParams = useSearchParams();
   const [customerId, setCustomerId] = useState(searchParams.get('customer_id') || '');
   const [invoices, setInvoices] = useState<any[]>([]);
@@ -258,5 +258,13 @@ export default function CustomerB2BInvoicesPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function CustomerB2BInvoicesPage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center min-h-screen"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" /></div>}>
+      <CustomerB2BInvoicesContent />
+    </Suspense>
   );
 }

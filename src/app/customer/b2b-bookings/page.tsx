@@ -1,7 +1,7 @@
 // @ts-nocheck
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import {
@@ -53,7 +53,7 @@ const STATUS_FILTERS = [
   { key: 'completed', label: 'Completed' },
 ];
 
-export default function CustomerB2BBookingsPage() {
+function CustomerB2BBookingsContent() {
   const searchParams = useSearchParams();
   const [customerId, setCustomerId] = useState(searchParams.get('customer_id') || '');
   const [bookings, setBookings] = useState<any[]>([]);
@@ -343,5 +343,13 @@ export default function CustomerB2BBookingsPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function CustomerB2BBookingsPage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center min-h-screen"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" /></div>}>
+      <CustomerB2BBookingsContent />
+    </Suspense>
   );
 }

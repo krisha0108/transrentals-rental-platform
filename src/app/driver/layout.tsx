@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 
 // Sets driver-specific PWA manifest for all /driver/* routes
 export const metadata: Metadata = {
@@ -8,12 +8,15 @@ export const metadata: Metadata = {
     template: '%s | TR Driver',
   },
   description: 'Manage your trips and bookings as a TransRentals driver',
-  themeColor: '#059669',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
     title: 'TR Driver',
   },
+};
+
+export const viewport: Viewport = {
+  themeColor: '#059669',
 };
 
 export default function DriverRootLayout({

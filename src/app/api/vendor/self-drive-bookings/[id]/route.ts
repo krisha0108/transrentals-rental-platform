@@ -67,6 +67,7 @@ export async function GET(
       booking: {
         id: booking.id,
         bookingNumber: booking.bookingNumber,
+        isOwnBooking: isAssigned || isAccepted,
         customerId: booking.customerId,
         customerName: booking.customerName,
         customerEmail: booking.customerEmail,
