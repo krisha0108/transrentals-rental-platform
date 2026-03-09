@@ -3,6 +3,7 @@
 import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useSession, SessionProvider } from 'next-auth/react';
+import { useCustomerAuth } from '@/hooks/useCustomer';
 import { motion } from 'framer-motion';
 import {
   MapPin,
@@ -24,6 +25,7 @@ import {
   Lock,
   Eye,
   EyeOff,
+  Building2,
 } from 'lucide-react';
 import Link from 'next/link';
 import {
@@ -86,6 +88,7 @@ function LuxuryBookingContent({ location }: { location: string }) {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { data: session, status } = useSession();
+  const { customer: localCustomer, isAuthenticated: isLocalAuth } = useCustomerAuth();
 
   // Get booking details from URL params
   const tripType = searchParams.get('tripType') || 'local';
@@ -125,17 +128,43 @@ function LuxuryBookingContent({ location }: { location: string }) {
   const [passwordError, setPasswordError] = useState('');
   const [pendingRequestData, setPendingRequestData] = useState<any>(null);
 
-  // Check if user is logged in as customer
-  const isCustomerLoggedIn = status === 'authenticated' && session?.user?.role === 'customer';
+  // B2B state
+  const [isB2B, setIsB2B] = useState(false);
+  const [bookingPurpose, setBookingPurpose] = useState<'personal' | 'company'>('personal');
+  const [numberOfVehicles, setNumberOfVehicles] = useState('');
+  const [numberOfPersons, setNumberOfPersons] = useState('');
+  const [b2bCustomerId, setB2bCustomerId] = useState<string | null>(null);
 
-  // Auto-fill customer details when logged in
+  // Customer is logged in via next-auth (admin/manager) OR localStorage (regular/B2B customer)
+  const isNextAuthLoggedIn = status === 'authenticated' && session?.user?.role === 'customer';
+  const isCustomerLoggedIn = isNextAuthLoggedIn || isLocalAuth;
+
+  // Auto-fill from next-auth session
   useEffect(() => {
-    if (isCustomerLoggedIn && session?.user) {
+    if (isNextAuthLoggedIn && session?.user) {
       setCustomerName(session.user.name || '');
       setCustomerEmail(session.user.email || '');
       setCustomerPhone((session.user as any).phone || '');
     }
-  }, [isCustomerLoggedIn, session]);
+  }, [isNextAuthLoggedIn, session]);
+
+  // Auto-fill from localStorage customer (regular + B2B customers)
+  useEffect(() => {
+    if (isLocalAuth && localCustomer) {
+      setCustomerName(prev => prev || localCustomer.name || '');
+      setCustomerEmail(prev => prev || localCustomer.email || '');
+      setCustomerPhone(prev => prev || localCustomer.phone || '');
+      setB2bCustomerId(String(localCustomer.id));
+      // Check B2B status
+      const params = new URLSearchParams();
+      if (localCustomer.id) params.set('customer_id', String(localCustomer.id));
+      if (localCustomer.email) params.set('email', localCustomer.email);
+      fetch(`/api/customer/b2b-status?${params.toString()}`)
+        .then(res => res.json())
+        .then(data => { if (data.isB2B) setIsB2B(true); })
+        .catch(() => {});
+    }
+  }, [isLocalAuth, localCustomer]);
 
   const car = getLuxuryCarCategory(carCategory);
   const pkg = tripType === 'local' ? getLuxuryLocalPackage(localPackage) : null;
@@ -173,10 +202,58 @@ function LuxuryBookingContent({ location }: { location: string }) {
       needChauffeur: true,
       needDecoration,
       decorationType: needDecoration ? decorationType : null,
+      // B2B fields
+      ...(isB2B && bookingPurpose === 'company' && {
+        is_b2b: true,
+        booking_purpose: 'company',
+        number_of_vehicles: parseInt(numberOfVehicles) || 1,
+        number_of_persons: parseInt(numberOfPersons) || 1,
+        b2b_customer_id: b2bCustomerId,
+      }),
     };
   };
 
-  // Submit quote request (final step)
+  // Submit as B2B booking (when Company purpose selected)
+  const submitB2BBooking = async () => {
+    if (!b2bCustomerId) {
+      alert('B2B customer ID not found. Please login again.');
+      return;
+    }
+    setIsSubmitting(true);
+    try {
+      const b2bData = {
+        customerId: b2bCustomerId,
+        serviceType: 'luxury',
+        vehiclesRequired: parseInt(numberOfVehicles) || 1,
+        passengerCount: parseInt(numberOfPersons) || undefined,
+        vehicleCategory: carName,
+        pickupLocation: `${pickupCity}${pickupAddress ? ', ' + pickupAddress : ''}`,
+        dropLocation: dropCity || undefined,
+        tripType: tripType === 'local' ? 'HOURLY' : tripType === 'airport' ? 'ONE_WAY' : 'ONE_WAY',
+        scheduledDate: pickupDate,
+        scheduledTime: pickupTime,
+        returnDate: returnDate || undefined,
+        specialNotes: `Luxury Car: ${carName}${selectedModel ? ' - ' + selectedModel : ''}${occasion ? ' | Occasion: ' + occasion : ''}${specialRequests ? ' | ' + specialRequests : ''}`,
+      };
+      const res = await fetch('/api/b2b/bookings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(b2bData),
+      });
+      const data = await res.json();
+      if (data.status === 'success') {
+        router.push(`/customer/b2b-bookings/${data.booking.id}?customer_id=${b2bCustomerId}`);
+      } else {
+        alert(data.error || 'Failed to create B2B booking');
+      }
+    } catch (error) {
+      alert('Failed to submit booking. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Submit quote request (final step) - for personal bookings
   const submitQuoteRequest = async (requestData: any) => {
     setIsSubmitting(true);
     try {
@@ -211,6 +288,16 @@ function LuxuryBookingContent({ location }: { location: string }) {
 
     if (!agreeTerms) {
       alert('Please agree to the terms and conditions');
+      return;
+    }
+
+    // B2B Company booking → goes to B2B module
+    if (isB2B && bookingPurpose === 'company') {
+      if (!numberOfVehicles || !numberOfPersons) {
+        alert('Please enter number of vehicles and persons for company booking');
+        return;
+      }
+      await submitB2BBooking();
       return;
     }
 
@@ -744,6 +831,94 @@ function LuxuryBookingContent({ location }: { location: string }) {
                   </div>
                 )}
               </motion.div>
+
+              {/* B2B Booking Purpose */}
+              {isB2B && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.28 }}
+                  className="bg-white rounded-2xl shadow-lg p-6 border border-teal-100"
+                >
+                  <h2 className="font-semibold text-lg mb-1 flex items-center gap-2">
+                    <Building2 className="w-5 h-5 text-teal-600" />
+                    Booking Purpose
+                  </h2>
+                  <p className="text-sm text-gray-500 mb-4">Is this booking for personal use or on behalf of your company?</p>
+
+                  <div className="grid grid-cols-2 gap-3 mb-4">
+                    <button
+                      type="button"
+                      onClick={() => setBookingPurpose('personal')}
+                      className={`p-4 rounded-xl border-2 text-center transition-all ${
+                        bookingPurpose === 'personal'
+                          ? 'border-teal-500 bg-teal-50'
+                          : 'border-gray-200 hover:border-teal-300'
+                      }`}
+                    >
+                      <User className={`w-7 h-7 mx-auto mb-2 ${bookingPurpose === 'personal' ? 'text-teal-600' : 'text-gray-400'}`} />
+                      <span className={`font-semibold text-sm ${bookingPurpose === 'personal' ? 'text-teal-700' : 'text-gray-700'}`}>Personal</span>
+                      <p className="text-xs text-gray-500 mt-0.5">For personal use</p>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setBookingPurpose('company')}
+                      className={`p-4 rounded-xl border-2 text-center transition-all ${
+                        bookingPurpose === 'company'
+                          ? 'border-teal-500 bg-teal-50'
+                          : 'border-gray-200 hover:border-teal-300'
+                      }`}
+                    >
+                      <Building2 className={`w-7 h-7 mx-auto mb-2 ${bookingPurpose === 'company' ? 'text-teal-600' : 'text-gray-400'}`} />
+                      <span className={`font-semibold text-sm ${bookingPurpose === 'company' ? 'text-teal-700' : 'text-gray-700'}`}>Company</span>
+                      <p className="text-xs text-gray-500 mt-0.5">Corporate B2B booking</p>
+                    </button>
+                  </div>
+
+                  {bookingPurpose === 'company' && (
+                    <div className="bg-teal-50 rounded-xl p-4 border border-teal-200 space-y-3">
+                      <p className="text-sm font-semibold text-teal-800 flex items-center gap-2">
+                        <Users className="w-4 h-4" /> Corporate Booking Details
+                      </p>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">No. of Vehicles *</label>
+                          <input
+                            type="number"
+                            min="1"
+                            max="500"
+                            value={numberOfVehicles}
+                            onChange={(e) => setNumberOfVehicles(e.target.value)}
+                            placeholder="e.g. 5"
+                            className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">No. of Persons *</label>
+                          <input
+                            type="number"
+                            min="1"
+                            value={numberOfPersons}
+                            onChange={(e) => setNumberOfPersons(e.target.value)}
+                            placeholder="e.g. 10"
+                            className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                          />
+                        </div>
+                      </div>
+                      <p className="text-xs text-teal-600">This booking will be counted as a B2B corporate booking. Post-trip billing applies.</p>
+                    </div>
+                  )}
+
+                  {bookingPurpose === 'personal' && (
+                    <div className="flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-xl">
+                      <span className="text-amber-600 text-sm">⚠️</span>
+                      <p className="text-xs text-amber-700">
+                        Personal bookings require advance payment. Select <strong>Company</strong> above for post-trip B2B billing.
+                      </p>
+                    </div>
+                  )}
+                </motion.div>
+              )}
 
               {/* Pickup/Drop Address */}
               <motion.div

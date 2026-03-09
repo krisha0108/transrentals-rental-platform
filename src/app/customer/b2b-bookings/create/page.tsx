@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import {
   Loader2, ArrowLeft, Truck, MapPin, Calendar, Clock, FileText,
-  Users, Car, ChevronRight, Home, CheckCircle, Bike, Bus
+  Users, Car, ChevronRight, Home, CheckCircle, Bike, Bus, AlertTriangle
 } from 'lucide-react';
 
 const SERVICE_TYPES = [
@@ -17,6 +17,8 @@ const SERVICE_TYPES = [
   { value: 'truck', label: 'Truck / Tempo', icon: Truck, color: 'red' },
   { value: 'luxury', label: 'Luxury Car', icon: Car, color: 'purple' },
 ];
+
+const B2B_SERVICES = ['car', 'self-drive', 'bus'];
 
 const VEHICLE_CATEGORIES = [
   'Sedan', 'SUV', 'Hatchback', 'Mini Bus', 'AC Bus', 'Non-AC Bus',
@@ -351,20 +353,36 @@ export default function CreateB2BBookingPage() {
             />
           </div>
 
-          {/* Post-paid Info Banner */}
-          <div className="bg-green-50 rounded-2xl p-5 border border-green-200">
-            <div className="flex items-start gap-3">
-              <div className="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                <CheckCircle className="w-5 h-5 text-green-600" />
-              </div>
-              <div>
-                <h4 className="font-semibold text-green-800">No Payment Required Now</h4>
-                <p className="text-sm text-green-700 mt-0.5">
-                  This is a post-paid corporate booking. You'll receive quotes from vendors, and billing happens after trip completion.
-                </p>
+          {/* Payment Info Banner */}
+          {form.serviceType && !B2B_SERVICES.includes(form.serviceType) ? (
+            <div className="bg-amber-50 rounded-2xl p-5 border border-amber-300">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                  <AlertTriangle className="w-5 h-5 text-amber-600" />
+                </div>
+                <div>
+                  <h4 className="font-semibold text-amber-800">Advance Payment Required</h4>
+                  <p className="text-sm text-amber-700 mt-0.5">
+                    This service is <strong>not covered under your B2B agreement</strong>. This booking will not be counted as a B2B booking — advance payment will be required before trip confirmation.
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
+          ) : (
+            <div className="bg-green-50 rounded-2xl p-5 border border-green-200">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                  <CheckCircle className="w-5 h-5 text-green-600" />
+                </div>
+                <div>
+                  <h4 className="font-semibold text-green-800">No Payment Required Now</h4>
+                  <p className="text-sm text-green-700 mt-0.5">
+                    This is a post-paid corporate booking. You'll receive quotes from vendors, and billing happens after trip completion.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Submit Button */}
           <button

@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
-import { Send, Sparkles, CheckCircle, User } from 'lucide-react';
+import { Send, Sparkles, CheckCircle, User, AlertTriangle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLocations } from './useLocations';
 import { useServices } from './useServices';
@@ -58,6 +58,9 @@ export function ChatBookingHero({
   const [vehicleConfirmed, setVehicleConfirmed] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [loggedInCustomer, setLoggedInCustomer] = useState<any>(null);
+  const [isB2B, setIsB2B] = useState(false);
+
+  const B2B_SERVICES = ['car', 'self-drive', 'bus'];
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const greetingShownRef = useRef(false);
@@ -82,6 +85,16 @@ export function ChatBookingHero({
             email: customer.email || '',
             phone: customer.phone || '',
           }));
+          // Check B2B status
+          const params = new URLSearchParams();
+          if (customer.id) params.set('customer_id', String(customer.id));
+          if (customer.email) params.set('email', customer.email);
+          if (params.toString()) {
+            fetch(`/api/customer/b2b-status?${params.toString()}`)
+              .then(res => res.json())
+              .then(data => { if (data.isB2B) setIsB2B(true); })
+              .catch(() => {});
+          }
         } catch (e) {
           console.error('Failed to parse customer data:', e);
         }
@@ -2616,6 +2629,19 @@ export function ChatBookingHero({
                 </div>
               </div>
             </div>
+
+            {/* B2B Non-Service Warning */}
+            {isB2B && !B2B_SERVICES.includes(serviceType) && (
+              <div className="flex items-start gap-3 bg-amber-50 border-b border-amber-200 px-4 py-3">
+                <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-semibold text-amber-800 text-sm">Advance Payment Required</p>
+                  <p className="text-xs text-amber-700 mt-0.5">
+                    <strong>{serviceName}</strong> is not covered under your B2B agreement. This booking will not be counted as a B2B booking — advance payment will be required before confirmation.
+                  </p>
+                </div>
+              </div>
+            )}
 
             {/* Messages Container */}
             <div className="h-[280px] overflow-y-auto p-4 space-y-3 bg-gray-50">
