@@ -234,6 +234,8 @@ jobs:
 
       # Step 4: Install dependencies
       - name: Install dependencies
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: |
           echo "📦 Installing dependencies..."
           npm ci

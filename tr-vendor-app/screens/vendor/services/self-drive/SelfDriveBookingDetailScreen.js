@@ -264,12 +264,12 @@ export default function SelfDriveBookingDetailScreen({ route, navigation }) {
   };
 
   const canAccept = () => {
-    const acceptableStatuses = ['PENDING_VENDOR', 'BROADCASTED', 'PAYMENT_VERIFIED'];
+    const acceptableStatuses = ['PENDING_VENDOR', 'BROADCASTED'];
     return acceptableStatuses.includes(booking?.status);
   };
 
   const canReject = () => {
-    const rejectableStatuses = ['PENDING_VENDOR', 'BROADCASTED', 'PAYMENT_VERIFIED'];
+    const rejectableStatuses = ['PENDING_VENDOR', 'BROADCASTED'];
     return rejectableStatuses.includes(booking?.status);
   };
 
@@ -539,8 +539,21 @@ export default function SelfDriveBookingDetailScreen({ route, navigation }) {
           </View>
         </View>
 
+        {/* Payment Verified Info Card */}
+        {booking.status === 'PAYMENT_VERIFIED' && booking.isOwnBooking && (
+          <View style={[styles.card, { backgroundColor: '#D1FAE5', borderColor: C.green }]}>
+            <View style={styles.cardHeaderRow}>
+              <Ionicons name="checkmark-circle" size={22} color={C.green} />
+              <Text style={[styles.cardTitle, { color: C.green }]}>Advance Payment Received!</Text>
+            </View>
+            <Text style={[styles.tripControlDesc, { color: '#065F46' }]}>
+              Customer has paid the advance amount. You can now generate OTP to start the trip when the customer arrives.
+            </Text>
+          </View>
+        )}
+
         {/* Trip Control - OTP Section */}
-        {(booking.status === 'ACCEPTED' || booking.status === 'CONFIRMED' || booking.status === 'READY_FOR_PICKUP' || booking.status === 'IN_PROGRESS') && (
+        {(booking.status === 'ACCEPTED' || booking.status === 'CONFIRMED' || booking.status === 'READY_FOR_PICKUP' || booking.status === 'IN_PROGRESS' || (booking.status === 'PAYMENT_VERIFIED' && booking.isOwnBooking)) && (
           <View style={styles.card}>
             <View style={styles.cardHeaderRow}>
               <Ionicons name="key-outline" size={22} color={C.purple} />
@@ -559,8 +572,8 @@ export default function SelfDriveBookingDetailScreen({ route, navigation }) {
               </View>
             )}
 
-            {/* For ACCEPTED/CONFIRMED - Generate OTP */}
-            {(booking.status === 'ACCEPTED' || booking.status === 'CONFIRMED') && (
+            {/* For ACCEPTED/CONFIRMED/PAYMENT_VERIFIED - Generate OTP */}
+            {(booking.status === 'ACCEPTED' || booking.status === 'CONFIRMED' || (booking.status === 'PAYMENT_VERIFIED' && booking.isOwnBooking)) && (
               <View>
                 <Text style={styles.tripControlDesc}>
                   When customer arrives for pickup, generate OTP to start the trip.
