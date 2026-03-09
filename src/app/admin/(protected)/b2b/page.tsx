@@ -2,199 +2,433 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import Link from 'next/link';
 import {
-  Loader2, Search, Building2, Phone, Mail, CheckCircle, XCircle, Clock,
-  ChevronRight, RefreshCw, Filter, Users, Briefcase, AlertCircle
+  Building2, Search, CheckCircle, XCircle, Clock, Loader2,
+  Phone, Mail, User, FileText, AlertCircle, Eye,
+  X, Briefcase, Hash, ShieldCheck, ShieldX,
 } from 'lucide-react';
 
-const STATUS_CONFIG = {
-  PENDING: { bg: 'bg-yellow-100', text: 'text-yellow-700', label: 'Pending', icon: Clock },
-  APPROVED: { bg: 'bg-green-100', text: 'text-green-700', label: 'Approved', icon: CheckCircle },
-  REJECTED: { bg: 'bg-red-100', text: 'text-red-700', label: 'Rejected', icon: XCircle },
+interface B2BCustomer {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  companyName: string | null;
+  gstin: string | null;
+  businessType: string | null;
+  b2bStatus: string | null;
+  b2bApprovedAt: string | null;
+  b2bRejectionReason: string | null;
+  isActive: boolean;
+  isBanned: boolean;
+  createdAt: string;
+  _count: { b2b_bookings: number };
+}
+
+const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; icon: any }> = {
+  PENDING: { label: 'Pending', color: 'text-amber-700', bg: 'bg-amber-50 border-amber-200', icon: Clock },
+  APPROVED: { label: 'Approved', color: 'text-emerald-700', bg: 'bg-emerald-50 border-emerald-200', icon: CheckCircle },
+  REJECTED: { label: 'Rejected', color: 'text-red-700', bg: 'bg-red-50 border-red-200', icon: XCircle },
 };
 
 export default function AdminB2BPage() {
-  const [customers, setCustomers] = useState([]);
+  const [customers, setCustomers] = useState<B2BCustomer[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
-  const [pendingCount, setPendingCount] = useState(0);
   const [search, setSearch] = useState('');
-  const [actionLoading, setActionLoading] = useState('');
+  const [pendingCount, setPendingCount] = useState(0);
+  const [pagination, setPagination] = useState({ page: 1, total: 0, totalPages: 0 });
 
-  useEffect(() => { fetchCustomers(); }, [filter]);
+  const [selectedCustomer, setSelectedCustomer] = useState<B2BCustomer | null>(null);
+  const [showDetailModal, setShowDetailModal] = useState(false);
+  const [actionLoading, setActionLoading] = useState(false);
+  const [rejectReason, setRejectReason] = useState('');
+  const [showRejectInput, setShowRejectInput] = useState(false);
+  const [actionMessage, setActionMessage] = useState('');
+
+  useEffect(() => { fetchCustomers(); }, [filter, pagination.page]);
 
   async function fetchCustomers() {
     setLoading(true);
     try {
-      const res = await fetch(`/api/admin/b2b?filter=${filter}`);
+      const params = new URLSearchParams({ filter, page: String(pagination.page), limit: '20' });
+      const res = await fetch(`/api/admin/b2b?${params}`);
       const data = await res.json();
       if (data.status === 'success') {
         setCustomers(data.customers);
         setPendingCount(data.pendingCount);
+        setPagination(prev => ({ ...prev, total: data.pagination?.total || 0, totalPages: data.pagination?.totalPages || 0 }));
       }
-    } catch (e) {
-      console.error('Failed to fetch B2B customers:', e);
-    } finally {
-      setLoading(false);
-    }
+    } catch (e) { console.error(e); }
+    finally { setLoading(false); }
   }
 
-  async function handleAction(customerId: string, action: string, reason?: string) {
-    setActionLoading(customerId);
+  async function handleAction(customerId: string, action: 'approve' | 'reject') {
+    if (action === 'reject' && !rejectReason.trim()) { setActionMessage('Please provide a rejection reason'); return; }
+    setActionLoading(true);
+    setActionMessage('');
     try {
-      const body: any = { customerId, action };
-      if (reason) body.reason = reason;
       const res = await fetch('/api/admin/b2b', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
+        body: JSON.stringify({ customerId, action, reason: action === 'reject' ? rejectReason : undefined }),
       });
       const data = await res.json();
       if (data.status === 'success') {
+        setActionMessage(data.message);
+        setShowRejectInput(false);
+        setRejectReason('');
         fetchCustomers();
+        if (selectedCustomer?.id === customerId) {
+          setSelectedCustomer(prev => prev ? {
+            ...prev,
+            b2bStatus: action === 'approve' ? 'APPROVED' : 'REJECTED',
+            b2bApprovedAt: action === 'approve' ? new Date().toISOString() : prev.b2bApprovedAt,
+            b2bRejectionReason: action === 'reject' ? rejectReason : null,
+          } : null);
+        }
       } else {
-        alert(data.error || 'Action failed');
+        setActionMessage(data.error || 'Action failed');
       }
-    } catch (e) {
-      alert('Failed to process action');
-    } finally {
-      setActionLoading('');
-    }
+    } catch (e) { setActionMessage('Something went wrong'); }
+    finally { setActionLoading(false); }
   }
 
-  function handleReject(customerId: string) {
-    const reason = prompt('Enter rejection reason:');
-    if (reason) handleAction(customerId, 'reject', reason);
+  function openDetail(customer: B2BCustomer) {
+    setSelectedCustomer(customer);
+    setShowDetailModal(true);
+    setActionMessage('');
+    setShowRejectInput(false);
+    setRejectReason('');
   }
 
-  const filtered = customers.filter((c: any) =>
-    !search || c.name?.toLowerCase().includes(search.toLowerCase()) ||
-    c.companyName?.toLowerCase().includes(search.toLowerCase()) ||
-    c.email?.toLowerCase().includes(search.toLowerCase())
-  );
+  const formatDate = (d: string) => d ? new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '-';
+
+  const filteredCustomers = search
+    ? customers.filter(c =>
+        c.name?.toLowerCase().includes(search.toLowerCase()) ||
+        c.companyName?.toLowerCase().includes(search.toLowerCase()) ||
+        c.email?.toLowerCase().includes(search.toLowerCase()) ||
+        c.phone?.includes(search)
+      )
+    : customers;
 
   return (
     <div className="p-6 max-w-7xl mx-auto">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">B2B Customers</h1>
-          <p className="text-gray-500 mt-1">Manage corporate customer approvals</p>
-        </div>
-        <Link href="/admin/b2b/bookings" className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
-          <Briefcase className="w-4 h-4" /> View B2B Bookings
-        </Link>
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
+          <Building2 className="w-7 h-7 text-emerald-600" />
+          B2B Companies
+        </h1>
+        <p className="text-gray-500 mt-1">Manage B2B corporate customer registrations & approvals</p>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         {[
-          { label: 'Total B2B', value: customers.length, color: 'blue', icon: Building2 },
-          { label: 'Pending Approval', value: pendingCount, color: 'yellow', icon: Clock },
-          { label: 'Approved', value: customers.filter((c: any) => c.b2bStatus === 'APPROVED').length, color: 'green', icon: CheckCircle },
-        ].map((stat) => (
-          <div key={stat.label} className={`bg-${stat.color}-50 border border-${stat.color}-200 rounded-xl p-4`}>
-            <div className="flex items-center gap-3">
-              <stat.icon className={`w-8 h-8 text-${stat.color}-600`} />
-              <div>
-                <div className="text-2xl font-bold text-gray-900">{stat.value}</div>
-                <div className="text-sm text-gray-500">{stat.label}</div>
+          { label: 'Total', value: pagination.total, bg: 'bg-blue-50', color: 'text-blue-700', icon: Building2 },
+          { label: 'Pending', value: pendingCount, bg: 'bg-amber-50', color: 'text-amber-700', icon: Clock },
+          { label: 'Approved', value: customers.filter(c => c.b2bStatus === 'APPROVED').length, bg: 'bg-emerald-50', color: 'text-emerald-700', icon: CheckCircle },
+          { label: 'Rejected', value: customers.filter(c => c.b2bStatus === 'REJECTED').length, bg: 'bg-red-50', color: 'text-red-700', icon: XCircle },
+        ].map(s => {
+          const Icon = s.icon;
+          return (
+            <div key={s.label} className={`${s.bg} rounded-xl p-4 border`}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-gray-500 font-medium">{s.label}</p>
+                  <p className={`text-2xl font-bold ${s.color}`}>{s.value}</p>
+                </div>
+                <Icon className={`w-8 h-8 ${s.color} opacity-40`} />
               </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-3 mb-6">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-          <input
-            type="text" placeholder="Search by name, company, email..."
-            value={search} onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          />
+          <input type="text" value={search} onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search by name, company, email, phone..."
+            className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 text-sm" />
         </div>
-        <div className="flex gap-2">
-          {['all', 'pending', 'approved', 'rejected'].map((f) => (
-            <button key={f} onClick={() => setFilter(f)}
-              className={`px-4 py-2.5 rounded-lg text-sm font-medium capitalize ${filter === f ? 'bg-blue-600 text-white' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'}`}>
-              {f} {f === 'pending' && pendingCount > 0 && <span className="ml-1 bg-red-500 text-white rounded-full px-1.5 py-0.5 text-xs">{pendingCount}</span>}
+        <div className="flex gap-2 flex-wrap">
+          {['all', 'pending', 'approved', 'rejected'].map(f => (
+            <button key={f} onClick={() => { setFilter(f); setPagination(p => ({ ...p, page: 1 })); }}
+              className={`px-4 py-2.5 rounded-lg text-sm font-medium transition capitalize ${
+                filter === f ? 'bg-emerald-600 text-white shadow' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
+              }`}>
+              {f === 'pending' && pendingCount > 0 && (
+                <span className="inline-flex items-center justify-center w-5 h-5 bg-red-500 text-white text-xs rounded-full mr-1.5">
+                  {pendingCount}
+                </span>
+              )}
+              {f}
             </button>
           ))}
         </div>
-        <button onClick={fetchCustomers} className="p-2.5 border border-gray-200 rounded-lg hover:bg-gray-50">
-          <RefreshCw className="w-4 h-4" />
-        </button>
       </div>
 
-      {/* List */}
+      {/* Table */}
       {loading ? (
-        <div className="flex justify-center py-12">
-          <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+        <div className="flex items-center justify-center py-20">
+          <Loader2 className="w-8 h-8 animate-spin text-emerald-600" />
         </div>
-      ) : filtered.length === 0 ? (
-        <div className="text-center py-12 bg-white rounded-xl border">
+      ) : filteredCustomers.length === 0 ? (
+        <div className="text-center py-20 bg-white rounded-xl border">
           <Building2 className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-          <p className="text-gray-500">No B2B customers found</p>
+          <p className="text-gray-500 font-medium">No B2B companies found</p>
         </div>
       ) : (
-        <div className="space-y-3">
-          {filtered.map((customer: any) => {
-            const statusCfg = STATUS_CONFIG[customer.b2bStatus] || STATUS_CONFIG.PENDING;
-            const StatusIcon = statusCfg.icon;
-            return (
-              <div key={customer.id} className="bg-white rounded-xl border p-4 hover:shadow-md transition-shadow">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <h3 className="font-semibold text-gray-900">{customer.companyName || customer.name}</h3>
-                      <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium ${statusCfg.bg} ${statusCfg.text}`}>
-                        <StatusIcon className="w-3 h-3" /> {statusCfg.label}
-                      </span>
+        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+          {/* Desktop */}
+          <div className="hidden md:block overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="bg-gray-50 border-b">
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase">Company</th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase">Contact Person</th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase">GSTIN</th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase">Business Type</th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase">Bookings</th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase">Status</th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase">Registered</th>
+                  <th className="text-right px-5 py-3 text-xs font-semibold text-gray-500 uppercase">Action</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {filteredCustomers.map(c => {
+                  const sc = STATUS_CONFIG[c.b2bStatus || 'PENDING'];
+                  const StatusIcon = sc.icon;
+                  return (
+                    <tr key={c.id} className="hover:bg-gray-50 transition cursor-pointer" onClick={() => openDetail(c)}>
+                      <td className="px-5 py-4"><p className="font-semibold text-gray-900">{c.companyName || '-'}</p></td>
+                      <td className="px-5 py-4">
+                        <p className="text-sm font-medium text-gray-900">{c.name}</p>
+                        <p className="text-xs text-gray-500">{c.email}</p>
+                        <p className="text-xs text-gray-500">{c.phone}</p>
+                      </td>
+                      <td className="px-5 py-4"><span className="text-sm text-gray-700 font-mono">{c.gstin || '-'}</span></td>
+                      <td className="px-5 py-4"><span className="text-sm text-gray-600">{c.businessType || '-'}</span></td>
+                      <td className="px-5 py-4"><span className="text-sm font-semibold text-gray-900">{c._count?.b2b_bookings || 0}</span></td>
+                      <td className="px-5 py-4">
+                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${sc.bg} ${sc.color}`}>
+                          <StatusIcon className="w-3.5 h-3.5" />{sc.label}
+                        </span>
+                      </td>
+                      <td className="px-5 py-4"><span className="text-sm text-gray-500">{formatDate(c.createdAt)}</span></td>
+                      <td className="px-5 py-4 text-right">
+                        <button onClick={(e) => { e.stopPropagation(); openDetail(c); }}
+                          className="px-3 py-1.5 text-xs font-medium text-emerald-700 bg-emerald-50 rounded-lg hover:bg-emerald-100 transition">
+                          <Eye className="w-3.5 h-3.5 inline mr-1" />View
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Mobile */}
+          <div className="md:hidden divide-y divide-gray-100">
+            {filteredCustomers.map(c => {
+              const sc = STATUS_CONFIG[c.b2bStatus || 'PENDING'];
+              const StatusIcon = sc.icon;
+              return (
+                <div key={c.id} className="p-4 hover:bg-gray-50 transition" onClick={() => openDetail(c)}>
+                  <div className="flex items-start justify-between mb-2">
+                    <div>
+                      <p className="font-bold text-gray-900">{c.companyName || 'No Company Name'}</p>
+                      <p className="text-sm text-gray-600">{c.name}</p>
                     </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-sm text-gray-500">
-                      <div className="flex items-center gap-1.5"><Users className="w-3.5 h-3.5" /> {customer.name}</div>
-                      <div className="flex items-center gap-1.5"><Mail className="w-3.5 h-3.5" /> {customer.email}</div>
-                      <div className="flex items-center gap-1.5"><Phone className="w-3.5 h-3.5" /> {customer.phone}</div>
-                    </div>
-                    {customer.gstin && <div className="text-xs text-gray-400 mt-1">GSTIN: {customer.gstin}</div>}
-                    {customer.b2bRejectionReason && (
-                      <div className="mt-2 text-sm text-red-600 bg-red-50 px-3 py-1.5 rounded">
-                        Rejection: {customer.b2bRejectionReason}
-                      </div>
-                    )}
-                    <div className="mt-2 text-xs text-gray-400">
-                      {customer._count?.b2b_bookings || 0} bookings | Registered: {new Date(customer.createdAt).toLocaleDateString('en-IN')}
-                    </div>
+                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold border ${sc.bg} ${sc.color}`}>
+                      <StatusIcon className="w-3 h-3" />{sc.label}
+                    </span>
                   </div>
-                  <div className="flex items-center gap-2 ml-4">
-                    {customer.b2bStatus === 'PENDING' && (
-                      <>
-                        <button onClick={() => handleAction(customer.id, 'approve')} disabled={actionLoading === customer.id}
-                          className="px-3 py-1.5 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700 disabled:opacity-50">
-                          {actionLoading === customer.id ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Approve'}
-                        </button>
-                        <button onClick={() => handleReject(customer.id)} disabled={actionLoading === customer.id}
-                          className="px-3 py-1.5 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700 disabled:opacity-50">
-                          Reject
-                        </button>
-                      </>
-                    )}
-                    {customer.b2bStatus === 'REJECTED' && (
-                      <button onClick={() => handleAction(customer.id, 'approve')}
-                        className="px-3 py-1.5 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700">
-                        Re-approve
-                      </button>
-                    )}
+                  <div className="flex flex-wrap gap-3 text-xs text-gray-500">
+                    <span className="flex items-center gap-1"><Mail className="w-3 h-3" />{c.email}</span>
+                    <span className="flex items-center gap-1"><Phone className="w-3 h-3" />{c.phone}</span>
+                    {c.businessType && <span className="flex items-center gap-1"><Briefcase className="w-3 h-3" />{c.businessType}</span>}
+                  </div>
+                  <div className="flex items-center justify-between mt-2 text-xs text-gray-400">
+                    <span>{formatDate(c.createdAt)}</span>
+                    <span>{c._count?.b2b_bookings || 0} bookings</span>
                   </div>
                 </div>
+              );
+            })}
+          </div>
+
+          {/* Pagination */}
+          {pagination.totalPages > 1 && (
+            <div className="flex items-center justify-between px-5 py-3 border-t bg-gray-50">
+              <p className="text-sm text-gray-500">Page {pagination.page} of {pagination.totalPages} ({pagination.total} companies)</p>
+              <div className="flex gap-2">
+                <button onClick={() => setPagination(p => ({ ...p, page: p.page - 1 }))} disabled={pagination.page === 1}
+                  className="px-3 py-1.5 text-sm border rounded-lg disabled:opacity-50 hover:bg-white">Previous</button>
+                <button onClick={() => setPagination(p => ({ ...p, page: p.page + 1 }))} disabled={pagination.page === pagination.totalPages}
+                  className="px-3 py-1.5 text-sm border rounded-lg disabled:opacity-50 hover:bg-white">Next</button>
               </div>
-            );
-          })}
+            </div>
+          )}
         </div>
       )}
+
+      {/* Detail Modal */}
+      {showDetailModal && selectedCustomer && (() => {
+        const c = selectedCustomer;
+        const sc = STATUS_CONFIG[c.b2bStatus || 'PENDING'];
+        const StatusIcon = sc.icon;
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={() => setShowDetailModal(false)}>
+            <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
+              <div className="bg-gradient-to-r from-emerald-600 to-teal-600 text-white p-5">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="font-bold text-lg">{c.companyName || 'Company Details'}</h2>
+                    <p className="text-emerald-100 text-sm">B2B Account Details</p>
+                  </div>
+                  <button onClick={() => setShowDetailModal(false)} className="p-2 hover:bg-white/20 rounded-full transition">
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+
+              <div className="p-5 overflow-y-auto max-h-[calc(90vh-200px)] space-y-4">
+                <div className={`flex items-center gap-2 px-4 py-3 rounded-xl border ${sc.bg}`}>
+                  <StatusIcon className={`w-5 h-5 ${sc.color}`} />
+                  <span className={`font-semibold ${sc.color}`}>{sc.label}</span>
+                  {c.b2bApprovedAt && c.b2bStatus === 'APPROVED' && (
+                    <span className="text-xs text-gray-500 ml-auto">Approved on {formatDate(c.b2bApprovedAt)}</span>
+                  )}
+                </div>
+
+                {c.b2bStatus === 'REJECTED' && c.b2bRejectionReason && (
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                    <p className="text-xs text-red-600 font-medium mb-1">Rejection Reason</p>
+                    <p className="text-sm text-red-800">{c.b2bRejectionReason}</p>
+                  </div>
+                )}
+
+                <div className="bg-emerald-50 rounded-xl p-4 space-y-3">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Building2 className="w-4 h-4 text-emerald-600" />
+                    <span className="text-sm font-semibold text-emerald-800">Company Details</span>
+                  </div>
+                  <div className="space-y-2">
+                    {[
+                      { icon: Building2, label: 'Company Name', value: c.companyName || '-' },
+                      { icon: Hash, label: 'GSTIN', value: c.gstin || 'Not provided', mono: true },
+                      { icon: Briefcase, label: 'Business Type', value: c.businessType || 'Not specified' },
+                    ].map(({ icon: Icon, label, value, mono }) => (
+                      <div key={label} className="flex items-start gap-3 p-2.5 bg-white rounded-lg">
+                        <Icon className="w-4 h-4 text-gray-400 mt-0.5" />
+                        <div>
+                          <p className="text-xs text-gray-500">{label}</p>
+                          <p className={`font-semibold text-gray-900 ${mono ? 'font-mono' : ''}`}>{value}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <span className="text-sm font-semibold text-gray-700">Contact Person</span>
+                  {[
+                    { icon: User, label: 'Full Name', value: c.name },
+                    { icon: Mail, label: 'Email', value: c.email },
+                    { icon: Phone, label: 'Phone', value: c.phone },
+                  ].map(({ icon: Icon, label, value }) => (
+                    <div key={label} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
+                      <Icon className="w-4 h-4 text-gray-400 mt-0.5" />
+                      <div>
+                        <p className="text-xs text-gray-500">{label}</p>
+                        <p className="font-semibold text-gray-900">{value}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="bg-blue-50 rounded-lg p-3">
+                    <p className="text-xs text-blue-600 font-medium">Customer ID</p>
+                    <p className="text-xs font-mono font-bold text-blue-800 mt-0.5 break-all">{c.id}</p>
+                  </div>
+                  <div className="bg-purple-50 rounded-lg p-3">
+                    <p className="text-xs text-purple-600 font-medium">B2B Bookings</p>
+                    <p className="text-xl font-bold text-purple-800 mt-0.5">{c._count?.b2b_bookings || 0}</p>
+                  </div>
+                </div>
+
+                <div className="bg-gray-50 rounded-lg p-3">
+                  <p className="text-xs text-gray-500 font-medium">Registered On</p>
+                  <p className="text-sm font-semibold text-gray-800">{formatDate(c.createdAt)}</p>
+                </div>
+
+                {actionMessage && (
+                  <div className={`p-3 rounded-lg text-sm font-medium ${
+                    actionMessage.includes('approved') || actionMessage.includes('success')
+                      ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                      : actionMessage.includes('rejected')
+                      ? 'bg-red-50 text-red-700 border border-red-200'
+                      : 'bg-amber-50 text-amber-700 border border-amber-200'
+                  }`}>
+                    {actionMessage}
+                  </div>
+                )}
+
+                {showRejectInput && (
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-700">Rejection Reason *</label>
+                    <textarea value={rejectReason} onChange={(e) => setRejectReason(e.target.value)}
+                      placeholder="Explain why this application is being rejected..."
+                      rows={3} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 text-sm resize-none" />
+                    <div className="flex gap-2">
+                      <button onClick={() => handleAction(c.id, 'reject')} disabled={actionLoading || !rejectReason.trim()}
+                        className="flex-1 py-2 bg-red-600 text-white rounded-lg text-sm font-semibold hover:bg-red-700 disabled:opacity-50 flex items-center justify-center gap-2">
+                        {actionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShieldX className="w-4 h-4" />}
+                        Confirm Reject
+                      </button>
+                      <button onClick={() => { setShowRejectInput(false); setRejectReason(''); }}
+                        className="px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-gray-50">
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {c.b2bStatus === 'PENDING' && !showRejectInput && (
+                <div className="p-5 border-t bg-gray-50 flex gap-3">
+                  <button onClick={() => handleAction(c.id, 'approve')} disabled={actionLoading}
+                    className="flex-1 py-3 bg-emerald-600 text-white rounded-lg font-semibold hover:bg-emerald-700 disabled:opacity-50 flex items-center justify-center gap-2 transition">
+                    {actionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}
+                    Approve
+                  </button>
+                  <button onClick={() => setShowRejectInput(true)} disabled={actionLoading}
+                    className="flex-1 py-3 bg-white text-red-600 border-2 border-red-200 rounded-lg font-semibold hover:bg-red-50 disabled:opacity-50 flex items-center justify-center gap-2 transition">
+                    <ShieldX className="w-4 h-4" />Reject
+                  </button>
+                </div>
+              )}
+
+              {c.b2bStatus === 'REJECTED' && (
+                <div className="p-5 border-t bg-gray-50">
+                  <button onClick={() => handleAction(c.id, 'approve')} disabled={actionLoading}
+                    className="w-full py-3 bg-emerald-600 text-white rounded-lg font-semibold hover:bg-emerald-700 disabled:opacity-50 flex items-center justify-center gap-2 transition">
+                    {actionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}
+                    Approve (Override Rejection)
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }

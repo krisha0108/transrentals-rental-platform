@@ -210,19 +210,19 @@ export default function CustomerB2BBookingDetailPage() {
     }
   }
 
-  function copyTripLink(tripCode: string) {
+  const [copiedTripId, setCopiedTripId] = useState<string | null>(null);
+
+  function copyTripLink(tripCode: string, tripId: string) {
     navigator.clipboard.writeText(`${window.location.origin}/trip/${tripCode}`);
+    setCopiedTripId(tripId);
+    setTimeout(() => setCopiedTripId(null), 2000);
   }
 
-  function copyAllTripLinks() {
-    const links = booking.trips.map((t: any) => `${window.location.origin}/trip/${t.tripCode}`).join('\n');
-    navigator.clipboard.writeText(links);
-    setModal({ type: 'success', title: 'Copied!', message: `${booking.trips.length} trip link${booking.trips.length > 1 ? 's' : ''} copied to clipboard.` });
-  }
-
-  function shareViaWhatsApp() {
-    const links = booking.trips.map((t: any, i: number) => `${i + 1}. ${window.location.origin}/trip/${t.tripCode}`).join('\n');
-    const text = `${booking.companyName} - Trip Links\nBooking: ${booking.bookingNumber}\n\n${links}`;
+  function shareTrip(trip: any, index: number) {
+    const link = `${window.location.origin}/trip/${trip.tripCode}`;
+    const vehicleInfo = trip.vehicleName || trip.vehicleNumber || `Vehicle ${index + 1}`;
+    const driverInfo = booking.serviceType !== 'self-drive' && trip.driverName ? `\nDriver: ${trip.driverName}${trip.driverPhone ? ` (${trip.driverPhone})` : ''}` : '';
+    const text = `🚗 *Trip ${index + 1} Details*\nBooking: ${booking.bookingNumber}\nVehicle: ${vehicleInfo}${driverInfo}\n\nTrack live: ${link}`;
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
   }
 
@@ -1023,17 +1023,7 @@ export default function CustomerB2BBookingDetailPage() {
 
           {/* Trip Links */}
           <div className="bg-white rounded-xl border border-gray-200 p-5 mb-4">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="font-bold text-gray-900">Trip Details ({booking.trips?.length})</h3>
-              <div className="flex gap-2">
-                <button onClick={copyAllTripLinks} className="flex items-center gap-1 px-3 py-1.5 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700">
-                  <Copy className="w-3 h-3" /> Copy All Links
-                </button>
-                <button onClick={shareViaWhatsApp} className="flex items-center gap-1 px-3 py-1.5 text-xs bg-green-600 text-white rounded-lg hover:bg-green-700">
-                  <Share2 className="w-3 h-3" /> WhatsApp
-                </button>
-              </div>
-            </div>
+            <h3 className="font-bold text-gray-900 mb-3">Trip Details ({booking.trips?.length})</h3>
             <div className="space-y-2 max-h-96 overflow-y-auto">
               {booking.trips?.map((trip: any, i: number) => (
                 <div key={trip.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
@@ -1054,13 +1044,31 @@ export default function CustomerB2BBookingDetailPage() {
                       <div className="text-xs text-teal-600">Vendor: {trip.vendor.businessName}</div>
                     )}
                   </div>
-                  <div className="flex gap-1">
-                    <button onClick={() => copyTripLink(trip.tripCode)} className="p-1.5 hover:bg-gray-200 rounded" title="Copy link">
-                      <Copy className="w-3.5 h-3.5 text-gray-400" />
+                  <div className="flex items-center gap-1">
+                    {/* Copy button with feedback */}
+                    <button
+                      onClick={() => copyTripLink(trip.tripCode, trip.id)}
+                      className={`flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                        copiedTripId === trip.id
+                          ? 'bg-green-100 text-green-700'
+                          : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+                      }`}
+                      title="Copy trip link"
+                    >
+                      {copiedTripId === trip.id ? (
+                        <><CheckCircle className="w-3.5 h-3.5" /> Copied!</>
+                      ) : (
+                        <><Copy className="w-3.5 h-3.5" /> Copy</>
+                      )}
                     </button>
-                    <a href={`/trip/${trip.tripCode}`} target="_blank" className="p-1.5 hover:bg-gray-200 rounded" title="Open trip">
-                      <ExternalLink className="w-3.5 h-3.5 text-blue-500" />
-                    </a>
+                    {/* WhatsApp share button */}
+                    <button
+                      onClick={() => shareTrip(trip, i)}
+                      className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs font-medium bg-green-100 text-green-700 hover:bg-green-200 transition-all"
+                      title="Share via WhatsApp"
+                    >
+                      <Share2 className="w-3.5 h-3.5" /> Share
+                    </button>
                   </div>
                 </div>
               ))}

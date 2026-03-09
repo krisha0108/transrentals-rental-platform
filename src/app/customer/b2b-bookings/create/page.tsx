@@ -1,7 +1,7 @@
 // @ts-nocheck
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -31,7 +31,7 @@ const TRIP_TYPES = [
   { value: 'HOURLY', label: 'Hourly / Local', desc: 'Within city' },
 ];
 
-export default function CreateB2BBookingPage() {
+function CreateB2BBookingForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const customerId = searchParams.get('customer_id');
@@ -406,5 +406,13 @@ export default function CreateB2BBookingPage() {
         </form>
       </div>
     </div>
+  );
+}
+
+export default function CreateB2BBookingPage() {
+  return (
+    <Suspense fallback={<div className="flex justify-center items-center min-h-screen"><Loader2 className="w-8 h-8 animate-spin text-green-600" /></div>}>
+      <CreateB2BBookingForm />
+    </Suspense>
   );
 }
