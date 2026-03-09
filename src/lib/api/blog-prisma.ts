@@ -353,11 +353,13 @@ export async function fetchBlogPostPrisma(slug: string): Promise<BlogPost | null
       return null;
     }
 
-    // Increment view count (non-critical — fire-and-forget, ignore readonly DB errors)
-    prisma.blog_posts.update({
-      where: { id: post.id },
-      data: { viewCount: { increment: 1 } },
-    }).catch(() => {});
+    // Increment view count (non-critical — skip during build, fire-and-forget at runtime)
+    if (process.env.NEXT_PHASE !== 'phase-production-build') {
+      prisma.blog_posts.update({
+        where: { id: post.id },
+        data: { viewCount: { increment: 1 } },
+      }).catch(() => {});
+    }
 
     return convertPrismaBlogPost(post);
   } catch (error) {
