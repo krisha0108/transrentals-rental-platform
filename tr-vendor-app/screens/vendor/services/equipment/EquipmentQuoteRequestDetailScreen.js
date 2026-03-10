@@ -14,6 +14,7 @@ import Icon from 'react-native-vector-icons/Feather';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { getQuoteRequestById } from '../../../api/client';
+import { showError, showSuccess, showInfo, showConfirm } from '../../../services/alertService';
 
 const GREEN = '#09B368';
 const BG = '#F5F5F7';
@@ -60,7 +61,7 @@ export default function EquipmentQuoteRequestDetailScreen({ route, navigation })
   const fetchRequestDetail = useCallback(async () => {
     if (!requestId) {
       console.log('❌ [EquipmentRequestDetail] Request ID is missing');
-      Alert.alert('Error', 'Request ID is missing');
+      showError('Request ID is missing');
       navigation.goBack();
       return;
     }
@@ -74,7 +75,7 @@ export default function EquipmentQuoteRequestDetailScreen({ route, navigation })
       setBookingId(data.bookingId || null);
     } catch (error) {
       console.error('Error fetching request detail:', error);
-      Alert.alert('Error', 'Failed to load request details');
+      showError('Failed to load request details');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -533,7 +534,7 @@ export default function EquipmentQuoteRequestDetailScreen({ route, navigation })
               if (bookingId) {
                 navigation.navigate('EquipmentBookingDetail', { bookingId });
               } else {
-                Alert.alert('Info', 'Booking details will appear in your Bookings section shortly.');
+                showInfo('Booking details will appear in your Bookings section shortly.');
               }
             }}
           >

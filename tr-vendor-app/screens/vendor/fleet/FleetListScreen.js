@@ -6,9 +6,7 @@ import {
   FlatList,
   TouchableOpacity,
   RefreshControl,
-  ActivityIndicator,
   Image,
-  Alert,
   ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -16,6 +14,8 @@ import { useFocusEffect } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Feather';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { getVendorFleet, deleteVehicle, getBaseURL } from '../../api/client';
+import { showConfirm, showError, showInfo, showSuccess } from '../../services/alertService';
+import { ListSkeleton } from '../../../components/SkeletonLoader';
 
 const C = {
   bg: '#F7FAFC',
@@ -177,25 +177,14 @@ export default function FleetListScreen({ navigation }) {
   }, [fetchFleet]);
 
   const handleDeleteVehicle = (vehicleId) => {
-    Alert.alert(
-      'Delete Vehicle',
-      'Are you sure you want to delete this vehicle?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
+    showConfirm('Delete Vehicle', 'Are you sure you want to delete this vehicle?', async () => {
             try {
               await deleteVehicle(vehicleId);
               await fetchFleet();
             } catch (error) {
-              Alert.alert('Error', 'Failed to delete vehicle');
+              showError('Failed to delete vehicle');
             }
-          },
-        },
-      ]
-    );
+          }, { confirmText: 'Delete', destructive: true });
   };
 
   // Get service config for a vehicle
@@ -540,9 +529,7 @@ export default function FleetListScreen({ navigation }) {
           <Text style={styles.headerTitle}>My Fleet</Text>
           <View style={{ width: 36 }} />
         </View>
-        <View style={styles.loaderContainer}>
-          <ActivityIndicator size="large" color={C.brand} />
-        </View>
+        <ListSkeleton count={4} />
       </SafeAreaView>
     );
   }

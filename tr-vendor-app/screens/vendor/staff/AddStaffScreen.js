@@ -15,6 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Feather';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import { addStaff, updateStaff } from '../../api/client';
+import { showConfirm, showError, showInfo, showSuccess } from '../../services/alertService';
 
 const C = {
   bg: '#F7FAFC',
@@ -187,36 +188,36 @@ export default function AddStaffScreen({ route, navigation }) {
 
   const validateForm = () => {
     if (!form.name.trim()) {
-      Alert.alert('Error', 'Please enter staff name');
+      showError('Please enter staff name');
       return false;
     }
     if (!form.phone.trim()) {
-      Alert.alert('Error', 'Please enter phone number');
+      showError('Please enter phone number');
       return false;
     }
     if (!form.role) {
-      Alert.alert('Error', 'Please select role');
+      showError('Please select role');
       return false;
     }
 
     // Password validation
     if (!isEditing) {
       if (!form.password.trim()) {
-        Alert.alert('Error', 'Password is required for new staff');
+        showError('Password is required for new staff');
         return false;
       }
       if (form.password.length < 6) {
-        Alert.alert('Error', 'Password must be at least 6 characters');
+        showError('Password must be at least 6 characters');
         return false;
       }
     } else if (form.password.trim() && form.password.length < 6) {
-      Alert.alert('Error', 'Password must be at least 6 characters');
+      showError('Password must be at least 6 characters');
       return false;
     }
 
     // For drivers, email is also required
     if (form.role === 'DRIVER' && !form.email.trim()) {
-      Alert.alert('Error', 'Email is required for drivers (needed for app login)');
+      showError('Email is required for drivers (needed for app login)');
       return false;
     }
 
@@ -266,20 +267,16 @@ export default function AddStaffScreen({ route, navigation }) {
 
       if (isEditing) {
         await updateStaff(staffId, staffData);
-        Alert.alert('Success', 'Staff updated successfully', [
-          { text: 'OK', onPress: () => navigation.goBack() },
-        ]);
+        showConfirm('Success', 'Staff updated successfully', () => navigation.goBack(), { confirmText: 'OK' });
       } else {
         await addStaff(staffData);
-        Alert.alert('Success', 'Staff added successfully', [
-          { text: 'OK', onPress: () => navigation.goBack() },
-        ]);
+        showConfirm('Success', 'Staff added successfully', () => navigation.goBack(), { confirmText: 'OK' });
       }
     } catch (error) {
       console.error('[AddStaff] Error saving staff:', error);
       console.error('[AddStaff] Error response:', error?.response?.data);
       console.error('[AddStaff] Error status:', error?.response?.status);
-      Alert.alert('Error', error?.response?.data?.error || error?.message || 'Failed to save staff');
+      showError(error?.response?.data?.error || error?.message || 'Failed to save staff');
     } finally {
       setLoading(false);
     }

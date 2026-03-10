@@ -16,6 +16,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Feather';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { getTemplates, deleteTemplate, updateTemplate } from '../../../api/client';
+import { showConfirm, showError, showInfo, showSuccess } from '../../../services/alertService';
 
 const GREEN = '#09B368';
 const BG = '#F5F5F7';
@@ -64,7 +65,7 @@ export default function BikeTemplatesScreen({ navigation }) {
     } catch (error) {
       console.error('Error fetching bike templates:', error);
       setTemplates([]); // Set empty array on error
-      Alert.alert('Error', 'Failed to load templates');
+      showError('Failed to load templates');
     } finally {
       setIsLoading(false);
     }
@@ -77,26 +78,15 @@ export default function BikeTemplatesScreen({ navigation }) {
   };
 
   const handleDeleteTemplate = async (templateId, templateName) => {
-    Alert.alert(
-      'Delete Template',
-      `Are you sure you want to delete "${templateName}"?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
+    showConfirm('Delete Template', `Are you sure you want to delete "${templateName}"?`, async () => {
             try {
               await deleteTemplate('bike', templateId);
-              Alert.alert('Success', 'Template deleted successfully');
+              showSuccess('Template deleted successfully');
               fetchTemplates();
             } catch (error) {
-              Alert.alert('Error', 'Failed to delete template');
+              showError('Failed to delete template');
             }
-          },
-        },
-      ]
-    );
+          }, { confirmText: 'Delete', destructive: true });
   };
 
   const handleToggleActive = async (template) => {
@@ -106,7 +96,7 @@ export default function BikeTemplatesScreen({ navigation }) {
       });
       fetchTemplates();
     } catch (error) {
-      Alert.alert('Error', 'Failed to update template');
+      showError('Failed to update template');
     }
   };
 

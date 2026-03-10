@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Activi
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Feather';
 import { getTemplateById, createTemplate, updateTemplate } from '../../api/client';
+import { showError, showSuccess, showInfo, showConfirm } from '../../services/alertService';
 
 const C = { bg: '#F7FAFC', surface: '#FFFFFF', text: '#0F172A', muted: '#6B7280', border: '#E5E7EB', brand: '#22C55E', blue: '#2563EB', red: '#EF4444', purple: '#6366F1' };
 
@@ -55,7 +56,7 @@ export default function CreateEquipmentTemplateScreen({ route, navigation }) {
         setDailyRateHint(t.dailyRateHint?.toString() || ''); setWeeklyRateHint(t.weeklyRateHint?.toString() || ''); setMonthlyRateHint(t.monthlyRateHint?.toString() || '');
         setIsActive(t.isActive ?? true); setIsDefault(t.isDefault ?? false);
       }
-    } catch { Alert.alert('Error', 'Failed to load template'); } finally { setLoading(false); }
+    } catch { showError('Failed to load template'); } finally { setLoading(false); }
   };
 
   const toggle = (arr, setArr, item) => setArr(prev => prev.includes(item) ? prev.filter(t => t !== item) : [...prev, item]);
@@ -63,9 +64,9 @@ export default function CreateEquipmentTemplateScreen({ route, navigation }) {
   const removeItem = (setter, idx) => setter(prev => prev.filter((_, i) => i !== idx));
 
   const handleSave = async () => {
-    if (!name.trim()) { Alert.alert('Error', 'Template name is required'); return; }
-    if (!category) { Alert.alert('Error', 'Please select a category'); return; }
-    if (inclusions.length === 0) { Alert.alert('Error', 'At least one inclusion is required'); return; }
+    if (!name.trim()) { showError('Template name is required'); return; }
+    if (!category) { showError('Please select a category'); return; }
+    if (inclusions.length === 0) { showError('At least one inclusion is required'); return; }
 
     setSaving(true);
     try {
@@ -78,10 +79,10 @@ export default function CreateEquipmentTemplateScreen({ route, navigation }) {
         monthlyRateHint: monthlyRateHint ? parseFloat(monthlyRateHint) : null,
         isActive, isDefault,
       };
-      if (isEditing) { await updateTemplate(serviceType, templateId, data); Alert.alert('Success', 'Template updated'); }
-      else { await createTemplate(serviceType, data); Alert.alert('Success', 'Template created'); }
+      if (isEditing) { await updateTemplate(serviceType, templateId, data); showSuccess('Template updated'); }
+      else { await createTemplate(serviceType, data); showSuccess('Template created'); }
       navigation.goBack();
-    } catch { Alert.alert('Error', 'Failed to save template'); } finally { setSaving(false); }
+    } catch { showError('Failed to save template'); } finally { setSaving(false); }
   };
 
   if (loading) return (

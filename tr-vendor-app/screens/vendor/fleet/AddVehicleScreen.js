@@ -17,6 +17,7 @@ import Icon from 'react-native-vector-icons/Feather';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { launchImageLibrary } from 'react-native-image-picker';
 import { getVendorFleet, addVehicle, updateVehicle } from '../../api/client';
+import { showConfirm, showError, showInfo, showSuccess } from '../../services/alertService';
 
 const C = {
   bg: '#F7FAFC',
@@ -231,7 +232,7 @@ export default function AddVehicleScreen({ route, navigation }) {
       }
     } catch (error) {
       console.log('Error fetching fleet data:', error);
-      Alert.alert('Error', 'Failed to load data. Please try again.');
+      showError('Failed to load data. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -375,27 +376,27 @@ export default function AddVehicleScreen({ route, navigation }) {
 
   const validateForm = () => {
     if (!selectedService) {
-      Alert.alert('Error', 'Please select a service');
+      showError('Please select a service');
       return false;
     }
 
     if (needsModel && !selectedModel) {
-      Alert.alert('Error', 'Please select a vehicle model');
+      showError('Please select a vehicle model');
       return false;
     }
 
     if (needsCategoryAndBrand && !selectedCategory) {
-      Alert.alert('Error', 'Please select a vehicle category');
+      showError('Please select a vehicle category');
       return false;
     }
 
     if (needsCategoryOnly && !selectedCategory) {
-      Alert.alert('Error', 'Please select a vehicle category');
+      showError('Please select a vehicle category');
       return false;
     }
 
     if (!form.registrationNumber.trim()) {
-      Alert.alert('Error', 'Please enter registration number');
+      showError('Please enter registration number');
       return false;
     }
 
@@ -467,18 +468,14 @@ export default function AddVehicleScreen({ route, navigation }) {
 
       if (isEditing) {
         await updateVehicle(vehicleId, requestBody);
-        Alert.alert('Success', 'Vehicle updated successfully', [
-          { text: 'OK', onPress: () => navigation.goBack() },
-        ]);
+        showConfirm('Success', 'Vehicle updated successfully', () => navigation.goBack(), { confirmText: 'OK' });
       } else {
         await addVehicle(requestBody);
-        Alert.alert('Success', 'Vehicle added successfully', [
-          { text: 'OK', onPress: () => navigation.goBack() },
-        ]);
+        showConfirm('Success', 'Vehicle added successfully', () => navigation.goBack(), { confirmText: 'OK' });
       }
     } catch (error) {
       console.log('Error saving vehicle:', error);
-      Alert.alert('Error', error?.response?.data?.error || 'Failed to save vehicle');
+      showError(error?.response?.data?.error || 'Failed to save vehicle');
     } finally {
       setSubmitting(false);
     }

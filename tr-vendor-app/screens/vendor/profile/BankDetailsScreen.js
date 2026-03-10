@@ -12,6 +12,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Feather';
 import { apiGet, apiPost } from '../../api/client';
+import { showError, showSuccess, showInfo, showConfirm } from '../../services/alertService';
 
 const C = {
   bg: '#F7FAFC',
@@ -69,23 +70,23 @@ export default function BankDetailsScreen({ navigation }) {
 
   const validateForm = () => {
     if (!form.accountHolderName.trim()) {
-      Alert.alert('Error', 'Please enter account holder name');
+      showError('Please enter account holder name');
       return false;
     }
     if (!form.accountNumber.trim()) {
-      Alert.alert('Error', 'Please enter account number');
+      showError('Please enter account number');
       return false;
     }
     if (form.accountNumber !== form.confirmAccountNumber) {
-      Alert.alert('Error', 'Account numbers do not match');
+      showError('Account numbers do not match');
       return false;
     }
     if (!form.ifscCode.trim()) {
-      Alert.alert('Error', 'Please enter IFSC code');
+      showError('Please enter IFSC code');
       return false;
     }
     if (form.ifscCode.length !== 11) {
-      Alert.alert('Error', 'IFSC code should be 11 characters');
+      showError('IFSC code should be 11 characters');
       return false;
     }
     return true;
@@ -105,11 +106,11 @@ export default function BankDetailsScreen({ navigation }) {
         upiId: form.upiId,
       });
 
-      Alert.alert('Success', 'Bank details saved successfully');
+      showSuccess('Bank details saved successfully');
       setIsEditing(false);
     } catch (error) {
       console.log('Error saving bank details:', error);
-      Alert.alert('Error', error?.response?.data?.error || 'Failed to save bank details');
+      showError(error?.response?.data?.error || 'Failed to save bank details');
     } finally {
       setSaving(false);
     }

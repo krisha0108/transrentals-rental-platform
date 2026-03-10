@@ -15,6 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Feather';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { createTemplate } from '../../../api/client';
+import { showConfirm, showError, showInfo, showSuccess } from '../../../services/alertService';
 
 const SERVICE_COLOR = '#3B82F6'; // Blue for self-drive
 const GREEN = '#09B368';
@@ -183,7 +184,7 @@ const SelfDriveCreateTemplateScreen = ({ navigation }) => {
   const handleSubmit = async () => {
     // Validation
     if (!name.trim()) {
-      Alert.alert('Validation Error', 'Please enter a template name');
+      showError('Please enter a template name');
       return;
     }
 
@@ -207,15 +208,10 @@ const SelfDriveCreateTemplateScreen = ({ navigation }) => {
 
       await createTemplate('self-drive', templateData);
 
-      Alert.alert('Success', 'Template created successfully!', [
-        {
-          text: 'OK',
-          onPress: () => navigation.goBack(),
-        },
-      ]);
+      showConfirm('Success', 'Template created successfully!', () => navigation.goBack(), { confirmText: 'OK' });
     } catch (error) {
       console.error('Error creating template:', error);
-      Alert.alert('Error', 'Failed to create template. Please try again.');
+      showError('Failed to create template. Please try again.');
     } finally {
       setIsSubmitting(false);
     }

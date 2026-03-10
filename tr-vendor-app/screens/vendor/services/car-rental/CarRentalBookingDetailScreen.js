@@ -15,7 +15,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Feather';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import {
+import { import { showError, showConfirm, showError, showInfo, showSuccess } from '../../../services/alertService';
   getBookingById,
   acceptBooking,
   rejectBooking,
@@ -190,7 +190,7 @@ export default function BookingDetailScreen({ route, navigation }) {
         message: error?.message,
       });
       const errorMsg = error?.response?.data?.error || error?.response?.data?.message || 'Failed to load booking details';
-      Alert.alert('Error', errorMsg);
+      showError(errorMsg);
     } finally {
       setLoading(false);
     }
@@ -310,46 +310,33 @@ export default function BookingDetailScreen({ route, navigation }) {
   }, [fetchBooking]);
 
   const handleAccept = async () => {
-    Alert.alert('Accept Booking', 'Are you sure you want to accept this booking?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Accept',
-        onPress: async () => {
+    showConfirm('Accept Booking', 'Are you sure you want to accept this booking?', async () => {
           try {
             setActionLoading(true);
             await acceptBooking(serviceType, bookingId);
             await fetchBooking();
-            Alert.alert('Success', 'Booking accepted successfully');
+            showSuccess('Booking accepted successfully');
           } catch (error) {
-            Alert.alert('Error', error?.response?.data?.error || 'Failed to accept booking');
+            showError(error?.response?.data?.error || 'Failed to accept booking');
           } finally {
             setActionLoading(false);
           }
-        },
-      },
-    ]);
+        }, { confirmText: 'Accept' });
   };
 
   const handleReject = async () => {
-    Alert.alert('Reject Booking', 'Are you sure you want to reject this booking?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Reject',
-        style: 'destructive',
-        onPress: async () => {
+    showConfirm('Reject Booking', 'Are you sure you want to reject this booking?', async () => {
           try {
             setActionLoading(true);
             await rejectBooking(serviceType, bookingId, 'Vendor rejected');
             await fetchBooking();
-            Alert.alert('Success', 'Booking rejected');
+            showSuccess('Booking rejected');
           } catch (error) {
-            Alert.alert('Error', error?.response?.data?.error || 'Failed to reject booking');
+            showError(error?.response?.data?.error || 'Failed to reject booking');
           } finally {
             setActionLoading(false);
           }
-        },
-      },
-    ]);
+        }, { confirmText: 'Reject', destructive: true });
   };
 
   const handleAssignment = async () => {
@@ -363,7 +350,7 @@ export default function BookingDetailScreen({ route, navigation }) {
         : manualInput;
 
       if (!data.operatorName || !data.operatorPhone) {
-        Alert.alert('Error', 'Please select an operator or enter details manually');
+        showError('Please select an operator or enter details manually');
         return;
       }
       assignmentData = { operatorName: data.operatorName, operatorPhone: data.operatorPhone };
@@ -384,7 +371,7 @@ export default function BookingDetailScreen({ route, navigation }) {
           };
 
       if (!data.driverName || !data.driverPhone) {
-        Alert.alert('Error', 'Please select a driver or enter details manually');
+        showError('Please select a driver or enter details manually');
         return;
       }
       assignmentData = {
@@ -403,12 +390,9 @@ export default function BookingDetailScreen({ route, navigation }) {
       setSelectedStaff(null);
       setSelectedVehicle(null);
       setManualInput({ name: '', phone: '', vehicleNumber: '', vehicleModel: '' });
-      Alert.alert(
-        'Success',
-        serviceType === 'equipment' ? 'Operator assigned successfully' : 'Driver assigned successfully'
-      );
+      showSuccess(serviceType === 'equipment' ? 'Operator assigned successfully' : 'Driver assigned successfully');
     } catch (error) {
-      Alert.alert('Error', error?.response?.data?.error || 'Failed to assign');
+      showError(error?.response?.data?.error || 'Failed to assign');
     } finally {
       setActionLoading(false);
     }
@@ -431,7 +415,7 @@ export default function BookingDetailScreen({ route, navigation }) {
 
   const handleStartTrip = async () => {
     if (!startTripOtp) {
-      Alert.alert('Error', 'Please enter the OTP provided by customer');
+      showError('Please enter the OTP provided by customer');
       return;
     }
 
@@ -457,12 +441,12 @@ export default function BookingDetailScreen({ route, navigation }) {
         await fetchBooking();
         setShowStartTripModal(false);
         setStartTripOtp('');
-        Alert.alert('Success', 'Trip started successfully');
+        showSuccess('Trip started successfully');
       } else {
-        Alert.alert('Error', response.error || 'Failed to start trip');
+        showError(response.error || 'Failed to start trip');
       }
     } catch (error) {
-      Alert.alert('Error', error?.message || 'Invalid OTP or failed to start trip');
+      showError(error?.message || 'Invalid OTP or failed to start trip');
     } finally {
       setActionLoading(false);
     }
@@ -470,7 +454,7 @@ export default function BookingDetailScreen({ route, navigation }) {
 
   const handleEndTrip = async () => {
     if (!completeForm.endKmReading) {
-      Alert.alert('Error', 'Please enter end kilometer reading');
+      showError('Please enter end kilometer reading');
       return;
     }
 
@@ -504,12 +488,12 @@ export default function BookingDetailScreen({ route, navigation }) {
           tollCharges: '0',
           parkingCharges: '0',
         });
-        Alert.alert('Success', 'Trip completed successfully');
+        showSuccess('Trip completed successfully');
       } else {
-        Alert.alert('Error', response.error || 'Failed to complete trip');
+        showError(response.error || 'Failed to complete trip');
       }
     } catch (error) {
-      Alert.alert('Error', error?.message || 'Failed to complete trip');
+      showError(error?.message || 'Failed to complete trip');
     } finally {
       setActionLoading(false);
     }

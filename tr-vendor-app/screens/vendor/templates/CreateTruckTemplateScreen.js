@@ -14,6 +14,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Feather';
 import { getTemplateById, createTemplate, updateTemplate } from '../../api/client';
+import { showError, showSuccess, showInfo, showConfirm } from '../../services/alertService';
 
 const C = {
   bg: '#F7FAFC',
@@ -106,7 +107,7 @@ export default function CreateTruckTemplateScreen({ route, navigation }) {
         setIsDefault(template.isDefault ?? false);
       }
     } catch (error) {
-      Alert.alert('Error', 'Failed to load template');
+      showError('Failed to load template');
     } finally {
       setLoading(false);
     }
@@ -131,15 +132,15 @@ export default function CreateTruckTemplateScreen({ route, navigation }) {
 
   const validateForm = () => {
     if (!name.trim()) {
-      Alert.alert('Error', 'Template name is required');
+      showError('Template name is required');
       return false;
     }
     if (!category) {
-      Alert.alert('Error', 'Please select a category');
+      showError('Please select a category');
       return false;
     }
     if (inclusions.length === 0) {
-      Alert.alert('Error', 'At least one inclusion is required');
+      showError('At least one inclusion is required');
       return false;
     }
     return true;
@@ -165,14 +166,14 @@ export default function CreateTruckTemplateScreen({ route, navigation }) {
 
       if (isEditing) {
         await updateTemplate(serviceType, templateId, data);
-        Alert.alert('Success', 'Template updated');
+        showSuccess('Template updated');
       } else {
         await createTemplate(serviceType, data);
-        Alert.alert('Success', 'Template created');
+        showSuccess('Template created');
       }
       navigation.goBack();
     } catch (error) {
-      Alert.alert('Error', 'Failed to save template');
+      showError('Failed to save template');
     } finally {
       setSaving(false);
     }

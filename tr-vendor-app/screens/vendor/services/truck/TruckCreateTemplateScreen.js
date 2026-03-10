@@ -15,6 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Feather';
 import CustomDropdown from '../../../../components/CustomDropdown';
 import api from '../../../../lib/api';
+import { showConfirm, showError, showInfo, showSuccess } from '../../../services/alertService';
 
 const C = {
   bg: '#F7FAFC',
@@ -136,15 +137,15 @@ export default function TruckCreateTemplateScreen({ navigation }) {
   const handleSubmit = async () => {
     // Validation
     if (!name.trim()) {
-      Alert.alert('Error', 'Please enter template name');
+      showError('Please enter template name');
       return;
     }
     if (!category) {
-      Alert.alert('Error', 'Please select a category');
+      showError('Please select a category');
       return;
     }
     if (inclusions.length === 0) {
-      Alert.alert('Error', 'Please add at least one inclusion');
+      showError('Please add at least one inclusion');
       return;
     }
 
@@ -163,13 +164,11 @@ export default function TruckCreateTemplateScreen({ navigation }) {
       });
 
       if (response.data.success) {
-        Alert.alert('Success', 'Template created successfully!', [
-          { text: 'OK', onPress: () => navigation.goBack() },
-        ]);
+        showConfirm('Success', 'Template created successfully!', () => navigation.goBack(), { confirmText: 'OK' });
       }
     } catch (error) {
       console.error('Error creating template:', error);
-      Alert.alert('Error', error?.response?.data?.error || 'Failed to create template');
+      showError(error?.response?.data?.error || 'Failed to create template');
     } finally {
       setSubmitting(false);
     }

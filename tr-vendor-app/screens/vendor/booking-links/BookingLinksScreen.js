@@ -11,6 +11,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import Clipboard from '@react-native-clipboard/clipboard';
 import { getBookingLinks, updateBookingLink, getBookingLinkQR } from '../../api/client';
 import CustomAlert from '../../../components/CustomAlert';
+import { ListSkeleton } from '../../../components/SkeletonLoader';
 
 // Lazy-load native modules (require native rebuild)
 let RNShare = null;
@@ -215,7 +216,15 @@ export default function BookingLinksScreen({ navigation }) {
   /* ── Loading ── */
   if (loading) return (
     <SafeAreaView style={s.safe} edges={['top']}>
-      <View style={s.centered}><ActivityIndicator size="large" color={C.indigo} /></View>
+      <View style={s.header}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
+          <Icon name="arrow-left" size={22} color="#fff" />
+        </TouchableOpacity>
+        <View style={{ flex: 1 }}>
+          <Text style={s.headerTitle}>Booking Links</Text>
+        </View>
+      </View>
+      <ListSkeleton count={3} />
     </SafeAreaView>
   );
 

@@ -16,6 +16,7 @@ import Icon from 'react-native-vector-icons/Feather';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { apiGet, deleteVehicle, debugAuthState, getBaseURL } from '../../api/client';
+import { showConfirm, showError, showInfo, showSuccess } from '../../services/alertService';
 
 const C = {
   bg: '#F7FAFC',
@@ -102,12 +103,9 @@ export default function VehicleDetailScreen({ route, navigation }) {
           continue;
         }
 
-        Alert.alert(
-          'Error',
-          error?.response?.status === 401
+        showError(error?.response?.status === 401
             ? 'You do not have permission to view this vehicle.'
-            : 'Failed to load vehicle details. Please try again.'
-        );
+            : 'Failed to load vehicle details. Please try again.');
         setLoading(false);
         setRefreshing(false);
         return;
@@ -134,21 +132,14 @@ export default function VehicleDetailScreen({ route, navigation }) {
   };
 
   const handleDelete = () => {
-    Alert.alert('Delete Vehicle', 'Are you sure you want to delete this vehicle?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: async () => {
+    showConfirm('Delete Vehicle', 'Are you sure you want to delete this vehicle?', async () => {
           try {
             await deleteVehicle(vehicleId);
             navigation.goBack();
           } catch (error) {
-            Alert.alert('Error', 'Failed to delete vehicle');
+            showError('Failed to delete vehicle');
           }
-        },
-      },
-    ]);
+        }, { confirmText: 'Delete', destructive: true });
   };
 
   const formatCurrency = (amount) => {

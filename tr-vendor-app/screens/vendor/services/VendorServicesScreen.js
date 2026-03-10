@@ -16,7 +16,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import {
+import { import { showError, showConfirm, showError, showInfo, showSuccess } from '../../services/alertService';
   getVendorServices,
   requestService,
   apiGet,
@@ -162,10 +162,10 @@ export default function VendorServicesScreen({ navigation }) {
       await requestService(selectedService.id, requestMessage);
       setShowRequestModal(false);
       fetchServices();
-      Alert.alert('Success', 'Service request submitted successfully!');
+      showSuccess('Service request submitted successfully!');
     } catch (error) {
       console.error('Request service failed:', error);
-      Alert.alert('Error', error?.response?.data?.error || 'Failed to submit request');
+      showError(error?.response?.data?.error || 'Failed to submit request');
     } finally {
       setSubmitting(false);
     }
@@ -185,33 +185,23 @@ export default function VendorServicesScreen({ navigation }) {
     });
 
     if (availableServices.length === 0) {
-      Alert.alert('Info', 'All services are already requested or approved.');
+      showInfo('All services are already requested or approved.');
       return;
     }
 
-    Alert.alert(
-      'Request All Services',
-      `Do you want to request all ${availableServices.length} available services?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Request All',
-          onPress: async () => {
+    showConfirm('Request All Services', `Do you want to request all ${availableServices.length} available services?`, async () => {
             try {
               // Request all services
               for (const service of availableServices) {
                 await requestService(service.id, `Requesting ${service.name} service`);
               }
               await fetchServices();
-              Alert.alert('Success', `${availableServices.length} service(s) requested successfully!`);
+              showSuccess(`${availableServices.length} service(s) requested successfully!`);
             } catch (error) {
               console.error('Request all services failed:', error);
-              Alert.alert('Error', error?.response?.data?.error || 'Failed to request services');
+              showError(error?.response?.data?.error || 'Failed to request services');
             }
-          },
-        },
-      ]
-    );
+          }, { confirmText: 'Request All' });
   };
 
   const approvedCount = approvedServiceIds.length;

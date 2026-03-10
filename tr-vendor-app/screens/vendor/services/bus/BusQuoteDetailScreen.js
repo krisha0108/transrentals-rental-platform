@@ -18,6 +18,7 @@ import Icon from 'react-native-vector-icons/Feather';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { getVendorQuotes, getBaseURL, getQuoteRequestById } from '../../../api/client';
+import { showError, showSuccess, showInfo, showConfirm } from '../../../services/alertService';
 
 const { width } = Dimensions.get('window');
 const SLIDER_WIDTH = width - 32; // Full width with padding
@@ -54,7 +55,7 @@ export default function BusQuoteDetailScreen({ route, navigation }) {
 
   const fetchQuoteDetail = useCallback(async () => {
     if (!quoteId) {
-      Alert.alert('Error', 'Quote ID is missing');
+      showError('Quote ID is missing');
       navigation.goBack();
       return;
     }
@@ -76,11 +77,11 @@ export default function BusQuoteDetailScreen({ route, navigation }) {
           }
         }
       } else {
-        Alert.alert('Error', 'Quote not found');
+        showError('Quote not found');
       }
     } catch (error) {
       console.error('Error fetching quote detail:', error);
-      Alert.alert('Error', 'Failed to load quote details');
+      showError('Failed to load quote details');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -685,7 +686,7 @@ export default function BusQuoteDetailScreen({ route, navigation }) {
             onPress={() => {
               const rid = quote.requestId || quote.request?.id || quote.request?._id;
               if (rid) navigation.navigate('BusQuoteRequestDetail', { requestId: rid });
-              else Alert.alert('Info', 'Request details not available.');
+              else showInfo('Request details not available.');
             }}
           >
             <Ionicons name="document-text-outline" size={18} color="#fff" />
@@ -700,7 +701,7 @@ export default function BusQuoteDetailScreen({ route, navigation }) {
               } else {
                 const rid = quote.requestId || quote.request?.id || quote.request?._id;
                 if (rid) navigation.navigate('BusQuoteRequestDetail', { requestId: rid });
-                else Alert.alert('Info', 'Please check your Bookings section.');
+                else showInfo('Please check your Bookings section.');
               }
             }}
           >

@@ -14,7 +14,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Feather';
-import { getStaffAttendance, markStaffAttendance } from '../../api/client';
+import { getStaffAttendance, markStaffAttendance } from '../../api/staff-api';
+import { showError, showSuccess, showInfo, showConfirm } from '../../services/alertService';
 
 const C = {
   bg: '#F1F5F9',
@@ -84,7 +85,7 @@ export default function StaffAttendanceScreen({ navigation }) {
       setDaysInMonth(data?.daysInMonth || new Date(year, month + 1, 0).getDate());
     } catch (error) {
       console.log('Error fetching attendance:', error);
-      Alert.alert('Error', 'Failed to load attendance data');
+      showError('Failed to load attendance data');
     } finally {
       setLoading(false);
     }
@@ -175,7 +176,7 @@ export default function StaffAttendanceScreen({ navigation }) {
       staffId, date: modalDate, status,
     }));
     if (records.length === 0) {
-      Alert.alert('No Changes', 'Please mark attendance for at least one staff member.');
+      showInfo('Please mark attendance for at least one staff member.', 'No Changes');
       return;
     }
     setSaving(true);
@@ -185,7 +186,7 @@ export default function StaffAttendanceScreen({ navigation }) {
       await fetchAttendance();
     } catch (error) {
       console.log('Error saving attendance:', error);
-      Alert.alert('Error', 'Failed to save attendance');
+      showError('Failed to save attendance');
     } finally {
       setSaving(false);
     }

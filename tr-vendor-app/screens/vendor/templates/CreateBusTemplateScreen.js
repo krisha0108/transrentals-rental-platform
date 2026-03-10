@@ -14,6 +14,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Feather';
 import { getTemplateById, createTemplate, updateTemplate } from '../../api/client';
+import { showError, showSuccess, showInfo, showConfirm } from '../../services/alertService';
 
 const C = {
   bg: '#F7FAFC',
@@ -121,7 +122,7 @@ export default function CreateBusTemplateScreen({ route, navigation }) {
       }
     } catch (error) {
       console.log('Error fetching template:', error);
-      Alert.alert('Error', 'Failed to load template');
+      showError('Failed to load template');
     } finally {
       setLoading(false);
     }
@@ -182,15 +183,15 @@ export default function CreateBusTemplateScreen({ route, navigation }) {
 
   const validateForm = () => {
     if (!name.trim()) {
-      Alert.alert('Validation Error', 'Template name is required');
+      showError('Template name is required');
       return false;
     }
     if (!category) {
-      Alert.alert('Validation Error', 'Please select a category');
+      showError('Please select a category');
       return false;
     }
     if (inclusions.length === 0) {
-      Alert.alert('Validation Error', 'At least one inclusion is required');
+      showError('At least one inclusion is required');
       return false;
     }
     return true;
@@ -218,15 +219,15 @@ export default function CreateBusTemplateScreen({ route, navigation }) {
 
       if (isEditing) {
         await updateTemplate(serviceType, templateId, templateData);
-        Alert.alert('Success', 'Template updated successfully');
+        showSuccess('Template updated successfully');
       } else {
         await createTemplate(serviceType, templateData);
-        Alert.alert('Success', 'Template created successfully');
+        showSuccess('Template created successfully');
       }
       navigation.goBack();
     } catch (error) {
       console.log('Error saving template:', error);
-      Alert.alert('Error', 'Failed to save template');
+      showError('Failed to save template');
     } finally {
       setSaving(false);
     }

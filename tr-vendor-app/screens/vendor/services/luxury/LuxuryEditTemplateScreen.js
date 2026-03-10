@@ -15,6 +15,7 @@ import Icon from 'react-native-vector-icons/Feather';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import CustomDropdown from '../../../../components/CustomDropdown';
 import api from '../../../../lib/api';
+import { showConfirm, showError, showInfo, showSuccess } from '../../../services/alertService';
 
 const C = {
   bg: '#F7FAFC',
@@ -191,9 +192,7 @@ export default function LuxuryEditTemplateScreen({ navigation, route }) {
       }
     } catch (error) {
       console.error('Error fetching template:', error);
-      Alert.alert('Error', 'Failed to load template', [
-        { text: 'OK', onPress: () => navigation.goBack() },
-      ]);
+      showConfirm('Error', 'Failed to load template', () => navigation.goBack(), { confirmText: 'OK' });
     } finally {
       setLoading(false);
     }
@@ -201,7 +200,7 @@ export default function LuxuryEditTemplateScreen({ navigation, route }) {
 
   const handleSave = async () => {
     if (!name || !baseAmount) {
-      Alert.alert('Error', 'Template Name and Base Amount are required');
+      showError('Template Name and Base Amount are required');
       return;
     }
 
@@ -230,15 +229,13 @@ export default function LuxuryEditTemplateScreen({ navigation, route }) {
       const response = await api.patch(`/vendor/luxury-templates/${templateId}`, payload);
 
       if (response.data.success) {
-        Alert.alert('Success', 'Template updated successfully!', [
-          { text: 'OK', onPress: () => navigation.goBack() },
-        ]);
+        showConfirm('Success', 'Template updated successfully!', () => navigation.goBack(), { confirmText: 'OK' });
       } else {
-        Alert.alert('Error', response.data.error || 'Failed to update template');
+        showError(response.data.error || 'Failed to update template');
       }
     } catch (error) {
       console.error('Error updating template:', error);
-      Alert.alert('Error', error?.response?.data?.error || 'Failed to update template');
+      showError(error?.response?.data?.error || 'Failed to update template');
     } finally {
       setSaving(false);
     }

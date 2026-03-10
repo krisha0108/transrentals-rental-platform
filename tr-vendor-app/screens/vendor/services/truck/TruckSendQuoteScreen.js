@@ -14,6 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Feather';
 import CustomDropdown from '../../../../components/CustomDropdown';
 import { getQuoteRequestById, getFleetVehicles, submitQuote, getTemplates } from '../../../api/client';
+import { showConfirm, showError, showInfo, showSuccess } from '../../../services/alertService';
 
 const C = {
   bg: '#F7FAFC',
@@ -124,7 +125,7 @@ export default function TruckSendQuoteScreen({ navigation, route }) {
       }
     } catch (error) {
       console.error('Error fetching data:', error);
-      Alert.alert('Error', 'Failed to load data');
+      showError('Failed to load data');
     } finally {
       setLoading(false);
     }
@@ -245,11 +246,11 @@ export default function TruckSendQuoteScreen({ navigation, route }) {
 
   const handleSubmit = async () => {
     if (!vehicleName) {
-      Alert.alert('Error', 'Please enter vehicle name or select from fleet');
+      showError('Please enter vehicle name or select from fleet');
       return;
     }
     if ((!dailyRate || parseFloat(dailyRate) <= 0) && (!perKmRate || parseFloat(perKmRate) <= 0)) {
-      Alert.alert('Error', 'Please enter either daily rate or per km rate');
+      showError('Please enter either daily rate or per km rate');
       return;
     }
 
@@ -283,12 +284,10 @@ export default function TruckSendQuoteScreen({ navigation, route }) {
         vendorMessage: notes || null,
         validityDays: parseInt(validityDays) || 3,
       });
-      Alert.alert('Success', 'Quote sent successfully!', [
-        { text: 'OK', onPress: () => navigation.goBack() },
-      ]);
+      showConfirm('Success', 'Quote sent successfully!', () => navigation.goBack(), { confirmText: 'OK' });
     } catch (error) {
       console.error('Error submitting quote:', error);
-      Alert.alert('Error', error?.response?.data?.error || 'Failed to send quote');
+      showError(error?.response?.data?.error || 'Failed to send quote');
     } finally {
       setSubmitting(false);
     }
