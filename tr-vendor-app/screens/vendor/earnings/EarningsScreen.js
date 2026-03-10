@@ -46,6 +46,17 @@ const SERVICE_CONFIG = {
   luxury: { icon: 'car-sports', color: C.indigo, label: 'Luxury' },
 };
 
+const BOOKING_DETAIL_SCREEN = {
+  bike: 'BikeBookingDetail',
+  'self-drive': 'SelfDriveBookingDetail',
+  'car-rental': 'CarRentalBookingDetail',
+  bus: 'BusBookingDetail',
+  truck: 'TruckBookingDetail',
+  packers: 'PackersBookingDetail',
+  equipment: 'EquipmentBookingDetail',
+  luxury: 'LuxuryBookingDetail',
+};
+
 export default function EarningsScreen({ navigation }) {
   const [loading, setLoading] = useState(true);
   const [filterLoading, setFilterLoading] = useState(false);
@@ -177,17 +188,23 @@ export default function EarningsScreen({ navigation }) {
     );
   };
 
+  const handleCardPress = (item) => {
+    const screen = BOOKING_DETAIL_SCREEN[item.service];
+    if (screen) {
+      navigation.navigate(screen, { bookingId: item.id });
+    }
+  };
+
   const renderBookingCard = ({ item }) => {
     const config = getServiceConfig(item.service);
     const isCompleted = item.status === 'COMPLETED';
+    const hasDetailScreen = !!BOOKING_DETAIL_SCREEN[item.service];
 
     return (
       <TouchableOpacity
         style={styles.bookingCard}
-        activeOpacity={0.7}
-        onPress={() => {
-          // Navigate to booking details if needed
-        }}
+        activeOpacity={hasDetailScreen ? 0.7 : 1}
+        onPress={() => handleCardPress(item)}
       >
         {/* Header with Service Icon & Status */}
         <View style={styles.cardHeader}>
@@ -232,6 +249,16 @@ export default function EarningsScreen({ navigation }) {
               ₹{formatCurrency(item.amount)}
             </Text>
           </View>
+          {hasDetailScreen && (
+            <TouchableOpacity
+              style={[styles.viewDetailsBtn, { borderColor: config.color + '40', backgroundColor: config.color + '10' }]}
+              activeOpacity={0.7}
+              onPress={() => handleCardPress(item)}
+            >
+              <Text style={[styles.viewDetailsTxt, { color: config.color }]}>View Details</Text>
+              <Icon name="chevron-right" size={14} color={config.color} />
+            </TouchableOpacity>
+          )}
         </View>
       </TouchableOpacity>
     );
@@ -773,6 +800,19 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '800',
     letterSpacing: -0.5,
+  },
+  viewDetailsBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
+  viewDetailsTxt: {
+    fontSize: 13,
+    fontWeight: '700',
   },
   actionButton: {
     width: 44,

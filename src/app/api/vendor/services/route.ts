@@ -72,6 +72,65 @@ export async function GET(request: NextRequest) {
   }
 }
 
+// DELETE - Withdraw a pending request OR remove an approved service
+export async function DELETE(request: NextRequest) {
+  try {
+    const auth = await getVendorAuth(request);
+    if (!auth.authenticated || !auth.vendorId) {
+      return NextResponse.json({ error: auth.error || 'Unauthorized' }, { status: 401 });
+    }
+    const vendorId = auth.vendorId;
+
+    const { searchParams } = new URL(request.url);
+    const serviceId = searchParams.get('serviceId');
+    const type = searchParams.get('type'); // 'request' | 'approved'
+
+    if (!serviceId || !type) {
+      return NextResponse.json({ error: 'serviceId and type are required' }, { status: 400 });
+    }
+
+    if (type === 'request') {
+      // Withdraw a pending service request
+      const existing = await prisma.vendor_service_requests.findUnique({
+        where: { vendorId_serviceId: { vendorId, serviceId } },
+      });
+      if (!existing) {
+        return NextResponse.json({ error: 'Request not found' }, { status: 404 });
+      }
+      if (existing.status !== 'PENDING') {
+        return NextResponse.json({ error: 'Only pending requests can be withdrawn' }, { status: 400 });
+      }
+      await prisma.vendor_service_requests.delete({
+        where: { vendorId_serviceId: { vendorId, serviceId } },
+      });
+      return NextResponse.json({ success: true, message: 'Service request withdrawn' });
+    }
+
+    if (type === 'approved') {
+      // Deactivate an approved service
+      const existing = await prisma.vendor_approved_services.findUnique({
+        where: { vendorId_serviceId: { vendorId, serviceId } },
+      });
+      if (!existing) {
+        return NextResponse.json({ error: 'Approved service not found' }, { status: 404 });
+      }
+      await prisma.vendor_approved_services.update({
+        where: { vendorId_serviceId: { vendorId, serviceId } },
+        data: { isActive: false },
+      });
+      return NextResponse.json({ success: true, message: 'Service removed successfully' });
+    }
+
+    return NextResponse.json({ error: 'Invalid type. Use "request" or "approved"' }, { status: 400 });
+  } catch (error: any) {
+    logger.error('Delete service error', error);
+    return NextResponse.json(
+      { error: 'Failed to process request', details: error?.message },
+      { status: 500 }
+    );
+  }
+}
+
 // POST - Request a service
 export async function POST(request: NextRequest) {
   try {

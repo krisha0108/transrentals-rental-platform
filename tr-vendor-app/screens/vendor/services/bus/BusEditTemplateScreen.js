@@ -206,7 +206,7 @@ export default function BusEditTemplateScreen({ navigation, route }) {
       });
 
       if (response.data.success) {
-        showConfirm('Success', 'Template updated successfully!', () => navigation.goBack(), { confirmText: 'OK' });
+        showSuccess('Template updated successfully!', 'Success', { actions: [{ label: 'OK', onPress: () => navigation.goBack(), variant: 'primary' }] });
       }
     } catch (error) {
       console.error('Error updating template:', error);

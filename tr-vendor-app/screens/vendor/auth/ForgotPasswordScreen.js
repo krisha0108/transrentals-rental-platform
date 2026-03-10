@@ -137,7 +137,7 @@ export default function VendorForgotPasswordScreen({ navigation }) {
         password,
       });
       if (res?.data?.status) {
-        showConfirm("Success", res?.data?.message || "Password updated", () => navigation.navigate("VendorLoginScreen"), { confirmText: "Login" });
+        showSuccess(res?.data?.message || "Password updated", 'Success', { actions: [{ label: 'Login', onPress: () => navigation.navigate("VendorLoginScreen"), variant: 'primary' }] });
       } else {
         showError(res?.data?.message || "Reset failed");
       }

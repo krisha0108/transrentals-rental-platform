@@ -185,7 +185,7 @@ export default function LuxuryCreateTemplateScreen({ navigation }) {
       const response = await api.post('/vendor/luxury-templates', payload);
 
       if (response.data.success) {
-        showConfirm('Success', 'Template created successfully!', () => navigation.goBack(), { confirmText: 'OK' });
+        showSuccess('Template created successfully!', 'Success', { actions: [{ label: 'OK', onPress: () => navigation.goBack(), variant: 'primary' }] });
       } else {
         showError(response.data.error || 'Failed to create template');
       }

@@ -18,13 +18,19 @@ export default function GlobalAlert() {
 
   if (!alertConfig) return null;
 
+  // Wrap each action's onPress to auto-close the modal before running the callback
+  const wrappedActions = alertConfig.actions?.map(a => ({
+    ...a,
+    onPress: () => { handleClose(); a.onPress?.(); },
+  }));
+
   return (
     <CustomAlert
       visible={alertConfig.visible}
       type={alertConfig.type}
       title={alertConfig.title}
       message={alertConfig.message}
-      actions={alertConfig.actions}
+      actions={wrappedActions}
       autoCloseMs={alertConfig.autoCloseMs}
       dismissOnBackdrop={alertConfig.dismissOnBackdrop}
       showCloseX={alertConfig.showCloseX}

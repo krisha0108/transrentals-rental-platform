@@ -168,7 +168,7 @@ export default function EquipmentCreateTemplateScreen({ navigation }) {
       });
 
       if (response.data.success) {
-        showConfirm('Success', 'Template created successfully!', () => navigation.goBack(), { confirmText: 'OK' });
+        showSuccess('Template created successfully!', 'Success', { actions: [{ label: 'OK', onPress: () => navigation.goBack(), variant: 'primary' }] });
       }
     } catch (error) {
       console.error('Error creating template:', error);

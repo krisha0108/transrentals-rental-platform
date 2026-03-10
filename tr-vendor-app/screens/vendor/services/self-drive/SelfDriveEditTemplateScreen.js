@@ -145,7 +145,7 @@ const SelfDriveEditTemplateScreen = ({ route, navigation }) => {
 
       await updateTemplate('self-drive', templateId, templateData);
 
-      showConfirm('Success', 'Template updated successfully!', () => navigation.goBack(), { confirmText: 'OK' });
+      showSuccess('Template updated successfully!', 'Success', { actions: [{ label: 'OK', onPress: () => navigation.goBack(), variant: 'primary' }] });
     } catch (error) {
       console.error('Error updating template:', error);
       showError('Failed to update template. Please try again.');

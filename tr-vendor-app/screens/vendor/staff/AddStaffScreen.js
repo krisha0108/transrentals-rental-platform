@@ -267,10 +267,10 @@ export default function AddStaffScreen({ route, navigation }) {
 
       if (isEditing) {
         await updateStaff(staffId, staffData);
-        showConfirm('Success', 'Staff updated successfully', () => navigation.goBack(), { confirmText: 'OK' });
+        showSuccess('Staff updated successfully', 'Success', { actions: [{ label: 'OK', onPress: () => navigation.goBack(), variant: 'primary' }] });
       } else {
         await addStaff(staffData);
-        showConfirm('Success', 'Staff added successfully', () => navigation.goBack(), { confirmText: 'OK' });
+        showSuccess('Staff added successfully', 'Success', { actions: [{ label: 'OK', onPress: () => navigation.goBack(), variant: 'primary' }] });
       }
     } catch (error) {
       console.error('[AddStaff] Error saving staff:', error);

@@ -73,6 +73,7 @@ def enableProguardInReleaseBuilds = false
  * allowing to use e.g. `Date.toLocaleString` and `String.localeCompare` that
  * give correct results when using with locales other than en-US. Note that
  * this variant is about 6MiB larger per architecture than default.
+ * C:\Users\Admin\Desktop\tran_stable\src\app\api\vendor\app-version\route.ts open this for update the software version in the app
  */
 def jscFlavor = 'io.github.react-native-community:jsc-android:2026004.+'
 
@@ -86,8 +87,8 @@ android {
         applicationId "com.transrentalsvenderapp"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 29
-        versionName "3.0.8"
+        versionCode 30
+        versionName "3.0.9"
     }
     signingConfigs {
         debug {

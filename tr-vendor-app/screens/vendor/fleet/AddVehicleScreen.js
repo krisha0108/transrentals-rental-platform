@@ -468,10 +468,10 @@ export default function AddVehicleScreen({ route, navigation }) {
 
       if (isEditing) {
         await updateVehicle(vehicleId, requestBody);
-        showConfirm('Success', 'Vehicle updated successfully', () => navigation.goBack(), { confirmText: 'OK' });
+        showSuccess('Vehicle updated successfully', 'Success', { actions: [{ label: 'OK', onPress: () => navigation.goBack(), variant: 'primary' }] });
       } else {
         await addVehicle(requestBody);
-        showConfirm('Success', 'Vehicle added successfully', () => navigation.goBack(), { confirmText: 'OK' });
+        showSuccess('Vehicle added successfully', 'Success', { actions: [{ label: 'OK', onPress: () => navigation.goBack(), variant: 'primary' }] });
       }
     } catch (error) {
       console.log('Error saving vehicle:', error);

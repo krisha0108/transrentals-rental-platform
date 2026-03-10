@@ -1,5 +1,4 @@
 // screens/vendor/services/VendorServicesScreen.js
-// Service selection and management screen
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
@@ -12,15 +11,14 @@ import {
   Modal,
   TextInput,
   Alert,
-  FlatList,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { showError, showConfirm, showInfo, showSuccess } from '../../../services/alertService';
+import { showError, showSuccess } from '../../../services/alertService';
 import {
   getVendorServices,
-  requestService,
-  apiGet,
+  apiPost,
+  apiDelete,
 } from '../../api/client';
 
 const BRAND = {
@@ -38,18 +36,17 @@ const BRAND = {
   green: '#10B981',
 };
 
-// Service icons mapping
 const SERVICE_ICONS = {
-  'car': 'car-sport',
-  'bike': 'bicycle',
-  'bus': 'bus',
-  'luxury': 'diamond',
-  'tempo': 'cube',
-  'truck': 'cube-outline',
-  'equipment': 'construct',
-  'packers': 'cube-outline',
+  car: 'car-sport',
+  bike: 'bicycle',
+  bus: 'bus',
+  luxury: 'diamond',
+  tempo: 'cube',
+  truck: 'cube-outline',
+  equipment: 'construct',
+  packers: 'cube-outline',
   'self-drive': 'key',
-  'default': 'layers',
+  default: 'layers',
 };
 
 const getServiceIcon = (slug) => {
@@ -58,156 +55,137 @@ const getServiceIcon = (slug) => {
 };
 
 export default function VendorServicesScreen({ navigation }) {
-  const [approvedServiceIds, setApprovedServiceIds] = useState([]);
-  const [requests, setRequests] = useState([]);
   const [allServices, setAllServices] = useState([]);
+  const [approvedServiceIds, setApprovedServiceIds] = useState([]);
+  const [pendingIds, setPendingIds] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+
+  // Multi-select state
+  const [selectedIds, setSelectedIds] = useState([]);
+
+  // Request modal (bulk)
   const [showRequestModal, setShowRequestModal] = useState(false);
-  const [selectedService, setSelectedService] = useState(null);
-  const [requestMessage, setRequestMessage] = useState('');
+  const [reqMessage, setReqMessage] = useState('');
+  const [reqExperience, setReqExperience] = useState('');
   const [submitting, setSubmitting] = useState(false);
+
+  // Withdraw / Remove confirm modal
+  const [actionModal, setActionModal] = useState(null); // { serviceId, serviceName, type: 'request'|'approved' }
+  const [actioning, setActioning] = useState(false);
+
+  // Search
+  const [search, setSearch] = useState('');
 
   const fetchServices = useCallback(async () => {
     try {
-      // Fetch vendor's services (includes allServices, approvedServiceIds, requests)
-      const vendorServices = await getVendorServices();
-      console.log('Vendor services response:', vendorServices);
-
-      // API returns allServices directly
-      setAllServices(vendorServices.allServices || []);
-      setApprovedServiceIds(vendorServices.approvedServiceIds || []);
-      setRequests(vendorServices.requests || []);
-    } catch (error) {
-      console.error('Failed to fetch services:', error);
-      // Fallback to static list if API fails
-      setAllServices([
-        { id: '1', name: 'Car Rental', slug: 'car', description: 'Sedan, SUV, Hatchback rentals' },
-        { id: '2', name: 'Bike Rental', slug: 'bike', description: 'Two-wheeler rentals' },
-        { id: '3', name: 'Bus Rental', slug: 'bus', description: 'Mini bus and coach rentals' },
-        { id: '4', name: 'Luxury Vehicle', slug: 'luxury', description: 'Premium and luxury cars' },
-        { id: '5', name: 'Tempo/Truck', slug: 'truck', description: 'Goods transport vehicles' },
-        { id: '6', name: 'Equipment Rental', slug: 'equipment', description: 'Construction equipment' },
-        { id: '7', name: 'Packers & Movers', slug: 'packers', description: 'Relocation services' },
-        { id: '8', name: 'Self Drive', slug: 'self-drive', description: 'Self-drive car rentals' },
-      ]);
+      const data = await getVendorServices();
+      setAllServices(data.allServices || []);
+      setApprovedServiceIds(data.approvedServiceIds || []);
+      setPendingIds(
+        (data.requests || [])
+          .filter((r) => r.status === 'PENDING')
+          .map((r) => r.serviceId)
+      );
+    } catch (e) {
+      console.error('Failed to fetch services:', e);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
   }, []);
 
-  useEffect(() => {
-    fetchServices();
-  }, [fetchServices]);
+  useEffect(() => { fetchServices(); }, [fetchServices]);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
     fetchServices();
   }, [fetchServices]);
 
-  const getStatusIcon = (status) => {
-    switch (status) {
-      case 'APPROVED':
-        return <Ionicons name="checkmark-circle" size={20} color={BRAND.green} />;
-      case 'REJECTED':
-        return <Ionicons name="close-circle" size={20} color={BRAND.error} />;
-      default:
-        return <Ionicons name="time" size={20} color={BRAND.yellow} />;
+  const getStatus = (serviceId) => {
+    if (approvedServiceIds.includes(serviceId)) return 'approved';
+    if (pendingIds.includes(serviceId)) return 'pending';
+    return 'available';
+  };
+
+  const filteredServices = search
+    ? allServices.filter((s) => s.name.toLowerCase().includes(search.toLowerCase()))
+    : allServices;
+
+  const availableServices = filteredServices.filter((s) => getStatus(s.id) === 'available');
+  const allAvailableSelected =
+    availableServices.length > 0 &&
+    availableServices.every((s) => selectedIds.includes(s.id));
+
+  const toggleSelect = (serviceId) => {
+    if (getStatus(serviceId) !== 'available') return;
+    setSelectedIds((prev) =>
+      prev.includes(serviceId) ? prev.filter((id) => id !== serviceId) : [...prev, serviceId]
+    );
+  };
+
+  const handleSelectAll = () => {
+    if (allAvailableSelected) {
+      setSelectedIds((prev) => prev.filter((id) => !availableServices.map((s) => s.id).includes(id)));
+    } else {
+      setSelectedIds((prev) => [...new Set([...prev, ...availableServices.map((s) => s.id)])]);
     }
   };
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'APPROVED':
-        return { bg: '#D1FAE5', text: '#059669' };
-      case 'REJECTED':
-        return { bg: '#FEE2E2', text: '#DC2626' };
-      default:
-        return { bg: '#FEF3C7', text: '#D97706' };
-    }
-  };
-
-  const getStatusText = (status) => {
-    switch (status) {
-      case 'APPROVED':
-        return 'Approved';
-      case 'REJECTED':
-        return 'Rejected';
-      case 'PENDING':
-        return 'Under Review';
-      default:
-        return status;
-    }
-  };
-
-  const getRequestForService = (serviceId) => {
-    return requests.find((r) => r.serviceId === serviceId);
-  };
-
-  const isServiceApproved = (serviceId) => {
-    return approvedServiceIds.includes(serviceId);
-  };
-
-  const openRequestModal = (service) => {
-    setSelectedService(service);
-    setRequestMessage('');
-    setShowRequestModal(true);
-  };
-
-  const handleRequestService = async () => {
-    if (!selectedService) return;
-
+  // ── Bulk Request Submit ──────────────────────────────────────────────────
+  const handleBulkRequest = async () => {
+    if (selectedIds.length === 0) return;
     setSubmitting(true);
     try {
-      await requestService(selectedService.id, requestMessage);
-      setShowRequestModal(false);
-      fetchServices();
-      showSuccess('Service request submitted successfully!');
-    } catch (error) {
-      console.error('Request service failed:', error);
-      showError(error?.response?.data?.error || 'Failed to submit request');
+      await apiPost('/vendor/services/bulk', {
+        serviceIds: selectedIds,
+        message: reqMessage,
+        experience: reqExperience,
+      });
+      showSuccess(`${selectedIds.length} service request${selectedIds.length > 1 ? 's' : ''} submitted!`);
+    } catch (e) {
+      const msg = e?.response?.data?.error || '';
+      if (!msg.toLowerCase().includes('already') && !msg.toLowerCase().includes('pending')) {
+        showError(msg || 'Failed to submit requests');
+      }
     } finally {
+      setShowRequestModal(false);
+      setSelectedIds([]);
+      setReqMessage('');
+      setReqExperience('');
       setSubmitting(false);
+      setLoading(true);
+      fetchServices();
     }
   };
 
-  const handleContinue = () => {
-    navigation.navigate('VendorLocations');
-  };
-
-  const handleRequestAllServices = async () => {
-    // Get all services that are not approved and not already requested
-    const availableServices = allServices.filter(service => {
-      const isApproved = isServiceApproved(service.id);
-      const existingRequest = getRequestForService(service.id);
-      const isPending = existingRequest?.status === 'PENDING';
-      return !isApproved && !isPending;
-    });
-
-    if (availableServices.length === 0) {
-      showInfo('All services are already requested or approved.');
-      return;
+  // ── Withdraw / Remove ────────────────────────────────────────────────────
+  const handleActionConfirm = async () => {
+    if (!actionModal) return;
+    setActioning(true);
+    try {
+      await apiDelete(
+        `/vendor/services?serviceId=${actionModal.serviceId}&type=${actionModal.type}`
+      );
+      const msg =
+        actionModal.type === 'request'
+          ? 'Request withdrawn successfully'
+          : 'Service removed successfully';
+      showSuccess(msg);
+      setActionModal(null);
+      setLoading(true);
+      fetchServices();
+    } catch (e) {
+      showError(e?.response?.data?.error || 'Failed to process action');
+    } finally {
+      setActioning(false);
     }
-
-    showConfirm('Request All Services', `Do you want to request all ${availableServices.length} available services?`, async () => {
-            try {
-              // Request all services
-              for (const service of availableServices) {
-                await requestService(service.id, `Requesting ${service.name} service`);
-              }
-              await fetchServices();
-              showSuccess(`${availableServices.length} service(s) requested successfully!`);
-            } catch (error) {
-              console.error('Request all services failed:', error);
-              showError(error?.response?.data?.error || 'Failed to request services');
-            }
-          }, { confirmText: 'Request All' });
   };
 
+  // ── Stats ────────────────────────────────────────────────────────────────
   const approvedCount = approvedServiceIds.length;
-  const pendingCount = requests.filter((r) => r.status === 'PENDING').length;
-  const rejectedCount = requests.filter((r) => r.status === 'REJECTED').length;
+  const pendingCount = pendingIds.length;
+  const availableCount = allServices.filter((s) => getStatus(s.id) === 'available').length;
 
   if (loading) {
     return (
@@ -227,30 +205,21 @@ export default function VendorServicesScreen({ navigation }) {
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[BRAND.primary]} />
         }
+        keyboardShouldPersistTaps="handled"
       >
         {/* Header */}
         <View style={styles.header}>
           <View style={{ flex: 1 }}>
             <Text style={styles.headerTitle}>My Services</Text>
-            <Text style={styles.headerSubtitle}>
-              {requests.length === 0
-                ? 'Step 2: Select services you want to offer'
-                : 'Services you are approved to offer'}
-            </Text>
+            <Text style={styles.headerSubtitle}>Manage the services you offer</Text>
           </View>
-          <TouchableOpacity
-            style={styles.refreshBtn}
-            onPress={onRefresh}
-          >
-            <Ionicons name="refresh" size={20} color={BRAND.blue} />
-          </TouchableOpacity>
         </View>
 
         {/* Stats */}
         <View style={styles.statsRow}>
           <View style={[styles.statCard, { borderColor: '#D1FAE5' }]}>
             <View style={[styles.statIcon, { backgroundColor: '#D1FAE5' }]}>
-              <Ionicons name="checkmark-circle" size={24} color={BRAND.green} />
+              <Ionicons name="checkmark-circle" size={22} color={BRAND.green} />
             </View>
             <View>
               <Text style={styles.statLabel}>Approved</Text>
@@ -259,214 +228,275 @@ export default function VendorServicesScreen({ navigation }) {
           </View>
           <View style={[styles.statCard, { borderColor: '#FEF3C7' }]}>
             <View style={[styles.statIcon, { backgroundColor: '#FEF3C7' }]}>
-              <Ionicons name="time" size={24} color={BRAND.yellow} />
+              <Ionicons name="time" size={22} color={BRAND.yellow} />
             </View>
             <View>
               <Text style={styles.statLabel}>Pending</Text>
               <Text style={[styles.statNumber, { color: BRAND.yellow }]}>{pendingCount}</Text>
             </View>
           </View>
-          <View style={[styles.statCard, { borderColor: '#FEE2E2' }]}>
-            <View style={[styles.statIcon, { backgroundColor: '#FEE2E2' }]}>
-              <Ionicons name="close-circle" size={24} color={BRAND.error} />
+          <View style={[styles.statCard, { borderColor: '#DBEAFE' }]}>
+            <View style={[styles.statIcon, { backgroundColor: '#DBEAFE' }]}>
+              <Ionicons name="add-circle" size={22} color={BRAND.blue} />
             </View>
             <View>
-              <Text style={styles.statLabel}>Rejected</Text>
-              <Text style={[styles.statNumber, { color: BRAND.error }]}>{rejectedCount}</Text>
+              <Text style={styles.statLabel}>Available</Text>
+              <Text style={[styles.statNumber, { color: BRAND.blue }]}>{availableCount}</Text>
             </View>
           </View>
         </View>
 
-        {/* Service Requests List */}
-        <View style={styles.sectionCard}>
-          <View style={styles.sectionHeader}>
-            <Ionicons name="layers" size={20} color={BRAND.ink} />
-            <Text style={styles.sectionTitle}>Service Requests</Text>
+        {/* Search + Select All row */}
+        <View style={styles.searchRow}>
+          <View style={styles.searchBox}>
+            <Ionicons name="search" size={18} color={BRAND.subText} />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search services..."
+              placeholderTextColor={BRAND.subText}
+              value={search}
+              onChangeText={setSearch}
+            />
+            {search.length > 0 && (
+              <TouchableOpacity onPress={() => setSearch('')}>
+                <Ionicons name="close-circle" size={18} color={BRAND.subText} />
+              </TouchableOpacity>
+            )}
           </View>
-
-          {requests.length === 0 ? (
-            <View style={styles.emptyState}>
-              <Ionicons name="layers-outline" size={48} color="#CBD5E1" />
-              <Text style={styles.emptyTitle}>No service requests yet</Text>
-              <Text style={styles.emptyText}>Request services below to start offering them</Text>
-            </View>
-          ) : (
-            requests.map((request) => {
-              const statusColors = getStatusColor(request.status);
-              return (
-                <View key={request.id} style={styles.requestItem}>
-                  <View style={styles.requestLeft}>
-                    <View style={[styles.serviceIcon, { backgroundColor: '#EFF6FF' }]}>
-                      <Ionicons name={getServiceIcon(request.services?.slug)} size={24} color={BRAND.blue} />
-                    </View>
-                    <View style={styles.requestInfo}>
-                      <Text style={styles.requestName}>{request.services?.name}</Text>
-                      <Text style={styles.requestDate}>
-                        Requested on {new Date(request.createdAt).toLocaleDateString()}
-                      </Text>
-                    </View>
-                  </View>
-                  <View style={[styles.statusPill, { backgroundColor: statusColors.bg }]}>
-                    {getStatusIcon(request.status)}
-                    <Text style={[styles.statusText, { color: statusColors.text }]}>
-                      {getStatusText(request.status)}
-                    </Text>
-                  </View>
-
-                  {request.status === 'REJECTED' && request.rejectionReason && (
-                    <View style={styles.rejectionBox}>
-                      <Text style={styles.rejectionText}>
-                        <Text style={styles.rejectionLabel}>Reason: </Text>
-                        {request.rejectionReason}
-                      </Text>
-                    </View>
-                  )}
-                </View>
-              );
-            })
+          {availableServices.length > 0 && (
+            <TouchableOpacity style={styles.selectAllBtn} onPress={handleSelectAll}>
+              <Ionicons
+                name={allAvailableSelected ? 'checkmark-done-circle' : 'checkmark-done-circle-outline'}
+                size={18}
+                color={BRAND.blue}
+              />
+              <Text style={styles.selectAllText}>
+                {allAvailableSelected ? 'Deselect' : 'All'}
+              </Text>
+            </TouchableOpacity>
           )}
         </View>
 
-        {/* Available Services */}
-        <View style={styles.sectionCard}>
-          <View style={styles.sectionHeader}>
-            <Ionicons name="add-circle" size={20} color={BRAND.ink} />
-            <Text style={styles.sectionTitle}>Available Services</Text>
+        {/* Selected banner */}
+        {selectedIds.length > 0 && (
+          <View style={styles.selectedBanner}>
+            <Ionicons name="layers" size={16} color={BRAND.blue} />
+            <Text style={styles.selectedBannerText}>
+              {selectedIds.length} service{selectedIds.length > 1 ? 's' : ''} selected
+            </Text>
+            <TouchableOpacity onPress={() => setSelectedIds([])}>
+              <Text style={styles.clearText}>Clear</Text>
+            </TouchableOpacity>
           </View>
+        )}
 
-          {/* Select All Button */}
-          <TouchableOpacity
-            style={styles.selectAllServicesBtn}
-            onPress={handleRequestAllServices}
-          >
-            <Ionicons name="layers" size={20} color={BRAND.blue} />
-            <Text style={styles.selectAllServicesText}>Request All Services</Text>
-            <Ionicons name="arrow-forward" size={18} color={BRAND.blue} />
-          </TouchableOpacity>
+        {/* Services List */}
+        {filteredServices.length === 0 ? (
+          <View style={styles.emptyState}>
+            <Ionicons name="layers-outline" size={48} color="#CBD5E1" />
+            <Text style={styles.emptyTitle}>No services found</Text>
+          </View>
+        ) : (
+          <View style={styles.servicesList}>
+            {filteredServices.map((service) => {
+              const status = getStatus(service.id);
+              const isSelected = selectedIds.includes(service.id);
+              const subCount = (service.other_services || []).length;
 
-          <View style={styles.servicesGrid}>
-            {allServices.map((service) => {
-              const isApproved = isServiceApproved(service.id);
-              const existingRequest = getRequestForService(service.id);
-              const isPending = existingRequest?.status === 'PENDING';
+              const cardBg =
+                status === 'approved'
+                  ? '#F0FDF4'
+                  : status === 'pending'
+                  ? '#FFFBEB'
+                  : isSelected
+                  ? '#EFF6FF'
+                  : BRAND.card;
+
+              const cardBorder =
+                status === 'approved'
+                  ? '#86EFAC'
+                  : status === 'pending'
+                  ? '#FDE68A'
+                  : isSelected
+                  ? BRAND.blue
+                  : BRAND.border;
+
+              const iconBg =
+                status === 'approved'
+                  ? '#D1FAE5'
+                  : status === 'pending'
+                  ? '#FEF3C7'
+                  : isSelected
+                  ? '#BFDBFE'
+                  : '#EFF6FF';
+
+              const iconColor =
+                status === 'approved'
+                  ? BRAND.green
+                  : status === 'pending'
+                  ? BRAND.yellow
+                  : BRAND.blue;
 
               return (
                 <TouchableOpacity
                   key={service.id}
-                  style={[
-                    styles.serviceCard,
-                    isApproved && styles.serviceCardApproved,
-                    isPending && styles.serviceCardPending,
-                  ]}
-                  onPress={() => !isApproved && !isPending && openRequestModal(service)}
-                  disabled={isApproved || isPending}
+                  style={[styles.serviceCard, { backgroundColor: cardBg, borderColor: cardBorder }]}
+                  onPress={() => toggleSelect(service.id)}
+                  activeOpacity={status === 'available' ? 0.7 : 1}
                 >
-                  <View style={[
-                    styles.serviceCardIcon,
-                    isApproved && styles.serviceCardIconApproved,
-                  ]}>
-                    <Ionicons
-                      name={getServiceIcon(service.slug)}
-                      size={28}
-                      color={isApproved ? BRAND.green : BRAND.blue}
-                    />
+                  {/* Left icon + checkbox */}
+                  <View style={[styles.serviceIconWrap, { backgroundColor: iconBg }]}>
+                    {status === 'available' ? (
+                      <Ionicons
+                        name={isSelected ? 'checkmark-circle' : getServiceIcon(service.slug)}
+                        size={26}
+                        color={isSelected ? BRAND.blue : iconColor}
+                      />
+                    ) : (
+                      <Ionicons name={getServiceIcon(service.slug)} size={26} color={iconColor} />
+                    )}
                   </View>
-                  <Text style={styles.serviceCardName}>{service.name}</Text>
-                  {service.description && (
-                    <Text style={styles.serviceCardDesc} numberOfLines={2}>
-                      {service.description}
-                    </Text>
+
+                  {/* Info */}
+                  <View style={styles.serviceInfo}>
+                    <Text style={styles.serviceName}>{service.name}</Text>
+                    <View style={styles.serviceMeta}>
+                      {subCount > 0 && (
+                        <View style={styles.subCountBadge}>
+                          <Text style={styles.subCountText}>{subCount} sub-services</Text>
+                        </View>
+                      )}
+                      {status === 'approved' && (
+                        <View style={[styles.statusBadge, { backgroundColor: '#D1FAE5' }]}>
+                          <Ionicons name="checkmark-circle" size={11} color="#059669" />
+                          <Text style={[styles.statusBadgeText, { color: '#059669' }]}>Approved</Text>
+                        </View>
+                      )}
+                      {status === 'pending' && (
+                        <View style={[styles.statusBadge, { backgroundColor: '#FEF3C7' }]}>
+                          <Ionicons name="time" size={11} color="#D97706" />
+                          <Text style={[styles.statusBadgeText, { color: '#D97706' }]}>Under Review</Text>
+                        </View>
+                      )}
+                      {status === 'available' && isSelected && (
+                        <View style={[styles.statusBadge, { backgroundColor: '#DBEAFE' }]}>
+                          <Text style={[styles.statusBadgeText, { color: BRAND.blue }]}>Selected</Text>
+                        </View>
+                      )}
+                      {status === 'available' && !isSelected && (
+                        <Text style={styles.tapHint}>Tap to select</Text>
+                      )}
+                    </View>
+                  </View>
+
+                  {/* Action buttons */}
+                  {status === 'pending' && (
+                    <TouchableOpacity
+                      style={styles.withdrawBtn}
+                      onPress={(e) => {
+                        e.stopPropagation && e.stopPropagation();
+                        setActionModal({ serviceId: service.id, serviceName: service.name, type: 'request' });
+                      }}
+                    >
+                      <Ionicons name="close-circle" size={14} color="#92400E" />
+                      <Text style={styles.withdrawBtnText}>Withdraw</Text>
+                    </TouchableOpacity>
                   )}
-                  {isApproved ? (
-                    <View style={styles.approvedBadge}>
-                      <Ionicons name="checkmark-circle" size={14} color={BRAND.green} />
-                      <Text style={styles.approvedBadgeText}>Approved</Text>
-                    </View>
-                  ) : isPending ? (
-                    <View style={styles.pendingBadge}>
-                      <Ionicons name="time" size={14} color={BRAND.yellow} />
-                      <Text style={styles.pendingBadgeText}>Pending</Text>
-                    </View>
-                  ) : (
-                    <View style={styles.requestBadge}>
-                      <Ionicons name="add" size={14} color={BRAND.blue} />
-                      <Text style={styles.requestBadgeText}>Request</Text>
-                    </View>
+                  {status === 'approved' && (
+                    <TouchableOpacity
+                      style={styles.removeBtn}
+                      onPress={(e) => {
+                        e.stopPropagation && e.stopPropagation();
+                        setActionModal({ serviceId: service.id, serviceName: service.name, type: 'approved' });
+                      }}
+                    >
+                      <Ionicons name="trash" size={14} color="#991B1B" />
+                      <Text style={styles.removeBtnText}>Remove</Text>
+                    </TouchableOpacity>
                   )}
                 </TouchableOpacity>
               );
             })}
           </View>
-        </View>
-
-        {/* Continue Button */}
-        {(approvedCount > 0 || requests.length > 0) && (
-          <TouchableOpacity style={styles.continueBtn} onPress={handleContinue}>
-            <Text style={styles.continueBtnText}>Continue to Locations</Text>
-            <Ionicons name="arrow-forward" size={20} color="#fff" />
-          </TouchableOpacity>
         )}
 
-        {/* Skip Option for users who haven't requested anything yet */}
-        {approvedCount === 0 && requests.length === 0 && (
-          <TouchableOpacity style={styles.skipBtn} onPress={handleContinue}>
-            <Text style={styles.skipBtnText}>Skip for now (You can add services later)</Text>
-            <Ionicons name="arrow-forward" size={18} color={BRAND.subText} />
-          </TouchableOpacity>
-        )}
-
-        {/* Info */}
+        {/* Info note */}
         <View style={styles.infoBox}>
-          <Ionicons name="information-circle-outline" size={20} color={BRAND.blue} />
+          <Ionicons name="information-circle-outline" size={18} color={BRAND.blue} />
           <Text style={styles.infoText}>
-            Request services you want to offer. Admin will review and approve based on your fleet capabilities.
+            Select services you want to offer and submit a request. Admin will review and approve based on your fleet capabilities.
           </Text>
         </View>
       </ScrollView>
 
-      {/* Request Modal */}
+      {/* Floating Request Button */}
+      {selectedIds.length > 0 && (
+        <View style={styles.floatingBar}>
+          <TouchableOpacity style={styles.floatingBtn} onPress={() => setShowRequestModal(true)}>
+            <Ionicons name="send" size={18} color="#fff" />
+            <Text style={styles.floatingBtnText}>
+              Request {selectedIds.length} Service{selectedIds.length > 1 ? 's' : ''}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* ── Request Confirm Modal ─────────────────────────────────────────── */}
       <Modal
         visible={showRequestModal}
         animationType="slide"
-        transparent={true}
-        onRequestClose={() => setShowRequestModal(false)}
+        transparent
+        onRequestClose={() => !submitting && setShowRequestModal(false)}
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Request Service</Text>
+              <Text style={styles.modalTitle}>
+                Request {selectedIds.length} Service{selectedIds.length > 1 ? 's' : ''}
+              </Text>
               <TouchableOpacity
-                style={styles.modalClose}
-                onPress={() => setShowRequestModal(false)}
+                onPress={() => !submitting && setShowRequestModal(false)}
+                style={styles.modalCloseBtn}
               >
-                <Ionicons name="close" size={24} color={BRAND.text} />
+                <Ionicons name="close" size={22} color={BRAND.text} />
               </TouchableOpacity>
             </View>
 
-            {selectedService && (
-              <View style={styles.selectedServiceBox}>
-                <View style={styles.selectedServiceIcon}>
-                  <Ionicons name={getServiceIcon(selectedService.slug)} size={32} color={BRAND.blue} />
-                </View>
-                <View>
-                  <Text style={styles.selectedServiceName}>{selectedService.name}</Text>
-                  {selectedService.description && (
-                    <Text style={styles.selectedServiceDesc}>{selectedService.description}</Text>
-                  )}
-                </View>
-              </View>
-            )}
+            {/* Selected chips */}
+            <View style={styles.selectedChips}>
+              {allServices
+                .filter((s) => selectedIds.includes(s.id))
+                .map((s) => (
+                  <View key={s.id} style={styles.chip}>
+                    <Text style={styles.chipText}>{s.name}</Text>
+                  </View>
+                ))}
+            </View>
 
-            <View style={styles.modalInputGroup}>
-              <Text style={styles.modalLabel}>Message (Optional)</Text>
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Why do you want to offer these? (Optional)</Text>
               <TextInput
-                style={[styles.modalInput, styles.modalTextarea]}
-                placeholder="Tell us about your experience with this service..."
+                style={[styles.textInput, styles.textarea]}
+                placeholder="Tell us about your business..."
                 placeholderTextColor="#A3B3C2"
-                value={requestMessage}
-                onChangeText={setRequestMessage}
+                value={reqMessage}
+                onChangeText={setReqMessage}
                 multiline
-                numberOfLines={4}
+                numberOfLines={3}
+                textAlignVertical="top"
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Your experience (Optional)</Text>
+              <TextInput
+                style={[styles.textInput, styles.textarea]}
+                placeholder="How many years? Fleet size?"
+                placeholderTextColor="#A3B3C2"
+                value={reqExperience}
+                onChangeText={setReqExperience}
+                multiline
+                numberOfLines={3}
                 textAlignVertical="top"
               />
             </View>
@@ -475,21 +505,80 @@ export default function VendorServicesScreen({ navigation }) {
               <TouchableOpacity
                 style={styles.cancelBtn}
                 onPress={() => setShowRequestModal(false)}
+                disabled={submitting}
               >
                 <Text style={styles.cancelBtnText}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.submitBtn, submitting && styles.submitBtnDisabled]}
-                onPress={handleRequestService}
+                onPress={handleBulkRequest}
                 disabled={submitting}
               >
                 {submitting ? (
                   <ActivityIndicator size="small" color="#fff" />
                 ) : (
                   <>
-                    <Ionicons name="send" size={18} color="#fff" />
+                    <Ionicons name="send" size={16} color="#fff" />
                     <Text style={styles.submitBtnText}>Submit Request</Text>
                   </>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ── Withdraw / Remove Confirm Modal ──────────────────────────────── */}
+      <Modal
+        visible={!!actionModal}
+        animationType="fade"
+        transparent
+        onRequestClose={() => !actioning && setActionModal(null)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { paddingBottom: 24 }]}>
+            <View style={styles.actionModalIcon}>
+              <Ionicons
+                name={actionModal?.type === 'approved' ? 'trash' : 'close-circle'}
+                size={32}
+                color={actionModal?.type === 'approved' ? BRAND.error : BRAND.yellow}
+              />
+            </View>
+            <Text style={styles.actionModalTitle}>
+              {actionModal?.type === 'approved' ? 'Remove Service' : 'Withdraw Request'}
+            </Text>
+            <Text style={styles.actionModalMsg}>
+              {actionModal?.type === 'approved'
+                ? `Are you sure you want to remove "${actionModal?.serviceName}"? You will stop receiving bookings for this service. You can request it again later.`
+                : `Are you sure you want to withdraw your request for "${actionModal?.serviceName}"? The pending request will be cancelled.`}
+            </Text>
+
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={styles.cancelBtn}
+                onPress={() => setActionModal(null)}
+                disabled={actioning}
+              >
+                <Text style={styles.cancelBtnText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.submitBtn,
+                  {
+                    backgroundColor:
+                      actionModal?.type === 'approved' ? BRAND.error : BRAND.yellow,
+                  },
+                  actioning && styles.submitBtnDisabled,
+                ]}
+                onPress={handleActionConfirm}
+                disabled={actioning}
+              >
+                {actioning ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Text style={styles.submitBtnText}>
+                    {actionModal?.type === 'approved' ? 'Yes, Remove' : 'Yes, Withdraw'}
+                  </Text>
                 )}
               </TouchableOpacity>
             </View>
@@ -501,458 +590,238 @@ export default function VendorServicesScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: BRAND.bg,
-  },
-  scrollContent: {
-    padding: 16,
-    paddingBottom: 32,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: 12,
-    fontSize: 15,
-    color: BRAND.subText,
-  },
+  safe: { flex: 1, backgroundColor: BRAND.bg },
+  scrollContent: { padding: 16, paddingBottom: 100 },
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  loadingText: { marginTop: 12, fontSize: 15, color: BRAND.subText },
 
-  // Header
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: '800',
-    color: BRAND.ink,
-  },
-  headerSubtitle: {
-    fontSize: 14,
-    color: BRAND.subText,
-    marginTop: 4,
-  },
-  refreshBtn: {
-    padding: 8,
-    backgroundColor: '#EFF6FF',
-    borderRadius: 8,
-  },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
+  headerTitle: { fontSize: 24, fontWeight: '800', color: BRAND.ink },
+  headerSubtitle: { fontSize: 14, color: BRAND.subText, marginTop: 4 },
 
-  // Stats
-  statsRow: {
-    flexDirection: 'row',
-    gap: 8,
-    marginBottom: 16,
-  },
+  statsRow: { flexDirection: 'row', marginBottom: 14, gap: 8 },
   statCard: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 12,
-    backgroundColor: BRAND.card,
-    borderRadius: 12,
-    borderWidth: 1,
-    gap: 10,
-  },
-  statIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  statLabel: {
-    fontSize: 11,
-    color: BRAND.subText,
-  },
-  statNumber: {
-    fontSize: 18,
-    fontWeight: '800',
-  },
-
-  // Section Card
-  sectionCard: {
-    backgroundColor: BRAND.card,
-    borderRadius: 16,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: BRAND.border,
-    marginBottom: 16,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    backgroundColor: '#F8FAFC',
-    borderBottomWidth: 1,
-    borderBottomColor: BRAND.border,
-    gap: 8,
-  },
-  sectionTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: BRAND.ink,
-  },
-
-  // Select All Services Button
-  selectAllServicesBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    marginHorizontal: 16,
-    marginTop: 16,
-    marginBottom: 16,
-    backgroundColor: '#EFF6FF',
-    borderRadius: 12,
-    borderWidth: 1.5,
-    borderColor: '#DBEAFE',
-    gap: 10,
-  },
-  selectAllServicesText: {
-    flex: 1,
-    fontSize: 15,
-    fontWeight: '700',
-    color: BRAND.blue,
-  },
-
-  // Empty State
-  emptyState: {
-    padding: 40,
-    alignItems: 'center',
-  },
-  emptyTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: BRAND.ink,
-    marginTop: 12,
-  },
-  emptyText: {
-    fontSize: 14,
-    color: BRAND.subText,
-    marginTop: 4,
-  },
-
-  // Request Item
-  requestItem: {
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: BRAND.border,
-  },
-  requestLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  serviceIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
-  },
-  requestInfo: {
-    flex: 1,
-  },
-  requestName: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: BRAND.ink,
-  },
-  requestDate: {
-    fontSize: 13,
-    color: BRAND.subText,
-    marginTop: 2,
-  },
-  statusPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'flex-start',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    gap: 4,
-  },
-  statusText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  rejectionBox: {
-    marginTop: 12,
     padding: 10,
-    backgroundColor: '#FEF2F2',
-    borderRadius: 8,
-  },
-  rejectionText: {
-    fontSize: 13,
-    color: BRAND.error,
-  },
-  rejectionLabel: {
-    fontWeight: '700',
-  },
-
-  // Services Grid
-  servicesGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    padding: 8,
-    gap: 8,
-  },
-  serviceCard: {
-    width: '48%',
-    padding: 16,
-    backgroundColor: '#FBFDFF',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: BRAND.border,
-    alignItems: 'center',
-  },
-  serviceCardApproved: {
-    borderColor: '#D1FAE5',
-    backgroundColor: '#F0FDF4',
-  },
-  serviceCardPending: {
-    borderColor: '#FEF3C7',
-    backgroundColor: '#FFFBEB',
-  },
-  serviceCardIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: 14,
-    backgroundColor: '#EFF6FF',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 10,
-  },
-  serviceCardIconApproved: {
-    backgroundColor: '#D1FAE5',
-  },
-  serviceCardName: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: BRAND.ink,
-    textAlign: 'center',
-  },
-  serviceCardDesc: {
-    fontSize: 12,
-    color: BRAND.subText,
-    textAlign: 'center',
-    marginTop: 4,
-  },
-  approvedBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 10,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    backgroundColor: '#D1FAE5',
-    borderRadius: 12,
-    gap: 4,
-  },
-  approvedBadgeText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#059669',
-  },
-  pendingBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 10,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    backgroundColor: '#FEF3C7',
-    borderRadius: 12,
-    gap: 4,
-  },
-  pendingBadgeText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#D97706',
-  },
-  requestBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 10,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    backgroundColor: '#EFF6FF',
-    borderRadius: 12,
-    gap: 4,
-  },
-  requestBadgeText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: BRAND.blue,
-  },
-
-  // Continue Button
-  continueBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: BRAND.primary,
-    paddingVertical: 16,
-    borderRadius: 12,
-    gap: 8,
-    marginBottom: 16,
-  },
-  continueBtnText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#fff',
-  },
-
-  // Skip Button
-  skipBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 14,
-    borderRadius: 12,
-    gap: 6,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: BRAND.border,
     backgroundColor: BRAND.card,
+    borderRadius: 12,
+    borderWidth: 1,
+    gap: 8,
   },
-  skipBtnText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: BRAND.subText,
-  },
+  statIcon: { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  statLabel: { fontSize: 10, color: BRAND.subText },
+  statNumber: { fontSize: 17, fontWeight: '800' },
 
-  // Info Box
+  searchRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 },
+  searchBox: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: BRAND.card,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: BRAND.border,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    gap: 8,
+  },
+  searchInput: { flex: 1, fontSize: 14, color: BRAND.ink, padding: 0 },
+  selectAllBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#EFF6FF',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    borderWidth: 1,
+    borderColor: '#DBEAFE',
+    gap: 5,
+  },
+  selectAllText: { fontSize: 13, fontWeight: '700', color: BRAND.blue },
+
+  selectedBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#EFF6FF',
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+    gap: 8,
+  },
+  selectedBannerText: { flex: 1, fontSize: 13, fontWeight: '600', color: BRAND.blue },
+  clearText: { fontSize: 13, fontWeight: '700', color: BRAND.blue },
+
+  servicesList: { gap: 10, marginBottom: 16 },
+  serviceCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 14,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    gap: 12,
+  },
+  serviceIconWrap: {
+    width: 48,
+    height: 48,
+    borderRadius: 13,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  serviceInfo: { flex: 1, minWidth: 0 },
+  serviceName: { fontSize: 14, fontWeight: '700', color: BRAND.ink },
+  serviceMeta: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6, marginTop: 4 },
+  subCountBadge: {
+    backgroundColor: '#F1F5F9',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 20,
+  },
+  subCountText: { fontSize: 11, color: BRAND.subText },
+  statusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 20,
+    gap: 3,
+  },
+  statusBadgeText: { fontSize: 11, fontWeight: '600' },
+  tapHint: { fontSize: 11, color: '#A3B3C2' },
+
+  withdrawBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: 8,
+    backgroundColor: '#FEF3C7',
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+    gap: 4,
+    flexShrink: 0,
+  },
+  withdrawBtnText: { fontSize: 11, fontWeight: '700', color: '#92400E' },
+  removeBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: 8,
+    backgroundColor: '#FEE2E2',
+    borderWidth: 1,
+    borderColor: '#FECACA',
+    gap: 4,
+    flexShrink: 0,
+  },
+  removeBtnText: { fontSize: 11, fontWeight: '700', color: '#991B1B' },
+
+  emptyState: { alignItems: 'center', paddingVertical: 60 },
+  emptyTitle: { fontSize: 15, fontWeight: '600', color: BRAND.subText, marginTop: 12 },
+
   infoBox: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    padding: 12,
     backgroundColor: '#EFF6FF',
-    borderRadius: 8,
+    borderRadius: 10,
+    padding: 12,
     gap: 8,
   },
-  infoText: {
-    flex: 1,
-    fontSize: 13,
-    color: BRAND.text,
-    lineHeight: 18,
+  infoText: { flex: 1, fontSize: 13, color: BRAND.text, lineHeight: 18 },
+
+  // Floating button
+  floatingBar: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    padding: 16,
+    backgroundColor: BRAND.bg,
+    borderTopWidth: 1,
+    borderTopColor: BRAND.border,
   },
+  floatingBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: BRAND.blue,
+    borderRadius: 14,
+    paddingVertical: 15,
+    gap: 8,
+  },
+  floatingBtnText: { fontSize: 15, fontWeight: '700', color: '#fff' },
 
   // Modal
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'flex-end',
-  },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
   modalContent: {
     backgroundColor: BRAND.card,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     padding: 20,
+    maxHeight: '90%',
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 16,
   },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: BRAND.ink,
+  modalTitle: { fontSize: 18, fontWeight: '700', color: BRAND.ink },
+  modalCloseBtn: { padding: 4 },
+
+  selectedChips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 },
+  chip: {
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    backgroundColor: '#DBEAFE',
+    borderRadius: 20,
   },
-  modalClose: {
-    padding: 4,
-  },
-  selectedServiceBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    backgroundColor: '#EFF6FF',
-    borderRadius: 12,
-    marginBottom: 20,
-    gap: 12,
-  },
-  selectedServiceIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: 14,
-    backgroundColor: BRAND.card,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  selectedServiceName: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: BRAND.ink,
-  },
-  selectedServiceDesc: {
-    fontSize: 13,
-    color: BRAND.subText,
-    marginTop: 2,
-  },
-  modalInputGroup: {
-    marginBottom: 20,
-  },
-  modalLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: BRAND.text,
-    marginBottom: 8,
-  },
-  modalInput: {
+  chipText: { fontSize: 13, fontWeight: '600', color: BRAND.blue },
+
+  inputGroup: { marginBottom: 14 },
+  inputLabel: { fontSize: 13, fontWeight: '600', color: BRAND.text, marginBottom: 6 },
+  textInput: {
     borderWidth: 1,
     borderColor: BRAND.border,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    fontSize: 15,
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    fontSize: 14,
     color: BRAND.ink,
     backgroundColor: '#FBFDFF',
   },
-  modalTextarea: {
-    height: 100,
-    textAlignVertical: 'top',
-  },
-  modalActions: {
-    flexDirection: 'row',
-    gap: 12,
-  },
+  textarea: { height: 80, textAlignVertical: 'top' },
+
+  modalActions: { flexDirection: 'row', gap: 10, marginTop: 8 },
   cancelBtn: {
     flex: 1,
-    paddingVertical: 14,
+    paddingVertical: 13,
     borderRadius: 12,
     borderWidth: 1,
     borderColor: BRAND.border,
     alignItems: 'center',
   },
-  cancelBtnText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: BRAND.text,
-  },
+  cancelBtnText: { fontSize: 14, fontWeight: '600', color: BRAND.text },
   submitBtn: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 14,
+    paddingVertical: 13,
     borderRadius: 12,
     backgroundColor: BRAND.blue,
     gap: 6,
   },
-  submitBtnDisabled: {
-    backgroundColor: '#93C5FD',
-  },
-  submitBtnText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#fff',
-  },
+  submitBtnDisabled: { opacity: 0.6 },
+  submitBtnText: { fontSize: 14, fontWeight: '700', color: '#fff' },
+
+  // Action modal (withdraw/remove)
+  actionModalIcon: { alignItems: 'center', marginBottom: 14 },
+  actionModalTitle: { fontSize: 18, fontWeight: '700', color: BRAND.ink, textAlign: 'center', marginBottom: 8 },
+  actionModalMsg: { fontSize: 14, color: BRAND.subText, textAlign: 'center', lineHeight: 20, marginBottom: 20 },
 });

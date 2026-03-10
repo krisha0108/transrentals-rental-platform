@@ -192,7 +192,7 @@ export default function LuxuryEditTemplateScreen({ navigation, route }) {
       }
     } catch (error) {
       console.error('Error fetching template:', error);
-      showConfirm('Error', 'Failed to load template', () => navigation.goBack(), { confirmText: 'OK' });
+      showError('Failed to load template', 'Error');
     } finally {
       setLoading(false);
     }
@@ -229,7 +229,7 @@ export default function LuxuryEditTemplateScreen({ navigation, route }) {
       const response = await api.patch(`/vendor/luxury-templates/${templateId}`, payload);
 
       if (response.data.success) {
-        showConfirm('Success', 'Template updated successfully!', () => navigation.goBack(), { confirmText: 'OK' });
+        showSuccess('Template updated successfully!', 'Success', { actions: [{ label: 'OK', onPress: () => navigation.goBack(), variant: 'primary' }] });
       } else {
         showError(response.data.error || 'Failed to update template');
       }

@@ -39,11 +39,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Some services not found' }, { status: 404 });
     }
 
-    // Get already approved services
+    // Get already approved services (only active ones — inactive = vendor removed them, can re-request)
     const alreadyApproved = await prisma.vendor_approved_services.findMany({
       where: {
         vendorId: auth.vendorId,
         serviceId: { in: serviceIds },
+        isActive: true,
       },
       select: { serviceId: true },
     });

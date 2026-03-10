@@ -255,7 +255,7 @@ export default function BusSendQuoteScreen({ navigation, route }) {
         vendorMessage: notes || null,
         validityDays: parseInt(validityDays) || 3,
       });
-      showConfirm('Success', 'Quote sent successfully!', () => navigation.goBack(), { confirmText: 'OK' });
+      showSuccess('Quote sent successfully!', 'Success', { actions: [{ label: 'OK', onPress: () => navigation.goBack(), variant: 'primary' }] });
     } catch (error) {
       console.error('Error submitting quote:', error);
       showError(error?.response?.data?.error || 'Failed to send quote');
