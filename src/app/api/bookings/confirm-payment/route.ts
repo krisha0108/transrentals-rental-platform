@@ -246,6 +246,42 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    // Try chauffeur (car rental) booking
+    let chauffeurBooking = await prisma.chauffeur_bookings.findUnique({
+      where: { id: bookingId },
+    });
+
+    if (chauffeurBooking) {
+      if (chauffeurBooking.status !== 'PENDING_PAYMENT') {
+        return NextResponse.json(
+          { error: `Cannot confirm payment for booking with status: ${chauffeurBooking.status}` },
+          { status: 400 }
+        );
+      }
+
+      const updatedBooking = await prisma.chauffeur_bookings.update({
+        where: { id: bookingId },
+        data: {
+          paymentStatus: 'SUBMITTED',
+          paidAmount: amount || chauffeurBooking.partialPayment || chauffeurBooking.grandTotal,
+          paymentMethod: paymentMethod || 'BANK_TRANSFER',
+          transactionId: paymentReference,
+        },
+      });
+
+      return NextResponse.json({
+        success: true,
+        message: 'Payment confirmation submitted successfully',
+        booking: {
+          id: updatedBooking.id,
+          bookingNumber: updatedBooking.bookingNumber,
+          status: updatedBooking.status,
+          transactionId: updatedBooking.transactionId,
+          type: 'chauffeur',
+        },
+      });
+    }
+
     // No booking found
     return NextResponse.json(
       { error: 'Booking not found' },

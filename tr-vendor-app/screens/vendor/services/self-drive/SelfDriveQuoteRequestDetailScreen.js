@@ -196,8 +196,8 @@ export default function SelfDriveQuoteRequestDetailScreen({ route, navigation })
   const destination = request.destination || request.dropLocation || request.drop_location || request.dropCity;
   const pickupDate = request.pickupDate || request.pickup_date || request.startDate || request.journey_date;
   const pickupTime = request.pickupTime || request.pickup_time || request.start_time || request.journey_time;
-  const returnDate = request.returnDate || request.return_date || request.endDate || request.return_datetime;
-  const returnTime = request.returnTime || request.return_time;
+  const returnDate = request.returnDate || request.return_date || request.dropDate || request.drop_date || request.endDate || request.return_datetime;
+  const returnTime = request.returnTime || request.return_time || request.dropTime || request.drop_time;
 
   // Additional Details
   const doorstepDelivery = request.doorstepDelivery || request.doorstep_delivery || request.is_doorstep_delivery || request.isDoorstepDelivery;

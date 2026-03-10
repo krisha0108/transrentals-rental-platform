@@ -129,8 +129,8 @@ export async function GET(request: NextRequest) {
           customers: { select: { id: true, name: true, phone: true } },
         },
         orderBy: [
-          { responseDeadline: 'asc' }, // Urgent first
-          { createdAt: 'desc' },
+          { createdAt: 'desc' }, // Newest first
+          { responseDeadline: 'asc' }, // Then urgent
         ],
         skip,
         take: limit,

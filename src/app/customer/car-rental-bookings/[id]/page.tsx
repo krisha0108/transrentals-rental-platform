@@ -59,6 +59,8 @@ interface BookingDetails {
   tripEndedAt?: string;
   rating?: number;
   review?: string;
+  paymentStatus?: string;
+  transactionId?: string;
   createdAt: string;
 }
 
@@ -396,7 +398,20 @@ export default function CarRentalBookingDetailPage() {
 
             {/* Actions */}
             <div className="bg-white rounded-xl shadow-sm border p-6 space-y-3">
-              {booking.status === 'PENDING_PAYMENT' && (
+              {booking.status === 'PENDING_PAYMENT' && booking.paymentStatus === 'SUBMITTED' && (
+                <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-center">
+                  <CheckCircle className="w-8 h-8 text-amber-500 mx-auto mb-2" />
+                  <p className="font-semibold text-amber-800">Payment Under Verification</p>
+                  <p className="text-sm text-amber-600 mt-1">
+                    Your payment has been submitted. Our team will verify and confirm your booking within 15–30 minutes.
+                  </p>
+                  {booking.transactionId && (
+                    <p className="text-xs text-amber-500 mt-2">Ref: {booking.transactionId}</p>
+                  )}
+                </div>
+              )}
+
+              {booking.status === 'PENDING_PAYMENT' && booking.paymentStatus !== 'SUBMITTED' && (
                 <BookingPayment
                   bookingId={booking.id}
                   bookingType="chauffeur"
