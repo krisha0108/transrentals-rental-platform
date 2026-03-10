@@ -1583,13 +1583,60 @@ function renderServiceDetails(booking, serviceType) {
         </View>
       )}
 
+      {/* Car Category */}
+      {(booking.carCategoryName || booking.carCategory) && (
+        <View style={styles.serviceDetailRow}>
+          <Icon name="grid" size={16} color={C.muted} />
+          <View style={styles.serviceDetailContent}>
+            <Text style={styles.serviceDetailLabel}>Car Category</Text>
+            <Text style={styles.serviceDetailValue}>{booking.carCategoryName || booking.carCategory}</Text>
+          </View>
+        </View>
+      )}
+
       {/* Trip Type */}
       {booking.tripType && (
         <View style={styles.serviceDetailRow}>
           <Icon name="navigation" size={16} color={C.muted} />
           <View style={styles.serviceDetailContent}>
             <Text style={styles.serviceDetailLabel}>Trip Type</Text>
-            <Text style={styles.serviceDetailValue}>{booking.tripType}</Text>
+            <Text style={styles.serviceDetailValue}>
+              {(() => {
+                const t = booking.tripType?.toUpperCase();
+                if (t === 'LOCAL') return 'Local';
+                if (t === 'OUTSTATION_ONEWAY') return 'Outstation (One Way)';
+                if (t === 'OUTSTATION_ROUNDTRIP') return 'Outstation (Round Trip)';
+                if (t === 'AIRPORT_PICKUP') return 'Airport Pickup';
+                if (t === 'AIRPORT_DROP') return 'Airport Drop';
+                return booking.tripType;
+              })()}
+            </Text>
+          </View>
+        </View>
+      )}
+
+      {/* Local Package */}
+      {booking.tripType?.toUpperCase() === 'LOCAL' && (booking.localPackageHours || booking.localPackageKm) && (
+        <View style={styles.serviceDetailRow}>
+          <MaterialCommunityIcons name="clock-time-four-outline" size={16} color={C.muted} />
+          <View style={styles.serviceDetailContent}>
+            <Text style={styles.serviceDetailLabel}>Package</Text>
+            <Text style={styles.serviceDetailValue}>
+              {booking.localPackageHours ? `${booking.localPackageHours} hrs` : ''}
+              {booking.localPackageHours && booking.localPackageKm ? ' / ' : ''}
+              {booking.localPackageKm ? `${booking.localPackageKm} km` : ''}
+            </Text>
+          </View>
+        </View>
+      )}
+
+      {/* Outstation Days */}
+      {booking.tripType?.toUpperCase().startsWith('OUTSTATION') && booking.totalDays && (
+        <View style={styles.serviceDetailRow}>
+          <Icon name="calendar" size={16} color={C.muted} />
+          <View style={styles.serviceDetailContent}>
+            <Text style={styles.serviceDetailLabel}>Total Days</Text>
+            <Text style={styles.serviceDetailValue}>{booking.totalDays} day{booking.totalDays > 1 ? 's' : ''}</Text>
           </View>
         </View>
       )}

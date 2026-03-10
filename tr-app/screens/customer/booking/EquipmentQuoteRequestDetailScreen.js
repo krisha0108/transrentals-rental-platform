@@ -169,6 +169,22 @@ export default function EquipmentQuoteRequestDetailScreen() {
     }
   };
 
+  // Parse array data from API (handles both string and array formats)
+  const parseListData = (data) => {
+    if (!data) return [];
+    if (Array.isArray(data)) return data.filter(item => item && item.trim());
+    if (typeof data === 'string') {
+      if (data.trim().startsWith('[')) {
+        try {
+          const parsed = JSON.parse(data);
+          if (Array.isArray(parsed)) return parsed.filter(item => item && item.trim());
+        } catch (e) {}
+      }
+      return data.split(/\n|,/).map(item => item.trim()).filter(item => item && item !== '');
+    }
+    return [];
+  };
+
   const formatDate = (dateStr) => {
     if (!dateStr) return '-';
     const date = new Date(dateStr);
@@ -308,71 +324,90 @@ export default function EquipmentQuoteRequestDetailScreen() {
           </Text>
         </View>
 
-        {/* Trip Details */}
+        {/* Equipment Details */}
         <View style={styles.detailsCard}>
           <View style={styles.detailsHeader}>
             <View style={styles.detailsIcon}>
-              <Ionicons name="document-text" size={wp('4.5%')} color={TEAL_MID} />
+              <Ionicons name="construct" size={wp('4.5%')} color={TEAL_MID} />
             </View>
-            <Text style={styles.detailsTitle}>Trip Details</Text>
+            <Text style={styles.detailsTitle}>Equipment Details</Text>
           </View>
 
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Trip Type</Text>
-            <Text style={styles.detailValue}>
-              {request.tripType?.charAt(0).toUpperCase() + request.tripType?.slice(1).replace('-', ' ')}
-            </Text>
-          </View>
+          {request.equipmentCategory && (
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>Category</Text>
+              <Text style={styles.detailValue}>{request.equipmentCategory}</Text>
+            </View>
+          )}
 
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Vehicle Category</Text>
-            <Text style={styles.detailValue}>{request.vehicleCategoryName || request.vehicleCategory}</Text>
-          </View>
+          {request.equipmentType && (
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>Equipment Type</Text>
+              <Text style={styles.detailValue}>{request.equipmentType}</Text>
+            </View>
+          )}
 
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Passengers</Text>
-            <Text style={styles.detailValue}>{request.passengers} people</Text>
-          </View>
+          {request.equipmentName && (
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>Equipment Name</Text>
+              <Text style={styles.detailValue}>{request.equipmentName}</Text>
+            </View>
+          )}
+
+          {request.quantity > 0 && (
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>Quantity</Text>
+              <Text style={styles.detailValue}>{request.quantity}</Text>
+            </View>
+          )}
 
           <View style={styles.locationSection}>
             <View style={styles.locationRow}>
               <View style={[styles.locationDot, { backgroundColor: TEAL }]} />
               <View>
-                <Text style={styles.locationLabel}>Pickup</Text>
-                <Text style={styles.locationText}>{request.pickupCity || request.pickupAddress}</Text>
+                <Text style={styles.locationLabel}>Delivery Location</Text>
+                <Text style={styles.locationText}>{request.deliveryCity}</Text>
+                {request.deliveryAddress && (
+                  <Text style={[styles.locationLabel, { marginTop: hp('0.3%') }]}>{request.deliveryAddress}</Text>
+                )}
               </View>
             </View>
-            {request.dropCity && (
-              <View style={styles.locationRow}>
-                <View style={[styles.locationDot, { backgroundColor: '#e74c3c' }]} />
-                <View>
-                  <Text style={styles.locationLabel}>Drop</Text>
-                  <Text style={styles.locationText}>{request.dropCity || request.dropAddress}</Text>
-                </View>
-              </View>
-            )}
           </View>
 
           <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Pickup Date</Text>
-            <Text style={styles.detailValue}>
-              {formatDate(request.pickupDate)} | {request.pickupTime || '10:00 AM'}
-            </Text>
+            <Text style={styles.detailLabel}>Start Date</Text>
+            <Text style={styles.detailValue}>{formatDate(request.startDate)}</Text>
           </View>
 
-          {request.returnDate && (
+          <View style={styles.detailRow}>
+            <Text style={styles.detailLabel}>End Date</Text>
+            <Text style={styles.detailValue}>{formatDate(request.endDate)}</Text>
+          </View>
+
+          {request.rentalDays > 0 && (
             <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Return Date</Text>
-              <Text style={styles.detailValue}>
-                {formatDate(request.returnDate)} | {request.returnTime || '10:00 AM'}
-              </Text>
+              <Text style={styles.detailLabel}>Rental Duration</Text>
+              <Text style={styles.detailValue}>{request.rentalDays} day{request.rentalDays > 1 ? 's' : ''}</Text>
             </View>
           )}
 
-          {request.tripDays > 0 && (
+          {request.siteType && (
             <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Trip Duration</Text>
-              <Text style={styles.detailValue}>{request.tripDays} day{request.tripDays > 1 ? 's' : ''}</Text>
+              <Text style={styles.detailLabel}>Site Type</Text>
+              <Text style={styles.detailValue}>{request.siteType}</Text>
+            </View>
+          )}
+
+          {(request.needOperator || request.needDelivery || request.needInstallation) && (
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>Services Needed</Text>
+              <Text style={styles.detailValue}>
+                {[
+                  request.needOperator && 'Operator',
+                  request.needDelivery && 'Delivery',
+                  request.needInstallation && 'Installation',
+                ].filter(Boolean).join(', ')}
+              </Text>
             </View>
           )}
 
@@ -415,16 +450,16 @@ export default function EquipmentQuoteRequestDetailScreen() {
                 </View>
 
                 <View style={styles.quoteDetails}>
-                  {quote.vehicleName && (
+                  {(quote.equipmentModel || quote.equipmentName) && (
                     <View style={styles.quoteDetailRow}>
-                      <Ionicons name="bus-outline" size={16} color={TEXT_SECONDARY} />
-                      <Text style={styles.quoteDetailText}>{quote.vehicleName}</Text>
+                      <Ionicons name="construct-outline" size={wp('4%')} color={TEXT_SECONDARY} />
+                      <Text style={styles.quoteDetailText}>{quote.equipmentModel || quote.equipmentName}</Text>
                     </View>
                   )}
                   {quote.inclusions && (
                     <View style={styles.quoteDetailRow}>
-                      <Ionicons name="checkmark-circle-outline" size={16} color={TEAL} />
-                      <Text style={styles.quoteDetailText}>{quote.inclusions}</Text>
+                      <Ionicons name="checkmark-circle-outline" size={wp('4%')} color={TEAL} />
+                      <Text style={styles.quoteDetailText}>{parseListData(quote.inclusions).join(', ')}</Text>
                     </View>
                   )}
                   {quote.validTill && (
@@ -597,17 +632,17 @@ export default function EquipmentQuoteRequestDetailScreen() {
                         </View>
                       </View>
 
-                      {selectedQuote.vehicleName && (
+                      {(selectedQuote.equipmentModel || selectedQuote.equipmentName) && (
                         <View style={styles.confirmDetailRow}>
-                          <Ionicons name="car-outline" size={16} color={TEXT_SECONDARY} />
-                          <Text style={styles.confirmDetailText}>{selectedQuote.vehicleName}</Text>
+                          <Ionicons name="construct-outline" size={wp('4%')} color={TEXT_SECONDARY} />
+                          <Text style={styles.confirmDetailText}>{selectedQuote.equipmentModel || selectedQuote.equipmentName}</Text>
                         </View>
                       )}
 
                       {selectedQuote.inclusions && (
                         <View style={styles.confirmDetailRow}>
-                          <Ionicons name="checkmark-circle-outline" size={16} color={TEAL} />
-                          <Text style={styles.confirmDetailText}>{selectedQuote.inclusions}</Text>
+                          <Ionicons name="checkmark-circle-outline" size={wp('4%')} color={TEAL} />
+                          <Text style={styles.confirmDetailText}>{parseListData(selectedQuote.inclusions).join(', ')}</Text>
                         </View>
                       )}
                     </View>

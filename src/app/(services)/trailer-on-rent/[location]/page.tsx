@@ -65,9 +65,14 @@ export default async function TrailerLocationPage({ params }: Props) {
     },
   ];
 
+  const seoData = await resolvePageMeta(`trailer-on-rent:${params.location}`);
+
+
   return (
     <>
       <ServiceHeroWithChat
+        pageHeading={seoData?.pageHeading || undefined}
+        pageDescription={seoData?.pageDescription || undefined}
         badge={`Trailer Rental in ${location.name}`}
         title="Heavy Duty Trailer Rental"
         titleHighlight="20ft-40ft Trailers @₹5999/day"

@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo } from 'react';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Filter,
@@ -16,6 +17,8 @@ import {
   Gauge,
   X,
   ArrowLeft,
+  Pencil,
+  Check,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -101,6 +104,7 @@ export function CarFleetGridMultiVendor({
   brands = [],
   categories = [],
 }: CarFleetGridMultiVendorProps) {
+  const router = useRouter();
   const [selectedType, setSelectedType] = useState('All');
   const [selectedBrand, setSelectedBrand] = useState('All');
   const [selectedTransmission, setSelectedTransmission] = useState('All');
@@ -109,6 +113,11 @@ export function CarFleetGridMultiVendor({
   const [sortBy, setSortBy] = useState('price_low');
   const [showFilters, setShowFilters] = useState(false);
   const [selectedCar, setSelectedCar] = useState<AggregatedCar | null>(null);
+  const [editingDates, setEditingDates] = useState(false);
+  const [editPickupDate, setEditPickupDate] = useState(pickupDate);
+  const [editPickupTime, setEditPickupTime] = useState(pickupTime);
+  const [editDropDate, setEditDropDate] = useState(dropDate);
+  const [editDropTime, setEditDropTime] = useState(dropTime);
 
   // Calculate rental duration
   // Calculate rental duration with time precision
@@ -204,6 +213,18 @@ export function CarFleetGridMultiVendor({
     return `${hour12}:${minutes} ${ampm}`;
   };
 
+  const handleApplyDates = () => {
+    if (!editPickupDate || !editPickupTime || !editDropDate || !editDropTime) return;
+    const params = new URLSearchParams({
+      pickupDate: editPickupDate,
+      pickupTime: editPickupTime,
+      dropDate: editDropDate,
+      dropTime: editDropTime,
+    });
+    router.push(`/self-drive-car-rentals/${citySlug}/cars?${params.toString()}`);
+    setEditingDates(false);
+  };
+
   const [showQuoteModal, setShowQuoteModal] = useState(false);
 
   // Handle quote request
@@ -230,55 +251,120 @@ export function CarFleetGridMultiVendor({
   return (
     <div className="bg-gray-50 min-h-screen">
       {/* Sticky Header with Trip Info */}
-      <div className="bg-white border-b border-gray-200 sticky top-0 z-40">
+      <div className="bg-white border-b mt-8 border-gray-200 sticky top-0 z-40">
         <div className="container mx-auto px-4 py-4">
           <div className="flex flex-wrap items-center justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <Link
-                href={`/self-drive-car-rentals/${citySlug}`}
-                className="p-2 hover:bg-gray-100 rounded-lg transition"
-              >
-                <ArrowLeft className="w-5 h-5" />
-              </Link>
-              <div>
-                <h1 className="text-xl font-bold text-gray-900">Self-Drive Cars in {city}</h1>
-                <div className="flex flex-wrap items-center gap-2 text-sm text-gray-600 mt-1">
-                  <span className="flex items-center gap-1">
-                    <Calendar className="w-4 h-4" />
-                    {formatDate(pickupDate)} {formatTime(pickupTime)}
-                  </span>
-                  <span>→</span>
-                  <span className="flex items-center gap-1">
-                    <Calendar className="w-4 h-4" />
-                    {formatDate(dropDate)} {formatTime(dropTime)}
-                  </span>
-                  <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">
-                    {durationText}
-                  </span>
+            {/* Trip Summary */}
+            {editingDates ? (
+              <div className="flex items-center gap-3 flex-wrap w-full">
+                <div className="flex items-center gap-2 bg-blue-50 px-3 py-2 rounded-lg">
+                  <MapPin className="w-4 h-4 text-blue-600" />
+                  <span className="font-medium text-blue-700">{city}</span>
                 </div>
+                <div className="flex items-center gap-2">
+                  <Calendar className="w-4 h-4 text-gray-500" />
+                  <input
+                    type="date"
+                    value={editPickupDate}
+                    onChange={(e) => setEditPickupDate(e.target.value)}
+                    className="px-2 py-1 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+                  />
+                  <input
+                    type="time"
+                    value={editPickupTime}
+                    onChange={(e) => setEditPickupTime(e.target.value)}
+                    className="px-2 py-1 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <span className="text-gray-400">→</span>
+                <div className="flex items-center gap-2">
+                  <Calendar className="w-4 h-4 text-gray-500" />
+                  <input
+                    type="date"
+                    value={editDropDate}
+                    onChange={(e) => setEditDropDate(e.target.value)}
+                    className="px-2 py-1 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+                  />
+                  <input
+                    type="time"
+                    value={editDropTime}
+                    onChange={(e) => setEditDropTime(e.target.value)}
+                    className="px-2 py-1 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <button
+                  onClick={handleApplyDates}
+                  className="p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+                  title="Apply"
+                >
+                  <Check className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => {
+                    setEditingDates(false);
+                    setEditPickupDate(pickupDate);
+                    setEditPickupTime(pickupTime);
+                    setEditDropDate(dropDate);
+                    setEditDropTime(dropTime);
+                  }}
+                  className="p-2 bg-gray-200 text-gray-600 rounded-lg hover:bg-gray-300 transition"
+                  title="Cancel"
+                >
+                  <X className="w-4 h-4" />
+                </button>
               </div>
-            </div>
+            ) : (
+              <>
+                <div className="flex items-center gap-4">
+                  <Link
+                    href={`/self-drive-car-rentals/${citySlug}`}
+                    className="p-2 hover:bg-gray-100 rounded-lg transition"
+                  >
+                    <ArrowLeft className="w-5 h-5" />
+                  </Link>
+                  <div>
+                    <h1 className="text-xl font-bold text-gray-900">Self-Drive Cars in {city}</h1>
+                    <div className="flex flex-wrap items-center gap-2 text-sm text-gray-600 mt-1">
+                      <span className="flex items-center gap-1">
+                        <Calendar className="w-4 h-4" />
+                        {formatDate(pickupDate)} {formatTime(pickupTime)}
+                      </span>
+                      <span>→</span>
+                      <span className="flex items-center gap-1">
+                        <Calendar className="w-4 h-4" />
+                        {formatDate(dropDate)} {formatTime(dropTime)}
+                      </span>
+                      <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">
+                        {durationText}
+                      </span>
+                      <button
+                        onClick={() => setEditingDates(true)}
+                        className="p-1 hover:bg-gray-100 rounded-lg transition"
+                        title="Edit dates"
+                      >
+                        <Pencil className="w-3.5 h-3.5 text-gray-500" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
 
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                onClick={() => setShowFilters(!showFilters)}
-                className="lg:hidden"
-              >
-                <Filter className="w-4 h-4 mr-2" />
-                Filters
-                {hasActiveFilters && (
-                  <span className="ml-2 bg-blue-600 text-white w-5 h-5 rounded-full text-xs flex items-center justify-center">
-                    !
-                  </span>
-                )}
-              </Button>
-              <Link href={`/self-drive-car-rentals/${citySlug}`}>
-                <Button variant="outline" size="sm">
-                  Modify Search
-                </Button>
-              </Link>
-            </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowFilters(!showFilters)}
+                    className="lg:hidden"
+                  >
+                    <Filter className="w-4 h-4 mr-2" />
+                    Filters
+                    {hasActiveFilters && (
+                      <span className="ml-2 bg-blue-600 text-white w-5 h-5 rounded-full text-xs flex items-center justify-center">
+                        !
+                      </span>
+                    )}
+                  </Button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       </div>

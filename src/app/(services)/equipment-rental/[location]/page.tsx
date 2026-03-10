@@ -241,6 +241,9 @@ export default async function EquipmentLocationPage({ params }: PageProps) {
 
   const vehicles = dbVehicles;
 
+  const seoData = await resolvePageMeta(`equipment-rental:${params.location}`);
+
+
   return (
     <div className="flex flex-col">
       {/* Breadcrumbs */}
@@ -263,6 +266,8 @@ export default async function EquipmentLocationPage({ params }: PageProps) {
       <B2BServiceNote serviceName="Equipment Rental" />
 
       <ServiceHeroWithChat
+        pageHeading={seoData?.pageHeading || undefined}
+        pageDescription={seoData?.pageDescription || undefined}
         badge={`Equipment Rental in ${locationName}`}
         title="Construction & Event Equipment"
         titleHighlight="Rent Equipment @₹1499/day"

@@ -37,6 +37,8 @@ interface Notification {
   body?: string;
   bookingId?: string;
   bookingNumber?: string;
+  requestId?: string;
+  requestNumber?: string;
   reviewId?: string;
   serviceType?: string;
   read: boolean;
@@ -106,14 +108,72 @@ const NOTIF_REDIRECT: Record<string, string> = {
   booking_assigned: '/vendor/bookings',
   quote_request: '/vendor/quotes',
   quote_accepted: '/vendor/quotes',
-  advance_paid: '/vendor/payments',
+  advance_paid: '/vendor/earnings',
   review: '/vendor/reviews',
-  payment: '/vendor/payments',
-  payout: '/vendor/payments',
+  payment: '/vendor/earnings',
+  payout: '/vendor/earnings',
+};
+
+// Map serviceType to vendor dashboard route prefix
+const SERVICE_ROUTE_MAP: Record<string, string> = {
+  bike: 'bike-rentals',
+  bus: 'bus',
+  truck: 'truck',
+  luxury: 'luxury',
+  packers: 'packers',
+  equipment: 'equipment',
+  'self-drive': 'self-drive',
+  'car-rental': 'car-rental',
+  chauffeur: 'car-rental',
 };
 
 function getRedirectUrl(notification: Notification): string | null {
-  return NOTIF_REDIRECT[notification.type] || null;
+  const { type, serviceType, requestId, bookingId, bookingNumber } = notification;
+  const routePrefix = serviceType ? SERVICE_ROUTE_MAP[serviceType] : null;
+
+  // Quote request → go to specific request detail page
+  if (type === 'quote_request' && routePrefix && requestId) {
+    if (routePrefix === 'luxury') {
+      return `/vendor/luxury/send-quote/${requestId}`;
+    }
+    return `/vendor/${routePrefix}/requests/${requestId}/quote`;
+  }
+
+  // Quote accepted → go to specific quote/booking
+  if (type === 'quote_accepted' && routePrefix && (bookingId || requestId)) {
+    return `/vendor/${routePrefix}/bookings/${bookingId || requestId}`;
+  }
+
+  // Booking related → go to specific booking detail
+  if ((type === 'booking' || type === 'booking_confirmed' || type === 'booking_assigned') && routePrefix) {
+    if (routePrefix === 'car-rental' && bookingNumber) {
+      return `/vendor/car-rental/bookings/${bookingNumber}`;
+    }
+    if (bookingId) {
+      return `/vendor/${routePrefix}/bookings/${bookingId}`;
+    }
+  }
+
+  // Payment/advance related → go to specific booking detail
+  if ((type === 'advance_paid' || type === 'payment') && routePrefix) {
+    if (routePrefix === 'car-rental' && bookingNumber) {
+      return `/vendor/car-rental/bookings/${bookingNumber}`;
+    }
+    if (bookingId) {
+      return `/vendor/${routePrefix}/bookings/${bookingId}`;
+    }
+  }
+
+  // Trip started/completed → go to specific booking detail
+  if ((type === 'trip_started' || type === 'trip_complete' || type === 'trip_completed') && routePrefix && bookingId) {
+    if (routePrefix === 'car-rental' && bookingNumber) {
+      return `/vendor/car-rental/bookings/${bookingNumber}`;
+    }
+    return `/vendor/${routePrefix}/bookings/${bookingId}`;
+  }
+
+  // Fallback to static redirect map
+  return NOTIF_REDIRECT[type] || null;
 }
 
 function getRelativeTime(dateStr: string) {

@@ -10,9 +10,11 @@ import { cn } from '@/lib/utils';
 interface BikeSearchHeroProps {
   city: string;
   citySlug: string;
+  pageHeading?: string;
+  pageDescription?: string;
 }
 
-export function BikeSearchHero({ city, citySlug }: BikeSearchHeroProps) {
+export function BikeSearchHero({ city, citySlug, pageHeading, pageDescription }: BikeSearchHeroProps) {
   const router = useRouter();
   const [pickupDate, setPickupDate] = useState('');
   const [pickupTime, setPickupTime] = useState('');
@@ -93,10 +95,10 @@ export function BikeSearchHero({ city, citySlug }: BikeSearchHeroProps) {
               <span className="text-white font-medium">{city}</span>
             </div>
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-4">
-              Bike Rentals in {city}
+              {pageHeading || `Bike Rentals in ${city}`}
             </h1>
             <p className="text-xl text-white/90 max-w-2xl mx-auto">
-              Rent bikes & scooters starting ₹299/day. Royal Enfield, Activa, KTM & more.
+              {pageDescription || `Rent bikes & scooters starting ₹299/day. Royal Enfield, Activa, KTM & more.`}
             </p>
           </motion.div>
 

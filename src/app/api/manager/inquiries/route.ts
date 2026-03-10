@@ -100,6 +100,7 @@ export async function GET(request: NextRequest) {
             include: {
               customers: { select: { id: true, name: true, email: true, phone: true } },
               locations: { select: { id: true, name: true } },
+              _count: { select: { bike_quotes_bike_quotes_requestIdTobike_quote_requests: true } },
             },
             orderBy: { createdAt: 'desc' },
           }).catch(() => [])
@@ -111,6 +112,7 @@ export async function GET(request: NextRequest) {
             where: pickupCityFilter,
             include: {
               customers: { select: { id: true, name: true, email: true, phone: true } },
+              _count: { select: { bus_quotes_bus_quotes_requestIdTobus_quote_requests: true } },
             },
             orderBy: { createdAt: 'desc' },
           }).catch(() => [])
@@ -123,6 +125,7 @@ export async function GET(request: NextRequest) {
             include: {
               customers: { select: { id: true, name: true, email: true, phone: true } },
               locations: { select: { id: true, name: true } },
+              _count: { select: { self_drive_quotes_self_drive_quotes_requestIdToself_drive_quote_requests: true } },
             },
             orderBy: { createdAt: 'desc' },
           }).catch(() => [])
@@ -134,6 +137,7 @@ export async function GET(request: NextRequest) {
             where: locationNameFilter,
             include: {
               customers: { select: { id: true, name: true, email: true, phone: true } },
+              _count: { select: { equipment_quotes: true } },
             },
             orderBy: { createdAt: 'desc' },
           }).catch(() => [])
@@ -145,6 +149,7 @@ export async function GET(request: NextRequest) {
             where: pickupCityFilter,
             include: {
               customers: { select: { id: true, name: true, email: true, phone: true } },
+              _count: { select: { luxury_quotes: true } },
             },
             orderBy: { createdAt: 'desc' },
           }).catch(() => [])
@@ -156,6 +161,7 @@ export async function GET(request: NextRequest) {
             where: locationNameFilter,
             include: {
               customers: { select: { id: true, name: true, email: true, phone: true } },
+              _count: { select: { packers_quotes: true } },
             },
             orderBy: { createdAt: 'desc' },
           }).catch(() => [])
@@ -167,6 +173,7 @@ export async function GET(request: NextRequest) {
             where: pickupCityFilter,
             include: {
               customers: { select: { id: true, name: true, email: true, phone: true } },
+              _count: { select: { truck_quotes: true } },
             },
             orderBy: { createdAt: 'desc' },
           }).catch(() => [])
@@ -188,7 +195,7 @@ export async function GET(request: NextRequest) {
         pickupDate: q.pickupDate,
         pickupTime: q.pickupTime,
         dropDate: q.dropDate,
-        quotesCount: q._count?.bike_quotes || 0,
+        quotesCount: q._count?.bike_quotes_bike_quotes_requestIdTobike_quote_requests || 0,
         createdAt: q.createdAt,
       })),
       ...busInquiries.map((q: any) => ({
@@ -204,7 +211,7 @@ export async function GET(request: NextRequest) {
         pickupDate: q.pickupDate,
         pickupTime: q.pickupTime,
         dropDate: q.returnDate,
-        quotesCount: q._count?.bus_quotes || 0,
+        quotesCount: q._count?.bus_quotes_bus_quotes_requestIdTobus_quote_requests || 0,
         createdAt: q.createdAt,
       })),
       ...selfDriveInquiries.map((q: any) => ({
@@ -220,7 +227,7 @@ export async function GET(request: NextRequest) {
         pickupDate: q.pickupDate,
         pickupTime: q.pickupTime,
         dropDate: q.dropDate,
-        quotesCount: q._count?.self_drive_quotes || 0,
+        quotesCount: q._count?.self_drive_quotes_self_drive_quotes_requestIdToself_drive_quote_requests || 0,
         createdAt: q.createdAt,
       })),
       ...equipmentInquiries.map((q: any) => ({

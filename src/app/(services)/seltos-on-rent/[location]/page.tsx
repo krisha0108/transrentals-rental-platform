@@ -43,6 +43,9 @@ export default async function SeltosLocationPage({ params }: PageProps) {
   const city = pageContext.city;
   const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
 
+  const seoData = await resolvePageMeta(`seltos-on-rent:${params.location}`);
+
+
   return (
     <>
       <section className="bg-gray-100 py-3">
@@ -58,6 +61,8 @@ export default async function SeltosLocationPage({ params }: PageProps) {
       </section>
 
       <ServiceHeroWithChat
+        pageHeading={seoData?.pageHeading || undefined}
+        pageDescription={seoData?.pageDescription || undefined}
         badge={`Seltos in ${locationName}`}
         title="Kia Seltos on Rent"
         titleHighlight="Starting @₹1899/Day"

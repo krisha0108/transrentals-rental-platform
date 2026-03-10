@@ -49,6 +49,9 @@ export default async function HourlyCarLocationPage({ params }: PageProps) {
   const city = pageContext.city;
   const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
 
+  const seoData = await resolvePageMeta(`hourly-car-rental:${params.location}`);
+
+
   return (
     <>
       <section className="bg-gray-100 py-3">
@@ -64,6 +67,8 @@ export default async function HourlyCarLocationPage({ params }: PageProps) {
       </section>
 
       <ServiceHeroWithChat
+        pageHeading={seoData?.pageHeading || undefined}
+        pageDescription={seoData?.pageDescription || undefined}
         badge={`Hourly Rental in ${locationName}`}
         title="Hourly Car Rental"
         titleHighlight="From ₹149/hour"

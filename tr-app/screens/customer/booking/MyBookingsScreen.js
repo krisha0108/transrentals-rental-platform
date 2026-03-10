@@ -1,5 +1,5 @@
 // screens/customer/booking/MyBookingsScreen.js
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -53,10 +53,9 @@ const STATUSES = [
 
 const MyBookingsScreen = () => {
   const navigation = useNavigation();
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [allBookings, setAllBookings] = useState([]);
-  const [filteredBookings, setFilteredBookings] = useState([]);
+  const [allBookings, setAllBookings] = useState(null);
   const [selectedService, setSelectedService] = useState('all');
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [customerId, setCustomerId] = useState(null);
@@ -117,15 +116,22 @@ const MyBookingsScreen = () => {
           setCustomerEmail(customer.email);
           setCustomerPhone(customer.phone);
         } else {
-          setLoading(false);
+          setAllBookings([]);
         }
       } catch (error) {
         console.log('Error loading customer:', error);
-        setLoading(false);
+        setAllBookings([]);
       }
     };
     loadCustomer();
   }, []);
+
+  // Fetch bookings once customer data is available
+  useEffect(() => {
+    if (customerId && (customerPhone || customerEmail)) {
+      fetchAllBookings();
+    }
+  }, [customerId, customerPhone, customerEmail]);
 
   const fetchAllBookings = useCallback(async () => {
     if (!customerId && !customerPhone && !customerEmail) return;
@@ -246,8 +252,9 @@ const MyBookingsScreen = () => {
     }, [customerId, customerPhone, customerEmail, fetchAllBookings])
   );
 
-  // Filter bookings when filters or search change
-  useEffect(() => {
+  // Filter bookings - useMemo so it's always in sync (no frame delay)
+  const filteredBookings = useMemo(() => {
+    if (!allBookings) return [];
     let filtered = [...allBookings];
 
     // Filter by service
@@ -280,7 +287,7 @@ const MyBookingsScreen = () => {
       );
     }
 
-    setFilteredBookings(filtered);
+    return filtered;
   }, [allBookings, selectedService, selectedStatus, searchQuery]);
 
   const onRefresh = () => {
@@ -587,7 +594,7 @@ const MyBookingsScreen = () => {
         </View>
 
         {/* Stats Row */}
-        {loading ? (
+        {(loading || allBookings === null) ? (
           <View style={styles.statsRow}>
             <View style={styles.statCard}>
               <ActivityIndicator size="small" color="#fff" />
@@ -679,7 +686,7 @@ const MyBookingsScreen = () => {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[TEAL]} />
         }
       >
-        {loading ? (
+        {(loading || allBookings === null) ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={TEAL} />
             <Text style={styles.loadingText}>Loading your bookings...</Text>

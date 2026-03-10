@@ -48,7 +48,9 @@ export async function GET(request: NextRequest) {
 
     const whereClause: any = { vendorId: vendorId };
     if (status && status !== 'all') {
-      whereClause.status = status;
+      // Support comma-separated statuses (e.g. "SENT,VIEWED")
+      const statuses = status.split(',').map(s => s.trim()).filter(Boolean);
+      whereClause.status = statuses.length === 1 ? statuses[0] : { in: statuses };
     }
 
     // DATE FILTERING
@@ -65,7 +67,9 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    const [quotes, total] = await Promise.all([
+    const baseWhere = { vendorId: vendorId };
+
+    const [quotes, total, totalAll, pendingCount, acceptedCount, acceptedQuotes] = await Promise.all([
       prisma.self_drive_quotes.findMany({
         where: whereClause,
         include: {
@@ -89,6 +93,13 @@ export async function GET(request: NextRequest) {
         take: limit,
       }),
       prisma.self_drive_quotes.count({ where: whereClause }),
+      prisma.self_drive_quotes.count({ where: baseWhere }),
+      prisma.self_drive_quotes.count({ where: { ...baseWhere, status: { in: ['SENT', 'VIEWED'] } } }),
+      prisma.self_drive_quotes.count({ where: { ...baseWhere, status: 'ACCEPTED' } }),
+      prisma.self_drive_quotes.findMany({
+        where: { ...baseWhere, status: 'ACCEPTED' },
+        select: { grandTotal: true },
+      }),
     ]);
 
     return NextResponse.json({
@@ -137,6 +148,12 @@ export async function GET(request: NextRequest) {
         limit,
         total,
         totalPages: Math.ceil(total / limit),
+      },
+      stats: {
+        total: totalAll,
+        pending: pendingCount,
+        accepted: acceptedCount,
+        wonValue: acceptedQuotes.reduce((sum: number, q: any) => sum + (q.grandTotal || 0), 0),
       },
     });
   } catch (error: any) {

@@ -491,7 +491,6 @@ export default function CarRentalFleetScreen({ navigation, route }) {
         {showSuggestions && (
           <View
             style={styles.suggestionsBox}
-            onStartShouldSetResponder={() => true}
             onMoveShouldSetResponder={() => true}
             onResponderGrant={() => {
               if (scrollViewRef.current) {
@@ -512,12 +511,10 @@ export default function CarRentalFleetScreen({ navigation, route }) {
             <ScrollView
               style={{ maxHeight: height * 0.35 }}
               nestedScrollEnabled={true}
-              keyboardShouldPersistTaps="handled"
-              keyboardDismissMode="on-drag"
+              keyboardShouldPersistTaps="always"
               showsVerticalScrollIndicator={true}
               scrollEventThrottle={16}
               bounces={false}
-              onScrollBeginDrag={() => Keyboard.dismiss()}
             >
               {filteredLocations(query, showAirports).map((loc) => (
                 <TouchableOpacity

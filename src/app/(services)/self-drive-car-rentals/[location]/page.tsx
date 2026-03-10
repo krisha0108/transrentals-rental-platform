@@ -247,9 +247,17 @@ export default async function SelfDriveCarRentalLocationPage({ params }: PagePro
   const city = pageContext.city;
   const locationName = city.name;
 
+  // Fetch page heading/description from admin settings
+  const seoData = await resolvePageMeta(`self-drive-car-rentals:${params.location}`);
+
   return (
     <>
-      <CarSearchHero city={locationName} citySlug={params.location} />
+      <CarSearchHero
+        city={locationName}
+        citySlug={params.location}
+        pageHeading={seoData?.pageHeading || undefined}
+        pageDescription={seoData?.pageDescription || undefined}
+      />
 
       {/* Why Self Drive in This City */}
       <section className="py-16 bg-white">

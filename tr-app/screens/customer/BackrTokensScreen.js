@@ -101,7 +101,7 @@ const formatDate = (dateStr) => {
 };
 
 /* ── Transaction Row ───────────────────────── */
-const TransactionItem = ({ item, index }) => {
+const TransactionItem = ({ item, index, onPress }) => {
   const meta = SERVICE_META[item.serviceType] || { icon: 'swap-horizontal', color: EMERALD, bg: '#ECFDF5' };
   const label = item.serviceType
     ? item.serviceType.charAt(0).toUpperCase() + item.serviceType.slice(1).replace('-', ' ')
@@ -119,26 +119,32 @@ const TransactionItem = ({ item, index }) => {
   }, []);
 
   return (
-    <Animated.View style={[styles.txnCard, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
-      <View style={[styles.txnIcon, { backgroundColor: meta.bg }]}>
-        <Icon name={meta.icon} size={20} color={meta.color} />
-      </View>
-      <View style={styles.txnInfo}>
-        <Text style={styles.txnService}>{label} Booking</Text>
-        {item.bookingNumber ? <Text style={styles.txnBookingNum}>#{item.bookingNumber}</Text> : null}
-        <Text style={styles.txnDate}>{formatDate(item.createdAt)}</Text>
-      </View>
-      <View style={styles.txnRight}>
-        <LinearGradient
-          colors={item.type === 'CREDIT' ? ['#ECFDF5', '#D1FAE5'] : ['#FEF2F2', '#FECACA']}
-          style={styles.txnBadge}
-        >
-          <Text style={[styles.txnAmount, { color: item.type === 'CREDIT' ? EMERALD_DARK : '#DC2626' }]}>
-            {item.type === 'CREDIT' ? '+' : '-'}{item.amount}
-          </Text>
-        </LinearGradient>
-        <Text style={styles.txnTokens}>tokens</Text>
-      </View>
+    <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
+      <TouchableOpacity
+        style={styles.txnCard}
+        activeOpacity={0.7}
+        onPress={() => onPress?.(item)}
+      >
+        <View style={[styles.txnIcon, { backgroundColor: meta.bg }]}>
+          <Icon name={meta.icon} size={20} color={meta.color} />
+        </View>
+        <View style={styles.txnInfo}>
+          <Text style={styles.txnService}>{label} Booking</Text>
+          {item.bookingNumber ? <Text style={styles.txnBookingNum}>#{item.bookingNumber}</Text> : null}
+          <Text style={styles.txnDate}>{formatDate(item.createdAt)}</Text>
+        </View>
+        <View style={styles.txnRight}>
+          <LinearGradient
+            colors={item.type === 'CREDIT' ? ['#ECFDF5', '#D1FAE5'] : ['#FEF2F2', '#FECACA']}
+            style={styles.txnBadge}
+          >
+            <Text style={[styles.txnAmount, { color: item.type === 'CREDIT' ? EMERALD_DARK : '#DC2626' }]}>
+              {item.type === 'CREDIT' ? '+' : '-'}{item.amount}
+            </Text>
+          </LinearGradient>
+          <Text style={styles.txnTokens}>tokens</Text>
+        </View>
+      </TouchableOpacity>
     </Animated.View>
   );
 };
@@ -263,6 +269,31 @@ export default function BackrTokensScreen() {
     );
   }
 
+  const handleBookingPress = (item) => {
+    if (!item.bookingId || !item.serviceType) return;
+
+    const screenMapping = {
+      'bike': 'BikeBookingDetail',
+      'self-drive': 'SelfDriveBookingDetail',
+      'luxury': 'LuxuryBookingDetail',
+      'truck': 'TruckBookingDetail',
+      'equipment': 'EquipmentBookingDetail',
+      'packers': 'PackersBookingDetail',
+      'bus': 'BusBookingDetail',
+      'car': 'BookingDetail',
+      'chauffeur': 'BookingDetail',
+    };
+
+    const screen = screenMapping[item.serviceType];
+    if (screen) {
+      if (item.serviceType === 'car' || item.serviceType === 'chauffeur') {
+        navigation.navigate(screen, { bookingId: item.bookingId, bookingType: 'car' });
+      } else {
+        navigation.navigate(screen, { bookingId: item.bookingId });
+      }
+    }
+  };
+
   const bookingsCount = transactions.filter(t => t.type === 'CREDIT').length;
 
   return (
@@ -375,7 +406,7 @@ export default function BackrTokensScreen() {
         ) : (
           <View style={styles.txnList}>
             {transactions.map((txn, idx) => (
-              <TransactionItem key={txn.id} item={txn} index={idx} />
+              <TransactionItem key={txn.id} item={txn} index={idx} onPress={handleBookingPress} />
             ))}
           </View>
         )}

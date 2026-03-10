@@ -108,6 +108,11 @@ async function acceptTruckQuote(quoteRequestId: string, quoteId: string) {
     throw new Error('Quote not found');
   }
 
+  // Check if quote has expired
+  if (quote.validTill && new Date(quote.validTill) < new Date()) {
+    throw new Error('This quote has expired. Please request a new quote.');
+  }
+
   const request = quote.truck_quote_requests;
 
   if (!request || quote.requestId !== quoteRequestId) {
@@ -212,6 +217,11 @@ async function acceptPackersQuote(quoteRequestId: string, quoteId: string) {
     throw new Error('Quote not found');
   }
 
+  // Check if quote has expired
+  if (quote.validTill && new Date(quote.validTill) < new Date()) {
+    throw new Error('This quote has expired. Please request a new quote.');
+  }
+
   const request = quote.packers_quote_requests;
 
   if (!request || quote.requestId !== quoteRequestId) {
@@ -310,6 +320,11 @@ async function acceptEquipmentQuote(quoteRequestId: string, quoteId: string) {
 
   if (!quote) {
     throw new Error('Quote not found');
+  }
+
+  // Check if quote has expired
+  if (quote.validTill && new Date(quote.validTill) < new Date()) {
+    throw new Error('This quote has expired. Please request a new quote.');
   }
 
   const request = quote.equipment_quote_requests;
@@ -415,6 +430,11 @@ async function acceptBusQuote(quoteRequestId: string, quoteId: string) {
 
   if (!quote) {
     throw new Error('Quote not found');
+  }
+
+  // Check if quote has expired
+  if (quote.validTill && new Date(quote.validTill) < new Date()) {
+    throw new Error('This quote has expired. Please request a new quote.');
   }
 
   const request = quote.bus_quote_requests_bus_quotes_requestIdTobus_quote_requests;
@@ -527,6 +547,11 @@ async function acceptBikeQuote(quoteRequestId: string, quoteId: string) {
     throw new Error('Quote not found');
   }
 
+  // Check if quote has expired
+  if (quote.validTill && new Date(quote.validTill) < new Date()) {
+    throw new Error('This quote has expired. Please request a new quote.');
+  }
+
   const request = quote.bike_quote_requests_bike_quotes_requestIdTobike_quote_requests;
 
   if (!request || quote.requestId !== quoteRequestId) {
@@ -637,6 +662,11 @@ async function acceptSelfDriveQuote(quoteRequestId: string, quoteId: string) {
 
   if (!quote) {
     throw new Error('Quote not found');
+  }
+
+  // Check if quote has expired
+  if (quote.validTill && new Date(quote.validTill) < new Date()) {
+    throw new Error('This quote has expired. Please request a new quote.');
   }
 
   const request = quote.self_drive_quote_requests_self_drive_quotes_requestIdToself_drive_quote_requests;

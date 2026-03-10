@@ -311,12 +311,12 @@ export default function PackersQuoteRequestDetailScreen() {
           <View style={styles.metaRow}>
             <View style={styles.metaChip}>
               <Ionicons name="calendar-outline" size={14} color="rgba(255,255,255,0.8)" />
-              <Text style={styles.metaChipText}>{formatDate(request.pickupDate)}</Text>
+              <Text style={styles.metaChipText}>{formatDate(request.preferredDate)}</Text>
             </View>
-            {request.pickupTime && (
+            {request.shiftingType && (
               <View style={styles.metaChip}>
-                <Ionicons name="time-outline" size={14} color="rgba(255,255,255,0.8)" />
-                <Text style={styles.metaChipText}>{request.pickupTime}</Text>
+                <Ionicons name="cube-outline" size={14} color="rgba(255,255,255,0.8)" />
+                <Text style={styles.metaChipText}>{request.shiftingType?.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</Text>
               </View>
             )}
           </View>
@@ -330,50 +330,35 @@ export default function PackersQuoteRequestDetailScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[TEAL]} />
         }
       >
-        {/* Status Message */}
-        <View style={styles.statusMessageCard}>
-          <Ionicons
-            name={request.status === 'PENDING' ? 'information-circle' : request.status === 'QUOTES_RECEIVED' ? 'mail' : request.status === 'ACCEPTED' ? 'checkmark-circle' : 'alert-circle'}
-            size={20}
-            color={statusConfig.color}
-          />
-          <Text style={styles.statusMessage}>
-            {request.status === 'PENDING' &&
-              'Your quote request is being sent to verified packers & movers vendors. You will receive quotes within 24-48 hours.'}
-            {request.status === 'QUOTES_RECEIVED' &&
-              `You have received ${quotes.length} quote${quotes.length > 1 ? 's' : ''}. Review and accept the best one!`}
-            {request.status === 'ACCEPTED' &&
-              'Your quote has been accepted and booking is created. Check booking details for further information.'}
-            {request.status === 'EXPIRED' &&
-              'This quote request has expired. Please create a new request.'}
-          </Text>
-        </View>
-
-        {/* Trip Details */}
+        {/* Moving Details */}
         <View style={styles.card}>
           <View style={styles.cardHeader}>
             <View style={styles.cardIconCircle}>
-              <Ionicons name="map-outline" size={18} color={TEAL_MID} />
+              <Ionicons name="cube-outline" size={18} color={TEAL_MID} />
             </View>
-            <Text style={styles.cardTitle}>Trip Details</Text>
+            <Text style={styles.cardTitle}>Moving Details</Text>
           </View>
 
           <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Trip Type</Text>
+            <Text style={styles.detailLabel}>Service Type</Text>
             <Text style={styles.detailValue}>
-              {request.tripType?.charAt(0).toUpperCase() + request.tripType?.slice(1).replace('-', ' ')}
+              {request.serviceType?.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) || '-'}
             </Text>
           </View>
 
           <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Vehicle Category</Text>
-            <Text style={styles.detailValue}>{request.vehicleCategoryName || request.vehicleCategory}</Text>
+            <Text style={styles.detailLabel}>Shifting Type</Text>
+            <Text style={styles.detailValue}>
+              {request.shiftingType?.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) || '-'}
+            </Text>
           </View>
 
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Passengers</Text>
-            <Text style={styles.detailValue}>{request.passengers} people</Text>
-          </View>
+          {request.propertySize && (
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>Property Size</Text>
+              <Text style={styles.detailValue}>{request.propertySize}</Text>
+            </View>
+          )}
 
           <View style={styles.locationSection}>
             <View style={styles.locationRow}>
@@ -381,6 +366,9 @@ export default function PackersQuoteRequestDetailScreen() {
               <View style={{ flex: 1 }}>
                 <Text style={styles.locationLabel}>Pickup</Text>
                 <Text style={styles.locationText}>{request.pickupCity || request.pickupAddress}</Text>
+                {request.pickupFloor != null && (
+                  <Text style={styles.locationLabel}>Floor: {request.pickupFloor}</Text>
+                )}
               </View>
             </View>
             {request.dropCity && (
@@ -389,33 +377,20 @@ export default function PackersQuoteRequestDetailScreen() {
                 <View style={{ flex: 1 }}>
                   <Text style={styles.locationLabel}>Drop</Text>
                   <Text style={styles.locationText}>{request.dropCity || request.dropAddress}</Text>
+                  {request.dropFloor != null && (
+                    <Text style={styles.locationLabel}>Floor: {request.dropFloor}</Text>
+                  )}
                 </View>
               </View>
             )}
           </View>
 
           <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Pickup Date</Text>
+            <Text style={styles.detailLabel}>Preferred Date</Text>
             <Text style={styles.detailValue}>
-              {formatDate(request.pickupDate)} | {request.pickupTime || '10:00 AM'}
+              {formatDate(request.preferredDate)}
             </Text>
           </View>
-
-          {request.returnDate && (
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Return Date</Text>
-              <Text style={styles.detailValue}>
-                {formatDate(request.returnDate)} | {request.returnTime || '10:00 AM'}
-              </Text>
-            </View>
-          )}
-
-          {request.tripDays > 0 && (
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Trip Duration</Text>
-              <Text style={styles.detailValue}>{request.tripDays} day{request.tripDays > 1 ? 's' : ''}</Text>
-            </View>
-          )}
 
           {request.requirements && (
             <View style={[styles.detailRow, { borderBottomWidth: 0 }]}>

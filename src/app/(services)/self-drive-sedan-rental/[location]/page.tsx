@@ -72,6 +72,9 @@ export default async function SedanRentalLocationPage({ params }: PageProps) {
   const city = pageContext.city;
   const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
 
+  const seoData = await resolvePageMeta(`self-drive-sedan-rental:${params.location}`);
+
+
   return (
     <>
       <section className="bg-gray-100 py-3">
@@ -87,6 +90,8 @@ export default async function SedanRentalLocationPage({ params }: PageProps) {
       </section>
 
       <ServiceHeroWithChat
+        pageHeading={seoData?.pageHeading || undefined}
+        pageDescription={seoData?.pageDescription || undefined}
         badge={`Sedan Rental in ${locationName}`}
         title="Self Drive Sedan Rental"
         titleHighlight="Starting @₹1299/Day"

@@ -15,6 +15,9 @@ import {
   MapPin,
   Users,
   TrendingDown,
+  Pencil,
+  Check,
+  X,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -103,6 +106,11 @@ export function BikeFleetGridMultiVendor({
   const [showFilters, setShowFilters] = useState(false);
   const [selectedBike, setSelectedBike] = useState<AggregatedBike | null>(null);
   const [showQuoteModal, setShowQuoteModal] = useState(false);
+  const [editingDates, setEditingDates] = useState(false);
+  const [editPickupDate, setEditPickupDate] = useState(pickupDate);
+  const [editPickupTime, setEditPickupTime] = useState(pickupTime);
+  const [editDropDate, setEditDropDate] = useState(dropDate);
+  const [editDropTime, setEditDropTime] = useState(dropTime);
 
   // Calculate rental duration with time precision
   const rentalDuration = useMemo(() => {
@@ -175,6 +183,19 @@ export function BikeFleetGridMultiVendor({
     return `${hour12}:${minutes} ${ampm}`;
   };
 
+  const handleApplyDates = () => {
+    if (!editPickupDate || !editPickupTime || !editDropDate || !editDropTime) return;
+    const params = new URLSearchParams({
+      city: location.slug,
+      pickupDate: editPickupDate,
+      pickupTime: editPickupTime,
+      dropDate: editDropDate,
+      dropTime: editDropTime,
+    });
+    router.push(`/bike-on-rent/${location.slug}/bikes?${params.toString()}`);
+    setEditingDates(false);
+  };
+
   // Handle quote request
   const handleGetQuote = (bike: AggregatedBike) => {
     setSelectedBike(bike);
@@ -188,44 +209,114 @@ export function BikeFleetGridMultiVendor({
   return (
     <div className="bg-gray-50 min-h-screen">
       {/* Sticky Header with Trip Info */}
-      <div className="bg-white border-b border-gray-200 sticky top-0 z-40">
+      <div className="bg-white border-b mt-8 border-gray-200 sticky top-0 z-40">
         <div className="container mx-auto px-4 py-4">
           <div className="flex flex-wrap items-center justify-between gap-4">
             {/* Trip Summary */}
-            <div className="flex items-center gap-4 text-sm flex-wrap">
-              <div className="flex items-center gap-2 bg-emerald-50 px-3 py-2 rounded-lg">
-                <MapPin className="w-4 h-4 text-emerald-600" />
-                <span className="font-medium text-emerald-700">{location.name}</span>
+            {editingDates ? (
+              <div className="flex items-center gap-3 flex-wrap w-full">
+                <div className="flex items-center gap-2 bg-emerald-50 px-3 py-2 rounded-lg">
+                  <MapPin className="w-4 h-4 text-emerald-600" />
+                  <span className="font-medium text-emerald-700">{location.name}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <label className="text-xs text-gray-500">Pickup</label>
+                  <input
+                    type="date"
+                    value={editPickupDate}
+                    onChange={(e) => setEditPickupDate(e.target.value)}
+                    min={new Date().toISOString().split('T')[0]}
+                    className="border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+                  />
+                  <input
+                    type="time"
+                    value={editPickupTime}
+                    onChange={(e) => setEditPickupTime(e.target.value)}
+                    className="border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+                  />
+                </div>
+                <span className="text-gray-400">→</span>
+                <div className="flex items-center gap-2">
+                  <label className="text-xs text-gray-500">Drop</label>
+                  <input
+                    type="date"
+                    value={editDropDate}
+                    onChange={(e) => setEditDropDate(e.target.value)}
+                    min={editPickupDate || new Date().toISOString().split('T')[0]}
+                    className="border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+                  />
+                  <input
+                    type="time"
+                    value={editDropTime}
+                    onChange={(e) => setEditDropTime(e.target.value)}
+                    className="border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+                  />
+                </div>
+                <button
+                  onClick={handleApplyDates}
+                  className="flex items-center gap-1 px-3 py-1.5 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition text-sm font-medium"
+                >
+                  <Check className="w-4 h-4" />
+                  Apply
+                </button>
+                <button
+                  onClick={() => {
+                    setEditingDates(false);
+                    setEditPickupDate(pickupDate);
+                    setEditPickupTime(pickupTime);
+                    setEditDropDate(dropDate);
+                    setEditDropTime(dropTime);
+                  }}
+                  className="flex items-center gap-1 px-3 py-1.5 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition text-sm"
+                >
+                  <X className="w-4 h-4" />
+                </button>
               </div>
-              <div className="flex items-center gap-2 text-gray-600">
-                <Calendar className="w-4 h-4" />
-                <span>{formatDate(pickupDate)}</span>
-                <Clock className="w-4 h-4 ml-2" />
-                <span>{formatTime(pickupTime)}</span>
+            ) : (
+              <div className="flex items-center gap-4 text-sm flex-wrap">
+                <div className="flex items-center gap-2 bg-emerald-50 px-3 py-2 rounded-lg">
+                  <MapPin className="w-4 h-4 text-emerald-600" />
+                  <span className="font-medium text-emerald-700">{location.name}</span>
+                </div>
+                <div className="flex items-center gap-2 text-gray-600">
+                  <Calendar className="w-4 h-4" />
+                  <span>{formatDate(pickupDate)}</span>
+                  <Clock className="w-4 h-4 ml-2" />
+                  <span>{formatTime(pickupTime)}</span>
+                </div>
+                <span className="text-gray-400">→</span>
+                <div className="flex items-center gap-2 text-gray-600">
+                  <Calendar className="w-4 h-4" />
+                  <span>{formatDate(dropDate)}</span>
+                  <Clock className="w-4 h-4 ml-2" />
+                  <span>{formatTime(dropTime)}</span>
+                </div>
+                <div className="bg-blue-50 px-3 py-1 rounded-full">
+                  <span className="text-blue-700 font-medium">
+                    {durationText}
+                  </span>
+                </div>
+                <button
+                  onClick={() => setEditingDates(true)}
+                  className="flex items-center gap-1 px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition text-sm font-medium"
+                >
+                  <Pencil className="w-3.5 h-3.5" />
+                  Edit
+                </button>
               </div>
-              <span className="text-gray-400">→</span>
-              <div className="flex items-center gap-2 text-gray-600">
-                <Calendar className="w-4 h-4" />
-                <span>{formatDate(dropDate)}</span>
-                <Clock className="w-4 h-4 ml-2" />
-                <span>{formatTime(dropTime)}</span>
-              </div>
-              <div className="bg-blue-50 px-3 py-1 rounded-full">
-                <span className="text-blue-700 font-medium">
-                  {durationText}
-                </span>
-              </div>
-            </div>
+            )}
 
             {/* Mobile Filter Toggle */}
-            <Button
-              variant="outline"
-              onClick={() => setShowFilters(!showFilters)}
-              className="lg:hidden"
-            >
-              <Filter className="w-4 h-4 mr-2" />
-              Filters
-            </Button>
+            {!editingDates && (
+              <Button
+                variant="outline"
+                onClick={() => setShowFilters(!showFilters)}
+                className="lg:hidden"
+              >
+                <Filter className="w-4 h-4 mr-2" />
+                Filters
+              </Button>
+            )}
           </div>
         </div>
       </div>

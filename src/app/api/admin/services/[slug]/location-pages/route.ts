@@ -2,6 +2,46 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 import { getTemplateMeta, STATIC_PAGES, STATIC_PAGE_META } from '@/lib/seo/service-meta-templates';
 
+/** Default page heading & description templates per service (visible on customer page) */
+const PAGE_CONTENT_TEMPLATES: Record<string, { heading: (city: string) => string; description: (city: string) => string }> = {
+  'self-drive-car-rentals': {
+    heading: (city) => `Self Drive Cars in ${city}`,
+    description: () => 'Drive yourself without a driver. Hatchbacks, Sedans, SUVs starting ₹899/day.',
+  },
+  'car-rental': {
+    heading: (city) => `Car Rental in ${city}`,
+    description: (city) => `Book chauffeur driven cars in ${city}. Sedan, SUV, Luxury cars available with professional drivers.`,
+  },
+  'bike-on-rent': {
+    heading: (city) => `Bike on Rent in ${city}`,
+    description: (city) => `Rent bikes and scooters in ${city}. Royal Enfield, KTM, Honda Activa and more starting ₹299/day.`,
+  },
+  'bus-rental': {
+    heading: (city) => `Bus Rental in ${city}`,
+    description: (city) => `Rent buses in ${city}. Mini bus, tempo traveller, luxury coaches for group travel, weddings & events.`,
+  },
+  'packers-and-movers': {
+    heading: (city) => `Packers and Movers in ${city}`,
+    description: (city) => `Professional packing, loading, transport & unpacking services in ${city}. Local & intercity relocation.`,
+  },
+  'transporter': {
+    heading: (city) => `Truck Rental in ${city}`,
+    description: (city) => `Hire trucks for goods transport in ${city}. 7-ton to 32-ton trucks with GPS tracking.`,
+  },
+  'equipment-rental': {
+    heading: (city) => `Equipment Rental in ${city}`,
+    description: (city) => `Rent construction & event equipment in ${city}. Excavators, cranes, generators and more.`,
+  },
+  'luxury-car-rental': {
+    heading: (city) => `Luxury Car Rental in ${city}`,
+    description: (city) => `Rent BMW, Mercedes, Audi & more luxury cars in ${city}. With or without driver.`,
+  },
+  'trailer-on-rent': {
+    heading: (city) => `Trailer on Rent in ${city}`,
+    description: (city) => `Flatbed, lowbed & container trailers for heavy equipment transport in ${city}.`,
+  },
+};
+
 /** GET all location pages for a service with their meta (template + DB override) */
 export async function GET(
   request: NextRequest,
@@ -16,10 +56,10 @@ export async function GET(
     if (type === 'static') {
       const pageIds = STATIC_PAGES.map((p) => p.pageId);
       const overrides = await prisma.seo_meta.findMany({
-        where: { pageId: { in: pageIds } },
-        select: { pageId: true, metaTitle: true, metaDescription: true, metaKeywords: true },
+        where: { servicePageId: { in: pageIds } },
+        select: { servicePageId: true, metaTitle: true, metaDescription: true, metaKeywords: true, pageHeading: true, pageDescription: true },
       });
-      const overrideMap = Object.fromEntries(overrides.map((o) => [o.pageId, o]));
+      const overrideMap = Object.fromEntries(overrides.map((o) => [o.servicePageId!, o]));
       const pages = STATIC_PAGES.map((p) => {
         const tpl = STATIC_PAGE_META[p.pageId];
         return {
@@ -128,10 +168,10 @@ export async function GET(
 
       const pageIds = routePages.map((p) => p.pageId);
       const overrides = await prisma.seo_meta.findMany({
-        where: { pageId: { in: pageIds } },
-        select: { pageId: true, metaTitle: true, metaDescription: true, metaKeywords: true },
+        where: { servicePageId: { in: pageIds } },
+        select: { servicePageId: true, metaTitle: true, metaDescription: true, metaKeywords: true, pageHeading: true, pageDescription: true },
       });
-      const overrideMap = Object.fromEntries(overrides.map((o) => [o.pageId, o]));
+      const overrideMap = Object.fromEntries(overrides.map((o) => [o.servicePageId!, o]));
 
       const pages = routePages.map((p) => ({ ...p, override: overrideMap[p.pageId] || null }));
       return NextResponse.json({ pages, total: pages.length });
@@ -156,10 +196,10 @@ export async function GET(
 
     const pageIds = serviceLocations.map((sl) => `${slug}:${sl.locations.slug}`);
     const overrides = await prisma.seo_meta.findMany({
-      where: { pageId: { in: pageIds } },
-      select: { pageId: true, metaTitle: true, metaDescription: true, metaKeywords: true },
+      where: { servicePageId: { in: pageIds } },
+      select: { servicePageId: true, metaTitle: true, metaDescription: true, metaKeywords: true, pageHeading: true, pageDescription: true },
     });
-    const overrideMap = Object.fromEntries(overrides.map((o) => [o.pageId, o]));
+    const overrideMap = Object.fromEntries(overrides.map((o) => [o.servicePageId!, o]));
 
     const pages = serviceLocations
       .sort((a, b) => a.locations.name.localeCompare(b.locations.name))
@@ -167,6 +207,7 @@ export async function GET(
         const loc = sl.locations;
         const pageId = `${slug}:${loc.slug}`;
         const template = getTemplateMeta(slug, loc.name);
+        const contentTpl = PAGE_CONTENT_TEMPLATES[slug];
         return {
           pageId,
           url: `/${slug}/${loc.slug}`,
@@ -175,6 +216,8 @@ export async function GET(
           templateTitle: template?.title || `${loc.name} | TransRentals`,
           templateDescription: template?.description || '',
           templateKeywords: template?.keywords || '',
+          templateHeading: contentTpl?.heading(loc.name) || `${service.name} in ${loc.name}`,
+          templatePageDescription: contentTpl?.description(loc.name) || '',
           override: overrideMap[pageId] || null,
         };
       });

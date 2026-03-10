@@ -59,6 +59,9 @@ export default async function TwelveSeaterLocationPage({ params }: PageProps) {
   const city = pageContext.city;
   const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
 
+  const seoData = await resolvePageMeta(`12-seater-tempo-traveller:${params.location}`);
+
+
   return (
     <>
       <section className="bg-gray-100 py-3">
@@ -74,6 +77,8 @@ export default async function TwelveSeaterLocationPage({ params }: PageProps) {
       </section>
 
       <ServiceHeroWithChat
+        pageHeading={seoData?.pageHeading || undefined}
+        pageDescription={seoData?.pageDescription || undefined}
         badge={`12 Seater in ${locationName}`}
         title="12 Seater Tempo Traveller"
         titleHighlight="Starting @₹18/km"

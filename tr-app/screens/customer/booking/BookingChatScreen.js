@@ -37,7 +37,26 @@ const SHADOW_MD = Platform.select({
 export default function BookingChatScreen() {
   const route = useRoute();
   const navigation = useNavigation();
-  const { bookingId, bookingNumber, vendorName } = route.params || {};
+  const { bookingId, bookingNumber, vendorName, bookingType } = route.params || {};
+
+  const BOOKING_DETAIL_SCREENS = {
+    bus: 'BusBookingDetail',
+    truck: 'TruckBookingDetail',
+    equipment: 'EquipmentBookingDetail',
+    packers: 'PackersBookingDetail',
+    bike: 'BikeBookingDetail',
+    car: 'BookingDetail',
+  };
+
+  const navigateToBookingDetail = () => {
+    const screenName = BOOKING_DETAIL_SCREENS[bookingType];
+    if (screenName) {
+      const params = bookingType === 'car'
+        ? { bookingId, bookingType: 'car' }
+        : { bookingId };
+      navigation.navigate(screenName, params);
+    }
+  };
 
   const [messages, setMessages] = useState([]);
   const [vendor, setVendor] = useState(null);
@@ -179,9 +198,11 @@ export default function BookingChatScreen() {
               Booking #{bookingNumber || bookingId?.slice(-8)}
             </Text>
           </View>
-          <View style={styles.phoneBtn}>
-            <Ionicons name="call-outline" size={wp(5)} color="rgba(255,255,255,0.4)" />
-          </View>
+          {bookingType && (
+            <TouchableOpacity onPress={navigateToBookingDetail} style={styles.phoneBtn}>
+              <Ionicons name="document-text-outline" size={wp(5)} color="#FFFFFF" />
+            </TouchableOpacity>
+          )}
         </LinearGradient>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={TEAL} />
@@ -206,6 +227,11 @@ export default function BookingChatScreen() {
             Booking #{bookingNumber || bookingId.slice(-8)}
           </Text>
         </View>
+        {bookingType && (
+          <TouchableOpacity onPress={navigateToBookingDetail} style={styles.bookingViewBtn}>
+            <Ionicons name="document-text-outline" size={wp(5)} color="#FFFFFF" />
+          </TouchableOpacity>
+        )}
         <TouchableOpacity style={styles.phoneBtn}>
           <Ionicons name="call-outline" size={wp(5)} color="#FFFFFF" />
         </TouchableOpacity>
@@ -327,6 +353,15 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.7)',
     marginTop: hp(0.3),
     fontWeight: '500',
+  },
+  bookingViewBtn: {
+    width: wp(9.5),
+    height: wp(9.5),
+    borderRadius: wp(4.75),
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: wp(2),
   },
   phoneBtn: {
     width: wp(9.5),

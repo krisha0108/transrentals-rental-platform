@@ -109,6 +109,9 @@ export default async function OutstationCarLocationPage({ params }: PageProps) {
     ],
   };
 
+  const seoData = await resolvePageMeta(`outstation-car-rental:${params.location}`);
+
+
   return (
     <div className="flex flex-col">
       {/* Breadcrumbs */}
@@ -125,6 +128,8 @@ export default async function OutstationCarLocationPage({ params }: PageProps) {
       </div>
 
       <ServiceHeroWithChat
+        pageHeading={seoData?.pageHeading || undefined}
+        pageDescription={seoData?.pageDescription || undefined}
         badge={`Outstation Car from ${locationName}`}
         title="Outstation Car Rental"
         titleHighlight="Starting @₹10/km"

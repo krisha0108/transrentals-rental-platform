@@ -70,7 +70,7 @@ function getNotifConfig(type: string) {
   return NOTIF_CONFIG[type] || DEFAULT_NOTIF_CONFIG;
 }
 
-// Redirect mapping for notification types
+// Redirect mapping for notification types (fallback)
 const NOTIF_REDIRECT: Record<string, string> = {
   p2p_new_vehicle_posted: '/vendor/p2p/vehicles',
   p2p_new_booking_posted: '/vendor/p2p/bookings',
@@ -91,13 +91,49 @@ const NOTIF_REDIRECT: Record<string, string> = {
   booking: '/vendor/bookings',
   booking_confirmed: '/vendor/bookings',
   booking_assigned: '/vendor/bookings',
-  quote_request: '/vendor/quotes',
-  quote_accepted: '/vendor/quotes',
-  advance_paid: '/vendor/payments',
+  quote_request: '/vendor/notifications',
+  quote_accepted: '/vendor/bookings',
+  advance_paid: '/vendor/earnings',
   review: '/vendor/reviews',
-  payment: '/vendor/payments',
-  payout: '/vendor/payments',
+  payment: '/vendor/earnings',
+  payout: '/vendor/earnings',
 };
+
+// Map serviceType to vendor dashboard route prefix
+const SERVICE_ROUTE_MAP: Record<string, string> = {
+  bike: 'bike-rentals',
+  bus: 'bus',
+  truck: 'truck',
+  luxury: 'luxury',
+  packers: 'packers',
+  equipment: 'equipment',
+  'self-drive': 'self-drive',
+  'car-rental': 'car-rental',
+  chauffeur: 'car-rental',
+};
+
+function getNotifRedirectUrl(notif: any): string {
+  const { type, serviceType, requestId, bookingId, bookingNumber } = notif;
+  const routePrefix = serviceType ? SERVICE_ROUTE_MAP[serviceType] : null;
+
+  // Quote request → specific request detail page
+  if (type === 'quote_request' && routePrefix && requestId) {
+    if (routePrefix === 'luxury') return `/vendor/luxury/send-quote/${requestId}`;
+    return `/vendor/${routePrefix}/requests/${requestId}/quote`;
+  }
+
+  // Booking/payment related → specific booking detail
+  if (routePrefix && (bookingId || bookingNumber)) {
+    if (routePrefix === 'car-rental' && bookingNumber) {
+      return `/vendor/car-rental/bookings/${bookingNumber}`;
+    }
+    if (bookingId) {
+      return `/vendor/${routePrefix}/bookings/${bookingId}`;
+    }
+  }
+
+  return NOTIF_REDIRECT[type] || '/vendor/notifications';
+}
 
 function getRelativeTime(dateStr: string) {
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -478,7 +514,7 @@ export default function VendorDashboard() {
                 return (
                   <Link
                     key={notif.id}
-                    href={NOTIF_REDIRECT[notif.type] || '/vendor/notifications'}
+                    href={getNotifRedirectUrl(notif)}
                     className="group flex items-start gap-4 px-6 py-4 hover:bg-gradient-to-r hover:from-blue-50/50 hover:to-transparent transition-all duration-200 relative"
                   >
                     {/* Unread indicator line */}

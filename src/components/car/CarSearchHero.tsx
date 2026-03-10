@@ -10,9 +10,11 @@ import { cn } from '@/lib/utils';
 interface CarSearchHeroProps {
   city: string;
   citySlug: string;
+  pageHeading?: string;
+  pageDescription?: string;
 }
 
-export function CarSearchHero({ city, citySlug }: CarSearchHeroProps) {
+export function CarSearchHero({ city, citySlug, pageHeading, pageDescription }: CarSearchHeroProps) {
   const router = useRouter();
   const [pickupDate, setPickupDate] = useState('');
   const [pickupTime, setPickupTime] = useState('');
@@ -93,10 +95,10 @@ export function CarSearchHero({ city, citySlug }: CarSearchHeroProps) {
               <span className="text-white font-medium">{city}</span>
             </div>
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-4">
-              Self Drive Cars in {city}
+              {pageHeading || `Self Drive Cars in ${city}`}
             </h1>
             <p className="text-xl text-white/90 max-w-2xl mx-auto">
-              Drive yourself without a driver. Hatchbacks, Sedans, SUVs starting ₹899/day.
+              {pageDescription || `Drive yourself without a driver. Hatchbacks, Sedans, SUVs starting ₹899/day.`}
             </p>
           </motion.div>
 

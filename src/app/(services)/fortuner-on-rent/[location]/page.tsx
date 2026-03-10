@@ -71,6 +71,9 @@ export default async function FortunerOnRentLocationPage({ params }: PageProps) 
   const city = pageContext.city;
   const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
 
+  const seoData = await resolvePageMeta(`fortuner-on-rent:${params.location}`);
+
+
   return (
     <>
       <section className="bg-gray-100 py-3">
@@ -86,6 +89,8 @@ export default async function FortunerOnRentLocationPage({ params }: PageProps) 
       </section>
 
       <ServiceHeroWithChat
+        pageHeading={seoData?.pageHeading || undefined}
+        pageDescription={seoData?.pageDescription || undefined}
         badge={`Fortuner Rental in ${locationName}`}
         title="Toyota Fortuner on Rent"
         titleHighlight="Starting @₹4999/Day"

@@ -478,7 +478,7 @@ export default function BusRentalFleetScreen() {
       >
         {renderDecoCircles()}
         <View style={styles.stepHeroIconWrap}>
-          <Ionicons name="bus" size={wp('8%')} color="#fff" />
+          <Ionicons name="bus" size={wp('5.5%')} color="#fff" />
         </View>
         <Text style={styles.stepHeroTitle}>What service do you need?</Text>
         <Text style={styles.stepHeroSubtitle}>Choose your trip type</Text>
@@ -503,7 +503,7 @@ export default function BusRentalFleetScreen() {
             >
               <Ionicons
                 name={type.icon}
-                size={wp('7%')}
+                size={wp('5%')}
                 color={tripType === type.id ? '#fff' : type.color}
               />
             </View>
@@ -1359,35 +1359,35 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: wp('4%'),
-    paddingTop: hp('1.5%'),
-    paddingBottom: hp('2%'),
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + hp('0.5%') : hp('1%'),
+    paddingBottom: hp('1.5%'),
     borderBottomLeftRadius: wp('6%'),
     borderBottomRightRadius: wp('6%'),
     overflow: 'hidden',
   },
   backBtn: {
-    width: wp('10%'),
-    height: wp('10%'),
-    borderRadius: wp('5%'),
+    width: wp('9%'),
+    height: wp('9%'),
+    borderRadius: wp('4.5%'),
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: wp('2%'),
     backgroundColor: 'rgba(255,255,255,0.15)',
   },
   headerTitle: {
-    fontSize: wp('5.2%'),
+    fontSize: wp('4.5%'),
     fontWeight: '700',
     color: '#FFFFFF',
   },
   headerSubtitle: {
-    fontSize: wp('3.2%'),
+    fontSize: wp('3%'),
     color: 'rgba(255,255,255,0.7)',
-    marginTop: hp('0.3%'),
+    marginTop: hp('0.2%'),
   },
   myBookingsBtn: {
-    width: wp('10%'),
-    height: wp('10%'),
-    borderRadius: wp('5%'),
+    width: wp('9%'),
+    height: wp('9%'),
+    borderRadius: wp('4.5%'),
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: 'rgba(255,255,255,0.15)',
@@ -1398,7 +1398,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: hp('1.5%'),
+    paddingVertical: hp('1.2%'),
     paddingHorizontal: wp('4%'),
     backgroundColor: CARD,
     ...Platform.select({
@@ -1414,9 +1414,9 @@ const styles = StyleSheet.create({
     }),
   },
   stepDot: {
-    width: wp('6.5%'),
-    height: wp('6.5%'),
-    borderRadius: wp('3.25%'),
+    width: wp('6%'),
+    height: wp('6%'),
+    borderRadius: wp('3%'),
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -1426,32 +1426,33 @@ const styles = StyleSheet.create({
     borderRadius: wp('3.75%'),
   },
   stepDotInactive: {
-    width: wp('6.5%'),
-    height: wp('6.5%'),
-    borderRadius: wp('3.25%'),
+    width: wp('6%'),
+    height: wp('6%'),
+    borderRadius: wp('3%'),
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#E5E7EB',
   },
   stepDotText: {
-    fontSize: wp('3%'),
+    fontSize: wp('2.8%'),
     fontWeight: '700',
     color: '#fff',
   },
   stepDotTextInactive: {
-    fontSize: wp('3%'),
+    fontSize: wp('2.8%'),
     fontWeight: '600',
     color: TEXT_MUTED,
   },
   stepConnector: {
-    width: wp('4%'),
-    height: hp('0.3%'),
-    backgroundColor: '#E5E7EB',
+    flex: 1,
+    height: 0,
+    borderTopWidth: 2,
+    borderTopColor: '#D1D5DB',
+    borderStyle: 'dashed',
     marginHorizontal: wp('0.5%'),
-    borderRadius: hp('0.15%'),
   },
   stepConnectorActive: {
-    backgroundColor: TEAL,
+    borderTopColor: TEAL,
   },
 
   // --- Content ---
@@ -1467,32 +1468,32 @@ const styles = StyleSheet.create({
 
   // --- Step Hero ---
   stepHero: {
-    paddingVertical: hp('3.5%'),
+    paddingVertical: hp('2%'),
     paddingHorizontal: wp('5%'),
     alignItems: 'center',
     overflow: 'hidden',
     borderBottomLeftRadius: wp('6%'),
     borderBottomRightRadius: wp('6%'),
-    marginBottom: hp('2.5%'),
+    marginBottom: hp('1.5%'),
   },
   stepHeroIconWrap: {
-    width: wp('16%'),
-    height: wp('16%'),
-    borderRadius: wp('8%'),
+    width: wp('12%'),
+    height: wp('12%'),
+    borderRadius: wp('6%'),
     backgroundColor: 'rgba(255,255,255,0.2)',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: hp('1.5%'),
+    marginBottom: hp('0.8%'),
   },
   stepHeroTitle: {
-    fontSize: wp('5.5%'),
+    fontSize: wp('4.5%'),
     fontWeight: '700',
     color: '#FFFFFF',
     textAlign: 'center',
-    marginBottom: hp('0.5%'),
+    marginBottom: hp('0.3%'),
   },
   stepHeroSubtitle: {
-    fontSize: wp('3.5%'),
+    fontSize: wp('3.2%'),
     color: 'rgba(255,255,255,0.75)',
     textAlign: 'center',
   },
@@ -1503,16 +1504,16 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     justifyContent: 'space-between',
     paddingHorizontal: wp('4%'),
-    gap: hp('1.2%'),
+    rowGap: hp('1.2%'),
   },
   tripTypeCard: {
-    width: wp('43.5%'),
+    width: wp('44%'),
     backgroundColor: CARD,
     borderRadius: wp('4%'),
-    paddingVertical: hp('2%'),
+    paddingVertical: hp('1.8%'),
     paddingHorizontal: wp('3%'),
     alignItems: 'center',
-    borderWidth: 2,
+    borderWidth: 1.5,
     borderColor: BORDER,
     position: 'relative',
     ...SHADOW_SM,
@@ -1521,21 +1522,21 @@ const styles = StyleSheet.create({
     backgroundColor: '#F0FDF4',
   },
   tripTypeIcon: {
-    width: wp('15%'),
-    height: wp('15%'),
-    borderRadius: wp('7.5%'),
+    width: wp('11%'),
+    height: wp('11%'),
+    borderRadius: wp('5.5%'),
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: hp('1%'),
+    marginBottom: hp('0.6%'),
   },
   tripTypeLabel: {
-    fontSize: wp('3.8%'),
+    fontSize: wp('3.5%'),
     fontWeight: '700',
     color: TEXT_PRIMARY,
-    marginBottom: hp('0.3%'),
+    marginBottom: hp('0.2%'),
   },
   tripTypeDesc: {
-    fontSize: wp('3%'),
+    fontSize: wp('2.8%'),
     color: TEXT_SECONDARY,
     textAlign: 'center',
   },

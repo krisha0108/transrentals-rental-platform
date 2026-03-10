@@ -472,7 +472,7 @@ export default function ManagerInquiriesPage() {
                       {inquiry.quotesCount > 0 && (
                         <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-100">
                           <p className="text-sm text-blue-700 font-medium flex items-center gap-2">
-                            <CheckCircle className="w-4 h-4" />
+                            <CheckCircle2 className="w-4 h-4" />
                             {inquiry.quotesCount} {inquiry.quotesCount === 1 ? 'quote' : 'quotes'} received
                           </p>
                         </div>

@@ -133,6 +133,9 @@ export default async function ApacheLocationPage({ params }: PageProps) {
     ],
   };
 
+  const seoData = await resolvePageMeta(`apache-on-rent:${params.location}`);
+
+
   return (
     <>
       <BikeServiceSchema
@@ -162,6 +165,8 @@ export default async function ApacheLocationPage({ params }: PageProps) {
         </div>
 
         <ServiceHeroWithChat
+          pageHeading={seoData?.pageHeading || undefined}
+          pageDescription={seoData?.pageDescription || undefined}
           badge={`Apache Rental in ${locationName}`}
           title="TVS Apache on Rent"
           titleHighlight="Starting @₹499/day"

@@ -335,23 +335,6 @@ export default function TruckQuoteRequestDetailScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[TEAL]} />
         }
       >
-        {/* Status Message Card */}
-        <View style={styles.statusMsgCard}>
-          <View style={[styles.statusIconCircle, { backgroundColor: statusConfig.color + '15' }]}>
-            <Ionicons name={statusConfig.icon} size={wp('6%')} color={statusConfig.color} />
-          </View>
-          <Text style={styles.statusMessage}>
-            {request.status === 'PENDING' &&
-              'Your quote request is being sent to verified truck rental vendors. You will receive quotes within 24-48 hours.'}
-            {request.status === 'QUOTES_RECEIVED' &&
-              `You have received ${quotes.length} quote${quotes.length > 1 ? 's' : ''}. Review and accept the best one!`}
-            {request.status === 'ACCEPTED' &&
-              'Your quote has been accepted and booking is created. Check booking details for further information.'}
-            {request.status === 'EXPIRED' &&
-              'This quote request has expired. Please create a new request.'}
-          </Text>
-        </View>
-
         {/* Trip Details */}
         <View style={styles.detailsCard}>
           <View style={styles.detailsCardHeader}>
@@ -362,31 +345,38 @@ export default function TruckQuoteRequestDetailScreen() {
           </View>
 
           <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Trip Type</Text>
+            <Text style={styles.detailLabel}>Service Type</Text>
             <Text style={styles.detailValue}>
-              {request.tripType?.charAt(0).toUpperCase() + request.tripType?.slice(1).replace('-', ' ')}
+              {request.serviceType?.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) || 'Truck'}
             </Text>
           </View>
 
           <View style={styles.detailRow}>
             <Text style={styles.detailLabel}>Vehicle Category</Text>
-            <Text style={styles.detailValue}>{request.vehicleCategoryName || request.vehicleCategory}</Text>
+            <Text style={styles.detailValue}>{request.vehicleCategoryName || request.vehicle_category || request.vehicleCategory || '-'}</Text>
           </View>
 
           <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Passengers</Text>
-            <Text style={styles.detailValue}>{request.passengers} people</Text>
+            <Text style={styles.detailLabel}>Goods Type</Text>
+            <Text style={styles.detailValue}>{request.goodsType || '-'}</Text>
           </View>
+
+          {request.estimatedWeight > 0 && (
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>Estimated Weight</Text>
+              <Text style={styles.detailValue}>{request.estimatedWeight} kg</Text>
+            </View>
+          )}
 
           <View style={styles.locationSection}>
             <View style={styles.locationRow}>
               <View style={[styles.locationDot, { backgroundColor: TEAL }]} />
               <View>
                 <Text style={styles.locationLabel}>Pickup</Text>
-                <Text style={styles.locationText}>{request.pickupCity || request.pickupAddress}</Text>
+                <Text style={styles.locationText}>{request.pickupCity || request.pickupAddress || '-'}</Text>
               </View>
             </View>
-            {request.dropCity && (
+            {(request.dropCity || request.dropAddress) && (
               <View style={styles.locationRow}>
                 <View style={[styles.locationDot, { backgroundColor: '#e74c3c' }]} />
                 <View>
@@ -400,25 +390,9 @@ export default function TruckQuoteRequestDetailScreen() {
           <View style={styles.detailRow}>
             <Text style={styles.detailLabel}>Pickup Date</Text>
             <Text style={styles.detailValue}>
-              {formatDate(request.pickupDate)} | {request.pickupTime || '10:00 AM'}
+              {formatDate(request.pickupDate)}
             </Text>
           </View>
-
-          {request.returnDate && (
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Return Date</Text>
-              <Text style={styles.detailValue}>
-                {formatDate(request.returnDate)} | {request.returnTime || '10:00 AM'}
-              </Text>
-            </View>
-          )}
-
-          {request.tripDays > 0 && (
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Trip Duration</Text>
-              <Text style={styles.detailValue}>{request.tripDays} day{request.tripDays > 1 ? 's' : ''}</Text>
-            </View>
-          )}
 
           {request.requirements && (
             <View style={styles.detailRow}>
@@ -439,15 +413,15 @@ export default function TruckQuoteRequestDetailScreen() {
               <View key={quote.id} style={styles.quoteCard}>
                 <View style={styles.quoteHeader}>
                   <View style={styles.vendorAvatarCircle}>
-                    <Ionicons name="bus" size={wp('5%')} color={TEAL_MID} />
+                    <Ionicons name="car-outline" size={wp('5%')} color={TEAL_MID} />
                   </View>
                   <View style={{ flex: 1, marginLeft: wp('3%') }}>
-                    <Text style={styles.vendorName}>{quote.vendor?.businessName || 'Vendor'}</Text>
-                    {quote.vendor?.rating > 0 && (
+                    <Text style={styles.vendorName}>{quote.vendorName || quote.vendors?.businessName || quote.vendor?.businessName || 'Vendor'}</Text>
+                    {(quote.vendorRating || quote.vendors?.rating || quote.vendor?.rating) > 0 && (
                       <View style={styles.ratingRow}>
                         <Ionicons name="star" size={14} color="#F59E0B" />
                         <Text style={styles.ratingText}>
-                          {quote.vendor.rating.toFixed(1)} ({quote.vendor.totalRatings || 0} reviews)
+                          {(quote.vendorRating || quote.vendors?.rating || quote.vendor?.rating)?.toFixed(1)} ({quote.vendors?.totalRatings || quote.vendor?.totalRatings || 0} reviews)
                         </Text>
                       </View>
                     )}
@@ -461,14 +435,16 @@ export default function TruckQuoteRequestDetailScreen() {
                 <View style={styles.quoteDetails}>
                   {quote.vehicleName && (
                     <View style={styles.quoteDetailRow}>
-                      <Ionicons name="bus-outline" size={16} color={TEXT_SECONDARY} />
+                      <Ionicons name="car-outline" size={16} color={TEXT_SECONDARY} />
                       <Text style={styles.quoteDetailText}>{quote.vehicleName}</Text>
                     </View>
                   )}
                   {quote.inclusions && (
                     <View style={styles.quoteDetailRow}>
                       <Ionicons name="checkmark-circle-outline" size={16} color={TEAL} />
-                      <Text style={styles.quoteDetailText}>{quote.inclusions}</Text>
+                      <Text style={styles.quoteDetailText}>
+                        {parseListData(quote.inclusions).join(', ') || quote.inclusions}
+                      </Text>
                     </View>
                   )}
                   {quote.validTill && (
@@ -638,13 +614,13 @@ export default function TruckQuoteRequestDetailScreen() {
                         </View>
                         <View style={styles.confirmVendorInfo}>
                           <Text style={styles.confirmVendorName}>
-                            {selectedQuote.vendor?.businessName || 'Vendor'}
+                            {selectedQuote.vendorName || selectedQuote.vendors?.businessName || selectedQuote.vendor?.businessName || 'Vendor'}
                           </Text>
-                          {selectedQuote.vendor?.rating > 0 && (
+                          {(selectedQuote.vendorRating || selectedQuote.vendors?.rating || selectedQuote.vendor?.rating) > 0 && (
                             <View style={styles.confirmRating}>
                               <Ionicons name="star" size={12} color="#F59E0B" />
                               <Text style={styles.confirmRatingText}>
-                                {selectedQuote.vendor.rating.toFixed(1)}
+                                {(selectedQuote.vendorRating || selectedQuote.vendors?.rating || selectedQuote.vendor?.rating)?.toFixed(1)}
                               </Text>
                             </View>
                           )}
@@ -661,7 +637,9 @@ export default function TruckQuoteRequestDetailScreen() {
                       {selectedQuote.inclusions && (
                         <View style={styles.confirmDetailRow}>
                           <Ionicons name="checkmark-circle-outline" size={16} color={TEAL} />
-                          <Text style={styles.confirmDetailText}>{selectedQuote.inclusions}</Text>
+                          <Text style={styles.confirmDetailText}>
+                            {parseListData(selectedQuote.inclusions).join(', ') || selectedQuote.inclusions}
+                          </Text>
                         </View>
                       )}
                     </View>
@@ -735,13 +713,13 @@ export default function TruckQuoteRequestDetailScreen() {
                   </View>
                   <View style={styles.detailsVendorInfo}>
                     <Text style={styles.detailsVendorName}>
-                      {viewingQuote.vendor?.businessName || 'Vendor'}
+                      {viewingQuote.vendorName || viewingQuote.vendors?.businessName || viewingQuote.vendor?.businessName || 'Vendor'}
                     </Text>
-                    {viewingQuote.vendor?.rating > 0 && (
+                    {(viewingQuote.vendorRating || viewingQuote.vendors?.rating || viewingQuote.vendor?.rating) > 0 && (
                       <View style={styles.detailsRating}>
                         <Ionicons name="star" size={16} color="#f39c12" />
                         <Text style={styles.detailsRatingText}>
-                          {viewingQuote.vendor.rating.toFixed(1)} Rating
+                          {(viewingQuote.vendorRating || viewingQuote.vendors?.rating || viewingQuote.vendor?.rating)?.toFixed(1)} Rating
                         </Text>
                       </View>
                     )}
@@ -1234,31 +1212,6 @@ const styles = StyleSheet.create({
 
   // Scroll content
   content: { flex: 1 },
-
-  // Status message card
-  statusMsgCard: {
-    flexDirection: 'row',
-    backgroundColor: CARD,
-    borderRadius: wp('4%'),
-    padding: wp('4%'),
-    marginHorizontal: wp('4%'),
-    marginTop: hp('1.5%'),
-    gap: wp('3%'),
-    ...SHADOW_SM,
-  },
-  statusIconCircle: {
-    width: wp('12%'),
-    height: wp('12%'),
-    borderRadius: wp('6%'),
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  statusMessage: {
-    flex: 1,
-    fontSize: wp('3.2%'),
-    color: TEXT_SECONDARY,
-    lineHeight: wp('4.8%'),
-  },
 
   // Details card (Trip Details)
   detailsCard: {

@@ -101,6 +101,9 @@ export default async function WeddingBusLocationPage({ params }: PageProps) {
     ],
   };
 
+  const seoData = await resolvePageMeta(`wedding-bus-rental:${params.location}`);
+
+
   return (
     <div className="flex flex-col">
       {/* Breadcrumbs */}
@@ -117,6 +120,8 @@ export default async function WeddingBusLocationPage({ params }: PageProps) {
       </div>
 
       <ServiceHeroWithChat
+        pageHeading={seoData?.pageHeading || undefined}
+        pageDescription={seoData?.pageDescription || undefined}
         badge={`Wedding Bus in ${locationName}`}
         title="Wedding Bus Rental"
         titleHighlight="Starting @₹5999/day"

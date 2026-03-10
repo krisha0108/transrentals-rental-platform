@@ -71,6 +71,9 @@ export default async function CretaOnRentLocationPage({ params }: PageProps) {
   const city = pageContext.city;
   const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
 
+  const seoData = await resolvePageMeta(`creta-on-rent:${params.location}`);
+
+
   return (
     <>
       <section className="bg-gray-100 py-3">
@@ -86,6 +89,8 @@ export default async function CretaOnRentLocationPage({ params }: PageProps) {
       </section>
 
       <ServiceHeroWithChat
+        pageHeading={seoData?.pageHeading || undefined}
+        pageDescription={seoData?.pageDescription || undefined}
         badge={`Creta Rental in ${locationName}`}
         title="Hyundai Creta on Rent"
         titleHighlight="Starting @₹1999/Day"

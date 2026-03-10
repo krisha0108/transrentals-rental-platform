@@ -14,6 +14,7 @@ import {
   Loader2,
   CheckCircle,
   ArrowRight,
+  Shield,
 } from 'lucide-react';
 
 export default function VendorRegisterPage() {
@@ -158,6 +159,9 @@ export default function VendorRegisterPage() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
         <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full text-center">
+          <Link href="/" className="inline-block mb-6">
+            <img src="/assets/logo-trans.png" alt="TransRentals" className="h-10 mx-auto" />
+          </Link>
           <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
             <CheckCircle className="w-10 h-10 text-green-600" />
           </div>
@@ -177,12 +181,30 @@ export default function VendorRegisterPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-xl p-8 max-w-2xl w-full">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
+      {/* Top bar with logo */}
+      <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
+        <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-2">
+            <img src="/assets/Logo-favicon.png" alt="TransRentals" className="h-8 w-8" />
+            <img src="/assets/logo-trans.png" alt="TransRentals" className="h-7 hidden sm:block" />
+          </Link>
+          <div className="flex items-center gap-3 text-sm text-gray-500">
+            <span className="hidden sm:inline">Already a vendor?</span>
+            <Link href="/vendor/login" className="text-blue-600 font-semibold hover:underline">
+              Login
+            </Link>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex items-center justify-center p-4 py-8">
+      <div className="bg-white rounded-2xl shadow-xl p-8 max-w-2xl w-full border border-gray-100">
         {/* Header */}
         <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center mx-auto mb-4">
-            <Building2 className="w-8 h-8 text-white" />
+          <div className="inline-flex items-center gap-2 bg-green-50 border border-green-200 text-green-700 px-3 py-1 rounded-full text-xs font-semibold mb-4">
+            <CheckCircle className="w-3.5 h-3.5" />
+            Free Registration - No Hidden Charges
           </div>
           <h1 className="text-2xl font-bold text-gray-900">Become a Vendor Partner</h1>
           <p className="text-gray-600 mt-2">Join TransRentals and grow your rental business</p>
@@ -495,27 +517,38 @@ export default function VendorRegisterPage() {
           </p>
         </div>
 
-        {/* Benefits */}
+        {/* Trust & Benefits */}
         <div className="mt-8 pt-8 border-t">
-          <h3 className="font-medium text-gray-900 mb-4 text-center">Why Partner with TransRentals?</h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-            <div>
-              <div className="text-2xl font-bold text-blue-600">1000+</div>
-              <div className="text-sm text-gray-600">Active Vendors</div>
+            <div className="bg-blue-50 rounded-lg p-3">
+              <div className="text-2xl font-bold text-blue-600">10,000+</div>
+              <div className="text-xs text-gray-600 font-medium">Active Vendors</div>
             </div>
-            <div>
-              <div className="text-2xl font-bold text-blue-600">50+</div>
-              <div className="text-sm text-gray-600">Cities</div>
+            <div className="bg-green-50 rounded-lg p-3">
+              <div className="text-2xl font-bold text-green-600">150+</div>
+              <div className="text-xs text-gray-600 font-medium">Cities</div>
             </div>
-            <div>
-              <div className="text-2xl font-bold text-blue-600">24/7</div>
-              <div className="text-sm text-gray-600">Support</div>
+            <div className="bg-purple-50 rounded-lg p-3">
+              <div className="text-2xl font-bold text-purple-600">24/7</div>
+              <div className="text-xs text-gray-600 font-medium">Support</div>
             </div>
-            <div>
-              <div className="text-2xl font-bold text-blue-600">0%</div>
-              <div className="text-sm text-gray-600">Joining Fee</div>
+            <div className="bg-amber-50 rounded-lg p-3">
+              <div className="text-2xl font-bold text-amber-600">0%</div>
+              <div className="text-xs text-gray-600 font-medium">Joining Fee</div>
             </div>
           </div>
+        </div>
+      </div>
+      </div>
+
+      {/* Bottom trust strip */}
+      <div className="bg-white border-t border-gray-200 py-4">
+        <div className="max-w-2xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-gray-500">
+          <div className="flex items-center gap-4">
+            <span className="flex items-center gap-1"><Lock className="w-3 h-3" /> SSL Secured</span>
+            <span className="flex items-center gap-1"><Shield className="w-3 h-3" /> Data Protected</span>
+          </div>
+          <span>&copy; {new Date().getFullYear()} TransRentals. All rights reserved.</span>
         </div>
       </div>
     </div>

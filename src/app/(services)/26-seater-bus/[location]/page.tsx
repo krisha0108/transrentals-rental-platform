@@ -43,6 +43,9 @@ export default async function TwentySixSeaterLocationPage({ params }: PageProps)
   const city = pageContext.city;
   const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
 
+  const seoData = await resolvePageMeta(`26-seater-bus:${params.location}`);
+
+
   return (
     <>
       <section className="bg-gray-100 py-3">
@@ -58,6 +61,8 @@ export default async function TwentySixSeaterLocationPage({ params }: PageProps)
       </section>
 
       <ServiceHeroWithChat
+        pageHeading={seoData?.pageHeading || undefined}
+        pageDescription={seoData?.pageDescription || undefined}
         badge={`26 Seater in ${locationName}`}
         title="26 Seater Bus on Rent"
         titleHighlight="Starting @₹28/km"

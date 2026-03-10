@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
   Facebook,
@@ -59,6 +59,14 @@ export function Footer() {
     };
 
     fetchSettings();
+  }, []);
+
+  // Check if customer is logged in
+  const [isCustomerLoggedIn, setIsCustomerLoggedIn] = useState(false);
+  useEffect(() => {
+    const token = localStorage.getItem('auth_token');
+    const customer = localStorage.getItem('customer');
+    setIsCustomerLoggedIn(!!(token && customer));
   }, []);
 
   const popularLocations = [
@@ -138,7 +146,7 @@ export function Footer() {
     { name: 'Vendor Guide', href: '/vendor-guide.html', external: true },
     { name: 'Interactive Guide', href: '/guide/vendor' },
     { name: 'Reflections', href: '/blog' },
-    { name: 'Customer Login', href: `${process.env.NEXT_PUBLIC_API_URL?.replace('/api', '')}/customer/login`, external: true },
+    ...(!isCustomerLoggedIn ? [{ name: 'Customer Login', href: `${process.env.NEXT_PUBLIC_API_URL?.replace('/api', '')}/customer/login`, external: true }] : []),
     { name: 'Vendor Login', href: `${process.env.NEXT_PUBLIC_API_URL?.replace('/api', '')}/vendor/login`, external: true },
   ];
 

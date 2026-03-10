@@ -186,6 +186,9 @@ export default async function PackersMoversLocationPage({ params }: PageProps) {
     ],
   };
 
+  const seoData = await resolvePageMeta(`packers-and-movers:${params.location}`);
+
+
   return (
     <div className="flex flex-col">
       {/* Breadcrumbs */}
@@ -206,6 +209,8 @@ export default async function PackersMoversLocationPage({ params }: PageProps) {
       </div>
 
       <ServiceHeroWithChat
+        pageHeading={seoData?.pageHeading || undefined}
+        pageDescription={seoData?.pageDescription || undefined}
         badge={`Packers and Movers in ${locationName}`}
         title="Professional Moving Services"
         titleHighlight="Insured Relocation @₹4999"

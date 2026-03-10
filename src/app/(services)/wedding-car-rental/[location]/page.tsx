@@ -72,9 +72,14 @@ export default async function WeddingCarRentalLocationPage({ params }: PageProps
 
   const locationName = city.name;
 
+  const seoData = await resolvePageMeta(`wedding-car-rental:${params.location}`);
+
+
   return (
     <>
       <ServiceHeroWithChat
+        pageHeading={seoData?.pageHeading || undefined}
+        pageDescription={seoData?.pageDescription || undefined}
         badge={`Wedding Car Rental in ${locationName}`}
         title="Wedding Car Services"
         titleHighlight="Shadi Car @₹2999/day"

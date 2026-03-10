@@ -5,7 +5,7 @@ import React, { useState, useEffect, useMemo, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import {
-  Loader2, Plus, Building2, Truck, Calendar, MapPin, ChevronRight,
+  Loader2, Building2, Truck, Calendar, MapPin, ChevronRight,
   Clock, CheckCircle, FileText, Car, Bus, Bike, Wrench, Package, Star,
   Filter, IndianRupee, Users, AlertCircle,
 } from 'lucide-react';
@@ -143,10 +143,6 @@ function CustomerB2BBookingsContent() {
                 className="inline-flex items-center gap-2 px-4 py-2.5 bg-white/20 text-white rounded-xl hover:bg-white/30 text-sm font-semibold transition backdrop-blur-sm">
                 <FileText className="w-4 h-4" /> Invoices
               </Link>
-              <Link href={`/customer/b2b-bookings/create?customer_id=${customerId}`}
-                className="inline-flex items-center gap-2 px-4 py-2.5 bg-white text-green-700 rounded-xl hover:bg-green-50 text-sm font-semibold shadow-lg transition">
-                <Plus className="w-4 h-4" /> New Booking
-              </Link>
             </div>
           </div>
 
@@ -264,10 +260,10 @@ function CustomerB2BBookingsContent() {
           <div className="text-center py-16 bg-white rounded-2xl border shadow-sm">
             <Building2 className="w-16 h-16 text-gray-200 mx-auto mb-4" />
             <p className="text-gray-500 font-medium mb-1">No B2B bookings yet</p>
-            <p className="text-sm text-gray-400 mb-5">Create your first corporate bulk booking</p>
-            <Link href={`/customer/b2b-bookings/create?customer_id=${customerId}`}
+            <p className="text-sm text-gray-400 mb-5">No corporate bulk bookings found</p>
+            <Link href="/"
               className="inline-flex items-center gap-2 px-5 py-2.5 bg-green-600 text-white rounded-xl text-sm font-semibold hover:bg-green-700 transition">
-              <Plus className="w-4 h-4" /> Create Booking
+              Go to Home
             </Link>
           </div>
         ) : filteredBookings.length === 0 ? (

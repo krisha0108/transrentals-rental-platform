@@ -451,12 +451,12 @@ export default function BusQuoteRequestDetailScreen() {
                     <Ionicons name="bus" size={wp('5%')} color={TEAL_MID} />
                   </View>
                   <View style={{ flex: 1, marginLeft: wp('3%') }}>
-                    <Text style={styles.vendorName}>{quote.vendor?.businessName || 'Vendor'}</Text>
-                    {quote.vendor?.rating > 0 && (
+                    <Text style={styles.vendorName}>{quote.vendors?.name || 'Vendor'}</Text>
+                    {quote.vendors?.rating > 0 && (
                       <View style={styles.ratingRow}>
                         <Ionicons name="star" size={14} color="#F59E0B" />
                         <Text style={styles.ratingText}>
-                          {quote.vendor.rating.toFixed(1)} ({quote.vendor.totalReviews || 0} reviews)
+                          {quote.vendors.rating.toFixed(1)} ({quote.vendors.reviews || 0} reviews)
                         </Text>
                       </View>
                     )}
@@ -649,13 +649,13 @@ export default function BusQuoteRequestDetailScreen() {
                         </View>
                         <View style={styles.confirmVendorInfo}>
                           <Text style={styles.confirmVendorName}>
-                            {selectedQuote.vendor?.businessName || 'Vendor'}
+                            {selectedQuote.vendors?.name || 'Vendor'}
                           </Text>
-                          {selectedQuote.vendor?.rating > 0 && (
+                          {selectedQuote.vendors?.rating > 0 && (
                             <View style={styles.confirmRating}>
                               <Ionicons name="star" size={14} color="#f39c12" />
                               <Text style={styles.confirmRatingText}>
-                                {selectedQuote.vendor.rating.toFixed(1)}
+                                {selectedQuote.vendors.rating.toFixed(1)}
                               </Text>
                             </View>
                           )}

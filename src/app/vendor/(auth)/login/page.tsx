@@ -12,6 +12,7 @@ import {
   Eye,
   EyeOff,
   ArrowRight,
+  Shield,
 } from 'lucide-react';
 
 export default function VendorLoginPage() {
@@ -58,13 +59,27 @@ export default function VendorLoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex flex-col">
+      {/* Top bar with logo */}
+      <div className="bg-white border-b border-gray-200">
+        <div className="max-w-md mx-auto px-4 py-3 flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-2">
+            <img src="/assets/Logo-favicon.png" alt="TransRentals" className="h-8 w-8" />
+            <img src="/assets/logo-trans.png" alt="TransRentals" className="h-7 hidden sm:block" />
+          </Link>
+          <div className="flex items-center gap-3 text-sm text-gray-500">
+            <span className="hidden sm:inline">New vendor?</span>
+            <Link href="/vendor/register" className="text-blue-600 font-semibold hover:underline">
+              Register
+            </Link>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex-1 flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full border border-gray-100">
         {/* Header */}
         <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center mx-auto mb-4">
-            <Building2 className="w-8 h-8 text-white" />
-          </div>
           <h1 className="text-2xl font-bold text-gray-900">Vendor Login</h1>
           <p className="text-gray-600 mt-2">Access your vendor dashboard</p>
         </div>
@@ -166,6 +181,18 @@ export default function VendorLoginPage() {
             <li>3. Request services & locations</li>
             <li>4. Start adding your fleet</li>
           </ul>
+        </div>
+      </div>
+      </div>
+
+      {/* Bottom trust strip */}
+      <div className="bg-white border-t border-gray-200 py-4">
+        <div className="max-w-md mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-gray-500">
+          <div className="flex items-center gap-4">
+            <span className="flex items-center gap-1"><Lock className="w-3 h-3" /> SSL Secured</span>
+            <span className="flex items-center gap-1"><Shield className="w-3 h-3" /> Data Protected</span>
+          </div>
+          <span>&copy; {new Date().getFullYear()} TransRentals. All rights reserved.</span>
         </div>
       </div>
     </div>

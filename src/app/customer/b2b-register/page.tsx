@@ -65,6 +65,13 @@ export default function B2BRegisterPage() {
       });
       const data = await res.json();
       if (data.status === 'success') {
+        // Save auth data to localStorage so user is logged in
+        if (data.token) {
+          localStorage.setItem('auth_token', data.token);
+        }
+        if (data.customers) {
+          localStorage.setItem('customer', JSON.stringify(data.customers));
+        }
         setCustomerId(data.customers.id);
         setStep('success');
       } else {
