@@ -18,7 +18,7 @@ import Icon from 'react-native-vector-icons/Feather';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { getVendorQuotes, getBaseURL, getQuoteRequestById } from '../../../api/client';
-import { showError, showSuccess, showInfo, showConfirm } from '../../../services/alertService';
+import { showError, showSuccess, showInfo, showConfirm } from '../../../../services/alertService';
 
 const { width } = Dimensions.get('window');
 const SLIDER_WIDTH = width - 32; // Full width with padding

@@ -13,7 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Feather';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { apiGet, deleteStaff, debugAuthState } from '../../api/client';
-import { showConfirm, showError, showInfo, showSuccess } from '../../services/alertService';
+import { showConfirm, showError, showInfo, showSuccess } from '../../../services/alertService';
 
 const C = {
   bg: '#F7FAFC',

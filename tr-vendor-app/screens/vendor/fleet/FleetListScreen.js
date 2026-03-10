@@ -14,7 +14,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Feather';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { getVendorFleet, deleteVehicle, getBaseURL } from '../../api/client';
-import { showConfirm, showError, showInfo, showSuccess } from '../../services/alertService';
+import { showConfirm, showError, showInfo, showSuccess } from '../../../services/alertService';
 import { ListSkeleton } from '../../../components/SkeletonLoader';
 
 const C = {

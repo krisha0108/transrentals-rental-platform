@@ -19,7 +19,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { launchImageLibrary, launchCamera } from 'react-native-image-picker';
 import { pick, types } from '@react-native-documents/picker';
-import { import { showError, showConfirm, showError, showInfo, showSuccess } from '../../services/alertService';
+import { showError, showConfirm, showInfo, showSuccess } from '../../../services/alertService';
+import {
   getVendorDocuments,
   uploadVendorDocument,
   deleteVendorDocument,

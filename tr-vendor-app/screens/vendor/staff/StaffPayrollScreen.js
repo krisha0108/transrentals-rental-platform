@@ -16,7 +16,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Feather';
 import { getStaffPayroll, markStaffPayment } from '../../api/staff-api';
-import { showError, showSuccess, showInfo, showConfirm } from '../../services/alertService';
+import { showError, showSuccess, showInfo, showConfirm } from '../../../services/alertService';
 
 const C = {
   bg: '#F1F5F9',

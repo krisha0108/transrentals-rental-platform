@@ -17,7 +17,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import { launchImageLibrary } from 'react-native-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getVendorProfile, logoutVendor, uploadVendorLogo, getBaseURL } from '../../api/client';
-import { showConfirm, showError, showInfo, showSuccess } from '../../services/alertService';
+import { showConfirm, showError, showInfo, showSuccess } from '../../../services/alertService';
 
 const C = {
   bg: '#F7FAFC',

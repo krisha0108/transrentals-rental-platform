@@ -16,7 +16,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { import { showError, showConfirm, showError, showInfo, showSuccess } from '../../services/alertService';
+import { showError, showConfirm, showInfo, showSuccess } from '../../../services/alertService';
+import {
   getVendorServices,
   requestService,
   apiGet,

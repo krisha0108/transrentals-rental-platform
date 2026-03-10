@@ -15,7 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Feather';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import { addStaff, updateStaff } from '../../api/client';
-import { showConfirm, showError, showInfo, showSuccess } from '../../services/alertService';
+import { showConfirm, showError, showInfo, showSuccess } from '../../../services/alertService';
 
 const C = {
   bg: '#F7FAFC',

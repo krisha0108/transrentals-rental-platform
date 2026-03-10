@@ -6,7 +6,7 @@ import {
 import axios from "axios";
 import Icon from "react-native-vector-icons/Ionicons";
 import { getBaseURL } from "../../api/client";
-import { showConfirm, showError, showInfo, showSuccess } from '../../services/alertService';
+import { showConfirm, showError, showInfo, showSuccess } from '../../../services/alertService';
 
 // BASE_URL is resolved async from client.js (respects live/dev/hotspot setting)
 async function getVendorApiURL() {

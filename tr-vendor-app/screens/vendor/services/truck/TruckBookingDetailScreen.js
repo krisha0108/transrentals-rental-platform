@@ -15,7 +15,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Feather';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import { import { showError, showConfirm, showError, showInfo, showSuccess } from '../../../services/alertService';
+import { showError, showConfirm, showInfo, showSuccess } from '../../../../services/alertService';
+import {
   getBookingById,
   acceptBooking,
   rejectBooking,

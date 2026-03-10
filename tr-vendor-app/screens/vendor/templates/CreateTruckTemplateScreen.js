@@ -14,7 +14,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Feather';
 import { getTemplateById, createTemplate, updateTemplate } from '../../api/client';
-import { showError, showSuccess, showInfo, showConfirm } from '../../services/alertService';
+import { showError, showSuccess, showInfo, showConfirm } from '../../../services/alertService';
 
 const C = {
   bg: '#F7FAFC',

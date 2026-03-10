@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Activi
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Feather';
 import { getTemplateById, createTemplate, updateTemplate } from '../../api/client';
-import { showError, showSuccess, showInfo, showConfirm } from '../../services/alertService';
+import { showError, showSuccess, showInfo, showConfirm } from '../../../services/alertService';
 
 const C = { bg: '#F7FAFC', surface: '#FFFFFF', text: '#0F172A', muted: '#6B7280', border: '#E5E7EB', brand: '#22C55E', blue: '#2563EB', red: '#EF4444', purple: '#6366F1' };
 

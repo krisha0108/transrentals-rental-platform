@@ -16,7 +16,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Feather';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { getTemplateById, updateTemplate } from '../../../api/client';
-import { showConfirm, showError, showInfo, showSuccess } from '../../../services/alertService';
+import { showConfirm, showError, showInfo, showSuccess } from '../../../../services/alertService';
 
 const SERVICE_COLOR = '#3B82F6'; // Blue for self-drive
 const GREEN = '#09B368';

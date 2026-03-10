@@ -14,7 +14,7 @@ import Icon from 'react-native-vector-icons/Feather';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { getQuoteRequestById } from '../../../api/client';
-import { showError, showSuccess, showInfo, showConfirm } from '../../../services/alertService';
+import { showError, showSuccess, showInfo, showConfirm } from '../../../../services/alertService';
 
 const GREEN = '#09B368';
 const BG = '#F5F5F7';
