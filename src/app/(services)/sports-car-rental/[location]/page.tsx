@@ -68,9 +68,14 @@ export default async function SportsCarRentalLocationPage({ params }: PageProps)
 
   const locationName = city.name;
 
+  const seoData = await resolvePageMeta(`sports-car-rental:${params.location}`);
+
+
   return (
     <>
       <ServiceHeroWithChat
+        pageHeading={seoData?.pageHeading || undefined}
+        pageDescription={seoData?.pageDescription || undefined}
         badge={`Sports Car Rental in ${locationName}`}
         title="Exotic Sports Car Rental"
         titleHighlight="Ferrari, Lamborghini @₹25k/day"

@@ -16,13 +16,17 @@ interface PageRow {
   templateTitle: string;
   templateDescription: string;
   templateKeywords: string;
-  override: { metaTitle: string | null; metaDescription: string | null; metaKeywords: string | null } | null;
+  templateHeading?: string;
+  templatePageDescription?: string;
+  override: { metaTitle: string | null; metaDescription: string | null; metaKeywords: string | null; pageHeading: string | null; pageDescription: string | null } | null;
 }
 
 interface EditState {
   metaTitle: string;
   metaDescription: string;
   metaKeywords: string;
+  pageHeading: string;
+  pageDescription: string;
 }
 
 // ── Single editable row ────────────────────────────────────────────────────────
@@ -37,6 +41,8 @@ function PageRow({ row, onSave, onReset }: {
     metaTitle: row.override?.metaTitle || row.templateTitle,
     metaDescription: row.override?.metaDescription || row.templateDescription,
     metaKeywords: row.override?.metaKeywords || row.templateKeywords,
+    pageHeading: row.override?.pageHeading || row.templateHeading || '',
+    pageDescription: row.override?.pageDescription || row.templatePageDescription || '',
   });
 
   const hasOverride = !!row.override;
@@ -67,6 +73,8 @@ function PageRow({ row, onSave, onReset }: {
             metaTitle: row.override?.metaTitle || row.templateTitle,
             metaDescription: row.override?.metaDescription || row.templateDescription,
             metaKeywords: row.override?.metaKeywords || row.templateKeywords,
+            pageHeading: row.override?.pageHeading || row.templateHeading || '',
+            pageDescription: row.override?.pageDescription || row.templatePageDescription || '',
           });
           setOpen(!open);
         }}
@@ -109,6 +117,34 @@ function PageRow({ row, onSave, onReset }: {
               <p>Desc: {row.templateDescription}</p>
             </div>
           )}
+
+          {/* Page Heading & Description (visible on page) */}
+          <div className="bg-green-50 border border-green-200 rounded-lg p-3 space-y-3">
+            <p className="text-xs font-semibold text-green-700">Page Content (visible on page)</p>
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">
+                Page Heading
+              </label>
+              <input
+                value={edit.pageHeading}
+                onChange={(e) => setEdit({ ...edit, pageHeading: e.target.value })}
+                placeholder="e.g. Self Drive Cars in Ahmedabad"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">
+                Page Description
+              </label>
+              <textarea
+                value={edit.pageDescription}
+                onChange={(e) => setEdit({ ...edit, pageDescription: e.target.value })}
+                rows={2}
+                placeholder="e.g. Drive yourself without a driver. Hatchbacks, Sedans, SUVs starting ₹899/day."
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-transparent resize-none"
+              />
+            </div>
+          </div>
 
           <div>
             <label className="block text-xs font-medium text-gray-700 mb-1">

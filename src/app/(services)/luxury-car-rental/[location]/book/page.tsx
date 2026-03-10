@@ -1045,9 +1045,23 @@ function LuxuryBookingContent({ location }: { location: string }) {
                         <input
                           type="tel"
                           value={customerPhone}
-                          onChange={(e) => setCustomerPhone(e.target.value)}
+                          onChange={(e) => {
+                            const val = e.target.value.replace(/[^0-9]/g, '');
+                            if (val.length <= 10) setCustomerPhone(val);
+                          }}
+                          onKeyDown={(e) => {
+                            if (
+                              !/[0-9]/.test(e.key) &&
+                              !['Backspace', 'Delete', 'Tab', 'ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key) &&
+                              !(e.ctrlKey || e.metaKey)
+                            ) {
+                              e.preventDefault();
+                            }
+                          }}
                           placeholder="10-digit mobile number"
                           pattern="[0-9]{10}"
+                          maxLength={10}
+                          inputMode="numeric"
                           className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
                           required
                         />

@@ -11,6 +11,8 @@ interface ServiceHeroWithChatProps {
   title: string;
   titleHighlight: string;
   description: string;
+  pageHeading?: string;
+  pageDescription?: string;
   serviceType?: string;
   features?: { icon: 'star' | 'shield' | 'zap'; text: string; color: string }[];
   gradientFrom?: string;
@@ -22,6 +24,8 @@ export function ServiceHeroWithChat({
   title,
   titleHighlight,
   description,
+  pageHeading,
+  pageDescription,
   serviceType,
   features = [
     { icon: 'star', text: '4.8/5 Rating', color: 'text-amber-500' },
@@ -47,13 +51,13 @@ export function ServiceHeroWithChat({
             <span>{formatPriceHighlight(badge)}</span>
           </div>
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 mb-4">
-            {title}<br />
+            {pageHeading || (<>{title}<br />
             <span className="bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
               {formatPriceHighlight(titleHighlight)}
-            </span>
+            </span></>)}
           </h1>
           <p className="text-lg md:text-xl text-gray-600 max-w-3xl mx-auto">
-            {description}
+            {pageDescription || description}
           </p>
         </div>
 

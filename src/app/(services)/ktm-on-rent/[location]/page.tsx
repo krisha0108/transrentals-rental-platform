@@ -133,6 +133,9 @@ export default async function KTMLocationPage({ params }: PageProps) {
     ],
   };
 
+  const seoData = await resolvePageMeta(`ktm-on-rent:${params.location}`);
+
+
   return (
     <>
       <BikeServiceSchema
@@ -162,6 +165,8 @@ export default async function KTMLocationPage({ params }: PageProps) {
         </div>
 
         <ServiceHeroWithChat
+          pageHeading={seoData?.pageHeading || undefined}
+          pageDescription={seoData?.pageDescription || undefined}
           badge={`KTM Rental in ${locationName}`}
           title="KTM on Rent"
           titleHighlight="Starting @₹999/day"

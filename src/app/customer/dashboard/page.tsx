@@ -256,6 +256,24 @@ export default function CustomerDashboardPage() {
       if (parsed.isB2B && parsed.b2bStatus === 'APPROVED') {
         setDashboardView('b2b');
       }
+
+      // Refresh customer data from API to get latest b2bStatus etc.
+      const refreshId = parsed?.id ?? parsed?.customer_id ?? parsed?.customerId;
+      if (refreshId) {
+        fetch(`/api/customer/profile?customer_id=${refreshId}`)
+          .then(res => res.json())
+          .then(data => {
+            if (data.success && data.customers) {
+              const updated = { ...parsed, ...data.customers };
+              localStorage.setItem('customer', JSON.stringify(updated));
+              setCustomer(updated);
+              if (updated.isB2B && updated.b2bStatus === 'APPROVED') {
+                setDashboardView('b2b');
+              }
+            }
+          })
+          .catch(() => {});
+      }
       setProfileForm((prev) => ({
         ...prev,
         name: parsed.name || '',
@@ -1157,6 +1175,25 @@ export default function CustomerDashboardPage() {
 
       {/* Main Content with top padding for fixed header */}
       <div className="pt-16 md:pt-20">
+        {/* B2B Approval Pending Banner */}
+        {customer?.isB2B && customer?.b2bStatus !== 'APPROVED' && (
+          <div className="bg-gradient-to-r from-amber-50 to-yellow-50 border-b border-amber-200">
+            <div className="container mx-auto px-4 max-w-6xl py-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center flex-shrink-0">
+                  <Clock className="w-5 h-5 text-amber-600" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-amber-800">B2B Account — Approval In Review</p>
+                  <p className="text-xs text-amber-600">
+                    Your corporate account{customer?.companyName ? ` for ${customer.companyName}` : ''} is under review by the admin team. You'll be able to access B2B features once approved.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* B2B / Personal Dashboard Toggle */}
         {customer?.isB2B && customer?.b2bStatus === 'APPROVED' && (
           <div className="bg-gradient-to-r from-slate-800 to-slate-900 border-b border-white/10">

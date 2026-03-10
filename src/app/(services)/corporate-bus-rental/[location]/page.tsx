@@ -101,6 +101,9 @@ export default async function CorporateBusLocationPage({ params }: PageProps) {
     ],
   };
 
+  const seoData = await resolvePageMeta(`corporate-bus-rental:${params.location}`);
+
+
   return (
     <div className="flex flex-col">
       {/* Breadcrumbs */}
@@ -117,6 +120,8 @@ export default async function CorporateBusLocationPage({ params }: PageProps) {
       </div>
 
       <ServiceHeroWithChat
+        pageHeading={seoData?.pageHeading || undefined}
+        pageDescription={seoData?.pageDescription || undefined}
         badge={`Corporate Bus in ${locationName}`}
         title="Corporate Bus Rental"
         titleHighlight="Starting @₹4999/day"

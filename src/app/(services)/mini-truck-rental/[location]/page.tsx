@@ -101,6 +101,9 @@ export default async function MiniTruckLocationPage({ params }: PageProps) {
     ],
   };
 
+  const seoData = await resolvePageMeta(`mini-truck-rental:${params.location}`);
+
+
   return (
     <div className="flex flex-col">
       {/* Breadcrumbs */}
@@ -117,6 +120,8 @@ export default async function MiniTruckLocationPage({ params }: PageProps) {
       </div>
 
       <ServiceHeroWithChat
+        pageHeading={seoData?.pageHeading || undefined}
+        pageDescription={seoData?.pageDescription || undefined}
         badge={`Mini Truck Rental in ${locationName}`}
         title="Mini Truck on Rent"
         titleHighlight="Starting @₹1499/day"

@@ -73,13 +73,12 @@ export async function GET(request: NextRequest) {
         },
       };
     } else if (type === 'quoted') {
-      // Requests where vendor has submitted a quote
+      // Requests where vendor has submitted a quote (any status)
       whereClause = {
         ...dateFilter,
         self_drive_quotes_self_drive_quotes_requestIdToself_drive_quote_requests: {
           some: {
             vendorId: vendorId,
-            status: { in: ['SENT', 'VIEWED'] },
           },
         },
       };

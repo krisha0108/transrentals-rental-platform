@@ -25,6 +25,18 @@ export async function GET(request: NextRequest) {
 
     // Helper function to format booking data
     const formatBooking = (booking: any, type: string, vendor: any) => {
+      // Resolve location fields based on booking type
+      let pickupCity = booking.pickupCity || booking.pickupLocation || '';
+      let dropCity = booking.dropCity || booking.dropLocation || '';
+
+      if (type === 'equipment') {
+        pickupCity = booking.deliveryCity || '';
+        dropCity = '';
+      } else if (type === 'bike' || type === 'car') {
+        pickupCity = booking.locationName || '';
+        dropCity = '';
+      }
+
       return {
         id: booking.id,
         bookingNumber: booking.bookingNumber,
@@ -35,8 +47,8 @@ export async function GET(request: NextRequest) {
         status: booking.status,
         createdAt: booking.createdAt,
         pickupDate: booking.pickupDate || booking.preferredDate || booking.startDate,
-        pickupCity: booking.pickupCity || booking.pickupLocation,
-        dropCity: booking.dropCity || booking.dropLocation,
+        pickupCity,
+        dropCity,
         vendor: vendor ? {
           id: vendor.id,
           name: vendor.businessName,

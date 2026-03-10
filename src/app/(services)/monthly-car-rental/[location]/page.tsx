@@ -68,9 +68,14 @@ export default async function MonthlyCarRentalLocationPage({ params }: PageProps
 
   const locationName = city.name;
 
+  const seoData = await resolvePageMeta(`monthly-car-rental:${params.location}`);
+
+
   return (
     <>
       <ServiceHeroWithChat
+        pageHeading={seoData?.pageHeading || undefined}
+        pageDescription={seoData?.pageDescription || undefined}
         badge={`Monthly Car Rental in ${locationName}`}
         title="Monthly Car Subscription"
         titleHighlight="Long Term Rental @₹12k/month"

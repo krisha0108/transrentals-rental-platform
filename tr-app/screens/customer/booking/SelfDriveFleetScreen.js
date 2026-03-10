@@ -114,6 +114,10 @@ const SelfDriveFleetScreen = () => {
   const [showBookingModal, setShowBookingModal] = useState(false);
   const [bookingLoading, setBookingLoading] = useState(false);
 
+  // State for home delivery
+  const [isDeliveryRequested, setIsDeliveryRequested] = useState(false);
+  const [pickupAddress, setPickupAddress] = useState('');
+
   // State for phone collection
   const [showPhoneModal, setShowPhoneModal] = useState(false);
   const [phoneNumber, setPhoneNumber] = useState('');
@@ -232,6 +236,8 @@ const SelfDriveFleetScreen = () => {
         dropTime: dropDate.toTimeString().slice(0, 5),
         budgetMin: selectedCar.lowestPrice || null,
         budgetMax: selectedCar.highestPrice || null,
+        isDeliveryRequested,
+        pickupAddress: isDeliveryRequested ? pickupAddress : null,
         customerNotes: '',
       };
 
@@ -239,6 +245,8 @@ const SelfDriveFleetScreen = () => {
 
       if (response?.success || response?.quoteRequest) {
         setShowBookingModal(false);
+        setIsDeliveryRequested(false);
+        setPickupAddress('');
         navigation.navigate('BookingConfirmation', {
           booking_id: response?.quoteRequest?.id || 'TRX-' + Date.now(),
           service_name: 'Self Drive Car',
@@ -756,6 +764,41 @@ const SelfDriveFleetScreen = () => {
                   {calculateDays()} Day{calculateDays() > 1 ? 's' : ''} Rental
                 </Text>
               </View>
+            </View>
+
+            {/* Home Delivery Option */}
+            <View style={styles.deliverySection}>
+              <Text style={styles.sectionTitle}>Delivery Option</Text>
+              <TouchableOpacity
+                style={styles.deliveryCheckRow}
+                onPress={() => setIsDeliveryRequested(!isDeliveryRequested)}
+                activeOpacity={0.7}
+              >
+                <View style={[styles.deliveryCheckbox, isDeliveryRequested && styles.deliveryCheckboxChecked]}>
+                  {isDeliveryRequested && (
+                    <Ionicons name="checkmark" size={wp('3.5%')} color="#fff" />
+                  )}
+                </View>
+                <Ionicons name="car-outline" size={wp('4.5%')} color={TEAL_MID} />
+                <Text style={styles.deliveryCheckText}>Request home delivery</Text>
+              </TouchableOpacity>
+
+              {isDeliveryRequested && (
+                <View style={styles.deliveryAddressWrap}>
+                  <Text style={styles.deliveryAddressLabel}>
+                    <Ionicons name="location-outline" size={wp('3.5%')} color={TEXT_SECONDARY} /> Delivery Address
+                  </Text>
+                  <TextInput
+                    value={pickupAddress}
+                    onChangeText={setPickupAddress}
+                    placeholder="Enter your delivery address..."
+                    placeholderTextColor={TEXT_MUTED}
+                    style={styles.deliveryAddressInput}
+                    multiline
+                    numberOfLines={2}
+                  />
+                </View>
+              )}
             </View>
 
             {/* Pricing Info */}
@@ -1666,6 +1709,65 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: TEXT_PRIMARY,
     marginBottom: hp('1.5%'),
+  },
+  deliverySection: {
+    backgroundColor: CARD,
+    borderRadius: wp('4.5%'),
+    padding: wp('4%'),
+    marginBottom: hp('2%'),
+    borderWidth: 1,
+    borderColor: BORDER,
+    ...SHADOW_SM,
+  },
+  deliveryCheckRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: wp('2.5%'),
+    paddingVertical: hp('1%'),
+    paddingHorizontal: wp('3%'),
+    backgroundColor: '#F8FAFB',
+    borderRadius: wp('3%'),
+    borderWidth: 1,
+    borderColor: 'rgba(16,185,129,0.12)',
+  },
+  deliveryCheckbox: {
+    width: wp('5.5%'),
+    height: wp('5.5%'),
+    borderRadius: wp('1.5%'),
+    borderWidth: 2,
+    borderColor: TEXT_MUTED,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  deliveryCheckboxChecked: {
+    backgroundColor: TEAL,
+    borderColor: TEAL,
+  },
+  deliveryCheckText: {
+    fontSize: wp('3.5%'),
+    color: TEXT_PRIMARY,
+    fontWeight: '600',
+  },
+  deliveryAddressWrap: {
+    marginTop: hp('1.2%'),
+  },
+  deliveryAddressLabel: {
+    fontSize: wp('3.2%'),
+    color: TEXT_SECONDARY,
+    fontWeight: '600',
+    marginBottom: hp('0.5%'),
+  },
+  deliveryAddressInput: {
+    backgroundColor: '#F8FAFB',
+    borderRadius: wp('3%'),
+    borderWidth: 1,
+    borderColor: 'rgba(16,185,129,0.15)',
+    paddingHorizontal: wp('3%'),
+    paddingVertical: hp('1%'),
+    fontSize: wp('3.5%'),
+    color: TEXT_PRIMARY,
+    textAlignVertical: 'top',
+    minHeight: hp('7%'),
   },
   pricingInfo: {
     backgroundColor: CARD,

@@ -27,11 +27,13 @@ import { TEAL_DEEP, TEAL_MID, TEAL, TEAL_LIGHT, BG, CARD, TEXT_PRIMARY, TEXT_SEC
 
 const STATUS_CONFIG = {
   PENDING_PAYMENT: { label: 'Payment Pending', color: '#F59E0B', icon: 'time-outline' },
-  PAYMENT_SUBMITTED: { label: 'Payment Submitted', color: '#3B82F6', icon: 'checkmark-circle-outline' },
+  PAYMENT_SUBMITTED: { label: 'Payment Under Review', color: '#3B82F6', icon: 'checkmark-circle-outline' },
   ADVANCE_PAID: { label: 'Advance Paid', color: '#10B981', icon: 'checkmark-done-outline' },
   CONFIRMED: { label: 'Confirmed', color: '#10B981', icon: 'checkmark-done-circle' },
-  VEHICLE_ASSIGNED: { label: 'Vehicle Assigned', color: '#8B5CF6', icon: 'bus-outline' },
-  IN_PROGRESS: { label: 'Trip In Progress', color: '#F59E0B', icon: 'navigate-circle-outline' },
+  VEHICLE_ASSIGNED: { label: 'Vehicle Assigned', color: '#8B5CF6', icon: 'car-outline' },
+  LOADING: { label: 'Loading', color: '#7C3AED', icon: 'archive-outline' },
+  IN_TRANSIT: { label: 'In Transit', color: '#3B82F6', icon: 'navigate-circle-outline' },
+  UNLOADING: { label: 'Unloading', color: '#7C3AED', icon: 'archive-outline' },
   COMPLETED: { label: 'Completed', color: '#10B981', icon: 'checkmark-done-circle-outline' },
   CANCELLED: { label: 'Cancelled', color: '#EF4444', icon: 'close-circle-outline' },
 };
@@ -179,8 +181,8 @@ export default function TruckBookingDetailScreen() {
     return (
       <SafeAreaView style={styles.container}>
         <LinearGradient colors={[TEAL_DEEP, TEAL_MID, '#047857']} style={styles.headerGrad}>
-          <View style={[styles.decoCircle, { top: -30, right: -20, width: wp('25%'), height: wp('25%') }]} pointerEvents="none" />
-          <View style={[styles.decoCircle, { bottom: -15, left: -15, width: wp('15%'), height: wp('15%') }]} pointerEvents="none" />
+          <View style={[styles.decoCircle, { top: -hp('3%'), right: -wp('5%'), width: wp('25%'), height: wp('25%') }]} pointerEvents="none" />
+          <View style={[styles.decoCircle, { bottom: -hp('1.5%'), left: -wp('3.5%'), width: wp('15%'), height: wp('15%') }]} pointerEvents="none" />
           <View style={styles.headerRow}>
             <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
               <Ionicons name="chevron-back" size={wp('5.5%')} color="#FFF" />
@@ -202,8 +204,8 @@ export default function TruckBookingDetailScreen() {
     return (
       <SafeAreaView style={styles.container}>
         <LinearGradient colors={[TEAL_DEEP, TEAL_MID, '#047857']} style={styles.headerGrad}>
-          <View style={[styles.decoCircle, { top: -30, right: -20, width: wp('25%'), height: wp('25%') }]} pointerEvents="none" />
-          <View style={[styles.decoCircle, { bottom: -15, left: -15, width: wp('15%'), height: wp('15%') }]} pointerEvents="none" />
+          <View style={[styles.decoCircle, { top: -hp('3%'), right: -wp('5%'), width: wp('25%'), height: wp('25%') }]} pointerEvents="none" />
+          <View style={[styles.decoCircle, { bottom: -hp('1.5%'), left: -wp('3.5%'), width: wp('15%'), height: wp('15%') }]} pointerEvents="none" />
           <View style={styles.headerRow}>
             <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
               <Ionicons name="chevron-back" size={wp('5.5%')} color="#FFF" />
@@ -226,8 +228,8 @@ export default function TruckBookingDetailScreen() {
       {/* ── Gradient Header ── */}
       <LinearGradient colors={[TEAL_DEEP, TEAL_MID, '#047857']} style={styles.headerGrad}>
         {/* Decorative circles */}
-        <View style={[styles.decoCircle, { top: -30, right: -20, width: wp('25%'), height: wp('25%') }]} pointerEvents="none" />
-        <View style={[styles.decoCircle, { bottom: -15, left: -15, width: wp('15%'), height: wp('15%') }]} pointerEvents="none" />
+        <View style={[styles.decoCircle, { top: -hp('3%'), right: -wp('5%'), width: wp('25%'), height: wp('25%') }]} pointerEvents="none" />
+        <View style={[styles.decoCircle, { bottom: -hp('1.5%'), left: -wp('3.5%'), width: wp('15%'), height: wp('15%') }]} pointerEvents="none" />
         <View style={[styles.decoCircle, { top: hp('2%'), left: wp('30%'), width: wp('10%'), height: wp('10%') }]} pointerEvents="none" />
 
         <View style={styles.headerRow}>
@@ -427,7 +429,7 @@ export default function TruckBookingDetailScreen() {
           <View style={styles.card}>
             <View style={styles.cardHeader}>
               <View style={[styles.cardIconCircle, { backgroundColor: '#EDE9FE' }]}>
-                <Ionicons name="bus-outline" size={wp('4.5%')} color="#7C3AED" />
+                <Ionicons name="car-outline" size={wp('4.5%')} color="#7C3AED" />
               </View>
               <Text style={styles.cardTitle}>Vehicle & Driver Details</Text>
             </View>
@@ -480,8 +482,8 @@ export default function TruckBookingDetailScreen() {
           </View>
         )}
 
-        {/* ── Loading OTP - Show when available and loading not started ── */}
-        {booking.loadingOtp && !booking.loadingStartedAt && (
+        {/* ── Loading OTP - Show only when vehicle is assigned ── */}
+        {booking.loadingOtp && booking.status === 'VEHICLE_ASSIGNED' && (
           <View style={styles.card}>
             <View style={styles.cardHeader}>
               <View style={[styles.cardIconCircle, { backgroundColor: '#FEF3C7' }]}>
@@ -496,8 +498,8 @@ export default function TruckBookingDetailScreen() {
           </View>
         )}
 
-        {/* ── Delivery OTP - Show when available and not completed ── */}
-        {booking.deliveryOtp && booking.status !== 'COMPLETED' && (
+        {/* ── Delivery OTP - Show only during transit/unloading ── */}
+        {booking.deliveryOtp && ['IN_TRANSIT', 'UNLOADING'].includes(booking.status) && (
           <View style={styles.card}>
             <View style={styles.cardHeader}>
               <View style={[styles.cardIconCircle, { backgroundColor: TEAL_LIGHT }]}>
@@ -532,10 +534,10 @@ export default function TruckBookingDetailScreen() {
                 <Text style={styles.detailLabel}>Contact</Text>
                 <TouchableOpacity
                   onPress={() => handleCallVendor(booking.vendor.phone)}
-                  style={styles.callBtnInline}
+                  style={{ flexDirection: 'row', alignItems: 'center', flex: 1, justifyContent: 'flex-end' }}
                 >
                   <Ionicons name="call" size={wp('3.5%')} color={TEAL} />
-                  <Text style={[styles.detailValue, { color: TEAL, marginLeft: wp('1.5%') }]}>
+                  <Text style={{ fontSize: wp('3.3%'), fontWeight: '600', color: TEAL, marginLeft: wp('1.5%') }}>
                     {booking.vendor.phone}
                   </Text>
                 </TouchableOpacity>
@@ -703,8 +705,8 @@ export default function TruckBookingDetailScreen() {
           <SafeAreaView style={styles.quoteModalContainer}>
             {/* Modal Header */}
             <LinearGradient colors={[TEAL_DEEP, TEAL_MID, '#047857']} style={styles.quoteModalHeaderGrad}>
-              <View style={[styles.decoCircle, { top: -20, right: -15, width: wp('18%'), height: wp('18%') }]} pointerEvents="none" />
-              <View style={[styles.decoCircle, { bottom: -10, left: -10, width: wp('12%'), height: wp('12%') }]} pointerEvents="none" />
+              <View style={[styles.decoCircle, { top: -hp('2%'), right: -wp('3.5%'), width: wp('18%'), height: wp('18%') }]} pointerEvents="none" />
+              <View style={[styles.decoCircle, { bottom: -hp('1%'), left: -wp('2.5%'), width: wp('12%'), height: wp('12%') }]} pointerEvents="none" />
               <View style={styles.quoteModalHeaderRow}>
                 <TouchableOpacity onPress={() => setQuoteDetailsVisible(false)} style={styles.backBtn}>
                   <Ionicons name="close" size={wp('6%')} color="#FFF" />
@@ -767,18 +769,18 @@ export default function TruckBookingDetailScreen() {
                         </View>
                         <View style={styles.quoteInfoCard}>
                           <View style={styles.quoteInfoRow}>
-                            <Ionicons name="storefront-outline" size={20} color={TEXT_SECONDARY} />
+                            <Ionicons name="storefront-outline" size={wp('4.5%')} color={TEXT_SECONDARY} />
                             <Text style={styles.quoteInfoText}>{booking.vendor.name}</Text>
                           </View>
                           {booking.vendor.rating > 0 && (
                             <View style={styles.quoteInfoRow}>
-                              <Ionicons name="star-outline" size={20} color={TEXT_SECONDARY} />
+                              <Ionicons name="star-outline" size={wp('4.5%')} color={TEXT_SECONDARY} />
                               <Text style={styles.quoteInfoText}>{booking.vendor.rating.toFixed(1)} ★ Rating</Text>
                             </View>
                           )}
                           {booking.vendor.phone && (
                             <View style={styles.quoteInfoRow}>
-                              <Ionicons name="call-outline" size={20} color={TEXT_SECONDARY} />
+                              <Ionicons name="call-outline" size={wp('4.5%')} color={TEXT_SECONDARY} />
                               <Text style={styles.quoteInfoText}>{booking.vendor.phone}</Text>
                             </View>
                           )}
@@ -798,37 +800,37 @@ export default function TruckBookingDetailScreen() {
                         <View style={styles.quoteInfoCard}>
                           {booking.quote.vehicleName && (
                             <View style={styles.quoteInfoRow}>
-                              <MaterialCommunityIcons name="truck" size={20} color={TEXT_SECONDARY} />
+                              <MaterialCommunityIcons name="truck" size={wp('4.5%')} color={TEXT_SECONDARY} />
                               <Text style={styles.quoteInfoText}>Vehicle: {booking.quote.vehicleName}</Text>
                             </View>
                           )}
                           {booking.quote.vehicleCategory && (
                             <View style={styles.quoteInfoRow}>
-                              <Ionicons name="layers-outline" size={20} color={TEXT_SECONDARY} />
+                              <Ionicons name="layers-outline" size={wp('4.5%')} color={TEXT_SECONDARY} />
                               <Text style={styles.quoteInfoText}>Category: {booking.quote.vehicleCategory}</Text>
                             </View>
                           )}
                           {booking.quote.vehicleNumber && (
                             <View style={styles.quoteInfoRow}>
-                              <Ionicons name="card-outline" size={20} color={TEXT_SECONDARY} />
+                              <Ionicons name="card-outline" size={wp('4.5%')} color={TEXT_SECONDARY} />
                               <Text style={styles.quoteInfoText}>Reg: {booking.quote.vehicleNumber}</Text>
                             </View>
                           )}
                           {booking.quote.vehicleCapacity && (
                             <View style={styles.quoteInfoRow}>
-                              <Ionicons name="cube-outline" size={20} color={TEXT_SECONDARY} />
+                              <Ionicons name="cube-outline" size={wp('4.5%')} color={TEXT_SECONDARY} />
                               <Text style={styles.quoteInfoText}>Capacity: {booking.quote.vehicleCapacity}</Text>
                             </View>
                           )}
                           {booking.quote.driverName && (
                             <View style={styles.quoteInfoRow}>
-                              <Ionicons name="person-outline" size={20} color={TEXT_SECONDARY} />
+                              <Ionicons name="person-outline" size={wp('4.5%')} color={TEXT_SECONDARY} />
                               <Text style={styles.quoteInfoText}>Driver: {booking.quote.driverName}</Text>
                             </View>
                           )}
                           {booking.quote.driverPhone && (
                             <View style={styles.quoteInfoRow}>
-                              <Ionicons name="call-outline" size={20} color={TEXT_SECONDARY} />
+                              <Ionicons name="call-outline" size={wp('4.5%')} color={TEXT_SECONDARY} />
                               <Text style={styles.quoteInfoText}>{booking.quote.driverPhone}</Text>
                             </View>
                           )}
@@ -1083,7 +1085,7 @@ const styles = StyleSheet.create({
 
   // ── Gradient Header ──
   headerGrad: {
-    paddingTop: Platform.OS === 'android' ? hp('1.5%') : hp('0.5%'),
+    paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || hp('4%')) + hp('1%') : hp('0.5%'),
     paddingBottom: hp('2%'),
     paddingHorizontal: wp('4%'),
     overflow: 'hidden',
@@ -1326,7 +1328,7 @@ const styles = StyleSheet.create({
     marginTop: hp('0.5%'),
   },
   tripLine: {
-    width: 2,
+    width: wp('0.5%'),
     height: hp('2.5%'),
     backgroundColor: '#E5E7EB',
     marginLeft: wp('1.2%'),
@@ -1336,7 +1338,7 @@ const styles = StyleSheet.create({
     fontSize: wp('2.8%'),
     color: TEXT_MUTED,
     fontWeight: '700',
-    letterSpacing: 0.5,
+    letterSpacing: wp('0.1%'),
     marginBottom: hp('0.3%'),
   },
   tripValue: {
@@ -1352,7 +1354,7 @@ const styles = StyleSheet.create({
 
   // ── Detail Rows ──
   divider: {
-    height: 1,
+    height: hp('0.1%'),
     backgroundColor: '#F3F4F6',
     marginVertical: hp('1.5%'),
   },
@@ -1365,11 +1367,14 @@ const styles = StyleSheet.create({
   detailLabel: {
     fontSize: wp('3.3%'),
     color: TEXT_SECONDARY,
+    flex: 1,
   },
   detailValue: {
     fontSize: wp('3.3%'),
     fontWeight: '600',
     color: TEXT_PRIMARY,
+    flex: 1,
+    textAlign: 'right',
   },
   totalLabel: {
     fontSize: wp('3.8%'),
@@ -1528,7 +1533,7 @@ const styles = StyleSheet.create({
     backgroundColor: BG,
   },
   quoteModalHeaderGrad: {
-    paddingTop: Platform.OS === 'android' ? hp('1.5%') : hp('0.5%'),
+    paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || hp('4%')) + hp('1%') : hp('0.5%'),
     paddingBottom: hp('2%'),
     paddingHorizontal: wp('4%'),
     overflow: 'hidden',
@@ -1640,7 +1645,7 @@ const styles = StyleSheet.create({
     marginLeft: wp('2.5%'),
     flex: 1,
     lineHeight: wp('5.5%'),
-    paddingTop: 1,
+    paddingTop: hp('0.1%'),
   },
 
   // ── Vendor Message ──

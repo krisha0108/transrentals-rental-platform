@@ -4,6 +4,8 @@ interface SeoOverride {
   metaTitle: string | null;
   metaDescription: string | null;
   metaKeywords: string | null;
+  pageHeading: string | null;
+  pageDescription: string | null;
 }
 
 /**
@@ -16,8 +18,8 @@ interface SeoOverride {
 export async function resolvePageMeta(pageId: string): Promise<SeoOverride | null> {
   try {
     const override = await prisma.seo_meta.findUnique({
-      where: { pageId },
-      select: { metaTitle: true, metaDescription: true, metaKeywords: true },
+      where: { servicePageId: pageId },
+      select: { metaTitle: true, metaDescription: true, metaKeywords: true, pageHeading: true, pageDescription: true },
     });
     return override ?? null;
   } catch {

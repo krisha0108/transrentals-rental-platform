@@ -12,7 +12,7 @@ const noLayoutRoutes = [
   '/admin',
   '/subadmin',
   '/manager',
-  '/vendor',
+  '/vendor/',
   '/driver',
   '/customer/dashboard',
   '/customer/booking',

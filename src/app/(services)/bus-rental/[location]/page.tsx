@@ -220,6 +220,9 @@ export default async function BusLocationPage({ params }: PageProps) {
     ],
   };
 
+  const seoData = await resolvePageMeta(`bus-rental:${params.location}`);
+
+
   return (
     <div className="flex flex-col">
       {/* Breadcrumbs */}
@@ -240,6 +243,8 @@ export default async function BusLocationPage({ params }: PageProps) {
       </div>
 
       <ServiceHeroWithChat
+        pageHeading={seoData?.pageHeading || undefined}
+        pageDescription={seoData?.pageDescription || undefined}
         badge={`Bus Rental in ${locationName}`}
         title="Bus Rental Services"
         titleHighlight="Mini & Luxury Buses @₹2499/day"

@@ -195,6 +195,9 @@ export default async function TransporterLocationPage({ params }: PageProps) {
 
   const vehicles = dbVehicles;
 
+  const seoData = await resolvePageMeta(`transporter:${params.location}`);
+
+
   return (
     <div className="flex flex-col">
       {/* Breadcrumbs */}
@@ -215,6 +218,8 @@ export default async function TransporterLocationPage({ params }: PageProps) {
       </div>
 
       <ServiceHeroWithChat
+        pageHeading={seoData?.pageHeading || undefined}
+        pageDescription={seoData?.pageDescription || undefined}
         badge={`Truck Rental in ${locationName}`}
         title="Professional Transport Services"
         titleHighlight="7-32 Ton Trucks @₹3999/day"

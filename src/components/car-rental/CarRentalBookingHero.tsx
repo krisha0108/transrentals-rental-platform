@@ -972,7 +972,7 @@ export function CarRentalBookingHero({
                     {outstationMode === 'round-trip' ? 'Round Trip:' : 'One Way:'}
                   </strong>{' '}
                   {outstationMode === 'round-trip'
-                    ? 'Min 250 km/day. Driver allowance included. Best for multi-day trips.'
+                    ? 'Min 300 km/day. Driver allowance included. Best for multi-day trips.'
                     : 'Fixed fare for one-way drops. No return trip charges.'}
                 </div>
               )}
@@ -1378,7 +1378,7 @@ export function CarRentalBookingHero({
                           'Extra km and hour charges apply beyond package limits'}
                         {tripType === 'outstation' &&
                           outstationMode === 'round-trip' &&
-                          'Min 250 km/day. Driver allowance included. Toll/parking extra'}
+                          'Min 300 km/day. Driver allowance included. Toll/parking extra'}
                         {tripType === 'outstation' &&
                           outstationMode === 'one-way' &&
                           'Fixed fare for one-way. Toll charges extra'}

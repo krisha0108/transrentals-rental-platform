@@ -133,6 +133,9 @@ export default async function SplendorLocationPage({ params }: PageProps) {
     ],
   };
 
+  const seoData = await resolvePageMeta(`splendor-on-rent:${params.location}`);
+
+
   return (
     <>
       <BikeServiceSchema
@@ -162,6 +165,8 @@ export default async function SplendorLocationPage({ params }: PageProps) {
         </div>
 
         <ServiceHeroWithChat
+          pageHeading={seoData?.pageHeading || undefined}
+          pageDescription={seoData?.pageDescription || undefined}
           badge={`Splendor Rental in ${locationName}`}
           title="Hero Splendor on Rent"
           titleHighlight="Starting @₹299/day"

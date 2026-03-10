@@ -149,6 +149,9 @@ export default async function ActivaLocationPage({ params }: PageProps) {
     ],
   };
 
+  const seoData = await resolvePageMeta(`activa-on-rent:${params.location}`);
+
+
   return (
     <>
       
@@ -187,6 +190,8 @@ export default async function ActivaLocationPage({ params }: PageProps) {
       </div>
 
       <ServiceHeroWithChat
+        pageHeading={seoData?.pageHeading || undefined}
+        pageDescription={seoData?.pageDescription || undefined}
         badge={`Activa Rental in ${locationName}`}
         title="Activa & Scooty Rental"
         titleHighlight="Starting @₹299/day"

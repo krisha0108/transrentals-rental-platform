@@ -94,6 +94,9 @@ export default async function JCBLocationPage({ params }: PageProps) {
     ],
   };
 
+  const seoData = await resolvePageMeta(`jcb-on-rent:${params.location}`);
+
+
   return (
     <div className="flex flex-col">
       {/* Breadcrumbs */}
@@ -110,6 +113,8 @@ export default async function JCBLocationPage({ params }: PageProps) {
       </div>
 
       <ServiceHeroWithChat
+        pageHeading={seoData?.pageHeading || undefined}
+        pageDescription={seoData?.pageDescription || undefined}
         badge={`JCB Rental in ${locationName}`}
         title="JCB on Rent"
         titleHighlight="Starting @₹2999/day"

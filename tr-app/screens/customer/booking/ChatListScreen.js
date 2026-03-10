@@ -177,6 +177,7 @@ export default function ChatListScreen() {
           bookingId: item.id,
           bookingNumber: item.bookingNumber,
           vendorName: item.vendor?.name || 'Vendor',
+          bookingType: item.type,
         })}
         activeOpacity={0.7}
       >

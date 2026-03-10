@@ -92,6 +92,9 @@ export default async function ElectricScooterLocationPage({ params }: PageProps)
     { name: 'TVS iQube', brand: 'TVS', price: 449 },
   ];
 
+  const seoData = await resolvePageMeta(`electric-scooter-rental:${params.location}`);
+
+
   return (
     <>
       <BikeServiceSchema
@@ -108,6 +111,8 @@ export default async function ElectricScooterLocationPage({ params }: PageProps)
       />
 
       <ServiceHeroWithChat
+        pageHeading={seoData?.pageHeading || undefined}
+        pageDescription={seoData?.pageDescription || undefined}
         badge={`EV Rental in ${locationName}`}
         title="Electric Scooter Rental"
         titleHighlight="Zero Fuel Cost @₹399/Day"

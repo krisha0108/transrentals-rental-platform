@@ -57,6 +57,11 @@ export default function LuxuryQuoteDetailScreen() {
   const [successData, setSuccessData] = useState(null);
   const [successAnimation] = useState(new Animated.Value(0));
 
+  // Quote Details Modal State
+  const [quoteDetailsVisible, setQuoteDetailsVisible] = useState(false);
+  const [viewingQuote, setViewingQuote] = useState(null);
+  const [detailsTab, setDetailsTab] = useState('overview');
+
   // StatusBar management
   useFocusEffect(
     useCallback(() => {
@@ -254,6 +259,32 @@ export default function LuxuryQuoteDetailScreen() {
 
   const formatCurrency = (amount) => {
     return `\u20B9${amount.toLocaleString('en-IN')}`;
+  };
+
+  const parseListData = (data) => {
+    if (!data) return [];
+    if (Array.isArray(data)) return data.filter(item => item && item.trim());
+    if (typeof data === 'string') {
+      if (data.trim().startsWith('[')) {
+        try {
+          const parsed = JSON.parse(data);
+          if (Array.isArray(parsed)) return parsed.filter(item => item && item.trim());
+        } catch (e) {}
+      }
+      return data.split(/\n|,/).map(item => item.trim()).filter(item => item && item !== '');
+    }
+    return [];
+  };
+
+  const handleViewQuoteDetails = (quote) => {
+    setViewingQuote(quote);
+    setDetailsTab('overview');
+    setQuoteDetailsVisible(true);
+  };
+
+  const handleCloseQuoteDetails = () => {
+    setQuoteDetailsVisible(false);
+    setViewingQuote(null);
   };
 
   if (loading) {
@@ -652,6 +683,16 @@ export default function LuxuryQuoteDetailScreen() {
                       </View>
                     )}
 
+                    {/* View Full Details Button */}
+                    <TouchableOpacity
+                      style={styles.viewDetailsBtn}
+                      onPress={() => handleViewQuoteDetails(quote)}
+                    >
+                      <Ionicons name="information-circle-outline" size={18} color={TEAL_MID} />
+                      <Text style={styles.viewDetailsBtnText}>View Full Details</Text>
+                      <Ionicons name="chevron-forward" size={16} color={TEAL_MID} />
+                    </TouchableOpacity>
+
                     {/* Action Buttons */}
                     <View style={styles.quoteActions}>
                       <TouchableOpacity
@@ -940,6 +981,281 @@ export default function LuxuryQuoteDetailScreen() {
             </LinearGradient>
           </Animated.View>
         </View>
+      </Modal>
+      {/* Quote Details Modal */}
+      <Modal
+        visible={quoteDetailsVisible}
+        transparent={false}
+        animationType="slide"
+        onRequestClose={handleCloseQuoteDetails}
+      >
+        <SafeAreaView style={styles.qdModalContainer} edges={['top']}>
+          <LinearGradient colors={[TEAL_DEEP, TEAL_MID, '#047857']} style={styles.qdModalHeader}>
+            <View style={[styles.decoCircle, { top: -20, right: -10, width: 80, height: 80 }]} pointerEvents="none" />
+            <View style={styles.qdModalHeaderRow}>
+              <TouchableOpacity onPress={handleCloseQuoteDetails} style={styles.backBtn}>
+                <Ionicons name="close" size={22} color="#FFF" />
+              </TouchableOpacity>
+              <Text style={styles.headerTitle}>Quote Details</Text>
+              <View style={{ width: wp('9%') }} />
+            </View>
+          </LinearGradient>
+
+          {viewingQuote && (
+            <ScrollView style={{ flex: 1, backgroundColor: BG }} showsVerticalScrollIndicator={false}>
+              {/* Vendor Header */}
+              <View style={styles.qdVendorCard}>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <View style={styles.vendorAvatarCircle}>
+                    <MaterialCommunityIcons name="store" size={wp('5%')} color={TEAL_MID} />
+                  </View>
+                  <View style={{ flex: 1, marginLeft: wp('3%') }}>
+                    <Text style={styles.vendorName}>{viewingQuote.vendor?.businessName || 'Vendor'}</Text>
+                    {viewingQuote.vendor?.rating > 0 && (
+                      <View style={styles.ratingRow}>
+                        <Ionicons name="star" size={12} color="#F59E0B" />
+                        <Text style={styles.ratingText}>{viewingQuote.vendor.rating.toFixed(1)}</Text>
+                      </View>
+                    )}
+                  </View>
+                  <Text style={styles.quotePrice}>{formatCurrency(viewingQuote.totalAmount)}</Text>
+                </View>
+              </View>
+
+              {/* Tabs */}
+              <View style={styles.qdTabs}>
+                {['overview', 'inclusions', 'exclusions', 'terms'].map((tab) => (
+                  <TouchableOpacity
+                    key={tab}
+                    style={[styles.qdTab, detailsTab === tab && styles.qdTabActive]}
+                    onPress={() => setDetailsTab(tab)}
+                  >
+                    <Text style={[styles.qdTabText, detailsTab === tab && styles.qdTabTextActive]}>
+                      {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              {/* Tab Content */}
+              <View style={{ padding: wp('4%') }}>
+                {/* Overview Tab */}
+                {detailsTab === 'overview' && (
+                  <View>
+                    {/* Vehicle Details */}
+                    <View style={styles.qdSection}>
+                      <View style={styles.qdSectionHeader}>
+                        <Ionicons name="car-outline" size={22} color={TEAL_MID} />
+                        <Text style={styles.qdSectionTitle}>Vehicle Details</Text>
+                      </View>
+                      <View style={styles.qdCard}>
+                        {viewingQuote.vehicleName && (
+                          <DetailRow icon="car" label="Vehicle" value={viewingQuote.vehicleName} small />
+                        )}
+                        {viewingQuote.vehicleModel && (
+                          <DetailRow icon="information" label="Model" value={viewingQuote.vehicleModel} small />
+                        )}
+                        {viewingQuote.vehicleNumber && (
+                          <DetailRow icon="numeric" label="Number" value={viewingQuote.vehicleNumber} small />
+                        )}
+                        {!!viewingQuote.vehicleYear && (
+                          <DetailRow icon="calendar" label="Year" value={viewingQuote.vehicleYear.toString()} small />
+                        )}
+                      </View>
+                    </View>
+
+                    {/* Chauffeur Details */}
+                    {viewingQuote.driverName && (
+                      <View style={styles.qdSection}>
+                        <View style={styles.qdSectionHeader}>
+                          <Ionicons name="person-outline" size={22} color={TEAL_MID} />
+                          <Text style={styles.qdSectionTitle}>Chauffeur Details</Text>
+                        </View>
+                        <View style={styles.qdCard}>
+                          <DetailRow icon="account" label="Name" value={viewingQuote.driverName} small />
+                          {viewingQuote.driverPhone && (
+                            <DetailRow icon="phone" label="Phone" value={viewingQuote.driverPhone} small />
+                          )}
+                          {viewingQuote.driverExperience > 0 && (
+                            <DetailRow icon="certificate" label="Experience" value={`${viewingQuote.driverExperience} years`} small />
+                          )}
+                        </View>
+                      </View>
+                    )}
+
+                    {/* Pricing Breakdown */}
+                    <View style={styles.qdSection}>
+                      <View style={styles.qdSectionHeader}>
+                        <Ionicons name="cash-outline" size={22} color={TEAL_MID} />
+                        <Text style={styles.qdSectionTitle}>Pricing Breakdown</Text>
+                      </View>
+                      <View style={styles.qdCard}>
+                        {viewingQuote.baseAmount > 0 && <PriceRow label="Base Amount" value={viewingQuote.baseAmount} />}
+                        {viewingQuote.chauffeurCharges > 0 && <PriceRow label="Chauffeur Charges" value={viewingQuote.chauffeurCharges} />}
+                        {viewingQuote.decorationCharges > 0 && <PriceRow label="Decoration Charges" value={viewingQuote.decorationCharges} />}
+                        {viewingQuote.fuelCharges > 0 && <PriceRow label="Fuel Charges" value={viewingQuote.fuelCharges} />}
+                        {viewingQuote.tollEstimate > 0 && <PriceRow label="Toll (Est.)" value={viewingQuote.tollEstimate} />}
+                        {viewingQuote.parkingEstimate > 0 && <PriceRow label="Parking (Est.)" value={viewingQuote.parkingEstimate} />}
+                        {viewingQuote.nightHaltCharges > 0 && <PriceRow label="Night Halt" value={viewingQuote.nightHaltCharges} />}
+                        {viewingQuote.gstAmount > 0 && <PriceRow label="GST" value={viewingQuote.gstAmount} />}
+                        <View style={styles.totalRow}>
+                          <Text style={styles.totalLabel}>Total Amount</Text>
+                          <Text style={styles.totalValue}>{formatCurrency(viewingQuote.totalAmount)}</Text>
+                        </View>
+                        {viewingQuote.advanceAmount > 0 && (
+                          <View style={styles.advanceRow}>
+                            <Text style={styles.advanceLabel}>Advance to Pay</Text>
+                            <Text style={styles.advanceValue}>{formatCurrency(viewingQuote.advanceAmount)}</Text>
+                          </View>
+                        )}
+                      </View>
+                    </View>
+
+                    {/* Vendor Message */}
+                    {viewingQuote.vendorMessage && (
+                      <View style={styles.qdSection}>
+                        <View style={styles.qdSectionHeader}>
+                          <Ionicons name="chatbox-outline" size={22} color={TEAL_MID} />
+                          <Text style={styles.qdSectionTitle}>Vendor Message</Text>
+                        </View>
+                        <View style={styles.qdCard}>
+                          <Text style={styles.qdMessageText}>{viewingQuote.vendorMessage}</Text>
+                        </View>
+                      </View>
+                    )}
+                  </View>
+                )}
+
+                {/* Inclusions Tab */}
+                {detailsTab === 'inclusions' && (
+                  <View style={styles.qdSection}>
+                    <View style={styles.qdSectionHeader}>
+                      <Ionicons name="checkmark-done-circle" size={22} color={TEAL_MID} />
+                      <Text style={styles.qdSectionTitle}>What's Included</Text>
+                    </View>
+                    {(() => {
+                      const inclusions = parseListData(viewingQuote.inclusions);
+                      return inclusions.length > 0 ? (
+                        <View style={styles.qdCard}>
+                          {inclusions.map((item, idx) => (
+                            <View key={idx} style={[styles.qdListItem, idx === inclusions.length - 1 && { borderBottomWidth: 0, marginBottom: 0, paddingBottom: 0 }]}>
+                              <View style={styles.qdListBullet}>
+                                <Ionicons name="checkmark" size={18} color={TEAL_MID} />
+                              </View>
+                              <Text style={styles.qdListText}>{item}</Text>
+                            </View>
+                          ))}
+                        </View>
+                      ) : (
+                        <View style={styles.qdEmptyState}>
+                          <Ionicons name="document-text-outline" size={40} color={TEXT_MUTED} />
+                          <Text style={styles.qdEmptyText}>No inclusions specified</Text>
+                        </View>
+                      );
+                    })()}
+                  </View>
+                )}
+
+                {/* Exclusions Tab */}
+                {detailsTab === 'exclusions' && (
+                  <View style={styles.qdSection}>
+                    <View style={styles.qdSectionHeader}>
+                      <Ionicons name="close-circle" size={22} color="#e74c3c" />
+                      <Text style={styles.qdSectionTitle}>What's Not Included</Text>
+                    </View>
+                    {(() => {
+                      const exclusions = parseListData(viewingQuote.exclusions);
+                      return exclusions.length > 0 ? (
+                        <View style={styles.qdCard}>
+                          {exclusions.map((item, idx) => (
+                            <View key={idx} style={[styles.qdListItem, idx === exclusions.length - 1 && { borderBottomWidth: 0, marginBottom: 0, paddingBottom: 0 }]}>
+                              <View style={[styles.qdListBullet, { backgroundColor: '#FEE2E2' }]}>
+                                <Ionicons name="close" size={18} color="#e74c3c" />
+                              </View>
+                              <Text style={styles.qdListText}>{item}</Text>
+                            </View>
+                          ))}
+                        </View>
+                      ) : (
+                        <View style={styles.qdEmptyState}>
+                          <Ionicons name="document-text-outline" size={40} color={TEXT_MUTED} />
+                          <Text style={styles.qdEmptyText}>No exclusions specified</Text>
+                        </View>
+                      );
+                    })()}
+                  </View>
+                )}
+
+                {/* Terms Tab */}
+                {detailsTab === 'terms' && (
+                  <View style={styles.qdSection}>
+                    <View style={styles.qdSectionHeader}>
+                      <Ionicons name="document-text" size={22} color={TEAL_MID} />
+                      <Text style={styles.qdSectionTitle}>Terms & Conditions</Text>
+                    </View>
+                    {(() => {
+                      const terms = parseListData(viewingQuote.termsConditions || viewingQuote.terms);
+                      if (terms.length > 1) {
+                        return (
+                          <View style={styles.qdCard}>
+                            {terms.map((item, idx) => (
+                              <View key={idx} style={[styles.qdListItem, idx === terms.length - 1 && { borderBottomWidth: 0, marginBottom: 0, paddingBottom: 0 }]}>
+                                <View style={[styles.qdListBullet, { backgroundColor: TEAL_LIGHT }]}>
+                                  <Text style={{ fontSize: wp('3%'), fontWeight: '700', color: TEAL_MID }}>{idx + 1}</Text>
+                                </View>
+                                <Text style={styles.qdListText}>{item}</Text>
+                              </View>
+                            ))}
+                          </View>
+                        );
+                      }
+                      if (terms.length === 1 || viewingQuote.termsConditions || viewingQuote.terms) {
+                        return (
+                          <View style={styles.qdCard}>
+                            <Text style={styles.qdMessageText}>
+                              {terms.length === 1 ? terms[0] : (viewingQuote.termsConditions || viewingQuote.terms)}
+                            </Text>
+                          </View>
+                        );
+                      }
+                      return (
+                        <View style={styles.qdEmptyState}>
+                          <Ionicons name="document-text-outline" size={40} color={TEXT_MUTED} />
+                          <Text style={styles.qdEmptyText}>No terms specified</Text>
+                        </View>
+                      );
+                    })()}
+                  </View>
+                )}
+              </View>
+
+              {/* Bottom Accept Button */}
+              {quoteRequest?.status !== 'ACCEPTED' && viewingQuote.status !== 'ACCEPTED' && (
+                <View style={{ paddingHorizontal: wp('4%'), paddingBottom: hp('4%') }}>
+                  <TouchableOpacity
+                    style={styles.acceptBtn}
+                    onPress={() => {
+                      handleCloseQuoteDetails();
+                      openAcceptModal(viewingQuote);
+                    }}
+                  >
+                    <LinearGradient
+                      colors={[TEAL_MID, '#047857']}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 0 }}
+                      style={styles.acceptGradient}
+                    >
+                      <MaterialCommunityIcons name="check-circle" size={18} color="#FFF" />
+                      <Text style={styles.acceptBtnText}>Accept This Quote</Text>
+                    </LinearGradient>
+                  </TouchableOpacity>
+                </View>
+              )}
+
+              <View style={{ height: 40 }} />
+            </ScrollView>
+          )}
+        </SafeAreaView>
       </Modal>
     </SafeAreaView>
   );
@@ -1909,5 +2225,137 @@ const styles = StyleSheet.create({
     fontSize: wp('3.3%'),
     fontWeight: '700',
     color: '#FFF',
+  },
+
+  // --- View Full Details Button ---
+  viewDetailsBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: hp('1.2%'),
+    marginTop: hp('1%'),
+    marginBottom: hp('0.5%'),
+    borderTopWidth: 1,
+    borderTopColor: '#F3F4F6',
+    gap: wp('1.5%'),
+  },
+  viewDetailsBtnText: {
+    fontSize: wp('3.3%'),
+    fontWeight: '600',
+    color: TEAL_MID,
+    flex: 1,
+  },
+
+  // --- Quote Details Modal ---
+  qdModalContainer: {
+    flex: 1,
+    backgroundColor: BG,
+  },
+  qdModalHeader: {
+    paddingHorizontal: wp('4%'),
+    paddingBottom: hp('1.5%'),
+    overflow: 'hidden',
+  },
+  qdModalHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  qdVendorCard: {
+    backgroundColor: CARD,
+    marginHorizontal: wp('4%'),
+    marginTop: hp('2%'),
+    padding: wp('4%'),
+    borderRadius: wp('4%'),
+    ...SHADOW_SM,
+  },
+  qdTabs: {
+    flexDirection: 'row',
+    backgroundColor: CARD,
+    marginTop: hp('1.5%'),
+    paddingHorizontal: wp('2%'),
+    paddingTop: hp('0.5%'),
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  qdTab: {
+    flex: 1,
+    paddingVertical: hp('1.5%'),
+    alignItems: 'center',
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
+  },
+  qdTabActive: {
+    borderBottomColor: TEAL,
+  },
+  qdTabText: {
+    fontSize: wp('3.2%'),
+    fontWeight: '600',
+    color: TEXT_MUTED,
+  },
+  qdTabTextActive: {
+    color: TEAL,
+  },
+  qdSection: {
+    marginBottom: hp('2%'),
+  },
+  qdSectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: hp('1%'),
+    gap: wp('2%'),
+  },
+  qdSectionTitle: {
+    fontSize: wp('4%'),
+    fontWeight: '700',
+    color: TEXT_PRIMARY,
+  },
+  qdCard: {
+    backgroundColor: CARD,
+    borderRadius: wp('3.5%'),
+    padding: wp('4%'),
+    ...SHADOW_SM,
+  },
+  qdListItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: hp('1.5%'),
+    paddingBottom: hp('1.5%'),
+    borderBottomWidth: 1,
+    borderBottomColor: '#F9FAFB',
+  },
+  qdListBullet: {
+    width: wp('7.5%'),
+    height: wp('7.5%'),
+    borderRadius: wp('3.75%'),
+    backgroundColor: TEAL_LIGHT,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: wp('3%'),
+    marginTop: hp('0.2%'),
+  },
+  qdListText: {
+    fontSize: wp('3.5%'),
+    color: TEXT_PRIMARY,
+    lineHeight: wp('5.5%'),
+    flex: 1,
+    paddingTop: hp('0.3%'),
+  },
+  qdMessageText: {
+    fontSize: wp('3.5%'),
+    color: TEXT_SECONDARY,
+    lineHeight: wp('5.5%'),
+  },
+  qdEmptyState: {
+    backgroundColor: CARD,
+    padding: wp('10%'),
+    borderRadius: wp('3.5%'),
+    alignItems: 'center',
+    ...SHADOW_SM,
+  },
+  qdEmptyText: {
+    fontSize: wp('3.5%'),
+    color: TEXT_MUTED,
+    marginTop: hp('1.5%'),
   },
 });

@@ -148,6 +148,9 @@ export default async function RoyalEnfieldLocationPage({ params }: PageProps) {
     ],
   };
 
+  const seoData = await resolvePageMeta(`royal-enfield-on-rent:${params.location}`);
+
+
   return (
     <>
       
@@ -186,6 +189,8 @@ export default async function RoyalEnfieldLocationPage({ params }: PageProps) {
       </div>
 
       <ServiceHeroWithChat
+        pageHeading={seoData?.pageHeading || undefined}
+        pageDescription={seoData?.pageDescription || undefined}
         badge={`Royal Enfield Rental in ${locationName}`}
         title="Royal Enfield on Rent"
         titleHighlight="Starting @₹899/day"

@@ -73,6 +73,9 @@ export default async function SUVRentalLocationPage({ params }: PageProps) {
   const city = pageContext.city;
   const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
 
+  const seoData = await resolvePageMeta(`self-drive-suv-rental:${params.location}`);
+
+
   return (
     <>
       {/* Breadcrumb */}
@@ -89,6 +92,8 @@ export default async function SUVRentalLocationPage({ params }: PageProps) {
       </section>
 
       <ServiceHeroWithChat
+        pageHeading={seoData?.pageHeading || undefined}
+        pageDescription={seoData?.pageDescription || undefined}
         badge={`SUV Rental in ${locationName}`}
         title="Self Drive SUV Rental"
         titleHighlight="Starting @₹1999/Day"

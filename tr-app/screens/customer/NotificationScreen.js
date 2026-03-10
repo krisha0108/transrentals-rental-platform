@@ -102,8 +102,12 @@ const NotificationScreen = () => {
     try {
       const unreadIds = notifications.filter(n => !n.is_read).map(n => n.id);
       if (unreadIds.length === 0) return;
-      await Promise.all(unreadIds.map(id => notificationService.markAsRead(id)));
+      // Update UI immediately
       setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+      // Mark as read on server
+      await Promise.all(unreadIds.map(id => notificationService.markAsRead(id)));
+      // Refresh from server to ensure sync
+      fetchNotifications(true);
     } catch (error) {
       // silently handle
     }
@@ -233,6 +237,21 @@ const handlePress = async () => {
     const title = (item.title || '').toLowerCase();
     const body = (item.body || '').toLowerCase();
     let serviceType = item.service_type;
+
+    // Normalize service type names from API (e.g., 'packers-and-movers' → 'packers')
+    const serviceTypeNormalize = {
+      'packers-and-movers': 'packers',
+      'truck-rental': 'truck',
+      'bus-rental': 'bus',
+      'equipment-rental': 'equipment',
+      'luxury-car-rental': 'luxury',
+      'chauffeur-service': 'chauffeur-service',
+      'self-drive': 'self-drive',
+      'bike-rental': 'bike',
+    };
+    if (serviceType && serviceTypeNormalize[serviceType]) {
+      serviceType = serviceTypeNormalize[serviceType];
+    }
 
     if (!serviceType || serviceType === 'general') {
       if (title.includes('bike') || title.includes('\u{1F3CD}') || body.includes('bike')) serviceType = 'bike';

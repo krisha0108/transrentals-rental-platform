@@ -36,28 +36,30 @@ function pageIdToPath(pageId: string): string | null {
 export async function PATCH(request: NextRequest) {
   try {
     const body = await request.json();
-    const { pageId, metaTitle, metaDescription, metaKeywords } = body;
+    const { pageId, metaTitle, metaDescription, metaKeywords, pageHeading, pageDescription } = body;
 
     if (!pageId) {
       return NextResponse.json({ error: 'pageId is required' }, { status: 400 });
     }
 
-    const existing = await prisma.seo_meta.findUnique({ where: { pageId } });
+    const existing = await prisma.seo_meta.findUnique({ where: { servicePageId: pageId } });
 
     let result;
     if (existing) {
       result = await prisma.seo_meta.update({
-        where: { pageId },
-        data: { metaTitle, metaDescription, metaKeywords },
+        where: { servicePageId: pageId },
+        data: { metaTitle, metaDescription, metaKeywords, pageHeading, pageDescription },
       });
     } else {
       result = await prisma.seo_meta.create({
         data: {
           id: generateId(),
-          pageId,
+          servicePageId: pageId,
           metaTitle,
           metaDescription,
           metaKeywords,
+          pageHeading,
+          pageDescription,
         },
       });
     }
@@ -84,7 +86,7 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'pageId is required' }, { status: 400 });
     }
 
-    await prisma.seo_meta.deleteMany({ where: { pageId } });
+    await prisma.seo_meta.deleteMany({ where: { servicePageId: pageId } });
 
     // Revalidate the live page on revert too
     const path = pageIdToPath(pageId);

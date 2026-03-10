@@ -68,9 +68,14 @@ export default async function CorporateCarRentalLocationPage({ params }: PagePro
 
   const locationName = city.name;
 
+  const seoData = await resolvePageMeta(`corporate-car-rental:${params.location}`);
+
+
   return (
     <>
       <ServiceHeroWithChat
+        pageHeading={seoData?.pageHeading || undefined}
+        pageDescription={seoData?.pageDescription || undefined}
         badge={`Corporate Car Rental in ${locationName}`}
         title="Corporate Car Services"
         titleHighlight="Employee Transport @₹15k/month"

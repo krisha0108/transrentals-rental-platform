@@ -68,9 +68,14 @@ export default async function VintageCarRentalLocationPage({ params }: PageProps
 
   const locationName = city.name;
 
+  const seoData = await resolvePageMeta(`vintage-car-rental:${params.location}`);
+
+
   return (
     <>
       <ServiceHeroWithChat
+        pageHeading={seoData?.pageHeading || undefined}
+        pageDescription={seoData?.pageDescription || undefined}
         badge={`Vintage Car Rental in ${locationName}`}
         title="Vintage & Classic Cars"
         titleHighlight="Heritage Cars @₹8999/day"

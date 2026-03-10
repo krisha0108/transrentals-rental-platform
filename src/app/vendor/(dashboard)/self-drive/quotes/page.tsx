@@ -89,9 +89,9 @@ export default function VendorSelfDriveQuotesPage() {
     setIsLoading(true);
     try {
       let status = '';
-      if (filter === 'active') status = 'SENT';
+      if (filter === 'active') status = 'SENT,VIEWED';
       else if (filter === 'accepted') status = 'ACCEPTED';
-      else if (filter === 'expired') status = 'EXPIRED';
+      else if (filter === 'expired') status = 'EXPIRED,REJECTED,WITHDRAWN';
 
       const params = new URLSearchParams();
       if (status) params.set('status', status);
@@ -113,13 +113,8 @@ export default function VendorSelfDriveQuotesPage() {
           setTotalItems(data.pagination.total);
         }
 
-        if (filter === 'all') {
-          setStats({
-            total: allQuotes.length,
-            pending: allQuotes.filter((q: Quote) => ['SENT', 'VIEWED'].includes(q.status)).length,
-            accepted: allQuotes.filter((q: Quote) => q.status === 'ACCEPTED').length,
-            wonValue: allQuotes.filter((q: Quote) => q.status === 'ACCEPTED').reduce((sum: number, q: Quote) => sum + q.grandTotal, 0),
-          });
+        if (data.stats) {
+          setStats(data.stats);
         }
       }
     } catch (error) {
@@ -133,12 +128,8 @@ export default function VendorSelfDriveQuotesPage() {
     fetchQuotes();
   }, [fetchQuotes]);
 
-  const filteredQuotes = quotes.filter((q) => {
-    if (filter === 'active') return ['SENT', 'VIEWED'].includes(q.status);
-    if (filter === 'accepted') return q.status === 'ACCEPTED';
-    if (filter === 'expired') return ['EXPIRED', 'REJECTED', 'WITHDRAWN'].includes(q.status);
-    return true;
-  });
+  // Filtering is done server-side via API status param — no client re-filter needed
+  const filteredQuotes = quotes;
 
   const isExpiringSoon = (validTill: string) => {
     if (!validTill) return false;

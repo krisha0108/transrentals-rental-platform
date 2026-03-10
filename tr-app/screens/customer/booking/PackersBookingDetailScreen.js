@@ -27,11 +27,15 @@ import { TEAL_DEEP, TEAL_MID, TEAL, TEAL_LIGHT, BG, CARD, TEXT_PRIMARY, TEXT_SEC
 
 const STATUS_CONFIG = {
   PENDING_PAYMENT: { label: 'Payment Pending', color: '#F59E0B', icon: 'time-outline' },
-  PAYMENT_SUBMITTED: { label: 'Payment Submitted', color: '#3B82F6', icon: 'checkmark-circle-outline' },
+  PAYMENT_SUBMITTED: { label: 'Payment Under Review', color: '#3B82F6', icon: 'checkmark-circle-outline' },
   ADVANCE_PAID: { label: 'Advance Paid', color: '#10B981', icon: 'checkmark-done-outline' },
   CONFIRMED: { label: 'Confirmed', color: '#10B981', icon: 'checkmark-done-circle' },
-  VEHICLE_ASSIGNED: { label: 'Vehicle Assigned', color: '#8B5CF6', icon: 'bus-outline' },
-  IN_PROGRESS: { label: 'Trip In Progress', color: '#F59E0B', icon: 'navigate-circle-outline' },
+  TEAM_ASSIGNED: { label: 'Team Assigned', color: '#8B5CF6', icon: 'people-outline' },
+  PACKING: { label: 'Packing', color: '#14B8A6', icon: 'cube-outline' },
+  LOADING: { label: 'Loading', color: '#06B6D4', icon: 'archive-outline' },
+  IN_TRANSIT: { label: 'In Transit', color: '#8B5CF6', icon: 'navigate-circle-outline' },
+  UNLOADING: { label: 'Unloading', color: '#3B82F6', icon: 'archive-outline' },
+  UNPACKING: { label: 'Unpacking', color: '#14B8A6', icon: 'cube-outline' },
   COMPLETED: { label: 'Completed', color: '#10B981', icon: 'checkmark-done-circle-outline' },
   CANCELLED: { label: 'Cancelled', color: '#EF4444', icon: 'close-circle-outline' },
 };
@@ -350,13 +354,13 @@ export default function PackersBookingDetailScreen() {
           </View>
         )}
 
-        {/* Trip Details */}
+        {/* Moving Details */}
         <View style={styles.card}>
           <View style={styles.cardHeader}>
             <View style={[styles.cardIconCircle, { backgroundColor: TEAL_LIGHT }]}>
-              <MaterialCommunityIcons name="bus" size={wp('4.5%')} color={TEAL_MID} />
+              <MaterialCommunityIcons name="package-variant" size={wp('4.5%')} color={TEAL_MID} />
             </View>
-            <Text style={styles.cardTitle}>Trip Details</Text>
+            <Text style={styles.cardTitle}>Moving Details</Text>
           </View>
 
           <View style={styles.tripRow}>
@@ -367,6 +371,9 @@ export default function PackersBookingDetailScreen() {
                 <Text style={styles.tripValue}>{booking.pickupCity}</Text>
                 {booking.pickupAddress && (
                   <Text style={styles.tripAddress}>{booking.pickupAddress}</Text>
+                )}
+                {booking.pickupFloor != null && (
+                  <Text style={styles.tripAddress}>Floor: {booking.pickupFloor}</Text>
                 )}
               </View>
             </View>
@@ -382,6 +389,9 @@ export default function PackersBookingDetailScreen() {
                     {booking.dropAddress && (
                       <Text style={styles.tripAddress}>{booking.dropAddress}</Text>
                     )}
+                    {booking.dropFloor != null && (
+                      <Text style={styles.tripAddress}>Floor: {booking.dropFloor}</Text>
+                    )}
                   </View>
                 </View>
               </>
@@ -391,84 +401,62 @@ export default function PackersBookingDetailScreen() {
           <View style={styles.divider} />
 
           <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Trip Type</Text>
+            <Text style={styles.detailLabel}>Service Type</Text>
             <Text style={styles.detailValue}>
-              {booking.tripType?.charAt(0).toUpperCase() + booking.tripType?.slice(1)}
+              {booking.serviceType?.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) || '-'}
             </Text>
           </View>
 
           <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Passengers</Text>
-            <Text style={styles.detailValue}>{booking.passengers} people</Text>
+            <Text style={styles.detailLabel}>Shifting Type</Text>
+            <Text style={styles.detailValue}>
+              {booking.shiftingType?.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) || '-'}
+            </Text>
           </View>
 
           <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Pickup Date</Text>
+            <Text style={styles.detailLabel}>Scheduled Date</Text>
             <Text style={styles.detailValue}>
-              {new Date(booking.pickupDate).toLocaleDateString('en-IN', {
+              {new Date(booking.scheduledDate).toLocaleDateString('en-IN', {
                 day: 'numeric',
                 month: 'short',
                 year: 'numeric',
               })}{' '}
-              {'\u2022'} {booking.pickupTime || 'TBD'}
+              {booking.scheduledTime ? `\u2022 ${booking.scheduledTime}` : ''}
             </Text>
           </View>
 
-          {booking.returnDate && (
+          {booking.teamSize > 0 && (
             <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Return Date</Text>
-              <Text style={styles.detailValue}>
-                {new Date(booking.returnDate).toLocaleDateString('en-IN', {
-                  day: 'numeric',
-                  month: 'short',
-                  year: 'numeric',
-                })}{' '}
-                {'\u2022'} {booking.returnTime || 'TBD'}
-              </Text>
-            </View>
-          )}
-
-          {booking.tripDays > 0 && (
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Trip Duration</Text>
-              <Text style={styles.detailValue}>{booking.tripDays} days</Text>
+              <Text style={styles.detailLabel}>Team Size</Text>
+              <Text style={styles.detailValue}>{booking.teamSize} members</Text>
             </View>
           )}
         </View>
 
-        {/* Vehicle & Driver Details */}
-        {(booking.vehicleNumber || booking.driverName) && (
+        {/* Vehicle & Team Details */}
+        {(booking.vehicleNumbers || booking.teamLeaderName) && (
           <View style={styles.card}>
             <View style={styles.cardHeader}>
               <View style={[styles.cardIconCircle, { backgroundColor: '#EDE9FE' }]}>
-                <Ionicons name="bus-outline" size={wp('4.5%')} color="#7C3AED" />
+                <MaterialCommunityIcons name="truck" size={wp('4.5%')} color="#7C3AED" />
               </View>
-              <Text style={styles.cardTitle}>Vehicle & Driver Details</Text>
+              <Text style={styles.cardTitle}>Vehicle & Team Details</Text>
             </View>
 
-            {booking.vehicleName && (
+            {booking.vehicleNumbers && (
               <View style={styles.vehicleBox}>
                 <View style={[styles.vehicleIconCircle]}>
-                  <MaterialCommunityIcons name="bus" size={wp('6%')} color={TEAL_MID} />
+                  <MaterialCommunityIcons name="truck" size={wp('6%')} color={TEAL_MID} />
                 </View>
                 <View style={{ flex: 1, marginLeft: wp('3%') }}>
-                  <Text style={styles.vehicleName}>{booking.vehicleName}</Text>
-                  {booking.vehicleCategory && (
-                    <Text style={styles.vehicleCategory}>{booking.vehicleCategory}</Text>
-                  )}
-                  {booking.vehicleNumber && (
-                    <Text style={styles.vehicleNumber}>
-                      Reg: {booking.vehicleNumber}
-                    </Text>
-                  )}
-                  {booking.vehicleModel && (
-                    <Text style={styles.vehicleModel}>Model: {booking.vehicleModel}</Text>
-                  )}
+                  <Text style={styles.vehicleName}>Vehicle</Text>
+                  <Text style={styles.vehicleNumber}>{booking.vehicleNumbers}</Text>
                 </View>
               </View>
             )}
 
-            {booking.driverName && (
+            {booking.teamLeaderName && (
               <>
                 <View style={styles.divider} />
                 <View style={styles.driverBox}>
@@ -476,15 +464,15 @@ export default function PackersBookingDetailScreen() {
                     <Ionicons name="person" size={wp('5%')} color={TEAL_MID} />
                   </View>
                   <View style={{ flex: 1, marginLeft: wp('3%') }}>
-                    <Text style={styles.driverName}>{booking.driverName}</Text>
-                    <Text style={styles.driverLabel}>Driver</Text>
-                    {booking.driverPhone && (
+                    <Text style={styles.driverName}>{booking.teamLeaderName}</Text>
+                    <Text style={styles.driverLabel}>Team Leader</Text>
+                    {booking.teamLeaderPhone && (
                       <TouchableOpacity
-                        onPress={() => handleCallDriver(booking.driverPhone)}
+                        onPress={() => handleCallDriver(booking.teamLeaderPhone)}
                         style={styles.callBtn}
                       >
                         <Ionicons name="call" size={wp('3.2%')} color={TEAL} />
-                        <Text style={styles.callBtnText}>{booking.driverPhone}</Text>
+                        <Text style={styles.callBtnText}>{booking.teamLeaderPhone}</Text>
                       </TouchableOpacity>
                     )}
                   </View>
@@ -494,50 +482,50 @@ export default function PackersBookingDetailScreen() {
           </View>
         )}
 
-        {/* Packing OTP */}
-        {booking.packingOtp && !booking.packingStartedAt && (
+        {/* Packing OTP - Only when sent by driver & status is before packing starts */}
+        {booking.packingOtp && booking.packingOtpSent && ['ADVANCE_PAID', 'CONFIRMED', 'TEAM_ASSIGNED'].includes(booking.status) && (
           <View style={styles.card}>
             <View style={styles.cardHeader}>
-              <View style={[styles.cardIconCircle, { backgroundColor: '#FEF3C7' }]}>
-                <Ionicons name="key-outline" size={wp('4.5%')} color="#D97706" />
+              <View style={[styles.cardIconCircle, { backgroundColor: '#CCFBF1' }]}>
+                <Ionicons name="key-outline" size={wp('4.5%')} color="#0D9488" />
               </View>
-              <Text style={styles.cardTitle}>Packing OTP</Text>
+              <Text style={styles.cardTitle}>Packing Start OTP</Text>
             </View>
-            <View style={styles.otpBox}>
-              <Text style={styles.otpLabel}>Share this OTP with packing team</Text>
-              <Text style={styles.otpValue}>{booking.packingOtp}</Text>
+            <View style={[styles.otpBox, { backgroundColor: '#CCFBF1' }]}>
+              <Text style={[styles.otpLabel, { color: '#115E59' }]}>Share this with the team to start packing</Text>
+              <Text style={[styles.otpValue, { color: '#0D9488' }]}>{booking.packingOtp}</Text>
             </View>
           </View>
         )}
 
-        {/* Loading OTP */}
-        {booking.loadingOtp && !booking.loadingStartedAt && (
+        {/* Loading OTP - Only when sent by driver & status is packing/loading */}
+        {booking.loadingOtp && booking.loadingOtpSent && ['PACKING', 'LOADING'].includes(booking.status) && (
           <View style={styles.card}>
             <View style={styles.cardHeader}>
-              <View style={[styles.cardIconCircle, { backgroundColor: '#FEF3C7' }]}>
-                <Ionicons name="key-outline" size={wp('4.5%')} color="#D97706" />
+              <View style={[styles.cardIconCircle, { backgroundColor: '#CFFAFE' }]}>
+                <Ionicons name="key-outline" size={wp('4.5%')} color="#0891B2" />
               </View>
               <Text style={styles.cardTitle}>Loading OTP</Text>
             </View>
-            <View style={styles.otpBox}>
-              <Text style={styles.otpLabel}>Share this OTP with loading team</Text>
-              <Text style={styles.otpValue}>{booking.loadingOtp}</Text>
+            <View style={[styles.otpBox, { backgroundColor: '#CFFAFE' }]}>
+              <Text style={[styles.otpLabel, { color: '#155E75' }]}>Share this to verify loading completion</Text>
+              <Text style={[styles.otpValue, { color: '#0891B2' }]}>{booking.loadingOtp}</Text>
             </View>
           </View>
         )}
 
-        {/* Delivery OTP */}
-        {booking.deliveryOtp && booking.status !== 'COMPLETED' && (
+        {/* Delivery OTP - Only when sent by driver & status is in transit/unloading/unpacking */}
+        {booking.deliveryOtp && booking.deliveryOtpSent && ['IN_TRANSIT', 'UNLOADING', 'UNPACKING'].includes(booking.status) && (
           <View style={styles.card}>
             <View style={styles.cardHeader}>
-              <View style={[styles.cardIconCircle, { backgroundColor: '#FEF3C7' }]}>
-                <Ionicons name="key-outline" size={wp('4.5%')} color="#D97706" />
+              <View style={[styles.cardIconCircle, { backgroundColor: '#EDE9FE' }]}>
+                <Ionicons name="key-outline" size={wp('4.5%')} color="#7C3AED" />
               </View>
-              <Text style={styles.cardTitle}>Delivery OTP</Text>
+              <Text style={styles.cardTitle}>Delivery Completion OTP</Text>
             </View>
-            <View style={styles.otpBox}>
-              <Text style={styles.otpLabel}>Share this OTP at delivery</Text>
-              <Text style={styles.otpValue}>{booking.deliveryOtp}</Text>
+            <View style={[styles.otpBox, { backgroundColor: '#EDE9FE' }]}>
+              <Text style={[styles.otpLabel, { color: '#5B21B6' }]}>Share this to confirm delivery completion</Text>
+              <Text style={[styles.otpValue, { color: '#7C3AED' }]}>{booking.deliveryOtp}</Text>
             </View>
           </View>
         )}
@@ -595,32 +583,74 @@ export default function PackersBookingDetailScreen() {
             <Text style={styles.cardTitle}>Payment Details</Text>
           </View>
 
-          {booking.baseAmount > 0 && (
+          {booking.packingCharges > 0 && (
             <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Base Amount</Text>
-              <Text style={styles.detailValue}>{'\u20B9'}{booking.baseAmount?.toLocaleString()}</Text>
+              <Text style={styles.detailLabel}>Packing Charges</Text>
+              <Text style={styles.detailValue}>{'\u20B9'}{booking.packingCharges?.toLocaleString('en-IN')}</Text>
             </View>
           )}
 
-          {booking.gstAmount > 0 && (
+          {booking.loadingCharges > 0 && (
             <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>GST</Text>
-              <Text style={styles.detailValue}>{'\u20B9'}{booking.gstAmount?.toLocaleString()}</Text>
+              <Text style={styles.detailLabel}>Loading Charges</Text>
+              <Text style={styles.detailValue}>{'\u20B9'}{booking.loadingCharges?.toLocaleString('en-IN')}</Text>
+            </View>
+          )}
+
+          {booking.transportCharges > 0 && (
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>Transport Charges</Text>
+              <Text style={styles.detailValue}>{'\u20B9'}{booking.transportCharges?.toLocaleString('en-IN')}</Text>
+            </View>
+          )}
+
+          {booking.unloadingCharges > 0 && (
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>Unloading Charges</Text>
+              <Text style={styles.detailValue}>{'\u20B9'}{booking.unloadingCharges?.toLocaleString('en-IN')}</Text>
+            </View>
+          )}
+
+          {booking.unpackingCharges > 0 && (
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>Unpacking Charges</Text>
+              <Text style={styles.detailValue}>{'\u20B9'}{booking.unpackingCharges?.toLocaleString('en-IN')}</Text>
+            </View>
+          )}
+
+          {booking.storageCharges > 0 && (
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>Storage Charges</Text>
+              <Text style={styles.detailValue}>{'\u20B9'}{booking.storageCharges?.toLocaleString('en-IN')}</Text>
+            </View>
+          )}
+
+          {booking.insuranceCharges > 0 && (
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>Insurance Charges</Text>
+              <Text style={styles.detailValue}>{'\u20B9'}{booking.insuranceCharges?.toLocaleString('en-IN')}</Text>
+            </View>
+          )}
+
+          {booking.materialCharges > 0 && (
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>Material Charges</Text>
+              <Text style={styles.detailValue}>{'\u20B9'}{booking.materialCharges?.toLocaleString('en-IN')}</Text>
             </View>
           )}
 
           <View style={[styles.detailRow, { marginTop: hp('1%') }]}>
             <Text style={styles.totalLabel}>Total Amount</Text>
-            <Text style={styles.totalValue}>{'\u20B9'}{booking.totalAmount?.toLocaleString()}</Text>
+            <Text style={styles.totalValue}>{'\u20B9'}{booking.totalAmount?.toLocaleString('en-IN')}</Text>
           </View>
 
-          {booking.advanceAmount > 0 && (
+          {booking.advancePaid > 0 && (
             <>
               <View style={styles.divider} />
               <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>Advance Amount</Text>
+                <Text style={styles.detailLabel}>Advance Paid</Text>
                 <Text style={[styles.detailValue, { color: TEAL }]}>
-                  {'\u20B9'}{booking.advanceAmount?.toLocaleString()}
+                  - {'\u20B9'}{booking.advancePaid?.toLocaleString('en-IN')}
                 </Text>
               </View>
 
@@ -628,7 +658,7 @@ export default function PackersBookingDetailScreen() {
                 <View style={styles.detailRow}>
                   <Text style={styles.detailLabel}>Balance Due</Text>
                   <Text style={[styles.detailValue, { color: '#EF4444' }]}>
-                    {'\u20B9'}{booking.balanceAmount?.toLocaleString()}
+                    {'\u20B9'}{booking.balanceAmount?.toLocaleString('en-IN')}
                   </Text>
                 </View>
               )}
@@ -684,21 +714,21 @@ export default function PackersBookingDetailScreen() {
           </TouchableOpacity>
         )}
 
-        {/* Trip Timeline (if trip started/completed) */}
-        {(booking.tripStartedAt || booking.tripEndedAt) && (
+        {/* Moving Timeline */}
+        {(booking.packingStartedAt || booking.loadingStartedAt || booking.transitStartedAt || booking.unloadingStartedAt || booking.completedAt) && (
           <View style={styles.card}>
             <View style={styles.cardHeader}>
               <View style={[styles.cardIconCircle, { backgroundColor: '#FEF3C7' }]}>
                 <Ionicons name="time-outline" size={wp('4.5%')} color="#D97706" />
               </View>
-              <Text style={styles.cardTitle}>Trip Timeline</Text>
+              <Text style={styles.cardTitle}>Moving Timeline</Text>
             </View>
 
-            {booking.tripStartedAt && (
+            {booking.packingStartedAt && (
               <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>Trip Started</Text>
+                <Text style={styles.detailLabel}>Packing Started</Text>
                 <Text style={styles.detailValue}>
-                  {new Date(booking.tripStartedAt).toLocaleDateString('en-IN', {
+                  {new Date(booking.packingStartedAt).toLocaleDateString('en-IN', {
                     day: 'numeric',
                     month: 'short',
                     hour: '2-digit',
@@ -708,11 +738,53 @@ export default function PackersBookingDetailScreen() {
               </View>
             )}
 
-            {booking.tripEndedAt && (
+            {booking.loadingStartedAt && (
               <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>Trip Ended</Text>
+                <Text style={styles.detailLabel}>Loading Started</Text>
                 <Text style={styles.detailValue}>
-                  {new Date(booking.tripEndedAt).toLocaleDateString('en-IN', {
+                  {new Date(booking.loadingStartedAt).toLocaleDateString('en-IN', {
+                    day: 'numeric',
+                    month: 'short',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })}
+                </Text>
+              </View>
+            )}
+
+            {booking.transitStartedAt && (
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>In Transit</Text>
+                <Text style={styles.detailValue}>
+                  {new Date(booking.transitStartedAt).toLocaleDateString('en-IN', {
+                    day: 'numeric',
+                    month: 'short',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })}
+                </Text>
+              </View>
+            )}
+
+            {booking.unloadingStartedAt && (
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>Unloading Started</Text>
+                <Text style={styles.detailValue}>
+                  {new Date(booking.unloadingStartedAt).toLocaleDateString('en-IN', {
+                    day: 'numeric',
+                    month: 'short',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })}
+                </Text>
+              </View>
+            )}
+
+            {booking.completedAt && (
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>Completed</Text>
+                <Text style={styles.detailValue}>
+                  {new Date(booking.completedAt).toLocaleDateString('en-IN', {
                     day: 'numeric',
                     month: 'short',
                     hour: '2-digit',

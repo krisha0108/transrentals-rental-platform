@@ -43,6 +43,9 @@ export default async function GeneratorLocationPage({ params }: PageProps) {
   const city = pageContext.city;
   const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
 
+  const seoData = await resolvePageMeta(`generator-on-rent:${params.location}`);
+
+
   return (
     <>
       <section className="bg-gray-100 py-3">
@@ -58,6 +61,8 @@ export default async function GeneratorLocationPage({ params }: PageProps) {
       </section>
 
       <ServiceHeroWithChat
+        pageHeading={seoData?.pageHeading || undefined}
+        pageDescription={seoData?.pageDescription || undefined}
         badge={`Generator in ${locationName}`}
         title="Generator on Rent"
         titleHighlight="Starting @₹1500/Day"

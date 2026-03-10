@@ -43,6 +43,9 @@ export default async function CraneLocationPage({ params }: PageProps) {
   const city = pageContext.city;
   const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
 
+  const seoData = await resolvePageMeta(`crane-on-rent:${params.location}`);
+
+
   return (
     <>
       <section className="bg-gray-100 py-3">
@@ -58,6 +61,8 @@ export default async function CraneLocationPage({ params }: PageProps) {
       </section>
 
       <ServiceHeroWithChat
+        pageHeading={seoData?.pageHeading || undefined}
+        pageDescription={seoData?.pageDescription || undefined}
         badge={`Crane in ${locationName}`}
         title="Crane on Rent"
         titleHighlight="Starting @₹8000/Day"

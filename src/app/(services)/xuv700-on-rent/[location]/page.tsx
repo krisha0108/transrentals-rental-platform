@@ -45,6 +45,9 @@ export default async function XUV700LocationPage({ params }: PageProps) {
   const city = pageContext.city;
   const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
 
+  const seoData = await resolvePageMeta(`xuv700-on-rent:${params.location}`);
+
+
   return (
     <>
       <section className="bg-gray-100 py-3">
@@ -60,6 +63,8 @@ export default async function XUV700LocationPage({ params }: PageProps) {
       </section>
 
       <ServiceHeroWithChat
+        pageHeading={seoData?.pageHeading || undefined}
+        pageDescription={seoData?.pageDescription || undefined}
         badge={`XUV700 in ${locationName}`}
         title="Mahindra XUV700 on Rent"
         titleHighlight="Starting @₹2999/Day"

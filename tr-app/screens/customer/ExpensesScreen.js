@@ -112,10 +112,14 @@ const TransactionCard = ({ item, index, onPress }) => {
 
           <View style={styles.txnBottomRow}>
             <View style={styles.txnMeta}>
-              <Text style={styles.txnVendor} numberOfLines={1}>
-                {item.vendor?.name || 'N/A'}
-              </Text>
-              <View style={styles.txnDot} />
+              {(item.vendor?.name || item.vendors?.name) && (item.vendor?.name || item.vendors?.name) !== 'N/A' ? (
+                <>
+                  <Text style={styles.txnVendor} numberOfLines={1}>
+                    {item.vendor?.name || item.vendors?.name}
+                  </Text>
+                  <View style={styles.txnDot} />
+                </>
+              ) : null}
               <Text style={styles.txnDate}>{formatDate(item.payment_date || item.created_at)}</Text>
             </View>
 

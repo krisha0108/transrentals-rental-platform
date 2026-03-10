@@ -846,33 +846,7 @@ const BookingDetails = () => {
               </View>
             ) : null}
 
-            {/* A. Customer Info */}
-            <View style={redesignStyles.detailsCard}>
-              <View style={redesignStyles.detailsHeader}>
-                <View style={[redesignStyles.detailsIcon, { backgroundColor: '#EDE9FE' }]}>
-                  <Ionicons name="person-outline" size={wp('4%')} color="#7C3AED" />
-                </View>
-                <Text style={redesignStyles.detailsTitle}>Customer Details</Text>
-              </View>
-              <View style={redesignStyles.detailsGrid}>
-                <View style={redesignStyles.detailsItem}>
-                  <Text style={redesignStyles.detailsLabel}>Name</Text>
-                  <Text style={redesignStyles.detailsValue}>{booking?.customer_name}</Text>
-                </View>
-                <View style={redesignStyles.detailsItem}>
-                  <Text style={redesignStyles.detailsLabel}>Contact</Text>
-                  <Text style={redesignStyles.detailsValue}>{booking?.customer_phone}</Text>
-                </View>
-                {booking?.customer_email && (
-                  <View style={redesignStyles.detailsItemFull}>
-                    <Text style={redesignStyles.detailsLabel}>Email: </Text>
-                    <Text style={redesignStyles.detailsValue}>{booking.customer_email}</Text>
-                  </View>
-                )}
-              </View>
-            </View>
-
-            {/* B. Specific Details based on service */}
+            {/* Specific Details based on service */}
             {booking?.vehicle_name && (
               <View style={redesignStyles.detailsCard}>
                 <View style={redesignStyles.detailsHeader}>

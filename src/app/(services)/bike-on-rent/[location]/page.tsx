@@ -281,6 +281,7 @@ export default async function BikeLocationPage({ params }: PageProps) {
   const city = pageContext.city;
   const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
   const locationFaqs = getLocationFaqs(locationName);
+  const seoData = await resolvePageMeta(`bike-on-rent:${params.location}`);
 
   return (
     <>
@@ -313,7 +314,7 @@ export default async function BikeLocationPage({ params }: PageProps) {
         </div>
 
       {/* Hero with Search */}
-      <BikeSearchHero city={locationName} citySlug={params.location} />
+      <BikeSearchHero city={locationName} citySlug={params.location} pageHeading={seoData?.pageHeading || undefined} pageDescription={seoData?.pageDescription || undefined} />
 
       {/* Popular Bikes Preview */}
       <section className="py-16 bg-white">

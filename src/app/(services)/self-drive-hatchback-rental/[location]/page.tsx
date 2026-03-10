@@ -72,6 +72,9 @@ export default async function HatchbackRentalLocationPage({ params }: PageProps)
   const city = pageContext.city;
   const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
 
+  const seoData = await resolvePageMeta(`self-drive-hatchback-rental:${params.location}`);
+
+
   return (
     <>
       <section className="bg-gray-100 py-3">
@@ -87,6 +90,8 @@ export default async function HatchbackRentalLocationPage({ params }: PageProps)
       </section>
 
       <ServiceHeroWithChat
+        pageHeading={seoData?.pageHeading || undefined}
+        pageDescription={seoData?.pageDescription || undefined}
         badge={`Hatchback Rental in ${locationName}`}
         title="Self Drive Hatchback Rental"
         titleHighlight="Starting @₹899/Day"

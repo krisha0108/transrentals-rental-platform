@@ -105,6 +105,9 @@ export default async function MonthlyBikeRentalLocationPage({ params }: PageProp
     { name: 'Royal Enfield Classic 350', brand: 'Royal Enfield', price: 9999 },
   ];
 
+  const seoData = await resolvePageMeta(`monthly-bike-rental:${params.location}`);
+
+
   return (
     <>
       
@@ -130,6 +133,8 @@ export default async function MonthlyBikeRentalLocationPage({ params }: PageProp
       />
 
       <ServiceHeroWithChat
+        pageHeading={seoData?.pageHeading || undefined}
+        pageDescription={seoData?.pageDescription || undefined}
         badge={`Monthly Bike Rental in ${locationName}`}
         title={`Monthly Bike & Scooty Rental`}
         titleHighlight="Starting @₹2,999/Month"

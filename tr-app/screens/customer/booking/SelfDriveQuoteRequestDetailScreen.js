@@ -418,6 +418,13 @@ export default function SelfDriveQuoteRequestDetailScreen() {
               {request.totalDays} Day{request.totalDays > 1 ? 's' : ''} Rental
             </Text>
           </View>
+
+          {request.isDeliveryRequested && (
+            <View style={styles.deliveryBadge}>
+              <Ionicons name="car-outline" size={16} color="#F59E0B" />
+              <Text style={styles.deliveryBadgeText}>Home Delivery Requested</Text>
+            </View>
+          )}
         </View>
 
         {/* Quotes Section */}
@@ -1624,6 +1631,22 @@ const styles = StyleSheet.create({
   },
   durationText: {
     color: TEAL_MID,
+    fontWeight: '600',
+    fontSize: wp('3%'),
+  },
+  deliveryBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FEF3C7',
+    alignSelf: 'flex-start',
+    paddingHorizontal: wp('3%'),
+    paddingVertical: hp('0.6%'),
+    borderRadius: wp('5%'),
+    marginTop: hp('0.8%'),
+    gap: wp('1.5%'),
+  },
+  deliveryBadgeText: {
+    color: '#D97706',
     fontWeight: '600',
     fontSize: wp('3%'),
   },

@@ -113,9 +113,14 @@ export default async function TempoTravellerLocationPage({ params }: PageProps) 
     ['tempo', 'tempo-traveller', 'bus', 'Bus Rental', 'Bus', 'Tempo Traveller']
   );
 
+  const seoData = await resolvePageMeta(`tempo-traveller:${params.location}`);
+
+
   return (
     <>
       <ServiceHeroWithChat
+        pageHeading={seoData?.pageHeading || undefined}
+        pageDescription={seoData?.pageDescription || undefined}
         badge={`Tempo Traveller in ${locationName}`}
         title="Tempo Traveller Rental"
         titleHighlight="12-20 Seater @₹18/Km"

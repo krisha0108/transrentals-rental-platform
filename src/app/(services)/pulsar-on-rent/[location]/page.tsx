@@ -133,6 +133,9 @@ export default async function PulsarLocationPage({ params }: PageProps) {
     ],
   };
 
+  const seoData = await resolvePageMeta(`pulsar-on-rent:${params.location}`);
+
+
   return (
     <>
       <BikeServiceSchema
@@ -162,6 +165,8 @@ export default async function PulsarLocationPage({ params }: PageProps) {
         </div>
 
         <ServiceHeroWithChat
+          pageHeading={seoData?.pageHeading || undefined}
+          pageDescription={seoData?.pageDescription || undefined}
           badge={`Pulsar Rental in ${locationName}`}
           title="Bajaj Pulsar on Rent"
           titleHighlight="Starting @₹499/day"
