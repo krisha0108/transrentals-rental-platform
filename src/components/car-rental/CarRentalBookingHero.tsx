@@ -1547,6 +1547,12 @@ export function CarRentalBookingHero({
                                             <span>₹{priceData.pricing.extraKmCharge}/km</span>
                                           </div>
                                         )}
+                                        {priceData.pricing.extraHourCharge && (
+                                          <div className="flex justify-between text-gray-400">
+                                            <span>Extra hour charge</span>
+                                            <span>₹{priceData.pricing.extraHourCharge}/hr</span>
+                                          </div>
+                                        )}
                                       </>
                                     )}
                                     {tripType === 'outstation' && priceData.calculation && (

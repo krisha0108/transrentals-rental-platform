@@ -43,12 +43,12 @@ export async function POST(
     const updatedBooking = await prisma.chauffeur_bookings.update({
       where: { bookingNumber },
       data: {
+        status: 'PAYMENT_SUBMITTED',
         transactionId,
         paymentMethod: paymentMethod || 'UPI',
         paidAmount: advanceAmount,
-        partialPayment: advanceAmount, // Store in partialPayment field as well for compatibility
-        paymentStatus: 'PARTIAL', // Will be changed after admin verification
-        // Status remains PENDING_PAYMENT until admin approves
+        partialPayment: advanceAmount,
+        paymentStatus: 'SUBMITTED',
       },
     });
 

@@ -449,13 +449,14 @@ export function CarRentalBookingConfirmModal({
         </div>
         <div className="flex-1">
           <h3 className="font-bold text-gray-900 text-lg">{vehicle.name}</h3>
-          <div className="flex items-center gap-3 text-sm text-gray-500 mt-1">
+          <div className="flex flex-wrap items-center gap-3 text-sm text-gray-500 mt-1">
             <span className="flex items-center gap-1">
               <Users className="w-3 h-3" />
               {vehicle.seatingCapacity} Seater
             </span>
             {vehicle.acType && (
               <span className="flex items-center gap-1">
+                <Car className="w-3 h-3" />
                 {vehicle.acType}
               </span>
             )}
@@ -463,6 +464,12 @@ export function CarRentalBookingConfirmModal({
               <span className="flex items-center gap-1">
                 <Fuel className="w-3 h-3" />
                 {vehicle.fuelType}
+              </span>
+            )}
+            {vehicle.luggageCapacity && (
+              <span className="flex items-center gap-1">
+                <Shield className="w-3 h-3" />
+                {vehicle.luggageCapacity}
               </span>
             )}
           </div>
@@ -609,6 +616,22 @@ export function CarRentalBookingConfirmModal({
               <span className="font-medium">₹{pricing.nightCharge.toLocaleString()}</span>
             </div>
           )}
+          {pricing.extraKmCharge && (
+            <div className="flex justify-between text-gray-400">
+              <span>Extra km charge</span>
+              <span>₹{pricing.extraKmCharge}/km</span>
+            </div>
+          )}
+          {pricing.extraHourCharge && (
+            <div className="flex justify-between text-gray-400">
+              <span>Extra hour charge</span>
+              <span>₹{pricing.extraHourCharge}/hr</span>
+            </div>
+          )}
+          <div className="flex justify-between text-amber-600">
+            <span>Toll/Parking</span>
+            <span>Extra (as applicable)</span>
+          </div>
           <div className="flex justify-between pt-2 border-t border-gray-200">
             <span className="font-semibold text-gray-900">Total Fare</span>
             <span className="font-bold text-blue-600 text-lg">₹{pricing.grandTotal.toLocaleString()}</span>

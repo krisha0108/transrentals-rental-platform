@@ -51,29 +51,29 @@ export function ServiceFleetDisplay({
   priceUnit = '/day',
   locationSlug = '',
 }: ServiceFleetDisplayProps) {
-  const [fleet, setFleet] = useState<Vehicle[]>([]);
+  const [allFleet, setAllFleet] = useState<Vehicle[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [loading, setLoading] = useState(true);
+  const [initialLoaded, setInitialLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Fetch all vehicles once — filtering is done client-side
   useEffect(() => {
     async function fetchFleet() {
       try {
         setLoading(true);
-        let url = selectedCategory
-          ? `/api/services/${serviceSlug}/fleet?limit=${limit}&subService=${selectedCategory}`
-          : `/api/services/${serviceSlug}/fleet?limit=${limit}`;
+        const params = new URLSearchParams();
+        params.set('limit', String(limit));
+        if (locationSlug) params.set('location', locationSlug);
 
-        if (locationSlug) {
-          url += `&location=${locationSlug}`;
-        }
+        const url = `/api/services/${serviceSlug}/fleet?${params}`;
 
         const response = await fetch(url);
         const data = await response.json();
 
         if (data.success) {
-          setFleet(data.fleet || []);
+          setAllFleet(data.fleet || []);
           if (data.categories) {
             setCategories(data.categories);
           }
@@ -85,18 +85,26 @@ export function ServiceFleetDisplay({
         console.error('Error fetching fleet:', err);
       } finally {
         setLoading(false);
+        setInitialLoaded(true);
       }
     }
 
     fetchFleet();
-  }, [serviceSlug, limit, selectedCategory]);
+  }, [serviceSlug, limit, locationSlug]);
 
-  if (loading) {
-    return null; // Don't show loading state, just hide until loaded
+  // Client-side category filter
+  const fleet = selectedCategory
+    ? allFleet.filter((v) => v.categorySlug === selectedCategory)
+    : allFleet;
+
+  // Hide entire section until first fetch completes
+  if (!initialLoaded) {
+    return null;
   }
 
-  if (error || fleet.length === 0) {
-    return null; // Don't show section if no fleet
+  // If no data at all, hide section
+  if (!loading && allFleet.length === 0 && categories.length === 0) {
+    return null;
   }
 
   return (
@@ -138,6 +146,16 @@ export function ServiceFleetDisplay({
         )}
 
         {/* Fleet Grid */}
+        {loading ? (
+          <div className="flex items-center justify-center h-40">
+            <div className="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full" />
+          </div>
+        ) : fleet.length === 0 ? (
+          <div className="text-center py-12 text-gray-500">
+            <Car className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+            <p>No vehicles found in this category</p>
+          </div>
+        ) : (
         <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {fleet.map((vehicle) => (
             <div
@@ -222,6 +240,7 @@ export function ServiceFleetDisplay({
             </div>
           ))}
         </div>
+        )}
 
         {/* View All Button */}
         {showViewAll && fleet.length >= limit && (

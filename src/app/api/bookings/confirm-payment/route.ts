@@ -262,6 +262,7 @@ export async function POST(request: NextRequest) {
       const updatedBooking = await prisma.chauffeur_bookings.update({
         where: { id: bookingId },
         data: {
+          status: 'PAYMENT_SUBMITTED',
           paymentStatus: 'SUBMITTED',
           paidAmount: amount || chauffeurBooking.partialPayment || chauffeurBooking.grandTotal,
           paymentMethod: paymentMethod || 'BANK_TRANSFER',

@@ -1390,6 +1390,9 @@ export default function AddFleetVehiclePage() {
                             alt={imageType.label}
                             className="w-full h-32 object-cover rounded-lg border-2 border-green-200"
                           />
+                          <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition rounded-lg flex items-center justify-center pointer-events-none">
+                            <span className="text-white text-xs opacity-0 group-hover:opacity-100">{imageType.label}</span>
+                          </div>
                           <button
                             type="button"
                             onClick={() => {
@@ -1399,13 +1402,10 @@ export default function AddFleetVehiclePage() {
                                 return updated;
                               });
                             }}
-                            className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition"
+                            className="absolute top-1 right-1 bg-red-500 text-white p-1.5 rounded-full shadow-md z-10 hover:bg-red-600 transition"
                           >
                             <X className="w-4 h-4" />
                           </button>
-                          <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition rounded-lg flex items-center justify-center">
-                            <span className="text-white text-xs opacity-0 group-hover:opacity-100">Click X to remove</span>
-                          </div>
                         </div>
                       ) : (
                         <label className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center cursor-pointer hover:border-blue-400 hover:bg-white transition block">

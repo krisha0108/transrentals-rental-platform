@@ -95,21 +95,32 @@ export default function RequestServicePage() {
     const availableChildren = children.filter(
       (child) => getServiceStatus(child.id) === 'available'
     );
-    const allSelected = availableChildren.every((child) =>
+    const parentAvailable = getServiceStatus(parentService.id) === 'available';
+
+    // Check if everything (parent + children) is already selected
+    const allChildrenSelected = availableChildren.every((child) =>
       selectedServices.includes(child.id)
     );
+    const parentSelected = selectedServices.includes(parentService.id);
+    const allSelected = allChildrenSelected && (!parentAvailable || parentSelected);
 
     if (allSelected) {
-      // Deselect all
+      // Deselect all (parent + children)
+      const childIds = availableChildren.map((c) => c.id);
       setSelectedServices((prev) =>
-        prev.filter((id) => !availableChildren.map((c) => c.id).includes(id))
+        prev.filter((id) => !childIds.includes(id) && id !== parentService.id)
       );
     } else {
-      // Select all available
-      setSelectedServices((prev) => [
-        ...prev.filter((id) => !availableChildren.map((c) => c.id).includes(id)),
-        ...availableChildren.map((c) => c.id),
-      ]);
+      // Select all available (parent + children)
+      const childIds = availableChildren.map((c) => c.id);
+      setSelectedServices((prev) => {
+        const filtered = prev.filter((id) => !childIds.includes(id) && id !== parentService.id);
+        return [
+          ...filtered,
+          ...(parentAvailable ? [parentService.id] : []),
+          ...childIds,
+        ];
+      });
     }
   };
 
@@ -244,6 +255,7 @@ export default function RequestServicePage() {
 
             // For services without children, check parent status
             const parentStatus = getServiceStatus(service.id);
+            const parentAvailable = parentStatus === 'available';
             const isParentSelected = selectedServices.includes(service.id);
 
             return (
@@ -256,32 +268,32 @@ export default function RequestServicePage() {
                   // Services with sub-services - parent is also selectable
                   <div className="p-4">
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-4">
-                        {/* Parent Service Checkbox */}
-                        <div
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            toggleServiceSelection(service.id);
-                          }}
-                          className={`w-12 h-12 rounded-xl flex items-center justify-center cursor-pointer transition ${
-                            parentStatus === 'approved'
-                              ? 'bg-green-100 cursor-not-allowed'
-                              : parentStatus === 'pending'
-                              ? 'bg-yellow-100 cursor-not-allowed'
-                              : isParentSelected
-                              ? 'bg-blue-500'
-                              : 'bg-gradient-to-br from-blue-500 to-purple-600 hover:opacity-80'
-                          }`}
-                        >
+                      <div
+                        className={`flex items-center gap-4 flex-1 cursor-pointer rounded-lg p-2 -m-2 transition ${
+                          parentStatus === 'approved' || parentStatus === 'pending'
+                            ? 'cursor-not-allowed'
+                            : 'hover:bg-gray-50'
+                        }`}
+                        onClick={() => toggleServiceSelection(service.id)}
+                      >
+                        {/* Parent checkbox */}
+                        <div className="mt-0.5">
                           {parentStatus === 'approved' ? (
-                            <CheckCircle className="w-6 h-6 text-green-600" />
+                            <CheckCircle className="w-6 h-6 text-green-500" />
                           ) : parentStatus === 'pending' ? (
-                            <Clock className="w-6 h-6 text-yellow-600" />
+                            <Clock className="w-6 h-6 text-yellow-500" />
                           ) : isParentSelected ? (
-                            <CheckSquare className="w-6 h-6 text-white" />
+                            <CheckSquare className="w-6 h-6 text-blue-500" />
                           ) : (
-                            <Layers className="w-6 h-6 text-white" />
+                            <Square className="w-6 h-6 text-gray-400" />
                           )}
+                        </div>
+                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
+                          isParentSelected
+                            ? 'bg-blue-500'
+                            : 'bg-gradient-to-br from-blue-500 to-purple-600'
+                        }`}>
+                          <Layers className="w-5 h-5 text-white" />
                         </div>
                         <div>
                           <h3 className="font-semibold text-gray-900 text-lg">
@@ -289,13 +301,13 @@ export default function RequestServicePage() {
                           </h3>
                           <p className="text-sm text-gray-500">
                             {parentStatus === 'approved' ? (
-                              <span className="text-green-600">Parent service approved</span>
+                              <span className="text-green-600">Approved</span>
                             ) : parentStatus === 'pending' ? (
-                              <span className="text-yellow-600">Parent request pending</span>
+                              <span className="text-yellow-600">Request pending</span>
                             ) : isParentSelected ? (
-                              <span className="text-blue-600">Parent service selected</span>
+                              <span className="text-blue-600">Selected</span>
                             ) : (
-                              <span>Click icon to request parent service</span>
+                              <span>Click to select</span>
                             )}
                             <span className="mx-2">•</span>
                             {children.length} sub-services
@@ -317,7 +329,7 @@ export default function RequestServicePage() {
                               selectAllSubServices(service);
                             }}
                           >
-                            {allChildrenSelected ? 'Deselect All' : 'Select All'}
+                            {allChildrenSelected && (!parentAvailable || isParentSelected) ? 'Deselect All' : 'Select All'}
                           </Button>
                         )}
                         <button
@@ -332,14 +344,6 @@ export default function RequestServicePage() {
                         </button>
                       </div>
                     </div>
-
-                    {/* Info box about parent vs sub-service */}
-                    {!isExpanded && children.length > 0 && (
-                      <div className="mt-3 ml-16 text-xs text-gray-500 bg-gray-50 rounded-lg px-3 py-2">
-                        <strong>Tip:</strong> Request parent service ({service.name}) for all types,
-                        or expand to select specific categories like {children.slice(0, 2).map(c => c.name).join(', ')}, etc.
-                      </div>
-                    )}
                   </div>
                 ) : (
                   // Services without sub-services - directly selectable

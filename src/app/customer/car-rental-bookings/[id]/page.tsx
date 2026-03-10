@@ -66,6 +66,7 @@ interface BookingDetails {
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bgColor: string }> = {
   PENDING_PAYMENT: { label: 'Pending Payment', color: 'text-amber-700', bgColor: 'bg-amber-100' },
+  PAYMENT_SUBMITTED: { label: 'Payment Under Review', color: 'text-orange-700', bgColor: 'bg-orange-100' },
   PENDING_VENDOR: { label: 'Finding Driver', color: 'text-blue-700', bgColor: 'bg-blue-100' },
   BROADCASTED: { label: 'Finding Driver', color: 'text-blue-700', bgColor: 'bg-blue-100' },
   ACCEPTED: { label: 'Confirmed', color: 'text-green-700', bgColor: 'bg-green-100' },
@@ -398,7 +399,7 @@ export default function CarRentalBookingDetailPage() {
 
             {/* Actions */}
             <div className="bg-white rounded-xl shadow-sm border p-6 space-y-3">
-              {booking.status === 'PENDING_PAYMENT' && booking.paymentStatus === 'SUBMITTED' && (
+              {(booking.status === 'PAYMENT_SUBMITTED' || (booking.status === 'PENDING_PAYMENT' && booking.paymentStatus === 'SUBMITTED')) && (
                 <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-center">
                   <CheckCircle className="w-8 h-8 text-amber-500 mx-auto mb-2" />
                   <p className="font-semibold text-amber-800">Payment Under Verification</p>
