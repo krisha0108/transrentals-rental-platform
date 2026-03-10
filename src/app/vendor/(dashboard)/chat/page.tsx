@@ -29,12 +29,14 @@ import {
   RefreshCw,
   Settings,
   Plus,
+  ExternalLink,
 } from 'lucide-react';
 
 interface Conversation {
   id: string;
   bookingType: string;
   bookingId: string | null;
+  bookingNumber: string | null;
   subject: string | null;
   status: string;
   unreadCount: number;
@@ -97,6 +99,14 @@ export default function VendorChatPage() {
   const [isSending, setIsSending] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [totalUnread, setTotalUnread] = useState(0);
+  const [autoSelectBookingId, setAutoSelectBookingId] = useState<string | null>(null);
+
+  // Read bookingId from URL on mount
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const bid = params.get('bookingId');
+    if (bid) setAutoSelectBookingId(bid);
+  }, []);
 
   // Quick replies
   const [quickReplies, setQuickReplies] = useState<QuickReply[]>([]);
@@ -120,15 +130,25 @@ export default function VendorChatPage() {
       const data = await res.json();
 
       if (data.success) {
-        setConversations(data.conversations || []);
+        const convs: Conversation[] = data.conversations || [];
+        setConversations(convs);
         setTotalUnread(data.totalUnread || 0);
+
+        // Auto-select conversation if bookingId param was provided
+        setAutoSelectBookingId(prev => {
+          if (prev && !selectedConversation) {
+            const match = convs.find(c => c.bookingId === prev);
+            if (match) setSelectedConversation(match);
+          }
+          return prev;
+        });
       }
     } catch (err) {
       console.error('Failed to fetch conversations:', err);
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [selectedConversation]);
 
   // Fetch messages for selected conversation
   const fetchMessages = useCallback(async () => {
@@ -420,7 +440,7 @@ export default function VendorChatPage() {
                       </div>
                       <p className="text-xs text-gray-500 mb-1">
                         {conv.bookingType.charAt(0).toUpperCase() + conv.bookingType.slice(1)}
-                        {conv.bookingId && ` • #${conv.bookingId.slice(-6)}`}
+                        {(conv.bookingNumber || conv.bookingId) && ` • #${conv.bookingNumber || conv.bookingId?.slice(-6)}`}
                       </p>
                       <div className="flex items-center justify-between gap-2">
                         <p className={`text-sm truncate ${
@@ -483,8 +503,8 @@ export default function VendorChatPage() {
                   <p className="text-sm text-gray-500">
                     {selectedConversation.bookingType.charAt(0).toUpperCase() +
                       selectedConversation.bookingType.slice(1)} Booking
-                    {selectedConversation.bookingId &&
-                      ` • #${selectedConversation.bookingId.slice(-6)}`}
+                    {(selectedConversation.bookingNumber || selectedConversation.bookingId) &&
+                      ` • #${selectedConversation.bookingNumber || selectedConversation.bookingId?.slice(-6)}`}
                   </p>
                 </div>
               </div>
@@ -495,6 +515,20 @@ export default function VendorChatPage() {
                     className="p-2 hover:bg-gray-100 rounded-lg transition"
                   >
                     <Phone className="w-5 h-5 text-gray-500" />
+                  </a>
+                )}
+                {selectedConversation.bookingId && (
+                  <a
+                    href={
+                      selectedConversation.bookingType === 'b2b'
+                        ? `/vendor/b2b-bookings/${selectedConversation.bookingId}`
+                        : `/vendor/bookings`
+                    }
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-teal-50 hover:bg-teal-100 text-teal-700 rounded-lg text-xs font-semibold border border-teal-200 transition"
+                    title="View Booking"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5" />
+                    View Booking
                   </a>
                 )}
                 <button className="p-2 hover:bg-gray-100 rounded-lg transition">
