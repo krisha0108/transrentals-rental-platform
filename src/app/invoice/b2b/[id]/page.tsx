@@ -25,11 +25,18 @@ export default function B2BInvoicePage() {
 
   useEffect(() => {
     fetchInvoice();
-    // Detect viewer role (admin/manager vs customer)
-    fetch('/api/auth/session')
-      .then(r => r.json())
-      .then(d => { if (d?.user?.role) setViewerRole(d.user.role); })
-      .catch(() => {});
+    // Detect viewer role:
+    // If customer token exists in localStorage → customer view (show Pay button)
+    // Else check NextAuth session → admin/manager view (show Reminder button)
+    const customerData = localStorage.getItem('customer');
+    if (customerData) {
+      setViewerRole('CUSTOMER');
+    } else {
+      fetch('/api/auth/session')
+        .then(r => r.json())
+        .then(d => { if (d?.user?.role) setViewerRole(d.user.role); })
+        .catch(() => {});
+    }
   }, []);
 
   useEffect(() => {
@@ -147,7 +154,7 @@ export default function B2BInvoicePage() {
     }
   }
 
-  const isAdminOrManager = viewerRole === 'ADMIN' || viewerRole === 'MANAGER';
+  const isAdminOrManager = (viewerRole === 'ADMIN' || viewerRole === 'MANAGER' || viewerRole === 'SUPER_ADMIN' || viewerRole === 'SUB_ADMIN') && viewerRole !== 'CUSTOMER';
 
   const formatDate = (d: string) => d ? new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' }) : '';
   const formatShortDate = (d: string) => d ? new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
