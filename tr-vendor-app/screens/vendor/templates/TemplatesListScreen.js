@@ -6,14 +6,14 @@ import {
   FlatList,
   TouchableOpacity,
   RefreshControl,
-  ActivityIndicator,
-  Alert,
   Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Feather';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { getTemplates, deleteTemplate, toggleTemplateActive, setTemplateDefault } from '../../api/client';
+import { showConfirm, showError, showInfo, showSuccess } from '../../../services/alertService';
+import { ListSkeleton } from '../../../components/SkeletonLoader';
 
 const C = {
   bg: '#F7FAFC',
@@ -114,7 +114,7 @@ export default function TemplatesListScreen({ route, navigation }) {
       setTemplates(response?.templates || []);
     } catch (error) {
       console.log('Error fetching templates:', error);
-      Alert.alert('Error', 'Failed to load templates');
+      showError('Failed to load templates');
     } finally {
       setLoading(false);
     }
@@ -131,26 +131,15 @@ export default function TemplatesListScreen({ route, navigation }) {
   }, [fetchTemplates]);
 
   const handleDelete = (templateId, templateName) => {
-    Alert.alert(
-      'Delete Template',
-      `Are you sure you want to delete "${templateName}"?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
+    showConfirm('Delete Template', `Are you sure you want to delete "${templateName}"?`, async () => {
             try {
               await deleteTemplate(serviceType, templateId);
               setTemplates(prev => prev.filter(t => t.id !== templateId));
-              Alert.alert('Success', 'Template deleted successfully');
+              showSuccess('Template deleted successfully');
             } catch (error) {
-              Alert.alert('Error', 'Failed to delete template');
+              showError('Failed to delete template');
             }
-          },
-        },
-      ]
-    );
+          }, { confirmText: 'Delete', destructive: true });
   };
 
   const handleToggleActive = async (templateId, currentStatus) => {
@@ -160,7 +149,7 @@ export default function TemplatesListScreen({ route, navigation }) {
         prev.map(t => (t.id === templateId ? { ...t, isActive: !currentStatus } : t))
       );
     } catch (error) {
-      Alert.alert('Error', 'Failed to update template');
+      showError('Failed to update template');
     }
   };
 
@@ -173,9 +162,9 @@ export default function TemplatesListScreen({ route, navigation }) {
           isDefault: t.id === templateId,
         }))
       );
-      Alert.alert('Success', 'Default template updated');
+      showSuccess('Default template updated');
     } catch (error) {
-      Alert.alert('Error', 'Failed to set default template');
+      showError('Failed to set default template');
     }
   };
 
@@ -373,9 +362,7 @@ export default function TemplatesListScreen({ route, navigation }) {
           <Text style={styles.headerTitle}>{config.name} Templates</Text>
           <View style={{ width: 36 }} />
         </View>
-        <View style={styles.loaderContainer}>
-          <ActivityIndicator size="large" color={config.color} />
-        </View>
+        <ListSkeleton count={4} />
       </SafeAreaView>
     );
   }

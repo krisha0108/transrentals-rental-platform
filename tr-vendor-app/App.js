@@ -18,6 +18,7 @@ import notifee, { AndroidStyle, AndroidImportance, EventType } from '@notifee/re
 import axios from 'axios';
 import { debugAuthState, getSessionToken, getVendorNotificationsUnreadCount, saveVendorFcmToken } from './screens/api/client';
 import OfflineBanner from './components/OfflineBanner';
+import GlobalAlert from './components/GlobalAlert';
 import { NotifBadgeContext } from './contexts/NotifBadgeContext';
 
 // Screens
@@ -855,6 +856,7 @@ export default function App() {
         </Stack.Navigator>
       </NavigationContainer>
       <OfflineBanner />
+      <GlobalAlert />
     </SafeAreaProvider>
     </NotifBadgeContext.Provider>
   );

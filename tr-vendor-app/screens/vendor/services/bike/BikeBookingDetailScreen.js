@@ -15,6 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Feather';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { showError, showConfirm, showInfo, showSuccess } from '../../../../services/alertService';
 import {
   getBookingById,
   acceptBooking,
@@ -74,7 +75,7 @@ export default function BikeBookingDetailScreen({ route, navigation }) {
       setBooking(response?.booking || response);
     } catch (error) {
       console.error('[BikeBookingDetail] Error:', error);
-      Alert.alert('Error', 'Failed to load booking details');
+      showError('Failed to load booking details');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -91,46 +92,33 @@ export default function BikeBookingDetailScreen({ route, navigation }) {
   }, [fetchBooking]);
 
   const handleAccept = async () => {
-    Alert.alert('Accept Booking', 'Are you sure you want to accept this booking?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Accept',
-        onPress: async () => {
+    showConfirm('Accept Booking', 'Are you sure you want to accept this booking?', async () => {
           try {
             setActionLoading(true);
             await acceptBooking('bike', bookingId);
             await fetchBooking();
-            Alert.alert('Success', 'Booking accepted successfully');
+            showSuccess('Booking accepted successfully');
           } catch (error) {
-            Alert.alert('Error', error?.response?.data?.error || 'Failed to accept booking');
+            showError(error?.response?.data?.error || 'Failed to accept booking');
           } finally {
             setActionLoading(false);
           }
-        },
-      },
-    ]);
+        }, { confirmText: 'Accept' });
   };
 
   const handleReject = async () => {
-    Alert.alert('Reject Booking', 'Are you sure you want to reject this booking?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Reject',
-        style: 'destructive',
-        onPress: async () => {
+    showConfirm('Reject Booking', 'Are you sure you want to reject this booking?', async () => {
           try {
             setActionLoading(true);
             await rejectBooking('bike', bookingId, 'Vendor rejected');
             await fetchBooking();
-            Alert.alert('Success', 'Booking rejected');
+            showSuccess('Booking rejected');
           } catch (error) {
-            Alert.alert('Error', error?.response?.data?.error || 'Failed to reject booking');
+            showError(error?.response?.data?.error || 'Failed to reject booking');
           } finally {
             setActionLoading(false);
           }
-        },
-      },
-    ]);
+        }, { confirmText: 'Reject', destructive: true });
   };
 
   const handleCall = (phone) => {
@@ -165,13 +153,13 @@ export default function BikeBookingDetailScreen({ route, navigation }) {
     try {
       const data = await generateTripOtp('bike', booking.id);
       setOtpSuccess('OTP sent to customer successfully!');
-      Alert.alert('Success', 'OTP sent to customer successfully!');
+      showSuccess('OTP sent to customer successfully!');
       // Update booking status
       await fetchBooking();
     } catch (err) {
       const errorMsg = err?.response?.data?.error || err?.message || 'Failed to generate OTP';
       setOtpError(errorMsg);
-      Alert.alert('Error', errorMsg);
+      showError(errorMsg);
     } finally {
       setOtpLoading(false);
     }
@@ -180,11 +168,11 @@ export default function BikeBookingDetailScreen({ route, navigation }) {
   // Verify OTP and start trip
   const handleStartTrip = async () => {
     if (!booking || !otpInput) {
-      Alert.alert('Error', 'Please enter OTP');
+      showError('Please enter OTP');
       return;
     }
     if (otpInput.length !== 6) {
-      Alert.alert('Error', 'Please enter a valid 6-digit OTP');
+      showError('Please enter a valid 6-digit OTP');
       return;
     }
 
@@ -194,13 +182,13 @@ export default function BikeBookingDetailScreen({ route, navigation }) {
     try {
       const data = await verifyTripOtp('bike', booking.id, otpInput, 'start');
       setOtpSuccess('Trip started successfully!');
-      Alert.alert('Success', 'Trip started successfully!');
+      showSuccess('Trip started successfully!');
       setOtpInput('');
       await fetchBooking();
     } catch (err) {
       const errorMsg = err?.response?.data?.error || err?.message || 'Failed to verify OTP';
       setOtpError(errorMsg);
-      Alert.alert('Error', errorMsg);
+      showError(errorMsg);
     } finally {
       setOtpLoading(false);
     }
@@ -210,33 +198,23 @@ export default function BikeBookingDetailScreen({ route, navigation }) {
   const handleEndTrip = async () => {
     if (!booking) return;
 
-    Alert.alert(
-      'End Trip',
-      'Are you sure you want to complete this trip?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Complete',
-          onPress: async () => {
+    showConfirm('End Trip', 'Are you sure you want to complete this trip?', async () => {
             setOtpLoading(true);
             setOtpError(null);
 
             try {
               await completeBooking('bike', booking.id);
               setOtpSuccess('Trip completed successfully!');
-              Alert.alert('Success', 'Trip completed successfully!');
+              showSuccess('Trip completed successfully!');
               await fetchBooking();
             } catch (err) {
               const errorMsg = err?.response?.data?.error || err?.message || 'Failed to complete trip';
               setOtpError(errorMsg);
-              Alert.alert('Error', errorMsg);
+              showError(errorMsg);
             } finally {
               setOtpLoading(false);
             }
-          },
-        },
-      ]
-    );
+          }, { confirmText: 'Complete' });
   };
 
   const formatDate = (dateStr) => {

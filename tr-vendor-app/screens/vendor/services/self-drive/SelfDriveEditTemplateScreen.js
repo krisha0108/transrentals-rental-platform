@@ -16,6 +16,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Feather';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { getTemplateById, updateTemplate } from '../../../api/client';
+import { showConfirm, showError, showInfo, showSuccess } from '../../../../services/alertService';
 
 const SERVICE_COLOR = '#3B82F6'; // Blue for self-drive
 const GREEN = '#09B368';
@@ -77,7 +78,7 @@ const SelfDriveEditTemplateScreen = ({ route, navigation }) => {
       setIsActive(template.isActive !== undefined ? template.isActive : true);
     } catch (error) {
       console.error('Error loading template:', error);
-      Alert.alert('Error', 'Failed to load template');
+      showError('Failed to load template');
       navigation.goBack();
     } finally {
       setIsLoading(false);
@@ -120,7 +121,7 @@ const SelfDriveEditTemplateScreen = ({ route, navigation }) => {
   const handleSubmit = async () => {
     // Validation
     if (!name.trim()) {
-      Alert.alert('Validation Error', 'Please enter a template name');
+      showError('Please enter a template name');
       return;
     }
 
@@ -144,15 +145,10 @@ const SelfDriveEditTemplateScreen = ({ route, navigation }) => {
 
       await updateTemplate('self-drive', templateId, templateData);
 
-      Alert.alert('Success', 'Template updated successfully!', [
-        {
-          text: 'OK',
-          onPress: () => navigation.goBack(),
-        },
-      ]);
+      showSuccess('Template updated successfully!', 'Success', { actions: [{ label: 'OK', onPress: () => navigation.goBack(), variant: 'primary' }] });
     } catch (error) {
       console.error('Error updating template:', error);
-      Alert.alert('Error', 'Failed to update template. Please try again.');
+      showError('Failed to update template. Please try again.');
     } finally {
       setIsSubmitting(false);
     }

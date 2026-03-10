@@ -14,6 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Feather';
 import CustomDropdown from '../../../../components/CustomDropdown';
 import { getQuoteRequestById, getFleetVehicles, submitQuote, getTemplates, getTemplateById } from '../../../api/client';
+import { showConfirm, showError, showInfo, showSuccess } from '../../../../services/alertService';
 
 const C = {
   bg: '#F7FAFC',
@@ -119,7 +120,7 @@ export default function SelfDriveSendQuoteScreen({ navigation, route }) {
     } catch (error) {
       console.error('Error fetching data:', error);
       setTemplates([]); // Ensure templates is always an array
-      Alert.alert('Error', 'Failed to load data');
+      showError('Failed to load data');
     } finally {
       setLoading(false);
     }
@@ -175,10 +176,10 @@ export default function SelfDriveSendQuoteScreen({ navigation, route }) {
       if (template.exclusions && template.exclusions.length > 0) setExclusions([...template.exclusions]);
       if (template.termsConditions && template.termsConditions.length > 0) setTermsConditions([...template.termsConditions]);
 
-      Alert.alert('Success', 'Template applied successfully!');
+      showSuccess('Template applied successfully!');
     } catch (error) {
       console.error('Error loading template:', error);
-      Alert.alert('Error', 'Failed to load template details');
+      showError('Failed to load template details');
     }
   };
 
@@ -224,11 +225,11 @@ export default function SelfDriveSendQuoteScreen({ navigation, route }) {
 
   const handleSubmit = async () => {
     if (!vehicleName) {
-      Alert.alert('Error', 'Please enter vehicle name or select from fleet');
+      showError('Please enter vehicle name or select from fleet');
       return;
     }
     if (!totalPrice || parseFloat(totalPrice) <= 0) {
-      Alert.alert('Error', 'Please enter valid total price');
+      showError('Please enter valid total price');
       return;
     }
 
@@ -254,12 +255,10 @@ export default function SelfDriveSendQuoteScreen({ navigation, route }) {
         vendorMessage: notes || null,
         validityDays: parseInt(validityDays),
       });
-      Alert.alert('Success', 'Quote sent successfully!', [
-        { text: 'OK', onPress: () => navigation.goBack() },
-      ]);
+      showSuccess('Quote sent successfully!', 'Success', { actions: [{ label: 'OK', onPress: () => navigation.goBack(), variant: 'primary' }] });
     } catch (error) {
       console.error('Error submitting quote:', error);
-      Alert.alert('Error', error?.response?.data?.error || 'Failed to send quote');
+      showError(error?.response?.data?.error || 'Failed to send quote');
     } finally {
       setSubmitting(false);
     }

@@ -16,6 +16,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { showError, showSuccess, showInfo, showConfirm } from '../../../services/alertService';
 import {
   getVendorLocations,
   requestLocation,
@@ -197,7 +198,7 @@ export default function VendorLocationsScreen({ navigation }) {
 
   const handleRequestLocations = async () => {
     if (selectedLocations.length === 0) {
-      Alert.alert('Error', 'Please select at least one location');
+      showError('Please select at least one location');
       return;
     }
 
@@ -212,10 +213,10 @@ export default function VendorLocationsScreen({ navigation }) {
       setSelectedLocations([]);
       setRequestMessage('');
       fetchLocations();
-      Alert.alert('Success', 'Location request(s) submitted successfully!');
+      showSuccess('Location request(s) submitted successfully!');
     } catch (error) {
       console.error('Request location failed:', error);
-      Alert.alert('Error', error?.response?.data?.error || 'Failed to submit request');
+      showError(error?.response?.data?.error || 'Failed to submit request');
     } finally {
       setSubmitting(false);
     }

@@ -8,40 +8,65 @@ import {
   RefreshControl,
   ActivityIndicator,
   Dimensions,
-  Image,
+  StatusBar,
+  Modal,
+  Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Feather';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { getVendorProfile, getVendorBookings, getVendorEarnings } from '../../api/client';
+import LinearGradient from 'react-native-linear-gradient';
+import axios from 'axios';
+import { getVendorProfile, getVendorBookings, getVendorEarnings, getBaseURL } from '../../api/client';
 import { NotifBadgeContext } from '../../../contexts/NotifBadgeContext';
 
-// Color scheme from old app (user likes this)
-const C = {
-  bg: '#F7FAFC',
-  surface: '#FFFFFF',
-  card: '#F9FAFB',
-  text: '#0F172A',
-  muted: '#6B7280',
-  border: '#E5E7EB',
-  brand: '#22C55E',
-  blue: '#2563EB',
+// Current vendor app version — must match versionName in android/app/build.gradle
+const APP_VERSION = '3.0.9';
+
+const { width: W } = Dimensions.get('window');
+
+const G = {
+  // Greens
+  g900: '#052e16',
+  g800: '#14532d',
+  g700: '#15803d',
+  g600: '#16a34a',
+  g500: '#22c55e',
+  g400: '#4ade80',
+  g300: '#86efac',
+  g200: '#bbf7d0',
+  g100: '#dcfce7',
+  g50:  '#f0fdf4',
+  // Neutrals
+  bg:       '#F5F7FA',
+  surface:  '#FFFFFF',
+  text:     '#0A0F1E',
+  textMid:  '#374151',
+  muted:    '#6B7280',
+  border:   '#E8EDF2',
+  // Accents
+  blue:   '#2563EB',
+  blueL:  '#EFF6FF',
   orange: '#F59E0B',
-  purple: '#8B5CF6',
-  pink: '#EC4899',
-  red: '#EF4444',
-  yellow: '#F59E0B',
-  chipBg: '#F3F4F6',
-  chipActiveBg: '#DCFCE7',
-  chipActiveBorder: '#86EFAC',
+  orangeL:'#FFFBEB',
+  purple: '#7C3AED',
+  purpleL:'#F5F3FF',
+  red:    '#DC2626',
+  redL:   '#FEF2F2',
+  cyan:   '#0891B2',
+  cyanL:  '#ECFEFF',
+  pink:   '#DB2777',
+  pinkL:  '#FDF2F8',
+  indigo: '#4F46E5',
+  indigoL:'#EEF2FF',
+  teal:   '#0D9488',
+  tealL:  '#F0FDFA',
+  amber:  '#D97706',
+  amberL: '#FFFBEB',
 };
 
-const { width: screenWidth } = Dimensions.get('window');
-
-// Vendor Status Constants
 const VENDOR_STATUS = {
   PENDING: 'PENDING',
   DOCUMENTS_PENDING: 'DOCUMENTS_PENDING',
@@ -52,7 +77,6 @@ const VENDOR_STATUS = {
   SUSPENDED: 'SUSPENDED',
 };
 
-// Service IDs mapping
 const SERVICE_IDS = {
   BIKE: 'SVC_1',
   SELF_DRIVE: 'SVC_2',
@@ -64,34 +88,52 @@ const SERVICE_IDS = {
   LUXURY: 'SVC_8',
 };
 
+// ─── Avatar Initials ───────────────────────────────────────────────────────
+function AvatarInitials({ name, size = 44 }) {
+  const initials = (name || 'V')
+    .split(' ')
+    .slice(0, 2)
+    .map((w) => w[0]?.toUpperCase() || '')
+    .join('');
+  return (
+    <View style={[avStyle.wrap, { width: size, height: size, borderRadius: size / 2 }]}>
+      <Text style={[avStyle.txt, { fontSize: size * 0.36 }]}>{initials}</Text>
+    </View>
+  );
+}
+const avStyle = StyleSheet.create({
+  wrap: { backgroundColor: 'rgba(255,255,255,0.22)', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: 'rgba(255,255,255,0.35)' },
+  txt:  { color: '#fff', fontWeight: '800', letterSpacing: 0.5 },
+});
+
+// ─── Shimmer Skeleton ──────────────────────────────────────────────────────
+function SkeletonBox({ w, h, radius = 8, style }) {
+  return <View style={[{ width: w, height: h, borderRadius: radius, backgroundColor: '#E8EDF2' }, style]} />;
+}
+
 export default function DashboardScreen({ navigation }) {
   const { unreadCount } = React.useContext(NotifBadgeContext);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading]       = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [vendor, setVendor] = useState(null);
-  const [profile, setProfile] = useState(null);
-  const [earnings, setEarnings] = useState(null);
+  const [vendor, setVendor]         = useState(null);
+  const [profile, setProfile]       = useState(null);
+  const [earnings, setEarnings]     = useState(null);
   const [bookingsData, setBookingsData] = useState(null);
-  const [recentBookings, setRecentBookings] = useState([]);
+  const [updateInfo, setUpdateInfo] = useState(null);
+  const [showUpdateModal, setShowUpdateModal] = useState(false);
 
   const fetchData = useCallback(async () => {
     try {
-      // Get stored vendor data
       const vendorStr = await AsyncStorage.getItem('vendor');
-      if (vendorStr) {
-        setVendor(JSON.parse(vendorStr));
-      }
+      if (vendorStr) setVendor(JSON.parse(vendorStr));
 
-      // Fetch profile from API
       const profileData = await getVendorProfile();
       if (profileData) {
         setProfile(profileData);
-        // Update stored vendor data
         await AsyncStorage.setItem('vendor', JSON.stringify(profileData));
         setVendor(profileData);
       }
 
-      // Fetch earnings if approved
       if (profileData?.status === 'APPROVED') {
         try {
           const earningsRes = await getVendorEarnings();
@@ -99,30 +141,34 @@ export default function DashboardScreen({ navigation }) {
             setEarnings(earningsRes.earnings);
             setBookingsData(earningsRes.bookings);
           }
-        } catch (e) {
-          // silently fail
-        }
-
-        // Fetch recent bookings
-        try {
-          const bookingsRes = await getVendorBookings({ limit: 5 });
-          if (bookingsRes?.bookings) {
-            setRecentBookings(bookingsRes.bookings.slice(0, 5));
-          }
-        } catch (e) {
-          // silently fail
-        }
+        } catch (_) {}
       }
-    } catch (error) {
-      // silently fail
+    } catch (_) {
     } finally {
       setLoading(false);
     }
   }, []);
 
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+  useEffect(() => { fetchData(); }, [fetchData]);
+
+  const checkForUpdate = useCallback(async () => {
+    try {
+      const base = await getBaseURL();
+      const res = await axios.get(`${base}/api/vendor/app-version`, { timeout: 8000 });
+      if (res.data?.success) {
+        const { latestVersion, forceUpdate, updateMessage, playStoreUrl } = res.data;
+        if (latestVersion && latestVersion !== APP_VERSION) {
+          setUpdateInfo({ latestVersion, forceUpdate, updateMessage, playStoreUrl });
+          setShowUpdateModal(true);
+        }
+      }
+    } catch (e) {
+      // silently fail — update check is non-critical
+      console.log('[UpdateCheck] failed:', e?.message);
+    }
+  }, []);
+
+  useEffect(() => { checkForUpdate(); }, [checkForUpdate]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -130,1174 +176,863 @@ export default function DashboardScreen({ navigation }) {
     setRefreshing(false);
   }, [fetchData]);
 
-  const vendorStatus = profile?.status || vendor?.status || VENDOR_STATUS.PENDING;
-  const isApproved = vendorStatus === VENDOR_STATUS.APPROVED;
-  const approvedServiceIds = profile?.approvedServiceIds || [];
+  const vendorStatus     = profile?.status || vendor?.status || VENDOR_STATUS.PENDING;
+  const isApproved       = vendorStatus === VENDOR_STATUS.APPROVED;
+  const approvedSvcIds   = profile?.approvedServiceIds || [];
+  const hasService       = (id) => approvedSvcIds.includes(id);
+  const businessName     = profile?.businessName || vendor?.businessName || 'Vendor';
 
-  // Check if vendor has specific service approved
-  const hasService = (serviceId) => approvedServiceIds.includes(serviceId);
-
-  const getStatusSteps = () => {
-    const steps = [
-      { id: 1, name: 'Registration', status: 'completed' },
-      {
-        id: 2,
-        name: 'Upload Documents',
-        status:
-          vendorStatus === VENDOR_STATUS.DOCUMENTS_PENDING
-            ? 'current'
-            : vendorStatus === VENDOR_STATUS.PENDING
-            ? 'pending'
-            : 'completed',
-      },
-      {
-        id: 3,
-        name: 'Under Review',
-        status:
-          vendorStatus === VENDOR_STATUS.UNDER_REVIEW
-            ? 'current'
-            : [VENDOR_STATUS.APPROVED, VENDOR_STATUS.REJECTED].includes(vendorStatus)
-            ? 'completed'
-            : 'pending',
-      },
-      {
-        id: 4,
-        name: 'Approval',
-        status:
-          vendorStatus === VENDOR_STATUS.APPROVED
-            ? 'completed'
-            : vendorStatus === VENDOR_STATUS.REJECTED
-            ? 'rejected'
-            : 'pending',
-      },
-    ];
-    return steps;
+  const formatCurrency = (v) => {
+    if (!v || v === 0) return '0';
+    if (v >= 100000) return `${(v / 100000).toFixed(1)}L`;
+    if (v >= 1000)   return `${(v / 1000).toFixed(1)}K`;
+    return String(Math.round(v));
   };
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case VENDOR_STATUS.APPROVED:
-        return { bg: '#DCFCE7', text: '#166534', border: '#86EFAC' };
-      case VENDOR_STATUS.DOCUMENTS_PENDING:
-        return { bg: '#FED7AA', text: '#9A3412', border: '#FDBA74' };
-      case VENDOR_STATUS.UNDER_REVIEW:
-        return { bg: '#DBEAFE', text: '#1E40AF', border: '#93C5FD' };
-      case VENDOR_STATUS.PENDING:
-        return { bg: '#FEF3C7', text: '#92400E', border: '#FCD34D' };
-      case VENDOR_STATUS.REJECTED:
-      case VENDOR_STATUS.SUSPENDED:
-      case VENDOR_STATUS.BLOCKED:
-        return { bg: '#FEE2E2', text: '#991B1B', border: '#FCA5A5' };
-      default:
-        return { bg: '#F3F4F6', text: '#374151', border: '#D1D5DB' };
-    }
+  // ── Status config ──────────────────────────────────────────────────────
+  const STATUS_CFG = {
+    [VENDOR_STATUS.APPROVED]:          { bg: G.g100, border: G.g300, text: G.g800, dot: G.g600, label: 'Approved' },
+    [VENDOR_STATUS.DOCUMENTS_PENDING]: { bg: '#FEF3C7', border: '#FCD34D', text: '#92400E', dot: G.amber, label: 'Docs Pending' },
+    [VENDOR_STATUS.UNDER_REVIEW]:      { bg: G.blueL,  border: '#93C5FD', text: '#1E40AF', dot: G.blue, label: 'Under Review' },
+    [VENDOR_STATUS.PENDING]:           { bg: '#FFFBEB', border: '#FDE68A', text: '#92400E', dot: G.orange, label: 'Pending' },
+    [VENDOR_STATUS.REJECTED]:          { bg: G.redL,   border: '#FCA5A5', text: '#991B1B', dot: G.red, label: 'Rejected' },
+    [VENDOR_STATUS.BLOCKED]:           { bg: G.redL,   border: '#FCA5A5', text: '#991B1B', dot: G.red, label: 'Blocked' },
+    [VENDOR_STATUS.SUSPENDED]:         { bg: G.redL,   border: '#FCA5A5', text: '#991B1B', dot: G.red, label: 'Suspended' },
   };
+  const sCfg = STATUS_CFG[vendorStatus] || STATUS_CFG[VENDOR_STATUS.PENDING];
 
-  // Quick actions for non-approved vendors
-  const pendingQuickActions = [
+  // ── Steps ──────────────────────────────────────────────────────────────
+  const steps = [
+    { id: 1, name: 'Registered', status: 'completed' },
     {
-      name: 'Complete Profile',
-      description: 'Add business details',
-      icon: 'building',
-      iconLib: 'feather',
-      color: C.blue,
-      route: 'ProfileScreen',
+      id: 2, name: 'Documents',
+      status: vendorStatus === VENDOR_STATUS.DOCUMENTS_PENDING ? 'current'
+        : vendorStatus === VENDOR_STATUS.PENDING ? 'pending' : 'completed',
     },
     {
-      name: 'Upload Documents',
-      description: 'GST, PAN, and more',
-      icon: 'file-text',
-      iconLib: 'feather',
-      color: C.purple,
-      route: 'VendorDocuments',
+      id: 3, name: 'Review',
+      status: vendorStatus === VENDOR_STATUS.UNDER_REVIEW ? 'current'
+        : [VENDOR_STATUS.APPROVED, VENDOR_STATUS.REJECTED].includes(vendorStatus) ? 'completed' : 'pending',
     },
     {
-      name: 'Request Services',
-      description: 'Select services you offer',
-      icon: 'layers',
-      iconLib: 'feather',
-      color: C.brand,
-      route: 'VendorServices',
-    },
-    {
-      name: 'Request Locations',
-      description: 'Select cities you operate in',
-      icon: 'map-pin',
-      iconLib: 'feather',
-      color: C.orange,
-      route: 'VendorLocations',
+      id: 4, name: 'Approval',
+      status: vendorStatus === VENDOR_STATUS.APPROVED ? 'completed'
+        : vendorStatus === VENDOR_STATUS.REJECTED ? 'rejected' : 'pending',
     },
   ];
 
-  // Stats for approved vendors (now includes booking data)
-  const stats = [
-    {
-      label: 'Today',
-      value: bookingsData?.today || 0,
-      subLabel: 'Bookings',
-      icon: 'calendar',
-      color: C.brand,
-      route: null,
-    },
-    {
-      label: 'Active',
-      value: bookingsData?.active || 0,
-      subLabel: 'Ongoing',
-      icon: 'zap',
-      color: C.blue,
-      route: 'BookingsListScreen',
-    },
-    {
-      label: 'Vehicles',
-      value: profile?.fleetsCount || 0,
-      subLabel: 'Fleet',
-      icon: 'truck',
-      color: C.purple,
-      route: 'FleetListScreen',
-    },
-    {
-      label: 'Rating',
-      value: profile?.rating?.toFixed(1) || '5.0',
-      subLabel: `${profile?.totalRatings || 0} reviews`,
-      icon: 'star',
-      color: C.orange,
-      route: null,
-    },
+  // ── Stats (approved) ───────────────────────────────────────────────────
+  const statCards = [
+    { label: "Today's\nBookings", value: bookingsData?.today ?? 0,             icon: 'calendar',  iconLib: 'feather', color: G.g600,   bg: G.g50,    route: null },
+    { label: 'Active\nBookings',  value: bookingsData?.active ?? 0,            icon: 'zap',       iconLib: 'feather', color: G.blue,   bg: G.blueL,  route: 'BookingsListScreen' },
+    { label: 'Fleet\nVehicles',   value: profile?.fleetsCount ?? 0,            icon: 'truck',     iconLib: 'feather', color: G.purple, bg: G.purpleL,route: 'FleetListScreen' },
+    { label: 'Your\nRating',      value: profile?.rating?.toFixed(1) ?? '5.0', icon: 'star',      iconLib: 'feather', color: G.amber,  bg: G.amberL, route: null },
   ];
 
-  // Format currency
-  const formatCurrency = (amount) => {
-    if (!amount || amount === 0) return '0';
-    if (amount >= 100000) {
-      return `${(amount / 100000).toFixed(1)}L`;
-    }
-    if (amount >= 1000) {
-      return `${(amount / 1000).toFixed(1)}K`;
-    }
-    return amount.toFixed(0);
-  };
-
-  // Service modules for approved vendors (only show approved services)
-  const serviceModules = [
-    {
-      serviceId: SERVICE_IDS.BIKE,
-      name: 'Bike Rentals',
-      icon: 'motorbike',
-      iconLib: 'mci',
-      color: '#F59E0B',
-      route: 'BikeHomeScreen',
-    },
-    {
-      serviceId: SERVICE_IDS.SELF_DRIVE,
-      name: 'Self-Drive Cars',
-      icon: 'car-side',
-      iconLib: 'mci',
-      color: '#3B82F6',
-      route: 'SelfDriveHomeScreen',
-    },
-    {
-      serviceId: SERVICE_IDS.CAR_RENTAL,
-      name: 'Car Rental',
-      icon: 'car',
-      iconLib: 'mci',
-      color: '#10B981',
-      route: 'CarRentalHomeScreen',
-    },
-    {
-      serviceId: SERVICE_IDS.LUXURY,
-      name: 'Luxury Cars',
-      icon: 'car-sports',
-      iconLib: 'mci',
-      color: '#8B5CF6',
-      route: 'LuxuryHomeScreen',
-    },
-    {
-      serviceId: SERVICE_IDS.BUS,
-      name: 'Bus & Tempo',
-      icon: 'bus',
-      iconLib: 'mci',
-      color: '#EC4899',
-      route: 'BusHomeScreen',
-    },
-    {
-      serviceId: SERVICE_IDS.TRANSPORTER,
-      name: 'Transporter',
-      icon: 'truck-delivery',
-      iconLib: 'mci',
-      color: '#EF4444',
-      route: 'TruckHomeScreen',
-    },
-    {
-      serviceId: SERVICE_IDS.PACKERS,
-      name: 'Packers & Movers',
-      icon: 'package-variant',
-      iconLib: 'mci',
-      color: '#14B8A6',
-      route: 'PackersHomeScreen',
-    },
-    {
-      serviceId: SERVICE_IDS.EQUIPMENT,
-      name: 'Equipment',
-      icon: 'hammer-wrench',
-      iconLib: 'mci',
-      color: '#6366F1',
-      route: 'EquipmentHomeScreen',
-    },
+  // ── Quick actions (horizontal) ─────────────────────────────────────────
+  const quickActions = [
+    { label: 'Add Vehicle',    icon: 'plus-circle',   lib: 'feather',  color: G.blue,   bg: G.blueL,   route: 'AddVehicleScreen' },
+    { label: 'Add Staff',      icon: 'user-plus',     lib: 'feather',  color: G.purple, bg: G.purpleL, route: 'AddStaffScreen' },
+    { label: 'Documents',      icon: 'folder',        lib: 'feather',  color: G.g600,   bg: G.g50,     route: 'VendorDocuments' },
+    { label: 'Services',       icon: 'layers',        lib: 'feather',  color: G.red,    bg: G.redL,    route: 'VendorServices' },
+    { label: 'Locations',      icon: 'map-pin',       lib: 'feather',  color: G.indigo, bg: G.indigoL, route: 'VendorLocations' },
+    { label: 'Direct Booking', icon: 'book-open',     lib: 'feather',  color: G.orange, bg: G.orangeL, route: 'DirectBookings' },
+    { label: 'Booking Links',  icon: 'link-2',        lib: 'feather',  color: G.indigo, bg: G.indigoL, route: 'BookingLinks' },
+    { label: 'Financials',     icon: 'bar-chart-2',   lib: 'feather',  color: G.purple, bg: G.purpleL, route: 'Financials' },
+    { label: 'P2P Market',     icon: 'swap-horizontal',lib:'mci',      color: G.teal,   bg: G.tealL,   route: 'P2PDashboard' },
+    { label: 'My Earnings',    icon: 'trending-up',   lib: 'feather',  color: G.g600,   bg: G.g50,     route: 'EarningsScreen' },
   ];
 
-  const approvedServiceModules = serviceModules.filter((m) =>
-    hasService(m.serviceId)
-  );
+  // ── Services ───────────────────────────────────────────────────────────
+  const SERVICE_MODULES = [
+    { id: SERVICE_IDS.BIKE,        name: 'Bike Rentals',       icon: 'motorbike',      color: G.amber,  route: 'BikeHomeScreen' },
+    { id: SERVICE_IDS.SELF_DRIVE,  name: 'Self-Drive Cars',    icon: 'car-side',       color: G.blue,   route: 'SelfDriveHomeScreen' },
+    { id: SERVICE_IDS.CAR_RENTAL,  name: 'Car Rental',         icon: 'car',            color: G.g600,   route: 'CarRentalHomeScreen' },
+    { id: SERVICE_IDS.LUXURY,      name: 'Luxury Cars',        icon: 'car-sports',     color: G.purple, route: 'LuxuryHomeScreen' },
+    { id: SERVICE_IDS.BUS,         name: 'Bus & Tempo',        icon: 'bus',            color: G.pink,   route: 'BusHomeScreen' },
+    { id: SERVICE_IDS.TRANSPORTER, name: 'Transporter',        icon: 'truck-delivery', color: G.red,    route: 'TruckHomeScreen' },
+    { id: SERVICE_IDS.PACKERS,     name: 'Packers & Movers',   icon: 'package-variant',color: G.cyan,   route: 'PackersHomeScreen' },
+    { id: SERVICE_IDS.EQUIPMENT,   name: 'Equipment Rental',   icon: 'hammer-wrench',  color: G.indigo, route: 'EquipmentHomeScreen' },
+  ];
+  const approvedServices = SERVICE_MODULES.filter((m) => hasService(m.id));
 
+  // ── Manage grid ────────────────────────────────────────────────────────
+  const manageItems = [
+    { label: 'Fleet',        sub: `${profile?.fleetsCount ?? 0} vehicles`, icon: 'truck',         lib: 'feather', color: G.blue,   bg: G.blueL,   route: 'FleetListScreen' },
+    { label: 'Staff',        sub: 'Manage team',                           icon: 'users',         lib: 'feather', color: G.purple, bg: G.purpleL, route: 'StaffListScreen' },
+    { label: 'Chats',        sub: 'Messages',                              icon: 'message-circle',lib: 'feather', color: G.g600,   bg: G.g50,     route: 'ChatListScreen' },
+    { label: 'Settings',     sub: 'Profile',                               icon: 'settings',      lib: 'feather', color: G.amber,  bg: G.amberL,  route: 'ProfileScreen' },
+    { label: 'Direct',       sub: 'Bookings',                              icon: 'book-open',     lib: 'feather', color: G.orange, bg: G.orangeL, route: 'DirectBookings' },
+    { label: 'Booking Links',sub: 'Share links',                           icon: 'link-2',        lib: 'feather', color: G.indigo, bg: G.indigoL, route: 'BookingLinks' },
+    { label: 'Financials',   sub: 'P&L reports',                           icon: 'bar-chart-2',   lib: 'feather', color: G.purple, bg: G.purpleL, route: 'Financials' },
+    { label: 'P2P Market',   sub: 'Trade fleet',                           icon: 'swap-horizontal',lib:'mci',     color: G.teal,   bg: G.tealL,   route: 'P2PDashboard' },
+  ];
+
+  // ── Pending quick actions ──────────────────────────────────────────────
+  const pendingActions = [
+    { name: 'Complete Profile',    desc: 'Add business details',      icon: 'building',  color: G.blue,   bg: G.blueL,   route: 'ProfileScreen' },
+    { name: 'Upload Documents',    desc: 'GST, PAN & more',           icon: 'file-text', color: G.purple, bg: G.purpleL, route: 'VendorDocuments' },
+    { name: 'Request Services',    desc: 'Select services you offer', icon: 'layers',    color: G.g600,   bg: G.g50,     route: 'VendorServices' },
+    { name: 'Request Locations',   desc: 'Cities you operate in',     icon: 'map-pin',   color: G.orange, bg: G.orangeL, route: 'VendorLocations' },
+  ];
+
+  // ── Loading skeleton ───────────────────────────────────────────────────
   if (loading) {
     return (
-      <SafeAreaView style={styles.safe}>
-        <View style={styles.loaderContainer}>
-          <ActivityIndicator size="large" color={C.brand} />
-        </View>
-      </SafeAreaView>
+      <View style={{ flex: 1, backgroundColor: G.bg }}>
+        <StatusBar barStyle="light-content" backgroundColor={G.g900} />
+        <LinearGradient colors={['#052e16', '#14532d', '#166534', '#15803d']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={sk.header}>
+          <View style={{ gap: 8 }}>
+            <SkeletonBox w={160} h={20} radius={6} style={{ backgroundColor: 'rgba(255,255,255,0.2)' }} />
+            <SkeletonBox w={100} h={14} radius={5} style={{ backgroundColor: 'rgba(255,255,255,0.15)' }} />
+          </View>
+          <SkeletonBox w={44} h={44} radius={22} style={{ backgroundColor: 'rgba(255,255,255,0.2)' }} />
+        </LinearGradient>
+        <ScrollView contentContainerStyle={{ padding: 16, gap: 14 }}>
+          <SkeletonBox w="100%" h={160} radius={20} />
+          <View style={{ flexDirection: 'row', gap: 10 }}>
+            <SkeletonBox w={(W - 42) / 2} h={90} radius={16} />
+            <SkeletonBox w={(W - 42) / 2} h={90} radius={16} />
+          </View>
+          <View style={{ flexDirection: 'row', gap: 10 }}>
+            <SkeletonBox w={(W - 42) / 2} h={90} radius={16} />
+            <SkeletonBox w={(W - 42) / 2} h={90} radius={16} />
+          </View>
+          <SkeletonBox w="100%" h={130} radius={16} />
+          <SkeletonBox w="100%" h={130} radius={16} />
+        </ScrollView>
+      </View>
     );
   }
 
-  const statusColors = getStatusColor(vendorStatus);
-
   return (
-    <SafeAreaView style={styles.safe}>
+    <View style={{ flex: 1, backgroundColor: G.bg }}>
+      <StatusBar barStyle="light-content" backgroundColor={G.g800} />
+
       <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor={C.brand}
-            colors={[C.brand]}
-          />
-        }
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[G.g600]} tintColor={G.g600} />
+        }
       >
-        {/* Welcome Header */}
-        <View style={styles.hero}>
-          <View style={styles.heroRow}>
-            <View style={styles.heroTextContainer}>
-              <Text style={styles.heroHello}>
-                Hello <Text style={styles.heroName}>{profile?.businessName || vendor?.businessName || 'Vendor'}</Text>,
-              </Text>
-              <Text style={styles.heroSub}>
-                {isApproved
-                  ? 'Manage your fleet, services & grow your business'
-                  : 'Complete your profile to start receiving bookings'}
-              </Text>
-            </View>
-            <TouchableOpacity
-              style={styles.bellBtn}
-              onPress={() => navigation.navigate('NotificationsScreen')}
-            >
-              <Ionicons name="notifications-outline" size={20} color={C.brand} />
-              {unreadCount > 0 && (
-                <View style={styles.bellBadge}>
-                  <Text style={styles.bellBadgeText}>
-                    {unreadCount > 99 ? '99+' : String(unreadCount)}
-                  </Text>
+        {/* ══════════════════════════════════════════════════════════════
+            HERO HEADER — deep green gradient
+        ══════════════════════════════════════════════════════════════ */}
+        <LinearGradient
+          colors={['#052e16', '#14532d', '#166534', '#15803d']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={s.hero}
+        >
+          {/* Top row */}
+          <SafeAreaView edges={['top']}>
+            <View style={s.heroTop}>
+              <View style={s.heroLeft}>
+                <AvatarInitials name={businessName} size={48} />
+                <View style={{ marginLeft: 12 }}>
+                  <Text style={s.heroGreeting}>Good day 👋</Text>
+                  <Text style={s.heroName} numberOfLines={1}>{businessName}</Text>
                 </View>
-              )}
-            </TouchableOpacity>
-          </View>
+              </View>
 
-          {/* Status Badge */}
-          <View
-            style={[
-              styles.statusBadge,
-              {
-                backgroundColor: statusColors.bg,
-                borderColor: statusColors.border,
-              },
-            ]}
-          >
-            <Text style={[styles.statusText, { color: statusColors.text }]}>
-              Status: {vendorStatus.replace(/_/g, ' ')}
-            </Text>
-          </View>
-        </View>
-
-        {/* Non-Approved: Approval Progress */}
-        {!isApproved && (
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>Approval Progress</Text>
-            <View style={styles.stepsContainer}>
-              {getStatusSteps().map((step, index) => (
-                <React.Fragment key={step.id}>
-                  <View style={styles.stepItem}>
-                    <View
-                      style={[
-                        styles.stepCircle,
-                        step.status === 'completed' && styles.stepCompleted,
-                        step.status === 'current' && styles.stepCurrent,
-                        step.status === 'rejected' && styles.stepRejected,
-                      ]}
-                    >
-                      {step.status === 'completed' ? (
-                        <Icon name="check" size={14} color="#fff" />
-                      ) : step.status === 'current' ? (
-                        <Icon name="clock" size={14} color="#fff" />
-                      ) : step.status === 'rejected' ? (
-                        <Icon name="x" size={14} color="#fff" />
-                      ) : (
-                        <Text style={styles.stepNumber}>{step.id}</Text>
-                      )}
-                    </View>
-                    <Text style={styles.stepName}>{step.name}</Text>
-                  </View>
-                  {index < getStatusSteps().length - 1 && (
-                    <View
-                      style={[
-                        styles.stepLine,
-                        step.status === 'completed' && styles.stepLineCompleted,
-                      ]}
-                    />
-                  )}
-                </React.Fragment>
-              ))}
-            </View>
-
-            {/* Status Messages */}
-            {vendorStatus === VENDOR_STATUS.DOCUMENTS_PENDING && (
               <TouchableOpacity
-                style={[styles.statusMessage, { backgroundColor: '#FEF3C7' }]}
-                onPress={() => navigation.navigate('VendorDocuments')}
+                style={s.notifBtn}
+                onPress={() => navigation.navigate('NotificationsScreen')}
+                activeOpacity={0.8}
               >
-                <Icon name="alert-circle" size={18} color="#D97706" />
-                <View style={styles.statusMessageContent}>
-                  <Text style={[styles.statusMessageTitle, { color: '#92400E' }]}>
-                    Documents Required
-                  </Text>
-                  <Text style={[styles.statusMessageText, { color: '#B45309' }]}>
-                    Please upload your business documents to proceed.
-                  </Text>
-                </View>
-                <Icon name="chevron-right" size={18} color="#D97706" />
-              </TouchableOpacity>
-            )}
-
-            {vendorStatus === VENDOR_STATUS.UNDER_REVIEW && (
-              <View style={[styles.statusMessage, { backgroundColor: '#DBEAFE' }]}>
-                <Icon name="clock" size={18} color="#2563EB" />
-                <View style={styles.statusMessageContent}>
-                  <Text style={[styles.statusMessageTitle, { color: '#1E40AF' }]}>
-                    Under Review
-                  </Text>
-                  <Text style={[styles.statusMessageText, { color: '#1D4ED8' }]}>
-                    Your documents are being reviewed. Usually takes 1-2 days.
-                  </Text>
-                </View>
-              </View>
-            )}
-
-            {vendorStatus === VENDOR_STATUS.REJECTED && (
-              <View style={[styles.statusMessage, { backgroundColor: '#FEE2E2' }]}>
-                <Icon name="x-circle" size={18} color="#DC2626" />
-                <View style={styles.statusMessageContent}>
-                  <Text style={[styles.statusMessageTitle, { color: '#991B1B' }]}>
-                    Application Rejected
-                  </Text>
-                  <Text style={[styles.statusMessageText, { color: '#B91C1C' }]}>
-                    {profile?.rejectionReason || 'Please contact support for more info.'}
-                  </Text>
-                </View>
-              </View>
-            )}
-          </View>
-        )}
-
-        {/* Earnings Card - Only for approved vendors */}
-        {isApproved && (
-          <TouchableOpacity
-            style={styles.earningsCard}
-            onPress={() => navigation.navigate('EarningsScreen')}
-            activeOpacity={0.8}
-          >
-            <View style={styles.earningsHeader}>
-              <View>
-                <Text style={styles.earningsLabel}>This Month's Earnings</Text>
-                <Text style={styles.earningsAmount}>
-                  ₹{formatCurrency(earnings?.thisMonth || 0)}
-                </Text>
-              </View>
-              <View style={styles.earningsGrowth}>
-                <Icon
-                  name={earnings?.growth >= 0 ? 'trending-up' : 'trending-down'}
-                  size={16}
-                  color={earnings?.growth >= 0 ? '#22C55E' : '#EF4444'}
-                />
-                <Text
-                  style={[
-                    styles.earningsGrowthText,
-                    { color: earnings?.growth >= 0 ? '#22C55E' : '#EF4444' },
-                  ]}
-                >
-                  {Math.abs(earnings?.growth || 0)}%
-                </Text>
-              </View>
-            </View>
-
-            <View style={styles.earningsStats}>
-              <View style={styles.earningsStat}>
-                <Text style={styles.earningsStatValue}>
-                  ₹{formatCurrency(earnings?.today || 0)}
-                </Text>
-                <Text style={styles.earningsStatLabel}>Today</Text>
-              </View>
-              <View style={styles.earningsStatDivider} />
-              <View style={styles.earningsStat}>
-                <Text style={styles.earningsStatValue}>
-                  ₹{formatCurrency(earnings?.pendingPayout || 0)}
-                </Text>
-                <Text style={styles.earningsStatLabel}>Pending Payout</Text>
-              </View>
-              <View style={styles.earningsStatDivider} />
-              <View style={styles.earningsStat}>
-                <Text style={styles.earningsStatValue}>
-                  {bookingsData?.completed || 0}
-                </Text>
-                <Text style={styles.earningsStatLabel}>Completed</Text>
-              </View>
-            </View>
-
-            <View style={styles.earningsFooter}>
-              <Text style={styles.earningsFooterText}>View Detailed Earnings</Text>
-              <Icon name="arrow-right" size={16} color="#fff" />
-            </View>
-          </TouchableOpacity>
-        )}
-
-        {/* Quick Actions */}
-        <Text style={styles.sectionTitle}>
-          {isApproved ? 'Quick Stats' : 'Quick Actions'}
-        </Text>
-        <View style={styles.quickActionsGrid}>
-          {(isApproved ? stats : pendingQuickActions).map((item, index) => {
-            const IconComponent = item.iconLib === 'mci' ? MaterialCommunityIcons : Icon;
-            return (
-              <TouchableOpacity
-                key={index}
-                style={styles.quickActionCard}
-                onPress={() => item.route && navigation.navigate(item.route)}
-                activeOpacity={0.7}
-              >
-                <View
-                  style={[
-                    styles.quickActionIcon,
-                    { backgroundColor: `${item.color}14`, borderColor: `${item.color}33` },
-                  ]}
-                >
-                  <IconComponent name={item.icon} size={20} color={item.color} />
-                </View>
-                <Text style={styles.quickActionValue}>
-                  {isApproved ? item.value : null}
-                </Text>
-                <Text style={styles.quickActionLabel}>{item.label || item.name}</Text>
-                <Text style={styles.quickActionSubLabel}>
-                  {isApproved ? item.subLabel : item.description}
-                </Text>
-                {item.route && (
-                  <View style={styles.quickActionArrow}>
-                    <Icon name="arrow-up-right" size={14} color={C.muted} />
+                <Ionicons name="notifications-outline" size={22} color="#fff" />
+                {unreadCount > 0 && (
+                  <View style={s.notifBadge}>
+                    <Text style={s.notifBadgeText}>
+                      {unreadCount > 99 ? '99+' : String(unreadCount)}
+                    </Text>
                   </View>
                 )}
               </TouchableOpacity>
-            );
-          })}
-        </View>
-
-        {/* Approved Vendors: Service Modules */}
-        {isApproved && approvedServiceModules.length > 0 && (
-          <>
-            <Text style={styles.sectionTitle}>Your Services</Text>
-            <View style={styles.servicesGrid}>
-              {approvedServiceModules.map((service, index) => {
-                const IconComponent =
-                  service.iconLib === 'mci' ? MaterialCommunityIcons : Icon;
-                return (
-                  <TouchableOpacity
-                    key={index}
-                    style={styles.serviceCard}
-                    onPress={() => navigation.navigate(service.route)}
-                    activeOpacity={0.7}
-                  >
-                    <View
-                      style={[
-                        styles.serviceIcon,
-                        { backgroundColor: `${service.color}14` },
-                      ]}
-                    >
-                      <IconComponent
-                        name={service.icon}
-                        size={24}
-                        color={service.color}
-                      />
-                    </View>
-                    <Text style={styles.serviceName}>{service.name}</Text>
-                    <Icon name="chevron-right" size={16} color={C.muted} />
-                  </TouchableOpacity>
-                );
-              })}
             </View>
-          </>
-        )}
 
-        {/* Approved Vendors: Quick Actions Row */}
-        {isApproved && (
-          <>
-            <Text style={styles.sectionTitle}>Quick Actions</Text>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              style={styles.quickActionsRow}
-              contentContainerStyle={styles.quickActionsRowContent}
+            {/* Status pill */}
+            <View style={[s.statusPill, { backgroundColor: sCfg.bg, borderColor: sCfg.border }]}>
+              <View style={[s.statusDot, { backgroundColor: sCfg.dot }]} />
+              <Text style={[s.statusLabel, { color: sCfg.text }]}>{sCfg.label}</Text>
+              {!isApproved && (
+                <Text style={[s.statusSub, { color: sCfg.text }]}>  ·  Complete setup to start receiving bookings</Text>
+              )}
+            </View>
+          </SafeAreaView>
+
+          {/* ── Earnings hero (approved only) ─────────────────────── */}
+          {isApproved && (
+            <TouchableOpacity
+              style={s.earningsHero}
+              onPress={() => navigation.navigate('EarningsScreen')}
+              activeOpacity={0.88}
             >
-              <TouchableOpacity
-                style={styles.quickActionBtn}
-                onPress={() => navigation.navigate('AddVehicleScreen')}
-              >
-                <View style={[styles.quickActionBtnIcon, { backgroundColor: '#DBEAFE' }]}>
-                  <Icon name="plus-circle" size={18} color="#2563EB" />
+              <View style={s.earningsTopRow}>
+                <View>
+                  <Text style={s.earningsLbl}>This Month's Earnings</Text>
+                  <Text style={s.earningsAmt}>₹{formatCurrency(earnings?.thisMonth || 0)}</Text>
                 </View>
-                <Text style={styles.quickActionBtnText}>Add Vehicle</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.quickActionBtn}
-                onPress={() => navigation.navigate('AddStaffScreen')}
-              >
-                <View style={[styles.quickActionBtnIcon, { backgroundColor: '#F3E8FF' }]}>
-                  <Icon name="user-plus" size={18} color="#8B5CF6" />
+                <View style={[
+                  s.growthBadge,
+                  { backgroundColor: (earnings?.growth ?? 0) >= 0 ? 'rgba(74,222,128,0.25)' : 'rgba(239,68,68,0.2)' }
+                ]}>
+                  <Icon
+                    name={(earnings?.growth ?? 0) >= 0 ? 'trending-up' : 'trending-down'}
+                    size={13}
+                    color={(earnings?.growth ?? 0) >= 0 ? G.g400 : '#FCA5A5'}
+                  />
+                  <Text style={[s.growthTxt, { color: (earnings?.growth ?? 0) >= 0 ? G.g400 : '#FCA5A5' }]}>
+                    {Math.abs(earnings?.growth ?? 0)}%
+                  </Text>
                 </View>
-                <Text style={styles.quickActionBtnText}>Add Staff</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.quickActionBtn}
-                onPress={() => navigation.navigate('VendorDocuments')}
-              >
-                <View style={[styles.quickActionBtnIcon, { backgroundColor: '#DCFCE7' }]}>
-                  <Icon name="folder" size={18} color="#22C55E" />
-                </View>
-                <Text style={styles.quickActionBtnText}>Documents</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.quickActionBtn}
-                onPress={() => navigation.navigate('VendorServices')}
-              >
-                <View style={[styles.quickActionBtnIcon, { backgroundColor: '#FEE2E2' }]}>
-                  <Icon name="layers" size={18} color="#EF4444" />
-                </View>
-                <Text style={styles.quickActionBtnText}>Services</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.quickActionBtn}
-                onPress={() => navigation.navigate('VendorLocations')}
-              >
-                <View style={[styles.quickActionBtnIcon, { backgroundColor: '#E0E7FF' }]}>
-                  <Icon name="map-pin" size={18} color="#4F46E5" />
-                </View>
-                <Text style={styles.quickActionBtnText}>Locations</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.quickActionBtn}
-                onPress={() => navigation.navigate('DirectBookings')}
-              >
-                <View style={[styles.quickActionBtnIcon, { backgroundColor: '#FEF3C7' }]}>
-                  <Icon name="book-open" size={18} color="#F59E0B" />
-                </View>
-                <Text style={styles.quickActionBtnText}>Direct Bookings</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.quickActionBtn}
-                onPress={() => navigation.navigate('BookingLinks')}
-              >
-                <View style={[styles.quickActionBtnIcon, { backgroundColor: '#E0E7FF' }]}>
-                  <Icon name="link-2" size={18} color="#6366F1" />
-                </View>
-                <Text style={styles.quickActionBtnText}>Booking Links</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.quickActionBtn}
-                onPress={() => navigation.navigate('Financials')}
-              >
-                <View style={[styles.quickActionBtnIcon, { backgroundColor: '#EDE9FE' }]}>
-                  <Icon name="bar-chart-2" size={18} color="#7C3AED" />
-                </View>
-                <Text style={styles.quickActionBtnText}>Financials</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.quickActionBtn}
-                onPress={() => navigation.navigate('P2PDashboard')}
-              >
-                <View style={[styles.quickActionBtnIcon, { backgroundColor: '#D1FAE5' }]}>
-                  <MaterialCommunityIcons name="swap-horizontal" size={18} color="#10B981" />
-                </View>
-                <Text style={styles.quickActionBtnText}>P2P Market</Text>
-              </TouchableOpacity>
-            </ScrollView>
-          </>
-        )}
+              </View>
 
-        {/* Approved Vendors: Manage Grid */}
-        {isApproved && (
-          <>
-            <Text style={styles.sectionTitle}>Manage</Text>
-            <View style={styles.manageGrid}>
-              <TouchableOpacity
-                style={styles.manageCard}
-                onPress={() => navigation.navigate('FleetListScreen')}
-              >
-                <View style={[styles.manageCardIcon, { backgroundColor: '#DBEAFE' }]}>
-                  <Icon name="truck" size={18} color={C.blue} />
+              <View style={s.earningsStatsRow}>
+                {[
+                  { v: `₹${formatCurrency(earnings?.today || 0)}`,         l: 'Today' },
+                  { v: `₹${formatCurrency(earnings?.pendingPayout || 0)}`,  l: 'Pending' },
+                  { v: String(bookingsData?.completed || 0),                 l: 'Completed' },
+                ].map((st, i) => (
+                  <React.Fragment key={i}>
+                    {i > 0 && <View style={s.earningsDiv} />}
+                    <View style={s.earningStat}>
+                      <Text style={s.earningStatV}>{st.v}</Text>
+                      <Text style={s.earningStatL}>{st.l}</Text>
+                    </View>
+                  </React.Fragment>
+                ))}
+              </View>
+
+              <View style={s.earningsCTA}>
+                <Text style={s.earningsCTATxt}>View Detailed Earnings</Text>
+                <Icon name="arrow-right" size={15} color={G.g300} />
+              </View>
+            </TouchableOpacity>
+          )}
+        </LinearGradient>
+
+        <View style={s.body}>
+
+          {/* ══════════════════════════════════════════════════════════
+              NON-APPROVED: Approval progress
+          ══════════════════════════════════════════════════════════ */}
+          {!isApproved && (
+            <View style={s.card}>
+              <View style={s.cardHeader}>
+                <Text style={s.cardTitle}>Approval Progress</Text>
+                <View style={[s.pill, { backgroundColor: G.g50, borderColor: G.g200 }]}>
+                  <Text style={[s.pillTxt, { color: G.g700 }]}>
+                    Step {steps.filter(st => st.status === 'completed').length} / {steps.length}
+                  </Text>
                 </View>
-                <Text style={styles.manageText}>Fleet</Text>
-                <Text style={styles.manageCount}>{profile?.fleetsCount || 0}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.manageCard}
-                onPress={() => navigation.navigate('StaffListScreen')}
-              >
-                <View style={[styles.manageCardIcon, { backgroundColor: '#F3E8FF' }]}>
-                  <Icon name="users" size={18} color={C.purple} />
+              </View>
+
+              {/* Progress bar */}
+              <View style={s.progressTrack}>
+                <View style={[s.progressFill, {
+                  width: `${(steps.filter(st => st.status === 'completed').length / steps.length) * 100}%`
+                }]} />
+              </View>
+
+              {/* Steps */}
+              <View style={s.stepsRow}>
+                {steps.map((step, idx) => (
+                  <React.Fragment key={step.id}>
+                    <View style={s.stepCol}>
+                      <View style={[
+                        s.stepCircle,
+                        step.status === 'completed' && { backgroundColor: G.g600, borderColor: G.g600 },
+                        step.status === 'current'   && { backgroundColor: G.blue, borderColor: G.blue },
+                        step.status === 'rejected'  && { backgroundColor: G.red,  borderColor: G.red },
+                        step.status === 'pending'   && { backgroundColor: G.bg,   borderColor: G.border },
+                      ]}>
+                        {step.status === 'completed' ? <Icon name="check"  size={13} color="#fff" />
+                         : step.status === 'current'  ? <Icon name="clock"  size={13} color="#fff" />
+                         : step.status === 'rejected' ? <Icon name="x"     size={13} color="#fff" />
+                         : <Text style={s.stepNum}>{step.id}</Text>}
+                      </View>
+                      <Text style={[s.stepLbl, step.status === 'current' && { color: G.blue, fontWeight: '700' }]}>
+                        {step.name}
+                      </Text>
+                    </View>
+                    {idx < steps.length - 1 && (
+                      <View style={[s.stepLine, step.status === 'completed' && { backgroundColor: G.g500 }]} />
+                    )}
+                  </React.Fragment>
+                ))}
+              </View>
+
+              {/* Status banners */}
+              {vendorStatus === VENDOR_STATUS.DOCUMENTS_PENDING && (
+                <TouchableOpacity
+                  style={s.alertBanner}
+                  onPress={() => navigation.navigate('VendorDocuments')}
+                  activeOpacity={0.8}
+                >
+                  <View style={[s.alertIcon, { backgroundColor: '#FEF3C7' }]}>
+                    <Icon name="alert-triangle" size={16} color={G.amber} />
+                  </View>
+                  <View style={{ flex: 1, marginLeft: 10 }}>
+                    <Text style={[s.alertTitle, { color: '#92400E' }]}>Documents Required</Text>
+                    <Text style={[s.alertSub, { color: '#B45309' }]}>Upload GST, PAN & business docs to proceed</Text>
+                  </View>
+                  <Icon name="chevron-right" size={16} color={G.amber} />
+                </TouchableOpacity>
+              )}
+              {vendorStatus === VENDOR_STATUS.UNDER_REVIEW && (
+                <View style={s.alertBanner}>
+                  <View style={[s.alertIcon, { backgroundColor: G.blueL }]}>
+                    <Icon name="clock" size={16} color={G.blue} />
+                  </View>
+                  <View style={{ flex: 1, marginLeft: 10 }}>
+                    <Text style={[s.alertTitle, { color: '#1E40AF' }]}>Under Review</Text>
+                    <Text style={[s.alertSub, { color: '#2563EB' }]}>Usually takes 1–2 business days</Text>
+                  </View>
                 </View>
-                <Text style={styles.manageText}>Staff</Text>
-                <Text style={styles.manageCount}>Manage</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.manageCard}
-                onPress={() => navigation.navigate('ChatListScreen')}
-              >
-                <View style={[styles.manageCardIcon, { backgroundColor: '#DCFCE7' }]}>
-                  <Icon name="message-circle" size={18} color={C.brand} />
+              )}
+              {vendorStatus === VENDOR_STATUS.REJECTED && (
+                <View style={s.alertBanner}>
+                  <View style={[s.alertIcon, { backgroundColor: G.redL }]}>
+                    <Icon name="x-circle" size={16} color={G.red} />
+                  </View>
+                  <View style={{ flex: 1, marginLeft: 10 }}>
+                    <Text style={[s.alertTitle, { color: '#991B1B' }]}>Application Rejected</Text>
+                    <Text style={[s.alertSub, { color: '#B91C1C' }]}>
+                      {profile?.rejectionReason || 'Contact support for more information'}
+                    </Text>
+                  </View>
                 </View>
-                <Text style={styles.manageText}>Chats</Text>
-                <Text style={styles.manageCount}>Messages</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.manageCard}
-                onPress={() => navigation.navigate('ProfileScreen')}
-              >
-                <View style={[styles.manageCardIcon, { backgroundColor: '#FEF3C7' }]}>
-                  <Icon name="settings" size={18} color={C.orange} />
-                </View>
-                <Text style={styles.manageText}>Settings</Text>
-                <Text style={styles.manageCount}>Profile</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.manageCard}
-                onPress={() => navigation.navigate('DirectBookings')}
-              >
-                <View style={[styles.manageCardIcon, { backgroundColor: '#FFF7ED' }]}>
-                  <Icon name="book-open" size={18} color="#F59E0B" />
-                </View>
-                <Text style={styles.manageText}>Direct</Text>
-                <Text style={styles.manageCount}>Bookings</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.manageCard}
-                onPress={() => navigation.navigate('BookingLinks')}
-              >
-                <View style={[styles.manageCardIcon, { backgroundColor: '#E0E7FF' }]}>
-                  <Icon name="link-2" size={18} color="#6366F1" />
-                </View>
-                <Text style={styles.manageText}>Booking</Text>
-                <Text style={styles.manageCount}>Links</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.manageCard}
-                onPress={() => navigation.navigate('Financials')}
-              >
-                <View style={[styles.manageCardIcon, { backgroundColor: '#EDE9FE' }]}>
-                  <Icon name="bar-chart-2" size={18} color="#7C3AED" />
-                </View>
-                <Text style={styles.manageText}>Financials</Text>
-                <Text style={styles.manageCount}>P&L</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.manageCard}
-                onPress={() => navigation.navigate('P2PDashboard')}
-              >
-                <View style={[styles.manageCardIcon, { backgroundColor: '#D1FAE5' }]}>
-                  <MaterialCommunityIcons name="swap-horizontal" size={18} color="#10B981" />
-                </View>
-                <Text style={styles.manageText}>P2P</Text>
-                <Text style={styles.manageCount}>Market</Text>
-              </TouchableOpacity>
+              )}
             </View>
-          </>
-        )}
+          )}
 
-        {/* Getting Started Guide (Non-approved) */}
-        {!isApproved && (
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>Getting Started Guide</Text>
-            <View style={styles.guideList}>
-              {[
-                { step: 1, title: 'Complete Your Profile', desc: 'Add your business details and logo.' },
-                { step: 2, title: 'Upload Documents', desc: 'GST, PAN, and business registration.' },
-                { step: 3, title: 'Request Services & Locations', desc: 'Select what services you offer and where.' },
-                { step: 4, title: 'Add Your Fleet', desc: 'Once approved, add vehicles with photos.' },
-              ].map((item) => (
-                <View key={item.step} style={styles.guideItem}>
-                  <View style={styles.guideNumber}>
-                    <Text style={styles.guideNumberText}>{item.step}</Text>
-                  </View>
-                  <View style={styles.guideContent}>
-                    <Text style={styles.guideTitle}>{item.title}</Text>
-                    <Text style={styles.guideDesc}>{item.desc}</Text>
-                  </View>
+          {/* ══════════════════════════════════════════════════════════
+              APPROVED: Stats 2×2 grid
+          ══════════════════════════════════════════════════════════ */}
+          {isApproved && (
+            <>
+              <View style={s.sectionRow}>
+                <Text style={s.sectionTitle}>Overview</Text>
+              </View>
+              <View style={s.statsGrid}>
+                {statCards.map((st, i) => (
+                  <TouchableOpacity
+                    key={i}
+                    style={[s.statCard, { borderLeftColor: st.color, borderLeftWidth: 3 }]}
+                    onPress={() => st.route && navigation.navigate(st.route)}
+                    activeOpacity={st.route ? 0.75 : 1}
+                  >
+                    <View style={[s.statIconWrap, { backgroundColor: st.bg }]}>
+                      <Icon name={st.icon} size={18} color={st.color} />
+                    </View>
+                    <Text style={[s.statValue, { color: st.color }]}>{st.value}</Text>
+                    <Text style={s.statLabel}>{st.label}</Text>
+                    {st.route && (
+                      <View style={s.statArrow}>
+                        <Icon name="arrow-up-right" size={11} color={G.muted} />
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </>
+          )}
+
+          {/* ══════════════════════════════════════════════════════════
+              NON-APPROVED: Pending quick actions
+          ══════════════════════════════════════════════════════════ */}
+          {!isApproved && (
+            <>
+              <View style={s.sectionRow}>
+                <Text style={s.sectionTitle}>Complete Setup</Text>
+              </View>
+              <View style={s.statsGrid}>
+                {pendingActions.map((a, i) => (
+                  <TouchableOpacity
+                    key={i}
+                    style={[s.statCard, { borderLeftColor: a.color, borderLeftWidth: 3 }]}
+                    onPress={() => navigation.navigate(a.route)}
+                    activeOpacity={0.75}
+                  >
+                    <View style={[s.statIconWrap, { backgroundColor: a.bg }]}>
+                      <Icon name={a.icon} size={18} color={a.color} />
+                    </View>
+                    <Text style={[s.statName, { color: G.text }]}>{a.name}</Text>
+                    <Text style={s.statLabel}>{a.desc}</Text>
+                    <View style={s.statArrow}>
+                      <Icon name="arrow-up-right" size={11} color={G.muted} />
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </>
+          )}
+
+          {/* ══════════════════════════════════════════════════════════
+              APPROVED: Quick Actions horizontal pill row
+          ══════════════════════════════════════════════════════════ */}
+          {isApproved && (
+            <>
+              <View style={s.sectionRow}>
+                <Text style={s.sectionTitle}>Quick Actions</Text>
+              </View>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                style={s.qaScroll}
+                contentContainerStyle={s.qaScrollContent}
+              >
+                {quickActions.map((qa, i) => {
+                  const QIcon = qa.lib === 'mci' ? MaterialCommunityIcons : Icon;
+                  return (
+                    <TouchableOpacity
+                      key={i}
+                      style={s.qaBtn}
+                      onPress={() => navigation.navigate(qa.route)}
+                      activeOpacity={0.75}
+                    >
+                      <View style={[s.qaIconWrap, { backgroundColor: qa.bg }]}>
+                        <QIcon name={qa.icon} size={20} color={qa.color} />
+                      </View>
+                      <Text style={s.qaLabel}>{qa.label}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+            </>
+          )}
+
+          {/* ══════════════════════════════════════════════════════════
+              APPROVED: Services 2-col grid
+          ══════════════════════════════════════════════════════════ */}
+          {isApproved && approvedServices.length > 0 && (
+            <>
+              <View style={s.sectionRow}>
+                <Text style={s.sectionTitle}>Your Services</Text>
+                <View style={[s.countBadge, { backgroundColor: G.g50, borderColor: G.g200 }]}>
+                  <Text style={[s.countTxt, { color: G.g700 }]}>{approvedServices.length}</Text>
                 </View>
-              ))}
+              </View>
+              <View style={s.servicesGrid}>
+                {approvedServices.map((svc, i) => (
+                  <TouchableOpacity
+                    key={i}
+                    style={s.svcCard}
+                    onPress={() => navigation.navigate(svc.route)}
+                    activeOpacity={0.75}
+                  >
+                    <View style={[s.svcIconBox, { backgroundColor: svc.color + '18' }]}>
+                      <MaterialCommunityIcons name={svc.icon} size={26} color={svc.color} />
+                    </View>
+                    <Text style={s.svcName} numberOfLines={2}>{svc.name}</Text>
+                    <View style={[s.svcArrow, { backgroundColor: svc.color + '14' }]}>
+                      <Icon name="chevron-right" size={13} color={svc.color} />
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </>
+          )}
+
+          {/* ══════════════════════════════════════════════════════════
+              APPROVED: Manage 2×4 grid
+          ══════════════════════════════════════════════════════════ */}
+          {isApproved && (
+            <>
+              <View style={s.sectionRow}>
+                <Text style={s.sectionTitle}>Manage</Text>
+              </View>
+              <View style={s.manageGrid}>
+                {manageItems.map((m, i) => {
+                  const MIcon = m.lib === 'mci' ? MaterialCommunityIcons : Icon;
+                  return (
+                    <TouchableOpacity
+                      key={i}
+                      style={s.manageCard}
+                      onPress={() => navigation.navigate(m.route)}
+                      activeOpacity={0.75}
+                    >
+                      <View style={[s.manageIconWrap, { backgroundColor: m.bg }]}>
+                        <MIcon name={m.icon} size={18} color={m.color} />
+                      </View>
+                      <View style={{ flex: 1, marginLeft: 10 }}>
+                        <Text style={s.manageLbl}>{m.label}</Text>
+                        <Text style={s.manageSub}>{m.sub}</Text>
+                      </View>
+                      <Icon name="chevron-right" size={15} color={G.muted} />
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </>
+          )}
+
+          {/* ══════════════════════════════════════════════════════════
+              NON-APPROVED: Getting Started Guide
+          ══════════════════════════════════════════════════════════ */}
+          {!isApproved && (
+            <>
+              <View style={s.sectionRow}>
+                <Text style={s.sectionTitle}>Getting Started</Text>
+              </View>
+              <View style={s.card}>
+                {[
+                  { step: 1, title: 'Complete Your Profile',         desc: 'Add your business name, logo & details.' },
+                  { step: 2, title: 'Upload Documents',              desc: 'GST, PAN, and business registration.' },
+                  { step: 3, title: 'Request Services & Locations',  desc: 'Select what you offer and where.' },
+                  { step: 4, title: 'Add Your Fleet',                desc: 'Once approved, add vehicles with photos.' },
+                ].map((item, idx, arr) => (
+                  <View key={item.step}>
+                    <View style={s.guideRow}>
+                      <View style={s.guideNumWrap}>
+                        <Text style={s.guideNumTxt}>{item.step}</Text>
+                      </View>
+                      <View style={{ flex: 1, marginLeft: 14 }}>
+                        <Text style={s.guideTitle}>{item.title}</Text>
+                        <Text style={s.guideDesc}>{item.desc}</Text>
+                      </View>
+                      <Icon name="check-circle" size={18} color={
+                        steps[item.step - 1]?.status === 'completed' ? G.g500 : G.border
+                      } />
+                    </View>
+                    {idx < arr.length - 1 && <View style={s.guideDivider} />}
+                  </View>
+                ))}
+              </View>
+            </>
+          )}
+
+          <View style={{ height: 110 }} />
+        </View>
+      </ScrollView>
+
+      {/* ══════════════════════════════════════════════════════════════
+          APP UPDATE MODAL
+      ══════════════════════════════════════════════════════════════ */}
+      <Modal
+        visible={showUpdateModal}
+        transparent
+        animationType="fade"
+        statusBarTranslucent
+        onRequestClose={() => {
+          if (!updateInfo?.forceUpdate) setShowUpdateModal(false);
+        }}
+      >
+        <View style={s.updateOverlay}>
+          <View style={s.updateCard}>
+            {/* Close button — only if not force update */}
+            {!updateInfo?.forceUpdate && (
+              <TouchableOpacity style={s.updateCloseBtn} onPress={() => setShowUpdateModal(false)} activeOpacity={0.7}>
+                <Icon name="x" size={18} color={G.muted} />
+              </TouchableOpacity>
+            )}
+
+            {/* Top gradient banner with icon */}
+            <LinearGradient colors={[G.g900, G.g800, G.g700]} style={s.updateBanner}>
+              <View style={s.updateIconRing}>
+                <Ionicons name="arrow-up-circle" size={40} color="#fff" />
+              </View>
+              <Text style={s.updateBannerTag}>New Update Available</Text>
+            </LinearGradient>
+
+            {/* Content */}
+            <View style={s.updateBody}>
+              <Text style={s.updateTitle}>Version {updateInfo?.latestVersion}</Text>
+              <Text style={s.updateMsg}>
+                {updateInfo?.updateMessage || 'A new version is available with improvements and bug fixes.'}
+              </Text>
+
+              {/* Update now button */}
+              <TouchableOpacity
+                style={s.updateBtnWrap}
+                activeOpacity={0.85}
+                onPress={() => {
+                  if (updateInfo?.playStoreUrl) Linking.openURL(updateInfo.playStoreUrl);
+                }}
+              >
+                <LinearGradient colors={[G.g800, G.g500]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={s.updateBtn}>
+                  <Ionicons name="download-outline" size={18} color="#fff" />
+                  <Text style={s.updateBtnTxt}>Update Now</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+
+              {/* Skip — only if not force update */}
+              {!updateInfo?.forceUpdate && (
+                <TouchableOpacity style={s.skipBtn} onPress={() => setShowUpdateModal(false)} activeOpacity={0.7}>
+                  <Text style={s.skipBtnTxt}>Skip for now</Text>
+                </TouchableOpacity>
+              )}
             </View>
           </View>
-        )}
-
-        <View style={{ height: 100 }} />
-      </ScrollView>
-    </SafeAreaView>
+        </View>
+      </Modal>
+    </View>
   );
 }
 
-const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: C.bg,
-  },
-  loaderContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    padding: 16,
-  },
+// ─────────────────────────────────────────────────────────────────────────────
+const CARD_W = (W - 48) / 2;
 
-  // Hero Section
-  hero: {
-    backgroundColor: C.surface,
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: C.border,
+const sk = StyleSheet.create({
+  header: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    paddingHorizontal: 20, paddingTop: 56, paddingBottom: 24,
   },
-  heroRow: {
+});
+
+const s = StyleSheet.create({
+  // ── Hero ──────────────────────────────────────────────────────────────
+  hero: {
+    paddingHorizontal: 18,
+    paddingBottom: 24,
+  },
+  heroTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    alignItems: 'center',
+    paddingTop: 10,
+    marginBottom: 14,
   },
-  heroTextContainer: {
+  heroLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
     flex: 1,
     marginRight: 12,
   },
-  heroHello: {
-    fontSize: 18,
-    color: C.text,
-    fontWeight: '600',
+  heroGreeting: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.65)',
+    fontWeight: '500',
+    letterSpacing: 0.3,
   },
   heroName: {
+    fontSize: 18,
     fontWeight: '800',
+    color: '#FFFFFF',
+    letterSpacing: -0.3,
+    marginTop: 1,
   },
-  heroSub: {
-    fontSize: 13,
-    color: C.muted,
-    marginTop: 4,
-    lineHeight: 18,
+  notifBtn: {
+    width: 42, height: 42,
+    borderRadius: 21,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    alignItems: 'center', justifyContent: 'center',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)',
   },
-  bellBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
+  notifBadge: {
+    position: 'absolute', top: -2, right: -2,
+    minWidth: 17, height: 17, borderRadius: 9,
+    backgroundColor: '#EF4444',
+    alignItems: 'center', justifyContent: 'center',
+    paddingHorizontal: 3,
+    borderWidth: 2, borderColor: G.g800,
+  },
+  notifBadgeText: { fontSize: 9, fontWeight: '800', color: '#fff' },
+
+  statusPill: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#F0FDF4',
+    alignSelf: 'flex-start',
+    paddingHorizontal: 12, paddingVertical: 6,
+    borderRadius: 20, borderWidth: 1,
+    marginBottom: 18,
+  },
+  statusDot: { width: 7, height: 7, borderRadius: 4, marginRight: 7 },
+  statusLabel: { fontSize: 12, fontWeight: '700' },
+  statusSub:   { fontSize: 11, fontWeight: '400', opacity: 0.75 },
+
+  // ── Earnings hero ──────────────────────────────────────────────────────
+  earningsHero: {
+    backgroundColor: 'rgba(255,255,255,0.08)',
     borderWidth: 1,
-    borderColor: '#BBF7D0',
+    borderColor: 'rgba(255,255,255,0.14)',
+    borderRadius: 20,
+    padding: 18,
+  },
+  earningsTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 },
+  earningsLbl:    { fontSize: 12, color: 'rgba(255,255,255,0.65)', fontWeight: '600', marginBottom: 5, letterSpacing: 0.3 },
+  earningsAmt:    { fontSize: 34, fontWeight: '900', color: '#fff', letterSpacing: -1 },
+  growthBadge:    { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 12 },
+  growthTxt:      { fontSize: 12, fontWeight: '700' },
+  earningsStatsRow: { flexDirection: 'row', backgroundColor: 'rgba(0,0,0,0.18)', borderRadius: 14, padding: 14, marginBottom: 14 },
+  earningsDiv:    { width: 1, backgroundColor: 'rgba(255,255,255,0.15)', marginHorizontal: 8 },
+  earningStat:    { flex: 1, alignItems: 'center' },
+  earningStatV:   { fontSize: 15, fontWeight: '800', color: '#fff', marginBottom: 3 },
+  earningStatL:   { fontSize: 10, color: 'rgba(255,255,255,0.6)', fontWeight: '600' },
+  earningsCTA:    { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
+  earningsCTATxt: { fontSize: 13, fontWeight: '700', color: G.g300 },
+
+  // ── Body ──────────────────────────────────────────────────────────────
+  body: {
+    paddingHorizontal: 16,
+    paddingTop: 20,
+  },
+
+  // ── Section headers ────────────────────────────────────────────────────
+  sectionRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    marginBottom: 12, marginTop: 4,
+  },
+  sectionTitle: {
+    fontSize: 16, fontWeight: '800', color: G.text, letterSpacing: -0.2,
+  },
+  countBadge: {
+    paddingHorizontal: 8, paddingVertical: 2,
+    borderRadius: 10, borderWidth: 1,
+  },
+  countTxt: { fontSize: 11, fontWeight: '800' },
+
+  // ── Generic card ──────────────────────────────────────────────────────
+  card: {
+    backgroundColor: G.surface, borderRadius: 18, padding: 16,
+    marginBottom: 18,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05, shadowRadius: 8, elevation: 2,
+    borderWidth: 1, borderColor: G.border,
+  },
+  cardHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 },
+  cardTitle:  { fontSize: 15, fontWeight: '800', color: G.text },
+  pill:       { paddingHorizontal: 10, paddingVertical: 3, borderRadius: 10, borderWidth: 1 },
+  pillTxt:    { fontSize: 11, fontWeight: '700' },
+
+  // ── Progress bar ──────────────────────────────────────────────────────
+  progressTrack: { height: 5, backgroundColor: G.border, borderRadius: 3, marginBottom: 18, overflow: 'hidden' },
+  progressFill:  { height: '100%', backgroundColor: G.g500, borderRadius: 3 },
+
+  // ── Steps ─────────────────────────────────────────────────────────────
+  stepsRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 16 },
+  stepCol:  { alignItems: 'center', flex: 1 },
+  stepCircle: {
+    width: 34, height: 34, borderRadius: 17,
+    alignItems: 'center', justifyContent: 'center',
+    borderWidth: 2, marginBottom: 6,
+  },
+  stepNum: { fontSize: 13, fontWeight: '700', color: G.muted },
+  stepLbl: { fontSize: 10, color: G.muted, fontWeight: '600', textAlign: 'center' },
+  stepLine: { flex: 0.5, height: 2, backgroundColor: G.border, marginBottom: 26 },
+
+  // ── Alert banner ──────────────────────────────────────────────────────
+  alertBanner: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: G.bg, borderRadius: 12, padding: 12,
+    borderWidth: 1, borderColor: G.border,
+  },
+  alertIcon:  { width: 34, height: 34, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  alertTitle: { fontSize: 13, fontWeight: '700', marginBottom: 1 },
+  alertSub:   { fontSize: 11, opacity: 0.8 },
+
+  // ── Stats grid (2×2) ──────────────────────────────────────────────────
+  statsGrid: {
+    flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 18,
+  },
+  statCard: {
+    width: CARD_W,
+    backgroundColor: G.surface, borderRadius: 16, padding: 14,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04, shadowRadius: 6, elevation: 1,
+    borderWidth: 1, borderColor: G.border,
     position: 'relative',
   },
-  bellBadge: {
-    position: 'absolute',
-    top: -4,
-    right: -4,
-    minWidth: 16,
-    height: 16,
-    borderRadius: 8,
-    backgroundColor: '#EF4444',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 3,
-    borderWidth: 1.5,
-    borderColor: '#fff',
-  },
-  bellBadgeText: {
-    fontSize: 9,
-    fontWeight: '700',
-    color: '#fff',
-  },
-  statusBadge: {
-    marginTop: 12,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-    alignSelf: 'flex-start',
-  },
-  statusText: {
-    fontSize: 12,
-    fontWeight: '700',
-  },
+  statIconWrap: { width: 38, height: 38, borderRadius: 11, alignItems: 'center', justifyContent: 'center', marginBottom: 10 },
+  statValue:    { fontSize: 26, fontWeight: '900', letterSpacing: -0.5, marginBottom: 2 },
+  statName:     { fontSize: 14, fontWeight: '700', color: G.text, marginBottom: 2 },
+  statLabel:    { fontSize: 11, color: G.muted, fontWeight: '500', lineHeight: 15 },
+  statArrow:    { position: 'absolute', top: 12, right: 12 },
 
-  // Card
-  card: {
-    backgroundColor: C.surface,
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: C.border,
+  // ── Quick actions ─────────────────────────────────────────────────────
+  qaScroll:        { marginHorizontal: -16, marginBottom: 18 },
+  qaScrollContent: { paddingHorizontal: 16, gap: 12 },
+  qaBtn:    { alignItems: 'center', width: 70 },
+  qaIconWrap: {
+    width: 52, height: 52, borderRadius: 16,
+    alignItems: 'center', justifyContent: 'center',
+    marginBottom: 7,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06, shadowRadius: 4, elevation: 1,
   },
-  cardTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: C.text,
-    marginBottom: 16,
-  },
+  qaLabel: { fontSize: 10, color: G.textMid, fontWeight: '600', textAlign: 'center', lineHeight: 13 },
 
-  // Steps
-  stepsContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 16,
-  },
-  stepItem: {
-    alignItems: 'center',
-    flex: 1,
-  },
-  stepCircle: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: C.chipBg,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 8,
-  },
-  stepCompleted: {
-    backgroundColor: C.brand,
-  },
-  stepCurrent: {
-    backgroundColor: C.blue,
-  },
-  stepRejected: {
-    backgroundColor: C.red,
-  },
-  stepNumber: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: C.muted,
-  },
-  stepName: {
-    fontSize: 11,
-    color: C.muted,
-    textAlign: 'center',
-  },
-  stepLine: {
-    flex: 0.5,
-    height: 2,
-    backgroundColor: C.border,
-    marginBottom: 24,
-  },
-  stepLineCompleted: {
-    backgroundColor: C.brand,
-  },
-
-  // Status Message
-  statusMessage: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 12,
-    borderRadius: 12,
-  },
-  statusMessageContent: {
-    flex: 1,
-    marginLeft: 12,
-    marginRight: 8,
-  },
-  statusMessageTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  statusMessageText: {
-    fontSize: 12,
-    marginTop: 2,
-  },
-
-  // Earnings Card
-  earningsCard: {
-    backgroundColor: C.brand,
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 16,
-  },
-  earningsHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 16,
-  },
-  earningsLabel: {
-    fontSize: 13,
-    color: 'rgba(255,255,255,0.8)',
-    marginBottom: 4,
-  },
-  earningsAmount: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: '#fff',
-  },
-  earningsGrowth: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  earningsGrowthText: {
-    fontSize: 12,
-    fontWeight: '700',
-    marginLeft: 4,
-  },
-  earningsStats: {
-    flexDirection: 'row',
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 12,
-  },
-  earningsStat: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  earningsStatValue: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#fff',
-  },
-  earningsStatLabel: {
-    fontSize: 11,
-    color: 'rgba(255,255,255,0.7)',
-    marginTop: 2,
-  },
-  earningsStatDivider: {
-    width: 1,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    marginHorizontal: 8,
-  },
-  earningsFooter: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  earningsFooterText: {
-    fontSize: 13,
-    color: '#fff',
-    fontWeight: '600',
-    marginRight: 6,
-  },
-
-  // Section Title
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: C.text,
-    marginBottom: 12,
-  },
-
-  // Quick Actions Grid
-  quickActionsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    marginBottom: 16,
-  },
-  quickActionCard: {
-    width: (screenWidth - 48) / 2,
-    backgroundColor: C.surface,
-    borderRadius: 14,
-    padding: 14,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: C.border,
-    alignItems: 'center',
-  },
-  quickActionIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    marginBottom: 8,
-  },
-  quickActionValue: {
-    fontSize: 24,
-    fontWeight: '800',
-    color: C.text,
-    marginBottom: 2,
-  },
-  quickActionLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: C.text,
-  },
-  quickActionSubLabel: {
-    fontSize: 11,
-    color: C.muted,
-    marginTop: 2,
-  },
-  quickActionArrow: {
-    position: 'absolute',
-    top: 14,
-    right: 14,
-  },
-
-  // Services Grid
+  // ── Services 2-col grid ───────────────────────────────────────────────
   servicesGrid: {
-    marginBottom: 16,
+    flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 18,
   },
-  serviceCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: C.surface,
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: C.border,
+  svcCard: {
+    width: CARD_W,
+    backgroundColor: G.surface, borderRadius: 16, padding: 14,
+    alignItems: 'flex-start',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04, shadowRadius: 6, elevation: 1,
+    borderWidth: 1, borderColor: G.border,
+    position: 'relative',
   },
-  serviceIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
-  },
-  serviceName: {
-    flex: 1,
-    fontSize: 15,
-    fontWeight: '600',
-    color: C.text,
-  },
+  svcIconBox: { width: 50, height: 50, borderRadius: 14, alignItems: 'center', justifyContent: 'center', marginBottom: 10 },
+  svcName:    { fontSize: 13, fontWeight: '700', color: G.text, lineHeight: 18, flex: 1 },
+  svcArrow:   { position: 'absolute', top: 12, right: 12, width: 26, height: 26, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
 
-  // Quick Actions Row (horizontal scroll)
-  quickActionsRow: {
-    marginBottom: 16,
-    marginHorizontal: -16,
-  },
-  quickActionsRowContent: {
-    paddingHorizontal: 16,
-    gap: 10,
-  },
-  quickActionBtn: {
-    alignItems: 'center',
-    width: 72,
-  },
-  quickActionBtnIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 6,
-  },
-  quickActionBtnText: {
-    fontSize: 10,
-    color: C.text,
-    fontWeight: '500',
-    textAlign: 'center',
-  },
-
-  // Manage Grid
+  // ── Manage list (2-col) ───────────────────────────────────────────────
   manageGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    marginBottom: 16,
+    flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 18,
   },
   manageCard: {
-    width: (screenWidth - 48) / 2,
-    backgroundColor: C.surface,
-    borderRadius: 14,
-    padding: 14,
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: C.border,
-    flexDirection: 'row',
-    alignItems: 'center',
+    width: CARD_W,
+    backgroundColor: G.surface, borderRadius: 14, padding: 12,
+    flexDirection: 'row', alignItems: 'center',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04, shadowRadius: 5, elevation: 1,
+    borderWidth: 1, borderColor: G.border,
   },
-  manageCardIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 10,
-  },
-  manageText: {
-    fontSize: 13,
-    color: C.text,
-    fontWeight: '600',
-    flex: 1,
-  },
-  manageCount: {
-    fontSize: 11,
-    color: C.muted,
-  },
+  manageIconWrap: { width: 38, height: 38, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
+  manageLbl: { fontSize: 13, fontWeight: '700', color: G.text },
+  manageSub: { fontSize: 10, color: G.muted, marginTop: 1 },
 
-  // Guide List
-  guideList: {
-    gap: 12,
+  // ── Update modal ───────────────────────────────────────────────────────
+  updateOverlay: {
+    flex: 1, backgroundColor: 'rgba(0,0,0,0.6)',
+    alignItems: 'center', justifyContent: 'center', paddingHorizontal: 28,
   },
-  guideItem: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    backgroundColor: C.card,
-    borderRadius: 12,
-    padding: 12,
+  updateCard: {
+    width: '100%', backgroundColor: G.surface,
+    borderRadius: 24, overflow: 'hidden',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.25, shadowRadius: 32, elevation: 20,
   },
-  guideNumber: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: C.blue,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
+  updateCloseBtn: {
+    position: 'absolute', top: 14, right: 14, zIndex: 10,
+    width: 32, height: 32, borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    alignItems: 'center', justifyContent: 'center',
   },
-  guideNumberText: {
-    color: '#fff',
-    fontWeight: '700',
-    fontSize: 13,
+  updateBanner: {
+    paddingTop: 36, paddingBottom: 28, alignItems: 'center', gap: 10,
   },
-  guideContent: {
-    flex: 1,
+  updateIconRing: {
+    width: 72, height: 72, borderRadius: 36,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    borderWidth: 2, borderColor: 'rgba(255,255,255,0.3)',
+    alignItems: 'center', justifyContent: 'center',
   },
-  guideTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: C.text,
+  updateBannerTag: {
+    fontSize: 12, fontWeight: '700', color: G.g300,
+    textTransform: 'uppercase', letterSpacing: 1.2,
   },
-  guideDesc: {
-    fontSize: 12,
-    color: C.muted,
-    marginTop: 2,
+  updateBody: { paddingHorizontal: 24, paddingTop: 20, paddingBottom: 28 },
+  updateTitle: { fontSize: 22, fontWeight: '900', color: G.text, letterSpacing: -0.5, marginBottom: 10, textAlign: 'center' },
+  updateMsg: { fontSize: 14, color: G.muted, textAlign: 'center', lineHeight: 22, marginBottom: 24 },
+  updateBtnWrap: { borderRadius: 14, overflow: 'hidden', marginBottom: 12 },
+  updateBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9, paddingVertical: 16 },
+  updateBtnTxt: { fontSize: 16, fontWeight: '800', color: '#fff', letterSpacing: -0.2 },
+  skipBtn: { alignItems: 'center', paddingVertical: 10 },
+  skipBtnTxt: { fontSize: 14, color: G.muted, fontWeight: '600' },
+
+  // ── Getting started guide ─────────────────────────────────────────────
+  guideRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12 },
+  guideNumWrap: {
+    width: 30, height: 30, borderRadius: 15,
+    backgroundColor: G.g600, alignItems: 'center', justifyContent: 'center',
   },
+  guideNumTxt:  { color: '#fff', fontWeight: '800', fontSize: 13 },
+  guideTitle:   { fontSize: 14, fontWeight: '700', color: G.text },
+  guideDesc:    { fontSize: 12, color: G.muted, marginTop: 2, lineHeight: 17 },
+  guideDivider: { height: 1, backgroundColor: G.border, marginLeft: 44 },
 });

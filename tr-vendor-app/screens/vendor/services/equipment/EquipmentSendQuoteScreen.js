@@ -14,6 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Feather';
 import CustomDropdown from '../../../../components/CustomDropdown';
 import { getQuoteRequestById, getFleetVehicles, submitQuote, getTemplates } from '../../../api/client';
+import { showConfirm, showError, showInfo, showSuccess } from '../../../../services/alertService';
 
 const C = {
   bg: '#F7FAFC',
@@ -134,7 +135,7 @@ export default function EquipmentSendQuoteScreen({ navigation, route }) {
       }
     } catch (error) {
       console.error('Error fetching data:', error);
-      Alert.alert('Error', 'Failed to load data');
+      showError('Failed to load data');
     } finally {
       setLoading(false);
     }
@@ -277,15 +278,15 @@ export default function EquipmentSendQuoteScreen({ navigation, route }) {
 
   const handleSubmit = async () => {
     if (!equipmentName) {
-      Alert.alert('Error', 'Please enter equipment name or select from fleet');
+      showError('Please enter equipment name or select from fleet');
       return;
     }
     if (!equipmentCategory) {
-      Alert.alert('Error', 'Please select equipment category');
+      showError('Please select equipment category');
       return;
     }
     if (!dailyRate || parseFloat(dailyRate) <= 0) {
-      Alert.alert('Error', 'Please enter daily rate');
+      showError('Please enter daily rate');
       return;
     }
 
@@ -318,12 +319,10 @@ export default function EquipmentSendQuoteScreen({ navigation, route }) {
         vendorMessage: notes || null,
         validityDays: parseInt(validityDays) || 7,
       });
-      Alert.alert('Success', 'Quote sent successfully!', [
-        { text: 'OK', onPress: () => navigation.goBack() },
-      ]);
+      showSuccess('Quote sent successfully!', 'Success', { actions: [{ label: 'OK', onPress: () => navigation.goBack(), variant: 'primary' }] });
     } catch (error) {
       console.error('Error submitting quote:', error);
-      Alert.alert('Error', error?.response?.data?.error || 'Failed to send quote');
+      showError(error?.response?.data?.error || 'Failed to send quote');
     } finally {
       setSubmitting(false);
     }

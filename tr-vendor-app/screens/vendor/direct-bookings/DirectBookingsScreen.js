@@ -1,13 +1,14 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
-  RefreshControl, ActivityIndicator, LayoutAnimation, Platform, UIManager,
+  RefreshControl, LayoutAnimation, Platform, UIManager,
   TextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Feather';
 import { getDirectBookings } from '../../api/client';
 import DateFilterModal from '../../../components/DateFilterModal';
+import { ListSkeleton } from '../../../components/SkeletonLoader';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -255,7 +256,7 @@ export default function DirectBookingsScreen({ navigation }) {
 
       {/* Bookings list */}
       {loading && bookings.length === 0 ? (
-        <View style={s.centered}><ActivityIndicator size="large" color={C.brand} /></View>
+        <ListSkeleton count={4} />
       ) : (
         <FlatList
           data={bookings}
