@@ -136,6 +136,8 @@ async function getPackagesForLocation(locationSlug: string) {
         image: true,
         exampleVehicles: true,
         acType: true,
+        luggageCapacity: true,
+        fuelType: true,
       },
     });
 

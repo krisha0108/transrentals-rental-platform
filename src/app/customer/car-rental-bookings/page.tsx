@@ -41,6 +41,7 @@ interface ChauffeurBooking {
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: any }> = {
   PENDING_PAYMENT: { label: 'Pending Payment', color: 'bg-amber-100 text-amber-700', icon: AlertCircle },
+  PAYMENT_SUBMITTED: { label: 'Payment Under Review', color: 'bg-orange-100 text-orange-700', icon: AlertCircle },
   PENDING_VENDOR: { label: 'Searching Driver', color: 'bg-blue-100 text-blue-700', icon: AlertCircle },
   BROADCASTED: { label: 'Searching Driver', color: 'bg-blue-100 text-blue-700', icon: AlertCircle },
   ACCEPTED: { label: 'Confirmed', color: 'bg-green-100 text-green-700', icon: CheckCircle },

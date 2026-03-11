@@ -4713,6 +4713,7 @@ enum bus_bookings_status {
 
 enum chauffeur_bookings_status {
   PENDING_PAYMENT
+  PAYMENT_SUBMITTED
   PENDING_VENDOR
   BROADCASTED
   ACCEPTED

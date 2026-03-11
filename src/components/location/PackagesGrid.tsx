@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Image from 'next/image';
-import { Clock, MapPin, Users, Car, IndianRupee, Check } from 'lucide-react';
+import { Clock, MapPin, Users, Car, IndianRupee, Check, Briefcase, Fuel } from 'lucide-react';
 
 interface Package {
   id: string;
@@ -25,6 +25,8 @@ interface VehicleCategory {
   image: string | null;
   exampleVehicles: string | null;
   acType: string | null;
+  luggageCapacity: string | null;
+  fuelType: string | null;
   packages: Package[];
 }
 
@@ -122,6 +124,18 @@ export function PackagesGrid({
                             {category.acType}
                           </span>
                         )}
+                        {category.luggageCapacity && (
+                          <span className="flex items-center gap-1.5">
+                            <Briefcase className="w-4 h-4" />
+                            {category.luggageCapacity}
+                          </span>
+                        )}
+                        {category.fuelType && (
+                          <span className="flex items-center gap-1.5">
+                            <Fuel className="w-4 h-4" />
+                            {category.fuelType}
+                          </span>
+                        )}
                       </div>
                       {exampleVehicles.length > 0 && (
                         <p className="mt-2 text-sm text-white/80">
@@ -179,11 +193,12 @@ export function PackagesGrid({
                         </div>
 
                         {/* Price */}
-                        <div className="flex items-baseline gap-1 mb-3">
+                        <div className="flex items-baseline gap-1 mb-1">
                           <span className="text-2xl font-bold text-gray-900">
                             ₹{pkg.basePrice.toLocaleString('en-IN')}
                           </span>
                         </div>
+                        <p className="text-xs text-green-600 font-medium mb-3">All inclusive</p>
 
                         {/* Extra Charges */}
                         <div className="text-xs text-gray-500 space-y-1 pt-3 border-t border-gray-100">
@@ -201,6 +216,10 @@ export function PackagesGrid({
                               Night charge: ₹{pkg.nightChargeAmount}
                             </p>
                           )}
+                          <p className="flex items-center gap-1 text-amber-600">
+                            <IndianRupee className="w-3 h-3" />
+                            Toll/Parking extra (as applicable)
+                          </p>
                         </div>
                       </div>
                     ))}

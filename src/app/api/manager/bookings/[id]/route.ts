@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/auth-options';
 import { prisma } from '@/lib/db/prisma';
+import { prepareNotificationData } from '@/lib/utils/notification-helper';
+import { sendFCMNotification } from '@/lib/utils/fcm-helper';
+import { sendVendorDirectNotification, sendQuoteRequestNotificationToVendors } from '@/lib/utils/vendor-notification-sender';
+import { checkFleetAvailability, blockDatesForBooking } from '@/lib/utils/fleet-availability';
 import logger from '@/lib/security/logger';
 
 export const dynamic = 'force-dynamic';
@@ -270,6 +274,7 @@ export async function GET(
       totalAmount: booking.totalAmount || booking.grandTotal || 0,
       grandTotal: booking.grandTotal || booking.totalAmount || 0,
       paidAmount: booking.paidAmount || booking.advancePaid || 0,
+      advanceAmount: booking.advanceAmount || booking.partialPayment || booking.advancePaid || 0,
       // Normalized trip status aliases
       pickedUpAt: booking.pickedUpAt || booking.tripStartedAt || null,
       returnedAt: booking.returnedAt || booking.tripEndedAt || null,
@@ -283,6 +288,758 @@ export async function GET(
     logger.error('Manager booking detail error', error);
     return NextResponse.json(
       { error: 'Failed to fetch booking', details: error?.message },
+      { status: 500 }
+    );
+  }
+}
+
+// Helper: find booking across all service tables, returns { booking, serviceSlug, tableName }
+async function findBookingById(bookingId: string) {
+  const searches = [
+    { fn: () => prisma.bike_bookings.findUnique({ where: { id: bookingId } }), slug: 'bike-rental', table: 'bike' },
+    { fn: () => prisma.bus_bookings.findUnique({ where: { id: bookingId } }), slug: 'bus-rental', table: 'bus' },
+    { fn: () => prisma.car_bookings.findUnique({ where: { id: bookingId } }), slug: 'self-drive', table: 'car' },
+    { fn: () => prisma.chauffeur_bookings.findUnique({ where: { id: bookingId } }), slug: 'car-rental', table: 'chauffeur' },
+    { fn: () => prisma.equipment_bookings.findUnique({ where: { id: bookingId } }), slug: 'equipment-rental', table: 'equipment' },
+    { fn: () => prisma.luxury_bookings.findUnique({ where: { id: bookingId } }), slug: 'luxury-car-rental', table: 'luxury' },
+    { fn: () => prisma.packers_bookings.findUnique({ where: { id: bookingId } }), slug: 'packers-and-movers', table: 'packers' },
+    { fn: () => prisma.truck_bookings.findUnique({ where: { id: bookingId } }), slug: 'truck-transport', table: 'truck' },
+  ];
+
+  const results = await Promise.all(searches.map(s => s.fn().catch(() => null)));
+  for (let i = 0; i < results.length; i++) {
+    if (results[i]) return { booking: results[i] as any, serviceSlug: searches[i].slug, table: searches[i].table };
+  }
+  return null;
+}
+
+// PUT - Perform actions on a booking (verify_payment, reject_payment, broadcast, complete_trip, cancel)
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> | { id: string } }
+) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const resolvedParams = 'then' in params ? await params : params;
+    const { id: bookingId } = resolvedParams;
+
+    // Verify manager role
+    const manager = await prisma.admin_users.findUnique({
+      where: { id: session.user.id },
+    });
+
+    if (!manager || manager.role !== 'MANAGER') {
+      return NextResponse.json({ error: 'Access denied. Manager role required.' }, { status: 403 });
+    }
+
+    const body = await request.json();
+    const { action, reason, notes } = body;
+
+    if (!action) {
+      return NextResponse.json({ success: false, error: 'Action is required' }, { status: 400 });
+    }
+
+    // Find the booking across all tables
+    const found = await findBookingById(bookingId);
+    if (!found) {
+      return NextResponse.json({ success: false, error: 'Booking not found' }, { status: 404 });
+    }
+
+    const { booking, serviceSlug, table } = found;
+
+    // ==================== VERIFY PAYMENT ====================
+    if (action === 'verify_payment') {
+      if (table === 'chauffeur') {
+        const isSingleVendor = !!booking.assignedVendorId;
+        const advanceAmount = booking.paidAmount > 0
+          ? booking.paidAmount
+          : booking.partialPayment || Math.round(booking.grandTotal * 0.3);
+
+        await prisma.chauffeur_bookings.update({
+          where: { id: bookingId },
+          data: {
+            paymentStatus: advanceAmount >= booking.grandTotal ? 'PAID' : 'PARTIAL',
+            paidAmount: advanceAmount,
+            status: isSingleVendor ? 'PENDING_VENDOR' : 'BROADCASTED',
+            broadcastedAt: new Date(),
+            responseDeadline: new Date(Date.now() + 4 * 60 * 60 * 1000),
+            adminNotes: notes || reason ? `Payment verified: ${notes || reason}` : 'Payment verified by manager',
+          },
+        });
+
+        // Notify customer
+        try {
+          await prisma.notifications.create({
+            data: prepareNotificationData({
+              customerId: booking.customerId,
+              title: 'Payment Approved!',
+              body: `Your car rental booking payment of ₹${advanceAmount} has been approved.`,
+              type: 'payment',
+              serviceType: 'car',
+              bookingId,
+              quoteId: null,
+            }),
+          });
+          await sendFCMNotification({
+            customerId: booking.customerId,
+            title: 'Payment Approved!',
+            body: `Your car rental booking payment of ₹${advanceAmount} has been approved.`,
+            data: { type: 'payment', serviceType: 'car', bookingId },
+          });
+        } catch (e) { logger.error('Notification error', e); }
+
+        // Notify vendor(s)
+        if (isSingleVendor) {
+          sendVendorDirectNotification({
+            vendorId: booking.assignedVendorId,
+            title: 'New Car Rental Booking!',
+            body: `A new car rental booking has been assigned to you. Please review and confirm.`,
+            type: 'booking_assigned',
+            serviceType: 'car',
+            bookingId,
+          }).catch((err: any) => logger.error('Vendor notify failed', err));
+        } else {
+          const fullBooking = await prisma.chauffeur_bookings.findUnique({
+            where: { id: bookingId },
+            select: { locationId: true, locationName: true, bookingNumber: true },
+          });
+          if (fullBooking?.locationId) {
+            sendQuoteRequestNotificationToVendors({
+              requestId: bookingId,
+              requestNumber: fullBooking.bookingNumber || bookingId,
+              locationId: fullBooking.locationId,
+              locationName: fullBooking.locationName || 'your city',
+              customerName: 'A customer',
+              serviceType: 'car',
+              serviceDisplayName: 'Car Rental',
+            }).catch((err: any) => logger.error('Broadcast notify failed', err));
+          }
+        }
+
+        return NextResponse.json({
+          success: true,
+          message: isSingleVendor
+            ? 'Payment verified. Booking sent to assigned vendor.'
+            : 'Payment verified. Booking broadcasted to all vendors.',
+        });
+      }
+
+      if (table === 'bike') {
+        const hasAcceptedVendor = !!(booking.assignedVendorId || booking.acceptedVendorId);
+        const vendorId = booking.assignedVendorId || booking.acceptedVendorId;
+
+        await prisma.bike_bookings.update({
+          where: { id: bookingId },
+          data: {
+            status: hasAcceptedVendor ? 'ACCEPTED' : 'BROADCASTED',
+            paymentStatus: 'PARTIAL',
+            advancePaymentVerified: true,
+            paidAmount: booking.advanceAmount || booking.grandTotal,
+            assignedVendorId: vendorId || null,
+            acceptedVendorId: vendorId || null,
+            acceptedAt: hasAcceptedVendor ? new Date() : null,
+            broadcastedAt: hasAcceptedVendor ? null : new Date(),
+            responseDeadline: hasAcceptedVendor ? null : new Date(Date.now() + 4 * 60 * 60 * 1000),
+          },
+        });
+
+        if (booking.acceptedVehicleId && booking.pickupDate) {
+          try {
+            const startDate = new Date(booking.pickupDate);
+            const endDate = booking.dropDate ? new Date(booking.dropDate) : startDate;
+            const availability = await checkFleetAvailability(booking.acceptedVehicleId, startDate, endDate);
+            if (availability.available) {
+              await blockDatesForBooking(prisma, booking.acceptedVehicleId, startDate, endDate, bookingId, 'bike');
+            }
+          } catch (err) { logger.error('Failed to block dates', err); }
+        }
+
+        try {
+          await prisma.notifications.create({
+            data: prepareNotificationData({
+              customerId: booking.customerId,
+              title: 'Payment Approved!',
+              body: `Your bike booking payment has been approved.`,
+              type: 'payment', serviceType: 'bike', bookingId, quoteId: null,
+            }),
+          });
+          await sendFCMNotification({
+            customerId: booking.customerId,
+            title: 'Payment Approved!',
+            body: `Your bike booking payment has been approved.`,
+            data: { type: 'payment', serviceType: 'bike', bookingId },
+          });
+        } catch (e) { logger.error('Notification error', e); }
+
+        if (hasAcceptedVendor && vendorId) {
+          sendVendorDirectNotification({
+            vendorId,
+            title: 'Payment Verified! Booking Confirmed',
+            body: `Customer's advance payment has been verified for bike booking #${booking.bookingNumber}.`,
+            type: 'payment_received', serviceType: 'bike', bookingId, bookingNumber: booking.bookingNumber,
+          }).catch((err: any) => logger.error('Vendor notify failed', err));
+        }
+
+        return NextResponse.json({ success: true, message: 'Payment verified successfully.' });
+      }
+
+      if (table === 'car') {
+        const hasAcceptedVendor = !!(booking.assignedVendorId || booking.acceptedVendorId);
+        const vendorId = booking.assignedVendorId || booking.acceptedVendorId;
+
+        await prisma.car_bookings.update({
+          where: { id: bookingId },
+          data: {
+            status: hasAcceptedVendor ? 'ACCEPTED' : 'BROADCASTED',
+            paymentStatus: 'PARTIAL',
+            advancePaymentVerified: true,
+            paidAmount: booking.advanceAmount || booking.grandTotal,
+            assignedVendorId: vendorId || null,
+            acceptedVendorId: vendorId || null,
+            acceptedAt: hasAcceptedVendor ? new Date() : null,
+            broadcastedAt: hasAcceptedVendor ? null : new Date(),
+            responseDeadline: hasAcceptedVendor ? null : new Date(Date.now() + 4 * 60 * 60 * 1000),
+          },
+        });
+
+        if (booking.assignedVehicleId && booking.pickupDate) {
+          try {
+            const startDate = new Date(booking.pickupDate);
+            const endDate = booking.dropDate ? new Date(booking.dropDate) : startDate;
+            const availability = await checkFleetAvailability(booking.assignedVehicleId, startDate, endDate);
+            if (availability.available) {
+              await blockDatesForBooking(prisma, booking.assignedVehicleId, startDate, endDate, bookingId, 'car');
+            }
+          } catch (err) { logger.error('Failed to block dates', err); }
+        }
+
+        try {
+          await prisma.notifications.create({
+            data: prepareNotificationData({
+              customerId: booking.customerId,
+              title: 'Payment Approved!',
+              body: `Your self-drive car booking payment has been approved.`,
+              type: 'payment', serviceType: 'self-drive', bookingId, quoteId: null,
+            }),
+          });
+        } catch (e) { logger.error('Notification error', e); }
+
+        if (hasAcceptedVendor && vendorId) {
+          sendVendorDirectNotification({
+            vendorId,
+            title: 'Payment Verified! Booking Confirmed',
+            body: `Customer's advance payment has been verified for self-drive booking #${booking.bookingNumber}.`,
+            type: 'payment_received', serviceType: 'self-drive', bookingId, bookingNumber: booking.bookingNumber,
+          }).catch((err: any) => logger.error('Vendor notify failed', err));
+        }
+
+        return NextResponse.json({ success: true, message: 'Payment verified successfully.' });
+      }
+
+      if (table === 'bus') {
+        await prisma.bus_bookings.update({
+          where: { id: bookingId },
+          data: {
+            status: 'ADVANCE_PAID',
+            paymentStatus: 'PAID',
+            advancePaymentVerified: true,
+            advancePaid: booking.advanceAmount || 0,
+            advancePaidAt: new Date(),
+            confirmedAt: new Date(),
+            adminNotes: 'Payment verified by manager',
+          },
+        });
+
+        if (booking.assignedVehicleId && booking.pickupDate) {
+          try {
+            const startDate = new Date(booking.pickupDate);
+            const endDate = booking.returnDate ? new Date(booking.returnDate) : startDate;
+            const availability = await checkFleetAvailability(booking.assignedVehicleId, startDate, endDate);
+            if (availability.available) {
+              await blockDatesForBooking(prisma, booking.assignedVehicleId, startDate, endDate, bookingId, 'bus');
+            }
+          } catch (err) { logger.error('Failed to block dates', err); }
+        }
+
+        try {
+          await prisma.notifications.create({
+            data: prepareNotificationData({
+              customerId: booking.customerId,
+              title: 'Payment Approved!',
+              body: `Your bus booking payment has been approved.`,
+              type: 'payment', serviceType: 'bus', bookingId, quoteId: null,
+            }),
+          });
+        } catch (e) { logger.error('Notification error', e); }
+
+        if (booking.vendorId) {
+          sendVendorDirectNotification({
+            vendorId: booking.vendorId,
+            title: 'Advance Payment Received!',
+            body: `Customer has paid the advance for booking #${booking.bookingNumber}. Trip is confirmed.`,
+            type: 'payment_received', serviceType: 'bus', bookingId, bookingNumber: booking.bookingNumber,
+          }).catch((err: any) => logger.error('Vendor notify failed', err));
+        }
+
+        return NextResponse.json({ success: true, message: 'Payment verified successfully.' });
+      }
+
+      if (table === 'truck') {
+        await prisma.truck_bookings.update({
+          where: { id: bookingId },
+          data: {
+            status: 'ADVANCE_PAID',
+            paymentStatus: 'PAID',
+            advancePaymentVerified: true,
+            advancePaid: booking.advanceAmount || 0,
+            advancePaidAt: new Date(),
+            vendorNotes: 'Payment verified by manager',
+          },
+        });
+
+        if (booking.assignedVehicleId && booking.pickupDate) {
+          try {
+            const startDate = new Date(booking.pickupDate);
+            const endDate = startDate;
+            const availability = await checkFleetAvailability(booking.assignedVehicleId, startDate, endDate);
+            if (availability.available) {
+              await blockDatesForBooking(prisma, booking.assignedVehicleId, startDate, endDate, bookingId, 'truck');
+            }
+          } catch (err) { logger.error('Failed to block dates', err); }
+        }
+
+        try {
+          await prisma.notifications.create({
+            data: prepareNotificationData({
+              customerId: booking.customerId,
+              title: 'Payment Approved!',
+              body: `Your truck booking payment has been approved.`,
+              type: 'payment', serviceType: 'truck', bookingId, quoteId: null,
+            }),
+          });
+        } catch (e) { logger.error('Notification error', e); }
+
+        if (booking.vendorId) {
+          sendVendorDirectNotification({
+            vendorId: booking.vendorId,
+            title: 'Advance Payment Received!',
+            body: `Customer has paid the advance for booking #${booking.bookingNumber}. Trip is confirmed.`,
+            type: 'payment_received', serviceType: 'truck', bookingId, bookingNumber: booking.bookingNumber,
+          }).catch((err: any) => logger.error('Vendor notify failed', err));
+        }
+
+        return NextResponse.json({ success: true, message: 'Payment verified successfully.' });
+      }
+
+      if (table === 'equipment') {
+        await prisma.equipment_bookings.update({
+          where: { id: bookingId },
+          data: {
+            status: 'ADVANCE_PAID',
+            paymentStatus: 'PAID',
+            advancePaid: booking.advanceAmount || 0,
+            advancePaidAt: new Date(),
+          },
+        });
+
+        try {
+          await prisma.notifications.create({
+            data: prepareNotificationData({
+              customerId: booking.customerId,
+              title: 'Payment Approved!',
+              body: `Your equipment booking payment has been approved.`,
+              type: 'payment', serviceType: 'equipment', bookingId, quoteId: null,
+            }),
+          });
+        } catch (e) { logger.error('Notification error', e); }
+
+        if (booking.vendorId) {
+          sendVendorDirectNotification({
+            vendorId: booking.vendorId,
+            title: 'Advance Payment Received!',
+            body: `Customer has paid the advance for booking #${booking.bookingNumber}. Booking is confirmed.`,
+            type: 'payment_received', serviceType: 'equipment', bookingId, bookingNumber: booking.bookingNumber,
+          }).catch((err: any) => logger.error('Vendor notify failed', err));
+        }
+
+        return NextResponse.json({ success: true, message: 'Payment verified successfully.' });
+      }
+
+      if (table === 'luxury') {
+        await prisma.luxury_bookings.update({
+          where: { id: bookingId },
+          data: {
+            status: 'ADVANCE_PAID',
+            paymentStatus: 'PAID',
+            advancePaid: booking.advanceAmount || 0,
+            advancePaidAt: new Date(),
+          },
+        });
+
+        if (booking.acceptedQuoteId && booking.pickupDate) {
+          try {
+            const quote = await prisma.luxury_quotes.findUnique({
+              where: { id: booking.acceptedQuoteId },
+              select: { fleetId: true },
+            });
+            if (quote?.fleetId) {
+              const startDate = new Date(booking.pickupDate);
+              const endDate = booking.returnDate ? new Date(booking.returnDate) : startDate;
+              const availability = await checkFleetAvailability(quote.fleetId, startDate, endDate);
+              if (availability.available) {
+                await blockDatesForBooking(prisma, quote.fleetId, startDate, endDate, bookingId, 'luxury');
+              }
+            }
+          } catch (err) { logger.error('Failed to block dates', err); }
+        }
+
+        try {
+          await prisma.notifications.create({
+            data: prepareNotificationData({
+              customerId: booking.customerId,
+              title: 'Payment Approved!',
+              body: `Your luxury car booking payment has been approved.`,
+              type: 'payment', serviceType: 'luxury', bookingId, quoteId: null,
+            }),
+          });
+        } catch (e) { logger.error('Notification error', e); }
+
+        if (booking.acceptedVendorId) {
+          sendVendorDirectNotification({
+            vendorId: booking.acceptedVendorId,
+            title: 'Advance Payment Received!',
+            body: `Customer has paid the advance for luxury booking #${booking.bookingNumber}. Booking is confirmed.`,
+            type: 'payment_received', serviceType: 'luxury', bookingId, bookingNumber: booking.bookingNumber,
+          }).catch((err: any) => logger.error('Vendor notify failed', err));
+        }
+
+        return NextResponse.json({ success: true, message: 'Payment verified successfully.' });
+      }
+
+      if (table === 'packers') {
+        await prisma.packers_bookings.update({
+          where: { id: bookingId },
+          data: {
+            status: 'ADVANCE_PAID',
+            paymentStatus: 'PAID',
+            advancePaid: booking.advanceAmount || 0,
+            advancePaidAt: new Date(),
+          },
+        });
+
+        if (booking.acceptedQuoteId && booking.scheduledDate) {
+          try {
+            const quote = await prisma.packers_quotes.findUnique({
+              where: { id: booking.acceptedQuoteId },
+              select: { vendorFleetId: true },
+            });
+            if (quote?.vendorFleetId) {
+              const startDate = new Date(booking.scheduledDate);
+              const availability = await checkFleetAvailability(quote.vendorFleetId, startDate, startDate);
+              if (availability.available) {
+                await blockDatesForBooking(prisma, quote.vendorFleetId, startDate, startDate, bookingId, 'packers');
+              }
+            }
+          } catch (err) { logger.error('Failed to block dates', err); }
+        }
+
+        try {
+          await prisma.notifications.create({
+            data: prepareNotificationData({
+              customerId: booking.customerId,
+              title: 'Payment Approved!',
+              body: `Your packers & movers booking payment has been approved.`,
+              type: 'payment', serviceType: 'packers', bookingId, quoteId: null,
+            }),
+          });
+        } catch (e) { logger.error('Notification error', e); }
+
+        if (booking.vendorId) {
+          sendVendorDirectNotification({
+            vendorId: booking.vendorId,
+            title: 'Advance Payment Received!',
+            body: `Customer has paid the advance for booking #${booking.bookingNumber}. Booking is confirmed.`,
+            type: 'payment_received', serviceType: 'packers', bookingId, bookingNumber: booking.bookingNumber,
+          }).catch((err: any) => logger.error('Vendor notify failed', err));
+        }
+
+        return NextResponse.json({ success: true, message: 'Payment verified successfully.' });
+      }
+
+      return NextResponse.json({ success: false, error: 'Unsupported booking type for payment verification' }, { status: 400 });
+    }
+
+    // ==================== REJECT PAYMENT ====================
+    if (action === 'reject_payment') {
+      const rejectNotes = reason || notes || 'Payment rejected by manager';
+      const rejectNotifBody = `Your booking payment was rejected. ${reason || 'Please contact support.'}`;
+      const serviceTypeMap: Record<string, string> = {
+        'bike-rental': 'bike', 'self-drive': 'self-drive', 'car-rental': 'car',
+        'bus-rental': 'bus', 'truck-transport': 'truck', 'equipment-rental': 'equipment',
+        'luxury-car-rental': 'luxury', 'packers-and-movers': 'packers',
+      };
+
+      if (table === 'chauffeur') {
+        await prisma.chauffeur_bookings.update({
+          where: { id: bookingId },
+          data: {
+            status: 'PENDING_PAYMENT',
+            paymentStatus: 'FAILED',
+            adminNotes: rejectNotes,
+          },
+        });
+      } else if (table === 'bike') {
+        await prisma.bike_bookings.update({
+          where: { id: bookingId },
+          data: {
+            paymentStatus: 'FAILED',
+            advancePaymentVerified: false,
+            customerNotes: `${booking.customerNotes || ''}\n\nPayment rejected: ${rejectNotes}`.trim(),
+          },
+        });
+      } else if (table === 'car') {
+        await prisma.car_bookings.update({
+          where: { id: bookingId },
+          data: {
+            paymentStatus: 'FAILED',
+            advancePaymentVerified: false,
+            adminNotes: `Payment rejected: ${rejectNotes}`,
+          },
+        });
+      } else if (table === 'bus') {
+        await prisma.bus_bookings.update({
+          where: { id: bookingId },
+          data: {
+            status: 'PENDING_PAYMENT',
+            paymentStatus: 'FAILED',
+            advancePaymentVerified: false,
+            adminNotes: `Payment rejected: ${rejectNotes}`,
+          },
+        });
+      } else if (table === 'truck') {
+        await prisma.truck_bookings.update({
+          where: { id: bookingId },
+          data: {
+            status: 'PENDING_PAYMENT',
+            paymentStatus: 'FAILED',
+            advancePaymentVerified: false,
+            vendorNotes: `Payment rejected: ${rejectNotes}`,
+          },
+        });
+      } else if (table === 'equipment') {
+        await prisma.equipment_bookings.update({
+          where: { id: bookingId },
+          data: {
+            status: 'PENDING_PAYMENT',
+            paymentStatus: 'FAILED',
+            advancePaid: 0,
+            advancePaidAt: null,
+          },
+        });
+      } else if (table === 'luxury') {
+        await prisma.luxury_bookings.update({
+          where: { id: bookingId },
+          data: {
+            status: 'PENDING_PAYMENT',
+            paymentStatus: 'FAILED',
+            advancePaid: 0,
+            advancePaidAt: null,
+          },
+        });
+      } else if (table === 'packers') {
+        await prisma.packers_bookings.update({
+          where: { id: bookingId },
+          data: {
+            status: 'PENDING_PAYMENT',
+            paymentStatus: 'FAILED',
+            advancePaid: 0,
+            advancePaidAt: null,
+            vendorNotes: `Payment rejected: ${rejectNotes}`,
+          },
+        });
+      }
+
+      // Send rejection notification
+      try {
+        await prisma.notifications.create({
+          data: prepareNotificationData({
+            customerId: booking.customerId,
+            title: 'Payment Rejected',
+            body: rejectNotifBody,
+            type: 'payment',
+            serviceType: serviceTypeMap[serviceSlug] || 'car',
+            bookingId,
+            quoteId: null,
+          }),
+        });
+        await sendFCMNotification({
+          customerId: booking.customerId,
+          title: 'Payment Rejected',
+          body: rejectNotifBody,
+          data: { type: 'payment', serviceType: serviceTypeMap[serviceSlug] || 'car', bookingId },
+        });
+      } catch (e) { logger.error('Notification error', e); }
+
+      return NextResponse.json({ success: true, message: 'Payment rejected.' });
+    }
+
+    // ==================== BROADCAST ====================
+    if (action === 'broadcast') {
+      if (table === 'chauffeur') {
+        await prisma.chauffeur_bookings.update({
+          where: { id: bookingId },
+          data: {
+            status: 'BROADCASTED',
+            broadcastedAt: new Date(),
+            responseDeadline: new Date(Date.now() + 4 * 60 * 60 * 1000),
+          },
+        });
+
+        if (booking.locationId) {
+          sendQuoteRequestNotificationToVendors({
+            requestId: bookingId,
+            requestNumber: booking.bookingNumber || bookingId,
+            locationId: booking.locationId,
+            locationName: booking.locationName || 'your city',
+            customerName: 'A customer',
+            serviceType: 'car',
+            serviceDisplayName: 'Car Rental',
+          }).catch((err: any) => logger.error('Broadcast notify failed', err));
+        }
+
+        return NextResponse.json({ success: true, message: 'Booking broadcasted to vendors.' });
+      }
+
+      if (table === 'bike') {
+        await prisma.bike_bookings.update({
+          where: { id: bookingId },
+          data: {
+            status: 'BROADCASTED',
+            broadcastedAt: new Date(),
+            responseDeadline: new Date(Date.now() + 4 * 60 * 60 * 1000),
+          },
+        });
+        return NextResponse.json({ success: true, message: 'Booking broadcasted to vendors.' });
+      }
+
+      if (table === 'car') {
+        await prisma.car_bookings.update({
+          where: { id: bookingId },
+          data: {
+            status: 'BROADCASTED',
+            broadcastedAt: new Date(),
+            responseDeadline: new Date(Date.now() + 4 * 60 * 60 * 1000),
+          },
+        });
+        return NextResponse.json({ success: true, message: 'Booking broadcasted to vendors.' });
+      }
+
+      return NextResponse.json({ success: false, error: 'Broadcast not supported for this booking type' }, { status: 400 });
+    }
+
+    // ==================== COMPLETE TRIP ====================
+    if (action === 'complete_trip') {
+      if (table === 'chauffeur') {
+        await prisma.chauffeur_bookings.update({ where: { id: bookingId }, data: { status: 'COMPLETED', completedAt: new Date() } });
+      } else if (table === 'bike') {
+        await prisma.bike_bookings.update({ where: { id: bookingId }, data: { status: 'COMPLETED', returnedAt: new Date() } });
+      } else if (table === 'car') {
+        await prisma.car_bookings.update({ where: { id: bookingId }, data: { status: 'COMPLETED', completedAt: new Date(), returnedAt: new Date() } });
+      } else if (table === 'bus') {
+        await prisma.bus_bookings.update({ where: { id: bookingId }, data: { status: 'COMPLETED', completedAt: new Date() } });
+      } else if (table === 'truck') {
+        await prisma.truck_bookings.update({ where: { id: bookingId }, data: { status: 'COMPLETED', completedAt: new Date() } });
+      } else if (table === 'equipment') {
+        await prisma.equipment_bookings.update({ where: { id: bookingId }, data: { status: 'COMPLETED', completedAt: new Date() } });
+      } else if (table === 'luxury') {
+        await prisma.luxury_bookings.update({ where: { id: bookingId }, data: { status: 'COMPLETED', completedAt: new Date() } });
+      } else if (table === 'packers') {
+        await prisma.packers_bookings.update({ where: { id: bookingId }, data: { status: 'COMPLETED', completedAt: new Date() } });
+      }
+
+      // Notify customer
+      try {
+        const serviceTypeMap: Record<string, string> = {
+          'bike-rental': 'bike', 'self-drive': 'self-drive', 'car-rental': 'car',
+          'bus-rental': 'bus', 'truck-transport': 'truck', 'equipment-rental': 'equipment',
+          'luxury-car-rental': 'luxury', 'packers-and-movers': 'packers',
+        };
+        await prisma.notifications.create({
+          data: prepareNotificationData({
+            customerId: booking.customerId,
+            title: 'Trip Completed!',
+            body: `Your booking #${booking.bookingNumber} has been marked as completed. Thank you for choosing TransRentals!`,
+            type: 'booking',
+            serviceType: serviceTypeMap[serviceSlug] || 'car',
+            bookingId,
+            quoteId: null,
+          }),
+        });
+      } catch (e) { logger.error('Notification error', e); }
+
+      return NextResponse.json({ success: true, message: 'Trip marked as completed.' });
+    }
+
+    // ==================== CANCEL BOOKING ====================
+    if (action === 'cancel') {
+      const cancelReason = reason || 'Cancelled by manager';
+
+      if (table === 'chauffeur') {
+        await prisma.chauffeur_bookings.update({ where: { id: bookingId }, data: { status: 'CANCELLED', cancelledAt: new Date(), cancelledBy: 'MANAGER', cancellationReason: cancelReason } });
+      } else if (table === 'bike') {
+        await prisma.bike_bookings.update({ where: { id: bookingId }, data: { status: 'CANCELLED', cancellationReason: cancelReason } });
+      } else if (table === 'car') {
+        await prisma.car_bookings.update({ where: { id: bookingId }, data: { status: 'CANCELLED', cancelledAt: new Date(), cancelledBy: 'MANAGER', cancellationReason: cancelReason } });
+      } else if (table === 'bus') {
+        await prisma.bus_bookings.update({ where: { id: bookingId }, data: { status: 'CANCELLED', cancelledAt: new Date(), cancelledBy: 'MANAGER', cancellationReason: cancelReason } });
+      } else if (table === 'truck') {
+        await prisma.truck_bookings.update({ where: { id: bookingId }, data: { status: 'CANCELLED', cancelledAt: new Date(), cancelledBy: 'MANAGER', cancellationReason: cancelReason } });
+      } else if (table === 'equipment') {
+        await prisma.equipment_bookings.update({ where: { id: bookingId }, data: { status: 'CANCELLED', cancelledAt: new Date(), cancelledBy: 'MANAGER', cancellationReason: cancelReason } });
+      } else if (table === 'luxury') {
+        await prisma.luxury_bookings.update({ where: { id: bookingId }, data: { status: 'CANCELLED', cancelledAt: new Date(), cancelledBy: 'MANAGER', cancellationReason: cancelReason } });
+      } else if (table === 'packers') {
+        await prisma.packers_bookings.update({ where: { id: bookingId }, data: { status: 'CANCELLED', cancelledAt: new Date(), cancelledBy: 'MANAGER', cancellationReason: cancelReason } });
+      }
+
+      // Notify customer
+      try {
+        const serviceTypeMap: Record<string, string> = {
+          'bike-rental': 'bike', 'self-drive': 'self-drive', 'car-rental': 'car',
+          'bus-rental': 'bus', 'truck-transport': 'truck', 'equipment-rental': 'equipment',
+          'luxury-car-rental': 'luxury', 'packers-and-movers': 'packers',
+        };
+        await prisma.notifications.create({
+          data: prepareNotificationData({
+            customerId: booking.customerId,
+            title: 'Booking Cancelled',
+            body: `Your booking #${booking.bookingNumber} has been cancelled. ${reason || ''}`.trim(),
+            type: 'booking',
+            serviceType: serviceTypeMap[serviceSlug] || 'car',
+            bookingId,
+            quoteId: null,
+          }),
+        });
+        await sendFCMNotification({
+          customerId: booking.customerId,
+          title: 'Booking Cancelled',
+          body: `Your booking #${booking.bookingNumber} has been cancelled. ${reason || ''}`.trim(),
+          data: { type: 'booking', serviceType: serviceTypeMap[serviceSlug] || 'car', bookingId },
+        });
+      } catch (e) { logger.error('Notification error', e); }
+
+      return NextResponse.json({ success: true, message: 'Booking cancelled.' });
+    }
+
+    return NextResponse.json({ success: false, error: 'Invalid action' }, { status: 400 });
+  } catch (error: any) {
+    logger.error('Manager booking action error', error);
+    return NextResponse.json(
+      { success: false, error: 'Failed to perform action', details: error?.message },
       { status: 500 }
     );
   }
