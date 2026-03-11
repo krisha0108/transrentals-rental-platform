@@ -19,6 +19,7 @@ import {
   Wrench,
   Package,
   Star,
+  MessageCircle,
 } from 'lucide-react';
 
 interface B2BBooking {
@@ -429,6 +430,14 @@ export default function VendorB2BBookingsPage() {
                             View Details <ChevronRight className="w-3.5 h-3.5" />
                           </Link>
                         </>
+                      )}
+                      {['CONFIRMED', 'TRIPS_CREATED', 'IN_PROGRESS'].includes(booking.status) && booking.vendorQuotes?.some(q => q.status === 'CONFIRMED') && (
+                        <Link
+                          href={`/vendor/chat?bookingId=${booking.id}`}
+                          className="inline-flex items-center gap-2 px-4 py-2 bg-green-50 hover:bg-green-100 text-green-700 font-medium rounded-lg border border-green-200 transition text-sm w-full justify-center"
+                        >
+                          <MessageCircle className="w-4 h-4" /> Chat with Customer
+                        </Link>
                       )}
                       <p className="text-xs text-gray-400">{formatDate(booking.createdAt)}</p>
                     </div>

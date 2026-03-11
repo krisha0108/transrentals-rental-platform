@@ -1,14 +1,15 @@
 // @ts-nocheck
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
+const B2BBookingChat = lazy(() => import('@/components/b2b/B2BBookingChat'));
 import { useParams, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import {
   Loader2, ArrowLeft, Calendar, MapPin, Clock, CheckCircle,
   Copy, ExternalLink, Share2, Building2, Car, Users, Route,
   Phone, Mail, FileText, AlertCircle, Truck, Bus, Bike, Wrench, Package, Star,
-  Fuel, Settings2, ChevronDown, ChevronLeft, ChevronRight, Eye, IndianRupee,
+  Fuel, Settings2, ChevronDown, ChevronLeft, ChevronRight, Eye, IndianRupee, MessageCircle,
 } from 'lucide-react';
 
 function VehicleCard({ index, displayName, images, vehicle: v, driver: d, isSelfDrive }: {
@@ -147,6 +148,7 @@ export default function CustomerB2BBookingDetailPage() {
   const params = useParams();
   const searchParams = useSearchParams();
   const [customerId, setCustomerId] = useState(searchParams.get('customer_id') || '');
+  const openChat = searchParams.get('open_chat') === '1';
   const [booking, setBooking] = useState<any>(null);
   const [tripStats, setTripStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -1109,6 +1111,24 @@ export default function CustomerB2BBookingDetailPage() {
               </a>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* B2B Vendor Chat - show only after vendor quotes are confirmed */}
+      {booking && ['CONFIRMED', 'TRIPS_CREATED', 'IN_PROGRESS', 'COMPLETED'].includes(booking.status) && (
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 mt-4">
+          <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+            <MessageCircle className="w-4 h-4 text-green-600" />
+            Contact Vendor
+          </h3>
+          <Suspense fallback={<div className="h-12 bg-gray-100 rounded-xl animate-pulse" />}>
+            <B2BBookingChat
+              bookingId={params.id as string}
+              customerId={customerId}
+              customerName={booking.customerName}
+              defaultOpen={openChat}
+            />
+          </Suspense>
         </div>
       )}
 

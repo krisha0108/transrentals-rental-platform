@@ -131,6 +131,20 @@ export async function GET(request: NextRequest) {
             }
           }
 
+          // Try B2B Booking
+          if (!booking) {
+            const b2bBooking = await prisma.b2b_bookings.findUnique({
+              where: { id: conv.bookingId },
+              include: {
+                customer: { select: { id: true, name: true, email: true, phone: true } },
+              },
+            });
+            if (b2bBooking) {
+              booking = { ...b2bBooking, bookingNumber: b2bBooking.bookingNumber };
+              customer = b2bBooking.customer;
+            }
+          }
+
           // Try EquipmentBooking
           if (!booking) {
             const equipmentBooking = await prisma.equipment_bookings.findUnique({
