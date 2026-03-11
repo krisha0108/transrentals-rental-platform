@@ -13,6 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Feather';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { apiGet, deleteStaff, debugAuthState } from '../../api/client';
+import { showConfirm, showError, showInfo, showSuccess } from '../../../services/alertService';
 
 const C = {
   bg: '#F7FAFC',
@@ -91,12 +92,9 @@ export default function StaffDetailScreen({ route, navigation }) {
         }
 
         // Max retries reached or non-401 error
-        Alert.alert(
-          'Error',
-          error?.response?.status === 401
+        showError(error?.response?.status === 401
             ? 'You do not have permission to view this staff member. This staff might belong to another vendor.'
-            : 'Failed to load staff details. Please try again.'
-        );
+            : 'Failed to load staff details. Please try again.');
         setLoading(false);
         return;
       }
@@ -108,21 +106,14 @@ export default function StaffDetailScreen({ route, navigation }) {
   }, [fetchStaff]);
 
   const handleDelete = () => {
-    Alert.alert('Delete Staff', 'Are you sure you want to delete this staff member?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: async () => {
+    showConfirm('Delete Staff', 'Are you sure you want to delete this staff member?', async () => {
           try {
             await deleteStaff(staffId);
             navigation.goBack();
           } catch (error) {
-            Alert.alert('Error', 'Failed to delete staff');
+            showError('Failed to delete staff');
           }
-        },
-      },
-    ]);
+        }, { confirmText: 'Delete', destructive: true });
   };
 
   const handleCall = () => {

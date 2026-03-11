@@ -6,13 +6,13 @@ import {
   FlatList,
   TouchableOpacity,
   RefreshControl,
-  ActivityIndicator,
   Image,
-  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Feather';
 import { getVendorStaff } from '../../api/client';
+import EmptyState from '../../../components/EmptyState';
+import { ListSkeleton } from '../../../components/SkeletonLoader';
 
 const C = {
   bg: '#F7FAFC',
@@ -148,9 +148,7 @@ export default function StaffListScreen({ navigation }) {
           <Text style={styles.headerTitle}>Staff Management</Text>
           <View style={{ width: 36 }} />
         </View>
-        <View style={styles.loaderContainer}>
-          <ActivityIndicator size="large" color={C.brand} />
-        </View>
+        <ListSkeleton count={6} />
       </SafeAreaView>
     );
   }
@@ -269,6 +267,15 @@ export default function StaffListScreen({ navigation }) {
           renderItem={renderStaff}
           keyExtractor={(item) => item.id?.toString()}
           contentContainerStyle={styles.listContent}
+          ListEmptyComponent={
+            <EmptyState
+              icon="users"
+              title="No staff members"
+              message="Add your first staff member to get started"
+              actionLabel="Add Staff"
+              onAction={() => navigation.navigate('AddStaff')}
+            />
+          }
           refreshControl={
             <RefreshControl
               refreshing={refreshing}

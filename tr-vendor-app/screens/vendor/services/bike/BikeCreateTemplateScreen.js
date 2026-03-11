@@ -15,6 +15,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Feather';
 import { createTemplate } from '../../../api/client';
+import { showConfirm, showError, showInfo, showSuccess } from '../../../../services/alertService';
 
 const GREEN = '#09B368';
 const BG = '#F5F5F7';
@@ -137,12 +138,12 @@ export default function BikeCreateTemplateScreen({ navigation }) {
 
   const handleSubmit = async () => {
     if (!name.trim() || !category) {
-      Alert.alert('Error', 'Please enter template name and select category');
+      showError('Please enter template name and select category');
       return;
     }
 
     if (inclusions.length === 0) {
-      Alert.alert('Error', 'Please add at least one inclusion');
+      showError('Please add at least one inclusion');
       return;
     }
 
@@ -163,12 +164,10 @@ export default function BikeCreateTemplateScreen({ navigation }) {
         isActive: true,
       });
 
-      Alert.alert('Success', 'Template created successfully!', [
-        { text: 'OK', onPress: () => navigation.goBack() },
-      ]);
+      showSuccess('Template created successfully!', 'Success', { actions: [{ label: 'OK', onPress: () => navigation.goBack(), variant: 'primary' }] });
     } catch (error) {
       console.error('Error creating template:', error);
-      Alert.alert('Error', 'Failed to create template. Please try again.');
+      showError('Failed to create template. Please try again.');
     } finally {
       setIsSubmitting(false);
     }

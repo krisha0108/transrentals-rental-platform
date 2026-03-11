@@ -270,7 +270,7 @@ export async function GET(request: NextRequest) {
         serviceName: 'Self Drive',
         amount: b.grandTotal || 0,
         date: b.pickupDate || b.createdAt,
-        location: b.location?.name || 'N/A',
+        location: b.locations?.name || 'N/A',
       })),
       ...bikeBookings.map(b => ({
         ...b,
@@ -278,7 +278,7 @@ export async function GET(request: NextRequest) {
         serviceName: 'Bike Rental',
         amount: b.totalAmount || 0,
         date: b.pickupDate || b.createdAt,
-        location: b.location?.name || 'N/A',
+        location: b.locations?.name || 'N/A',
       })),
       ...chauffeurBookings.map(b => ({
         ...b,

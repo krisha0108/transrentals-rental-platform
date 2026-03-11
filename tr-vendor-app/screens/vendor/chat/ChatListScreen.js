@@ -6,7 +6,6 @@ import {
   FlatList,
   TouchableOpacity,
   RefreshControl,
-  ActivityIndicator,
   Image,
   TextInput,
   ScrollView,
@@ -15,6 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Feather';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { apiGet } from '../../api/client';
+import { ListSkeleton } from '../../../components/SkeletonLoader';
 
 const C = {
   bg: '#F0F4F8',
@@ -197,9 +197,17 @@ export default function ChatListScreen({ navigation }) {
   if (loading) {
     return (
       <SafeAreaView style={styles.safe}>
-        <View style={styles.center}>
-          <ActivityIndicator size="large" color={C.brand} />
+        <View style={styles.header}>
+          <View style={styles.headerRow}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+              <Ionicons name="arrow-back" size={22} color={C.text} />
+            </TouchableOpacity>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.headerTitle}>Messages</Text>
+            </View>
+          </View>
         </View>
+        <ListSkeleton count={6} />
       </SafeAreaView>
     );
   }

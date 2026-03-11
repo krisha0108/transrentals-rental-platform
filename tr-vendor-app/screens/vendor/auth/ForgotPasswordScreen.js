@@ -6,6 +6,7 @@ import {
 import axios from "axios";
 import Icon from "react-native-vector-icons/Ionicons";
 import { getBaseURL } from "../../api/client";
+import { showConfirm, showError, showInfo, showSuccess } from '../../../services/alertService';
 
 // BASE_URL is resolved async from client.js (respects live/dev/hotspot setting)
 async function getVendorApiURL() {
@@ -79,11 +80,11 @@ export default function VendorForgotPasswordScreen({ navigation }) {
         setOtpDigits(["","","","","",""]);
         setTimeout(()=>otpRefs[0].current?.focus(), 150);
       } else {
-        Alert.alert("Error", res?.data?.message || "Failed to send OTP");
+        showError(res?.data?.message || "Failed to send OTP");
       }
     } catch (err) {
       console.log("OTP send error", err);
-      Alert.alert("Error", err?.response?.data?.message || "Something went wrong");
+      showError(err?.response?.data?.message || "Something went wrong");
     } finally { setLoading(false); }
   };
 
@@ -94,9 +95,9 @@ export default function VendorForgotPasswordScreen({ navigation }) {
       const BASE_URL = await getVendorApiURL();
       const res = await axios.post(`${BASE_URL}/forgot-password`, { action: 'verify-otp', email: email.trim(), otp });
       if (res?.data?.status) setStep(3);
-      else Alert.alert("Invalid OTP", res?.data?.message || "Please try again");
+      else showInfo(res?.data?.message || "Please try again", "Invalid OTP");
     } catch (err) {
-      Alert.alert("Error", err?.response?.data?.message || "Something went wrong");
+      showError(err?.response?.data?.message || "Something went wrong");
     } finally { setLoading(false); }
   };
 
@@ -111,10 +112,10 @@ export default function VendorForgotPasswordScreen({ navigation }) {
         setOtpDigits(["","","","","",""]);
         setTimeout(()=>otpRefs[0].current?.focus(),150);
       } else {
-        Alert.alert("Error", res?.data?.message || "Failed to resend OTP");
+        showError(res?.data?.message || "Failed to resend OTP");
       }
     } catch (err) {
-      Alert.alert("Error", err?.response?.data?.message || "Something went wrong");
+      showError(err?.response?.data?.message || "Something went wrong");
     } finally { setLoading(false); }
   };
 
@@ -136,14 +137,12 @@ export default function VendorForgotPasswordScreen({ navigation }) {
         password,
       });
       if (res?.data?.status) {
-        Alert.alert("Success", res?.data?.message || "Password updated", [
-          { text: "Login", onPress: () => navigation.navigate("VendorLoginScreen") }
-        ]);
+        showSuccess(res?.data?.message || "Password updated", 'Success', { actions: [{ label: 'Login', onPress: () => navigation.navigate("VendorLoginScreen"), variant: 'primary' }] });
       } else {
-        Alert.alert("Error", res?.data?.message || "Reset failed");
+        showError(res?.data?.message || "Reset failed");
       }
     } catch (err) {
-      Alert.alert("Error", err?.response?.data?.message || "Something went wrong");
+      showError(err?.response?.data?.message || "Something went wrong");
     } finally { setLoading(false); }
   };
 

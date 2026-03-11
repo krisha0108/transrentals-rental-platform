@@ -17,6 +17,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import { launchImageLibrary } from 'react-native-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getVendorProfile, logoutVendor, uploadVendorLogo, getBaseURL } from '../../api/client';
+import { showConfirm, showError, showInfo, showSuccess } from '../../../services/alertService';
 
 const C = {
   bg: '#F7FAFC',
@@ -94,19 +95,19 @@ export default function ProfileScreen({ navigation }) {
       }
 
       if (result.errorCode) {
-        Alert.alert('Error', result.errorMessage || 'Failed to pick image');
+        showError(result.errorMessage || 'Failed to pick image');
         return;
       }
 
       const asset = result.assets?.[0];
       if (!asset?.uri) {
-        Alert.alert('Error', 'No image selected');
+        showError('No image selected');
         return;
       }
 
       // Validate file size (max 5MB)
       if (asset.fileSize && asset.fileSize > 5 * 1024 * 1024) {
-        Alert.alert('Error', 'Image size must be less than 5MB');
+        showError('Image size must be less than 5MB');
         return;
       }
 
@@ -140,26 +141,18 @@ export default function ProfileScreen({ navigation }) {
       if (response.success) {
         // Update local profile with new logo
         setProfile({ ...profile, logo: response.logo });
-        Alert.alert('Success', 'Profile image updated successfully!');
+        showSuccess('Profile image updated successfully!');
       }
     } catch (error) {
       console.error('Upload error:', error);
-      Alert.alert('Error', error?.response?.data?.error || 'Failed to upload image');
+      showError(error?.response?.data?.error || 'Failed to upload image');
     } finally {
       setUploading(false);
     }
   };
 
   const handleLogout = () => {
-    Alert.alert(
-      'Logout',
-      'Are you sure you want to logout?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Logout',
-          style: 'destructive',
-          onPress: async () => {
+    showConfirm('Logout', 'Are you sure you want to logout?', async () => {
             try {
               await logoutVendor();
               navigation.reset({
@@ -169,10 +162,7 @@ export default function ProfileScreen({ navigation }) {
             } catch (error) {
               console.log('Logout error:', error);
             }
-          },
-        },
-      ]
-    );
+          }, { confirmText: 'Logout', destructive: true });
   };
 
   const profileMenuItems = [

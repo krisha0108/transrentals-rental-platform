@@ -15,6 +15,7 @@ import Icon from 'react-native-vector-icons/Feather';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import CustomDropdown from '../../../../components/CustomDropdown';
 import api from '../../../../lib/api';
+import { showConfirm, showError, showInfo, showSuccess } from '../../../../services/alertService';
 
 const C = {
   bg: '#F7FAFC',
@@ -155,7 +156,7 @@ export default function LuxuryCreateTemplateScreen({ navigation }) {
 
   const handleSave = async () => {
     if (!name || !baseAmount) {
-      Alert.alert('Error', 'Template Name and Base Amount are required');
+      showError('Template Name and Base Amount are required');
       return;
     }
 
@@ -184,15 +185,13 @@ export default function LuxuryCreateTemplateScreen({ navigation }) {
       const response = await api.post('/vendor/luxury-templates', payload);
 
       if (response.data.success) {
-        Alert.alert('Success', 'Template created successfully!', [
-          { text: 'OK', onPress: () => navigation.goBack() },
-        ]);
+        showSuccess('Template created successfully!', 'Success', { actions: [{ label: 'OK', onPress: () => navigation.goBack(), variant: 'primary' }] });
       } else {
-        Alert.alert('Error', response.data.error || 'Failed to create template');
+        showError(response.data.error || 'Failed to create template');
       }
     } catch (error) {
       console.error('Error creating template:', error);
-      Alert.alert('Error', error?.response?.data?.error || 'Failed to create template');
+      showError(error?.response?.data?.error || 'Failed to create template');
     } finally {
       setSaving(false);
     }

@@ -14,6 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Feather';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { getTemplates, deleteTemplate, updateTemplate } from '../../../api/client';
+import { showConfirm, showError, showInfo, showSuccess } from '../../../../services/alertService';
 
 const SERVICE_COLOR = '#3B82F6'; // Blue for self-drive
 const GREEN = '#09B368';
@@ -63,7 +64,7 @@ const SelfDriveTemplatesScreen = ({ navigation }) => {
     } catch (error) {
       console.error('Error fetching self-drive templates:', error);
       setTemplates([]); // Set empty array on error
-      Alert.alert('Error', 'Failed to load templates');
+      showError('Failed to load templates');
     } finally {
       setIsLoading(false);
     }
@@ -76,27 +77,16 @@ const SelfDriveTemplatesScreen = ({ navigation }) => {
   }, [categoryFilter]);
 
   const handleDelete = (template) => {
-    Alert.alert(
-      'Delete Template',
-      `Are you sure you want to delete "${template.name}"?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
+    showConfirm('Delete Template', `Are you sure you want to delete "${template.name}"?`, async () => {
             try {
               await deleteTemplate('self-drive', template.id);
-              Alert.alert('Success', 'Template deleted successfully!');
+              showSuccess('Template deleted successfully!');
               fetchTemplates();
             } catch (error) {
               console.error('Error deleting template:', error);
-              Alert.alert('Error', 'Failed to delete template');
+              showError('Failed to delete template');
             }
-          },
-        },
-      ]
-    );
+          }, { confirmText: 'Delete', destructive: true });
   };
 
   const handleToggleActive = async (template) => {
@@ -104,14 +94,11 @@ const SelfDriveTemplatesScreen = ({ navigation }) => {
       await updateTemplate('self-drive', template.id, {
         isActive: !template.isActive,
       });
-      Alert.alert(
-        'Success',
-        `Template ${!template.isActive ? 'activated' : 'deactivated'} successfully!`
-      );
+      showSuccess(`Template ${!template.isActive ? 'activated' : 'deactivated'} successfully!`);
       fetchTemplates();
     } catch (error) {
       console.error('Error toggling template status:', error);
-      Alert.alert('Error', 'Failed to update template status');
+      showError('Failed to update template status');
     }
   };
 

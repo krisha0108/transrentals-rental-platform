@@ -19,6 +19,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { launchImageLibrary, launchCamera } from 'react-native-image-picker';
 import { pick, types } from '@react-native-documents/picker';
+import { showError, showConfirm, showInfo, showSuccess } from '../../../services/alertService';
 import {
   getVendorDocuments,
   uploadVendorDocument,
@@ -134,7 +135,7 @@ export default function VendorDocumentsScreen({ navigation }) {
 
         if (result.didCancel) return;
         if (result.errorCode) {
-          Alert.alert('Error', result.errorMessage || 'Failed to capture image');
+          showError(result.errorMessage || 'Failed to capture image');
           return;
         }
 
@@ -157,7 +158,7 @@ export default function VendorDocumentsScreen({ navigation }) {
 
         if (result.didCancel) return;
         if (result.errorCode) {
-          Alert.alert('Error', result.errorMessage || 'Failed to select image');
+          showError(result.errorMessage || 'Failed to select image');
           return;
         }
 
@@ -178,7 +179,7 @@ export default function VendorDocumentsScreen({ navigation }) {
         if (result) {
           // Check file size (max 5MB)
           if (result.size > 5 * 1024 * 1024) {
-            Alert.alert('Error', 'File size must be less than 5MB');
+            showError('File size must be less than 5MB');
             return;
           }
           setSelectedFile({
@@ -193,7 +194,7 @@ export default function VendorDocumentsScreen({ navigation }) {
       // New picker throws error with code for cancel
       if (error?.code !== 'DOCUMENT_PICKER_CANCELED') {
         console.error('File selection error:', error);
-        Alert.alert('Error', 'Failed to select file');
+        showError('Failed to select file');
       }
     }
   };
@@ -222,37 +223,26 @@ export default function VendorDocumentsScreen({ navigation }) {
       setDocumentNumber('');
       fetchDocuments();
 
-      Alert.alert('Success', 'Document uploaded successfully');
+      showSuccess('Document uploaded successfully');
     } catch (error) {
       console.error('Upload failed:', error);
-      Alert.alert('Error', error?.response?.data?.error || 'Upload failed. Please try again.');
+      showError(error?.response?.data?.error || 'Upload failed. Please try again.');
     } finally {
       setUploading(null);
     }
   };
 
   const handleDelete = async (docId) => {
-    Alert.alert(
-      'Delete Document',
-      'Are you sure you want to delete this document?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
+    showConfirm('Delete Document', 'Are you sure you want to delete this document?', async () => {
             try {
               await deleteVendorDocument(docId);
               fetchDocuments();
-              Alert.alert('Success', 'Document deleted successfully');
+              showSuccess('Document deleted successfully');
             } catch (error) {
               console.error('Delete failed:', error);
-              Alert.alert('Error', 'Failed to delete document');
+              showError('Failed to delete document');
             }
-          },
-        },
-      ]
-    );
+          }, { confirmText: 'Delete', destructive: true });
   };
 
   const allRequiredUploaded = DOCUMENT_TYPES

@@ -14,6 +14,7 @@ import Icon from 'react-native-vector-icons/Feather';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { getTemplates, deleteTemplate, updateTemplate } from '../../../api/client';
+import { showConfirm, showError, showInfo, showSuccess } from '../../../../services/alertService';
 
 const C = {
   bg: '#F7FAFC',
@@ -42,7 +43,7 @@ export default function TruckTemplatesScreen({ navigation }) {
       }
     } catch (error) {
       console.error('Error fetching templates:', error);
-      Alert.alert('Error', 'Failed to fetch templates');
+      showError('Failed to fetch templates');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -71,22 +72,14 @@ export default function TruckTemplatesScreen({ navigation }) {
         );
       }
     } catch (error) {
-      Alert.alert('Error', 'Failed to update template');
+      showError('Failed to update template');
     } finally {
       setActionLoading(null);
     }
   };
 
   const handleDelete = async (template) => {
-    Alert.alert(
-      'Delete Template',
-      `Are you sure you want to delete "${template.name}"?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
+    showConfirm('Delete Template', `Are you sure you want to delete "${template.name}"?`, async () => {
             setActionLoading(template.id);
             try {
               const response = await api.delete(`/vendor/truck-templates/${template.id}`);
@@ -94,14 +87,11 @@ export default function TruckTemplatesScreen({ navigation }) {
                 fetchTemplates();
               }
             } catch (error) {
-              Alert.alert('Error', 'Failed to delete template');
+              showError('Failed to delete template');
             } finally {
               setActionLoading(null);
             }
-          },
-        },
-      ]
-    );
+          }, { confirmText: 'Delete', destructive: true });
   };
 
   const renderTemplate = ({ item }) => {

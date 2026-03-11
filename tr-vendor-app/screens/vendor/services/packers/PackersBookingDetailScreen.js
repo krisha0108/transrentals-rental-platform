@@ -15,6 +15,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Feather';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import { showError, showConfirm, showInfo, showSuccess } from '../../../../services/alertService';
 import {
   getBookingById,
   acceptBooking,
@@ -76,7 +77,7 @@ export default function PackersBookingDetailScreen({ route, navigation }) {
       setBooking(response?.booking || response);
     } catch (error) {
       console.error('[PackersBookingDetail] Error:', error);
-      Alert.alert('Error', 'Failed to load booking details');
+      showError('Failed to load booking details');
     } finally {
       setLoading(false);
     }
@@ -93,46 +94,33 @@ export default function PackersBookingDetailScreen({ route, navigation }) {
   }, [fetchBooking]);
 
   const handleAccept = async () => {
-    Alert.alert('Accept Booking', 'Are you sure you want to accept this booking?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Accept',
-        onPress: async () => {
+    showConfirm('Accept Booking', 'Are you sure you want to accept this booking?', async () => {
           try {
             setActionLoading(true);
             await acceptBooking('packers', bookingId);
             await fetchBooking();
-            Alert.alert('Success', 'Booking accepted successfully');
+            showSuccess('Booking accepted successfully');
           } catch (error) {
-            Alert.alert('Error', error?.response?.data?.error || 'Failed to accept booking');
+            showError(error?.response?.data?.error || 'Failed to accept booking');
           } finally {
             setActionLoading(false);
           }
-        },
-      },
-    ]);
+        }, { confirmText: 'Accept' });
   };
 
   const handleReject = async () => {
-    Alert.alert('Reject Booking', 'Are you sure you want to reject this booking?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Reject',
-        style: 'destructive',
-        onPress: async () => {
+    showConfirm('Reject Booking', 'Are you sure you want to reject this booking?', async () => {
           try {
             setActionLoading(true);
             await rejectBooking('packers', bookingId, 'Vendor rejected');
             await fetchBooking();
-            Alert.alert('Success', 'Booking rejected');
+            showSuccess('Booking rejected');
           } catch (error) {
-            Alert.alert('Error', error?.response?.data?.error || 'Failed to reject booking');
+            showError(error?.response?.data?.error || 'Failed to reject booking');
           } finally {
             setActionLoading(false);
           }
-        },
-      },
-    ]);
+        }, { confirmText: 'Reject', destructive: true });
   };
 
   const handleCall = (phone) => {
@@ -191,7 +179,7 @@ export default function PackersBookingDetailScreen({ route, navigation }) {
       setDrivers(response?.drivers || response?.staff || []);
     } catch (error) {
       console.error('Error fetching drivers:', error);
-      Alert.alert('Error', 'Failed to load drivers');
+      showError('Failed to load drivers');
     } finally {
       setLoadingDrivers(false);
     }
@@ -212,10 +200,10 @@ export default function PackersBookingDetailScreen({ route, navigation }) {
         operatorPhone: driver.phone,
       });
       await fetchBooking();
-      Alert.alert('Success', isChanging ? 'Team leader changed successfully' : 'Team leader assigned successfully');
+      showSuccess(isChanging ? 'Team leader changed successfully' : 'Team leader assigned successfully');
     } catch (error) {
       console.error('Error assigning team leader:', error);
-      Alert.alert('Error', error?.response?.data?.error || 'Failed to assign team leader');
+      showError(error?.response?.data?.error || 'Failed to assign team leader');
     } finally {
       setActionLoading(false);
     }

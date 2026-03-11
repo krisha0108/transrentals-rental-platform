@@ -6,12 +6,12 @@ import {
   FlatList,
   TouchableOpacity,
   RefreshControl,
-  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Feather';
 import { getVendorNotifications, markVendorNotificationsRead } from '../../api/client';
 import { NotifBadgeContext } from '../../../contexts/NotifBadgeContext';
+import { ListSkeleton } from '../../../components/SkeletonLoader';
 
 const C = {
   bg: '#F7FAFC',
@@ -264,11 +264,9 @@ export default function NotificationsScreen({ navigation }) {
             <Icon name="arrow-left" size={20} color={C.text} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Notifications</Text>
-          <View style={{ width: 36 }} />
+          <View style={{ width: 80 }} />
         </View>
-        <View style={styles.loaderContainer}>
-          <ActivityIndicator size="large" color={C.brand} />
-        </View>
+        <ListSkeleton count={6} />
       </SafeAreaView>
     );
   }
