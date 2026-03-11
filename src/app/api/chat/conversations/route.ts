@@ -92,12 +92,57 @@ export async function GET(request: NextRequest) {
       0
     );
 
+    // Resolve bookingNumber for each conversation
+    const bookingNumberMap = new Map<string, string | null>();
+    await Promise.all(
+      conversations
+        .filter((c) => c.bookingId)
+        .map(async (c) => {
+          if (bookingNumberMap.has(c.bookingId!)) return;
+          let bookingNumber: string | null = null;
+          const id = c.bookingId!;
+          const type = (c.bookingType || '').toLowerCase();
+          try {
+            if (type === 'bike') {
+              const r = await prisma.bike_bookings.findUnique({ where: { id }, select: { bookingNumber: true } });
+              bookingNumber = r?.bookingNumber || null;
+            } else if (type === 'car') {
+              const r = await prisma.car_bookings.findUnique({ where: { id }, select: { bookingNumber: true } });
+              bookingNumber = r?.bookingNumber || null;
+            } else if (type === 'chauffeur') {
+              const r = await prisma.chauffeur_bookings.findUnique({ where: { id }, select: { bookingNumber: true } });
+              bookingNumber = r?.bookingNumber || null;
+            } else if (type === 'luxury') {
+              const r = await prisma.luxury_bookings.findUnique({ where: { id }, select: { bookingNumber: true } });
+              bookingNumber = r?.bookingNumber || null;
+            } else if (type === 'bus') {
+              const r = await prisma.bus_bookings.findUnique({ where: { id }, select: { bookingNumber: true } });
+              bookingNumber = r?.bookingNumber || null;
+            } else if (type === 'truck') {
+              const r = await prisma.truck_bookings.findUnique({ where: { id }, select: { bookingNumber: true } });
+              bookingNumber = r?.bookingNumber || null;
+            } else if (type === 'packers') {
+              const r = await prisma.packers_bookings.findUnique({ where: { id }, select: { bookingNumber: true } });
+              bookingNumber = r?.bookingNumber || null;
+            } else if (type === 'equipment') {
+              const r = await prisma.equipment_bookings.findUnique({ where: { id }, select: { bookingNumber: true } });
+              bookingNumber = r?.bookingNumber || null;
+            } else if (type === 'b2b') {
+              const r = await prisma.b2b_bookings.findUnique({ where: { id }, select: { bookingNumber: true } });
+              bookingNumber = r?.bookingNumber || null;
+            }
+          } catch (_) {}
+          bookingNumberMap.set(id, bookingNumber);
+        })
+    );
+
     return NextResponse.json({
       success: true,
       conversations: conversations.map((conv) => ({
         id: conv.id,
         bookingType: conv.bookingType,
         bookingId: conv.bookingId,
+        bookingNumber: conv.bookingId ? (bookingNumberMap.get(conv.bookingId) || null) : null,
         subject: conv.subject,
         status: conv.status,
         unreadCount: isVendor ? conv.vendorUnread : conv.customerUnread,

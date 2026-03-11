@@ -2,6 +2,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { prisma } from '@/lib/db/prisma';
+import crypto from 'crypto';
+
+function generateId(): string {
+  return 'c' + crypto.randomBytes(12).toString('base64url').toLowerCase().slice(0, 24);
+}
 
 import logger from '@/lib/security/logger';
 import { sendPushNotification, sendNotificationToCustomer } from '@/lib/services/push-notification-service';
@@ -146,6 +151,7 @@ export async function POST(
     // Create the message
     const message = await prisma.chat_messages.create({
       data: {
+        id: generateId(),
         conversationId,
         senderType,
         senderId,

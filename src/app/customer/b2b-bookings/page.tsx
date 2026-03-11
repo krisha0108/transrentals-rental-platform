@@ -3,11 +3,12 @@
 
 import React, { useState, useEffect, useMemo, Suspense } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useSearchParams } from 'next/navigation';
 import {
   Loader2, Building2, Truck, Calendar, MapPin, ChevronRight,
   Clock, CheckCircle, FileText, Car, Bus, Bike, Wrench, Package, Star,
-  Filter, IndianRupee, Users, AlertCircle,
+  Filter, IndianRupee, Users, AlertCircle, MessageCircle,
 } from 'lucide-react';
 
 const STATUS_LABELS: Record<string, string> = {
@@ -53,8 +54,11 @@ const STATUS_FILTERS = [
   { key: 'completed', label: 'Completed' },
 ];
 
+const CHAT_ELIGIBLE = ['CONFIRMED', 'TRIPS_CREATED', 'IN_PROGRESS', 'COMPLETED'];
+
 function CustomerB2BBookingsContent() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const [customerId, setCustomerId] = useState(searchParams.get('customer_id') || '');
   const [bookings, setBookings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -277,10 +281,12 @@ function CustomerB2BBookingsContent() {
               const ServiceIcon = SERVICE_ICONS[b.serviceType] || Truck;
               const serviceColor = SERVICE_COLORS[b.serviceType] || 'bg-gray-50 text-gray-600';
               const isActionNeeded = b.status === 'SUPER_QUOTE_SENT';
+              const canChat = CHAT_ELIGIBLE.includes(b.status);
+              const detailHref = `/customer/b2b-bookings/${b.id}?customer_id=${customerId}`;
 
               return (
-                <Link key={b.id} href={`/customer/b2b-bookings/${b.id}?customer_id=${customerId}`}
-                  className={`block bg-white rounded-xl border overflow-hidden hover:shadow-lg transition-all ${
+                <div key={b.id}
+                  className={`bg-white rounded-xl border overflow-hidden hover:shadow-lg transition-all ${
                     isActionNeeded ? 'border-purple-300 ring-1 ring-purple-200' : 'border-gray-200'
                   }`}>
                   {isActionNeeded && (
@@ -294,8 +300,8 @@ function CustomerB2BBookingsContent() {
                       <ServiceIcon className="w-6 h-6" />
                     </div>
 
-                    {/* Booking Info */}
-                    <div className="flex-1 min-w-0">
+                    {/* Booking Info — clickable */}
+                    <Link href={detailHref} className="flex-1 min-w-0 block">
                       <div className="flex items-center gap-2 mb-1 flex-wrap">
                         <span className="font-mono text-sm font-bold text-gray-800">{b.bookingNumber}</span>
                         <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold border ${STATUS_COLORS[b.status]}`}>
@@ -317,10 +323,10 @@ function CustomerB2BBookingsContent() {
                         </span>
                         <span className="text-gray-400">{TRIP_TYPE_LABELS[b.tripType] || b.tripType}</span>
                       </div>
-                    </div>
+                    </Link>
 
-                    {/* Price & Arrow */}
-                    <div className="text-right flex-shrink-0 flex items-center gap-3">
+                    {/* Price, Chat & Arrow */}
+                    <div className="text-right flex-shrink-0 flex items-center gap-2">
                       {b.finalAmount > 0 && (
                         <div>
                           <div className="text-lg font-bold text-green-700">₹{b.finalAmount.toLocaleString('en-IN')}</div>
@@ -329,10 +335,21 @@ function CustomerB2BBookingsContent() {
                           )}
                         </div>
                       )}
-                      <ChevronRight className="w-5 h-5 text-gray-300" />
+                      {canChat && (
+                        <button
+                          onClick={() => router.push(`${detailHref}&open_chat=1`)}
+                          className="w-9 h-9 flex items-center justify-center bg-green-50 hover:bg-green-100 text-green-600 rounded-xl border border-green-200 transition flex-shrink-0"
+                          title="Chat with vendor"
+                        >
+                          <MessageCircle className="w-4 h-4" />
+                        </button>
+                      )}
+                      <Link href={detailHref}>
+                        <ChevronRight className="w-5 h-5 text-gray-300" />
+                      </Link>
                     </div>
                   </div>
-                </Link>
+                </div>
               );
             })}
           </div>
