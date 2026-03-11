@@ -286,17 +286,13 @@ export default function CustomerDashboardPage() {
         upi_id: parsed.upi_id || parsed.upiId || '',
       }));
       const identifier = parsed.phone || parsed.email;
-      fetchStats(identifier);
-      fetchBookings(identifier, 'Open');
       const parsedId = parsed?.id ?? parsed?.customer_id ?? parsed?.customerId;
-      fetchStats(parsed.phone || parsed.email, parsedId);
-      fetchBookings(parsed.phone || parsed.email, 'All', parsedId);
+      fetchStats(identifier, parsedId);
+      fetchBookings(identifier, 'All', parsedId);
       fetchLiveChats();
       fetchBusData(identifier);
-      // Support both numeric IDs (legacy) and CUID strings (Prisma)
-      const parsedCustomerId = parsed?.id ?? parsed?.customer_id ?? parsed?.customerId;
-      if (parsedCustomerId) {
-        fetchFinancials(parsedCustomerId);
+      if (parsedId) {
+        fetchFinancials(parsedId);
       }
     } catch (e) {
       router.push('/customer/login');
@@ -304,12 +300,6 @@ export default function CustomerDashboardPage() {
       setIsLoading(false);
     }
   }, [router]);
-
-  useEffect(() => {
-    if (customer?.id) {
-      fetchFinancials(customer.id);
-    }
-  }, [customer]);
 
   useEffect(() => {
     if (!customer) return;
@@ -852,10 +842,15 @@ export default function CustomerDashboardPage() {
 
     switch (type) {
       case 'bike':
+        if (booking.is_quote_request) {
+          return `/customer/bike-quotes/${booking.id}`;
+        }
         return `/customer/bike-bookings/${bookingNumber}`;
       case 'car':
-        // Self-drive car bookings
-        return `/customer/car-bookings/${bookingNumber}`;
+        if (booking.is_quote_request) {
+          return `/customer/self-drive-quotes/${booking.id}`;
+        }
+        return `/customer/self-drive-bookings/${booking.id}`;
       case 'chauffeur':
         // Car with driver bookings
         return `/customer/car-rental-bookings/${bookingNumber}`;
