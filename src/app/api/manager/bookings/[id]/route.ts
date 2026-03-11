@@ -274,6 +274,7 @@ export async function GET(
       totalAmount: booking.totalAmount || booking.grandTotal || 0,
       grandTotal: booking.grandTotal || booking.totalAmount || 0,
       paidAmount: booking.paidAmount || booking.advancePaid || 0,
+      advanceAmount: booking.advanceAmount || booking.partialPayment || booking.advancePaid || 0,
       // Normalized trip status aliases
       pickedUpAt: booking.pickedUpAt || booking.tripStartedAt || null,
       returnedAt: booking.returnedAt || booking.tripEndedAt || null,
