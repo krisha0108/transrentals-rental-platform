@@ -59,6 +59,7 @@ export async function PUT(
       isPopular,
       displayOrder,
       isActive,
+      forcePackagePricing,
     } = body;
 
     // Check if transfer exists
@@ -89,6 +90,7 @@ export async function PUT(
         ...(isPopular !== undefined && { isPopular }),
         ...(displayOrder !== undefined && { displayOrder }),
         ...(isActive !== undefined && { isActive }),
+        ...(forcePackagePricing !== undefined && { forcePackagePricing }),
       },
       include: {
         chauffeur_vehicle_categories: { select: { id: true, name: true } },

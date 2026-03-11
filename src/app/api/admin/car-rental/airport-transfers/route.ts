@@ -155,6 +155,8 @@ export async function POST(request: NextRequest) {
         isPopular: isPopular || false,
         displayOrder: displayOrder || 0,
         isActive: isActive !== false,
+        isAirportTransfer: true,
+        forcePackagePricing: false,
       },
       update: {
         estimatedKm: estimatedKm || 0,
@@ -169,6 +171,8 @@ export async function POST(request: NextRequest) {
         isPopular: isPopular || false,
         displayOrder: displayOrder || 0,
         isActive: isActive !== false,
+        isAirportTransfer: true,
+        forcePackagePricing: false,
       },
       include: {
         chauffeur_vehicle_categories: { select: { id: true, name: true } },
