@@ -69,6 +69,8 @@ export async function POST(
     const {
       vehicleCategoryId,
       locationId,
+      locationIds, // For bulk create
+      bulk,
       baseKmRate,
       minKmPerDay,
       driverDayAllowance,
@@ -82,9 +84,9 @@ export async function POST(
       isActive,
     } = body;
 
-    if (!vehicleCategoryId || !locationId) {
+    if (!vehicleCategoryId) {
       return NextResponse.json(
-        { success: false, error: 'Vehicle category and location are required' },
+        { success: false, error: 'Vehicle category is required' },
         { status: 400 }
       );
     }
@@ -96,43 +98,52 @@ export async function POST(
       );
     }
 
+    const pricingData = {
+      baseKmRate,
+      minKmPerDay: minKmPerDay || 250,
+      driverDayAllowance: driverDayAllowance || 300,
+      driverNightAllowance: driverNightAllowance || 250,
+      nightSurcharge: nightSurcharge || 0,
+      airportSurcharge: airportSurcharge || 0,
+      outstationMinDays: outstationMinDays || 1,
+      tollsIncluded: tollsIncluded || false,
+      statePermitIncluded: statePermitIncluded || false,
+      parkingIncluded: parkingIncluded || false,
+      isActive: isActive !== false,
+    };
+
+    // Bulk create — one entry per city in locationIds
+    if (bulk && Array.isArray(locationIds) && locationIds.length > 0) {
+      const results = await Promise.all(
+        locationIds.map((locId: string) =>
+          prisma.chauffeur_city_pricing.upsert({
+            where: { vehicleCategoryId_locationId: { vehicleCategoryId, locationId: locId } },
+            create: { id: generateId(), vehicleCategoryId, locationId: locId, ...pricingData },
+            update: pricingData,
+          })
+        )
+      );
+      return NextResponse.json({
+        success: true,
+        message: `Bulk pricing saved for ${results.length} cities`,
+        count: results.length,
+        serviceSlug,
+      });
+    }
+
+    // Single create/update
+    if (!locationId) {
+      return NextResponse.json(
+        { success: false, error: 'Location is required' },
+        { status: 400 }
+      );
+    }
+
     // Upsert - create or update
     const pricing = await prisma.chauffeur_city_pricing.upsert({
-      where: {
-        vehicleCategoryId_locationId: {
-          vehicleCategoryId,
-          locationId,
-        },
-      },
-      create: {
-        id: generateId(),
-        vehicleCategoryId,
-        locationId,
-        baseKmRate,
-        minKmPerDay: minKmPerDay || 250,
-        driverDayAllowance: driverDayAllowance || 300,
-        driverNightAllowance: driverNightAllowance || 250,
-        nightSurcharge: nightSurcharge || 0,
-        airportSurcharge: airportSurcharge || 0,
-        outstationMinDays: outstationMinDays || 1,
-        tollsIncluded: tollsIncluded || false,
-        statePermitIncluded: statePermitIncluded || false,
-        parkingIncluded: parkingIncluded || false,
-        isActive: isActive !== false,
-      },
-      update: {
-        baseKmRate,
-        minKmPerDay: minKmPerDay || 250,
-        driverDayAllowance: driverDayAllowance || 300,
-        driverNightAllowance: driverNightAllowance || 250,
-        nightSurcharge: nightSurcharge || 0,
-        airportSurcharge: airportSurcharge || 0,
-        outstationMinDays: outstationMinDays || 1,
-        tollsIncluded: tollsIncluded || false,
-        statePermitIncluded: statePermitIncluded || false,
-        parkingIncluded: parkingIncluded || false,
-        isActive: isActive !== false,
-      },
+      where: { vehicleCategoryId_locationId: { vehicleCategoryId, locationId } },
+      create: { id: generateId(), vehicleCategoryId, locationId, ...pricingData },
+      update: pricingData,
       include: {
         chauffeur_vehicle_categories: { select: { id: true, name: true } },
         locations: { select: { id: true, name: true } },
