@@ -139,6 +139,38 @@ export async function GET(
       }
     }
 
+    // Try B2B Booking
+    if (!booking) {
+      const b2bBooking = await prisma.b2b_bookings.findUnique({
+        where: { id: bookingId },
+        include: {
+          trips: {
+            where: { status: { not: 'CANCELLED' } },
+            include: { vendor: { select: { id: true, businessName: true, phone: true } } },
+            orderBy: { createdAt: 'asc' },
+            take: 1,
+          },
+          vendorQuotes: {
+            where: { status: { in: ['CONFIRMED', 'SUBMITTED'] } },
+            include: { vendor: { select: { id: true, businessName: true, phone: true } } },
+            orderBy: { createdAt: 'desc' },
+            take: 1,
+          },
+        },
+      });
+      if (b2bBooking) {
+        booking = b2bBooking;
+        bookingType = 'b2b';
+        customerId = b2bBooking.customerId;
+        // Vendor from trips first, then from quotes
+        const tripVendor = b2bBooking.trips?.[0]?.vendor;
+        const quoteVendor = b2bBooking.vendorQuotes?.[0]?.vendor;
+        const resolvedVendor = tripVendor || quoteVendor;
+        vendorId = resolvedVendor?.id || null;
+        booking.acceptedVendor = resolvedVendor || null;
+      }
+    }
+
     if (!booking) {
       return NextResponse.json({
         success: true,
@@ -352,6 +384,33 @@ export async function POST(
         bookingType = 'packers';
         vendorId = packersBooking.vendorId;
         customerId = packersBooking.customerId;
+      }
+    }
+
+    // Try B2B Booking
+    if (!booking) {
+      const b2bBooking = await prisma.b2b_bookings.findUnique({
+        where: { id: bookingId },
+        include: {
+          trips: {
+            where: { status: { not: 'CANCELLED' } },
+            select: { vendorId: true },
+            orderBy: { createdAt: 'asc' },
+            take: 1,
+          },
+          vendorQuotes: {
+            where: { status: { in: ['CONFIRMED', 'SUBMITTED'] } },
+            select: { vendorId: true },
+            orderBy: { createdAt: 'desc' },
+            take: 1,
+          },
+        },
+      });
+      if (b2bBooking) {
+        booking = b2bBooking;
+        bookingType = 'b2b';
+        customerId = b2bBooking.customerId;
+        vendorId = b2bBooking.trips?.[0]?.vendorId || b2bBooking.vendorQuotes?.[0]?.vendorId || null;
       }
     }
 

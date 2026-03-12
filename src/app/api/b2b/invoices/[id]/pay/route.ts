@@ -55,6 +55,16 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
         customerEmail: invoice.customerEmail,
         customerPhone: invoice.customerPhone,
       },
+      razorpayConfig: {
+        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || process.env.RAZORPAY_KEY_ID,
+        name: 'TransRentals',
+        description: `B2B Invoice - ${invoice.invoiceNumber}`,
+        prefill: {
+          name: invoice.companyName || '',
+          email: invoice.customerEmail || '',
+          contact: invoice.customerPhone || '',
+        },
+      },
     });
   } catch (error: any) {
     console.error('Razorpay order creation error:', error);

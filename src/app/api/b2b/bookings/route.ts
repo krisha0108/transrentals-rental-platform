@@ -49,6 +49,11 @@ export async function GET(request: NextRequest) {
       whereClause.status = status;
     }
 
+    const serviceType = searchParams.get('serviceType');
+    if (serviceType && serviceType !== 'all') {
+      whereClause.serviceType = serviceType;
+    }
+
     const [bookings, total] = await Promise.all([
       prisma.b2b_bookings.findMany({
         where: whereClause,

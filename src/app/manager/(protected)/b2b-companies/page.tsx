@@ -5,7 +5,7 @@ import React, { useState, useEffect } from 'react';
 import {
   Building2, Search, Filter, CheckCircle, XCircle, Clock, Loader2,
   Phone, Mail, User, FileText, ChevronDown, AlertCircle, Eye,
-  X, Briefcase, Hash, Calendar, ShieldCheck, ShieldX, BarChart3,
+  X, Briefcase, Hash, Calendar, ShieldCheck, ShieldX, BarChart3, MapPin,
 } from 'lucide-react';
 
 interface B2BCustomer {
@@ -16,6 +16,9 @@ interface B2BCustomer {
   companyName: string | null;
   gstin: string | null;
   businessType: string | null;
+  companyAddress: string | null;
+  companyPhone: string | null;
+  companyEmail: string | null;
   b2bStatus: string | null;
   b2bApprovedAt: string | null;
   b2bRejectionReason: string | null;
@@ -408,6 +411,27 @@ export default function B2BCompaniesPage() {
                       <div>
                         <p className="text-xs text-gray-500">Business Type</p>
                         <p className="font-semibold text-gray-900">{c.businessType || 'Not specified'}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3 p-2.5 bg-white rounded-lg">
+                      <MapPin className="w-4 h-4 text-gray-400 mt-0.5" />
+                      <div>
+                        <p className="text-xs text-gray-500">Company Address</p>
+                        <p className="font-semibold text-gray-900">{c.companyAddress || 'Not provided'}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3 p-2.5 bg-white rounded-lg">
+                      <Phone className="w-4 h-4 text-gray-400 mt-0.5" />
+                      <div>
+                        <p className="text-xs text-gray-500">Company Phone</p>
+                        <p className="font-semibold text-gray-900">{c.companyPhone || 'Not provided'}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3 p-2.5 bg-white rounded-lg">
+                      <Mail className="w-4 h-4 text-gray-400 mt-0.5" />
+                      <div>
+                        <p className="text-xs text-gray-500">Company Email</p>
+                        <p className="font-semibold text-gray-900">{c.companyEmail || 'Not provided'}</p>
                       </div>
                     </div>
                   </div>

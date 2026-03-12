@@ -208,9 +208,13 @@
       "Bash(pip install:*)",
       "Bash(do:*)",
       "Bash(for f in \"/c/Users/Admin/Desktop/tran_stable/src/app/\\(services\\)/car-rental/[location]/page.tsx\" \"/c/Users/Admin/Desktop/tran_stable/src/app/\\(services\\)/bus-rental/[location]/page.tsx\" \"/c/Users/Admin/Desktop/tran_stable/src/app/\\(services\\)/packers-and-movers/[location]/page.tsx\")",
-      "Read(//c/Users/Admin/Desktop/tran_stable/**)"
+      "Read(//c/Users/Admin/Desktop/tran_stable/**)",
+      "Read(//c/Users/Admin/Videos/transrentals-new/tr-app/**)"
     ],
     "deny": [],
-    "ask": []
+    "ask": [],
+    "additionalDirectories": [
+      "C:\\Users\\Admin\\Videos\\transrentals-new\\tr-app\\screens"
+    ]
   }
 }

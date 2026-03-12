@@ -55,7 +55,34 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
             items: {
               include: {
                 vendorQuote: {
-                  select: { id: true, quoteNumber: true, vendorId: true, vehicleCount: true, totalPrice: true }
+                  select: {
+                    id: true, quoteNumber: true, vehicleCount: true,
+                    pricePerVehicle: true, totalPrice: true, notes: true, status: true,
+                    vendor: {
+                      select: { id: true, businessName: true, ownerName: true, phone: true, city: true, rating: true }
+                    },
+                    quoteVehicles: {
+                      select: {
+                        id: true, vehicleName: true, vehicleNumber: true,
+                        driverName: true, driverPhone: true,
+                        basePrice: true, perKmRate: true, perHourRate: true, perDayRate: true,
+                        driverAllowance: true, nightCharges: true, extraKmCharge: true, extraHourCharge: true,
+                        vehicle: {
+                          select: {
+                            id: true, vehicleName: true, registrationNumber: true,
+                            seatingCapacity: true, fuelType: true, transmission: true,
+                            color: true, yearOfManufacture: true, images: true,
+                            brands: { select: { name: true } },
+                            vehicle_models: { select: { name: true, sideImage: true } },
+                            chauffeur_vehicle_categories: { select: { name: true, acType: true, image: true } },
+                          }
+                        },
+                        driver: {
+                          select: { id: true, name: true, phone: true, profilePhoto: true }
+                        }
+                      }
+                    }
+                  }
                 }
               }
             },

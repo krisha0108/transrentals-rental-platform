@@ -265,7 +265,8 @@ export async function GET(request: NextRequest) {
         include: {
           locations: { select: { name: true } },
           vendors_car_bookings_assignedVendorIdTovendors: { select: { businessName: true, phone: true } },
-          self_drive_quotes: { select: { vehicleImages: true } },
+          self_drive_quotes: { select: { vehicleImages: true, vehicleName: true } },
+          vehicle_models: { select: { name: true, sideImage: true, brands: { select: { name: true } } } },
         },
         orderBy: { createdAt: 'desc' },
         take: 50,
@@ -457,10 +458,10 @@ export async function GET(request: NextRequest) {
     // Fetch vehicle category images for chauffeur bookings
     const categoryIds = [...new Set(chauffeurBookings.map(b => b.carCategory).filter(Boolean))];
 
-    // Fetch fleet vehicle sideImage for self-drive bookings (car_bookings has no vehicle_models relation)
+    // Fetch fleet vehicle images for self-drive bookings from vendor_fleets
     const carRequestedVehicleIds = [...new Set(carBookings.map(b => b.requestedVehicleId).filter(Boolean))] as string[];
 
-    const [vehicleCategories, carFleetModels] = await Promise.all([
+    const [vehicleCategories, vendorFleetEntries] = await Promise.all([
       categoryIds.length > 0
         ? prisma.chauffeur_vehicle_categories.findMany({
             where: { id: { in: categoryIds } },
@@ -468,9 +469,13 @@ export async function GET(request: NextRequest) {
           })
         : Promise.resolve([]),
       carRequestedVehicleIds.length > 0
-        ? prisma.vehicle_models.findMany({
+        ? prisma.vendor_fleets.findMany({
             where: { id: { in: carRequestedVehicleIds } },
-            select: { id: true, sideImage: true },
+            select: {
+              id: true,
+              images: true,
+              vehicle_models: { select: { sideImage: true, name: true, brands: { select: { name: true } } } },
+            },
           })
         : Promise.resolve([]),
     ]);
@@ -478,13 +483,32 @@ export async function GET(request: NextRequest) {
     const categoryImageMap: Record<string, string | null> = {};
     vehicleCategories.forEach(c => { categoryImageMap[c.id] = c.image; });
 
-    const carFleetImageMap: Record<string, string | null> = {};
-    carFleetModels.forEach(m => { carFleetImageMap[m.id] = m.sideImage; });
+    const vendorFleetMap: Record<string, { image: string | null; vehicleName: string | null }> = {};
+    vendorFleetEntries.forEach(f => {
+      let image: string | null = f.vehicle_models?.sideImage || null;
+      if (!image && f.images) {
+        try {
+          const parsed = JSON.parse(f.images);
+          if (Array.isArray(parsed) && parsed.length > 0) image = parsed[0];
+          else if (typeof parsed === 'string') image = parsed;
+        } catch {
+          if (f.images.startsWith('http')) image = f.images;
+        }
+      }
+      const vehicleName = f.vehicle_models
+        ? `${f.vehicle_models.brands?.name || ''} ${f.vehicle_models.name || ''}`.trim()
+        : null;
+      vendorFleetMap[f.id] = { image, vehicleName };
+    });
 
     // Transform to common format
     const transformedBookings = [
       // Bike quote requests
-      ...bikeQuoteRequests.map((b) => ({
+      ...bikeQuoteRequests.map((b) => {
+        const bikeModelName = b.vehicleModelName
+          ? `${b.vehicleBrand ? b.vehicleBrand + ' ' : ''}${b.vehicleModelName}`.trim()
+          : null;
+        return {
         id: b.id,
         booking_number: b.requestNumber,
         service_name: 'Bike Rental',
@@ -496,16 +520,17 @@ export async function GET(request: NextRequest) {
         status: mapBikeQuoteRequestStatus(b.status),
         raw_status: b.status,
         created_at: b.createdAt.toISOString(),
-        vehicle_name: b.requestedCategory || 'Bike',
+        vehicle_name: bikeModelName || b.vehicleCategoryName || 'Bike',
         vehicle_image: b.vehicle_models?.sideImage || null,
-        brand: b.requestedBrand || null,
-        category: b.requestedCategory,
+        brand: b.vehicleBrand || null,
+        category: b.vehicleCategory,
         total_amount: null,
         vendor: null,
         quotations: [],
         is_quote_request: true,
         quote_count: b.totalQuotesReceived || 0,
-      })),
+      };
+      }),
       // Bike bookings
       ...bikeBookings.map((b) => ({
         id: b.id,
@@ -541,6 +566,22 @@ export async function GET(request: NextRequest) {
           toLocation = b.dropAddress;
         }
 
+        // Resolve vehicle name: quote vehicle > fleet vehicle > model relation > requested name
+        const fleetInfo = b.requestedVehicleId ? vendorFleetMap[b.requestedVehicleId] : null;
+        const modelName = b.vehicle_models
+          ? `${b.vehicle_models.brands?.name || ''} ${b.vehicle_models.name || ''}`.trim()
+          : null;
+        const resolvedVehicleName = b.self_drive_quotes?.vehicleName
+          || modelName
+          || fleetInfo?.vehicleName
+          || b.requestedVehicleName;
+
+        // Resolve vehicle image: quote images > model sideImage > fleet images
+        const resolvedVehicleImage = getFirstVehicleImage(b.self_drive_quotes?.vehicleImages)
+          || b.vehicle_models?.sideImage
+          || fleetInfo?.image
+          || null;
+
         return {
           id: b.id,
           booking_number: b.bookingNumber,
@@ -552,8 +593,8 @@ export async function GET(request: NextRequest) {
           return_datetime: b.dropDate?.toISOString() || null,
           status: mapStatusToDisplay(b.status),
           created_at: b.createdAt.toISOString(),
-          vehicle_name: b.requestedVehicleName,
-          vehicle_image: getFirstVehicleImage(b.self_drive_quotes?.vehicleImages) || (b.requestedVehicleId ? carFleetImageMap[b.requestedVehicleId] : null) || null,
+          vehicle_name: resolvedVehicleName,
+          vehicle_image: resolvedVehicleImage,
           brand: b.requestedBrand,
           category: b.requestedCategory,
           total_amount: b.grandTotal,
@@ -565,7 +606,12 @@ export async function GET(request: NextRequest) {
         };
       }),
       // Self-drive quote requests
-      ...selfDriveQuoteRequests.map((b) => ({
+      ...selfDriveQuoteRequests.map((b) => {
+        // Build proper vehicle display name: "Brand Model" > modelName > categoryName
+        const qrModelName = b.vehicleModelName
+          ? `${b.vehicleBrand ? b.vehicleBrand + ' ' : ''}${b.vehicleModelName}`.trim()
+          : null;
+        return {
         id: b.id,
         booking_number: b.requestNumber,
         service_name: 'Self-Drive Car',
@@ -577,16 +623,17 @@ export async function GET(request: NextRequest) {
         status: mapSelfDriveQuoteRequestStatus(b.status),
         raw_status: b.status,
         created_at: b.createdAt.toISOString(),
-        vehicle_name: b.vehicleCategoryName || b.specificModel || 'Car',
+        vehicle_name: qrModelName || b.vehicleCategoryName || b.specificModel || 'Car',
         vehicle_image: b.vehicle_models?.sideImage || null,
-        brand: b.specificBrand || null,
+        brand: b.vehicleBrand || b.specificBrand || null,
         category: b.vehicleCategory,
         total_amount: null,
         vendor: null,
         quotations: [],
         is_quote_request: true,
         quote_count: b.totalQuotesReceived || 0,
-      })),
+      };
+      }),
       ...chauffeurBookings.map((b) => ({
         id: b.id,
         booking_number: b.bookingNumber,

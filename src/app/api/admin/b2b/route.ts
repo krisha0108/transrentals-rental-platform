@@ -32,6 +32,7 @@ export async function GET(request: NextRequest) {
         select: {
           id: true, name: true, email: true, phone: true,
           companyName: true, gstin: true, businessType: true,
+          companyAddress: true, companyPhone: true, companyEmail: true,
           b2bStatus: true, b2bApprovedAt: true, b2bRejectionReason: true,
           isActive: true, isBanned: true, createdAt: true,
           _count: { select: { b2b_bookings: true } },

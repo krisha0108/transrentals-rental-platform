@@ -85,6 +85,7 @@ export default function EquipmentScreen() {
 
   // customer
   const [customerData, setCustomerData] = useState(null);
+  const [isB2BCustomer, setIsB2BCustomer] = useState(false);
   // remote
   const [allLocations, setAllLocations] = useState([]);
   const [equipmentTypes, setEquipmentTypes] = useState([]);
@@ -129,7 +130,9 @@ export default function EquipmentScreen() {
   const loadCustomer = async () => {
     const data = await AsyncStorage.getItem('customer');
     if (data) {
-      setCustomerData(JSON.parse(data));
+      const c = JSON.parse(data);
+      setCustomerData(c);
+      if (c.isB2B === true && c.b2bStatus === 'APPROVED') setIsB2BCustomer(true);
     }
   };
 
@@ -654,6 +657,17 @@ export default function EquipmentScreen() {
               placeholderTextColor={TEXT_MUTED}
             />
           </View>
+
+          {/* B2B Notice */}
+          {isB2BCustomer && (
+            <View style={{ backgroundColor: '#FFF7ED', borderWidth: 1, borderColor: '#FDBA74', borderRadius: wp('3%'), padding: wp('3.5%'), flexDirection: 'row', alignItems: 'flex-start', gap: wp('2.5%'), marginBottom: hp('1.5%') }}>
+              <Ionicons name="alert-circle" size={wp('5%')} color="#EA580C" style={{ marginTop: 2 }} />
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: wp('3.3%'), fontWeight: '700', color: '#9A3412', marginBottom: 3 }}>Advance Payment Required</Text>
+                <Text style={{ fontSize: wp('2.9%'), color: '#C2410C', lineHeight: wp('4.2%') }}>Equipment Rental is not covered under your B2B agreement. This booking will not be counted as a B2B booking — advance payment will be required before confirmation.</Text>
+              </View>
+            </View>
+          )}
 
           {/* SUBMIT */}
           <TouchableOpacity

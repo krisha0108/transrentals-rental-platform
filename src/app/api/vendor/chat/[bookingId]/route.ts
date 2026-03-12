@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 import { transformPrismaResponse } from '@/lib/utils/api-transform';
 import { getVendorAuth } from '@/lib/auth/vendor-mobile-auth';
+import { sendFCMNotification } from '@/lib/utils/fcm-helper';
 import crypto from 'crypto';
 
 import logger from '@/lib/security/logger';
@@ -155,6 +156,23 @@ export async function GET(
         booking = equipmentBooking;
         bookingType = 'equipment';
         customerId = equipmentBooking.customerId;
+      }
+    }
+
+    // Try B2B Booking
+    if (!booking) {
+      const b2bBooking = await prisma.b2b_bookings.findUnique({
+        where: { id: bookingId },
+        include: {
+          customer: { select: { id: true, name: true, email: true, phone: true } },
+        },
+      });
+      if (b2bBooking) {
+        booking = b2bBooking;
+        bookingType = 'b2b';
+        customerId = b2bBooking.customerId;
+        // Map customer relation to match the expected `customers` field
+        booking.customers = b2bBooking.customer;
       }
     }
 
@@ -417,6 +435,18 @@ export async function POST(
       }
     }
 
+    // Try B2B Booking
+    if (!booking) {
+      const b2bBooking = await prisma.b2b_bookings.findUnique({
+        where: { id: bookingId },
+      });
+      if (b2bBooking) {
+        booking = b2bBooking;
+        bookingType = 'b2b';
+        customerId = b2bBooking.customerId;
+      }
+    }
+
     if (!booking) {
       return NextResponse.json(
         { success: false, message: 'Booking not found' },
@@ -484,6 +514,26 @@ export async function POST(
         customerUnread: { increment: 1 },
       },
     });
+
+    // Send FCM push notification to customer
+    if (effectiveCustomerId) {
+      try {
+        const msgPreview = message.trim().length > 60 ? message.trim().substring(0, 60) + '...' : message.trim();
+        await sendFCMNotification({
+          customerId: effectiveCustomerId,
+          title: '💬 New message from vendor',
+          body: msgPreview,
+          data: {
+            type: 'chat',
+            screen: 'BookingChat',
+            bookingId,
+            bookingType,
+          },
+        });
+      } catch (notifErr) {
+        console.error('[Vendor Chat] Push notification failed:', notifErr);
+      }
+    }
 
     // Use display ID for frontend
     const displayCustomerId = effectiveCustomerId || `guest-${bookingId}`;

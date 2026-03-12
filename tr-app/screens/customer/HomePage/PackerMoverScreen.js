@@ -82,6 +82,7 @@ export default function PackerMoverScreen() {
 
   const [activeType, setActiveType] = useState('home'); // home | office | vehicle
   const [customerData, setCustomerData] = useState(null);
+  const [isB2BCustomer, setIsB2BCustomer] = useState(false);
 
   const [allLocations, setAllLocations] = useState([]);
   const [query, setQuery] = useState('');
@@ -120,7 +121,11 @@ export default function PackerMoverScreen() {
   useEffect(() => {
     (async () => {
       const c = await AsyncStorage.getItem('customer');
-      if (c) setCustomerData(JSON.parse(c));
+      if (c) {
+        const cust = JSON.parse(c);
+        setCustomerData(cust);
+        if (cust.isB2B === true && cust.b2bStatus === 'APPROVED') setIsB2BCustomer(true);
+      }
     })();
     fetchLocations();
   }, []);
@@ -640,6 +645,16 @@ export default function PackerMoverScreen() {
               multiline
             />
           </View>
+
+          {isB2BCustomer && (
+            <View style={{ backgroundColor: '#FFF7ED', borderWidth: 1, borderColor: '#FDBA74', borderRadius: wp('3%'), padding: wp('3.5%'), flexDirection: 'row', alignItems: 'flex-start', gap: wp('2.5%'), marginBottom: hp('1.5%') }}>
+              <Ionicons name="alert-circle" size={wp('5%')} color="#EA580C" style={{ marginTop: 2 }} />
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: wp('3.3%'), fontWeight: '700', color: '#9A3412', marginBottom: 3 }}>Advance Payment Required</Text>
+                <Text style={{ fontSize: wp('2.9%'), color: '#C2410C', lineHeight: wp('4.2%') }}>Packers & Movers is not covered under your B2B agreement. This booking will not be counted as a B2B booking — advance payment will be required before confirmation.</Text>
+              </View>
+            </View>
+          )}
 
           <TouchableOpacity
             style={[styles.submitBtnWrap, isSubmitting && { opacity: 0.4 }]}

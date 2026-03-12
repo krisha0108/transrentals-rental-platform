@@ -151,6 +151,13 @@ export default function BusRentalFleetScreen() {
   const [customer, setCustomer] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [confirmedRequestId, setConfirmedRequestId] = useState(null);
+  const [b2bBookingResponse, setB2bBookingResponse] = useState(null);
+
+  // B2B booking
+  const [bookingType, setBookingType] = useState('personal'); // 'personal' or 'company'
+  const [numberOfBuses, setNumberOfBuses] = useState('1');
+  const [numberOfPersons, setNumberOfPersons] = useState('');
+  const [isB2BCustomer, setIsB2BCustomer] = useState(false);
 
   // Phone collection
   const [showPhoneModal, setShowPhoneModal] = useState(false);
@@ -187,7 +194,11 @@ export default function BusRentalFleetScreen() {
   const loadCustomer = async () => {
     const customerData = await AsyncStorage.getItem('customer');
     if (customerData) {
-      setCustomer(JSON.parse(customerData));
+      const parsed = JSON.parse(customerData);
+      setCustomer(parsed);
+      if (parsed.isB2B && parsed.b2bStatus === 'APPROVED') {
+        setIsB2BCustomer(true);
+      }
     }
   };
 
@@ -398,9 +409,23 @@ export default function BusRentalFleetScreen() {
         budgetMax: null,
       };
 
+      // Add B2B fields if company booking
+      if (bookingType === 'company' && isB2BCustomer) {
+        requestData.isB2B = true;
+        requestData.numberOfVehicles = numberOfBuses || '1';
+        requestData.numberOfPersons = numberOfPersons || null;
+      }
+
       const response = await bookingService.createBusQuoteRequest(requestData);
 
       if (response.success || response.quoteRequest || response.id) {
+        // B2B booking goes to B2BBookingDetail
+        if (response.isB2B && response.booking) {
+          setB2bBookingResponse(response.booking);
+          setConfirmedRequestId(response.booking.bookingNumber || response.booking.id);
+          setStep(8);
+          return;
+        }
         setConfirmedRequestId(response.quoteRequest?.id || response.id || 'unknown');
         setStep(8); // Confirmation step
       }
@@ -922,6 +947,87 @@ export default function BusRentalFleetScreen() {
         <Text style={styles.stepHeroSubtitle}>Add any special requests or preferences</Text>
       </LinearGradient>
 
+      {/* B2B Booking Type Toggle */}
+      {isB2BCustomer && (
+        <View style={styles.b2bSection}>
+          <Text style={styles.b2bSectionLabel}>Booking For</Text>
+          <View style={styles.b2bToggleRow}>
+            <TouchableOpacity
+              style={[styles.b2bToggleBtn, bookingType === 'personal' && styles.b2bToggleBtnActive]}
+              onPress={() => setBookingType('personal')}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="person" size={wp('4%')} color={bookingType === 'personal' ? '#fff' : TEAL_MID} />
+              <Text style={[styles.b2bToggleBtnText, bookingType === 'personal' && styles.b2bToggleBtnTextActive]}>Personal</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.b2bToggleBtn, bookingType === 'company' && styles.b2bToggleBtnActive]}
+              onPress={() => setBookingType('company')}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="business" size={wp('4%')} color={bookingType === 'company' ? '#fff' : TEAL_MID} />
+              <Text style={[styles.b2bToggleBtnText, bookingType === 'company' && styles.b2bToggleBtnTextActive]}>For Company</Text>
+            </TouchableOpacity>
+          </View>
+
+          {bookingType === 'company' && (
+            <View style={styles.b2bFields}>
+              {/* Number of Buses */}
+              <View style={styles.b2bFieldRow}>
+                <Text style={styles.b2bFieldLabel}>Number of Buses</Text>
+                <View style={styles.b2bStepperRow}>
+                  <TouchableOpacity
+                    style={styles.b2bStepBtn}
+                    onPress={() => {
+                      const v = Math.max(1, parseInt(numberOfBuses || '1') - 1);
+                      setNumberOfBuses(String(v));
+                    }}
+                  >
+                    <Ionicons name="remove" size={wp('4.5%')} color={TEAL_MID} />
+                  </TouchableOpacity>
+                  <TextInput
+                    style={styles.b2bStepInput}
+                    value={numberOfBuses}
+                    onChangeText={(t) => setNumberOfBuses(t.replace(/[^0-9]/g, ''))}
+                    keyboardType="numeric"
+                    textAlign="center"
+                  />
+                  <TouchableOpacity
+                    style={styles.b2bStepBtn}
+                    onPress={() => {
+                      const v = Math.min(100, parseInt(numberOfBuses || '1') + 1);
+                      setNumberOfBuses(String(v));
+                    }}
+                  >
+                    <Ionicons name="add" size={wp('4.5%')} color={TEAL_MID} />
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              {/* Number of Persons (optional) */}
+              <View style={styles.b2bFieldRow}>
+                <Text style={styles.b2bFieldLabel}>Total Persons (optional)</Text>
+                <TextInput
+                  style={styles.b2bPersonsInput}
+                  value={numberOfPersons}
+                  onChangeText={(t) => setNumberOfPersons(t.replace(/[^0-9]/g, ''))}
+                  keyboardType="numeric"
+                  placeholder="e.g. 200"
+                  placeholderTextColor={TEXT_MUTED}
+                />
+              </View>
+
+              <View style={styles.b2bInfoPill}>
+                <Ionicons name="information-circle" size={wp('4%')} color={TEAL_MID} />
+                <Text style={styles.b2bInfoPillText}>
+                  B2B booking: Vendors will send quotes. Post-trip corporate billing.
+                </Text>
+              </View>
+            </View>
+          )}
+        </View>
+      )}
+
       <View style={styles.preferencesContainer}>
         <TouchableOpacity
           style={[styles.preferenceCard, needAC && styles.preferenceCardActive]}
@@ -1020,107 +1126,122 @@ export default function BusRentalFleetScreen() {
   );
 
   // STEP 8: Confirmation
-  const renderStep8 = () => (
-    <View style={styles.confirmationContainer}>
-      <LinearGradient
-        colors={[TEAL_MID, TEAL]}
-        style={styles.successCircle}
-      >
-        <Ionicons name="checkmark" size={wp('14%')} color="#fff" />
-      </LinearGradient>
+  const renderStep8 = () => {
+    const isB2B = !!b2bBookingResponse;
 
-      <Text style={styles.confirmTitle}>Quote Request Submitted!</Text>
-      <Text style={styles.confirmSubtitle}>
-        Your bus rental quote request has been sent to verified vendors. You'll receive competitive
-        quotes within 24-48 hours.
-      </Text>
-
-      <View style={styles.confirmCard}>
-        <View style={styles.confirmRow}>
-          <View style={styles.confirmIconCircle}>
-            <Ionicons name="document-text-outline" size={wp('5%')} color={TEAL} />
-          </View>
-          <View style={{ flex: 1, marginLeft: wp('3%') }}>
-            <Text style={styles.confirmLabel}>Request ID</Text>
-            <Text style={styles.confirmValue}>#{confirmedRequestId}</Text>
-          </View>
-        </View>
-
-        <View style={styles.confirmDivider} />
-
-        <View style={styles.confirmRow}>
-          <View style={styles.confirmIconCircle}>
-            <Ionicons name="bus-outline" size={wp('5%')} color={TEAL} />
-          </View>
-          <View style={{ flex: 1, marginLeft: wp('3%') }}>
-            <Text style={styles.confirmLabel}>Trip Type</Text>
-            <Text style={styles.confirmValue}>
-              {tripType.charAt(0).toUpperCase() + tripType.slice(1)}
-            </Text>
-          </View>
-        </View>
-
-        <View style={styles.confirmDivider} />
-
-        <View style={styles.confirmRow}>
-          <View style={styles.confirmIconCircle}>
-            <Ionicons name="people-outline" size={wp('5%')} color={TEAL} />
-          </View>
-          <View style={{ flex: 1, marginLeft: wp('3%') }}>
-            <Text style={styles.confirmLabel}>Passengers</Text>
-            <Text style={styles.confirmValue}>{passengers} people</Text>
-          </View>
-        </View>
-
-        <View style={styles.confirmDivider} />
-
-        <View style={styles.confirmRow}>
-          <View style={styles.confirmIconCircle}>
-            <Ionicons name="calendar-outline" size={wp('5%')} color={TEAL} />
-          </View>
-          <View style={{ flex: 1, marginLeft: wp('3%') }}>
-            <Text style={styles.confirmLabel}>Journey Date</Text>
-            <Text style={styles.confirmValue}>
-              {pickupDate.toLocaleDateString('en-IN', {
-                day: 'numeric',
-                month: 'short',
-                year: 'numeric',
-              })}
-            </Text>
-          </View>
-        </View>
-      </View>
-
-      <TouchableOpacity
-        style={styles.primaryBtn}
-        onPress={() =>
-          navigation.navigate('BusQuoteRequestDetail', {
-            requestId: confirmedRequestId,
-          })
-        }
-        activeOpacity={0.7}
-      >
+    return (
+      <View style={styles.confirmationContainer}>
         <LinearGradient
           colors={[TEAL_MID, TEAL]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={styles.primaryBtnGradient}
+          style={styles.successCircle}
         >
-          <Text style={styles.primaryBtnText}>View Quote Request</Text>
-          <Ionicons name="arrow-forward" size={wp('5%')} color="#fff" />
+          <Ionicons name="checkmark" size={wp('14%')} color="#fff" />
         </LinearGradient>
-      </TouchableOpacity>
 
-      <TouchableOpacity
-        style={styles.secondaryBtn}
-        onPress={() => navigation.navigate('CustomerDashboard')}
-        activeOpacity={0.7}
-      >
-        <Ionicons name="home-outline" size={wp('5%')} color={TEAL} />
-        <Text style={styles.secondaryBtnText}>Go to Dashboard</Text>
-      </TouchableOpacity>
-    </View>
-  );
+        <Text style={styles.confirmTitle}>
+          {isB2B ? 'B2B Booking Created!' : 'Quote Request Submitted!'}
+        </Text>
+        <Text style={styles.confirmSubtitle}>
+          {isB2B
+            ? `Your B2B bus booking for ${numberOfBuses} bus${parseInt(numberOfBuses) > 1 ? 'es' : ''} has been created. Vendors will be notified and send quotes.`
+            : "Your bus rental quote request has been sent to verified vendors. You'll receive competitive quotes within 24-48 hours."}
+        </Text>
+
+        <View style={styles.confirmCard}>
+          <View style={styles.confirmRow}>
+            <View style={styles.confirmIconCircle}>
+              <Ionicons name={isB2B ? 'business-outline' : 'document-text-outline'} size={wp('5%')} color={TEAL} />
+            </View>
+            <View style={{ flex: 1, marginLeft: wp('3%') }}>
+              <Text style={styles.confirmLabel}>{isB2B ? 'Booking Number' : 'Request ID'}</Text>
+              <Text style={styles.confirmValue}>
+                {isB2B ? b2bBookingResponse.bookingNumber : `#${confirmedRequestId}`}
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.confirmDivider} />
+
+          <View style={styles.confirmRow}>
+            <View style={styles.confirmIconCircle}>
+              <Ionicons name="bus-outline" size={wp('5%')} color={TEAL} />
+            </View>
+            <View style={{ flex: 1, marginLeft: wp('3%') }}>
+              <Text style={styles.confirmLabel}>Trip Type</Text>
+              <Text style={styles.confirmValue}>
+                {tripType.charAt(0).toUpperCase() + tripType.slice(1)}
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.confirmDivider} />
+
+          <View style={styles.confirmRow}>
+            <View style={styles.confirmIconCircle}>
+              <Ionicons name="people-outline" size={wp('5%')} color={TEAL} />
+            </View>
+            <View style={{ flex: 1, marginLeft: wp('3%') }}>
+              <Text style={styles.confirmLabel}>{isB2B ? 'Buses Required' : 'Passengers'}</Text>
+              <Text style={styles.confirmValue}>
+                {isB2B ? `${numberOfBuses} bus${parseInt(numberOfBuses) > 1 ? 'es' : ''}` : `${passengers} people`}
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.confirmDivider} />
+
+          <View style={styles.confirmRow}>
+            <View style={styles.confirmIconCircle}>
+              <Ionicons name="calendar-outline" size={wp('5%')} color={TEAL} />
+            </View>
+            <View style={{ flex: 1, marginLeft: wp('3%') }}>
+              <Text style={styles.confirmLabel}>Journey Date</Text>
+              <Text style={styles.confirmValue}>
+                {pickupDate.toLocaleDateString('en-IN', {
+                  day: 'numeric',
+                  month: 'short',
+                  year: 'numeric',
+                })}
+              </Text>
+            </View>
+          </View>
+        </View>
+
+        <TouchableOpacity
+          style={styles.primaryBtn}
+          onPress={() => {
+            if (isB2B) {
+              navigation.navigate('B2BBookingDetail', { bookingId: b2bBookingResponse.id });
+            } else {
+              navigation.navigate('BusQuoteRequestDetail', { requestId: confirmedRequestId });
+            }
+          }}
+          activeOpacity={0.7}
+        >
+          <LinearGradient
+            colors={[TEAL_MID, TEAL]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.primaryBtnGradient}
+          >
+            <Text style={styles.primaryBtnText}>
+              {isB2B ? 'View B2B Booking' : 'View Quote Request'}
+            </Text>
+            <Ionicons name="arrow-forward" size={wp('5%')} color="#fff" />
+          </LinearGradient>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.secondaryBtn}
+          onPress={() => navigation.navigate('CustomerDashboard')}
+          activeOpacity={0.7}
+        >
+          <Ionicons name="home-outline" size={wp('5%')} color={TEAL} />
+          <Text style={styles.secondaryBtnText}>Go to Dashboard</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  };
 
   // ========== STEP INDICATOR ==========
   const renderStepIndicator = () => {
@@ -1233,7 +1354,11 @@ export default function BusRentalFleetScreen() {
               ) : (
                 <>
                   <Text style={styles.nextButtonText}>
-                    {step === 7 ? 'Submit Request' : 'Continue'}
+                    {step === 7
+                      ? (bookingType === 'company'
+                        ? `Request B2B Quote (${numberOfBuses} Bus${parseInt(numberOfBuses) > 1 ? 'es' : ''})`
+                        : 'Submit Request')
+                      : 'Continue'}
                   </Text>
                   <Ionicons name="arrow-forward" size={wp('5%')} color="#fff" />
                 </>
@@ -1907,6 +2032,114 @@ const styles = StyleSheet.create({
     fontSize: wp('3.5%'),
     fontWeight: '600',
     color: TEXT_SECONDARY,
+  },
+
+  // --- B2B Section ---
+  b2bSection: {
+    backgroundColor: CARD,
+    borderRadius: wp('4%'),
+    padding: wp('4%'),
+    marginBottom: hp('2%'),
+    ...SHADOW_SM,
+  },
+  b2bSectionLabel: {
+    fontSize: wp('3.8%'),
+    fontWeight: '700',
+    color: TEXT_PRIMARY,
+    marginBottom: hp('1%'),
+  },
+  b2bToggleRow: {
+    flexDirection: 'row',
+    backgroundColor: BG,
+    borderRadius: wp('3%'),
+    padding: wp('1%'),
+    gap: wp('1%'),
+  },
+  b2bToggleBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: hp('1.2%'),
+    borderRadius: wp('2.5%'),
+    gap: wp('1.5%'),
+  },
+  b2bToggleBtnActive: {
+    backgroundColor: TEAL_MID,
+  },
+  b2bToggleBtnText: {
+    fontSize: wp('3.5%'),
+    fontWeight: '600',
+    color: TEAL_MID,
+  },
+  b2bToggleBtnTextActive: {
+    color: '#fff',
+  },
+  b2bFields: {
+    marginTop: hp('1.5%'),
+    gap: hp('1.2%'),
+  },
+  b2bFieldRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  b2bFieldLabel: {
+    fontSize: wp('3.5%'),
+    fontWeight: '600',
+    color: TEXT_SECONDARY,
+    flex: 1,
+  },
+  b2bStepperRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: wp('2%'),
+  },
+  b2bStepBtn: {
+    width: wp('9%'),
+    height: wp('9%'),
+    borderRadius: wp('4.5%'),
+    backgroundColor: TEAL_LIGHT,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  b2bStepInput: {
+    width: wp('14%'),
+    fontSize: wp('4.5%'),
+    fontWeight: '700',
+    color: TEXT_PRIMARY,
+    textAlign: 'center',
+    borderBottomWidth: 1.5,
+    borderBottomColor: TEAL,
+    paddingVertical: hp('0.5%'),
+  },
+  b2bPersonsInput: {
+    width: wp('30%'),
+    fontSize: wp('3.8%'),
+    fontWeight: '600',
+    color: TEXT_PRIMARY,
+    textAlign: 'center',
+    borderWidth: 1,
+    borderColor: BORDER,
+    borderRadius: wp('2%'),
+    paddingVertical: hp('0.8%'),
+    paddingHorizontal: wp('3%'),
+  },
+  b2bInfoPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: wp('2%'),
+    backgroundColor: TEAL_LIGHT,
+    paddingHorizontal: wp('3%'),
+    paddingVertical: hp('0.8%'),
+    borderRadius: wp('2%'),
+    marginTop: hp('0.5%'),
+  },
+  b2bInfoPillText: {
+    fontSize: wp('3%'),
+    color: TEAL_MID,
+    fontWeight: '500',
+    flex: 1,
   },
 
   // --- Confirmation ---

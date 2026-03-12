@@ -46,6 +46,7 @@ export default function BookingChatScreen() {
     packers: 'PackersBookingDetail',
     bike: 'BikeBookingDetail',
     car: 'BookingDetail',
+    b2b: 'B2BBookingDetail',
   };
 
   const navigateToBookingDetail = () => {
