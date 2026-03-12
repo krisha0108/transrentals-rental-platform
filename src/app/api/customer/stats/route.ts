@@ -64,6 +64,49 @@ export async function GET(request: NextRequest) {
       OR: customerFilterConditions,
     };
 
+    // Quote request statuses to exclude (they have corresponding bookings already)
+    const excludedQuoteStatuses = ['QUOTE_ACCEPTED', 'BOOKING_CONFIRMED'];
+
+    // Get bike quote request stats (exclude converted ones to avoid double-counting)
+    let bikeQuoteRequestStats: any[] = [];
+    try {
+      bikeQuoteRequestStats = await (prisma.bike_quote_requests.groupBy as any)({
+        by: ['status'],
+        where: {
+          OR: [
+            ...(customerId ? [{ customerId: customerId }] : []),
+            ...(identifier ? [{ customerPhone: identifier }] : []),
+            ...(normalizedPhone && normalizedPhone !== identifier ? [{ customerPhone: normalizedPhone }] : []),
+            ...(normalizedEmail ? [{ customerEmail: normalizedEmail }] : []),
+          ],
+          status: { notIn: excludedQuoteStatuses as any },
+        },
+        _count: { status: true },
+      });
+    } catch (e) {
+      logger.error('Error fetching bike quote request stats', e);
+    }
+
+    // Get self-drive quote request stats (exclude converted ones to avoid double-counting)
+    let selfDriveQuoteRequestStats: any[] = [];
+    try {
+      selfDriveQuoteRequestStats = await (prisma.self_drive_quote_requests.groupBy as any)({
+        by: ['status'],
+        where: {
+          OR: [
+            ...(customerId ? [{ customerId: customerId }] : []),
+            ...(identifier ? [{ customerPhone: identifier }] : []),
+            ...(normalizedPhone && normalizedPhone !== identifier ? [{ customerPhone: normalizedPhone }] : []),
+            ...(normalizedEmail ? [{ customerEmail: normalizedEmail }] : []),
+          ],
+          status: { notIn: excludedQuoteStatuses as any },
+        },
+        _count: { status: true },
+      });
+    } catch (e) {
+      logger.error('Error fetching self-drive quote request stats', e);
+    }
+
     // Get bike booking stats
     let bikeBookingStats: any[] = [];
     try {
@@ -100,7 +143,7 @@ export async function GET(request: NextRequest) {
       logger.error('Error fetching chauffeur stats', e);
     }
 
-    // Get bus quote request stats
+    // Get bus quote request stats (exclude converted ones to avoid double-counting)
     let busQuoteRequestStats: any[] = [];
     try {
       busQuoteRequestStats = await (prisma.bus_quote_requests.groupBy as any)({
@@ -112,6 +155,7 @@ export async function GET(request: NextRequest) {
             ...(normalizedPhone && normalizedPhone !== identifier ? [{ customerPhone: normalizedPhone }] : []),
             ...(normalizedEmail ? [{ customerEmail: normalizedEmail }] : []),
           ],
+          status: { notIn: excludedQuoteStatuses as any },
         },
         _count: { status: true },
       });
@@ -184,6 +228,18 @@ export async function GET(request: NextRequest) {
       CANCELLED: 'dropped',
     };
 
+    // Process bike quote request stats
+    for (const stat of bikeQuoteRequestStats) {
+      const mappedStatus = busQuoteRequestMappings[stat.status] || 'open';
+      statusMap[mappedStatus] += stat._count.status;
+    }
+
+    // Process self-drive quote request stats
+    for (const stat of selfDriveQuoteRequestStats) {
+      const mappedStatus = busQuoteRequestMappings[stat.status] || 'open';
+      statusMap[mappedStatus] += stat._count.status;
+    }
+
     // Process bike booking stats
     for (const stat of bikeBookingStats) {
       const mappedStatus = statusMappings[stat.status] || 'open';
@@ -214,7 +270,7 @@ export async function GET(request: NextRequest) {
       statusMap[mappedStatus] += stat._count.status;
     }
 
-    // Get truck quote request stats
+    // Get truck quote request stats (exclude converted ones to avoid double-counting)
     let truckQuoteRequestStats: any[] = [];
     try {
       truckQuoteRequestStats = await (prisma.truck_quote_requests.groupBy as any)({
@@ -226,6 +282,7 @@ export async function GET(request: NextRequest) {
             ...(normalizedPhone && normalizedPhone !== identifier ? [{ customerPhone: normalizedPhone }] : []),
             ...(normalizedEmail ? [{ customerEmail: normalizedEmail }] : []),
           ],
+          status: { notIn: excludedQuoteStatuses as any },
         },
         _count: { status: true },
       });
@@ -262,7 +319,7 @@ export async function GET(request: NextRequest) {
       statusMap[mappedStatus] += stat._count.status;
     }
 
-    // Get packers quote request stats
+    // Get packers quote request stats (exclude converted ones to avoid double-counting)
     let packersQuoteRequestStats: any[] = [];
     try {
       packersQuoteRequestStats = await (prisma.packers_quote_requests.groupBy as any)({
@@ -274,6 +331,7 @@ export async function GET(request: NextRequest) {
             ...(normalizedPhone && normalizedPhone !== identifier ? [{ customerPhone: normalizedPhone }] : []),
             ...(normalizedEmail ? [{ customerEmail: normalizedEmail }] : []),
           ],
+          status: { notIn: excludedQuoteStatuses as any },
         },
         _count: { status: true },
       });
@@ -310,7 +368,7 @@ export async function GET(request: NextRequest) {
       statusMap[mappedStatus] += stat._count.status;
     }
 
-    // Get equipment quote request stats
+    // Get equipment quote request stats (exclude converted ones to avoid double-counting)
     let equipmentQuoteRequestStats: any[] = [];
     try {
       equipmentQuoteRequestStats = await (prisma.equipment_quote_requests.groupBy as any)({
@@ -322,6 +380,7 @@ export async function GET(request: NextRequest) {
             ...(normalizedPhone && normalizedPhone !== identifier ? [{ customerPhone: normalizedPhone }] : []),
             ...(normalizedEmail ? [{ customerEmail: normalizedEmail }] : []),
           ],
+          status: { notIn: excludedQuoteStatuses as any },
         },
         _count: { status: true },
       });
@@ -358,7 +417,7 @@ export async function GET(request: NextRequest) {
       statusMap[mappedStatus] += stat._count.status;
     }
 
-    // Get luxury quote request stats
+    // Get luxury quote request stats (exclude converted ones to avoid double-counting)
     let luxuryQuoteRequestStats: any[] = [];
     try {
       luxuryQuoteRequestStats = await (prisma.luxury_quote_requests.groupBy as any)({
@@ -370,6 +429,7 @@ export async function GET(request: NextRequest) {
             ...(normalizedPhone && normalizedPhone !== identifier ? [{ customerPhone: normalizedPhone }] : []),
             ...(normalizedEmail ? [{ customerEmail: normalizedEmail }] : []),
           ],
+          status: { notIn: excludedQuoteStatuses as any },
         },
         _count: { status: true },
       });
