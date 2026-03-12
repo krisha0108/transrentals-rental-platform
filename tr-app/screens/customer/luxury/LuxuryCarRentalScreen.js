@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   StyleSheet,
   TextInput,
-  Alert,
   ActivityIndicator,
   Animated,
   Dimensions,
@@ -83,6 +82,9 @@ export default function LuxuryCarRentalScreen() {
 
   // B2B Success modal
   const [b2bSuccessModal, setB2bSuccessModal] = useState({ visible: false, bookingNumber: '', bookingId: '' });
+
+  // Custom alert modal
+  const [alertModal, setAlertModal] = useState({ visible: false, type: 'error', title: '', message: '', onClose: null });
 
   // Phone collection state
   const [showPhoneModal, setShowPhoneModal] = useState(false);
@@ -164,7 +166,7 @@ export default function LuxuryCarRentalScreen() {
       }
     } catch (error) {
       console.error('Error fetching locations:', error);
-      Alert.alert('Error', 'Failed to load locations');
+      setAlertModal({ visible: true, type: 'error', title: 'Error', message: 'Failed to load locations', onClose: null });
     } finally {
       setLocationsLoading(false);
     }
@@ -230,7 +232,7 @@ export default function LuxuryCarRentalScreen() {
   const handleSubmit = async () => {
     // Validation
     if (!customerData) {
-      Alert.alert('Error', 'Please login to continue');
+      setAlertModal({ visible: true, type: 'warning', title: 'Login Required', message: 'Please login to continue', onClose: null });
       return;
     }
 
@@ -241,22 +243,22 @@ export default function LuxuryCarRentalScreen() {
     }
 
     if (!pickupCity.trim()) {
-      Alert.alert('Error', 'Please enter pickup city');
+      setAlertModal({ visible: true, type: 'warning', title: 'Missing Field', message: 'Please enter pickup city', onClose: null });
       return;
     }
 
     if (!pickupAddress.trim()) {
-      Alert.alert('Error', 'Please enter pickup address');
+      setAlertModal({ visible: true, type: 'warning', title: 'Missing Field', message: 'Please enter pickup address', onClose: null });
       return;
     }
 
     if (tripType === 'outstation' && !dropCity.trim()) {
-      Alert.alert('Error', 'Please enter drop city for outstation trip');
+      setAlertModal({ visible: true, type: 'warning', title: 'Missing Field', message: 'Please enter drop city for outstation trip', onClose: null });
       return;
     }
 
     if (tripType === 'outstation' && !returnDate) {
-      Alert.alert('Error', 'Please select return date for outstation trip');
+      setAlertModal({ visible: true, type: 'warning', title: 'Missing Field', message: 'Please select return date for outstation trip', onClose: null });
       return;
     }
 
@@ -264,7 +266,7 @@ export default function LuxuryCarRentalScreen() {
     if (bookingPurpose === 'company') {
       const numVehicles = parseInt(numberOfVehicles);
       if (!numVehicles || numVehicles < 1 || numVehicles > 500) {
-        Alert.alert('Error', 'Please enter valid number of vehicles (1-500)');
+        setAlertModal({ visible: true, type: 'warning', title: 'Invalid Input', message: 'Please enter valid number of vehicles (1-500)', onClose: null });
         return;
       }
     }
@@ -309,7 +311,7 @@ export default function LuxuryCarRentalScreen() {
             bookingId: response.booking?.id || '',
           });
         } else {
-          Alert.alert('Error', response.error || response.message || 'Failed to create B2B booking');
+          setAlertModal({ visible: true, type: 'error', title: 'Booking Failed', message: response.error || response.message || 'Failed to create B2B booking', onClose: null });
         }
         return;
       }
@@ -344,24 +346,21 @@ export default function LuxuryCarRentalScreen() {
 
       if (response.data.success) {
         const newRequestId = response.data.quoteRequest?.id;
-        Alert.alert(
-          'Success!',
-          `Quote request submitted successfully!\n\nRequest Number: ${response.data.quoteRequest.requestNumber}\n\nVendors will send you quotes within 24-48 hours.`,
-          [
-            {
-              text: 'View Request',
-              onPress: () => navigation.navigate('LuxuryQuoteDetail', { requestId: newRequestId }),
-            },
-            {
-              text: 'OK',
-              onPress: () => navigation.goBack(),
-            },
-          ]
-        );
+        const reqNumber = response.data.quoteRequest?.requestNumber || '';
+        setAlertModal({
+          visible: true,
+          type: 'success',
+          title: 'Request Submitted!',
+          message: `Your luxury car quote request has been submitted successfully.${reqNumber ? `\n\nRequest ID: ${reqNumber}` : ''}\n\nVendors will send you quotes within 24-48 hours.`,
+          onClose: () => {
+            setAlertModal(prev => ({ ...prev, visible: false }));
+            navigation.navigate('LuxuryQuoteDetail', { requestId: newRequestId });
+          },
+        });
       }
     } catch (error) {
       console.error('Error submitting luxury quote request:', error);
-      Alert.alert('Error', error.response?.data?.message || 'Failed to submit request. Please try again.');
+      setAlertModal({ visible: true, type: 'error', title: 'Request Failed', message: error.response?.data?.message || 'Failed to submit request. Please try again.', onClose: null });
     } finally {
       setLoading(false);
     }
@@ -369,14 +368,14 @@ export default function LuxuryCarRentalScreen() {
 
   const handlePhoneSubmit = async () => {
     if (!phoneNumber || phoneNumber.trim() === '') {
-      Alert.alert('Error', 'Please enter a valid phone number');
+      setAlertModal({ visible: true, type: 'warning', title: 'Invalid Phone', message: 'Please enter a valid phone number', onClose: null });
       return;
     }
 
     // Validate phone number (basic validation for 10 digits)
     const phoneRegex = /^[0-9]{10}$/;
     if (!phoneRegex.test(phoneNumber.replace(/\s/g, ''))) {
-      Alert.alert('Error', 'Please enter a valid 10-digit phone number');
+      setAlertModal({ visible: true, type: 'warning', title: 'Invalid Phone', message: 'Please enter a valid 10-digit phone number', onClose: null });
       return;
     }
 
@@ -404,7 +403,7 @@ export default function LuxuryCarRentalScreen() {
       }
     } catch (error) {
       console.error('Phone update error:', error);
-      Alert.alert('Error', error.response?.data?.error || 'Failed to update phone number. Please try again.');
+      setAlertModal({ visible: true, type: 'error', title: 'Update Failed', message: error.response?.data?.error || 'Failed to update phone number. Please try again.', onClose: null });
     } finally {
       setPhoneLoading(false);
     }
@@ -1225,6 +1224,84 @@ export default function LuxuryCarRentalScreen() {
                 <Text style={styles.b2bSuccessSecondaryBtnText}>Back to Home</Text>
               </TouchableOpacity>
             </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Custom Alert Modal */}
+      <Modal visible={alertModal.visible} transparent animationType="fade" onRequestClose={() => setAlertModal(prev => ({ ...prev, visible: false }))}>
+        <View style={styles.alertOverlay}>
+          <View style={styles.alertCard}>
+            <View style={[
+              styles.alertIconCircle,
+              alertModal.type === 'success' ? styles.alertIconSuccess :
+              alertModal.type === 'warning' ? styles.alertIconWarning :
+              styles.alertIconError
+            ]}>
+              <Ionicons
+                name={
+                  alertModal.type === 'success' ? 'checkmark-circle' :
+                  alertModal.type === 'warning' ? 'warning' :
+                  'alert-circle'
+                }
+                size={44}
+                color={
+                  alertModal.type === 'success' ? '#059669' :
+                  alertModal.type === 'warning' ? '#D97706' :
+                  '#DC2626'
+                }
+              />
+            </View>
+            <Text style={styles.alertTitle}>{alertModal.title}</Text>
+            <Text style={styles.alertMessage}>{alertModal.message}</Text>
+
+            {alertModal.type === 'success' && alertModal.onClose ? (
+              <View style={styles.alertBtnRow}>
+                <TouchableOpacity
+                  style={styles.alertBtnSecondary}
+                  onPress={() => {
+                    setAlertModal(prev => ({ ...prev, visible: false }));
+                    navigation.goBack();
+                  }}
+                  activeOpacity={0.85}
+                >
+                  <Text style={styles.alertBtnSecondaryText}>Go Back</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.alertBtnPrimary}
+                  onPress={() => alertModal.onClose()}
+                  activeOpacity={0.85}
+                >
+                  <LinearGradient
+                    colors={[TEAL_MID, '#047857']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={styles.alertBtnGradient}
+                  >
+                    <Text style={styles.alertBtnPrimaryText}>View Request</Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <TouchableOpacity
+                style={styles.alertBtnFull}
+                onPress={() => setAlertModal(prev => ({ ...prev, visible: false }))}
+                activeOpacity={0.85}
+              >
+                <LinearGradient
+                  colors={
+                    alertModal.type === 'success' ? [TEAL_MID, '#047857'] :
+                    alertModal.type === 'warning' ? ['#F59E0B', '#D97706'] :
+                    ['#EF4444', '#DC2626']
+                  }
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.alertBtnGradient}
+                >
+                  <Text style={styles.alertBtnPrimaryText}>OK</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            )}
           </View>
         </View>
       </Modal>
@@ -2078,4 +2155,89 @@ const styles = StyleSheet.create({
     width: '100%', paddingVertical: hp('1.5%'), alignItems: 'center',
   },
   b2bSuccessSecondaryBtnText: { fontSize: wp('3.5%'), fontWeight: '600', color: TEXT_MUTED },
+
+  // Custom Alert Modal
+  alertOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  alertCard: {
+    backgroundColor: '#fff',
+    borderRadius: 24,
+    padding: 28,
+    width: wp('82%'),
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 24,
+    elevation: 12,
+  },
+  alertIconCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  alertIconSuccess: { backgroundColor: '#ECFDF5' },
+  alertIconWarning: { backgroundColor: '#FFFBEB' },
+  alertIconError: { backgroundColor: '#FEF2F2' },
+  alertTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: TEXT_PRIMARY,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  alertMessage: {
+    textAlign: 'center',
+    color: TEXT_SECONDARY,
+    fontSize: 14,
+    lineHeight: 21,
+    marginBottom: 24,
+  },
+  alertBtnRow: {
+    flexDirection: 'row',
+    gap: 10,
+    width: '100%',
+  },
+  alertBtnSecondary: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 999,
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  alertBtnSecondaryText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: TEXT_SECONDARY,
+  },
+  alertBtnPrimary: {
+    flex: 1,
+    borderRadius: 999,
+    overflow: 'hidden',
+  },
+  alertBtnFull: {
+    width: '100%',
+    borderRadius: 999,
+    overflow: 'hidden',
+  },
+  alertBtnGradient: {
+    paddingVertical: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 999,
+  },
+  alertBtnPrimaryText: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: 14,
+  },
 });

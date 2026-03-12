@@ -82,7 +82,7 @@ export default function BookingConfirmationScreen() {
   const route = useRoute();
 
   // params coming from booking screens
-  const bookingId = route?.params?.booking_id || 'TRX-24835';
+  const bookingId = route?.params?.requestNumber || route?.params?.booking_id || 'TRX-24835';
 
   // these can come from different booking screens
   const rawServiceName = route?.params?.service_name;     // e.g. "Luxury Car"

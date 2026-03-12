@@ -371,7 +371,7 @@ const BikeFleetScreen = () => {
       if (response?.success || response?.quoteRequest) {
         setShowBookingModal(false);
         navigation.navigate('BookingConfirmation', {
-          booking_id: response?.quoteRequest?.id || 'TRX-' + Date.now(),
+          booking_id: response?.quoteRequest?.requestNumber || response?.quoteRequest?.id || 'TRX-' + Date.now(),
           service_name: 'Bike Rental',
           service_type: 'bike',
         });

@@ -289,7 +289,7 @@ const SelfDriveFleetScreen = () => {
         } else {
           // Regular flow → booking confirmation
           navigation.navigate('BookingConfirmation', {
-            booking_id: response?.quoteRequest?.id || 'TRX-' + Date.now(),
+            booking_id: response?.quoteRequest?.requestNumber || response?.quoteRequest?.id || 'TRX-' + Date.now(),
             service_name: 'Self Drive Car',
             service_type: 'self-drive',
           });

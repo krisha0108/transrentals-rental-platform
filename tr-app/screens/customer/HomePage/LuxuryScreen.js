@@ -93,6 +93,7 @@ export default function LuxuryScreen() {
   const [otherDetails, setOtherDetails] = useState('');
   const [isPhoneModal, setIsPhoneModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [alertModal, setAlertModal] = useState({ visible: false, type: 'error', title: '', message: '', onClose: null });
 
   // dates
   const [startDate, setStartDate] = useState(new Date());
@@ -311,19 +312,19 @@ export default function LuxuryScreen() {
   // ---- SUBMIT (now matches your old working payload exactly) ----
   const handleSubmit = async () => {
     if (!pickupLocation) {
-      alert('Please select pickup city');
+      setAlertModal({ visible: true, type: 'warning', title: 'Missing Field', message: 'Please select pickup city', onClose: null });
       return;
     }
     if (!pickupLocationId) {
-      alert('Please choose a pickup location from suggestions (we need the Location ID).');
+      setAlertModal({ visible: true, type: 'warning', title: 'Missing Field', message: 'Please choose a pickup location from suggestions.', onClose: null });
       return;
     }
     if (!selectedLuxuryType) {
-      alert('Please select booking purpose');
+      setAlertModal({ visible: true, type: 'warning', title: 'Missing Field', message: 'Please select booking purpose', onClose: null });
       return;
     }
     if (!selectedPackage) {
-      alert('Please select package');
+      setAlertModal({ visible: true, type: 'warning', title: 'Missing Field', message: 'Please select package', onClose: null });
       return;
     }
 
@@ -361,17 +362,35 @@ export default function LuxuryScreen() {
       const response = await bookingService.createLuxuryBooking(payload);
 
       if (response.success || response.booking) {
-        navigation.replace('BookingConfirmation', {
-          booking_id: response.booking?.id || response.booking_id || 'unknown'
+        const displayId = response.booking?.bookingNumber || response.booking?.id || response.booking_id || '';
+        setAlertModal({
+          visible: true,
+          type: 'success',
+          title: 'Booking Created!',
+          message: displayId ? `Your luxury car booking has been submitted successfully.\n\nBooking ID: ${displayId}` : 'Your luxury car booking has been submitted successfully.',
+          onClose: () => {
+            setAlertModal(prev => ({ ...prev, visible: false }));
+            navigation.replace('BookingConfirmation', {
+              booking_id: displayId || 'unknown',
+              service_name: 'Luxury Car',
+              service_type: 'car',
+            });
+          },
         });
       } else if (response.status) {
-        alert('Luxury booking submitted \u2705');
+        setAlertModal({
+          visible: true,
+          type: 'success',
+          title: 'Booking Submitted!',
+          message: 'Your luxury car booking has been submitted successfully.',
+          onClose: null,
+        });
       } else {
-        alert('Booking could not be submitted. Check required fields.');
+        setAlertModal({ visible: true, type: 'error', title: 'Submission Failed', message: 'Booking could not be submitted. Please check all required fields.', onClose: null });
       }
     } catch (err) {
       console.log('luxury booking error', err?.response?.data || err);
-      alert(err?.response?.data?.message || 'Failed to submit booking. Please try again.');
+      setAlertModal({ visible: true, type: 'error', title: 'Error', message: err?.response?.data?.message || 'Failed to submit booking. Please try again.', onClose: null });
     } finally {
       setIsSubmitting(false);
     }
@@ -768,6 +787,63 @@ export default function LuxuryScreen() {
       </ScrollView>
 
       {/* PHONE MODAL */}
+      {/* Custom Alert Modal */}
+      <Modal visible={alertModal.visible} transparent animationType="fade" onRequestClose={() => setAlertModal(prev => ({ ...prev, visible: false }))}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.alertModalCard}>
+            {/* Icon */}
+            <View style={[
+              styles.alertIconCircle,
+              alertModal.type === 'success' ? styles.alertIconSuccess :
+              alertModal.type === 'warning' ? styles.alertIconWarning :
+              styles.alertIconError
+            ]}>
+              <Ionicons
+                name={
+                  alertModal.type === 'success' ? 'checkmark-circle' :
+                  alertModal.type === 'warning' ? 'warning' :
+                  'alert-circle'
+                }
+                size={wp('10%')}
+                color={
+                  alertModal.type === 'success' ? '#059669' :
+                  alertModal.type === 'warning' ? '#D97706' :
+                  '#DC2626'
+                }
+              />
+            </View>
+            <Text style={styles.alertTitle}>{alertModal.title}</Text>
+            <Text style={styles.alertMessage}>{alertModal.message}</Text>
+            <TouchableOpacity
+              style={styles.modalBtn}
+              onPress={() => {
+                if (alertModal.onClose) {
+                  alertModal.onClose();
+                } else {
+                  setAlertModal(prev => ({ ...prev, visible: false }));
+                }
+              }}
+              activeOpacity={0.85}
+            >
+              <LinearGradient
+                colors={
+                  alertModal.type === 'success' ? [TEAL_MID, '#047857'] :
+                  alertModal.type === 'warning' ? ['#F59E0B', '#D97706'] :
+                  ['#EF4444', '#DC2626']
+                }
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.modalBtnGradient}
+              >
+                <Text style={styles.modalBtnText}>
+                  {alertModal.type === 'success' && alertModal.onClose ? 'View Booking' : 'OK'}
+                </Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
       <Modal visible={isPhoneModal} transparent animationType="fade" onRequestClose={() => setIsPhoneModal(false)}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
@@ -1369,5 +1445,48 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: '700',
     fontSize: wp('3.5%'),
+  },
+  alertModalCard: {
+    backgroundColor: '#fff',
+    borderRadius: 24,
+    padding: wp('7%'),
+    width: wp('82%'),
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 24,
+    elevation: 12,
+  },
+  alertIconCircle: {
+    width: wp('18%'),
+    height: wp('18%'),
+    borderRadius: wp('9%'),
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: hp('1.5%'),
+  },
+  alertIconSuccess: {
+    backgroundColor: '#ECFDF5',
+  },
+  alertIconWarning: {
+    backgroundColor: '#FFFBEB',
+  },
+  alertIconError: {
+    backgroundColor: '#FEF2F2',
+  },
+  alertTitle: {
+    fontSize: wp('4.5%'),
+    fontWeight: '800',
+    color: TEXT_PRIMARY,
+    marginBottom: hp('0.8%'),
+    textAlign: 'center',
+  },
+  alertMessage: {
+    textAlign: 'center',
+    color: TEXT_SECONDARY,
+    fontSize: wp('3.3%'),
+    lineHeight: wp('5%'),
+    marginBottom: hp('2.5%'),
   },
 });
