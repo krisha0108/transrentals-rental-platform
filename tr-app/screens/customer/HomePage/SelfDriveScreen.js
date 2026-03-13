@@ -122,8 +122,9 @@ export default function SelfDriveScreen() {
 
   // Calculate days
   const calculateDays = () => {
-    const diffTime = dropDate.getTime() - pickupDate.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    const start = new Date(pickupDate.getFullYear(), pickupDate.getMonth(), pickupDate.getDate());
+    const end = new Date(dropDate.getFullYear(), dropDate.getMonth(), dropDate.getDate());
+    const diffDays = Math.round((end - start) / (1000 * 60 * 60 * 24)) + 1;
     return Math.max(1, diffDays);
   };
 

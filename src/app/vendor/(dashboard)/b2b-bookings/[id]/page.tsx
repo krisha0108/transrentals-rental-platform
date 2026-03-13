@@ -2,13 +2,15 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import {
   Building2, Car, Users, MapPin, Calendar, ArrowLeft, AlertCircle,
   Loader2, IndianRupee, Route, Phone, User, Shield, Clock, Fuel,
   CheckCircle, ChevronDown, ChevronUp, Truck, Send, KeyRound, Play,
-  Flag, XCircle,
+  Flag, XCircle, MessageCircle,
 } from 'lucide-react';
+import VendorBookingChat from '@/components/vendor/VendorBookingChat';
 
 const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
   OPEN_FOR_QUOTES: { label: 'Open for Quotes', color: 'bg-blue-100 text-blue-700' },
@@ -24,10 +26,12 @@ const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
 export default function VendorB2BBookingDetailPage({ params }: { params: { id: string } }) {
   const bookingId = params.id;
   const router = useRouter();
+  const { data: session } = useSession();
   const [booking, setBooking] = useState<any>(null);
   const [myQuotes, setMyQuotes] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
+  const [showChat, setShowChat] = useState(false);
 
   // Self-drive trip OTP states
   const [tripProcessing, setTripProcessing] = useState<string | null>(null); // tripCode being processed
@@ -205,6 +209,11 @@ export default function VendorB2BBookingDetailPage({ params }: { params: { id: s
 
   const statusConfig = STATUS_CONFIG[booking.status] || { label: booking.status, color: 'bg-gray-100 text-gray-700' };
   const remaining = booking.vehiclesRequired - (booking.totalVehiclesFilled || 0);
+
+  // Vendor info from session for chat
+  const vendorUser = session?.user as any;
+  const vendorId = vendorUser?.id || null;
+  const vendorName = vendorUser?.businessName || vendorUser?.name || '';
   const isDirect = ['car', 'bike', 'luxury'].includes(booking.serviceType);
   const isSelfDrive = booking.serviceType === 'self-drive';
   const canAssign = ['OPEN_FOR_QUOTES', 'QUOTES_RECEIVED'].includes(booking.status) && myQuotes.length === 0;
@@ -252,7 +261,14 @@ export default function VendorB2BBookingDetailPage({ params }: { params: { id: s
             </div>
             <p className="text-sm text-gray-500 ml-9">B2B Booking Request</p>
           </div>
-          <div className="flex gap-3">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setShowChat(true)}
+              className="flex items-center gap-2 px-4 py-3 bg-purple-100 text-purple-700 rounded-xl hover:bg-purple-200 transition font-medium text-sm"
+            >
+              <MessageCircle className="w-5 h-5" />
+              Chat
+            </button>
             <div className="bg-teal-100 rounded-xl p-4 text-center min-w-[90px]">
               <p className="text-3xl font-bold text-teal-800">{booking.vehiclesRequired}</p>
               <p className="text-xs text-teal-600">Required</p>
@@ -864,6 +880,25 @@ export default function VendorB2BBookingDetailPage({ params }: { params: { id: s
                 </div>
               );
             })}
+          </div>
+        </div>
+      )}
+
+      {/* Chat Modal */}
+      {showChat && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+          <div className="w-full max-w-md">
+            <VendorBookingChat
+              bookingId={booking.id}
+              vendorId={vendorId}
+              vendorName={vendorName}
+              customerId={booking.customerId || undefined}
+              customerName={booking.customerName}
+              customerEmail={booking.customerEmail}
+              customerPhone={booking.customerPhone}
+              isOpen={showChat}
+              onClose={() => setShowChat(false)}
+            />
           </div>
         </div>
       )}

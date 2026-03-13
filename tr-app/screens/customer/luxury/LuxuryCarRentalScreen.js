@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   StyleSheet,
   TextInput,
-  Alert,
   ActivityIndicator,
   Animated,
   Dimensions,
@@ -28,6 +27,7 @@ import {
   heightPercentageToDP as hp,
 } from 'react-native-responsive-screen';
 import api from '../../api';
+import b2bService from '../../services/b2bService';
 import { TEAL_DEEP, TEAL_MID, TEAL, TEAL_LIGHT, BG, CARD, TEXT_PRIMARY, TEXT_SECONDARY, TEXT_MUTED, SHADOW_SM, SHADOW_MD } from '../../../theme';
 
 const { width } = Dimensions.get('window');
@@ -39,6 +39,10 @@ export default function LuxuryCarRentalScreen() {
 
   // Customer data
   const [customerData, setCustomerData] = useState(null);
+  const [isB2BCustomer, setIsB2BCustomer] = useState(false);
+  const [bookingPurpose, setBookingPurpose] = useState('personal'); // 'personal' | 'company'
+  const [numberOfVehicles, setNumberOfVehicles] = useState('1');
+  const [numberOfPersons, setNumberOfPersons] = useState('');
 
   // Form state
   const [tripType, setTripType] = useState('local'); // local, outstation, airport
@@ -75,6 +79,12 @@ export default function LuxuryCarRentalScreen() {
   const [loading, setLoading] = useState(false);
   const [fleetLoading, setFleetLoading] = useState(true);
   const [luxuryFleet, setLuxuryFleet] = useState([]);
+
+  // B2B Success modal
+  const [b2bSuccessModal, setB2bSuccessModal] = useState({ visible: false, bookingNumber: '', bookingId: '' });
+
+  // Custom alert modal
+  const [alertModal, setAlertModal] = useState({ visible: false, type: 'error', title: '', message: '', onClose: null });
 
   // Phone collection state
   const [showPhoneModal, setShowPhoneModal] = useState(false);
@@ -120,7 +130,9 @@ export default function LuxuryCarRentalScreen() {
     try {
       const data = await AsyncStorage.getItem('customer');
       if (data) {
-        setCustomerData(JSON.parse(data));
+        const c = JSON.parse(data);
+        setCustomerData(c);
+        if (c.isB2B === true && c.b2bStatus === 'APPROVED') setIsB2BCustomer(true);
       }
     } catch (error) {
       console.error('Error loading customer data:', error);
@@ -154,7 +166,7 @@ export default function LuxuryCarRentalScreen() {
       }
     } catch (error) {
       console.error('Error fetching locations:', error);
-      Alert.alert('Error', 'Failed to load locations');
+      setAlertModal({ visible: true, type: 'error', title: 'Error', message: 'Failed to load locations', onClose: null });
     } finally {
       setLocationsLoading(false);
     }
@@ -220,7 +232,7 @@ export default function LuxuryCarRentalScreen() {
   const handleSubmit = async () => {
     // Validation
     if (!customerData) {
-      Alert.alert('Error', 'Please login to continue');
+      setAlertModal({ visible: true, type: 'warning', title: 'Login Required', message: 'Please login to continue', onClose: null });
       return;
     }
 
@@ -231,27 +243,78 @@ export default function LuxuryCarRentalScreen() {
     }
 
     if (!pickupCity.trim()) {
-      Alert.alert('Error', 'Please enter pickup city');
+      setAlertModal({ visible: true, type: 'warning', title: 'Missing Field', message: 'Please enter pickup city', onClose: null });
       return;
     }
 
     if (!pickupAddress.trim()) {
-      Alert.alert('Error', 'Please enter pickup address');
+      setAlertModal({ visible: true, type: 'warning', title: 'Missing Field', message: 'Please enter pickup address', onClose: null });
       return;
     }
 
     if (tripType === 'outstation' && !dropCity.trim()) {
-      Alert.alert('Error', 'Please enter drop city for outstation trip');
+      setAlertModal({ visible: true, type: 'warning', title: 'Missing Field', message: 'Please enter drop city for outstation trip', onClose: null });
       return;
     }
 
     if (tripType === 'outstation' && !returnDate) {
-      Alert.alert('Error', 'Please select return date for outstation trip');
+      setAlertModal({ visible: true, type: 'warning', title: 'Missing Field', message: 'Please select return date for outstation trip', onClose: null });
       return;
+    }
+
+    // B2B company booking validation
+    if (bookingPurpose === 'company') {
+      const numVehicles = parseInt(numberOfVehicles);
+      if (!numVehicles || numVehicles < 1 || numVehicles > 500) {
+        setAlertModal({ visible: true, type: 'warning', title: 'Invalid Input', message: 'Please enter valid number of vehicles (1-500)', onClose: null });
+        return;
+      }
     }
 
     try {
       setLoading(true);
+
+      // B2B Company Booking Flow
+      if (bookingPurpose === 'company' && isB2BCustomer) {
+        const b2bData = {
+          customerId: customerData.id,
+          serviceType: 'luxury',
+          vehiclesRequired: parseInt(numberOfVehicles),
+          passengerCount: numberOfPersons ? parseInt(numberOfPersons) : (parseInt(passengers) || 4),
+          vehicleCategory: VEHICLE_CATEGORIES.find(v => v.id === vehicleCategory)?.label || vehicleCategory,
+          pickupLocation: pickupCity.trim(),
+          dropLocation: tripType === 'outstation' ? dropCity.trim() : null,
+          tripType: tripType === 'local' ? 'HOURLY' : tripType === 'outstation' ? 'ROUND_TRIP' : 'ONE_WAY',
+          scheduledDate: pickupDate.toISOString().split('T')[0],
+          scheduledTime: pickupTime,
+          returnDate: returnDate ? returnDate.toISOString().split('T')[0] : null,
+          returnTime: returnDate ? returnTime : null,
+          specialNotes: JSON.stringify({
+            occasion: occasion || null,
+            specificModel: specificModel.trim() || null,
+            packageType: tripType === 'local' ? packageType : null,
+            needChauffeur: true,
+            needDecoration,
+            decorationType: needDecoration ? decorationType : null,
+            pickupAddress: pickupAddress.trim() || null,
+            dropAddress: tripType === 'outstation' ? dropAddress.trim() : null,
+            requirements: requirements.trim() || null,
+          }),
+        };
+
+        const response = await b2bService.createBooking(b2bData);
+
+        if (response.status === 'success' || response.booking) {
+          setB2bSuccessModal({
+            visible: true,
+            bookingNumber: response.booking?.bookingNumber || '',
+            bookingId: response.booking?.id || '',
+          });
+        } else {
+          setAlertModal({ visible: true, type: 'error', title: 'Booking Failed', message: response.error || response.message || 'Failed to create B2B booking', onClose: null });
+        }
+        return;
+      }
 
       const requestData = {
         customerName: customerData.name,
@@ -283,24 +346,21 @@ export default function LuxuryCarRentalScreen() {
 
       if (response.data.success) {
         const newRequestId = response.data.quoteRequest?.id;
-        Alert.alert(
-          'Success!',
-          `Quote request submitted successfully!\n\nRequest Number: ${response.data.quoteRequest.requestNumber}\n\nVendors will send you quotes within 24-48 hours.`,
-          [
-            {
-              text: 'View Request',
-              onPress: () => navigation.navigate('LuxuryQuoteDetail', { requestId: newRequestId }),
-            },
-            {
-              text: 'OK',
-              onPress: () => navigation.goBack(),
-            },
-          ]
-        );
+        const reqNumber = response.data.quoteRequest?.requestNumber || '';
+        setAlertModal({
+          visible: true,
+          type: 'success',
+          title: 'Request Submitted!',
+          message: `Your luxury car quote request has been submitted successfully.${reqNumber ? `\n\nRequest ID: ${reqNumber}` : ''}\n\nVendors will send you quotes within 24-48 hours.`,
+          onClose: () => {
+            setAlertModal(prev => ({ ...prev, visible: false }));
+            navigation.navigate('LuxuryQuoteDetail', { requestId: newRequestId });
+          },
+        });
       }
     } catch (error) {
       console.error('Error submitting luxury quote request:', error);
-      Alert.alert('Error', error.response?.data?.message || 'Failed to submit request. Please try again.');
+      setAlertModal({ visible: true, type: 'error', title: 'Request Failed', message: error.response?.data?.message || 'Failed to submit request. Please try again.', onClose: null });
     } finally {
       setLoading(false);
     }
@@ -308,14 +368,14 @@ export default function LuxuryCarRentalScreen() {
 
   const handlePhoneSubmit = async () => {
     if (!phoneNumber || phoneNumber.trim() === '') {
-      Alert.alert('Error', 'Please enter a valid phone number');
+      setAlertModal({ visible: true, type: 'warning', title: 'Invalid Phone', message: 'Please enter a valid phone number', onClose: null });
       return;
     }
 
     // Validate phone number (basic validation for 10 digits)
     const phoneRegex = /^[0-9]{10}$/;
     if (!phoneRegex.test(phoneNumber.replace(/\s/g, ''))) {
-      Alert.alert('Error', 'Please enter a valid 10-digit phone number');
+      setAlertModal({ visible: true, type: 'warning', title: 'Invalid Phone', message: 'Please enter a valid 10-digit phone number', onClose: null });
       return;
     }
 
@@ -343,7 +403,7 @@ export default function LuxuryCarRentalScreen() {
       }
     } catch (error) {
       console.error('Phone update error:', error);
-      Alert.alert('Error', error.response?.data?.error || 'Failed to update phone number. Please try again.');
+      setAlertModal({ visible: true, type: 'error', title: 'Update Failed', message: error.response?.data?.error || 'Failed to update phone number. Please try again.', onClose: null });
     } finally {
       setPhoneLoading(false);
     }
@@ -877,6 +937,69 @@ export default function LuxuryCarRentalScreen() {
           />
         </View>
 
+        {/* B2B Booking Purpose */}
+        {isB2BCustomer && (
+          <View style={styles.formCard}>
+            <View style={styles.sectionHeaderRow}>
+              <View style={styles.sectionIconCircle}>
+                <Ionicons name="briefcase-outline" size={wp('4.5%')} color={TEAL_MID} />
+              </View>
+              <Text style={styles.sectionTitle}>Booking Purpose</Text>
+            </View>
+            <View style={styles.b2bPurposeRow}>
+              <TouchableOpacity
+                style={[styles.b2bPurposeBtn, bookingPurpose === 'personal' && styles.b2bPurposeBtnActive]}
+                onPress={() => setBookingPurpose('personal')}
+              >
+                <Ionicons name="person-outline" size={wp('5%')} color={bookingPurpose === 'personal' ? '#fff' : TEAL} />
+                <Text style={[styles.b2bPurposeBtnText, bookingPurpose === 'personal' && styles.b2bPurposeBtnTextActive]}>Personal</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.b2bPurposeBtn, bookingPurpose === 'company' && styles.b2bPurposeBtnActive]}
+                onPress={() => setBookingPurpose('company')}
+              >
+                <Ionicons name="briefcase-outline" size={wp('5%')} color={bookingPurpose === 'company' ? '#fff' : TEAL} />
+                <Text style={[styles.b2bPurposeBtnText, bookingPurpose === 'company' && styles.b2bPurposeBtnTextActive]}>Company</Text>
+              </TouchableOpacity>
+            </View>
+
+            {bookingPurpose === 'company' && (
+              <View style={{ marginTop: hp('1.5%') }}>
+                <View style={styles.b2bInputRow}>
+                  <View style={styles.b2bInputGroup}>
+                    <Text style={styles.b2bFieldLabel}>No. of Vehicles *</Text>
+                    <TextInput
+                      style={styles.b2bInput}
+                      value={numberOfVehicles}
+                      onChangeText={(t) => setNumberOfVehicles(t.replace(/\D/g, '').slice(0, 3))}
+                      keyboardType="number-pad"
+                      placeholder="e.g. 5"
+                      placeholderTextColor={TEXT_MUTED}
+                    />
+                  </View>
+                  <View style={styles.b2bInputGroup}>
+                    <Text style={styles.b2bFieldLabel}>No. of Persons</Text>
+                    <TextInput
+                      style={styles.b2bInput}
+                      value={numberOfPersons}
+                      onChangeText={(t) => setNumberOfPersons(t.replace(/\D/g, '').slice(0, 4))}
+                      keyboardType="number-pad"
+                      placeholder="e.g. 20"
+                      placeholderTextColor={TEXT_MUTED}
+                    />
+                  </View>
+                </View>
+                <View style={styles.b2bInfoBox}>
+                  <Ionicons name="information-circle-outline" size={wp('4%')} color={TEAL} />
+                  <Text style={styles.b2bInfoText}>
+                    This will be a B2B corporate booking. Vendors will send quotes. Post-trip billing applies.
+                  </Text>
+                </View>
+              </View>
+            )}
+          </View>
+        )}
+
         {/* Submit Button */}
         <TouchableOpacity
           style={[styles.submitBtn, loading && styles.submitBtnDisabled]}
@@ -894,7 +1017,7 @@ export default function LuxuryCarRentalScreen() {
             ) : (
               <>
                 <MaterialCommunityIcons name="send" size={wp('5%')} color="#FFF" />
-                <Text style={styles.submitText}>Request Quotes</Text>
+                <Text style={styles.submitText}>{bookingPurpose === 'company' ? 'Submit B2B Booking' : 'Request Quotes'}</Text>
               </>
             )}
           </LinearGradient>
@@ -1050,6 +1173,135 @@ export default function LuxuryCarRentalScreen() {
                 </LinearGradient>
               </TouchableOpacity>
             </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* B2B Success Modal */}
+      <Modal visible={b2bSuccessModal.visible} transparent animationType="fade">
+        <View style={styles.b2bSuccessOverlay}>
+          <View style={styles.b2bSuccessCard}>
+            <LinearGradient colors={[TEAL_DEEP, TEAL_MID, '#047857']} style={styles.b2bSuccessHeader}>
+              <View style={styles.b2bSuccessIconCircle}>
+                <Ionicons name="checkmark-sharp" size={wp('10%')} color={TEAL_MID} />
+              </View>
+              <Text style={styles.b2bSuccessTitle}>Booking Created!</Text>
+              <View style={styles.b2bSuccessNumBadge}>
+                <Text style={styles.b2bSuccessNumText}>{b2bSuccessModal.bookingNumber}</Text>
+              </View>
+            </LinearGradient>
+
+            <View style={styles.b2bSuccessBody}>
+              <Text style={styles.b2bSuccessMsg}>
+                Your luxury B2B booking has been submitted successfully. Vendors will be notified and send quotes soon.
+              </Text>
+
+              <View style={styles.b2bSuccessInfoBox}>
+                <Ionicons name="time-outline" size={wp('4.5%')} color="#F59E0B" />
+                <Text style={styles.b2bSuccessInfoText}>Vendors typically respond within 2-4 hours</Text>
+              </View>
+
+              <TouchableOpacity
+                style={styles.b2bSuccessPrimaryBtn}
+                onPress={() => {
+                  setB2bSuccessModal({ visible: false, bookingNumber: '', bookingId: '' });
+                  navigation.replace('B2BDashboard');
+                }}
+              >
+                <LinearGradient colors={[TEAL_DEEP, TEAL_MID]} style={styles.b2bSuccessBtnGradient}>
+                  <Ionicons name="eye-outline" size={wp('5%')} color="#fff" />
+                  <Text style={styles.b2bSuccessPrimaryBtnText}>View in B2B Dashboard</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.b2bSuccessSecondaryBtn}
+                onPress={() => {
+                  setB2bSuccessModal({ visible: false, bookingNumber: '', bookingId: '' });
+                  navigation.goBack();
+                }}
+              >
+                <Text style={styles.b2bSuccessSecondaryBtnText}>Back to Home</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Custom Alert Modal */}
+      <Modal visible={alertModal.visible} transparent animationType="fade" onRequestClose={() => setAlertModal(prev => ({ ...prev, visible: false }))}>
+        <View style={styles.alertOverlay}>
+          <View style={styles.alertCard}>
+            <View style={[
+              styles.alertIconCircle,
+              alertModal.type === 'success' ? styles.alertIconSuccess :
+              alertModal.type === 'warning' ? styles.alertIconWarning :
+              styles.alertIconError
+            ]}>
+              <Ionicons
+                name={
+                  alertModal.type === 'success' ? 'checkmark-circle' :
+                  alertModal.type === 'warning' ? 'warning' :
+                  'alert-circle'
+                }
+                size={44}
+                color={
+                  alertModal.type === 'success' ? '#059669' :
+                  alertModal.type === 'warning' ? '#D97706' :
+                  '#DC2626'
+                }
+              />
+            </View>
+            <Text style={styles.alertTitle}>{alertModal.title}</Text>
+            <Text style={styles.alertMessage}>{alertModal.message}</Text>
+
+            {alertModal.type === 'success' && alertModal.onClose ? (
+              <View style={styles.alertBtnRow}>
+                <TouchableOpacity
+                  style={styles.alertBtnSecondary}
+                  onPress={() => {
+                    setAlertModal(prev => ({ ...prev, visible: false }));
+                    navigation.goBack();
+                  }}
+                  activeOpacity={0.85}
+                >
+                  <Text style={styles.alertBtnSecondaryText}>Go Back</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.alertBtnPrimary}
+                  onPress={() => alertModal.onClose()}
+                  activeOpacity={0.85}
+                >
+                  <LinearGradient
+                    colors={[TEAL_MID, '#047857']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={styles.alertBtnGradient}
+                  >
+                    <Text style={styles.alertBtnPrimaryText}>View Request</Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <TouchableOpacity
+                style={styles.alertBtnFull}
+                onPress={() => setAlertModal(prev => ({ ...prev, visible: false }))}
+                activeOpacity={0.85}
+              >
+                <LinearGradient
+                  colors={
+                    alertModal.type === 'success' ? [TEAL_MID, '#047857'] :
+                    alertModal.type === 'warning' ? ['#F59E0B', '#D97706'] :
+                    ['#EF4444', '#DC2626']
+                  }
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.alertBtnGradient}
+                >
+                  <Text style={styles.alertBtnPrimaryText}>OK</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            )}
           </View>
         </View>
       </Modal>
@@ -1786,5 +2038,206 @@ const styles = StyleSheet.create({
     fontSize: wp('4%'),
     fontWeight: '700',
     letterSpacing: 0.3,
+  },
+
+  // B2B Booking Purpose
+  b2bPurposeRow: {
+    flexDirection: 'row',
+    gap: wp('3%'),
+  },
+  b2bPurposeBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: wp('2%'),
+    paddingVertical: hp('1.8%'),
+    borderRadius: wp('3%'),
+    borderWidth: 1.5,
+    borderColor: '#E5E7EB',
+    backgroundColor: BG,
+  },
+  b2bPurposeBtnActive: {
+    backgroundColor: TEAL_MID,
+    borderColor: TEAL_MID,
+  },
+  b2bPurposeBtnText: {
+    fontSize: wp('3.5%'),
+    fontWeight: '700',
+    color: TEXT_PRIMARY,
+  },
+  b2bPurposeBtnTextActive: {
+    color: '#fff',
+  },
+  b2bInputRow: {
+    flexDirection: 'row',
+    gap: wp('3%'),
+  },
+  b2bInputGroup: {
+    flex: 1,
+  },
+  b2bFieldLabel: {
+    fontSize: wp('3.2%'),
+    fontWeight: '600',
+    color: TEXT_SECONDARY,
+    marginBottom: hp('0.5%'),
+  },
+  b2bInput: {
+    backgroundColor: BG,
+    borderWidth: 1.5,
+    borderColor: '#E5E7EB',
+    borderRadius: wp('3%'),
+    padding: wp('3%'),
+    fontSize: wp('3.5%'),
+    color: TEXT_PRIMARY,
+  },
+  b2bInfoBox: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: wp('2%'),
+    backgroundColor: TEAL_LIGHT,
+    borderRadius: wp('2.5%'),
+    padding: wp('3%'),
+    marginTop: hp('1.5%'),
+  },
+  b2bInfoText: {
+    flex: 1,
+    fontSize: wp('3%'),
+    color: TEAL_DEEP,
+    lineHeight: wp('4.2%'),
+  },
+  b2bSuccessOverlay: {
+    flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', padding: wp('6%'),
+  },
+  b2bSuccessCard: {
+    backgroundColor: CARD, borderRadius: wp('6%'), width: '100%', overflow: 'hidden',
+    elevation: 10, shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.15, shadowRadius: 20,
+  },
+  b2bSuccessHeader: {
+    alignItems: 'center', paddingVertical: hp('3.5%'), paddingHorizontal: wp('6%'),
+  },
+  b2bSuccessIconCircle: {
+    width: wp('18%'), height: wp('18%'), borderRadius: wp('9%'),
+    backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', marginBottom: hp('1.5%'),
+    elevation: 4, shadowColor: TEAL_MID, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8,
+  },
+  b2bSuccessTitle: {
+    fontSize: wp('5.5%'), fontWeight: '800', color: '#fff', marginBottom: hp('1%'),
+  },
+  b2bSuccessNumBadge: {
+    backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: wp('4%'), paddingVertical: hp('0.5%'),
+    borderRadius: wp('5%'),
+  },
+  b2bSuccessNumText: {
+    fontSize: wp('3.5%'), fontWeight: '700', color: '#fff', letterSpacing: 0.5,
+  },
+  b2bSuccessBody: {
+    padding: wp('6%'), alignItems: 'center',
+  },
+  b2bSuccessMsg: {
+    fontSize: wp('3.5%'), color: TEXT_SECONDARY, textAlign: 'center', lineHeight: wp('5.2%'), marginBottom: hp('2%'),
+  },
+  b2bSuccessInfoBox: {
+    flexDirection: 'row', alignItems: 'center', gap: wp('2%'),
+    backgroundColor: '#FFFBEB', paddingHorizontal: wp('4%'), paddingVertical: hp('1%'),
+    borderRadius: wp('2.5%'), marginBottom: hp('2.5%'), width: '100%',
+  },
+  b2bSuccessInfoText: { fontSize: wp('3.2%'), color: '#92400E', fontWeight: '500', flex: 1 },
+  b2bSuccessPrimaryBtn: {
+    width: '100%', borderRadius: wp('3.5%'), overflow: 'hidden', marginBottom: hp('1%'),
+  },
+  b2bSuccessBtnGradient: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: wp('2%'),
+    paddingVertical: hp('1.8%'),
+  },
+  b2bSuccessPrimaryBtnText: { fontSize: wp('4%'), fontWeight: '700', color: '#fff' },
+  b2bSuccessSecondaryBtn: {
+    width: '100%', paddingVertical: hp('1.5%'), alignItems: 'center',
+  },
+  b2bSuccessSecondaryBtnText: { fontSize: wp('3.5%'), fontWeight: '600', color: TEXT_MUTED },
+
+  // Custom Alert Modal
+  alertOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  alertCard: {
+    backgroundColor: '#fff',
+    borderRadius: 24,
+    padding: 28,
+    width: wp('82%'),
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 24,
+    elevation: 12,
+  },
+  alertIconCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  alertIconSuccess: { backgroundColor: '#ECFDF5' },
+  alertIconWarning: { backgroundColor: '#FFFBEB' },
+  alertIconError: { backgroundColor: '#FEF2F2' },
+  alertTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: TEXT_PRIMARY,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  alertMessage: {
+    textAlign: 'center',
+    color: TEXT_SECONDARY,
+    fontSize: 14,
+    lineHeight: 21,
+    marginBottom: 24,
+  },
+  alertBtnRow: {
+    flexDirection: 'row',
+    gap: 10,
+    width: '100%',
+  },
+  alertBtnSecondary: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 999,
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  alertBtnSecondaryText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: TEXT_SECONDARY,
+  },
+  alertBtnPrimary: {
+    flex: 1,
+    borderRadius: 999,
+    overflow: 'hidden',
+  },
+  alertBtnFull: {
+    width: '100%',
+    borderRadius: 999,
+    overflow: 'hidden',
+  },
+  alertBtnGradient: {
+    paddingVertical: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 999,
+  },
+  alertBtnPrimaryText: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: 14,
   },
 });

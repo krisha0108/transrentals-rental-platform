@@ -114,6 +114,12 @@ const SelfDriveFleetScreen = () => {
   const [showBookingModal, setShowBookingModal] = useState(false);
   const [bookingLoading, setBookingLoading] = useState(false);
 
+  // State for B2B (Personal vs Company)
+  const [bookingType, setBookingType] = useState('personal'); // 'personal' or 'company'
+  const [numberOfVehicles, setNumberOfVehicles] = useState('1');
+  const [numberOfPersons, setNumberOfPersons] = useState('');
+  const [isB2BCustomer, setIsB2BCustomer] = useState(false);
+
   // State for home delivery
   const [isDeliveryRequested, setIsDeliveryRequested] = useState(false);
   const [pickupAddress, setPickupAddress] = useState('');
@@ -122,6 +128,22 @@ const SelfDriveFleetScreen = () => {
   const [showPhoneModal, setShowPhoneModal] = useState(false);
   const [phoneNumber, setPhoneNumber] = useState('');
   const [phoneLoading, setPhoneLoading] = useState(false);
+
+  // Check if customer is B2B approved
+  useEffect(() => {
+    const checkB2B = async () => {
+      try {
+        const customerData = await AsyncStorage.getItem('customer');
+        if (customerData) {
+          const customer = JSON.parse(customerData);
+          if (customer.isB2B && customer.b2bStatus === 'APPROVED') {
+            setIsB2BCustomer(true);
+          }
+        }
+      } catch (e) {}
+    };
+    checkB2B();
+  }, []);
 
   // Fetch cars on mount
   useEffect(() => {
@@ -182,9 +204,10 @@ const SelfDriveFleetScreen = () => {
   };
 
   const calculateDays = () => {
-    const diffTime = Math.abs(dropDate - pickupDate);
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return Math.max(diffDays, 1);
+    const start = new Date(pickupDate.getFullYear(), pickupDate.getMonth(), pickupDate.getDate());
+    const end = new Date(dropDate.getFullYear(), dropDate.getMonth(), dropDate.getDate());
+    const diffDays = Math.round((end - start) / (1000 * 60 * 60 * 24)) + 1;
+    return Math.max(1, diffDays);
   };
 
   const handleRequestQuote = async () => {
@@ -241,17 +264,36 @@ const SelfDriveFleetScreen = () => {
         customerNotes: '',
       };
 
+      // Add B2B fields if booking type is company
+      if (bookingType === 'company' && isB2BCustomer) {
+        quoteRequestData.isB2B = true;
+        quoteRequestData.numberOfVehicles = numberOfVehicles || '1';
+        quoteRequestData.numberOfPersons = numberOfPersons || null;
+      }
+
       const response = await fleetService.createSelfDriveQuoteRequest(quoteRequestData);
 
-      if (response?.success || response?.quoteRequest) {
+      if (response?.success || response?.quoteRequest || response?.booking) {
         setShowBookingModal(false);
         setIsDeliveryRequested(false);
         setPickupAddress('');
-        navigation.navigate('BookingConfirmation', {
-          booking_id: response?.quoteRequest?.id || 'TRX-' + Date.now(),
-          service_name: 'Self Drive Car',
-          service_type: 'self-drive',
-        });
+        setBookingType('personal');
+        setNumberOfVehicles('1');
+        setNumberOfPersons('');
+
+        // B2B flow → navigate to B2B booking detail
+        if (response?.isB2B && response?.booking) {
+          navigation.navigate('B2BBookingDetail', {
+            bookingId: response.booking.id,
+          });
+        } else {
+          // Regular flow → booking confirmation
+          navigation.navigate('BookingConfirmation', {
+            booking_id: response?.quoteRequest?.requestNumber || response?.quoteRequest?.id || 'TRX-' + Date.now(),
+            service_name: 'Self Drive Car',
+            service_type: 'self-drive',
+          });
+        }
       }
     } catch (err) {
       console.log('Quote request error:', err);
@@ -766,6 +808,92 @@ const SelfDriveFleetScreen = () => {
               </View>
             </View>
 
+            {/* Personal or Company - only shown for B2B approved customers */}
+            {isB2BCustomer && (
+              <View style={styles.bookingTypeSection}>
+                <Text style={styles.sectionTitle}>Booking For</Text>
+                <View style={styles.bookingTypeToggle}>
+                  <TouchableOpacity
+                    style={[styles.bookingTypeBtn, bookingType === 'personal' && styles.bookingTypeBtnActive]}
+                    onPress={() => setBookingType('personal')}
+                    activeOpacity={0.7}
+                  >
+                    <Ionicons name="person" size={wp('4%')} color={bookingType === 'personal' ? '#fff' : TEAL_MID} />
+                    <Text style={[styles.bookingTypeBtnText, bookingType === 'personal' && styles.bookingTypeBtnTextActive]}>Personal</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.bookingTypeBtn, bookingType === 'company' && styles.bookingTypeBtnActive]}
+                    onPress={() => setBookingType('company')}
+                    activeOpacity={0.7}
+                  >
+                    <Ionicons name="business" size={wp('4%')} color={bookingType === 'company' ? '#fff' : TEAL_MID} />
+                    <Text style={[styles.bookingTypeBtnText, bookingType === 'company' && styles.bookingTypeBtnTextActive]}>For Company</Text>
+                  </TouchableOpacity>
+                </View>
+
+                {bookingType === 'company' && (
+                  <View style={styles.b2bFields}>
+                    <View style={styles.b2bFieldRow}>
+                      <View style={styles.b2bField}>
+                        <Text style={styles.b2bFieldLabel}>
+                          <Ionicons name="car-sport" size={wp('3%')} color={TEAL_MID} /> Number of Vehicles *
+                        </Text>
+                        <View style={styles.b2bInputWrap}>
+                          <TouchableOpacity
+                            style={styles.b2bStepBtn}
+                            onPress={() => {
+                              const v = Math.max(1, parseInt(numberOfVehicles || '1') - 1);
+                              setNumberOfVehicles(String(v));
+                            }}
+                          >
+                            <Ionicons name="remove" size={wp('4%')} color={TEAL_MID} />
+                          </TouchableOpacity>
+                          <TextInput
+                            style={styles.b2bInput}
+                            value={numberOfVehicles}
+                            onChangeText={(t) => setNumberOfVehicles(t.replace(/[^0-9]/g, ''))}
+                            keyboardType="number-pad"
+                            textAlign="center"
+                            maxLength={3}
+                          />
+                          <TouchableOpacity
+                            style={styles.b2bStepBtn}
+                            onPress={() => {
+                              const v = Math.min(500, parseInt(numberOfVehicles || '1') + 1);
+                              setNumberOfVehicles(String(v));
+                            }}
+                          >
+                            <Ionicons name="add" size={wp('4%')} color={TEAL_MID} />
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                      <View style={styles.b2bField}>
+                        <Text style={styles.b2bFieldLabel}>
+                          <Ionicons name="people" size={wp('3%')} color={TEAL_MID} /> No. of Persons
+                        </Text>
+                        <View style={styles.b2bInputWrap}>
+                          <TextInput
+                            style={[styles.b2bInput, { flex: 1 }]}
+                            value={numberOfPersons}
+                            onChangeText={(t) => setNumberOfPersons(t.replace(/[^0-9]/g, ''))}
+                            keyboardType="number-pad"
+                            placeholder="Optional"
+                            placeholderTextColor={TEXT_MUTED}
+                            textAlign="center"
+                            maxLength={4}
+                          />
+                        </View>
+                      </View>
+                    </View>
+                    <View style={styles.b2bInfoPill}>
+                      <Ionicons name="information-circle" size={wp('3.5%')} color={TEAL_MID} />
+                      <Text style={styles.b2bInfoText}>Company booking - post-paid billing, no advance required</Text>
+                    </View>
+                  </View>
+                )}
+              </View>
+            )}
+
             {/* Home Delivery Option */}
             <View style={styles.deliverySection}>
               <Text style={styles.sectionTitle}>Delivery Option</Text>
@@ -849,7 +977,7 @@ const SelfDriveFleetScreen = () => {
                 <LinearGradient colors={[TEAL_DEEP, TEAL_MID]} style={styles.stepNumber}>
                   <Text style={styles.stepNumberText}>4</Text>
                 </LinearGradient>
-                <Text style={styles.stepText}>Pay advance & confirm your booking</Text>
+                <Text style={styles.stepText}>{bookingType === 'company' ? 'Accept quote & get vehicles assigned' : 'Pay advance & confirm your booking'}</Text>
               </View>
             </View>
           </ScrollView>
@@ -871,8 +999,12 @@ const SelfDriveFleetScreen = () => {
                   <ActivityIndicator color="#fff" />
                 ) : (
                   <>
-                    <Ionicons name="send-outline" size={wp('4.5%')} color="#fff" />
-                    <Text style={styles.confirmBookingBtnText}>Request Quotes from Vendors</Text>
+                    <Ionicons name={bookingType === 'company' ? 'business-outline' : 'send-outline'} size={wp('4.5%')} color="#fff" />
+                    <Text style={styles.confirmBookingBtnText}>
+                      {bookingType === 'company'
+                        ? `Request B2B Quote (${numberOfVehicles} Vehicle${parseInt(numberOfVehicles) > 1 ? 's' : ''})`
+                        : 'Request Quotes from Vendors'}
+                    </Text>
                   </>
                 )}
               </LinearGradient>
@@ -1710,6 +1842,102 @@ const styles = StyleSheet.create({
     color: TEXT_PRIMARY,
     marginBottom: hp('1.5%'),
   },
+  // Booking Type (Personal / Company)
+  bookingTypeSection: {
+    backgroundColor: CARD,
+    borderRadius: wp('4.5%'),
+    padding: wp('4%'),
+    marginBottom: hp('2%'),
+    borderWidth: 1,
+    borderColor: BORDER,
+    ...SHADOW_SM,
+  },
+  bookingTypeToggle: {
+    flexDirection: 'row',
+    backgroundColor: '#F1F5F9',
+    borderRadius: wp('3%'),
+    padding: wp('1%'),
+    gap: wp('1%'),
+  },
+  bookingTypeBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: hp('1.2%'),
+    borderRadius: wp('2.5%'),
+    gap: wp('1.5%'),
+  },
+  bookingTypeBtnActive: {
+    backgroundColor: TEAL_MID,
+    ...SHADOW_SM,
+  },
+  bookingTypeBtnText: {
+    fontSize: wp('3.3%'),
+    fontWeight: '600',
+    color: TEAL_MID,
+  },
+  bookingTypeBtnTextActive: {
+    color: '#fff',
+  },
+  b2bFields: {
+    marginTop: hp('1.5%'),
+  },
+  b2bFieldRow: {
+    flexDirection: 'row',
+    gap: wp('3%'),
+  },
+  b2bField: {
+    flex: 1,
+  },
+  b2bFieldLabel: {
+    fontSize: wp('2.9%'),
+    fontWeight: '600',
+    color: TEXT_SECONDARY,
+    marginBottom: hp('0.5%'),
+  },
+  b2bInputWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F8FAFB',
+    borderRadius: wp('3%'),
+    borderWidth: 1,
+    borderColor: 'rgba(16,185,129,0.15)',
+    minHeight: hp('5.5%'),
+    overflow: 'hidden',
+  },
+  b2bStepBtn: {
+    width: wp('10%'),
+    height: hp('5.5%'),
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: TEAL_LIGHT,
+  },
+  b2bInput: {
+    flex: 1,
+    fontSize: wp('4%'),
+    fontWeight: '700',
+    color: TEXT_PRIMARY,
+    paddingVertical: hp('0.8%'),
+    textAlign: 'center',
+  },
+  b2bInfoPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: wp('2%'),
+    backgroundColor: TEAL_LIGHT,
+    borderRadius: wp('2.5%'),
+    paddingHorizontal: wp('3%'),
+    paddingVertical: hp('0.8%'),
+    marginTop: hp('1.2%'),
+  },
+  b2bInfoText: {
+    fontSize: wp('2.8%'),
+    color: TEAL_DEEP,
+    fontWeight: '500',
+    flex: 1,
+  },
+
   deliverySection: {
     backgroundColor: CARD,
     borderRadius: wp('4.5%'),

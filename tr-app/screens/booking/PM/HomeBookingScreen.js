@@ -207,7 +207,12 @@ const handleBookingSubmit = async () => {
     });
     console.log("✅ Booking Response:", response.data); // Check the response
     if (response.data.booking_id) {
-      navigation.replace("BookingConfirmation");
+      navigation.replace("BookingConfirmation", {
+        booking_id: response.data.request_number || response.data.booking_number || response.data.booking_id,
+        service_name: 'Home Shifting',
+        service_type: 'packers',
+        shifting_type: 'Home',
+      });
     } else {
       alert("Booking failed");
     }

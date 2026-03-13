@@ -27,6 +27,7 @@ import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/d
 import LinearGradient from 'react-native-linear-gradient';
 import { widthPercentageToDP as wp, heightPercentageToDP as hp } from 'react-native-responsive-screen';
 import { locationService, bookingService } from '../../services';
+import b2bService from '../../services/b2bService';
 import { BASE_URL } from '../../api';
 
 const { width, height } = Dimensions.get('window');
@@ -115,6 +116,23 @@ export default function CarRentalFleetScreen({ navigation, route }) {
   // Customer
   const [customer, setCustomer] = useState(null);
 
+  // B2B booking
+  const [isB2BCustomer, setIsB2BCustomer] = useState(false);
+  const [bookingPurpose, setBookingPurpose] = useState('personal'); // 'personal' | 'company'
+  const [numberOfVehicles, setNumberOfVehicles] = useState('1');
+  const [numberOfPersons, setNumberOfPersons] = useState('');
+
+  // Custom Alert Modal
+  const [alertModal, setAlertModal] = useState({ visible: false, type: '', title: '', message: '', onClose: null });
+  const showAlert = (type, title, message, onClose = null) => {
+    setAlertModal({ visible: true, type, title, message, onClose });
+  };
+  const closeAlert = () => {
+    const cb = alertModal.onClose;
+    setAlertModal({ visible: false, type: '', title: '', message: '', onClose: null });
+    if (cb) cb();
+  };
+
   // Payment details
   const [bankDetails, setBankDetails] = useState(null);
 
@@ -169,7 +187,13 @@ export default function CarRentalFleetScreen({ navigation, route }) {
         fetch(`${BASE_URL}/api/payment-details?service=car-rental`).then(r => r.json()),
       ]);
 
-      if (customerData) setCustomer(JSON.parse(customerData));
+      if (customerData) {
+        const cust = JSON.parse(customerData);
+        setCustomer(cust);
+        if (cust?.isB2B && cust?.b2bStatus === 'APPROVED') {
+          setIsB2BCustomer(true);
+        }
+      }
 
       if (locationsRes.success) {
         const locs = locationsRes.locations || [];
@@ -325,20 +349,20 @@ export default function CarRentalFleetScreen({ navigation, route }) {
   const validateStep1 = () => {
     if (tripType === 'local') {
       if (!fromLocation) {
-        Alert.alert('Error', 'Please select pickup city');
+        showAlert('error', 'Error', 'Please select pickup city');
         return false;
       }
       if (!selectedPackage) {
-        Alert.alert('Error', 'Please select a package');
+        showAlert('error', 'Error', 'Please select a package');
         return false;
       }
     } else {
       if (!fromLocation) {
-        Alert.alert('Error', 'Please select pickup location');
+        showAlert('error', 'Error', 'Please select pickup location');
         return false;
       }
       if (!toLocation) {
-        Alert.alert('Error', 'Please select drop location');
+        showAlert('error', 'Error', 'Please select drop location');
         return false;
       }
     }
@@ -352,7 +376,7 @@ export default function CarRentalFleetScreen({ navigation, route }) {
       setStep(2);
     } else if (step === 2) {
       if (!selectedVehicle) {
-        Alert.alert('Error', 'Please select a vehicle');
+        showAlert('error', 'Error', 'Please select a vehicle');
         return;
       }
       setStep(3);
@@ -361,12 +385,49 @@ export default function CarRentalFleetScreen({ navigation, route }) {
 
   const handleBooking = async () => {
     if (!customer) {
-      Alert.alert('Login Required', 'Please login to book');
+      showAlert('error', 'Login Required', 'Please login to book');
       return;
+    }
+
+    // B2B company booking validation
+    if (bookingPurpose === 'company') {
+      const numVehicles = parseInt(numberOfVehicles);
+      if (!numVehicles || numVehicles < 1 || numVehicles > 500) {
+        showAlert('error', 'Error', 'Please enter valid number of vehicles (1-500)');
+        return;
+      }
     }
 
     setSubmitting(true);
     try {
+      // B2B Company Booking Flow
+      if (bookingPurpose === 'company' && isB2BCustomer) {
+        const b2bData = {
+          customerId: customer.id,
+          serviceType: 'car',
+          vehiclesRequired: parseInt(numberOfVehicles),
+          passengerCount: numberOfPersons ? parseInt(numberOfPersons) : null,
+          vehicleCategory: selectedVehicle?.name,
+          pickupLocation: fromLocation?.name,
+          dropLocation: tripType !== 'local' ? toLocation?.name : null,
+          tripType: tripType === 'local' ? 'HOURLY' : tripType === 'one_way' ? 'ONE_WAY' : 'ROUND_TRIP',
+          scheduledDate: pickupDate.toISOString().split('T')[0],
+          scheduledTime: pickupTime,
+          returnDate: tripType === 'round_trip' ? returnDate.toISOString().split('T')[0] : null,
+          returnTime: tripType === 'round_trip' ? pickupTime : null,
+        };
+
+        const response = await b2bService.createBooking(b2bData);
+
+        if (response.status === 'success' || response.booking) {
+          showAlert('success', 'B2B Booking Created!', `Your booking ${response.booking?.bookingNumber || ''} has been submitted. Vendors will send quotes soon.`, () => navigation.replace('B2BDashboard'));
+        } else {
+          showAlert('error', 'Error', response.error || response.message || 'Failed to create B2B booking');
+        }
+        return;
+      }
+
+      // Regular Personal Booking Flow
       const vehiclePrice = pricing[selectedVehicle.id];
 
       const bookingData = {
@@ -417,11 +478,11 @@ export default function CarRentalFleetScreen({ navigation, route }) {
           amount: advanceAmount,
         });
       } else {
-        Alert.alert('Error', response.message || 'Failed to create booking');
+        showAlert('error', 'Error', response.message || 'Failed to create booking');
       }
     } catch (error) {
       console.log('Booking error:', error);
-      Alert.alert('Error', error?.response?.data?.message || 'Failed to create booking');
+      showAlert('error', 'Error', error?.response?.data?.message || error?.response?.data?.error || 'Failed to create booking');
     } finally {
       setSubmitting(false);
     }
@@ -593,9 +654,11 @@ export default function CarRentalFleetScreen({ navigation, route }) {
       const q = vehicleSearchQuery.trim().toLowerCase();
       vehicles = vehicles.filter(v => {
         const name = (v.name || '').toLowerCase();
-        const examples = Array.isArray(v.exampleVehicles)
-          ? v.exampleVehicles.join(' ').toLowerCase()
-          : (v.exampleVehicles || '').toLowerCase();
+        let exVeh = v.exampleVehicles;
+        if (typeof exVeh === 'string') { try { exVeh = JSON.parse(exVeh); } catch(e) {} }
+        const examples = Array.isArray(exVeh)
+          ? exVeh.join(' ').toLowerCase()
+          : (typeof exVeh === 'string' ? exVeh : '').toLowerCase();
         return name.includes(q) || examples.includes(q);
       });
     }
@@ -637,6 +700,11 @@ export default function CarRentalFleetScreen({ navigation, route }) {
 
   /* ─── Render: Vehicle Card ─── */
   const [failedImages, setFailedImages] = useState({});
+  const [expandedCards, setExpandedCards] = useState({});
+
+  const toggleCardExpand = (vehicleId) => {
+    setExpandedCards(prev => ({ ...prev, [vehicleId]: !prev[vehicleId] }));
+  };
 
   const renderVehicleCard = (vehicle) => {
     const vehiclePrice = pricing[vehicle.id];
@@ -656,11 +724,6 @@ export default function CarRentalFleetScreen({ navigation, route }) {
         activeOpacity={isAvailable ? 0.9 : 1}
         disabled={!isAvailable}
       >
-        {/* Vehicle Type Badge */}
-        <View style={styles.vehicleTypeBadge}>
-          <Text style={styles.vehicleType}>{vehicle.name.includes('Sedan') ? 'Standard' : 'Premium'}</Text>
-        </View>
-
         <View style={styles.vehicleCardTop}>
           <View style={[styles.vehicleImageWrap, isSelected && styles.vehicleImageWrapSelected]}>
             {showImage ? (
@@ -676,7 +739,14 @@ export default function CarRentalFleetScreen({ navigation, route }) {
           </View>
 
           <View style={styles.vehicleMainInfo}>
-            <Text style={[styles.vehicleName, isSelected && styles.vehicleNameSelected]}>{vehicle.name}</Text>
+            <View style={styles.nameRow}>
+              <Text style={[styles.vehicleName, isSelected && styles.vehicleNameSelected]}>{vehicle.name}</Text>
+              <View style={[styles.vehicleTypeBadge, vehicle.name.includes('Sedan') ? styles.badgeStandard : styles.badgePremium]}>
+                <Text style={[styles.vehicleType, vehicle.name.includes('Sedan') ? styles.badgeStandardText : styles.badgePremiumText]}>
+                  {vehicle.name.includes('Sedan') ? 'Standard' : 'Premium'}
+                </Text>
+              </View>
+            </View>
 
             <View style={styles.vehicleStats}>
               <View style={styles.statItem}>
@@ -695,31 +765,92 @@ export default function CarRentalFleetScreen({ navigation, route }) {
           </View>
         </View>
 
-        {vehicle.exampleVehicles && (
-          <Text style={styles.vehicleExamples}>
-            Example: {
-              Array.isArray(vehicle.exampleVehicles)
-                ? vehicle.exampleVehicles.join(', ')
-                : vehicle.exampleVehicles
-            }
-          </Text>
-        )}
+        {vehicle.exampleVehicles && (() => {
+          let examples = vehicle.exampleVehicles;
+          if (typeof examples === 'string') {
+            try { examples = JSON.parse(examples); } catch (e) { /* use as-is */ }
+          }
+          const text = Array.isArray(examples)
+            ? examples.filter(e => typeof e === 'string' && e.trim()).join(', ')
+            : (typeof examples === 'string' ? examples : '');
+          return text ? (
+            <Text style={styles.vehicleExamples}>{text}</Text>
+          ) : null;
+        })()}
 
         <View style={styles.vehicleFooter}>
           {isAvailable ? (
-            <>
-              <View style={styles.priceBadge}>
-                <Text style={styles.priceUnit}>starting from </Text>
-                <Text style={[styles.currency, isSelected && styles.currencySelected]}>&#8377;</Text>
-                <Text style={[styles.vehiclePrice, isSelected && styles.vehiclePriceSelected]}>
-                  {vehiclePrice.totalBeforeGst?.toLocaleString()}
-                </Text>
+            <View style={{ flex: 1 }}>
+              <View style={styles.priceRow}>
+                <View style={styles.priceBadge}>
+                  <Text style={[styles.currency, isSelected && styles.currencySelected]}>&#8377;</Text>
+                  <Text style={[styles.vehiclePrice, isSelected && styles.vehiclePriceSelected]}>
+                    {vehiclePrice.totalBeforeGst?.toLocaleString()}
+                  </Text>
+                </View>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: wp('2%') }}>
+                  <View style={styles.inclusiveBadge}>
+                    <Ionicons name="checkmark-circle" size={wp('3.5%')} color={TEAL} />
+                    <Text style={styles.inclusiveLabel}>All inclusive</Text>
+                  </View>
+                  <TouchableOpacity
+                    onPress={(e) => { e.stopPropagation && e.stopPropagation(); toggleCardExpand(vehicle.id); }}
+                    style={styles.detailsToggle}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  >
+                    <Ionicons
+                      name={expandedCards[vehicle.id] ? 'chevron-up' : 'chevron-down'}
+                      size={wp('4%')}
+                      color={TEAL_MID}
+                    />
+                  </TouchableOpacity>
+                </View>
               </View>
-              <View style={styles.inclusiveBadge}>
-                <Ionicons name="checkmark-circle" size={wp('3.5%')} color={TEAL} />
-                <Text style={styles.inclusiveLabel}>All inclusive</Text>
-              </View>
-            </>
+
+              {/* Expandable Pricing Details */}
+              {expandedCards[vehicle.id] && (
+                <View style={styles.pricingDetails}>
+                  {vehiclePrice.packageName && (
+                    <View style={styles.pricingDetailRow}>
+                      <Text style={styles.pricingDetailLabel}>Base fare ({vehiclePrice.hours}hr/{vehiclePrice.kms}km)</Text>
+                      <Text style={styles.pricingDetailValue}>₹{vehiclePrice.basePrice?.toLocaleString() || vehiclePrice.totalBeforeGst?.toLocaleString()}</Text>
+                    </View>
+                  )}
+                  {!vehiclePrice.packageName && vehiclePrice.baseKmCharge > 0 && (
+                    <View style={styles.pricingDetailRow}>
+                      <Text style={styles.pricingDetailLabel}>Base fare</Text>
+                      <Text style={styles.pricingDetailValue}>₹{vehiclePrice.baseKmCharge?.toLocaleString()}</Text>
+                    </View>
+                  )}
+                  {vehiclePrice.extraKmCharge > 0 && (
+                    <View style={styles.pricingDetailRow}>
+                      <Text style={styles.pricingDetailLabel}>Extra km charge</Text>
+                      <Text style={styles.pricingDetailValue}>₹{vehiclePrice.extraKmCharge}/km</Text>
+                    </View>
+                  )}
+                  {vehiclePrice.extraHourCharge > 0 && (
+                    <View style={styles.pricingDetailRow}>
+                      <Text style={styles.pricingDetailLabel}>Extra hour charge</Text>
+                      <Text style={styles.pricingDetailValue}>₹{vehiclePrice.extraHourCharge}/hr</Text>
+                    </View>
+                  )}
+                  {(vehiclePrice.perKmRate > 0 && !vehiclePrice.packageName) && (
+                    <View style={styles.pricingDetailRow}>
+                      <Text style={styles.pricingDetailLabel}>Per km rate</Text>
+                      <Text style={styles.pricingDetailValue}>₹{vehiclePrice.perKmRate}/km</Text>
+                    </View>
+                  )}
+                  <View style={styles.pricingDetailRow}>
+                    <Text style={styles.pricingDetailLabel}>Toll/Parking</Text>
+                    <Text style={styles.pricingDetailValue}>
+                      {vehiclePrice.tollEstimate > 0 || vehiclePrice.tollsEstimate > 0
+                        ? `₹${(vehiclePrice.tollEstimate || vehiclePrice.tollsEstimate)?.toLocaleString()}`
+                        : 'Extra (as applicable)'}
+                    </Text>
+                  </View>
+                </View>
+              )}
+            </View>
           ) : (
             <View style={styles.unavailableBadge}>
               <Ionicons name="close-circle" size={wp('4%')} color="#EF4444" />
@@ -1084,6 +1215,64 @@ export default function CarRentalFleetScreen({ navigation, route }) {
         </View>
       </View>
 
+      {/* B2B Booking Purpose */}
+      {isB2BCustomer && (
+        <View style={styles.contactCard}>
+          <Text style={styles.contactTitle}>Booking Purpose</Text>
+          <View style={styles.b2bPurposeRow}>
+            <TouchableOpacity
+              style={[styles.b2bPurposeBtn, bookingPurpose === 'personal' && styles.b2bPurposeBtnActive]}
+              onPress={() => setBookingPurpose('personal')}
+            >
+              <Ionicons name="person-outline" size={wp('5%')} color={bookingPurpose === 'personal' ? '#fff' : TEAL} />
+              <Text style={[styles.b2bPurposeBtnText, bookingPurpose === 'personal' && styles.b2bPurposeBtnTextActive]}>Personal</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.b2bPurposeBtn, bookingPurpose === 'company' && styles.b2bPurposeBtnActive]}
+              onPress={() => setBookingPurpose('company')}
+            >
+              <Ionicons name="briefcase-outline" size={wp('5%')} color={bookingPurpose === 'company' ? '#fff' : TEAL} />
+              <Text style={[styles.b2bPurposeBtnText, bookingPurpose === 'company' && styles.b2bPurposeBtnTextActive]}>Company</Text>
+            </TouchableOpacity>
+          </View>
+
+          {bookingPurpose === 'company' && (
+            <View style={{ marginTop: hp('1.5%') }}>
+              <View style={styles.b2bInputRow}>
+                <View style={styles.b2bInputGroup}>
+                  <Text style={styles.contactFieldLabel}>No. of Vehicles *</Text>
+                  <TextInput
+                    style={styles.b2bInput}
+                    value={numberOfVehicles}
+                    onChangeText={(t) => setNumberOfVehicles(t.replace(/\D/g, '').slice(0, 3))}
+                    keyboardType="number-pad"
+                    placeholder="e.g. 5"
+                    placeholderTextColor={TEXT_MUTED}
+                  />
+                </View>
+                <View style={styles.b2bInputGroup}>
+                  <Text style={styles.contactFieldLabel}>No. of Persons</Text>
+                  <TextInput
+                    style={styles.b2bInput}
+                    value={numberOfPersons}
+                    onChangeText={(t) => setNumberOfPersons(t.replace(/\D/g, '').slice(0, 4))}
+                    keyboardType="number-pad"
+                    placeholder="e.g. 20"
+                    placeholderTextColor={TEXT_MUTED}
+                  />
+                </View>
+              </View>
+              <View style={styles.b2bInfoBox}>
+                <Ionicons name="information-circle-outline" size={wp('4%')} color={TEAL} />
+                <Text style={styles.b2bInfoText}>
+                  This will be a B2B corporate booking. Vendors will send quotes. Post-trip billing applies.
+                </Text>
+              </View>
+            </View>
+          )}
+        </View>
+      )}
+
       <View style={styles.contactCard}>
         <Text style={styles.contactTitle}>Customer Details</Text>
         <View style={styles.contactRow}>
@@ -1322,7 +1511,7 @@ export default function CarRentalFleetScreen({ navigation, route }) {
                 <ActivityIndicator color="#fff" />
               ) : (
                 <Text style={styles.nextBtnText}>
-                  {step === 3 ? 'Confirm & Pay' : 'Continue'}
+                  {step === 3 ? (bookingPurpose === 'company' ? 'Submit B2B Booking' : 'Confirm & Pay') : 'Continue'}
                 </Text>
               )}
             </LinearGradient>
@@ -1363,6 +1552,30 @@ export default function CarRentalFleetScreen({ navigation, route }) {
 
       {/* Vehicle Filter Modal */}
       {renderFilterModal()}
+
+      {/* Custom Alert Modal */}
+      <Modal visible={alertModal.visible} transparent animationType="fade" onRequestClose={closeAlert}>
+        <View style={styles.alertOverlay}>
+          <View style={styles.alertCard}>
+            <View style={[styles.alertIconCircle, { backgroundColor: alertModal.type === 'success' ? '#D1FAE5' : '#FEE2E2' }]}>
+              <Ionicons
+                name={alertModal.type === 'success' ? 'checkmark-circle' : 'alert-circle'}
+                size={wp('10%')}
+                color={alertModal.type === 'success' ? TEAL : '#EF4444'}
+              />
+            </View>
+            <Text style={styles.alertTitle}>{alertModal.title}</Text>
+            <Text style={styles.alertMessage}>{alertModal.message}</Text>
+            <TouchableOpacity
+              style={[styles.alertBtn, { backgroundColor: alertModal.type === 'success' ? TEAL : '#EF4444' }]}
+              onPress={closeAlert}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.alertBtnText}>{alertModal.type === 'success' ? 'Continue' : 'OK'}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -1862,21 +2075,34 @@ const styles = StyleSheet.create({
     borderColor: '#E5E7EB',
     borderStyle: 'dashed',
   },
-  vehicleTypeBadge: {
-    position: 'absolute',
-    top: wp('3.5%'),
-    left: wp('4.5%'),
-    backgroundColor: TEAL_LIGHT,
-    paddingHorizontal: wp('2.5%'),
-    paddingVertical: hp('0.4%'),
-    borderRadius: wp('2%'),
-    zIndex: 1,
-  },
   vehicleCardTop: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: hp('1.5%'),
-    marginTop: hp('3%'),
+  },
+  nameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: wp('2%'),
+    flexWrap: 'wrap',
+    marginBottom: hp('0.7%'),
+  },
+  vehicleTypeBadge: {
+    paddingHorizontal: wp('2%'),
+    paddingVertical: hp('0.25%'),
+    borderRadius: wp('1.5%'),
+  },
+  badgeStandard: {
+    backgroundColor: TEAL_LIGHT,
+  },
+  badgePremium: {
+    backgroundColor: '#FEF3C7',
+  },
+  badgeStandardText: {
+    color: TEAL_MID,
+  },
+  badgePremiumText: {
+    color: '#D97706',
   },
   vehicleImageWrap: {
     width: wp('26%'),
@@ -1904,7 +2130,6 @@ const styles = StyleSheet.create({
     fontSize: wp('4.8%'),
     fontWeight: '800',
     color: TEXT_PRIMARY,
-    marginBottom: hp('0.7%'),
   },
   vehicleNameSelected: {
     color: TEAL_DEEP,
@@ -1950,11 +2175,47 @@ const styles = StyleSheet.create({
   vehicleFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     marginTop: hp('2%'),
     paddingTop: hp('2%'),
     borderTopWidth: 1,
     borderTopColor: DIVIDER,
+  },
+  priceRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  detailsToggle: {
+    width: wp('7%'),
+    height: wp('7%'),
+    borderRadius: wp('3.5%'),
+    backgroundColor: TEAL_LIGHT,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  pricingDetails: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: wp('3%'),
+    paddingHorizontal: wp('3%'),
+    paddingVertical: hp('1%'),
+    marginTop: hp('1.2%'),
+  },
+  pricingDetailRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: hp('0.5%'),
+  },
+  pricingDetailLabel: {
+    fontSize: wp('3%'),
+    color: TEXT_SECONDARY,
+    fontWeight: '500',
+  },
+  pricingDetailValue: {
+    fontSize: wp('3%'),
+    color: TEXT_PRIMARY,
+    fontWeight: '600',
   },
   priceBadge: {
     flexDirection: 'row',
@@ -2201,6 +2462,121 @@ const styles = StyleSheet.create({
     fontSize: wp('3.8%'),
     color: TEXT_PRIMARY,
     fontWeight: '600',
+  },
+
+  /* ── Custom Alert Modal ── */
+  alertOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: wp('8%'),
+  },
+  alertCard: {
+    backgroundColor: '#fff',
+    borderRadius: wp('5%'),
+    padding: wp('7%'),
+    width: '100%',
+    alignItems: 'center',
+    ...SHADOW_LG,
+  },
+  alertIconCircle: {
+    width: wp('18%'),
+    height: wp('18%'),
+    borderRadius: wp('9%'),
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: hp('1.5%'),
+  },
+  alertTitle: {
+    fontSize: wp('5%'),
+    fontWeight: '800',
+    color: TEXT_PRIMARY,
+    textAlign: 'center',
+    marginBottom: hp('0.8%'),
+  },
+  alertMessage: {
+    fontSize: wp('3.5%'),
+    color: TEXT_SECONDARY,
+    textAlign: 'center',
+    lineHeight: wp('5.2%'),
+    marginBottom: hp('2.5%'),
+  },
+  alertBtn: {
+    width: '100%',
+    paddingVertical: hp('1.6%'),
+    borderRadius: wp('3%'),
+    alignItems: 'center',
+  },
+  alertBtnText: {
+    fontSize: wp('4%'),
+    fontWeight: '700',
+    color: '#fff',
+  },
+
+  /* ── B2B Booking Purpose ── */
+  b2bPurposeRow: {
+    flexDirection: 'row',
+    gap: wp('3%'),
+    marginTop: hp('1%'),
+  },
+  b2bPurposeBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: wp('2%'),
+    paddingVertical: hp('1.5%'),
+    borderRadius: wp('3%'),
+    borderWidth: 1.5,
+    borderColor: TEAL,
+    backgroundColor: '#fff',
+  },
+  b2bPurposeBtnActive: {
+    backgroundColor: TEAL,
+    borderColor: TEAL,
+  },
+  b2bPurposeBtnText: {
+    fontSize: wp('3.5%'),
+    fontWeight: '600',
+    color: TEAL,
+  },
+  b2bPurposeBtnTextActive: {
+    color: '#fff',
+  },
+  b2bInputRow: {
+    flexDirection: 'row',
+    gap: wp('3%'),
+  },
+  b2bInputGroup: {
+    flex: 1,
+  },
+  b2bInput: {
+    marginTop: hp('0.5%'),
+    borderWidth: 1,
+    borderColor: BORDER,
+    borderRadius: wp('3%'),
+    paddingHorizontal: wp('3.5%'),
+    paddingVertical: hp('1.2%'),
+    fontSize: wp('3.8%'),
+    color: TEXT_PRIMARY,
+    fontWeight: '600',
+    backgroundColor: '#F9FAFB',
+  },
+  b2bInfoBox: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: wp('2%'),
+    marginTop: hp('1.5%'),
+    backgroundColor: TEAL_LIGHT,
+    borderRadius: wp('3%'),
+    padding: wp('3%'),
+  },
+  b2bInfoText: {
+    flex: 1,
+    fontSize: wp('3%'),
+    color: TEAL_DEEP,
+    lineHeight: wp('4.5%'),
   },
 
   /* ── Bottom Bar ── */

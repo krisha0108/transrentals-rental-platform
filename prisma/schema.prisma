@@ -1214,6 +1214,9 @@ model customers {
   fcmToken                  String?                     @db.Text
   isB2B                     Boolean                     @default(false)
   companyName               String?
+  companyEmail              String?
+  companyPhone              String?
+  companyAddress            String?                     @db.Text
   gstin                     String?
   businessType              String?
   b2bStatus                 b2b_customer_status?

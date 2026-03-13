@@ -223,7 +223,12 @@ const handleBookingSubmit = async () => {
     });
 
     if (response.data.booking_id) {
-      navigation.replace("BookingConfirmation");
+      navigation.replace("BookingConfirmation", {
+        booking_id: response.data.request_number || response.data.booking_number || response.data.booking_id,
+        service_name: 'Office Shifting',
+        service_type: 'packers',
+        shifting_type: 'Office',
+      });
     } else {
       alert("Booking failed");
     }

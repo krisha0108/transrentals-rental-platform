@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   TextInput,
   ActivityIndicator,
-  Alert,
   Linking,
   Image,
   Modal,
@@ -55,6 +54,9 @@ export default function PaymentScreen() {
 
   // Custom success modal
   const [successModal, setSuccessModal] = useState(false);
+
+  // Custom alert modal (for manual payment submit / errors)
+  const [alertModal, setAlertModal] = useState({ visible: false, type: '', title: '', message: '', onClose: null });
 
   // ── StatusBar ──
   useFocusEffect(
@@ -127,7 +129,7 @@ export default function PaymentScreen() {
 
   const copyToClipboard = (text, label) => {
     Clipboard.setString(text);
-    Alert.alert('Copied!', `${label} copied to clipboard`);
+    setAlertModal({ visible: true, type: 'success', title: 'Copied!', message: `${label} copied to clipboard`, onClose: null });
   };
 
   const getUpiUrl = () => {
@@ -146,10 +148,10 @@ export default function PaymentScreen() {
 
   const openUPIApp = () => {
     const upiUrl = getUpiUrl();
-    if (!upiUrl) { Alert.alert('Error', 'UPI payment is not configured'); return; }
+    if (!upiUrl) { setAlertModal({ visible: true, type: 'error', title: 'Error', message: 'UPI payment is not configured', onClose: null }); return; }
     Linking.canOpenURL(upiUrl).then((supported) => {
       if (supported) Linking.openURL(upiUrl);
-      else Alert.alert('UPI App Not Found', 'Please install a UPI app like Google Pay, PhonePe, or Paytm');
+      else setAlertModal({ visible: true, type: 'error', title: 'UPI App Not Found', message: 'Please install a UPI app like Google Pay, PhonePe, or Paytm', onClose: null });
     });
   };
 
@@ -165,12 +167,12 @@ export default function PaymentScreen() {
   };
 
   const handleRazorpayPayment = async () => {
-    if (!bookingId) { Alert.alert('Error', 'Booking ID is missing. Please try again.'); return; }
+    if (!bookingId) { setAlertModal({ visible: true, type: 'error', title: 'Error', message: 'Booking ID is missing. Please try again.', onClose: null }); return; }
     setSubmitting(true);
     try {
       const orderData = await paymentService.createOrder(bookingId, bookingType || 'bike');
       if (!orderData.success || !orderData.order) {
-        Alert.alert('Error', orderData.error || 'Failed to create payment order. Please try again.');
+        setAlertModal({ visible: true, type: 'error', title: 'Error', message: orderData.error || 'Failed to create payment order. Please try again.', onClose: null });
         return;
       }
 
@@ -197,7 +199,7 @@ export default function PaymentScreen() {
       if (verifyResult.success) {
         setSuccessModal(true);
       } else {
-        Alert.alert('Verification Failed', 'Payment received but verification failed. Please contact support.');
+        setAlertModal({ visible: true, type: 'error', title: 'Verification Failed', message: 'Payment received but verification failed. Please contact support.', onClose: null });
       }
     } catch (error) {
       const desc = (error?.description || '').toLowerCase();
@@ -208,7 +210,7 @@ export default function PaymentScreen() {
         desc.includes('dismiss') ||
         !error?.description;
       if (!isCancelled) {
-        Alert.alert('Payment Failed', error?.description || error?.message || 'Payment failed. Please try again.');
+        setAlertModal({ visible: true, type: 'error', title: 'Payment Failed', message: error?.description || error?.message || 'Payment failed. Please try again.', onClose: null });
       }
     } finally {
       setSubmitting(false);
@@ -217,7 +219,7 @@ export default function PaymentScreen() {
 
   const handleSubmitManualPayment = async () => {
     if (!transactionId.trim()) {
-      Alert.alert('Required', 'Please enter the transaction/reference ID');
+      setAlertModal({ visible: true, type: 'error', title: 'Required', message: 'Please enter the transaction/reference ID', onClose: null });
       return;
     }
     setSubmitting(true);
@@ -231,17 +233,18 @@ export default function PaymentScreen() {
         amount: paymentAmount,
       });
       if (response.data?.success) {
-        Alert.alert(
-          'Payment Submitted!',
-          'Your payment details have been submitted. We will verify and confirm your booking shortly.',
-          [{ text: 'OK', onPress: () => navigation.replace(getDetailScreen(), { bookingId, ...((bookingType === 'chauffeur' || bookingType === 'car') ? { bookingType: 'car' } : {}) }) }],
-          { cancelable: false }
-        );
+        setAlertModal({
+          visible: true,
+          type: 'success',
+          title: 'Payment Submitted!',
+          message: 'Your payment details have been submitted. We will verify and confirm your booking shortly.',
+          onClose: () => navigation.replace(getDetailScreen(), { bookingId, ...((bookingType === 'chauffeur' || bookingType === 'car') ? { bookingType: 'car' } : {}) }),
+        });
       } else {
-        Alert.alert('Error', response.data?.message || 'Failed to submit payment');
+        setAlertModal({ visible: true, type: 'error', title: 'Error', message: response.data?.message || 'Failed to submit payment', onClose: null });
       }
     } catch (err) {
-      Alert.alert('Error', err.response?.data?.message || 'Failed to submit payment. Please try again.');
+      setAlertModal({ visible: true, type: 'error', title: 'Error', message: err.response?.data?.message || 'Failed to submit payment. Please try again.', onClose: null });
     } finally {
       setSubmitting(false);
     }
@@ -547,6 +550,60 @@ export default function PaymentScreen() {
           <Text style={styles.helpText}>Need help? Call {SUPPORT_PHONE}</Text>
         </View>
       </ScrollView>
+
+      {/* ── Custom Alert Modal ── */}
+      <Modal visible={alertModal.visible} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <View style={[styles.alertCircle, alertModal.type === 'success' ? styles.alertCircleSuccess : styles.alertCircleError]}>
+              <Ionicons
+                name={alertModal.type === 'success' ? 'checkmark-circle' : 'alert-circle'}
+                size={wp('12%')}
+                color={alertModal.type === 'success' ? TEAL : '#EF4444'}
+              />
+            </View>
+
+            <Text style={styles.successTitle}>{alertModal.title}</Text>
+            <Text style={styles.successSubtitle}>{alertModal.message}</Text>
+
+            {alertModal.type === 'success' && transactionId.trim() ? (
+              <View style={styles.successInfoCard}>
+                <View style={styles.successAmountRow}>
+                  <Text style={styles.successAmountLabel}>Amount</Text>
+                  <Text style={styles.successAmountValue}>{'\u20B9'}{paymentAmount?.toLocaleString()}</Text>
+                </View>
+                <View style={styles.successAmountRow}>
+                  <Text style={styles.successAmountLabel}>Method</Text>
+                  <Text style={[styles.successAmountValue, { textTransform: 'uppercase' }]}>{manualMethod}</Text>
+                </View>
+                <View style={[styles.successAmountRow, { borderBottomWidth: 0, paddingBottom: 0 }]}>
+                  <Text style={styles.successAmountLabel}>Txn ID</Text>
+                  <Text style={styles.successAmountValue}>{transactionId.trim()}</Text>
+                </View>
+              </View>
+            ) : null}
+
+            <TouchableOpacity
+              style={styles.viewBookingBtn}
+              activeOpacity={0.8}
+              onPress={() => {
+                const cb = alertModal.onClose;
+                setAlertModal({ visible: false, type: '', title: '', message: '', onClose: null });
+                if (cb) cb();
+              }}
+            >
+              <LinearGradient
+                colors={alertModal.type === 'success' ? [TEAL, '#059669'] : ['#EF4444', '#DC2626']}
+                style={styles.viewBookingBtnGradient}
+              >
+                <Text style={styles.viewBookingBtnText}>
+                  {alertModal.type === 'success' && alertModal.onClose ? 'View Booking' : 'OK'}
+                </Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
 
       {/* ── Success Modal ── */}
       <Modal visible={successModal} transparent animationType="fade">
@@ -1094,6 +1151,20 @@ const styles = StyleSheet.create({
     width: '100%',
     alignItems: 'center',
     ...SHADOW_MD,
+  },
+  alertCircle: {
+    width: wp('20%'),
+    height: wp('20%'),
+    borderRadius: wp('10%'),
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: hp('2%'),
+  },
+  alertCircleSuccess: {
+    backgroundColor: TEAL_LIGHT,
+  },
+  alertCircleError: {
+    backgroundColor: '#FEE2E2',
   },
   successCircle: {
     width: wp('24%'),

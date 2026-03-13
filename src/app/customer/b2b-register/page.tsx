@@ -22,6 +22,7 @@ export default function B2BRegisterPage() {
   const [form, setForm] = useState({
     name: '', email: '', phone: '', password: '',
     companyName: '', gstin: '', businessType: '',
+    companyAddress: '', companyPhone: '', companyEmail: '',
   });
 
   function updateForm(field: string, value: string) {
@@ -33,7 +34,7 @@ export default function B2BRegisterPage() {
     e.preventDefault();
     setError('');
 
-    if (!form.name || !form.email || !form.phone || !form.password || !form.companyName) {
+    if (!form.name || !form.email || !form.phone || !form.password || !form.companyName || !form.companyAddress) {
       setError('Please fill all required fields');
       return;
     }
@@ -61,6 +62,9 @@ export default function B2BRegisterPage() {
           companyName: form.companyName,
           gstin: form.gstin,
           businessType: form.businessType,
+          companyAddress: form.companyAddress,
+          companyPhone: form.companyPhone,
+          companyEmail: form.companyEmail,
         }),
       });
       const data = await res.json();
@@ -171,6 +175,35 @@ export default function B2BRegisterPage() {
                   <option key={t} value={t}>{t}</option>
                 ))}
               </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Company Address *</label>
+              <textarea
+                value={form.companyAddress}
+                onChange={(e) => updateForm('companyAddress', e.target.value)}
+                placeholder="e.g. 123, Industrial Area, Sector 5, Mumbai"
+                rows={2}
+                className="w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 resize-none"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Company Phone (optional)</label>
+              <input
+                type="tel" value={form.companyPhone}
+                onChange={(e) => updateForm('companyPhone', e.target.value.replace(/\D/g, '').slice(0, 10))}
+                placeholder="e.g. 9876543210"
+                className="w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Company Email (optional)</label>
+              <input
+                type="email" value={form.companyEmail}
+                onChange={(e) => updateForm('companyEmail', e.target.value)}
+                placeholder="e.g. info@company.com"
+                className="w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+              />
             </div>
           </div>
 

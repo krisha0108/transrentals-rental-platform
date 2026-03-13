@@ -233,12 +233,40 @@ const handlePress = async () => {
       )
     );
 
-    // Determine service type from title (temporary until DB has serviceType)
     const title = (item.title || '').toLowerCase();
     const body = (item.body || '').toLowerCase();
+    const notifType = (item.type || '').toLowerCase();
     let serviceType = item.service_type;
 
-    // Normalize service type names from API (e.g., 'packers-and-movers' → 'packers')
+    // Check if this is a chat notification
+    if (notifType === 'chat' || title.includes('new message')) {
+      const chatBookingId = item.booking_id;
+      if (chatBookingId && chatBookingId !== 'null' && chatBookingId.length >= 10) {
+        navigation.navigate('BookingChat', {
+          bookingId: chatBookingId,
+          bookingType: item.service_type || '',
+        });
+      } else {
+        navigation.navigate('CustomerDashboard', { screen: 'Chat' });
+      }
+      return;
+    }
+
+    // Check if this is a B2B notification
+    const isB2BNotif = notifType.startsWith('b2b_')
+      || title.includes('b2b') || body.includes('b2b');
+
+    if (isB2BNotif) {
+      const bookingId = item.booking_id;
+      if (bookingId && bookingId !== 'null' && bookingId.length >= 10) {
+        navigation.navigate('B2BBookingDetail', { bookingId });
+      } else {
+        navigation.navigate('B2BDashboard');
+      }
+      return;
+    }
+
+    // Normalize service type names from API
     const serviceTypeNormalize = {
       'packers-and-movers': 'packers',
       'truck-rental': 'truck',
@@ -264,7 +292,6 @@ const handlePress = async () => {
       else if (title.includes('chauffeur') || title.includes('driver') || title.includes('\u{1F468}\u200D\u2708\uFE0F') || body.includes('chauffeur') || body.includes('driver assigned')) serviceType = 'chauffeur-service';
       else if (title.includes('car') || title.includes('\u{1F697}') || body.includes('car rental')) serviceType = 'car';
       else {
-        // Can't determine - go to MyBookings
         navigation.navigate('MyBookings');
         return;
       }
@@ -280,7 +307,6 @@ const handlePress = async () => {
       return;
     }
 
-    // Navigate using same logic as MyBookingsScreen.handleBookingPress
     if (serviceType === 'self-drive') {
       navigation.navigate(isQuoteRequest ? 'SelfDriveQuoteRequestDetail' : 'SelfDriveBookingDetail',
         isQuoteRequest ? { requestId: itemId } : { bookingId: itemId });
@@ -303,7 +329,6 @@ const handlePress = async () => {
       navigation.navigate(isQuoteRequest ? 'EquipmentQuoteRequestDetail' : 'EquipmentBookingDetail',
         isQuoteRequest ? { requestId: itemId } : { bookingId: itemId });
     } else if (serviceType === 'chauffeur-service' || serviceType === 'car') {
-      // Handle chauffeur service (car rental with driver) bookings
       navigation.navigate('BookingDetail', { bookingId: itemId, bookingType: 'car' });
     } else {
       navigation.navigate('MyBookings');
