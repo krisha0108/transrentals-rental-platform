@@ -192,13 +192,15 @@ export async function GET(request: NextRequest) {
     };
 
     // Map booking statuses to dashboard categories
-    // Based on actual Prisma enums: BikeBookingStatus, CarBookingStatus, ChauffeurBookingStatus
+    // Waiting (open) = only quote requests; bookings are Confirmed/Ongoing/Completed
     const statusMappings: Record<string, string> = {
-      PENDING_PAYMENT: 'open',
-      PENDING_VENDOR: 'open',
-      BROADCASTED: 'open',
+      PENDING_PAYMENT: 'confirmed',
+      PAYMENT_VERIFIED: 'confirmed',
+      PENDING_VENDOR: 'confirmed',
+      BROADCASTED: 'confirmed',
       ACCEPTED: 'confirmed',
       DRIVER_ASSIGNED: 'confirmed',
+      READY_FOR_PICKUP: 'ongoing',
       IN_PROGRESS: 'ongoing',
       COMPLETED: 'completed',
       CANCELLED: 'dropped',
@@ -206,7 +208,7 @@ export async function GET(request: NextRequest) {
       REFUNDED: 'dropped',
     };
 
-    // Bus quote request status mappings
+    // Quote request status mappings (only PENDING/QUOTES_RECEIVED count as 'open'/waiting)
     const busQuoteRequestMappings: Record<string, string> = {
       PENDING: 'open',
       QUOTES_RECEIVED: 'open',
@@ -216,14 +218,24 @@ export async function GET(request: NextRequest) {
       EXPIRED: 'dropped',
     };
 
-    // Bus booking status mappings
+    // Booking status mappings for bus/truck/packers/equipment/luxury
     const busBookingMappings: Record<string, string> = {
-      PENDING_PAYMENT: 'open',
-      PAYMENT_SUBMITTED: 'open',
+      PENDING_PAYMENT: 'confirmed',
+      PAYMENT_SUBMITTED: 'confirmed',
+      PAYMENT_VERIFIED: 'confirmed',
       ADVANCE_PAID: 'confirmed',
       CONFIRMED: 'confirmed',
       VEHICLE_ASSIGNED: 'confirmed',
+      TEAM_ASSIGNED: 'confirmed',
+      LOADING: 'ongoing',
+      IN_TRANSIT: 'ongoing',
+      UNLOADING: 'ongoing',
+      PACKING: 'ongoing',
+      UNPACKING: 'ongoing',
+      DELIVERED: 'ongoing',
+      IN_USE: 'ongoing',
       IN_PROGRESS: 'ongoing',
+      RETURNED: 'completed',
       COMPLETED: 'completed',
       CANCELLED: 'dropped',
     };
@@ -466,10 +478,11 @@ export async function GET(request: NextRequest) {
       EXPIRED: 'dropped',
     };
 
-    // Luxury booking status mappings (same as bus)
+    // Luxury booking status mappings
     const luxuryBookingMappings: Record<string, string> = {
-      PENDING_PAYMENT: 'open',
-      PAYMENT_SUBMITTED: 'open',
+      PENDING_PAYMENT: 'confirmed',
+      PAYMENT_SUBMITTED: 'confirmed',
+      PAYMENT_VERIFIED: 'confirmed',
       ADVANCE_PAID: 'confirmed',
       CONFIRMED: 'confirmed',
       DRIVER_ASSIGNED: 'confirmed',

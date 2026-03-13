@@ -34,6 +34,9 @@ import {
   FolderTree,
   Upload,
   Plus,
+  Trash2,
+  Search,
+  Filter,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -149,6 +152,15 @@ export default function VendorDetailPage({ params }: { params: { id: string } })
   const [selectedDocument, setSelectedDocument] = useState<VendorDocument | null>(null);
   const [documentPreviewError, setDocumentPreviewError] = useState(false);
   const [documentLoading, setDocumentLoading] = useState(true);
+
+  // Approved locations — search, filter, select
+  const [locSearch, setLocSearch] = useState('');
+  const [locStateFilter, setLocStateFilter] = useState('');
+  const [selectedLocIds, setSelectedLocIds] = useState<Set<string>>(new Set());
+
+  // Approved services — search, select
+  const [svcSearch, setSvcSearch] = useState('');
+  const [selectedSvcIds, setSelectedSvcIds] = useState<Set<string>>(new Set());
 
   // Upload form state
   const [showUploadForm, setShowUploadForm] = useState(false);
@@ -474,6 +486,94 @@ export default function VendorDetailPage({ params }: { params: { id: string } })
       alert('Upload failed. Please try again.');
     } finally {
       setUploading(false);
+    }
+  };
+
+  const handleDeleteApprovedService = async (approvedServiceId: string) => {
+    if (!confirm('Remove this approved service? The vendor will be notified.')) return;
+    setActionLoading(`del-svc-${approvedServiceId}`);
+    try {
+      const res = await fetch(`/api/admin/vendors/${id}/services?approvedServiceId=${approvedServiceId}`, {
+        method: 'DELETE',
+      });
+      if (res.ok) {
+        await fetchVendor();
+      } else {
+        const error = await res.json();
+        alert(error.error || 'Failed to remove service');
+      }
+    } catch {
+      alert('Failed to remove service');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleBulkDeleteServices = async (ids: string[]) => {
+    if (ids.length === 0) return;
+    if (!confirm(`Remove ${ids.length} selected service(s)? The vendor will be notified.`)) return;
+    setActionLoading('bulk-del-svc');
+    try {
+      const res = await fetch(`/api/admin/vendors/${id}/services`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ approvedServiceIds: ids }),
+      });
+      if (res.ok) {
+        setSelectedSvcIds(new Set());
+        await fetchVendor();
+      } else {
+        const error = await res.json();
+        alert(error.error || 'Failed to remove services');
+      }
+    } catch {
+      alert('Failed to remove services');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleDeleteApprovedLocation = async (approvedLocationId: string) => {
+    if (!confirm('Remove this approved location? The vendor will be notified.')) return;
+    setActionLoading(`del-loc-${approvedLocationId}`);
+    try {
+      const res = await fetch(`/api/admin/vendors/${id}/locations?approvedLocationId=${approvedLocationId}`, {
+        method: 'DELETE',
+      });
+      if (res.ok) {
+        await fetchVendor();
+      } else {
+        const error = await res.json();
+        alert(error.error || 'Failed to remove location');
+      }
+    } catch {
+      alert('Failed to remove location');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleBulkDeleteLocations = async (ids: string[]) => {
+    if (ids.length === 0) return;
+    if (!confirm(`Remove ${ids.length} selected location(s)? The vendor will be notified.`)) return;
+    setActionLoading('bulk-del-loc');
+    try {
+      const res = await fetch(`/api/admin/vendors/${id}/locations`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ approvedLocationIds: ids }),
+      });
+      if (res.ok) {
+        setSelectedLocIds(new Set());
+        await fetchVendor();
+      } else {
+        const error = await res.json();
+        alert(error.error || 'Failed to remove locations');
+      }
+    } catch {
+      alert('Failed to remove locations');
+    } finally {
+      setActionLoading(null);
     }
   };
 
@@ -1068,30 +1168,108 @@ export default function VendorDetailPage({ params }: { params: { id: string } })
           )}
 
           {/* Approved Services */}
-          <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
-            <div className="p-4 bg-green-50 border-b">
-              <h3 className="font-semibold text-green-800 flex items-center gap-2">
-                <CheckCircle className="w-5 h-5" />
-                Approved Services ({vendor.approvedServices.length})
-              </h3>
-            </div>
-            {vendor.approvedServices.length === 0 ? (
-              <div className="p-8 text-center text-gray-500">
-                No approved services yet
+          {(() => {
+            const activeServices = vendor.approvedServices.filter((s: any) => s.isActive !== false);
+            const filteredSvcs = activeServices.filter((s: any) =>
+              !svcSearch || (s.service?.name || '').toLowerCase().includes(svcSearch.toLowerCase())
+            );
+            const allSvcIds = filteredSvcs.map((s: any) => s.id);
+            const allSvcsSelected = allSvcIds.length > 0 && allSvcIds.every((sid: string) => selectedSvcIds.has(sid));
+            const toggleAllSvcs = () => {
+              if (allSvcsSelected) {
+                setSelectedSvcIds((prev) => { const s = new Set(prev); allSvcIds.forEach((sid: string) => s.delete(sid)); return s; });
+              } else {
+                setSelectedSvcIds((prev) => { const s = new Set(prev); allSvcIds.forEach((sid: string) => s.add(sid)); return s; });
+              }
+            };
+            return (
+              <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
+                <div className="p-4 bg-green-50 border-b">
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-semibold text-green-800 flex items-center gap-2">
+                      <CheckCircle className="w-5 h-5" />
+                      Approved Services ({activeServices.length})
+                    </h3>
+                    {selectedSvcIds.size > 0 && (
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={() => handleBulkDeleteServices([...selectedSvcIds])}
+                        disabled={!!actionLoading}
+                      >
+                        {actionLoading === 'bulk-del-svc' ? (
+                          <Loader2 className="w-4 h-4 animate-spin mr-1" />
+                        ) : (
+                          <Trash2 className="w-4 h-4 mr-1" />
+                        )}
+                        Remove Selected ({selectedSvcIds.size})
+                      </Button>
+                    )}
+                  </div>
+                  {activeServices.length > 0 && (
+                    <div className="relative mt-3">
+                      <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      <input
+                        type="text"
+                        placeholder="Search services..."
+                        value={svcSearch}
+                        onChange={(e) => setSvcSearch(e.target.value)}
+                        className="w-full pl-8 pr-3 py-1.5 text-sm border border-green-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-300 bg-white"
+                      />
+                    </div>
+                  )}
+                </div>
+                {activeServices.length === 0 ? (
+                  <div className="p-8 text-center text-gray-500">No approved services yet</div>
+                ) : filteredSvcs.length === 0 ? (
+                  <div className="p-6 text-center text-gray-400 text-sm">No services match your search</div>
+                ) : (
+                  <>
+                    <div className="px-4 py-2 bg-gray-50 border-b flex items-center gap-3">
+                      <input
+                        type="checkbox"
+                        checked={allSvcsSelected}
+                        onChange={toggleAllSvcs}
+                        className="w-4 h-4 rounded cursor-pointer accent-blue-600"
+                      />
+                      <span className="text-xs text-gray-500">
+                        {allSvcsSelected ? 'Deselect all' : `Select all ${filteredSvcs.length}`}
+                      </span>
+                    </div>
+                    <div className="divide-y">
+                      {filteredSvcs.map((item: any) => (
+                        <div key={item.id} className={`flex items-center justify-between px-4 py-3 hover:bg-gray-50 ${selectedSvcIds.has(item.id) ? 'bg-blue-50' : ''}`}>
+                          <div className="flex items-center gap-3">
+                            <input
+                              type="checkbox"
+                              checked={selectedSvcIds.has(item.id)}
+                              onChange={() => setSelectedSvcIds((prev) => {
+                                const s = new Set(prev); s.has(item.id) ? s.delete(item.id) : s.add(item.id); return s;
+                              })}
+                              className="w-4 h-4 rounded cursor-pointer accent-blue-600"
+                            />
+                            <span className="font-medium text-gray-900">{item.service?.name}</span>
+                          </div>
+                          <button
+                            onClick={() => handleDeleteApprovedService(item.id)}
+                            disabled={!!actionLoading}
+                            className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
+                            title="Remove service"
+                          >
+                            {actionLoading === `del-svc-${item.id}` ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <Trash2 className="w-4 h-4" />
+                            )}
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
               </div>
-            ) : (
-              <div className="p-4 flex flex-wrap gap-2">
-                {vendor.approvedServices.map((item) => (
-                  <span
-                    key={item.id}
-                    className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm"
-                  >
-                    {item.service.name}
-                  </span>
-                ))}
-              </div>
-            )}
-          </div>
+            );
+          })()}
 
           {/* All Service Requests History */}
           <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
@@ -1336,33 +1514,138 @@ export default function VendorDetailPage({ params }: { params: { id: string } })
           )}
 
           {/* Approved Locations */}
-          <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
-            <div className="p-4 bg-green-50 border-b">
-              <h3 className="font-semibold text-green-800 flex items-center gap-2">
-                <CheckCircle className="w-5 h-5" />
-                Approved Locations ({vendor.approvedLocations.length})
-              </h3>
-            </div>
-            {vendor.approvedLocations.length === 0 ? (
-              <div className="p-8 text-center text-gray-500">
-                No approved locations yet
-              </div>
-            ) : (
-              <div className="p-4 flex flex-wrap gap-2">
-                {vendor.approvedLocations.map((item) => (
-                  <span
-                    key={item.id}
-                    className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm"
-                  >
-                    {item.location.name}
-                    {item.location.parent && (
-                      <span className="text-green-600 ml-1">({item.location.parent.name})</span>
+          {(() => {
+            const activeLocations = vendor.approvedLocations.filter((l: any) => l.isActive !== false);
+            const uniqueStates = [...new Set(
+              activeLocations.map((l: any) => l.location?.parent?.name || '').filter(Boolean)
+            )].sort() as string[];
+            const filtered = activeLocations
+              .filter((l: any) => !locSearch ||
+                (l.location?.name || '').toLowerCase().includes(locSearch.toLowerCase()) ||
+                (l.location?.parent?.name || '').toLowerCase().includes(locSearch.toLowerCase())
+              )
+              .filter((l: any) => !locStateFilter ||
+                (l.location?.parent?.name || '') === locStateFilter
+              );
+            const allFilteredIds = filtered.map((l: any) => l.id);
+            const allSelected = allFilteredIds.length > 0 && allFilteredIds.every((lid: string) => selectedLocIds.has(lid));
+            const toggleAll = () => {
+              if (allSelected) {
+                setSelectedLocIds((prev) => { const s = new Set(prev); allFilteredIds.forEach((lid: string) => s.delete(lid)); return s; });
+              } else {
+                setSelectedLocIds((prev) => { const s = new Set(prev); allFilteredIds.forEach((lid: string) => s.add(lid)); return s; });
+              }
+            };
+            return (
+              <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
+                <div className="p-4 bg-green-50 border-b">
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-semibold text-green-800 flex items-center gap-2">
+                      <CheckCircle className="w-5 h-5" />
+                      Approved Locations ({activeLocations.length})
+                    </h3>
+                    {selectedLocIds.size > 0 && (
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={() => handleBulkDeleteLocations([...selectedLocIds])}
+                        disabled={!!actionLoading}
+                      >
+                        {actionLoading === 'bulk-del-loc' ? (
+                          <Loader2 className="w-4 h-4 animate-spin mr-1" />
+                        ) : (
+                          <Trash2 className="w-4 h-4 mr-1" />
+                        )}
+                        Remove Selected ({selectedLocIds.size})
+                      </Button>
                     )}
-                  </span>
-                ))}
+                  </div>
+                  {activeLocations.length > 0 && (
+                    <div className="flex items-center gap-2 mt-3">
+                      <div className="relative flex-1">
+                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                        <input
+                          type="text"
+                          placeholder="Search locations..."
+                          value={locSearch}
+                          onChange={(e) => setLocSearch(e.target.value)}
+                          className="w-full pl-8 pr-3 py-1.5 text-sm border border-green-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-300 bg-white"
+                        />
+                      </div>
+                      {uniqueStates.length > 0 && (
+                        <div className="relative">
+                          <Filter className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                          <select
+                            value={locStateFilter}
+                            onChange={(e) => { setLocStateFilter(e.target.value); setSelectedLocIds(new Set()); }}
+                            className="pl-8 pr-6 py-1.5 text-sm border border-green-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-300 bg-white appearance-none cursor-pointer"
+                          >
+                            <option value="">All States</option>
+                            {uniqueStates.map((s) => (
+                              <option key={s} value={s}>{s}</option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+                {activeLocations.length === 0 ? (
+                  <div className="p-8 text-center text-gray-500">No approved locations yet</div>
+                ) : filtered.length === 0 ? (
+                  <div className="p-6 text-center text-gray-400 text-sm">No locations match your filter</div>
+                ) : (
+                  <>
+                    <div className="px-4 py-2 bg-gray-50 border-b flex items-center gap-3">
+                      <input
+                        type="checkbox"
+                        checked={allSelected}
+                        onChange={toggleAll}
+                        className="w-4 h-4 rounded cursor-pointer accent-blue-600"
+                      />
+                      <span className="text-xs text-gray-500">
+                        {allSelected ? 'Deselect all' : `Select all ${filtered.length}`}
+                        {locStateFilter && ` in ${locStateFilter}`}
+                      </span>
+                    </div>
+                    <div className="divide-y">
+                      {filtered.map((item: any) => (
+                        <div key={item.id} className={`flex items-center justify-between px-4 py-3 hover:bg-gray-50 ${selectedLocIds.has(item.id) ? 'bg-blue-50' : ''}`}>
+                          <div className="flex items-center gap-3">
+                            <input
+                              type="checkbox"
+                              checked={selectedLocIds.has(item.id)}
+                              onChange={() => setSelectedLocIds((prev) => {
+                                const s = new Set(prev); s.has(item.id) ? s.delete(item.id) : s.add(item.id); return s;
+                              })}
+                              className="w-4 h-4 rounded cursor-pointer accent-blue-600"
+                            />
+                            <MapPin className="w-4 h-4 text-green-600" />
+                            <span className="font-medium text-gray-900">{item.location?.name}</span>
+                            {item.location?.parent && (
+                              <span className="text-gray-500 text-sm">({item.location.parent.name})</span>
+                            )}
+                          </div>
+                          <button
+                            onClick={() => handleDeleteApprovedLocation(item.id)}
+                            disabled={!!actionLoading}
+                            className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
+                            title="Remove location"
+                          >
+                            {actionLoading === `del-loc-${item.id}` ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <Trash2 className="w-4 h-4" />
+                            )}
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
               </div>
-            )}
-          </div>
+            );
+          })()}
 
           {/* All Location Requests History */}
           <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
