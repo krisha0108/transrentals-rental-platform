@@ -56,6 +56,7 @@ const getStatusColor = (status: string) => {
     case 'COMPLETED':
       return 'bg-gray-100 text-gray-700';
     case 'CANCELLED':
+    case 'DROPPED':
       return 'bg-red-100 text-red-700';
     default:
       return 'bg-gray-100 text-gray-700';
@@ -78,6 +79,8 @@ const getStatusLabel = (status: string) => {
       return 'Completed';
     case 'CANCELLED':
       return 'Cancelled';
+    case 'DROPPED':
+      return 'Dropped';
     default:
       return status;
   }
@@ -351,6 +354,18 @@ export default function VendorSelfDriveBookingsPage() {
                     {booking.customerName} • {booking.locationName}
                   </p>
                 </div>
+
+                {booking.status === 'DROPPED' && (
+                  <div className="col-span-full px-4 py-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700 flex items-start gap-2">
+                    <XCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <span className="font-medium">Booking Dropped</span>
+                      {(booking as any).dropReason && (
+                        <p className="text-xs text-red-600 mt-1">Reason: {(booking as any).dropReason}</p>
+                      )}
+                    </div>
+                  </div>
+                )}
 
                 {/* Trip Info */}
                 <div className="text-sm text-gray-500">

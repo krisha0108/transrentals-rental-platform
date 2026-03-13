@@ -95,8 +95,10 @@ export default function LuxuryCarRentalScreen() {
   const [showLocationPicker, setShowLocationPicker] = useState(false);
   const [locationPickerType, setLocationPickerType] = useState('pickup'); // 'pickup' or 'drop'
   const [locations, setLocations] = useState([]);
+  const [serviceLocationIds, setServiceLocationIds] = useState(new Set());
   const [locationsLoading, setLocationsLoading] = useState(false);
   const [locationSearch, setLocationSearch] = useState('');
+  const [locationNotServed, setLocationNotServed] = useState(false);
 
   // StatusBar management
   useFocusEffect(
@@ -117,6 +119,7 @@ export default function LuxuryCarRentalScreen() {
   useEffect(() => {
     loadCustomerData();
     fetchLuxuryFleet();
+    fetchServiceLocationIds();
 
     // Fade in animation
     Animated.timing(fadeAnim, {
@@ -155,11 +158,20 @@ export default function LuxuryCarRentalScreen() {
     }
   };
 
+  const fetchServiceLocationIds = async () => {
+    try {
+      const response = await api.get('/services/luxury-car-rental/locations', { params: { limit: 200 } });
+      if (response.data.success) {
+        setServiceLocationIds(new Set((response.data.locations || []).map(l => l.id)));
+      }
+    } catch (e) { /* silent */ }
+  };
+
   const fetchLocations = async (searchQuery = '') => {
     try {
       setLocationsLoading(true);
-      const response = await api.get('/services/luxury-car-rental/locations', {
-        params: { q: searchQuery, limit: 50 },
+      const response = await api.get('/locations', {
+        params: { type: 'CITY', q: searchQuery },
       });
       if (response.data.success) {
         setLocations(response.data.locations || []);
@@ -182,6 +194,7 @@ export default function LuxuryCarRentalScreen() {
   const selectLocation = (location) => {
     if (locationPickerType === 'pickup') {
       setPickupCity(location.name);
+      setLocationNotServed(serviceLocationIds.size > 0 && !serviceLocationIds.has(location.id));
     } else {
       setDropCity(location.name);
     }
@@ -673,6 +686,12 @@ export default function LuxuryCarRentalScreen() {
               <Ionicons name="chevron-down" size={wp('4.5%')} color={TEXT_MUTED} />
             </View>
           </TouchableOpacity>
+          {locationNotServed && (
+            <View style={styles.notServedBanner}>
+              <Ionicons name="information-circle" size={20} color="#D97706" />
+              <Text style={styles.notServedText}>We are not currently providing our services in this location.</Text>
+            </View>
+          )}
           <TextInput
             style={[styles.input, styles.inputMultiline]}
             placeholder="Pickup Address (with landmark) *"
@@ -2239,5 +2258,23 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: '700',
     fontSize: 14,
+  },
+  notServedBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#FFFBEB',
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+    borderRadius: 12,
+    padding: 12,
+    marginTop: 8,
+  },
+  notServedText: {
+    flex: 1,
+    fontSize: 13,
+    color: '#92400E',
+    fontWeight: '500',
+    lineHeight: 18,
   },
 });

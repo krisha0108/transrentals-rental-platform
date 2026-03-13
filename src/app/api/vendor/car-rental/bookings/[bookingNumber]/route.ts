@@ -7,6 +7,7 @@ import { sendVendorDirectNotification } from '@/lib/utils/vendor-notification-se
 import crypto from 'crypto';
 
 import logger from '@/lib/security/logger';
+import { canStartTrip, canCompleteTrip } from '@/lib/utils/booking-date-guard';
 export const dynamic = 'force-dynamic';
 
 // GET - Get booking details
@@ -111,6 +112,8 @@ export async function GET(
         review: booking.review,
         acceptedVendorId: booking.acceptedVendorId,
         isOwnBooking: isOwner,
+        droppedAt: booking.droppedAt,
+        dropReason: booking.dropReason,
         location: booking.locations,
         createdAt: booking.createdAt,
         updatedAt: booking.updatedAt,
@@ -410,6 +413,14 @@ export async function PATCH(
           );
         }
 
+        // Block trip start before pickup date/time
+        {
+          const startCheck = canStartTrip(booking.pickupDate, booking.pickupTime);
+          if (!startCheck.allowed) {
+            return NextResponse.json({ success: false, error: startCheck.message }, { status: 400 });
+          }
+        }
+
         // Verify OTP if provided
         if (data.otp && data.otp !== booking.tripStartOtp) {
           return NextResponse.json(
@@ -439,6 +450,16 @@ export async function PATCH(
             { success: false, error: 'Only in-progress trips can be completed' },
             { status: 400 }
           );
+        }
+
+        // Block completion before return date/time
+        {
+          const endDate = booking.returnDate || booking.pickupDate;
+          const endTime = booking.returnTime || booking.pickupTime;
+          const completeCheck = canCompleteTrip(endDate, endTime);
+          if (!completeCheck.allowed) {
+            return NextResponse.json({ success: false, error: completeCheck.message }, { status: 400 });
+          }
         }
 
         // Calculate extra charges based on actual km travelled

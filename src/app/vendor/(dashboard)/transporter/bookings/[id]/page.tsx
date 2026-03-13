@@ -21,6 +21,7 @@ import {
   Loader2,
   UserCheck,
   Car,
+  XCircle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -90,6 +91,7 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; icon: any }>
   UNLOADING: { label: 'Unloading', color: 'bg-teal-100 text-teal-700', icon: Truck },
   COMPLETED: { label: 'Completed', color: 'bg-gray-100 text-gray-700', icon: CheckCircle },
   CANCELLED: { label: 'Cancelled', color: 'bg-red-100 text-red-700', icon: AlertCircle },
+  DROPPED: { label: 'Dropped', color: 'bg-red-100 text-red-700', icon: AlertCircle },
 };
 
 export default function VendorTruckBookingDetailPage() {
@@ -304,6 +306,24 @@ export default function VendorTruckBookingDetailPage() {
         </div>
       </div>
 
+      {/* Dropped Banner */}
+      {booking.status === 'DROPPED' && (
+        <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-start gap-3">
+          <XCircle className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" />
+          <div>
+            <p className="font-semibold text-red-800">This booking has been dropped</p>
+            {(booking as any).dropReason && (
+              <p className="text-sm text-red-600 mt-1">Reason: {(booking as any).dropReason}</p>
+            )}
+            {(booking as any).droppedAt && (
+              <p className="text-xs text-red-500 mt-1">
+                Dropped on: {new Date((booking as any).droppedAt).toLocaleString('en-IN')}
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+
       <div className="grid lg:grid-cols-3 gap-6">
         {/* Main Content */}
         <div className="lg:col-span-2 space-y-6">
@@ -464,153 +484,67 @@ export default function VendorTruckBookingDetailPage() {
               {/* Progress Line */}
               <div className="absolute left-[15px] top-0 bottom-0 w-0.5 bg-gray-200" />
 
-              <div className="space-y-6">
-                {/* Step 1: Booking Created */}
-                <div className="flex gap-4 relative">
-                  <div className="w-8 h-8 rounded-full bg-green-500 text-white flex items-center justify-center z-10 shrink-0">
-                    <CheckCircle className="w-4 h-4" />
-                  </div>
-                  <div className="flex-1 pt-1">
-                    <p className="font-medium text-gray-900">Booking Created</p>
-                    <p className="text-xs text-gray-500">Quote accepted by customer</p>
-                  </div>
-                </div>
+              {(() => {
+                const isDropped = booking.status === 'DROPPED';
+                const createdDone = true;
+                const paymentDone = booking.advancePaid > 0 || ['ADVANCE_PAID', 'CONFIRMED', 'VEHICLE_ASSIGNED', 'LOADING', 'IN_TRANSIT', 'UNLOADING', 'COMPLETED'].includes(booking.status);
+                const driverDone = !!booking.driverName || ['VEHICLE_ASSIGNED', 'LOADING', 'IN_TRANSIT', 'UNLOADING', 'COMPLETED'].includes(booking.status);
+                const loadingDone = ['LOADING', 'IN_TRANSIT', 'UNLOADING', 'COMPLETED'].includes(booking.status);
+                const transitDone = ['IN_TRANSIT', 'UNLOADING', 'COMPLETED'].includes(booking.status);
+                const deliveredDone = booking.status === 'COMPLETED';
 
-                {/* Step 2: Payment */}
-                <div className="flex gap-4 relative">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center z-10 shrink-0 ${
-                    booking.advancePaid > 0 || ['ADVANCE_PAID', 'CONFIRMED', 'VEHICLE_ASSIGNED', 'LOADING', 'IN_TRANSIT', 'UNLOADING', 'COMPLETED'].includes(booking.status)
-                      ? 'bg-green-500 text-white'
-                      : booking.status === 'PAYMENT_SUBMITTED'
-                      ? 'bg-yellow-500 text-white'
-                      : 'bg-gray-200 text-gray-400'
-                  }`}>
-                    {booking.advancePaid > 0 || ['ADVANCE_PAID', 'CONFIRMED', 'VEHICLE_ASSIGNED', 'LOADING', 'IN_TRANSIT', 'UNLOADING', 'COMPLETED'].includes(booking.status) ? (
-                      <CheckCircle className="w-4 h-4" />
-                    ) : (
-                      <IndianRupee className="w-4 h-4" />
-                    )}
-                  </div>
-                  <div className="flex-1 pt-1">
-                    <p className={`font-medium ${booking.advancePaid > 0 ? 'text-gray-900' : 'text-gray-400'}`}>
-                      Advance Payment
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      {booking.advancePaid > 0
-                        ? `₹${booking.advancePaid.toLocaleString()} received`
-                        : booking.status === 'PAYMENT_SUBMITTED'
-                        ? 'Payment under verification'
-                        : 'Awaiting payment'}
-                    </p>
-                  </div>
-                </div>
+                let droppedAfterStep = -1;
+                if (isDropped) {
+                  if (transitDone) droppedAfterStep = 4;
+                  else if (loadingDone) droppedAfterStep = 3;
+                  else if (driverDone) droppedAfterStep = 2;
+                  else if (paymentDone) droppedAfterStep = 1;
+                  else droppedAfterStep = 0;
+                }
 
-                {/* Step 3: Driver Assigned */}
-                <div className="flex gap-4 relative">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center z-10 shrink-0 ${
-                    booking.driverName || ['VEHICLE_ASSIGNED', 'LOADING', 'IN_TRANSIT', 'UNLOADING', 'COMPLETED'].includes(booking.status)
-                      ? 'bg-green-500 text-white'
-                      : 'bg-gray-200 text-gray-400'
-                  }`}>
-                    {booking.driverName ? <CheckCircle className="w-4 h-4" /> : <UserCheck className="w-4 h-4" />}
-                  </div>
-                  <div className="flex-1 pt-1">
-                    <p className={`font-medium ${booking.driverName ? 'text-gray-900' : 'text-gray-400'}`}>
-                      Driver & Vehicle Assigned
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      {booking.driverName
-                        ? `${booking.driverName} • ${booking.vehicleNumber || 'Vehicle assigned'}`
-                        : 'Pending assignment'}
-                    </p>
-                  </div>
-                </div>
+                const steps = [
+                  { label: 'Booking Created', desc: 'Quote accepted by customer', done: createdDone, icon: <CheckCircle className="w-4 h-4" /> },
+                  { label: 'Advance Payment', desc: paymentDone ? `₹${booking.advancePaid?.toLocaleString()} received` : 'Awaiting payment', done: paymentDone, icon: paymentDone ? <CheckCircle className="w-4 h-4" /> : <IndianRupee className="w-4 h-4" /> },
+                  { label: 'Driver & Vehicle Assigned', desc: booking.driverName ? `${booking.driverName} • ${booking.vehicleNumber || 'Vehicle assigned'}` : 'Pending assignment', done: driverDone, icon: driverDone ? <CheckCircle className="w-4 h-4" /> : <UserCheck className="w-4 h-4" /> },
+                  { label: 'Loading', desc: loadingDone ? 'Loading completed' : 'Waiting for driver', done: loadingDone, icon: <Package className="w-4 h-4" /> },
+                  { label: 'In Transit', desc: transitDone ? 'Transit completed' : 'Pending', done: transitDone, icon: transitDone ? <CheckCircle className="w-4 h-4" /> : <Navigation className="w-4 h-4" /> },
+                  { label: 'Delivered', desc: deliveredDone ? 'Successfully delivered' : 'Pending delivery', done: deliveredDone, icon: <CheckCircle className="w-4 h-4" /> },
+                ];
 
-                {/* Step 4: Loading */}
-                <div className="flex gap-4 relative">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center z-10 shrink-0 ${
-                    ['LOADING', 'IN_TRANSIT', 'UNLOADING', 'COMPLETED'].includes(booking.status)
-                      ? 'bg-green-500 text-white'
-                      : booking.status === 'VEHICLE_ASSIGNED'
-                      ? 'bg-orange-500 text-white animate-pulse'
-                      : 'bg-gray-200 text-gray-400'
-                  }`}>
-                    {['IN_TRANSIT', 'UNLOADING', 'COMPLETED'].includes(booking.status) ? (
-                      <CheckCircle className="w-4 h-4" />
-                    ) : (
-                      <Package className="w-4 h-4" />
-                    )}
-                  </div>
-                  <div className="flex-1 pt-1">
-                    <p className={`font-medium ${['LOADING', 'IN_TRANSIT', 'UNLOADING', 'COMPLETED'].includes(booking.status) ? 'text-gray-900' : 'text-gray-400'}`}>
-                      Loading
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      {booking.status === 'LOADING'
-                        ? 'Goods being loaded'
-                        : ['IN_TRANSIT', 'UNLOADING', 'COMPLETED'].includes(booking.status)
-                        ? 'Loading completed'
-                        : booking.status === 'VEHICLE_ASSIGNED'
-                        ? `OTP: ${booking.loadingOtp || 'Pending'}`
-                        : 'Waiting for driver'}
-                    </p>
-                  </div>
-                </div>
+                const timelineItems: any[] = [];
+                for (let i = 0; i < steps.length; i++) {
+                  const step = steps[i];
+                  const isAfterDrop = isDropped && i > droppedAfterStep;
+                  timelineItems.push({
+                    ...step,
+                    bgClass: isAfterDrop ? 'bg-gray-200 text-gray-400' : (step.done ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-400'),
+                    textClass: isAfterDrop ? 'text-gray-400' : (step.done ? 'text-gray-900' : 'text-gray-400'),
+                  });
+                  if (isDropped && i === droppedAfterStep) {
+                    timelineItems.push({
+                      label: 'Booking Dropped', desc: (booking as any).dropReason ? `Reason: ${(booking as any).dropReason}` : 'Booking was dropped',
+                      done: false, icon: <XCircle className="w-4 h-4" />,
+                      isDroppedMarker: true, bgClass: 'bg-red-600 text-white', textClass: 'text-red-700',
+                    });
+                  }
+                }
 
-                {/* Step 5: In Transit */}
-                <div className="flex gap-4 relative">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center z-10 shrink-0 ${
-                    ['IN_TRANSIT', 'UNLOADING', 'COMPLETED'].includes(booking.status)
-                      ? booking.status === 'IN_TRANSIT'
-                        ? 'bg-purple-500 text-white animate-pulse'
-                        : 'bg-green-500 text-white'
-                      : 'bg-gray-200 text-gray-400'
-                  }`}>
-                    {['UNLOADING', 'COMPLETED'].includes(booking.status) ? (
-                      <CheckCircle className="w-4 h-4" />
-                    ) : (
-                      <Navigation className="w-4 h-4" />
-                    )}
+                return (
+                  <div className="space-y-6">
+                    {timelineItems.map((item: any, idx: number) => (
+                      <div key={idx} className="flex gap-4 relative">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center z-10 shrink-0 ${item.bgClass}`}>
+                          {item.icon}
+                        </div>
+                        <div className="flex-1 pt-1">
+                          <p className={`font-medium ${item.textClass}`}>{item.label}</p>
+                          <p className={`text-xs ${item.isDroppedMarker ? 'text-red-500' : 'text-gray-500'}`}>{item.desc}</p>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                  <div className="flex-1 pt-1">
-                    <p className={`font-medium ${['IN_TRANSIT', 'UNLOADING', 'COMPLETED'].includes(booking.status) ? 'text-gray-900' : 'text-gray-400'}`}>
-                      In Transit
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      {booking.status === 'IN_TRANSIT'
-                        ? 'Goods on the way'
-                        : ['UNLOADING', 'COMPLETED'].includes(booking.status)
-                        ? 'Transit completed'
-                        : 'Pending'}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Step 6: Delivered */}
-                <div className="flex gap-4 relative">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center z-10 shrink-0 ${
-                    booking.status === 'COMPLETED'
-                      ? 'bg-green-500 text-white'
-                      : booking.status === 'UNLOADING'
-                      ? 'bg-teal-500 text-white animate-pulse'
-                      : 'bg-gray-200 text-gray-400'
-                  }`}>
-                    <CheckCircle className="w-4 h-4" />
-                  </div>
-                  <div className="flex-1 pt-1">
-                    <p className={`font-medium ${booking.status === 'COMPLETED' ? 'text-gray-900' : 'text-gray-400'}`}>
-                      Delivered
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      {booking.status === 'COMPLETED'
-                        ? 'Successfully delivered'
-                        : booking.status === 'UNLOADING'
-                        ? 'Unloading in progress'
-                        : 'Pending delivery'}
-                    </p>
-                  </div>
-                </div>
-              </div>
+                );
+              })()}
             </div>
 
             {/* Cancelled Status */}
@@ -620,6 +554,19 @@ export default function VendorTruckBookingDetailPage() {
                   <AlertCircle className="w-5 h-5" />
                   <span className="font-medium">Booking Cancelled</span>
                 </div>
+              </div>
+            )}
+
+            {/* Dropped Status */}
+            {booking.status === 'DROPPED' && (
+              <div className="mt-6 p-4 bg-red-50 rounded-lg border border-red-200">
+                <div className="flex items-center gap-2 text-red-700">
+                  <XCircle className="w-5 h-5" />
+                  <span className="font-medium">Booking Dropped</span>
+                </div>
+                {(booking as any).dropReason && (
+                  <p className="text-sm text-red-600 mt-2">Reason: {(booking as any).dropReason}</p>
+                )}
               </div>
             )}
           </div>

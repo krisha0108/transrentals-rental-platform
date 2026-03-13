@@ -38,6 +38,7 @@ const STATUS_CONFIG = {
   IN_PROGRESS: { label: 'Trip In Progress', color: '#F59E0B', icon: 'navigate-circle-outline' },
   COMPLETED: { label: 'Completed', color: '#10B981', icon: 'checkmark-done-circle-outline' },
   CANCELLED: { label: 'Cancelled', color: '#EF4444', icon: 'close-circle-outline' },
+  DROPPED: { label: 'Dropped', color: '#EF4444', icon: 'arrow-down-circle-outline' },
 };
 
 export default function EquipmentBookingDetailScreen() {
@@ -344,6 +345,17 @@ export default function EquipmentBookingDetailScreen() {
               <Text style={styles.verificationFooterText}>
                 Our team is verifying your payment details
               </Text>
+            </View>
+          </View>
+        )}
+
+        {/* Drop Reason Banner */}
+        {booking.status === 'DROPPED' && booking.dropReason && (
+          <View style={{ backgroundColor: '#FEE2E2', padding: 16, borderRadius: 12, marginBottom: 12, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+            <Ionicons name="information-circle" size={22} color="#EF4444" />
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 14, fontWeight: '700', color: '#991B1B', marginBottom: 2 }}>Booking Dropped</Text>
+              <Text style={{ fontSize: 12, color: '#B91C1C', lineHeight: 18 }}>{booking.dropReason}</Text>
             </View>
           </View>
         )}

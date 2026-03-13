@@ -92,6 +92,8 @@ export async function GET(
         review: booking.review,
         cancelledAt: booking.cancelledAt,
         cancellationReason: booking.cancellationReason,
+        droppedAt: booking.droppedAt,
+        dropReason: booking.dropReason,
         createdAt: booking.createdAt,
         location: booking.locations,
       },

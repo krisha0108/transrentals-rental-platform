@@ -83,6 +83,7 @@ const getStatusConfig = (status: string) => {
     IN_PROGRESS: { label: 'In Progress', bg: 'bg-purple-100', text: 'text-purple-700' },
     COMPLETED: { label: 'Completed', bg: 'bg-gray-100', text: 'text-gray-700' },
     CANCELLED: { label: 'Cancelled', bg: 'bg-red-100', text: 'text-red-700' },
+    DROPPED: { label: 'Dropped', bg: 'bg-red-100', text: 'text-red-700' },
     EXPIRED: { label: 'Expired', bg: 'bg-gray-100', text: 'text-gray-500' },
   };
   return configs[status] || { label: status, bg: 'bg-gray-100', text: 'text-gray-700' };
@@ -329,6 +330,24 @@ export default function VendorBookingDetailPage() {
           {statusConfig.label}
         </span>
       </div>
+
+      {/* Dropped Banner */}
+      {booking.status === 'DROPPED' && (
+        <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-start gap-3">
+          <XCircle className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" />
+          <div>
+            <p className="font-semibold text-red-800">This booking has been dropped</p>
+            {(booking as any).dropReason && (
+              <p className="text-sm text-red-600 mt-1">Reason: {(booking as any).dropReason}</p>
+            )}
+            {(booking as any).droppedAt && (
+              <p className="text-xs text-red-500 mt-1">
+                Dropped on: {new Date((booking as any).droppedAt).toLocaleString('en-IN')}
+              </p>
+            )}
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main Content */}

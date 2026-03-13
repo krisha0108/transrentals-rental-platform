@@ -115,6 +115,8 @@ export async function GET(
         acceptedAt: booking.acceptedAt?.toISOString(),
         createdAt: booking.createdAt.toISOString(),
         updatedAt: booking.updatedAt.toISOString(),
+        droppedAt: booking.droppedAt?.toISOString(),
+        dropReason: booking.dropReason,
         // Additional flags for UI
         // PAYMENT_VERIFIED: only the assigned vendor can accept (quote-based booking)
         // BROADCASTED / PENDING_VENDOR: any vendor with approved location or notification can accept

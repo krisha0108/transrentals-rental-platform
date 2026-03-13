@@ -193,6 +193,7 @@ const BikeBookingDetailScreen = () => {
         return '#27ae60';
       case 'CANCELLED':
       case 'REJECTED':
+      case 'DROPPED':
         return '#e74c3c';
       case 'EXPIRED':
       case 'REFUNDED':
@@ -225,6 +226,8 @@ const BikeBookingDetailScreen = () => {
       case 'CANCELLED':
       case 'REJECTED':
         return 'close-circle-outline';
+      case 'DROPPED':
+        return 'arrow-down-circle-outline';
       case 'EXPIRED':
       case 'REFUNDED':
         return 'alert-circle-outline';
@@ -263,6 +266,8 @@ const BikeBookingDetailScreen = () => {
         return 'Expired';
       case 'REFUNDED':
         return 'Refunded';
+      case 'DROPPED':
+        return 'Dropped';
       default:
         return status;
     }
@@ -372,6 +377,17 @@ const BikeBookingDetailScreen = () => {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[TEAL]} />
         }
       >
+        {/* ── Drop Reason Banner ─────────────── */}
+        {booking.status === 'DROPPED' && booking.dropReason && (
+          <View style={{ backgroundColor: '#FEE2E2', padding: wp('4%'), borderRadius: wp('3%'), marginBottom: hp('1.5%'), flexDirection: 'row', alignItems: 'center', gap: wp('3%') }}>
+            <Ionicons name="information-circle" size={wp('5.5%')} color="#EF4444" />
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: wp('3.5%'), fontWeight: '700', color: '#991B1B', marginBottom: hp('0.3%') }}>Booking Dropped</Text>
+              <Text style={{ fontSize: wp('3%'), color: '#B91C1C', lineHeight: wp('4.5%') }}>{booking.dropReason}</Text>
+            </View>
+          </View>
+        )}
+
         {/* ── Vehicle Card ──────────────────── */}
         <View style={styles.card}>
           <View style={styles.cardHeader}>

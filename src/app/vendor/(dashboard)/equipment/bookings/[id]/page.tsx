@@ -81,6 +81,7 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; bgColor: str
   RETURNED: { label: 'Returned', color: 'text-purple-700', bgColor: 'bg-purple-100' },
   COMPLETED: { label: 'Completed', color: 'text-gray-700', bgColor: 'bg-gray-100' },
   CANCELLED: { label: 'Cancelled', color: 'text-red-700', bgColor: 'bg-red-100' },
+  DROPPED: { label: 'Dropped', color: 'text-red-700', bgColor: 'bg-red-100' },
 };
 
 const EQUIPMENT_CATEGORIES: Record<string, string> = {
@@ -262,6 +263,24 @@ export default function VendorEquipmentBookingDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* Dropped Banner */}
+      {booking.status === 'DROPPED' && (
+        <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-start gap-3">
+          <XCircle className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" />
+          <div>
+            <p className="font-semibold text-red-800">This booking has been dropped</p>
+            {(booking as any).dropReason && (
+              <p className="text-sm text-red-600 mt-1">Reason: {(booking as any).dropReason}</p>
+            )}
+            {(booking as any).droppedAt && (
+              <p className="text-xs text-red-500 mt-1">
+                Dropped on: {new Date((booking as any).droppedAt).toLocaleString('en-IN')}
+              </p>
+            )}
+          </div>
+        </div>
+      )}
 
       <div className="grid lg:grid-cols-3 gap-6">
         {/* Main Details */}
@@ -521,98 +540,76 @@ export default function VendorEquipmentBookingDetailPage() {
           <div className="bg-white rounded-xl shadow-sm border p-6">
             <h3 className="font-bold text-gray-900 mb-6 border-b pb-4">Rental Progress</h3>
 
-            <div className="space-y-8 relative">
-              <div className="absolute left-4 top-2 bottom-2 w-0.5 bg-gray-100 -z-10" />
+            {(() => {
+              const isDropped = booking.status === 'DROPPED';
+              const paymentDone = booking.advancePaymentVerified || ['ADVANCE_PAID', 'CONFIRMED', 'DELIVERED', 'IN_USE', 'PICKUP_SCHEDULED', 'RETURNED', 'COMPLETED'].includes(booking.status);
+              const operatorDone = !!booking.operatorName;
+              const delivered = ['DELIVERED', 'IN_USE', 'PICKUP_SCHEDULED', 'RETURNED', 'COMPLETED'].includes(booking.status);
+              const inUse = ['IN_USE', 'PICKUP_SCHEDULED', 'RETURNED', 'COMPLETED'].includes(booking.status);
+              const pickupScheduled = ['PICKUP_SCHEDULED', 'RETURNED', 'COMPLETED'].includes(booking.status);
+              const returned = ['RETURNED', 'COMPLETED'].includes(booking.status);
+              const completed = booking.status === 'COMPLETED';
 
-              {/* Step 1: Payment Verified */}
-              <div className="flex gap-4">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center z-10 ${booking.advancePaymentVerified || ['ADVANCE_PAID', 'CONFIRMED', 'DELIVERED', 'IN_USE', 'PICKUP_SCHEDULED', 'RETURNED', 'COMPLETED'].includes(booking.status) ? 'bg-green-600 text-white' : 'bg-gray-200 text-gray-400'}`}>
-                  <CheckCircle className="w-5 h-5" />
-                </div>
-                <div>
-                  <p className={`font-bold ${booking.advancePaymentVerified || ['ADVANCE_PAID', 'CONFIRMED', 'DELIVERED', 'IN_USE', 'PICKUP_SCHEDULED', 'RETURNED', 'COMPLETED'].includes(booking.status) ? 'text-gray-900' : 'text-gray-400'}`}>Payment Verified</p>
-                  <p className="text-xs text-gray-500">Booking confirmed</p>
-                </div>
-              </div>
+              let droppedAfterStep = -1;
+              if (isDropped) {
+                if (returned) droppedAfterStep = 5;
+                else if (pickupScheduled) droppedAfterStep = 4;
+                else if (inUse) droppedAfterStep = 3;
+                else if (delivered) droppedAfterStep = 2;
+                else if (operatorDone) droppedAfterStep = 1;
+                else if (paymentDone) droppedAfterStep = 0;
+              }
 
-              {/* Step 2: Operator Assigned */}
-              <div className="flex gap-4">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center z-10 ${booking.operatorName ? 'bg-green-600 text-white' : 'bg-gray-200 text-gray-400'}`}>
-                  <Users className="w-5 h-5" />
-                </div>
-                <div>
-                  <p className={`font-bold ${booking.operatorName ? 'text-gray-900' : 'text-gray-400'}`}>Operator Assigned</p>
-                  <p className="text-xs text-gray-500">Ready for delivery</p>
-                </div>
-              </div>
+              const steps = [
+                { label: 'Payment Verified', desc: 'Booking confirmed', done: paymentDone, icon: <CheckCircle className="w-5 h-5" />, time: null },
+                { label: 'Operator Assigned', desc: 'Ready for delivery', done: operatorDone, icon: <Users className="w-5 h-5" />, time: null },
+                { label: 'Delivered', desc: 'Equipment delivered', done: delivered, icon: <Wrench className="w-5 h-5" />, time: booking.deliveredAt },
+                { label: 'In Use', desc: 'Equipment in operation', done: inUse, icon: <Package className="w-5 h-5" />, time: booking.useStartedAt },
+                { label: 'Pickup Scheduled', desc: 'Ready for return', done: pickupScheduled, icon: <Navigation className="w-5 h-5" />, time: booking.pickupScheduledAt },
+                { label: 'Returned', desc: 'Equipment returned', done: returned, icon: <CheckCircle className="w-5 h-5" />, time: booking.returnedAt },
+                { label: 'Completed', desc: 'Rental completed', done: completed, icon: <CheckCircle className="w-5 h-5" />, time: null },
+              ];
 
-              {/* Step 3: Delivered */}
-              <div className="flex gap-4">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center z-10 ${['DELIVERED', 'IN_USE', 'PICKUP_SCHEDULED', 'RETURNED', 'COMPLETED'].includes(booking.status) ? 'bg-green-600 text-white' : 'bg-gray-200 text-gray-400'}`}>
-                  <Wrench className="w-5 h-5" />
-                </div>
-                <div>
-                  <p className={`font-bold ${['DELIVERED', 'IN_USE', 'PICKUP_SCHEDULED', 'RETURNED', 'COMPLETED'].includes(booking.status) ? 'text-gray-900' : 'text-gray-400'}`}>Delivered</p>
-                  <p className="text-xs text-gray-500">Equipment delivered</p>
-                  {booking.deliveredAt && (
-                    <p className="text-[10px] text-green-600 font-mono mt-1">{new Date(booking.deliveredAt).toLocaleString('en-IN')}</p>
-                  )}
-                </div>
-              </div>
+              const timelineItems: any[] = [];
+              for (let i = 0; i < steps.length; i++) {
+                const step = steps[i];
+                const isAfterDrop = isDropped && i > droppedAfterStep;
+                timelineItems.push({
+                  ...step,
+                  bgClass: isAfterDrop ? 'bg-gray-200 text-gray-400' : (step.done ? 'bg-green-600 text-white' : 'bg-gray-200 text-gray-400'),
+                  textClass: isAfterDrop ? 'text-gray-400' : (step.done ? 'text-gray-900' : 'text-gray-400'),
+                });
+                if (isDropped && i === droppedAfterStep) {
+                  timelineItems.push({
+                    label: 'Booking Dropped', desc: (booking as any).dropReason ? `Reason: ${(booking as any).dropReason}` : 'Booking was dropped',
+                    done: false, icon: <XCircle className="w-5 h-5" />, time: (booking as any).droppedAt,
+                    isDroppedMarker: true, bgClass: 'bg-red-600 text-white', textClass: 'text-red-700',
+                  });
+                }
+              }
 
-              {/* Step 4: In Use */}
-              <div className="flex gap-4">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center z-10 ${['IN_USE', 'PICKUP_SCHEDULED', 'RETURNED', 'COMPLETED'].includes(booking.status) ? 'bg-green-600 text-white' : 'bg-gray-200 text-gray-400'}`}>
-                  <Package className="w-5 h-5" />
+              return (
+                <div className="space-y-8 relative">
+                  <div className="absolute left-4 top-2 bottom-2 w-0.5 bg-gray-100 -z-10" />
+                  {timelineItems.map((item: any, idx: number) => (
+                    <div key={idx} className="flex gap-4">
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center z-10 ${item.bgClass}`}>
+                        {item.icon}
+                      </div>
+                      <div>
+                        <p className={`font-bold ${item.textClass}`}>{item.label}</p>
+                        <p className={`text-xs ${item.isDroppedMarker ? 'text-red-500' : 'text-gray-500'}`}>{item.desc}</p>
+                        {item.time && (
+                          <p className={`text-[10px] font-mono mt-1 ${item.isDroppedMarker ? 'text-red-500' : 'text-green-600'}`}>
+                            {new Date(item.time).toLocaleString('en-IN')}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
                 </div>
-                <div>
-                  <p className={`font-bold ${['IN_USE', 'PICKUP_SCHEDULED', 'RETURNED', 'COMPLETED'].includes(booking.status) ? 'text-gray-900' : 'text-gray-400'}`}>In Use</p>
-                  <p className="text-xs text-gray-500">Equipment in operation</p>
-                  {booking.useStartedAt && (
-                    <p className="text-[10px] text-green-600 font-mono mt-1">{new Date(booking.useStartedAt).toLocaleString('en-IN')}</p>
-                  )}
-                </div>
-              </div>
-
-              {/* Step 5: Pickup Scheduled */}
-              <div className="flex gap-4">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center z-10 ${['PICKUP_SCHEDULED', 'RETURNED', 'COMPLETED'].includes(booking.status) ? 'bg-green-600 text-white' : 'bg-gray-200 text-gray-400'}`}>
-                  <Navigation className="w-5 h-5" />
-                </div>
-                <div>
-                  <p className={`font-bold ${['PICKUP_SCHEDULED', 'RETURNED', 'COMPLETED'].includes(booking.status) ? 'text-gray-900' : 'text-gray-400'}`}>Pickup Scheduled</p>
-                  <p className="text-xs text-gray-500">Ready for return</p>
-                  {booking.pickupScheduledAt && (
-                    <p className="text-[10px] text-green-600 font-mono mt-1">{new Date(booking.pickupScheduledAt).toLocaleString('en-IN')}</p>
-                  )}
-                </div>
-              </div>
-
-              {/* Step 6: Returned */}
-              <div className="flex gap-4">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center z-10 ${['RETURNED', 'COMPLETED'].includes(booking.status) ? 'bg-green-600 text-white' : 'bg-gray-200 text-gray-400'}`}>
-                  <CheckCircle className="w-5 h-5" />
-                </div>
-                <div>
-                  <p className={`font-bold ${['RETURNED', 'COMPLETED'].includes(booking.status) ? 'text-gray-900' : 'text-gray-400'}`}>Returned</p>
-                  <p className="text-xs text-gray-500">Equipment returned</p>
-                  {booking.returnedAt && (
-                    <p className="text-[10px] text-green-600 font-mono mt-1">{new Date(booking.returnedAt).toLocaleString('en-IN')}</p>
-                  )}
-                </div>
-              </div>
-
-              {/* Step 7: Completed */}
-              <div className="flex gap-4">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center z-10 ${booking.status === 'COMPLETED' ? 'bg-green-600 text-white' : 'bg-gray-200 text-gray-400'}`}>
-                  <CheckCircle className="w-5 h-5" />
-                </div>
-                <div>
-                  <p className={`font-bold ${booking.status === 'COMPLETED' ? 'text-gray-900' : 'text-gray-400'}`}>Completed</p>
-                  <p className="text-xs text-gray-500">Rental completed</p>
-                </div>
-              </div>
-            </div>
+              );
+            })()}
 
             {/* OTP Display */}
             {(booking.deliveryOtp || booking.returnOtp) && (

@@ -87,6 +87,8 @@ export async function GET(
       quoteRequest: booking.bus_quote_requests,
       createdAt: booking.createdAt,
       updatedAt: booking.updatedAt,
+      droppedAt: booking.droppedAt,
+      dropReason: booking.dropReason,
     };
 
     return NextResponse.json({ success: true, booking: response });

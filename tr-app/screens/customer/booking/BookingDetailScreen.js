@@ -190,6 +190,7 @@ const BookingDetails = () => {
             vehicleModel: carBooking.vehicleModel,
             created_at: carBooking.createdAt,
             updated_at: carBooking.updatedAt,
+            dropReason: carBooking.dropReason,
           });
           setQuotations([]);
           setAssignedVehicle(carBooking.vehicleModel || carBooking.carCategoryName);
@@ -565,6 +566,7 @@ const BookingDetails = () => {
     if (upperStatus === 'IN_PROGRESS') return 'Trip Started';
     if (upperStatus === 'COMPLETED') return 'Completed';
     if (upperStatus === 'CANCELLED') return 'Cancelled';
+    if (upperStatus === 'DROPPED') return 'Dropped';
     return status || 'Pending';
   };
 
@@ -596,6 +598,11 @@ const BookingDetails = () => {
                 {booking?.service_name || 'Service'}
                 {bookingType === 'car' ? ` \u00B7 ${getFriendlyStatus(booking?.status, booking?.payment_status)}` : ` \u00B7 ${sortedQuotations.length} quotes`}
               </Text>
+              {booking?.booking_id && (
+                <Text style={{ fontSize: wp('2.8%'), color: 'rgba(255,255,255,0.75)', marginTop: hp('0.3%'), fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace' }}>
+                  ID: {booking.booking_id}
+                </Text>
+              )}
             </View>
 
             <View style={{ flexDirection: 'row', gap: wp('2%') }}>
@@ -674,6 +681,17 @@ const BookingDetails = () => {
             </View>
           </View>
         </LinearGradient>
+
+        {/* Drop Reason Banner */}
+        {booking?.status === 'DROPPED' && booking?.dropReason && (
+          <View style={{ backgroundColor: '#FEE2E2', padding: wp('4%'), borderRadius: wp('3%'), margin: wp('4%'), marginBottom: 0, flexDirection: 'row', alignItems: 'center', gap: wp('3%') }}>
+            <Ionicons name="information-circle" size={wp('5.5%')} color="#EF4444" />
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: wp('3.5%'), fontWeight: '700', color: '#991B1B', marginBottom: hp('0.3%') }}>Booking Dropped</Text>
+              <Text style={{ fontSize: wp('3%'), color: '#B91C1C', lineHeight: wp('4.5%') }}>{booking.dropReason}</Text>
+            </View>
+          </View>
+        )}
 
         {/* Assigned vehicle & driver (only for ongoing) */}
         {booking?.status === 'Ongoing' && (assignedVehicle || assignedDriver) && (
@@ -1043,41 +1061,69 @@ const BookingDetails = () => {
                 {/* 4. Timeline View */}
                 <View style={redesignStyles.timelineCard}>
                   <Text style={redesignStyles.timelineTitle}>Trip Progress</Text>
-                  <View style={redesignStyles.timeline}>
-                    <View style={redesignStyles.timelineItem}>
-                      <View style={[redesignStyles.timelineDot, { backgroundColor: '#059669' }]}>
-                        <Ionicons name="checkmark" size={wp('2.5%')} color="#FFF" />
+                  {(() => {
+                    const isDropped = booking?.status?.toUpperCase() === 'DROPPED';
+                    const paymentDone = ['PAID', 'PARTIAL', 'SUBMITTED'].includes(booking?.payment_status);
+                    const vendorDone = !!booking?.acceptedVendorId;
+                    const driverDone = !!booking?.driverName;
+
+                    let droppedAfterStep = 0;
+                    if (driverDone) droppedAfterStep = 3;
+                    else if (vendorDone) droppedAfterStep = 2;
+                    else if (paymentDone) droppedAfterStep = 1;
+
+                    const steps = [
+                      { label: 'Booking Received', done: true },
+                      { label: 'Payment Verified', done: paymentDone },
+                      { label: 'Vendor Confirmed', done: vendorDone },
+                      { label: 'Driver Assigned', done: driverDone },
+                    ];
+
+                    const timelineItems = [];
+                    for (let i = 0; i < steps.length; i++) {
+                      const step = steps[i];
+                      const isAfterDrop = isDropped && i > droppedAfterStep;
+                      timelineItems.push({
+                        label: step.label,
+                        dotColor: isAfterDrop ? '#D1D5DB' : (step.done ? '#059669' : '#E2E8F0'),
+                        textColor: isAfterDrop ? '#9CA3AF' : '#475569',
+                        showCheck: step.done && !isAfterDrop,
+                        hasLine: true,
+                      });
+                      if (isDropped && i === droppedAfterStep) {
+                        timelineItems.push({
+                          label: 'Booking Dropped',
+                          subLabel: booking?.dropReason || null,
+                          dotColor: '#DC2626',
+                          textColor: '#DC2626',
+                          showCheck: false,
+                          isDroppedMarker: true,
+                          hasLine: true,
+                        });
+                      }
+                    }
+                    if (timelineItems.length > 0) {
+                      timelineItems[timelineItems.length - 1].hasLine = false;
+                    }
+
+                    return (
+                      <View style={redesignStyles.timeline}>
+                        {timelineItems.map((item, idx) => (
+                          <View key={idx} style={redesignStyles.timelineItem}>
+                            <View style={[redesignStyles.timelineDot, { backgroundColor: item.dotColor }]}>
+                              {item.showCheck && <Ionicons name="checkmark" size={wp('2.5%')} color="#FFF" />}
+                              {item.isDroppedMarker && <Ionicons name="close" size={wp('2.5%')} color="#FFF" />}
+                            </View>
+                            {item.hasLine && <View style={redesignStyles.timelineLine} />}
+                            <View style={{ flex: 1 }}>
+                              <Text style={[redesignStyles.timelineText, { color: item.textColor }, item.isDroppedMarker && { fontWeight: '700', fontSize: 14 }]}>{item.label}</Text>
+                              {item.subLabel ? <Text style={{ fontSize: 11, color: '#6B7280', marginTop: 2 }}>Reason: {item.subLabel}</Text> : null}
+                            </View>
+                          </View>
+                        ))}
                       </View>
-                      <View style={redesignStyles.timelineLine} />
-                      <Text style={redesignStyles.timelineText}>Booking Received</Text>
-                    </View>
-                    <View style={redesignStyles.timelineItem}>
-                      <View style={[redesignStyles.timelineDot, (booking?.payment_status === 'PAID' || booking?.payment_status === 'PARTIAL') ? { backgroundColor: '#059669' } : {}]}>
-                        {(booking?.payment_status === 'PAID' || booking?.payment_status === 'PARTIAL') && (
-                          <Ionicons name="checkmark" size={wp('2.5%')} color="#FFF" />
-                        )}
-                      </View>
-                      <View style={redesignStyles.timelineLine} />
-                      <Text style={redesignStyles.timelineText}>Payment Verified</Text>
-                    </View>
-                    <View style={redesignStyles.timelineItem}>
-                      <View style={[redesignStyles.timelineDot, booking?.acceptedVendorId ? { backgroundColor: '#059669' } : {}]}>
-                        {booking?.acceptedVendorId && (
-                          <Ionicons name="checkmark" size={wp('2.5%')} color="#FFF" />
-                        )}
-                      </View>
-                      <View style={redesignStyles.timelineLine} />
-                      <Text style={redesignStyles.timelineText}>Vendor Confirmed</Text>
-                    </View>
-                    <View style={redesignStyles.timelineItem}>
-                      <View style={[redesignStyles.timelineDot, booking?.driverName ? { backgroundColor: '#059669' } : {}]}>
-                        {booking?.driverName && (
-                          <Ionicons name="checkmark" size={wp('2.5%')} color="#FFF" />
-                        )}
-                      </View>
-                      <Text style={redesignStyles.timelineText}>Driver Assigned</Text>
-                    </View>
-                  </View>
+                    );
+                  })()}
                 </View>
               </View>
             )}

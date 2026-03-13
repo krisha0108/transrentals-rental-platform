@@ -277,6 +277,8 @@ export async function GET(request: NextRequest) {
         tripEndOtp: b.tripEndOtp,
         location: b.locations,
         createdAt: b.createdAt,
+        droppedAt: b.droppedAt,
+        dropReason: b.dropReason,
       })));
     }
 

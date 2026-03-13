@@ -9,6 +9,7 @@ import { sendNotificationToCustomer } from '@/lib/services/push-notification-ser
 
 import logger from '@/lib/security/logger';
 import { sendVendorDirectNotification } from '@/lib/utils/vendor-notification-sender';
+import { canStartTrip } from '@/lib/utils/booking-date-guard';
 export const dynamic = 'force-dynamic';
 
 // POST - Vendor starts Bus Booking trip (with OTP verification)
@@ -55,6 +56,15 @@ export async function POST(
     if (booking.status !== 'VEHICLE_ASSIGNED') {
       return NextResponse.json(
         { error: 'Trip can only be started when vehicle is assigned' },
+        { status: 400 }
+      );
+    }
+
+    // Block trip start before pickup date/time
+    const startCheck = canStartTrip(booking.pickupDate, booking.pickupTime);
+    if (!startCheck.allowed) {
+      return NextResponse.json(
+        { error: startCheck.message },
         { status: 400 }
       );
     }

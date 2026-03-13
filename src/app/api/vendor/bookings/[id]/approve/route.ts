@@ -7,6 +7,7 @@ import { prisma } from '@/lib/db/prisma';
 import { transformPrismaResponse } from '@/lib/utils/api-transform';
 
 import logger from '@/lib/security/logger';
+import { canStartTrip, canCompleteTrip } from '@/lib/utils/booking-date-guard';
 export const dynamic = 'force-dynamic';
 
 // POST - Vendor approves/rejects booking or verifies payment
@@ -111,6 +112,13 @@ export async function POST(
             { status: 400 }
           );
         }
+        // Block trip start before pickup date/time
+        {
+          const startCheck = canStartTrip(booking.pickupDate, booking.pickupTime);
+          if (!startCheck.allowed) {
+            return NextResponse.json({ error: startCheck.message }, { status: 400 });
+          }
+        }
         updateData = {
           status: 'IN_PROGRESS',
           tripStartedAt: new Date(),
@@ -125,6 +133,13 @@ export async function POST(
             { error: 'Cannot complete a trip that is not in progress' },
             { status: 400 }
           );
+        }
+        // Block completion before drop date/time
+        {
+          const completeCheck = canCompleteTrip(booking.dropDate, booking.dropTime);
+          if (!completeCheck.allowed) {
+            return NextResponse.json({ error: completeCheck.message }, { status: 400 });
+          }
         }
         updateData = {
           status: 'COMPLETED',
