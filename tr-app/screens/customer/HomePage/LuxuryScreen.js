@@ -81,11 +81,13 @@ export default function LuxuryScreen() {
   // data
   const [customerData, setCustomerData] = useState(null);
   const [allLocations, setAllLocations] = useState([]);
+  const [serviceLocationIds, setServiceLocationIds] = useState(new Set());
   const [query, setQuery] = useState('');
   const [pickupLocation, setPickupLocation] = useState('');
   const [pickupLocationId, setPickupLocationId] = useState(null);
   const [destination, setDestination] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [locationNotServed, setLocationNotServed] = useState(false);
 
   // booking selections (keep slugs in UI)
   const [selectedLuxuryType, setSelectedLuxuryType] = useState('wedding'); // slug
@@ -134,9 +136,15 @@ export default function LuxuryScreen() {
 
   const fetchLocations = async () => {
     try {
-      const response = await locationService.getLocations();
-      if (response.success && response.locations) {
-        setAllLocations(response.locations);
+      const [allRes, serviceRes] = await Promise.all([
+        locationService.getLocations(),
+        locationService.getLocations('CITY', false, 'luxury-car-rental'),
+      ]);
+      if (allRes?.success && allRes.locations) {
+        setAllLocations(allRes.locations);
+      }
+      if (serviceRes?.success && serviceRes.locations) {
+        setServiceLocationIds(new Set(serviceRes.locations.map(l => l.id)));
       }
     } catch (err) {
       console.log('location error', err?.response?.data || err);
@@ -162,6 +170,7 @@ export default function LuxuryScreen() {
     setPickupLocation(loc.name);
     setPickupLocationId(loc.id);
     setQuery('');
+    setLocationNotServed(serviceLocationIds.size > 0 && !serviceLocationIds.has(loc.id));
     setShowSuggestions(false);
   };
 
@@ -499,6 +508,14 @@ export default function LuxuryScreen() {
                     <Text style={styles.noResult}>No location found</Text>
                   )}
                 </ScrollView>
+              </View>
+            )}
+
+            {/* Location not served message */}
+            {locationNotServed && (
+              <View style={styles.notServedBanner}>
+                <Ionicons name="information-circle" size={wp('4.5%')} color="#D97706" />
+                <Text style={styles.notServedText}>We are not currently providing our services in this location.</Text>
               </View>
             )}
 
@@ -1036,8 +1053,8 @@ const styles = StyleSheet.create({
   suggestionItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: wp('3%'),
-    paddingVertical: hp('1.1%'),
+    paddingHorizontal: wp('4%'),
+    paddingVertical: hp('1.8%'),
     borderBottomWidth: 0.5,
     borderColor: '#F3F4F6',
   },
@@ -1488,5 +1505,23 @@ const styles = StyleSheet.create({
     fontSize: wp('3.3%'),
     lineHeight: wp('5%'),
     marginBottom: hp('2.5%'),
+  },
+  notServedBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#FFFBEB',
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+    borderRadius: 12,
+    padding: wp('3%'),
+    marginTop: hp('1%'),
+  },
+  notServedText: {
+    flex: 1,
+    fontSize: wp('3.2%'),
+    color: '#92400E',
+    fontWeight: '500',
+    lineHeight: wp('4.5%'),
   },
 });

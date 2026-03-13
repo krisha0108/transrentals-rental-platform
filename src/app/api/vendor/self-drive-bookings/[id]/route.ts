@@ -99,6 +99,8 @@ export async function GET(
         paymentStatus: booking.paymentStatus,
         responseDeadline: booking.responseDeadline,
         createdAt: booking.createdAt,
+        droppedAt: booking.droppedAt,
+        dropReason: booking.dropReason,
         acceptedAt: booking.acceptedAt,
         pickedUpAt: booking.pickedUpAt,
         returnedAt: booking.returnedAt,

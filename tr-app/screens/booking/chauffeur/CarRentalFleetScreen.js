@@ -83,6 +83,7 @@ export default function CarRentalFleetScreen({ navigation, route }) {
 
   // Locations
   const [allLocations, setAllLocations] = useState([]);
+  const [serviceLocationIds, setServiceLocationIds] = useState(new Set());
   const [airports, setAirports] = useState([]);
   const [fromLocation, setFromLocation] = useState(null);
   const [toLocation, setToLocation] = useState(null);
@@ -90,6 +91,7 @@ export default function CarRentalFleetScreen({ navigation, route }) {
   const [toQuery, setToQuery] = useState('');
   const [showFromSuggestions, setShowFromSuggestions] = useState(false);
   const [showToSuggestions, setShowToSuggestions] = useState(false);
+  const [locationNotServed, setLocationNotServed] = useState(false);
 
   // Local packages
   const [localPackages, setLocalPackages] = useState([]);
@@ -180,9 +182,10 @@ export default function CarRentalFleetScreen({ navigation, route }) {
 
   const loadInitialData = async () => {
     try {
-      const [customerData, locationsRes, categoriesRes, bankDetailsRes] = await Promise.all([
+      const [customerData, allLocsRes, serviceLocsRes, categoriesRes, bankDetailsRes] = await Promise.all([
         AsyncStorage.getItem('customer'),
         locationService.getLocations('CITY', true),
+        locationService.getLocations('CITY', true, 'car-rental-with-driver'),
         bookingService.getChauffeurVehicleCategories(),
         fetch(`${BASE_URL}/api/payment-details?service=car-rental`).then(r => r.json()),
       ]);
@@ -195,10 +198,13 @@ export default function CarRentalFleetScreen({ navigation, route }) {
         }
       }
 
-      if (locationsRes.success) {
-        const locs = locationsRes.locations || [];
+      if (allLocsRes.success) {
+        const locs = allLocsRes.locations || [];
         setAllLocations(locs);
         setAirports(locs.filter(l => l.type === 'AIRPORT' || l.isAirport));
+      }
+      if (serviceLocsRes.success && serviceLocsRes.locations) {
+        setServiceLocationIds(new Set(serviceLocsRes.locations.map(l => l.id)));
       }
 
       if (categoriesRes.success) {
@@ -287,6 +293,7 @@ export default function CarRentalFleetScreen({ navigation, route }) {
       setFromLocation(loc);
       setFromQuery('');
       setShowFromSuggestions(false);
+      setLocationNotServed(serviceLocationIds.size > 0 && !serviceLocationIds.has(loc.id));
     } else {
       setToLocation(loc);
       setToQuery('');
@@ -953,6 +960,12 @@ export default function CarRentalFleetScreen({ navigation, route }) {
       {/* Location Inputs */}
       <View style={styles.locationsSection}>
         {renderLocationInput('from')}
+        {locationNotServed && (
+          <View style={styles.notServedBanner}>
+            <Ionicons name="information-circle" size={wp('4.5%')} color="#D97706" />
+            <Text style={styles.notServedText}>We are not currently providing our services in this location.</Text>
+          </View>
+        )}
         {tripType !== 'local' && renderLocationInput('to')}
       </View>
 
@@ -1929,8 +1942,8 @@ const styles = StyleSheet.create({
   suggestionItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: wp('3.5%'),
-    paddingVertical: hp('1.5%'),
+    paddingHorizontal: wp('4%'),
+    paddingVertical: hp('1.8%'),
     borderBottomWidth: 1,
     borderBottomColor: DIVIDER,
     gap: wp('2.5%'),
@@ -2862,5 +2875,23 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: '700',
     fontSize: wp('3.8%'),
+  },
+  notServedBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#FFFBEB',
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+    borderRadius: 12,
+    padding: wp('3%'),
+    marginTop: hp('1%'),
+  },
+  notServedText: {
+    flex: 1,
+    fontSize: wp('3.2%'),
+    color: '#92400E',
+    fontWeight: '500',
+    lineHeight: wp('4.5%'),
   },
 });

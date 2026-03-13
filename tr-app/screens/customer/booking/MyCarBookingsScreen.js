@@ -104,7 +104,8 @@ export default function MyCarBookingsScreen() {
       case 'CONFIRMED': return TEAL;
       case 'COMPLETED': return '#27ae60';
       case 'CANCELLED':
-      case 'EXPIRED': return '#e74c3c';
+      case 'EXPIRED':
+      case 'DROPPED': return '#e74c3c';
       case 'PENDING_PAYMENT': return '#f39c12';
       case 'IN_PROGRESS': return '#2980b9';
       default: return '#666';
@@ -122,6 +123,7 @@ export default function MyCarBookingsScreen() {
       case 'COMPLETED': return 'Completed';
       case 'CANCELLED': return 'Cancelled';
       case 'EXPIRED': return 'Expired';
+      case 'DROPPED': return 'Dropped';
       default: return status;
     }
   };

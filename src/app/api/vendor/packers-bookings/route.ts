@@ -115,6 +115,8 @@ export async function GET(request: NextRequest) {
         deliveryOtp: b.deliveryOtp,
         quoteRequest: b.packers_quote_requests,
         createdAt: b.createdAt,
+        droppedAt: b.droppedAt,
+        dropReason: b.dropReason,
       })),
       pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
     });

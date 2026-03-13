@@ -44,8 +44,10 @@ export default function SelfDriveScreen() {
 
   // Location data
   const [allLocations, setAllLocations] = useState([]);
+  const [serviceLocationIds, setServiceLocationIds] = useState(new Set());
   const [query, setQuery] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [locationNotServed, setLocationNotServed] = useState(false);
 
   // Form state
   const [pickupLocation, setPickupLocation] = useState('');
@@ -89,9 +91,15 @@ export default function SelfDriveScreen() {
 
   const fetchLocations = async () => {
     try {
-      const response = await locationService.getLocations();
-      if (response.success && response.locations) {
-        setAllLocations(response.locations);
+      const [allRes, serviceRes] = await Promise.all([
+        locationService.getLocations(),
+        locationService.getLocations('CITY', false, 'self-drive-car-rental'),
+      ]);
+      if (allRes?.success && allRes.locations) {
+        setAllLocations(allRes.locations);
+      }
+      if (serviceRes?.success && serviceRes.locations) {
+        setServiceLocationIds(new Set(serviceRes.locations.map(l => l.id)));
       }
     } catch (error) {
       console.log('Error fetching locations:', error?.response?.data || error);
@@ -118,6 +126,7 @@ export default function SelfDriveScreen() {
     setPickupLocationId(loc.id);
     setQuery('');
     setShowSuggestions(false);
+    setLocationNotServed(serviceLocationIds.size > 0 && !serviceLocationIds.has(loc.id));
   };
 
   // Calculate days
@@ -327,6 +336,14 @@ export default function SelfDriveScreen() {
               </View>
             )}
           </View>
+
+          {/* Location not served message */}
+          {locationNotServed && (
+            <View style={styles.notServedBanner}>
+              <Ionicons name="information-circle" size={wp('4.5%')} color="#D97706" />
+              <Text style={styles.notServedText}>We are not currently providing our services in this location.</Text>
+            </View>
+          )}
 
           {/* Date Selection */}
           <View style={styles.dateRow}>
@@ -755,8 +772,8 @@ const styles = StyleSheet.create({
   suggestionItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: wp('3%'),
-    paddingVertical: hp('1.1%'),
+    paddingHorizontal: wp('4%'),
+    paddingVertical: hp('1.8%'),
     borderBottomWidth: 0.5,
     borderColor: '#F0F4F3',
   },
@@ -1130,5 +1147,23 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.15)',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  notServedBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#FFFBEB',
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+    borderRadius: 12,
+    padding: wp('3%'),
+    marginTop: hp('1%'),
+  },
+  notServedText: {
+    flex: 1,
+    fontSize: wp('3.2%'),
+    color: '#92400E',
+    fontWeight: '500',
+    lineHeight: wp('4.5%'),
   },
 });

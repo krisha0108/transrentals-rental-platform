@@ -134,6 +134,8 @@ export async function GET(request: NextRequest) {
           returnOtp: b.returnOtp,
           quoteRequest: b.equipment_quote_requests,
           createdAt: b.createdAt,
+          droppedAt: b.droppedAt,
+          dropReason: b.dropReason,
         };
       }),
       pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },

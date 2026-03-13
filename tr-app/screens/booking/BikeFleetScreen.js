@@ -81,8 +81,10 @@ const BikeFleetScreen = () => {
   const [locationQuery, setLocationQuery] = useState(passedLocation?.name || '');
   const [selectedLocation, setSelectedLocation] = useState(passedLocation);
   const [allLocations, setAllLocations] = useState([]);
+  const [serviceLocationIds, setServiceLocationIds] = useState(new Set());
   const [filteredLocations, setFilteredLocations] = useState([]);
   const [showLocationDropdown, setShowLocationDropdown] = useState(false);
+  const [locationNotServed, setLocationNotServed] = useState(false);
 
   // State for dates - Use passed dates if available, otherwise default
   const [pickupDate, setPickupDate] = useState(() => {
@@ -163,9 +165,15 @@ const BikeFleetScreen = () => {
 
   const fetchLocations = async () => {
     try {
-      const response = await locationService.getLocations();
-      if (response?.locations) {
-        setAllLocations(response.locations);
+      const [allRes, serviceRes] = await Promise.all([
+        locationService.getLocations(),
+        locationService.getLocations('CITY', false, 'bike-on-rent'),
+      ]);
+      if (allRes?.locations) {
+        setAllLocations(allRes.locations);
+      }
+      if (serviceRes?.locations) {
+        setServiceLocationIds(new Set(serviceRes.locations.map(l => l.id)));
       }
     } catch (err) {
       console.log('Error fetching locations:', err);
@@ -192,6 +200,11 @@ const BikeFleetScreen = () => {
     setSelectedLocation(location);
     setLocationQuery(location.name);
     setShowLocationDropdown(false);
+    if (serviceLocationIds.size > 0 && !serviceLocationIds.has(location.id)) {
+      setLocationNotServed(true);
+    } else {
+      setLocationNotServed(false);
+    }
   };
 
   const openPickupDatePicker = () => {
@@ -1029,6 +1042,14 @@ const BikeFleetScreen = () => {
           </View>
         )}
 
+        {/* Location not served message */}
+        {locationNotServed && (
+          <View style={styles.notServedBanner}>
+            <Ionicons name="information-circle" size={wp('4.5%')} color="#D97706" />
+            <Text style={styles.notServedText}>We are not currently providing our services in this location.</Text>
+          </View>
+        )}
+
         {/* Date Selection */}
         <View style={styles.dateRow}>
           <TouchableOpacity style={styles.dateBox} onPress={openPickupDatePicker}>
@@ -1292,7 +1313,8 @@ const styles = StyleSheet.create({
   dropdownItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: wp('3.5%'),
+    paddingHorizontal: wp('4%'),
+    paddingVertical: hp('1.8%'),
     borderBottomWidth: 1,
     borderBottomColor: DIVIDER,
     gap: wp('2.5%'),
@@ -2089,6 +2111,24 @@ const styles = StyleSheet.create({
   },
   disabledBtn: {
     opacity: 0.6,
+  },
+  notServedBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#FFFBEB',
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+    borderRadius: 12,
+    padding: wp('3%'),
+    marginBottom: hp('1%'),
+  },
+  notServedText: {
+    flex: 1,
+    fontSize: wp('3.2%'),
+    color: '#92400E',
+    fontWeight: '500',
+    lineHeight: wp('4.5%'),
   },
 });
 

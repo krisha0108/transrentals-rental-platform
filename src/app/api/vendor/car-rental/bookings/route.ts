@@ -230,6 +230,8 @@ export async function GET(request: NextRequest) {
         vendorNotes: b.vendorNotes,
         acceptedVendorId: b.acceptedVendorId,
         isOwnBooking: b.acceptedVendorId === vendorId,
+        droppedAt: b.droppedAt,
+        dropReason: b.dropReason,
         location: b.locations,
         createdAt: b.createdAt,
         updatedAt: b.updatedAt,

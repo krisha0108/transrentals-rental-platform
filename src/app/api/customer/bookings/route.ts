@@ -16,7 +16,7 @@ const bikeCarStatusMappings: Record<string, string[]> = {
   Confirmed: ['PENDING_PAYMENT', 'PAYMENT_VERIFIED', 'PENDING_VENDOR', 'BROADCASTED', 'ACCEPTED'],
   Ongoing: ['IN_PROGRESS', 'READY_FOR_PICKUP'],
   Completed: ['COMPLETED'],
-  Dropped: ['CANCELLED', 'EXPIRED', 'REFUNDED'],
+  Dropped: ['CANCELLED', 'EXPIRED', 'REFUNDED', 'DROPPED'],
 };
 
 const chauffeurStatusMappings: Record<string, string[]> = {
@@ -24,7 +24,7 @@ const chauffeurStatusMappings: Record<string, string[]> = {
   Confirmed: ['PENDING_PAYMENT', 'PENDING_VENDOR', 'BROADCASTED', 'ACCEPTED', 'DRIVER_ASSIGNED'],
   Ongoing: ['IN_PROGRESS'],
   Completed: ['COMPLETED'],
-  Dropped: ['CANCELLED', 'EXPIRED', 'REFUNDED'],
+  Dropped: ['CANCELLED', 'EXPIRED', 'REFUNDED', 'DROPPED'],
 };
 
 // Bike quote request status mappings
@@ -33,7 +33,7 @@ const bikeQuoteRequestStatusMappings: Record<string, string[]> = {
   Confirmed: ['QUOTE_ACCEPTED', 'BOOKING_CONFIRMED'],
   Ongoing: [],
   Completed: [],
-  Dropped: ['CANCELLED', 'EXPIRED'],
+  Dropped: ['CANCELLED', 'EXPIRED', 'DROPPED'],
 };
 
 // Bus booking status mappings
@@ -42,7 +42,7 @@ const busBookingStatusMappings: Record<string, string[]> = {
   Confirmed: ['PENDING_PAYMENT', 'PAYMENT_SUBMITTED', 'ADVANCE_PAID', 'CONFIRMED', 'VEHICLE_ASSIGNED'],
   Ongoing: ['IN_PROGRESS'],
   Completed: ['COMPLETED'],
-  Dropped: ['CANCELLED'],
+  Dropped: ['CANCELLED', 'DROPPED'],
 };
 
 // Bus quote request status mappings
@@ -51,7 +51,7 @@ const busQuoteRequestStatusMappings: Record<string, string[]> = {
   Confirmed: ['QUOTE_ACCEPTED', 'BOOKING_CONFIRMED'],
   Ongoing: [],
   Completed: [],
-  Dropped: ['CANCELLED', 'EXPIRED'],
+  Dropped: ['CANCELLED', 'EXPIRED', 'DROPPED'],
 };
 
 // Truck booking status mappings
@@ -60,7 +60,7 @@ const truckBookingStatusMappings: Record<string, string[]> = {
   Confirmed: ['PENDING_PAYMENT', 'PAYMENT_SUBMITTED', 'ADVANCE_PAID', 'CONFIRMED', 'VEHICLE_ASSIGNED'],
   Ongoing: ['LOADING', 'IN_TRANSIT', 'UNLOADING'],
   Completed: ['COMPLETED'],
-  Dropped: ['CANCELLED'],
+  Dropped: ['CANCELLED', 'DROPPED'],
 };
 
 const truckQuoteRequestStatusMappings: Record<string, string[]> = {
@@ -68,7 +68,7 @@ const truckQuoteRequestStatusMappings: Record<string, string[]> = {
   Confirmed: ['QUOTE_ACCEPTED', 'BOOKING_CONFIRMED'],
   Ongoing: [],
   Completed: [],
-  Dropped: ['CANCELLED', 'EXPIRED'],
+  Dropped: ['CANCELLED', 'EXPIRED', 'DROPPED'],
 };
 
 // Packers booking status mappings
@@ -77,7 +77,7 @@ const packersBookingStatusMappings: Record<string, string[]> = {
   Confirmed: ['PENDING_PAYMENT', 'PAYMENT_SUBMITTED', 'ADVANCE_PAID', 'CONFIRMED', 'TEAM_ASSIGNED'],
   Ongoing: ['PACKING', 'LOADING', 'IN_TRANSIT', 'UNLOADING', 'UNPACKING'],
   Completed: ['COMPLETED'],
-  Dropped: ['CANCELLED'],
+  Dropped: ['CANCELLED', 'DROPPED'],
 };
 
 const packersQuoteRequestStatusMappings: Record<string, string[]> = {
@@ -85,7 +85,7 @@ const packersQuoteRequestStatusMappings: Record<string, string[]> = {
   Confirmed: ['QUOTE_ACCEPTED', 'BOOKING_CONFIRMED'],
   Ongoing: [],
   Completed: [],
-  Dropped: ['CANCELLED', 'EXPIRED'],
+  Dropped: ['CANCELLED', 'EXPIRED', 'DROPPED'],
 };
 
 // Equipment booking status mappings
@@ -94,7 +94,7 @@ const equipmentBookingStatusMappings: Record<string, string[]> = {
   Confirmed: ['PENDING_PAYMENT', 'PAYMENT_SUBMITTED', 'ADVANCE_PAID', 'CONFIRMED'],
   Ongoing: ['DELIVERED', 'IN_USE'],
   Completed: ['RETURNED', 'COMPLETED'],
-  Dropped: ['CANCELLED'],
+  Dropped: ['CANCELLED', 'DROPPED'],
 };
 
 const equipmentQuoteRequestStatusMappings: Record<string, string[]> = {
@@ -102,7 +102,7 @@ const equipmentQuoteRequestStatusMappings: Record<string, string[]> = {
   Confirmed: ['QUOTE_ACCEPTED', 'BOOKING_CONFIRMED'],
   Ongoing: [],
   Completed: [],
-  Dropped: ['CANCELLED', 'EXPIRED'],
+  Dropped: ['CANCELLED', 'EXPIRED', 'DROPPED'],
 };
 
 // Luxury quote request status mappings
@@ -111,7 +111,7 @@ const luxuryQuoteRequestStatusMappings: Record<string, string[]> = {
   Confirmed: ['QUOTE_ACCEPTED', 'BOOKING_CONFIRMED'],
   Ongoing: [],
   Completed: [],
-  Dropped: ['CANCELLED', 'EXPIRED'],
+  Dropped: ['CANCELLED', 'EXPIRED', 'DROPPED'],
 };
 
 // Luxury booking status mappings
@@ -120,7 +120,7 @@ const luxuryBookingStatusMappings: Record<string, string[]> = {
   Confirmed: ['PENDING_PAYMENT', 'PAYMENT_SUBMITTED', 'ADVANCE_PAID', 'CONFIRMED', 'DRIVER_ASSIGNED'],
   Ongoing: ['IN_PROGRESS'],
   Completed: ['COMPLETED'],
-  Dropped: ['CANCELLED'],
+  Dropped: ['CANCELLED', 'DROPPED'],
 };
 
 // Self-drive quote request status mappings
@@ -129,7 +129,7 @@ const selfDriveQuoteRequestStatusMappings: Record<string, string[]> = {
   Confirmed: ['QUOTE_ACCEPTED', 'BOOKING_CONFIRMED'],
   Ongoing: [],
   Completed: [],
-  Dropped: ['CANCELLED', 'EXPIRED'],
+  Dropped: ['CANCELLED', 'EXPIRED', 'DROPPED'],
 };
 
 /**
@@ -282,7 +282,6 @@ export async function GET(request: NextRequest) {
           locations: { select: { name: true } },
           vendors_car_bookings_assignedVendorIdTovendors: { select: { businessName: true, phone: true } },
           self_drive_quotes: { select: { vehicleImages: true, vehicleName: true } },
-          vehicle_models: { select: { name: true, sideImage: true, brands: { select: { name: true } } } },
         },
         orderBy: { createdAt: 'desc' },
         take: 500,
@@ -582,19 +581,14 @@ export async function GET(request: NextRequest) {
           toLocation = b.dropAddress;
         }
 
-        // Resolve vehicle name: quote vehicle > fleet vehicle > model relation > requested name
+        // Resolve vehicle name: quote vehicle > fleet vehicle > requested name
         const fleetInfo = b.requestedVehicleId ? vendorFleetMap[b.requestedVehicleId] : null;
-        const modelName = b.vehicle_models
-          ? `${b.vehicle_models.brands?.name || ''} ${b.vehicle_models.name || ''}`.trim()
-          : null;
         const resolvedVehicleName = b.self_drive_quotes?.vehicleName
-          || modelName
           || fleetInfo?.vehicleName
           || b.requestedVehicleName;
 
-        // Resolve vehicle image: quote images > model sideImage > fleet images
+        // Resolve vehicle image: quote images > fleet images
         const resolvedVehicleImage = getFirstVehicleImage(b.self_drive_quotes?.vehicleImages)
-          || b.vehicle_models?.sideImage
           || fleetInfo?.image
           || null;
 
@@ -960,121 +954,129 @@ export async function POST(request: NextRequest) {
 // Helper function to map internal status to display status
 function mapStatusToDisplay(status: string): string {
   const displayMap: Record<string, string> = {
-    PENDING_PAYMENT: 'Open',
-    PENDING_VENDOR: 'Open',
-    BROADCASTED: 'Open',
-    ACCEPTED: 'Confirmed',
-    DRIVER_ASSIGNED: 'Confirmed',
-    IN_PROGRESS: 'Ongoing',
-    COMPLETED: 'Completed',
-    CANCELLED: 'Dropped',
-    EXPIRED: 'Dropped',
-    REFUNDED: 'Dropped',
+    PENDING_PAYMENT: 'PENDING_PAYMENT',
+    PENDING_VENDOR: 'PENDING_VENDOR',
+    BROADCASTED: 'BROADCASTED',
+    ACCEPTED: 'ACCEPTED',
+    DRIVER_ASSIGNED: 'CONFIRMED',
+    IN_PROGRESS: 'IN_PROGRESS',
+    COMPLETED: 'COMPLETED',
+    CANCELLED: 'CANCELLED',
+    EXPIRED: 'EXPIRED',
+    REFUNDED: 'REFUNDED',
+    DROPPED: 'DROPPED',
   };
-  return displayMap[status] || 'Open';
+  return displayMap[status] || status;
 }
 
 // Helper function to map bike quote request status
 function mapBikeQuoteRequestStatus(status: string): string {
   const displayMap: Record<string, string> = {
-    PENDING: 'Open',
-    QUOTES_RECEIVED: 'Open',
-    QUOTE_ACCEPTED: 'Confirmed',
-    BOOKING_CONFIRMED: 'Confirmed',
-    CANCELLED: 'Dropped',
-    EXPIRED: 'Dropped',
+    PENDING: 'PENDING',
+    QUOTES_RECEIVED: 'PENDING',
+    QUOTE_ACCEPTED: 'CONFIRMED',
+    BOOKING_CONFIRMED: 'CONFIRMED',
+    CANCELLED: 'CANCELLED',
+    EXPIRED: 'EXPIRED',
+    DROPPED: 'DROPPED',
   };
-  return displayMap[status] || 'Open';
+  return displayMap[status] || status;
 }
 
 // Helper function to map bus quote request status
 function mapBusQuoteRequestStatus(status: string): string {
   const displayMap: Record<string, string> = {
-    PENDING: 'Open',
-    QUOTES_RECEIVED: 'Open',
-    QUOTE_ACCEPTED: 'Confirmed',
-    BOOKING_CONFIRMED: 'Confirmed',
-    CANCELLED: 'Dropped',
-    EXPIRED: 'Dropped',
+    PENDING: 'PENDING',
+    QUOTES_RECEIVED: 'PENDING',
+    QUOTE_ACCEPTED: 'CONFIRMED',
+    BOOKING_CONFIRMED: 'CONFIRMED',
+    CANCELLED: 'CANCELLED',
+    EXPIRED: 'EXPIRED',
+    DROPPED: 'DROPPED',
   };
-  return displayMap[status] || 'Open';
+  return displayMap[status] || status;
 }
 
 // Helper function to map self-drive quote request status
 function mapSelfDriveQuoteRequestStatus(status: string): string {
   const displayMap: Record<string, string> = {
-    PENDING: 'Open',
-    QUOTES_RECEIVED: 'Open',
-    QUOTE_ACCEPTED: 'Confirmed',
-    BOOKING_CONFIRMED: 'Confirmed',
-    CANCELLED: 'Dropped',
-    EXPIRED: 'Dropped',
+    PENDING: 'PENDING',
+    QUOTES_RECEIVED: 'PENDING',
+    QUOTE_ACCEPTED: 'CONFIRMED',
+    BOOKING_CONFIRMED: 'CONFIRMED',
+    CANCELLED: 'CANCELLED',
+    EXPIRED: 'EXPIRED',
+    DROPPED: 'DROPPED',
   };
-  return displayMap[status] || 'Open';
+  return displayMap[status] || status;
 }
 
 // Helper function to map bus booking status
 function mapBusBookingStatus(status: string): string {
   const displayMap: Record<string, string> = {
-    PENDING_PAYMENT: 'Open',
-    PAYMENT_SUBMITTED: 'Open',
-    ADVANCE_PAID: 'Confirmed',
-    CONFIRMED: 'Confirmed',
-    VEHICLE_ASSIGNED: 'Confirmed',
-    IN_PROGRESS: 'Ongoing',
-    COMPLETED: 'Completed',
-    CANCELLED: 'Dropped',
+    PENDING_PAYMENT: 'PENDING_PAYMENT',
+    PAYMENT_SUBMITTED: 'PAYMENT_SUBMITTED',
+    ADVANCE_PAID: 'CONFIRMED',
+    CONFIRMED: 'CONFIRMED',
+    VEHICLE_ASSIGNED: 'CONFIRMED',
+    IN_PROGRESS: 'IN_PROGRESS',
+    COMPLETED: 'COMPLETED',
+    CANCELLED: 'CANCELLED',
+    DROPPED: 'DROPPED',
   };
-  return displayMap[status] || 'Open';
+  return displayMap[status] || status;
 }
 
 // Generic helper for quote request status
 function mapQuoteRequestStatus(status: string): string {
   const displayMap: Record<string, string> = {
-    PENDING: 'Open',
-    QUOTES_RECEIVED: 'Open',
-    QUOTE_ACCEPTED: 'Confirmed',
-    BOOKING_CONFIRMED: 'Confirmed',
-    CANCELLED: 'Dropped',
-    EXPIRED: 'Dropped',
+    PENDING: 'PENDING',
+    QUOTES_RECEIVED: 'PENDING',
+    QUOTE_ACCEPTED: 'CONFIRMED',
+    BOOKING_CONFIRMED: 'CONFIRMED',
+    CANCELLED: 'CANCELLED',
+    EXPIRED: 'EXPIRED',
+    DROPPED: 'DROPPED',
   };
-  return displayMap[status] || 'Open';
+  return displayMap[status] || status;
 }
 
 // Helper function to map truck booking status
 function mapTruckBookingStatus(status: string): string {
   const displayMap: Record<string, string> = {
-    PENDING_PAYMENT: 'Open',
-    PAYMENT_SUBMITTED: 'Open',
-    ADVANCE_PAID: 'Confirmed',
-    CONFIRMED: 'Confirmed',
-    VEHICLE_ASSIGNED: 'Confirmed',
-    LOADING: 'Ongoing',
-    IN_TRANSIT: 'Ongoing',
-    UNLOADING: 'Ongoing',
-    COMPLETED: 'Completed',
-    CANCELLED: 'Dropped',
+    PENDING_PAYMENT: 'PENDING_PAYMENT',
+    PAYMENT_SUBMITTED: 'PAYMENT_SUBMITTED',
+    ADVANCE_PAID: 'CONFIRMED',
+    CONFIRMED: 'CONFIRMED',
+    VEHICLE_ASSIGNED: 'CONFIRMED',
+    LOADING: 'IN_PROGRESS',
+    IN_TRANSIT: 'IN_PROGRESS',
+    UNLOADING: 'IN_PROGRESS',
+    COMPLETED: 'COMPLETED',
+    CANCELLED: 'CANCELLED',
+    DROPPED: 'DROPPED',
   };
-  return displayMap[status] || 'Open';
+  return displayMap[status] || status;
 }
 
 // Helper function to map packers booking status
 function mapPackersBookingStatus(status: string): string {
   const displayMap: Record<string, string> = {
-    PENDING_PAYMENT: 'Open',
-    PAYMENT_SUBMITTED: 'Open',
-    ADVANCE_PAID: 'Confirmed',
-    CONFIRMED: 'Confirmed',
-    TEAM_ASSIGNED: 'Confirmed',
-    PACKING: 'Ongoing',
-    LOADING: 'Ongoing',
-    IN_TRANSIT: 'Ongoing',
-    UNLOADING: 'Ongoing',
-    UNPACKING: 'Ongoing',
-    COMPLETED: 'Completed',
-    CANCELLED: 'Dropped',
+    PENDING_PAYMENT: 'PENDING_PAYMENT',
+    PAYMENT_SUBMITTED: 'PAYMENT_SUBMITTED',
+    ADVANCE_PAID: 'CONFIRMED',
+    CONFIRMED: 'CONFIRMED',
+    TEAM_ASSIGNED: 'CONFIRMED',
+    PACKING: 'IN_PROGRESS',
+    LOADING: 'IN_PROGRESS',
+    IN_TRANSIT: 'IN_PROGRESS',
+    UNLOADING: 'IN_PROGRESS',
+    UNPACKING: 'IN_PROGRESS',
+    COMPLETED: 'COMPLETED',
+    CANCELLED: 'CANCELLED',
+    DROPPED: 'DROPPED',
   };
-  return displayMap[status] || 'Open';
+  return displayMap[status] || status;
 }
 
 // Helper function to map equipment booking status
@@ -1089,21 +1091,23 @@ function mapEquipmentBookingStatus(status: string): string {
     RETURNED: 'Completed',
     COMPLETED: 'Completed',
     CANCELLED: 'Dropped',
+    DROPPED: 'Dropped',
   };
-  return displayMap[status] || 'Open';
+  return displayMap[status] || status;
 }
 
 // Helper function to map luxury booking status
 function mapLuxuryBookingStatus(status: string): string {
   const displayMap: Record<string, string> = {
-    PENDING_PAYMENT: 'Open',
-    PAYMENT_SUBMITTED: 'Open',
-    ADVANCE_PAID: 'Confirmed',
-    CONFIRMED: 'Confirmed',
-    DRIVER_ASSIGNED: 'Confirmed',
-    IN_PROGRESS: 'Ongoing',
-    COMPLETED: 'Completed',
-    CANCELLED: 'Dropped',
+    PENDING_PAYMENT: 'PENDING_PAYMENT',
+    PAYMENT_SUBMITTED: 'PAYMENT_SUBMITTED',
+    ADVANCE_PAID: 'CONFIRMED',
+    CONFIRMED: 'CONFIRMED',
+    DRIVER_ASSIGNED: 'CONFIRMED',
+    IN_PROGRESS: 'IN_PROGRESS',
+    COMPLETED: 'COMPLETED',
+    CANCELLED: 'CANCELLED',
+    DROPPED: 'DROPPED',
   };
-  return displayMap[status] || 'Open';
+  return displayMap[status] || status;
 }

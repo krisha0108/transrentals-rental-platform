@@ -4,6 +4,7 @@ import { getVendorAuth } from '@/lib/auth/vendor-mobile-auth';
 import { prisma } from '@/lib/db/prisma';
 import crypto from 'crypto';
 import { onTripCompleted } from '@/lib/utils/b2b-notification-helper';
+import { canStartTrip, canCompleteTrip } from '@/lib/utils/booking-date-guard';
 
 export const dynamic = 'force-dynamic';
 
@@ -42,6 +43,14 @@ export async function POST(request: NextRequest, { params }: { params: { tripCod
     if (action === 'arrive') {
       if (trip.status !== 'PENDING') {
         return NextResponse.json({ error: `Cannot mark arrival. Trip is ${trip.status}` }, { status: 400 });
+      }
+
+      // Block arrival before scheduled date/time
+      if (trip.scheduledDate) {
+        const arriveCheck = canStartTrip(trip.scheduledDate, trip.scheduledTime);
+        if (!arriveCheck.allowed) {
+          return NextResponse.json({ error: arriveCheck.message }, { status: 400 });
+        }
       }
 
       const otp = generateOTP();

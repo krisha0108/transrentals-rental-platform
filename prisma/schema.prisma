@@ -193,6 +193,8 @@ model bike_bookings {
   vendorNotes                                     String?                     @db.Text
   adminNotes                                      String?                     @db.Text
   cancellationReason                              String?                     @db.Text
+  droppedAt                                       DateTime?
+  dropReason                                      String?                     @db.Text
   createdAt                                       DateTime                    @default(now())
   updatedAt                                       DateTime                    @updatedAt
   lastPaymentError                                String?                     @db.Text
@@ -480,6 +482,8 @@ model bus_bookings {
   cancelledAt            DateTime?
   cancelledBy            String?
   cancellationReason     String?                    @db.Text
+  droppedAt              DateTime?
+  dropReason             String?                    @db.Text
   refundAmount           Float?
   rating                 Int?
   review                 String?                    @db.Text
@@ -689,6 +693,8 @@ model car_bookings {
   cancelledAt                                    DateTime?
   cancelledBy                                    String?
   completedAt                                    DateTime?
+  droppedAt                                      DateTime?
+  dropReason                                     String?                    @db.Text
   createdAt                                      DateTime                   @default(now())
   updatedAt                                      DateTime                   @updatedAt
   advanceAmount                                  Float?
@@ -912,6 +918,8 @@ model chauffeur_bookings {
   driverReview                                         String?                          @db.Text
   cancelledAt                                          DateTime?
   cancelledBy                                          String?
+  droppedAt                                            DateTime?
+  dropReason                                           String?                          @db.Text
   refundAmount                                         Float?
   refundTransactionId                                  String?
   completedAt                                          DateTime?
@@ -1356,6 +1364,8 @@ model equipment_bookings {
   cancelledAt              DateTime?
   cancelledBy              String?
   cancellationReason       String?                          @db.Text
+  droppedAt                DateTime?
+  dropReason               String?                          @db.Text
   refundAmount             Float?
   rating                   Int?
   review                   String?                          @db.Text
@@ -1896,6 +1906,8 @@ model luxury_bookings {
   cancelledAt                                       DateTime?
   cancelledBy                                       String?
   cancellationReason                                String?                       @db.Text
+  droppedAt                                         DateTime?
+  dropReason                                        String?                       @db.Text
   rating                                            Int?
   review                                            String?                       @db.Text
   driverRating                                      Int?
@@ -2199,6 +2211,8 @@ model packers_bookings {
   cancelledAt            DateTime?
   cancelledBy            String?
   cancellationReason     String?                        @db.Text
+  droppedAt              DateTime?
+  dropReason             String?                        @db.Text
   refundAmount           Float?
   rating                 Int?
   review                 String?                        @db.Text
@@ -2908,6 +2922,8 @@ model truck_bookings {
   cancelledAt            DateTime?
   cancelledBy            String?
   cancellationReason     String?                      @db.Text
+  droppedAt              DateTime?
+  dropReason             String?                      @db.Text
   refundAmount           Float?
   rating                 Int?
   review                 String?                      @db.Text
@@ -4275,6 +4291,7 @@ enum bike_quote_requests_status {
   BOOKING_CONFIRMED
   CANCELLED
   EXPIRED
+  DROPPED
 }
 
 enum click_events_eventType {
@@ -4322,6 +4339,7 @@ enum self_drive_quote_requests_status {
   BOOKING_CONFIRMED
   CANCELLED
   EXPIRED
+  DROPPED
 }
 
 enum vendor_documents_documentType {
@@ -4541,6 +4559,7 @@ enum equipment_quote_requests_status {
   BOOKING_CONFIRMED
   CANCELLED
   EXPIRED
+  DROPPED
 }
 
 enum web_vitals_fidRating {
@@ -4578,6 +4597,7 @@ enum bike_bookings_status {
   CANCELLED
   EXPIRED
   REFUNDED
+  DROPPED
 }
 
 enum web_vitals_fcpRating {
@@ -4593,6 +4613,7 @@ enum bus_quote_requests_status {
   BOOKING_CONFIRMED
   CANCELLED
   EXPIRED
+  DROPPED
 }
 
 enum web_vitals_inpRating {
@@ -4608,6 +4629,7 @@ enum luxury_quote_requests_status {
   BOOKING_CONFIRMED
   CANCELLED
   EXPIRED
+  DROPPED
 }
 
 enum bike_bookings_paymentStatus {
@@ -4626,6 +4648,7 @@ enum truck_quote_requests_status {
   BOOKING_CONFIRMED
   CANCELLED
   EXPIRED
+  DROPPED
 }
 
 enum car_bookings_status {
@@ -4641,6 +4664,7 @@ enum car_bookings_status {
   CANCELLED
   EXPIRED
   REFUNDED
+  DROPPED
 }
 
 enum bus_quotes_status {
@@ -4688,6 +4712,7 @@ enum packers_quote_requests_status {
   BOOKING_CONFIRMED
   CANCELLED
   EXPIRED
+  DROPPED
 }
 
 enum packers_bookings_status {
@@ -4703,6 +4728,7 @@ enum packers_bookings_status {
   UNPACKING
   COMPLETED
   CANCELLED
+  DROPPED
 }
 
 enum bus_bookings_status {
@@ -4714,6 +4740,7 @@ enum bus_bookings_status {
   IN_PROGRESS
   COMPLETED
   CANCELLED
+  DROPPED
 }
 
 enum chauffeur_bookings_status {
@@ -4728,6 +4755,7 @@ enum chauffeur_bookings_status {
   CANCELLED
   EXPIRED
   REFUNDED
+  DROPPED
 }
 
 enum equipment_bookings_paymentStatus {
@@ -4759,6 +4787,7 @@ enum equipment_bookings_status {
   RETURNED
   COMPLETED
   CANCELLED
+  DROPPED
 }
 
 enum truck_bookings_status {
@@ -4772,6 +4801,7 @@ enum truck_bookings_status {
   UNLOADING
   COMPLETED
   CANCELLED
+  DROPPED
 }
 
 enum car_bookings_paymentStatus {
@@ -4796,6 +4826,7 @@ enum luxury_bookings_status {
   COMPLETED
   CANCELLED
   EXPIRED
+  DROPPED
 }
 
 enum luxury_bookings_paymentStatus {

@@ -129,6 +129,7 @@ export default function MySelfDriveBookingsScreen() {
         return '#27ae60';
       case 'CANCELLED':
       case 'EXPIRED':
+      case 'DROPPED':
         return '#e74c3c';
       case 'PENDING_PAYMENT':
         return '#f39c12';
@@ -165,6 +166,8 @@ export default function MySelfDriveBookingsScreen() {
         return 'Cancelled';
       case 'EXPIRED':
         return 'Expired';
+      case 'DROPPED':
+        return 'Dropped';
       default:
         return status;
     }

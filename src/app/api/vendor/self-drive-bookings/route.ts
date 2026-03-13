@@ -199,6 +199,8 @@ export async function GET(request: NextRequest) {
         acceptedAt: b.acceptedAt,
         customerNotes: b.customerNotes,
         createdAt: b.createdAt,
+        droppedAt: b.droppedAt,
+        dropReason: b.dropReason,
         isDirectRequest: b.assignedVendorId === vendor.id,
         isAccepted: b.acceptedVendorId === vendor.id,
       })),
