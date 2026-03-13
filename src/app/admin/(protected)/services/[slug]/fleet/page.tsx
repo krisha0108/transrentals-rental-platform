@@ -204,6 +204,7 @@ export default function ServiceFleetPage() {
   const [cityPriceSearch, setCityPriceSearch] = useState('');
   const [serviceLocationsForPricing, setServiceLocationsForPricing] = useState<{ id: string; name: string; state: string }[]>([]);
   const [loadingServiceLocations, setLoadingServiceLocations] = useState(false);
+  const [togglingStatusId, setTogglingStatusId] = useState<string | null>(null);
 
   // Image picker modal state
   const [showImagePicker, setShowImagePicker] = useState(false);
@@ -691,6 +692,23 @@ export default function ServiceFleetPage() {
       }
     } catch (error) {
       console.error('Failed to delete vehicle:', error);
+    }
+  };
+
+  const handleToggleStatus = async (item: FleetItem) => {
+    setTogglingStatusId(item.id);
+    try {
+      const res = await fetch(`/api/admin/services/${slug}/fleet/${item.id}`, { method: 'PATCH' });
+      if (res.ok) {
+        const data = await res.json();
+        setFleet(prev => prev.map(v => v.id === item.id ? { ...v, isActive: data.isActive } : v));
+      } else {
+        alert('Failed to update status');
+      }
+    } catch {
+      alert('Failed to update status');
+    } finally {
+      setTogglingStatusId(null);
     }
   };
 
@@ -1333,17 +1351,30 @@ export default function ServiceFleetPage() {
                       </span>
                     </td>
                     <td className="px-6 py-4">
-                      {item.isActive ? (
-                        <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs">
-                          <CheckCircle className="w-3 h-3" />
-                          Active
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 px-2 py-1 bg-red-100 text-red-700 rounded-full text-xs">
-                          <XCircle className="w-3 h-3" />
-                          Inactive
-                        </span>
-                      )}
+                      <button
+                        onClick={() => handleToggleStatus(item)}
+                        disabled={togglingStatusId === item.id}
+                        title="Click to toggle status"
+                        className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium transition-opacity hover:opacity-75 disabled:opacity-50 cursor-pointer"
+                        style={{ background: 'none', border: 'none', padding: 0 }}
+                      >
+                        {togglingStatusId === item.id ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-1 bg-gray-100 text-gray-500 rounded-full text-xs">
+                            <Loader2 className="w-3 h-3 animate-spin" />
+                            Updating...
+                          </span>
+                        ) : item.isActive ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs hover:bg-green-200 transition-colors">
+                            <CheckCircle className="w-3 h-3" />
+                            Active
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2 py-1 bg-red-100 text-red-700 rounded-full text-xs hover:bg-red-200 transition-colors">
+                            <XCircle className="w-3 h-3" />
+                            Inactive
+                          </span>
+                        )}
+                      </button>
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">

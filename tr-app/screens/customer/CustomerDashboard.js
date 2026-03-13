@@ -87,6 +87,7 @@ const CATEGORIES = [
     sub: 'Self Drive & \nChauffeur',
     image: require('../../assets/standard_car.png'),
     screen: 'CarRentalFleetScreen',
+    b2bEligible: true,
   },
   {
     id: '3',
@@ -94,6 +95,7 @@ const CATEGORIES = [
     sub: 'Luxury & \nUrgent',
     image: require('../../assets/luxury_car.png'),
     screen: 'LuxuryCarRental',
+    b2bEligible: true,
   },
   {
     id: '4',
@@ -101,6 +103,7 @@ const CATEGORIES = [
     sub: 'Cars & \nSUVs',
     image: require('../../assets/self_drives.png'),
     screen: 'SelfDriveScreen',
+    b2bEligible: true,
   },
   {
     id: '5',
@@ -108,6 +111,7 @@ const CATEGORIES = [
     sub: '12-50 Seater',
     image: require('../../assets/bus.png'),
     screen: 'BusRentalFleetScreen',
+    b2bEligible: true,
   },
   {
     id: '6',
@@ -130,6 +134,7 @@ const CATEGORIES = [
     image: require('../../assets/packers_movers.png'),
     screen: 'PackerMoverScreen',
   },
+ 
 ];
 const TESTIMONIALS = [
   { id: 't1', name: 'Priya S.', text: 'Best rates & super-fast quotes! ⭐⭐⭐⭐⭐', avatar: require('../../assets/yashvi.png') },
@@ -150,6 +155,8 @@ export default function CustomerDashboard() {
   const navigation = useNavigation();
   const [userName, setUserName] = useState('');
   const [customerImage, setCustomerImage] = useState(null);
+  const [isB2BCustomer, setIsB2BCustomer] = useState(false);
+  const [companyName, setCompanyName] = useState('');
 
   const { width: winWidth } = useWindowDimensions();
 
@@ -667,6 +674,9 @@ export default function CustomerDashboard() {
         } else {
           setCustomerImage(null);
         }
+        // Check B2B status
+        setIsB2BCustomer(customer?.isB2B === true);
+        setCompanyName(customer?.companyName || '');
       }
 
       // Run all fetch functions in parallel with proper error handling
@@ -946,7 +956,6 @@ export default function CustomerDashboard() {
               </Text>
             </View>
           )}
-
         </LinearGradient>
       </View>
       {showSkeleton ? (
@@ -1032,7 +1041,7 @@ export default function CustomerDashboard() {
               {CATEGORIES.map(c => (
                 <TouchableOpacity
                   key={c.id}
-                  style={styles.catTile}
+                  style={[styles.catTile, c.isB2B && styles.b2bTile]}
                   activeOpacity={0.7}
                   onPress={() => {
                     if (c.screen) {
@@ -1042,11 +1051,27 @@ export default function CustomerDashboard() {
                     }
                   }}
                 >
-                  <View style={styles.catImageBox}>
-                    <Image source={c.image} style={styles.catImage} resizeMode="contain" />
-                  </View>
-                  <Text style={styles.catLabel}>{c.label}</Text>
+                  {c.isB2B ? (
+                    <View style={styles.b2bImageBox}>
+                      <Icon name="briefcase" size={wp('7%')} color="#fff" />
+                    </View>
+                  ) : (
+                    <View style={styles.catImageBox}>
+                      <Image source={c.image} style={styles.catImage} resizeMode="contain" />
+                      {isB2BCustomer && c.b2bEligible && (
+                        <View style={styles.b2bEligibleDot}>
+                          <Text style={styles.b2bEligibleDotText}>B2B</Text>
+                        </View>
+                      )}
+                    </View>
+                  )}
+                  <Text style={[styles.catLabel, c.isB2B && styles.b2bLabel]}>{c.label}</Text>
                   <Text style={styles.catSub}>{c.sub}</Text>
+                  {c.isB2B && (
+                    <View style={styles.b2bBadge}>
+                      <Text style={styles.b2bBadgeText}>Enterprise</Text>
+                    </View>
+                  )}
                 </TouchableOpacity>
               ))}
             </View>
@@ -1559,6 +1584,61 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     maxWidth: wp('65%'),
   },
+  // B2B Header Button
+  headerB2BButton: {
+    marginTop: hp('0.8%'),
+    borderRadius: 14,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.25)',
+  },
+  headerB2BGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: wp('3.5%'),
+    paddingVertical: hp('1%'),
+    gap: wp('2.5%'),
+  },
+  headerB2BIconBox: {
+    width: wp('8%'),
+    height: wp('8%'),
+    borderRadius: wp('2.5%'),
+    backgroundColor: 'rgba(255,255,255,0.22)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerB2BLabel: {
+    fontSize: wp('3.3%'),
+    fontWeight: '700',
+    color: '#FFFFFF',
+    letterSpacing: 0.3,
+  },
+  headerB2BBadge: {
+    backgroundColor: 'rgba(255,255,255,0.25)',
+    paddingHorizontal: wp('1.8%'),
+    paddingVertical: hp('0.15%'),
+    borderRadius: 6,
+  },
+  headerB2BBadgeText: {
+    fontSize: wp('2.2%'),
+    fontWeight: '800',
+    color: '#FFFFFF',
+    letterSpacing: 1,
+  },
+  headerB2BCompany: {
+    fontSize: wp('2.7%'),
+    color: 'rgba(255,255,255,0.75)',
+    fontWeight: '500',
+    marginTop: hp('0.15%'),
+  },
+  headerB2BArrow: {
+    width: wp('7%'),
+    height: wp('7%'),
+    borderRadius: wp('3.5%'),
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   // Stories
   storiesWrap: { paddingLeft: wp('4%') },
   storiesScroll: { paddingRight: wp('8%') },
@@ -1576,6 +1656,7 @@ const styles = StyleSheet.create({
     fontSize: wp('5.2%'),
     fontWeight: '800',
     color: TEXT_PRIMARY,
+    marginTop: hp('1.5%'),
     marginBottom: hp('1.8%'),
     letterSpacing: -0.3,
   },
@@ -1811,6 +1892,66 @@ const styles = StyleSheet.create({
     width: '85%',
     height: '85%',
     borderRadius: 12,
+  },
+  // B2B Eligible Badge (on service cards)
+  b2bEligibleDot: {
+    position: 'absolute',
+    top: -wp('1%'),
+    right: -wp('1%'),
+    backgroundColor: BRAND_TEAL,
+    paddingHorizontal: wp('1.5%'),
+    paddingVertical: wp('0.4%'),
+    borderRadius: wp('1.5%'),
+    zIndex: 10,
+  },
+  b2bEligibleDotText: {
+    fontSize: wp('2%'),
+    fontWeight: '800',
+    color: '#fff',
+    letterSpacing: 0.5,
+  },
+
+  // B2B Tile Styles
+  b2bTile: {
+    borderWidth: 1.5,
+    borderColor: BRAND_TEAL,
+    borderRadius: 16,
+    backgroundColor: '#F0FFF8',
+  },
+  b2bImageBox: {
+    width: wp('18%'),
+    height: wp('18%'),
+    borderRadius: 20,
+    backgroundColor: BRAND_TEAL,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...Platform.select({
+      ios: {
+        shadowColor: BRAND_TEAL,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.35,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 6,
+      },
+    }),
+  },
+  b2bLabel: {
+    color: BRAND_TEAL_DARK,
+  },
+  b2bBadge: {
+    marginTop: hp('0.4%'),
+    backgroundColor: BRAND_TEAL,
+    paddingHorizontal: wp('2.5%'),
+    paddingVertical: hp('0.3%'),
+    borderRadius: 10,
+  },
+  b2bBadgeText: {
+    fontSize: wp('2.2%'),
+    fontWeight: '700',
+    color: '#fff',
+    letterSpacing: 0.5,
   },
   // Vendor Spotlight
   vendorCard: { width: CARD_WIDTH, height: hp('18%'), marginRight: wp('4%'), borderRadius: 16, overflow: 'hidden', elevation: 4, marginBottom: hp('1%') },

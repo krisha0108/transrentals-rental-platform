@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { Download } from 'lucide-react';
+import { Download, Zap } from 'lucide-react';
 
 interface Airport {
   id: string;
@@ -42,6 +42,7 @@ interface AirportTransfer {
   nightSurcharge: number | null;
   isActive: boolean;
   isPopular: boolean;
+  forcePackagePricing: boolean;
   chauffeur_vehicle_categories: { id: string; name: string; slug: string };
   locations_chauffeur_route_packages_fromLocationIdTolocations: { id: string; name: string; slug: string; type: string };
   locations_chauffeur_route_packages_toLocationIdTolocations: { id: string; name: string; slug: string; type: string };
@@ -116,8 +117,8 @@ export default function AirportTransfersPage() {
           initialPrices[cat.id] = {
             basePrice: 0,
             tollsEstimate: 0,
-            airportSurcharge: 100,
-            nightSurcharge: 200,
+            airportSurcharge: 0,
+            nightSurcharge: 0,
           };
         });
         setCategoryPrices(initialPrices);
@@ -213,8 +214,8 @@ export default function AirportTransfersPage() {
         resetPrices[cat.id] = {
           basePrice: 0,
           tollsEstimate: 0,
-          airportSurcharge: 100,
-          nightSurcharge: 200,
+          airportSurcharge: 0,
+          nightSurcharge: 0,
         };
       });
       setCategoryPrices(resetPrices);
@@ -271,6 +272,53 @@ export default function AirportTransfersPage() {
       }
     } catch (error) {
       alert('Failed to delete transfer');
+    }
+  }
+
+  async function handleToggleAllForce() {
+    const allEnabled = filteredTransfers.every(t => t.forcePackagePricing);
+    const newValue = !allEnabled;
+    setSaving(true);
+    try {
+      await Promise.all(
+        filteredTransfers.map(t =>
+          fetch(`/api/admin/car-rental/airport-transfers/${t.id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ forcePackagePricing: newValue }),
+          })
+        )
+      );
+      await fetchTransfers();
+    } catch {
+      alert('Failed to update some transfers');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleToggleForce(transfer: AirportTransfer) {
+    try {
+      const res = await fetch(`/api/admin/car-rental/airport-transfers/${transfer.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          estimatedKm: transfer.estimatedKm,
+          estimatedDuration: transfer.estimatedDuration,
+          basePrice: transfer.basePrice,
+          returnMultiplier: transfer.returnMultiplier,
+          tollsEstimate: transfer.tollsEstimate,
+          airportSurcharge: transfer.airportSurcharge,
+          nightSurcharge: transfer.nightSurcharge,
+          isActive: transfer.isActive,
+          isPopular: transfer.isPopular,
+          forcePackagePricing: !transfer.forcePackagePricing,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) await fetchTransfers();
+    } catch (error) {
+      alert('Failed to update');
     }
   }
 
@@ -580,6 +628,21 @@ export default function AirportTransfersPage() {
           <h2 className="text-lg font-semibold text-gray-900">Existing Airport Transfers</h2>
 
           <div className="flex items-center gap-4">
+            {filteredTransfers.length > 0 && (
+              <button
+                onClick={handleToggleAllForce}
+                disabled={saving}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 ${
+                  filteredTransfers.every(t => t.forcePackagePricing)
+                    ? 'bg-orange-100 text-orange-700 hover:bg-orange-200'
+                    : 'bg-gray-100 text-gray-700 hover:bg-orange-100 hover:text-orange-700'
+                }`}
+                title={filteredTransfers.every(t => t.forcePackagePricing) ? 'Disable fixed price for all' : 'Enable fixed price for all'}
+              >
+                <Zap className="w-4 h-4" />
+                {filteredTransfers.every(t => t.forcePackagePricing) ? 'Disable All Fixed' : 'Enable All Fixed'}
+              </button>
+            )}
             {/* Export Buttons */}
             <div className="flex items-center gap-2">
               <button
@@ -645,6 +708,7 @@ export default function AirportTransfersPage() {
                       <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Night</th>
                       <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
                       <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">SEO</th>
+                      <th className="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">Fixed Price</th>
                       <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
                     </tr>
                   </thead>
@@ -705,6 +769,7 @@ export default function AirportTransfersPage() {
                                 title="Mark as popular for SEO"
                               />
                             </td>
+                            <td className="px-4 py-2"></td>
                             <td className="px-4 py-2">
                               <div className="flex gap-2">
                                 <button
@@ -745,6 +810,15 @@ export default function AirportTransfersPage() {
                                   Regular
                                 </span>
                               )}
+                            </td>
+                            <td className="px-4 py-2 text-center">
+                              <button
+                                onClick={() => handleToggleForce(transfer)}
+                                title={transfer.forcePackagePricing ? 'Fixed Price ON — click to disable' : 'Fixed Price OFF — click to enable (ignore distance matrix)'}
+                                className={`p-1.5 rounded ${transfer.forcePackagePricing ? 'bg-orange-100 text-orange-600 hover:bg-orange-200' : 'text-gray-400 hover:bg-gray-100 hover:text-orange-500'}`}
+                              >
+                                <Zap className="w-4 h-4" />
+                              </button>
                             </td>
                             <td className="px-4 py-2">
                               <div className="flex gap-2">

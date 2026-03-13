@@ -447,6 +447,48 @@ export default function LoginScreen({ navigation }) {
                     Register
                   </Text>
                 </Animated.Text>
+
+                {/* B2B Register Button */}
+                <Animated.View
+                  style={{
+                    marginTop: responsiveScale(12),
+                    transform: [{ scale: buttonScaleAnim }]
+                  }}
+                >
+                  <TouchableOpacity
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      borderRadius: responsiveScale(14),
+                      height: responsiveScale(50),
+                      backgroundColor: '#1E293B',
+                      gap: responsiveScale(10),
+                      elevation: 4,
+                      shadowColor: '#000',
+                      shadowOffset: { width: 0, height: 4 },
+                      shadowOpacity: 0.2,
+                      shadowRadius: 8,
+                    }}
+                    onPress={() => navigation.navigate("B2BRegister")}
+                    activeOpacity={0.8}
+                  >
+                    <View style={{
+                      width: responsiveScale(28),
+                      height: responsiveScale(28),
+                      borderRadius: responsiveScale(8),
+                      backgroundColor: '#22C55E',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}>
+                      <Icon name="briefcase" size={responsiveScale(14)} color="#fff" />
+                    </View>
+                    <Text style={{ fontSize: responsiveScale(15), fontWeight: '700', color: '#fff' }}>
+                      B2B / Corporate Register
+                    </Text>
+                    <Icon name="chevron-right" size={responsiveScale(16)} color="#22C55E" />
+                  </TouchableOpacity>
+                </Animated.View>
               </View>
             </Animated.View>
           </View>

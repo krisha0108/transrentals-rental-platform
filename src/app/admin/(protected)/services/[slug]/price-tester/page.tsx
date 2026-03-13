@@ -83,7 +83,8 @@ export default function ServicePriceTesterPage() {
   const [loading, setLoading] = useState(true);
 
   // Form state
-  const [tripType, setTripType] = useState<'local' | 'one_way' | 'round_trip'>('round_trip');
+  const [tripType, setTripType] = useState<'local' | 'one_way' | 'round_trip' | 'airport'>('round_trip');
+  const [airportMode, setAirportMode] = useState<'pickup' | 'drop'>('pickup'); // pickup = airport→city, drop = city→airport
   const [vehicleCategoryId, setVehicleCategoryId] = useState('');
   const [fromLocationId, setFromLocationId] = useState('');
   const [toLocationId, setToLocationId] = useState('');
@@ -152,7 +153,7 @@ export default function ServicePriceTesterPage() {
       return;
     }
 
-    if ((tripType === 'one_way' || tripType === 'round_trip') && (!fromLocationId || !toLocationId)) {
+    if ((tripType === 'one_way' || tripType === 'round_trip' || tripType === 'airport') && (!fromLocationId || !toLocationId)) {
       alert('Please select from and to locations');
       return;
     }
@@ -162,9 +163,9 @@ export default function ServicePriceTesterPage() {
 
     try {
       const params = new URLSearchParams({
-        chauffeur_vehicle_categories: vehicleCategoryId,
+        vehicleCategory: vehicleCategoryId,
         tripType,
-        serviceSlug, // Pass service slug for service-specific pricing
+        serviceSlug,
       });
 
       if (tripType === 'local') {
@@ -231,6 +232,7 @@ export default function ServicePriceTesterPage() {
                   { id: 'local', label: 'Local' },
                   { id: 'one_way', label: 'One-Way' },
                   { id: 'round_trip', label: 'Round Trip' },
+                  { id: 'airport', label: 'Airport' },
                 ].map((type) => (
                   <button
                     key={type.id}
@@ -293,6 +295,31 @@ export default function ServicePriceTesterPage() {
               </div>
             )}
 
+            {/* Airport mode toggle */}
+            {tripType === 'airport' && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Direction</label>
+                <div className="flex gap-2">
+                  {[
+                    { id: 'pickup', label: '✈ Airport → City' },
+                    { id: 'drop', label: '🏙 City → Airport' },
+                  ].map((m) => (
+                    <button
+                      key={m.id}
+                      onClick={() => setAirportMode(m.id as 'pickup' | 'drop')}
+                      className={`flex-1 py-2 px-3 rounded-lg border-2 text-sm font-medium transition ${
+                        airportMode === m.id
+                          ? 'border-blue-500 bg-blue-50 text-blue-700'
+                          : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                      }`}
+                    >
+                      {m.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* From/To Locations */}
             {(tripType === 'one_way' || tripType === 'round_trip') && (
               <>
@@ -327,6 +354,42 @@ export default function ServicePriceTesterPage() {
                           {loc.name}
                         </option>
                       ))}
+                  </select>
+                </div>
+              </>
+            )}
+
+            {/* Airport From/To */}
+            {tripType === 'airport' && (
+              <>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    {airportMode === 'pickup' ? 'Airport (From)' : 'City (From)'}
+                  </label>
+                  <select
+                    value={fromLocationId}
+                    onChange={(e) => setFromLocationId(e.target.value)}
+                    className="w-full px-4 py-2 border rounded-lg"
+                  >
+                    <option value="">Select location</option>
+                    {locations.map((loc) => (
+                      <option key={loc.id} value={loc.id}>{loc.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    {airportMode === 'pickup' ? 'City (To)' : 'Airport (To)'}
+                  </label>
+                  <select
+                    value={toLocationId}
+                    onChange={(e) => setToLocationId(e.target.value)}
+                    className="w-full px-4 py-2 border rounded-lg"
+                  >
+                    <option value="">Select location</option>
+                    {locations.filter((l) => l.id !== fromLocationId).map((loc) => (
+                      <option key={loc.id} value={loc.id}>{loc.name}</option>
+                    ))}
                   </select>
                 </div>
               </>
@@ -417,7 +480,13 @@ export default function ServicePriceTesterPage() {
                 </div>
                 <div className={`text-xs ${isLuxury ? 'text-amber-500' : 'text-green-500'} mt-1`}>
                   Method:{' '}
-                  {result.pricingMethod === 'route_package' ? 'Fixed Route' : 'Dynamic Calculation'}
+                  {result.pricingMethod === 'forced_package'
+                    ? '⚡ Fixed (Admin Override)'
+                    : result.pricingMethod === 'route_package'
+                    ? '📦 Fixed Route Package'
+                    : result.pricingMethod === 'airport_transfer'
+                    ? '✈ Airport Transfer'
+                    : '📐 Dynamic (Distance Matrix)'}
                 </div>
               </div>
 

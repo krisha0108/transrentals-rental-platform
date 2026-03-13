@@ -33,6 +33,38 @@ export const NotificationProvider = ({ children, navigation }) => {
     // Parse service type
     let service = serviceType || data?.serviceType;
     const title = notification.title || '';
+    const body = notification.body || '';
+    const notifType = (data?.type || notification.type || '').toLowerCase();
+
+    // Check if this is a chat notification
+    if (notifType === 'chat' || data?.screen === 'BookingChat' || data?.screen === 'Chat') {
+      const chatBId = bookingId || data?.bookingId;
+      if (chatBId && chatBId !== 'null' && chatBId.length >= 10) {
+        navigation.navigate('BookingChat', {
+          bookingId: chatBId,
+          bookingType: data?.bookingType || '',
+        });
+      } else {
+        navigation.navigate('CustomerDashboard', { screen: 'Chat' });
+      }
+      hideNotification();
+      return;
+    }
+
+    // Check if this is a B2B notification
+    const isB2BNotif = notifType.startsWith('b2b_') || data?.screen === 'B2BBookingDetail'
+      || title.toLowerCase().includes('b2b') || body.toLowerCase().includes('b2b');
+
+    if (isB2BNotif) {
+      const bId = bookingId || data?.bookingId;
+      if (bId && bId !== 'null' && bId.length >= 10) {
+        navigation.navigate('B2BBookingDetail', { bookingId: bId });
+      } else {
+        navigation.navigate('B2BDashboard');
+      }
+      hideNotification();
+      return;
+    }
 
     // Fallback: detect from title if serviceType missing
     if (!service || service === 'general') {

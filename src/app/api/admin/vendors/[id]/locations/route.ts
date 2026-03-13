@@ -296,3 +296,95 @@ export async function PUT(
     );
   }
 }
+
+// DELETE - Remove an approved location and notify vendor
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const currentUser = await prisma.admin_users.findUnique({
+      where: { id: session.user.id },
+    });
+
+    if (!currentUser || !['SUPER_ADMIN', 'ADMIN', 'MANAGER'].includes(currentUser.role)) {
+      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
+    }
+
+    const { id: vendorId } = await params;
+    const { searchParams } = new URL(request.url);
+    const approvedLocationId = searchParams.get('approvedLocationId');
+
+    // Bulk delete — body contains approvedLocationIds array
+    let bodyData: any = null;
+    try { bodyData = await request.json(); } catch {}
+
+    if (bodyData?.approvedLocationIds && Array.isArray(bodyData.approvedLocationIds)) {
+      const ids: string[] = bodyData.approvedLocationIds;
+      if (ids.length === 0) {
+        return NextResponse.json({ error: 'No IDs provided' }, { status: 400 });
+      }
+      const locations = await prisma.vendor_approved_locations.findMany({
+        where: { id: { in: ids }, vendorId },
+        include: { locations: { select: { name: true } } },
+      });
+      if (locations.length === 0) {
+        return NextResponse.json({ error: 'No matching locations found' }, { status: 404 });
+      }
+      await prisma.vendor_approved_locations.updateMany({
+        where: { id: { in: ids }, vendorId },
+        data: { isActive: false },
+      });
+      const names = locations.map((l) => l.locations?.name).filter(Boolean);
+      sendVendorDirectNotification({
+        vendorId,
+        title: '📍 Locations Removed',
+        body: `${locations.length} location${locations.length > 1 ? 's have' : ' has'} been removed by the admin.`,
+        type: 'location_rejected',
+        serviceType: 'general',
+      }).catch((err: any) => console.error('[LocBulkDelete] Vendor notify failed:', err));
+      return NextResponse.json({ success: true, message: `Removed ${locations.length} locations` });
+    }
+
+    if (!approvedLocationId) {
+      return NextResponse.json({ error: 'approvedLocationId is required' }, { status: 400 });
+    }
+
+    const approvedLocation = await prisma.vendor_approved_locations.findFirst({
+      where: { id: approvedLocationId, vendorId },
+      include: { locations: { select: { name: true } } },
+    });
+
+    if (!approvedLocation) {
+      return NextResponse.json({ error: 'Approved location not found' }, { status: 404 });
+    }
+
+    await prisma.vendor_approved_locations.update({
+      where: { id: approvedLocationId },
+      data: { isActive: false },
+    });
+
+    const locationName = approvedLocation.locations?.name || 'the location';
+
+    sendVendorDirectNotification({
+      vendorId,
+      title: '📍 Location Removed',
+      body: `Your access to ${locationName} has been removed by the admin.`,
+      type: 'location_rejected',
+      serviceType: 'general',
+    }).catch((err: any) => console.error('[LocDelete] Vendor notify failed:', err));
+
+    return NextResponse.json({ success: true, message: 'Location removed successfully' });
+  } catch (error: any) {
+    logger.error('Delete approved location error', error);
+    return NextResponse.json(
+      { error: 'Failed to remove location', details: error?.message },
+      { status: 500 }
+    );
+  }
+}

@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { SessionProvider, useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { Loader2, Menu, X, Home, FileText, MapPin, Briefcase, LogOut, Users, Store, MessageSquare, Headphones, TrendingUp, Building2 } from 'lucide-react';
+import { Loader2, Menu, X, Home, FileText, MapPin, Briefcase, LogOut, Users, Store, MessageSquare, Headphones, TrendingUp, Building2, IndianRupee } from 'lucide-react';
 import Link from 'next/link';
 import { signOut } from 'next-auth/react';
 import { ToastProvider } from '@/components/ui/toast';
@@ -18,6 +18,7 @@ const SIDEBAR_LINKS = [
   { href: '/manager/vendor-performance', label: 'Performance', icon: TrendingUp },
   { href: '/manager/chats', label: 'Chats', icon: MessageSquare },
   { href: '/manager/locations', label: 'My Locations', icon: MapPin },
+  { href: '/manager/city-pricing', label: 'City Pricing', icon: IndianRupee },
   { href: '/manager/helpdesk', label: 'Helpdesk', icon: Headphones },
 ];
 

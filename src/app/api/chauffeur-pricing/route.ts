@@ -113,22 +113,25 @@ export async function GET(request: NextRequest) {
         );
       }
 
-      // Look for airport transfer route package
-      const airportRoutePackage = await prisma.chauffeur_route_packages.findFirst({
-        where: {
-          vehicleCategoryId,
-          OR: [
-            { fromLocationId, toLocationId },
-            { fromLocationId: toLocationId, toLocationId: fromLocationId },
-          ],
-          isActive: true,
-        },
-        include: {
-          chauffeur_vehicle_categories: { select: { id: true, name: true } },
-          locations_chauffeur_route_packages_fromLocationIdTolocations: { select: { id: true, name: true, type: true, code: true } },
-          locations_chauffeur_route_packages_toLocationIdTolocations: { select: { id: true, name: true, type: true, code: true } },
-        },
+      // Look for airport transfer route package — exact direction first, then reverse
+      const include = {
+        chauffeur_vehicle_categories: { select: { id: true, name: true } },
+        locations_chauffeur_route_packages_fromLocationIdTolocations: { select: { id: true, name: true, type: true, code: true } },
+        locations_chauffeur_route_packages_toLocationIdTolocations: { select: { id: true, name: true, type: true, code: true } },
+      } as const;
+
+      let airportRoutePackage = await prisma.chauffeur_route_packages.findFirst({
+        where: { vehicleCategoryId, fromLocationId, toLocationId, isActive: true },
+        include,
       });
+
+      if (!airportRoutePackage) {
+        // Try reverse direction
+        airportRoutePackage = await prisma.chauffeur_route_packages.findFirst({
+          where: { vehicleCategoryId, fromLocationId: toLocationId, toLocationId: fromLocationId, isActive: true },
+          include,
+        });
+      }
 
       if (!airportRoutePackage) {
         return NextResponse.json({
@@ -207,15 +210,16 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // First check if there's a pre-defined route package
-    const routePackage = await prisma.chauffeur_route_packages.findFirst({
+    // STEP 0: Check if admin has forced package pricing for this route (overrides distance matrix)
+    const forcedPackage = await prisma.chauffeur_route_packages.findFirst({
       where: {
         vehicleCategoryId,
+        forcePackagePricing: true,
+        isActive: true,
         OR: [
           { fromLocationId, toLocationId },
           { fromLocationId: toLocationId, toLocationId: fromLocationId },
         ],
-        isActive: true,
       },
       include: {
         chauffeur_vehicle_categories: { select: { id: true, name: true } },
@@ -224,38 +228,42 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    if (routePackage) {
-      // Use fixed route package pricing
-      const isReverse = routePackage.fromLocationId === toLocationId;
-      const basePrice = routePackage.basePrice;
+    if (forcedPackage) {
+      const isReverse = forcedPackage.fromLocationId === toLocationId;
+      const basePrice = forcedPackage.basePrice;
       const roundTripPrice = tripType === 'round_trip'
-        ? Math.round(basePrice * routePackage.returnMultiplier)
+        ? Math.round(basePrice * forcedPackage.returnMultiplier)
         : basePrice;
 
       return NextResponse.json({
         success: true,
         tripType,
-        pricingMethod: 'route_package',
+        pricingMethod: 'forced_package',
+        forcedByAdmin: true,
         routePackage: {
-          ...routePackage,
-          fromLocation: isReverse ? routePackage.locations_chauffeur_route_packages_toLocationIdTolocations : routePackage.locations_chauffeur_route_packages_fromLocationIdTolocations,
-          toLocation: isReverse ? routePackage.locations_chauffeur_route_packages_fromLocationIdTolocations : routePackage.locations_chauffeur_route_packages_toLocationIdTolocations,
+          ...forcedPackage,
+          fromLocation: isReverse
+            ? forcedPackage.locations_chauffeur_route_packages_toLocationIdTolocations
+            : forcedPackage.locations_chauffeur_route_packages_fromLocationIdTolocations,
+          toLocation: isReverse
+            ? forcedPackage.locations_chauffeur_route_packages_fromLocationIdTolocations
+            : forcedPackage.locations_chauffeur_route_packages_toLocationIdTolocations,
         },
         pricing: {
-          estimatedKm: routePackage.estimatedKm,
-          basePrice: routePackage.basePrice,
-          roundTripMultiplier: tripType === 'round_trip' ? routePackage.returnMultiplier : 1,
+          estimatedKm: forcedPackage.estimatedKm,
+          basePrice,
+          roundTripMultiplier: tripType === 'round_trip' ? forcedPackage.returnMultiplier : 1,
           totalBeforeGst: roundTripPrice,
           gst: 0,
           grandTotal: roundTripPrice,
-          tollsEstimate: routePackage.tollsEstimate || 0,
-          statePermitCharge: routePackage.statePermitCharge || 0,
+          tollsEstimate: forcedPackage.tollsEstimate || 0,
+          statePermitCharge: forcedPackage.statePermitCharge || 0,
         },
+        note: 'Distance matrix bypassed — admin has set fixed package pricing for this route.',
       });
     }
 
-    // Dynamic pricing based on distance matrix + city pricing
-    // Get distance
+    // STEP 1: Check distance matrix + city pricing first (dynamic, date-based pricing)
     const distance = await prisma.city_distance_matrix.findFirst({
       where: {
         OR: [
@@ -270,34 +278,22 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    if (!distance) {
-      return NextResponse.json({
-        success: false,
-        error: 'Distance not configured for this route. Please contact support.',
-        suggestion: 'Admin needs to add this route to the distance matrix.',
-      }, { status: 404 });
-    }
+    const cityPricing = distance
+      ? await prisma.chauffeur_city_pricing.findFirst({
+          where: {
+            vehicleCategoryId,
+            locationId: fromLocationId,
+            isActive: true,
+          },
+          include: {
+            chauffeur_vehicle_categories: { select: { id: true, name: true } },
+            locations: { select: { id: true, name: true } },
+          },
+        })
+      : null;
 
-    // Get city pricing for the origin city
-    const cityPricing = await prisma.chauffeur_city_pricing.findFirst({
-      where: {
-        vehicleCategoryId,
-        locationId: fromLocationId,
-        isActive: true,
-      },
-      include: {
-        chauffeur_vehicle_categories: { select: { id: true, name: true } },
-        locations: { select: { id: true, name: true } },
-      },
-    });
-
-    if (!cityPricing) {
-      return NextResponse.json({
-        success: false,
-        error: 'Pricing not configured for this vehicle category in this city',
-        suggestion: 'Admin needs to add pricing for this vehicle category and city.',
-      }, { status: 404 });
-    }
+    // If both distance matrix AND city pricing exist — use dynamic pricing
+    if (distance && cityPricing) {
 
     // Calculate pricing
     const oneWayKm = distance.distanceKm;
@@ -358,38 +354,92 @@ export async function GET(request: NextRequest) {
       grandTotal,
     };
 
-    return NextResponse.json({
-      success: true,
-      tripType,
-      pricingMethod: 'distance_matrix',
-      route: {
-        from: distance.fromLocationId === fromLocationId ? distance.locations_city_distance_matrix_fromLocationIdTolocations : distance.locations_city_distance_matrix_toLocationIdTolocations,
-        to: distance.fromLocationId === fromLocationId ? distance.locations_city_distance_matrix_toLocationIdTolocations : distance.locations_city_distance_matrix_fromLocationIdTolocations,
-        oneWayDistance: oneWayKm,
-        estimatedDuration: distance.durationText || `${Math.round(distance.durationMinutes || 0)} mins`,
-        routeVia: distance.routeVia,
+      return NextResponse.json({
+        success: true,
+        tripType,
+        pricingMethod: 'distance_matrix',
+        route: {
+          from: distance.fromLocationId === fromLocationId ? distance.locations_city_distance_matrix_fromLocationIdTolocations : distance.locations_city_distance_matrix_toLocationIdTolocations,
+          to: distance.fromLocationId === fromLocationId ? distance.locations_city_distance_matrix_toLocationIdTolocations : distance.locations_city_distance_matrix_fromLocationIdTolocations,
+          oneWayDistance: oneWayKm,
+          estimatedDuration: distance.durationText || `${Math.round(distance.durationMinutes || 0)} mins`,
+          routeVia: distance.routeVia,
+        },
+        chauffeur_vehicle_categories: cityPricing.vehicle_category,
+        calculation: {
+          days,
+          actualKm: totalKm,
+          minKmPerDay: cityPricing.minKmPerDay,
+          chargeableKm,
+          perKmRate: cityPricing.baseKmRate,
+        },
+        pricing: breakdown,
+        inclusions: {
+          tollsIncluded: cityPricing.tollsIncluded,
+          statePermitIncluded: cityPricing.statePermitIncluded,
+          parkingIncluded: cityPricing.parkingIncluded,
+        },
+        notes: [
+          `Minimum ${cityPricing.minKmPerDay} km/day applicable`,
+          tripType === 'round_trip' ? 'Round trip calculation includes return journey' : 'One-way fare only',
+          !cityPricing.tollsIncluded ? 'Toll charges as per actuals' : 'Tolls included',
+          !cityPricing.parkingIncluded ? 'Parking charges extra' : 'Parking included',
+        ],
+      });
+    }
+
+    // STEP 2: Fallback — check route package (fixed pricing)
+    const routePackage = await prisma.chauffeur_route_packages.findFirst({
+      where: {
+        vehicleCategoryId,
+        OR: [
+          { fromLocationId, toLocationId },
+          { fromLocationId: toLocationId, toLocationId: fromLocationId },
+        ],
+        isActive: true,
       },
-      chauffeur_vehicle_categories: cityPricing.vehicle_category,
-      calculation: {
-        days,
-        actualKm: totalKm,
-        minKmPerDay: cityPricing.minKmPerDay,
-        chargeableKm,
-        perKmRate: cityPricing.baseKmRate,
+      include: {
+        chauffeur_vehicle_categories: { select: { id: true, name: true } },
+        locations_chauffeur_route_packages_fromLocationIdTolocations: { select: { id: true, name: true } },
+        locations_chauffeur_route_packages_toLocationIdTolocations: { select: { id: true, name: true } },
       },
-      pricing: breakdown,
-      inclusions: {
-        tollsIncluded: cityPricing.tollsIncluded,
-        statePermitIncluded: cityPricing.statePermitIncluded,
-        parkingIncluded: cityPricing.parkingIncluded,
-      },
-      notes: [
-        `Minimum ${cityPricing.minKmPerDay} km/day applicable`,
-        tripType === 'round_trip' ? 'Round trip calculation includes return journey' : 'One-way fare only',
-        !cityPricing.tollsIncluded ? 'Toll charges as per actuals' : 'Tolls included',
-        !cityPricing.parkingIncluded ? 'Parking charges extra' : 'Parking included',
-      ],
     });
+
+    if (routePackage) {
+      const isReverse = routePackage.fromLocationId === toLocationId;
+      const basePrice = routePackage.basePrice;
+      const roundTripPrice = tripType === 'round_trip'
+        ? Math.round(basePrice * routePackage.returnMultiplier)
+        : basePrice;
+
+      return NextResponse.json({
+        success: true,
+        tripType,
+        pricingMethod: 'route_package',
+        routePackage: {
+          ...routePackage,
+          fromLocation: isReverse ? routePackage.locations_chauffeur_route_packages_toLocationIdTolocations : routePackage.locations_chauffeur_route_packages_fromLocationIdTolocations,
+          toLocation: isReverse ? routePackage.locations_chauffeur_route_packages_fromLocationIdTolocations : routePackage.locations_chauffeur_route_packages_toLocationIdTolocations,
+        },
+        pricing: {
+          estimatedKm: routePackage.estimatedKm,
+          basePrice: routePackage.basePrice,
+          roundTripMultiplier: tripType === 'round_trip' ? routePackage.returnMultiplier : 1,
+          totalBeforeGst: roundTripPrice,
+          gst: 0,
+          grandTotal: roundTripPrice,
+          tollsEstimate: routePackage.tollsEstimate || 0,
+          statePermitCharge: routePackage.statePermitCharge || 0,
+        },
+      });
+    }
+
+    // STEP 3: Nothing configured — not available
+    return NextResponse.json({
+      success: false,
+      error: 'Pricing not available for this route',
+      suggestion: 'Admin needs to configure distance matrix + city pricing, or add a route package for this route.',
+    }, { status: 404 });
   } catch (error: any) {
     logger.error('Failed to calculate pricing', error);
     return NextResponse.json(

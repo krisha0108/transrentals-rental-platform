@@ -158,6 +158,81 @@ export async function GET(request: NextRequest) {
   }
 }
 
+// DELETE - Withdraw a pending request OR remove an approved location
+export async function DELETE(request: NextRequest) {
+  try {
+    const auth = await getVendorAuth(request);
+    if (!auth.authenticated || !auth.vendorId) {
+      return NextResponse.json({ error: auth.error || 'Unauthorized' }, { status: 401 });
+    }
+    const vendorId = auth.vendorId;
+
+    const { searchParams } = new URL(request.url);
+    const locationId = searchParams.get('locationId');
+    const type = searchParams.get('type'); // 'request' | 'approved'
+
+    // Read body only when Content-Type is JSON (bulk requests)
+    let bodyData: any = null;
+    if (request.headers.get('content-type')?.includes('application/json')) {
+      try { bodyData = await request.json(); } catch {}
+    }
+
+    const effectiveType = type || bodyData?.type;
+    const locationIds: string[] = bodyData?.locationIds?.length
+      ? bodyData.locationIds
+      : locationId ? [locationId] : [];
+
+    if (!effectiveType || locationIds.length === 0) {
+      return NextResponse.json({ error: 'locationId(s) and type are required' }, { status: 400 });
+    }
+
+    if (effectiveType === 'request') {
+      if (locationIds.length === 1) {
+        const existing = await prisma.vendor_location_requests.findUnique({
+          where: { vendorId_locationId: { vendorId, locationId: locationIds[0] } },
+        });
+        if (!existing) return NextResponse.json({ error: 'Request not found' }, { status: 404 });
+        if (existing.status !== 'PENDING') return NextResponse.json({ error: 'Only pending requests can be withdrawn' }, { status: 400 });
+        await prisma.vendor_location_requests.delete({
+          where: { vendorId_locationId: { vendorId, locationId: locationIds[0] } },
+        });
+      } else {
+        await prisma.vendor_location_requests.deleteMany({
+          where: { vendorId, locationId: { in: locationIds }, status: 'PENDING' },
+        });
+      }
+      return NextResponse.json({ success: true, message: `${locationIds.length === 1 ? 'Location request withdrawn' : `${locationIds.length} requests withdrawn`}` });
+    }
+
+    if (effectiveType === 'approved') {
+      if (locationIds.length === 1) {
+        const existing = await prisma.vendor_approved_locations.findUnique({
+          where: { vendorId_locationId: { vendorId, locationId: locationIds[0] } },
+        });
+        if (!existing) return NextResponse.json({ error: 'Approved location not found' }, { status: 404 });
+        await prisma.vendor_approved_locations.update({
+          where: { vendorId_locationId: { vendorId, locationId: locationIds[0] } },
+          data: { isActive: false },
+        });
+      } else {
+        await prisma.vendor_approved_locations.updateMany({
+          where: { vendorId, locationId: { in: locationIds } },
+          data: { isActive: false },
+        });
+      }
+      return NextResponse.json({ success: true, message: `${locationIds.length === 1 ? 'Location removed successfully' : `${locationIds.length} locations removed`}` });
+    }
+
+    return NextResponse.json({ error: 'Invalid type. Use "request" or "approved"' }, { status: 400 });
+  } catch (error: any) {
+    logger.error('Delete location error', error);
+    return NextResponse.json(
+      { error: 'Failed to process request', details: error?.message },
+      { status: 500 }
+    );
+  }
+}
+
 // POST - Request a location
 export async function POST(request: NextRequest) {
   try {

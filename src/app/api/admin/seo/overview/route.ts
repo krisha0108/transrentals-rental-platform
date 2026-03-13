@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 import { STATIC_PAGES } from '@/lib/seo/service-meta-templates';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   try {
     // All parent services with location counts

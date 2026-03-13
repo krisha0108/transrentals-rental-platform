@@ -110,24 +110,52 @@ export default function B2BInvoicePage() {
       const element = invoiceRef.current;
       if (!element) return;
 
+      // Hide pay section for PDF
       const paySection = document.getElementById('pay-section');
       if (paySection) paySection.style.display = 'none';
+
+      // Force desktop width for clean PDF render on mobile
+      const originalStyle = element.style.cssText;
+      element.style.width = '768px';
+      element.style.maxWidth = '768px';
+      element.style.minWidth = '768px';
+
+      // Wait a tick for layout to settle
+      await new Promise(r => setTimeout(r, 100));
 
       const canvas = await html2canvas(element, {
         scale: 2,
         useCORS: true,
         backgroundColor: '#ffffff',
         logging: false,
+        width: 768,
+        windowWidth: 768,
       });
 
+      // Restore original styles
+      element.style.cssText = originalStyle;
       if (paySection) paySection.style.display = '';
 
       const imgData = canvas.toDataURL('image/png');
       const pdf = new jsPDF('p', 'mm', 'a4');
       const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+      const pdfPageHeight = pdf.internal.pageSize.getHeight();
+      const imgHeight = (canvas.height * pdfWidth) / canvas.width;
 
-      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      // Handle multi-page if content is taller than one A4 page
+      let heightLeft = imgHeight;
+      let position = 0;
+
+      pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, imgHeight);
+      heightLeft -= pdfPageHeight;
+
+      while (heightLeft > 0) {
+        position -= pdfPageHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, imgHeight);
+        heightLeft -= pdfPageHeight;
+      }
+
       pdf.save(`${invoice.invoiceNumber}.pdf`);
     } catch (e) {
       console.error('PDF error:', e);
@@ -177,16 +205,16 @@ export default function B2BInvoicePage() {
   const isPaid = invoice.status === 'PAID';
 
   return (
-    <div className="min-h-screen bg-gray-100 py-8 px-4">
+    <div className="min-h-screen bg-gray-100 py-4 sm:py-8 px-2 sm:px-4">
       {/* Action Buttons */}
-      <div className="max-w-3xl mx-auto mb-4 flex items-center justify-between">
-        <h1 className="text-lg font-bold text-gray-700 flex items-center gap-2">
+      <div className="max-w-3xl mx-auto mb-4 flex items-center justify-between px-2">
+        <h1 className="text-base sm:text-lg font-bold text-gray-700 flex items-center gap-2">
           <FileText className="w-5 h-5 text-teal-600" /> Invoice
         </h1>
         <button
           onClick={handleDownloadPDF}
           disabled={downloading}
-          className="flex items-center gap-2 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 disabled:opacity-50 text-sm font-medium"
+          className="flex items-center gap-1.5 px-3 sm:px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 disabled:opacity-50 text-xs sm:text-sm font-medium"
         >
           {downloading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
           {downloading ? 'Generating...' : 'Download PDF'}
@@ -196,50 +224,50 @@ export default function B2BInvoicePage() {
       {/* Invoice Content */}
       <div ref={invoiceRef} className="max-w-3xl mx-auto bg-white rounded-xl shadow-lg overflow-hidden">
         {/* Header */}
-        <div className="bg-gradient-to-r from-teal-600 to-teal-700 px-8 py-6">
+        <div className="bg-gradient-to-r from-teal-600 to-teal-700 px-4 sm:px-8 py-4 sm:py-6">
           <div className="flex items-center justify-between">
             <div className="flex flex-col items-start">
-              <img src="/assets/logo-white.png" alt="TransRentals" className="h-8" />
-              <p className="text-teal-200 text-[10px] mt-1 tracking-wide">Corporate Transport Solutions</p>
+              <img src="/assets/logo-white.png" alt="TransRentals" className="h-6 sm:h-8" />
+              <p className="text-teal-200 text-[9px] sm:text-[10px] mt-1 tracking-wide">Corporate Transport Solutions</p>
             </div>
             <div className="text-right">
-              <div className="text-white text-2xl font-bold tracking-wider">INVOICE</div>
-              <div className="text-teal-100 text-sm font-mono mt-1">{invoice.invoiceNumber}</div>
+              <div className="text-white text-lg sm:text-2xl font-bold tracking-wider">INVOICE</div>
+              <div className="text-teal-100 text-xs sm:text-sm font-mono mt-1">{invoice.invoiceNumber}</div>
             </div>
           </div>
         </div>
 
         {/* Status Banner */}
         {isPaid && (
-          <div className="bg-green-50 border-b border-green-200 px-8 py-3 flex items-center gap-2">
+          <div className="bg-green-50 border-b border-green-200 px-4 sm:px-8 py-3 flex flex-wrap items-center gap-2">
             <CheckCircle className="w-5 h-5 text-green-600" />
-            <span className="text-green-700 font-semibold">PAID</span>
-            <span className="text-green-600 text-sm ml-2">on {formatDate(invoice.paidAt)}</span>
-            {invoice.transactionRef && <span className="text-green-500 text-xs ml-auto font-mono">Ref: {invoice.transactionRef}</span>}
+            <span className="text-green-700 font-semibold text-sm">PAID</span>
+            <span className="text-green-600 text-xs sm:text-sm">on {formatDate(invoice.paidAt)}</span>
+            {invoice.transactionRef && <span className="text-green-500 text-xs sm:ml-auto font-mono w-full sm:w-auto">Ref: {invoice.transactionRef}</span>}
           </div>
         )}
 
-        <div className="px-8 py-6 space-y-6">
+        <div className="px-4 sm:px-8 py-4 sm:py-6 space-y-5 sm:space-y-6">
           {/* Bill To & Invoice Info */}
-          <div className="grid grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-8">
             <div>
               <p className="text-xs text-gray-400 uppercase tracking-wider font-semibold mb-2">Bill To</p>
               <div className="space-y-1">
-                <p className="text-lg font-bold text-gray-900">{invoice.companyName}</p>
+                <p className="text-base sm:text-lg font-bold text-gray-900">{invoice.companyName}</p>
                 {booking?.customer?.name && <p className="text-sm text-gray-600">{booking.customer.name}</p>}
                 {invoice.customerEmail && (
-                  <p className="text-sm text-gray-500 flex items-center gap-1"><Mail className="w-3.5 h-3.5" /> {invoice.customerEmail}</p>
+                  <p className="text-xs sm:text-sm text-gray-500 flex items-center gap-1"><Mail className="w-3.5 h-3.5 flex-shrink-0" /> <span className="truncate">{invoice.customerEmail}</span></p>
                 )}
                 {invoice.customerPhone && (
-                  <p className="text-sm text-gray-500 flex items-center gap-1"><Phone className="w-3.5 h-3.5" /> {invoice.customerPhone}</p>
+                  <p className="text-xs sm:text-sm text-gray-500 flex items-center gap-1"><Phone className="w-3.5 h-3.5 flex-shrink-0" /> {invoice.customerPhone}</p>
                 )}
                 {booking?.customer?.gstin && (
-                  <p className="text-sm text-gray-500">GSTIN: {booking.customer.gstin}</p>
+                  <p className="text-xs sm:text-sm text-gray-500">GSTIN: {booking.customer.gstin}</p>
                 )}
               </div>
             </div>
-            <div className="text-right">
-              <div className="space-y-2">
+            <div className="sm:text-right">
+              <div className="flex sm:flex-col gap-3 sm:gap-2 flex-wrap">
                 <div>
                   <p className="text-xs text-gray-400 uppercase tracking-wider">Invoice Date</p>
                   <p className="text-sm font-semibold text-gray-800">{formatDate(invoice.createdAt)}</p>
@@ -261,44 +289,44 @@ export default function B2BInvoicePage() {
           {/* Booking Details */}
           <div>
             <p className="text-xs text-gray-400 uppercase tracking-wider font-semibold mb-3">Booking Details</p>
-            <div className="bg-gray-50 rounded-lg p-4 space-y-3">
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div className="bg-gray-50 rounded-lg p-3 sm:p-4 space-y-3">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
                 <div>
-                  <p className="text-xs text-gray-500 flex items-center gap-1"><Car className="w-3 h-3" /> Service Type</p>
-                  <p className="font-semibold text-gray-900 capitalize text-sm mt-0.5">{booking?.serviceType === 'self-drive' ? 'Self Drive' : `${booking?.serviceType} Rental`}</p>
+                  <p className="text-[10px] sm:text-xs text-gray-500 flex items-center gap-1"><Car className="w-3 h-3" /> Service Type</p>
+                  <p className="font-semibold text-gray-900 capitalize text-xs sm:text-sm mt-0.5">{booking?.serviceType === 'self-drive' ? 'Self Drive' : `${booking?.serviceType} Rental`}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-gray-500">Trip Type</p>
-                  <p className="font-semibold text-gray-900 text-sm mt-0.5">{TRIP_TYPE_LABELS[booking?.tripType] || booking?.tripType}</p>
+                  <p className="text-[10px] sm:text-xs text-gray-500">Trip Type</p>
+                  <p className="font-semibold text-gray-900 text-xs sm:text-sm mt-0.5">{TRIP_TYPE_LABELS[booking?.tripType] || booking?.tripType}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-gray-500 flex items-center gap-1"><Users className="w-3 h-3" /> Vehicles</p>
-                  <p className="font-semibold text-gray-900 text-sm mt-0.5">{booking?.vehiclesRequired}{booking?.passengerCount ? ` (${booking.passengerCount} passengers)` : ''}</p>
+                  <p className="text-[10px] sm:text-xs text-gray-500 flex items-center gap-1"><Users className="w-3 h-3" /> Vehicles</p>
+                  <p className="font-semibold text-gray-900 text-xs sm:text-sm mt-0.5">{booking?.vehiclesRequired}{booking?.passengerCount ? ` (${booking.passengerCount} pax)` : ''}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-gray-500 flex items-center gap-1"><MapPin className="w-3 h-3" /> Pickup</p>
-                  <p className="font-semibold text-gray-900 text-sm mt-0.5">{booking?.pickupLocation}</p>
+                  <p className="text-[10px] sm:text-xs text-gray-500 flex items-center gap-1"><MapPin className="w-3 h-3" /> Pickup</p>
+                  <p className="font-semibold text-gray-900 text-xs sm:text-sm mt-0.5 break-words">{booking?.pickupLocation}</p>
                 </div>
               </div>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
                 {booking?.dropLocation && (
                   <div>
-                    <p className="text-xs text-gray-500 flex items-center gap-1"><MapPin className="w-3 h-3" /> Drop</p>
-                    <p className="font-semibold text-gray-900 text-sm mt-0.5">{booking.dropLocation}</p>
+                    <p className="text-[10px] sm:text-xs text-gray-500 flex items-center gap-1"><MapPin className="w-3 h-3" /> Drop</p>
+                    <p className="font-semibold text-gray-900 text-xs sm:text-sm mt-0.5 break-words">{booking.dropLocation}</p>
                   </div>
                 )}
                 <div>
-                  <p className="text-xs text-gray-500 flex items-center gap-1"><Calendar className="w-3 h-3" /> Pickup Date</p>
-                  <p className="font-semibold text-gray-900 text-sm mt-0.5">{formatShortDate(booking?.scheduledDate)}</p>
+                  <p className="text-[10px] sm:text-xs text-gray-500 flex items-center gap-1"><Calendar className="w-3 h-3" /> Pickup Date</p>
+                  <p className="font-semibold text-gray-900 text-xs sm:text-sm mt-0.5">{formatShortDate(booking?.scheduledDate)}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-gray-500 flex items-center gap-1"><Clock className="w-3 h-3" /> Pickup Time</p>
-                  <p className="font-semibold text-gray-900 text-sm mt-0.5">{formatTime(booking?.scheduledTime)}</p>
+                  <p className="text-[10px] sm:text-xs text-gray-500 flex items-center gap-1"><Clock className="w-3 h-3" /> Pickup Time</p>
+                  <p className="font-semibold text-gray-900 text-xs sm:text-sm mt-0.5">{formatTime(booking?.scheduledTime)}</p>
                 </div>
                 {booking?.returnDate && (
                   <div>
-                    <p className="text-xs text-gray-500 flex items-center gap-1"><Calendar className="w-3 h-3" /> Return</p>
-                    <p className="font-semibold text-gray-900 text-sm mt-0.5">
+                    <p className="text-[10px] sm:text-xs text-gray-500 flex items-center gap-1"><Calendar className="w-3 h-3" /> Return</p>
+                    <p className="font-semibold text-gray-900 text-xs sm:text-sm mt-0.5">
                       {formatShortDate(booking.returnDate)}{booking.returnTime ? ` ${formatTime(booking.returnTime)}` : ''}
                     </p>
                   </div>
@@ -310,52 +338,54 @@ export default function B2BInvoicePage() {
           {/* Vehicle & Trip Table */}
           <div>
             <p className="text-xs text-gray-400 uppercase tracking-wider font-semibold mb-3">Vehicles & Trips</p>
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="bg-teal-50">
-                  <th className="text-left px-4 py-2.5 text-teal-700 font-semibold text-xs uppercase w-8">#</th>
-                  <th className="text-left px-4 py-2.5 text-teal-700 font-semibold text-xs uppercase">Trip Code</th>
-                  <th className="text-left px-4 py-2.5 text-teal-700 font-semibold text-xs uppercase">Vehicle</th>
-                  <th className="text-left px-4 py-2.5 text-teal-700 font-semibold text-xs uppercase">Reg. No.</th>
-                  <th className="text-left px-4 py-2.5 text-teal-700 font-semibold text-xs uppercase">Driver</th>
-                  <th className="text-center px-4 py-2.5 text-teal-700 font-semibold text-xs uppercase">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {booking?.trips?.map((trip: any, i: number) => {
-                  const modelName = trip.vehicle?.vehicle_models?.name || null;
-                  const brandName = trip.vehicle?.brands?.name || null;
-                  const vehName = trip.vehicleName
-                    || trip.vehicle?.vehicleName
-                    || [brandName, modelName].filter(Boolean).join(' ')
-                    || booking?.serviceType?.replace(/-/g, ' ') || '-';
-                  const vehNumber = trip.vehicleNumber || trip.vehicle?.registrationNumber || '-';
-                  const drvName = trip.driverName || trip.driver?.name || '-';
-                  return (
-                    <tr key={trip.id} className="hover:bg-gray-50/50">
-                      <td className="px-4 py-3 text-gray-500">{i + 1}</td>
-                      <td className="px-4 py-3 font-mono text-xs font-bold text-gray-800">{trip.tripCode}</td>
-                      <td className="px-4 py-3 text-gray-900 font-medium text-xs">{vehName}</td>
-                      <td className="px-4 py-3 text-gray-600 font-mono text-xs">{vehNumber}</td>
-                      <td className="px-4 py-3 text-gray-700 text-xs">{drvName}</td>
-                      <td className="px-4 py-3 text-center">
-                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                          trip.status === 'COMPLETED' ? 'bg-green-100 text-green-700' :
-                          trip.status === 'STARTED' ? 'bg-blue-100 text-blue-700' :
-                          trip.status === 'CANCELLED' ? 'bg-red-100 text-red-700' :
-                          'bg-gray-100 text-gray-600'
-                        }`}>{trip.status}</span>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+            <div className="overflow-x-auto -mx-4 sm:mx-0">
+              <table className="w-full text-sm min-w-[520px]">
+                <thead>
+                  <tr className="bg-teal-50">
+                    <th className="text-left px-3 sm:px-4 py-2.5 text-teal-700 font-semibold text-xs uppercase w-8">#</th>
+                    <th className="text-left px-3 sm:px-4 py-2.5 text-teal-700 font-semibold text-xs uppercase">Trip Code</th>
+                    <th className="text-left px-3 sm:px-4 py-2.5 text-teal-700 font-semibold text-xs uppercase">Vehicle</th>
+                    <th className="text-left px-3 sm:px-4 py-2.5 text-teal-700 font-semibold text-xs uppercase">Reg. No.</th>
+                    <th className="text-left px-3 sm:px-4 py-2.5 text-teal-700 font-semibold text-xs uppercase">Driver</th>
+                    <th className="text-center px-3 sm:px-4 py-2.5 text-teal-700 font-semibold text-xs uppercase">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {booking?.trips?.map((trip: any, i: number) => {
+                    const modelName = trip.vehicle?.vehicle_models?.name || null;
+                    const brandName = trip.vehicle?.brands?.name || null;
+                    const vehName = trip.vehicleName
+                      || trip.vehicle?.vehicleName
+                      || [brandName, modelName].filter(Boolean).join(' ')
+                      || booking?.serviceType?.replace(/-/g, ' ') || '-';
+                    const vehNumber = trip.vehicleNumber || trip.vehicle?.registrationNumber || '-';
+                    const drvName = trip.driverName || trip.driver?.name || '-';
+                    return (
+                      <tr key={trip.id} className="hover:bg-gray-50/50">
+                        <td className="px-3 sm:px-4 py-3 text-gray-500">{i + 1}</td>
+                        <td className="px-3 sm:px-4 py-3 font-mono text-xs font-bold text-gray-800">{trip.tripCode}</td>
+                        <td className="px-3 sm:px-4 py-3 text-gray-900 font-medium text-xs">{vehName}</td>
+                        <td className="px-3 sm:px-4 py-3 text-gray-600 font-mono text-xs">{vehNumber}</td>
+                        <td className="px-3 sm:px-4 py-3 text-gray-700 text-xs">{drvName}</td>
+                        <td className="px-3 sm:px-4 py-3 text-center">
+                          <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                            trip.status === 'COMPLETED' ? 'bg-green-100 text-green-700' :
+                            trip.status === 'STARTED' ? 'bg-blue-100 text-blue-700' :
+                            trip.status === 'CANCELLED' ? 'bg-red-100 text-red-700' :
+                            'bg-gray-100 text-gray-600'
+                          }`}>{trip.status}</span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
 
           {/* Pricing */}
           <div className="flex justify-end">
-            <div className="w-72 space-y-2">
+            <div className="w-full sm:w-72 space-y-2">
               <div className="flex justify-between text-sm">
                 <span className="text-gray-500">Total Vehicles</span>
                 <span className="font-medium text-gray-800">{invoice.totalVehicles}</span>
@@ -370,7 +400,7 @@ export default function B2BInvoicePage() {
                 <span className="font-medium">{formatCurrency(invoice.totalAmount)}</span>
               </div>
               <div className="border-t-2 border-teal-600 pt-2" />
-              <div className="flex justify-between text-lg">
+              <div className="flex justify-between text-base sm:text-lg">
                 <span className="font-bold text-gray-900">Total Amount</span>
                 <span className="font-bold text-teal-700">{formatCurrency(invoice.totalAmount)}</span>
               </div>
@@ -390,7 +420,7 @@ export default function B2BInvoicePage() {
             {/* Admin / Manager view: show reminder button instead of pay button */}
             {isAdminOrManager && !isPaid && (
               <div className={`border rounded-xl p-5 ${invoice.status === 'OVERDUE' ? 'bg-red-50 border-red-200' : 'bg-gray-50 border-gray-200'}`}>
-                <div className="flex items-center justify-between flex-wrap gap-3">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                   <div>
                     <p className={`font-semibold text-sm ${invoice.status === 'OVERDUE' ? 'text-red-700' : 'text-gray-700'}`}>
                       {invoice.status === 'OVERDUE' ? '⚠️ Invoice is Overdue' : 'Invoice Pending Payment'}
@@ -404,7 +434,7 @@ export default function B2BInvoicePage() {
                   <button
                     onClick={sendReminder}
                     disabled={sendingReminder}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-50 transition ${
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-50 transition w-full sm:w-auto justify-center ${
                       invoice.status === 'OVERDUE'
                         ? 'bg-red-600 text-white hover:bg-red-700'
                         : 'bg-gray-700 text-white hover:bg-gray-800'

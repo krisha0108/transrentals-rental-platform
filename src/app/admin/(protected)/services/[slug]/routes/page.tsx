@@ -16,6 +16,8 @@ import {
   MapPin,
   ArrowLeft,
   Download,
+  Plane,
+  Zap,
 } from 'lucide-react';
 
 interface VehicleCategory {
@@ -47,6 +49,8 @@ interface RoutePackage {
   isPopular: boolean;
   displayOrder: number;
   isActive: boolean;
+  isAirportTransfer: boolean;
+  forcePackagePricing: boolean;
   chauffeur_vehicle_categories: { id: string; name: string; slug: string };
   fromLocation: { id: string; name: string; slug: string };
   toLocation: { id: string; name: string; slug: string };
@@ -73,6 +77,8 @@ const defaultFormData = {
   isPopular: false,
   displayOrder: 0,
   isActive: true,
+  isAirportTransfer: false,
+  forcePackagePricing: false,
 };
 
 export default function ServiceRoutesPage() {
@@ -146,6 +152,8 @@ export default function ServiceRoutesPage() {
       isPopular: route.isPopular,
       displayOrder: route.displayOrder,
       isActive: route.isActive,
+      isAirportTransfer: route.isAirportTransfer || false,
+      forcePackagePricing: route.forcePackagePricing || false,
     });
     setShowForm(true);
   };
@@ -174,6 +182,41 @@ export default function ServiceRoutesPage() {
       setError('Failed to save route');
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleToggleForcePackage = async (id: string, current: boolean) => {
+    try {
+      const route = routes.find((r) => r.id === id);
+      if (!route) return;
+
+      const response = await fetch(`/api/admin/services/${serviceSlug}/routes`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          vehicleCategoryId: route.vehicleCategoryId,
+          fromLocationId: route.fromLocationId,
+          toLocationId: route.toLocationId,
+          estimatedKm: route.estimatedKm,
+          estimatedDuration: route.estimatedDuration,
+          routeDescription: route.routeDescription,
+          basePrice: route.basePrice,
+          returnMultiplier: route.returnMultiplier,
+          tollsEstimate: route.tollsEstimate,
+          statePermitCharge: route.statePermitCharge,
+          nightSurcharge: route.nightSurcharge,
+          airportSurcharge: route.airportSurcharge,
+          isPopular: route.isPopular,
+          displayOrder: route.displayOrder,
+          isActive: route.isActive,
+          isAirportTransfer: route.isAirportTransfer,
+          forcePackagePricing: !current,
+        }),
+      });
+      const data = await response.json();
+      if (data.success) fetchData();
+    } catch (err) {
+      alert('Failed to update route');
     }
   };
 
@@ -592,6 +635,47 @@ export default function ServiceRoutesPage() {
                 </label>
               </div>
 
+              {/* Pricing behaviour toggles */}
+              <div className="bg-purple-50 rounded-xl p-4 space-y-3">
+                <h3 className="font-medium text-purple-900 text-sm">Pricing Behaviour</h3>
+
+                <label className="flex items-start gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={formData.isAirportTransfer}
+                    onChange={(e) => setFormData({ ...formData, isAirportTransfer: e.target.checked })}
+                    className="w-4 h-4 text-purple-600 rounded mt-0.5"
+                  />
+                  <div>
+                    <div className="flex items-center gap-1.5 text-sm font-medium text-gray-800">
+                      <Plane className="w-3.5 h-3.5 text-blue-500" />
+                      Airport Transfer
+                    </div>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      Mark this as an airport route. Pricing API will treat it as fixed airport fare.
+                    </p>
+                  </div>
+                </label>
+
+                <label className="flex items-start gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={formData.forcePackagePricing}
+                    onChange={(e) => setFormData({ ...formData, forcePackagePricing: e.target.checked })}
+                    className="w-4 h-4 text-orange-600 rounded mt-0.5"
+                  />
+                  <div>
+                    <div className="flex items-center gap-1.5 text-sm font-medium text-gray-800">
+                      <Zap className="w-3.5 h-3.5 text-orange-500" />
+                      Force Package Pricing
+                    </div>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      Override distance matrix — use this fixed package price for outstation trips on this route. Takes priority over city-pricing + distance matrix calculation.
+                    </p>
+                  </div>
+                </label>
+              </div>
+
               <div className="flex justify-end gap-3 pt-4 border-t">
                 <button
                   type="button"
@@ -659,6 +743,16 @@ export default function ServiceRoutesPage() {
                             {route.isPopular && (
                               <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
                             )}
+                            {route.isAirportTransfer && (
+                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-100 text-blue-700">
+                                <Plane className="w-2.5 h-2.5" /> Airport
+                              </span>
+                            )}
+                            {route.forcePackagePricing && (
+                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-orange-100 text-orange-700">
+                                <Zap className="w-2.5 h-2.5" /> Fixed
+                              </span>
+                            )}
                           </div>
                           {route.estimatedDuration && (
                             <p className="text-xs text-gray-500 mt-1">
@@ -691,6 +785,13 @@ export default function ServiceRoutesPage() {
                         </td>
                         <td className="px-4 py-3 text-center">
                           <div className="flex justify-center gap-1">
+                            <button
+                              onClick={() => handleToggleForcePackage(route.id, route.forcePackagePricing)}
+                              title={route.forcePackagePricing ? 'Force Package ON — click to disable' : 'Force Package OFF — click to enable (ignore distance matrix)'}
+                              className={`p-1.5 rounded ${route.forcePackagePricing ? 'bg-orange-100 text-orange-600 hover:bg-orange-200' : 'text-gray-400 hover:bg-gray-100 hover:text-orange-500'}`}
+                            >
+                              <Zap className="w-4 h-4" />
+                            </button>
                             <button
                               onClick={() => handleEdit(route)}
                               className="p-1.5 text-blue-600 hover:bg-blue-100 rounded"

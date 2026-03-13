@@ -8,6 +8,7 @@ import { smartRateLimit, detectDuplicate, getClientIdentifier, hashBookingData }
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/auth-options';
 import { sendQuoteRequestNotificationToVendors } from '@/lib/utils/vendor-notification-sender';
+import crypto from 'crypto';
 
 export const dynamic = 'force-dynamic';
 
@@ -19,6 +20,16 @@ function generateRequestNumber(): string {
     .toString()
     .padStart(4, '0');
   return `${prefix}-${year}-${random}`;
+}
+
+function generateB2BId(): string {
+  return 'c' + crypto.randomBytes(12).toString('base64url').toLowerCase().slice(0, 24);
+}
+
+function generateB2BBookingNumber(): string {
+  const year = new Date().getFullYear();
+  const random = Math.floor(Math.random() * 100000).toString().padStart(5, '0');
+  return `B2B-${year}-${random}`;
 }
 
 // POST - Customer creates a Bus Quote Request
@@ -95,6 +106,11 @@ export async function POST(request: NextRequest) {
       // Budget hint
       budgetMin,
       budgetMax,
+
+      // B2B fields
+      isB2B,
+      numberOfVehicles,
+      numberOfPersons,
     } = body;
 
     // ===== INPUT SANITIZATION (XSS Protection) =====
@@ -160,6 +176,77 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // ============ B2B FLOW ============
+    if (isB2B && customerId) {
+      const customer = await prisma.customers.findUnique({
+        where: { id: customerId },
+        select: { id: true, name: true, email: true, phone: true, companyName: true, isB2B: true, b2bStatus: true },
+      });
+
+      if (!customer || !customer.isB2B || customer.b2bStatus !== 'APPROVED') {
+        return NextResponse.json({ error: 'B2B access not approved' }, { status: 403 });
+      }
+
+      const bookingId = generateB2BId();
+      const bookingNumber = generateB2BBookingNumber();
+
+      // Build bus preference JSON for specialNotes
+      const busPreference = {
+        vehicleCategoryName: vehicleCategoryName || 'Standard Bus',
+        passengers: passengers ? parseInt(String(passengers)) : null,
+        needAC: needAC === true || needAC === 'true',
+        needLuxury: needLuxury === true || needLuxury === 'true',
+        needSleeper: needSleeper === true || needSleeper === 'true',
+        requirements: requirements || null,
+        routeDetails: routeDetails || null,
+        stops: stops || null,
+      };
+
+      // Calculate trip days
+      let calculatedTripDays = tripDays || 1;
+      if (returnDate && pickupDate && !tripDays) {
+        const diff = new Date(returnDate).getTime() - new Date(pickupDate).getTime();
+        calculatedTripDays = Math.max(1, Math.ceil(diff / (1000 * 60 * 60 * 24)));
+      }
+
+      const booking = await prisma.b2b_bookings.create({
+        data: {
+          id: bookingId,
+          bookingNumber,
+          customerId: customer.id,
+          customerName: customer.name,
+          customerEmail: customer.email,
+          customerPhone: customer.phone,
+          companyName: customer.companyName || customer.name,
+          serviceType: 'bus-rental',
+          vehiclesRequired: numberOfVehicles ? parseInt(numberOfVehicles) : 1,
+          passengerCount: numberOfPersons ? parseInt(numberOfPersons) : (passengers ? parseInt(String(passengers)) : null),
+          vehicleCategory: vehicleCategoryName || 'Standard Bus',
+          pickupLocation: pickupCity ? String(pickupCity).trim() : null,
+          dropLocation: dropCity ? String(dropCity).trim() : null,
+          tripType: tripType || 'outstation',
+          scheduledDate: new Date(pickupDate),
+          scheduledTime: pickupTime || '06:00',
+          returnDate: returnDate ? new Date(returnDate) : null,
+          returnTime: returnTime || null,
+          specialNotes: JSON.stringify(busPreference),
+          status: 'OPEN_FOR_QUOTES',
+        },
+      });
+
+      return NextResponse.json({
+        success: true,
+        isB2B: true,
+        message: 'B2B bus rental booking created. Vendors will be notified.',
+        booking: {
+          id: booking.id,
+          bookingNumber: booking.bookingNumber,
+          status: booking.status,
+        },
+      });
+    }
+
+    // ============ REGULAR FLOW ============
     // Find location for vendor matching (bus-rental service)
     // MySQL is case-insensitive by default with utf8mb4_general_ci collation
     let location = null;

@@ -321,10 +321,10 @@ async function handleCheckExists(body: { phone?: string; email?: string }): Prom
 
 // Handle customer registration
 async function handleRegister(
-  body: { name: string; email: string; phone: string; password: string; isB2B?: boolean; companyName?: string; gstin?: string; businessType?: string },
+  body: { name: string; email: string; phone: string; password: string; isB2B?: boolean; companyName?: string; gstin?: string; businessType?: string; companyAddress?: string; companyPhone?: string; companyEmail?: string },
   ip: string
 ): Promise<NextResponse> {
-  const { name, email, phone, password, isB2B, companyName, gstin, businessType } = body;
+  const { name, email, phone, password, isB2B, companyName, gstin, businessType, companyAddress, companyPhone, companyEmail } = body;
 
   if (!name || !email || !phone || !password) {
     return NextResponse.json(
@@ -395,6 +395,9 @@ async function handleRegister(
     customerData.companyName = companyName?.trim() || null;
     customerData.gstin = gstin?.trim() || null;
     customerData.businessType = businessType?.trim() || null;
+    customerData.companyAddress = companyAddress?.trim() || null;
+    customerData.companyPhone = companyPhone?.trim() || null;
+    customerData.companyEmail = companyEmail?.trim().toLowerCase() || null;
     customerData.b2bStatus = 'PENDING';
   }
 

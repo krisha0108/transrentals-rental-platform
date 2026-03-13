@@ -24,11 +24,12 @@ export async function GET(
     const vehicleCategoryId = searchParams.get('vehicleCategoryId');
     const fromLocationId = searchParams.get('fromLocationId');
 
-    const where: any = {};
+    const where: any = {
+      locations_chauffeur_route_packages_fromLocationIdTolocations: { type: { not: 'AIRPORT' } },
+      locations_chauffeur_route_packages_toLocationIdTolocations: { type: { not: 'AIRPORT' } },
+    };
     if (vehicleCategoryId) where.vehicleCategoryId = vehicleCategoryId;
     if (fromLocationId) where.fromLocationId = fromLocationId;
-
-    // TODO: Filter by serviceSlug when field is added to model
 
     const routes = await prisma.chauffeur_route_packages.findMany({
       where,
@@ -92,6 +93,8 @@ export async function POST(
       isPopular,
       displayOrder,
       isActive,
+      isAirportTransfer,
+      forcePackagePricing,
     } = body;
 
     if (!vehicleCategoryId || !fromLocationId || !toLocationId || !basePrice) {
@@ -134,6 +137,8 @@ export async function POST(
         isPopular: isPopular || false,
         displayOrder: displayOrder || 0,
         isActive: isActive !== false,
+        isAirportTransfer: isAirportTransfer || false,
+        forcePackagePricing: forcePackagePricing || false,
       },
       update: {
         estimatedKm: estimatedKm || 0,
@@ -148,6 +153,8 @@ export async function POST(
         isPopular: isPopular || false,
         displayOrder: displayOrder || 0,
         isActive: isActive !== false,
+        isAirportTransfer: isAirportTransfer || false,
+        forcePackagePricing: forcePackagePricing || false,
       },
       include: {
         chauffeur_vehicle_categories: { select: { id: true, name: true } },

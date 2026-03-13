@@ -5,21 +5,23 @@ import { transformPrismaResponse } from '@/lib/utils/api-transform';
 import logger from '@/lib/security/logger';
 export const dynamic = 'force-dynamic';
 
-// Map dashboard categories to actual Prisma enum values
-// BikeBookingStatus: PENDING_PAYMENT, PENDING_VENDOR, BROADCASTED, ACCEPTED, IN_PROGRESS, COMPLETED, CANCELLED, EXPIRED, REFUNDED
-// CarBookingStatus: Same as above
-// ChauffeurBookingStatus: Same + DRIVER_ASSIGNED
+// Waiting (Open) = only quote requests with PENDING/QUOTES_RECEIVED (vendor quote not accepted yet)
+// Confirmed       = all booking records pre-trip (payment pending → vendor assigned)
+// Ongoing         = booking records where trip is actively happening
+// Completed       = finished bookings
+// Dropped         = cancelled/expired
+
 const bikeCarStatusMappings: Record<string, string[]> = {
-  Open: ['PENDING_PAYMENT', 'PENDING_VENDOR', 'BROADCASTED'],
-  Confirmed: ['ACCEPTED'],
-  Ongoing: ['IN_PROGRESS'],
+  Open: [],  // bike/car bookings are never in Waiting — only quote requests are
+  Confirmed: ['PENDING_PAYMENT', 'PAYMENT_VERIFIED', 'PENDING_VENDOR', 'BROADCASTED', 'ACCEPTED'],
+  Ongoing: ['IN_PROGRESS', 'READY_FOR_PICKUP'],
   Completed: ['COMPLETED'],
   Dropped: ['CANCELLED', 'EXPIRED', 'REFUNDED'],
 };
 
 const chauffeurStatusMappings: Record<string, string[]> = {
-  Open: ['PENDING_PAYMENT', 'PENDING_VENDOR', 'BROADCASTED'],
-  Confirmed: ['ACCEPTED', 'DRIVER_ASSIGNED'],
+  Open: [],
+  Confirmed: ['PENDING_PAYMENT', 'PENDING_VENDOR', 'BROADCASTED', 'ACCEPTED', 'DRIVER_ASSIGNED'],
   Ongoing: ['IN_PROGRESS'],
   Completed: ['COMPLETED'],
   Dropped: ['CANCELLED', 'EXPIRED', 'REFUNDED'],
@@ -29,29 +31,33 @@ const chauffeurStatusMappings: Record<string, string[]> = {
 const bikeQuoteRequestStatusMappings: Record<string, string[]> = {
   Open: ['PENDING', 'QUOTES_RECEIVED'],
   Confirmed: ['QUOTE_ACCEPTED', 'BOOKING_CONFIRMED'],
+  Ongoing: [],
+  Completed: [],
   Dropped: ['CANCELLED', 'EXPIRED'],
 };
 
 // Bus booking status mappings
 const busBookingStatusMappings: Record<string, string[]> = {
-  Open: ['PENDING_PAYMENT', 'PAYMENT_SUBMITTED'],
-  Confirmed: ['ADVANCE_PAID', 'CONFIRMED', 'VEHICLE_ASSIGNED'],
+  Open: [],
+  Confirmed: ['PENDING_PAYMENT', 'PAYMENT_SUBMITTED', 'ADVANCE_PAID', 'CONFIRMED', 'VEHICLE_ASSIGNED'],
   Ongoing: ['IN_PROGRESS'],
   Completed: ['COMPLETED'],
   Dropped: ['CANCELLED'],
 };
 
-// Bus quote request status mappings (shown as "Open" bookings)
+// Bus quote request status mappings
 const busQuoteRequestStatusMappings: Record<string, string[]> = {
   Open: ['PENDING', 'QUOTES_RECEIVED'],
   Confirmed: ['QUOTE_ACCEPTED', 'BOOKING_CONFIRMED'],
+  Ongoing: [],
+  Completed: [],
   Dropped: ['CANCELLED', 'EXPIRED'],
 };
 
 // Truck booking status mappings
 const truckBookingStatusMappings: Record<string, string[]> = {
-  Open: ['PENDING_PAYMENT', 'PAYMENT_SUBMITTED'],
-  Confirmed: ['ADVANCE_PAID', 'CONFIRMED', 'VEHICLE_ASSIGNED'],
+  Open: [],
+  Confirmed: ['PENDING_PAYMENT', 'PAYMENT_SUBMITTED', 'ADVANCE_PAID', 'CONFIRMED', 'VEHICLE_ASSIGNED'],
   Ongoing: ['LOADING', 'IN_TRANSIT', 'UNLOADING'],
   Completed: ['COMPLETED'],
   Dropped: ['CANCELLED'],
@@ -60,13 +66,15 @@ const truckBookingStatusMappings: Record<string, string[]> = {
 const truckQuoteRequestStatusMappings: Record<string, string[]> = {
   Open: ['PENDING', 'QUOTES_RECEIVED'],
   Confirmed: ['QUOTE_ACCEPTED', 'BOOKING_CONFIRMED'],
+  Ongoing: [],
+  Completed: [],
   Dropped: ['CANCELLED', 'EXPIRED'],
 };
 
 // Packers booking status mappings
 const packersBookingStatusMappings: Record<string, string[]> = {
-  Open: ['PENDING_PAYMENT', 'PAYMENT_SUBMITTED'],
-  Confirmed: ['ADVANCE_PAID', 'CONFIRMED', 'TEAM_ASSIGNED'],
+  Open: [],
+  Confirmed: ['PENDING_PAYMENT', 'PAYMENT_SUBMITTED', 'ADVANCE_PAID', 'CONFIRMED', 'TEAM_ASSIGNED'],
   Ongoing: ['PACKING', 'LOADING', 'IN_TRANSIT', 'UNLOADING', 'UNPACKING'],
   Completed: ['COMPLETED'],
   Dropped: ['CANCELLED'],
@@ -75,13 +83,15 @@ const packersBookingStatusMappings: Record<string, string[]> = {
 const packersQuoteRequestStatusMappings: Record<string, string[]> = {
   Open: ['PENDING', 'QUOTES_RECEIVED'],
   Confirmed: ['QUOTE_ACCEPTED', 'BOOKING_CONFIRMED'],
+  Ongoing: [],
+  Completed: [],
   Dropped: ['CANCELLED', 'EXPIRED'],
 };
 
 // Equipment booking status mappings
 const equipmentBookingStatusMappings: Record<string, string[]> = {
-  Open: ['PENDING_PAYMENT', 'PAYMENT_SUBMITTED'],
-  Confirmed: ['ADVANCE_PAID', 'CONFIRMED', 'EQUIPMENT_ASSIGNED'],
+  Open: [],
+  Confirmed: ['PENDING_PAYMENT', 'PAYMENT_SUBMITTED', 'ADVANCE_PAID', 'CONFIRMED'],
   Ongoing: ['DELIVERED', 'IN_USE'],
   Completed: ['RETURNED', 'COMPLETED'],
   Dropped: ['CANCELLED'],
@@ -90,6 +100,8 @@ const equipmentBookingStatusMappings: Record<string, string[]> = {
 const equipmentQuoteRequestStatusMappings: Record<string, string[]> = {
   Open: ['PENDING', 'QUOTES_RECEIVED'],
   Confirmed: ['QUOTE_ACCEPTED', 'BOOKING_CONFIRMED'],
+  Ongoing: [],
+  Completed: [],
   Dropped: ['CANCELLED', 'EXPIRED'],
 };
 
@@ -97,13 +109,15 @@ const equipmentQuoteRequestStatusMappings: Record<string, string[]> = {
 const luxuryQuoteRequestStatusMappings: Record<string, string[]> = {
   Open: ['PENDING', 'QUOTES_RECEIVED'],
   Confirmed: ['QUOTE_ACCEPTED', 'BOOKING_CONFIRMED'],
+  Ongoing: [],
+  Completed: [],
   Dropped: ['CANCELLED', 'EXPIRED'],
 };
 
 // Luxury booking status mappings
 const luxuryBookingStatusMappings: Record<string, string[]> = {
-  Open: ['PENDING_PAYMENT', 'PAYMENT_SUBMITTED'],
-  Confirmed: ['ADVANCE_PAID', 'CONFIRMED', 'DRIVER_ASSIGNED'],
+  Open: [],
+  Confirmed: ['PENDING_PAYMENT', 'PAYMENT_SUBMITTED', 'ADVANCE_PAID', 'CONFIRMED', 'DRIVER_ASSIGNED'],
   Ongoing: ['IN_PROGRESS'],
   Completed: ['COMPLETED'],
   Dropped: ['CANCELLED'],
@@ -113,6 +127,8 @@ const luxuryBookingStatusMappings: Record<string, string[]> = {
 const selfDriveQuoteRequestStatusMappings: Record<string, string[]> = {
   Open: ['PENDING', 'QUOTES_RECEIVED'],
   Confirmed: ['QUOTE_ACCEPTED', 'BOOKING_CONFIRMED'],
+  Ongoing: [],
+  Completed: [],
   Dropped: ['CANCELLED', 'EXPIRED'],
 };
 
@@ -143,20 +159,20 @@ export async function GET(request: NextRequest) {
     // Get status arrays for the requested category
     // 'All' means no status filter
     const isAllStatus = requestedStatus === 'All' || requestedStatus === 'all';
-    const bikeCarStatusArray = isAllStatus ? null : (bikeCarStatusMappings[requestedStatus] || bikeCarStatusMappings.Open);
-    const bikeQuoteRequestStatusArray = isAllStatus ? null : (bikeQuoteRequestStatusMappings[requestedStatus] || null);
-    const chauffeurStatusArray = isAllStatus ? null : (chauffeurStatusMappings[requestedStatus] || chauffeurStatusMappings.Open);
-    const busBookingStatusArray = isAllStatus ? null : (busBookingStatusMappings[requestedStatus] || null);
-    const busQuoteRequestStatusArray = isAllStatus ? null : (busQuoteRequestStatusMappings[requestedStatus] || null);
-    const truckBookingStatusArray = isAllStatus ? null : (truckBookingStatusMappings[requestedStatus] || null);
-    const truckQuoteRequestStatusArray = isAllStatus ? null : (truckQuoteRequestStatusMappings[requestedStatus] || null);
-    const packersBookingStatusArray = isAllStatus ? null : (packersBookingStatusMappings[requestedStatus] || null);
-    const packersQuoteRequestStatusArray = isAllStatus ? null : (packersQuoteRequestStatusMappings[requestedStatus] || null);
-    const equipmentBookingStatusArray = isAllStatus ? null : (equipmentBookingStatusMappings[requestedStatus] || null);
-    const equipmentQuoteRequestStatusArray = isAllStatus ? null : (equipmentQuoteRequestStatusMappings[requestedStatus] || null);
-    const luxuryBookingStatusArray = isAllStatus ? null : (luxuryBookingStatusMappings[requestedStatus] || null);
-    const luxuryQuoteRequestStatusArray = isAllStatus ? null : (luxuryQuoteRequestStatusMappings[requestedStatus] || null);
-    const selfDriveQuoteRequestStatusArray = isAllStatus ? null : (selfDriveQuoteRequestStatusMappings[requestedStatus] || null);
+    const bikeCarStatusArray = isAllStatus ? null : (bikeCarStatusMappings[requestedStatus] ?? []);
+    const bikeQuoteRequestStatusArray = isAllStatus ? null : (bikeQuoteRequestStatusMappings[requestedStatus] ?? []);
+    const chauffeurStatusArray = isAllStatus ? null : (chauffeurStatusMappings[requestedStatus] ?? []);
+    const busBookingStatusArray = isAllStatus ? null : (busBookingStatusMappings[requestedStatus] ?? []);
+    const busQuoteRequestStatusArray = isAllStatus ? null : (busQuoteRequestStatusMappings[requestedStatus] ?? []);
+    const truckBookingStatusArray = isAllStatus ? null : (truckBookingStatusMappings[requestedStatus] ?? []);
+    const truckQuoteRequestStatusArray = isAllStatus ? null : (truckQuoteRequestStatusMappings[requestedStatus] ?? []);
+    const packersBookingStatusArray = isAllStatus ? null : (packersBookingStatusMappings[requestedStatus] ?? []);
+    const packersQuoteRequestStatusArray = isAllStatus ? null : (packersQuoteRequestStatusMappings[requestedStatus] ?? []);
+    const equipmentBookingStatusArray = isAllStatus ? null : (equipmentBookingStatusMappings[requestedStatus] ?? []);
+    const equipmentQuoteRequestStatusArray = isAllStatus ? null : (equipmentQuoteRequestStatusMappings[requestedStatus] ?? []);
+    const luxuryBookingStatusArray = isAllStatus ? null : (luxuryBookingStatusMappings[requestedStatus] ?? []);
+    const luxuryQuoteRequestStatusArray = isAllStatus ? null : (luxuryQuoteRequestStatusMappings[requestedStatus] ?? []);
+    const selfDriveQuoteRequestStatusArray = isAllStatus ? null : (selfDriveQuoteRequestStatusMappings[requestedStatus] ?? []);
 
     // Normalize phone number for search (remove spaces, keep +)
     const normalizedPhone = identifier ? identifier.replace(/\s+/g, '') : null;
@@ -236,7 +252,7 @@ export async function GET(request: NextRequest) {
             vehicle_models: { select: { sideImage: true } },
           },
           orderBy: { createdAt: 'desc' },
-          take: 50,
+          take: 500,
         }).catch((e) => { logger.error('Error fetching bike quote requests', e); return []; })
         : Promise.resolve([]),
 
@@ -253,7 +269,7 @@ export async function GET(request: NextRequest) {
           vehicle_models: { select: { sideImage: true } },
         },
         orderBy: { createdAt: 'desc' },
-        take: 50,
+        take: 500,
       }).catch((e) => { logger.error('Error fetching bike bookings', e); return []; }),
 
       // Car bookings (self-drive)
@@ -265,10 +281,11 @@ export async function GET(request: NextRequest) {
         include: {
           locations: { select: { name: true } },
           vendors_car_bookings_assignedVendorIdTovendors: { select: { businessName: true, phone: true } },
-          self_drive_quotes: { select: { vehicleImages: true } },
+          self_drive_quotes: { select: { vehicleImages: true, vehicleName: true } },
+          vehicle_models: { select: { name: true, sideImage: true, brands: { select: { name: true } } } },
         },
         orderBy: { createdAt: 'desc' },
-        take: 50,
+        take: 500,
       }).catch((e) => { logger.error('Error fetching car bookings', e); return []; }),
 
       // Self-drive quote requests
@@ -282,7 +299,7 @@ export async function GET(request: NextRequest) {
             vehicle_models: { select: { sideImage: true } },
           },
           orderBy: { createdAt: 'desc' },
-          take: 50,
+          take: 500,
         }).catch((e) => { logger.error('Error fetching self-drive quote requests', e); return []; })
         : Promise.resolve([]),
 
@@ -297,7 +314,7 @@ export async function GET(request: NextRequest) {
           vendors_chauffeur_bookings_assignedVendorIdTovendors: { select: { businessName: true, phone: true } },
         },
         orderBy: { createdAt: 'desc' },
-        take: 50,
+        take: 500,
       }).catch((e) => { logger.error('Error fetching chauffeur bookings', e); return []; }),
 
       // Bus quote requests
@@ -308,7 +325,7 @@ export async function GET(request: NextRequest) {
             ...(busQuoteRequestStatusArray ? { status: { in: busQuoteRequestStatusArray as any } } : {}),
           },
           orderBy: { createdAt: 'desc' },
-          take: 50,
+          take: 500,
         }).catch((e) => { logger.error('Error fetching bus quote requests', e); return []; })
         : Promise.resolve([]),
 
@@ -323,7 +340,7 @@ export async function GET(request: NextRequest) {
             vendors: { select: { businessName: true, phone: true } },
           },
           orderBy: { createdAt: 'desc' },
-          take: 50,
+          take: 500,
         }).catch((e) => { logger.error('Error fetching bus bookings', e); return []; })
         : Promise.resolve([]),
 
@@ -335,7 +352,7 @@ export async function GET(request: NextRequest) {
             ...(truckQuoteRequestStatusArray ? { status: { in: truckQuoteRequestStatusArray as any } } : {}),
           },
           orderBy: { createdAt: 'desc' },
-          take: 50,
+          take: 500,
         }).catch((e) => { logger.error('Error fetching truck quote requests', e); return []; })
         : Promise.resolve([]),
 
@@ -350,7 +367,7 @@ export async function GET(request: NextRequest) {
             vendors: { select: { businessName: true, phone: true } },
           },
           orderBy: { createdAt: 'desc' },
-          take: 50,
+          take: 500,
         }).catch((e) => { logger.error('Error fetching truck bookings', e); return []; })
         : Promise.resolve([]),
 
@@ -362,7 +379,7 @@ export async function GET(request: NextRequest) {
             ...(packersQuoteRequestStatusArray ? { status: { in: packersQuoteRequestStatusArray as any } } : {}),
           },
           orderBy: { createdAt: 'desc' },
-          take: 50,
+          take: 500,
         }).catch((e) => { logger.error('Error fetching packers quote requests', e); return []; })
         : Promise.resolve([]),
 
@@ -377,7 +394,7 @@ export async function GET(request: NextRequest) {
             vendors: { select: { businessName: true, phone: true } },
           },
           orderBy: { createdAt: 'desc' },
-          take: 50,
+          take: 500,
         }).catch((e) => { logger.error('Error fetching packers bookings', e); return []; })
         : Promise.resolve([]),
 
@@ -392,7 +409,7 @@ export async function GET(request: NextRequest) {
             locations: { select: { name: true } },
           },
           orderBy: { createdAt: 'desc' },
-          take: 50,
+          take: 500,
         }).catch((e) => { logger.error('Error fetching equipment quote requests', e); return []; })
         : Promise.resolve([]),
 
@@ -407,7 +424,7 @@ export async function GET(request: NextRequest) {
             vendors: { select: { businessName: true, phone: true } },
           },
           orderBy: { createdAt: 'desc' },
-          take: 50,
+          take: 500,
         }).catch((e) => { logger.error('Error fetching equipment bookings', e); return []; })
         : Promise.resolve([]),
 
@@ -419,7 +436,7 @@ export async function GET(request: NextRequest) {
             ...(luxuryQuoteRequestStatusArray ? { status: { in: luxuryQuoteRequestStatusArray as any } } : {}),
           },
           orderBy: { createdAt: 'desc' },
-          take: 50,
+          take: 500,
         }).catch((e) => { logger.error('Error fetching luxury quote requests', e); return []; })
         : Promise.resolve([]),
 
@@ -435,7 +452,7 @@ export async function GET(request: NextRequest) {
             locations: { select: { name: true } },
           },
           orderBy: { createdAt: 'desc' },
-          take: 50,
+          take: 500,
         }).catch((e) => { logger.error('Error fetching luxury bookings', e); return []; })
         : Promise.resolve([]),
     ]);
@@ -457,10 +474,10 @@ export async function GET(request: NextRequest) {
     // Fetch vehicle category images for chauffeur bookings
     const categoryIds = [...new Set(chauffeurBookings.map(b => b.carCategory).filter(Boolean))];
 
-    // Fetch fleet vehicle sideImage for self-drive bookings (car_bookings has no vehicle_models relation)
+    // Fetch fleet vehicle images for self-drive bookings from vendor_fleets
     const carRequestedVehicleIds = [...new Set(carBookings.map(b => b.requestedVehicleId).filter(Boolean))] as string[];
 
-    const [vehicleCategories, carFleetModels] = await Promise.all([
+    const [vehicleCategories, vendorFleetEntries] = await Promise.all([
       categoryIds.length > 0
         ? prisma.chauffeur_vehicle_categories.findMany({
             where: { id: { in: categoryIds } },
@@ -468,9 +485,13 @@ export async function GET(request: NextRequest) {
           })
         : Promise.resolve([]),
       carRequestedVehicleIds.length > 0
-        ? prisma.vehicle_models.findMany({
+        ? prisma.vendor_fleets.findMany({
             where: { id: { in: carRequestedVehicleIds } },
-            select: { id: true, sideImage: true },
+            select: {
+              id: true,
+              images: true,
+              vehicle_models: { select: { sideImage: true, name: true, brands: { select: { name: true } } } },
+            },
           })
         : Promise.resolve([]),
     ]);
@@ -478,13 +499,32 @@ export async function GET(request: NextRequest) {
     const categoryImageMap: Record<string, string | null> = {};
     vehicleCategories.forEach(c => { categoryImageMap[c.id] = c.image; });
 
-    const carFleetImageMap: Record<string, string | null> = {};
-    carFleetModels.forEach(m => { carFleetImageMap[m.id] = m.sideImage; });
+    const vendorFleetMap: Record<string, { image: string | null; vehicleName: string | null }> = {};
+    vendorFleetEntries.forEach(f => {
+      let image: string | null = f.vehicle_models?.sideImage || null;
+      if (!image && f.images) {
+        try {
+          const parsed = JSON.parse(f.images);
+          if (Array.isArray(parsed) && parsed.length > 0) image = parsed[0];
+          else if (typeof parsed === 'string') image = parsed;
+        } catch {
+          if (f.images.startsWith('http')) image = f.images;
+        }
+      }
+      const vehicleName = f.vehicle_models
+        ? `${f.vehicle_models.brands?.name || ''} ${f.vehicle_models.name || ''}`.trim()
+        : null;
+      vendorFleetMap[f.id] = { image, vehicleName };
+    });
 
     // Transform to common format
     const transformedBookings = [
       // Bike quote requests
-      ...bikeQuoteRequests.map((b) => ({
+      ...bikeQuoteRequests.map((b) => {
+        const bikeModelName = b.vehicleModelName
+          ? `${b.vehicleBrand ? b.vehicleBrand + ' ' : ''}${b.vehicleModelName}`.trim()
+          : null;
+        return {
         id: b.id,
         booking_number: b.requestNumber,
         service_name: 'Bike Rental',
@@ -496,16 +536,17 @@ export async function GET(request: NextRequest) {
         status: mapBikeQuoteRequestStatus(b.status),
         raw_status: b.status,
         created_at: b.createdAt.toISOString(),
-        vehicle_name: b.requestedCategory || 'Bike',
+        vehicle_name: bikeModelName || b.vehicleCategoryName || 'Bike',
         vehicle_image: b.vehicle_models?.sideImage || null,
-        brand: b.requestedBrand || null,
-        category: b.requestedCategory,
+        brand: b.vehicleBrand || null,
+        category: b.vehicleCategory,
         total_amount: null,
         vendor: null,
         quotations: [],
         is_quote_request: true,
         quote_count: b.totalQuotesReceived || 0,
-      })),
+      };
+      }),
       // Bike bookings
       ...bikeBookings.map((b) => ({
         id: b.id,
@@ -541,6 +582,22 @@ export async function GET(request: NextRequest) {
           toLocation = b.dropAddress;
         }
 
+        // Resolve vehicle name: quote vehicle > fleet vehicle > model relation > requested name
+        const fleetInfo = b.requestedVehicleId ? vendorFleetMap[b.requestedVehicleId] : null;
+        const modelName = b.vehicle_models
+          ? `${b.vehicle_models.brands?.name || ''} ${b.vehicle_models.name || ''}`.trim()
+          : null;
+        const resolvedVehicleName = b.self_drive_quotes?.vehicleName
+          || modelName
+          || fleetInfo?.vehicleName
+          || b.requestedVehicleName;
+
+        // Resolve vehicle image: quote images > model sideImage > fleet images
+        const resolvedVehicleImage = getFirstVehicleImage(b.self_drive_quotes?.vehicleImages)
+          || b.vehicle_models?.sideImage
+          || fleetInfo?.image
+          || null;
+
         return {
           id: b.id,
           booking_number: b.bookingNumber,
@@ -552,8 +609,8 @@ export async function GET(request: NextRequest) {
           return_datetime: b.dropDate?.toISOString() || null,
           status: mapStatusToDisplay(b.status),
           created_at: b.createdAt.toISOString(),
-          vehicle_name: b.requestedVehicleName,
-          vehicle_image: getFirstVehicleImage(b.self_drive_quotes?.vehicleImages) || (b.requestedVehicleId ? carFleetImageMap[b.requestedVehicleId] : null) || null,
+          vehicle_name: resolvedVehicleName,
+          vehicle_image: resolvedVehicleImage,
           brand: b.requestedBrand,
           category: b.requestedCategory,
           total_amount: b.grandTotal,
@@ -565,7 +622,12 @@ export async function GET(request: NextRequest) {
         };
       }),
       // Self-drive quote requests
-      ...selfDriveQuoteRequests.map((b) => ({
+      ...selfDriveQuoteRequests.map((b) => {
+        // Build proper vehicle display name: "Brand Model" > modelName > categoryName
+        const qrModelName = b.vehicleModelName
+          ? `${b.vehicleBrand ? b.vehicleBrand + ' ' : ''}${b.vehicleModelName}`.trim()
+          : null;
+        return {
         id: b.id,
         booking_number: b.requestNumber,
         service_name: 'Self-Drive Car',
@@ -577,16 +639,17 @@ export async function GET(request: NextRequest) {
         status: mapSelfDriveQuoteRequestStatus(b.status),
         raw_status: b.status,
         created_at: b.createdAt.toISOString(),
-        vehicle_name: b.vehicleCategoryName || b.specificModel || 'Car',
+        vehicle_name: qrModelName || b.vehicleCategoryName || b.specificModel || 'Car',
         vehicle_image: b.vehicle_models?.sideImage || null,
-        brand: b.specificBrand || null,
+        brand: b.vehicleBrand || b.specificBrand || null,
         category: b.vehicleCategory,
         total_amount: null,
         vendor: null,
         quotations: [],
         is_quote_request: true,
         quote_count: b.totalQuotesReceived || 0,
-      })),
+      };
+      }),
       ...chauffeurBookings.map((b) => ({
         id: b.id,
         booking_number: b.bookingNumber,
@@ -1021,7 +1084,6 @@ function mapEquipmentBookingStatus(status: string): string {
     PAYMENT_SUBMITTED: 'Open',
     ADVANCE_PAID: 'Confirmed',
     CONFIRMED: 'Confirmed',
-    EQUIPMENT_ASSIGNED: 'Confirmed',
     DELIVERED: 'Ongoing',
     IN_USE: 'Ongoing',
     RETURNED: 'Completed',

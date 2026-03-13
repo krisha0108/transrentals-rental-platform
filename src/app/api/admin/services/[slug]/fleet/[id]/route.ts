@@ -337,3 +337,38 @@ export async function DELETE(
     );
   }
 }
+
+// PATCH - Toggle isActive status
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ slug: string; id: string }> | { slug: string; id: string } }
+) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const resolvedParams = 'then' in params ? await params : params;
+    const { id } = resolvedParams;
+
+    const existing = await prisma.vehicle_models.findUnique({ where: { id }, select: { id: true, isActive: true } });
+    if (!existing) {
+      return NextResponse.json({ error: 'Vehicle not found' }, { status: 404 });
+    }
+
+    const updated = await prisma.vehicle_models.update({
+      where: { id },
+      data: { isActive: !existing.isActive },
+      select: { id: true, isActive: true },
+    });
+
+    return NextResponse.json({ success: true, isActive: updated.isActive });
+  } catch (error: any) {
+    logger.error('Vehicle status toggle error', error);
+    return NextResponse.json(
+      { error: 'Failed to toggle status', details: error?.message },
+      { status: 500 }
+    );
+  }
+}

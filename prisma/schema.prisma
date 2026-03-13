@@ -1004,6 +1004,8 @@ model chauffeur_route_packages {
   isPopular                                                    Boolean                      @default(false)
   displayOrder                                                 Int                          @default(0)
   isActive                                                     Boolean                      @default(true)
+  isAirportTransfer                                            Boolean                      @default(false)
+  forcePackagePricing                                          Boolean                      @default(false)
   createdAt                                                    DateTime                     @default(now())
   updatedAt                                                    DateTime                     @updatedAt
   locations_chauffeur_route_packages_fromLocationIdTolocations locations                    @relation("chauffeur_route_packages_fromLocationIdTolocations", fields: [fromLocationId], references: [id], onDelete: Cascade)
@@ -1212,6 +1214,9 @@ model customers {
   fcmToken                  String?                     @db.Text
   isB2B                     Boolean                     @default(false)
   companyName               String?
+  companyEmail              String?
+  companyPhone              String?
+  companyAddress            String?                     @db.Text
   gstin                     String?
   businessType              String?
   b2bStatus                 b2b_customer_status?
