@@ -59,6 +59,7 @@ import {
   CircleDollarSign,
   Plane,
   Building2,
+  Smile,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { signOut } from 'next-auth/react';
@@ -355,6 +356,14 @@ const adminItems: NavItem[] = [
       { name: 'Service Requests', href: '/admin/vendors/service-requests', icon: Layers },
       { name: 'Location Requests', href: '/admin/vendors/location-requests', icon: MapPin },
       { name: 'Vendor Documents', href: '/admin/vendor-documents', icon: Image },
+    ],
+  },
+  {
+    name: 'Social Network',
+    href: '/admin/social/categories',
+    icon: Smile,
+    children: [
+      { name: 'Post Categories', href: '/admin/social/categories', icon: Layers },
     ],
   },
   {

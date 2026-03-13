@@ -129,6 +129,13 @@ import BookingLinksScreen from './screens/vendor/booking-links/BookingLinksScree
 // Financials
 import FinancialsScreen from './screens/vendor/financials/FinancialsScreen';
 
+// Social Network
+import SocialFeedScreen from './screens/vendor/social/SocialFeedScreen';
+import CreatePostScreen from './screens/vendor/social/CreatePostScreen';
+import SocialProfileScreen from './screens/vendor/social/SocialProfileScreen';
+import SocialMessagesScreen from './screens/vendor/social/SocialMessagesScreen';
+import SocialChatScreen from './screens/vendor/social/SocialChatScreen';
+
 // P2P Marketplace
 import P2PDashboardScreen from './screens/vendor/p2p/P2PDashboardScreen';
 import BrowseVehiclesScreen from './screens/vendor/p2p/BrowseVehiclesScreen';
@@ -771,6 +778,13 @@ export default function App() {
 
             {/* Financials */}
             <Stack.Screen name="Financials" component={FinancialsScreen} />
+
+            {/* Social Network */}
+            <Stack.Screen name="SocialFeed" component={SocialFeedScreen} />
+            <Stack.Screen name="CreatePostScreen" component={CreatePostScreen} />
+            <Stack.Screen name="SocialProfileScreen" component={SocialProfileScreen} />
+            <Stack.Screen name="SocialMessagesScreen" component={SocialMessagesScreen} />
+            <Stack.Screen name="SocialChatScreen" component={SocialChatScreen} />
 
             {/* P2P Marketplace */}
             <Stack.Screen name="P2PDashboard" component={P2PDashboardScreen} />

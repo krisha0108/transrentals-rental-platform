@@ -271,6 +271,17 @@ const approvedNavigationItems: NavItem[] = [
       { name: 'My Postings', href: '/vendor/p2p/my-postings', icon: ClipboardList },
     ],
   },
+  {
+    name: 'Social Network',
+    href: '/vendor/social',
+    icon: Smile,
+    children: [
+      { name: 'Feed', href: '/vendor/social', icon: LayoutDashboard },
+      { name: 'Create Post', href: '/vendor/social/create', icon: Plus },
+      { name: 'My Profile', href: '/vendor/social/profile/me', icon: User },
+      { name: 'Messages', href: '/vendor/social/messages', icon: MessageSquare },
+    ],
+  },
   // {
   //   name: 'Customer CRM',
   //   href: '/vendor/crm',

@@ -194,7 +194,7 @@ export function VendorLayout({ children }: VendorLayoutProps) {
             </Link>
           </div>
 
-          <main className="p-6">
+          <main className={pathname?.startsWith('/vendor/social') ? '' : 'p-6'}>
             {children}
           </main>
         </div>

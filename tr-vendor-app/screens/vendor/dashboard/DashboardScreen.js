@@ -266,6 +266,7 @@ export default function DashboardScreen({ navigation }) {
     { label: 'Booking Links',sub: 'Share links',                           icon: 'link-2',        lib: 'feather', color: G.indigo, bg: G.indigoL, route: 'BookingLinks' },
     { label: 'Financials',   sub: 'P&L reports',                           icon: 'bar-chart-2',   lib: 'feather', color: G.purple, bg: G.purpleL, route: 'Financials' },
     { label: 'P2P Market',   sub: 'Trade fleet',                           icon: 'swap-horizontal',lib:'mci',     color: G.teal,   bg: G.tealL,   route: 'P2PDashboard' },
+    { label: 'Social',       sub: 'Vendor Network',                        icon: 'users',         lib: 'feather', color: '#7C3AED', bg: '#F5F3FF',  route: 'SocialFeed' },
   ];
 
   // ── Pending quick actions ──────────────────────────────────────────────
