@@ -9,24 +9,27 @@ import {
   ActivityIndicator,
   Alert,
   Modal,
+  StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/Feather';
+import Ionicons from 'react-native-vector-icons/Ionicons';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import CustomDropdown from '../../../../components/CustomDropdown';
 import { getQuoteRequestById, getFleetVehicles, submitQuote, getTemplates, getTemplateById } from '../../../api/client';
 import { showConfirm, showError, showInfo, showSuccess } from '../../../../services/alertService';
 
 const C = {
-  bg: '#F7FAFC',
-  surface: '#FFFFFF',
-  text: '#1E293B',
-  muted: '#64748B',
-  border: '#E2E8F0',
-  brand: '#FF6B35',
-  green: '#10B981',
-  orange: '#F59E0B',
-  red: '#EF4444',
-  blue: '#3B82F6',
+  g900: '#022C22', g800: '#065F46', g700: '#047857', g600: '#059669',
+  g500: '#10B981', g400: '#34D399', g100: '#D1FAE5', g50: '#ECFDF5',
+  bg: '#F1F5F9', card: '#FFFFFF', border: '#E2E8F0',
+  text: '#0F172A', sub: '#475569', muted: '#94A3B8',
+  blue: '#2563EB', blueL: '#EFF6FF',
+  purple: '#7C3AED', purpleL: '#F5F3FF',
+  amber: '#D97706', amberL: '#FFFBEB',
+  red: '#DC2626', redL: '#FEF2F2',
+  orange: '#EA580C', orangeL: '#FFF7ED',
 };
 
 const DEFAULT_INCLUSIONS = [
@@ -277,11 +280,24 @@ export default function BikeSendQuoteScreen({ navigation, route }) {
     }
   };
 
+  /* ─── LOADING ─── */
   if (loading) {
     return (
-      <SafeAreaView style={styles.safe}>
+      <SafeAreaView style={styles.safe} edges={['top']}>
+        <StatusBar backgroundColor={C.g900} barStyle="light-content" />
+        <LinearGradient colors={[C.g900, C.g800, C.g700]} style={styles.gradientHeader}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtnWhite}>
+            <Icon name="arrow-left" size={22} color="#fff" />
+          </TouchableOpacity>
+          <View style={styles.headerCenter}>
+            <Text style={styles.headerTitleWhite}>Send Quote</Text>
+            <Text style={styles.headerSubtitleWhite}>Bike Rental</Text>
+          </View>
+          <View style={{ width: 40 }} />
+        </LinearGradient>
         <View style={styles.centered}>
-          <ActivityIndicator size="large" color={C.brand} />
+          <ActivityIndicator size="large" color={C.g500} />
+          <Text style={styles.loadingText}>Loading request...</Text>
         </View>
       </SafeAreaView>
     );
@@ -292,57 +308,74 @@ export default function BikeSendQuoteScreen({ navigation, route }) {
   const dailyRate = calculateDailyRate();
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Icon name="arrow-left" size={22} color={C.text} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Send Quote - Bike</Text>
-        <View style={{ width: 40 }} />
-      </View>
+    <SafeAreaView style={styles.safe} edges={['top']}>
+      <StatusBar backgroundColor={C.g900} barStyle="light-content" />
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Request Summary */}
-        <View style={[styles.card, { backgroundColor: '#FFF4ED', borderColor: '#FFE4CC' }]}>
-          <Text style={[styles.cardTitle, { color: '#C2410C' }]}>Request Summary</Text>
-          <View style={styles.row}>
-            <Text style={styles.label}>Customer:</Text>
-            <Text style={styles.value}>{request?.customerName}</Text>
-          </View>
-          <View style={styles.row}>
-            <Text style={styles.label}>Location:</Text>
-            <Text style={styles.value}>{request?.locationName}</Text>
-          </View>
-          <View style={styles.row}>
-            <Text style={styles.label}>Duration:</Text>
-            <Text style={styles.value}>{request?.totalDays} days</Text>
-          </View>
-          <View style={styles.row}>
-            <Text style={styles.label}>Dates:</Text>
-            <Text style={styles.value}>
-              {new Date(request?.pickupDate).toLocaleDateString()} -{' '}
-              {new Date(request?.dropDate).toLocaleDateString()}
-            </Text>
-          </View>
-          {request?.helmetsRequired > 0 && (
-            <View style={styles.row}>
-              <Text style={styles.label}>Helmets:</Text>
-              <Text style={styles.value}>{request?.helmetsRequired} required</Text>
+      {/* ─── GRADIENT HEADER ─── */}
+      <LinearGradient colors={[C.g900, C.g800, C.g700]} style={styles.gradientHeader}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtnWhite}>
+          <Icon name="arrow-left" size={22} color="#fff" />
+        </TouchableOpacity>
+        <View style={styles.headerCenter}>
+          <Text style={styles.headerTitleWhite}>Send Quote</Text>
+          <Text style={styles.headerSubtitleWhite}>Bike Rental</Text>
+        </View>
+        <View style={{ width: 40 }} />
+      </LinearGradient>
+
+      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+
+        {/* ─── REQUEST SUMMARY ─── */}
+        <View style={[styles.card, { backgroundColor: C.amberL, borderColor: '#FDE68A', marginTop: 20 }]}>
+          <View style={styles.cardHeaderRow}>
+            <View style={[styles.cardIconWrap, { backgroundColor: '#FDE68A' }]}>
+              <MaterialCommunityIcons name="motorbike" size={18} color={C.amber} />
             </View>
-          )}
+            <View>
+              <Text style={[styles.cardTitle, { color: C.orange }]}>Request Summary</Text>
+              <Text style={[styles.cardSubtitle, { color: '#92400E' }]}>Customer's requirement</Text>
+            </View>
+          </View>
+          <View style={styles.summaryGrid}>
+            <View style={styles.summaryCell}>
+              <Text style={styles.summaryCellLabel}>Customer</Text>
+              <Text style={styles.summaryCellValue}>{request?.customerName}</Text>
+            </View>
+            <View style={styles.summaryCell}>
+              <Text style={styles.summaryCellLabel}>Location</Text>
+              <Text style={styles.summaryCellValue}>{request?.locationName || 'N/A'}</Text>
+            </View>
+            <View style={styles.summaryCell}>
+              <Text style={styles.summaryCellLabel}>Duration</Text>
+              <Text style={styles.summaryCellValue}>{request?.totalDays} days</Text>
+            </View>
+            <View style={styles.summaryCell}>
+              <Text style={styles.summaryCellLabel}>Dates</Text>
+              <Text style={styles.summaryCellValue}>
+                {request?.pickupDate ? new Date(request.pickupDate).toLocaleDateString() : 'N/A'} –{' '}
+                {request?.dropDate ? new Date(request.dropDate).toLocaleDateString() : 'N/A'}
+              </Text>
+            </View>
+            {request?.helmetsRequired > 0 && (
+              <View style={styles.summaryCell}>
+                <Text style={styles.summaryCellLabel}>Helmets</Text>
+                <Text style={styles.summaryCellValue}>{request?.helmetsRequired} required</Text>
+              </View>
+            )}
+          </View>
         </View>
 
-        {/* Template Selector */}
+        {/* ─── TEMPLATE SELECTOR ─── */}
         {templates.length > 0 && (
-          <View style={[styles.card, { backgroundColor: '#FFF7ED', borderColor: '#FDBA74' }]}>
-            <View style={styles.cardHeader}>
+          <View style={[styles.card, { backgroundColor: C.orangeL, borderColor: '#FED7AA' }]}>
+            <View style={styles.cardHeaderRow}>
+              <View style={[styles.cardIconWrap, { backgroundColor: '#FED7AA' }]}>
+                <Icon name="zap" size={18} color={C.orange} />
+              </View>
               <View style={{ flex: 1 }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
-                  <Icon name="zap" size={18} color="#EA580C" style={{ marginRight: 6 }} />
-                  <Text style={[styles.cardTitle, { color: '#C2410C' }]}>Quick Fill with Template</Text>
-                </View>
-                <Text style={{ fontSize: 13, color: '#9A3412' }}>
-                  Load saved template to auto-fill rates, inclusions, exclusions & terms
+                <Text style={[styles.cardTitle, { color: C.orange }]}>Quick Fill with Template</Text>
+                <Text style={[styles.cardSubtitle, { color: '#7C2D12' }]}>
+                  Auto-fill rates, inclusions & terms
                 </Text>
               </View>
             </View>
@@ -363,9 +396,17 @@ export default function BikeSendQuoteScreen({ navigation, route }) {
           </View>
         )}
 
-        {/* Fleet Selection */}
+        {/* ─── VEHICLE DETAILS ─── */}
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>Vehicle Details</Text>
+          <View style={styles.cardHeaderRow}>
+            <View style={[styles.cardIconWrap, { backgroundColor: C.g50 }]}>
+              <MaterialCommunityIcons name="motorbike" size={18} color={C.g600} />
+            </View>
+            <View>
+              <Text style={styles.cardTitle}>Vehicle Details</Text>
+              <Text style={styles.cardSubtitle}>Select from fleet or enter manually</Text>
+            </View>
+          </View>
 
           <CustomDropdown
             label="Select from Fleet (Optional)"
@@ -384,7 +425,7 @@ export default function BikeSendQuoteScreen({ navigation, route }) {
             searchable={fleetVehicles.length > 5}
           />
 
-          <Text style={styles.inputLabel}>Vehicle Name *</Text>
+          <Text style={styles.inputLabel}>Vehicle Name <Text style={{ color: C.red }}>*</Text></Text>
           <TextInput
             style={[styles.input, errors.vehicleName && styles.inputError]}
             value={vehicleName}
@@ -416,11 +457,19 @@ export default function BikeSendQuoteScreen({ navigation, route }) {
           />
         </View>
 
-        {/* Pricing */}
+        {/* ─── PRICING DETAILS ─── */}
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>Pricing Details</Text>
+          <View style={styles.cardHeaderRow}>
+            <View style={[styles.cardIconWrap, { backgroundColor: C.g50 }]}>
+              <Ionicons name="wallet-outline" size={18} color={C.g600} />
+            </View>
+            <View>
+              <Text style={styles.cardTitle}>Pricing Details</Text>
+              <Text style={styles.cardSubtitle}>Set your competitive rates</Text>
+            </View>
+          </View>
 
-          <Text style={styles.inputLabel}>Total Price (₹) *</Text>
+          <Text style={styles.inputLabel}>Total Price (₹) <Text style={{ color: C.red }}>*</Text></Text>
           <TextInput
             style={[styles.input, errors.totalPrice && styles.inputError]}
             value={totalPrice}
@@ -486,101 +535,157 @@ export default function BikeSendQuoteScreen({ navigation, route }) {
           />
         </View>
 
-        {/* Quote Summary */}
-        {totalPrice && parseFloat(totalPrice) > 0 && (
-          <View style={[styles.card, { backgroundColor: '#F0F9FF', borderColor: '#BAE6FD' }]}>
-            <Text style={[styles.cardTitle, { color: '#0369A1' }]}>Quote Summary</Text>
-            <View style={styles.row}>
-              <Text style={styles.summaryLabel}>Total Price ({request?.totalDays} days)</Text>
-              <Text style={styles.summaryValue}>₹{total.toFixed(0)}</Text>
+        {/* ─── QUOTE SUMMARY ─── */}
+        {total > 0 && (
+          <View style={[styles.card, { backgroundColor: C.blueL, borderColor: '#BFDBFE' }]}>
+            <View style={styles.cardHeaderRow}>
+              <View style={[styles.cardIconWrap, { backgroundColor: '#DBEAFE' }]}>
+                <Ionicons name="calculator-outline" size={18} color={C.blue} />
+              </View>
+              <View>
+                <Text style={[styles.cardTitle, { color: C.blue }]}>Quote Summary</Text>
+                <Text style={[styles.cardSubtitle, { color: '#1E40AF' }]}>Calculated breakdown</Text>
+              </View>
             </View>
-            <View style={styles.divider} />
-            <View style={styles.row}>
-              <Text style={styles.totalLabel}>Advance ({advancePercent}%)</Text>
-              <Text style={styles.totalValue}>₹{advance.toFixed(0)}</Text>
+            <View style={styles.summaryLine}>
+              <Text style={styles.summaryLineLabel}>Total Price ({request?.totalDays} days)</Text>
+              <Text style={styles.summaryLineValue}>₹{total.toFixed(0)}</Text>
             </View>
-            <View style={styles.row}>
-              <Text style={styles.label}>Balance on pickup</Text>
-              <Text style={styles.value}>₹{(total - advance).toFixed(0)}</Text>
+            <View style={styles.summaryLine}>
+              <Text style={styles.summaryLineLabel}>Daily Rate</Text>
+              <Text style={styles.summaryLineValue}>₹{dailyRate.toFixed(0)}/day</Text>
+            </View>
+            <View style={styles.summaryDivider} />
+            <View style={styles.summaryLine}>
+              <Text style={[styles.summaryLineLabel, { fontWeight: '700', color: C.text }]}>
+                Advance ({advancePercent}%)
+              </Text>
+              <Text style={[styles.summaryLineValue, { color: C.blue, fontSize: 17, fontWeight: '800' }]}>
+                ₹{advance.toFixed(0)}
+              </Text>
+            </View>
+            <View style={styles.summaryLine}>
+              <Text style={styles.summaryLineLabel}>Balance on pickup</Text>
+              <Text style={styles.summaryLineValue}>₹{(total - advance).toFixed(0)}</Text>
             </View>
             {securityDeposit && parseFloat(securityDeposit) > 0 && (
-              <View style={[styles.row, { marginTop: 8 }]}>
-                <Text style={styles.label}>Security Deposit (Refundable)</Text>
-                <Text style={styles.value}>₹{parseFloat(securityDeposit).toFixed(0)}</Text>
+              <View style={[styles.summaryLine, { marginTop: 8 }]}>
+                <Text style={styles.summaryLineLabel}>Security Deposit (Refundable)</Text>
+                <Text style={styles.summaryLineValue}>₹{parseFloat(securityDeposit).toFixed(0)}</Text>
               </View>
             )}
           </View>
         )}
 
-        {/* Inclusions */}
+        {/* ─── INCLUSIONS ─── */}
         <View style={styles.card}>
-          <View style={styles.cardHeader}>
-            <Text style={styles.cardTitle}>Inclusions ({inclusions.length})</Text>
-            <TouchableOpacity onPress={() => openEditModal('inclusions')}>
-              <Icon name="edit-2" size={18} color={C.brand} />
+          <View style={[styles.cardHeaderRow, { marginBottom: 14 }]}>
+            <View style={[styles.cardIconWrap, { backgroundColor: C.g50 }]}>
+              <Icon name="check-circle" size={18} color={C.g600} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.cardTitle}>Inclusions ({inclusions.length})</Text>
+              <Text style={styles.cardSubtitle}>What's included in the quote</Text>
+            </View>
+            <TouchableOpacity
+              style={[styles.editChip, { backgroundColor: C.g50 }]}
+              onPress={() => openEditModal('inclusions')}
+            >
+              <Icon name="edit-2" size={13} color={C.g700} />
+              <Text style={[styles.editChipText, { color: C.g700 }]}>Edit</Text>
             </TouchableOpacity>
           </View>
-          <View style={styles.chipContainer}>
+          <View style={styles.chipWrap}>
             {inclusions.map((item, idx) => (
-              <View key={idx} style={[styles.chip, { backgroundColor: '#D1FAE5' }]}>
-                <Icon name="check-circle" size={14} color="#059669" />
-                <Text style={[styles.chipText, { color: '#059669' }]}>{item}</Text>
+              <View key={idx} style={[styles.chip, { backgroundColor: C.g50, borderColor: C.g100 }]}>
+                <Icon name="check-circle" size={13} color={C.g600} />
+                <Text style={[styles.chipText, { color: C.g700 }]}>{item}</Text>
               </View>
             ))}
           </View>
         </View>
 
-        {/* Exclusions */}
+        {/* ─── EXCLUSIONS ─── */}
         <View style={styles.card}>
-          <View style={styles.cardHeader}>
-            <Text style={styles.cardTitle}>Exclusions ({exclusions.length})</Text>
-            <TouchableOpacity onPress={() => openEditModal('exclusions')}>
-              <Icon name="edit-2" size={18} color={C.brand} />
+          <View style={[styles.cardHeaderRow, { marginBottom: 14 }]}>
+            <View style={[styles.cardIconWrap, { backgroundColor: C.redL }]}>
+              <Icon name="x-circle" size={18} color={C.red} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.cardTitle}>Exclusions ({exclusions.length})</Text>
+              <Text style={styles.cardSubtitle}>What's not covered</Text>
+            </View>
+            <TouchableOpacity
+              style={[styles.editChip, { backgroundColor: C.redL }]}
+              onPress={() => openEditModal('exclusions')}
+            >
+              <Icon name="edit-2" size={13} color={C.red} />
+              <Text style={[styles.editChipText, { color: C.red }]}>Edit</Text>
             </TouchableOpacity>
           </View>
-          <View style={styles.chipContainer}>
+          <View style={styles.chipWrap}>
             {exclusions.map((item, idx) => (
-              <View key={idx} style={[styles.chip, { backgroundColor: '#FEE2E2' }]}>
-                <Icon name="x-circle" size={14} color="#DC2626" />
-                <Text style={[styles.chipText, { color: '#DC2626' }]}>{item}</Text>
+              <View key={idx} style={[styles.chip, { backgroundColor: C.redL, borderColor: '#FECACA' }]}>
+                <Icon name="x-circle" size={13} color={C.red} />
+                <Text style={[styles.chipText, { color: C.red }]}>{item}</Text>
               </View>
             ))}
           </View>
         </View>
 
-        {/* Terms & Conditions */}
+        {/* ─── TERMS & CONDITIONS ─── */}
         <View style={styles.card}>
-          <View style={styles.cardHeader}>
-            <Text style={styles.cardTitle}>Terms & Conditions ({termsConditions.length})</Text>
-            <TouchableOpacity onPress={() => openEditModal('terms')}>
-              <Icon name="edit-2" size={18} color={C.brand} />
+          <View style={[styles.cardHeaderRow, { marginBottom: 14 }]}>
+            <View style={[styles.cardIconWrap, { backgroundColor: C.purpleL }]}>
+              <Ionicons name="document-text-outline" size={18} color={C.purple} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.cardTitle}>Terms & Conditions ({termsConditions.length})</Text>
+              <Text style={styles.cardSubtitle}>Rental policies</Text>
+            </View>
+            <TouchableOpacity
+              style={[styles.editChip, { backgroundColor: C.purpleL }]}
+              onPress={() => openEditModal('terms')}
+            >
+              <Icon name="edit-2" size={13} color={C.purple} />
+              <Text style={[styles.editChipText, { color: C.purple }]}>Edit</Text>
             </TouchableOpacity>
           </View>
           {termsConditions.map((term, idx) => (
             <View key={idx} style={styles.termRow}>
-              <Text style={styles.termNumber}>{idx + 1}.</Text>
+              <View style={[styles.termBullet, { backgroundColor: C.purpleL }]}>
+                <Text style={[styles.termNumber, { color: C.purple }]}>{idx + 1}</Text>
+              </View>
               <Text style={styles.termText}>{term}</Text>
             </View>
           ))}
         </View>
 
-        {/* Additional Info */}
+        {/* ─── ADDITIONAL INFORMATION ─── */}
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>Additional Information</Text>
+          <View style={styles.cardHeaderRow}>
+            <View style={[styles.cardIconWrap, { backgroundColor: C.bg }]}>
+              <Ionicons name="chatbox-ellipses-outline" size={18} color={C.sub} />
+            </View>
+            <View>
+              <Text style={styles.cardTitle}>Additional Information</Text>
+              <Text style={styles.cardSubtitle}>Notes & validity</Text>
+            </View>
+          </View>
 
           <Text style={styles.inputLabel}>Notes for Customer</Text>
           <TextInput
             style={[styles.input, styles.textArea]}
             value={notes}
             onChangeText={setNotes}
-            placeholder="Any special notes..."
+            placeholder="Any special notes or conditions..."
             placeholderTextColor={C.muted}
             multiline
             numberOfLines={3}
             textAlignVertical="top"
           />
 
-          <Text style={styles.inputLabel}>Quote Valid For (Days) *</Text>
+          <Text style={styles.inputLabel}>Quote Valid For (Days) <Text style={{ color: C.red }}>*</Text></Text>
           <TextInput
             style={[styles.input, errors.validityDays && styles.inputError]}
             value={validityDays}
@@ -592,10 +697,10 @@ export default function BikeSendQuoteScreen({ navigation, route }) {
           {errors.validityDays ? <Text style={styles.errorText}>{errors.validityDays}</Text> : null}
         </View>
 
-        <View style={{ height: 100 }} />
+        <View style={{ height: 110 }} />
       </ScrollView>
 
-      {/* Submit Button */}
+      {/* ─── SUBMIT FOOTER ─── */}
       <View style={styles.footer}>
         <TouchableOpacity
           style={[styles.submitBtn, submitting && styles.submitBtnDisabled]}
@@ -606,16 +711,16 @@ export default function BikeSendQuoteScreen({ navigation, route }) {
             <ActivityIndicator size="small" color="#fff" />
           ) : (
             <>
-              <Icon name="send" size={18} color="#fff" />
+              <Ionicons name="paper-plane" size={20} color="#fff" />
               <Text style={styles.submitBtnText}>
-                Send Quote (₹{total.toFixed(0)})
+                Send Quote {total > 0 ? `• ₹${total.toFixed(0)}` : ''}
               </Text>
             </>
           )}
         </TouchableOpacity>
       </View>
 
-      {/* Edit Modal */}
+      {/* ─── EDIT MODAL ─── */}
       <Modal
         visible={editModalVisible}
         animationType="slide"
@@ -623,27 +728,44 @@ export default function BikeSendQuoteScreen({ navigation, route }) {
         onRequestClose={() => setEditModalVisible(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+          <View style={styles.modalSheet}>
+            {/* Modal Handle */}
+            <View style={styles.modalHandle} />
+
+            {/* Modal Header */}
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>
-                Edit {editType === 'inclusions' ? 'Inclusions' : editType === 'exclusions' ? 'Exclusions' : 'Terms'}
-              </Text>
-              <TouchableOpacity onPress={() => setEditModalVisible(false)}>
-                <Icon name="x" size={24} color={C.text} />
+              <View style={styles.modalTitleRow}>
+                {editType === 'inclusions' && <Icon name="check-circle" size={20} color={C.g600} style={{ marginRight: 8 }} />}
+                {editType === 'exclusions' && <Icon name="x-circle" size={20} color={C.red} style={{ marginRight: 8 }} />}
+                {editType === 'terms' && <Ionicons name="document-text-outline" size={20} color={C.purple} style={{ marginRight: 8 }} />}
+                <Text style={styles.modalTitle}>
+                  Edit {editType === 'inclusions' ? 'Inclusions' : editType === 'exclusions' ? 'Exclusions' : 'Terms'}
+                </Text>
+              </View>
+              <TouchableOpacity style={styles.modalCloseBtn} onPress={() => setEditModalVisible(false)}>
+                <Icon name="x" size={20} color={C.sub} />
               </TouchableOpacity>
             </View>
 
-            <ScrollView style={styles.modalBody}>
+            {/* Modal List */}
+            <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
               {editList.map((item, idx) => (
                 <View key={idx} style={styles.modalItem}>
+                  <View style={styles.modalItemIndexWrap}>
+                    <Text style={styles.modalItemIndex}>{idx + 1}</Text>
+                  </View>
                   <Text style={styles.modalItemText}>{item}</Text>
-                  <TouchableOpacity onPress={() => removeItemFromList(item)}>
-                    <Icon name="trash-2" size={18} color={C.red} />
+                  <TouchableOpacity
+                    style={styles.modalDeleteBtn}
+                    onPress={() => removeItemFromList(item)}
+                  >
+                    <Icon name="trash-2" size={16} color={C.red} />
                   </TouchableOpacity>
                 </View>
               ))}
             </ScrollView>
 
+            {/* Add New Item */}
             <View style={styles.modalAddSection}>
               <TextInput
                 style={styles.modalInput}
@@ -651,13 +773,17 @@ export default function BikeSendQuoteScreen({ navigation, route }) {
                 onChangeText={setNewItemText}
                 placeholder="Add new item..."
                 placeholderTextColor={C.muted}
+                onSubmitEditing={addItemToList}
+                returnKeyType="done"
               />
               <TouchableOpacity style={styles.modalAddBtn} onPress={addItemToList}>
                 <Icon name="plus" size={20} color="#fff" />
               </TouchableOpacity>
             </View>
 
+            {/* Save Button */}
             <TouchableOpacity style={styles.modalSaveBtn} onPress={saveEditModal}>
+              <Ionicons name="checkmark" size={20} color="#fff" />
               <Text style={styles.modalSaveBtnText}>Save Changes</Text>
             </TouchableOpacity>
           </View>
@@ -668,254 +794,216 @@ export default function BikeSendQuoteScreen({ navigation, route }) {
 }
 
 const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: C.bg,
-  },
-  centered: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  header: {
+  safe: { flex: 1, backgroundColor: C.bg },
+
+  /* ─── HEADER ─── */
+  gradientHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: C.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: C.border,
+    paddingVertical: 14,
   },
-  backBtn: {
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
+  backBtnWhite: {
+    width: 40, height: 40, borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    justifyContent: 'center', alignItems: 'center',
   },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: C.text,
-  },
-  content: {
-    flex: 1,
-    padding: 16,
-  },
+  headerCenter: { alignItems: 'center', flex: 1 },
+  headerTitleWhite: { fontSize: 18, fontWeight: '700', color: '#fff' },
+  headerSubtitleWhite: { fontSize: 12, color: 'rgba(255,255,255,0.75)', marginTop: 2 },
+
+  /* ─── LOADING ─── */
+  centered: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 12 },
+  loadingText: { fontSize: 14, color: C.sub },
+
+  /* ─── SCROLL ─── */
+  scrollView: { flex: 1, paddingHorizontal: 16 },
+
+  /* ─── CARD ─── */
   card: {
-    backgroundColor: C.surface,
-    borderRadius: 12,
+    backgroundColor: C.card,
+    borderRadius: 16,
     padding: 16,
     marginBottom: 16,
     borderWidth: 1,
     borderColor: C.border,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 2,
   },
-  cardHeader: {
+  cardHeaderRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    gap: 12,
+    marginBottom: 14,
   },
-  cardTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: C.text,
+  cardIconWrap: {
+    width: 38, height: 38, borderRadius: 10,
+    justifyContent: 'center', alignItems: 'center',
   },
-  row: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 8,
-  },
-  label: {
-    fontSize: 14,
-    color: C.muted,
-  },
-  value: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: C.text,
-  },
+  cardTitle: { fontSize: 15, fontWeight: '700', color: C.text },
+  cardSubtitle: { fontSize: 12, color: C.muted, marginTop: 1 },
+
+  /* ─── REQUEST SUMMARY GRID ─── */
+  summaryGrid: { gap: 10 },
+  summaryCell: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  summaryCellLabel: { fontSize: 13, color: '#92400E', fontWeight: '500' },
+  summaryCellValue: { fontSize: 13, fontWeight: '700', color: C.text, maxWidth: '60%', textAlign: 'right' },
+
+  /* ─── INPUTS ─── */
   inputLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: C.text,
-    marginBottom: 8,
-    marginTop: 8,
+    fontSize: 13, fontWeight: '600', color: C.sub,
+    marginBottom: 7, marginTop: 12,
   },
   input: {
     backgroundColor: C.bg,
     borderWidth: 1,
     borderColor: C.border,
-    borderRadius: 8,
+    borderRadius: 10,
     padding: 12,
     fontSize: 14,
     color: C.text,
   },
-  inputError: {
-    borderColor: '#EF4444',
-    backgroundColor: '#FFF5F5',
-  },
-  errorText: {
-    fontSize: 12,
-    color: '#EF4444',
-    marginTop: 4,
-    marginBottom: 4,
-  },
-  textArea: {
-    height: 80,
-  },
-  summaryLabel: {
-    fontSize: 14,
-    color: C.muted,
-  },
-  summaryValue: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: C.text,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: C.border,
-    marginVertical: 12,
-  },
-  totalLabel: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: C.text,
-  },
-  totalValue: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: C.brand,
-  },
-  chipContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
+  inputError: { borderColor: C.red, backgroundColor: C.redL },
+  errorText: { fontSize: 12, color: C.red, marginTop: 4 },
+  textArea: { height: 88, textAlignVertical: 'top' },
+
+  /* ─── QUOTE SUMMARY ─── */
+  summaryLine: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
+  summaryLineLabel: { fontSize: 14, color: C.sub },
+  summaryLineValue: { fontSize: 14, fontWeight: '600', color: C.text },
+  summaryDivider: { height: 1, backgroundColor: '#BFDBFE', marginVertical: 10 },
+
+  /* ─── CHIPS ─── */
+  chipWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    paddingHorizontal: 11, paddingVertical: 6, borderRadius: 20, borderWidth: 1,
   },
-  chipText: {
-    fontSize: 12,
-    fontWeight: '600',
+  chipText: { fontSize: 12, fontWeight: '600' },
+  editChip: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    paddingHorizontal: 10, paddingVertical: 6, borderRadius: 10,
   },
-  termRow: {
-    flexDirection: 'row',
-    marginBottom: 8,
+  editChipText: { fontSize: 12, fontWeight: '700' },
+
+  /* ─── TERMS ─── */
+  termRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginBottom: 10 },
+  termBullet: {
+    width: 24, height: 24, borderRadius: 8,
+    justifyContent: 'center', alignItems: 'center', flexShrink: 0,
   },
-  termNumber: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: C.brand,
-    marginRight: 8,
-  },
-  termText: {
-    flex: 1,
-    fontSize: 14,
-    color: C.text,
-  },
+  termNumber: { fontSize: 11, fontWeight: '800' },
+  termText: { flex: 1, fontSize: 13, color: C.sub, lineHeight: 20 },
+
+  /* ─── FOOTER ─── */
   footer: {
-    padding: 16,
-    backgroundColor: C.surface,
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 24,
+    backgroundColor: C.card,
     borderTopWidth: 1,
     borderTopColor: C.border,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -3 },
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
+    elevation: 12,
   },
   submitBtn: {
-    backgroundColor: C.brand,
+    backgroundColor: C.g600,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 14,
-    borderRadius: 10,
+    gap: 10,
+    paddingVertical: 15,
+    borderRadius: 14,
   },
-  submitBtnDisabled: {
-    opacity: 0.6,
-  },
-  submitBtnText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#fff',
-  },
+  submitBtnDisabled: { opacity: 0.6 },
+  submitBtnText: { fontSize: 16, fontWeight: '700', color: '#fff' },
+
+  /* ─── MODAL ─── */
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(0,0,0,0.45)',
     justifyContent: 'flex-end',
   },
-  modalContent: {
-    backgroundColor: C.surface,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    padding: 20,
-    maxHeight: '80%',
+  modalSheet: {
+    backgroundColor: C.card,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingHorizontal: 20,
+    paddingBottom: 32,
+    maxHeight: '82%',
+  },
+  modalHandle: {
+    width: 40, height: 4, borderRadius: 2,
+    backgroundColor: C.border, alignSelf: 'center', marginTop: 12, marginBottom: 16,
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 16,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: C.border,
   },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: C.text,
+  modalTitleRow: { flexDirection: 'row', alignItems: 'center' },
+  modalTitle: { fontSize: 17, fontWeight: '700', color: C.text },
+  modalCloseBtn: {
+    width: 32, height: 32, borderRadius: 16,
+    backgroundColor: C.bg, justifyContent: 'center', alignItems: 'center',
   },
-  modalBody: {
-    maxHeight: 300,
-  },
+  modalBody: { maxHeight: 280, marginBottom: 8 },
   modalItem: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    gap: 10,
     padding: 12,
     backgroundColor: C.bg,
-    borderRadius: 8,
+    borderRadius: 12,
     marginBottom: 8,
+    borderWidth: 1,
+    borderColor: C.border,
   },
-  modalItemText: {
-    flex: 1,
-    fontSize: 14,
-    color: C.text,
+  modalItemIndexWrap: {
+    width: 24, height: 24, borderRadius: 8,
+    backgroundColor: C.border, justifyContent: 'center', alignItems: 'center',
   },
-  modalAddSection: {
-    flexDirection: 'row',
-    gap: 8,
-    marginTop: 16,
-    marginBottom: 16,
+  modalItemIndex: { fontSize: 11, fontWeight: '800', color: C.sub },
+  modalItemText: { flex: 1, fontSize: 13, color: C.text },
+  modalDeleteBtn: {
+    width: 30, height: 30, borderRadius: 8,
+    backgroundColor: C.redL, justifyContent: 'center', alignItems: 'center',
   },
+  modalAddSection: { flexDirection: 'row', gap: 10, marginTop: 12, marginBottom: 14 },
   modalInput: {
     flex: 1,
     backgroundColor: C.bg,
     borderWidth: 1,
     borderColor: C.border,
-    borderRadius: 8,
+    borderRadius: 10,
     padding: 12,
     fontSize: 14,
     color: C.text,
   },
   modalAddBtn: {
-    backgroundColor: C.brand,
-    width: 48,
-    height: 48,
-    borderRadius: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
+    width: 48, height: 48, borderRadius: 10,
+    backgroundColor: C.g600,
+    justifyContent: 'center', alignItems: 'center',
   },
   modalSaveBtn: {
-    backgroundColor: C.brand,
-    paddingVertical: 14,
-    borderRadius: 10,
+    backgroundColor: C.g600,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 14,
+    borderRadius: 14,
   },
-  modalSaveBtnText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#fff',
-  },
+  modalSaveBtnText: { fontSize: 16, fontWeight: '700', color: '#fff' },
 });

@@ -1,103 +1,62 @@
 import React, { useState, useEffect } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  FlatList,
-  TouchableOpacity,
-  RefreshControl,
-  ActivityIndicator,
+  View, Text, StyleSheet, FlatList, TouchableOpacity,
+  RefreshControl, ActivityIndicator, StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/Feather';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { getVendorQuotes } from '../../../api/client';
 import { useInfiniteScroll } from '../../../../hooks/useInfiniteScroll';
 import DateFilterModal from '../../../../components/DateFilterModal';
 
-const GREEN = '#09B368';
-const BG = '#F5F5F7';
-const DARK = '#0F172A';
+const C = {
+  g900: '#022C22', g800: '#065F46', g700: '#047857', g500: '#059669', g400: '#34D399',
+  g50: '#ECFDF5', g100: '#D1FAE5',
+  bg: '#F1F5F9', card: '#FFFFFF', border: '#E2E8F0', text: '#0F172A', sub: '#475569', muted: '#94A3B8',
+  green: '#059669', greenL: '#ECFDF5',
+  amber: '#D97706', amberL: '#FFFBEB',
+  red: '#DC2626', redL: '#FEF2F2',
+  blue: '#2563EB', blueL: '#EFF6FF',
+  purple: '#7C3AED', purpleL: '#F5F3FF',
+};
 
-const STATUS_COLORS = {
-  PENDING: '#F59E0B',
-  SENT: '#3B82F6',
-  ACCEPTED: '#10B981',
-  REJECTED: '#EF4444',
-  EXPIRED: '#6B7280',
-  WITHDRAWN: '#9CA3AF',
+const STATUS_CFG = {
+  PENDING:   { label: 'Pending',   bg: C.amberL,   text: C.amber,  icon: 'hourglass'     },
+  SENT:      { label: 'Sent',      bg: C.blueL,    text: C.blue,   icon: 'send'          },
+  ACCEPTED:  { label: 'Accepted',  bg: C.greenL,   text: C.green,  icon: 'checkmark-circle' },
+  REJECTED:  { label: 'Rejected',  bg: C.redL,     text: C.red,    icon: 'close-circle'  },
+  EXPIRED:   { label: 'Expired',   bg: '#F1F5F9',  text: '#6B7280', icon: 'time'         },
+  WITHDRAWN: { label: 'Withdrawn', bg: '#F1F5F9',  text: '#9CA3AF', icon: 'close'        },
 };
 
 const TABS = [
-  { id: 'all', label: 'All' },
+  { id: 'all',      label: 'All'      },
   { id: 'accepted', label: 'Accepted' },
   { id: 'rejected', label: 'Rejected' },
 ];
+
+const fmtDate = (d) => d ? new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'N/A';
+const fmtAmt  = (v) => v ? new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(v) : '₹0';
 
 export default function SelfDriveMyQuotesScreen({ navigation }) {
   const [activeTab, setActiveTab] = useState('all');
   const [showDateFilter, setShowDateFilter] = useState(false);
 
-  const {
-    data: quotes,
-    loading,
-    refreshing,
-    hasMore,
-    loadMore,
-    refresh,
-    initialLoad,
-    applyDateFilter,
-    dateFilter,
-    clearDateFilter,
-  } = useInfiniteScroll(getVendorQuotes, {
-    service: 'self-drive',
-    type: activeTab !== 'all' ? activeTab.toUpperCase() : null,
-  });
-
-  useEffect(() => {
-    initialLoad();
-  }, [initialLoad]);
-
-  const formatDate = (dateStr) => {
-    if (!dateStr) return 'N/A';
-    const date = new Date(dateStr);
-    return date.toLocaleDateString('en-IN', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
+  const { data: quotes, loading, refreshing, hasMore, loadMore, refresh, initialLoad, applyDateFilter, dateFilter, clearDateFilter } =
+    useInfiniteScroll(getVendorQuotes, {
+      service: 'self-drive',
+      type: activeTab !== 'all' ? activeTab.toUpperCase() : null,
+      filterKey: 'status',
     });
-  };
 
-  const formatCurrency = (amount) => {
-    if (!amount) return '₹0';
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR',
-      maximumFractionDigits: 0,
-    }).format(amount);
-  };
-
-  const getStatusIcon = (status) => {
-    switch (status) {
-      case 'ACCEPTED':
-        return 'checkmark-circle';
-      case 'REJECTED':
-        return 'close-circle';
-      case 'EXPIRED':
-        return 'time';
-      case 'PENDING':
-      case 'SENT':
-        return 'hourglass';
-      default:
-        return 'help-circle';
-    }
-  };
+  useEffect(() => { initialLoad(); }, [initialLoad]);
 
   const renderQuoteCard = ({ item }) => {
     const status = item.status || 'PENDING';
-    const statusColor = STATUS_COLORS[status] || '#6B7280';
-
-    // Handle nested data structure
+    const sc = STATUS_CFG[status] || { label: status, bg: C.border, text: C.muted, icon: 'help-circle-outline' };
     const request = item.request || {};
     const customerName = request.customerName || item.customerName || 'Customer';
     const pickupCity = request.pickupCity || item.pickupCity || 'Location';
@@ -108,177 +67,142 @@ export default function SelfDriveMyQuotesScreen({ navigation }) {
 
     return (
       <TouchableOpacity
-        style={styles.quoteCard}
-        onPress={() => navigation.navigate('SelfDriveQuoteDetail', {
-          quoteId: item.id || item._id
-        })}
-        activeOpacity={0.7}
+        style={s.card}
+        onPress={() => navigation.navigate('SelfDriveQuoteDetail', { quoteId: item.id || item._id })}
+        activeOpacity={0.8}
       >
-        {/* Header */}
-        <View style={styles.cardHeader}>
-          <View style={styles.quoteInfo}>
-            <Text style={styles.quoteNumber}>
-              #{item.quoteNumber || (item.id || item._id)?.toString().slice(-8) || 'N/A'}
-            </Text>
-            <View style={[styles.statusBadge, { backgroundColor: `${statusColor}15` }]}>
-              <Ionicons name={getStatusIcon(status)} size={12} color={statusColor} />
-              <Text style={[styles.statusText, { color: statusColor }]}>{status}</Text>
+        {/* Top: number + status + amount */}
+        <View style={s.cardTop}>
+          <View style={s.cardTopLeft}>
+            <View style={s.quoteIconBox}>
+              <Ionicons name="document-text" size={16} color={C.g700} />
+            </View>
+            <View>
+              <Text style={s.quoteNum}>#{item.quoteNumber || (item.id || item._id)?.toString().slice(-8) || 'N/A'}</Text>
+              {requestNumber && <Text style={s.reqRef}>Req #{requestNumber}</Text>}
             </View>
           </View>
-          <Text style={styles.quoteAmount}>{formatCurrency(totalAmount)}</Text>
+          <View style={s.cardTopRight}>
+            <Text style={s.amt}>{fmtAmt(totalAmount)}</Text>
+            <View style={[s.statusBadge, { backgroundColor: sc.bg }]}>
+              <Ionicons name={sc.icon} size={11} color={sc.text} />
+              <Text style={[s.statusText, { color: sc.text }]}>{sc.label}</Text>
+            </View>
+          </View>
         </View>
 
-        {/* Request Reference */}
-        {requestNumber && (
-          <View style={styles.requestRefRow}>
-            <Ionicons name="document-text-outline" size={14} color="#94A3B8" />
-            <Text style={styles.requestRefText}>Request #{requestNumber}</Text>
+        {/* Info rows */}
+        <View style={s.cardBody}>
+          <View style={s.infoRow}>
+            <Ionicons name="person-circle-outline" size={16} color={C.muted} />
+            <Text style={s.infoText} numberOfLines={1}>{customerName}</Text>
           </View>
-        )}
 
-        {/* Customer Info */}
-        <View style={styles.customerRow}>
-          <Ionicons name="person-circle-outline" size={18} color="#64748B" />
-          <Text style={styles.customerName} numberOfLines={1}>
-            {customerName}
-          </Text>
-        </View>
-
-        {/* Vehicle Info */}
-        {(item.vehicleName || item.selfDriveType) && (
-          <View style={styles.vehicleRow}>
-            <Ionicons name="car" size={16} color="#64748B" />
-            <Text style={styles.vehicleText} numberOfLines={1}>
-              {item.vehicleName || item.selfDriveType}
-              {item.vehicleBrand ? ` (${item.vehicleBrand})` : ''}
-            </Text>
-          </View>
-        )}
-
-        {/* Route */}
-        <View style={styles.routeRow}>
-          <View style={styles.routeItem}>
-            <Ionicons name="location" size={16} color={GREEN} />
-            <Text style={styles.routeText} numberOfLines={1}>
-              {pickupCity}
-            </Text>
-          </View>
-          {dropCity && (
-            <>
-              <Icon name="arrow-right" size={14} color="#94A3B8" />
-              <View style={styles.routeItem}>
-                <Ionicons name="location" size={16} color="#EF4444" />
-                <Text style={styles.routeText} numberOfLines={1}>
-                  {dropCity}
-                </Text>
-              </View>
-            </>
-          )}
-        </View>
-
-        {/* Footer */}
-        <View style={styles.cardFooter}>
-          <View style={styles.dateRow}>
-            <Ionicons name="calendar-outline" size={14} color="#64748B" />
-            <Text style={styles.dateText}>
-              Sent: {formatDate(item.createdAt || item.created_at)}
-            </Text>
-          </View>
-          {validTill && (
-            <View style={styles.dateRow}>
-              <Ionicons name="time-outline" size={14} color="#64748B" />
-              <Text style={styles.dateText}>
-                Valid: {formatDate(validTill)}
+          {(item.vehicleName || item.selfDriveType) && (
+            <View style={s.infoRow}>
+              <MaterialCommunityIcons name="car" size={15} color={C.muted} />
+              <Text style={s.infoText} numberOfLines={1}>
+                {item.vehicleName || item.selfDriveType}{item.vehicleBrand ? ` (${item.vehicleBrand})` : ''}
               </Text>
             </View>
           )}
+
+          <View style={s.routeRow}>
+            <Ionicons name="location" size={14} color={C.green} />
+            <Text style={s.routeText} numberOfLines={1}>{pickupCity}</Text>
+            {dropCity && (
+              <>
+                <Icon name="arrow-right" size={12} color={C.muted} style={{ marginHorizontal: 4 }} />
+                <Ionicons name="location" size={14} color={C.red} />
+                <Text style={s.routeText} numberOfLines={1}>{dropCity}</Text>
+              </>
+            )}
+          </View>
         </View>
 
-        {/* Action hint */}
-        <View style={styles.actionHint}>
-          <Text style={styles.actionHintText}>Tap to view details</Text>
-          <Icon name="chevron-right" size={16} color="#94A3B8" />
+        {/* Footer */}
+        <View style={s.cardFooter}>
+          <View style={s.footerLeft}>
+            <Ionicons name="calendar-outline" size={13} color={C.muted} />
+            <Text style={s.footerDate}>Sent: {fmtDate(item.createdAt || item.created_at)}</Text>
+          </View>
+          {validTill && (
+            <View style={s.footerLeft}>
+              <Ionicons name="time-outline" size={13} color={C.muted} />
+              <Text style={s.footerDate}>Valid: {fmtDate(validTill)}</Text>
+            </View>
+          )}
+          <View style={s.footerArrow}>
+            <Icon name="chevron-right" size={14} color={C.g700} />
+          </View>
         </View>
       </TouchableOpacity>
     );
   };
 
-  const renderEmptyState = () => (
-    <View style={styles.emptyState}>
-      <Ionicons name="document-text-outline" size={64} color="#CBD5E1" />
-      <Text style={styles.emptyTitle}>No Quotes Found</Text>
-      <Text style={styles.emptySubtitle}>
-        {activeTab === 'all'
-          ? "You haven't sent any quotes yet"
-          : `No ${activeTab} quotes`}
-      </Text>
-    </View>
-  );
-
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
+    <SafeAreaView style={s.safe} edges={['top']}>
+      <StatusBar barStyle="light-content" backgroundColor={C.g900} />
+
       {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Icon name="arrow-left" size={22} color={DARK} />
-        </TouchableOpacity>
-        <View style={styles.headerCenter}>
-          <Text style={styles.headerTitle}>My Quotes</Text>
-          <Text style={styles.headerSubtitle}>Self Drive Car Rental</Text>
+      <LinearGradient colors={[C.g900, C.g800, C.g700]} style={s.header}>
+        <View style={[s.deco, { width: 140, height: 140, top: -50, right: -30, opacity: 0.07 }]} />
+        <View style={s.headerRow}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
+            <Icon name="arrow-left" size={20} color="#fff" />
+          </TouchableOpacity>
+          <View style={s.headerMid}>
+            <Ionicons name="document-text-outline" size={18} color={C.g400} />
+            <View>
+              <Text style={s.headerTitle}>My Quotes</Text>
+              <Text style={s.headerSub}>Self Drive</Text>
+            </View>
+          </View>
+          <TouchableOpacity onPress={() => setShowDateFilter(true)} style={s.filterIconBtn}>
+            <Icon name="calendar" size={18} color={dateFilter.start ? '#FFD700' : 'rgba(255,255,255,0.8)'} />
+            {dateFilter.start && <View style={s.filterActiveDot} />}
+          </TouchableOpacity>
         </View>
-        <TouchableOpacity
-          onPress={() => setShowDateFilter(true)}
-          style={styles.filterButton}
-        >
-          <Icon name="calendar" size={20} color={dateFilter.start ? GREEN : '#64748B'} />
-          {dateFilter.start && <View style={styles.activeFilterDot} />}
-        </TouchableOpacity>
-      </View>
+      </LinearGradient>
 
       {/* Tabs */}
-      <View style={styles.tabsContainer}>
-        <FlatList
-          data={TABS}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.tabsList}
-          renderItem={({ item }) => (
-            <TouchableOpacity
-              style={[styles.tab, activeTab === item.id && styles.tabActive]}
-              onPress={() => setActiveTab(item.id)}
-            >
-              <Text style={[styles.tabText, activeTab === item.id && styles.tabTextActive]}>
-                {item.label}
-              </Text>
-            </TouchableOpacity>
-          )}
-        />
+      <View style={s.tabsBar}>
+        {TABS.map(tab => (
+          <TouchableOpacity
+            key={tab.id}
+            style={[s.tab, activeTab === tab.id && s.tabActive]}
+            onPress={() => setActiveTab(tab.id)}
+          >
+            <Text style={[s.tabText, activeTab === tab.id && s.tabTextActive]}>{tab.label}</Text>
+          </TouchableOpacity>
+        ))}
       </View>
 
-      {/* Content */}
       {loading && quotes.length === 0 ? (
-        <View style={styles.loaderWrap}>
-          <ActivityIndicator size="large" color={GREEN} />
+        <View style={s.centered}>
+          <ActivityIndicator size="large" color={C.g500} />
+          <Text style={s.loadingText}>Loading quotes...</Text>
         </View>
       ) : (
         <FlatList
           data={quotes}
           keyExtractor={(item) => (item.id || item._id)?.toString() || Math.random().toString()}
           renderItem={renderQuoteCard}
-          contentContainerStyle={styles.listContent}
+          contentContainerStyle={[s.list, quotes.length === 0 && { flex: 1 }]}
           showsVerticalScrollIndicator={false}
           onEndReached={loadMore}
           onEndReachedThreshold={0.5}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={refresh} colors={[GREEN]} />
-          }
-          ListFooterComponent={loading && hasMore ? (
-            <View style={{ paddingVertical: 20 }}>
-              <ActivityIndicator size="small" color={GREEN} />
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} colors={[C.g500]} tintColor={C.g500} />}
+          ListFooterComponent={loading && hasMore ? <View style={{ paddingVertical: 20 }}><ActivityIndicator size="small" color={C.g500} /></View> : null}
+          ListEmptyComponent={
+            <View style={s.empty}>
+              <View style={s.emptyIconBox}>
+                <Ionicons name="document-text-outline" size={36} color={C.muted} />
+              </View>
+              <Text style={s.emptyTitle}>No Quotes Found</Text>
+              <Text style={s.emptySub}>{activeTab === 'all' ? "You haven't sent any quotes yet" : `No ${activeTab} quotes`}</Text>
             </View>
-          ) : null}
-          ListEmptyComponent={renderEmptyState}
+          }
         />
       )}
 
@@ -294,142 +218,62 @@ export default function SelfDriveMyQuotesScreen({ navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#fff' },
+const s = StyleSheet.create({
+  safe: { flex: 1, backgroundColor: C.bg },
 
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
-  },
-  backBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: BG,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  headerCenter: { alignItems: 'center' },
-  headerTitle: { fontSize: 18, fontWeight: '700', color: DARK },
-  headerSubtitle: { fontSize: 12, color: '#64748B', marginTop: 2 },
+  // Header
+  header: { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 16, overflow: 'hidden' },
+  deco: { position: 'absolute', borderRadius: 999, backgroundColor: '#fff' },
+  headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  backBtn: { width: 36, height: 36, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center' },
+  headerMid: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  headerTitle: { fontSize: 17, fontWeight: '800', color: '#fff' },
+  headerSub: { fontSize: 11, color: 'rgba(255,255,255,0.65)', marginTop: 1 },
+  filterIconBtn: { width: 36, height: 36, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center', position: 'relative' },
+  filterActiveDot: { position: 'absolute', top: 6, right: 6, width: 8, height: 8, borderRadius: 4, backgroundColor: '#FFD700', borderWidth: 1.5, borderColor: C.g900 },
 
-  tabsContainer: {
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0'
-  },
-  tabsList: { paddingHorizontal: 12, paddingVertical: 8, gap: 8 },
-  tab: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: BG,
-    marginRight: 8
-  },
-  tabActive: { backgroundColor: GREEN },
-  tabText: { fontSize: 13, fontWeight: '600', color: '#64748B' },
+  // Tabs
+  tabsBar: { flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingVertical: 10, backgroundColor: C.card, borderBottomWidth: 1, borderBottomColor: C.border },
+  tab: { paddingHorizontal: 18, paddingVertical: 8, borderRadius: 20, backgroundColor: C.bg, borderWidth: 1.5, borderColor: C.border },
+  tabActive: { backgroundColor: C.g700, borderColor: C.g700 },
+  tabText: { fontSize: 13, fontWeight: '600', color: C.muted },
   tabTextActive: { color: '#fff' },
 
-  loaderWrap: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  listContent: { padding: 16, paddingBottom: 40 },
+  // List
+  list: { padding: 16, gap: 12, paddingBottom: 32 },
+  centered: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 10 },
+  loadingText: { fontSize: 14, color: C.muted },
 
-  quoteCard: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    shadowColor: '#000',
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
+  // Card
+  card: {
+    backgroundColor: C.card, borderRadius: 16, borderWidth: 1, borderColor: C.border,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 6, elevation: 2,
+    overflow: 'hidden',
   },
+  cardTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', padding: 14, paddingBottom: 10 },
+  cardTopLeft: { flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 },
+  quoteIconBox: { width: 36, height: 36, borderRadius: 10, backgroundColor: C.g50, alignItems: 'center', justifyContent: 'center' },
+  quoteNum: { fontSize: 14, fontWeight: '800', color: C.text, marginBottom: 2 },
+  reqRef: { fontSize: 11, color: C.muted },
+  cardTopRight: { alignItems: 'flex-end', gap: 6 },
+  amt: { fontSize: 17, fontWeight: '800', color: C.g700 },
+  statusBadge: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12, gap: 4 },
+  statusText: { fontSize: 10, fontWeight: '700' },
 
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 12
-  },
-  quoteInfo: { flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 },
-  quoteNumber: { fontSize: 14, fontWeight: '700', color: DARK },
-  statusBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-    gap: 4
-  },
-  statusText: { fontSize: 11, fontWeight: '600' },
-  quoteAmount: { fontSize: 18, fontWeight: '700', color: GREEN, marginLeft: 8 },
+  cardBody: { paddingHorizontal: 14, paddingBottom: 10, gap: 7 },
+  infoRow: { flexDirection: 'row', alignItems: 'center', gap: 7 },
+  infoText: { fontSize: 13, color: C.sub, flex: 1 },
+  routeRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap' },
+  routeText: { fontSize: 13, color: C.sub, flex: 1, maxWidth: 120 },
 
-  requestRefRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 8 },
-  requestRefText: { fontSize: 12, color: '#94A3B8' },
+  cardFooter: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 14, paddingVertical: 10, borderTopWidth: 1, borderTopColor: C.border, backgroundColor: C.bg },
+  footerLeft: { flexDirection: 'row', alignItems: 'center', gap: 4, flex: 1 },
+  footerDate: { fontSize: 11, color: C.muted },
+  footerArrow: { width: 28, height: 28, borderRadius: 8, backgroundColor: C.g50, alignItems: 'center', justifyContent: 'center' },
 
-  customerRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 },
-  customerName: { fontSize: 14, color: '#334155', flex: 1 },
-
-  vehicleRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 10 },
-  vehicleText: { fontSize: 13, color: '#475569', flex: 1 },
-
-  routeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 12,
-    paddingBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
-  },
-  routeItem: { flexDirection: 'row', alignItems: 'center', gap: 4, flex: 1 },
-  routeText: { fontSize: 13, color: '#475569', flex: 1 },
-
-  cardFooter: { flexDirection: 'row', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 },
-  dateRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  dateText: { fontSize: 12, color: '#64748B' },
-
-  actionHint: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-    marginTop: 10,
-    paddingTop: 10,
-    borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
-  },
-  actionHintText: { fontSize: 12, color: '#94A3B8' },
-
-  emptyState: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: 80
-  },
-  emptyTitle: { fontSize: 18, fontWeight: '600', color: DARK, marginTop: 16 },
-  emptySubtitle: { fontSize: 14, color: '#64748B', marginTop: 8, textAlign: 'center' },
-  filterButton: {
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-    position: 'relative',
-  },
-  activeFilterDot: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: GREEN,
-  },
+  // Empty
+  empty: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 10, paddingVertical: 72 },
+  emptyIconBox: { width: 72, height: 72, borderRadius: 18, backgroundColor: C.card, borderWidth: 1, borderColor: C.border, alignItems: 'center', justifyContent: 'center' },
+  emptyTitle: { fontSize: 16, fontWeight: '700', color: C.text },
+  emptySub: { fontSize: 13, color: C.muted, textAlign: 'center' },
 });

@@ -1,31 +1,23 @@
 import React, { useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  TextInput,
-  ActivityIndicator,
-  Alert,
-  Modal,
-  Switch,
+  View, Text, StyleSheet, ScrollView, TouchableOpacity,
+  TextInput, ActivityIndicator, Modal, Switch, StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/Feather';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import CustomDropdown from '../../../../components/CustomDropdown';
-import api from '../../../../lib/api';
-import { showConfirm, showError, showInfo, showSuccess } from '../../../../services/alertService';
+import { createTemplate } from '../../../api/client';
+import { showError, showSuccess } from '../../../../services/alertService';
 
 const C = {
-  bg: '#F7FAFC',
-  surface: '#FFFFFF',
-  text: '#1E293B',
-  muted: '#64748B',
-  border: '#E2E8F0',
-  brand: '#8B5CF6',
-  green: '#10B981',
-  red: '#EF4444',
+  g900: '#022C22', g800: '#065F46', g700: '#047857', g600: '#059669',
+  g500: '#10B981', g400: '#34D399', g100: '#D1FAE5', g50: '#ECFDF5',
+  bg: '#F1F5F9', card: '#FFFFFF', border: '#E2E8F0',
+  text: '#0F172A', sub: '#475569', muted: '#94A3B8',
+  blue: '#2563EB', blueL: '#EFF6FF',
+  red: '#DC2626', redL: '#FEF2F2',
 };
 
 const SHIFTING_CATEGORIES = [
@@ -38,72 +30,48 @@ const SHIFTING_CATEGORIES = [
 ];
 
 const SHIFTING_TYPE_OPTIONS = [
-  'Home Shifting',
-  'Office Relocation',
-  'Vehicle Transport',
-  'Furniture Shifting',
-  'Warehouse Goods',
-  'Fragile Items',
-  'Electronics',
-  'Complete Packing',
+  'Home Shifting', 'Office Relocation', 'Vehicle Transport', 'Furniture Shifting',
+  'Warehouse Goods', 'Fragile Items', 'Electronics', 'Complete Packing',
 ];
 
 const DEFAULT_INCLUSIONS = [
-  'Professional driver',
-  'Vehicle insurance',
-  'Toll charges included',
-  'Parking charges',
-  'Driver allowance',
+  'Professional packing team', 'Quality packing materials',
+  'Loading & unloading', 'Transportation', 'Unpacking', 'Basic transit insurance',
 ];
 
 const DEFAULT_EXCLUSIONS = [
-  'Food and beverages',
-  'State permit charges',
-  'Entry tickets',
-  'Extra stops',
+  'Toll & parking charges', 'Goods above ₹50,000 need separate insurance',
+  'Disassembly/reassembly of furniture', 'Storage charges', 'Weekend/holiday surcharge',
 ];
 
 const DEFAULT_TERMS = [
   'Advance payment required to confirm booking',
-  'Cancellation charges apply as per policy',
-  'Extra hours will be charged separately',
-  'Vehicle type subject to availability',
+  'Fragile items must be declared before packing',
+  'Customer must be present during packing/unpacking',
+  'Transit time subject to road conditions',
+  'Insurance claim within 7 days of delivery',
 ];
 
 export default function PackersCreateTemplateScreen({ navigation }) {
   const [submitting, setSubmitting] = useState(false);
-
-  // Basic Info
   const [name, setName] = useState('');
   const [category, setCategory] = useState('');
   const [description, setDescription] = useState('');
-
-  // Shifting Types
   const [selectedShiftingTypes, setSelectedShiftingTypes] = useState([]);
-
-  // Pricing Hint
   const [baseRateHint, setBaseRateHint] = useState('');
-
-  // Lists
   const [inclusions, setInclusions] = useState([...DEFAULT_INCLUSIONS]);
   const [exclusions, setExclusions] = useState([...DEFAULT_EXCLUSIONS]);
   const [termsConditions, setTermsConditions] = useState([...DEFAULT_TERMS]);
-
-  // Active status
   const [isActive, setIsActive] = useState(true);
-
-  // Modal states
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [editType, setEditType] = useState(null);
   const [editList, setEditList] = useState([]);
   const [newItemText, setNewItemText] = useState('');
 
   const toggleShiftingType = (type) => {
-    if (selectedShiftingTypes.includes(type)) {
-      setSelectedShiftingTypes(selectedShiftingTypes.filter(t => t !== type));
-    } else {
-      setSelectedShiftingTypes([...selectedShiftingTypes, type]);
-    }
+    setSelectedShiftingTypes(prev =>
+      prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]
+    );
   };
 
   const openEditModal = (type) => {
@@ -130,28 +98,15 @@ export default function PackersCreateTemplateScreen({ navigation }) {
     }
   };
 
-  const removeItemFromList = (item) => {
-    setEditList(editList.filter((i) => i !== item));
-  };
+  const removeItemFromList = (item) => setEditList(editList.filter((i) => i !== item));
 
   const handleSubmit = async () => {
-    // Validation
-    if (!name.trim()) {
-      showError('Please enter template name');
-      return;
-    }
-    if (!category) {
-      showError('Please select a category');
-      return;
-    }
-    if (inclusions.length === 0) {
-      showError('Please add at least one inclusion');
-      return;
-    }
-
+    if (!name.trim()) { showError('Please enter template name'); return; }
+    if (!category) { showError('Please select a category'); return; }
+    if (inclusions.length === 0) { showError('Please add at least one inclusion'); return; }
     try {
       setSubmitting(true);
-      const response = await api.post('/vendor/packers-templates', {
+      await createTemplate('packers', {
         name: name.trim(),
         category,
         description: description.trim() || null,
@@ -162,12 +117,8 @@ export default function PackersCreateTemplateScreen({ navigation }) {
         baseRateHint: baseRateHint ? parseFloat(baseRateHint) : null,
         isActive,
       });
-
-      if (response.data.success) {
-        showSuccess('Template created successfully!', 'Success', { actions: [{ label: 'OK', onPress: () => navigation.goBack(), variant: 'primary' }] });
-      }
+      showSuccess('Template created successfully!', 'Success', { actions: [{ label: 'OK', onPress: () => navigation.goBack(), variant: 'primary' }] });
     } catch (error) {
-      console.error('Error creating template:', error);
       showError(error?.response?.data?.error || 'Failed to create template');
     } finally {
       setSubmitting(false);
@@ -175,40 +126,54 @@ export default function PackersCreateTemplateScreen({ navigation }) {
   };
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Icon name="arrow-left" size={22} color={C.text} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Create Template</Text>
-        <View style={{ width: 40 }} />
-      </View>
+    <SafeAreaView style={s.safe} edges={['top']}>
+      <StatusBar barStyle="light-content" backgroundColor={C.g900} />
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <LinearGradient colors={[C.g900, '#064E3B', C.g700]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.heroMin}>
+        <View style={s.deco1} /><View style={s.deco2} />
+        <View style={s.topBar}>
+          <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()}>
+            <Icon name="arrow-left" size={18} color="#fff" />
+          </TouchableOpacity>
+          <View style={s.titleWrap}>
+            <MaterialCommunityIcons name="truck-delivery" size={18} color={C.g400} />
+            <Text style={s.heroTitle}>Create Template</Text>
+          </View>
+          <View style={{ width: 36 }} />
+        </View>
+        <Text style={s.heroSub}>Packers & Movers</Text>
+      </LinearGradient>
+
+      <ScrollView style={s.scroll} contentContainerStyle={s.scrollContent} showsVerticalScrollIndicator={false}>
         {/* Basic Info */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Basic Information</Text>
+        <View style={s.card}>
+          <View style={s.cardTitleRow}>
+            <View style={[s.cardIcon, { backgroundColor: C.g50 }]}>
+              <Icon name="file-text" size={16} color={C.g600} />
+            </View>
+            <Text style={s.cardTitle}>Basic Information</Text>
+          </View>
 
-          <Text style={styles.inputLabel}>Template Name *</Text>
+          <Text style={s.inputLabel}>Template Name *</Text>
           <TextInput
-            style={styles.input}
+            style={s.input}
             value={name}
             onChangeText={setName}
-            placeholder="e.g., Standard AC Bus Package"
+            placeholder="e.g., Standard Home Shifting Package"
             placeholderTextColor={C.muted}
           />
 
           <CustomDropdown
-            label="Truck Category *"
+            label="Shifting Category *"
             value={category}
             items={SHIFTING_CATEGORIES}
             onValueChange={setCategory}
             placeholder="Select category"
           />
 
-          <Text style={styles.inputLabel}>Description</Text>
+          <Text style={s.inputLabel}>Description</Text>
           <TextInput
-            style={[styles.input, styles.textArea]}
+            style={[s.input, s.textArea]}
             value={description}
             onChangeText={setDescription}
             placeholder="Brief description of this template..."
@@ -220,36 +185,38 @@ export default function PackersCreateTemplateScreen({ navigation }) {
         </View>
 
         {/* Shifting Types */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Shifting Types</Text>
-          <Text style={styles.cardSubtitle}>Select applicable shifting types</Text>
-
-          <View style={styles.checkboxGrid}>
+        <View style={s.card}>
+          <View style={s.cardTitleRow}>
+            <View style={[s.cardIcon, { backgroundColor: '#FEF3C7' }]}>
+              <MaterialCommunityIcons name="home-switch-outline" size={16} color="#D97706" />
+            </View>
+            <Text style={s.cardTitle}>Shifting Types</Text>
+          </View>
+          <Text style={s.hint}>Select applicable shifting types for this template</Text>
+          <View style={s.checkboxGrid}>
             {SHIFTING_TYPE_OPTIONS.map((type) => (
-              <TouchableOpacity
-                key={type}
-                style={styles.checkbox}
-                onPress={() => toggleShiftingType(type)}
-              >
-                <View style={[styles.checkboxBox, selectedShiftingTypes.includes(type) && styles.checkboxBoxChecked]}>
-                  {selectedShiftingTypes.includes(type) && (
-                    <Icon name="check" size={14} color="#fff" />
-                  )}
+              <TouchableOpacity key={type} style={s.checkbox} onPress={() => toggleShiftingType(type)}>
+                <View style={[s.checkboxBox, selectedShiftingTypes.includes(type) && s.checkboxBoxChecked]}>
+                  {selectedShiftingTypes.includes(type) && <Icon name="check" size={12} color="#fff" />}
                 </View>
-                <Text style={styles.checkboxLabel}>{type}</Text>
+                <Text style={s.checkboxLabel}>{type}</Text>
               </TouchableOpacity>
             ))}
           </View>
         </View>
 
         {/* Pricing Hints */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Pricing (Optional)</Text>
-          <Text style={styles.cardSubtitle}>Suggested rate to help you quote faster</Text>
-
-          <Text style={styles.inputLabel}>Base Rate Hint (₹)</Text>
+        <View style={s.card}>
+          <View style={s.cardTitleRow}>
+            <View style={[s.cardIcon, { backgroundColor: C.g50 }]}>
+              <Icon name="tag" size={16} color={C.g600} />
+            </View>
+            <Text style={s.cardTitle}>Pricing Hint (Optional)</Text>
+          </View>
+          <Text style={s.hint}>Suggested base rate to help you quote faster</Text>
+          <Text style={s.inputLabel}>Base Rate Hint (₹)</Text>
           <TextInput
-            style={styles.input}
+            style={s.input}
             value={baseRateHint}
             onChangeText={setBaseRateHint}
             placeholder="e.g., 8000"
@@ -259,71 +226,84 @@ export default function PackersCreateTemplateScreen({ navigation }) {
         </View>
 
         {/* Inclusions */}
-        <View style={styles.card}>
-          <View style={styles.cardHeader}>
-            <Text style={styles.cardTitle}>Inclusions ({inclusions.length})</Text>
+        <View style={s.card}>
+          <View style={s.cardTitleRowSpaced}>
+            <View style={s.cardTitleRow}>
+              <View style={[s.cardIcon, { backgroundColor: '#DCFCE7' }]}>
+                <Icon name="check-circle" size={16} color="#16A34A" />
+              </View>
+              <Text style={s.cardTitle}>Inclusions ({inclusions.length})</Text>
+            </View>
             <TouchableOpacity onPress={() => openEditModal('inclusions')}>
-              <Icon name="edit-2" size={18} color={C.brand} />
+              <Icon name="edit-2" size={18} color={C.g600} />
             </TouchableOpacity>
           </View>
-          <View style={styles.chipContainer}>
+          <View style={s.chipContainer}>
             {inclusions.map((item, idx) => (
-              <View key={idx} style={[styles.chip, { backgroundColor: '#D1FAE5' }]}>
-                <Icon name="check-circle" size={14} color="#059669" />
-                <Text style={[styles.chipText, { color: '#059669' }]}>{item}</Text>
+              <View key={idx} style={[s.chip, { backgroundColor: '#DCFCE7' }]}>
+                <Icon name="check" size={12} color="#16A34A" />
+                <Text style={[s.chipTxt, { color: '#166534' }]}>{item}</Text>
               </View>
             ))}
           </View>
         </View>
 
         {/* Exclusions */}
-        <View style={styles.card}>
-          <View style={styles.cardHeader}>
-            <Text style={styles.cardTitle}>Exclusions ({exclusions.length})</Text>
+        <View style={s.card}>
+          <View style={s.cardTitleRowSpaced}>
+            <View style={s.cardTitleRow}>
+              <View style={[s.cardIcon, { backgroundColor: C.redL }]}>
+                <Icon name="x-circle" size={16} color={C.red} />
+              </View>
+              <Text style={s.cardTitle}>Exclusions ({exclusions.length})</Text>
+            </View>
             <TouchableOpacity onPress={() => openEditModal('exclusions')}>
-              <Icon name="edit-2" size={18} color={C.brand} />
+              <Icon name="edit-2" size={18} color={C.g600} />
             </TouchableOpacity>
           </View>
-          <View style={styles.chipContainer}>
+          <View style={s.chipContainer}>
             {exclusions.map((item, idx) => (
-              <View key={idx} style={[styles.chip, { backgroundColor: '#FEE2E2' }]}>
-                <Icon name="x-circle" size={14} color="#DC2626" />
-                <Text style={[styles.chipText, { color: '#DC2626' }]}>{item}</Text>
+              <View key={idx} style={[s.chip, { backgroundColor: C.redL }]}>
+                <Icon name="x" size={12} color={C.red} />
+                <Text style={[s.chipTxt, { color: C.red }]}>{item}</Text>
               </View>
             ))}
           </View>
         </View>
 
-        {/* Terms & Conditions */}
-        <View style={styles.card}>
-          <View style={styles.cardHeader}>
-            <Text style={styles.cardTitle}>Terms & Conditions ({termsConditions.length})</Text>
+        {/* Terms */}
+        <View style={s.card}>
+          <View style={s.cardTitleRowSpaced}>
+            <View style={s.cardTitleRow}>
+              <View style={[s.cardIcon, { backgroundColor: C.blueL }]}>
+                <Icon name="file-text" size={16} color={C.blue} />
+              </View>
+              <Text style={s.cardTitle}>Terms & Conditions ({termsConditions.length})</Text>
+            </View>
             <TouchableOpacity onPress={() => openEditModal('terms')}>
-              <Icon name="edit-2" size={18} color={C.brand} />
+              <Icon name="edit-2" size={18} color={C.g600} />
             </TouchableOpacity>
           </View>
           {termsConditions.map((term, idx) => (
-            <View key={idx} style={styles.termRow}>
-              <Text style={styles.termNumber}>{idx + 1}.</Text>
-              <Text style={styles.termText}>{term}</Text>
+            <View key={idx} style={s.termRow}>
+              <Text style={s.termNum}>{idx + 1}.</Text>
+              <Text style={s.termTxt}>{term}</Text>
             </View>
           ))}
         </View>
 
         {/* Active Status */}
-        <View style={styles.card}>
-          <View style={styles.switchRow}>
-            <View style={styles.switchLabel}>
-              <Text style={styles.cardTitle}>Active Status</Text>
-              <Text style={styles.cardSubtitle}>
-                {isActive ? 'Template is active and can be used' : 'Template is inactive'}
-              </Text>
+        <View style={s.card}>
+          <View style={s.switchRow}>
+            <View style={{ flex: 1 }}>
+              <Text style={s.cardTitle}>Active Status</Text>
+              <Text style={s.hint}>{isActive ? 'Template is active and can be used' : 'Template is inactive'}</Text>
             </View>
             <Switch
               value={isActive}
               onValueChange={setIsActive}
-              trackColor={{ false: '#E2E8F0', true: '#86EFAC' }}
-              thumbColor={isActive ? C.green : '#94A3B8'}
+              trackColor={{ false: C.border, true: C.g100 }}
+              thumbColor={isActive ? C.g600 : C.muted}
             />
           </View>
         </View>
@@ -331,68 +311,53 @@ export default function PackersCreateTemplateScreen({ navigation }) {
         <View style={{ height: 100 }} />
       </ScrollView>
 
-      {/* Submit Button */}
-      <View style={styles.footer}>
-        <TouchableOpacity
-          style={[styles.submitBtn, submitting && styles.submitBtnDisabled]}
-          onPress={handleSubmit}
-          disabled={submitting}
-        >
-          {submitting ? (
-            <ActivityIndicator size="small" color="#fff" />
-          ) : (
+      <View style={s.footer}>
+        <TouchableOpacity style={[s.submitBtn, submitting && { opacity: 0.6 }]} onPress={handleSubmit} disabled={submitting}>
+          {submitting ? <ActivityIndicator size="small" color="#fff" /> : (
             <>
               <Icon name="check" size={18} color="#fff" />
-              <Text style={styles.submitBtnText}>Create Template</Text>
+              <Text style={s.submitBtnTxt}>Create Template</Text>
             </>
           )}
         </TouchableOpacity>
       </View>
 
-      {/* Edit Modal */}
-      <Modal
-        visible={editModalVisible}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setEditModalVisible(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>
+      <Modal visible={editModalVisible} animationType="slide" transparent onRequestClose={() => setEditModalVisible(false)}>
+        <View style={s.modalOverlay}>
+          <View style={s.modalSheet}>
+            <View style={s.modalHandle} />
+            <View style={s.modalHeader}>
+              <Text style={s.modalTitle}>
                 Edit {editType === 'inclusions' ? 'Inclusions' : editType === 'exclusions' ? 'Exclusions' : 'Terms'}
               </Text>
               <TouchableOpacity onPress={() => setEditModalVisible(false)}>
-                <Icon name="x" size={24} color={C.text} />
+                <Icon name="x" size={22} color={C.text} />
               </TouchableOpacity>
             </View>
-
-            <ScrollView style={styles.modalBody}>
+            <ScrollView style={{ maxHeight: 300, paddingHorizontal: 20 }}>
               {editList.map((item, idx) => (
-                <View key={idx} style={styles.modalItem}>
-                  <Text style={styles.modalItemText}>{item}</Text>
+                <View key={idx} style={s.modalItem}>
+                  <Text style={s.modalItemTxt}>{item}</Text>
                   <TouchableOpacity onPress={() => removeItemFromList(item)}>
                     <Icon name="trash-2" size={18} color={C.red} />
                   </TouchableOpacity>
                 </View>
               ))}
             </ScrollView>
-
-            <View style={styles.modalAddSection}>
+            <View style={s.modalAddRow}>
               <TextInput
-                style={styles.modalInput}
+                style={s.modalInput}
                 value={newItemText}
                 onChangeText={setNewItemText}
                 placeholder="Add new item..."
                 placeholderTextColor={C.muted}
               />
-              <TouchableOpacity style={styles.modalAddBtn} onPress={addItemToList}>
+              <TouchableOpacity style={s.modalAddBtn} onPress={addItemToList}>
                 <Icon name="plus" size={20} color="#fff" />
               </TouchableOpacity>
             </View>
-
-            <TouchableOpacity style={styles.modalSaveBtn} onPress={saveEditModal}>
-              <Text style={styles.modalSaveBtnText}>Save Changes</Text>
+            <TouchableOpacity style={s.modalSaveBtn} onPress={saveEditModal}>
+              <Text style={s.modalSaveBtnTxt}>Save Changes</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -401,242 +366,69 @@ export default function PackersCreateTemplateScreen({ navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: C.bg,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: C.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: C.border,
-  },
-  backBtn: {
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: C.text,
-  },
-  content: {
-    flex: 1,
-    padding: 16,
-  },
+const s = StyleSheet.create({
+  safe: { flex: 1, backgroundColor: C.bg },
+
+  heroMin: { paddingHorizontal: 16, paddingBottom: 16 },
+  deco1: { position: 'absolute', top: -40, right: -40, width: 160, height: 160, borderRadius: 80, backgroundColor: 'rgba(52,211,153,0.08)' },
+  deco2: { position: 'absolute', bottom: -20, left: -20, width: 100, height: 100, borderRadius: 50, backgroundColor: 'rgba(52,211,153,0.06)' },
+  topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 12 },
+  backBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center' },
+  titleWrap: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  heroTitle: { fontSize: 17, fontWeight: '700', color: '#fff' },
+  heroSub: { fontSize: 12, color: 'rgba(255,255,255,0.5)', marginTop: 4 },
+
+  scroll: { flex: 1 },
+  scrollContent: { padding: 16 },
+
   card: {
-    backgroundColor: C.surface,
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: C.border,
+    backgroundColor: C.card, borderRadius: 16, padding: 16, marginBottom: 12,
+    borderWidth: 1, borderColor: C.border,
+    shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 2,
   },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  cardTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: C.text,
-  },
-  cardSubtitle: {
-    fontSize: 13,
-    color: C.muted,
-    marginTop: 4,
-    marginBottom: 12,
-  },
-  inputLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: C.text,
-    marginBottom: 8,
-    marginTop: 12,
-  },
-  input: {
-    backgroundColor: C.bg,
-    borderWidth: 1,
-    borderColor: C.border,
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 14,
-    color: C.text,
-  },
-  textArea: {
-    height: 80,
-  },
-  checkboxGrid: {
-    gap: 12,
-  },
-  checkbox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    paddingVertical: 8,
-  },
-  checkboxBox: {
-    width: 20,
-    height: 20,
-    borderRadius: 4,
-    borderWidth: 2,
-    borderColor: C.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  checkboxBoxChecked: {
-    backgroundColor: C.brand,
-    borderColor: C.brand,
-  },
-  checkboxLabel: {
-    fontSize: 14,
-    color: C.text,
-  },
-  chipContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  chip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-  },
-  chipText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  termRow: {
-    flexDirection: 'row',
-    marginBottom: 8,
-  },
-  termNumber: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: C.brand,
-    marginRight: 8,
-  },
-  termText: {
-    flex: 1,
-    fontSize: 14,
-    color: C.text,
-  },
-  switchRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  switchLabel: {
-    flex: 1,
-  },
+  cardTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 14 },
+  cardTitleRowSpaced: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 },
+  cardIcon: { width: 32, height: 32, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
+  cardTitle: { fontSize: 15, fontWeight: '700', color: C.text },
+
+  hint: { fontSize: 13, color: C.muted, marginBottom: 12 },
+  inputLabel: { fontSize: 13, fontWeight: '600', color: C.text, marginBottom: 8, marginTop: 12 },
+  input: { backgroundColor: C.bg, borderWidth: 1, borderColor: C.border, borderRadius: 10, padding: 12, fontSize: 14, color: C.text },
+  textArea: { height: 80 },
+
+  checkboxGrid: { gap: 4 },
+  checkbox: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10 },
+  checkboxBox: { width: 22, height: 22, borderRadius: 6, borderWidth: 2, borderColor: C.border, alignItems: 'center', justifyContent: 'center' },
+  checkboxBoxChecked: { backgroundColor: C.g600, borderColor: C.g600 },
+  checkboxLabel: { fontSize: 14, color: C.text },
+
+  chipContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  chip: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20 },
+  chipTxt: { fontSize: 12, fontWeight: '600' },
+
+  termRow: { flexDirection: 'row', marginBottom: 8 },
+  termNum: { fontSize: 13, fontWeight: '700', color: C.g600, marginRight: 8, width: 18 },
+  termTxt: { flex: 1, fontSize: 13, color: C.sub, lineHeight: 20 },
+
+  switchRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+
   footer: {
-    padding: 16,
-    backgroundColor: C.surface,
-    borderTopWidth: 1,
-    borderTopColor: C.border,
+    padding: 16, backgroundColor: C.card, borderTopWidth: 1, borderTopColor: C.border,
+    shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 12, shadowOffset: { width: 0, height: -3 }, elevation: 12,
   },
-  submitBtn: {
-    backgroundColor: C.brand,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 14,
-    borderRadius: 10,
-  },
-  submitBtnDisabled: {
-    opacity: 0.6,
-  },
-  submitBtnText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#fff',
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'flex-end',
-  },
-  modalContent: {
-    backgroundColor: C.surface,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    padding: 20,
-    maxHeight: '80%',
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: C.text,
-  },
-  modalBody: {
-    maxHeight: 300,
-  },
-  modalItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 12,
-    backgroundColor: C.bg,
-    borderRadius: 8,
-    marginBottom: 8,
-  },
-  modalItemText: {
-    flex: 1,
-    fontSize: 14,
-    color: C.text,
-  },
-  modalAddSection: {
-    flexDirection: 'row',
-    gap: 8,
-    marginTop: 16,
-    marginBottom: 16,
-  },
-  modalInput: {
-    flex: 1,
-    backgroundColor: C.bg,
-    borderWidth: 1,
-    borderColor: C.border,
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 14,
-    color: C.text,
-  },
-  modalAddBtn: {
-    backgroundColor: C.brand,
-    width: 48,
-    height: 48,
-    borderRadius: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalSaveBtn: {
-    backgroundColor: C.brand,
-    paddingVertical: 14,
-    borderRadius: 10,
-    alignItems: 'center',
-  },
-  modalSaveBtnText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#fff',
-  },
+  submitBtn: { backgroundColor: C.g600, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 15, borderRadius: 12 },
+  submitBtnTxt: { fontSize: 16, fontWeight: '700', color: '#fff' },
+
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+  modalSheet: { backgroundColor: C.card, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingBottom: 24 },
+  modalHandle: { width: 36, height: 4, borderRadius: 2, backgroundColor: C.border, alignSelf: 'center', marginTop: 12, marginBottom: 4 },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: C.border },
+  modalTitle: { fontSize: 17, fontWeight: '700', color: C.text },
+  modalItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 12, backgroundColor: C.bg, borderRadius: 10, marginBottom: 8 },
+  modalItemTxt: { flex: 1, fontSize: 14, color: C.text },
+  modalAddRow: { flexDirection: 'row', gap: 10, margin: 20 },
+  modalInput: { flex: 1, backgroundColor: C.bg, borderWidth: 1, borderColor: C.border, borderRadius: 10, padding: 12, fontSize: 14, color: C.text },
+  modalAddBtn: { backgroundColor: C.g600, width: 48, height: 48, borderRadius: 10, justifyContent: 'center', alignItems: 'center' },
+  modalSaveBtn: { backgroundColor: C.g600, marginHorizontal: 20, paddingVertical: 14, borderRadius: 12, alignItems: 'center' },
+  modalSaveBtnTxt: { fontSize: 16, fontWeight: '700', color: '#fff' },
 });

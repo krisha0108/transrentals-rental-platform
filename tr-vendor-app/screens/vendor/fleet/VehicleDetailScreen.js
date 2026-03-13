@@ -1,111 +1,77 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  RefreshControl,
-  ActivityIndicator,
-  Image,
-  Dimensions,
-  Alert,
+  View, Text, StyleSheet, ScrollView, TouchableOpacity,
+  RefreshControl, ActivityIndicator, Image, Dimensions, StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import LinearGradient from 'react-native-linear-gradient';
+import { useFocusEffect } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Feather';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { apiGet, deleteVehicle, debugAuthState, getBaseURL } from '../../api/client';
-import { showConfirm, showError, showInfo, showSuccess } from '../../../services/alertService';
+import { showConfirm, showError } from '../../../services/alertService';
 
 const C = {
-  bg: '#F7FAFC',
-  surface: '#FFFFFF',
-  text: '#0F172A',
-  muted: '#6B7280',
-  border: '#E5E7EB',
-  brand: '#22C55E',
-  brandLight: '#D1FAE5',
-  blue: '#2563EB',
-  blueLight: '#DBEAFE',
-  orange: '#F59E0B',
-  red: '#EF4444',
-  purple: '#8B5CF6',
+  g900: '#022C22', g800: '#065F46', g700: '#047857', g600: '#059669',
+  g500: '#10B981', g400: '#34D399', g100: '#D1FAE5', g50: '#ECFDF5',
+  bg: '#F1F5F9', card: '#FFFFFF', border: '#E2E8F0',
+  text: '#0F172A', sub: '#475569', muted: '#94A3B8',
+  blue: '#2563EB', blueL: '#EFF6FF',
+  amber: '#D97706', amberL: '#FFFBEB',
+  red: '#DC2626', redL: '#FEE2E2',
+  orange: '#EA580C',
+  purple: '#7C3AED', purpleL: '#F5F3FF',
+  indigo: '#4F46E5', indigoL: '#E0E7FF',
 };
 
 const { width } = Dimensions.get('window');
 
 export default function VehicleDetailScreen({ route, navigation }) {
   const { vehicleId } = route.params || {};
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [vehicle, setVehicle] = useState(null);
+  const [loading, setLoading]           = useState(true);
+  const [refreshing, setRefreshing]     = useState(false);
+  const [vehicle, setVehicle]           = useState(null);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
-  const [baseURL, setBaseURL] = useState(null);
+  const [baseURL, setBaseURL]           = useState(null);
 
   const fetchVehicle = useCallback(async () => {
     if (!vehicleId) return;
-
     let retries = 0;
     const maxRetries = 2;
-
     while (retries <= maxRetries) {
       try {
-        console.log(`[VehicleDetail] Fetching vehicle (attempt ${retries + 1}/${maxRetries + 1}):`, vehicleId);
-
-        if (retries === 0) {
-          await debugAuthState();
-        }
-
+        if (retries === 0) await debugAuthState();
         const response = await apiGet(`/vendor/fleet/${vehicleId}`);
-        console.log('[VehicleDetail] Response received');
-
         const vehicleData = response.data?.vehicle || response.data;
-
         if (vehicleData) {
-          // Parse images properly - handle string, array, and object formats
           if (vehicleData.images) {
             if (typeof vehicleData.images === 'string') {
-              try {
-                vehicleData.images = JSON.parse(vehicleData.images);
-              } catch (e) {
-                console.log('Failed to parse images, keeping as is:', e);
-              }
+              try { vehicleData.images = JSON.parse(vehicleData.images); } catch (e) {}
             }
-            // Keep images as is - can be array, object, or string
           }
-
-          // Map backend field names to display-friendly names
-          // Note: API returns vehicle_models, brands, chauffeur_vehicle_categories, services (snake_case)
-          // Category can come from two sources:
-          // 1. Direct category (car-rental, truck, equipment) - chauffeur_vehicle_categories
-          // 2. Through vehicle model (bike, self-drive, bus) - vehicle_models.chauffeur_vehicle_categories
-          vehicleData.brandName = vehicleData.brands?.name || vehicleData.vehicle_models?.brands?.name || null;
-          vehicleData.modelName = vehicleData.vehicle_models?.name || vehicleData.model || null;
-          vehicleData.serviceName = vehicleData.services?.name || null;
-          vehicleData.categoryName = vehicleData.chauffeur_vehicle_categories?.name || vehicleData.vehicle_models?.chauffeur_vehicle_categories?.name || null;
+          vehicleData.brandName       = vehicleData.brands?.name || vehicleData.vehicle_models?.brands?.name || null;
+          vehicleData.modelName       = vehicleData.vehicle_models?.name || vehicleData.model || null;
+          vehicleData.serviceName     = vehicleData.services?.name || null;
+          vehicleData.categoryName    = vehicleData.chauffeur_vehicle_categories?.name || vehicleData.vehicle_models?.chauffeur_vehicle_categories?.name || null;
           vehicleData.seatingCapacity = vehicleData.chauffeur_vehicle_categories?.seatingCapacity || vehicleData.vehicle_models?.chauffeur_vehicle_categories?.seatingCapacity || vehicleData.seatingCapacity || vehicleData.vehicle_models?.seatingCapacity || null;
-          vehicleData.fuelType = vehicleData.chauffeur_vehicle_categories?.fuelType || vehicleData.vehicle_models?.chauffeur_vehicle_categories?.fuelType || vehicleData.fuelType || vehicleData.vehicle_models?.fuelType || null;
-          vehicleData.transmission = vehicleData.chauffeur_vehicle_categories?.acType || vehicleData.vehicle_models?.chauffeur_vehicle_categories?.acType || vehicleData.transmission || vehicleData.vehicle_models?.transmission || null;
-          vehicleData.year = vehicleData.yearOfManufacture || vehicleData.year || null;
+          vehicleData.fuelType        = vehicleData.chauffeur_vehicle_categories?.fuelType || vehicleData.vehicle_models?.chauffeur_vehicle_categories?.fuelType || vehicleData.fuelType || vehicleData.vehicle_models?.fuelType || null;
+          vehicleData.transmission    = vehicleData.chauffeur_vehicle_categories?.acType || vehicleData.vehicle_models?.chauffeur_vehicle_categories?.acType || vehicleData.transmission || vehicleData.vehicle_models?.transmission || null;
+          vehicleData.year            = vehicleData.yearOfManufacture || vehicleData.year || null;
         }
-
         setVehicle(vehicleData);
         setLoading(false);
         setRefreshing(false);
         return;
       } catch (error) {
-        console.error(`[VehicleDetail] Attempt ${retries + 1} failed:`, error?.response?.status, error?.response?.data);
-
         if (error?.response?.status === 401 && retries < maxRetries) {
           retries++;
           await new Promise(resolve => setTimeout(resolve, 500));
           continue;
         }
-
         showError(error?.response?.status === 401
-            ? 'You do not have permission to view this vehicle.'
-            : 'Failed to load vehicle details. Please try again.');
+          ? 'You do not have permission to view this vehicle.'
+          : 'Failed to load vehicle details. Please try again.');
         setLoading(false);
         setRefreshing(false);
         return;
@@ -113,533 +79,420 @@ export default function VehicleDetailScreen({ route, navigation }) {
     }
   }, [vehicleId]);
 
-  useEffect(() => {
-    fetchVehicle();
-  }, [fetchVehicle]);
+  useEffect(() => { fetchVehicle(); }, [fetchVehicle]);
+  useFocusEffect(useCallback(() => {
+    StatusBar.setBarStyle('light-content');
+    StatusBar.setBackgroundColor('#022C22');
+  }, []));
 
-  // Fetch base URL on mount
   useEffect(() => {
-    const initBaseURL = async () => {
-      const url = await getBaseURL();
-      setBaseURL(url);
-    };
+    const initBaseURL = async () => { const url = await getBaseURL(); setBaseURL(url); };
     initBaseURL();
   }, []);
 
-  const onRefresh = () => {
-    setRefreshing(true);
-    fetchVehicle();
-  };
+  const onRefresh = () => { setRefreshing(true); fetchVehicle(); };
 
   const handleDelete = () => {
     showConfirm('Delete Vehicle', 'Are you sure you want to delete this vehicle?', async () => {
-          try {
-            await deleteVehicle(vehicleId);
-            navigation.goBack();
-          } catch (error) {
-            showError('Failed to delete vehicle');
-          }
-        }, { confirmText: 'Delete', destructive: true });
+      try { await deleteVehicle(vehicleId); navigation.goBack(); }
+      catch (error) { showError('Failed to delete vehicle'); }
+    }, { confirmText: 'Delete', destructive: true });
   };
 
   const formatCurrency = (amount) => {
     if (!amount) return '₹0';
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR',
-      maximumFractionDigits: 0,
-    }).format(amount);
+    return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(amount);
   };
 
-  const hasValidValue = (value) => {
-    return value != null && value !== '' && value !== 'N/A' && value !== '--';
-  };
+  const hasValidValue = (value) => value != null && value !== '' && value !== 'N/A' && value !== '--';
 
-  // Helper function to convert relative image paths to full URLs
   const getFullImageUrl = (imagePath) => {
     if (!imagePath) return null;
-
-    // If already a full URL or base64, return as is
-    if (imagePath.startsWith('http://') ||
-        imagePath.startsWith('https://') ||
-        imagePath.startsWith('data:')) {
-      return imagePath;
-    }
-
-    // If relative path, prepend base URL
-    // Use the dynamically fetched base URL from API client
-    const url = baseURL || 'https://transrentals.in'; // Fallback to production if not loaded yet
+    if (imagePath.startsWith('http://') || imagePath.startsWith('https://') || imagePath.startsWith('data:')) return imagePath;
+    const url = baseURL || 'https://transrentals.in';
     return `${url}${imagePath.startsWith('/') ? '' : '/'}${imagePath}`;
   };
 
   const getStatusColor = (status) => {
     switch (status?.toLowerCase()) {
       case 'active':
-      case 'available':
-        return { bg: '#DCFCE7', text: '#166534' };
+      case 'available':   return { bg: '#DCFCE7', text: '#166534', dot: '#22C55E' };
       case 'booked':
-      case 'on_trip':
-        return { bg: '#DBEAFE', text: '#1E40AF' };
-      case 'maintenance':
-        return { bg: '#FEF3C7', text: '#92400E' };
-      default:
-        return { bg: '#F3F4F6', text: '#374151' };
+      case 'on_trip':     return { bg: '#DBEAFE', text: '#1E40AF', dot: '#3B82F6' };
+      case 'maintenance': return { bg: '#FEF3C7', text: '#92400E', dot: '#F59E0B' };
+      default:            return { bg: '#F3F4F6', text: '#374151', dot: '#9CA3AF' };
     }
   };
 
-  if (loading) {
-    return (
-      <SafeAreaView style={styles.safe}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-            <Icon name="arrow-left" size={20} color={C.text} />
+  if (loading) return (
+    <SafeAreaView style={st.safe} edges={['top']}>
+      <StatusBar barStyle="light-content" backgroundColor={C.g900} />
+      <LinearGradient colors={[C.g900, C.g800, C.g700]} style={st.heroLoading}>
+        <View style={st.heroTopSimple}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={st.backBtn}>
+            <Icon name="arrow-left" size={20} color="#fff" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Vehicle Details</Text>
-          <View style={{ width: 36 }} />
+          <Text style={st.heroTitle}>Vehicle Details</Text>
+          <View style={{ width: 38 }} />
         </View>
-        <View style={styles.loaderContainer}>
-          <ActivityIndicator size="large" color={C.brand} />
-        </View>
-      </SafeAreaView>
-    );
-  }
+      </LinearGradient>
+      <View style={st.centered}><ActivityIndicator size="large" color={C.g600} /></View>
+    </SafeAreaView>
+  );
 
-  if (!vehicle) {
-    return (
-      <SafeAreaView style={styles.safe}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-            <Icon name="arrow-left" size={20} color={C.text} />
+  if (!vehicle) return (
+    <SafeAreaView style={st.safe} edges={['top']}>
+      <StatusBar barStyle="light-content" backgroundColor={C.g900} />
+      <LinearGradient colors={[C.g900, C.g800, C.g700]} style={st.heroLoading}>
+        <View style={st.heroTopSimple}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={st.backBtn}>
+            <Icon name="arrow-left" size={20} color="#fff" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Vehicle Details</Text>
-          <View style={{ width: 36 }} />
+          <Text style={st.heroTitle}>Vehicle Details</Text>
+          <View style={{ width: 38 }} />
         </View>
-        <View style={styles.emptyContainer}>
-          <Ionicons name="car-outline" size={64} color={C.border} />
-          <Text style={styles.emptyText}>Vehicle not found</Text>
-        </View>
-      </SafeAreaView>
-    );
-  }
+      </LinearGradient>
+      <View style={st.centered}>
+        <Ionicons name="car-outline" size={64} color={C.border} />
+        <Text style={{ fontSize: 16, color: C.muted, marginTop: 12 }}>Vehicle not found</Text>
+      </View>
+    </SafeAreaView>
+  );
 
   const statusColors = getStatusColor(vehicle.status);
 
-  // Get all images for slider (featured admin image + vendor images)
   const getAllImages = () => {
     const imageList = [];
-
-    console.log('[VehicleDetail] Getting images for vehicle:', vehicle.id);
-    console.log('[VehicleDetail] Vehicle images:', vehicle.images);
-    console.log('[VehicleDetail] Model sideImage:', vehicle.vehicle_models?.sideImage);
-    console.log('[VehicleDetail] Category image:', vehicle.chauffeur_vehicle_categories?.image);
-
-    // 1. Add featured image first (admin's image from model/category ONLY)
-    // Featured image = Model's sideImage OR Category's image (admin-added)
-    // Do NOT use brand logos as featured image
     let featuredImageUrl = null;
-    if (vehicle.vehicle_models?.sideImage) {
-      featuredImageUrl = vehicle.vehicle_models.sideImage;
-      console.log('[VehicleDetail] Using model sideImage as featured');
-    } else if (vehicle.chauffeur_vehicle_categories?.image) {
-      featuredImageUrl = vehicle.chauffeur_vehicle_categories.image;
-      console.log('[VehicleDetail] Using category image as featured');
-    }
-
+    if (vehicle.vehicle_models?.sideImage) featuredImageUrl = vehicle.vehicle_models.sideImage;
+    else if (vehicle.chauffeur_vehicle_categories?.image) featuredImageUrl = vehicle.chauffeur_vehicle_categories.image;
     if (featuredImageUrl) {
-      const fullUrl = getFullImageUrl(featuredImageUrl);
-      imageList.push({
-        url: fullUrl,
-        label: 'Featured Image',
-        isFeatured: true,
-      });
-      console.log('[VehicleDetail] Added featured image:', fullUrl);
+      imageList.push({ url: getFullImageUrl(featuredImageUrl), label: 'Featured', isFeatured: true });
     }
-
-    // 2. Add vendor-uploaded images
     if (vehicle.images) {
-      console.log('[VehicleDetail] Processing vendor images, type:', typeof vehicle.images);
-      // Handle both array format and object format
       if (Array.isArray(vehicle.images)) {
-        console.log('[VehicleDetail] Images is array, length:', vehicle.images.length);
         vehicle.images.forEach((imgUrl, index) => {
-          if (imgUrl) {
-            const fullUrl = getFullImageUrl(imgUrl);
-            imageList.push({
-              url: fullUrl,
-              label: `Image ${index + 1}`,
-              isFeatured: false,
-            });
-            console.log(`[VehicleDetail] Added vendor image ${index + 1}:`, fullUrl);
-          }
+          if (imgUrl) imageList.push({ url: getFullImageUrl(imgUrl), label: `Image ${index + 1}`, isFeatured: false });
         });
       } else if (typeof vehicle.images === 'object' && vehicle.images !== null) {
-        console.log('[VehicleDetail] Images is object:', Object.keys(vehicle.images));
-        // Object format: { front, back, leftSide, rightSide, inside }
-        if (vehicle.images.front) {
-          const fullUrl = getFullImageUrl(vehicle.images.front);
-          imageList.push({ url: fullUrl, label: 'Front View', isFeatured: false });
-          console.log('[VehicleDetail] Added front view:', fullUrl);
-        }
-        if (vehicle.images.back) {
-          const fullUrl = getFullImageUrl(vehicle.images.back);
-          imageList.push({ url: fullUrl, label: 'Back View', isFeatured: false });
-          console.log('[VehicleDetail] Added back view:', fullUrl);
-        }
-        if (vehicle.images.leftSide) {
-          const fullUrl = getFullImageUrl(vehicle.images.leftSide);
-          imageList.push({ url: fullUrl, label: 'Left Side', isFeatured: false });
-          console.log('[VehicleDetail] Added left side:', fullUrl);
-        }
-        if (vehicle.images.rightSide) {
-          const fullUrl = getFullImageUrl(vehicle.images.rightSide);
-          imageList.push({ url: fullUrl, label: 'Right Side', isFeatured: false });
-          console.log('[VehicleDetail] Added right side:', fullUrl);
-        }
-        if (vehicle.images.inside) {
-          const fullUrl = getFullImageUrl(vehicle.images.inside);
-          imageList.push({ url: fullUrl, label: 'Interior', isFeatured: false });
-          console.log('[VehicleDetail] Added interior:', fullUrl);
-        }
-      } else if (typeof vehicle.images === 'string') {
-        console.log('[VehicleDetail] Images is string (single URL):', vehicle.images);
-        const fullUrl = getFullImageUrl(vehicle.images);
-        imageList.push({
-          url: fullUrl,
-          label: 'Vehicle Image',
-          isFeatured: false,
+        const views = { front: 'Front View', back: 'Back View', leftSide: 'Left Side', rightSide: 'Right Side', inside: 'Interior' };
+        Object.entries(views).forEach(([key, label]) => {
+          if (vehicle.images[key]) imageList.push({ url: getFullImageUrl(vehicle.images[key]), label, isFeatured: false });
         });
+      } else if (typeof vehicle.images === 'string') {
+        imageList.push({ url: getFullImageUrl(vehicle.images), label: 'Vehicle Image', isFeatured: false });
       }
     }
-
-    console.log('[VehicleDetail] Total images found:', imageList.length);
     return imageList;
   };
 
   const allImages = getAllImages();
-  const images = allImages.map(img => img.url); // For backward compatibility with existing code
   const hasImages = allImages.length > 0;
-
-  const pricing = vehicle.fleetPricing?.[0] || {};
+  const pricing   = vehicle.fleetPricing?.[0] || {};
   const locations = vehicle.fleetLocations?.map(fl => fl.location).filter(Boolean) || [];
 
+  const SPECS = [
+    { icon: 'car',              color: C.blue,   bg: C.blueL,   label: 'Brand',        value: vehicle.brandName,       iconLib: 'mci' },
+    { icon: 'car-side',         color: C.purple, bg: C.purpleL, label: 'Model',        value: vehicle.modelName,       iconLib: 'mci' },
+    { icon: 'seat',             color: C.g700,   bg: C.g50,     label: 'Seats',        value: vehicle.seatingCapacity, iconLib: 'mci' },
+    { icon: 'gas-station',      color: C.amber,  bg: C.amberL,  label: 'Fuel',         value: vehicle.fuelType,        iconLib: 'mci' },
+    { icon: 'car-shift-pattern',color: C.red,    bg: C.redL,    label: 'Transmission', value: vehicle.transmission,    iconLib: 'mci' },
+    { icon: 'calendar',         color: C.indigo, bg: C.indigoL, label: 'Year',         value: vehicle.year,            iconLib: 'mci' },
+  ].filter(s => hasValidValue(s.value));
+
   return (
-    <SafeAreaView style={styles.safe}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Icon name="arrow-left" size={20} color={C.text} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Vehicle Details</Text>
-        <TouchableOpacity style={styles.deleteBtn} onPress={handleDelete}>
-          <Icon name="trash-2" size={18} color={C.red} />
-        </TouchableOpacity>
-      </View>
+    <SafeAreaView style={st.safe} edges={['top']}>
+      <StatusBar barStyle="light-content" backgroundColor={C.g900} />
+
+      {/* ── HERO HEADER ── */}
+      <LinearGradient colors={[C.g900, C.g800, C.g700]} style={st.hero}>
+        <View style={[st.deco, { width: 160, height: 160, top: -60, right: -40, opacity: 0.07 }]} />
+        <View style={st.heroTop}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={st.backBtn}>
+            <Icon name="arrow-left" size={20} color="#fff" />
+          </TouchableOpacity>
+          <View style={st.heroMid}>
+            <Text style={st.heroTitle} numberOfLines={1}>
+              {[vehicle.brandName, vehicle.modelName].filter(Boolean).join(' ') || vehicle.categoryName || 'Vehicle'}
+            </Text>
+            <Text style={st.heroSub}>{vehicle.registrationNumber || 'No Registration'}</Text>
+          </View>
+          <TouchableOpacity style={st.deleteBtn} onPress={handleDelete}>
+            <Icon name="trash-2" size={17} color="rgba(255,255,255,0.75)" />
+          </TouchableOpacity>
+        </View>
+        <View style={st.heroBadges}>
+          <View style={[st.statusBadge, { backgroundColor: statusColors.bg }]}>
+            <View style={[st.statusDot, { backgroundColor: statusColors.dot }]} />
+            <Text style={[st.statusTxt, { color: statusColors.text }]}>
+              {vehicle.isActive === false ? 'INACTIVE' : 'ACTIVE'}
+            </Text>
+          </View>
+          {vehicle.serviceName && (
+            <View style={st.svcBadge}>
+              <Text style={st.svcBadgeTxt}>{vehicle.serviceName}</Text>
+            </View>
+          )}
+        </View>
+      </LinearGradient>
 
       <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
+        style={st.scroll}
+        contentContainerStyle={st.scrollContent}
         showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[C.brand]} />
-        }
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[C.g600]} tintColor={C.g600} />}
       >
-        {/* Image Gallery */}
-        <View style={styles.imageContainer}>
+        {/* ── IMAGE GALLERY ── */}
+        <View style={st.galleryWrap}>
           {hasImages ? (
             <>
               <ScrollView
-                horizontal
-                pagingEnabled
-                showsHorizontalScrollIndicator={false}
+                horizontal pagingEnabled showsHorizontalScrollIndicator={false}
                 onMomentumScrollEnd={(e) => {
                   const index = Math.round(e.nativeEvent.contentOffset.x / (width - 32));
                   setActiveImageIndex(index);
                 }}
               >
                 {allImages.map((img, index) => (
-                  <View key={index} style={styles.imageSlide}>
-                    <Image
-                      source={{ uri: img.url }}
-                      style={styles.vehicleImage}
-                      resizeMode="cover"
-                    />
-                    {/* Featured Badge */}
+                  <View key={index} style={st.imageSlide}>
+                    <Image source={{ uri: img.url }} style={st.vehicleImage} resizeMode="cover" />
                     {img.isFeatured && (
-                      <View style={styles.featuredBadge}>
-                        <Icon name="star" size={12} color="#FFA500" />
-                        <Text style={styles.featuredText}>Featured</Text>
+                      <View style={st.featuredBadge}>
+                        <Icon name="star" size={11} color="#FFA500" />
+                        <Text style={st.featuredText}>Featured</Text>
                       </View>
                     )}
-                    {/* Image Label */}
-                    <View style={styles.imageLabel}>
-                      <Text style={styles.imageLabelText}>
-                        {img.label} ({index + 1}/{allImages.length})
-                      </Text>
+                    <View style={st.imageLabel}>
+                      <Text style={st.imageLabelText}>{img.label} ({index + 1}/{allImages.length})</Text>
                     </View>
                   </View>
                 ))}
               </ScrollView>
               {allImages.length > 1 && (
-                <View style={styles.imageDots}>
-                  {allImages.map((_, index) => (
-                    <View
-                      key={index}
-                      style={[
-                        styles.imageDot,
-                        activeImageIndex === index && styles.imageDotActive,
-                      ]}
-                    />
+                <View style={st.imageDots}>
+                  {allImages.map((_, i) => (
+                    <View key={i} style={[st.imageDot, activeImageIndex === i && st.imageDotActive]} />
                   ))}
                 </View>
               )}
             </>
           ) : (
-            <View style={styles.imagePlaceholder}>
+            <View style={st.imagePlaceholder}>
               <MaterialCommunityIcons name="car" size={48} color={C.muted} />
-              <Text style={styles.noImageText}>No images</Text>
+              <Text style={{ fontSize: 14, color: C.muted, marginTop: 8 }}>No images</Text>
             </View>
           )}
         </View>
 
-        {/* Vehicle Info Header */}
-        <View style={styles.infoHeader}>
-          <View style={styles.infoHeaderLeft}>
-            <Text style={styles.vehicleName}>
-              {[vehicle.brandName, vehicle.modelName, vehicle.categoryName].filter(hasValidValue).join(' ') || 'Vehicle'}
-            </Text>
-            <Text style={styles.regNumber}>
-              {vehicle.registrationNumber || 'No Registration'}
-            </Text>
-          </View>
-          <View style={[styles.statusBadge, { backgroundColor: statusColors.bg }]}>
-            <Text style={[styles.statusText, { color: statusColors.text }]}>
-              {vehicle.isActive === false ? 'INACTIVE' : (vehicle.isAvailable === false ? 'UNAVAILABLE' : 'ACTIVE')}
-            </Text>
-          </View>
-        </View>
-
-        {/* Service & Category */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Service Info</Text>
-          <View style={styles.infoRow}>
-            <View style={styles.infoItem}>
-              <Ionicons name="car-sport" size={18} color={C.brand} />
-              <View style={styles.infoContent}>
-                <Text style={styles.infoLabel}>Service</Text>
-                <Text style={styles.infoValue}>{vehicle.serviceName}</Text>
-              </View>
+        {/* ── SERVICE INFO ── */}
+        <View style={st.section}>
+          <View style={st.secHead}>
+            <View style={[st.secIcon, { backgroundColor: C.g50 }]}>
+              <Icon name="tag" size={13} color={C.g700} />
             </View>
-            <View style={styles.infoItem}>
-              <Ionicons name="grid" size={18} color={C.purple} />
-              <View style={styles.infoContent}>
-                <Text style={styles.infoLabel}>Category</Text>
-                <Text style={styles.infoValue}>{vehicle.categoryName}</Text>
+            <Text style={st.secTitle}>Service Info</Text>
+          </View>
+          <View style={st.infoRow}>
+            {vehicle.serviceName && (
+              <View style={st.infoChip}>
+                <Ionicons name="car-sport" size={16} color={C.g700} />
+                <View>
+                  <Text style={st.infoChipLabel}>Service</Text>
+                  <Text style={st.infoChipVal}>{vehicle.serviceName}</Text>
+                </View>
               </View>
+            )}
+            {vehicle.categoryName && (
+              <View style={st.infoChip}>
+                <Ionicons name="grid" size={16} color={C.purple} />
+                <View>
+                  <Text style={st.infoChipLabel}>Category</Text>
+                  <Text style={st.infoChipVal}>{vehicle.categoryName}</Text>
+                </View>
+              </View>
+            )}
+          </View>
+        </View>
+
+        {/* ── SPECS GRID ── */}
+        {SPECS.length > 0 && (
+          <View style={st.section}>
+            <View style={st.secHead}>
+              <View style={[st.secIcon, { backgroundColor: C.blueL }]}>
+                <Icon name="sliders" size={13} color={C.blue} />
+              </View>
+              <Text style={st.secTitle}>Specifications</Text>
+            </View>
+            <View style={st.specsGrid}>
+              {SPECS.map((spec, i) => (
+                <View key={i} style={st.specItem}>
+                  <View style={[st.specIcon, { backgroundColor: spec.bg }]}>
+                    <MaterialCommunityIcons name={spec.icon} size={20} color={spec.color} />
+                  </View>
+                  <Text style={st.specLabel}>{spec.label}</Text>
+                  <Text style={st.specValue}>{spec.value}</Text>
+                </View>
+              ))}
             </View>
           </View>
-        </View>
+        )}
 
-        {/* Specs Grid */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Specifications</Text>
-          <View style={styles.specsGrid}>
-            {hasValidValue(vehicle.brandName) && (
-              <View style={styles.specItem}>
-                <View style={[styles.specIcon, { backgroundColor: C.blueLight }]}>
-                  <MaterialCommunityIcons name="car" size={20} color={C.blue} />
-                </View>
-                <Text style={styles.specLabel}>Brand</Text>
-                <Text style={styles.specValue}>{vehicle.brandName}</Text>
-              </View>
-            )}
-            {hasValidValue(vehicle.modelName) && (
-              <View style={styles.specItem}>
-                <View style={[styles.specIcon, { backgroundColor: '#F3E8FF' }]}>
-                  <MaterialCommunityIcons name="car-side" size={20} color={C.purple} />
-                </View>
-                <Text style={styles.specLabel}>Model</Text>
-                <Text style={styles.specValue}>{vehicle.modelName}</Text>
-              </View>
-            )}
-            {hasValidValue(vehicle.seatingCapacity) && (
-              <View style={styles.specItem}>
-                <View style={[styles.specIcon, { backgroundColor: C.brandLight }]}>
-                  <MaterialCommunityIcons name="seat" size={20} color={C.brand} />
-                </View>
-                <Text style={styles.specLabel}>Seats</Text>
-                <Text style={styles.specValue}>{vehicle.seatingCapacity}</Text>
-              </View>
-            )}
-            {hasValidValue(vehicle.fuelType) && (
-              <View style={styles.specItem}>
-                <View style={[styles.specIcon, { backgroundColor: '#FEF3C7' }]}>
-                  <MaterialCommunityIcons name="gas-station" size={20} color={C.orange} />
-                </View>
-                <Text style={styles.specLabel}>Fuel</Text>
-                <Text style={styles.specValue}>{vehicle.fuelType}</Text>
-              </View>
-            )}
-            {hasValidValue(vehicle.transmission) && (
-              <View style={styles.specItem}>
-                <View style={[styles.specIcon, { backgroundColor: '#FEE2E2' }]}>
-                  <MaterialCommunityIcons name="car-shift-pattern" size={20} color={C.red} />
-                </View>
-                <Text style={styles.specLabel}>Transmission</Text>
-                <Text style={styles.specValue}>{vehicle.transmission}</Text>
-              </View>
-            )}
-            {hasValidValue(vehicle.year) && (
-              <View style={styles.specItem}>
-                <View style={[styles.specIcon, { backgroundColor: '#E0E7FF' }]}>
-                  <MaterialCommunityIcons name="calendar" size={20} color="#4F46E5" />
-                </View>
-                <Text style={styles.specLabel}>Year</Text>
-                <Text style={styles.specValue}>{vehicle.year}</Text>
-              </View>
-            )}
+        {/* ── ADDITIONAL DETAILS ── */}
+        <View style={st.section}>
+          <View style={st.secHead}>
+            <View style={[st.secIcon, { backgroundColor: C.g50 }]}>
+              <Icon name="info" size={13} color={C.g700} />
+            </View>
+            <Text style={st.secTitle}>Additional Details</Text>
           </View>
-        </View>
-
-        {/* Additional Details */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Additional Details</Text>
-          <View style={styles.detailsList}>
+          <View style={st.detailsList}>
             {vehicle.color && (
-              <View style={styles.detailRow}>
-                <View style={styles.detailLeft}>
-                  <Ionicons name="color-palette-outline" size={18} color={C.muted} />
-                  <Text style={styles.detailLabel}>Color</Text>
+              <View style={st.detailRow}>
+                <View style={st.detailLeft}>
+                  <Ionicons name="color-palette-outline" size={16} color={C.muted} />
+                  <Text style={st.detailLabel}>Color</Text>
                 </View>
-                <Text style={styles.detailValue}>{vehicle.color}</Text>
+                <Text style={st.detailValue}>{vehicle.color}</Text>
               </View>
             )}
             {vehicle.insuranceExpiry && (
-              <View style={styles.detailRow}>
-                <View style={styles.detailLeft}>
-                  <Ionicons name="shield-checkmark-outline" size={18} color={C.muted} />
-                  <Text style={styles.detailLabel}>Insurance Expiry</Text>
+              <View style={st.detailRow}>
+                <View style={st.detailLeft}>
+                  <Ionicons name="shield-checkmark-outline" size={16} color={C.muted} />
+                  <Text style={st.detailLabel}>Insurance Expiry</Text>
                 </View>
-                <Text style={styles.detailValue}>
-                  {new Date(vehicle.insuranceExpiry).toLocaleDateString('en-IN')}
-                </Text>
+                <Text style={st.detailValue}>{new Date(vehicle.insuranceExpiry).toLocaleDateString('en-IN')}</Text>
               </View>
             )}
             {vehicle.fitnessExpiry && (
-              <View style={styles.detailRow}>
-                <View style={styles.detailLeft}>
-                  <Ionicons name="fitness-outline" size={18} color={C.muted} />
-                  <Text style={styles.detailLabel}>Fitness Expiry</Text>
+              <View style={st.detailRow}>
+                <View style={st.detailLeft}>
+                  <Ionicons name="fitness-outline" size={16} color={C.muted} />
+                  <Text style={st.detailLabel}>Fitness Expiry</Text>
                 </View>
-                <Text style={styles.detailValue}>
-                  {new Date(vehicle.fitnessExpiry).toLocaleDateString('en-IN')}
-                </Text>
+                <Text style={st.detailValue}>{new Date(vehicle.fitnessExpiry).toLocaleDateString('en-IN')}</Text>
               </View>
             )}
             {vehicle.permitExpiry && (
-              <View style={styles.detailRow}>
-                <View style={styles.detailLeft}>
-                  <Ionicons name="document-text-outline" size={18} color={C.muted} />
-                  <Text style={styles.detailLabel}>Permit Expiry</Text>
+              <View style={st.detailRow}>
+                <View style={st.detailLeft}>
+                  <Ionicons name="document-text-outline" size={16} color={C.muted} />
+                  <Text style={st.detailLabel}>Permit Expiry</Text>
                 </View>
-                <Text style={styles.detailValue}>
-                  {new Date(vehicle.permitExpiry).toLocaleDateString('en-IN')}
-                </Text>
+                <Text style={st.detailValue}>{new Date(vehicle.permitExpiry).toLocaleDateString('en-IN')}</Text>
               </View>
             )}
-            <View style={styles.detailRow}>
-              <View style={styles.detailLeft}>
-                <Ionicons name="time-outline" size={18} color={C.muted} />
-                <Text style={styles.detailLabel}>Added On</Text>
+            <View style={[st.detailRow, { borderBottomWidth: 0 }]}>
+              <View style={st.detailLeft}>
+                <Ionicons name="time-outline" size={16} color={C.muted} />
+                <Text style={st.detailLabel}>Added On</Text>
               </View>
-              <Text style={styles.detailValue}>
+              <Text style={st.detailValue}>
                 {vehicle.createdAt ? new Date(vehicle.createdAt).toLocaleDateString('en-IN') : '--'}
               </Text>
             </View>
           </View>
         </View>
 
-        {/* Pricing */}
+        {/* ── PRICING ── */}
         {(pricing.basePrice || pricing.perDayRate || pricing.perKmRate) && (
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>Pricing</Text>
-            <View style={styles.pricingGrid}>
+          <View style={st.section}>
+            <View style={st.secHead}>
+              <View style={[st.secIcon, { backgroundColor: C.g50 }]}>
+                <Icon name="dollar-sign" size={13} color={C.g700} />
+              </View>
+              <Text style={st.secTitle}>Pricing</Text>
+            </View>
+            <View style={st.pricingGrid}>
               {pricing.basePrice > 0 && (
-                <View style={styles.pricingItem}>
-                  <Text style={styles.pricingLabel}>Base Price</Text>
-                  <Text style={styles.pricingValue}>{formatCurrency(pricing.basePrice)}</Text>
+                <View style={st.pricingItem}>
+                  <Text style={st.pricingLabel}>Base Price</Text>
+                  <Text style={st.pricingValue}>{formatCurrency(pricing.basePrice)}</Text>
                 </View>
               )}
               {pricing.perDayRate > 0 && (
-                <View style={styles.pricingItem}>
-                  <Text style={styles.pricingLabel}>Per Day</Text>
-                  <Text style={styles.pricingValue}>{formatCurrency(pricing.perDayRate)}</Text>
+                <View style={st.pricingItem}>
+                  <Text style={st.pricingLabel}>Per Day</Text>
+                  <Text style={st.pricingValue}>{formatCurrency(pricing.perDayRate)}</Text>
                 </View>
               )}
               {pricing.perKmRate > 0 && (
-                <View style={styles.pricingItem}>
-                  <Text style={styles.pricingLabel}>Per KM</Text>
-                  <Text style={styles.pricingValue}>{formatCurrency(pricing.perKmRate)}</Text>
+                <View style={st.pricingItem}>
+                  <Text style={st.pricingLabel}>Per KM</Text>
+                  <Text style={st.pricingValue}>{formatCurrency(pricing.perKmRate)}</Text>
                 </View>
               )}
               {pricing.kmLimitPerDay > 0 && (
-                <View style={styles.pricingItem}>
-                  <Text style={styles.pricingLabel}>KM Limit/Day</Text>
-                  <Text style={styles.pricingValue}>{pricing.kmLimitPerDay} km</Text>
+                <View style={st.pricingItem}>
+                  <Text style={st.pricingLabel}>KM Limit/Day</Text>
+                  <Text style={st.pricingValue}>{pricing.kmLimitPerDay} km</Text>
                 </View>
               )}
               {pricing.extraKmCharge > 0 && (
-                <View style={styles.pricingItem}>
-                  <Text style={styles.pricingLabel}>Extra KM</Text>
-                  <Text style={styles.pricingValue}>{formatCurrency(pricing.extraKmCharge)}/km</Text>
+                <View style={st.pricingItem}>
+                  <Text style={st.pricingLabel}>Extra KM</Text>
+                  <Text style={st.pricingValue}>{formatCurrency(pricing.extraKmCharge)}/km</Text>
                 </View>
               )}
               {pricing.deposit > 0 && (
-                <View style={styles.pricingItem}>
-                  <Text style={styles.pricingLabel}>Deposit</Text>
-                  <Text style={styles.pricingValue}>{formatCurrency(pricing.deposit)}</Text>
+                <View style={st.pricingItem}>
+                  <Text style={st.pricingLabel}>Deposit</Text>
+                  <Text style={st.pricingValue}>{formatCurrency(pricing.deposit)}</Text>
                 </View>
               )}
             </View>
           </View>
         )}
 
-        {/* Operating Locations */}
+        {/* ── LOCATIONS ── */}
         {locations.length > 0 && (
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>Operating Locations</Text>
-            <View style={styles.locationsContainer}>
-              {locations.map((location, index) => (
-                <View key={index} style={styles.locationChip}>
-                  <Ionicons name="location" size={14} color={C.brand} />
-                  <Text style={styles.locationText}>{location.name}</Text>
+          <View style={st.section}>
+            <View style={st.secHead}>
+              <View style={[st.secIcon, { backgroundColor: C.g50 }]}>
+                <Icon name="map-pin" size={13} color={C.g700} />
+              </View>
+              <Text style={st.secTitle}>Operating Locations</Text>
+            </View>
+            <View style={st.locationsWrap}>
+              {locations.map((location, i) => (
+                <View key={i} style={st.locationChip}>
+                  <Ionicons name="location" size={13} color={C.g700} />
+                  <Text style={st.locationText}>{location.name}</Text>
                 </View>
               ))}
             </View>
           </View>
         )}
 
-        {/* Features */}
+        {/* ── FEATURES ── */}
         {vehicle.features && vehicle.features.length > 0 && (
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>Features</Text>
-            <View style={styles.featuresGrid}>
-              {vehicle.features.map((feature, index) => (
-                <View key={index} style={styles.featureChip}>
-                  <Icon name="check" size={12} color={C.brand} />
-                  <Text style={styles.featureText}>{feature}</Text>
+          <View style={st.section}>
+            <View style={st.secHead}>
+              <View style={[st.secIcon, { backgroundColor: C.g50 }]}>
+                <Icon name="check-circle" size={13} color={C.g700} />
+              </View>
+              <Text style={st.secTitle}>Features</Text>
+            </View>
+            <View style={st.featuresWrap}>
+              {vehicle.features.map((feature, i) => (
+                <View key={i} style={st.featureChip}>
+                  <Icon name="check" size={11} color={C.g700} />
+                  <Text style={st.featureText}>{feature}</Text>
                 </View>
               ))}
             </View>
           </View>
         )}
 
-        {/* Edit Button */}
+        {/* ── EDIT BUTTON ── */}
         <TouchableOpacity
-          style={styles.editButton}
+          style={st.editBtn}
           onPress={() => navigation.navigate('AddVehicleScreen', { vehicleId, vehicle })}
         >
-          <Icon name="edit-2" size={18} color="#fff" />
-          <Text style={styles.editButtonText}>Edit Vehicle</Text>
+          <LinearGradient colors={[C.g800, C.g600]} style={st.editBtnGrad}>
+            <Icon name="edit-2" size={18} color="#fff" />
+            <Text style={st.editBtnTxt}>Edit Vehicle</Text>
+          </LinearGradient>
         </TouchableOpacity>
 
         <View style={{ height: 40 }} />
@@ -648,331 +501,89 @@ export default function VehicleDetailScreen({ route, navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: C.bg,
-  },
-  loaderContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  emptyText: {
-    fontSize: 16,
-    color: C.muted,
-    marginTop: 12,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: C.surface,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: C.border,
-  },
-  backBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headerTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: C.text,
-  },
-  deleteBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#FEE2E2',
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    padding: 16,
-  },
-  imageContainer: {
-    marginBottom: 16,
-    borderRadius: 14,
-    overflow: 'hidden',
-  },
-  imageSlide: {
-    width: width - 32,
-    height: 200,
-    position: 'relative',
-  },
-  vehicleImage: {
-    width: width - 32,
-    height: 200,
-    borderRadius: 14,
-  },
-  featuredBadge: {
-    position: 'absolute',
-    top: 12,
-    left: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 20,
-    gap: 4,
-  },
-  featuredText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#FFF',
-  },
-  imageLabel: {
-    position: 'absolute',
-    bottom: 12,
-    left: 12,
-    right: 12,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
-  },
-  imageLabelText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#FFF',
-    textAlign: 'center',
-  },
-  imagePlaceholder: {
-    width: '100%',
-    height: 200,
-    backgroundColor: C.surface,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: C.border,
-  },
-  noImageText: {
-    fontSize: 14,
-    color: C.muted,
-    marginTop: 8,
-  },
-  imageDots: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginTop: 10,
-    gap: 6,
-  },
-  imageDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: C.border,
-  },
-  imageDotActive: {
-    backgroundColor: C.brand,
-  },
-  infoHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 16,
-  },
-  infoHeaderLeft: {
-    flex: 1,
-  },
-  vehicleName: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: C.text,
-  },
-  regNumber: {
-    fontSize: 14,
-    color: C.blue,
-    fontWeight: '600',
-    marginTop: 4,
-  },
-  statusBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
-  },
-  statusText: {
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  card: {
-    backgroundColor: C.surface,
-    borderRadius: 14,
-    padding: 16,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: C.border,
-  },
-  cardTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: C.text,
-    marginBottom: 14,
-  },
-  infoRow: {
-    flexDirection: 'row',
-    gap: 16,
-  },
-  infoItem: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    backgroundColor: C.bg,
-    padding: 12,
-    borderRadius: 10,
-  },
-  infoContent: {
-    flex: 1,
-  },
-  infoLabel: {
-    fontSize: 11,
-    color: C.muted,
-  },
-  infoValue: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: C.text,
-    marginTop: 2,
-  },
-  specsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-  },
-  specItem: {
-    width: '30%',
-    alignItems: 'center',
-  },
-  specIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 8,
-  },
-  specLabel: {
-    fontSize: 11,
-    color: C.muted,
-  },
-  specValue: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: C.text,
-    marginTop: 2,
-    textAlign: 'center',
-  },
-  detailsList: {},
-  detailRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: C.border,
-  },
-  detailLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  detailLabel: {
-    fontSize: 14,
-    color: C.muted,
-  },
-  detailValue: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: C.text,
-  },
-  pricingGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-  },
-  pricingItem: {
-    width: '47%',
-    backgroundColor: C.bg,
-    borderRadius: 10,
-    padding: 12,
-  },
-  pricingLabel: {
-    fontSize: 11,
-    color: C.muted,
-    marginBottom: 4,
-  },
-  pricingValue: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: C.brand,
-  },
-  locationsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  locationChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: C.brandLight,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 20,
-    gap: 6,
-  },
-  locationText: {
-    fontSize: 13,
-    color: C.text,
-    fontWeight: '500',
-  },
-  featuresGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  featureChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F0FDF4',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 16,
-    gap: 4,
-  },
-  featureText: {
-    fontSize: 12,
-    color: C.text,
-  },
-  editButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: C.blue,
-    paddingVertical: 14,
-    borderRadius: 12,
-    gap: 8,
-    marginTop: 8,
-  },
-  editButtonText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#fff',
-  },
+const st = StyleSheet.create({
+  safe:    { flex: 1, backgroundColor: C.bg },
+  centered:{ flex: 1, justifyContent: 'center', alignItems: 'center' },
+
+  /* Hero */
+  hero:        { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 18, overflow: 'hidden' },
+  heroLoading: { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 18 },
+  heroTopSimple: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  deco: { position: 'absolute', borderRadius: 999, backgroundColor: '#fff' },
+  heroTop: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, marginBottom: 14 },
+  backBtn: { width: 38, height: 38, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.12)', justifyContent: 'center', alignItems: 'center', marginTop: 2 },
+  heroMid: { flex: 1 },
+  heroTitle: { fontSize: 20, fontWeight: '800', color: '#fff', marginBottom: 3 },
+  heroSub:   { fontSize: 13, color: 'rgba(255,255,255,0.65)' },
+  deleteBtn: { width: 38, height: 38, borderRadius: 12, backgroundColor: 'rgba(220,38,38,0.25)', justifyContent: 'center', alignItems: 'center', marginTop: 2 },
+
+  heroBadges:  { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
+  statusBadge: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20 },
+  statusDot:   { width: 7, height: 7, borderRadius: 4 },
+  statusTxt:   { fontSize: 11, fontWeight: '800' },
+  svcBadge:    { backgroundColor: 'rgba(255,255,255,0.15)', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20 },
+  svcBadgeTxt: { fontSize: 11, fontWeight: '600', color: 'rgba(255,255,255,0.9)' },
+
+  scroll: { flex: 1 },
+  scrollContent: { padding: 16, paddingTop: 20 },
+
+  /* Gallery */
+  galleryWrap: { borderRadius: 16, overflow: 'hidden', marginBottom: 16 },
+  imageSlide:  { width: width - 32, height: 200, position: 'relative' },
+  vehicleImage:{ width: width - 32, height: 200 },
+  featuredBadge: { position: 'absolute', top: 10, left: 10, flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.65)', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20, gap: 4 },
+  featuredText:  { fontSize: 11, fontWeight: '600', color: '#fff' },
+  imageLabel:    { position: 'absolute', bottom: 10, left: 10, right: 10, backgroundColor: 'rgba(0,0,0,0.55)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 },
+  imageLabelText:{ fontSize: 12, fontWeight: '600', color: '#fff', textAlign: 'center' },
+  imagePlaceholder: { height: 180, backgroundColor: C.card, borderRadius: 16, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: C.border },
+  imageDots:     { flexDirection: 'row', justifyContent: 'center', marginTop: 10, gap: 6 },
+  imageDot:      { width: 8, height: 8, borderRadius: 4, backgroundColor: C.border },
+  imageDotActive:{ backgroundColor: C.g600, width: 20 },
+
+  /* Sections */
+  section: { backgroundColor: C.card, borderRadius: 16, marginBottom: 12, borderWidth: 1, borderColor: C.border, overflow: 'hidden', shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 2 },
+  secHead: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 14, borderBottomWidth: 1, borderBottomColor: C.border, backgroundColor: C.bg },
+  secIcon: { width: 30, height: 30, borderRadius: 9, justifyContent: 'center', alignItems: 'center' },
+  secTitle:{ fontSize: 13, fontWeight: '800', color: C.text },
+
+  /* Service info */
+  infoRow: { flexDirection: 'row', gap: 10, padding: 14 },
+  infoChip:{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: C.bg, padding: 12, borderRadius: 12 },
+  infoChipLabel: { fontSize: 10, color: C.muted, marginBottom: 2 },
+  infoChipVal:   { fontSize: 13, fontWeight: '700', color: C.text },
+
+  /* Specs */
+  specsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, padding: 14 },
+  specItem:  { width: '30%', alignItems: 'center' },
+  specIcon:  { width: 44, height: 44, borderRadius: 12, justifyContent: 'center', alignItems: 'center', marginBottom: 8 },
+  specLabel: { fontSize: 10, color: C.muted, marginBottom: 2 },
+  specValue: { fontSize: 13, fontWeight: '700', color: C.text, textAlign: 'center' },
+
+  /* Details list */
+  detailsList: { paddingHorizontal: 14 },
+  detailRow:   { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 13, borderBottomWidth: 1, borderBottomColor: C.border },
+  detailLeft:  { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  detailLabel: { fontSize: 14, color: C.muted },
+  detailValue: { fontSize: 14, fontWeight: '700', color: C.text },
+
+  /* Pricing */
+  pricingGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, padding: 14 },
+  pricingItem: { width: '47%', backgroundColor: C.bg, borderRadius: 12, padding: 12 },
+  pricingLabel:{ fontSize: 11, color: C.muted, marginBottom: 4 },
+  pricingValue:{ fontSize: 16, fontWeight: '800', color: C.g700 },
+
+  /* Locations */
+  locationsWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, padding: 14 },
+  locationChip:  { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: C.g50, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, borderWidth: 1, borderColor: C.g100 },
+  locationText:  { fontSize: 13, color: C.g700, fontWeight: '600' },
+
+  /* Features */
+  featuresWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, padding: 14 },
+  featureChip:  { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: C.g50, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 16, borderWidth: 1, borderColor: C.g100 },
+  featureText:  { fontSize: 12, color: C.g700, fontWeight: '600' },
+
+  /* Edit button */
+  editBtn:    { marginTop: 8, borderRadius: 16, overflow: 'hidden' },
+  editBtnGrad:{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, paddingVertical: 16 },
+  editBtnTxt: { fontSize: 16, fontWeight: '800', color: '#fff' },
 });

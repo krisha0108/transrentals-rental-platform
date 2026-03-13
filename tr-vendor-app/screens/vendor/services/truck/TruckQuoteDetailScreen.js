@@ -1,39 +1,85 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  RefreshControl,
-  ActivityIndicator,
-  Alert,
-  Image,
-  Dimensions,
-  FlatList,
-  Platform,
+  View, Text, StyleSheet, ScrollView, TouchableOpacity,
+  RefreshControl, ActivityIndicator, Image, Dimensions,
+  FlatList, Platform, StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/Feather';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { getVendorQuotes, getBaseURL, getQuoteRequestById } from '../../../api/client';
-import { showError, showSuccess, showInfo, showConfirm } from '../../../../services/alertService';
+import { showError, showSuccess, showInfo } from '../../../../services/alertService';
 
 const { width } = Dimensions.get('window');
-const SLIDER_WIDTH = width - 32; // Full width with padding
+const SLIDER_WIDTH = width - 32;
 
-const GREEN = '#09B368';
-const BG = '#F5F5F7';
-const DARK = '#0F172A';
+const C = {
+  g900: '#022C22', g800: '#065F46', g700: '#047857', g600: '#059669',
+  g500: '#10B981', g400: '#34D399', g100: '#D1FAE5', g50: '#ECFDF5',
+  bg: '#F1F5F9', card: '#FFFFFF', border: '#E2E8F0', text: '#0F172A',
+  sub: '#475569', muted: '#94A3B8', blue: '#2563EB', blueL: '#EFF6FF',
+  amber: '#D97706', amberL: '#FFFBEB', red: '#DC2626', redL: '#FEF2F2',
+  orange: '#EA580C', orangeL: '#FFF7ED', indigo: '#4F46E5', indigoL: '#EEF2FF',
+  teal: '#0D9488', tealL: '#F0FDFA', pink: '#DB2777', pinkL: '#FDF2F8',
+  cyan: '#0891B2', cyanL: '#ECFEFF',
+};
 
 const STATUS_COLORS = {
-  PENDING: '#F59E0B',
-  SENT: '#3B82F6',
-  ACCEPTED: '#10B981',
-  REJECTED: '#EF4444',
-  EXPIRED: '#6B7280',
-  WITHDRAWN: '#9CA3AF',
+  PENDING:   { color: C.amber,  bg: C.amberL  },
+  SENT:      { color: C.amber,  bg: C.amberL  },
+  ACCEPTED:  { color: C.g600,   bg: C.g50     },
+  REJECTED:  { color: C.red,    bg: C.redL    },
+  EXPIRED:   { color: C.muted,  bg: '#F8FAFC' },
+  WITHDRAWN: { color: C.muted,  bg: '#F8FAFC' },
+};
+
+const getStatusIcon = (status) => {
+  switch (status) {
+    case 'ACCEPTED':  return 'checkmark-circle';
+    case 'REJECTED':  return 'close-circle';
+    case 'EXPIRED':   return 'time';
+    case 'PENDING':
+    case 'SENT':      return 'hourglass';
+    default:          return 'help-circle';
+  }
+};
+
+const formatDate = (dateStr) => {
+  if (!dateStr) return 'N/A';
+  return new Date(dateStr).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+};
+
+const formatCurrency = (amount) => {
+  if (!amount) return '₹0';
+  return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(amount);
+};
+
+const Section = ({ icon, title, children }) => (
+  <View style={styles.section}>
+    <View style={styles.sectionHeader}>
+      <View style={styles.sectionIconWrap}>{icon}</View>
+      <Text style={styles.sectionTitle}>{title}</Text>
+    </View>
+    <View style={styles.card}>{children}</View>
+  </View>
+);
+
+const InfoRow = ({ iconName, iconLib = 'ion', color, label, value }) => {
+  const ic = color || C.muted;
+  const IcoComp = iconLib === 'mci' ? MaterialCommunityIcons : Ionicons;
+  return (
+    <View style={styles.infoRow}>
+      <View style={[styles.infoIconWrap, { backgroundColor: `${ic}18` }]}>
+        <IcoComp name={iconName} size={16} color={ic} />
+      </View>
+      <View style={styles.infoContent}>
+        <Text style={styles.infoLabel}>{label}</Text>
+        <Text style={styles.infoValue}>{value}</Text>
+      </View>
+    </View>
+  );
 };
 
 export default function TruckQuoteDetailScreen({ route, navigation }) {
@@ -42,29 +88,18 @@ export default function TruckQuoteDetailScreen({ route, navigation }) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const [baseUrl, setBaseUrl] = useState('');
-  const imageSliderRef = useRef(null);
   const [bookingId, setBookingId] = useState(null);
+  const imageSliderRef = useRef(null);
+  const [baseUrl, setBaseUrl] = useState('');
 
-  useEffect(() => {
-    getBaseURL().then(url => {
-      console.log('🌐 [Truck Image Debug] Base URL:', url);
-      setBaseUrl(url);
-    });
-  }, []);
+  useEffect(() => { getBaseURL().then(url => setBaseUrl(url)); }, []);
 
   const fetchQuoteDetail = useCallback(async () => {
-    if (!quoteId) {
-      showError('Quote ID is missing');
-      navigation.goBack();
-      return;
-    }
-
+    if (!quoteId) { showError('Quote ID is missing'); navigation.goBack(); return; }
     try {
       const response = await getVendorQuotes('truck', {});
       const quotes = response.quotes || [];
       const foundQuote = quotes.find(q => (q.id || q._id) === quoteId);
-
       if (foundQuote) {
         setQuote(foundQuote);
         if (foundQuote.status === 'ACCEPTED') {
@@ -76,68 +111,51 @@ export default function TruckQuoteDetailScreen({ route, navigation }) {
             } catch (_) {}
           }
         }
-      } else {
-        showError('Quote not found');
-      }
-    } catch (error) {
-      console.error('Error fetching quote detail:', error);
-      showError('Failed to load quote details');
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
+      } else { showError('Quote not found'); }
+    } catch { showError('Failed to load quote details'); }
+    finally { setLoading(false); setRefreshing(false); }
   }, [quoteId, navigation]);
 
-  useEffect(() => {
-    fetchQuoteDetail();
-  }, [fetchQuoteDetail]);
+  useEffect(() => { fetchQuoteDetail(); }, [fetchQuoteDetail]);
+  const onRefresh = () => { setRefreshing(true); fetchQuoteDetail(); };
 
-  const onRefresh = () => {
-    setRefreshing(true);
-    fetchQuoteDetail();
+  const getFullImageUrl = (path) => {
+    if (!path) return null;
+    if (path.startsWith('http')) return path;
+    return `${baseUrl}${path}`;
   };
 
-  const formatDate = (dateStr) => {
-    if (!dateStr) return 'N/A';
-    const date = new Date(dateStr);
-    return date.toLocaleDateString('en-IN', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-    });
-  };
-
-  const formatCurrency = (amount) => {
-    if (!amount) return '₹0';
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR',
-      maximumFractionDigits: 0,
-    }).format(amount);
-  };
-
-  const getStatusIcon = (status) => {
-    switch (status) {
-      case 'ACCEPTED':
-        return 'checkmark-circle';
-      case 'REJECTED':
-        return 'close-circle';
-      case 'EXPIRED':
-        return 'time';
-      case 'PENDING':
-      case 'SENT':
-        return 'hourglass';
-      default:
-        return 'help-circle';
+  const parseJSON = (field) => {
+    if (!field) return null;
+    if (Array.isArray(field)) return field;
+    if (typeof field === 'string') {
+      try {
+        const parsed = JSON.parse(field);
+        if (Array.isArray(parsed)) return parsed;
+        if (typeof parsed === 'object' && parsed !== null) return Object.values(parsed).filter(Boolean);
+        return null;
+      } catch { return null; }
     }
+    return null;
   };
 
   if (loading) {
     return (
       <SafeAreaView style={styles.safe} edges={['top']}>
+        <StatusBar barStyle="light-content" backgroundColor={C.g900} />
+        <LinearGradient colors={[C.g900, C.g800, C.g700]} style={styles.header}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+            <Icon name="arrow-left" size={22} color="#fff" />
+          </TouchableOpacity>
+          <View style={styles.headerCenter}>
+            <Text style={styles.headerTitle}>Quote Details</Text>
+            <Text style={styles.headerSubtitle}>Truck Service</Text>
+          </View>
+          <View style={{ width: 40 }} />
+        </LinearGradient>
         <View style={styles.loaderWrap}>
-          <ActivityIndicator size="large" color={GREEN} />
-          <Text style={styles.loaderText}>Loading quote details...</Text>
+          <ActivityIndicator size="large" color={C.g600} />
+          <Text style={styles.loaderText}>Loading quote details…</Text>
         </View>
       </SafeAreaView>
     );
@@ -146,15 +164,21 @@ export default function TruckQuoteDetailScreen({ route, navigation }) {
   if (!quote) {
     return (
       <SafeAreaView style={styles.safe} edges={['top']}>
-        <View style={styles.header}>
+        <StatusBar barStyle="light-content" backgroundColor={C.g900} />
+        <LinearGradient colors={[C.g900, C.g800, C.g700]} style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-            <Icon name="arrow-left" size={22} color={DARK} />
+            <Icon name="arrow-left" size={22} color="#fff" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Quote Detail</Text>
+          <View style={styles.headerCenter}>
+            <Text style={styles.headerTitle}>Quote Details</Text>
+            <Text style={styles.headerSubtitle}>Truck Service</Text>
+          </View>
           <View style={{ width: 40 }} />
-        </View>
+        </LinearGradient>
         <View style={styles.emptyState}>
-          <Ionicons name="document-text-outline" size={64} color="#CBD5E1" />
+          <View style={styles.emptyIconWrap}>
+            <Ionicons name="document-text-outline" size={44} color={C.g400} />
+          </View>
           <Text style={styles.emptyTitle}>Quote Not Found</Text>
           <Text style={styles.emptySubtitle}>This quote may have been removed</Text>
         </View>
@@ -163,134 +187,76 @@ export default function TruckQuoteDetailScreen({ route, navigation }) {
   }
 
   const status = quote.status || 'PENDING';
-  const statusColor = STATUS_COLORS[status] || '#6B7280';
-
+  const sc = STATUS_COLORS[status] || { color: C.muted, bg: '#F8FAFC' };
   const request = quote.request || {};
-  const customerName = request.customerName || quote.customerName || 'Customer';
+
+  const customerName  = request.customerName  || quote.customerName  || 'Customer';
   const customerEmail = request.customerEmail || quote.customerEmail;
   const customerPhone = request.customerPhone || quote.customerPhone;
-  const pickupCity = request.locationName || request.pickupCity || quote.pickupCity || 'N/A';
-  const dropCity = request.dropCity || quote.dropCity;
-  const pickupDate = request.pickupDate || quote.pickupDate || request.startDate;
-  const returnDate = request.returnDate || quote.returnDate || request.endDate || request.dropDate;
-  const vehicleName = quote.vehicleName || quote.truckType || request.truckType;
-  const vehicleBrand = quote.vehicleBrand || quote.truckBrand;
+  const pickupCity    = request.locationName  || request.pickupCity  || quote.pickupCity || 'N/A';
+  const dropCity      = request.dropCity      || quote.dropCity;
+  const pickupDate    = request.pickupDate    || quote.pickupDate    || request.startDate;
+  const returnDate    = request.returnDate    || quote.returnDate    || request.endDate || request.dropDate;
+  const vehicleName   = quote.vehicleName     || quote.truckType     || request.truckType;
+  const vehicleBrand  = quote.vehicleBrand;
 
-  const baseAmount = quote.baseAmount || quote.basePrice || 0;
-  const securityDeposit = quote.securityDeposit || quote.deposit || 0;
-  const taxes = quote.taxes || quote.tax || quote.gst || 0;
-  const totalAmount = quote.grandTotal || quote.totalAmount || quote.quotedAmount || baseAmount;
+  const baseAmount      = quote.baseAmount    || quote.basePrice    || 0;
+  const securityDeposit = quote.securityDeposit || quote.deposit    || 0;
+  const taxes           = quote.taxes         || quote.tax          || quote.gst || 0;
+  const totalAmount     = quote.grandTotal    || quote.totalAmount  || quote.quotedAmount || baseAmount;
 
-  const validTill = quote.validTill || quote.validUntil;
-  const quoteNumber = quote.quoteNumber || (quote.id || quote._id)?.toString().slice(-8);
+  const validTill     = quote.validTill  || quote.validUntil;
+  const quoteNumber   = quote.quoteNumber || (quote.id || quote._id)?.toString().slice(-8);
   const requestNumber = request.requestNumber;
-  const notes = quote.notes || quote.description || quote.additionalInfo;
+  const notes         = quote.notes || quote.description || quote.additionalInfo || quote.vendorMessage;
 
-  // Helper to get full image URL
-  const getFullImageUrl = (path) => {
-    console.log('🖼️ [Truck Image Debug] Processing path:', path);
-    if (!path) return null;
-    if (path.startsWith('http')) {
-      console.log('✅ [Truck Image Debug] Path is already full URL:', path);
-      return path;
-    }
-    const fullUrl = `${baseUrl}${path}`;
-    console.log('🔗 [Truck Image Debug] Constructed URL:', fullUrl);
-    return fullUrl;
-  };
-
-  // Parse JSON fields
-  const parseJSON = (field) => {
-    if (!field) return null;
-    if (Array.isArray(field)) return field;
-    if (typeof field === 'string') {
-      try {
-        const parsed = JSON.parse(field);
-        if (Array.isArray(parsed)) return parsed;
-        // Handle object format (like {front: "...", back: "..."})
-        if (typeof parsed === 'object' && parsed !== null) {
-          return Object.values(parsed).filter(Boolean);
-        }
-        return null;
-      } catch {
-        return null;
-      }
-    }
-    return null;
-  };
-
-  // Parse and convert image URLs
-  console.log('🖼️ [Truck Image Debug] Raw vehicleImages from quote:', quote.vehicleImages);
-  console.log('🖼️ [Truck Image Debug] Type:', typeof quote.vehicleImages);
-  const rawImages = parseJSON(quote.vehicleImages);
-  console.log('🖼️ [Truck Image Debug] Parsed images array:', rawImages);
+  const rawImages    = parseJSON(quote.vehicleImages);
   const vehicleImages = rawImages?.map(img => getFullImageUrl(img)).filter(Boolean) || null;
-  console.log('🖼️ [Truck Image Debug] Final vehicleImages with full URLs:', vehicleImages);
-
-  const vehicleFeatures = parseJSON(quote.vehicleFeatures);
-  const inclusions = parseJSON(quote.inclusions);
-  const exclusions = parseJSON(quote.exclusions);
+  const inclusions   = parseJSON(quote.inclusions);
+  const exclusions   = parseJSON(quote.exclusions);
   const termsConditions = parseJSON(quote.termsConditions);
-  const registrationNumber = quote.registrationNumber || quote.vehicleNumber;
-  const vehicleYear = quote.vehicleYear;
-
-  // Debug logging
-  console.log('Quote Data:', {
-    id: quote.id,
-    rawVehicleImages: quote.vehicleImages,
-    rawImages: rawImages,
-    finalImages: vehicleImages,
-    imagesLength: vehicleImages?.length,
-  });
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
-      {/* Header */}
-      <View style={styles.header}>
+      <StatusBar barStyle="light-content" backgroundColor={C.g900} />
+
+      <LinearGradient colors={[C.g900, C.g800, C.g700]} style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Icon name="arrow-left" size={22} color={DARK} />
+          <Icon name="arrow-left" size={22} color="#fff" />
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <Text style={styles.headerTitle}>Quote Details</Text>
-          <Text style={styles.headerSubtitle}>Truck Rental</Text>
+          <Text style={styles.headerSubtitle}>Truck Service</Text>
         </View>
         <View style={{ width: 40 }} />
-      </View>
+      </LinearGradient>
 
       <ScrollView
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[GREEN]} />
-        }
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[C.g600]} />}
       >
-        {/* Status Banner */}
-        <View style={[styles.statusBanner, { backgroundColor: `${statusColor}15` }]}>
-          <View style={styles.statusContent}>
-            <Ionicons name={getStatusIcon(status)} size={24} color={statusColor} />
-            <View style={styles.statusTextWrap}>
-              <Text style={[styles.statusLabel, { color: statusColor }]}>{status}</Text>
-              <Text style={styles.quoteNumberText}>Quote #{quoteNumber}</Text>
+        <View style={[styles.statusBanner, { backgroundColor: sc.bg, borderColor: `${sc.color}30` }]}>
+          <View style={styles.statusLeft}>
+            <View style={[styles.statusIconCircle, { backgroundColor: `${sc.color}18` }]}>
+              <Ionicons name={getStatusIcon(status)} size={22} color={sc.color} />
+            </View>
+            <View>
+              <Text style={[styles.statusLabelText, { color: sc.color }]}>{status}</Text>
+              <Text style={styles.quoteNumText}>Quote #{quoteNumber}</Text>
             </View>
           </View>
-          <Text style={styles.totalAmount}>{formatCurrency(totalAmount)}</Text>
+          <Text style={[styles.totalAmountText, { color: C.g700 }]}>{formatCurrency(totalAmount)}</Text>
         </View>
 
         <View style={styles.content}>
-          {/* Vehicle Images Slider */}
           {vehicleImages && vehicleImages.length > 0 && (
-            <View style={styles.section}>
-              <View style={styles.sectionHeader}>
-                <Ionicons name="images-outline" size={20} color="#64748B" />
-                <Text style={styles.sectionTitle}>Vehicle Images</Text>
-              </View>
-              <View style={styles.imageSliderContainer}>
+            <Section icon={<Ionicons name="images-outline" size={16} color={C.g700} />} title="Vehicle Images">
+              <View style={styles.sliderWrap}>
                 <FlatList
                   ref={imageSliderRef}
                   data={vehicleImages}
-                  horizontal
-                  pagingEnabled
-                  showsHorizontalScrollIndicator={false}
+                  horizontal pagingEnabled showsHorizontalScrollIndicator={false}
                   keyExtractor={(item, index) => index.toString()}
                   onMomentumScrollEnd={(event) => {
                     const index = Math.round(event.nativeEvent.contentOffset.x / SLIDER_WIDTH);
@@ -298,400 +264,169 @@ export default function TruckQuoteDetailScreen({ route, navigation }) {
                   }}
                   renderItem={({ item }) => (
                     <View style={styles.imageSlide}>
-                      <Image
-                        source={{ uri: item }}
-                        style={styles.sliderImage}
-                        resizeMode="cover"
-                      />
+                      <Image source={{ uri: item }} style={styles.sliderImage} resizeMode="cover" />
                     </View>
                   )}
                 />
-                {/* Pagination Dots */}
                 {vehicleImages.length > 1 && (
                   <View style={styles.paginationDots}>
                     {vehicleImages.map((_, index) => (
-                      <View
-                        key={index}
-                        style={[
-                          styles.dot,
-                          index === currentImageIndex ? styles.activeDot : styles.inactiveDot,
-                        ]}
-                      />
+                      <View key={index} style={[styles.dot, index === currentImageIndex ? styles.activeDot : styles.inactiveDot]} />
                     ))}
                   </View>
                 )}
-                {/* Image Counter */}
-                <View style={styles.imageCounter}>
-                  <Text style={styles.imageCounterText}>
-                    {currentImageIndex + 1} / {vehicleImages.length}
-                  </Text>
-                </View>
               </View>
-            </View>
+            </Section>
           )}
 
-          {/* Request Reference */}
           {requestNumber && (
-            <View style={styles.section}>
-              <View style={styles.sectionHeader}>
-                <Ionicons name="document-text-outline" size={20} color="#64748B" />
-                <Text style={styles.sectionTitle}>Request Reference</Text>
+            <Section icon={<Ionicons name="document-text-outline" size={16} color={C.g700} />} title="Request Reference">
+              <View style={styles.refBadge}>
+                <Ionicons name="document-text-outline" size={16} color={C.g700} />
+                <Text style={styles.refBadgeText}>Request #{requestNumber}</Text>
               </View>
-              <View style={styles.card}>
-                <Text style={styles.cardText}>Request #{requestNumber}</Text>
-              </View>
-            </View>
+            </Section>
           )}
 
-          {/* Customer Information */}
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Ionicons name="person-circle-outline" size={20} color="#64748B" />
-              <Text style={styles.sectionTitle}>Customer Information</Text>
-            </View>
-            <View style={styles.card}>
-              <View style={styles.infoRow}>
-                <Ionicons name="person" size={18} color="#64748B" />
-                <View style={styles.infoContent}>
-                  <Text style={styles.infoLabel}>Name</Text>
-                  <Text style={styles.infoValue}>{customerName}</Text>
-                </View>
-              </View>
-              {customerEmail && (
-                <View style={styles.infoRow}>
-                  <Ionicons name="mail" size={18} color="#64748B" />
-                  <View style={styles.infoContent}>
-                    <Text style={styles.infoLabel}>Email</Text>
-                    <Text style={styles.infoValue}>{customerEmail}</Text>
-                  </View>
-                </View>
-              )}
-            </View>
-          </View>
+          <Section icon={<Ionicons name="person-circle-outline" size={16} color={C.g700} />} title="Customer Information">
+            <InfoRow iconName="person" color={C.g600} label="Name" value={customerName} />
+            {customerEmail && <InfoRow iconName="mail" color={C.blue} label="Email" value={customerEmail} />}
+            {customerPhone && <InfoRow iconName="call" color={C.teal} label="Phone" value={customerPhone} />}
+          </Section>
 
-          {/* Vehicle Information */}
           {vehicleName && (
-            <View style={styles.section}>
-              <View style={styles.sectionHeader}>
-                <MaterialCommunityIcons name="truck" size={20} color="#64748B" />
-                <Text style={styles.sectionTitle}>Vehicle Details</Text>
-              </View>
-              <View style={styles.card}>
-                <View style={styles.vehicleInfo}>
-                  <MaterialCommunityIcons name="truck" size={32} color={GREEN} />
-                  <View style={styles.vehicleTextWrap}>
-                    <Text style={styles.vehicleName}>{vehicleName}</Text>
-                    {vehicleBrand && (
-                      <Text style={styles.vehicleBrand}>{vehicleBrand}</Text>
-                    )}
-                  </View>
+            <Section icon={<MaterialCommunityIcons name="truck-delivery" size={16} color={C.g700} />} title="Vehicle Details">
+              <View style={styles.vehicleHero}>
+                <View style={styles.vehicleHeroIcon}>
+                  <MaterialCommunityIcons name="truck-delivery" size={28} color={C.g700} />
                 </View>
-                {registrationNumber && (
-                  <View style={styles.infoRow}>
-                    <Ionicons name="car" size={18} color="#64748B" />
-                    <View style={styles.infoContent}>
-                      <Text style={styles.infoLabel}>Registration Number</Text>
-                      <Text style={styles.infoValue}>{registrationNumber}</Text>
-                    </View>
-                  </View>
-                )}
-                {vehicleYear && (
-                  <View style={styles.infoRow}>
-                    <Ionicons name="calendar" size={18} color="#64748B" />
-                    <View style={styles.infoContent}>
-                      <Text style={styles.infoLabel}>Model Year</Text>
-                      <Text style={styles.infoValue}>{vehicleYear}</Text>
-                    </View>
-                  </View>
-                )}
-                {vehicleFeatures && vehicleFeatures.length > 0 && (
-                  <View style={styles.featuresWrap}>
-                    <Text style={styles.featuresTitle}>Features:</Text>
-                    {vehicleFeatures.map((feature, idx) => (
-                      <View key={idx} style={styles.featureItem}>
-                        <Ionicons name="checkmark-circle" size={16} color={GREEN} />
-                        <Text style={styles.featureText}>{feature}</Text>
-                      </View>
-                    ))}
-                  </View>
-                )}
+                <View style={styles.vehicleHeroText}>
+                  <Text style={styles.vehicleHeroName}>{vehicleName}</Text>
+                  {vehicleBrand && <Text style={styles.vehicleHeroBrand}>{vehicleBrand}</Text>}
+                </View>
               </View>
-            </View>
+              {quote.registrationNumber && (
+                <InfoRow iconName="card-outline" color={C.sub} label="Registration Number" value={quote.registrationNumber} />
+              )}
+            </Section>
           )}
 
-          {/* Booking Details */}
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Ionicons name="calendar-outline" size={20} color="#64748B" />
-              <Text style={styles.sectionTitle}>Booking Details</Text>
-            </View>
-            <View style={styles.card}>
-              <View style={styles.infoRow}>
-                <Ionicons name="location" size={18} color={GREEN} />
-                <View style={styles.infoContent}>
-                  <Text style={styles.infoLabel}>Pickup Location</Text>
-                  <Text style={styles.infoValue}>{pickupCity}</Text>
-                </View>
-              </View>
-              {dropCity && (
-                <View style={styles.infoRow}>
-                  <Ionicons name="location" size={18} color="#EF4444" />
-                  <View style={styles.infoContent}>
-                    <Text style={styles.infoLabel}>Drop Location</Text>
-                    <Text style={styles.infoValue}>{dropCity}</Text>
-                  </View>
-                </View>
-              )}
-              <View style={styles.infoRow}>
-                <Ionicons name="calendar" size={18} color="#64748B" />
-                <View style={styles.infoContent}>
-                  <Text style={styles.infoLabel}>Pickup Date</Text>
-                  <Text style={styles.infoValue}>{formatDate(pickupDate)}</Text>
-                </View>
-              </View>
-              {returnDate && (
-                <View style={styles.infoRow}>
-                  <Ionicons name="calendar" size={18} color="#64748B" />
-                  <View style={styles.infoContent}>
-                    <Text style={styles.infoLabel}>Return Date</Text>
-                    <Text style={styles.infoValue}>{formatDate(returnDate)}</Text>
-                  </View>
-                </View>
-              )}
-            </View>
-          </View>
+          <Section icon={<Ionicons name="calendar-outline" size={16} color={C.g700} />} title="Booking Details">
+            <InfoRow iconName="location" color={C.g600} label="Pickup Location" value={pickupCity} />
+            {dropCity && <InfoRow iconName="location" color={C.red} label="Drop Location" value={dropCity} />}
+            <InfoRow iconName="calendar" color={C.sub} label="Pickup Date" value={formatDate(pickupDate)} />
+            {returnDate && <InfoRow iconName="calendar" color={C.sub} label="Return Date" value={formatDate(returnDate)} />}
+          </Section>
 
-          {/* Truck Details */}
-          {(quote.driverName || quote.labourIncluded || quote.vehicleCapacity) && (
-            <View style={styles.section}>
-              <View style={styles.sectionHeader}>
-                <MaterialCommunityIcons name="truck-outline" size={20} color="#64748B" />
-                <Text style={styles.sectionTitle}>Truck Details</Text>
-              </View>
-              <View style={styles.card}>
-                {quote.vehicleCapacity && (
-                  <View style={styles.infoRow}>
-                    <Ionicons name="cube-outline" size={18} color="#64748B" />
-                    <View style={styles.infoContent}>
-                      <Text style={styles.infoLabel}>Capacity</Text>
-                      <Text style={styles.infoValue}>{quote.vehicleCapacity}</Text>
-                    </View>
-                  </View>
-                )}
-                {quote.driverName && (
-                  <View style={styles.infoRow}>
-                    <Ionicons name="person" size={18} color="#64748B" />
-                    <View style={styles.infoContent}>
-                      <Text style={styles.infoLabel}>Driver</Text>
-                      <Text style={styles.infoValue}>{quote.driverName}{quote.driverPhone ? ` (${quote.driverPhone})` : ''}</Text>
-                    </View>
-                  </View>
-                )}
-                {quote.labourIncluded && (
-                  <View style={styles.infoRow}>
-                    <Ionicons name="people" size={18} color="#64748B" />
-                    <View style={styles.infoContent}>
-                      <Text style={styles.infoLabel}>Labour Included</Text>
-                      <Text style={styles.infoValue}>{quote.labourCount || 0} persons</Text>
-                    </View>
-                  </View>
-                )}
-              </View>
-            </View>
-          )}
-
-          {/* Pricing Breakdown */}
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Ionicons name="receipt-outline" size={20} color="#64748B" />
-              <Text style={styles.sectionTitle}>Pricing Breakdown</Text>
-            </View>
-            <View style={styles.card}>
-              {baseAmount > 0 && (
-                <View style={styles.priceRow}>
-                  <Text style={styles.priceLabel}>Base Amount</Text>
-                  <Text style={styles.priceValue}>{formatCurrency(baseAmount)}</Text>
-                </View>
-              )}
-              {quote.loadingCharges > 0 && (
-                <View style={styles.priceRow}>
-                  <Text style={styles.priceLabel}>Loading Charges</Text>
-                  <Text style={styles.priceValue}>{formatCurrency(quote.loadingCharges)}</Text>
-                </View>
-              )}
-              {quote.unloadingCharges > 0 && (
-                <View style={styles.priceRow}>
-                  <Text style={styles.priceLabel}>Unloading Charges</Text>
-                  <Text style={styles.priceValue}>{formatCurrency(quote.unloadingCharges)}</Text>
-                </View>
-              )}
-              {quote.labourCharges > 0 && (
-                <View style={styles.priceRow}>
-                  <Text style={styles.priceLabel}>Labour Charges</Text>
-                  <Text style={styles.priceValue}>{formatCurrency(quote.labourCharges)}</Text>
-                </View>
-              )}
-              {quote.packagingCharges > 0 && (
-                <View style={styles.priceRow}>
-                  <Text style={styles.priceLabel}>Packaging Charges</Text>
-                  <Text style={styles.priceValue}>{formatCurrency(quote.packagingCharges)}</Text>
-                </View>
-              )}
-              {quote.insuranceCharges > 0 && (
-                <View style={styles.priceRow}>
-                  <Text style={styles.priceLabel}>Insurance</Text>
-                  <Text style={styles.priceValue}>{formatCurrency(quote.insuranceCharges)}</Text>
-                </View>
-              )}
-              {quote.tollEstimate > 0 && (
-                <View style={styles.priceRow}>
-                  <Text style={styles.priceLabel}>Toll Estimate</Text>
-                  <Text style={styles.priceValue}>{formatCurrency(quote.tollEstimate)}</Text>
-                </View>
-              )}
-              {securityDeposit > 0 && (
-                <View style={styles.priceRow}>
-                  <Text style={styles.priceLabel}>Security Deposit</Text>
-                  <Text style={styles.priceValue}>{formatCurrency(securityDeposit)}</Text>
-                </View>
-              )}
-              {quote.gstAmount > 0 && (
-                <View style={styles.priceRow}>
-                  <Text style={styles.priceLabel}>GST</Text>
-                  <Text style={styles.priceValue}>{formatCurrency(quote.gstAmount)}</Text>
-                </View>
-              )}
-              {taxes > 0 && !quote.gstAmount && (
-                <View style={styles.priceRow}>
-                  <Text style={styles.priceLabel}>Taxes & GST</Text>
-                  <Text style={styles.priceValue}>{formatCurrency(taxes)}</Text>
-                </View>
-              )}
-              <View style={styles.priceDivider} />
+          <Section icon={<Ionicons name="receipt-outline" size={16} color={C.g700} />} title="Pricing Breakdown">
+            {quote.dailyRate > 0 && (
               <View style={styles.priceRow}>
-                <Text style={styles.priceLabelTotal}>Grand Total</Text>
-                <Text style={styles.priceValueTotal}>{formatCurrency(totalAmount)}</Text>
+                <Text style={styles.priceLabel}>Daily Rate</Text>
+                <Text style={styles.priceValue}>{formatCurrency(quote.dailyRate)}/day</Text>
               </View>
+            )}
+            {baseAmount > 0 && quote.totalAmount && (
+              <View style={styles.priceRow}>
+                <Text style={styles.priceLabel}>Total Amount</Text>
+                <Text style={styles.priceValue}>{formatCurrency(quote.totalAmount)}</Text>
+              </View>
+            )}
+            {securityDeposit > 0 && (
+              <View style={styles.priceRow}>
+                <Text style={styles.priceLabel}>Security Deposit</Text>
+                <Text style={styles.priceValue}>{formatCurrency(securityDeposit)}</Text>
+              </View>
+            )}
+            {taxes > 0 && (
+              <View style={styles.priceRow}>
+                <Text style={styles.priceLabel}>Taxes & GST</Text>
+                <Text style={styles.priceValue}>{formatCurrency(taxes)}</Text>
+              </View>
+            )}
+            <View style={styles.priceDivider} />
+            <View style={[styles.priceRow, styles.totalRow]}>
+              <Text style={styles.totalLabel}>Grand Total</Text>
+              <Text style={styles.totalValue}>{formatCurrency(totalAmount)}</Text>
             </View>
-          </View>
+          </Section>
 
-          {/* Quote Validity */}
           {validTill && (
-            <View style={styles.section}>
-              <View style={styles.sectionHeader}>
-                <Ionicons name="time-outline" size={20} color="#64748B" />
-                <Text style={styles.sectionTitle}>Quote Validity</Text>
-              </View>
-              <View style={styles.card}>
-                <View style={styles.infoRow}>
-                  <Ionicons name="hourglass-outline" size={18} color="#64748B" />
-                  <View style={styles.infoContent}>
-                    <Text style={styles.infoLabel}>Valid Until</Text>
-                    <Text style={styles.infoValue}>{formatDate(validTill)}</Text>
-                  </View>
-                </View>
-              </View>
-            </View>
+            <Section icon={<Ionicons name="time-outline" size={16} color={C.g700} />} title="Quote Validity">
+              <InfoRow iconName="hourglass-outline" color={C.amber} label="Valid Until" value={formatDate(validTill)} />
+            </Section>
           )}
 
-          {/* Additional Notes */}
-          {notes && (
-            <View style={styles.section}>
-              <View style={styles.sectionHeader}>
-                <Ionicons name="chatbox-outline" size={20} color="#64748B" />
-                <Text style={styles.sectionTitle}>Additional Notes</Text>
-              </View>
-              <View style={styles.card}>
-                <Text style={styles.notesText}>{notes}</Text>
-              </View>
-            </View>
-          )}
-
-          {/* Inclusions */}
           {inclusions && inclusions.length > 0 && (
-            <View style={styles.section}>
-              <View style={styles.sectionHeader}>
-                <Ionicons name="checkmark-circle-outline" size={20} color="#64748B" />
-                <Text style={styles.sectionTitle}>Inclusions</Text>
-              </View>
-              <View style={styles.card}>
+            <Section icon={<Ionicons name="checkmark-circle-outline" size={16} color={C.g700} />} title="Inclusions">
+              <View style={styles.chipGrid}>
                 {inclusions.map((item, idx) => (
-                  <View key={idx} style={styles.listItem}>
-                    <Ionicons name="checkmark-circle" size={16} color={GREEN} />
-                    <Text style={styles.listText}>{item}</Text>
+                  <View key={idx} style={styles.inclusionChip}>
+                    <Ionicons name="checkmark-circle" size={14} color={C.g600} />
+                    <Text style={styles.inclusionChipText}>{item}</Text>
                   </View>
                 ))}
               </View>
-            </View>
+            </Section>
           )}
 
-          {/* Exclusions */}
           {exclusions && exclusions.length > 0 && (
-            <View style={styles.section}>
-              <View style={styles.sectionHeader}>
-                <Ionicons name="close-circle-outline" size={20} color="#64748B" />
-                <Text style={styles.sectionTitle}>Exclusions</Text>
-              </View>
-              <View style={styles.card}>
+            <Section icon={<Ionicons name="close-circle-outline" size={16} color={C.g700} />} title="Exclusions">
+              <View style={styles.chipGrid}>
                 {exclusions.map((item, idx) => (
-                  <View key={idx} style={styles.listItem}>
-                    <Ionicons name="close-circle" size={16} color="#EF4444" />
-                    <Text style={styles.listText}>{item}</Text>
+                  <View key={idx} style={styles.exclusionChip}>
+                    <Ionicons name="close-circle" size={14} color={C.red} />
+                    <Text style={styles.exclusionChipText}>{item}</Text>
                   </View>
                 ))}
               </View>
-            </View>
+            </Section>
           )}
 
-          {/* Terms & Conditions */}
           {termsConditions && termsConditions.length > 0 && (
-            <View style={styles.section}>
-              <View style={styles.sectionHeader}>
-                <Ionicons name="document-text-outline" size={20} color="#64748B" />
-                <Text style={styles.sectionTitle}>Terms & Conditions</Text>
-              </View>
-              <View style={styles.card}>
-                {termsConditions.map((item, idx) => (
-                  <View key={idx} style={styles.listItem}>
-                    <Text style={styles.listNumber}>{idx + 1}.</Text>
-                    <Text style={styles.listText}>{item}</Text>
+            <Section icon={<Ionicons name="document-text-outline" size={16} color={C.g700} />} title="Terms & Conditions">
+              {termsConditions.map((item, idx) => (
+                <View key={idx} style={styles.termItem}>
+                  <View style={styles.termNum}>
+                    <Text style={styles.termNumText}>{idx + 1}</Text>
                   </View>
-                ))}
-              </View>
-            </View>
+                  <Text style={styles.termText}>{item}</Text>
+                </View>
+              ))}
+            </Section>
           )}
 
-          {/* Quote History */}
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Ionicons name="time-outline" size={20} color="#64748B" />
-              <Text style={styles.sectionTitle}>Quote Timeline</Text>
-            </View>
-            <View style={styles.card}>
-              <View style={styles.timelineRow}>
-                <Ionicons name="paper-plane" size={16} color={GREEN} />
-                <Text style={styles.timelineText}>
-                  Sent on {formatDate(quote.createdAt || quote.created_at)}
-                </Text>
+          {notes && (
+            <Section icon={<Ionicons name="chatbox-outline" size={16} color={C.g700} />} title="Additional Notes">
+              <Text style={styles.notesText}>{notes}</Text>
+            </Section>
+          )}
+
+          <Section icon={<Ionicons name="time-outline" size={16} color={C.g700} />} title="Quote Timeline">
+            <View style={styles.timelineItem}>
+              <View style={[styles.timelineDot, { backgroundColor: C.g500 }]} />
+              <View style={styles.timelineLine} />
+              <View style={styles.timelineBody}>
+                <Text style={styles.timelineEvent}>Quote Sent</Text>
+                <Text style={styles.timelineDate}>{formatDate(quote.createdAt || quote.created_at)}</Text>
               </View>
-              {quote.updatedAt && quote.updatedAt !== quote.createdAt && (
-                <View style={styles.timelineRow}>
-                  <Ionicons name="refresh" size={16} color="#64748B" />
-                  <Text style={styles.timelineText}>
-                    Updated on {formatDate(quote.updatedAt)}
-                  </Text>
-                </View>
-              )}
             </View>
-          </View>
+            {quote.updatedAt && quote.updatedAt !== quote.createdAt && (
+              <View style={styles.timelineItem}>
+                <View style={[styles.timelineDot, { backgroundColor: C.sub }]} />
+                <View style={styles.timelineBody}>
+                  <Text style={styles.timelineEvent}>Last Updated</Text>
+                  <Text style={styles.timelineDate}>{formatDate(quote.updatedAt)}</Text>
+                </View>
+              </View>
+            )}
+          </Section>
         </View>
       </ScrollView>
 
-      {/* Bottom Navigation Bar */}
       <View style={styles.bottomBar}>
         {status !== 'ACCEPTED' ? (
           <TouchableOpacity
-            style={styles.viewRequestButton}
+            style={styles.viewRequestBtn}
             onPress={() => {
               const rid = quote.requestId || quote.request?.id || quote.request?._id;
               if (rid) navigation.navigate('TruckQuoteRequestDetail', { requestId: rid });
@@ -699,15 +434,14 @@ export default function TruckQuoteDetailScreen({ route, navigation }) {
             }}
           >
             <Ionicons name="document-text-outline" size={18} color="#fff" />
-            <Text style={styles.actionBtnText}>View Request Details</Text>
+            <Text style={styles.bottomBtnText}>View Request Details</Text>
           </TouchableOpacity>
         ) : (
           <TouchableOpacity
-            style={styles.viewBookingButton}
+            style={styles.viewBookingBtn}
             onPress={() => {
-              if (bookingId) {
-                navigation.navigate('TruckBookingDetail', { bookingId });
-              } else {
+              if (bookingId) navigation.navigate('TruckBookingDetail', { bookingId });
+              else {
                 const rid = quote.requestId || quote.request?.id || quote.request?._id;
                 if (rid) navigation.navigate('TruckQuoteRequestDetail', { requestId: rid });
                 else showInfo('Please check your Bookings section.');
@@ -715,7 +449,7 @@ export default function TruckQuoteDetailScreen({ route, navigation }) {
             }}
           >
             <Ionicons name="checkmark-circle-outline" size={18} color="#fff" />
-            <Text style={styles.actionBtnText}>View Booking Details</Text>
+            <Text style={styles.bottomBtnText}>View Booking Details</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -724,242 +458,142 @@ export default function TruckQuoteDetailScreen({ route, navigation }) {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: BG },
-
+  safe: { flex: 1, backgroundColor: C.bg },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: 16, paddingVertical: 14,
   },
   backBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: BG,
-    justifyContent: 'center',
-    alignItems: 'center',
+    width: 40, height: 40, borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.15)', justifyContent: 'center', alignItems: 'center',
   },
   headerCenter: { alignItems: 'center', flex: 1 },
-  headerTitle: { fontSize: 18, fontWeight: '700', color: DARK },
-  headerSubtitle: { fontSize: 12, color: '#64748B', marginTop: 2 },
+  headerTitle:    { fontSize: 18, fontWeight: '700', color: '#fff' },
+  headerSubtitle: { fontSize: 12, color: 'rgba(255,255,255,0.7)', marginTop: 2 },
 
-  loaderWrap: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 12,
-  },
-  loaderText: { fontSize: 14, color: '#64748B', marginTop: 8 },
+  loaderWrap: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 12 },
+  loaderText:  { fontSize: 14, color: C.muted, marginTop: 8 },
 
   scrollView: { flex: 1 },
 
   statusBanner: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 20,
-    marginHorizontal: 16,
-    marginTop: 16,
-    borderRadius: 16,
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    marginHorizontal: 16, marginTop: 16, marginBottom: 4,
+    padding: 16, borderRadius: 16, borderWidth: 1,
   },
-  statusContent: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
-  statusTextWrap: { flex: 1 },
-  statusLabel: { fontSize: 16, fontWeight: '700' },
-  quoteNumberText: { fontSize: 12, color: '#64748B', marginTop: 2 },
-  totalAmount: { fontSize: 24, fontWeight: '700', color: GREEN },
+  statusLeft:       { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
+  statusIconCircle: { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center' },
+  statusLabelText:  { fontSize: 15, fontWeight: '700' },
+  quoteNumText:     { fontSize: 12, color: C.muted, marginTop: 2 },
+  totalAmountText:  { fontSize: 22, fontWeight: '800' },
 
-  content: { padding: 16, paddingTop: 8, paddingBottom: 100 },
+  content: { padding: 16, paddingBottom: 110 },
 
-  section: { marginBottom: 20 },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 10
+  section:       { marginBottom: 20 },
+  sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 },
+  sectionIconWrap: {
+    width: 28, height: 28, borderRadius: 8,
+    backgroundColor: C.g50, justifyContent: 'center', alignItems: 'center',
   },
-  sectionTitle: { fontSize: 16, fontWeight: '700', color: DARK },
+  sectionTitle: { fontSize: 15, fontWeight: '700', color: C.text },
 
   card: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    gap: 12,
-  },
-  cardText: { fontSize: 14, color: '#334155', fontWeight: '600' },
-
-  infoRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 12
-  },
-  infoContent: { flex: 1 },
-  infoLabel: { fontSize: 12, color: '#64748B', marginBottom: 2 },
-  infoValue: { fontSize: 14, color: DARK, fontWeight: '600' },
-
-  vehicleInfo: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  vehicleTextWrap: { flex: 1 },
-  vehicleName: { fontSize: 16, fontWeight: '700', color: DARK },
-  vehicleBrand: { fontSize: 13, color: '#64748B', marginTop: 2 },
-
-  priceRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center'
-  },
-  priceLabel: { fontSize: 14, color: '#64748B' },
-  priceValue: { fontSize: 14, color: DARK, fontWeight: '600' },
-  priceDivider: {
-    height: 1,
-    backgroundColor: '#E2E8F0',
-    marginVertical: 4
-  },
-  priceLabelTotal: { fontSize: 16, fontWeight: '700', color: DARK },
-  priceValueTotal: { fontSize: 18, fontWeight: '700', color: GREEN },
-
-  notesText: { fontSize: 14, color: '#475569', lineHeight: 20 },
-
-  timelineRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8
-  },
-  timelineText: { fontSize: 13, color: '#64748B' },
-
-  emptyState: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: 80,
-  },
-  emptyTitle: { fontSize: 18, fontWeight: '600', color: DARK, marginTop: 16 },
-  emptySubtitle: {
-    fontSize: 14,
-    color: '#64748B',
-    marginTop: 8,
-    textAlign: 'center',
-    paddingHorizontal: 32,
+    backgroundColor: C.card, borderRadius: 16, padding: 16,
+    borderWidth: 1, borderColor: C.border,
+    shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 }, elevation: 2, gap: 12,
   },
 
-  // Image Slider styles
-  imageSliderContainer: {
-    position: 'relative',
-    backgroundColor: '#F5F5F7',
-    borderRadius: 16,
-    overflow: 'hidden',
+  infoRow:     { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
+  infoIconWrap: { width: 32, height: 32, borderRadius: 8, justifyContent: 'center', alignItems: 'center', marginTop: 1 },
+  infoContent:  { flex: 1 },
+  infoLabel:    { fontSize: 11, color: C.muted, marginBottom: 2 },
+  infoValue:    { fontSize: 14, color: C.text, fontWeight: '600' },
+
+  refBadge: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    backgroundColor: C.g50, padding: 12, borderRadius: 10,
   },
-  imageSlide: {
-    width: SLIDER_WIDTH,
-    height: 250,
-    backgroundColor: '#F5F5F7',
+  refBadgeText: { fontSize: 14, fontWeight: '700', color: C.g700 },
+
+  vehicleHero: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  vehicleHeroIcon: {
+    width: 52, height: 52, borderRadius: 14,
+    backgroundColor: C.g50, justifyContent: 'center', alignItems: 'center',
   },
-  sliderImage: {
-    width: '100%',
-    height: '100%',
+  vehicleHeroText: { flex: 1 },
+  vehicleHeroName:  { fontSize: 16, fontWeight: '700', color: C.text },
+  vehicleHeroBrand: { fontSize: 13, color: C.sub, marginTop: 3 },
+
+  priceRow:    { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  priceLabel:  { fontSize: 14, color: C.sub },
+  priceValue:  { fontSize: 14, color: C.text, fontWeight: '600' },
+  priceDivider:{ height: 1, backgroundColor: C.border, marginVertical: 6 },
+  totalRow:    { paddingTop: 4 },
+  totalLabel:  { fontSize: 15, fontWeight: '700', color: C.text },
+  totalValue:  { fontSize: 20, fontWeight: '800', color: C.g700 },
+
+  chipGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  inclusionChip: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    backgroundColor: C.g50, borderWidth: 1, borderColor: C.g100,
+    paddingHorizontal: 10, paddingVertical: 6, borderRadius: 20,
   },
+  inclusionChipText: { fontSize: 12, color: C.g700, fontWeight: '600' },
+  exclusionChip: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    backgroundColor: C.redL, borderWidth: 1, borderColor: '#FECACA',
+    paddingHorizontal: 10, paddingVertical: 6, borderRadius: 20,
+  },
+  exclusionChipText: { fontSize: 12, color: C.red, fontWeight: '600' },
+
+  termItem: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginBottom: 8 },
+  termNum:  { width: 22, height: 22, borderRadius: 11, backgroundColor: C.g50, justifyContent: 'center', alignItems: 'center' },
+  termNumText: { fontSize: 11, fontWeight: '700', color: C.g700 },
+  termText:    { fontSize: 13, color: C.sub, flex: 1, lineHeight: 20 },
+
+  notesText: { fontSize: 14, color: C.sub, lineHeight: 22 },
+
+  timelineItem: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 4 },
+  timelineDot:  { width: 10, height: 10, borderRadius: 5 },
+  timelineLine: { position: 'absolute', left: 4, top: 18, width: 2, height: 24, backgroundColor: C.border },
+  timelineBody: { flex: 1 },
+  timelineEvent: { fontSize: 14, fontWeight: '600', color: C.text },
+  timelineDate:  { fontSize: 12, color: C.muted, marginTop: 2 },
+
+  sliderWrap: { borderRadius: 12, overflow: 'hidden', position: 'relative' },
+  imageSlide: { width: SLIDER_WIDTH - 32, height: 240, backgroundColor: C.bg },
+  sliderImage: { width: '100%', height: '100%' },
   paginationDots: {
-    position: 'absolute',
-    bottom: 12,
-    left: 0,
-    right: 0,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 6,
+    position: 'absolute', bottom: 12, left: 0, right: 0,
+    flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 6,
   },
-  dot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  activeDot: {
-    backgroundColor: GREEN,
-    width: 20,
-  },
-  inactiveDot: {
-    backgroundColor: 'rgba(255, 255, 255, 0.6)',
-  },
-  imageCounter: {
-    position: 'absolute',
-    top: 12,
-    right: 12,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  imageCounterText: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: '600',
-  },
-
-  // Feature styles
-  featuresWrap: {
-    marginTop: 8,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
-  },
-  featuresTitle: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: DARK,
-    marginBottom: 8,
-  },
-  featureItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 6,
-  },
-  featureText: {
-    fontSize: 13,
-    color: '#475569',
-    flex: 1,
-  },
-
-  // List styles
-  listItem: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 8,
-    marginBottom: 8,
-  },
-  listText: {
-    fontSize: 13,
-    color: '#475569',
-    flex: 1,
-    lineHeight: 20,
-  },
-  listNumber: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#64748B',
-    width: 20,
-  },
+  dot:        { width: 8, height: 8, borderRadius: 4 },
+  activeDot:  { backgroundColor: C.g400, width: 20 },
+  inactiveDot: { backgroundColor: 'rgba(255,255,255,0.6)' },
 
   bottomBar: {
-    backgroundColor: '#fff',
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: Platform.OS === 'ios' ? 28 : 14,
-    borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
+    backgroundColor: C.card, paddingHorizontal: 16,
+    paddingTop: 12, paddingBottom: Platform.OS === 'ios' ? 28 : 14,
+    borderTopWidth: 1, borderTopColor: C.border,
+    shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 12,
+    shadowOffset: { width: 0, height: -3 }, elevation: 8,
   },
-  viewRequestButton: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    gap: 8, backgroundColor: '#475569', paddingVertical: 14, borderRadius: 12,
+  viewRequestBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+    backgroundColor: C.sub, paddingVertical: 15, borderRadius: 14,
   },
-  viewBookingButton: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    gap: 8, backgroundColor: '#2563EB', paddingVertical: 14, borderRadius: 12,
+  viewBookingBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+    backgroundColor: C.blue, paddingVertical: 15, borderRadius: 14,
   },
-  actionBtnText: { fontSize: 15, fontWeight: '700', color: '#fff' },
+  bottomBtnText: { fontSize: 15, fontWeight: '700', color: '#fff' },
+
+  emptyState:    { flex: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 80 },
+  emptyIconWrap: {
+    width: 80, height: 80, borderRadius: 40, backgroundColor: C.g50,
+    justifyContent: 'center', alignItems: 'center', marginBottom: 16,
+  },
+  emptyTitle:    { fontSize: 17, fontWeight: '700', color: C.text, marginBottom: 6 },
+  emptySubtitle: { fontSize: 13, color: C.muted, textAlign: 'center', paddingHorizontal: 32 },
 });

@@ -1,362 +1,662 @@
-/**
- * BikeHomeScreen.js - Bike Rentals service home page
- * All options: Quote Requests, My Quotes, Bookings, Direct Requests, Open Requests, Earnings
- */
-
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  ScrollView,
-  RefreshControl,
+  View, Text, StyleSheet, TouchableOpacity,
+  ScrollView, RefreshControl, StatusBar, Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import LinearGradient from 'react-native-linear-gradient';
+import { BarChart } from 'react-native-chart-kit';
 import Icon from 'react-native-vector-icons/Feather';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import api from '../../../../lib/api';
+import { getBookingsByService, getVendorQuotes } from '../../../api/client';
 
-const GREEN = '#09B368';
-const BG = '#F5F5F7';
-const DARK = '#0F172A';
-const SERVICE_COLOR = '#FF6B35';
+const { width: W } = Dimensions.get('window');
+const CARD_W  = (W - 32 - 10) / 2;
+const CHART_W = W - 32 - 32; // body padding + card padding
+
+const C = {
+  g900: '#022C22', g800: '#065F46', g700: '#047857',
+  g600: '#059669', g500: '#10B981', g400: '#34D399',
+  g100: '#D1FAE5', g50: '#ECFDF5',
+  bg: '#F1F5F9', card: '#FFFFFF', border: '#E2E8F0',
+  text: '#0F172A', sub: '#475569', muted: '#94A3B8',
+  amber: '#D97706', amberL: '#FFFBEB', amberM: '#FEF3C7',
+  blue: '#2563EB', blueL: '#EFF6FF',
+  purple: '#7C3AED', purpleL: '#F5F3FF',
+  orange: '#EA580C', orangeL: '#FFF7ED',
+  red: '#DC2626', redL: '#FEF2F2',
+  indigo: '#4F46E5', indigoL: '#EEF2FF',
+};
+
+const STATUS_CFG = {
+  IN_PROGRESS:      { label: 'Active',     bg: C.orangeL,  text: C.orange },
+  CONFIRMED:        { label: 'Confirmed',  bg: C.g50,      text: C.g700   },
+  ACCEPTED:         { label: 'Accepted',   bg: C.g50,      text: C.g700   },
+  READY_FOR_PICKUP: { label: 'Ready',      bg: C.indigoL,  text: C.indigo },
+  COMPLETED:        { label: 'Completed',  bg: C.blueL,    text: C.blue   },
+  CANCELLED:        { label: 'Cancelled',  bg: C.redL,     text: C.red    },
+  PENDING:          { label: 'Pending',    bg: C.amberL,   text: C.amber  },
+  PENDING_VENDOR:   { label: 'Pending',    bg: C.amberL,   text: C.amber  },
+  BROADCASTED:      { label: 'Open',       bg: C.blueL,    text: C.blue   },
+};
+
 const SERVICE_TYPE = 'bike';
 const SERVICE_NAME = 'Bike Rentals';
-const SERVICE_ICON = 'motorbike';
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+
+const fmtAmt = (v) => {
+  if (!v) return '₹0';
+  if (v >= 100000) return `₹${(v / 100000).toFixed(1)}L`;
+  if (v >= 1000)   return `₹${(v / 1000).toFixed(1)}K`;
+  return `₹${Math.round(v)}`;
+};
+
+const fmtDate = (d) =>
+  d ? new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : '--';
+
+const fmtTime = (t) => (t ? t.slice(0, 5) : '');
+
+// Compute chart labels + booking counts from bookings array
+// Uses booking counts (not earnings ₹) so chart always has data
+const computeChart = (bookings, period) => {
+  const now = new Date();
+
+  if (period === 'weekly') {
+    const labels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    const data   = [0, 0, 0, 0, 0, 0, 0];
+    // Current week: Monday 00:00 → now
+    const todayDow    = now.getDay(); // 0=Sun
+    const daysFromMon = todayDow === 0 ? 6 : todayDow - 1;
+    const weekStart   = new Date(now);
+    weekStart.setDate(now.getDate() - daysFromMon);
+    weekStart.setHours(0, 0, 0, 0);
+    bookings.forEach(b => {
+      const d = new Date(b.pickupDate || b.createdAt);
+      if (d >= weekStart && d <= now) {
+        const dow = d.getDay();
+        const idx = dow === 0 ? 6 : dow - 1;
+        data[idx] += 1;
+      }
+    });
+    return { labels, data };
+  }
+
+  if (period === 'monthly') {
+    const labels     = ['W1', 'W2', 'W3', 'W4'];
+    const data       = [0, 0, 0, 0];
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    bookings.forEach(b => {
+      const d = new Date(b.pickupDate || b.createdAt);
+      if (d >= monthStart && d <= now) {
+        const w = Math.min(3, Math.floor((d.getDate() - 1) / 7));
+        data[w] += 1;
+      }
+    });
+    return { labels, data };
+  }
+
+  // yearly
+  const MN   = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const data = new Array(12).fill(0);
+  bookings.forEach(b => {
+    const d = new Date(b.pickupDate || b.createdAt);
+    if (d.getFullYear() === now.getFullYear()) data[d.getMonth()] += 1;
+  });
+  const cm     = now.getMonth();
+  const sliced = data.slice(0, Math.max(1, cm + 1));
+  return { labels: MN.slice(0, sliced.length), data: sliced };
+};
+
+// ── Main component ────────────────────────────────────────────────────────────
 
 export default function BikeHomeScreen({ navigation }) {
-  const [refreshing, setRefreshing] = useState(false);
+  const [refreshing,    setRefreshing]    = useState(false);
+  const [period,        setPeriod]        = useState('weekly');
+  const [allBookings,   setAllBookings]   = useState([]);
   const [stats, setStats] = useState({
-    quoteRequests: 0,
-    myQuotes: 0,
-    bookings: 0,
-    activeTrips: 0,
-    directRequests: 0,
-    openRequests: 0,
-    earnings: 0,
+    quoteRequests: 0, myQuotes: 0, bookings: 0, activeTrips: 0, earnings: 0,
   });
+  const [fleet, setFleet] = useState({ total: 0, rented: 0, available: 0 });
 
-  useEffect(() => {
-    fetchStats();
-  }, []);
+  useEffect(() => { fetchData(); }, []);
 
-  const fetchStats = async () => {
+  const fetchData = async () => {
     try {
-      const vendorData = await AsyncStorage.getItem('vendor');
-      if (!vendorData) return;
-      const vendor = JSON.parse(vendorData);
-
-      const [quoteRes, bookingRes, earningsRes] = await Promise.all([
-        api.get('/vendor/quote-requests', {
-          params: { vendorId: vendor.id, serviceType: SERVICE_TYPE, status: 'PENDING' }
-        }).catch(() => ({ data: { total: 0 } })),
-        api.get(`/vendor/${SERVICE_TYPE}-bookings`).catch(() => ({ data: { bookings: [] } })),
-        api.get('/vendor/earnings', {
-          params: { vendorId: vendor.id, serviceType: SERVICE_TYPE }
-        }).catch(() => ({ data: { total: 0 } })),
+      const [bookingRes, quotesRes] = await Promise.all([
+        getBookingsByService('bike', { limit: 200 }).catch(() => ({ bookings: [] })),
+        getVendorQuotes('bike', { limit: 1 }).catch(() => ({ quotes: [], stats: {}, pagination: { total: 0 } })),
       ]);
 
-      const bookings = bookingRes.data?.bookings || [];
+      const bookings = bookingRes?.bookings || [];
+      setAllBookings(bookings);
+
+      const activeTrips   = bookings.filter(b => b.status === 'IN_PROGRESS').length;
+      const totalBookings = bookings.filter(b =>
+        ['ACCEPTED','CONFIRMED','IN_PROGRESS','COMPLETED','READY_FOR_PICKUP','PAYMENT_VERIFIED'].includes(b.status)
+      ).length;
+      const earnings = bookings
+        .filter(b => b.status === 'COMPLETED')
+        .reduce((s, b) => s + (b.grandTotal || b.totalAmount || 0), 0);
+      const openRequests  = bookings.filter(b =>
+        ['PENDING','PENDING_VENDOR','BROADCASTED'].includes(b.status)
+      ).length;
+      const myQuotesCount = quotesRes?.stats?.total ?? quotesRes?.pagination?.total ?? quotesRes?.quotes?.length ?? 0;
+
       setStats({
-        quoteRequests: quoteRes.data?.total || quoteRes.data?.requests?.length || 0,
-        myQuotes: 0,
-        bookings: bookings.length || bookingRes.data?.total || 0,
-        activeTrips: bookings.filter(b => b.status === 'IN_PROGRESS').length,
-        directRequests: bookings.filter(b => b.assignmentType === 'DIRECT').length,
-        openRequests: bookings.filter(b => b.assignmentType === 'BROADCAST' && b.status === 'PENDING').length,
-        earnings: earningsRes.data?.total || 0,
+        quoteRequests: openRequests,
+        myQuotes:      myQuotesCount,
+        bookings:      totalBookings,
+        activeTrips,
+        earnings,
       });
-    } catch (error) {
-      console.log('Error fetching bike stats:', error.message);
+
+      setFleet({ total: 0, rented: activeTrips, available: 0 });
+
+      console.log('BikeHome | bookings:', bookings.length, '| openReqs:', openRequests, '| myQuotes:', myQuotesCount);
+    } catch (e) {
+      console.error('BikeHome fetchData error:', e.message);
     }
   };
 
-  const onRefresh = async () => {
-    setRefreshing(true);
-    await fetchStats();
-    setRefreshing(false);
+  const onRefresh = async () => { setRefreshing(true); await fetchData(); setRefreshing(false); };
+
+  // ── Derived data via useMemo ──────────────────────────────────────────────
+
+  const chartData = useMemo(() => computeChart(allBookings, period), [allBookings, period]);
+
+  // react-native-chart-kit crashes on all-zeros — use 0.001 (invisible) instead of 0.1
+  const allZero       = useMemo(() => chartData.data.every(v => v === 0), [chartData]);
+  const safeChartData = useMemo(() => {
+    const d = chartData.data;
+    return allZero ? d.map((_, i) => i === 0 ? 0.001 : 0) : d;
+  }, [chartData, allZero]);
+
+  const now = new Date();
+  const dayOfWeek     = now.getDay();
+  const daysFromMon   = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+  const thisWeekStart = new Date(now);
+  thisWeekStart.setDate(now.getDate() - daysFromMon);
+  thisWeekStart.setHours(0, 0, 0, 0);
+  const lastWeekStart = new Date(thisWeekStart);
+  lastWeekStart.setDate(lastWeekStart.getDate() - 7);
+
+  const thisWeekEarnings = useMemo(() =>
+    allBookings
+      .filter(b => ['COMPLETED','IN_PROGRESS'].includes(b.status) && new Date(b.pickupDate || b.createdAt) >= thisWeekStart)
+      .reduce((s, b) => s + (b.totalAmount || b.price || 0), 0),
+  [allBookings]);
+
+  const lastWeekEarnings = useMemo(() =>
+    allBookings
+      .filter(b => {
+        const d = new Date(b.pickupDate || b.createdAt);
+        return ['COMPLETED','IN_PROGRESS'].includes(b.status) && d >= lastWeekStart && d < thisWeekStart;
+      })
+      .reduce((s, b) => s + (b.totalAmount || b.price || 0), 0),
+  [allBookings]);
+
+  const weekGrowth    = lastWeekEarnings > 0 ? ((thisWeekEarnings - lastWeekEarnings) / lastWeekEarnings * 100).toFixed(0) : null;
+  const weekPositive  = Number(weekGrowth) >= 0;
+
+  const recentBookings = useMemo(() =>
+    [...allBookings]
+      .sort((a, b) => new Date(b.createdAt || b.pickupDate) - new Date(a.createdAt || a.pickupDate))
+      .slice(0, 3),
+  [allBookings]);
+
+  const upcomingBookings = useMemo(() =>
+    allBookings
+      .filter(b => ['CONFIRMED','ACCEPTED','READY_FOR_PICKUP','PAYMENT_VERIFIED'].includes(b.status) && new Date(b.pickupDate) > now)
+      .sort((a, b) => new Date(a.pickupDate) - new Date(b.pickupDate))
+      .slice(0, 2),
+  [allBookings]);
+
+  const activeTrips = useMemo(() => allBookings.filter(b => b.status === 'IN_PROGRESS'), [allBookings]);
+
+  // ── Manage items ─────────────────────────────────────────────────────────
+
+  const manageItems = [
+    { label: 'My Quotes',    sub: `${stats.myQuotes} sent`,     icon: 'document-text-outline', color: C.blue,   route: 'BikeMyQuotes',   params: undefined },
+    { label: 'All Bookings', sub: `${stats.bookings} bookings`, icon: 'calendar-outline',      color: C.g600,   route: 'BikeBookings',   params: { serviceType: SERVICE_TYPE, serviceName: SERVICE_NAME, serviceIcon: 'motorbike' } },
+    { label: 'Templates',    sub: 'Quote templates',            icon: 'copy-outline',          color: C.purple, route: 'BikeTemplates',  params: undefined },
+    { label: 'Earnings',     sub: fmtAmt(stats.earnings),       icon: 'trending-up-outline',   color: C.orange, route: 'EarningsScreen', params: { serviceType: SERVICE_TYPE, serviceName: SERVICE_NAME } },
+  ];
+
+  const miniData = [
+    { v: String(stats.bookings),    l: 'Bookings'    },
+    { v: String(stats.activeTrips), l: 'Active'       },
+    { v: fmtAmt(stats.earnings),    l: 'Earned'       },
+    { v: 'View All →',              l: 'Requests', accent: true },
+  ];
+
+  const totalForPeriod = useMemo(() => Math.round(chartData.data.reduce((a, b) => a + b, 0)), [chartData]);
+  const periodLabel    = period === 'weekly' ? 'this week' : period === 'monthly' ? 'this month' : 'this year';
+
+  const chartConfig = {
+    backgroundGradientFrom:        '#fff',
+    backgroundGradientTo:          '#fff',
+    backgroundGradientFromOpacity: 0,
+    backgroundGradientToOpacity:   0,
+    decimalPlaces: 0,
+    color:        (o = 1) => `rgba(5,150,105,${o})`,
+    labelColor:   ()      => C.muted,
+    barPercentage: 0.55,
+    propsForBackgroundLines: { stroke: C.border, strokeWidth: 0.6, strokeDasharray: '3,3' },
+    fillShadowGradient:        C.g600,
+    fillShadowGradientOpacity: 1,
   };
 
-  const formatCurrency = (amount) => {
-    if (!amount) return '₹0';
-    if (amount >= 1000) return `₹${(amount / 1000).toFixed(1)}K`;
-    return `₹${amount}`;
-  };
-
-  const MenuCard = ({ title, subtitle, icon, iconType = 'feather', onPress, badge, color }) => (
-    <TouchableOpacity style={styles.menuCard} onPress={onPress} activeOpacity={0.7}>
-      <View style={[styles.menuIconBox, { backgroundColor: color || GREEN }]}>
-        {iconType === 'material' ? (
-          <MaterialCommunityIcons name={icon} size={22} color="#fff" />
-        ) : iconType === 'ionicons' ? (
-          <Ionicons name={icon} size={22} color="#fff" />
-        ) : (
-          <Icon name={icon} size={22} color="#fff" />
-        )}
-      </View>
-      <View style={styles.menuContent}>
-        <Text style={styles.menuTitle}>{title}</Text>
-        {subtitle && <Text style={styles.menuSubtitle}>{subtitle}</Text>}
-      </View>
-      {badge > 0 && (
-        <View style={styles.badge}>
-          <Text style={styles.badgeText}>{badge > 99 ? '99+' : badge}</Text>
-        </View>
-      )}
-      <Icon name="chevron-right" size={20} color="#94A3B8" />
-    </TouchableOpacity>
-  );
-
-  const SectionHeader = ({ title }) => (
-    <Text style={styles.sectionHeader}>{title}</Text>
-  );
+  // ── Render ────────────────────────────────────────────────────────────────
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Icon name="arrow-left" size={22} color={DARK} />
-        </TouchableOpacity>
-        <View style={styles.headerTitleWrap}>
-          <View style={[styles.headerIcon, { backgroundColor: SERVICE_COLOR }]}>
-            <MaterialCommunityIcons name={SERVICE_ICON} size={20} color="#fff" />
-          </View>
-          <Text style={styles.headerTitle}>{SERVICE_NAME}</Text>
-        </View>
-        <View style={{ width: 40 }} />
-      </View>
+    <View style={s.root}>
+      <StatusBar barStyle="light-content" backgroundColor={C.g900} />
 
+      {/* ── Header ── */}
+      <LinearGradient colors={[C.g900, '#064E3B', C.g700]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.hero}>
+        <View style={s.deco1} /><View style={s.deco2} />
+        <SafeAreaView>
+          <View style={s.topBar}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
+              <Icon name="arrow-left" size={18} color="rgba(255,255,255,0.9)" />
+            </TouchableOpacity>
+            <View style={s.titleWrap}>
+              <MaterialCommunityIcons name="motorbike" size={20} color={C.amber} />
+              <Text style={s.headerTitle}>{SERVICE_NAME}</Text>
+            </View>
+            <View style={{ width: 34 }} />
+          </View>
+
+          {/* Quote Requests card */}
+          <TouchableOpacity style={s.quoteCard} onPress={() => navigation.navigate('BikeQuoteRequests')} activeOpacity={0.88}>
+            <View style={s.quoteTop}>
+              <View>
+                <Text style={s.quoteLbl}>QUOTE REQUESTS</Text>
+                <Text style={s.quoteNum}>{stats.quoteRequests}</Text>
+              </View>
+              <View style={s.pendingPill}>
+                <View style={s.pendingDot} />
+                <Text style={s.pendingTxt}>Pending</Text>
+              </View>
+            </View>
+            <View style={s.miniStrip}>
+              {miniData.map((m, i) => (
+                <React.Fragment key={i}>
+                  {i > 0 && <View style={s.vLine} />}
+                  <View style={s.miniCell}>
+                    <Text style={[s.miniVal, m.accent && { color: C.g400, fontSize: 11 }]}>{m.v}</Text>
+                    <Text style={s.miniLbl}>{m.l}</Text>
+                  </View>
+                </React.Fragment>
+              ))}
+            </View>
+          </TouchableOpacity>
+        </SafeAreaView>
+      </LinearGradient>
+
+      {/* ── Body ── */}
       <ScrollView
-        style={styles.container}
         showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[GREEN]} />
-        }
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[C.g500]} tintColor={C.g500} />}
       >
-        {/* Stats Overview */}
-        <View style={styles.statsRow}>
-          <View style={styles.statBox}>
-            <Text style={styles.statValue}>{stats.bookings}</Text>
-            <Text style={styles.statLabel}>Total Bookings</Text>
+        <View style={s.body}>
+
+          {/* ── 1. Quick Tip — only if pending quotes ── */}
+          {stats.quoteRequests > 0 && (
+            <TouchableOpacity style={s.tipCard} onPress={() => navigation.navigate('BikeQuoteRequests')} activeOpacity={0.8}>
+              <View style={s.tipIconWrap}>
+                <Ionicons name="flash" size={18} color={C.amber} />
+              </View>
+              <Text style={s.tipText}>
+                <Text style={s.tipBold}>{stats.quoteRequests} quote request{stats.quoteRequests > 1 ? 's' : ''} pending</Text>
+                {' '}— respond quickly to win bookings!
+              </Text>
+              <Icon name="chevron-right" size={15} color={C.amber} />
+            </TouchableOpacity>
+          )}
+
+          {/* ── 2. Active Trips — only if any ── */}
+          {activeTrips.length > 0 && (
+            <TouchableOpacity
+              style={s.activeCard}
+              onPress={() => navigation.navigate('BikeBookings', { serviceType: SERVICE_TYPE, serviceName: SERVICE_NAME, serviceIcon: 'motorbike' })}
+              activeOpacity={0.8}
+            >
+              <LinearGradient colors={[C.orange, '#C2410C']} style={s.activeGrad} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
+                <View style={s.activeLiveDot} />
+                <View style={s.activeLiveDotPulse} />
+                <View style={{ flex: 1, marginLeft: 14 }}>
+                  <Text style={s.activeTitle}>{activeTrips.length} Trip{activeTrips.length > 1 ? 's' : ''} In Progress</Text>
+                  <Text style={s.activeSub}>Tap to view active bookings</Text>
+                </View>
+                <View style={s.activeCountBadge}>
+                  <Text style={s.activeCountNum}>{activeTrips.length}</Text>
+                </View>
+                <Icon name="chevron-right" size={16} color="rgba(255,255,255,0.8)" style={{ marginLeft: 8 }} />
+              </LinearGradient>
+            </TouchableOpacity>
+          )}
+
+          {/* ── 3. This Week's Performance ── */}
+          <Text style={s.sectionTitle}>This Week</Text>
+          <View style={s.perfRow}>
+            <View style={s.perfCard}>
+              <Text style={s.perfLbl}>THIS WEEK</Text>
+              <Text style={s.perfAmt}>{fmtAmt(thisWeekEarnings)}</Text>
+              {weekGrowth !== null && (
+                <View style={[s.growthRow, { marginTop: 6 }]}>
+                  <Ionicons
+                    name={weekPositive ? 'trending-up-outline' : 'trending-down-outline'}
+                    size={13} color={weekPositive ? C.g500 : C.red}
+                  />
+                  <Text style={[s.growthTxt, { color: weekPositive ? C.g500 : C.red }]}>
+                    {weekPositive ? '+' : ''}{weekGrowth}% vs last week
+                  </Text>
+                </View>
+              )}
+            </View>
+            <View style={[s.perfCard, { backgroundColor: C.g50, borderColor: C.g100 }]}>
+              <Text style={[s.perfLbl, { color: C.g600 }]}>LAST WEEK</Text>
+              <Text style={[s.perfAmt, { color: C.g700 }]}>{fmtAmt(lastWeekEarnings)}</Text>
+              <Text style={s.perfSub}>Comparison period</Text>
+            </View>
           </View>
-          <View style={styles.statBox}>
-            <Text style={styles.statValue}>{stats.activeTrips}</Text>
-            <Text style={styles.statLabel}>Active Trips</Text>
+
+          {/* ── 4. Fleet Status ── */}
+          {fleet.total > 0 && (
+            <>
+              <Text style={s.sectionTitle}>Fleet Status</Text>
+              <View style={s.fleetCard}>
+                <View style={s.fleetRow}>
+                  <View style={s.fleetStat}>
+                    <Text style={s.fleetNum}>{fleet.total}</Text>
+                    <Text style={s.fleetLbl}>Total</Text>
+                  </View>
+                  <View style={[s.fleetStat, { alignItems: 'center' }]}>
+                    <Text style={[s.fleetNum, { color: C.orange }]}>{fleet.rented}</Text>
+                    <Text style={s.fleetLbl}>Rented</Text>
+                  </View>
+                  <View style={[s.fleetStat, { alignItems: 'flex-end' }]}>
+                    <Text style={[s.fleetNum, { color: C.g600 }]}>{fleet.available}</Text>
+                    <Text style={s.fleetLbl}>Available</Text>
+                  </View>
+                </View>
+                {/* Occupancy bar */}
+                <View style={s.occBar}>
+                  {fleet.total > 0 && (
+                    <View style={[s.occFill, { width: `${Math.round((fleet.rented / fleet.total) * 100)}%` }]} />
+                  )}
+                </View>
+                <Text style={s.occLbl}>
+                  {fleet.total > 0 ? Math.round((fleet.rented / fleet.total) * 100) : 0}% occupancy
+                </Text>
+              </View>
+            </>
+          )}
+
+          {/* ── 5. Booking Activity Chart ── */}
+          <View style={s.chartCard}>
+            {/* Header: title + compact period pills */}
+            <View style={s.chartHeader}>
+              <View>
+                <Text style={s.chartTitle}>Booking Activity</Text>
+                <Text style={s.chartSub}>
+                  {totalForPeriod} booking{totalForPeriod !== 1 ? 's' : ''} {periodLabel}
+                </Text>
+              </View>
+              <View style={s.periodRow}>
+                {[['weekly','W'], ['monthly','M'], ['yearly','Y']].map(([p, lbl]) => (
+                  <TouchableOpacity
+                    key={p}
+                    style={[s.periodBtn, period === p && s.periodBtnActive]}
+                    onPress={() => setPeriod(p)}
+                  >
+                    <Text style={[s.periodTxt, period === p && s.periodTxtActive]}>{lbl}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+
+            <BarChart
+              data={{
+                labels: chartData.labels,
+                datasets: [{ data: safeChartData }],
+              }}
+              width={CHART_W}
+              height={170}
+              chartConfig={chartConfig}
+              withInnerLines={true}
+              withOuterLines={false}
+              showValuesOnTopOfBars={!allZero}
+              fromZero={true}
+              style={{ borderRadius: 10, marginLeft: -10, marginTop: 14 }}
+              formatYLabel={v => {
+                if (allZero) return '';
+                const n = Math.round(Number(v));
+                return n > 0 ? String(n) : '';
+              }}
+            />
           </View>
-          <View style={styles.statBox}>
-            <Text style={[styles.statValue, { color: GREEN }]}>{formatCurrency(stats.earnings)}</Text>
-            <Text style={styles.statLabel}>Earnings</Text>
+
+          {/* ── 6. Upcoming Bookings ── */}
+          {upcomingBookings.length > 0 && (
+            <>
+              <Text style={s.sectionTitle}>Upcoming Bookings</Text>
+              {upcomingBookings.map(b => {
+                const sc = STATUS_CFG[b.status] || { label: b.status, bg: C.border, text: C.muted };
+                return (
+                  <TouchableOpacity
+                    key={b.id}
+                    style={s.bookingCard}
+                    onPress={() => navigation.navigate('BikeBookingDetail', { bookingId: b.id, serviceType: 'bike' })}
+                    activeOpacity={0.8}
+                  >
+                    <View style={s.bookingLeft}>
+                      <View style={[s.bookingDateBox, { backgroundColor: C.indigoL }]}>
+                        <Text style={[s.bookingDateDay, { color: C.indigo }]}>
+                          {new Date(b.pickupDate).getDate()}
+                        </Text>
+                        <Text style={[s.bookingDateMon, { color: C.indigo }]}>
+                          {new Date(b.pickupDate).toLocaleDateString('en-IN', { month: 'short' })}
+                        </Text>
+                      </View>
+                    </View>
+                    <View style={s.bookingMid}>
+                      <Text style={s.bookingName} numberOfLines={1}>{b.customerName || `#${b.bookingNumber}`}</Text>
+                      <Text style={s.bookingTime}>{fmtDate(b.pickupDate)}{b.pickupTime ? ` · ${fmtTime(b.pickupTime)}` : ''}</Text>
+                      {b.vehicleName && <Text style={s.bookingVehicle} numberOfLines={1}>{b.vehicleName}</Text>}
+                    </View>
+                    <View style={s.bookingRight}>
+                      <View style={[s.statusChip, { backgroundColor: sc.bg }]}>
+                        <Text style={[s.statusChipTxt, { color: sc.text }]}>{sc.label}</Text>
+                      </View>
+                      {b.totalAmount > 0 && <Text style={s.bookingAmt}>{fmtAmt(b.totalAmount)}</Text>}
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+            </>
+          )}
+
+          {/* ── 7. Recent Bookings ── */}
+          {recentBookings.length > 0 && (
+            <>
+              <View style={s.sectionRow}>
+                <Text style={s.sectionTitle}>Recent Bookings</Text>
+                <TouchableOpacity onPress={() => navigation.navigate('BikeBookings', { serviceType: SERVICE_TYPE, serviceName: SERVICE_NAME, serviceIcon: 'motorbike' })}>
+                  <Text style={s.seeAll}>See all</Text>
+                </TouchableOpacity>
+              </View>
+              {recentBookings.map(b => {
+                const sc = STATUS_CFG[b.status] || { label: b.status, bg: C.border, text: C.muted };
+                return (
+                  <TouchableOpacity
+                    key={b.id}
+                    style={s.bookingCard}
+                    onPress={() => navigation.navigate('BikeBookingDetail', { bookingId: b.id, serviceType: 'bike' })}
+                    activeOpacity={0.8}
+                  >
+                    <View style={s.bookingLeft}>
+                      <View style={[s.bookingDateBox, { backgroundColor: C.g50 }]}>
+                        <Text style={[s.bookingDateDay, { color: C.g700 }]}>
+                          {new Date(b.pickupDate || b.createdAt).getDate()}
+                        </Text>
+                        <Text style={[s.bookingDateMon, { color: C.g700 }]}>
+                          {new Date(b.pickupDate || b.createdAt).toLocaleDateString('en-IN', { month: 'short' })}
+                        </Text>
+                      </View>
+                    </View>
+                    <View style={s.bookingMid}>
+                      <Text style={s.bookingName} numberOfLines={1}>{b.customerName || `#${b.bookingNumber}`}</Text>
+                      <Text style={s.bookingTime}>{fmtDate(b.pickupDate)}{b.pickupTime ? ` · ${fmtTime(b.pickupTime)}` : ''}</Text>
+                      {b.vehicleName && <Text style={s.bookingVehicle} numberOfLines={1}>{b.vehicleName}</Text>}
+                    </View>
+                    <View style={s.bookingRight}>
+                      <View style={[s.statusChip, { backgroundColor: sc.bg }]}>
+                        <Text style={[s.statusChipTxt, { color: sc.text }]}>{sc.label}</Text>
+                      </View>
+                      {b.totalAmount > 0 && <Text style={s.bookingAmt}>{fmtAmt(b.totalAmount)}</Text>}
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+            </>
+          )}
+
+          {/* ── 8. Manage Grid ── */}
+          <Text style={[s.sectionTitle, { marginTop: 4 }]}>Manage</Text>
+          <View style={s.manageGrid}>
+            {manageItems.map((m, i) => (
+              <TouchableOpacity key={i} style={s.manageCard} onPress={() => navigation.navigate(m.route, m.params)} activeOpacity={0.75}>
+                <View style={[s.manageIconBox, { backgroundColor: m.color + '14' }]}>
+                  <Ionicons name={m.icon} size={20} color={m.color} />
+                </View>
+                <Text style={s.manageLabel}>{m.label}</Text>
+                <Text style={s.manageSub}>{m.sub}</Text>
+                <Ionicons name="chevron-forward" size={12} color={C.muted} style={s.manageArrow} />
+              </TouchableOpacity>
+            ))}
           </View>
+
         </View>
-
-        {/* Quote Requests Section */}
-        <SectionHeader title="Quotes" />
-        <MenuCard
-          title="Quote Requests"
-          subtitle="New requests from customers"
-          icon="inbox"
-          onPress={() => navigation.navigate('BikeQuoteRequests')}
-          badge={stats.quoteRequests}
-          color="#F59E0B"
-        />
-        <MenuCard
-          title="My Quotes"
-          subtitle="Quotes you've sent"
-          icon="send"
-          onPress={() => navigation.navigate('BikeMyQuotes')}
-          badge={stats.myQuotes}
-          color="#3B82F6"
-        />
-
-        {/* Bookings Section */}
-        <SectionHeader title="Bookings" />
-        <MenuCard
-          title="All Bookings"
-          subtitle="View and manage all bookings"
-          icon="calendar"
-          onPress={() => navigation.navigate('BikeBookings', {
-            serviceType: SERVICE_TYPE,
-            serviceName: SERVICE_NAME,
-            serviceIcon: SERVICE_ICON
-          })}
-          badge={stats.bookings}
-          color={GREEN}
-        />
-        {/* TODO: Direct Requests and Open Requests - Coming Soon */}
-        {/* <MenuCard
-          title="Direct Requests"
-          subtitle="Requests assigned to you"
-          icon="target"
-          onPress={() => navigation.navigate('BikeBookings', {
-            serviceType: SERVICE_TYPE,
-            serviceName: SERVICE_NAME,
-            serviceIcon: SERVICE_ICON,
-            filter: 'direct'
-          })}
-          badge={stats.directRequests}
-          color="#8B5CF6"
-        />
-        <MenuCard
-          title="Open Requests"
-          subtitle="Available requests to accept"
-          icon="radio"
-          onPress={() => navigation.navigate('BikeBookings', {
-            serviceType: SERVICE_TYPE,
-            serviceName: SERVICE_NAME,
-            serviceIcon: SERVICE_ICON,
-            filter: 'open'
-          })}
-          badge={stats.openRequests}
-          color="#06B6D4"
-        /> */}
-
-        {/* Templates Section */}
-        <SectionHeader title="Templates" />
-        <MenuCard
-          title="Quote Templates"
-          subtitle="Manage quote templates"
-          icon="file-text"
-          iconType="feather"
-          onPress={() => navigation.navigate('BikeTemplates')}
-          color="#8B5CF6"
-        />
-
-        {/* Earnings Section */}
-        <SectionHeader title="Earnings" />
-        <MenuCard
-          title="View Earnings"
-          subtitle="Revenue & payment details"
-          icon="trending-up"
-          onPress={() => navigation.navigate('EarningsScreen', { serviceType: SERVICE_TYPE, serviceName: SERVICE_NAME })}
-          color="#22C55E"
-        />
-
-        <View style={{ height: 40 }} />
+        <View style={{ height: 80 }} />
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#fff' },
-  container: { flex: 1, backgroundColor: BG },
+// ── Styles ────────────────────────────────────────────────────────────────────
 
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
-  },
-  backBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: BG,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  headerTitleWrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  headerIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: DARK,
-  },
+const s = StyleSheet.create({
+  root: { flex: 1, backgroundColor: C.bg },
 
-  statsRow: {
-    flexDirection: 'row',
-    backgroundColor: '#fff',
-    marginHorizontal: 16,
-    marginTop: 16,
-    borderRadius: 16,
-    padding: 16,
-    gap: 10,
-  },
-  statBox: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  statValue: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: DARK,
-  },
-  statLabel: {
-    fontSize: 11,
-    color: '#64748B',
-    marginTop: 4,
-  },
+  /* Header */
+  hero: { paddingHorizontal: 16, paddingBottom: 24, overflow: 'hidden' },
+  deco1: { position: 'absolute', width: 200, height: 200, borderRadius: 100, backgroundColor: 'rgba(52,211,153,0.07)', top: -60, right: -40 },
+  deco2: { position: 'absolute', width: 130, height: 130, borderRadius: 65, backgroundColor: 'rgba(16,185,129,0.05)', bottom: 0, left: W * 0.35 },
+  topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 10, marginBottom: 18 },
+  backBtn: { width: 34, height: 34, borderRadius: 17, backgroundColor: 'rgba(255,255,255,0.13)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)', alignItems: 'center', justifyContent: 'center' },
+  titleWrap: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  headerTitle: { fontSize: 17, fontWeight: '800', color: '#fff', letterSpacing: -0.2 },
 
-  sectionHeader: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#64748B',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginHorizontal: 16,
-    marginTop: 24,
-    marginBottom: 10,
-  },
+  /* Quote card */
+  quoteCard: { backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 16, padding: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.13)' },
+  quoteTop: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 14 },
+  quoteLbl: { fontSize: 9, color: 'rgba(255,255,255,0.45)', fontWeight: '700', letterSpacing: 1.5, marginBottom: 4 },
+  quoteNum: { fontSize: 38, fontWeight: '900', color: '#fff', letterSpacing: -1 },
+  pendingPill: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: 'rgba(217,119,6,0.25)', borderRadius: 20, paddingHorizontal: 10, paddingVertical: 5, borderWidth: 1, borderColor: 'rgba(217,119,6,0.35)' },
+  pendingDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: C.amber },
+  pendingTxt: { fontSize: 10, fontWeight: '700', color: C.amber },
+  miniStrip: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.13)', borderRadius: 10, paddingVertical: 9, paddingHorizontal: 10 },
+  vLine: { width: 1, height: 24, backgroundColor: 'rgba(255,255,255,0.12)', marginHorizontal: 6 },
+  miniCell: { flex: 1, alignItems: 'center' },
+  miniVal: { fontSize: 12, fontWeight: '800', color: '#fff', marginBottom: 1 },
+  miniLbl: { fontSize: 8, fontWeight: '600', color: 'rgba(255,255,255,0.38)' },
 
-  menuCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    marginHorizontal: 16,
-    marginBottom: 8,
-    borderRadius: 14,
-    padding: 14,
-    gap: 12,
+  /* Body */
+  body: { paddingHorizontal: 16, paddingTop: 16 },
+
+  /* Section */
+  sectionTitle: { fontSize: 13, fontWeight: '800', color: C.text, letterSpacing: -0.2, marginBottom: 10, marginTop: 18 },
+  sectionRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 18, marginBottom: 10 },
+  seeAll: { fontSize: 12, fontWeight: '600', color: C.g600 },
+
+  /* Quick Tip */
+  tipCard: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: C.amberM, borderRadius: 14, padding: 14, borderWidth: 1, borderColor: '#FDE68A' },
+  tipIconWrap: { width: 34, height: 34, borderRadius: 10, backgroundColor: C.amberL, alignItems: 'center', justifyContent: 'center' },
+  tipText: { flex: 1, fontSize: 12, color: '#78350F', lineHeight: 17 },
+  tipBold: { fontWeight: '700' },
+
+  /* Active Trips */
+  activeCard: { borderRadius: 16, overflow: 'hidden', marginTop: 10 },
+  activeGrad: { flexDirection: 'row', alignItems: 'center', padding: 16 },
+  activeLiveDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: '#fff', position: 'absolute', left: 18 },
+  activeLiveDotPulse: { width: 20, height: 20, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.3)', position: 'absolute', left: 13 },
+  activeTitle: { fontSize: 15, fontWeight: '800', color: '#fff' },
+  activeSub: { fontSize: 11, color: 'rgba(255,255,255,0.7)', marginTop: 2 },
+  activeCountBadge: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' },
+  activeCountNum: { fontSize: 18, fontWeight: '900', color: '#fff' },
+
+  /* Performance */
+  perfRow: { flexDirection: 'row', gap: 10 },
+  perfCard: { flex: 1, backgroundColor: C.card, borderRadius: 14, padding: 14, borderWidth: 1, borderColor: C.border, shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 2 },
+  perfLbl: { fontSize: 8, fontWeight: '700', color: C.muted, letterSpacing: 1.2, marginBottom: 6 },
+  perfAmt: { fontSize: 22, fontWeight: '900', color: C.text, letterSpacing: -0.5 },
+  perfSub: { fontSize: 10, color: C.muted, marginTop: 6 },
+  growthRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  growthTxt: { fontSize: 11, fontWeight: '700' },
+
+  /* Fleet */
+  fleetCard: { backgroundColor: C.card, borderRadius: 14, padding: 16, borderWidth: 1, borderColor: C.border, shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 2 },
+  fleetRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 },
+  fleetStat: { flex: 1 },
+  fleetNum: { fontSize: 22, fontWeight: '900', color: C.text },
+  fleetLbl: { fontSize: 10, color: C.muted, marginTop: 2 },
+  occBar: { height: 8, backgroundColor: C.border, borderRadius: 4, overflow: 'hidden', marginBottom: 6 },
+  occFill: { height: 8, backgroundColor: C.orange, borderRadius: 4 },
+  occLbl: { fontSize: 10, color: C.muted, fontWeight: '600' },
+
+  /* Chart */
+  chartCard: {
+    backgroundColor: C.card, borderRadius: 16, padding: 16,
+    borderWidth: 1, borderColor: C.border,
+    shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 10,
+    shadowOffset: { width: 0, height: 3 }, elevation: 3,
+    marginTop: 18,
   },
-  menuIconBox: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  menuContent: {
-    flex: 1,
-  },
-  menuTitle: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: DARK,
-  },
-  menuSubtitle: {
-    fontSize: 12,
-    color: '#64748B',
-    marginTop: 2,
-  },
-  badge: {
-    backgroundColor: '#EF4444',
-    borderRadius: 12,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    minWidth: 24,
-    alignItems: 'center',
-  },
-  badgeText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#fff',
-  },
+  chartHeader:  { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' },
+  chartTitle:   { fontSize: 13, fontWeight: '800', color: C.text, letterSpacing: -0.2 },
+  chartSub:     { fontSize: 11, color: C.muted, marginTop: 3 },
+  periodRow:    { flexDirection: 'row', gap: 3, backgroundColor: C.bg, borderRadius: 20, padding: 3 },
+  periodBtn:    { paddingHorizontal: 11, paddingVertical: 5, borderRadius: 16 },
+  periodBtnActive: { backgroundColor: C.g900 },
+  periodTxt:    { fontSize: 11, fontWeight: '700', color: C.muted },
+  periodTxtActive: { color: '#fff' },
+  noDataBox:    { height: 148, alignItems: 'center', justifyContent: 'center', gap: 8 },
+  noDataTxt:    { fontSize: 12, color: C.muted },
+
+  /* Booking cards */
+  bookingCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: C.card, borderRadius: 14, padding: 12, marginBottom: 8, borderWidth: 1, borderColor: C.border, shadowColor: '#000', shadowOpacity: 0.03, shadowRadius: 4, elevation: 1 },
+  bookingLeft: { marginRight: 12 },
+  bookingDateBox: { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  bookingDateDay: { fontSize: 16, fontWeight: '900', lineHeight: 20 },
+  bookingDateMon: { fontSize: 9, fontWeight: '700', textTransform: 'uppercase' },
+  bookingMid: { flex: 1 },
+  bookingName: { fontSize: 13, fontWeight: '700', color: C.text, marginBottom: 2 },
+  bookingTime: { fontSize: 11, color: C.sub },
+  bookingVehicle: { fontSize: 10, color: C.muted, marginTop: 2 },
+  bookingRight: { alignItems: 'flex-end', gap: 6, marginLeft: 8 },
+  statusChip: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 20 },
+  statusChipTxt: { fontSize: 10, fontWeight: '700' },
+  bookingAmt: { fontSize: 13, fontWeight: '800', color: C.g600 },
+
+  /* Manage grid */
+  manageGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  manageCard: { width: CARD_W, backgroundColor: C.card, borderRadius: 14, padding: 14, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 6, elevation: 2, borderWidth: 1, borderColor: C.border },
+  manageIconBox: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginBottom: 10 },
+  manageLabel: { fontSize: 12.5, fontWeight: '800', color: C.text, marginBottom: 2 },
+  manageSub: { fontSize: 10, color: C.muted, lineHeight: 14 },
+  manageArrow: { position: 'absolute', bottom: 12, right: 12 },
 });

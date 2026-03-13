@@ -9,24 +9,25 @@ import {
   ActivityIndicator,
   Alert,
   Modal,
+  StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Icon from 'react-native-vector-icons/Feather';
+import LinearGradient from 'react-native-linear-gradient';
+import Ionicons from 'react-native-vector-icons/Ionicons';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import CustomDropdown from '../../../../components/CustomDropdown';
 import { getQuoteRequestById, getFleetVehicles, submitQuote, getTemplates, getTemplateById } from '../../../api/client';
 import { showConfirm, showError, showInfo, showSuccess } from '../../../../services/alertService';
 
 const C = {
-  bg: '#F7FAFC',
-  surface: '#FFFFFF',
-  text: '#1E293B',
-  muted: '#64748B',
-  border: '#E2E8F0',
-  brand: '#FF6B35',
-  green: '#10B981',
-  orange: '#F59E0B',
-  red: '#EF4444',
-  blue: '#3B82F6',
+  g900: '#022C22', g800: '#065F46', g700: '#047857', g500: '#059669', g400: '#34D399',
+  g50: '#ECFDF5', g100: '#D1FAE5',
+  bg: '#F1F5F9', card: '#FFFFFF', border: '#E2E8F0', text: '#0F172A', sub: '#475569', muted: '#94A3B8',
+  green: '#059669', greenL: '#ECFDF5',
+  amber: '#D97706', amberL: '#FFFBEB',
+  red: '#DC2626', redL: '#FEF2F2',
+  blue: '#2563EB', blueL: '#EFF6FF',
+  purple: '#7C3AED', purpleL: '#F5F3FF',
 };
 
 const DEFAULT_INCLUSIONS = [
@@ -74,6 +75,9 @@ export default function SelfDriveSendQuoteScreen({ navigation, route }) {
   const [advancePercent, setAdvancePercent] = useState('30');
   const [notes, setNotes] = useState('');
   const [validityDays, setValidityDays] = useState('3');
+
+  // Focus state for inputs
+  const [focusedInput, setFocusedInput] = useState(null);
 
   // Inclusions/Exclusions/Terms
   const [inclusions, setInclusions] = useState([...DEFAULT_INCLUSIONS]);
@@ -266,9 +270,12 @@ export default function SelfDriveSendQuoteScreen({ navigation, route }) {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.safe}>
+      <SafeAreaView style={styles.safe} edges={['top']}>
+        <StatusBar barStyle="light-content" backgroundColor={C.g900} />
+        <LinearGradient colors={[C.g900, C.g800, C.g700]} style={styles.loadingHeader} />
         <View style={styles.centered}>
-          <ActivityIndicator size="large" color={C.brand} />
+          <ActivityIndicator size="large" color={C.g500} />
+          <Text style={styles.loadingText}>Loading quote details...</Text>
         </View>
       </SafeAreaView>
     );
@@ -279,54 +286,68 @@ export default function SelfDriveSendQuoteScreen({ navigation, route }) {
   const dailyRate = calculateDailyRate();
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Icon name="arrow-left" size={22} color={C.text} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Send Quote - Self Drive</Text>
-        <View style={{ width: 40 }} />
-      </View>
+    <SafeAreaView style={styles.safe} edges={['top']}>
+      <StatusBar barStyle="light-content" backgroundColor={C.g900} />
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Request Summary */}
-        <View style={[styles.card, { backgroundColor: '#FFF4ED', borderColor: '#FFE4CC' }]}>
-          <Text style={[styles.cardTitle, { color: '#C2410C' }]}>Request Summary</Text>
-          <View style={styles.row}>
-            <Text style={styles.label}>Customer:</Text>
-            <Text style={styles.value}>{request?.customerName}</Text>
+      {/* Header */}
+      <LinearGradient colors={[C.g900, C.g800, C.g700]} style={styles.header}>
+        {/* Decorative circles */}
+        <View style={styles.decorCircle1} />
+        <View style={styles.decorCircle2} />
+
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+          <Ionicons name="arrow-back" size={22} color="#FFFFFF" />
+        </TouchableOpacity>
+
+        <View style={styles.headerCenter}>
+          <View style={styles.headerIconRow}>
+            <Ionicons name="send-outline" size={18} color={C.g400} style={{ marginRight: 7 }} />
+            <Text style={styles.headerTitle}>Send Quote</Text>
           </View>
-          <View style={styles.row}>
-            <Text style={styles.label}>Location:</Text>
-            <Text style={styles.value}>{request?.locationName}</Text>
-          </View>
-          <View style={styles.row}>
-            <Text style={styles.label}>Duration:</Text>
-            <Text style={styles.value}>{request?.totalDays} days</Text>
-          </View>
-          <View style={styles.row}>
-            <Text style={styles.label}>Dates:</Text>
-            <Text style={styles.value}>
-              {new Date(request?.pickupDate).toLocaleDateString()} -{' '}
-              {new Date(request?.dropDate).toLocaleDateString()}
-            </Text>
-          </View>
+          <Text style={styles.headerSubtitle}>Self Drive</Text>
         </View>
 
-        {/* Template Selector */}
+        <View style={{ width: 44 }} />
+      </LinearGradient>
+
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 20 }}>
+
+        {/* Request Summary Card */}
+        <View style={[styles.card, { backgroundColor: C.g50, borderColor: C.g100 }]}>
+          <View style={styles.cardHeader}>
+            <View style={styles.cardTitleRow}>
+              <View style={styles.cardIconBox}>
+                <Ionicons name="document-text-outline" size={16} color={C.g800} />
+              </View>
+              <Text style={[styles.cardTitle, { color: C.g800 }]}>Request Summary</Text>
+            </View>
+          </View>
+
+          <SummaryRow icon="person-outline" label="Customer" value={request?.customerName} />
+          <SummaryRow icon="location-outline" label="Location" value={request?.locationName} />
+          <SummaryRow icon="time-outline" label="Duration" value={`${request?.totalDays} days`} />
+          <SummaryRow
+            icon="calendar-outline"
+            label="Dates"
+            value={`${new Date(request?.pickupDate).toLocaleDateString()} - ${new Date(request?.dropDate).toLocaleDateString()}`}
+            isLast
+          />
+        </View>
+
+        {/* Template Selector Card */}
         {templates.length > 0 && (
-          <View style={[styles.card, { backgroundColor: '#EFF6FF', borderColor: '#93C5FD' }]}>
+          <View style={[styles.card, { backgroundColor: C.blueL, borderColor: '#93C5FD' }]}>
             <View style={styles.cardHeader}>
-              <View style={{ flex: 1 }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
-                  <Icon name="zap" size={18} color="#1E40AF" style={{ marginRight: 6 }} />
-                  <Text style={[styles.cardTitle, { color: '#1E3A8A' }]}>Quick Fill with Template</Text>
+              <View style={styles.cardTitleRow}>
+                <View style={[styles.cardIconBox, { backgroundColor: '#DBEAFE' }]}>
+                  <Ionicons name="flash-outline" size={16} color={C.g800} />
                 </View>
-                <Text style={{ fontSize: 13, color: '#1E40AF' }}>
-                  Load saved template to auto-fill rates, inclusions, exclusions & terms
-                </Text>
+                <Text style={[styles.cardTitle, { color: C.g800 }]}>Quick Fill with Template</Text>
               </View>
             </View>
+            <Text style={[styles.templateDesc, { color: C.g700 }]}>
+              Load a saved template to auto-fill rates, inclusions, exclusions &amp; terms
+            </Text>
             <CustomDropdown
               label=""
               value={selectedTemplateId}
@@ -344,9 +365,16 @@ export default function SelfDriveSendQuoteScreen({ navigation, route }) {
           </View>
         )}
 
-        {/* Fleet Selection */}
+        {/* Vehicle Details Card */}
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>Vehicle Details</Text>
+          <View style={styles.cardHeader}>
+            <View style={styles.cardTitleRow}>
+              <View style={[styles.cardIconBox, { backgroundColor: C.g50 }]}>
+                <Ionicons name="car-outline" size={16} color={C.g700} />
+              </View>
+              <Text style={styles.cardTitle}>Vehicle Details</Text>
+            </View>
+          </View>
 
           <CustomDropdown
             label="Select from Fleet (Optional)"
@@ -365,80 +393,123 @@ export default function SelfDriveSendQuoteScreen({ navigation, route }) {
             searchable={fleetVehicles.length > 5}
           />
 
-          <Text style={styles.inputLabel}>Vehicle Name *</Text>
+          <View style={styles.sectionDivider} />
+
+          <Text style={styles.inputLabel}>Vehicle Name <Text style={styles.required}>*</Text></Text>
           <TextInput
-            style={styles.input}
+            style={[styles.input, focusedInput === 'vehicleName' && styles.inputFocused]}
             value={vehicleName}
             onChangeText={setVehicleName}
             placeholder="e.g., Maruti Swift Dzire"
             placeholderTextColor={C.muted}
             editable={!selectedFleetId}
+            onFocus={() => setFocusedInput('vehicleName')}
+            onBlur={() => setFocusedInput(null)}
           />
 
           <Text style={styles.inputLabel}>Brand</Text>
           <TextInput
-            style={styles.input}
+            style={[styles.input, focusedInput === 'vehicleBrand' && styles.inputFocused]}
             value={vehicleBrand}
             onChangeText={setVehicleBrand}
             placeholder="e.g., Maruti Suzuki"
             placeholderTextColor={C.muted}
             editable={!selectedFleetId}
+            onFocus={() => setFocusedInput('vehicleBrand')}
+            onBlur={() => setFocusedInput(null)}
           />
 
           <Text style={styles.inputLabel}>Registration Number</Text>
           <TextInput
-            style={styles.input}
+            style={[styles.input, focusedInput === 'regNumber' && styles.inputFocused]}
             value={registrationNumber}
             onChangeText={setRegistrationNumber}
             placeholder="e.g., DL 01 AB 1234"
             placeholderTextColor={C.muted}
             editable={!selectedFleetId}
+            onFocus={() => setFocusedInput('regNumber')}
+            onBlur={() => setFocusedInput(null)}
           />
         </View>
 
-        {/* Pricing */}
+        {/* Pricing Details Card */}
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>Pricing Details</Text>
+          <View style={styles.cardHeader}>
+            <View style={styles.cardTitleRow}>
+              <View style={[styles.cardIconBox, { backgroundColor: C.g50 }]}>
+                <Ionicons name="cash-outline" size={16} color={C.g700} />
+              </View>
+              <Text style={styles.cardTitle}>Pricing Details</Text>
+            </View>
+          </View>
 
-          <Text style={styles.inputLabel}>Total Price (₹) *</Text>
-          <TextInput
-            style={styles.input}
-            value={totalPrice}
-            onChangeText={setTotalPrice}
-            placeholder={`e.g., ${(request?.totalDays || 1) * 2500} (for ${request?.totalDays || 1} days)`}
-            keyboardType="decimal-pad"
-            placeholderTextColor={C.muted}
-          />
+          <Text style={styles.inputLabel}>Total Price <Text style={styles.required}>*</Text></Text>
+          <View style={[styles.inputWithPrefix, focusedInput === 'totalPrice' && styles.inputFocused]}>
+            <View style={styles.inputPrefix}>
+              <Text style={styles.prefixText}>₹</Text>
+            </View>
+            <TextInput
+              style={styles.inputInner}
+              value={totalPrice}
+              onChangeText={setTotalPrice}
+              placeholder={`e.g., ${(request?.totalDays || 1) * 2500} (for ${request?.totalDays || 1} days)`}
+              keyboardType="decimal-pad"
+              placeholderTextColor={C.muted}
+              onFocus={() => setFocusedInput('totalPrice')}
+              onBlur={() => setFocusedInput(null)}
+            />
+          </View>
 
           <Text style={styles.inputLabel}>Security Deposit (₹)</Text>
-          <TextInput
-            style={styles.input}
-            value={securityDeposit}
-            onChangeText={setSecurityDeposit}
-            placeholder="e.g., 5000"
-            keyboardType="decimal-pad"
-            placeholderTextColor={C.muted}
-          />
+          <View style={[styles.inputWithPrefix, focusedInput === 'secDeposit' && styles.inputFocused]}>
+            <View style={styles.inputPrefix}>
+              <Text style={styles.prefixText}>₹</Text>
+            </View>
+            <TextInput
+              style={styles.inputInner}
+              value={securityDeposit}
+              onChangeText={setSecurityDeposit}
+              placeholder="e.g., 5000"
+              keyboardType="decimal-pad"
+              placeholderTextColor={C.muted}
+              onFocus={() => setFocusedInput('secDeposit')}
+              onBlur={() => setFocusedInput(null)}
+            />
+          </View>
 
-          <Text style={styles.inputLabel}>KM Limit per Day</Text>
-          <TextInput
-            style={styles.input}
-            value={kmLimitPerDay}
-            onChangeText={setKmLimitPerDay}
-            placeholder="e.g., 250"
-            keyboardType="number-pad"
-            placeholderTextColor={C.muted}
-          />
+          <View style={styles.sectionDivider} />
 
-          <Text style={styles.inputLabel}>Extra KM Rate (₹/km)</Text>
-          <TextInput
-            style={styles.input}
-            value={extraKmRate}
-            onChangeText={setExtraKmRate}
-            placeholder="e.g., 12"
-            keyboardType="decimal-pad"
-            placeholderTextColor={C.muted}
-          />
+          {/* KM Limit / Extra KM Rate — 2-column layout */}
+          <View style={styles.twoColRow}>
+            <View style={styles.twoColItem}>
+              <Text style={styles.inputLabel}>KM Limit/Day</Text>
+              <TextInput
+                style={[styles.input, focusedInput === 'kmLimit' && styles.inputFocused]}
+                value={kmLimitPerDay}
+                onChangeText={setKmLimitPerDay}
+                placeholder="250"
+                keyboardType="number-pad"
+                placeholderTextColor={C.muted}
+                onFocus={() => setFocusedInput('kmLimit')}
+                onBlur={() => setFocusedInput(null)}
+              />
+            </View>
+            <View style={styles.twoColItem}>
+              <Text style={styles.inputLabel}>Extra KM Rate (₹/km)</Text>
+              <TextInput
+                style={[styles.input, focusedInput === 'extraKm' && styles.inputFocused]}
+                value={extraKmRate}
+                onChangeText={setExtraKmRate}
+                placeholder="12"
+                keyboardType="decimal-pad"
+                placeholderTextColor={C.muted}
+                onFocus={() => setFocusedInput('extraKm')}
+                onBlur={() => setFocusedInput(null)}
+              />
+            </View>
+          </View>
+
+          <View style={styles.sectionDivider} />
 
           <CustomDropdown
             label="Advance Payment Required"
@@ -455,91 +526,144 @@ export default function SelfDriveSendQuoteScreen({ navigation, route }) {
           />
         </View>
 
-        {/* Quote Summary */}
+        {/* Quote Summary Card */}
         {totalPrice && parseFloat(totalPrice) > 0 && (
-          <View style={[styles.card, { backgroundColor: '#F0F9FF', borderColor: '#BAE6FD' }]}>
-            <Text style={[styles.cardTitle, { color: '#0369A1' }]}>Quote Summary</Text>
-            <View style={styles.row}>
-              <Text style={styles.summaryLabel}>Total Price ({request?.totalDays} days)</Text>
-              <Text style={styles.summaryValue}>₹{total.toFixed(0)}</Text>
+          <View style={[styles.card, { backgroundColor: C.g50, borderColor: C.g100 }]}>
+            <View style={styles.cardHeader}>
+              <View style={styles.cardTitleRow}>
+                <View style={[styles.cardIconBox, { backgroundColor: '#DBEAFE' }]}>
+                  <Ionicons name="calculator-outline" size={16} color={C.g800} />
+                </View>
+                <Text style={[styles.cardTitle, { color: C.g800 }]}>Quote Summary</Text>
+              </View>
             </View>
-            <View style={styles.divider} />
-            <View style={styles.row}>
-              <Text style={styles.totalLabel}>Advance ({advancePercent}%)</Text>
-              <Text style={styles.totalValue}>₹{advance.toFixed(0)}</Text>
+
+            <View style={styles.summaryRow}>
+              <Text style={styles.summaryLabel}>Daily Rate</Text>
+              <Text style={styles.summaryValue}>₹{dailyRate.toFixed(0)}/day</Text>
             </View>
-            <View style={styles.row}>
-              <Text style={styles.label}>Balance on pickup</Text>
-              <Text style={styles.value}>₹{(total - advance).toFixed(0)}</Text>
+
+            <View style={styles.summaryRow}>
+              <Text style={styles.summaryLabelBold}>Total Price ({request?.totalDays} days)</Text>
+              <Text style={styles.summaryValueBold}>₹{total.toFixed(0)}</Text>
             </View>
+
+            <View style={styles.summaryDivider} />
+
+            <View style={styles.summaryRow}>
+              <Text style={[styles.summaryLabel, { color: C.g700 }]}>Advance ({advancePercent}%)</Text>
+              <Text style={[styles.summaryValue, { color: C.g700, fontWeight: '700' }]}>₹{advance.toFixed(0)}</Text>
+            </View>
+
+            <View style={styles.summaryRow}>
+              <Text style={styles.summaryLabel}>Balance on pickup</Text>
+              <Text style={styles.summaryValue}>₹{(total - advance).toFixed(0)}</Text>
+            </View>
+
             {securityDeposit && parseFloat(securityDeposit) > 0 && (
-              <View style={[styles.row, { marginTop: 8 }]}>
-                <Text style={styles.label}>Security Deposit (Refundable)</Text>
-                <Text style={styles.value}>₹{parseFloat(securityDeposit).toFixed(0)}</Text>
+              <View style={[styles.summaryRow, { marginTop: 4 }]}>
+                <Text style={styles.summaryLabel}>Security Deposit (Refundable)</Text>
+                <Text style={styles.summaryValue}>₹{parseFloat(securityDeposit).toFixed(0)}</Text>
               </View>
             )}
           </View>
         )}
 
-        {/* Inclusions */}
+        {/* Inclusions Card */}
         <View style={styles.card}>
           <View style={styles.cardHeader}>
-            <Text style={styles.cardTitle}>Inclusions ({inclusions.length})</Text>
-            <TouchableOpacity onPress={() => openEditModal('inclusions')}>
-              <Icon name="edit-2" size={18} color={C.brand} />
+            <View style={styles.cardTitleRow}>
+              <View style={[styles.cardIconBox, { backgroundColor: C.greenL }]}>
+                <Ionicons name="checkmark-circle-outline" size={16} color={C.green} />
+              </View>
+              <Text style={styles.cardTitle}>Inclusions</Text>
+              <View style={styles.countBadge}>
+                <Text style={styles.countBadgeText}>{inclusions.length}</Text>
+              </View>
+            </View>
+            <TouchableOpacity style={styles.editBtn} onPress={() => openEditModal('inclusions')}>
+              <Ionicons name="pencil-outline" size={15} color={C.g700} />
+              <Text style={styles.editBtnText}>Edit</Text>
             </TouchableOpacity>
           </View>
           <View style={styles.chipContainer}>
             {inclusions.map((item, idx) => (
-              <View key={idx} style={[styles.chip, { backgroundColor: '#D1FAE5' }]}>
-                <Icon name="check-circle" size={14} color="#059669" />
-                <Text style={[styles.chipText, { color: '#059669' }]}>{item}</Text>
+              <View key={idx} style={[styles.chip, { backgroundColor: C.greenL, borderColor: '#A7F3D0' }]}>
+                <Ionicons name="checkmark-circle" size={13} color={C.green} />
+                <Text style={[styles.chipText, { color: C.green }]}>{item}</Text>
               </View>
             ))}
           </View>
         </View>
 
-        {/* Exclusions */}
+        {/* Exclusions Card */}
         <View style={styles.card}>
           <View style={styles.cardHeader}>
-            <Text style={styles.cardTitle}>Exclusions ({exclusions.length})</Text>
-            <TouchableOpacity onPress={() => openEditModal('exclusions')}>
-              <Icon name="edit-2" size={18} color={C.brand} />
+            <View style={styles.cardTitleRow}>
+              <View style={[styles.cardIconBox, { backgroundColor: C.redL }]}>
+                <Ionicons name="close-circle-outline" size={16} color={C.red} />
+              </View>
+              <Text style={styles.cardTitle}>Exclusions</Text>
+              <View style={[styles.countBadge, { backgroundColor: C.redL }]}>
+                <Text style={[styles.countBadgeText, { color: C.red }]}>{exclusions.length}</Text>
+              </View>
+            </View>
+            <TouchableOpacity style={styles.editBtn} onPress={() => openEditModal('exclusions')}>
+              <Ionicons name="pencil-outline" size={15} color={C.g700} />
+              <Text style={styles.editBtnText}>Edit</Text>
             </TouchableOpacity>
           </View>
           <View style={styles.chipContainer}>
             {exclusions.map((item, idx) => (
-              <View key={idx} style={[styles.chip, { backgroundColor: '#FEE2E2' }]}>
-                <Icon name="x-circle" size={14} color="#DC2626" />
-                <Text style={[styles.chipText, { color: '#DC2626' }]}>{item}</Text>
+              <View key={idx} style={[styles.chip, { backgroundColor: C.redL, borderColor: '#FECACA' }]}>
+                <Ionicons name="close-circle" size={13} color={C.red} />
+                <Text style={[styles.chipText, { color: C.red }]}>{item}</Text>
               </View>
             ))}
           </View>
         </View>
 
-        {/* Terms & Conditions */}
+        {/* Terms & Conditions Card */}
         <View style={styles.card}>
           <View style={styles.cardHeader}>
-            <Text style={styles.cardTitle}>Terms & Conditions ({termsConditions.length})</Text>
-            <TouchableOpacity onPress={() => openEditModal('terms')}>
-              <Icon name="edit-2" size={18} color={C.brand} />
+            <View style={styles.cardTitleRow}>
+              <View style={[styles.cardIconBox, { backgroundColor: C.g50 }]}>
+                <Ionicons name="document-outline" size={16} color={C.g700} />
+              </View>
+              <Text style={styles.cardTitle}>Terms &amp; Conditions</Text>
+              <View style={styles.countBadge}>
+                <Text style={styles.countBadgeText}>{termsConditions.length}</Text>
+              </View>
+            </View>
+            <TouchableOpacity style={styles.editBtn} onPress={() => openEditModal('terms')}>
+              <Ionicons name="pencil-outline" size={15} color={C.g700} />
+              <Text style={styles.editBtnText}>Edit</Text>
             </TouchableOpacity>
           </View>
           {termsConditions.map((term, idx) => (
             <View key={idx} style={styles.termRow}>
-              <Text style={styles.termNumber}>{idx + 1}.</Text>
+              <View style={styles.termNumberBox}>
+                <Text style={styles.termNumber}>{idx + 1}</Text>
+              </View>
               <Text style={styles.termText}>{term}</Text>
             </View>
           ))}
         </View>
 
-        {/* Additional Info */}
+        {/* Additional Info Card */}
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>Additional Information</Text>
+          <View style={styles.cardHeader}>
+            <View style={styles.cardTitleRow}>
+              <View style={[styles.cardIconBox, { backgroundColor: C.g50 }]}>
+                <Ionicons name="information-circle-outline" size={16} color={C.g700} />
+              </View>
+              <Text style={styles.cardTitle}>Additional Information</Text>
+            </View>
+          </View>
 
           <Text style={styles.inputLabel}>Notes for Customer</Text>
           <TextInput
-            style={[styles.input, styles.textArea]}
+            style={[styles.input, styles.textArea, focusedInput === 'notes' && styles.inputFocused]}
             value={notes}
             onChangeText={setNotes}
             placeholder="Any special notes..."
@@ -547,34 +671,39 @@ export default function SelfDriveSendQuoteScreen({ navigation, route }) {
             multiline
             numberOfLines={3}
             textAlignVertical="top"
+            onFocus={() => setFocusedInput('notes')}
+            onBlur={() => setFocusedInput(null)}
           />
 
           <Text style={styles.inputLabel}>Quote Valid For (Days)</Text>
           <TextInput
-            style={styles.input}
+            style={[styles.input, focusedInput === 'validity' && styles.inputFocused]}
             value={validityDays}
             onChangeText={setValidityDays}
             placeholder="3"
             keyboardType="number-pad"
             placeholderTextColor={C.muted}
+            onFocus={() => setFocusedInput('validity')}
+            onBlur={() => setFocusedInput(null)}
           />
         </View>
 
         <View style={{ height: 100 }} />
       </ScrollView>
 
-      {/* Submit Button */}
+      {/* Footer Submit Button */}
       <View style={styles.footer}>
         <TouchableOpacity
           style={[styles.submitBtn, submitting && styles.submitBtnDisabled]}
           onPress={handleSubmit}
           disabled={submitting}
+          activeOpacity={0.85}
         >
           {submitting ? (
             <ActivityIndicator size="small" color="#fff" />
           ) : (
             <>
-              <Icon name="send" size={18} color="#fff" />
+              <Ionicons name="send" size={18} color="#fff" />
               <Text style={styles.submitBtnText}>
                 Send Quote (₹{total.toFixed(0)})
               </Text>
@@ -596,17 +725,17 @@ export default function SelfDriveSendQuoteScreen({ navigation, route }) {
               <Text style={styles.modalTitle}>
                 Edit {editType === 'inclusions' ? 'Inclusions' : editType === 'exclusions' ? 'Exclusions' : 'Terms'}
               </Text>
-              <TouchableOpacity onPress={() => setEditModalVisible(false)}>
-                <Icon name="x" size={24} color={C.text} />
+              <TouchableOpacity onPress={() => setEditModalVisible(false)} style={styles.modalCloseBtn}>
+                <Ionicons name="close" size={20} color={C.text} />
               </TouchableOpacity>
             </View>
 
-            <ScrollView style={styles.modalBody}>
+            <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
               {editList.map((item, idx) => (
                 <View key={idx} style={styles.modalItem}>
                   <Text style={styles.modalItemText}>{item}</Text>
-                  <TouchableOpacity onPress={() => removeItemFromList(item)}>
-                    <Icon name="trash-2" size={18} color={C.red} />
+                  <TouchableOpacity onPress={() => removeItemFromList(item)} style={styles.modalDeleteBtn}>
+                    <Ionicons name="trash-outline" size={17} color={C.red} />
                   </TouchableOpacity>
                 </View>
               ))}
@@ -621,11 +750,12 @@ export default function SelfDriveSendQuoteScreen({ navigation, route }) {
                 placeholderTextColor={C.muted}
               />
               <TouchableOpacity style={styles.modalAddBtn} onPress={addItemToList}>
-                <Icon name="plus" size={20} color="#fff" />
+                <Ionicons name="add" size={22} color="#fff" />
               </TouchableOpacity>
             </View>
 
             <TouchableOpacity style={styles.modalSaveBtn} onPress={saveEditModal}>
+              <Ionicons name="checkmark-circle-outline" size={18} color="#fff" style={{ marginRight: 8 }} />
               <Text style={styles.modalSaveBtnText}>Save Changes</Text>
             </TouchableOpacity>
           </View>
@@ -635,117 +765,326 @@ export default function SelfDriveSendQuoteScreen({ navigation, route }) {
   );
 }
 
+// Small helper component for summary rows
+function SummaryRow({ icon, label, value, isLast }) {
+  return (
+    <View style={[summaryRowStyles.row, isLast && { marginBottom: 0 }]}>
+      <View style={summaryRowStyles.iconBox}>
+        <Ionicons name={icon} size={14} color={C.g700} />
+      </View>
+      <Text style={summaryRowStyles.label}>{label}</Text>
+      <Text style={summaryRowStyles.value} numberOfLines={1}>{value}</Text>
+    </View>
+  );
+}
+
+const summaryRowStyles = StyleSheet.create({
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  iconBox: {
+    width: 26,
+    height: 26,
+    borderRadius: 8,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10,
+    shadowColor: '#000',
+    shadowOpacity: 0.06,
+    shadowRadius: 3,
+    shadowOffset: { width: 0, height: 1 },
+    elevation: 1,
+  },
+  label: {
+    fontSize: 13,
+    color: C.sub,
+    width: 72,
+  },
+  value: {
+    flex: 1,
+    fontSize: 13,
+    fontWeight: '600',
+    color: C.text,
+    textAlign: 'right',
+  },
+});
+
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
     backgroundColor: C.bg,
+  },
+  loadingHeader: {
+    height: 80,
   },
   centered: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
+  loadingText: {
+    marginTop: 14,
+    fontSize: 14,
+    color: C.sub,
+  },
+
+  // Header
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: C.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: C.border,
+    paddingVertical: 14,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  decorCircle1: {
+    position: 'absolute',
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    top: -40,
+    right: 20,
+  },
+  decorCircle2: {
+    position: 'absolute',
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    bottom: -30,
+    right: 80,
   },
   backBtn: {
-    width: 40,
-    height: 40,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255,255,255,0.15)',
     justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerCenter: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  headerIconRow: {
+    flexDirection: 'row',
     alignItems: 'center',
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: '600',
-    color: C.text,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    letterSpacing: 0.2,
   },
+  headerSubtitle: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.65)',
+    marginTop: 2,
+    fontWeight: '500',
+  },
+
+  // Scroll content
   content: {
     flex: 1,
-    padding: 16,
+    paddingHorizontal: 16,
+    paddingTop: 16,
   },
+
+  // Card
   card: {
-    backgroundColor: C.surface,
-    borderRadius: 12,
+    backgroundColor: C.card,
+    borderRadius: 14,
     padding: 16,
-    marginBottom: 16,
+    marginBottom: 14,
     borderWidth: 1,
     borderColor: C.border,
+    shadowColor: '#000',
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
   },
   cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 14,
+  },
+  cardTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  cardIconBox: {
+    width: 30,
+    height: 30,
+    borderRadius: 8,
+    backgroundColor: C.g50,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10,
   },
   cardTitle: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '700',
     color: C.text,
   },
-  row: {
+  templateDesc: {
+    fontSize: 13,
+    marginBottom: 14,
+    lineHeight: 18,
+    marginLeft: 40,
+    marginTop: -6,
+  },
+
+  // Count badge
+  countBadge: {
+    backgroundColor: C.g50,
+    borderRadius: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    marginLeft: 8,
+  },
+  countBadgeText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: C.g700,
+  },
+
+  // Edit button
+  editBtn: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 8,
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+    backgroundColor: C.g50,
+    borderWidth: 1,
+    borderColor: C.g100,
   },
-  label: {
-    fontSize: 14,
-    color: C.muted,
-  },
-  value: {
-    fontSize: 14,
+  editBtnText: {
+    fontSize: 12,
     fontWeight: '600',
-    color: C.text,
+    color: C.g700,
   },
+
+  // Section divider
+  sectionDivider: {
+    height: 1,
+    backgroundColor: C.border,
+    marginVertical: 14,
+  },
+
+  // Input label
   inputLabel: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
-    color: C.text,
-    marginBottom: 8,
-    marginTop: 8,
+    color: C.sub,
+    marginBottom: 7,
+    marginTop: 10,
   },
+  required: {
+    color: C.red,
+  },
+
+  // Input
   input: {
     backgroundColor: C.bg,
     borderWidth: 1,
     borderColor: C.border,
-    borderRadius: 8,
-    padding: 12,
+    borderRadius: 10,
+    paddingHorizontal: 13,
+    paddingVertical: 11,
     fontSize: 14,
     color: C.text,
   },
+  inputFocused: {
+    borderColor: C.g700,
+    backgroundColor: '#F8FCFF',
+  },
   textArea: {
-    height: 80,
+    height: 85,
+    paddingTop: 11,
+  },
+
+  // Input with prefix
+  inputWithPrefix: {
+    flexDirection: 'row',
+    backgroundColor: C.bg,
+    borderWidth: 1,
+    borderColor: C.border,
+    borderRadius: 10,
+    overflow: 'hidden',
+  },
+  inputPrefix: {
+    paddingHorizontal: 13,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRightWidth: 1,
+    borderRightColor: C.border,
+    backgroundColor: C.g50,
+    minWidth: 42,
+  },
+  prefixText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: C.g700,
+  },
+  inputInner: {
+    flex: 1,
+    paddingHorizontal: 13,
+    paddingVertical: 11,
+    fontSize: 14,
+    color: C.text,
+  },
+
+  // Two column layout
+  twoColRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  twoColItem: {
+    flex: 1,
+  },
+
+  // Quote summary rows
+  summaryRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
   },
   summaryLabel: {
-    fontSize: 14,
-    color: C.muted,
+    fontSize: 13,
+    color: C.sub,
   },
   summaryValue: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
     color: C.text,
   },
-  divider: {
-    height: 1,
-    backgroundColor: C.border,
-    marginVertical: 12,
-  },
-  totalLabel: {
-    fontSize: 16,
+  summaryLabelBold: {
+    fontSize: 14,
     fontWeight: '700',
     color: C.text,
   },
-  totalValue: {
-    fontSize: 18,
+  summaryValueBold: {
+    fontSize: 16,
     fontWeight: '700',
-    color: C.brand,
+    color: C.g900,
   },
+  summaryDivider: {
+    height: 1,
+    backgroundColor: C.g100,
+    marginVertical: 10,
+  },
+
+  // Chips
   chipContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -754,44 +1093,65 @@ const styles = StyleSheet.create({
   chip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 12,
+    gap: 5,
+    paddingHorizontal: 11,
     paddingVertical: 6,
     borderRadius: 16,
+    borderWidth: 1,
   },
   chipText: {
     fontSize: 12,
     fontWeight: '600',
   },
+
+  // Terms
   termRow: {
     flexDirection: 'row',
-    marginBottom: 8,
+    alignItems: 'flex-start',
+    marginBottom: 10,
+  },
+  termNumberBox: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: C.g50,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10,
+    marginTop: 1,
   },
   termNumber: {
-    fontSize: 14,
+    fontSize: 11,
     fontWeight: '700',
-    color: C.brand,
-    marginRight: 8,
+    color: C.g700,
   },
   termText: {
     flex: 1,
-    fontSize: 14,
-    color: C.text,
+    fontSize: 13,
+    color: C.sub,
+    lineHeight: 19,
   },
+
+  // Footer
   footer: {
     padding: 16,
-    backgroundColor: C.surface,
+    backgroundColor: C.card,
     borderTopWidth: 1,
     borderTopColor: C.border,
   },
   submitBtn: {
-    backgroundColor: C.brand,
+    backgroundColor: C.g700,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 14,
-    borderRadius: 10,
+    gap: 9,
+    paddingVertical: 15,
+    borderRadius: 12,
+    shadowColor: C.g900,
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
   },
   submitBtnDisabled: {
     opacity: 0.6,
@@ -800,29 +1160,43 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     color: '#fff',
+    letterSpacing: 0.3,
   },
+
+  // Modal
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: C.surface,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    backgroundColor: C.card,
+    borderTopLeftRadius: 22,
+    borderTopRightRadius: 22,
     padding: 20,
-    maxHeight: '80%',
+    maxHeight: '82%',
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 18,
+    paddingBottom: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: C.border,
   },
   modalTitle: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: '700',
     color: C.text,
+  },
+  modalCloseBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: C.bg,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   modalBody: {
     maxHeight: 300,
@@ -831,48 +1205,61 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 12,
+    padding: 13,
     backgroundColor: C.bg,
-    borderRadius: 8,
+    borderRadius: 10,
     marginBottom: 8,
   },
   modalItemText: {
     flex: 1,
     fontSize: 14,
     color: C.text,
+    marginRight: 10,
+    lineHeight: 19,
+  },
+  modalDeleteBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: C.redL,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   modalAddSection: {
     flexDirection: 'row',
-    gap: 8,
+    gap: 10,
     marginTop: 16,
-    marginBottom: 16,
+    marginBottom: 14,
   },
   modalInput: {
     flex: 1,
     backgroundColor: C.bg,
     borderWidth: 1,
     borderColor: C.border,
-    borderRadius: 8,
-    padding: 12,
+    borderRadius: 10,
+    paddingHorizontal: 13,
+    paddingVertical: 11,
     fontSize: 14,
     color: C.text,
   },
   modalAddBtn: {
-    backgroundColor: C.brand,
+    backgroundColor: C.g700,
     width: 48,
     height: 48,
-    borderRadius: 8,
+    borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
   },
   modalSaveBtn: {
-    backgroundColor: C.brand,
+    backgroundColor: C.g700,
     paddingVertical: 14,
-    borderRadius: 10,
+    borderRadius: 12,
     alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'center',
   },
   modalSaveBtnText: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '700',
     color: '#fff',
   },

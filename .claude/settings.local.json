@@ -208,7 +208,11 @@
       "Bash(pip install:*)",
       "Bash(do:*)",
       "Bash(for f in \"/c/Users/Admin/Desktop/tran_stable/src/app/\\(services\\)/car-rental/[location]/page.tsx\" \"/c/Users/Admin/Desktop/tran_stable/src/app/\\(services\\)/bus-rental/[location]/page.tsx\" \"/c/Users/Admin/Desktop/tran_stable/src/app/\\(services\\)/packers-and-movers/[location]/page.tsx\")",
-      "Read(//c/Users/Admin/Desktop/tran_stable/**)"
+      "Read(//c/Users/Admin/Desktop/tran_stable/**)",
+      "Bash(export:*)",
+      "Bash(gh run view 22845130714 --repo saurav1702/tran_stable --log-failed)",
+      "Read(//tmp/**)",
+      "Bash(python3:*)"
     ],
     "deny": [],
     "ask": []

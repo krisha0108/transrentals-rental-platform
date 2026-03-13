@@ -1,32 +1,25 @@
 import React, { useState, useEffect } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  TextInput,
-  ActivityIndicator,
-  Alert,
-  Modal,
+  View, Text, StyleSheet, ScrollView, TouchableOpacity,
+  TextInput, ActivityIndicator, Modal, StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/Feather';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import CustomDropdown from '../../../../components/CustomDropdown';
 import { getQuoteRequestById, submitQuote, getTemplates } from '../../../api/client';
-import { showConfirm, showError, showInfo, showSuccess } from '../../../../services/alertService';
+import { showError, showSuccess } from '../../../../services/alertService';
 
 const C = {
-  bg: '#F7FAFC',
-  surface: '#FFFFFF',
-  text: '#1E293B',
-  muted: '#64748B',
-  border: '#E2E8F0',
-  brand: '#FF6B35',
-  green: '#10B981',
-  orange: '#F59E0B',
-  red: '#EF4444',
-  blue: '#3B82F6',
+  g900: '#022C22', g800: '#065F46', g700: '#047857', g600: '#059669',
+  g500: '#10B981', g400: '#34D399', g100: '#D1FAE5', g50: '#ECFDF5',
+  bg: '#F1F5F9', card: '#FFFFFF', border: '#E2E8F0',
+  text: '#0F172A', sub: '#475569', muted: '#94A3B8',
+  blue: '#2563EB', blueL: '#EFF6FF',
+  amber: '#D97706', amberL: '#FFFBEB',
+  red: '#DC2626', redL: '#FEF2F2',
 };
 
 const DEFAULT_INCLUSIONS = [
@@ -63,7 +56,6 @@ export default function PackersSendQuoteScreen({ navigation, route }) {
   const [templates, setTemplates] = useState([]);
   const [selectedTemplateId, setSelectedTemplateId] = useState('');
 
-  // Form state - Packers specific
   const [packingCharges, setPackingCharges] = useState('');
   const [loadingCharges, setLoadingCharges] = useState('');
   const [transportCharges, setTransportCharges] = useState('');
@@ -77,7 +69,6 @@ export default function PackersSendQuoteScreen({ navigation, route }) {
   const [notes, setNotes] = useState('');
   const [validityDays, setValidityDays] = useState('3');
 
-  // Inclusions/Exclusions/Terms
   const [inclusions, setInclusions] = useState([...DEFAULT_INCLUSIONS]);
   const [exclusions, setExclusions] = useState([...DEFAULT_EXCLUSIONS]);
   const [termsConditions, setTermsConditions] = useState([...DEFAULT_TERMS]);
@@ -86,9 +77,7 @@ export default function PackersSendQuoteScreen({ navigation, route }) {
   const [editList, setEditList] = useState([]);
   const [newItemText, setNewItemText] = useState('');
 
-  useEffect(() => {
-    fetchData();
-  }, []);
+  useEffect(() => { fetchData(); }, []);
 
   const fetchData = async () => {
     try {
@@ -98,18 +87,11 @@ export default function PackersSendQuoteScreen({ navigation, route }) {
         getTemplates('packers').catch(() => ({ templates: [] })),
       ]);
       setRequest(requestData.request || requestData);
-
-      // Set active templates
       const activeTemplates = (templatesData.templates || []).filter((t) => t.isActive !== false);
       setTemplates(activeTemplates);
-
-      // Auto-select default template if exists
       const defaultTemplate = activeTemplates.find((t) => t.isDefault);
-      if (defaultTemplate) {
-        handleTemplateSelection(defaultTemplate.id);
-      }
+      if (defaultTemplate) handleTemplateSelection(defaultTemplate.id);
     } catch (error) {
-      console.error('Error fetching data:', error);
       showError('Failed to load data');
     } finally {
       setLoading(false);
@@ -124,21 +106,12 @@ export default function PackersSendQuoteScreen({ navigation, route }) {
       setTermsConditions([...DEFAULT_TERMS]);
       return;
     }
-
     const template = templates.find((t) => t.id === templateId);
     if (template) {
-      if (template.inclusions && Array.isArray(template.inclusions)) {
-        setInclusions([...template.inclusions]);
-      }
-      if (template.exclusions && Array.isArray(template.exclusions)) {
-        setExclusions([...template.exclusions]);
-      }
-      if (template.termsConditions && Array.isArray(template.termsConditions)) {
-        setTermsConditions([...template.termsConditions]);
-      }
-      if (template.baseRateHint) {
-        setTransportCharges(template.baseRateHint.toString());
-      }
+      if (template.inclusions && Array.isArray(template.inclusions)) setInclusions([...template.inclusions]);
+      if (template.exclusions && Array.isArray(template.exclusions)) setExclusions([...template.exclusions]);
+      if (template.termsConditions && Array.isArray(template.termsConditions)) setTermsConditions([...template.termsConditions]);
+      if (template.baseRateHint) setTransportCharges(template.baseRateHint.toString());
     }
   };
 
@@ -166,43 +139,26 @@ export default function PackersSendQuoteScreen({ navigation, route }) {
     }
   };
 
-  const removeItemFromList = (item) => {
-    setEditList(editList.filter((i) => i !== item));
-  };
+  const removeItemFromList = (item) => setEditList(editList.filter((i) => i !== item));
 
   const calculateTotal = () => {
-    const charges = [
-      packingCharges,
-      loadingCharges,
-      transportCharges,
-      unloadingCharges,
-      unpackingCharges,
-      packingMaterialCharges,
-      insuranceCharges,
-      storageCharges,
-      miscCharges,
-    ];
-    return charges.reduce((sum, charge) => sum + (parseFloat(charge) || 0), 0);
+    return [packingCharges, loadingCharges, transportCharges, unloadingCharges, unpackingCharges,
+      packingMaterialCharges, insuranceCharges, storageCharges, miscCharges]
+      .reduce((sum, v) => sum + (parseFloat(v) || 0), 0);
   };
 
   const calculateAdvance = () => {
     const total = calculateTotal();
-    const percent = parseInt(advancePercent) || 40;
-    return Math.round((total * percent) / 100);
+    return Math.round((total * (parseInt(advancePercent) || 40)) / 100);
   };
 
   const handleSubmit = async () => {
     const total = calculateTotal();
-    if (total <= 0) {
-      showError('Please enter at least one charge amount');
-      return;
-    }
-
+    if (total <= 0) { showError('Please enter at least one charge amount'); return; }
     try {
       setSubmitting(true);
-      // Match web app's exact field structure
       await submitQuote('packers', {
-        requestId: requestId,
+        requestId,
         packingCharges: parseFloat(packingCharges) || 0,
         loadingCharges: parseFloat(loadingCharges) || 0,
         transportCharges: parseFloat(transportCharges) || 0,
@@ -211,22 +167,19 @@ export default function PackersSendQuoteScreen({ navigation, route }) {
         materialCharges: parseFloat(packingMaterialCharges) || parseFloat(miscCharges) || 0,
         storageCharges: parseFloat(storageCharges) || 0,
         insuranceCharges: parseFloat(insuranceCharges) || 0,
-        gstAmount: 0, // Can be added to form later if needed
-        teamSize: 3, // Default team size, can be added to form later
-        estimatedDays: 1, // Default days, can be added to form later
-        vehicleType: '', // Can be added to form later
-        vehicleCount: 1, // Default count
+        gstAmount: 0,
+        teamSize: 3,
+        estimatedDays: 1,
+        vehicleType: '',
+        vehicleCount: 1,
         fleetVehicleId: null,
         packingMaterials: null,
-        inclusions,
-        exclusions,
-        termsConditions,
+        inclusions, exclusions, termsConditions,
         notes: notes || null,
         validityDays: parseInt(validityDays) || 7,
       });
       showSuccess('Quote sent successfully!', 'Success', { actions: [{ label: 'OK', onPress: () => navigation.goBack(), variant: 'primary' }] });
     } catch (error) {
-      console.error('Error submitting quote:', error);
       showError(error?.response?.data?.error || 'Failed to send quote');
     } finally {
       setSubmitting(false);
@@ -235,11 +188,27 @@ export default function PackersSendQuoteScreen({ navigation, route }) {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.safe}>
-        <View style={styles.centered}>
-          <ActivityIndicator size="large" color={C.brand} />
+      <View style={s.safe}>
+        <StatusBar barStyle="light-content" backgroundColor={C.g900} />
+        <LinearGradient colors={[C.g900, '#064E3B', C.g700]} style={s.heroMin}>
+          <SafeAreaView edges={['top']}>
+            <View style={s.topBar}>
+              <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()}>
+                <Icon name="arrow-left" size={18} color="#fff" />
+              </TouchableOpacity>
+              <View style={s.titleWrap}>
+                <MaterialCommunityIcons name="truck-delivery" size={18} color={C.g400} />
+                <Text style={s.heroTitle}>Send Quote</Text>
+              </View>
+              <View style={{ width: 36 }} />
+            </View>
+          </SafeAreaView>
+        </LinearGradient>
+        <View style={s.centered}>
+          <ActivityIndicator size="large" color={C.g600} />
+          <Text style={s.centeredTxt}>Loading...</Text>
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
@@ -247,176 +216,100 @@ export default function PackersSendQuoteScreen({ navigation, route }) {
   const advance = calculateAdvance();
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Icon name="arrow-left" size={22} color={C.text} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Send Quote - Packers & Movers</Text>
-        <View style={{ width: 40 }} />
-      </View>
+    <SafeAreaView style={s.safe} edges={['top']}>
+      <StatusBar barStyle="light-content" backgroundColor={C.g900} />
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <LinearGradient colors={[C.g900, '#064E3B', C.g700]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.heroMin}>
+        <View style={s.deco1} /><View style={s.deco2} />
+        <View style={s.topBar}>
+          <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()}>
+            <Icon name="arrow-left" size={18} color="#fff" />
+          </TouchableOpacity>
+          <View style={s.titleWrap}>
+            <MaterialCommunityIcons name="truck-delivery" size={18} color={C.g400} />
+            <Text style={s.heroTitle}>Send Quote — Packers</Text>
+          </View>
+          <View style={{ width: 36 }} />
+        </View>
+      </LinearGradient>
+
+      <ScrollView style={s.scroll} contentContainerStyle={s.scrollContent} showsVerticalScrollIndicator={false}>
         {/* Request Summary */}
-        <View style={[styles.card, { backgroundColor: '#FFF4ED', borderColor: '#FFE4CC' }]}>
-          <Text style={[styles.cardTitle, { color: '#C2410C' }]}>Request Summary</Text>
-          <View style={styles.row}>
-            <Text style={styles.label}>Customer:</Text>
-            <Text style={styles.value}>{request?.customerName}</Text>
-          </View>
-          <View style={styles.row}>
-            <Text style={styles.label}>From:</Text>
-            <Text style={styles.value}>{request?.pickupCity}</Text>
-          </View>
-          <View style={styles.row}>
-            <Text style={styles.label}>To:</Text>
-            <Text style={styles.value}>{request?.dropCity}</Text>
-          </View>
-          {request?.movingDate && (
-            <View style={styles.row}>
-              <Text style={styles.label}>Moving Date:</Text>
-              <Text style={styles.value}>{new Date(request.movingDate).toLocaleDateString()}</Text>
+        <View style={[s.card, { backgroundColor: C.g50, borderColor: C.g100 }]}>
+          <View style={s.cardTitleRow}>
+            <View style={[s.cardIcon, { backgroundColor: C.card }]}>
+              <MaterialCommunityIcons name="truck-delivery" size={16} color={C.g600} />
             </View>
-          )}
-          {request?.propertyType && (
-            <View style={styles.row}>
-              <Text style={styles.label}>Property:</Text>
-              <Text style={styles.value}>{request?.propertyType}</Text>
-            </View>
-          )}
+            <Text style={[s.cardTitle, { color: C.g700 }]}>Request Summary</Text>
+          </View>
+          {request?.customerName && <View style={s.infoRow}><Text style={s.infoLabel}>Customer</Text><Text style={s.infoValue}>{request.customerName}</Text></View>}
+          {request?.pickupCity && <View style={s.infoRow}><Text style={s.infoLabel}>From</Text><Text style={s.infoValue}>{request.pickupCity}</Text></View>}
+          {request?.dropCity && <View style={s.infoRow}><Text style={s.infoLabel}>To</Text><Text style={s.infoValue}>{request.dropCity}</Text></View>}
+          {request?.movingDate && <View style={s.infoRow}><Text style={s.infoLabel}>Moving Date</Text><Text style={s.infoValue}>{new Date(request.movingDate).toLocaleDateString('en-IN')}</Text></View>}
+          {request?.propertyType && <View style={s.infoRow}><Text style={s.infoLabel}>Property</Text><Text style={s.infoValue}>{request.propertyType}</Text></View>}
         </View>
 
         {/* Template Selection */}
         {templates.length > 0 && (
-          <View style={styles.card}>
-            <View style={styles.cardHeader}>
-              <Text style={styles.cardTitle}>Use Template</Text>
-              <Icon name="file-text" size={18} color={C.blue} />
+          <View style={s.card}>
+            <View style={s.cardTitleRow}>
+              <View style={[s.cardIcon, { backgroundColor: C.blueL }]}>
+                <Icon name="file-text" size={16} color={C.blue} />
+              </View>
+              <Text style={s.cardTitle}>Use Template</Text>
             </View>
-            <Text style={[styles.label, { marginBottom: 12 }]}>
-              Select a template to auto-fill pricing, inclusions, and terms
-            </Text>
-
+            <Text style={[s.hint, { marginBottom: 12 }]}>Select a template to auto-fill pricing, inclusions, and terms</Text>
             <CustomDropdown
               label="Select Template (Optional)"
               value={selectedTemplateId}
               items={[
                 { label: '-- No Template --', value: '' },
-                ...templates.map((template) => ({
-                  label: `${template.name}${template.isDefault ? ' (Default)' : ''}`,
-                  value: template.id,
-                })),
+                ...templates.map((t) => ({ label: `${t.name}${t.isDefault ? ' (Default)' : ''}`, value: t.id })),
               ]}
               onValueChange={handleTemplateSelection}
               placeholder="-- No Template --"
             />
-
             {selectedTemplateId && (
-              <View style={{ marginTop: 12, padding: 12, backgroundColor: '#D1FAE5', borderRadius: 8 }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                  <Icon name="check-circle" size={16} color="#059669" />
-                  <Text style={{ fontSize: 13, color: '#059669', fontWeight: '600' }}>
-                    Template applied - Inclusions, Exclusions & Terms loaded
-                  </Text>
-                </View>
+              <View style={s.templateApplied}>
+                <Icon name="check-circle" size={15} color={C.g600} />
+                <Text style={s.templateAppliedTxt}>Template applied — inclusions, exclusions & terms loaded</Text>
               </View>
             )}
           </View>
         )}
 
-        {/* Pricing Breakdown */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Price Breakdown</Text>
+        {/* Price Breakdown */}
+        <View style={s.card}>
+          <View style={s.cardTitleRow}>
+            <View style={[s.cardIcon, { backgroundColor: C.g50 }]}>
+              <Ionicons name="receipt-outline" size={16} color={C.g600} />
+            </View>
+            <Text style={s.cardTitle}>Price Breakdown</Text>
+          </View>
 
-          <Text style={styles.inputLabel}>Packing Charges (₹)</Text>
-          <TextInput
-            style={styles.input}
-            value={packingCharges}
-            onChangeText={setPackingCharges}
-            placeholder="e.g., 3000"
-            keyboardType="decimal-pad"
-            placeholderTextColor={C.muted}
-          />
-
-          <Text style={styles.inputLabel}>Loading Charges (₹)</Text>
-          <TextInput
-            style={styles.input}
-            value={loadingCharges}
-            onChangeText={setLoadingCharges}
-            placeholder="e.g., 2000"
-            keyboardType="decimal-pad"
-            placeholderTextColor={C.muted}
-          />
-
-          <Text style={styles.inputLabel}>Transport Charges (₹)</Text>
-          <TextInput
-            style={styles.input}
-            value={transportCharges}
-            onChangeText={setTransportCharges}
-            placeholder="e.g., 8000"
-            keyboardType="decimal-pad"
-            placeholderTextColor={C.muted}
-          />
-
-          <Text style={styles.inputLabel}>Unloading Charges (₹)</Text>
-          <TextInput
-            style={styles.input}
-            value={unloadingCharges}
-            onChangeText={setUnloadingCharges}
-            placeholder="e.g., 2000"
-            keyboardType="decimal-pad"
-            placeholderTextColor={C.muted}
-          />
-
-          <Text style={styles.inputLabel}>Unpacking Charges (₹)</Text>
-          <TextInput
-            style={styles.input}
-            value={unpackingCharges}
-            onChangeText={setUnpackingCharges}
-            placeholder="e.g., 1500"
-            keyboardType="decimal-pad"
-            placeholderTextColor={C.muted}
-          />
-
-          <Text style={styles.inputLabel}>Packing Material Charges (₹)</Text>
-          <TextInput
-            style={styles.input}
-            value={packingMaterialCharges}
-            onChangeText={setPackingMaterialCharges}
-            placeholder="e.g., 2500"
-            keyboardType="decimal-pad"
-            placeholderTextColor={C.muted}
-          />
-
-          <Text style={styles.inputLabel}>Insurance Charges (₹)</Text>
-          <TextInput
-            style={styles.input}
-            value={insuranceCharges}
-            onChangeText={setInsuranceCharges}
-            placeholder="e.g., 500"
-            keyboardType="decimal-pad"
-            placeholderTextColor={C.muted}
-          />
-
-          <Text style={styles.inputLabel}>Storage Charges (₹)</Text>
-          <TextInput
-            style={styles.input}
-            value={storageCharges}
-            onChangeText={setStorageCharges}
-            placeholder="e.g., 0 (if applicable)"
-            keyboardType="decimal-pad"
-            placeholderTextColor={C.muted}
-          />
-
-          <Text style={styles.inputLabel}>Miscellaneous Charges (₹)</Text>
-          <TextInput
-            style={styles.input}
-            value={miscCharges}
-            onChangeText={setMiscCharges}
-            placeholder="e.g., 1000"
-            keyboardType="decimal-pad"
-            placeholderTextColor={C.muted}
-          />
+          {[
+            { label: 'Packing Charges (₹)', state: packingCharges, setter: setPackingCharges, ph: 'e.g., 3000' },
+            { label: 'Loading Charges (₹)', state: loadingCharges, setter: setLoadingCharges, ph: 'e.g., 2000' },
+            { label: 'Transport Charges (₹)', state: transportCharges, setter: setTransportCharges, ph: 'e.g., 8000' },
+            { label: 'Unloading Charges (₹)', state: unloadingCharges, setter: setUnloadingCharges, ph: 'e.g., 2000' },
+            { label: 'Unpacking Charges (₹)', state: unpackingCharges, setter: setUnpackingCharges, ph: 'e.g., 1500' },
+            { label: 'Packing Material Charges (₹)', state: packingMaterialCharges, setter: setPackingMaterialCharges, ph: 'e.g., 2500' },
+            { label: 'Insurance Charges (₹)', state: insuranceCharges, setter: setInsuranceCharges, ph: 'e.g., 500' },
+            { label: 'Storage Charges (₹)', state: storageCharges, setter: setStorageCharges, ph: 'e.g., 0' },
+            { label: 'Miscellaneous Charges (₹)', state: miscCharges, setter: setMiscCharges, ph: 'e.g., 1000' },
+          ].map((field) => (
+            <View key={field.label}>
+              <Text style={s.inputLabel}>{field.label}</Text>
+              <TextInput
+                style={s.input}
+                value={field.state}
+                onChangeText={field.setter}
+                placeholder={field.ph}
+                keyboardType="decimal-pad"
+                placeholderTextColor={C.muted}
+              />
+            </View>
+          ))}
 
           <CustomDropdown
             label="Advance Payment Required"
@@ -434,83 +327,107 @@ export default function PackersSendQuoteScreen({ navigation, route }) {
 
         {/* Quote Summary */}
         {total > 0 && (
-          <View style={[styles.card, { backgroundColor: '#F0F9FF', borderColor: '#BAE6FD' }]}>
-            <Text style={[styles.cardTitle, { color: '#0369A1' }]}>Quote Summary</Text>
-            <View style={styles.row}>
-              <Text style={styles.summaryLabel}>Total Amount</Text>
-              <Text style={styles.summaryValue}>₹{total.toFixed(0)}</Text>
+          <View style={[s.card, { backgroundColor: C.g50, borderColor: C.g100 }]}>
+            <View style={s.cardTitleRow}>
+              <View style={[s.cardIcon, { backgroundColor: C.card }]}>
+                <Ionicons name="calculator-outline" size={16} color={C.g600} />
+              </View>
+              <Text style={[s.cardTitle, { color: C.g700 }]}>Quote Summary</Text>
             </View>
-            <View style={styles.divider} />
-            <View style={styles.row}>
-              <Text style={styles.totalLabel}>Advance ({advancePercent}%)</Text>
-              <Text style={styles.totalValue}>₹{advance.toFixed(0)}</Text>
+            <View style={s.infoRow}>
+              <Text style={s.infoLabel}>Total Amount</Text>
+              <Text style={[s.infoValue, { color: C.g700, fontSize: 18 }]}>₹{total.toFixed(0)}</Text>
             </View>
-            <View style={styles.row}>
-              <Text style={styles.label}>Balance on delivery</Text>
-              <Text style={styles.value}>₹{(total - advance).toFixed(0)}</Text>
+            <View style={s.divider} />
+            <View style={s.infoRow}>
+              <Text style={[s.infoLabel, { fontWeight: '700', color: C.text }]}>Advance ({advancePercent}%)</Text>
+              <Text style={[s.infoValue, { color: C.g600 }]}>₹{advance.toFixed(0)}</Text>
+            </View>
+            <View style={s.infoRow}>
+              <Text style={s.infoLabel}>Balance on delivery</Text>
+              <Text style={s.infoValue}>₹{(total - advance).toFixed(0)}</Text>
             </View>
           </View>
         )}
 
         {/* Inclusions */}
-        <View style={styles.card}>
-          <View style={styles.cardHeader}>
-            <Text style={styles.cardTitle}>Inclusions ({inclusions.length})</Text>
+        <View style={s.card}>
+          <View style={s.cardTitleRowSpaced}>
+            <View style={s.cardTitleRow}>
+              <View style={[s.cardIcon, { backgroundColor: '#DCFCE7' }]}>
+                <Icon name="check-circle" size={16} color="#16A34A" />
+              </View>
+              <Text style={s.cardTitle}>Inclusions ({inclusions.length})</Text>
+            </View>
             <TouchableOpacity onPress={() => openEditModal('inclusions')}>
-              <Icon name="edit-2" size={18} color={C.brand} />
+              <Icon name="edit-2" size={18} color={C.g600} />
             </TouchableOpacity>
           </View>
-          <View style={styles.chipContainer}>
+          <View style={s.chipContainer}>
             {inclusions.map((item, idx) => (
-              <View key={idx} style={[styles.chip, { backgroundColor: '#D1FAE5' }]}>
-                <Icon name="check-circle" size={14} color="#059669" />
-                <Text style={[styles.chipText, { color: '#059669' }]}>{item}</Text>
+              <View key={idx} style={[s.chip, { backgroundColor: '#DCFCE7' }]}>
+                <Icon name="check" size={12} color="#16A34A" />
+                <Text style={[s.chipTxt, { color: '#166534' }]}>{item}</Text>
               </View>
             ))}
           </View>
         </View>
 
         {/* Exclusions */}
-        <View style={styles.card}>
-          <View style={styles.cardHeader}>
-            <Text style={styles.cardTitle}>Exclusions ({exclusions.length})</Text>
+        <View style={s.card}>
+          <View style={s.cardTitleRowSpaced}>
+            <View style={s.cardTitleRow}>
+              <View style={[s.cardIcon, { backgroundColor: C.redL }]}>
+                <Icon name="x-circle" size={16} color={C.red} />
+              </View>
+              <Text style={s.cardTitle}>Exclusions ({exclusions.length})</Text>
+            </View>
             <TouchableOpacity onPress={() => openEditModal('exclusions')}>
-              <Icon name="edit-2" size={18} color={C.brand} />
+              <Icon name="edit-2" size={18} color={C.g600} />
             </TouchableOpacity>
           </View>
-          <View style={styles.chipContainer}>
+          <View style={s.chipContainer}>
             {exclusions.map((item, idx) => (
-              <View key={idx} style={[styles.chip, { backgroundColor: '#FEE2E2' }]}>
-                <Icon name="x-circle" size={14} color="#DC2626" />
-                <Text style={[styles.chipText, { color: '#DC2626' }]}>{item}</Text>
+              <View key={idx} style={[s.chip, { backgroundColor: C.redL }]}>
+                <Icon name="x" size={12} color={C.red} />
+                <Text style={[s.chipTxt, { color: C.red }]}>{item}</Text>
               </View>
             ))}
           </View>
         </View>
 
-        {/* Terms & Conditions */}
-        <View style={styles.card}>
-          <View style={styles.cardHeader}>
-            <Text style={styles.cardTitle}>Terms & Conditions ({termsConditions.length})</Text>
+        {/* Terms */}
+        <View style={s.card}>
+          <View style={s.cardTitleRowSpaced}>
+            <View style={s.cardTitleRow}>
+              <View style={[s.cardIcon, { backgroundColor: C.blueL }]}>
+                <Icon name="file-text" size={16} color={C.blue} />
+              </View>
+              <Text style={s.cardTitle}>Terms & Conditions ({termsConditions.length})</Text>
+            </View>
             <TouchableOpacity onPress={() => openEditModal('terms')}>
-              <Icon name="edit-2" size={18} color={C.brand} />
+              <Icon name="edit-2" size={18} color={C.g600} />
             </TouchableOpacity>
           </View>
           {termsConditions.map((term, idx) => (
-            <View key={idx} style={styles.termRow}>
-              <Text style={styles.termNumber}>{idx + 1}.</Text>
-              <Text style={styles.termText}>{term}</Text>
+            <View key={idx} style={s.termRow}>
+              <Text style={s.termNum}>{idx + 1}.</Text>
+              <Text style={s.termTxt}>{term}</Text>
             </View>
           ))}
         </View>
 
         {/* Additional Info */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Additional Information</Text>
-
-          <Text style={styles.inputLabel}>Notes for Customer</Text>
+        <View style={s.card}>
+          <View style={s.cardTitleRow}>
+            <View style={[s.cardIcon, { backgroundColor: C.bg }]}>
+              <Icon name="info" size={16} color={C.muted} />
+            </View>
+            <Text style={s.cardTitle}>Additional Information</Text>
+          </View>
+          <Text style={s.inputLabel}>Notes for Customer</Text>
           <TextInput
-            style={[styles.input, styles.textArea]}
+            style={[s.input, s.textArea]}
             value={notes}
             onChangeText={setNotes}
             placeholder="Any special notes..."
@@ -519,10 +436,9 @@ export default function PackersSendQuoteScreen({ navigation, route }) {
             numberOfLines={3}
             textAlignVertical="top"
           />
-
-          <Text style={styles.inputLabel}>Quote Valid For (Days)</Text>
+          <Text style={s.inputLabel}>Quote Valid For (Days)</Text>
           <TextInput
-            style={styles.input}
+            style={s.input}
             value={validityDays}
             onChangeText={setValidityDays}
             placeholder="3"
@@ -534,70 +450,53 @@ export default function PackersSendQuoteScreen({ navigation, route }) {
         <View style={{ height: 100 }} />
       </ScrollView>
 
-      {/* Submit Button */}
-      <View style={styles.footer}>
-        <TouchableOpacity
-          style={[styles.submitBtn, submitting && styles.submitBtnDisabled]}
-          onPress={handleSubmit}
-          disabled={submitting}
-        >
-          {submitting ? (
-            <ActivityIndicator size="small" color="#fff" />
-          ) : (
+      <View style={s.footer}>
+        <TouchableOpacity style={[s.submitBtn, submitting && { opacity: 0.6 }]} onPress={handleSubmit} disabled={submitting}>
+          {submitting ? <ActivityIndicator size="small" color="#fff" /> : (
             <>
               <Icon name="send" size={18} color="#fff" />
-              <Text style={styles.submitBtnText}>
-                Send Quote{total > 0 ? ` (₹${total.toFixed(0)})` : ''}
-              </Text>
+              <Text style={s.submitBtnTxt}>Send Quote{total > 0 ? ` (₹${total.toFixed(0)})` : ''}</Text>
             </>
           )}
         </TouchableOpacity>
       </View>
 
-      {/* Edit Modal */}
-      <Modal
-        visible={editModalVisible}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setEditModalVisible(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>
+      <Modal visible={editModalVisible} animationType="slide" transparent onRequestClose={() => setEditModalVisible(false)}>
+        <View style={s.modalOverlay}>
+          <View style={s.modalSheet}>
+            <View style={s.modalHandle} />
+            <View style={s.modalHeader}>
+              <Text style={s.modalTitle}>
                 Edit {editType === 'inclusions' ? 'Inclusions' : editType === 'exclusions' ? 'Exclusions' : 'Terms'}
               </Text>
               <TouchableOpacity onPress={() => setEditModalVisible(false)}>
-                <Icon name="x" size={24} color={C.text} />
+                <Icon name="x" size={22} color={C.text} />
               </TouchableOpacity>
             </View>
-
-            <ScrollView style={styles.modalBody}>
+            <ScrollView style={{ maxHeight: 300, paddingHorizontal: 20 }}>
               {editList.map((item, idx) => (
-                <View key={idx} style={styles.modalItem}>
-                  <Text style={styles.modalItemText}>{item}</Text>
+                <View key={idx} style={s.modalItem}>
+                  <Text style={s.modalItemTxt}>{item}</Text>
                   <TouchableOpacity onPress={() => removeItemFromList(item)}>
                     <Icon name="trash-2" size={18} color={C.red} />
                   </TouchableOpacity>
                 </View>
               ))}
             </ScrollView>
-
-            <View style={styles.modalAddSection}>
+            <View style={s.modalAddRow}>
               <TextInput
-                style={styles.modalInput}
+                style={s.modalInput}
                 value={newItemText}
                 onChangeText={setNewItemText}
                 placeholder="Add new item..."
                 placeholderTextColor={C.muted}
               />
-              <TouchableOpacity style={styles.modalAddBtn} onPress={addItemToList}>
+              <TouchableOpacity style={s.modalAddBtn} onPress={addItemToList}>
                 <Icon name="plus" size={20} color="#fff" />
               </TouchableOpacity>
             </View>
-
-            <TouchableOpacity style={styles.modalSaveBtn} onPress={saveEditModal}>
-              <Text style={styles.modalSaveBtnText}>Save Changes</Text>
+            <TouchableOpacity style={s.modalSaveBtn} onPress={saveEditModal}>
+              <Text style={s.modalSaveBtnTxt}>Save Changes</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -606,245 +505,70 @@ export default function PackersSendQuoteScreen({ navigation, route }) {
   );
 }
 
-const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: C.bg,
-  },
-  centered: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: C.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: C.border,
-  },
-  backBtn: {
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: C.text,
-  },
-  content: {
-    flex: 1,
-    padding: 16,
-  },
+const s = StyleSheet.create({
+  safe: { flex: 1, backgroundColor: C.bg },
+  centered: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 12 },
+  centeredTxt: { fontSize: 15, color: C.muted },
+
+  heroMin: { paddingHorizontal: 16, paddingBottom: 16 },
+  deco1: { position: 'absolute', top: -40, right: -40, width: 160, height: 160, borderRadius: 80, backgroundColor: 'rgba(52,211,153,0.08)' },
+  deco2: { position: 'absolute', bottom: -20, left: -20, width: 100, height: 100, borderRadius: 50, backgroundColor: 'rgba(52,211,153,0.06)' },
+  topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 12 },
+  backBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center' },
+  titleWrap: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  heroTitle: { fontSize: 17, fontWeight: '700', color: '#fff' },
+
+  scroll: { flex: 1 },
+  scrollContent: { padding: 16 },
+
   card: {
-    backgroundColor: C.surface,
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: C.border,
+    backgroundColor: C.card, borderRadius: 16, padding: 16, marginBottom: 12,
+    borderWidth: 1, borderColor: C.border,
+    shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 2,
   },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  cardTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: C.text,
-  },
-  row: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 8,
-  },
-  label: {
-    fontSize: 14,
-    color: C.muted,
-  },
-  value: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: C.text,
-  },
-  inputLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: C.text,
-    marginBottom: 8,
-    marginTop: 8,
-  },
-  input: {
-    backgroundColor: C.bg,
-    borderWidth: 1,
-    borderColor: C.border,
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 14,
-    color: C.text,
-  },
-  textArea: {
-    height: 80,
-  },
-  summaryLabel: {
-    fontSize: 14,
-    color: C.muted,
-  },
-  summaryValue: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: C.text,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: C.border,
-    marginVertical: 12,
-  },
-  totalLabel: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: C.text,
-  },
-  totalValue: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: C.brand,
-  },
-  chipContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  chip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-  },
-  chipText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  termRow: {
-    flexDirection: 'row',
-    marginBottom: 8,
-  },
-  termNumber: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: C.brand,
-    marginRight: 8,
-  },
-  termText: {
-    flex: 1,
-    fontSize: 14,
-    color: C.text,
-  },
+  cardTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 14 },
+  cardTitleRowSpaced: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 },
+  cardIcon: { width: 32, height: 32, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
+  cardTitle: { fontSize: 15, fontWeight: '700', color: C.text },
+
+  infoRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 6 },
+  infoLabel: { fontSize: 13, color: C.muted },
+  infoValue: { fontSize: 14, fontWeight: '600', color: C.text },
+  divider: { height: 1, backgroundColor: C.border, marginVertical: 8 },
+
+  hint: { fontSize: 13, color: C.muted },
+  templateApplied: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: C.g50, borderRadius: 10, padding: 12, marginTop: 12 },
+  templateAppliedTxt: { fontSize: 13, color: C.g700, fontWeight: '600', flex: 1 },
+
+  inputLabel: { fontSize: 13, fontWeight: '600', color: C.text, marginBottom: 8, marginTop: 14 },
+  input: { backgroundColor: C.bg, borderWidth: 1, borderColor: C.border, borderRadius: 10, padding: 12, fontSize: 14, color: C.text },
+  textArea: { height: 80 },
+
+  chipContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  chip: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20 },
+  chipTxt: { fontSize: 12, fontWeight: '600' },
+
+  termRow: { flexDirection: 'row', marginBottom: 8 },
+  termNum: { fontSize: 13, fontWeight: '700', color: C.g600, marginRight: 8, width: 18 },
+  termTxt: { flex: 1, fontSize: 13, color: C.sub, lineHeight: 20 },
+
   footer: {
-    padding: 16,
-    backgroundColor: C.surface,
-    borderTopWidth: 1,
-    borderTopColor: C.border,
+    padding: 16, backgroundColor: C.card, borderTopWidth: 1, borderTopColor: C.border,
+    shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 12, shadowOffset: { width: 0, height: -3 }, elevation: 12,
   },
-  submitBtn: {
-    backgroundColor: C.brand,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 14,
-    borderRadius: 10,
-  },
-  submitBtnDisabled: {
-    opacity: 0.6,
-  },
-  submitBtnText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#fff',
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'flex-end',
-  },
-  modalContent: {
-    backgroundColor: C.surface,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    padding: 20,
-    maxHeight: '80%',
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: C.text,
-  },
-  modalBody: {
-    maxHeight: 300,
-  },
-  modalItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 12,
-    backgroundColor: C.bg,
-    borderRadius: 8,
-    marginBottom: 8,
-  },
-  modalItemText: {
-    flex: 1,
-    fontSize: 14,
-    color: C.text,
-  },
-  modalAddSection: {
-    flexDirection: 'row',
-    gap: 8,
-    marginTop: 16,
-    marginBottom: 16,
-  },
-  modalInput: {
-    flex: 1,
-    backgroundColor: C.bg,
-    borderWidth: 1,
-    borderColor: C.border,
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 14,
-    color: C.text,
-  },
-  modalAddBtn: {
-    backgroundColor: C.brand,
-    width: 48,
-    height: 48,
-    borderRadius: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalSaveBtn: {
-    backgroundColor: C.brand,
-    paddingVertical: 14,
-    borderRadius: 10,
-    alignItems: 'center',
-  },
-  modalSaveBtnText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#fff',
-  },
+  submitBtn: { backgroundColor: C.g600, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 15, borderRadius: 12 },
+  submitBtnTxt: { fontSize: 16, fontWeight: '700', color: '#fff' },
+
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+  modalSheet: { backgroundColor: C.card, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingBottom: 24 },
+  modalHandle: { width: 36, height: 4, borderRadius: 2, backgroundColor: C.border, alignSelf: 'center', marginTop: 12, marginBottom: 4 },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: C.border },
+  modalTitle: { fontSize: 17, fontWeight: '700', color: C.text },
+  modalItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 12, backgroundColor: C.bg, borderRadius: 10, marginBottom: 8 },
+  modalItemTxt: { flex: 1, fontSize: 14, color: C.text },
+  modalAddRow: { flexDirection: 'row', gap: 10, margin: 20 },
+  modalInput: { flex: 1, backgroundColor: C.bg, borderWidth: 1, borderColor: C.border, borderRadius: 10, padding: 12, fontSize: 14, color: C.text },
+  modalAddBtn: { backgroundColor: C.g600, width: 48, height: 48, borderRadius: 10, justifyContent: 'center', alignItems: 'center' },
+  modalSaveBtn: { backgroundColor: C.g600, marginHorizontal: 20, paddingVertical: 14, borderRadius: 12, alignItems: 'center' },
+  modalSaveBtnTxt: { fontSize: 16, fontWeight: '700', color: '#fff' },
 });
