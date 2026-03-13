@@ -53,6 +53,7 @@ const SERVICE_ICONS = {
   packers: 'package-variant-closed',
   bike: 'motorbike',
   car: 'car',
+  b2b: 'office-building',
 };
 
 const SERVICE_COLORS = {
@@ -62,6 +63,7 @@ const SERVICE_COLORS = {
   packers: '#10B981',
   bike: '#EF4444',
   car: '#06B6D4',
+  b2b: '#22C55E',
 };
 
 const STATUS_COLORS = {
@@ -73,6 +75,12 @@ const STATUS_COLORS = {
   IN_PROGRESS: '#F59E0B',
   COMPLETED: '#64748B',
   CANCELLED: '#EF4444',
+  OPEN_FOR_QUOTES: '#F59E0B',
+  QUOTES_RECEIVED: '#3B82F6',
+  SUPER_QUOTE_SENT: '#8B5CF6',
+  TRIPS_CREATED: '#06B6D4',
+  INVOICED: '#6366F1',
+  PAID: '#059669',
 };
 
 export default function ChatListScreen() {

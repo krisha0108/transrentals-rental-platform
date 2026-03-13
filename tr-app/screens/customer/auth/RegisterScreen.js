@@ -623,13 +623,48 @@ export default function RegisterScreen({ navigation }) {
                 >
                   <Text style={styles.loginText}>
                     Already have an account?{" "}
-                    <Text 
-                      style={styles.loginLink} 
+                    <Text
+                      style={styles.loginLink}
                       onPress={() => navigation.navigate('Login')}
                     >
                       Log In
                     </Text>
                   </Text>
+                  <TouchableOpacity
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      paddingHorizontal:10,
+                      borderRadius: responsiveScale(14),
+                      height: responsiveScale(50),
+                      marginTop: responsiveScale(14),
+                      backgroundColor: '#1E293B',
+                      gap: responsiveScale(10),
+                      elevation: 4,
+                      shadowColor: '#000',
+                      shadowOffset: { width: 0, height: 4 },
+                      shadowOpacity: 0.25,
+                      shadowRadius: 8,
+                    }}
+                    onPress={() => navigation.navigate('B2BRegister')}
+                    activeOpacity={0.8}
+                  >
+                    <View style={{
+                      width: responsiveScale(28),
+                      height: responsiveScale(28),
+                      borderRadius: responsiveScale(8),
+                      backgroundColor: '#22C55E',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}>
+                      <Icon name="briefcase" size={responsiveScale(14)} color="#fff" />
+                    </View>
+                    <Text style={{ fontSize: responsiveScale(15), fontWeight: '700', color: '#fff' }}>
+                      B2B / Corporate Register
+                    </Text>
+                    <Icon name="chevron-right" size={responsiveScale(16)} color="#22C55E" />
+                  </TouchableOpacity>
                 </Animated.View>
               </Animated.View>
             </View>

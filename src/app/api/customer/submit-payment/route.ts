@@ -67,6 +67,19 @@ export async function POST(request: NextRequest) {
           });
           break;
 
+        case 'chauffeur':
+          booking = await prisma.chauffeur_bookings.update({
+            where: { id: bookingId },
+            data: {
+              transactionId: transactionId,
+              paidAmount: amount || 0,
+              paymentMethod: paymentMethod || 'upi',
+              paymentStatus: 'SUBMITTED',
+              status: 'PAYMENT_SUBMITTED',
+            },
+          });
+          break;
+
         case 'bus':
           booking = await prisma.bus_bookings.update({
             where: { id: bookingId },

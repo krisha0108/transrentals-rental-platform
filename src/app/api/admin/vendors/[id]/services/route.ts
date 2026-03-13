@@ -255,3 +255,94 @@ export async function PATCH(
     );
   }
 }
+
+// DELETE - Remove an approved service and notify vendor
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const currentUser = await prisma.admin_users.findUnique({
+      where: { id: session.user.id },
+    });
+
+    if (!currentUser || !['SUPER_ADMIN', 'ADMIN', 'MANAGER'].includes(currentUser.role)) {
+      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
+    }
+
+    const { id: vendorId } = await params;
+    const { searchParams } = new URL(request.url);
+    const approvedServiceId = searchParams.get('approvedServiceId');
+
+    // Bulk delete — body contains approvedServiceIds array
+    let bodyData: any = null;
+    try { bodyData = await request.json(); } catch {}
+
+    if (bodyData?.approvedServiceIds && Array.isArray(bodyData.approvedServiceIds)) {
+      const ids: string[] = bodyData.approvedServiceIds;
+      if (ids.length === 0) {
+        return NextResponse.json({ error: 'No IDs provided' }, { status: 400 });
+      }
+      const services = await prisma.vendor_approved_services.findMany({
+        where: { id: { in: ids }, vendorId },
+        include: { services: { select: { name: true } } },
+      });
+      if (services.length === 0) {
+        return NextResponse.json({ error: 'No matching services found' }, { status: 404 });
+      }
+      await prisma.vendor_approved_services.updateMany({
+        where: { id: { in: ids }, vendorId },
+        data: { isActive: false },
+      });
+      sendVendorDirectNotification({
+        vendorId,
+        title: '🚫 Services Removed',
+        body: `${services.length} service${services.length > 1 ? 's have' : ' has'} been removed by the admin.`,
+        type: 'service_rejected',
+        serviceType: 'general',
+      }).catch((err: any) => console.error('[SvcBulkDelete] Vendor notify failed:', err));
+      return NextResponse.json({ success: true, message: `Removed ${services.length} services` });
+    }
+
+    if (!approvedServiceId) {
+      return NextResponse.json({ error: 'approvedServiceId is required' }, { status: 400 });
+    }
+
+    const approvedService = await prisma.vendor_approved_services.findFirst({
+      where: { id: approvedServiceId, vendorId },
+      include: { services: { select: { name: true } } },
+    });
+
+    if (!approvedService) {
+      return NextResponse.json({ error: 'Approved service not found' }, { status: 404 });
+    }
+
+    await prisma.vendor_approved_services.update({
+      where: { id: approvedServiceId },
+      data: { isActive: false },
+    });
+
+    const serviceName = approvedService.services?.name || 'the service';
+
+    sendVendorDirectNotification({
+      vendorId,
+      title: '🚫 Service Removed',
+      body: `Your access to ${serviceName} has been removed by the admin.`,
+      type: 'service_rejected',
+      serviceType: 'general',
+    }).catch((err: any) => console.error('[SvcDelete] Vendor notify failed:', err));
+
+    return NextResponse.json({ success: true, message: 'Service removed successfully' });
+  } catch (error: any) {
+    logger.error('Delete approved service error', error);
+    return NextResponse.json(
+      { error: 'Failed to remove service', details: error?.message },
+      { status: 500 }
+    );
+  }
+}

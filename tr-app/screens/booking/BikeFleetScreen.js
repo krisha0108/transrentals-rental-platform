@@ -134,6 +134,18 @@ const BikeFleetScreen = () => {
   const [showPhoneModal, setShowPhoneModal] = useState(false);
   const [phoneNumber, setPhoneNumber] = useState('');
   const [phoneLoading, setPhoneLoading] = useState(false);
+  const [isB2BCustomer, setIsB2BCustomer] = useState(false);
+
+  // Check B2B status on mount
+  useEffect(() => {
+    (async () => {
+      const data = await AsyncStorage.getItem('customer');
+      if (data) {
+        const c = JSON.parse(data);
+        if (c.isB2B === true && c.b2bStatus === 'APPROVED') setIsB2BCustomer(true);
+      }
+    })();
+  }, []);
 
   // Fetch locations on mount
   useEffect(() => {
@@ -359,7 +371,7 @@ const BikeFleetScreen = () => {
       if (response?.success || response?.quoteRequest) {
         setShowBookingModal(false);
         navigation.navigate('BookingConfirmation', {
-          booking_id: response?.quoteRequest?.id || 'TRX-' + Date.now(),
+          booking_id: response?.quoteRequest?.requestNumber || response?.quoteRequest?.id || 'TRX-' + Date.now(),
           service_name: 'Bike Rental',
           service_type: 'bike',
         });
@@ -906,6 +918,16 @@ const BikeFleetScreen = () => {
               </View>
             </View>
           </ScrollView>
+
+          {isB2BCustomer && (
+            <View style={{ marginHorizontal: wp('4%'), marginBottom: hp('1.5%'), backgroundColor: '#FFF7ED', borderWidth: 1, borderColor: '#FDBA74', borderRadius: wp('3%'), padding: wp('3.5%'), flexDirection: 'row', alignItems: 'flex-start', gap: wp('2.5%') }}>
+              <Ionicons name="alert-circle" size={wp('5%')} color="#EA580C" style={{ marginTop: 2 }} />
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: wp('3.3%'), fontWeight: '700', color: '#9A3412', marginBottom: 3 }}>Advance Payment Required</Text>
+                <Text style={{ fontSize: wp('2.9%'), color: '#C2410C', lineHeight: wp('4.2%') }}>Bike Rental is not covered under your B2B agreement. This booking will not be counted as a B2B booking — advance payment will be required before confirmation.</Text>
+              </View>
+            </View>
+          )}
 
           <View style={styles.bookingActions}>
             <TouchableOpacity

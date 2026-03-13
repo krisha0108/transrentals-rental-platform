@@ -270,7 +270,10 @@ const OutstationScreen = () => {
 
       if (response.success || response.id || response.quoteRequest) {
         navigation.navigate('BookingConfirmation', {
+          booking_id: response?.quoteRequest?.requestNumber || response?.quoteRequest?.id || response?.id,
           bookingType: 'bus',
+          service_name: 'Bus Rental',
+          service_type: 'bus',
           message: 'Your bus rental quote request has been submitted. Vendors will send you quotes shortly.'
         });
       } else {

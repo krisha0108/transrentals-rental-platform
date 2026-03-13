@@ -193,7 +193,7 @@ export async function POST(
         await sendNotificationToCustomer(
           conversation.customerId,
           { title: '💬 New message from vendor', body: msgPreview },
-          { type: 'chat', screen: 'Chat', conversationId }
+          { type: 'chat', screen: 'BookingChat', conversationId, bookingId: conversation.bookingId || '', bookingType: conversation.bookingType || '' }
         );
       } else if (!isFromVendor && conversation.vendorId) {
         // Customer sent → notify vendor

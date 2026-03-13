@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, Platform, Clipboard } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -84,6 +84,16 @@ import notifee, { AndroidStyle, AndroidImportance, EventType } from '@notifee/re
 import { NotificationProvider, useInAppNotification } from './contexts/NotificationContext';
 import { AppState } from 'react-native';
 import { BASE_URL } from './screens/api';
+// B2B Screens
+import B2BRegisterScreen from './screens/b2b/B2BRegisterScreen';
+import B2BDashboardScreen from './screens/b2b/B2BDashboardScreen';
+import B2BCreateBookingScreen from './screens/b2b/B2BCreateBookingScreen';
+import B2BBookingsListScreen from './screens/b2b/B2BBookingsListScreen';
+import B2BBookingDetailScreen from './screens/b2b/B2BBookingDetailScreen';
+import B2BOtpVerifyScreen from './screens/b2b/B2BOtpVerifyScreen';
+import B2BChatScreen from './screens/b2b/B2BChatScreen';
+import B2BInvoicesScreen from './screens/b2b/B2BInvoicesScreen';
+import B2BInvoiceDetailScreen from './screens/b2b/B2BInvoiceDetailScreen';
 
 let badgeCount = 0;
 let pendingNotificationData = null; // Store notification data when app opens from background press
@@ -178,6 +188,20 @@ const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();  
 
 function CustomerDashboardTab() {
+  const [isB2B, setIsB2B] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const raw = await AsyncStorage.getItem('customer');
+        if (raw) {
+          const customer = JSON.parse(raw);
+          setIsB2B(customer?.isB2B === true && customer?.b2bStatus === 'APPROVED');
+        }
+      } catch (e) {}
+    })();
+  }, []);
+
   return (
     <Tab.Navigator
       initialRouteName="Home"
@@ -192,10 +216,12 @@ function CustomerDashboardTab() {
             iconName = focused ? 'car-sport' : 'car-sport-outline';
           } else if (route.name === 'Chat') {
             iconName = focused ? 'chatbubble-ellipses' : 'chatbubble-ellipses-outline';
+          } else if (route.name === 'B2B') {
+            iconName = focused ? 'briefcase' : 'briefcase-outline';
           }
           return (
             <View style={styles.iconContainernavi}>
-              {focused && <View style={styles.activeTabDiv} />} 
+              {focused && <View style={styles.activeTabDiv} />}
               <Ionicons
                 name={iconName}
                 size={25}
@@ -236,6 +262,7 @@ function CustomerDashboardTab() {
       })}
     >
       <Tab.Screen name="Home" component={CustomerDashboard} />
+      {isB2B && <Tab.Screen name="B2B" component={B2BDashboardScreen} />}
       <Tab.Screen name="Payments" component={ExpensesScreen} />
       <Tab.Screen name="Bookings" component={MyBookingsScreen} />
       <Tab.Screen name="Chat" component={BookingChatListScreen} />
@@ -391,9 +418,10 @@ function AppContent() {
           const notificationType = remoteMessage.data?.type || 'general';
 
           // Build notification config
+          const displayBody = messageBody || remoteMessage.data?.body || 'You have a new notification';
           const notificationConfig = {
-            title: remoteMessage.notification?.title || 'New Notification',
-            body: messageBody,
+            title: remoteMessage.notification?.title || remoteMessage.data?.title || 'New Notification',
+            body: displayBody,
             android: {
               channelId,
               smallIcon: 'ic_notification',
@@ -406,7 +434,7 @@ function AppContent() {
               // Use BigText style for better formatting
               style: {
                 type: AndroidStyle.BIGTEXT,
-                text: messageBody,
+                text: displayBody,
               },
             },
             data: remoteMessage.data,
@@ -443,7 +471,36 @@ function AppContent() {
 
         const title = (data.title || '').toLowerCase();
         const body = (data.body || '').toLowerCase();
+        const notifType = (data.type || '').toLowerCase();
         let serviceType = data.serviceType || data.service_type;
+
+        // Check if this is a chat notification
+        if (notifType === 'chat' || data.screen === 'BookingChat' || data.screen === 'Chat') {
+          const chatBookingId = data.bookingId || data.booking_id;
+          if (chatBookingId && chatBookingId !== 'null' && chatBookingId.length >= 10) {
+            navigation.navigate('BookingChat', {
+              bookingId: chatBookingId,
+              bookingType: data.bookingType || data.booking_type || '',
+            });
+          } else {
+            navigation.navigate('CustomerDashboard', { screen: 'Chat' });
+          }
+          return;
+        }
+
+        // Check if this is a B2B notification
+        const isB2BNotif = notifType.startsWith('b2b_') || data.screen === 'B2BBookingDetail'
+          || title.includes('b2b') || body.includes('b2b');
+
+        if (isB2BNotif) {
+          const bookingId = data.bookingId || data.booking_id;
+          if (bookingId && bookingId !== 'null' && bookingId.length >= 10) {
+            navigation.navigate('B2BBookingDetail', { bookingId });
+          } else {
+            navigation.navigate('B2BDashboard');
+          }
+          return;
+        }
 
         if (!serviceType || serviceType === 'general') {
           if (title.includes('bike') || body.includes('bike')) serviceType = 'bike';
@@ -458,7 +515,6 @@ function AppContent() {
         }
 
         // Detect quote vs booking - backend sends type as 'new_quote', 'quote', 'new_booking', 'booking', etc.
-        const notifType = (data.type || '').toLowerCase();
         const isQuote = notifType.includes('quote') || (data.requestId && !data.bookingId);
         const requestId = data.requestId || data.request_id;
         const bookingId = data.bookingId || data.booking_id;
@@ -641,6 +697,16 @@ function AppContent() {
         <Stack.Screen name="LuxuryBookingDetail" component={LuxuryBookingDetailScreen} />
         <Stack.Screen name="AboutUsScreen" component={AboutUsScreen} />
 <Stack.Screen name="HelpdeskScreen" component={HelpdeskScreen} />
+        {/* B2B Screens */}
+        <Stack.Screen name="B2BRegister" component={B2BRegisterScreen} />
+        <Stack.Screen name="B2BDashboard" component={B2BDashboardScreen} />
+        <Stack.Screen name="B2BCreateBooking" component={B2BCreateBookingScreen} />
+        <Stack.Screen name="B2BBookingsList" component={B2BBookingsListScreen} />
+        <Stack.Screen name="B2BBookingDetail" component={B2BBookingDetailScreen} />
+        <Stack.Screen name="B2BOtpVerify" component={B2BOtpVerifyScreen} />
+        <Stack.Screen name="B2BChat" component={B2BChatScreen} />
+        <Stack.Screen name="B2BInvoices" component={B2BInvoicesScreen} />
+        <Stack.Screen name="B2BInvoiceDetail" component={B2BInvoiceDetailScreen} />
 
 
       </Stack.Navigator>

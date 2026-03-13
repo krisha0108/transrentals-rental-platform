@@ -46,7 +46,7 @@ export async function GET(request: NextRequest) {
         customerPhone: booking.customerPhone,
         status: booking.status,
         createdAt: booking.createdAt,
-        pickupDate: booking.pickupDate || booking.preferredDate || booking.startDate,
+        pickupDate: booking.pickupDate || booking.scheduledDate || booking.preferredDate || booking.startDate,
         pickupCity,
         dropCity,
         vendor: vendor ? {
@@ -190,6 +190,40 @@ export async function GET(request: NextRequest) {
       const vendor = booking.vendors_car_bookings_acceptedVendorIdTovendors || booking.vendors_car_bookings_assignedVendorIdTovendors;
       if (vendor) {
         allBookings.push(formatBooking(booking, 'car', vendor));
+      }
+    });
+
+    // Fetch B2B Bookings
+    const b2bBookings = await prisma.b2b_bookings.findMany({
+      where: {
+        OR: [
+          { customerEmail: customerEmail || undefined },
+          { customerId: customerId || undefined },
+        ],
+        status: { not: 'CANCELLED' },
+      },
+      include: {
+        trips: {
+          where: { status: { not: 'CANCELLED' } },
+          include: { vendor: { select: { id: true, businessName: true, phone: true } } },
+          orderBy: { createdAt: 'asc' },
+          take: 1,
+        },
+        vendorQuotes: {
+          where: { status: { in: ['CONFIRMED', 'SUBMITTED'] } },
+          include: { vendor: { select: { id: true, businessName: true, phone: true } } },
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 50,
+    });
+
+    b2bBookings.forEach((booking) => {
+      const vendor = booking.trips?.[0]?.vendor || booking.vendorQuotes?.[0]?.vendor;
+      if (vendor) {
+        allBookings.push(formatBooking(booking, 'b2b', vendor));
       }
     });
 
