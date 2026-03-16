@@ -31,7 +31,15 @@ export async function isServiceAvailableInLocation(
       },
     });
 
-    return !!serviceLocation;
+    if (serviceLocation) return true;
+
+    // If service doesn't exist in DB at all, it's a static SEO page — always available
+    const serviceExists = await prisma.services.findUnique({
+      where: { slug: serviceSlug },
+      select: { id: true },
+    });
+
+    return !serviceExists; // true = static service (not in DB), false = managed service with no active location
   } catch (error) {
     console.error('Error checking service availability:', error);
     // In case of error, return true to avoid blocking users
