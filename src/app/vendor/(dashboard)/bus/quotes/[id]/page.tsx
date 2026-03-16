@@ -202,6 +202,7 @@ export default function VendorQuoteDetailPage() {
   const StatusIcon = statusConfig.icon;
   const isExpired = new Date(quote.validTill) < new Date();
   const canWithdraw = ['SENT', 'VIEWED'].includes(quote.status) && !isExpired;
+  const canReQuote = quote.status === 'WITHDRAWN' && ['PENDING', 'QUOTES_RECEIVED'].includes(quote.request?.status);
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -545,6 +546,16 @@ export default function VendorQuoteDetailPage() {
                   Withdraw Quote
                 </button>
               </>
+            )}
+
+            {canReQuote && (
+              <Link
+                href={`/vendor/bus/requests/${quote.request.id}/quote`}
+                className="px-4 py-2 bg-orange-600 text-white font-medium rounded-lg hover:bg-orange-700 transition flex items-center gap-2"
+              >
+                <RefreshCw className="w-4 h-4" />
+                Send Fresh Quote
+              </Link>
             )}
 
             {quote.status === 'ACCEPTED' && (

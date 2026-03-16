@@ -27,6 +27,7 @@ import {
   Settings,
   ChevronDown,
   ChevronUp,
+  RefreshCw,
 } from 'lucide-react';
 import Pagination from '@/components/vendor/Pagination';
 import DateFilterDropdown from '@/components/vendor/DateFilterDropdown';
@@ -499,6 +500,15 @@ export default function VendorEquipmentQuotesPage() {
                       </>
                     )}
 
+                    {quote.status === 'WITHDRAWN' && ['PENDING', 'QUOTES_RECEIVED'].includes(quote.request?.status) && (
+                      <Link
+                        href={`/vendor/equipment/requests/${quote.request.id}/quote`}
+                        className="px-4 py-2 bg-amber-600 text-white text-sm font-medium rounded-lg hover:bg-amber-700 transition flex items-center gap-1"
+                      >
+                        <RefreshCw className="w-4 h-4" />
+                        Send Fresh Quote
+                      </Link>
+                    )}
                     {quote.status === 'ACCEPTED' && (
                       <Link
                         href={`/vendor/equipment/bookings`}

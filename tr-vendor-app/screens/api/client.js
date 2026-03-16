@@ -1526,6 +1526,126 @@ export async function submitP2PRating(data) {
   return res.data;
 }
 
+// ==================== B2B FUNCTIONS ====================
+
+/**
+ * Get B2B open bookings for vendor to quote on
+ */
+export async function getB2BOpenBookings(_, params = {}) {
+  try {
+    const queryString = new URLSearchParams({ ...params, view: 'open' }).toString();
+    const res = await apiGet(`/vendor/b2b-quotes?${queryString}`);
+    return {
+      success: true,
+      bookings: res.data.bookings || [],
+      pagination: res.data.pagination || null,
+    };
+  } catch (error) {
+    console.error('Failed to fetch B2B open bookings:', error);
+    return { success: false, bookings: [], pagination: null };
+  }
+}
+
+/**
+ * Get vendor's own B2B quotes
+ */
+export async function getB2BMyQuotes(_, params = {}) {
+  try {
+    const queryString = new URLSearchParams({ ...params, view: 'my' }).toString();
+    const res = await apiGet(`/vendor/b2b-quotes?${queryString}`);
+    return {
+      success: true,
+      quotes: res.data.quotes || [],
+      pagination: res.data.pagination || null,
+    };
+  } catch (error) {
+    console.error('Failed to fetch B2B quotes:', error);
+    return { success: false, quotes: [], pagination: null };
+  }
+}
+
+/**
+ * Submit a B2B quote
+ */
+export async function submitB2BQuote(data) {
+  const res = await apiPost('/vendor/b2b-quotes', data);
+  return res.data;
+}
+
+/**
+ * Get B2B booking detail
+ */
+export async function getB2BBookingDetail(bookingId) {
+  const res = await apiGet(`/vendor/b2b-quotes?view=open&bookingId=${bookingId}`);
+  return res.data;
+}
+
+/**
+ * Get B2B trips for vendor
+ */
+export async function getB2BTrips(_, params = {}) {
+  try {
+    const vendorId = await AsyncStorage.getItem('vendor_id');
+    const queryString = new URLSearchParams({ ...params, vendor_id: vendorId }).toString();
+    const res = await apiGet(`/b2b/trips?${queryString}`);
+    return {
+      success: true,
+      trips: res.data.trips || [],
+      stats: res.data.stats || {},
+      pagination: res.data.pagination || null,
+    };
+  } catch (error) {
+    console.error('Failed to fetch B2B trips:', error);
+    return { success: false, trips: [], stats: {}, pagination: null };
+  }
+}
+
+/**
+ * Get B2B trip detail
+ */
+export async function getB2BTripDetail(tripCode) {
+  const res = await apiGet(`/b2b/trips/${tripCode}`);
+  return res.data;
+}
+
+/**
+ * B2B driver action (arrive, resend_otp, end_trip)
+ */
+export async function b2bDriverAction(tripCode, action) {
+  const res = await apiPost(`/b2b/trips/${tripCode}/driver-action`, { action });
+  return res.data;
+}
+
+/**
+ * B2B verify OTP to start trip
+ */
+export async function b2bVerifyOtp(tripCode, otp) {
+  const res = await apiPost(`/b2b/trips/${tripCode}/verify-otp`, { otp });
+  return res.data;
+}
+
+/**
+ * Get B2B stats for dashboard
+ */
+export async function getB2BStats() {
+  try {
+    const vendorId = await AsyncStorage.getItem('vendor_id');
+    const [openRes, myRes, tripsRes] = await Promise.all([
+      apiGet('/vendor/b2b-quotes?view=open&limit=1'),
+      apiGet('/vendor/b2b-quotes?view=my&limit=1'),
+      apiGet(`/b2b/trips?vendor_id=${vendorId}&limit=1`),
+    ]);
+    return {
+      openBookings: openRes.data.pagination?.total || 0,
+      myQuotes: myRes.data.pagination?.total || 0,
+      activeTrips: tripsRes.data.pagination?.total || 0,
+    };
+  } catch (error) {
+    console.error('Failed to fetch B2B stats:', error);
+    return { openBookings: 0, myQuotes: 0, activeTrips: 0 };
+  }
+}
+
 // ==================== UTILITY FUNCTIONS ====================
 
 /**
@@ -1551,4 +1671,16 @@ export async function getStoredVendor() {
   } catch {
     return null;
   }
+}
+
+/**
+ * Get full image URL from relative path
+ */
+export async function getFullImageURL(url) {
+  if (!url) return null;
+  if (typeof url !== 'string') return null;
+  if (url.startsWith('http')) return url;
+  const baseURL = await getBaseURL();
+  if (!baseURL) return null;
+  return `${baseURL}${url}`;
 }

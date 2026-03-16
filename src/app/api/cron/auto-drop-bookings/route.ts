@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
         let quotesReceived = 0;
         if (booking.quoteRequestId) {
           quotesReceived = await prisma.bike_quotes.count({
-            where: { quoteRequestId: booking.quoteRequestId },
+            where: { requestId: booking.quoteRequestId },
           });
         }
 
@@ -135,7 +135,7 @@ export async function POST(request: NextRequest) {
         let quotesReceived = 0;
         if (booking.quoteRequestId) {
           quotesReceived = await prisma.self_drive_quotes.count({
-            where: { quoteRequestId: booking.quoteRequestId },
+            where: { requestId: booking.quoteRequestId },
           });
         }
 
@@ -253,7 +253,7 @@ export async function POST(request: NextRequest) {
         let quotesReceived = 0;
         if (booking.quoteRequestId) {
           quotesReceived = await prisma.bus_quotes.count({
-            where: { quoteRequestId: booking.quoteRequestId },
+            where: { requestId: booking.quoteRequestId },
           });
         }
 
@@ -319,7 +319,7 @@ export async function POST(request: NextRequest) {
         let quotesReceived = 0;
         if (booking.quoteRequestId) {
           quotesReceived = await prisma.luxury_quotes.count({
-            where: { quoteRequestId: booking.quoteRequestId },
+            where: { requestId: booking.quoteRequestId },
           });
         }
 
@@ -381,7 +381,7 @@ export async function POST(request: NextRequest) {
         let quotesReceived = 0;
         if (booking.quoteRequestId) {
           quotesReceived = await prisma.equipment_quotes.count({
-            where: { quoteRequestId: booking.quoteRequestId },
+            where: { requestId: booking.quoteRequestId },
           });
         }
 
@@ -443,7 +443,7 @@ export async function POST(request: NextRequest) {
         let quotesReceived = 0;
         if (booking.quoteRequestId) {
           quotesReceived = await prisma.truck_quotes.count({
-            where: { quoteRequestId: booking.quoteRequestId },
+            where: { requestId: booking.quoteRequestId },
           });
         }
 
@@ -504,7 +504,7 @@ export async function POST(request: NextRequest) {
         let quotesReceived = 0;
         if (booking.quoteRequestId) {
           quotesReceived = await prisma.packers_quotes.count({
-            where: { quoteRequestId: booking.quoteRequestId },
+            where: { requestId: booking.quoteRequestId },
           });
         }
 

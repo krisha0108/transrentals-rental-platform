@@ -124,7 +124,7 @@ export default function BusinessProfileScreen({ navigation }) {
         showsVerticalScrollIndicator={false}
       >
         {/* Business Logo */}
-        {profile?.logo && (
+        {profile?.logo && getFullImageURL(profile.logo) && (
           <View style={styles.logoSection}>
             <View style={styles.logoContainer}>
               <Image

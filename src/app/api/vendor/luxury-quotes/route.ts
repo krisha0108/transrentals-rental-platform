@@ -299,6 +299,7 @@ export async function POST(request: NextRequest) {
       where: {
         requestId,
         vendorId: vendorId,
+        status: { not: 'WITHDRAWN' },
       },
     });
 
@@ -366,53 +367,58 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Create the quote
-    const quote = await prisma.luxury_quotes.create({
-      data: {
-        id: generateId(),
-        quoteNumber,
-        requestId,
-        vendorId: vendorId,
-        templateId: templateId || null,
-        fleetId: fleetId || null,
-        vehicleCategory: vehicle_category || quoteRequest.vehicleCategory,
-        vehicleName,
-        vehicleNumber: vehicleNumber || null,
-        vehicleModel: vehicle_model || null,
-        vehicleYear: vehicleYear || null,
-        vehicleFeatures: vehicleFeatures || null,
-        vehicleImages: finalVehicleImages || null,
-        driverName: driverName || null,
-        driverPhone: driverPhone || null,
-        driverExperience: driverExperience || null,
-        baseAmount,
-        chauffeurCharges,
-        decorationCharges,
-        perKmRate: perKmRate || null,
-        perHourRate: perHourRate || null,
-        includedKm: includedKm || null,
-        includedHours: includedHours || null,
-        fuelCharges,
-        tollEstimate,
-        parkingEstimate,
-        nightHaltCharges,
-        gstAmount,
-        totalAmount,
-        advanceAmount: advanceAmount || Math.round(totalAmount * advancePercent / 100),
-        advancePercent,
-        extraKmRate: extraKmRate || null,
-        extraHourRate: extraHourRate || null,
-        inclusions: Array.isArray(inclusions) ? JSON.stringify(inclusions) : (inclusions || null),
-        exclusions: Array.isArray(exclusions) ? JSON.stringify(exclusions) : (exclusions || null),
-        termsConditions: Array.isArray(termsConditions) ? JSON.stringify(termsConditions) : (termsConditions || null),
-        vendorMessage: vendorMessage || null,
-        isNegotiable,
-        validTill,
-        validityDays,
-        status: 'SENT',
-        sentAt: new Date(),
-      },
+    // Check if a withdrawn quote exists (re-quote after withdrawal)
+    const withdrawnQuote = await prisma.luxury_quotes.findFirst({
+      where: { requestId, vendorId: vendorId, status: 'WITHDRAWN' },
+      select: { id: true },
     });
+
+    const quoteFields = {
+      quoteNumber,
+      templateId: templateId || null,
+      fleetId: fleetId || null,
+      vehicleCategory: vehicle_category || quoteRequest.vehicleCategory,
+      vehicleName,
+      vehicleNumber: vehicleNumber || null,
+      vehicleModel: vehicle_model || null,
+      vehicleYear: vehicleYear || null,
+      vehicleFeatures: vehicleFeatures || null,
+      vehicleImages: finalVehicleImages || null,
+      driverName: driverName || null,
+      driverPhone: driverPhone || null,
+      driverExperience: driverExperience || null,
+      baseAmount,
+      chauffeurCharges,
+      decorationCharges,
+      perKmRate: perKmRate || null,
+      perHourRate: perHourRate || null,
+      includedKm: includedKm || null,
+      includedHours: includedHours || null,
+      fuelCharges,
+      tollEstimate,
+      parkingEstimate,
+      nightHaltCharges,
+      gstAmount,
+      totalAmount,
+      advanceAmount: advanceAmount || Math.round(totalAmount * advancePercent / 100),
+      advancePercent,
+      extraKmRate: extraKmRate || null,
+      extraHourRate: extraHourRate || null,
+      inclusions: Array.isArray(inclusions) ? JSON.stringify(inclusions) : (inclusions || null),
+      exclusions: Array.isArray(exclusions) ? JSON.stringify(exclusions) : (exclusions || null),
+      termsConditions: Array.isArray(termsConditions) ? JSON.stringify(termsConditions) : (termsConditions || null),
+      vendorMessage: vendorMessage || null,
+      isNegotiable,
+      validTill,
+      validityDays,
+      status: 'SENT',
+      sentAt: new Date(),
+    };
+
+    // Create the quote (or update existing withdrawn quote)
+    const quote = withdrawnQuote
+      ? await prisma.luxury_quotes.update({ where: { id: withdrawnQuote.id }, data: quoteFields })
+      : await prisma.luxury_quotes.create({ data: { id: generateId(), requestId, vendorId: vendorId, ...quoteFields } });
 
     // Update quote request stats
     await prisma.luxury_quote_requests.update({

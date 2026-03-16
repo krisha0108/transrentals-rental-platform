@@ -231,7 +231,7 @@ export async function POST(request: NextRequest) {
 
     // Check if vendor already submitted a quote
     const existingQuote = await prisma.equipment_quotes.findFirst({
-      where: { requestId, vendorId: vendorId },
+      where: { requestId, vendorId: vendorId, status: { not: 'WITHDRAWN' } },
     });
 
     if (existingQuote) {
@@ -335,44 +335,49 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Check if a withdrawn quote exists (re-quote after withdrawal)
+    const withdrawnQuote = await prisma.equipment_quotes.findFirst({
+      where: { requestId, vendorId: vendorId, status: 'WITHDRAWN' },
+      select: { id: true },
+    });
+
+    const quoteFields = {
+      quoteNumber,
+      templateId: templateId || null,
+      equipmentName: finalEquipmentName,
+      equipmentModel: equipmentModel || null,
+      equipmentYear: equipmentYear || null,
+      equipmentCondition: equipmentCondition || null,
+      equipmentImages: finalEquipmentImages ? JSON.stringify(finalEquipmentImages) : null,
+      dailyRate: dailyRate || 0,
+      weeklyRate: weeklyRate || null,
+      monthlyRate: monthlyRate || null,
+      operatorCharges: operatorCharges || 0,
+      fuelCharges: fuelCharges || 0,
+      deliveryCharges: deliveryCharges || 0,
+      pickupCharges: pickupCharges || 0,
+      securityDeposit: securityDeposit || 0,
+      gstAmount: gstAmount || 0,
+      totalAmount,
+      inclusions: Array.isArray(inclusions) ? JSON.stringify(inclusions) : (inclusions || null),
+      exclusions: Array.isArray(exclusions) ? JSON.stringify(exclusions) : (exclusions || null),
+      termsConditions: Array.isArray(termsConditions) ? JSON.stringify(termsConditions) : (termsConditions || null),
+      notes: notes || vendorMessage || null,
+      status: 'SENT',
+      validTill,
+    };
+
     const quote = await prisma.$transaction(async (tx) => {
-      const newQuote = await tx.equipment_quotes.create({
-        data: {
-          id: generateId(),
-          quoteNumber,
-          requestId,
-          vendorId: vendorId,
-          templateId: templateId || null,
-          equipmentName: finalEquipmentName,
-          equipmentModel: equipmentModel || null,
-          equipmentYear: equipmentYear || null,
-          equipmentCondition: equipmentCondition || null,
-          equipmentImages: finalEquipmentImages ? JSON.stringify(finalEquipmentImages) : null,
-          dailyRate: dailyRate || 0,
-          weeklyRate: weeklyRate || null,
-          monthlyRate: monthlyRate || null,
-          operatorCharges: operatorCharges || 0,
-          fuelCharges: fuelCharges || 0,
-          deliveryCharges: deliveryCharges || 0,
-          pickupCharges: pickupCharges || 0,
-          securityDeposit: securityDeposit || 0,
-          gstAmount: gstAmount || 0,
-          totalAmount,
-          inclusions: Array.isArray(inclusions) ? JSON.stringify(inclusions) : (inclusions || null),
-          exclusions: Array.isArray(exclusions) ? JSON.stringify(exclusions) : (exclusions || null),
-          termsConditions: Array.isArray(termsConditions) ? JSON.stringify(termsConditions) : (termsConditions || null),
-          notes: notes || vendorMessage || null,
-          status: 'SENT',
-          validTill,
-        },
-      });
+      const newQuote = withdrawnQuote
+        ? await tx.equipment_quotes.update({ where: { id: withdrawnQuote.id }, data: quoteFields })
+        : await tx.equipment_quotes.create({ data: { id: generateId(), requestId, vendorId: vendorId, ...quoteFields } });
 
       // Update request status and quote count
       await tx.equipment_quote_requests.update({
         where: { id: requestId },
         data: {
           status: 'QUOTES_RECEIVED',
-          totalQuotesReceived: { increment: 1 },
+          ...(withdrawnQuote ? {} : { totalQuotesReceived: { increment: 1 } }),
         },
       });
 

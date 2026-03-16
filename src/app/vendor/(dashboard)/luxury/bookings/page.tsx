@@ -477,13 +477,13 @@ export default function VendorLuxuryBookingsPage() {
                     </div>
                   )}
 
-                  {booking.status === 'DROPPED' && (
+                  {item.status === 'DROPPED' && (
                     <div className="w-full px-4 py-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700 flex items-start gap-2 mb-2">
                       <XCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
                       <div>
                         <span className="font-medium">Booking Dropped</span>
-                        {(booking as any).dropReason && (
-                          <p className="text-xs text-red-600 mt-1">Reason: {(booking as any).dropReason}</p>
+                        {(item as any).dropReason && (
+                          <p className="text-xs text-red-600 mt-1">Reason: {(item as any).dropReason}</p>
                         )}
                       </div>
                     </div>
