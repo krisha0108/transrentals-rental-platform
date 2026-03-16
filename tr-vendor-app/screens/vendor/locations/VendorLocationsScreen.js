@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  ActivityIndicator, RefreshControl, Modal, TextInput, Alert, Dimensions,
+  View, Text, StyleSheet, ScrollView, FlatList, TouchableOpacity,
+  ActivityIndicator, RefreshControl, Modal, TextInput, Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
@@ -12,7 +12,7 @@ import { getVendorLocations, requestLocation, apiDelete } from '../../api/client
 const { width: SW } = Dimensions.get('window');
 
 const C = {
-  g600: '#16a34a', g500: '#22c55e', g100: '#dcfce7', g50: '#f0fdf4',
+  g600: '#166534', g500: '#15803d', g100: '#dcfce7', g50: '#f0fdf4',
   text: '#0A0F1E', textMid: '#374151', muted: '#6B7280',
   bg: '#F5F7FA', surface: '#FFFFFF', border: '#E8EDF2',
   blue: '#2563EB', blueL: '#EFF6FF',
@@ -46,6 +46,15 @@ export default function VendorLocationsScreen({ navigation }) {
   const [selectedPendingIds, setSelectedPendingIds] = useState(new Set());
   const [withdrawingId, setWithdrawingId] = useState(null);
   const [bulkWithdrawing, setBulkWithdrawing] = useState(false);
+
+  // Custom confirm modal
+  const [confirmModal, setConfirmModal] = useState({ visible: false, title: '', message: '', btnText: 'Confirm', onConfirm: null });
+  const showConfirm = (title, message, btnText, onConfirm) =>
+    setConfirmModal({ visible: true, title, message, btnText, onConfirm });
+  const hideConfirm = () => setConfirmModal((p) => ({ ...p, visible: false }));
+
+  // Modal city list loading
+  const [modalLoading, setModalLoading] = useState(false);
 
   const fetchLocations = useCallback(async () => {
     try {
@@ -112,50 +121,58 @@ export default function VendorLocationsScreen({ navigation }) {
   };
 
   // ── Delete / Withdraw ────────────────────────────────────────────────
-  const confirmDelete = (locationId) => Alert.alert('Remove Location', 'Remove this approved location? You will need to re-request approval.', [
-    { text: 'Cancel', style: 'cancel' },
-    { text: 'Remove', style: 'destructive', onPress: async () => {
+  const confirmDelete = (locationId) => showConfirm(
+    'Remove Location',
+    'Remove this approved location? You will need to re-request approval.',
+    'Remove',
+    async () => {
       setDeletingId(locationId);
       try { await apiDelete(`/vendor/locations?locationId=${locationId}&type=approved`); await fetchLocations(); showSuccess('Location removed.'); }
       catch (e) { showError(e?.response?.data?.error || 'Failed to remove'); }
       finally { setDeletingId(null); }
-    }},
-  ]);
+    }
+  );
 
   const confirmBulkDelete = () => {
     const ids = [...selectedLocIds];
-    Alert.alert('Remove Locations', `Remove ${ids.length} selected location(s)?`, [
-      { text: 'Cancel', style: 'cancel' },
-      { text: `Remove ${ids.length}`, style: 'destructive', onPress: async () => {
+    showConfirm(
+      'Remove Locations',
+      `Remove ${ids.length} selected location${ids.length > 1 ? 's' : ''}? You will need to re-request approval.`,
+      `Remove ${ids.length}`,
+      async () => {
         setBulkDeleting(true);
         try { await apiDelete('/vendor/locations', { data: { locationIds: ids, type: 'approved' } }); setSelectedLocIds(new Set()); await fetchLocations(); showSuccess(`${ids.length} location(s) removed.`); }
         catch (e) { showError(e?.response?.data?.error || 'Failed to remove'); }
         finally { setBulkDeleting(false); }
-      }},
-    ]);
+      }
+    );
   };
 
-  const confirmWithdraw = (locationId) => Alert.alert('Withdraw Request', 'Withdraw this location request?', [
-    { text: 'Cancel', style: 'cancel' },
-    { text: 'Withdraw', style: 'destructive', onPress: async () => {
+  const confirmWithdraw = (locationId) => showConfirm(
+    'Withdraw Request',
+    'Withdraw this pending location request? You can request again later.',
+    'Withdraw',
+    async () => {
       setWithdrawingId(locationId);
       try { await apiDelete(`/vendor/locations?locationId=${locationId}&type=request`); await fetchLocations(); showSuccess('Request withdrawn.'); }
       catch (e) { showError(e?.response?.data?.error || 'Failed to withdraw'); }
       finally { setWithdrawingId(null); }
-    }},
-  ]);
+    }
+  );
 
   const confirmBulkWithdraw = () => {
     const ids = [...selectedPendingIds];
-    Alert.alert('Withdraw Requests', `Withdraw ${ids.length} request(s)?`, [
-      { text: 'Cancel', style: 'cancel' },
-      { text: `Withdraw ${ids.length}`, style: 'destructive', onPress: async () => {
+    showConfirm(
+      'Withdraw Requests',
+      `Withdraw ${ids.length} pending request${ids.length > 1 ? 's' : ''}? You can re-request these later.`,
+      `Withdraw ${ids.length}`,
+      async () => {
         setBulkWithdrawing(true);
         try { await apiDelete('/vendor/locations', { data: { locationIds: ids, type: 'request' } }); setSelectedPendingIds(new Set()); await fetchLocations(); showSuccess(`${ids.length} request(s) withdrawn.`); }
         catch (e) { showError(e?.response?.data?.error || 'Failed to withdraw'); }
         finally { setBulkWithdrawing(false); }
-      }},
-    ]);
+      }
+    );
   };
 
   // ── Request modal helpers ────────────────────────────────────────────
@@ -185,13 +202,18 @@ export default function VendorLocationsScreen({ navigation }) {
     finally { setSubmitting(false); }
   };
 
-  const modalFiltered = allLocations.filter((l) => {
+  const modalFiltered = useMemo(() => allLocations.filter((l) => {
     const q = modalSearch.toLowerCase();
     return !q || (l.name || '').toLowerCase().includes(q) || (l.parent?.name || '').toLowerCase().includes(q);
-  });
-  const grouped = modalFiltered.reduce((a, l) => {
+  }), [allLocations, modalSearch]);
+
+  const grouped = useMemo(() => modalFiltered.reduce((a, l) => {
     const k = l.parent?.name || 'Other'; if (!a[k]) a[k] = []; a[k].push(l); return a;
-  }, {});
+  }, {}), [modalFiltered]);
+
+  const modalGroupList = useMemo(() =>
+    Object.entries(grouped).map(([state, locs]) => ({ state, locs })),
+  [grouped]);
 
   const fmt = (d) => new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
   const availableCount = allLocations.filter((l) => !isApproved(l.id) && !hasPending(l.id)).length;
@@ -215,7 +237,7 @@ export default function VendorLocationsScreen({ navigation }) {
         showsVerticalScrollIndicator={false}
       >
         {/* ── Hero Header ── */}
-        <LinearGradient colors={['#15803d', '#16a34a', '#22c55e']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.hero}>
+        <LinearGradient colors={['#14532d', '#166534', '#15803d']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.hero}>
           <View style={s.heroTop}>
             <View>
               <Text style={s.heroLabel}>Operational Locations</Text>
@@ -531,7 +553,7 @@ export default function VendorLocationsScreen({ navigation }) {
         {/* Continue / Skip */}
         {approvedLocations.length > 0 || requests.length > 0 ? (
           <TouchableOpacity style={s.continueBtn} onPress={() => navigation.reset({ index: 0, routes: [{ name: 'VendorDashboard' }] })} activeOpacity={0.85}>
-            <LinearGradient colors={['#15803d', '#22c55e']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={s.continueBtnGrad}>
+            <LinearGradient colors={['#14532d', '#15803d']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={s.continueBtnGrad}>
               <Text style={s.continueBtnText}>Continue to Dashboard</Text>
               <Ionicons name="arrow-forward" size={18} color="#fff" />
             </LinearGradient>
@@ -570,8 +592,40 @@ export default function VendorLocationsScreen({ navigation }) {
         </View>
       )}
 
+      {/* ── Custom Confirm Modal ── */}
+      <Modal visible={confirmModal.visible} transparent animationType="fade" onRequestClose={hideConfirm}>
+        <View style={s.cfOverlay}>
+          <TouchableOpacity style={s.cfBackdrop} activeOpacity={1} onPress={hideConfirm} />
+          <View style={s.cfCard}>
+            <View style={s.cfIconWrap}>
+              <Ionicons name="alert-circle" size={32} color={C.red} />
+            </View>
+            <Text style={s.cfTitle}>{confirmModal.title}</Text>
+            <Text style={s.cfMessage}>{confirmModal.message}</Text>
+            <View style={s.cfBtns}>
+              <TouchableOpacity style={s.cfCancelBtn} onPress={hideConfirm} activeOpacity={0.8}>
+                <Text style={s.cfCancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={s.cfConfirmBtn}
+                activeOpacity={0.85}
+                onPress={() => { hideConfirm(); confirmModal.onConfirm?.(); }}
+              >
+                <Text style={s.cfConfirmText}>{confirmModal.btnText}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
       {/* ── Request Locations Modal ── */}
-      <Modal visible={showModal} animationType="slide" transparent onRequestClose={() => setShowModal(false)}>
+      <Modal
+        visible={showModal}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setShowModal(false)}
+        onShow={() => { setModalLoading(true); setTimeout(() => setModalLoading(false), 80); }}
+      >
         <View style={s.modalOverlay}>
           <TouchableOpacity style={s.modalBackdrop} activeOpacity={1} onPress={() => setShowModal(false)} />
           <View style={s.modalSheet}>
@@ -626,18 +680,33 @@ export default function VendorLocationsScreen({ navigation }) {
             </TouchableOpacity>
 
             {/* City list */}
-            <ScrollView style={s.modalList} showsVerticalScrollIndicator={false}>
-              {Object.keys(grouped).length === 0 ? (
-                <View style={s.modalEmpty}>
-                  <Ionicons name="search-outline" size={40} color={C.border} />
-                  <Text style={s.modalEmptyText}>No cities found</Text>
-                </View>
-              ) : (
-                Object.entries(grouped).map(([state, locs]) => {
+            {modalLoading ? (
+              <View style={s.modalLoadingWrap}>
+                <ActivityIndicator size="large" color={C.g600} />
+                <Text style={s.modalLoadingText}>Loading cities...</Text>
+              </View>
+            ) : (
+              <FlatList
+                data={modalGroupList}
+                keyExtractor={(item) => item.state}
+                style={s.modalList}
+                showsVerticalScrollIndicator={false}
+                removeClippedSubviews
+                initialNumToRender={8}
+                maxToRenderPerBatch={6}
+                windowSize={10}
+                ListEmptyComponent={
+                  <View style={s.modalEmpty}>
+                    <Ionicons name="search-outline" size={40} color={C.border} />
+                    <Text style={s.modalEmptyText}>No cities found</Text>
+                  </View>
+                }
+                ListFooterComponent={<View style={{ height: 12 }} />}
+                renderItem={({ item: { state, locs } }) => {
                   const avail = locs.filter((l) => !isApproved(l.id) && !hasPending(l.id));
                   const allSt = avail.length > 0 && avail.every((c) => selectedLocations.some((l) => l.id === c.id));
                   return (
-                    <View key={state} style={s.stateGroup}>
+                    <View style={s.stateGroup}>
                       <TouchableOpacity style={s.stateRow} onPress={() => toggleModalState(state, locs)} disabled={!avail.length} activeOpacity={0.7}>
                         <View style={[s.checkbox, allSt ? s.checkboxActive : {}, !avail.length && s.checkboxDisabled]}>
                           {allSt && <Ionicons name="checkmark" size={13} color="#fff" />}
@@ -668,10 +737,9 @@ export default function VendorLocationsScreen({ navigation }) {
                       </View>
                     </View>
                   );
-                })
-              )}
-              <View style={{ height: 12 }} />
-            </ScrollView>
+                }}
+              />
+            )}
 
             {/* Optional message */}
             <View style={s.modalMsgWrap}>
@@ -695,7 +763,7 @@ export default function VendorLocationsScreen({ navigation }) {
               activeOpacity={0.85}
             >
               <LinearGradient
-                colors={!selectedLocations.length || submitting ? ['#86efac', '#86efac'] : ['#15803d', '#22c55e']}
+                colors={!selectedLocations.length || submitting ? ['#86efac', '#86efac'] : ['#14532d', '#15803d']}
                 start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
                 style={s.submitBtnGrad}
               >
@@ -851,4 +919,21 @@ const s = StyleSheet.create({
   submitBtnDim: { opacity: 0.65 },
   submitBtnGrad: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 16, gap: 8 },
   submitBtnText: { fontSize: 16, fontWeight: '800', color: '#fff', letterSpacing: -0.2 },
+
+  // Modal loading
+  modalLoadingWrap: { height: 160, alignItems: 'center', justifyContent: 'center', gap: 12 },
+  modalLoadingText: { fontSize: 14, color: C.muted },
+
+  // Custom confirm modal
+  cfOverlay: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 28 },
+  cfBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.5)' },
+  cfCard: { width: '100%', backgroundColor: '#fff', borderRadius: 24, padding: 24, alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.18, shadowRadius: 24, elevation: 16 },
+  cfIconWrap: { width: 64, height: 64, borderRadius: 20, backgroundColor: '#FEF2F2', alignItems: 'center', justifyContent: 'center', marginBottom: 16 },
+  cfTitle: { fontSize: 18, fontWeight: '800', color: C.text, textAlign: 'center', marginBottom: 8, letterSpacing: -0.3 },
+  cfMessage: { fontSize: 14, color: C.muted, textAlign: 'center', lineHeight: 21, marginBottom: 24 },
+  cfBtns: { flexDirection: 'row', gap: 12, width: '100%' },
+  cfCancelBtn: { flex: 1, paddingVertical: 14, borderRadius: 14, borderWidth: 1.5, borderColor: C.border, alignItems: 'center', backgroundColor: C.bg },
+  cfCancelText: { fontSize: 15, fontWeight: '700', color: C.textMid },
+  cfConfirmBtn: { flex: 1, paddingVertical: 14, borderRadius: 14, alignItems: 'center', backgroundColor: C.red },
+  cfConfirmText: { fontSize: 15, fontWeight: '800', color: '#fff' },
 });
