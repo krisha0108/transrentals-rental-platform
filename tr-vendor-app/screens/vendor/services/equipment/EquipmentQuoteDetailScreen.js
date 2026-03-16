@@ -17,7 +17,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Feather';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import { getVendorQuotes, getBaseURL, getQuoteRequestById } from '../../../api/client';
+import { getVendorQuotes, getBaseURL, getQuoteRequestById, apiPatch } from '../../../api/client';
 import { showError, showSuccess, showInfo, showConfirm } from '../../../../services/alertService';
 
 const { width } = Dimensions.get('window');
@@ -45,6 +45,7 @@ export default function EquipmentQuoteDetailScreen({ route, navigation }) {
   const [baseUrl, setBaseUrl] = useState('');
   const imageSliderRef = useRef(null);
   const [bookingId, setBookingId] = useState(null);
+  const [withdrawing, setWithdrawing] = useState(false);
 
   useEffect(() => {
     getBaseURL().then(url => {
@@ -95,6 +96,29 @@ export default function EquipmentQuoteDetailScreen({ route, navigation }) {
   const onRefresh = () => {
     setRefreshing(true);
     fetchQuoteDetail();
+  };
+
+  const handleWithdraw = () => {
+    showConfirm(
+      'Withdraw Quote',
+      'Are you sure you want to withdraw this quote?',
+      async () => {
+        setWithdrawing(true);
+        try {
+          const res = await apiPatch(`/vendor/equipment-quotes/${quoteId}`, { action: 'withdraw' });
+          if (res.data && !res.data.error) {
+            showSuccess('Quote withdrawn successfully');
+            fetchQuoteDetail();
+          } else {
+            showError(res.data?.error || 'Failed to withdraw quote');
+          }
+        } catch (e) {
+          showError('Failed to withdraw quote');
+        } finally {
+          setWithdrawing(false);
+        }
+      }
+    );
   };
 
   const formatDate = (dateStr) => {
@@ -650,19 +674,45 @@ export default function EquipmentQuoteDetailScreen({ route, navigation }) {
 
       {/* Bottom Navigation Bar */}
       <View style={styles.bottomBar}>
-        {status !== 'ACCEPTED' ? (
+        {(status === 'SENT' || status === 'VIEWED') && (
+          <View style={styles.bottomRow}>
+            <TouchableOpacity
+              style={[styles.withdrawButton, withdrawing && { opacity: 0.6 }]}
+              onPress={handleWithdraw}
+              disabled={withdrawing}
+            >
+              {withdrawing
+                ? <ActivityIndicator size="small" color="#fff" />
+                : <Ionicons name="close-circle-outline" size={18} color="#fff" />}
+              <Text style={styles.actionBtnText}>{withdrawing ? 'Withdrawing...' : 'Withdraw'}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.viewRequestButton}
+              onPress={() => {
+                const rid = quote.requestId || quote.request?.id || quote.request?._id;
+                if (rid) navigation.navigate('EquipmentQuoteRequestDetail', { requestId: rid });
+                else showInfo('Request details not available.');
+              }}
+            >
+              <Ionicons name="document-text-outline" size={18} color="#fff" />
+              <Text style={styles.actionBtnText}>View Request</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+        {status === 'WITHDRAWN' && ['PENDING', 'QUOTES_RECEIVED'].includes(quote.request?.status) && (
           <TouchableOpacity
-            style={styles.viewRequestButton}
+            style={styles.freshQuoteButton}
             onPress={() => {
               const rid = quote.requestId || quote.request?.id || quote.request?._id;
-              if (rid) navigation.navigate('EquipmentQuoteRequestDetail', { requestId: rid });
+              if (rid) navigation.navigate('EquipmentSendQuote', { requestId: rid });
               else showInfo('Request details not available.');
             }}
           >
-            <Ionicons name="document-text-outline" size={18} color="#fff" />
-            <Text style={styles.actionBtnText}>View Request Details</Text>
+            <Ionicons name="refresh-outline" size={18} color="#fff" />
+            <Text style={styles.actionBtnText}>Send Fresh Quote</Text>
           </TouchableOpacity>
-        ) : (
+        )}
+        {status === 'ACCEPTED' && (
           <TouchableOpacity
             style={styles.viewBookingButton}
             onPress={() => {
@@ -677,6 +727,19 @@ export default function EquipmentQuoteDetailScreen({ route, navigation }) {
           >
             <Ionicons name="checkmark-circle-outline" size={18} color="#fff" />
             <Text style={styles.actionBtnText}>View Booking Details</Text>
+          </TouchableOpacity>
+        )}
+        {!['SENT', 'VIEWED', 'ACCEPTED', 'WITHDRAWN'].includes(status) && (
+          <TouchableOpacity
+            style={styles.viewRequestButton}
+            onPress={() => {
+              const rid = quote.requestId || quote.request?.id || quote.request?._id;
+              if (rid) navigation.navigate('EquipmentQuoteRequestDetail', { requestId: rid });
+              else showInfo('Request details not available.');
+            }}
+          >
+            <Ionicons name="document-text-outline" size={18} color="#fff" />
+            <Text style={styles.actionBtnText}>View Request Details</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -914,8 +977,19 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: '#E2E8F0',
   },
-  viewRequestButton: {
+  bottomRow: {
+    flexDirection: 'row', gap: 10,
+  },
+  withdrawButton: {
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: 8, backgroundColor: '#EF4444', paddingVertical: 14, borderRadius: 12,
+  },
+  freshQuoteButton: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: 8, backgroundColor: '#16A34A', paddingVertical: 14, borderRadius: 12,
+  },
+  viewRequestButton: {
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
     gap: 8, backgroundColor: '#475569', paddingVertical: 14, borderRadius: 12,
   },
   viewBookingButton: {

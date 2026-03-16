@@ -24,6 +24,7 @@ import {
   Users,
   Gauge,
   ExternalLink,
+  RefreshCw,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import VehicleImageGallery from '@/components/customer/VehicleImageGallery';
@@ -230,6 +231,7 @@ export default function VendorSelfDriveQuoteDetailPage() {
 
   const statusConfig = STATUS_CONFIG[quote.status] || STATUS_CONFIG.SENT;
   const isActive = ['SENT', 'VIEWED'].includes(quote.status);
+  const canReQuote = quote.status === 'WITHDRAWN' && ['PENDING', 'QUOTES_RECEIVED'].includes(quote.request?.status);
   const inclusions = parseJsonField(quote.inclusions);
   const exclusions = parseJsonField(quote.exclusions);
   const terms = parseJsonField(quote.termsConditions);
@@ -267,6 +269,15 @@ export default function VendorSelfDriveQuoteDetailPage() {
             <XCircle className="w-4 h-4" />
             {isWithdrawing ? 'Withdrawing...' : 'Withdraw Quote'}
           </button>
+        )}
+        {canReQuote && (
+          <Link
+            href={`/vendor/self-drive/requests/${quote.request.id}/quote`}
+            className="px-4 py-2 bg-orange-600 text-white font-medium rounded-lg hover:bg-orange-700 transition flex items-center gap-2"
+          >
+            <RefreshCw className="w-4 h-4" />
+            Send Fresh Quote
+          </Link>
         )}
       </div>
 

@@ -24,6 +24,7 @@ import {
   Shield,
   FileText,
   Loader2,
+  RefreshCw,
 } from 'lucide-react';
 import VehicleImageGallery from '@/components/customer/VehicleImageGallery';
 
@@ -94,6 +95,7 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; bgColor: str
   ACCEPTED: { label: 'Accepted', color: 'text-green-700', bgColor: 'bg-green-100', icon: CheckCircle },
   REJECTED: { label: 'Rejected', color: 'text-red-700', bgColor: 'bg-red-100', icon: XCircle },
   EXPIRED: { label: 'Expired', color: 'text-gray-600', bgColor: 'bg-gray-100', icon: AlertCircle },
+  WITHDRAWN: { label: 'Withdrawn', color: 'text-gray-600', bgColor: 'bg-gray-100', icon: XCircle },
 };
 
 const SERVICE_TYPES: Record<string, string> = {
@@ -193,6 +195,7 @@ export default function ViewPackersQuotePage() {
   const effectiveStatus = expired && quote.status === 'SENT' ? 'EXPIRED' : quote.status;
   const statusConfig = STATUS_CONFIG[effectiveStatus] || STATUS_CONFIG.SENT;
   const StatusIcon = statusConfig.icon;
+  const canReQuote = quote.status === 'WITHDRAWN' && ['PENDING', 'QUOTES_RECEIVED'].includes(quote.request?.status);
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -213,10 +216,21 @@ export default function ViewPackersQuotePage() {
             <p className="text-gray-600">For Request #{quote.request.requestNumber}</p>
           </div>
         </div>
-        <span className={`px-4 py-2 rounded-full text-sm font-semibold flex items-center gap-2 ${statusConfig.bgColor} ${statusConfig.color}`}>
-          <StatusIcon className="w-4 h-4" />
-          {statusConfig.label}
-        </span>
+        <div className="flex items-center gap-2">
+          <span className={`px-4 py-2 rounded-full text-sm font-semibold flex items-center gap-2 ${statusConfig.bgColor} ${statusConfig.color}`}>
+            <StatusIcon className="w-4 h-4" />
+            {statusConfig.label}
+          </span>
+          {canReQuote && (
+            <Link
+              href={`/vendor/packers/requests/${quote.request.id}/quote`}
+              className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition flex items-center gap-2"
+            >
+              <RefreshCw className="w-4 h-4" />
+              Send Fresh Quote
+            </Link>
+          )}
+        </div>
       </div>
 
       {/* Booking Info (if accepted) */}

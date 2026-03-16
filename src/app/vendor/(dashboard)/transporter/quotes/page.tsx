@@ -16,6 +16,7 @@ import {
   IndianRupee,
   AlertCircle,
   Weight,
+  RefreshCw,
 } from 'lucide-react';
 import { TRANSPORTER_CONFIG } from '@/lib/quote-services';
 
@@ -46,6 +47,7 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; icon: any }>
   ACCEPTED: { label: 'Accepted', color: 'bg-green-100 text-green-700', icon: CheckCircle },
   REJECTED: { label: 'Rejected', color: 'bg-red-100 text-red-700', icon: XCircle },
   EXPIRED: { label: 'Expired', color: 'bg-gray-100 text-gray-700', icon: AlertCircle },
+  WITHDRAWN: { label: 'Withdrawn', color: 'bg-gray-100 text-gray-600', icon: XCircle },
 };
 
 export default function VendorTransporterQuotesPage() {
@@ -257,6 +259,15 @@ export default function VendorTransporterQuotesPage() {
                       <Eye className="w-4 h-4" />
                       View Details
                     </Link>
+                    {quote.status === 'WITHDRAWN' && ['PENDING', 'QUOTES_RECEIVED'].includes(quote.request?.status) && (
+                      <Link
+                        href={`/vendor/transporter/requests/${quote.request.id}/quote`}
+                        className="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition flex items-center gap-1"
+                      >
+                        <RefreshCw className="w-4 h-4" />
+                        Send Fresh Quote
+                      </Link>
+                    )}
                     {quote.status === 'ACCEPTED' && (
                       <Link
                         href="/vendor/transporter/bookings"

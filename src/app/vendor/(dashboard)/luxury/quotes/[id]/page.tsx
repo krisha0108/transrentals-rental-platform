@@ -20,6 +20,7 @@ import {
   FileText,
   Sparkles,
   Users,
+  RefreshCw,
 } from 'lucide-react';
 import VehicleImageGallery from '@/components/customer/VehicleImageGallery';
 
@@ -184,6 +185,7 @@ export default function VendorLuxuryQuoteDetailPage() {
 
   const statusConfig = STATUS_CONFIG[quote.status] || STATUS_CONFIG.SENT;
   const isActive = ['SENT', 'VIEWED'].includes(quote.status);
+  const canReQuote = quote.status === 'WITHDRAWN' && ['PENDING', 'QUOTES_RECEIVED'].includes(quote.request?.status);
   const inclusions = Array.isArray(quote.inclusions) ? quote.inclusions : [];
   const exclusions = Array.isArray(quote.exclusions) ? quote.exclusions : [];
   const terms = Array.isArray(quote.termsConditions) ? quote.termsConditions : [];
@@ -226,6 +228,15 @@ export default function VendorLuxuryQuoteDetailPage() {
             <XCircle className="w-4 h-4" />
             {isWithdrawing ? 'Withdrawing...' : 'Withdraw Quote'}
           </button>
+        )}
+        {canReQuote && (
+          <Link
+            href={`/vendor/luxury/send-quote/${quote.request.id}`}
+            className="px-4 py-2 bg-orange-600 text-white font-medium rounded-lg hover:bg-orange-700 transition flex items-center gap-2"
+          >
+            <RefreshCw className="w-4 h-4" />
+            Send Fresh Quote
+          </Link>
         )}
       </div>
 
