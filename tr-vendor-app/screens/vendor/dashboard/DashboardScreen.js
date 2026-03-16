@@ -38,32 +38,32 @@ const G = {
   g300: '#86efac',
   g200: '#bbf7d0',
   g100: '#dcfce7',
-  g50:  '#f0fdf4',
+  g50: '#f0fdf4',
   // Neutrals
-  bg:       '#F5F7FA',
-  surface:  '#FFFFFF',
-  text:     '#0A0F1E',
-  textMid:  '#374151',
-  muted:    '#6B7280',
-  border:   '#E8EDF2',
+  bg: '#F5F7FA',
+  surface: '#FFFFFF',
+  text: '#0A0F1E',
+  textMid: '#374151',
+  muted: '#6B7280',
+  border: '#E8EDF2',
   // Accents
-  blue:   '#2563EB',
-  blueL:  '#EFF6FF',
+  blue: '#2563EB',
+  blueL: '#EFF6FF',
   orange: '#F59E0B',
-  orangeL:'#FFFBEB',
+  orangeL: '#FFFBEB',
   purple: '#7C3AED',
-  purpleL:'#F5F3FF',
-  red:    '#DC2626',
-  redL:   '#FEF2F2',
-  cyan:   '#0891B2',
-  cyanL:  '#ECFEFF',
-  pink:   '#DB2777',
-  pinkL:  '#FDF2F8',
+  purpleL: '#F5F3FF',
+  red: '#DC2626',
+  redL: '#FEF2F2',
+  cyan: '#0891B2',
+  cyanL: '#ECFEFF',
+  pink: '#DB2777',
+  pinkL: '#FDF2F8',
   indigo: '#4F46E5',
-  indigoL:'#EEF2FF',
-  teal:   '#0D9488',
-  tealL:  '#F0FDFA',
-  amber:  '#D97706',
+  indigoL: '#EEF2FF',
+  teal: '#0D9488',
+  tealL: '#F0FDFA',
+  amber: '#D97706',
   amberL: '#FFFBEB',
 };
 
@@ -103,7 +103,7 @@ function AvatarInitials({ name, size = 44 }) {
 }
 const avStyle = StyleSheet.create({
   wrap: { backgroundColor: 'rgba(255,255,255,0.22)', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: 'rgba(255,255,255,0.35)' },
-  txt:  { color: '#fff', fontWeight: '800', letterSpacing: 0.5 },
+  txt: { color: '#fff', fontWeight: '800', letterSpacing: 0.5 },
 });
 
 // ─── Shimmer Skeleton ──────────────────────────────────────────────────────
@@ -113,11 +113,11 @@ function SkeletonBox({ w, h, radius = 8, style }) {
 
 export default function DashboardScreen({ navigation }) {
   const { unreadCount } = React.useContext(NotifBadgeContext);
-  const [loading, setLoading]       = useState(true);
+  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [vendor, setVendor]         = useState(null);
-  const [profile, setProfile]       = useState(null);
-  const [earnings, setEarnings]     = useState(null);
+  const [vendor, setVendor] = useState(null);
+  const [profile, setProfile] = useState(null);
+  const [earnings, setEarnings] = useState(null);
   const [bookingsData, setBookingsData] = useState(null);
   const [updateInfo, setUpdateInfo] = useState(null);
   const [showUpdateModal, setShowUpdateModal] = useState(false);
@@ -141,7 +141,7 @@ export default function DashboardScreen({ navigation }) {
             setEarnings(earningsRes.earnings);
             setBookingsData(earningsRes.bookings);
           }
-        } catch (_) {}
+        } catch (_) { }
       }
     } catch (_) {
     } finally {
@@ -176,28 +176,28 @@ export default function DashboardScreen({ navigation }) {
     setRefreshing(false);
   }, [fetchData]);
 
-  const vendorStatus     = profile?.status || vendor?.status || VENDOR_STATUS.PENDING;
-  const isApproved       = vendorStatus === VENDOR_STATUS.APPROVED;
-  const approvedSvcIds   = profile?.approvedServiceIds || [];
-  const hasService       = (id) => approvedSvcIds.includes(id);
-  const businessName     = profile?.businessName || vendor?.businessName || 'Vendor';
+  const vendorStatus = profile?.status || vendor?.status || VENDOR_STATUS.PENDING;
+  const isApproved = vendorStatus === VENDOR_STATUS.APPROVED;
+  const approvedSvcIds = profile?.approvedServiceIds || [];
+  const hasService = (id) => approvedSvcIds.includes(id);
+  const businessName = profile?.businessName || vendor?.businessName || 'Vendor';
 
   const formatCurrency = (v) => {
     if (!v || v === 0) return '0';
     if (v >= 100000) return `${(v / 100000).toFixed(1)}L`;
-    if (v >= 1000)   return `${(v / 1000).toFixed(1)}K`;
+    if (v >= 1000) return `${(v / 1000).toFixed(1)}K`;
     return String(Math.round(v));
   };
 
   // ── Status config ──────────────────────────────────────────────────────
   const STATUS_CFG = {
-    [VENDOR_STATUS.APPROVED]:          { bg: G.g100, border: G.g300, text: G.g800, dot: G.g600, label: 'Approved' },
+    [VENDOR_STATUS.APPROVED]: { bg: G.g100, border: G.g300, text: G.g800, dot: G.g600, label: 'Approved' },
     [VENDOR_STATUS.DOCUMENTS_PENDING]: { bg: '#FEF3C7', border: '#FCD34D', text: '#92400E', dot: G.amber, label: 'Docs Pending' },
-    [VENDOR_STATUS.UNDER_REVIEW]:      { bg: G.blueL,  border: '#93C5FD', text: '#1E40AF', dot: G.blue, label: 'Under Review' },
-    [VENDOR_STATUS.PENDING]:           { bg: '#FFFBEB', border: '#FDE68A', text: '#92400E', dot: G.orange, label: 'Pending' },
-    [VENDOR_STATUS.REJECTED]:          { bg: G.redL,   border: '#FCA5A5', text: '#991B1B', dot: G.red, label: 'Rejected' },
-    [VENDOR_STATUS.BLOCKED]:           { bg: G.redL,   border: '#FCA5A5', text: '#991B1B', dot: G.red, label: 'Blocked' },
-    [VENDOR_STATUS.SUSPENDED]:         { bg: G.redL,   border: '#FCA5A5', text: '#991B1B', dot: G.red, label: 'Suspended' },
+    [VENDOR_STATUS.UNDER_REVIEW]: { bg: G.blueL, border: '#93C5FD', text: '#1E40AF', dot: G.blue, label: 'Under Review' },
+    [VENDOR_STATUS.PENDING]: { bg: '#FFFBEB', border: '#FDE68A', text: '#92400E', dot: G.orange, label: 'Pending' },
+    [VENDOR_STATUS.REJECTED]: { bg: G.redL, border: '#FCA5A5', text: '#991B1B', dot: G.red, label: 'Rejected' },
+    [VENDOR_STATUS.BLOCKED]: { bg: G.redL, border: '#FCA5A5', text: '#991B1B', dot: G.red, label: 'Blocked' },
+    [VENDOR_STATUS.SUSPENDED]: { bg: G.redL, border: '#FCA5A5', text: '#991B1B', dot: G.red, label: 'Suspended' },
   };
   const sCfg = STATUS_CFG[vendorStatus] || STATUS_CFG[VENDOR_STATUS.PENDING];
 
@@ -223,58 +223,59 @@ export default function DashboardScreen({ navigation }) {
 
   // ── Stats (approved) ───────────────────────────────────────────────────
   const statCards = [
-    { label: "Today's\nBookings", value: bookingsData?.today ?? 0,             icon: 'calendar',  iconLib: 'feather', color: G.g600,   bg: G.g50,    route: null },
-    { label: 'Active\nBookings',  value: bookingsData?.active ?? 0,            icon: 'zap',       iconLib: 'feather', color: G.blue,   bg: G.blueL,  route: 'BookingsListScreen' },
-    { label: 'Fleet\nVehicles',   value: profile?.fleetsCount ?? 0,            icon: 'truck',     iconLib: 'feather', color: G.purple, bg: G.purpleL,route: 'FleetListScreen' },
-    { label: 'Your\nRating',      value: profile?.rating?.toFixed(1) ?? '5.0', icon: 'star',      iconLib: 'feather', color: G.amber,  bg: G.amberL, route: null },
+    { label: "Today's\nBookings", value: bookingsData?.today ?? 0, icon: 'calendar', iconLib: 'feather', color: G.g600, bg: G.g50, route: null },
+    { label: 'Active\nBookings', value: bookingsData?.active ?? 0, icon: 'zap', iconLib: 'feather', color: G.blue, bg: G.blueL, route: 'BookingsListScreen' },
+    { label: 'Fleet\nVehicles', value: profile?.fleetsCount ?? 0, icon: 'truck', iconLib: 'feather', color: G.purple, bg: G.purpleL, route: 'FleetListScreen' },
+    { label: 'Your\nRating', value: profile?.rating?.toFixed(1) ?? '5.0', icon: 'star', iconLib: 'feather', color: G.amber, bg: G.amberL, route: null },
   ];
 
   // ── Quick actions (horizontal) ─────────────────────────────────────────
   const quickActions = [
-    { label: 'Add Vehicle',    icon: 'plus-circle',   lib: 'feather',  color: G.blue,   bg: G.blueL,   route: 'AddVehicleScreen' },
-    { label: 'Add Staff',      icon: 'user-plus',     lib: 'feather',  color: G.purple, bg: G.purpleL, route: 'AddStaffScreen' },
-    { label: 'Documents',      icon: 'folder',        lib: 'feather',  color: G.g600,   bg: G.g50,     route: 'VendorDocuments' },
-    { label: 'Services',       icon: 'layers',        lib: 'feather',  color: G.red,    bg: G.redL,    route: 'VendorServices' },
-    { label: 'Locations',      icon: 'map-pin',       lib: 'feather',  color: G.indigo, bg: G.indigoL, route: 'VendorLocations' },
-    { label: 'Direct Booking', icon: 'book-open',     lib: 'feather',  color: G.orange, bg: G.orangeL, route: 'DirectBookings' },
-    { label: 'Booking Links',  icon: 'link-2',        lib: 'feather',  color: G.indigo, bg: G.indigoL, route: 'BookingLinks' },
-    { label: 'Financials',     icon: 'bar-chart-2',   lib: 'feather',  color: G.purple, bg: G.purpleL, route: 'Financials' },
-    { label: 'P2P Market',     icon: 'swap-horizontal',lib:'mci',      color: G.teal,   bg: G.tealL,   route: 'P2PDashboard' },
-    { label: 'My Earnings',    icon: 'trending-up',   lib: 'feather',  color: G.g600,   bg: G.g50,     route: 'EarningsScreen' },
+    { label: 'Add Vehicle', icon: 'plus-circle', lib: 'feather', color: G.blue, bg: G.blueL, route: 'AddVehicleScreen' },
+    { label: 'Add Staff', icon: 'user-plus', lib: 'feather', color: G.purple, bg: G.purpleL, route: 'AddStaffScreen' },
+    { label: 'Documents', icon: 'folder', lib: 'feather', color: G.g600, bg: G.g50, route: 'VendorDocuments' },
+    { label: 'Services', icon: 'layers', lib: 'feather', color: G.red, bg: G.redL, route: 'VendorServices' },
+    { label: 'Locations', icon: 'map-pin', lib: 'feather', color: G.indigo, bg: G.indigoL, route: 'VendorLocations' },
+    { label: 'Direct Booking', icon: 'book-open', lib: 'feather', color: G.orange, bg: G.orangeL, route: 'DirectBookings' },
+    { label: 'Booking Links', icon: 'link-2', lib: 'feather', color: G.indigo, bg: G.indigoL, route: 'BookingLinks' },
+    { label: 'Financials', icon: 'bar-chart-2', lib: 'feather', color: G.purple, bg: G.purpleL, route: 'Financials' },
+    { label: 'P2P Market', icon: 'swap-horizontal', lib: 'mci', color: G.teal, bg: G.tealL, route: 'P2PDashboard' },
+    { label: 'My Earnings', icon: 'trending-up', lib: 'feather', color: G.g600, bg: G.g50, route: 'EarningsScreen' },
   ];
 
   // ── Services ───────────────────────────────────────────────────────────
   const SERVICE_MODULES = [
-    { id: SERVICE_IDS.BIKE,        name: 'Bike Rentals',       icon: 'motorbike',      color: G.amber,  route: 'BikeHomeScreen' },
-    { id: SERVICE_IDS.SELF_DRIVE,  name: 'Self-Drive Cars',    icon: 'car-side',       color: G.blue,   route: 'SelfDriveHomeScreen' },
-    { id: SERVICE_IDS.CAR_RENTAL,  name: 'Car Rental',         icon: 'car',            color: G.g600,   route: 'CarRentalHomeScreen' },
-    { id: SERVICE_IDS.LUXURY,      name: 'Luxury Cars',        icon: 'car-sports',     color: G.purple, route: 'LuxuryHomeScreen' },
-    { id: SERVICE_IDS.BUS,         name: 'Bus & Tempo',        icon: 'bus',            color: G.pink,   route: 'BusHomeScreen' },
-    { id: SERVICE_IDS.TRANSPORTER, name: 'Transporter',        icon: 'truck-delivery', color: G.red,    route: 'TruckHomeScreen' },
-    { id: SERVICE_IDS.PACKERS,     name: 'Packers & Movers',   icon: 'package-variant',color: G.cyan,   route: 'PackersHomeScreen' },
-    { id: SERVICE_IDS.EQUIPMENT,   name: 'Equipment Rental',   icon: 'hammer-wrench',  color: G.indigo, route: 'EquipmentHomeScreen' },
+    { id: SERVICE_IDS.BIKE, name: 'Bike Rentals', icon: 'motorbike', color: G.amber, route: 'BikeHomeScreen' },
+    { id: SERVICE_IDS.SELF_DRIVE, name: 'Self-Drive Cars', icon: 'car-side', color: G.blue, route: 'SelfDriveHomeScreen' },
+    { id: SERVICE_IDS.CAR_RENTAL, name: 'Car Rental', icon: 'car', color: G.g600, route: 'CarRentalHomeScreen' },
+    { id: SERVICE_IDS.LUXURY, name: 'Luxury Cars', icon: 'car-sports', color: G.purple, route: 'LuxuryHomeScreen' },
+    { id: SERVICE_IDS.BUS, name: 'Bus & Tempo', icon: 'bus', color: G.pink, route: 'BusHomeScreen' },
+    { id: SERVICE_IDS.TRANSPORTER, name: 'Transporter', icon: 'truck-delivery', color: G.red, route: 'TruckHomeScreen' },
+    { id: SERVICE_IDS.PACKERS, name: 'Packers & Movers', icon: 'package-variant', color: G.cyan, route: 'PackersHomeScreen' },
+    { id: SERVICE_IDS.EQUIPMENT, name: 'Equipment Rental', icon: 'hammer-wrench', color: G.indigo, route: 'EquipmentHomeScreen' },
   ];
   const approvedServices = SERVICE_MODULES.filter((m) => hasService(m.id));
 
   // ── Manage grid ────────────────────────────────────────────────────────
   const manageItems = [
-    { label: 'Fleet',        sub: `${profile?.fleetsCount ?? 0} vehicles`, icon: 'truck',         lib: 'feather', color: G.blue,   bg: G.blueL,   route: 'FleetListScreen' },
-    { label: 'Staff',        sub: 'Manage team',                           icon: 'users',         lib: 'feather', color: G.purple, bg: G.purpleL, route: 'StaffListScreen' },
-    { label: 'Chats',        sub: 'Messages',                              icon: 'message-circle',lib: 'feather', color: G.g600,   bg: G.g50,     route: 'ChatListScreen' },
-    { label: 'Settings',     sub: 'Profile',                               icon: 'settings',      lib: 'feather', color: G.amber,  bg: G.amberL,  route: 'ProfileScreen' },
-    { label: 'Direct',       sub: 'Bookings',                              icon: 'book-open',     lib: 'feather', color: G.orange, bg: G.orangeL, route: 'DirectBookings' },
-    { label: 'Booking Links',sub: 'Share links',                           icon: 'link-2',        lib: 'feather', color: G.indigo, bg: G.indigoL, route: 'BookingLinks' },
-    { label: 'Financials',   sub: 'P&L reports',                           icon: 'bar-chart-2',   lib: 'feather', color: G.purple, bg: G.purpleL, route: 'Financials' },
-    { label: 'P2P Market',   sub: 'Trade fleet',                           icon: 'swap-horizontal',lib:'mci',     color: G.teal,   bg: G.tealL,   route: 'P2PDashboard' },
-    { label: 'Social',       sub: 'Vendor Network',                        icon: 'users',         lib: 'feather', color: '#7C3AED', bg: '#F5F3FF',  route: 'SocialFeed' },
+    { label: 'Fleet', sub: `${profile?.fleetsCount ?? 0} vehicles`, icon: 'truck', lib: 'feather', color: G.blue, bg: G.blueL, route: 'FleetListScreen' },
+    { label: 'Staff', sub: 'Manage team', icon: 'users', lib: 'feather', color: G.purple, bg: G.purpleL, route: 'StaffListScreen' },
+    { label: 'Chats', sub: 'Messages', icon: 'message-circle', lib: 'feather', color: G.g600, bg: G.g50, route: 'ChatListScreen' },
+    { label: 'Settings', sub: 'Profile', icon: 'settings', lib: 'feather', color: G.amber, bg: G.amberL, route: 'ProfileScreen' },
+    { label: 'Direct', sub: 'Bookings', icon: 'book-open', lib: 'feather', color: G.orange, bg: G.orangeL, route: 'DirectBookings' },
+    { label: 'Booking Links', sub: 'Share links', icon: 'link-2', lib: 'feather', color: G.indigo, bg: G.indigoL, route: 'BookingLinks' },
+    { label: 'Financials', sub: 'P&L reports', icon: 'bar-chart-2', lib: 'feather', color: G.purple, bg: G.purpleL, route: 'Financials' },
+    { label: 'P2P Market', sub: 'Trade fleet', icon: 'swap-horizontal', lib: 'mci', color: G.teal, bg: G.tealL, route: 'P2PDashboard' },
+    { label: 'Social', sub: 'Vendor Network', icon: 'users', lib: 'feather', color: '#7C3AED', bg: '#F5F3FF', route: 'SocialFeed' },
+    { label: 'B2B', sub: 'Corporate', icon: 'domain', lib: 'mci', color: G.indigo, bg: G.indigoL, route: 'B2BDashboard' },
   ];
 
   // ── Pending quick actions ──────────────────────────────────────────────
   const pendingActions = [
-    { name: 'Complete Profile',    desc: 'Add business details',      icon: 'building',  color: G.blue,   bg: G.blueL,   route: 'ProfileScreen' },
-    { name: 'Upload Documents',    desc: 'GST, PAN & more',           icon: 'file-text', color: G.purple, bg: G.purpleL, route: 'VendorDocuments' },
-    { name: 'Request Services',    desc: 'Select services you offer', icon: 'layers',    color: G.g600,   bg: G.g50,     route: 'VendorServices' },
-    { name: 'Request Locations',   desc: 'Cities you operate in',     icon: 'map-pin',   color: G.orange, bg: G.orangeL, route: 'VendorLocations' },
+    { name: 'Complete Profile', desc: 'Add business details', icon: 'building', color: G.blue, bg: G.blueL, route: 'ProfileScreen' },
+    { name: 'Upload Documents', desc: 'GST, PAN & more', icon: 'file-text', color: G.purple, bg: G.purpleL, route: 'VendorDocuments' },
+    { name: 'Request Services', desc: 'Select services you offer', icon: 'layers', color: G.g600, bg: G.g50, route: 'VendorServices' },
+    { name: 'Request Locations', desc: 'Cities you operate in', icon: 'map-pin', color: G.orange, bg: G.orangeL, route: 'VendorLocations' },
   ];
 
   // ── Loading skeleton ───────────────────────────────────────────────────
@@ -391,9 +392,9 @@ export default function DashboardScreen({ navigation }) {
 
               <View style={s.earningsStatsRow}>
                 {[
-                  { v: `₹${formatCurrency(earnings?.today || 0)}`,         l: 'Today' },
-                  { v: `₹${formatCurrency(earnings?.pendingPayout || 0)}`,  l: 'Pending' },
-                  { v: String(bookingsData?.completed || 0),                 l: 'Completed' },
+                  { v: `₹${formatCurrency(earnings?.today || 0)}`, l: 'Today' },
+                  { v: `₹${formatCurrency(earnings?.pendingPayout || 0)}`, l: 'Pending' },
+                  { v: String(bookingsData?.completed || 0), l: 'Completed' },
                 ].map((st, i) => (
                   <React.Fragment key={i}>
                     {i > 0 && <View style={s.earningsDiv} />}
@@ -444,14 +445,14 @@ export default function DashboardScreen({ navigation }) {
                       <View style={[
                         s.stepCircle,
                         step.status === 'completed' && { backgroundColor: G.g600, borderColor: G.g600 },
-                        step.status === 'current'   && { backgroundColor: G.blue, borderColor: G.blue },
-                        step.status === 'rejected'  && { backgroundColor: G.red,  borderColor: G.red },
-                        step.status === 'pending'   && { backgroundColor: G.bg,   borderColor: G.border },
+                        step.status === 'current' && { backgroundColor: G.blue, borderColor: G.blue },
+                        step.status === 'rejected' && { backgroundColor: G.red, borderColor: G.red },
+                        step.status === 'pending' && { backgroundColor: G.bg, borderColor: G.border },
                       ]}>
-                        {step.status === 'completed' ? <Icon name="check"  size={13} color="#fff" />
-                         : step.status === 'current'  ? <Icon name="clock"  size={13} color="#fff" />
-                         : step.status === 'rejected' ? <Icon name="x"     size={13} color="#fff" />
-                         : <Text style={s.stepNum}>{step.id}</Text>}
+                        {step.status === 'completed' ? <Icon name="check" size={13} color="#fff" />
+                          : step.status === 'current' ? <Icon name="clock" size={13} color="#fff" />
+                            : step.status === 'rejected' ? <Icon name="x" size={13} color="#fff" />
+                              : <Text style={s.stepNum}>{step.id}</Text>}
                       </View>
                       <Text style={[s.stepLbl, step.status === 'current' && { color: G.blue, fontWeight: '700' }]}>
                         {step.name}
@@ -679,10 +680,10 @@ export default function DashboardScreen({ navigation }) {
               </View>
               <View style={s.card}>
                 {[
-                  { step: 1, title: 'Complete Your Profile',         desc: 'Add your business name, logo & details.' },
-                  { step: 2, title: 'Upload Documents',              desc: 'GST, PAN, and business registration.' },
-                  { step: 3, title: 'Request Services & Locations',  desc: 'Select what you offer and where.' },
-                  { step: 4, title: 'Add Your Fleet',                desc: 'Once approved, add vehicles with photos.' },
+                  { step: 1, title: 'Complete Your Profile', desc: 'Add your business name, logo & details.' },
+                  { step: 2, title: 'Upload Documents', desc: 'GST, PAN, and business registration.' },
+                  { step: 3, title: 'Request Services & Locations', desc: 'Select what you offer and where.' },
+                  { step: 4, title: 'Add Your Fleet', desc: 'Once approved, add vehicles with photos.' },
                 ].map((item, idx, arr) => (
                   <View key={item.step}>
                     <View style={s.guideRow}>
@@ -841,7 +842,7 @@ const s = StyleSheet.create({
   },
   statusDot: { width: 7, height: 7, borderRadius: 4, marginRight: 7 },
   statusLabel: { fontSize: 12, fontWeight: '700' },
-  statusSub:   { fontSize: 11, fontWeight: '400', opacity: 0.75 },
+  statusSub: { fontSize: 11, fontWeight: '400', opacity: 0.75 },
 
   // ── Earnings hero ──────────────────────────────────────────────────────
   earningsHero: {
@@ -852,16 +853,16 @@ const s = StyleSheet.create({
     padding: 18,
   },
   earningsTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 },
-  earningsLbl:    { fontSize: 12, color: 'rgba(255,255,255,0.65)', fontWeight: '600', marginBottom: 5, letterSpacing: 0.3 },
-  earningsAmt:    { fontSize: 34, fontWeight: '900', color: '#fff', letterSpacing: -1 },
-  growthBadge:    { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 12 },
-  growthTxt:      { fontSize: 12, fontWeight: '700' },
+  earningsLbl: { fontSize: 12, color: 'rgba(255,255,255,0.65)', fontWeight: '600', marginBottom: 5, letterSpacing: 0.3 },
+  earningsAmt: { fontSize: 34, fontWeight: '900', color: '#fff', letterSpacing: -1 },
+  growthBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 12 },
+  growthTxt: { fontSize: 12, fontWeight: '700' },
   earningsStatsRow: { flexDirection: 'row', backgroundColor: 'rgba(0,0,0,0.18)', borderRadius: 14, padding: 14, marginBottom: 14 },
-  earningsDiv:    { width: 1, backgroundColor: 'rgba(255,255,255,0.15)', marginHorizontal: 8 },
-  earningStat:    { flex: 1, alignItems: 'center' },
-  earningStatV:   { fontSize: 15, fontWeight: '800', color: '#fff', marginBottom: 3 },
-  earningStatL:   { fontSize: 10, color: 'rgba(255,255,255,0.6)', fontWeight: '600' },
-  earningsCTA:    { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
+  earningsDiv: { width: 1, backgroundColor: 'rgba(255,255,255,0.15)', marginHorizontal: 8 },
+  earningStat: { flex: 1, alignItems: 'center' },
+  earningStatV: { fontSize: 15, fontWeight: '800', color: '#fff', marginBottom: 3 },
+  earningStatL: { fontSize: 10, color: 'rgba(255,255,255,0.6)', fontWeight: '600' },
+  earningsCTA: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
   earningsCTATxt: { fontSize: 13, fontWeight: '700', color: G.g300 },
 
   // ── Body ──────────────────────────────────────────────────────────────
@@ -893,17 +894,17 @@ const s = StyleSheet.create({
     borderWidth: 1, borderColor: G.border,
   },
   cardHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 },
-  cardTitle:  { fontSize: 15, fontWeight: '800', color: G.text },
-  pill:       { paddingHorizontal: 10, paddingVertical: 3, borderRadius: 10, borderWidth: 1 },
-  pillTxt:    { fontSize: 11, fontWeight: '700' },
+  cardTitle: { fontSize: 15, fontWeight: '800', color: G.text },
+  pill: { paddingHorizontal: 10, paddingVertical: 3, borderRadius: 10, borderWidth: 1 },
+  pillTxt: { fontSize: 11, fontWeight: '700' },
 
   // ── Progress bar ──────────────────────────────────────────────────────
   progressTrack: { height: 5, backgroundColor: G.border, borderRadius: 3, marginBottom: 18, overflow: 'hidden' },
-  progressFill:  { height: '100%', backgroundColor: G.g500, borderRadius: 3 },
+  progressFill: { height: '100%', backgroundColor: G.g500, borderRadius: 3 },
 
   // ── Steps ─────────────────────────────────────────────────────────────
   stepsRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 16 },
-  stepCol:  { alignItems: 'center', flex: 1 },
+  stepCol: { alignItems: 'center', flex: 1 },
   stepCircle: {
     width: 34, height: 34, borderRadius: 17,
     alignItems: 'center', justifyContent: 'center',
@@ -919,9 +920,9 @@ const s = StyleSheet.create({
     backgroundColor: G.bg, borderRadius: 12, padding: 12,
     borderWidth: 1, borderColor: G.border,
   },
-  alertIcon:  { width: 34, height: 34, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  alertIcon: { width: 34, height: 34, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
   alertTitle: { fontSize: 13, fontWeight: '700', marginBottom: 1 },
-  alertSub:   { fontSize: 11, opacity: 0.8 },
+  alertSub: { fontSize: 11, opacity: 0.8 },
 
   // ── Stats grid (2×2) ──────────────────────────────────────────────────
   statsGrid: {
@@ -936,15 +937,15 @@ const s = StyleSheet.create({
     position: 'relative',
   },
   statIconWrap: { width: 38, height: 38, borderRadius: 11, alignItems: 'center', justifyContent: 'center', marginBottom: 10 },
-  statValue:    { fontSize: 26, fontWeight: '900', letterSpacing: -0.5, marginBottom: 2 },
-  statName:     { fontSize: 14, fontWeight: '700', color: G.text, marginBottom: 2 },
-  statLabel:    { fontSize: 11, color: G.muted, fontWeight: '500', lineHeight: 15 },
-  statArrow:    { position: 'absolute', top: 12, right: 12 },
+  statValue: { fontSize: 26, fontWeight: '900', letterSpacing: -0.5, marginBottom: 2 },
+  statName: { fontSize: 14, fontWeight: '700', color: G.text, marginBottom: 2 },
+  statLabel: { fontSize: 11, color: G.muted, fontWeight: '500', lineHeight: 15 },
+  statArrow: { position: 'absolute', top: 12, right: 12 },
 
   // ── Quick actions ─────────────────────────────────────────────────────
-  qaScroll:        { marginHorizontal: -16, marginBottom: 18 },
+  qaScroll: { marginHorizontal: -16, marginBottom: 18 },
   qaScrollContent: { paddingHorizontal: 16, gap: 12 },
-  qaBtn:    { alignItems: 'center', width: 70 },
+  qaBtn: { alignItems: 'center', width: 70 },
   qaIconWrap: {
     width: 52, height: 52, borderRadius: 16,
     alignItems: 'center', justifyContent: 'center',
@@ -968,8 +969,8 @@ const s = StyleSheet.create({
     position: 'relative',
   },
   svcIconBox: { width: 50, height: 50, borderRadius: 14, alignItems: 'center', justifyContent: 'center', marginBottom: 10 },
-  svcName:    { fontSize: 13, fontWeight: '700', color: G.text, lineHeight: 18, flex: 1 },
-  svcArrow:   { position: 'absolute', top: 12, right: 12, width: 26, height: 26, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
+  svcName: { fontSize: 13, fontWeight: '700', color: G.text, lineHeight: 18, flex: 1 },
+  svcArrow: { position: 'absolute', top: 12, right: 12, width: 26, height: 26, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
 
   // ── Manage list (2-col) ───────────────────────────────────────────────
   manageGrid: {
@@ -1032,8 +1033,8 @@ const s = StyleSheet.create({
     width: 30, height: 30, borderRadius: 15,
     backgroundColor: G.g600, alignItems: 'center', justifyContent: 'center',
   },
-  guideNumTxt:  { color: '#fff', fontWeight: '800', fontSize: 13 },
-  guideTitle:   { fontSize: 14, fontWeight: '700', color: G.text },
-  guideDesc:    { fontSize: 12, color: G.muted, marginTop: 2, lineHeight: 17 },
+  guideNumTxt: { color: '#fff', fontWeight: '800', fontSize: 13 },
+  guideTitle: { fontSize: 14, fontWeight: '700', color: G.text },
+  guideDesc: { fontSize: 12, color: G.muted, marginTop: 2, lineHeight: 17 },
   guideDivider: { height: 1, backgroundColor: G.border, marginLeft: 44 },
 });
