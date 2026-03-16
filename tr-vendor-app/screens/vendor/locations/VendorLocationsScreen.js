@@ -177,7 +177,7 @@ export default function VendorLocationsScreen({ navigation }) {
 
   // ── Request modal helpers ────────────────────────────────────────────
   const isApproved = (id) => approvedLocations.some((a) => a.locations?.id === id || a.locationId === id);
-  const hasPending = (id) => requests.some((r) => r.locations?.id === id || r.locationId === id);
+  const hasPending = (id) => requests.some((r) => (r.locations?.id === id || r.locationId === id) && r.status === 'PENDING');
 
   const toggleModalLoc = (loc) => setSelectedLocations((p) => p.some((l) => l.id === loc.id) ? p.filter((l) => l.id !== loc.id) : [...p, loc]);
   const toggleModalState = (state, locs) => {
@@ -661,23 +661,25 @@ export default function VendorLocationsScreen({ navigation }) {
               )}
             </View>
 
-            {/* Select All */}
-            <TouchableOpacity style={s.modalSelectAll} onPress={selectAllModal} activeOpacity={0.75}>
-              <View style={[s.checkbox, selectedLocations.length === availableCount && availableCount > 0 ? s.checkboxActive : {}]}>
-                {selectedLocations.length === availableCount && availableCount > 0 && <Ionicons name="checkmark" size={13} color="#fff" />}
-              </View>
-              <Text style={s.modalSelectAllText}>
-                {selectedLocations.length === availableCount && availableCount > 0 ? 'Deselect All' : 'Select All Cities'}
-              </Text>
-              {selectedLocations.length > 0 && (
-                <View style={s.modalSelCount}>
-                  <Text style={s.modalSelCountText}>{selectedLocations.length} selected</Text>
-                  <TouchableOpacity onPress={() => setSelectedLocations([])} hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}>
-                    <Text style={s.modalClearText}>Clear</Text>
-                  </TouchableOpacity>
+            {/* Select All — only show when there are available cities */}
+            {availableCount > 0 && (
+              <TouchableOpacity style={s.modalSelectAll} onPress={selectAllModal} activeOpacity={0.75}>
+                <View style={[s.checkbox, selectedLocations.length === availableCount && availableCount > 0 ? s.checkboxActive : {}]}>
+                  {selectedLocations.length === availableCount && availableCount > 0 && <Ionicons name="checkmark" size={13} color="#fff" />}
                 </View>
-              )}
-            </TouchableOpacity>
+                <Text style={s.modalSelectAllText}>
+                  {selectedLocations.length === availableCount && availableCount > 0 ? 'Deselect All' : 'Select All Cities'}
+                </Text>
+                {selectedLocations.length > 0 && (
+                  <View style={s.modalSelCount}>
+                    <Text style={s.modalSelCountText}>{selectedLocations.length} selected</Text>
+                    <TouchableOpacity onPress={() => setSelectedLocations([])} hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}>
+                      <Text style={s.modalClearText}>Clear</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+              </TouchableOpacity>
+            )}
 
             {/* City list */}
             {modalLoading ? (
