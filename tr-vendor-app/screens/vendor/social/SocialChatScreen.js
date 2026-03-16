@@ -11,10 +11,12 @@ import {
   Platform,
   ActivityIndicator,
   Alert,
+  Image,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Feather';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getMessages, sendMessage } from '../../api/socialApi';
+import { getFullImageURL } from '../../api/client';
 
 const G = {
   bg: '#F5F7FA', surface: '#FFFFFF', text: '#0A0F1E', muted: '#6B7280',
@@ -48,12 +50,31 @@ const isSameDateDay = (a, b) => {
   return da.getFullYear() === db.getFullYear() && da.getMonth() === db.getMonth() && da.getDate() === db.getDate();
 };
 
-function AvatarCircle({ name, size = 36 }) {
+function AvatarCircle({ name, logo, size = 36 }) {
+  const [imgErr, setImgErr] = useState(false);
   const letter = name?.charAt(0)?.toUpperCase() || '?';
   const bg = getAvatarColor(name);
+  const [uri, setUri] = useState(null);
+
+  useEffect(() => {
+    if (logo) {
+      getFullImageURL(logo).then(setUri);
+    } else {
+      setUri(null);
+    }
+  }, [logo]);
+
   return (
-    <View style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: bg, alignItems: 'center', justifyContent: 'center' }}>
-      <Text style={{ color: '#fff', fontWeight: '700', fontSize: size * 0.38 }}>{letter}</Text>
+    <View style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: bg, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+      {logo && uri && !imgErr ? (
+        <Image 
+          source={{ uri }} 
+          style={{ width: size, height: size, borderRadius: size / 2 }} 
+          onError={() => setImgErr(true)}
+        />
+      ) : (
+        <Text style={{ color: '#fff', fontWeight: '700', fontSize: size * 0.38 }}>{letter}</Text>
+      )}
     </View>
   );
 }
@@ -200,7 +221,7 @@ export default function SocialChatScreen({ route, navigation }) {
 
     return (
       <View style={[styles.msgRow, isSent ? styles.msgRowSent : styles.msgRowReceived]}>
-        {!isSent && <AvatarCircle name={otherVendor?.businessName} size={28} />}
+        {!isSent && <AvatarCircle name={otherVendor?.businessName} logo={otherVendor?.logo} size={28} />}
         <View style={[styles.msgBubble, isSent ? styles.msgBubbleSent : styles.msgBubbleReceived, isOptimistic && styles.msgBubbleOptimistic]}>
           {parsed.isPostCard ? (
             <PostCardMessage data={parsed.data} isSent={isSent} />
@@ -228,7 +249,7 @@ export default function SocialChatScreen({ route, navigation }) {
           <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
             <Icon name="arrow-left" size={20} color={G.text} />
           </TouchableOpacity>
-          <AvatarCircle name={otherVendor?.businessName} size={38} />
+          <AvatarCircle name={otherVendor?.businessName} logo={otherVendor?.logo} size={38} />
           <View style={styles.headerInfo}>
             <Text style={styles.headerName} numberOfLines={1}>{otherVendor?.businessName || 'Vendor'}</Text>
             {otherVendor?.city && <Text style={styles.headerSub}>{otherVendor.city}</Text>}
@@ -257,7 +278,7 @@ export default function SocialChatScreen({ route, navigation }) {
             showsVerticalScrollIndicator={false}
             ListEmptyComponent={
               <View style={styles.emptyChat}>
-                <AvatarCircle name={otherVendor?.businessName} size={64} />
+                <AvatarCircle name={otherVendor?.businessName} logo={otherVendor?.logo} size={64} />
                 <Text style={styles.emptyChatTitle}>{otherVendor?.businessName || 'Vendor'}</Text>
                 <Text style={styles.emptyChatText}>Say hello! Start the conversation.</Text>
               </View>

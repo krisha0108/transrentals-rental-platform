@@ -11,6 +11,7 @@ import {
   ActivityIndicator,
   Alert,
   Dimensions,
+  Image,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Feather';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -21,6 +22,7 @@ import {
   toggleFollow,
   getOrCreateConversation,
 } from '../../api/socialApi';
+import { getFullImageURL } from '../../api/client';
 
 const { width: SCREEN_W } = Dimensions.get('window');
 
@@ -49,12 +51,31 @@ const formatTimeAgo = (dateStr) => {
   return new Date(dateStr).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
 };
 
-function AvatarCircle({ name, size = 40, style }) {
+function AvatarCircle({ name, logo, size = 40, style }) {
+  const [imgErr, setImgErr] = useState(false);
   const letter = name?.charAt(0)?.toUpperCase() || '?';
   const bg = getAvatarColor(name);
+  const [uri, setUri] = useState(null);
+
+  useEffect(() => {
+    if (logo) {
+      getFullImageURL(logo).then(setUri);
+    } else {
+      setUri(null);
+    }
+  }, [logo]);
+
   return (
-    <View style={[{ width: size, height: size, borderRadius: size / 2, backgroundColor: bg, alignItems: 'center', justifyContent: 'center' }, style]}>
-      <Text style={{ color: '#fff', fontWeight: '700', fontSize: size * 0.38 }}>{letter}</Text>
+    <View style={[{ width: size, height: size, borderRadius: size / 2, backgroundColor: bg, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }, style]}>
+      {logo && uri && !imgErr ? (
+        <Image
+          source={{ uri }}
+          style={{ width: size, height: size, borderRadius: size / 2 }}
+          onError={() => setImgErr(true)}
+        />
+      ) : (
+        <Text style={{ color: '#fff', fontWeight: '700', fontSize: size * 0.38 }}>{letter}</Text>
+      )}
     </View>
   );
 }
@@ -141,12 +162,12 @@ export default function SocialProfileScreen({ route, navigation }) {
         ? { ...p, isLiked: !p.isLiked, likesCount: p.isLiked ? (p.likesCount || 1) - 1 : (p.likesCount || 0) + 1 }
         : p
     ));
-    try { await toggleLike(postId); } catch (e) {}
+    try { await toggleLike(postId); } catch (e) { }
   };
 
   const handleSave = async (postId) => {
     setPosts((prev) => prev.map((p) => p.id === postId ? { ...p, isSaved: !p.isSaved } : p));
-    try { await toggleSave(postId); } catch (e) {}
+    try { await toggleSave(postId); } catch (e) { }
   };
 
   const isOwnProfile = String(vendorId) === String(currentVendorId);
@@ -274,7 +295,7 @@ export default function SocialProfileScreen({ route, navigation }) {
             {/* Profile info */}
             <View style={styles.profileSection}>
               <View style={styles.avatarRow}>
-                <AvatarCircle name={profile?.businessName} size={72} style={styles.profileAvatar} />
+                <AvatarCircle name={profile?.businessName} logo={profile?.logo} size={72} style={styles.profileAvatar} />
                 {!isOwnProfile && (
                   <View style={styles.profileActions}>
                     <TouchableOpacity
@@ -285,19 +306,19 @@ export default function SocialProfileScreen({ route, navigation }) {
                       {followLoading
                         ? <ActivityIndicator size="small" color={profile?.isFollowing ? G.violet : '#fff'} />
                         : <>
-                            <Icon name={profile?.isFollowing ? 'user-check' : 'user-plus'} size={14} color={profile?.isFollowing ? G.violet : '#fff'} />
-                            <Text style={[styles.followBtnText, profile?.isFollowing && styles.followBtnTextActive]}>
-                              {profile?.isFollowing ? 'Following' : 'Follow'}
-                            </Text>
-                          </>}
+                          <Icon name={profile?.isFollowing ? 'user-check' : 'user-plus'} size={14} color={profile?.isFollowing ? G.violet : '#fff'} />
+                          <Text style={[styles.followBtnText, profile?.isFollowing && styles.followBtnTextActive]}>
+                            {profile?.isFollowing ? 'Following' : 'Follow'}
+                          </Text>
+                        </>}
                     </TouchableOpacity>
                     <TouchableOpacity style={styles.messageBtn} onPress={handleMessage} disabled={messagingLoading}>
                       {messagingLoading
                         ? <ActivityIndicator size="small" color={G.violet} />
                         : <>
-                            <Icon name="message-circle" size={14} color={G.violet} />
-                            <Text style={styles.messageBtnText}>Message</Text>
-                          </>}
+                          <Icon name="message-circle" size={14} color={G.violet} />
+                          <Text style={styles.messageBtnText}>Message</Text>
+                        </>}
                     </TouchableOpacity>
                   </View>
                 )}

@@ -1672,3 +1672,15 @@ export async function getStoredVendor() {
     return null;
   }
 }
+
+/**
+ * Get full image URL from relative path
+ */
+export async function getFullImageURL(url) {
+  if (!url) return null;
+  if (typeof url !== 'string') return null;
+  if (url.startsWith('http')) return url;
+  const baseURL = await getBaseURL();
+  if (!baseURL) return null;
+  return `${baseURL}${url}`;
+}

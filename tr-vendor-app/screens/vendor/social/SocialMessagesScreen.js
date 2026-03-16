@@ -9,9 +9,11 @@ import {
   TextInput,
   RefreshControl,
   ActivityIndicator,
+  Image,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Feather';
 import { getConversations } from '../../api/socialApi';
+import { getFullImageURL } from '../../api/client';
 
 const G = {
   bg: '#F5F7FA', surface: '#FFFFFF', text: '#0A0F1E', muted: '#6B7280',
@@ -45,12 +47,31 @@ const parseLastMessage = (lastMessage) => {
   return content;
 };
 
-function AvatarCircle({ name, size = 44 }) {
+function AvatarCircle({ name, logo, size = 44 }) {
+  const [imgErr, setImgErr] = useState(false);
   const letter = name?.charAt(0)?.toUpperCase() || '?';
   const bg = getAvatarColor(name);
+  const [uri, setUri] = useState(null);
+
+  useEffect(() => {
+    if (logo) {
+      getFullImageURL(logo).then(setUri);
+    } else {
+      setUri(null);
+    }
+  }, [logo]);
+
   return (
-    <View style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: bg, alignItems: 'center', justifyContent: 'center' }}>
-      <Text style={{ color: '#fff', fontWeight: '700', fontSize: size * 0.4 }}>{letter}</Text>
+    <View style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: bg, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+      {logo && uri && !imgErr ? (
+        <Image 
+          source={{ uri }} 
+          style={{ width: size, height: size, borderRadius: size / 2 }} 
+          onError={() => setImgErr(true)}
+        />
+      ) : (
+        <Text style={{ color: '#fff', fontWeight: '700', fontSize: size * 0.4 }}>{letter}</Text>
+      )}
     </View>
   );
 }
@@ -111,7 +132,7 @@ export default function SocialMessagesScreen({ navigation }) {
         activeOpacity={0.75}
       >
         <View style={styles.avatarWrap}>
-          <AvatarCircle name={vendor.businessName} size={50} />
+          <AvatarCircle name={vendor.businessName} logo={vendor.logo} size={50} />
           {isUnread && (
             <View style={styles.unreadDot}>
               <Text style={styles.unreadDotText}>{item.unreadCount > 9 ? '9+' : item.unreadCount}</Text>

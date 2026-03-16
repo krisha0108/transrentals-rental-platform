@@ -233,7 +233,7 @@ export default function ProfileScreen({ navigation }) {
         {/* Profile Header */}
         <View style={styles.profileHeader}>
           <View style={styles.avatarContainer}>
-            {profile?.logo ? (
+            {profile?.logo && getFullImageURL(profile.logo) ? (
               <Image
                 key={profile.logo} // Force re-render when logo changes
                 source={{ uri: getFullImageURL(profile.logo) }}

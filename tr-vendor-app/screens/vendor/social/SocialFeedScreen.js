@@ -15,6 +15,7 @@ import {
   Dimensions,
   Linking,
   PanResponder,
+  Image,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Feather';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -35,6 +36,7 @@ import {
   getConversations,
   sendMessage,
 } from '../../api/socialApi';
+import { getFullImageURL } from '../../api/client';
 
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
 
@@ -156,12 +158,31 @@ function StoryProgressBar({ count, current, duration }) {
 }
 
 // ── Avatar Circle ─────────────────────────────────────────────────────
-function AvatarCircle({ name, size = 40, style }) {
+function AvatarCircle({ name, logo, size = 40, style }) {
+  const [imgErr, setImgErr] = useState(false);
   const letter = name?.charAt(0)?.toUpperCase() || '?';
   const bg = getAvatarColor(name);
+  const [uri, setUri] = useState(null);
+
+  useEffect(() => {
+    if (logo) {
+      getFullImageURL(logo).then(setUri);
+    } else {
+      setUri(null);
+    }
+  }, [logo]);
+
   return (
-    <View style={[{ width: size, height: size, borderRadius: size / 2, backgroundColor: bg, alignItems: 'center', justifyContent: 'center' }, style]}>
-      <Text style={{ color: '#fff', fontWeight: '700', fontSize: size * 0.4 }}>{letter}</Text>
+    <View style={[{ width: size, height: size, borderRadius: size / 2, backgroundColor: bg, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }, style]}>
+      {logo && uri && !imgErr ? (
+        <Image 
+          source={{ uri }} 
+          style={{ width: size, height: size, borderRadius: size / 2 }} 
+          onError={() => setImgErr(true)}
+        />
+      ) : (
+        <Text style={{ color: '#fff', fontWeight: '700', fontSize: size * 0.4 }}>{letter}</Text>
+      )}
     </View>
   );
 }
@@ -579,7 +600,7 @@ export default function SocialFeedScreen({ navigation }) {
             onPress={() => navigation.navigate('SocialProfileScreen', { vendorId: item.vendorId })}
             activeOpacity={0.75}
           >
-            <AvatarCircle name={item.vendor?.businessName} size={44} />
+            <AvatarCircle name={item.vendor?.businessName} logo={item.vendor?.logo} size={44} />
             <View style={styles.postVendorInfo}>
               <Text style={styles.postVendorName} numberOfLines={1}>
                 {item.vendor?.businessName || 'Unknown Vendor'}
@@ -903,11 +924,7 @@ export default function SocialFeedScreen({ navigation }) {
                       disabled={!!sendingToChat}
                       activeOpacity={0.75}
                     >
-                      <View style={[styles.shareChatAvatar, { backgroundColor: getAvatarColor(vendor.businessName) }]}>
-                        <Text style={styles.shareChatAvatarText}>
-                          {vendor.businessName?.charAt(0)?.toUpperCase() || '?'}
-                        </Text>
-                      </View>
+                      <AvatarCircle name={vendor.businessName} logo={vendor.logo} size={40} />
                       <View style={{ flex: 1 }}>
                         <Text style={styles.shareChatConvName} numberOfLines={1}>{vendor.businessName || 'Vendor'}</Text>
                         {vendor.ownerName && <Text style={styles.shareChatConvOwner} numberOfLines={1}>{vendor.ownerName}</Text>}
@@ -948,7 +965,7 @@ export default function SocialFeedScreen({ navigation }) {
               <ScrollView style={styles.commentsList} showsVerticalScrollIndicator={false}>
                 {comments.map((c) => (
                   <View key={c.id} style={styles.commentItem}>
-                    <AvatarCircle name={c.vendor?.businessName || c.author?.businessName} size={32} />
+                    <AvatarCircle name={c.vendor?.businessName || c.author?.businessName} logo={c.vendor?.logo || c.author?.logo} size={32} />
                     <View style={styles.commentBody}>
                       <Text style={styles.commentAuthor}>{c.vendor?.businessName || c.author?.businessName || 'Vendor'}</Text>
                       <Text style={styles.commentText}>{c.content}</Text>
