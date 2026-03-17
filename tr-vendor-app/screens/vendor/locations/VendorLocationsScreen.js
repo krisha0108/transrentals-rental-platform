@@ -1,40 +1,23 @@
-// screens/vendor/locations/VendorLocationsScreen.js
-// Location selection and management screen
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  ActivityIndicator,
-  RefreshControl,
-  Modal,
-  TextInput,
-  Alert,
-  FlatList,
+  View, Text, StyleSheet, ScrollView, FlatList, TouchableOpacity,
+  ActivityIndicator, RefreshControl, Modal, TextInput, Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import LinearGradient from 'react-native-linear-gradient';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { showError, showSuccess, showInfo, showConfirm } from '../../../services/alertService';
-import {
-  getVendorLocations,
-  requestLocation,
-} from '../../api/client';
+import { showError, showSuccess } from '../../../services/alertService';
+import { getVendorLocations, requestLocation, apiDelete } from '../../api/client';
 
-const BRAND = {
-  primary: '#1FC77A',
-  primaryDark: '#12AD66',
-  ink: '#0F1720',
-  text: '#334155',
-  subText: '#64748B',
-  bg: '#F6F8FB',
-  card: '#FFFFFF',
-  border: '#E6EDF5',
-  error: '#EF4444',
-  blue: '#3B82F6',
-  yellow: '#F59E0B',
-  green: '#10B981',
+const { width: SW } = Dimensions.get('window');
+
+const C = {
+  g600: '#166534', g500: '#15803d', g100: '#dcfce7', g50: '#f0fdf4',
+  text: '#0A0F1E', textMid: '#374151', muted: '#6B7280',
+  bg: '#F5F7FA', surface: '#FFFFFF', border: '#E8EDF2',
+  blue: '#2563EB', blueL: '#EFF6FF',
+  red: '#DC2626', redL: '#FEF2F2',
+  amber: '#D97706', amberL: '#FFFBEB',
 };
 
 export default function VendorLocationsScreen({ navigation }) {
@@ -43,605 +26,757 @@ export default function VendorLocationsScreen({ navigation }) {
   const [allLocations, setAllLocations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [showRequestModal, setShowRequestModal] = useState(false);
+
+  // Request modal
+  const [showModal, setShowModal] = useState(false);
   const [selectedLocations, setSelectedLocations] = useState([]);
   const [requestMessage, setRequestMessage] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [modalSearch, setModalSearch] = useState('');
+
+  // Approved — search, state filter, bulk select
+  const [locSearch, setLocSearch] = useState('');
+  const [locStateFilter, setLocStateFilter] = useState('');
+  const [selectedLocIds, setSelectedLocIds] = useState(new Set());
+  const [deletingId, setDeletingId] = useState(null);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
+
+  // Pending — search, bulk select
+  const [pendingSearch, setPendingSearch] = useState('');
+  const [selectedPendingIds, setSelectedPendingIds] = useState(new Set());
+  const [withdrawingId, setWithdrawingId] = useState(null);
+  const [bulkWithdrawing, setBulkWithdrawing] = useState(false);
+
+  // Custom confirm modal
+  const [confirmModal, setConfirmModal] = useState({ visible: false, title: '', message: '', btnText: 'Confirm', onConfirm: null });
+  const showConfirm = (title, message, btnText, onConfirm) =>
+    setConfirmModal({ visible: true, title, message, btnText, onConfirm });
+  const hideConfirm = () => setConfirmModal((p) => ({ ...p, visible: false }));
+
+  // Modal city list loading
+  const [modalLoading, setModalLoading] = useState(false);
 
   const fetchLocations = useCallback(async () => {
     try {
-      // Fetch vendor's locations - API returns allLocations (states + union territories with children cities)
-      const vendorLocations = await getVendorLocations();
-      setRequests(vendorLocations.requests || []);
-      setApprovedLocations(vendorLocations.approvedLocations || []);
-
-      // Flatten the hierarchical data: states -> cities with parent info
-      // Also include Union Territories as direct locations
-      const statesAndUTs = vendorLocations.allLocations || [];
-      const flatLocations = [];
-
-      statesAndUTs.forEach((location) => {
-        const cities = location.cities || location.children || [];
-
-        if (cities && Array.isArray(cities) && cities.length > 0) {
-          // This is a state with cities - add all cities
-          cities.forEach((city) => {
-            flatLocations.push({
-              id: city.id,
-              name: city.name,
-              slug: city.slug,
-              type: city.type || 'CITY',
-              parent: {
-                id: location.id,
-                name: location.name,
-                type: location.type,
-              },
-            });
-          });
-        } else if (location.type === 'UNION_TERRITORY') {
-          // This is a Union Territory without children - add it directly
-          flatLocations.push({
-            id: location.id,
-            name: location.name,
-            slug: location.slug,
-            type: location.type,
-            parent: {
-              id: null,
-              name: 'Union Territory',
-              type: 'UNION_TERRITORY',
-            },
-          });
+      const data = await getVendorLocations();
+      setRequests(data.requests || []);
+      setApprovedLocations(data.approvedLocations || []);
+      const flat = [];
+      (data.allLocations || []).forEach((loc) => {
+        const cities = loc.cities || loc.children || [];
+        if (cities.length > 0) {
+          cities.forEach((c) => flat.push({ id: c.id, name: c.name, slug: c.slug, type: c.type || 'CITY', parent: { id: loc.id, name: loc.name, type: loc.type } }));
+        } else if (loc.type === 'UNION_TERRITORY') {
+          flat.push({ id: loc.id, name: loc.name, slug: loc.slug, type: loc.type, parent: { id: null, name: 'Union Territory', type: 'UNION_TERRITORY' } });
         }
       });
-
-      setAllLocations(flatLocations);
-    } catch (error) {
-      console.error('Failed to fetch locations:', error);
-      setAllLocations([]);
+      setAllLocations(flat);
+    } catch (e) {
+      console.error(e);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
   }, []);
 
-  useEffect(() => {
-    fetchLocations();
-  }, [fetchLocations]);
+  useEffect(() => { fetchLocations(); }, [fetchLocations]);
+  const onRefresh = useCallback(() => { setRefreshing(true); fetchLocations(); }, [fetchLocations]);
 
-  const onRefresh = useCallback(() => {
-    setRefreshing(true);
-    fetchLocations();
-  }, [fetchLocations]);
+  // ── Derived ──────────────────────────────────────────────────────────
+  const pendingRequests = useMemo(() => requests.filter((r) => r.status === 'PENDING'), [requests]);
+  const rejectedRequests = useMemo(() => requests.filter((r) => r.status === 'REJECTED'), [requests]);
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'APPROVED':
-        return { bg: '#D1FAE5', text: '#059669' };
-      case 'REJECTED':
-        return { bg: '#FEE2E2', text: '#DC2626' };
-      default:
-        return { bg: '#FEF3C7', text: '#D97706' };
+  const uniqueStates = useMemo(() => [...new Set(approvedLocations.map((l) => l.locations?.parent?.name || '').filter(Boolean))].sort(), [approvedLocations]);
+
+  const filteredApproved = useMemo(() => approvedLocations.filter((l) => {
+    const city = (l.locations?.name || '').toLowerCase();
+    const state = (l.locations?.parent?.name || '').toLowerCase();
+    const q = locSearch.toLowerCase();
+    if (locSearch) return city.includes(q) || state.includes(q);
+    return !locStateFilter || (l.locations?.parent?.name || '') === locStateFilter;
+  }), [approvedLocations, locSearch, locStateFilter]);
+
+  const allApprovedFilteredIds = useMemo(() => filteredApproved.map((l) => l.locationId), [filteredApproved]);
+  const allApprovedSelected = allApprovedFilteredIds.length > 0 && allApprovedFilteredIds.every((id) => selectedLocIds.has(id));
+
+  const filteredPending = useMemo(() => pendingRequests.filter((r) => {
+    if (!pendingSearch) return true;
+    const q = pendingSearch.toLowerCase();
+    return (r.locations?.name || '').toLowerCase().includes(q) || (r.locations?.parent?.name || '').toLowerCase().includes(q);
+  }), [pendingRequests, pendingSearch]);
+
+  const allPendingFilteredIds = useMemo(() => filteredPending.map((r) => r.locationId), [filteredPending]);
+  const allPendingSelected = allPendingFilteredIds.length > 0 && allPendingFilteredIds.every((id) => selectedPendingIds.has(id));
+
+  // ── Select helpers ───────────────────────────────────────────────────
+  const toggleApproved = (id) => setSelectedLocIds((p) => { const s = new Set(p); s.has(id) ? s.delete(id) : s.add(id); return s; });
+  const toggleAllApproved = () => {
+    if (allApprovedSelected) setSelectedLocIds((p) => { const s = new Set(p); allApprovedFilteredIds.forEach((id) => s.delete(id)); return s; });
+    else setSelectedLocIds((p) => { const s = new Set(p); allApprovedFilteredIds.forEach((id) => s.add(id)); return s; });
+  };
+  const togglePending = (id) => setSelectedPendingIds((p) => { const s = new Set(p); s.has(id) ? s.delete(id) : s.add(id); return s; });
+  const toggleAllPending = () => {
+    if (allPendingSelected) setSelectedPendingIds((p) => { const s = new Set(p); allPendingFilteredIds.forEach((id) => s.delete(id)); return s; });
+    else setSelectedPendingIds((p) => { const s = new Set(p); allPendingFilteredIds.forEach((id) => s.add(id)); return s; });
+  };
+
+  // ── Delete / Withdraw ────────────────────────────────────────────────
+  const confirmDelete = (locationId) => showConfirm(
+    'Remove Location',
+    'Remove this approved location? You will need to re-request approval.',
+    'Remove',
+    async () => {
+      setDeletingId(locationId);
+      try { await apiDelete(`/vendor/locations?locationId=${locationId}&type=approved`); await fetchLocations(); showSuccess('Location removed.'); }
+      catch (e) { showError(e?.response?.data?.error || 'Failed to remove'); }
+      finally { setDeletingId(null); }
     }
-  };
+  );
 
-  const isLocationApproved = (locationId) => {
-    return approvedLocations.some((al) => al.locations?.id === locationId || al.locationId === locationId);
-  };
-
-  const hasLocationRequest = (locationId) => {
-    return requests.some((r) => r.locations?.id === locationId || r.locationId === locationId);
-  };
-
-  const getLocationRequest = (locationId) => {
-    return requests.find((r) => r.locations?.id === locationId || r.locationId === locationId);
-  };
-
-  const toggleLocationSelection = (location) => {
-    setSelectedLocations((prev) => {
-      const isSelected = prev.some((l) => l.id === location.id);
-      if (isSelected) {
-        return prev.filter((l) => l.id !== location.id);
-      } else {
-        return [...prev, location];
+  const confirmBulkDelete = () => {
+    const ids = [...selectedLocIds];
+    showConfirm(
+      'Remove Locations',
+      `Remove ${ids.length} selected location${ids.length > 1 ? 's' : ''}? You will need to re-request approval.`,
+      `Remove ${ids.length}`,
+      async () => {
+        setBulkDeleting(true);
+        try { await apiDelete('/vendor/locations', { data: { locationIds: ids, type: 'approved' } }); setSelectedLocIds(new Set()); await fetchLocations(); showSuccess(`${ids.length} location(s) removed.`); }
+        catch (e) { showError(e?.response?.data?.error || 'Failed to remove'); }
+        finally { setBulkDeleting(false); }
       }
-    });
-  };
-
-  // Select all cities in a state
-  const toggleStateSelection = (stateName, citiesInState) => {
-    const availableCities = citiesInState.filter(city => {
-      const isApproved = isLocationApproved(city.id);
-      const hasRequest = hasLocationRequest(city.id);
-      return !isApproved && !hasRequest;
-    });
-
-    const allSelected = availableCities.every(city =>
-      selectedLocations.some(l => l.id === city.id)
     );
-
-    if (allSelected) {
-      // Deselect all cities in this state
-      setSelectedLocations(prev =>
-        prev.filter(loc => !availableCities.some(city => city.id === loc.id))
-      );
-    } else {
-      // Select all cities in this state
-      setSelectedLocations(prev => {
-        const newSelections = [...prev];
-        availableCities.forEach(city => {
-          if (!newSelections.some(l => l.id === city.id)) {
-            newSelections.push(city);
-          }
-        });
-        return newSelections;
-      });
-    }
   };
 
-  // Select all available locations
-  const selectAllLocations = () => {
-    const availableLocations = allLocations.filter(location => {
-      const isApproved = isLocationApproved(location.id);
-      const hasRequest = hasLocationRequest(location.id);
-      return !isApproved && !hasRequest;
-    });
-
-    if (selectedLocations.length === availableLocations.length) {
-      // Deselect all
-      setSelectedLocations([]);
-    } else {
-      // Select all
-      setSelectedLocations(availableLocations);
+  const confirmWithdraw = (locationId) => showConfirm(
+    'Withdraw Request',
+    'Withdraw this pending location request? You can request again later.',
+    'Withdraw',
+    async () => {
+      setWithdrawingId(locationId);
+      try { await apiDelete(`/vendor/locations?locationId=${locationId}&type=request`); await fetchLocations(); showSuccess('Request withdrawn.'); }
+      catch (e) { showError(e?.response?.data?.error || 'Failed to withdraw'); }
+      finally { setWithdrawingId(null); }
     }
+  );
+
+  const confirmBulkWithdraw = () => {
+    const ids = [...selectedPendingIds];
+    showConfirm(
+      'Withdraw Requests',
+      `Withdraw ${ids.length} pending request${ids.length > 1 ? 's' : ''}? You can re-request these later.`,
+      `Withdraw ${ids.length}`,
+      async () => {
+        setBulkWithdrawing(true);
+        try { await apiDelete('/vendor/locations', { data: { locationIds: ids, type: 'request' } }); setSelectedPendingIds(new Set()); await fetchLocations(); showSuccess(`${ids.length} request(s) withdrawn.`); }
+        catch (e) { showError(e?.response?.data?.error || 'Failed to withdraw'); }
+        finally { setBulkWithdrawing(false); }
+      }
+    );
   };
 
-  const handleRequestLocations = async () => {
-    if (selectedLocations.length === 0) {
-      showError('Please select at least one location');
-      return;
-    }
+  // ── Request modal helpers ────────────────────────────────────────────
+  const isApproved = (id) => approvedLocations.some((a) => a.locations?.id === id || a.locationId === id);
+  const hasPending = (id) => requests.some((r) => (r.locations?.id === id || r.locationId === id) && r.status === 'PENDING');
 
+  const toggleModalLoc = (loc) => setSelectedLocations((p) => p.some((l) => l.id === loc.id) ? p.filter((l) => l.id !== loc.id) : [...p, loc]);
+  const toggleModalState = (state, locs) => {
+    const avail = locs.filter((l) => !isApproved(l.id) && !hasPending(l.id));
+    const allSel = avail.every((c) => selectedLocations.some((l) => l.id === c.id));
+    if (allSel) setSelectedLocations((p) => p.filter((l) => !avail.some((c) => c.id === l.id)));
+    else setSelectedLocations((p) => { const n = [...p]; avail.forEach((c) => { if (!n.some((l) => l.id === c.id)) n.push(c); }); return n; });
+  };
+  const selectAllModal = () => {
+    const avail = allLocations.filter((l) => !isApproved(l.id) && !hasPending(l.id));
+    setSelectedLocations(selectedLocations.length === avail.length && avail.length > 0 ? [] : avail);
+  };
+
+  const handleRequest = async () => {
+    if (!selectedLocations.length) { showError('Select at least one location'); return; }
     setSubmitting(true);
     try {
-      // Request each location
-      for (const location of selectedLocations) {
-        await requestLocation(location.id, requestMessage);
-      }
-
-      setShowRequestModal(false);
-      setSelectedLocations([]);
-      setRequestMessage('');
-      fetchLocations();
-      showSuccess('Location request(s) submitted successfully!');
-    } catch (error) {
-      console.error('Request location failed:', error);
-      showError(error?.response?.data?.error || 'Failed to submit request');
-    } finally {
-      setSubmitting(false);
-    }
+      for (const loc of selectedLocations) await requestLocation(loc.id, requestMessage);
+      setShowModal(false); setSelectedLocations([]); setRequestMessage(''); setModalSearch('');
+      fetchLocations(); showSuccess('Request(s) submitted!');
+    } catch (e) { showError(e?.response?.data?.error || 'Failed to submit'); }
+    finally { setSubmitting(false); }
   };
 
-  const handleContinue = () => {
-    navigation.reset({
-      index: 0,
-      routes: [{ name: 'VendorDashboard' }],
-    });
-  };
+  const modalFiltered = useMemo(() => allLocations.filter((l) => {
+    const q = modalSearch.toLowerCase();
+    return !q || (l.name || '').toLowerCase().includes(q) || (l.parent?.name || '').toLowerCase().includes(q);
+  }), [allLocations, modalSearch]);
 
-  const pendingRequests = requests.filter((r) => r.status === 'PENDING');
-  const rejectedRequests = requests.filter((r) => r.status === 'REJECTED');
+  const grouped = useMemo(() => modalFiltered.reduce((a, l) => {
+    const k = l.parent?.name || 'Other'; if (!a[k]) a[k] = []; a[k].push(l); return a;
+  }, {}), [modalFiltered]);
 
-  // Filter locations based on search
-  const filteredLocations = allLocations.filter((location) => {
-    const query = searchQuery.toLowerCase();
-    const name = location.name?.toLowerCase() || '';
-    const parent = location.parent?.name?.toLowerCase() || '';
-    return name.includes(query) || parent.includes(query);
-  });
+  const modalGroupList = useMemo(() =>
+    Object.entries(grouped).map(([state, locs]) => ({ state, locs })),
+  [grouped]);
 
-  // Group locations by parent (state)
-  const groupedLocations = filteredLocations.reduce((acc, location) => {
-    const parentName = location.parent?.name || 'Other';
-    if (!acc[parentName]) {
-      acc[parentName] = [];
-    }
-    acc[parentName].push(location);
-    return acc;
-  }, {});
+  const fmt = (d) => new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+  const availableCount = allLocations.filter((l) => !isApproved(l.id) && !hasPending(l.id)).length;
+  const bulkApprovedActive = selectedLocIds.size > 0;
+  const bulkPendingActive = selectedPendingIds.size > 0;
 
-  const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('en-IN', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-    });
-  };
-
-  if (loading) {
-    return (
-      <SafeAreaView style={styles.safe}>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={BRAND.primary} />
-          <Text style={styles.loadingText}>Loading locations...</Text>
-        </View>
-      </SafeAreaView>
-    );
-  }
+  if (loading) return (
+    <SafeAreaView style={s.safe}>
+      <View style={s.loadCenter}>
+        <ActivityIndicator size="large" color={C.g600} />
+        <Text style={s.loadText}>Loading locations...</Text>
+      </View>
+    </SafeAreaView>
+  );
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView style={s.safe} edges={['top']}>
       <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[BRAND.primary]} />
-        }
+        contentContainerStyle={s.scroll}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[C.g600]} tintColor={C.g600} />}
+        showsVerticalScrollIndicator={false}
       >
-        {/* Header */}
-        <View style={styles.header}>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.headerTitle}>My Locations</Text>
-            <Text style={styles.headerSubtitle}>
-              {approvedLocations.length === 0 && requests.length === 0
-                ? 'Step 3: Select cities where you want to operate'
-                : 'Manage your operational locations'}
-            </Text>
+        {/* ── Hero Header ── */}
+        <LinearGradient colors={['#14532d', '#166534', '#15803d']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.hero}>
+          <View style={s.heroTop}>
+            <View>
+              <Text style={s.heroLabel}>Operational Locations</Text>
+              <Text style={s.heroTitle}>My Locations</Text>
+            </View>
+            <TouchableOpacity style={s.heroBtn} onPress={() => setShowModal(true)} activeOpacity={0.85}>
+              <Ionicons name="add" size={18} color={C.g600} />
+              <Text style={s.heroBtnText}>Request</Text>
+            </TouchableOpacity>
           </View>
-          <TouchableOpacity
-            style={styles.addBtn}
-            onPress={() => setShowRequestModal(true)}
-          >
-            <Ionicons name="add" size={20} color="#fff" />
-            <Text style={styles.addBtnText}>Request</Text>
-          </TouchableOpacity>
-        </View>
 
-        {/* Stats */}
-        <View style={styles.statsRow}>
-          <View style={[styles.statCard, { borderColor: '#D1FAE5' }]}>
-            <View style={[styles.statIcon, { backgroundColor: '#D1FAE5' }]}>
-              <Ionicons name="checkmark-circle" size={24} color={BRAND.green} />
+          {/* Stats row inside hero */}
+          <View style={s.heroStats}>
+            <View style={s.heroStat}>
+              <Text style={s.heroStatNum}>{approvedLocations.length}</Text>
+              <View style={s.heroStatRow}>
+                <Ionicons name="checkmark-circle" size={13} color="rgba(255,255,255,0.75)" />
+                <Text style={s.heroStatLabel}>Approved</Text>
+              </View>
             </View>
-            <View>
-              <Text style={[styles.statNumber, { color: BRAND.green }]}>{approvedLocations.length}</Text>
-              <Text style={styles.statLabel}>Approved</Text>
+            <View style={s.heroStatDivider} />
+            <View style={s.heroStat}>
+              <Text style={s.heroStatNum}>{pendingRequests.length}</Text>
+              <View style={s.heroStatRow}>
+                <Ionicons name="time" size={13} color="rgba(255,255,255,0.75)" />
+                <Text style={s.heroStatLabel}>Pending</Text>
+              </View>
+            </View>
+            <View style={s.heroStatDivider} />
+            <View style={s.heroStat}>
+              <Text style={s.heroStatNum}>{rejectedRequests.length}</Text>
+              <View style={s.heroStatRow}>
+                <Ionicons name="close-circle" size={13} color="rgba(255,255,255,0.75)" />
+                <Text style={s.heroStatLabel}>Rejected</Text>
+              </View>
+            </View>
+            <View style={s.heroStatDivider} />
+            <View style={s.heroStat}>
+              <Text style={s.heroStatNum}>{availableCount}</Text>
+              <View style={s.heroStatRow}>
+                <Ionicons name="location" size={13} color="rgba(255,255,255,0.75)" />
+                <Text style={s.heroStatLabel}>Available</Text>
+              </View>
             </View>
           </View>
-          <View style={[styles.statCard, { borderColor: '#FEF3C7' }]}>
-            <View style={[styles.statIcon, { backgroundColor: '#FEF3C7' }]}>
-              <Ionicons name="time" size={24} color={BRAND.yellow} />
-            </View>
-            <View>
-              <Text style={[styles.statNumber, { color: BRAND.yellow }]}>{pendingRequests.length}</Text>
-              <Text style={styles.statLabel}>Pending</Text>
-            </View>
-          </View>
-          <View style={[styles.statCard, { borderColor: '#FEE2E2' }]}>
-            <View style={[styles.statIcon, { backgroundColor: '#FEE2E2' }]}>
-              <Ionicons name="close-circle" size={24} color={BRAND.error} />
-            </View>
-            <View>
-              <Text style={[styles.statNumber, { color: BRAND.error }]}>{rejectedRequests.length}</Text>
-              <Text style={styles.statLabel}>Rejected</Text>
-            </View>
-          </View>
-        </View>
+        </LinearGradient>
 
-        {/* Approved Locations */}
-        <View style={styles.sectionCard}>
-          <View style={[styles.sectionHeader, { backgroundColor: '#F0FDF4' }]}>
-            <Ionicons name="checkmark-circle" size={20} color={BRAND.green} />
-            <Text style={[styles.sectionTitle, { color: BRAND.green }]}>
-              Approved Locations ({approvedLocations.length})
-            </Text>
+        {/* ── Approved Locations ── */}
+        <View style={s.card}>
+          <View style={s.cardHeader}>
+            <View style={s.cardHeaderLeft}>
+              <View style={[s.dot, { backgroundColor: C.g600 }]} />
+              <Text style={s.cardTitle}>Approved Locations</Text>
+              <View style={[s.countBadge, { backgroundColor: C.g100 }]}>
+                <Text style={[s.countBadgeText, { color: C.g600 }]}>{approvedLocations.length}</Text>
+              </View>
+            </View>
           </View>
 
           {approvedLocations.length === 0 ? (
-            <View style={styles.emptyState}>
-              <Ionicons name="location-outline" size={48} color="#CBD5E1" />
-              <Text style={styles.emptyTitle}>No approved locations yet</Text>
-              <Text style={styles.emptyText}>Request locations to start operating</Text>
+            <View style={s.empty}>
+              <View style={[s.emptyIcon, { backgroundColor: C.g50 }]}>
+                <Ionicons name="location-outline" size={32} color={C.g600} />
+              </View>
+              <Text style={s.emptyTitle}>No approved locations</Text>
+              <Text style={s.emptyText}>Request locations to start receiving bookings</Text>
+              <TouchableOpacity style={s.emptyBtn} onPress={() => setShowModal(true)}>
+                <Ionicons name="add-circle-outline" size={16} color={C.g600} />
+                <Text style={s.emptyBtnText}>Request First Location</Text>
+              </TouchableOpacity>
             </View>
           ) : (
-            <View style={styles.locationsWrap}>
-              {approvedLocations.map((item) => (
-                <View key={item.id} style={styles.locationChip}>
-                  <Ionicons name="location" size={16} color={BRAND.green} />
-                  <Text style={styles.locationChipText}>{item.locations?.name}</Text>
-                  {item.locations?.parent && (
-                    <Text style={styles.locationChipParent}>({item.locations.parent.name})</Text>
-                  )}
+            <>
+              {/* Search */}
+              <View style={s.searchBar}>
+                <Ionicons name="search-outline" size={17} color={C.muted} />
+                <TextInput
+                  style={s.searchInput}
+                  placeholder="Search city or state..."
+                  placeholderTextColor={C.muted}
+                  value={locSearch}
+                  onChangeText={(t) => { setLocSearch(t); setSelectedLocIds(new Set()); }}
+                />
+                {locSearch.length > 0 && (
+                  <TouchableOpacity onPress={() => setLocSearch('')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                    <Ionicons name="close-circle" size={17} color={C.muted} />
+                  </TouchableOpacity>
+                )}
+              </View>
+
+              {/* State chips */}
+              {uniqueStates.length > 1 && (
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.chipsRow}>
+                  <TouchableOpacity style={[s.chip, !locStateFilter && s.chipActive]} onPress={() => { setLocStateFilter(''); setSelectedLocIds(new Set()); }}>
+                    <Text style={[s.chipText, !locStateFilter && s.chipTextActive]}>All States</Text>
+                  </TouchableOpacity>
+                  {uniqueStates.map((st) => (
+                    <TouchableOpacity key={st} style={[s.chip, locStateFilter === st && s.chipActive]} onPress={() => { setLocStateFilter(locStateFilter === st ? '' : st); setSelectedLocIds(new Set()); }}>
+                      <Text style={[s.chipText, locStateFilter === st && s.chipTextActive]}>{st}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              )}
+
+              {filteredApproved.length === 0 ? (
+                <View style={s.noMatch}>
+                  <Ionicons name="search-outline" size={22} color={C.border} />
+                  <Text style={s.noMatchText}>No locations match your filter</Text>
                 </View>
-              ))}
-            </View>
+              ) : (
+                <>
+                  {/* Select All row */}
+                  <TouchableOpacity style={s.selectAllRow} onPress={toggleAllApproved} activeOpacity={0.7}>
+                    <View style={[s.checkbox, allApprovedSelected && s.checkboxActive]}>
+                      {allApprovedSelected && <Ionicons name="checkmark" size={13} color="#fff" />}
+                    </View>
+                    <Text style={s.selectAllText}>
+                      {allApprovedSelected ? 'Deselect all' : `Select all ${filteredApproved.length}${locStateFilter ? ` · ${locStateFilter}` : ''}`}
+                    </Text>
+                    {selectedLocIds.size > 0 && (
+                      <View style={s.selectedBadge}>
+                        <Text style={s.selectedBadgeText}>{selectedLocIds.size} selected</Text>
+                      </View>
+                    )}
+                  </TouchableOpacity>
+
+                  {filteredApproved.map((item, idx) => {
+                    const loc = item.locations;
+                    const isSel = selectedLocIds.has(item.locationId);
+                    const isDel = deletingId === item.locationId;
+                    const isLast = idx === filteredApproved.length - 1;
+                    return (
+                      <TouchableOpacity
+                        key={item.id}
+                        style={[s.locRow, isSel && s.locRowSelected, isLast && s.locRowLast]}
+                        onPress={() => toggleApproved(item.locationId)}
+                        activeOpacity={0.75}
+                      >
+                        <View style={[s.checkbox, isSel && s.checkboxActive]}>
+                          {isSel && <Ionicons name="checkmark" size={13} color="#fff" />}
+                        </View>
+                        <View style={s.locIconWrap}>
+                          <Ionicons name="location" size={16} color={C.g600} />
+                        </View>
+                        <View style={s.locInfo}>
+                          <Text style={s.locName}>{loc?.name || 'Unknown'}</Text>
+                          {loc?.parent?.name && <Text style={s.locState}>{loc.parent.name}</Text>}
+                        </View>
+                        <TouchableOpacity
+                          style={s.actionIconBtn}
+                          onPress={() => confirmDelete(item.locationId)}
+                          disabled={isDel || bulkDeleting}
+                          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                        >
+                          {isDel
+                            ? <ActivityIndicator size="small" color={C.red} />
+                            : <Ionicons name="trash-outline" size={18} color={C.red} />}
+                        </TouchableOpacity>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </>
+              )}
+            </>
           )}
         </View>
 
-        {/* Pending Requests */}
+        {/* ── Pending Requests ── */}
         {pendingRequests.length > 0 && (
-          <View style={styles.sectionCard}>
-            <View style={[styles.sectionHeader, { backgroundColor: '#FFFBEB' }]}>
-              <Ionicons name="time" size={20} color={BRAND.yellow} />
-              <Text style={[styles.sectionTitle, { color: '#B45309' }]}>
-                Pending Requests ({pendingRequests.length})
-              </Text>
-            </View>
-
-            {pendingRequests.map((request) => (
-              <View key={request.id} style={styles.requestItem}>
-                <View style={styles.requestLeft}>
-                  <Ionicons name="location" size={20} color={BRAND.yellow} />
-                  <View style={styles.requestInfo}>
-                    <Text style={styles.requestName}>
-                      {request.locations?.name}
-                      {request.locations?.parent && (
-                        <Text style={styles.requestParent}> ({request.locations.parent.name})</Text>
-                      )}
-                    </Text>
-                    <Text style={styles.requestDate}>
-                      Requested {formatDate(request.createdAt)}
-                    </Text>
-                  </View>
-                </View>
-                <View style={[styles.statusPill, { backgroundColor: '#FEF3C7' }]}>
-                  <Text style={[styles.statusText, { color: '#B45309' }]}>Pending Review</Text>
+          <View style={s.card}>
+            <View style={s.cardHeader}>
+              <View style={s.cardHeaderLeft}>
+                <View style={[s.dot, { backgroundColor: C.amber }]} />
+                <Text style={s.cardTitle}>Pending Requests</Text>
+                <View style={[s.countBadge, { backgroundColor: C.amberL }]}>
+                  <Text style={[s.countBadgeText, { color: C.amber }]}>{pendingRequests.length}</Text>
                 </View>
               </View>
-            ))}
-          </View>
-        )}
-
-        {/* Rejected Requests */}
-        {rejectedRequests.length > 0 && (
-          <View style={styles.sectionCard}>
-            <View style={[styles.sectionHeader, { backgroundColor: '#FEF2F2' }]}>
-              <Ionicons name="close-circle" size={20} color={BRAND.error} />
-              <Text style={[styles.sectionTitle, { color: BRAND.error }]}>
-                Rejected Requests ({rejectedRequests.length})
-              </Text>
             </View>
 
-            {rejectedRequests.map((request) => (
-              <View key={request.id} style={styles.requestItem}>
-                <View style={styles.requestLeft}>
-                  <Ionicons name="location" size={20} color={BRAND.error} />
-                  <View style={styles.requestInfo}>
-                    <Text style={styles.requestName}>
-                      {request.locations?.name}
-                      {request.locations?.parent && (
-                        <Text style={styles.requestParent}> ({request.locations.parent.name})</Text>
-                      )}
+            {pendingRequests.length > 1 && (
+              <View style={s.searchBar}>
+                <Ionicons name="search-outline" size={17} color={C.muted} />
+                <TextInput
+                  style={s.searchInput}
+                  placeholder="Search pending..."
+                  placeholderTextColor={C.muted}
+                  value={pendingSearch}
+                  onChangeText={(t) => { setPendingSearch(t); setSelectedPendingIds(new Set()); }}
+                />
+                {pendingSearch.length > 0 && (
+                  <TouchableOpacity onPress={() => setPendingSearch('')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                    <Ionicons name="close-circle" size={17} color={C.muted} />
+                  </TouchableOpacity>
+                )}
+              </View>
+            )}
+
+            {filteredPending.length === 0 ? (
+              <View style={s.noMatch}>
+                <Text style={s.noMatchText}>No requests match your search</Text>
+              </View>
+            ) : (
+              <>
+                {pendingRequests.length > 1 && (
+                  <TouchableOpacity style={s.selectAllRow} onPress={toggleAllPending} activeOpacity={0.7}>
+                    <View style={[s.checkbox, allPendingSelected && s.checkboxActive]}>
+                      {allPendingSelected && <Ionicons name="checkmark" size={13} color="#fff" />}
+                    </View>
+                    <Text style={s.selectAllText}>
+                      {allPendingSelected ? 'Deselect all' : `Select all ${filteredPending.length}`}
                     </Text>
-                    {request.rejectionReason && (
-                      <Text style={styles.rejectionReason}>
-                        Reason: {request.rejectionReason}
-                      </Text>
+                    {selectedPendingIds.size > 0 && (
+                      <View style={[s.selectedBadge, { backgroundColor: C.amberL }]}>
+                        <Text style={[s.selectedBadgeText, { color: C.amber }]}>{selectedPendingIds.size} selected</Text>
+                      </View>
                     )}
-                    <Text style={styles.requestDate}>
-                      Rejected on {request.reviewedAt ? formatDate(request.reviewedAt) : 'N/A'}
-                    </Text>
-                  </View>
-                </View>
-              </View>
-            ))}
+                  </TouchableOpacity>
+                )}
+
+                {filteredPending.map((req, idx) => {
+                  const loc = req.locations;
+                  const isSel = selectedPendingIds.has(req.locationId);
+                  const isWd = withdrawingId === req.locationId;
+                  const isLast = idx === filteredPending.length - 1;
+                  return (
+                    <TouchableOpacity
+                      key={req.id}
+                      style={[s.locRow, isSel && s.locRowSelectedAmber, isLast && s.locRowLast]}
+                      onPress={() => pendingRequests.length > 1 && togglePending(req.locationId)}
+                      activeOpacity={pendingRequests.length > 1 ? 0.75 : 1}
+                    >
+                      {pendingRequests.length > 1 && (
+                        <View style={[s.checkbox, isSel && s.checkboxAmber]}>
+                          {isSel && <Ionicons name="checkmark" size={13} color="#fff" />}
+                        </View>
+                      )}
+                      <View style={[s.locIconWrap, { backgroundColor: C.amberL }]}>
+                        <Ionicons name="time" size={16} color={C.amber} />
+                      </View>
+                      <View style={s.locInfo}>
+                        <Text style={s.locName}>{loc?.name || 'Unknown'}</Text>
+                        <Text style={s.locState}>
+                          {loc?.parent?.name ? `${loc.parent.name} · ` : ''}
+                          {fmt(req.createdAt)}
+                        </Text>
+                      </View>
+                      <View style={s.pendingRight}>
+                        <View style={s.pendingPill}>
+                          <Text style={s.pendingPillText}>Pending</Text>
+                        </View>
+                        <TouchableOpacity
+                          style={s.actionIconBtn}
+                          onPress={() => confirmWithdraw(req.locationId)}
+                          disabled={isWd || bulkWithdrawing}
+                          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                        >
+                          {isWd
+                            ? <ActivityIndicator size="small" color={C.red} />
+                            : <Ionicons name="close-circle-outline" size={20} color={C.red} />}
+                        </TouchableOpacity>
+                      </View>
+                    </TouchableOpacity>
+                  );
+                })}
+              </>
+            )}
           </View>
         )}
 
-        {/* Continue Button */}
+        {/* ── Rejected Requests ── */}
+        {rejectedRequests.length > 0 && (
+          <View style={s.card}>
+            <View style={s.cardHeader}>
+              <View style={s.cardHeaderLeft}>
+                <View style={[s.dot, { backgroundColor: C.red }]} />
+                <Text style={s.cardTitle}>Rejected Requests</Text>
+                <View style={[s.countBadge, { backgroundColor: C.redL }]}>
+                  <Text style={[s.countBadgeText, { color: C.red }]}>{rejectedRequests.length}</Text>
+                </View>
+              </View>
+            </View>
+            {rejectedRequests.map((req, idx) => {
+              const loc = req.locations;
+              const isLast = idx === rejectedRequests.length - 1;
+              return (
+                <View key={req.id} style={[s.locRow, isLast && s.locRowLast, { opacity: 0.8 }]}>
+                  <View style={[s.locIconWrap, { backgroundColor: C.redL }]}>
+                    <Ionicons name="close-circle" size={16} color={C.red} />
+                  </View>
+                  <View style={s.locInfo}>
+                    <Text style={s.locName}>{loc?.name || 'Unknown'}</Text>
+                    <Text style={s.locState}>
+                      {loc?.parent?.name ? `${loc.parent.name} · ` : ''}
+                      {req.rejectionReason ? `${req.rejectionReason}` : `Rejected ${req.reviewedAt ? fmt(req.reviewedAt) : ''}`}
+                    </Text>
+                  </View>
+                  <View style={s.rejectedPill}>
+                    <Text style={s.rejectedPillText}>Rejected</Text>
+                  </View>
+                </View>
+              );
+            })}
+          </View>
+        )}
+
+        {/* Info tip */}
+        <View style={s.tip}>
+          <Ionicons name="information-circle" size={18} color={C.blue} />
+          <Text style={s.tipText}>Request locations where you want to operate. Customers in these cities will be able to book your services.</Text>
+        </View>
+
+        {/* Continue / Skip */}
         {approvedLocations.length > 0 || requests.length > 0 ? (
-          <TouchableOpacity style={styles.continueBtn} onPress={handleContinue}>
-            <Text style={styles.continueBtnText}>Continue to Dashboard</Text>
-            <Ionicons name="arrow-forward" size={20} color="#fff" />
+          <TouchableOpacity style={s.continueBtn} onPress={() => navigation.reset({ index: 0, routes: [{ name: 'VendorDashboard' }] })} activeOpacity={0.85}>
+            <LinearGradient colors={['#14532d', '#15803d']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={s.continueBtnGrad}>
+              <Text style={s.continueBtnText}>Continue to Dashboard</Text>
+              <Ionicons name="arrow-forward" size={18} color="#fff" />
+            </LinearGradient>
           </TouchableOpacity>
         ) : (
-          <TouchableOpacity style={styles.skipBtn} onPress={handleContinue}>
-            <Text style={styles.skipBtnText}>Skip for now (You can add locations later)</Text>
-            <Ionicons name="arrow-forward" size={18} color={BRAND.subText} />
+          <TouchableOpacity style={s.skipBtn} onPress={() => navigation.reset({ index: 0, routes: [{ name: 'VendorDashboard' }] })}>
+            <Text style={s.skipBtnText}>Skip for now</Text>
+            <Ionicons name="arrow-forward" size={16} color={C.muted} />
           </TouchableOpacity>
         )}
-
-        {/* Info */}
-        <View style={styles.infoBox}>
-          <Ionicons name="information-circle-outline" size={20} color={BRAND.blue} />
-          <Text style={styles.infoText}>
-            Request locations where you want to operate. You'll receive booking inquiries from customers in these locations.
-          </Text>
-        </View>
       </ScrollView>
 
-      {/* Request Modal */}
-      <Modal
-        visible={showRequestModal}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setShowRequestModal(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Request Locations</Text>
+      {/* ── Sticky Bulk Action Bar ── */}
+      {(bulkApprovedActive || bulkPendingActive) && (
+        <View style={s.bulkBar}>
+          {bulkApprovedActive && (
+            <TouchableOpacity style={s.bulkBarBtn} onPress={confirmBulkDelete} disabled={bulkDeleting} activeOpacity={0.85}>
+              {bulkDeleting
+                ? <ActivityIndicator size="small" color="#fff" />
+                : <><Ionicons name="trash" size={16} color="#fff" /><Text style={s.bulkBarBtnText}>Remove {selectedLocIds.size} Location{selectedLocIds.size > 1 ? 's' : ''}</Text></>}
+            </TouchableOpacity>
+          )}
+          {bulkPendingActive && (
+            <TouchableOpacity style={[s.bulkBarBtn, { backgroundColor: C.amber }]} onPress={confirmBulkWithdraw} disabled={bulkWithdrawing} activeOpacity={0.85}>
+              {bulkWithdrawing
+                ? <ActivityIndicator size="small" color="#fff" />
+                : <><Ionicons name="close-circle" size={16} color="#fff" /><Text style={s.bulkBarBtnText}>Withdraw {selectedPendingIds.size} Request{selectedPendingIds.size > 1 ? 's' : ''}</Text></>}
+            </TouchableOpacity>
+          )}
+          <TouchableOpacity
+            style={s.bulkBarCancel}
+            onPress={() => { setSelectedLocIds(new Set()); setSelectedPendingIds(new Set()); }}
+          >
+            <Ionicons name="close" size={18} color={C.muted} />
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* ── Custom Confirm Modal ── */}
+      <Modal visible={confirmModal.visible} transparent animationType="fade" onRequestClose={hideConfirm}>
+        <View style={s.cfOverlay}>
+          <TouchableOpacity style={s.cfBackdrop} activeOpacity={1} onPress={hideConfirm} />
+          <View style={s.cfCard}>
+            <View style={s.cfIconWrap}>
+              <Ionicons name="alert-circle" size={32} color={C.red} />
+            </View>
+            <Text style={s.cfTitle}>{confirmModal.title}</Text>
+            <Text style={s.cfMessage}>{confirmModal.message}</Text>
+            <View style={s.cfBtns}>
+              <TouchableOpacity style={s.cfCancelBtn} onPress={hideConfirm} activeOpacity={0.8}>
+                <Text style={s.cfCancelText}>Cancel</Text>
+              </TouchableOpacity>
               <TouchableOpacity
-                style={styles.modalClose}
-                onPress={() => setShowRequestModal(false)}
+                style={s.cfConfirmBtn}
+                activeOpacity={0.85}
+                onPress={() => { hideConfirm(); confirmModal.onConfirm?.(); }}
               >
-                <Ionicons name="close" size={24} color={BRAND.text} />
+                <Text style={s.cfConfirmText}>{confirmModal.btnText}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ── Request Locations Modal ── */}
+      <Modal
+        visible={showModal}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setShowModal(false)}
+        onShow={() => { setModalLoading(true); setTimeout(() => setModalLoading(false), 80); }}
+      >
+        <View style={s.modalOverlay}>
+          <TouchableOpacity style={s.modalBackdrop} activeOpacity={1} onPress={() => setShowModal(false)} />
+          <View style={s.modalSheet}>
+            {/* Handle */}
+            <View style={s.modalHandle} />
+
+            {/* Header */}
+            <View style={s.modalHeader}>
+              <View>
+                <Text style={s.modalTitle}>Request Locations</Text>
+                <Text style={s.modalSubtitle}>{availableCount} cities available</Text>
+              </View>
+              <TouchableOpacity style={s.modalCloseBtn} onPress={() => setShowModal(false)}>
+                <Ionicons name="close" size={20} color={C.textMid} />
               </TouchableOpacity>
             </View>
 
             {/* Search */}
-            <View style={styles.searchWrap}>
-              <Ionicons name="search" size={20} color={BRAND.subText} />
+            <View style={s.modalSearch}>
+              <Ionicons name="search-outline" size={17} color={C.muted} />
               <TextInput
-                style={styles.searchInput}
-                placeholder="Search cities..."
-                placeholderTextColor="#A3B3C2"
-                value={searchQuery}
-                onChangeText={setSearchQuery}
+                style={s.modalSearchInput}
+                placeholder="Search city or state..."
+                placeholderTextColor={C.muted}
+                value={modalSearch}
+                onChangeText={setModalSearch}
+                autoCorrect={false}
               />
-              {searchQuery.length > 0 && (
-                <TouchableOpacity onPress={() => setSearchQuery('')}>
-                  <Ionicons name="close-circle" size={20} color={BRAND.subText} />
+              {modalSearch.length > 0 && (
+                <TouchableOpacity onPress={() => setModalSearch('')}>
+                  <Ionicons name="close-circle" size={17} color={C.muted} />
                 </TouchableOpacity>
               )}
             </View>
 
-            {/* Select All Button */}
-            <TouchableOpacity
-              style={styles.selectAllBtn}
-              onPress={selectAllLocations}
-            >
-              <Ionicons
-                name={selectedLocations.length === allLocations.filter(l => !isLocationApproved(l.id) && !hasLocationRequest(l.id)).length && selectedLocations.length > 0
-                  ? "checkbox"
-                  : "square-outline"}
-                size={22}
-                color={BRAND.blue}
-              />
-              <Text style={styles.selectAllText}>
-                {selectedLocations.length === allLocations.filter(l => !isLocationApproved(l.id) && !hasLocationRequest(l.id)).length && selectedLocations.length > 0
-                  ? 'Deselect All Locations'
-                  : 'Select All Locations'}
-              </Text>
-            </TouchableOpacity>
-
-            {/* Selected Count */}
-            {selectedLocations.length > 0 && (
-              <View style={styles.selectedCount}>
-                <Text style={styles.selectedCountText}>
-                  {selectedLocations.length} location(s) selected
-                </Text>
-                <TouchableOpacity onPress={() => setSelectedLocations([])}>
-                  <Text style={styles.clearSelectionText}>Clear all</Text>
-                </TouchableOpacity>
-              </View>
-            )}
-
-            {/* Location List */}
-            <ScrollView style={styles.locationsList} showsVerticalScrollIndicator={false}>
-              {Object.keys(groupedLocations).length === 0 ? (
-                <View style={styles.emptySearchState}>
-                  <Ionicons name="search-outline" size={48} color="#CBD5E1" />
-                  <Text style={styles.emptySearchText}>No locations found</Text>
+            {/* Select All — only show when there are available cities */}
+            {availableCount > 0 && (
+              <TouchableOpacity style={s.modalSelectAll} onPress={selectAllModal} activeOpacity={0.75}>
+                <View style={[s.checkbox, selectedLocations.length === availableCount && availableCount > 0 ? s.checkboxActive : {}]}>
+                  {selectedLocations.length === availableCount && availableCount > 0 && <Ionicons name="checkmark" size={13} color="#fff" />}
                 </View>
-              ) : (
-                Object.entries(groupedLocations).map(([state, locations]) => {
-                  const availableCitiesInState = locations.filter(l => !isLocationApproved(l.id) && !hasLocationRequest(l.id));
-                  const allStateSelected = availableCitiesInState.length > 0 && availableCitiesInState.every(city =>
-                    selectedLocations.some(l => l.id === city.id)
-                  );
-
-                  return (
-                    <View key={state} style={styles.stateGroup}>
-                      {/* Clickable State Title */}
-                      <TouchableOpacity
-                        style={styles.stateTitleRow}
-                        onPress={() => toggleStateSelection(state, locations)}
-                        disabled={availableCitiesInState.length === 0}
-                      >
-                        <View style={styles.stateTitleLeft}>
-                          <Ionicons
-                            name={allStateSelected ? "checkbox" : "square-outline"}
-                            size={20}
-                            color={availableCitiesInState.length === 0 ? '#CBD5E1' : BRAND.primary}
-                          />
-                          <Text style={[styles.stateTitle, availableCitiesInState.length === 0 && styles.stateTitleDisabled]}>
-                            {state}
-                          </Text>
-                        </View>
-                        {availableCitiesInState.length > 0 && (
-                          <Text style={styles.stateCitiesCount}>
-                            {availableCitiesInState.length} {state === 'Union Territory' ? 'locations' : 'cities'}
-                          </Text>
-                        )}
-                      </TouchableOpacity>
-                      <View style={styles.citiesWrap}>
-                      {locations.map((location) => {
-                        const isApproved = isLocationApproved(location.id);
-                        const hasRequest = hasLocationRequest(location.id);
-                        const isSelected = selectedLocations.some((l) => l.id === location.id);
-                        const disabled = isApproved || hasRequest;
-
-                        return (
-                          <TouchableOpacity
-                            key={location.id}
-                            style={[
-                              styles.cityChip,
-                              isApproved && styles.cityChipApproved,
-                              hasRequest && !isApproved && styles.cityChipPending,
-                              isSelected && styles.cityChipSelected,
-                            ]}
-                            onPress={() => !disabled && toggleLocationSelection(location)}
-                            disabled={disabled}
-                          >
-                            {isSelected ? (
-                              <Ionicons name="checkmark-circle" size={16} color={BRAND.blue} />
-                            ) : isApproved ? (
-                              <Ionicons name="checkmark-circle" size={16} color={BRAND.green} />
-                            ) : hasRequest ? (
-                              <Ionicons name="time" size={16} color={BRAND.yellow} />
-                            ) : (
-                              <Ionicons name="add-circle-outline" size={16} color={BRAND.subText} />
-                            )}
-                            <Text style={[
-                              styles.cityChipText,
-                              isApproved && styles.cityChipTextApproved,
-                              isSelected && styles.cityChipTextSelected,
-                            ]}>
-                              {location.name}
-                            </Text>
-                          </TouchableOpacity>
-                        );
-                      })}
-                    </View>
+                <Text style={s.modalSelectAllText}>
+                  {selectedLocations.length === availableCount && availableCount > 0 ? 'Deselect All' : 'Select All Cities'}
+                </Text>
+                {selectedLocations.length > 0 && (
+                  <View style={s.modalSelCount}>
+                    <Text style={s.modalSelCountText}>{selectedLocations.length} selected</Text>
+                    <TouchableOpacity onPress={() => setSelectedLocations([])} hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}>
+                      <Text style={s.modalClearText}>Clear</Text>
+                    </TouchableOpacity>
                   </View>
-                );
-              })
+                )}
+              </TouchableOpacity>
             )}
-            </ScrollView>
 
-            {/* Message Input */}
-            <View style={styles.modalInputGroup}>
-              <Text style={styles.modalLabel}>Message (Optional)</Text>
+            {/* City list */}
+            {modalLoading ? (
+              <View style={s.modalLoadingWrap}>
+                <ActivityIndicator size="large" color={C.g600} />
+                <Text style={s.modalLoadingText}>Loading cities...</Text>
+              </View>
+            ) : (
+              <FlatList
+                data={modalGroupList}
+                keyExtractor={(item) => item.state}
+                style={s.modalList}
+                showsVerticalScrollIndicator={false}
+                removeClippedSubviews
+                initialNumToRender={8}
+                maxToRenderPerBatch={6}
+                windowSize={10}
+                ListEmptyComponent={
+                  <View style={s.modalEmpty}>
+                    <Ionicons name="search-outline" size={40} color={C.border} />
+                    <Text style={s.modalEmptyText}>No cities found</Text>
+                  </View>
+                }
+                ListFooterComponent={<View style={{ height: 12 }} />}
+                renderItem={({ item: { state, locs } }) => {
+                  const avail = locs.filter((l) => !isApproved(l.id) && !hasPending(l.id));
+                  const allSt = avail.length > 0 && avail.every((c) => selectedLocations.some((l) => l.id === c.id));
+                  return (
+                    <View style={s.stateGroup}>
+                      <TouchableOpacity style={s.stateRow} onPress={() => toggleModalState(state, locs)} disabled={!avail.length} activeOpacity={0.7}>
+                        <View style={[s.checkbox, allSt ? s.checkboxActive : {}, !avail.length && s.checkboxDisabled]}>
+                          {allSt && <Ionicons name="checkmark" size={13} color="#fff" />}
+                        </View>
+                        <Text style={[s.stateName, !avail.length && s.stateNameDim]}>{state}</Text>
+                        {avail.length > 0 && <Text style={s.stateCount}>{avail.length} available</Text>}
+                      </TouchableOpacity>
+                      <View style={s.citiesWrap}>
+                        {locs.map((loc) => {
+                          const app = isApproved(loc.id), pend = hasPending(loc.id);
+                          const sel = selectedLocations.some((l) => l.id === loc.id);
+                          return (
+                            <TouchableOpacity
+                              key={loc.id}
+                              style={[s.cityPill, app && s.cityPillApproved, pend && !app && s.cityPillPending, sel && s.cityPillSel]}
+                              onPress={() => !app && !pend && toggleModalLoc(loc)}
+                              disabled={app || pend}
+                              activeOpacity={0.75}
+                            >
+                              {sel ? <Ionicons name="checkmark-circle" size={14} color={C.blue} />
+                                : app ? <Ionicons name="checkmark-circle" size={14} color={C.g600} />
+                                : pend ? <Ionicons name="time" size={14} color={C.amber} />
+                                : <Ionicons name="add-circle-outline" size={14} color={C.muted} />}
+                              <Text style={[s.cityPillText, app && s.cityPillTextApp, sel && s.cityPillTextSel]}>{loc.name}</Text>
+                            </TouchableOpacity>
+                          );
+                        })}
+                      </View>
+                    </View>
+                  );
+                }}
+              />
+            )}
+
+            {/* Optional message */}
+            <View style={s.modalMsgWrap}>
               <TextInput
-                style={[styles.modalInput, { height: 60 }]}
-                placeholder="Any specific requirements..."
-                placeholderTextColor="#A3B3C2"
+                style={s.modalMsgInput}
+                placeholder="Add a note (optional)..."
+                placeholderTextColor={C.muted}
                 value={requestMessage}
                 onChangeText={setRequestMessage}
                 multiline
+                numberOfLines={2}
                 textAlignVertical="top"
               />
             </View>
 
-            {/* Actions */}
-            <View style={styles.modalActions}>
-              <TouchableOpacity
-                style={styles.cancelBtn}
-                onPress={() => {
-                  setShowRequestModal(false);
-                  setSelectedLocations([]);
-                }}
+            {/* Submit */}
+            <TouchableOpacity
+              style={[s.submitBtn, (!selectedLocations.length || submitting) && s.submitBtnDim]}
+              onPress={handleRequest}
+              disabled={!selectedLocations.length || submitting}
+              activeOpacity={0.85}
+            >
+              <LinearGradient
+                colors={!selectedLocations.length || submitting ? ['#86efac', '#86efac'] : ['#14532d', '#15803d']}
+                start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+                style={s.submitBtnGrad}
               >
-                <Text style={styles.cancelBtnText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.submitBtn,
-                  (submitting || selectedLocations.length === 0) && styles.submitBtnDisabled,
-                ]}
-                onPress={handleRequestLocations}
-                disabled={submitting || selectedLocations.length === 0}
-              >
-                {submitting ? (
-                  <ActivityIndicator size="small" color="#fff" />
-                ) : (
-                  <>
-                    <Ionicons name="send" size={18} color="#fff" />
-                    <Text style={styles.submitBtnText}>Submit Request</Text>
-                  </>
-                )}
-              </TouchableOpacity>
-            </View>
+                {submitting
+                  ? <ActivityIndicator color="#fff" size="small" />
+                  : <><Ionicons name="send" size={17} color="#fff" />
+                    <Text style={s.submitBtnText}>
+                      Submit {selectedLocations.length > 0 ? `${selectedLocations.length} Request${selectedLocations.length > 1 ? 's' : ''}` : 'Request'}
+                    </Text></>}
+              </LinearGradient>
+            </TouchableOpacity>
           </View>
         </View>
       </Modal>
@@ -649,475 +784,158 @@ export default function VendorLocationsScreen({ navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: BRAND.bg,
-  },
-  scrollContent: {
-    padding: 16,
-    paddingBottom: 32,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: 12,
-    fontSize: 15,
-    color: BRAND.subText,
-  },
+const s = StyleSheet.create({
+  safe: { flex: 1, backgroundColor: C.bg },
+  scroll: { paddingBottom: 120 },
+  loadCenter: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  loadText: { marginTop: 12, fontSize: 15, color: C.muted },
 
-  // Header
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: '800',
-    color: BRAND.ink,
-  },
-  headerSubtitle: {
-    fontSize: 14,
-    color: BRAND.subText,
-    marginTop: 4,
-  },
-  addBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    backgroundColor: BRAND.blue,
-    borderRadius: 10,
-    gap: 4,
-  },
-  addBtnText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#fff',
-  },
+  // Hero
+  hero: { paddingTop: 24, paddingHorizontal: 20, paddingBottom: 24, marginBottom: 16 },
+  heroTop: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 20 },
+  heroLabel: { fontSize: 12, fontWeight: '500', color: 'rgba(255,255,255,0.7)', letterSpacing: 0.3, marginBottom: 4 },
+  heroTitle: { fontSize: 26, fontWeight: '800', color: '#fff', letterSpacing: -0.5 },
+  heroBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: '#fff', paddingHorizontal: 14, paddingVertical: 9, borderRadius: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.12, shadowRadius: 8, elevation: 3 },
+  heroBtnText: { fontSize: 14, fontWeight: '700', color: C.g600 },
+  heroStats: { flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 16, padding: 14, borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' },
+  heroStat: { flex: 1, alignItems: 'center', gap: 4 },
+  heroStatNum: { fontSize: 22, fontWeight: '900', color: '#fff', letterSpacing: -0.5 },
+  heroStatRow: { flexDirection: 'row', alignItems: 'center', gap: 3 },
+  heroStatLabel: { fontSize: 11, color: 'rgba(255,255,255,0.75)', fontWeight: '600' },
+  heroStatDivider: { width: 1, backgroundColor: 'rgba(255,255,255,0.2)', marginHorizontal: 4 },
 
-  // Stats
-  statsRow: {
-    flexDirection: 'row',
-    gap: 8,
-    marginBottom: 16,
-  },
-  statCard: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 10,
-    backgroundColor: BRAND.card,
-    borderRadius: 12,
-    borderWidth: 1,
-    gap: 8,
-  },
-  statIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  statLabel: {
-    fontSize: 11,
-    color: BRAND.subText,
-  },
-  statNumber: {
-    fontSize: 18,
-    fontWeight: '800',
-  },
+  // Card
+  card: { marginHorizontal: 14, marginBottom: 14, backgroundColor: C.surface, borderRadius: 20, borderWidth: 1, borderColor: C.border, overflow: 'hidden', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8, elevation: 2 },
+  cardHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: C.border },
+  cardHeaderLeft: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  dot: { width: 8, height: 8, borderRadius: 4 },
+  cardTitle: { fontSize: 15, fontWeight: '800', color: C.text, letterSpacing: -0.2 },
+  countBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10 },
+  countBadgeText: { fontSize: 12, fontWeight: '700' },
 
-  // Section Card
-  sectionCard: {
-    backgroundColor: BRAND.card,
-    borderRadius: 16,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: BRAND.border,
-    marginBottom: 16,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: BRAND.border,
-    gap: 8,
-  },
-  sectionTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-  },
+  // Empty state
+  empty: { padding: 36, alignItems: 'center', gap: 8 },
+  emptyIcon: { width: 64, height: 64, borderRadius: 20, alignItems: 'center', justifyContent: 'center', marginBottom: 4 },
+  emptyTitle: { fontSize: 16, fontWeight: '700', color: C.text },
+  emptyText: { fontSize: 13, color: C.muted, textAlign: 'center' },
+  emptyBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8, paddingHorizontal: 16, paddingVertical: 9, borderRadius: 10, borderWidth: 1.5, borderColor: C.g600, borderStyle: 'dashed' },
+  emptyBtnText: { fontSize: 13, fontWeight: '700', color: C.g600 },
 
-  // Empty State
-  emptyState: {
-    padding: 40,
-    alignItems: 'center',
-  },
-  emptyTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: BRAND.ink,
-    marginTop: 12,
-  },
-  emptyText: {
-    fontSize: 14,
-    color: BRAND.subText,
-    marginTop: 4,
-  },
+  // Search bar
+  searchBar: { flexDirection: 'row', alignItems: 'center', marginHorizontal: 14, marginTop: 12, marginBottom: 2, paddingHorizontal: 12, paddingVertical: 9, backgroundColor: C.bg, borderRadius: 12, borderWidth: 1, borderColor: C.border, gap: 8 },
+  searchInput: { flex: 1, fontSize: 14, color: C.text, padding: 0 },
 
-  // Locations Wrap
-  locationsWrap: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    padding: 12,
-    gap: 8,
-  },
-  locationChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    backgroundColor: '#D1FAE5',
-    borderRadius: 20,
-    gap: 4,
-  },
-  locationChipText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#059669',
-  },
-  locationChipParent: {
-    fontSize: 12,
-    color: '#10B981',
-  },
+  // State chips
+  chipsRow: { paddingHorizontal: 14, paddingTop: 10, paddingBottom: 4, gap: 8 },
+  chip: { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 20, backgroundColor: C.bg, borderWidth: 1, borderColor: C.border },
+  chipActive: { backgroundColor: C.blueL, borderColor: C.blue },
+  chipText: { fontSize: 13, fontWeight: '600', color: C.muted },
+  chipTextActive: { color: C.blue },
 
-  // Request Item
-  requestItem: {
-    padding: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: BRAND.border,
-  },
-  requestLeft: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 10,
-  },
-  requestInfo: {
-    flex: 1,
-  },
-  requestName: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: BRAND.ink,
-  },
-  requestParent: {
-    fontWeight: '400',
-    color: BRAND.subText,
-  },
-  requestDate: {
-    fontSize: 12,
-    color: BRAND.subText,
-    marginTop: 4,
-  },
-  rejectionReason: {
-    fontSize: 13,
-    color: BRAND.error,
-    marginTop: 4,
-  },
-  statusPill: {
-    alignSelf: 'flex-start',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    marginTop: 8,
-  },
-  statusText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
+  // No match
+  noMatch: { flexDirection: 'row', alignItems: 'center', gap: 8, justifyContent: 'center', paddingVertical: 20 },
+  noMatchText: { fontSize: 13, color: C.muted },
 
-  // Continue Button
-  continueBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: BRAND.primary,
-    paddingVertical: 16,
-    borderRadius: 12,
-    gap: 8,
-    marginBottom: 16,
-  },
-  continueBtnText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#fff',
-  },
+  // Select all row
+  selectAllRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 14, paddingVertical: 11, backgroundColor: '#FAFBFC', borderTopWidth: 1, borderTopColor: C.border },
+  selectAllText: { flex: 1, fontSize: 13, fontWeight: '600', color: C.blue },
+  selectedBadge: { paddingHorizontal: 8, paddingVertical: 3, backgroundColor: C.blueL, borderRadius: 10 },
+  selectedBadgeText: { fontSize: 11, fontWeight: '700', color: C.blue },
 
-  // Skip Button
-  skipBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 14,
-    borderRadius: 12,
-    gap: 6,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: BRAND.border,
-    backgroundColor: BRAND.card,
-  },
-  skipBtnText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: BRAND.subText,
-  },
+  // Checkbox
+  checkbox: { width: 20, height: 20, borderRadius: 6, borderWidth: 1.5, borderColor: C.border, alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff' },
+  checkboxActive: { backgroundColor: C.blue, borderColor: C.blue },
+  checkboxAmber: { backgroundColor: C.amber, borderColor: C.amber },
+  checkboxDisabled: { borderColor: C.border, backgroundColor: '#f5f5f5' },
 
-  // Info Box
-  infoBox: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    padding: 12,
-    backgroundColor: '#EFF6FF',
-    borderRadius: 8,
-    gap: 8,
-  },
-  infoText: {
-    flex: 1,
-    fontSize: 13,
-    color: BRAND.text,
-    lineHeight: 18,
-  },
+  // Location row
+  locRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 13, borderTopWidth: 1, borderTopColor: C.border, gap: 10 },
+  locRowSelected: { backgroundColor: '#F0F9FF' },
+  locRowSelectedAmber: { backgroundColor: '#FFFBEB' },
+  locRowLast: { borderBottomWidth: 0 },
+  locIconWrap: { width: 32, height: 32, borderRadius: 10, backgroundColor: C.g50, alignItems: 'center', justifyContent: 'center' },
+  locInfo: { flex: 1 },
+  locName: { fontSize: 14, fontWeight: '700', color: C.text },
+  locState: { fontSize: 12, color: C.muted, marginTop: 1 },
+  actionIconBtn: { padding: 4 },
+
+  // Pending
+  pendingRight: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  pendingPill: { paddingHorizontal: 8, paddingVertical: 3, backgroundColor: C.amberL, borderRadius: 8 },
+  pendingPillText: { fontSize: 11, fontWeight: '700', color: C.amber },
+  rejectedPill: { paddingHorizontal: 8, paddingVertical: 3, backgroundColor: C.redL, borderRadius: 8 },
+  rejectedPillText: { fontSize: 11, fontWeight: '700', color: C.red },
+
+  // Tip
+  tip: { marginHorizontal: 14, marginBottom: 14, flexDirection: 'row', alignItems: 'flex-start', gap: 10, padding: 14, backgroundColor: C.blueL, borderRadius: 14, borderWidth: 1, borderColor: '#BFDBFE' },
+  tipText: { flex: 1, fontSize: 13, color: C.textMid, lineHeight: 19 },
+
+  // Continue / Skip
+  continueBtn: { marginHorizontal: 14, marginBottom: 10, borderRadius: 14, overflow: 'hidden' },
+  continueBtnGrad: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 16, gap: 8 },
+  continueBtnText: { fontSize: 16, fontWeight: '800', color: '#fff', letterSpacing: -0.2 },
+  skipBtn: { marginHorizontal: 14, marginBottom: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 14, borderRadius: 14, borderWidth: 1, borderColor: C.border, backgroundColor: C.surface, gap: 6 },
+  skipBtnText: { fontSize: 14, fontWeight: '600', color: C.muted },
+
+  // Bulk bar
+  bulkBar: { position: 'absolute', bottom: 0, left: 0, right: 0, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 12, paddingBottom: 24, backgroundColor: C.surface, borderTopWidth: 1, borderTopColor: C.border, gap: 10, shadowColor: '#000', shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.08, shadowRadius: 12, elevation: 12 },
+  bulkBarBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 13, borderRadius: 12, backgroundColor: C.red },
+  bulkBarBtnText: { fontSize: 14, fontWeight: '700', color: '#fff' },
+  bulkBarCancel: { width: 44, height: 44, borderRadius: 12, backgroundColor: C.bg, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: C.border },
 
   // Modal
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'flex-end',
-  },
-  modalContent: {
-    backgroundColor: BRAND.card,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    padding: 20,
-    maxHeight: '90%',
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: BRAND.ink,
-  },
-  modalClose: {
-    padding: 4,
-  },
-  searchWrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F8FAFC',
-    borderWidth: 1,
-    borderColor: BRAND.border,
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    marginBottom: 12,
-    gap: 8,
-  },
-  searchInput: {
-    flex: 1,
-    paddingVertical: 12,
-    fontSize: 15,
-    color: BRAND.ink,
-  },
+  modalOverlay: { flex: 1, justifyContent: 'flex-end' },
+  modalBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.45)' },
+  modalSheet: { backgroundColor: C.surface, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingTop: 8, paddingHorizontal: 18, paddingBottom: 32, maxHeight: '92%', shadowColor: '#000', shadowOffset: { width: 0, height: -6 }, shadowOpacity: 0.12, shadowRadius: 20, elevation: 20 },
+  modalHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: C.border, alignSelf: 'center', marginBottom: 16 },
+  modalHeader: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 16 },
+  modalTitle: { fontSize: 20, fontWeight: '800', color: C.text, letterSpacing: -0.3 },
+  modalSubtitle: { fontSize: 13, color: C.muted, marginTop: 3 },
+  modalCloseBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: C.bg, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: C.border },
+  modalSearch: { flexDirection: 'row', alignItems: 'center', backgroundColor: C.bg, borderWidth: 1, borderColor: C.border, borderRadius: 14, paddingHorizontal: 12, paddingVertical: 10, gap: 8, marginBottom: 12 },
+  modalSearchInput: { flex: 1, fontSize: 14, color: C.text, padding: 0 },
+  modalSelectAll: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10, paddingHorizontal: 4, marginBottom: 8 },
+  modalSelectAllText: { fontSize: 14, fontWeight: '600', color: C.blue },
+  modalSelCount: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 10 },
+  modalSelCountText: { fontSize: 13, color: C.blue, fontWeight: '600' },
+  modalClearText: { fontSize: 12, color: C.red, fontWeight: '700' },
+  modalList: { maxHeight: 320 },
+  modalEmpty: { alignItems: 'center', paddingVertical: 40, gap: 10 },
+  modalEmptyText: { fontSize: 14, color: C.muted },
+  stateGroup: { marginBottom: 18 },
+  stateRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 9, paddingHorizontal: 12, backgroundColor: C.bg, borderRadius: 10, borderWidth: 1, borderColor: C.border, marginBottom: 10 },
+  stateName: { flex: 1, fontSize: 13, fontWeight: '700', color: C.textMid, textTransform: 'uppercase', letterSpacing: 0.5 },
+  stateNameDim: { color: C.border },
+  stateCount: { fontSize: 11, color: C.muted, fontWeight: '600' },
+  citiesWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  cityPill: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20, backgroundColor: C.bg, borderWidth: 1, borderColor: C.border, gap: 5 },
+  cityPillApproved: { backgroundColor: C.g50, borderColor: '#a7f3d0' },
+  cityPillPending: { backgroundColor: C.amberL, borderColor: '#fde68a' },
+  cityPillSel: { backgroundColor: C.blueL, borderColor: C.blue },
+  cityPillText: { fontSize: 13, color: C.textMid },
+  cityPillTextApp: { color: C.g600 },
+  cityPillTextSel: { color: C.blue, fontWeight: '700' },
+  modalMsgWrap: { marginTop: 10, marginBottom: 12 },
+  modalMsgInput: { borderWidth: 1, borderColor: C.border, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 11, fontSize: 14, color: C.text, backgroundColor: C.bg, minHeight: 60 },
+  submitBtn: { borderRadius: 14, overflow: 'hidden' },
+  submitBtnDim: { opacity: 0.65 },
+  submitBtnGrad: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 16, gap: 8 },
+  submitBtnText: { fontSize: 16, fontWeight: '800', color: '#fff', letterSpacing: -0.2 },
 
-  // Select All Button
-  selectAllBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    marginBottom: 12,
-    backgroundColor: '#EFF6FF',
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#DBEAFE',
-    gap: 10,
-  },
-  selectAllText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: BRAND.blue,
-  },
+  // Modal loading
+  modalLoadingWrap: { height: 160, alignItems: 'center', justifyContent: 'center', gap: 12 },
+  modalLoadingText: { fontSize: 14, color: C.muted },
 
-  selectedCount: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 8,
-    paddingHorizontal: 4,
-    marginBottom: 8,
-  },
-  selectedCountText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: BRAND.blue,
-  },
-  clearSelectionText: {
-    fontSize: 13,
-    color: BRAND.error,
-    fontWeight: '600',
-  },
-  locationsList: {
-    maxHeight: 300,
-    marginBottom: 12,
-  },
-  stateGroup: {
-    marginBottom: 16,
-  },
-
-  // State Title Row (clickable)
-  stateTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    marginBottom: 8,
-    backgroundColor: '#F8FAFC',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: BRAND.border,
-  },
-  stateTitleLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  stateTitle: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: BRAND.text,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  stateTitleDisabled: {
-    color: '#CBD5E1',
-  },
-  stateCitiesCount: {
-    fontSize: 11,
-    color: BRAND.subText,
-    fontWeight: '600',
-  },
-  citiesWrap: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  cityChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    backgroundColor: '#F8FAFC',
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: BRAND.border,
-    gap: 4,
-  },
-  cityChipApproved: {
-    backgroundColor: '#D1FAE5',
-    borderColor: '#A7F3D0',
-  },
-  cityChipPending: {
-    backgroundColor: '#FEF3C7',
-    borderColor: '#FDE68A',
-  },
-  cityChipSelected: {
-    backgroundColor: '#EFF6FF',
-    borderColor: BRAND.blue,
-  },
-  cityChipText: {
-    fontSize: 13,
-    color: BRAND.text,
-  },
-  cityChipTextApproved: {
-    color: '#059669',
-  },
-  cityChipTextSelected: {
-    color: BRAND.blue,
-    fontWeight: '600',
-  },
-  emptySearchState: {
-    padding: 40,
-    alignItems: 'center',
-  },
-  emptySearchText: {
-    fontSize: 14,
-    color: BRAND.subText,
-    marginTop: 12,
-  },
-  modalInputGroup: {
-    marginBottom: 16,
-  },
-  modalLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: BRAND.text,
-    marginBottom: 8,
-  },
-  modalInput: {
-    borderWidth: 1,
-    borderColor: BRAND.border,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    fontSize: 15,
-    color: BRAND.ink,
-    backgroundColor: '#FBFDFF',
-  },
-  modalActions: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  cancelBtn: {
-    flex: 1,
-    paddingVertical: 14,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: BRAND.border,
-    alignItems: 'center',
-  },
-  cancelBtnText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: BRAND.text,
-  },
-  submitBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 14,
-    borderRadius: 12,
-    backgroundColor: BRAND.blue,
-    gap: 6,
-  },
-  submitBtnDisabled: {
-    backgroundColor: '#93C5FD',
-  },
-  submitBtnText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#fff',
-  },
+  // Custom confirm modal
+  cfOverlay: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 28 },
+  cfBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.5)' },
+  cfCard: { width: '100%', backgroundColor: '#fff', borderRadius: 24, padding: 24, alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.18, shadowRadius: 24, elevation: 16 },
+  cfIconWrap: { width: 64, height: 64, borderRadius: 20, backgroundColor: '#FEF2F2', alignItems: 'center', justifyContent: 'center', marginBottom: 16 },
+  cfTitle: { fontSize: 18, fontWeight: '800', color: C.text, textAlign: 'center', marginBottom: 8, letterSpacing: -0.3 },
+  cfMessage: { fontSize: 14, color: C.muted, textAlign: 'center', lineHeight: 21, marginBottom: 24 },
+  cfBtns: { flexDirection: 'row', gap: 12, width: '100%' },
+  cfCancelBtn: { flex: 1, paddingVertical: 14, borderRadius: 14, borderWidth: 1.5, borderColor: C.border, alignItems: 'center', backgroundColor: C.bg },
+  cfCancelText: { fontSize: 15, fontWeight: '700', color: C.textMid },
+  cfConfirmBtn: { flex: 1, paddingVertical: 14, borderRadius: 14, alignItems: 'center', backgroundColor: C.red },
+  cfConfirmText: { fontSize: 15, fontWeight: '800', color: '#fff' },
 });

@@ -82,6 +82,13 @@ const STATUS_CONFIG = {
     icon: 'close-circle',
     description: 'This booking has been cancelled',
   },
+  DROPPED: {
+    label: 'Dropped',
+    color: '#EF4444',
+    bgColor: '#FEE2E2',
+    icon: 'arrow-down-circle',
+    description: 'This booking was dropped by the system',
+  },
 };
 
 const TRIP_TYPE_LABELS = {
@@ -386,6 +393,17 @@ export default function LuxuryBookingDetailScreen() {
               </View>
             </View>
           )}
+
+        {/* Drop Reason Banner */}
+        {booking.status === 'DROPPED' && booking.dropReason && (
+          <View style={{ backgroundColor: '#FEE2E2', padding: wp('4%'), borderRadius: wp('3%'), marginBottom: hp('1.5%'), flexDirection: 'row', alignItems: 'center', gap: wp('3%') }}>
+            <Ionicons name="information-circle" size={wp('5.5%')} color="#EF4444" />
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: wp('3.5%'), fontWeight: '700', color: '#991B1B', marginBottom: hp('0.3%') }}>Booking Dropped</Text>
+              <Text style={{ fontSize: wp('3%'), color: '#B91C1C', lineHeight: wp('4.5%') }}>{booking.dropReason}</Text>
+            </View>
+          </View>
+        )}
 
         {/* Trip Details */}
         <View style={styles.detailsCard}>

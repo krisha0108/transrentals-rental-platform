@@ -113,6 +113,7 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; bgColor: str
     IN_PROGRESS: { label: 'Trip Started', color: 'text-purple-700', bgColor: 'bg-purple-100' },
     COMPLETED: { label: 'Completed', color: 'text-gray-700', bgColor: 'bg-gray-100' },
     CANCELLED: { label: 'Cancelled', color: 'text-red-700', bgColor: 'bg-red-100' },
+    DROPPED: { label: 'Dropped', color: 'text-red-700', bgColor: 'bg-red-100' },
 };
 
 export default function VendorBusBookingDetailPage() {
@@ -373,6 +374,24 @@ export default function VendorBusBookingDetailPage() {
                     </div>
                 </div>
             </div>
+
+            {/* Dropped Banner */}
+            {booking.status === 'DROPPED' && (
+                <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-start gap-3">
+                    <XCircle className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" />
+                    <div>
+                        <p className="font-semibold text-red-800">This booking has been dropped</p>
+                        {(booking as any).dropReason && (
+                            <p className="text-sm text-red-600 mt-1">Reason: {(booking as any).dropReason}</p>
+                        )}
+                        {(booking as any).droppedAt && (
+                            <p className="text-xs text-red-500 mt-1">
+                                Dropped on: {new Date((booking as any).droppedAt).toLocaleString('en-IN')}
+                            </p>
+                        )}
+                    </div>
+                </div>
+            )}
 
             <div className="grid lg:grid-cols-3 gap-6">
                 {/* Main Details */}
@@ -677,59 +696,74 @@ export default function VendorBusBookingDetailPage() {
                     <div className="bg-white rounded-xl shadow-sm border p-6">
                         <h3 className="font-bold text-gray-900 mb-6 border-b pb-4">Trip Progress</h3>
 
-                        <div className="space-y-8 relative">
-                            <div className="absolute left-4 top-2 bottom-2 w-0.5 bg-gray-100 -z-10" />
+                        {(() => {
+                            const isDropped = booking.status === 'DROPPED';
+                            const paymentDone = booking.advancePaymentVerified;
+                            const driverDone = !!booking.driverName;
+                            const tripStarted = ['IN_PROGRESS', 'COMPLETED'].includes(booking.status);
+                            const tripCompleted = booking.status === 'COMPLETED';
 
-                            {/* Step 1: Confirmed */}
-                            <div className="flex gap-4">
-                                <div className={`w-8 h-8 rounded-full flex items-center justify-center z-10 ${booking.advancePaymentVerified ? 'bg-green-600 text-white' : 'bg-gray-200 text-gray-400'}`}>
-                                    <CheckCircle className="w-5 h-5" />
-                                </div>
-                                <div>
-                                    <p className={`font-bold ${booking.advancePaymentVerified ? 'text-gray-900' : 'text-gray-400'}`}>Payment Verified</p>
-                                    <p className="text-xs text-gray-500">Booking confirmed with vendor</p>
-                                </div>
-                            </div>
+                            // Determine which step was last completed before drop
+                            let droppedAfterStep = -1;
+                            if (isDropped) {
+                                if (tripStarted) droppedAfterStep = 2;
+                                else if (driverDone) droppedAfterStep = 1;
+                                else if (paymentDone) droppedAfterStep = 0;
+                            }
 
-                            {/* Step 2: Driver Assigned */}
-                            <div className="flex gap-4">
-                                <div className={`w-8 h-8 rounded-full flex items-center justify-center z-10 ${booking.driverName ? 'bg-green-600 text-white' : 'bg-gray-200 text-gray-400'}`}>
-                                    <Users className="w-5 h-5" />
-                                </div>
-                                <div>
-                                    <p className={`font-bold ${booking.driverName ? 'text-gray-900' : 'text-gray-400'}`}>Driver Assigned</p>
-                                    <p className="text-xs text-gray-500">Vehicle & staff details shared</p>
-                                </div>
-                            </div>
+                            const steps = [
+                                { label: 'Payment Verified', desc: 'Booking confirmed with vendor', done: paymentDone, icon: <CheckCircle className="w-5 h-5" />, time: null },
+                                { label: 'Driver Assigned', desc: 'Vehicle & staff details shared', done: driverDone, icon: <Users className="w-5 h-5" />, time: null },
+                                { label: 'Trip Started', desc: 'Driver started with OTP', done: tripStarted, icon: <Navigation className="w-5 h-5" />, time: booking.tripStartedAt },
+                                { label: 'Completed', desc: 'Trip ended successfully', done: tripCompleted, icon: <CheckCircle className="w-5 h-5" />, time: booking.tripEndedAt },
+                            ];
 
-                            {/* Step 3: Trip Started */}
-                            <div className="flex gap-4">
-                                <div className={`w-8 h-8 rounded-full flex items-center justify-center z-10 ${['IN_PROGRESS', 'COMPLETED'].includes(booking.status) ? 'bg-green-600 text-white' : 'bg-gray-200 text-gray-400'}`}>
-                                    <Navigation className="w-5 h-5" />
-                                </div>
-                                <div>
-                                    <p className={`font-bold ${['IN_PROGRESS', 'COMPLETED'].includes(booking.status) ? 'text-gray-900' : 'text-gray-400'}`}>Trip Started</p>
-                                    <p className="text-xs text-gray-500">Driver started with OTP</p>
-                                    {booking.tripStartedAt && (
-                                        <p className="text-[10px] text-green-600 font-mono mt-1">{new Date(booking.tripStartedAt).toLocaleString('en-IN')}</p>
-                                    )}
-                                </div>
-                            </div>
+                            const timelineItems: any[] = [];
+                            for (let i = 0; i < steps.length; i++) {
+                                const step = steps[i];
+                                const isAfterDrop = isDropped && i > droppedAfterStep;
+                                timelineItems.push({
+                                    ...step,
+                                    grayed: isAfterDrop,
+                                    bgClass: isAfterDrop ? 'bg-gray-200 text-gray-400' : (step.done ? 'bg-green-600 text-white' : 'bg-gray-200 text-gray-400'),
+                                    textClass: isAfterDrop ? 'text-gray-400' : (step.done ? 'text-gray-900' : 'text-gray-400'),
+                                });
+                                if (isDropped && i === droppedAfterStep) {
+                                    timelineItems.push({
+                                        label: 'Booking Dropped',
+                                        desc: (booking as any).dropReason ? `Reason: ${(booking as any).dropReason}` : 'Booking was dropped',
+                                        done: false,
+                                        icon: <XCircle className="w-5 h-5" />,
+                                        time: (booking as any).droppedAt,
+                                        isDroppedMarker: true,
+                                        bgClass: 'bg-red-600 text-white',
+                                        textClass: 'text-red-700',
+                                    });
+                                }
+                            }
 
-                            {/* Step 4: Trip Completed */}
-                            <div className="flex gap-4">
-                                <div className={`w-8 h-8 rounded-full flex items-center justify-center z-10 ${booking.status === 'COMPLETED' ? 'bg-green-600 text-white' : 'bg-gray-200 text-gray-400'}`}>
-                                    <CheckCircle className="w-5 h-5" />
+                            return (
+                                <div className="space-y-8 relative">
+                                    <div className="absolute left-4 top-2 bottom-2 w-0.5 bg-gray-100 -z-10" />
+                                    {timelineItems.map((item, idx) => (
+                                        <div key={idx} className="flex gap-4">
+                                            <div className={`w-8 h-8 rounded-full flex items-center justify-center z-10 ${item.bgClass}`}>
+                                                {item.icon}
+                                            </div>
+                                            <div>
+                                                <p className={`font-bold ${item.textClass}`}>{item.label}</p>
+                                                <p className={`text-xs ${item.isDroppedMarker ? 'text-red-500' : 'text-gray-500'}`}>{item.desc}</p>
+                                                {item.time && (
+                                                    <p className={`text-[10px] font-mono mt-1 ${item.isDroppedMarker ? 'text-red-500' : 'text-green-600'}`}>
+                                                        {new Date(item.time).toLocaleString('en-IN')}
+                                                    </p>
+                                                )}
+                                            </div>
+                                        </div>
+                                    ))}
                                 </div>
-                                <div>
-                                    <p className={`font-bold ${booking.status === 'COMPLETED' ? 'text-gray-900' : 'text-gray-400'}`}>Completed</p>
-                                    <p className="text-xs text-gray-500">Trip ended successfully</p>
-                                    {booking.tripEndedAt && (
-                                        <p className="text-[10px] text-green-600 font-mono mt-1">{new Date(booking.tripEndedAt).toLocaleString('en-IN')}</p>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
+                            );
+                        })()}
 
                         {/* Vendor Action Area - Removed OTP display as requested */}
                         <div className="mt-8 pt-8 border-t">

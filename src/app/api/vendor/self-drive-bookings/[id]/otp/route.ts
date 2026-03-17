@@ -9,6 +9,7 @@ import crypto from 'crypto';
 
 import logger from '@/lib/security/logger';
 import { sendVendorDirectNotification } from '@/lib/utils/vendor-notification-sender';
+import { canStartTrip } from '@/lib/utils/booking-date-guard';
 export const dynamic = 'force-dynamic';
 
 // Generate 6-digit OTP
@@ -62,6 +63,15 @@ export async function GET(
     if (!['ACCEPTED', 'CONFIRMED', 'PAYMENT_VERIFIED'].includes(booking.status)) {
       return NextResponse.json(
         { error: 'Booking must be accepted or payment verified to generate OTP' },
+        { status: 400 }
+      );
+    }
+
+    // Block OTP generation before pickup date/time
+    const startCheck = canStartTrip(booking.pickupDate, booking.pickupTime);
+    if (!startCheck.allowed) {
+      return NextResponse.json(
+        { error: startCheck.message },
         { status: 400 }
       );
     }

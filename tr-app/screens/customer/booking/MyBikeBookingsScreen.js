@@ -123,6 +123,7 @@ export default function MyBikeBookingsScreen() {
         return '#27ae60';
       case 'CANCELLED':
       case 'EXPIRED':
+      case 'DROPPED':
         return '#e74c3c';
       case 'PENDING_PAYMENT':
         return '#f39c12';
@@ -157,6 +158,8 @@ export default function MyBikeBookingsScreen() {
         return 'Cancelled';
       case 'EXPIRED':
         return 'Expired';
+      case 'DROPPED':
+        return 'Dropped';
       default:
         return status;
     }

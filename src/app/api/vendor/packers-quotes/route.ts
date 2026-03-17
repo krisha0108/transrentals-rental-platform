@@ -222,7 +222,7 @@ export async function POST(request: NextRequest) {
 
     // Check if vendor already submitted a quote
     const existingQuote = await prisma.packers_quotes.findFirst({
-      where: { requestId, vendorId: vendorId },
+      where: { requestId, vendorId: vendorId, status: { not: 'WITHDRAWN' } },
     });
 
     if (existingQuote) {
@@ -320,43 +320,48 @@ export async function POST(request: NextRequest) {
     const days = estimatedDays || 1;
     const estimatedDuration = days === 1 ? '1 day' : `${days} days`;
 
+    // Check if a withdrawn quote exists (re-quote after withdrawal)
+    const withdrawnQuote = await prisma.packers_quotes.findFirst({
+      where: { requestId, vendorId: vendorId, status: 'WITHDRAWN' },
+      select: { id: true },
+    });
+
+    const quoteFields = {
+      quoteNumber,
+      vendorFleetId: fleetVehicleId || null,
+      packingCharges: packingCharges || 0,
+      loadingCharges: loadingCharges || 0,
+      transportCharges: transportCharges || 0,
+      unloadingCharges: unloadingCharges || 0,
+      unpackingCharges: unpackingCharges || 0,
+      storageCharges: storageCharges || 0,
+      insuranceCharges: insuranceCharges || 0,
+      materialCharges: materialCharges || 0,
+      gstAmount: gstAmount || 0,
+      totalAmount,
+      teamSize: teamSize || 3,
+      vehicleType: finalVehicleType,
+      vehicleImages: finalVehicleImages ? JSON.stringify(finalVehicleImages) : null,
+      estimatedDuration,
+      packingMaterials: Array.isArray(packingMaterials) ? JSON.stringify(packingMaterials) : (packingMaterials && packingMaterials.trim() !== '' ? packingMaterials : '[]'),
+      inclusions: Array.isArray(inclusions) ? JSON.stringify(inclusions) : (inclusions && inclusions.trim() !== '' ? inclusions : '[]'),
+      exclusions: Array.isArray(exclusions) ? JSON.stringify(exclusions) : (exclusions && exclusions.trim() !== '' ? exclusions : '[]'),
+      termsConditions: Array.isArray(termsConditions) ? JSON.stringify(termsConditions) : (termsConditions && termsConditions.trim() !== '' ? termsConditions : '[]'),
+      status: 'SENT',
+      validTill,
+    };
+
     const quote = await prisma.$transaction(async (tx) => {
-      const newQuote = await tx.packers_quotes.create({
-        data: {
-          id: generateId(),
-          quoteNumber,
-          requestId,
-          vendorId: vendorId,
-          vendorFleetId: fleetVehicleId || null,
-          packingCharges: packingCharges || 0,
-          loadingCharges: loadingCharges || 0,
-          transportCharges: transportCharges || 0,
-          unloadingCharges: unloadingCharges || 0,
-          unpackingCharges: unpackingCharges || 0,
-          storageCharges: storageCharges || 0,
-          insuranceCharges: insuranceCharges || 0,
-          materialCharges: materialCharges || 0,
-          gstAmount: gstAmount || 0,
-          totalAmount,
-          teamSize: teamSize || 3,
-          vehicleType: finalVehicleType,
-          vehicleImages: finalVehicleImages ? JSON.stringify(finalVehicleImages) : null,
-          estimatedDuration,
-          packingMaterials: Array.isArray(packingMaterials) ? JSON.stringify(packingMaterials) : (packingMaterials && packingMaterials.trim() !== '' ? packingMaterials : '[]'),
-          inclusions: Array.isArray(inclusions) ? JSON.stringify(inclusions) : (inclusions && inclusions.trim() !== '' ? inclusions : '[]'),
-          exclusions: Array.isArray(exclusions) ? JSON.stringify(exclusions) : (exclusions && exclusions.trim() !== '' ? exclusions : '[]'),
-          termsConditions: Array.isArray(termsConditions) ? JSON.stringify(termsConditions) : (termsConditions && termsConditions.trim() !== '' ? termsConditions : '[]'),
-          status: 'SENT',
-          validTill,
-        },
-      });
+      const newQuote = withdrawnQuote
+        ? await tx.packers_quotes.update({ where: { id: withdrawnQuote.id }, data: quoteFields })
+        : await tx.packers_quotes.create({ data: { id: generateId(), requestId, vendorId: vendorId, ...quoteFields } });
 
       // Update request status and quote count
       await tx.packers_quote_requests.update({
         where: { id: requestId },
         data: {
           status: 'QUOTES_RECEIVED',
-          totalQuotesReceived: { increment: 1 },
+          ...(withdrawnQuote ? {} : { totalQuotesReceived: { increment: 1 } }),
         },
       });
 

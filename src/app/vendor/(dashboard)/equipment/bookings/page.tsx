@@ -73,6 +73,7 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; icon: any }>
   PICKUP_SCHEDULED: { label: 'Pickup Scheduled', color: 'bg-orange-100 text-orange-700', icon: Calendar },
   COMPLETED: { label: 'Completed', color: 'bg-gray-100 text-gray-700', icon: CheckCircle },
   CANCELLED: { label: 'Cancelled', color: 'bg-red-100 text-red-700', icon: XCircle },
+  DROPPED: { label: 'Dropped', color: 'bg-red-100 text-red-700', icon: XCircle },
 };
 
 export default function VendorEquipmentBookingsPage() {
@@ -334,6 +335,18 @@ export default function VendorEquipmentBookingsPage() {
                       </div>
                     )}
                   </div>
+
+                  {booking.status === 'DROPPED' && (
+                    <div className="w-full px-4 py-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700 flex items-start gap-2 mb-2">
+                      <XCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <span className="font-medium">Booking Dropped</span>
+                        {(booking as any).dropReason && (
+                          <p className="text-xs text-red-600 mt-1">Reason: {(booking as any).dropReason}</p>
+                        )}
+                      </div>
+                    </div>
+                  )}
 
                   <div className="flex flex-wrap gap-2 pt-4 border-t">
                     <Link

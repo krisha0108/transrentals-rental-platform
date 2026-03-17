@@ -129,6 +129,13 @@ import BookingLinksScreen from './screens/vendor/booking-links/BookingLinksScree
 // Financials
 import FinancialsScreen from './screens/vendor/financials/FinancialsScreen';
 
+// Social Network
+import SocialFeedScreen from './screens/vendor/social/SocialFeedScreen';
+import CreatePostScreen from './screens/vendor/social/CreatePostScreen';
+import SocialProfileScreen from './screens/vendor/social/SocialProfileScreen';
+import SocialMessagesScreen from './screens/vendor/social/SocialMessagesScreen';
+import SocialChatScreen from './screens/vendor/social/SocialChatScreen';
+
 // P2P Marketplace
 import P2PDashboardScreen from './screens/vendor/p2p/P2PDashboardScreen';
 import BrowseVehiclesScreen from './screens/vendor/p2p/BrowseVehiclesScreen';
@@ -202,6 +209,15 @@ import SelfDriveTemplatesScreen from './screens/vendor/services/self-drive/SelfD
 import SelfDriveCreateTemplateScreen from './screens/vendor/services/self-drive/SelfDriveCreateTemplateScreen';
 import SelfDriveEditTemplateScreen from './screens/vendor/services/self-drive/SelfDriveEditTemplateScreen';
 
+// B2B Module
+import B2BDashboardScreen from './screens/vendor/b2b/B2BDashboardScreen';
+import B2BOpenBookingsScreen from './screens/vendor/b2b/B2BOpenBookingsScreen';
+import B2BMyQuotesScreen from './screens/vendor/b2b/B2BMyQuotesScreen';
+import B2BBookingDetailScreen from './screens/vendor/b2b/B2BBookingDetailScreen';
+import B2BQuoteDetailScreen from './screens/vendor/b2b/B2BQuoteDetailScreen';
+import B2BTripsScreen from './screens/vendor/b2b/B2BTripsScreen';
+import B2BTripDetailScreen from './screens/vendor/b2b/B2BTripDetailScreen';
+
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
@@ -223,7 +239,7 @@ function CustomTabBar({ state, descriptors, navigation }) {
   const tabs = [
     { name: 'Dashboard', icon: 'home', iconOutline: 'home-outline', label: 'Home' },
     { name: 'Bookings', icon: 'calendar', iconOutline: 'calendar-outline', label: 'Bookings' },
-    { name: 'Fleet', icon: 'car-sport', iconOutline: 'car-sport-outline', label: 'Fleet' },
+    { name: 'B2B', icon: 'business', iconOutline: 'business-outline', label: 'B2B' },
     { name: 'Chats', icon: 'chatbubble-ellipses', iconOutline: 'chatbubble-ellipses-outline', label: 'Chats' },
     { name: 'Profile', icon: 'person-circle', iconOutline: 'person-circle-outline', label: 'Profile' },
   ];
@@ -299,7 +315,7 @@ function VendorBottomNavigation() {
     >
       <Tab.Screen name="Dashboard" component={DashboardScreen} />
       <Tab.Screen name="Bookings" component={BookingsListScreen} />
-      <Tab.Screen name="Fleet" component={FleetListScreen} />
+      <Tab.Screen name="B2B" component={B2BDashboardScreen} />
       <Tab.Screen name="Chats" component={ChatListScreen} />
       <Tab.Screen name="Profile" component={ProfileScreen} />
     </Tab.Navigator>
@@ -772,6 +788,13 @@ export default function App() {
             {/* Financials */}
             <Stack.Screen name="Financials" component={FinancialsScreen} />
 
+            {/* Social Network */}
+            <Stack.Screen name="SocialFeed" component={SocialFeedScreen} />
+            <Stack.Screen name="CreatePostScreen" component={CreatePostScreen} />
+            <Stack.Screen name="SocialProfileScreen" component={SocialProfileScreen} />
+            <Stack.Screen name="SocialMessagesScreen" component={SocialMessagesScreen} />
+            <Stack.Screen name="SocialChatScreen" component={SocialChatScreen} />
+
             {/* P2P Marketplace */}
             <Stack.Screen name="P2PDashboard" component={P2PDashboardScreen} />
             <Stack.Screen name="BrowseVehiclesScreen" component={BrowseVehiclesScreen} />
@@ -780,6 +803,15 @@ export default function App() {
             <Stack.Screen name="PostBookingScreen" component={PostBookingScreen} />
             <Stack.Screen name="MyPostingsScreen" component={MyPostingsScreen} />
             <Stack.Screen name="P2PActivityScreen" component={P2PActivityScreen} />
+
+            {/* B2B Module */}
+            <Stack.Screen name="B2BDashboard" component={B2BDashboardScreen} />
+            <Stack.Screen name="B2BOpenBookings" component={B2BOpenBookingsScreen} />
+            <Stack.Screen name="B2BMyQuotes" component={B2BMyQuotesScreen} />
+            <Stack.Screen name="B2BBookingDetail" component={B2BBookingDetailScreen} />
+            <Stack.Screen name="B2BQuoteDetail" component={B2BQuoteDetailScreen} />
+            <Stack.Screen name="B2BTrips" component={B2BTripsScreen} />
+            <Stack.Screen name="B2BTripDetail" component={B2BTripDetailScreen} />
 
             {/* Service-Specific Quote Screens */}
             {/* Bike */}

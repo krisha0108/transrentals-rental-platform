@@ -9,6 +9,7 @@ import logger from '@/lib/security/logger';
 import { sendVendorDirectNotification } from '@/lib/utils/vendor-notification-sender';
 import { sendPushNotification } from '@/lib/services/push-notification-service';
 import { saveDriverNotification } from '@/lib/utils/driver-notification-sender';
+import { canStartTrip, canCompleteTrip } from '@/lib/utils/booking-date-guard';
 export const dynamic = 'force-dynamic';
 
 // Helper function to generate OTP
@@ -207,6 +208,12 @@ export async function PATCH(
           return NextResponse.json({ error: 'Driver must be assigned first' }, { status: 400 });
         }
 
+        // Block OTP generation before pickup date/time
+        const otpStartCheck = canStartTrip(booking.pickupDate, booking.pickupTime);
+        if (!otpStartCheck.allowed) {
+          return NextResponse.json({ error: otpStartCheck.message }, { status: 400 });
+        }
+
         const tripStartOtp = generateOTP();
 
         const updatedBooking = await prisma.luxury_bookings.update({
@@ -227,6 +234,12 @@ export async function PATCH(
       case 'start_trip': {
         if (booking.status !== 'DRIVER_ASSIGNED') {
           return NextResponse.json({ error: 'Driver must be assigned first' }, { status: 400 });
+        }
+
+        // Block trip start before pickup date/time
+        const tripStartCheck = canStartTrip(booking.pickupDate, booking.pickupTime);
+        if (!tripStartCheck.allowed) {
+          return NextResponse.json({ error: tripStartCheck.message }, { status: 400 });
         }
 
         if (!booking.tripStartOtp) {
@@ -274,6 +287,16 @@ export async function PATCH(
       case 'complete_trip': {
         if (booking.status !== 'IN_PROGRESS') {
           return NextResponse.json({ error: 'Trip must be in progress' }, { status: 400 });
+        }
+
+        // Block completion before return date/time
+        {
+          const endDate = booking.returnDate || booking.pickupDate;
+          const endTime = booking.returnTime || booking.pickupTime;
+          const luxuryCompleteCheck = canCompleteTrip(endDate, endTime);
+          if (!luxuryCompleteCheck.allowed) {
+            return NextResponse.json({ error: luxuryCompleteCheck.message }, { status: 400 });
+          }
         }
 
         const { actualHours, extraCharges, extraChargesReason } = data;
@@ -359,6 +382,16 @@ export async function PATCH(
       case 'complete': {
         if (booking.status !== 'IN_PROGRESS') {
           return NextResponse.json({ error: 'Trip must be in progress' }, { status: 400 });
+        }
+
+        // Block completion before return date/time
+        {
+          const endDate2 = booking.returnDate || booking.pickupDate;
+          const endTime2 = booking.returnTime || booking.pickupTime;
+          const legacyCompleteCheck = canCompleteTrip(endDate2, endTime2);
+          if (!legacyCompleteCheck.allowed) {
+            return NextResponse.json({ error: legacyCompleteCheck.message }, { status: 400 });
+          }
         }
 
         const { otp, actualHours, tollCharges, parkingCharges, extraCharges, extraChargesReason } = data;

@@ -156,6 +156,8 @@ export async function GET(request: NextRequest) {
         customerNotes: b.customerNotes,
         quoteRequest: b.bus_quote_requests,
         createdAt: b.createdAt,
+        droppedAt: b.droppedAt,
+        dropReason: b.dropReason,
       })),
       pagination: {
         page,

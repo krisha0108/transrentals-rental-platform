@@ -270,6 +270,7 @@ export async function POST(request: NextRequest) {
       where: {
         requestId,
         vendorId: vendorId,
+        status: { not: 'WITHDRAWN' },
       },
       select: {
         id: true,
@@ -344,43 +345,48 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Create the quote
-    const quote = await prisma.bike_quotes.create({
-      data: {
-        id: generateId(),
-        quoteNumber,
-        requestId,
-        vendorId: vendorId,
-        vendorFleetId: vendorFleetId || null,
-        vehicleModelId: vehicleModelId || null,
-        vehicleName,
-        vehicleBrand: vehicleBrand || null,
-        vehicleCategory: vehicle_category || quoteRequest.vehicleCategory || null,
-        registrationNumber: registrationNumber || null,
-        vehicleYear: vehicleYear || null,
-        vehicleImages: finalVehicleImages ? JSON.stringify(finalVehicleImages) : null,
-        vehicleFeatures: vehicleFeatures ? JSON.stringify(vehicleFeatures) : null,
-        dailyRate,
-        totalPrice: totalPrice || null,
-        totalAmount,
-        gstAmount,
-        securityDeposit,
-        grandTotal,
-        advancePercent,
-        advanceAmount,
-        helmetsIncluded,
-        kmLimitPerDay: kmLimitPerDay || null,
-        extraKmCharge: extraKmCharge || null,
-        inclusions: inclusions ? JSON.stringify(inclusions) : null,
-        exclusions: exclusions ? JSON.stringify(exclusions) : null,
-        termsConditions: termsConditions ? JSON.stringify(termsConditions) : null,
-        vendorMessage: vendorMessage || null,
-        validTill,
-        validityDays,
-        status: 'SENT',
-        sentAt: new Date(),
-      },
+    // Check if a withdrawn quote exists (re-quote after withdrawal)
+    const withdrawnQuote = await prisma.bike_quotes.findFirst({
+      where: { requestId, vendorId: vendorId, status: 'WITHDRAWN' },
+      select: { id: true },
     });
+
+    const quoteFields = {
+      quoteNumber,
+      vendorFleetId: vendorFleetId || null,
+      vehicleModelId: vehicleModelId || null,
+      vehicleName,
+      vehicleBrand: vehicleBrand || null,
+      vehicleCategory: vehicle_category || quoteRequest.vehicleCategory || null,
+      registrationNumber: registrationNumber || null,
+      vehicleYear: vehicleYear || null,
+      vehicleImages: finalVehicleImages ? JSON.stringify(finalVehicleImages) : null,
+      vehicleFeatures: vehicleFeatures ? JSON.stringify(vehicleFeatures) : null,
+      dailyRate,
+      totalPrice: totalPrice || null,
+      totalAmount,
+      gstAmount,
+      securityDeposit,
+      grandTotal,
+      advancePercent,
+      advanceAmount,
+      helmetsIncluded,
+      kmLimitPerDay: kmLimitPerDay || null,
+      extraKmCharge: extraKmCharge || null,
+      inclusions: inclusions ? JSON.stringify(inclusions) : null,
+      exclusions: exclusions ? JSON.stringify(exclusions) : null,
+      termsConditions: termsConditions ? JSON.stringify(termsConditions) : null,
+      vendorMessage: vendorMessage || null,
+      validTill,
+      validityDays,
+      status: 'SENT',
+      sentAt: new Date(),
+    };
+
+    // Create the quote (or update existing withdrawn quote)
+    const quote = withdrawnQuote
+      ? await prisma.bike_quotes.update({ where: { id: withdrawnQuote.id }, data: quoteFields })
+      : await prisma.bike_quotes.create({ data: { id: generateId(), requestId, vendorId: vendorId, ...quoteFields } });
 
     // Update quote request stats
     await prisma.bike_quote_requests.update({

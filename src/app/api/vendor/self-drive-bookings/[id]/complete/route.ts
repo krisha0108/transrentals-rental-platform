@@ -10,6 +10,7 @@ import crypto from 'crypto';
 import logger from '@/lib/security/logger';
 import { sendVendorDirectNotification } from '@/lib/utils/vendor-notification-sender';
 import { creditBackrTokens } from '@/lib/utils/backr-tokens';
+import { canCompleteTrip } from '@/lib/utils/booking-date-guard';
 export const dynamic = 'force-dynamic';
 
 // POST - Vendor completes the car rental trip
@@ -56,6 +57,15 @@ export async function POST(
     if (booking.status !== 'IN_PROGRESS') {
       return NextResponse.json(
         { error: 'Trip must be in progress to complete' },
+        { status: 400 }
+      );
+    }
+
+    // Block completion before drop date/time
+    const completeCheck = canCompleteTrip(booking.dropDate, booking.dropTime);
+    if (!completeCheck.allowed) {
+      return NextResponse.json(
+        { error: completeCheck.message },
         { status: 400 }
       );
     }

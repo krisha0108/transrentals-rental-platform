@@ -15,6 +15,7 @@ import {
   IndianRupee,
   AlertCircle,
   Loader2,
+  RefreshCw,
 } from 'lucide-react';
 import Pagination from '@/components/vendor/Pagination';
 import DateFilterDropdown from '@/components/vendor/DateFilterDropdown';
@@ -52,6 +53,7 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; icon: any }>
   ACCEPTED: { label: 'Accepted', color: 'bg-green-100 text-green-700', icon: CheckCircle },
   REJECTED: { label: 'Rejected', color: 'bg-red-100 text-red-700', icon: XCircle },
   EXPIRED: { label: 'Expired', color: 'bg-gray-100 text-gray-600', icon: AlertCircle },
+  WITHDRAWN: { label: 'Withdrawn', color: 'bg-gray-100 text-gray-600', icon: XCircle },
 };
 
 export default function VendorPackersQuotesPage() {
@@ -339,6 +341,15 @@ export default function VendorPackersQuotesPage() {
                       <Eye className="w-4 h-4" />
                       View Details
                     </Link>
+                    {quote.status === 'WITHDRAWN' && ['PENDING', 'QUOTES_RECEIVED'].includes(quote.request?.status) && (
+                      <Link
+                        href={`/vendor/packers/requests/${quote.request.id}/quote`}
+                        className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition flex items-center gap-1"
+                      >
+                        <RefreshCw className="w-4 h-4" />
+                        Send Fresh Quote
+                      </Link>
+                    )}
                     {quote.status === 'ACCEPTED' && (
                       <Link
                         href={`/vendor/packers/bookings`}

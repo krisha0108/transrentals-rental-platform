@@ -193,6 +193,8 @@ model bike_bookings {
   vendorNotes                                     String?                     @db.Text
   adminNotes                                      String?                     @db.Text
   cancellationReason                              String?                     @db.Text
+  droppedAt                                       DateTime?
+  dropReason                                      String?                     @db.Text
   createdAt                                       DateTime                    @default(now())
   updatedAt                                       DateTime                    @updatedAt
   lastPaymentError                                String?                     @db.Text
@@ -480,6 +482,8 @@ model bus_bookings {
   cancelledAt            DateTime?
   cancelledBy            String?
   cancellationReason     String?                    @db.Text
+  droppedAt              DateTime?
+  dropReason             String?                    @db.Text
   refundAmount           Float?
   rating                 Int?
   review                 String?                    @db.Text
@@ -689,6 +693,8 @@ model car_bookings {
   cancelledAt                                    DateTime?
   cancelledBy                                    String?
   completedAt                                    DateTime?
+  droppedAt                                      DateTime?
+  dropReason                                     String?                    @db.Text
   createdAt                                      DateTime                   @default(now())
   updatedAt                                      DateTime                   @updatedAt
   advanceAmount                                  Float?
@@ -912,6 +918,8 @@ model chauffeur_bookings {
   driverReview                                         String?                          @db.Text
   cancelledAt                                          DateTime?
   cancelledBy                                          String?
+  droppedAt                                            DateTime?
+  dropReason                                           String?                          @db.Text
   refundAmount                                         Float?
   refundTransactionId                                  String?
   completedAt                                          DateTime?
@@ -1356,6 +1364,8 @@ model equipment_bookings {
   cancelledAt              DateTime?
   cancelledBy              String?
   cancellationReason       String?                          @db.Text
+  droppedAt                DateTime?
+  dropReason               String?                          @db.Text
   refundAmount             Float?
   rating                   Int?
   review                   String?                          @db.Text
@@ -1896,6 +1906,8 @@ model luxury_bookings {
   cancelledAt                                       DateTime?
   cancelledBy                                       String?
   cancellationReason                                String?                       @db.Text
+  droppedAt                                         DateTime?
+  dropReason                                        String?                       @db.Text
   rating                                            Int?
   review                                            String?                       @db.Text
   driverRating                                      Int?
@@ -2199,6 +2211,8 @@ model packers_bookings {
   cancelledAt            DateTime?
   cancelledBy            String?
   cancellationReason     String?                        @db.Text
+  droppedAt              DateTime?
+  dropReason             String?                        @db.Text
   refundAmount           Float?
   rating                 Int?
   review                 String?                        @db.Text
@@ -2908,6 +2922,8 @@ model truck_bookings {
   cancelledAt            DateTime?
   cancelledBy            String?
   cancellationReason     String?                      @db.Text
+  droppedAt              DateTime?
+  dropReason             String?                      @db.Text
   refundAmount           Float?
   rating                 Int?
   review                 String?                      @db.Text
@@ -3705,6 +3721,15 @@ model vendors {
   vendor_truck_templates                                          vendor_truck_templates[]
   b2b_vendor_quotes                                               b2b_vendor_quotes[]
   b2b_trips                                                       b2b_trips[]
+  social_posts                                                    social_posts[]
+  social_post_likes                                               social_post_likes[]
+  social_post_comments                                            social_post_comments[]
+  social_post_saves                                               social_post_saves[]
+  social_follows_follower                                         social_follows[]                 @relation("social_follows_follower")
+  social_follows_following                                        social_follows[]                 @relation("social_follows_following")
+  vendor_conversations_1                                          vendor_conversations[]           @relation("conv_vendor1")
+  vendor_conversations_2                                          vendor_conversations[]           @relation("conv_vendor2")
+  vendor_messages                                                 vendor_messages[]                @relation("msg_sender")
   admin_users                                                     admin_users?                     @relation(fields: [approvedById], references: [id])
 
   @@index([approvedById], map: "vendors_approvedById_fkey")
@@ -4275,6 +4300,7 @@ enum bike_quote_requests_status {
   BOOKING_CONFIRMED
   CANCELLED
   EXPIRED
+  DROPPED
 }
 
 enum click_events_eventType {
@@ -4322,6 +4348,7 @@ enum self_drive_quote_requests_status {
   BOOKING_CONFIRMED
   CANCELLED
   EXPIRED
+  DROPPED
 }
 
 enum vendor_documents_documentType {
@@ -4541,6 +4568,7 @@ enum equipment_quote_requests_status {
   BOOKING_CONFIRMED
   CANCELLED
   EXPIRED
+  DROPPED
 }
 
 enum web_vitals_fidRating {
@@ -4578,6 +4606,7 @@ enum bike_bookings_status {
   CANCELLED
   EXPIRED
   REFUNDED
+  DROPPED
 }
 
 enum web_vitals_fcpRating {
@@ -4593,6 +4622,7 @@ enum bus_quote_requests_status {
   BOOKING_CONFIRMED
   CANCELLED
   EXPIRED
+  DROPPED
 }
 
 enum web_vitals_inpRating {
@@ -4608,6 +4638,7 @@ enum luxury_quote_requests_status {
   BOOKING_CONFIRMED
   CANCELLED
   EXPIRED
+  DROPPED
 }
 
 enum bike_bookings_paymentStatus {
@@ -4626,6 +4657,7 @@ enum truck_quote_requests_status {
   BOOKING_CONFIRMED
   CANCELLED
   EXPIRED
+  DROPPED
 }
 
 enum car_bookings_status {
@@ -4641,6 +4673,7 @@ enum car_bookings_status {
   CANCELLED
   EXPIRED
   REFUNDED
+  DROPPED
 }
 
 enum bus_quotes_status {
@@ -4688,6 +4721,7 @@ enum packers_quote_requests_status {
   BOOKING_CONFIRMED
   CANCELLED
   EXPIRED
+  DROPPED
 }
 
 enum packers_bookings_status {
@@ -4703,6 +4737,7 @@ enum packers_bookings_status {
   UNPACKING
   COMPLETED
   CANCELLED
+  DROPPED
 }
 
 enum bus_bookings_status {
@@ -4714,6 +4749,7 @@ enum bus_bookings_status {
   IN_PROGRESS
   COMPLETED
   CANCELLED
+  DROPPED
 }
 
 enum chauffeur_bookings_status {
@@ -4728,6 +4764,7 @@ enum chauffeur_bookings_status {
   CANCELLED
   EXPIRED
   REFUNDED
+  DROPPED
 }
 
 enum equipment_bookings_paymentStatus {
@@ -4759,6 +4796,7 @@ enum equipment_bookings_status {
   RETURNED
   COMPLETED
   CANCELLED
+  DROPPED
 }
 
 enum truck_bookings_status {
@@ -4772,6 +4810,7 @@ enum truck_bookings_status {
   UNLOADING
   COMPLETED
   CANCELLED
+  DROPPED
 }
 
 enum car_bookings_paymentStatus {
@@ -4796,6 +4835,7 @@ enum luxury_bookings_status {
   COMPLETED
   CANCELLED
   EXPIRED
+  DROPPED
 }
 
 enum luxury_bookings_paymentStatus {
@@ -5160,4 +5200,127 @@ model b2b_invoices {
   @@index([bookingId])
   @@index([status])
   @@index([dueDate])
+}
+
+// ── Social Network ────────────────────────────────────────────────────────────
+
+model social_categories {
+  id           String         @id @default(cuid())
+  name         String
+  slug         String         @unique
+  description  String?        @db.Text
+  isSOS        Boolean        @default(false)
+  isActive     Boolean        @default(true)
+  displayOrder Int            @default(0)
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  social_posts social_posts[]
+
+  @@index([isActive])
+  @@index([isSOS])
+}
+
+model social_posts {
+  id                   String               @id @default(cuid())
+  vendorId             String
+  categoryId           String
+  content              String               @db.Text
+  isActive             Boolean              @default(true)
+  createdAt            DateTime             @default(now())
+  updatedAt            DateTime             @updatedAt
+  vendor               vendors              @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  category             social_categories    @relation(fields: [categoryId], references: [id])
+  social_post_likes    social_post_likes[]
+  social_post_comments social_post_comments[]
+  social_post_saves    social_post_saves[]
+
+  @@index([vendorId])
+  @@index([categoryId])
+  @@index([createdAt])
+  @@index([isActive])
+}
+
+model social_post_likes {
+  id        String       @id @default(cuid())
+  postId    String
+  vendorId  String
+  createdAt DateTime     @default(now())
+  post      social_posts @relation(fields: [postId], references: [id], onDelete: Cascade)
+  vendor    vendors      @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, vendorId])
+  @@index([postId])
+  @@index([vendorId])
+}
+
+model social_post_comments {
+  id        String       @id @default(cuid())
+  postId    String
+  vendorId  String
+  content   String       @db.Text
+  isActive  Boolean      @default(true)
+  createdAt DateTime     @default(now())
+  post      social_posts @relation(fields: [postId], references: [id], onDelete: Cascade)
+  vendor    vendors      @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+
+  @@index([postId])
+  @@index([vendorId])
+}
+
+model social_post_saves {
+  id        String       @id @default(cuid())
+  postId    String
+  vendorId  String
+  createdAt DateTime     @default(now())
+  post      social_posts @relation(fields: [postId], references: [id], onDelete: Cascade)
+  vendor    vendors      @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, vendorId])
+  @@index([postId])
+  @@index([vendorId])
+}
+
+model social_follows {
+  id          String   @id @default(cuid())
+  followerId  String
+  followingId String
+  createdAt   DateTime @default(now())
+  follower    vendors  @relation("social_follows_follower", fields: [followerId], references: [id], onDelete: Cascade)
+  following   vendors  @relation("social_follows_following", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@unique([followerId, followingId])
+  @@index([followerId])
+  @@index([followingId])
+}
+
+model vendor_conversations {
+  id            String            @id @default(cuid())
+  vendor1Id     String
+  vendor2Id     String
+  lastMessageAt DateTime          @default(now())
+  createdAt     DateTime          @default(now())
+  vendor1       vendors           @relation("conv_vendor1", fields: [vendor1Id], references: [id], onDelete: Cascade)
+  vendor2       vendors           @relation("conv_vendor2", fields: [vendor2Id], references: [id], onDelete: Cascade)
+  messages      vendor_messages[]
+
+  @@unique([vendor1Id, vendor2Id])
+  @@index([vendor1Id])
+  @@index([vendor2Id])
+  @@index([lastMessageAt])
+}
+
+model vendor_messages {
+  id             String               @id @default(cuid())
+  conversationId String
+  senderId       String
+  content        String               @db.Text
+  isRead         Boolean              @default(false)
+  createdAt      DateTime             @default(now())
+  conversation   vendor_conversations @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender         vendors              @relation("msg_sender", fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId])
+  @@index([senderId])
+  @@index([createdAt])
+  @@index([isRead])
 }

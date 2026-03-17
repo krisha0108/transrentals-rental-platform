@@ -344,7 +344,7 @@ export default function InvoiceScreen({ navigation, route }) {
               <View style={[
                 styles.statusBadge,
                 booking.status === 'COMPLETED' ? styles.statusCompleted :
-                booking.status === 'CANCELLED' ? styles.statusCancelled :
+                booking.status === 'CANCELLED' || booking.status === 'DROPPED' ? styles.statusCancelled :
                 styles.statusPending
               ]}>
                 <Text style={styles.statusText}>{(booking.status || 'PENDING').replace(/_/g, ' ')}</Text>

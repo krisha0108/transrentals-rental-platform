@@ -20,6 +20,7 @@ import {
   HardHat,
   AlertCircle,
   FileText,
+  RefreshCw,
 } from 'lucide-react';
 import VehicleImageGallery from '@/components/customer/VehicleImageGallery';
 
@@ -196,6 +197,7 @@ export default function VendorBikeQuoteDetailPage() {
 
   const statusConfig = STATUS_CONFIG[quote.status] || STATUS_CONFIG.SENT;
   const isActive = ['SENT', 'VIEWED'].includes(quote.status);
+  const canReQuote = quote.status === 'WITHDRAWN' && ['PENDING', 'QUOTES_RECEIVED'].includes(quote.request.status);
   const inclusions = Array.isArray(quote.inclusions) ? quote.inclusions : [];
   const exclusions = Array.isArray(quote.exclusions) ? quote.exclusions : [];
   const terms = Array.isArray(quote.termsConditions) ? quote.termsConditions : [];
@@ -224,16 +226,27 @@ export default function VendorBikeQuoteDetailPage() {
           </div>
         </div>
 
-        {isActive && (
-          <button
-            onClick={handleWithdraw}
-            disabled={isWithdrawing}
-            className="px-4 py-2 bg-red-50 text-red-600 font-medium rounded-lg hover:bg-red-100 transition flex items-center gap-2 disabled:opacity-50"
-          >
-            <XCircle className="w-4 h-4" />
-            {isWithdrawing ? 'Withdrawing...' : 'Withdraw Quote'}
-          </button>
-        )}
+        <div className="flex items-center gap-2">
+          {isActive && (
+            <button
+              onClick={handleWithdraw}
+              disabled={isWithdrawing}
+              className="px-4 py-2 bg-red-50 text-red-600 font-medium rounded-lg hover:bg-red-100 transition flex items-center gap-2 disabled:opacity-50"
+            >
+              <XCircle className="w-4 h-4" />
+              {isWithdrawing ? 'Withdrawing...' : 'Withdraw Quote'}
+            </button>
+          )}
+          {canReQuote && (
+            <Link
+              href={`/vendor/bike-rentals/requests/${quote.request.id}/quote`}
+              className="px-4 py-2 bg-orange-600 text-white font-medium rounded-lg hover:bg-orange-700 transition flex items-center gap-2"
+            >
+              <RefreshCw className="w-4 h-4" />
+              Send Fresh Quote
+            </Link>
+          )}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

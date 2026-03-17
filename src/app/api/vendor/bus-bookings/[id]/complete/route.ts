@@ -10,6 +10,7 @@ import { sendNotificationToCustomer } from '@/lib/services/push-notification-ser
 import logger from '@/lib/security/logger';
 import { sendVendorDirectNotification } from '@/lib/utils/vendor-notification-sender';
 import { creditBackrTokens } from '@/lib/utils/backr-tokens';
+import { canCompleteTrip } from '@/lib/utils/booking-date-guard';
 export const dynamic = 'force-dynamic';
 
 // POST - Vendor completes Bus Booking trip
@@ -56,6 +57,17 @@ export async function POST(
     if (booking.status !== 'IN_PROGRESS') {
       return NextResponse.json(
         { error: 'Can only complete trips that are in progress' },
+        { status: 400 }
+      );
+    }
+
+    // Block completion before return date/time
+    const endDate = booking.returnDate || booking.pickupDate;
+    const endTime = booking.returnTime || booking.pickupTime;
+    const completeCheck = canCompleteTrip(endDate, endTime);
+    if (!completeCheck.allowed) {
+      return NextResponse.json(
+        { error: completeCheck.message },
         { status: 400 }
       );
     }

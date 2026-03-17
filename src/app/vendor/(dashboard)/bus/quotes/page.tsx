@@ -375,6 +375,15 @@ export default function VendorBusQuotesPage() {
                         </button>
                       </>
                     )}
+                    {quote.status === 'WITHDRAWN' && ['PENDING', 'QUOTES_RECEIVED'].includes(quote.request?.status) && (
+                      <Link
+                        href={`/vendor/bus/requests/${quote.request.id}/quote`}
+                        className="px-4 py-2 bg-orange-600 text-white text-sm font-medium rounded-lg hover:bg-orange-700 transition flex items-center gap-1"
+                      >
+                        <RefreshCw className="w-4 h-4" />
+                        Send Fresh Quote
+                      </Link>
+                    )}
                     {quote.status === 'ACCEPTED' && (
                       <Link
                         href={`/vendor/bus/bookings?quote=${quote.id}`}

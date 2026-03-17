@@ -49,6 +49,7 @@ const STATUSES = [
   { key: 'in_progress', label: 'In Progress', color: '#3498db' },
   { key: 'completed', label: 'Completed', color: '#27ae60' },
   { key: 'cancelled', label: 'Cancelled', color: '#e74c3c' },
+  { key: 'dropped', label: 'Dropped', color: '#e74c3c' },
 ];
 
 const MyBookingsScreen = () => {
@@ -198,6 +199,7 @@ const MyBookingsScreen = () => {
           return {
             ...b,
             id: b.id,
+            bookingNumber: b.booking_number || null,
             serviceType: b.service_type === 'car' ? 'self-drive' : (b.service_type === 'chauffeur' ? 'car' : b.service_type),
             serviceName: b.service_name,
             serviceIcon,
@@ -270,6 +272,7 @@ const MyBookingsScreen = () => {
         in_progress: ['IN_PROGRESS'],
         completed: ['COMPLETED'],
         cancelled: ['CANCELLED', 'REJECTED', 'EXPIRED', 'REFUNDED'],
+        dropped: ['DROPPED'],
       };
       const targetStatuses = statusMap[selectedStatus] || [];
       filtered = filtered.filter(b => targetStatuses.includes(b.status?.toUpperCase()));
@@ -321,6 +324,9 @@ const MyBookingsScreen = () => {
     }
     if (['CANCELLED', 'REJECTED', 'EXPIRED', 'REFUNDED'].includes(upperStatus)) {
       return { bg: '#ffebee', text: '#e53935', label: 'Cancelled' };
+    }
+    if (['DROPPED'].includes(upperStatus)) {
+      return { bg: '#ffebee', text: '#e53935', label: 'Dropped' };
     }
     return { bg: '#f5f5f5', text: '#666', label: status || 'Unknown' };
   };

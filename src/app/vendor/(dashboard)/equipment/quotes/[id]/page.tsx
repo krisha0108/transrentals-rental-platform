@@ -24,6 +24,7 @@ import {
   Settings,
   Fuel,
   Truck,
+  RefreshCw,
 } from 'lucide-react';
 
 interface Quote {
@@ -177,6 +178,7 @@ export default function ViewEquipmentQuotePage() {
   const effectiveStatus = expired && quote.status === 'SENT' ? 'EXPIRED' : quote.status;
   const statusConfig = STATUS_CONFIG[effectiveStatus] || STATUS_CONFIG.SENT;
   const StatusIcon = statusConfig.icon;
+  const canReQuote = quote.status === 'WITHDRAWN' && ['PENDING', 'QUOTES_RECEIVED'].includes(quote.request?.status);
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -197,10 +199,21 @@ export default function ViewEquipmentQuotePage() {
             <p className="text-gray-600">For Request #{quote.request.requestNumber}</p>
           </div>
         </div>
-        <span className={`px-4 py-2 rounded-full text-sm font-semibold flex items-center gap-2 ${statusConfig.bgColor} ${statusConfig.color}`}>
-          <StatusIcon className="w-4 h-4" />
-          {statusConfig.label}
-        </span>
+        <div className="flex items-center gap-2">
+          <span className={`px-4 py-2 rounded-full text-sm font-semibold flex items-center gap-2 ${statusConfig.bgColor} ${statusConfig.color}`}>
+            <StatusIcon className="w-4 h-4" />
+            {statusConfig.label}
+          </span>
+          {canReQuote && (
+            <Link
+              href={`/vendor/equipment/requests/${quote.request.id}/quote`}
+              className="px-4 py-2 bg-amber-600 text-white text-sm font-medium rounded-lg hover:bg-amber-700 transition flex items-center gap-2"
+            >
+              <RefreshCw className="w-4 h-4" />
+              Send Fresh Quote
+            </Link>
+          )}
+        </div>
       </div>
 
       {/* Booking Info (if accepted) */}

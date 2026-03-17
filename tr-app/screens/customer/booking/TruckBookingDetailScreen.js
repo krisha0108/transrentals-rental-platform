@@ -36,6 +36,7 @@ const STATUS_CONFIG = {
   UNLOADING: { label: 'Unloading', color: '#7C3AED', icon: 'archive-outline' },
   COMPLETED: { label: 'Completed', color: '#10B981', icon: 'checkmark-done-circle-outline' },
   CANCELLED: { label: 'Cancelled', color: '#EF4444', icon: 'close-circle-outline' },
+  DROPPED: { label: 'Dropped', color: '#EF4444', icon: 'arrow-down-circle-outline' },
 };
 
 export default function TruckBookingDetailScreen() {
@@ -332,6 +333,17 @@ export default function TruckBookingDetailScreen() {
               <Text style={styles.verificationFooterText}>
                 Our team is verifying your payment details
               </Text>
+            </View>
+          </View>
+        )}
+
+        {/* Drop Reason Banner */}
+        {booking.status === 'DROPPED' && booking.dropReason && (
+          <View style={{ backgroundColor: '#FEE2E2', padding: wp('4%'), borderRadius: wp('3%'), marginBottom: hp('1.5%'), flexDirection: 'row', alignItems: 'center', gap: wp('3%') }}>
+            <Ionicons name="information-circle" size={wp('5.5%')} color="#EF4444" />
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: wp('3.5%'), fontWeight: '700', color: '#991B1B', marginBottom: hp('0.3%') }}>Booking Dropped</Text>
+              <Text style={{ fontSize: wp('3%'), color: '#B91C1C', lineHeight: wp('4.5%') }}>{booking.dropReason}</Text>
             </View>
           </View>
         )}

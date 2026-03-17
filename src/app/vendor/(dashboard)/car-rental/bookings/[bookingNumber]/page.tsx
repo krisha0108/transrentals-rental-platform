@@ -124,6 +124,7 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; bgColor: str
   IN_PROGRESS: { label: 'In Progress', color: 'text-purple-700', bgColor: 'bg-purple-100' },
   COMPLETED: { label: 'Completed', color: 'text-gray-700', bgColor: 'bg-gray-100' },
   CANCELLED: { label: 'Cancelled', color: 'text-red-700', bgColor: 'bg-red-100' },
+  DROPPED: { label: 'Dropped', color: 'text-red-700', bgColor: 'bg-red-100' },
 };
 
 const TRIP_TYPE_LABELS: Record<string, string> = {
@@ -437,6 +438,24 @@ export default function VendorBookingDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* Dropped Banner */}
+      {booking.status === 'DROPPED' && (
+        <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-start gap-3">
+          <XCircle className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" />
+          <div>
+            <p className="font-semibold text-red-800">This booking has been dropped</p>
+            {(booking as any).dropReason && (
+              <p className="text-sm text-red-600 mt-1">Reason: {(booking as any).dropReason}</p>
+            )}
+            {(booking as any).droppedAt && (
+              <p className="text-xs text-red-500 mt-1">
+                Dropped on: {new Date((booking as any).droppedAt).toLocaleString('en-IN')}
+              </p>
+            )}
+          </div>
+        </div>
+      )}
 
       <div className="grid lg:grid-cols-3 gap-6">
         {/* Main Content */}

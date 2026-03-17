@@ -8,6 +8,7 @@ import { transformPrismaResponse } from '@/lib/utils/api-transform';
 import { sendVendorDirectNotification } from '@/lib/utils/vendor-notification-sender';
 import logger from '@/lib/security/logger';
 import { creditBackrTokens } from '@/lib/utils/backr-tokens';
+import { canCompleteTrip } from '@/lib/utils/booking-date-guard';
 export const dynamic = 'force-dynamic';
 
 // POST - Vendor completes a bike booking (end trip)
@@ -57,6 +58,15 @@ export async function POST(
     if (booking.status !== 'IN_PROGRESS') {
       return NextResponse.json(
         { error: `Cannot complete booking. Current status: ${booking.status}` },
+        { status: 400 }
+      );
+    }
+
+    // Block completion before drop date/time
+    const completeCheck = canCompleteTrip(booking.dropDate, booking.dropTime);
+    if (!completeCheck.allowed) {
+      return NextResponse.json(
+        { error: completeCheck.message },
         { status: 400 }
       );
     }

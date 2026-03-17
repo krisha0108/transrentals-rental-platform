@@ -22,6 +22,7 @@ import {
   Weight,
   Building,
   ArrowRight,
+  RefreshCw,
 } from 'lucide-react';
 import VehicleImageGallery from '@/components/customer/VehicleImageGallery';
 
@@ -521,6 +522,15 @@ export default function VendorQuoteDetailPage() {
           )}
 
           {/* Actions based on status */}
+          {quote.status === 'WITHDRAWN' && ['PENDING', 'QUOTES_RECEIVED'].includes(quote.request?.status) && (
+            <Link
+              href={`/vendor/transporter/requests/${quote.request.id}/quote`}
+              className="block w-full px-4 py-3 bg-indigo-600 text-white text-center font-medium rounded-lg hover:bg-indigo-700 transition flex items-center justify-center gap-2"
+            >
+              <RefreshCw className="w-4 h-4" />
+              Send Fresh Quote
+            </Link>
+          )}
           {quote.status === 'ACCEPTED' && (
             <Link
               href="/vendor/transporter/bookings"
