@@ -13,6 +13,7 @@ import {
   Dimensions,
   ActivityIndicator,
   StatusBar,
+  Keyboard,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Feather';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -153,9 +154,9 @@ export default function LuxuryScreen() {
 
   const textSafe = (t) => (t || '').toLowerCase();
 
-  const filteredLocations = query.length
+  const filteredLocations = query.trim().length
     ? allLocations.filter(
-        (l) => typeof l.name === 'string' && l.name.toLowerCase().includes(textSafe(query)),
+        (l) => typeof l.name === 'string' && l.name.toLowerCase().includes(textSafe(query.trim())),
       )
     : allLocations.slice(0, 35);
 
@@ -167,6 +168,7 @@ export default function LuxuryScreen() {
   };
 
   const handleLocationSelect = (loc) => {
+    Keyboard.dismiss();
     setPickupLocation(loc.name);
     setPickupLocationId(loc.id);
     setQuery('');
@@ -471,7 +473,7 @@ export default function LuxuryScreen() {
                 placeholderTextColor={TEXT_MUTED}
                 style={styles.locationInput}
                 onFocus={() => setShowSuggestions(true)}
-                onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
+                onBlur={() => setTimeout(() => setShowSuggestions(false), 300)}
               />
               {pickupLocation ? (
                 <TouchableOpacity

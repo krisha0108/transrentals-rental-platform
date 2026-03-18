@@ -1,67 +1,56 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  RefreshControl,
-  ActivityIndicator,
-  Alert,
-  Linking,
-  Modal,
-  FlatList,
+  View, Text, StyleSheet, ScrollView, TouchableOpacity,
+  RefreshControl, ActivityIndicator, Linking,
+  StatusBar, Dimensions, Modal, FlatList,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/Feather';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import { showError, showConfirm, showInfo, showSuccess } from '../../../../services/alertService';
+import Ionicons from 'react-native-vector-icons/Ionicons';
+import { showError, showConfirm, showSuccess } from '../../../../services/alertService';
 import {
-  getBookingById,
-  acceptBooking,
-  rejectBooking,
-  assignOperator,
-  getStaffDrivers,
+  getBookingById, acceptBooking, rejectBooking,
+  assignOperator, getStaffDrivers,
 } from '../../../api/client';
 
+const { width: W } = Dimensions.get('window');
+
 const C = {
-  bg: '#F7FAFC',
-  surface: '#FFFFFF',
-  text: '#0F172A',
-  muted: '#6B7280',
-  border: '#E5E7EB',
-  brand: '#22C55E',
-  blue: '#2563EB',
-  orange: '#F59E0B',
-  purple: '#8B5CF6',
-  red: '#EF4444',
-  amber: '#F59E0B',
-  green: '#22C55E',
+  g900: '#022C22', g800: '#065F46', g700: '#047857', g600: '#059669',
+  g500: '#10B981', g400: '#34D399', g100: '#D1FAE5', g50: '#ECFDF5',
+  bg: '#F1F5F9', card: '#FFFFFF', border: '#E2E8F0', text: '#0F172A',
+  sub: '#475569', muted: '#94A3B8', blue: '#2563EB', blueL: '#EFF6FF',
+  amber: '#D97706', amberL: '#FFFBEB', red: '#DC2626', redL: '#FEF2F2',
+  orange: '#EA580C', orangeL: '#FFF7ED', indigo: '#4F46E5', indigoL: '#EEF2FF',
+  purple: '#7C3AED', purpleL: '#F5F3FF',
 };
 
 const STATUS_CONFIG = {
-  PENDING_PAYMENT: { color: C.amber, bg: '#FEF3C7', label: 'Awaiting Payment' },
-  PAYMENT_SUBMITTED: { color: C.orange, bg: '#FED7AA', label: 'Payment Submitted' },
-  ADVANCE_PAID: { color: C.green, bg: '#D1FAE5', label: 'Advance Paid' },
-  PAYMENT_VERIFIED: { color: C.green, bg: '#D1FAE5', label: 'Payment Verified' },
-  CONFIRMED: { color: C.green, bg: '#DCFCE7', label: 'Confirmed' },
-  DRIVER_ASSIGNED: { color: C.blue, bg: '#DBEAFE', label: 'Driver Assigned' },
-  PENDING_VENDOR: { color: C.orange, bg: '#FEF3C7', label: 'Pending' },
-  BROADCASTED: { color: C.blue, bg: '#DBEAFE', label: 'Open' },
-  ACCEPTED: { color: C.green, bg: '#DCFCE7', label: 'Accepted' },
-  IN_PROGRESS: { color: C.purple, bg: '#F3E8FF', label: 'In Progress' },
-  COMPLETED: { color: C.muted, bg: '#F3F4F6', label: 'Completed' },
-  CANCELLED: { color: C.red, bg: '#FEE2E2', label: 'Cancelled' },
+  PENDING_PAYMENT:  { color: C.amber,  bg: C.amberL,  label: 'Awaiting Payment',  icon: 'time-outline'                 },
+  PAYMENT_SUBMITTED:{ color: C.orange, bg: C.orangeL, label: 'Payment Submitted', icon: 'card-outline'                 },
+  ADVANCE_PAID:     { color: C.g600,   bg: C.g50,     label: 'Advance Paid',      icon: 'checkmark-circle-outline'     },
+  PAYMENT_VERIFIED: { color: C.g600,   bg: C.g50,     label: 'Payment Verified',  icon: 'shield-checkmark-outline'     },
+  CONFIRMED:        { color: C.g600,   bg: C.g50,     label: 'Confirmed',         icon: 'checkmark-done-circle-outline'},
+  DRIVER_ASSIGNED:  { color: C.blue,   bg: C.blueL,   label: 'Driver Assigned',   icon: 'car-outline'                  },
+  PENDING_VENDOR:   { color: C.amber,  bg: C.amberL,  label: 'Pending',           icon: 'hourglass-outline'            },
+  BROADCASTED:      { color: C.blue,   bg: C.blueL,   label: 'Open',              icon: 'radio-outline'                },
+  ACCEPTED:         { color: C.g600,   bg: C.g50,     label: 'Accepted',          icon: 'checkmark-circle'             },
+  IN_PROGRESS:      { color: C.purple, bg: C.purpleL, label: 'In Progress',       icon: 'navigate-circle-outline'      },
+  COMPLETED:        { color: C.muted,  bg: '#F8FAFC', label: 'Completed',         icon: 'trophy-outline'               },
+  CANCELLED:        { color: C.red,    bg: C.redL,    label: 'Cancelled',         icon: 'close-circle-outline'         },
 };
 
 export default function LuxuryBookingDetailScreen({ route, navigation }) {
   const { bookingId } = route.params || {};
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
+
+  const [loading,       setLoading]       = useState(true);
+  const [refreshing,    setRefreshing]    = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
-  const [booking, setBooking] = useState(null);
+  const [booking,       setBooking]       = useState(null);
   const [showDriverModal, setShowDriverModal] = useState(false);
-  const [drivers, setDrivers] = useState([]);
+  const [drivers,       setDrivers]       = useState([]);
   const [loadingDrivers, setLoadingDrivers] = useState(false);
 
   const fetchBooking = useCallback(async () => {
@@ -70,77 +59,67 @@ export default function LuxuryBookingDetailScreen({ route, navigation }) {
       const response = await getBookingById('luxury', bookingId);
       setBooking(response?.booking || response);
     } catch (error) {
-      console.error('[LuxuryBookingDetail] Error:', error);
       showError('Failed to load booking details');
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   }, [bookingId]);
 
-  useEffect(() => {
-    fetchBooking();
-  }, [fetchBooking]);
+  useEffect(() => { fetchBooking(); }, [fetchBooking]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     await fetchBooking();
-    setRefreshing(false);
   }, [fetchBooking]);
 
   const handleAccept = async () => {
     showConfirm('Accept Booking', 'Are you sure you want to accept this booking?', async () => {
-          try {
-            setActionLoading(true);
-            await acceptBooking('luxury', bookingId);
-            await fetchBooking();
-            showSuccess('Booking accepted successfully');
-          } catch (error) {
-            showError(error?.response?.data?.error || 'Failed to accept booking');
-          } finally {
-            setActionLoading(false);
-          }
-        }, { confirmText: 'Accept' });
+      try {
+        setActionLoading(true);
+        await acceptBooking('luxury', bookingId);
+        await fetchBooking();
+        showSuccess('Booking accepted successfully');
+      } catch (error) {
+        showError(error?.response?.data?.error || 'Failed to accept booking');
+      } finally { setActionLoading(false); }
+    }, { confirmText: 'Accept' });
   };
 
   const handleReject = async () => {
     showConfirm('Reject Booking', 'Are you sure you want to reject this booking?', async () => {
-          try {
-            setActionLoading(true);
-            await rejectBooking('luxury', bookingId, 'Vendor rejected');
-            await fetchBooking();
-            showSuccess('Booking rejected');
-          } catch (error) {
-            showError(error?.response?.data?.error || 'Failed to reject booking');
-          } finally {
-            setActionLoading(false);
-          }
-        }, { confirmText: 'Reject', destructive: true });
+      try {
+        setActionLoading(true);
+        await rejectBooking('luxury', bookingId, 'Vendor rejected');
+        await fetchBooking();
+        showSuccess('Booking rejected');
+      } catch (error) {
+        showError(error?.response?.data?.error || 'Failed to reject booking');
+      } finally { setActionLoading(false); }
+    }, { confirmText: 'Reject', destructive: true });
   };
 
-  const handleCall = (phone) => {
-    if (phone) {
-      Linking.openURL(`tel:${phone}`);
-    }
+  const handleCall     = (phone) => { if (phone) Linking.openURL(`tel:${phone}`); };
+  const handleWhatsApp = (phone) => {
+    if (phone) Linking.openURL(`whatsapp://send?phone=${phone.replace(/\D/g, '')}`);
   };
-
   const handleChat = () => {
     navigation.navigate('ChatScreen', {
-      bookingId: booking.id,
-      customerName: booking.customerName,
+      bookingId:     booking.id,
+      customerName:  booking.customerName,
       bookingNumber: booking.bookingNumber || booking.id,
-      serviceType: 'luxury',
+      serviceType:   'luxury',
     });
   };
 
-  const canAssignDriver = () => {
-    const assignableStatuses = ['ADVANCE_PAID', 'CONFIRMED'];
-    return assignableStatuses.includes(booking?.status) && !booking?.driverName;
-  };
+  const canAssignDriver = () =>
+    ['ADVANCE_PAID', 'CONFIRMED'].includes(booking?.status) && !booking?.driverName;
 
-  const canChangeDriver = () => {
-    const changeableStatuses = ['CONFIRMED', 'DRIVER_ASSIGNED'];
-    return changeableStatuses.includes(booking?.status) && booking?.driverName;
-  };
+  const canChangeDriver = () =>
+    ['CONFIRMED', 'DRIVER_ASSIGNED'].includes(booking?.status) && booking?.driverName;
+
+  const canAccept = () => ['PENDING_VENDOR', 'BROADCASTED', 'PAYMENT_VERIFIED'].includes(booking?.status);
+  const canReject = () => ['PENDING_VENDOR', 'BROADCASTED', 'PAYMENT_VERIFIED'].includes(booking?.status);
 
   const fetchDrivers = async () => {
     try {
@@ -148,7 +127,6 @@ export default function LuxuryBookingDetailScreen({ route, navigation }) {
       const response = await getStaffDrivers();
       setDrivers(response?.drivers || response?.staff || []);
     } catch (error) {
-      console.error('Error fetching drivers:', error);
       showError('Failed to load drivers');
     } finally {
       setLoadingDrivers(false);
@@ -166,474 +144,567 @@ export default function LuxuryBookingDetailScreen({ route, navigation }) {
       setShowDriverModal(false);
       setActionLoading(true);
       await assignOperator('luxury', bookingId, {
-        driverName: driver.name,
+        driverName:  driver.name,
         driverPhone: driver.phone,
         driverPhoto: driver.photo || null,
       });
       await fetchBooking();
       showSuccess(isChanging ? 'Driver changed successfully' : 'Driver assigned successfully');
     } catch (error) {
-      console.error('Error assigning driver:', error);
       showError(error?.response?.data?.error || 'Failed to assign driver');
     } finally {
       setActionLoading(false);
     }
   };
 
-  const formatDate = (dateStr) => {
-    if (!dateStr) return '--';
-    const date = new Date(dateStr);
-    return date.toLocaleDateString('en-IN', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
+  const formatDate = (d) => {
+    if (!d) return '--';
+    return new Date(d).toLocaleDateString('en-IN', {
+      weekday: 'short', day: 'numeric', month: 'short', year: 'numeric',
     });
   };
 
-  const getStatusConfig = (status) => {
-    return STATUS_CONFIG[status] || STATUS_CONFIG.PENDING_PAYMENT;
+  const formatTime = (t) => {
+    if (!t) return '';
+    const [h, m] = t.split(':');
+    const hr = parseInt(h);
+    return `${hr === 0 ? 12 : hr > 12 ? hr - 12 : hr}:${m} ${hr >= 12 ? 'PM' : 'AM'}`;
   };
 
-  const canAccept = () => {
-    const acceptableStatuses = ['PENDING_VENDOR', 'BROADCASTED', 'PAYMENT_VERIFIED'];
-    return acceptableStatuses.includes(booking?.status);
-  };
-
-  const canReject = () => {
-    const rejectableStatuses = ['PENDING_VENDOR', 'BROADCASTED', 'PAYMENT_VERIFIED'];
-    return rejectableStatuses.includes(booking?.status);
-  };
-
+  /* ─── Loading state ─────────────────────────────────────────── */
   if (loading) {
     return (
-      <SafeAreaView style={styles.safe}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-            <Icon name="arrow-left" size={20} color={C.text} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Booking Details</Text>
-          <View style={{ width: 36 }} />
+      <View style={s.safe}>
+        <StatusBar barStyle="light-content" backgroundColor={C.g900} />
+        <LinearGradient colors={[C.g900, C.g800, C.g700]} style={s.hero}>
+          <SafeAreaView edges={['top']}>
+            <View style={s.topBar}>
+              <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()}>
+                <Icon name="arrow-left" size={18} color="#fff" />
+              </TouchableOpacity>
+              <View style={s.titleWrap}>
+                <MaterialCommunityIcons name="car-sports" size={18} color={C.g400} />
+                <Text style={s.heroTitle}>Booking Detail</Text>
+              </View>
+              <View style={{ width: 36 }} />
+            </View>
+          </SafeAreaView>
+        </LinearGradient>
+        <View style={s.centered}>
+          <ActivityIndicator size="large" color={C.g600} />
+          <Text style={s.centeredTxt}>Loading booking...</Text>
         </View>
-        <View style={styles.loaderContainer}>
-          <ActivityIndicator size="large" color={C.brand} />
-        </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
+  /* ─── Not found state ───────────────────────────────────────── */
   if (!booking) {
     return (
-      <SafeAreaView style={styles.safe}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-            <Icon name="arrow-left" size={20} color={C.text} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Booking Details</Text>
-          <View style={{ width: 36 }} />
+      <View style={s.safe}>
+        <StatusBar barStyle="light-content" backgroundColor={C.g900} />
+        <LinearGradient colors={[C.g900, C.g800, C.g700]} style={s.hero}>
+          <SafeAreaView edges={['top']}>
+            <View style={s.topBar}>
+              <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()}>
+                <Icon name="arrow-left" size={18} color="#fff" />
+              </TouchableOpacity>
+              <View style={s.titleWrap}>
+                <MaterialCommunityIcons name="car-sports" size={18} color={C.g400} />
+                <Text style={s.heroTitle}>Booking Detail</Text>
+              </View>
+              <View style={{ width: 36 }} />
+            </View>
+          </SafeAreaView>
+        </LinearGradient>
+        <View style={s.centered}>
+          <Ionicons name="alert-circle-outline" size={56} color={C.muted} />
+          <Text style={s.centeredTxt}>Booking not found</Text>
         </View>
-        <View style={styles.emptyContainer}>
-          <Icon name="alert-circle" size={48} color={C.muted} />
-          <Text style={styles.emptyText}>Booking not found</Text>
-        </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
-  const statusConfig = getStatusConfig(booking.status);
+  const sc = STATUS_CONFIG[booking.status] || STATUS_CONFIG.PENDING_PAYMENT;
 
+  /* ─── Main render ───────────────────────────────────────────── */
   return (
-    <SafeAreaView style={styles.safe}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Icon name="arrow-left" size={20} color={C.text} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Booking #{booking.bookingNumber || booking.id}</Text>
-        <View style={{ width: 36 }} />
-      </View>
+    <SafeAreaView style={s.safe} edges={['top']}>
+      <StatusBar barStyle="light-content" backgroundColor={C.g900} />
 
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.brand} />
-        }
-        showsVerticalScrollIndicator={false}
+      {/* ── Hero gradient ── */}
+      <LinearGradient
+        colors={[C.g900, C.g800, C.g700]}
+        start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+        style={s.hero}
       >
-        <View style={styles.statusHeaderCard}>
-          <View style={[styles.statusBadge, { backgroundColor: statusConfig.bg }]}>
-            <Text style={[styles.statusBadgeText, { color: statusConfig.color }]}>
-              {statusConfig.label}
-            </Text>
+        <View style={s.deco1} />
+        <View style={s.deco2} />
+
+        <View style={s.topBar}>
+          <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()}>
+            <Icon name="arrow-left" size={18} color="#fff" />
+          </TouchableOpacity>
+          <View style={s.titleWrap}>
+            <MaterialCommunityIcons name="car-sports" size={18} color={C.g400} />
+            <Text style={s.heroTitle}>Booking Detail</Text>
           </View>
-          <Text style={styles.createdDate}>Created on {formatDate(booking.createdAt)}</Text>
+          <View style={{ width: 36 }} />
         </View>
 
-        {/* Info card when customer has accepted quote but not yet paid */}
-        {booking.status === 'PENDING_PAYMENT' && (
-          <View style={[styles.card, { backgroundColor: '#FFFBEB', borderColor: '#FDE68A', borderWidth: 1, flexDirection: 'row', alignItems: 'flex-start', gap: 10 }]}>
-            <Icon name="clock" size={20} color={C.amber} style={{ marginTop: 2 }} />
-            <View style={{ flex: 1 }}>
-              <Text style={{ fontSize: 14, fontWeight: '700', color: '#92400E', marginBottom: 4 }}>
-                Quote Accepted — Awaiting Advance Payment
-              </Text>
-              <Text style={{ fontSize: 13, color: '#78350F', lineHeight: 18 }}>
-                Customer has accepted your quote. They need to pay the advance (₹{(booking.advanceAmount || 0).toLocaleString()}) to confirm this booking. You'll receive a notification once payment is done.
-              </Text>
+        {/* Glassmorphic heroCard */}
+        <View style={s.heroCard}>
+          <View style={s.heroCardTop}>
+            <View>
+              <Text style={s.heroLabel}>BOOKING #</Text>
+              <Text style={s.heroNumber}>{booking.bookingNumber || String(booking.id).slice(-8)}</Text>
+            </View>
+            <View style={[s.statusPill, { backgroundColor: sc.color + '22', borderColor: sc.color + '40' }]}>
+              <Ionicons name={sc.icon} size={12} color={sc.color} />
+              <Text style={[s.statusPillTxt, { color: sc.color }]}>{sc.label}</Text>
             </View>
           </View>
-        )}
-
-        {/* Info card when advance is paid and driver assignment needed */}
-        {booking.status === 'ADVANCE_PAID' && !booking.driverName && (
-          <View style={[styles.card, { backgroundColor: '#F0FDF4', borderColor: '#86EFAC', borderWidth: 1, flexDirection: 'row', alignItems: 'flex-start', gap: 10 }]}>
-            <Icon name="check-circle" size={20} color={C.green} style={{ marginTop: 2 }} />
-            <View style={{ flex: 1 }}>
-              <Text style={{ fontSize: 14, fontWeight: '700', color: '#14532D', marginBottom: 4 }}>
-                Advance Received — Assign a Driver
-              </Text>
-              <Text style={{ fontSize: 13, color: '#166534', lineHeight: 18 }}>
-                Customer has paid the advance. Please assign a driver to confirm this booking.
-              </Text>
+          <View style={s.heroMeta}>
+            <View style={s.heroMetaItem}>
+              <MaterialCommunityIcons name="car-sports" size={11} color="rgba(255,255,255,0.4)" />
+              <Text style={s.heroMetaTxt}>Luxury Cars</Text>
             </View>
-          </View>
-        )}
-
-        {/* Only show vehicle details if there's actual data */}
-        {(booking.vehicleName || booking.vehicleCategory || booking.requestedBrand || booking.carCategory || booking.carCategoryName) && (
-          <View style={styles.card}>
-            <View style={styles.cardHeader}>
-              <MaterialCommunityIcons name="car-sports" size={24} color={C.brand} />
-              <Text style={styles.cardTitle}>
-                {booking.vehicleName || booking.carCategoryName || booking.vehicleCategory || 'Luxury Vehicle'}
-              </Text>
+            <View style={s.heroMetaItem}>
+              <Ionicons name="calendar-outline" size={11} color="rgba(255,255,255,0.4)" />
+              <Text style={s.heroMetaTxt}>Created {formatDate(booking.createdAt)}</Text>
             </View>
-
-            {(booking.vehicleCategory || booking.carCategory) && (
-              <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>Category</Text>
-                <Text style={styles.detailValue}>
-                  {booking.vehicleCategory || booking.carCategory}
-                </Text>
-              </View>
-            )}
-
-            {booking.requestedBrand && (
-              <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>Brand</Text>
-                <Text style={styles.detailValue}>{booking.requestedBrand}</Text>
-              </View>
-            )}
-          </View>
-        )}
-
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Trip Details</Text>
-
-          {(booking.tripType || booking.occasion) && (
-            <View style={styles.detailsGrid}>
-              {booking.tripType && (
-                <View style={styles.detailItem}>
-                  <Icon name="navigation" size={16} color={C.muted} />
-                  <Text style={styles.detailLabel}>Trip Type</Text>
-                  <Text style={styles.detailValue}>
-                    {booking.tripType.charAt(0).toUpperCase() + booking.tripType.slice(1)}
-                  </Text>
-                </View>
-              )}
-              {booking.occasion && (
-                <View style={styles.detailItem}>
-                  <Icon name="star" size={16} color={C.muted} />
-                  <Text style={styles.detailLabel}>Occasion</Text>
-                  <Text style={styles.detailValue}>
-                    {booking.occasion.charAt(0).toUpperCase() + booking.occasion.slice(1)}
-                  </Text>
-                </View>
-              )}
-            </View>
-          )}
-
-          <View style={styles.locationItem}>
-            <Icon name="map-pin" size={16} color={C.brand} />
-            <View style={{ flex: 1, marginLeft: 8 }}>
-              <Text style={styles.locationLabel}>Pickup Location</Text>
-              <Text style={styles.locationText}>
-                {booking.pickupCity || 'Not specified'}
-                {booking.pickupAddress ? `\n${booking.pickupAddress}` : ''}
-              </Text>
-            </View>
-          </View>
-
-          {booking.dropCity && (
-            <View style={styles.locationItem}>
-              <Icon name="map-pin" size={16} color={C.red} />
-              <View style={{ flex: 1, marginLeft: 8 }}>
-                <Text style={styles.locationLabel}>Drop Location</Text>
-                <Text style={styles.locationText}>
-                  {booking.dropCity}
-                  {booking.dropAddress ? `\n${booking.dropAddress}` : ''}
-                </Text>
-              </View>
-            </View>
-          )}
-
-          <View style={styles.detailsGrid}>
-            <View style={styles.detailItem}>
-              <Icon name="calendar" size={16} color={C.muted} />
-              <Text style={styles.detailLabel}>Pickup</Text>
-              <Text style={styles.detailValue}>
-                {formatDate(booking.pickupDate)}
-                {booking.pickupTime ? `\n${booking.pickupTime}` : ''}
-              </Text>
-            </View>
-
-            {booking.returnDate && (
-              <View style={styles.detailItem}>
-                <Icon name="calendar" size={16} color={C.muted} />
-                <Text style={styles.detailLabel}>Return</Text>
-                <Text style={styles.detailValue}>
-                  {formatDate(booking.returnDate)}
-                  {booking.returnTime ? `\n${booking.returnTime}` : ''}
-                </Text>
-              </View>
-            )}
-
-            {(booking.totalDays || booking.totalHours) && (
-              <View style={styles.detailItem}>
-                <Icon name="clock" size={16} color={C.muted} />
-                <Text style={styles.detailLabel}>Duration</Text>
-                <Text style={styles.detailValue}>
-                  {booking.totalDays ? `${booking.totalDays} day${booking.totalDays > 1 ? 's' : ''}` : ''}
-                  {booking.totalDays && booking.totalHours ? ', ' : ''}
-                  {booking.totalHours ? `${booking.totalHours} hr${booking.totalHours > 1 ? 's' : ''}` : ''}
-                </Text>
-              </View>
-            )}
           </View>
         </View>
+      </LinearGradient>
 
-        {/* Requirements Section */}
-        {(booking.needChauffeur !== undefined || booking.needDecoration || booking.customerNotes) && (
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>Requirements</Text>
-
-            {booking.needChauffeur !== undefined && (
-              <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>Chauffeur</Text>
-                <Text style={[styles.detailValue, { color: booking.needChauffeur ? C.green : C.muted }]}>
-                  {booking.needChauffeur ? 'Required' : 'Not Required'}
-                </Text>
-              </View>
-            )}
-
-            {(booking.needDecoration !== undefined) && (
-              <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>Decoration</Text>
-                <Text style={[styles.detailValue, { color: booking.needDecoration ? C.green : C.muted }]}>
-                  {booking.needDecoration ? (booking.decorationType || 'Required') : 'Not Required'}
-                </Text>
-              </View>
-            )}
-
-            {booking.customerNotes && (
-              <View style={{ marginTop: 8 }}>
-                <Text style={styles.detailLabel}>Special Requirements</Text>
-                <Text style={[styles.detailValue, { marginTop: 4 }]}>{booking.customerNotes}</Text>
-              </View>
-            )}
+      {/* ── Scrollable content ── */}
+      <ScrollView
+        style={s.scroll}
+        contentContainerStyle={s.scrollContent}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.g400} colors={[C.g600]} />
+        }
+      >
+        {/* ── Customer card ── */}
+        <View style={s.card}>
+          <View style={s.cardHead}>
+            <View style={[s.cardIcon, { backgroundColor: C.blueL }]}>
+              <Ionicons name="person" size={15} color={C.blue} />
+            </View>
+            <Text style={s.cardTitle}>Customer</Text>
           </View>
-        )}
 
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Customer Info</Text>
-          <View style={styles.customerRow}>
-            <View style={styles.customerAvatar}>
-              <Icon name="user" size={20} color={C.blue} />
+          <View style={s.customerRow}>
+            <View style={s.avatar}>
+              <Text style={s.avatarTxt}>
+                {(booking.customerName || 'C')[0].toUpperCase()}
+              </Text>
             </View>
-            <View style={styles.customerInfo}>
-              <Text style={styles.customerName}>{booking.customerName || 'Customer'}</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={s.customerName}>{booking.customerName || 'Customer'}</Text>
+              {booking.customerEmail ? (
+                <Text style={s.customerEmail} numberOfLines={1}>{booking.customerEmail}</Text>
+              ) : null}
             </View>
-            <View style={styles.customerActions}>
+          </View>
+
+          <View style={s.contactRow}>
+            {booking.customerPhone ? (
               <TouchableOpacity
-                style={[styles.iconBtn, { backgroundColor: '#DBEAFE' }]}
-                onPress={handleChat}
+                style={[s.contactBtn, { backgroundColor: C.g50, borderColor: C.g100 }]}
+                onPress={() => handleCall(booking.customerPhone)}
               >
-                <Icon name="message-circle" size={18} color={C.blue} />
+                <Ionicons name="call" size={15} color={C.g700} />
+                <Text style={[s.contactTxt, { color: C.g700 }]}>Call</Text>
               </TouchableOpacity>
+            ) : null}
+            {booking.customerPhone ? (
+              <TouchableOpacity
+                style={[s.contactBtn, { backgroundColor: '#F0FDF4', borderColor: '#BBF7D0' }]}
+                onPress={() => handleWhatsApp(booking.customerPhone)}
+              >
+                <Ionicons name="logo-whatsapp" size={15} color="#16A34A" />
+                <Text style={[s.contactTxt, { color: '#16A34A' }]}>WhatsApp</Text>
+              </TouchableOpacity>
+            ) : null}
+            <TouchableOpacity
+              style={[s.contactBtn, { flex: 1, backgroundColor: C.purpleL, borderColor: C.purple + '25' }]}
+              onPress={handleChat}
+            >
+              <Ionicons name="chatbubble" size={15} color={C.purple} />
+              <Text style={[s.contactTxt, { color: C.purple }]}>Chat</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* ── Vehicle card ── */}
+        <View style={s.card}>
+          <View style={s.cardHead}>
+            <View style={[s.cardIcon, { backgroundColor: C.g50 }]}>
+              <MaterialCommunityIcons name="car-sports" size={15} color={C.g700} />
+            </View>
+            <Text style={s.cardTitle}>Vehicle</Text>
+          </View>
+
+          <View style={s.vehicleBox}>
+            <View style={s.vehicleIconWrap}>
+              <MaterialCommunityIcons name="car-sports" size={34} color={C.g700} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={s.vehicleName} numberOfLines={2}>
+                {booking.vehicleName || booking.requestedVehicleName || 'Luxury Car'}
+              </Text>
+              {(booking.vehicleCategory || booking.carCategory || booking.carCategoryName) ? (
+                <Text style={s.vehicleSub}>
+                  {booking.vehicleCategory || booking.carCategory || booking.carCategoryName}
+                </Text>
+              ) : null}
+              {booking.requestedBrand ? (
+                <Text style={[s.vehicleSub, { marginTop: 2 }]}>{booking.requestedBrand}</Text>
+              ) : null}
             </View>
           </View>
         </View>
 
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Payment Summary</Text>
-          <View style={styles.paymentRow}>
-            <Text style={styles.paymentLabel}>Total Amount</Text>
-            <Text style={styles.paymentValue}>
-              ₹{(booking.grandTotal || booking.totalAmount || booking.amount || 0).toLocaleString()}
-            </Text>
+        {/* ── Trip section ── */}
+        <View style={s.card}>
+          <View style={s.cardHead}>
+            <View style={[s.cardIcon, { backgroundColor: C.indigoL }]}>
+              <Ionicons name="map" size={15} color={C.indigo} />
+            </View>
+            <Text style={s.cardTitle}>Trip Details</Text>
           </View>
 
-          {(booking.advanceAmount || 0) > 0 && (
-            <View style={styles.paymentRow}>
-              <Text style={styles.paymentLabel}>Advance Required</Text>
-              <Text style={styles.paymentValue}>
-                ₹{(booking.advanceAmount || 0).toLocaleString()}
-              </Text>
-            </View>
-          )}
-
-          {(booking.paymentStatus === 'PAID' || (booking.advancePaid || booking.paidAmount || 0) > 0) ? (
-            <View style={[styles.paymentRow, { backgroundColor: '#F0FDF4', borderRadius: 8, paddingHorizontal: 8, marginTop: 4 }]}>
-              <Text style={[styles.paymentLabel, { color: C.green }]}>✓ Advance Received</Text>
-              <Text style={[styles.paymentValue, { color: C.green }]}>
-                ₹{(booking.advancePaid || booking.paidAmount || booking.advanceAmount || 0).toLocaleString()}
-              </Text>
-            </View>
-          ) : (booking.advanceAmount || 0) > 0 ? (
-            <View style={[styles.paymentRow, { backgroundColor: '#FFFBEB', borderRadius: 8, paddingHorizontal: 8, marginTop: 4 }]}>
-              <Text style={[styles.paymentLabel, { color: C.amber }]}>⏳ Awaiting Customer Payment</Text>
-              <Text style={[styles.paymentValue, { color: C.amber, fontSize: 12 }]}>Pending</Text>
+          {(booking.tripType || booking.occasion) ? (
+            <View style={s.tripMetaRow}>
+              {booking.tripType ? (
+                <View style={s.tripMetaItem}>
+                  <View style={[s.tripMetaIcon, { backgroundColor: C.purpleL }]}>
+                    <Ionicons name="navigate" size={14} color={C.purple} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={s.tripMetaLabel}>Trip Type</Text>
+                    <Text style={s.tripMetaValue}>
+                      {booking.tripType.charAt(0).toUpperCase() + booking.tripType.slice(1)}
+                    </Text>
+                  </View>
+                </View>
+              ) : null}
+              {booking.occasion ? (
+                <View style={s.tripMetaItem}>
+                  <View style={[s.tripMetaIcon, { backgroundColor: C.amberL }]}>
+                    <Ionicons name="star" size={14} color={C.amber} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={s.tripMetaLabel}>Occasion</Text>
+                    <Text style={s.tripMetaValue}>
+                      {booking.occasion.charAt(0).toUpperCase() + booking.occasion.slice(1)}
+                    </Text>
+                  </View>
+                </View>
+              ) : null}
             </View>
           ) : null}
 
-          {(booking.grandTotal || booking.totalAmount || 0) > 0 && (
-            <View style={[styles.paymentRow, styles.paymentRowDivider]}>
-              <Text style={[styles.paymentLabel, { fontWeight: '600' }]}>Balance Due</Text>
-              <Text style={[styles.paymentValue, { color: C.amber }]}>
-                ₹{Math.max(0, (booking.grandTotal || booking.totalAmount || 0) - (booking.advancePaid || booking.paidAmount || 0)).toLocaleString()}
-              </Text>
+          <View style={s.tripLocRow}>
+            <View style={s.tripLocItem}>
+              <View style={[s.tripMetaIcon, { backgroundColor: C.indigoL }]}>
+                <Ionicons name="location" size={14} color={C.indigo} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={s.tripMetaLabel}>Pickup</Text>
+                <Text style={s.tripMetaValue} numberOfLines={1}>
+                  {booking.pickupCity || booking.locationName || 'Not specified'}
+                </Text>
+              </View>
             </View>
-          )}
+            {booking.dropCity ? (
+              <View style={s.tripLocItem}>
+                <View style={[s.tripMetaIcon, { backgroundColor: C.redL }]}>
+                  <Ionicons name="location" size={14} color={C.red} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={s.tripMetaLabel}>Drop</Text>
+                  <Text style={s.tripMetaValue} numberOfLines={1}>{booking.dropCity}</Text>
+                </View>
+              </View>
+            ) : null}
+          </View>
+
+          <View style={s.dateRow}>
+            <View style={[s.dateBox, { backgroundColor: C.blueL, borderColor: C.blue + '25' }]}>
+              <View style={[s.dateDot, { backgroundColor: C.blue }]} />
+              <Text style={[s.dateLabel, { color: C.blue }]}>PICKUP</Text>
+              <Text style={s.dateVal}>{formatDate(booking.pickupDate)}</Text>
+              {booking.pickupTime ? <Text style={s.dateTime}>{formatTime(booking.pickupTime)}</Text> : null}
+            </View>
+            {(booking.returnDate || booking.dropDate) ? (
+              <View style={[s.dateBox, { backgroundColor: C.redL, borderColor: C.red + '25' }]}>
+                <View style={[s.dateDot, { backgroundColor: C.red }]} />
+                <Text style={[s.dateLabel, { color: C.red }]}>RETURN</Text>
+                <Text style={s.dateVal}>{formatDate(booking.returnDate || booking.dropDate)}</Text>
+                {(booking.returnTime || booking.dropTime) ? (
+                  <Text style={s.dateTime}>{formatTime(booking.returnTime || booking.dropTime)}</Text>
+                ) : null}
+              </View>
+            ) : null}
+          </View>
         </View>
 
-        {/* Assign Driver Button */}
-        {canAssignDriver() && (
-          <TouchableOpacity
-            style={styles.assignDriverButton}
-            onPress={handleAssignDriverPress}
-            disabled={actionLoading}
-          >
-            <Icon name="user-plus" size={20} color="#fff" />
-            <Text style={styles.assignDriverText}>Assign Driver</Text>
-          </TouchableOpacity>
-        )}
+        {/* ── Requirements card ── */}
+        {(booking.needChauffeur !== undefined || booking.needDecoration) ? (
+          <View style={s.card}>
+            <View style={s.cardHead}>
+              <View style={[s.cardIcon, { backgroundColor: C.g50 }]}>
+                <MaterialCommunityIcons name="shield-check" size={15} color={C.g700} />
+              </View>
+              <Text style={s.cardTitle}>Requirements</Text>
+            </View>
+            <View style={s.payList}>
+              {booking.needChauffeur !== undefined ? (
+                <View style={s.payRow}>
+                  <Text style={s.payLabel}>Chauffeur</Text>
+                  <Text style={[s.payVal, { color: booking.needChauffeur ? C.g600 : C.muted }]}>
+                    {booking.needChauffeur ? 'Required' : 'Not Required'}
+                  </Text>
+                </View>
+              ) : null}
+              {booking.needDecoration !== undefined ? (
+                <View style={s.payRow}>
+                  <Text style={s.payLabel}>Decoration</Text>
+                  <Text style={[s.payVal, { color: booking.needDecoration ? C.purple : C.muted }]}>
+                    {booking.needDecoration ? (booking.decorationType || 'Required') : 'Not Required'}
+                  </Text>
+                </View>
+              ) : null}
+            </View>
+          </View>
+        ) : null}
 
-        {/* Show assigned driver info if exists */}
-        {booking?.driverName && (
-          <View style={[styles.card, { backgroundColor: '#F0F9FF' }]}>
-            <View style={styles.driverCardHeader}>
-              <Text style={styles.cardTitle}>Driver Details</Text>
-              {canChangeDriver() && (
+        {/* ── Payment summary ── */}
+        <View style={s.card}>
+          <View style={s.cardHead}>
+            <View style={[s.cardIcon, { backgroundColor: C.indigoL }]}>
+              <Ionicons name="card" size={15} color={C.indigo} />
+            </View>
+            <Text style={s.cardTitle}>Payment Summary</Text>
+          </View>
+
+          <View style={s.payList}>
+            {booking.totalAmount ? (
+              <View style={s.payRow}>
+                <Text style={s.payLabel}>Total Amount</Text>
+                <Text style={s.payVal}>₹{(booking.totalAmount || 0).toLocaleString()}</Text>
+              </View>
+            ) : null}
+            {(booking.advanceAmount || 0) > 0 ? (
+              <View style={s.payRow}>
+                <Text style={s.payLabel}>Advance Required</Text>
+                <Text style={s.payVal}>₹{(booking.advanceAmount || 0).toLocaleString()}</Text>
+              </View>
+            ) : null}
+          </View>
+
+          <View style={s.totalRow}>
+            <Text style={s.totalLabel}>Grand Total</Text>
+            <Text style={s.totalVal}>
+              ₹{(booking.grandTotal || booking.totalAmount || 0).toLocaleString()}
+            </Text>
+          </View>
+
+          {(booking.advancePaid || booking.paidAmount || 0) > 0 ? (
+            <View style={s.payList}>
+              <View style={s.payRow}>
+                <Text style={[s.payLabel, { color: C.g600 }]}>Advance Paid</Text>
+                <Text style={[s.payVal, { color: C.g600, fontWeight: '700' }]}>
+                  ₹{(booking.advancePaid || booking.paidAmount || 0).toLocaleString()}
+                </Text>
+              </View>
+              <View style={s.payRow}>
+                <Text style={[s.payLabel, { color: C.amber }]}>Balance Due</Text>
+                <Text style={[s.payVal, { color: C.amber, fontWeight: '700' }]}>
+                  ₹{Math.max(0,
+                    (booking.grandTotal || booking.totalAmount || 0) -
+                    (booking.advancePaid || booking.paidAmount || 0)
+                  ).toLocaleString()}
+                </Text>
+              </View>
+            </View>
+          ) : null}
+        </View>
+
+        {/* ── Assigned driver info ── */}
+        {booking.driverName ? (
+          <View style={[s.card, { backgroundColor: C.blueL, borderColor: C.blue + '25' }]}>
+            <View style={s.driverCardHead}>
+              <View style={s.cardHead}>
+                <View style={[s.cardIcon, { backgroundColor: '#fff' }]}>
+                  <Ionicons name="person" size={15} color={C.blue} />
+                </View>
+                <Text style={s.cardTitle}>Assigned Driver</Text>
+              </View>
+              {canChangeDriver() ? (
                 <TouchableOpacity
-                  style={styles.changeDriverBtn}
+                  style={s.changeDriverBtn}
                   onPress={handleAssignDriverPress}
                   disabled={actionLoading}
                 >
-                  <Icon name="edit-2" size={16} color={C.blue} />
-                  <Text style={styles.changeDriverText}>Change</Text>
+                  <Icon name="edit-2" size={14} color={C.blue} />
+                  <Text style={s.changeDriverTxt}>Change</Text>
                 </TouchableOpacity>
-              )}
+              ) : null}
             </View>
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Name</Text>
-              <Text style={styles.detailValue}>{booking.driverName}</Text>
-            </View>
-            {booking.driverPhone && (
-              <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>Phone</Text>
-                <TouchableOpacity onPress={() => handleCall(booking.driverPhone)}>
-                  <Text style={[styles.detailValue, { color: C.blue }]}>{booking.driverPhone}</Text>
-                </TouchableOpacity>
+            <View style={s.driverRow}>
+              <View style={s.driverAvatar}>
+                <Ionicons name="person" size={22} color={C.blue} />
               </View>
-            )}
+              <View style={{ flex: 1 }}>
+                <Text style={s.driverName}>{booking.driverName}</Text>
+                {booking.driverPhone ? (
+                  <TouchableOpacity onPress={() => handleCall(booking.driverPhone)}>
+                    <Text style={[s.driverPhone, { color: C.blue }]}>{booking.driverPhone}</Text>
+                  </TouchableOpacity>
+                ) : null}
+              </View>
+              <View style={[s.statusPill, { backgroundColor: C.g50, borderColor: C.g100 }]}>
+                <Ionicons name="checkmark-circle" size={12} color={C.g600} />
+                <Text style={[s.statusPillTxt, { color: C.g600 }]}>Assigned</Text>
+              </View>
+            </View>
           </View>
-        )}
+        ) : null}
 
-        <View style={{ height: 80 }} />
+        {/* ── Completed trophy ── */}
+        {booking.status === 'COMPLETED' ? (
+          <View style={[s.card, { backgroundColor: C.g50, borderColor: C.g400 + '50' }]}>
+            <View style={{ alignItems: 'center', paddingVertical: 20 }}>
+              <LinearGradient colors={[C.g800, C.g500]} style={s.trophyRing}>
+                <Ionicons name="trophy" size={36} color="#fff" />
+              </LinearGradient>
+              <Text style={s.completedTitle}>Booking Completed!</Text>
+              <Text style={s.completedDesc}>This luxury booking has been successfully completed.</Text>
+            </View>
+          </View>
+        ) : null}
+
+        {/* ── Customer notes ── */}
+        {booking.customerNotes ? (
+          <View style={s.card}>
+            <View style={s.cardHead}>
+              <View style={[s.cardIcon, { backgroundColor: C.amberL }]}>
+                <Ionicons name="chatbox-ellipses" size={15} color={C.amber} />
+              </View>
+              <Text style={s.cardTitle}>Customer Notes</Text>
+            </View>
+            <View style={s.notesBox}>
+              <Text style={s.notesTxt}>{booking.customerNotes}</Text>
+            </View>
+          </View>
+        ) : null}
+
+        <View style={{ height: 120 }} />
       </ScrollView>
 
-      {(canAccept() || canReject()) && (
-        <View style={styles.actionBar}>
-          {canReject() && (
-            <TouchableOpacity
-              style={[styles.actionBtn, styles.rejectBtn]}
-              onPress={handleReject}
-              disabled={actionLoading}
-            >
-              <Icon name="x" size={18} color={C.red} />
-              <Text style={[styles.actionBtnText, { color: C.red }]}>Decline</Text>
-            </TouchableOpacity>
-          )}
-          {canAccept() && (
-            <TouchableOpacity
-              style={[styles.actionBtn, styles.acceptBtn]}
-              onPress={handleAccept}
-              disabled={actionLoading}
-            >
-              {actionLoading ? (
-                <ActivityIndicator size="small" color="#fff" />
-              ) : (
-                <>
-                  <Icon name="check-circle" size={18} color="#fff" />
-                  <Text style={[styles.actionBtnText, { color: '#fff' }]}>Accept Booking</Text>
-                </>
-              )}
-            </TouchableOpacity>
-          )}
+      {/* ── Action bar: Assign Driver or Accept/Decline ── */}
+      {canAssignDriver() ? (
+        <View style={s.actionBar}>
+          <TouchableOpacity
+            style={[s.acceptBtn, { backgroundColor: C.indigo }]}
+            onPress={handleAssignDriverPress}
+            disabled={actionLoading}
+          >
+            {actionLoading
+              ? <ActivityIndicator size="small" color="#fff" />
+              : (<>
+                  <Ionicons name="person-add" size={18} color="#fff" />
+                  <Text style={s.acceptTxt}>Assign Driver</Text>
+                </>)}
+          </TouchableOpacity>
         </View>
-      )}
+      ) : (canAccept() || canReject()) ? (
+        <View style={s.actionBar}>
+          {canReject() ? (
+            <TouchableOpacity style={s.rejectBtn} onPress={handleReject} disabled={actionLoading}>
+              <Ionicons name="close-circle" size={18} color={C.red} />
+              <Text style={s.rejectTxt}>Decline</Text>
+            </TouchableOpacity>
+          ) : null}
+          {canAccept() ? (
+            <TouchableOpacity style={s.acceptBtn} onPress={handleAccept} disabled={actionLoading}>
+              {actionLoading
+                ? <ActivityIndicator size="small" color="#fff" />
+                : (<>
+                    <Ionicons name="checkmark-circle" size={18} color="#fff" />
+                    <Text style={s.acceptTxt}>Accept Booking</Text>
+                  </>)}
+            </TouchableOpacity>
+          ) : null}
+        </View>
+      ) : null}
 
-      {/* Driver Selection Modal */}
+      {/* ── Driver selection modal ── */}
       <Modal
         visible={showDriverModal}
         animationType="slide"
-        transparent={true}
+        transparent
         onRequestClose={() => setShowDriverModal(false)}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>
-                {booking?.driverName ? 'Change Driver' : 'Select Driver'}
-              </Text>
-              <TouchableOpacity onPress={() => setShowDriverModal(false)} style={styles.modalCloseBtn}>
-                <Icon name="x" size={24} color={C.text} />
-              </TouchableOpacity>
+        <View style={s.modalOverlay}>
+          <View style={s.modalSheet}>
+            {/* Modal header */}
+            <View style={s.modalHead}>
+              <LinearGradient colors={[C.g900, C.g700]} style={s.modalHeadGrad}>
+                <View style={s.modalHeadRow}>
+                  <View style={s.modalHeadLeft}>
+                    <MaterialCommunityIcons name="car-sports" size={20} color={C.g400} />
+                    <Text style={s.modalTitle}>
+                      {booking?.driverName ? 'Change Driver' : 'Assign Driver'}
+                    </Text>
+                  </View>
+                  <TouchableOpacity style={s.modalCloseBtn} onPress={() => setShowDriverModal(false)}>
+                    <Icon name="x" size={18} color="#fff" />
+                  </TouchableOpacity>
+                </View>
+                <Text style={s.modalSub}>Select a driver for this luxury booking</Text>
+              </LinearGradient>
             </View>
 
             {loadingDrivers ? (
-              <View style={styles.modalLoader}>
-                <ActivityIndicator size="large" color={C.brand} />
+              <View style={s.modalLoader}>
+                <ActivityIndicator size="large" color={C.g600} />
+                <Text style={s.modalLoaderTxt}>Loading drivers...</Text>
               </View>
             ) : drivers.length === 0 ? (
-              <View style={styles.emptyDrivers}>
-                <Icon name="users" size={48} color={C.muted} />
-                <Text style={styles.emptyDriversText}>No drivers available</Text>
-                <Text style={styles.emptyDriversSubtext}>Add drivers from Staff Management</Text>
+              <View style={s.modalEmpty}>
+                <Ionicons name="people-outline" size={52} color={C.muted} />
+                <Text style={s.modalEmptyTitle}>No drivers available</Text>
+                <Text style={s.modalEmptySub}>Add drivers from Staff Management</Text>
               </View>
             ) : (
               <FlatList
                 data={drivers}
-                keyExtractor={(item) => item.id}
+                keyExtractor={(item) => String(item.id || item._id)}
                 renderItem={({ item }) => (
-                  <TouchableOpacity
-                    style={styles.driverItem}
-                    onPress={() => handleSelectDriver(item)}
-                  >
-                    <View style={styles.driverIcon}>
-                      <Icon name="user" size={24} color={C.brand} />
+                  <TouchableOpacity style={s.driverItem} onPress={() => handleSelectDriver(item)}>
+                    <View style={s.driverItemAvatar}>
+                      <Ionicons name="person" size={22} color={C.g700} />
                     </View>
-                    <View style={styles.driverInfo}>
-                      <Text style={styles.driverName} numberOfLines={1}>{item.name}</Text>
-                      {item.phone && <Text style={styles.driverPhone} numberOfLines={1}>{item.phone}</Text>}
-                      {item.licenseNumber && (
-                        <Text style={styles.driverLicense} numberOfLines={1}>
+                    <View style={s.driverItemInfo}>
+                      <Text style={s.driverItemName} numberOfLines={1}>{item.name}</Text>
+                      {item.phone ? (
+                        <Text style={s.driverItemPhone} numberOfLines={1}>{item.phone}</Text>
+                      ) : null}
+                      {item.licenseNumber ? (
+                        <Text style={s.driverItemLic} numberOfLines={1}>
                           License: {item.licenseNumber}
                         </Text>
-                      )}
+                      ) : null}
                     </View>
-                    <Icon name="chevron-right" size={20} color={C.muted} />
+                    <Icon name="chevron-right" size={18} color={C.muted} />
                   </TouchableOpacity>
                 )}
+                contentContainerStyle={{ paddingBottom: 20 }}
               />
             )}
           </View>
@@ -643,383 +714,146 @@ export default function LuxuryBookingDetailScreen({ route, navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: C.bg,
+const s = StyleSheet.create({
+  safe:   { flex: 1, backgroundColor: C.bg },
+  scroll: { flex: 1 },
+  scrollContent: { padding: 16 },
+  centered:    { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 10 },
+  centeredTxt: { fontSize: 14, color: C.muted },
+
+  /* Hero */
+  hero: { paddingHorizontal: 16, paddingBottom: 20, overflow: 'hidden' },
+  deco1: {
+    position: 'absolute', width: W * 0.55, height: W * 0.55,
+    borderRadius: W * 0.275, backgroundColor: 'rgba(52,211,153,0.06)',
+    top: -W * 0.18, right: -W * 0.1,
   },
-  loaderContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+  deco2: {
+    position: 'absolute', width: W * 0.32, height: W * 0.32,
+    borderRadius: W * 0.16, backgroundColor: 'rgba(16,185,129,0.05)',
+    bottom: 0, left: W * 0.38,
   },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 12,
-  },
-  emptyText: {
-    fontSize: 16,
-    color: C.muted,
-    fontWeight: '500',
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: C.surface,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: C.border,
-  },
-  backBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headerTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: C.text,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    padding: 16,
-  },
-  statusHeaderCard: {
-    backgroundColor: C.surface,
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: C.border,
-  },
-  statusBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    alignSelf: 'flex-start',
-    marginBottom: 8,
-  },
-  statusBadgeText: {
-    fontSize: 12,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  createdDate: {
-    fontSize: 12,
-    color: C.muted,
-  },
+  topBar:    { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 10, marginBottom: 16 },
+  backBtn:   { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.14)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' },
+  titleWrap: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  heroTitle: { fontSize: 16, fontWeight: '800', color: '#fff', letterSpacing: -0.2 },
+
+  heroCard:    { backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 16, padding: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.13)' },
+  heroCardTop: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 12 },
+  heroLabel:   { fontSize: 9, color: 'rgba(255,255,255,0.4)', fontWeight: '700', letterSpacing: 1.5, marginBottom: 4 },
+  heroNumber:  { fontSize: 26, fontWeight: '900', color: '#fff', letterSpacing: -0.5 },
+  statusPill:  { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20, borderWidth: 1 },
+  statusPillTxt:{ fontSize: 11, fontWeight: '700' },
+  heroMeta:    { flexDirection: 'row', gap: 16 },
+  heroMetaItem:{ flexDirection: 'row', alignItems: 'center', gap: 5 },
+  heroMetaTxt: { fontSize: 11, color: 'rgba(255,255,255,0.4)', fontWeight: '500' },
+
+  /* Cards */
   card: {
-    backgroundColor: C.surface,
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: C.border,
+    backgroundColor: C.card, borderRadius: 16, padding: 16,
+    marginBottom: 12, borderWidth: 1, borderColor: C.border,
+    shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 }, elevation: 2,
   },
-  cardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 16,
+  cardHead:  { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 14 },
+  cardIcon:  { width: 34, height: 34, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  cardTitle: { fontSize: 15, fontWeight: '700', color: C.text },
+
+  /* Customer */
+  customerRow:   { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 14 },
+  avatar:        { width: 46, height: 46, borderRadius: 23, backgroundColor: C.blueL, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: C.blue + '20' },
+  avatarTxt:     { fontSize: 18, fontWeight: '800', color: C.blue },
+  customerName:  { fontSize: 15, fontWeight: '700', color: C.text, marginBottom: 2 },
+  customerEmail: { fontSize: 12, color: C.muted },
+  contactRow:    { flexDirection: 'row', gap: 8 },
+  contactBtn:    { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 9, borderRadius: 10, borderWidth: 1 },
+  contactTxt:    { fontSize: 12, fontWeight: '700' },
+
+  /* Vehicle */
+  vehicleBox:      { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 14, backgroundColor: C.g50, borderRadius: 14, borderWidth: 1, borderColor: C.g100 },
+  vehicleIconWrap: { width: 58, height: 58, borderRadius: 14, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: C.g100 },
+  vehicleName:     { fontSize: 16, fontWeight: '800', color: C.text, marginBottom: 3 },
+  vehicleSub:      { fontSize: 12, color: C.sub },
+
+  /* Trip */
+  tripMetaRow:   { flexDirection: 'row', gap: 12, marginBottom: 14 },
+  tripLocRow:    { flexDirection: 'row', gap: 12, marginBottom: 14 },
+  tripMetaItem:  { flex: 1, flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
+  tripLocItem:   { flex: 1, flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
+  tripMetaIcon:  { width: 32, height: 32, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
+  tripMetaLabel: { fontSize: 10, color: C.muted, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 },
+  tripMetaValue: { fontSize: 13, fontWeight: '700', color: C.text },
+
+  /* Dates */
+  dateRow:  { flexDirection: 'row', gap: 10 },
+  dateBox:  { flex: 1, padding: 12, borderRadius: 12, borderWidth: 1 },
+  dateDot:  { width: 8, height: 8, borderRadius: 4, marginBottom: 6 },
+  dateLabel:{ fontSize: 9, fontWeight: '800', letterSpacing: 1.2, marginBottom: 5 },
+  dateVal:  { fontSize: 12, fontWeight: '700', color: C.text, marginBottom: 2 },
+  dateTime: { fontSize: 11, color: C.sub, fontWeight: '500' },
+
+  /* Payment */
+  payList: { gap: 10, marginBottom: 12 },
+  payRow:  { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  payLabel:{ fontSize: 13, color: C.sub },
+  payVal:  { fontSize: 13, fontWeight: '600', color: C.text },
+  totalRow: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    backgroundColor: C.g50, borderRadius: 12, padding: 14,
+    borderWidth: 1, borderColor: C.g100, marginBottom: 10,
   },
-  cardTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: C.text,
-    marginBottom: 12,
-  },
-  detailRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 8,
-  },
-  detailLabel: {
-    fontSize: 14,
-    color: C.muted,
-  },
-  detailValue: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: C.text,
-  },
-  locationItem: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: 16,
-  },
-  locationLabel: {
-    fontSize: 11,
-    color: C.muted,
-    textTransform: 'uppercase',
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-  locationText: {
-    fontSize: 14,
-    color: C.text,
-    fontWeight: '500',
-  },
-  detailsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-  },
-  detailItem: {
-    flex: 1,
-    minWidth: '45%',
-    backgroundColor: C.bg,
-    padding: 12,
-    borderRadius: 8,
-    gap: 4,
-  },
-  customerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  customerAvatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#DBEAFE',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  customerInfo: {
-    flex: 1,
-  },
-  customerName: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: C.text,
-    marginBottom: 2,
-  },
-  customerContact: {
-    fontSize: 13,
-    color: C.muted,
-  },
-  customerActions: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  iconBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  paymentRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 8,
-  },
-  paymentRowDivider: {
-    borderTopWidth: 1,
-    borderTopColor: C.border,
-    marginTop: 8,
-    paddingTop: 12,
-  },
-  paymentLabel: {
-    fontSize: 14,
-    color: C.muted,
-  },
-  paymentValue: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: C.text,
-  },
-  actionsContainer: {
-    flexDirection: 'row',
-    gap: 12,
-    marginTop: 8,
-  },
+  totalLabel: { fontSize: 14, fontWeight: '700', color: C.g800 },
+  totalVal:   { fontSize: 24, fontWeight: '900', color: C.g700 },
+
+  /* Driver section */
+  driverCardHead:  { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 0 },
+  driverRow:       { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  driverAvatar:    { width: 46, height: 46, borderRadius: 23, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: C.blue + '30' },
+  driverName:      { fontSize: 15, fontWeight: '700', color: C.text, marginBottom: 2 },
+  driverPhone:     { fontSize: 12, color: C.sub },
+  changeDriverBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 12, paddingVertical: 6, backgroundColor: '#fff', borderRadius: 8, borderWidth: 1, borderColor: C.blue + '30' },
+  changeDriverTxt: { fontSize: 13, fontWeight: '600', color: C.blue },
+
+  /* Completed */
+  trophyRing:     { width: 80, height: 80, borderRadius: 40, alignItems: 'center', justifyContent: 'center', marginBottom: 14 },
+  completedTitle: { fontSize: 20, fontWeight: '800', color: C.g700, marginBottom: 6 },
+  completedDesc:  { fontSize: 13, color: C.sub, textAlign: 'center' },
+
+  /* Notes */
+  notesBox: { padding: 12, backgroundColor: C.amberL, borderRadius: 12, borderWidth: 1, borderColor: C.amber + '22' },
+  notesTxt: { fontSize: 13, color: C.text, lineHeight: 20 },
+
+  /* Action bar */
   actionBar: {
-    flexDirection: 'row',
-    gap: 12,
-    padding: 16,
-    backgroundColor: C.surface,
-    borderTopWidth: 1,
-    borderTopColor: C.border,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: -2 },
-    elevation: 10,
+    flexDirection: 'row', gap: 10, padding: 14,
+    backgroundColor: C.card, borderTopWidth: 1, borderTopColor: C.border,
+    shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 12,
+    shadowOffset: { width: 0, height: -3 }, elevation: 10,
   },
-  actionBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 14,
-    borderRadius: 12,
-    borderWidth: 1,
-  },
-  rejectBtn: {
-    backgroundColor: C.surface,
-    borderColor: '#FEE2E2',
-  },
-  acceptBtn: {
-    backgroundColor: C.brand,
-    borderColor: C.brand,
-  },
-  actionBtnText: {
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  actionButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 14,
-    borderRadius: 10,
-    borderWidth: 1,
-  },
-  rejectButton: {
-    backgroundColor: C.surface,
-    borderColor: C.red,
-  },
-  acceptButton: {
-    backgroundColor: C.brand,
-    borderColor: C.brand,
-  },
-  actionButtonText: {
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  assignDriverButton: {
-    backgroundColor: C.brand,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 16,
-    borderRadius: 10,
-    marginTop: 12,
-  },
-  assignDriverText: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#fff',
-  },
-  driverCardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  changeDriverBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    backgroundColor: '#DBEAFE',
-    borderRadius: 8,
-  },
-  changeDriverText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: C.blue,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
-  },
-  modalContent: {
-    backgroundColor: C.surface,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    maxHeight: '80%',
-    paddingBottom: 20,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: C.border,
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: C.text,
-  },
-  modalCloseBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  modalLoader: {
-    padding: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  emptyDrivers: {
-    padding: 40,
-    alignItems: 'center',
-    gap: 12,
-  },
-  emptyDriversText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: C.text,
-  },
-  emptyDriversSubtext: {
-    fontSize: 14,
-    color: C.muted,
-    textAlign: 'center',
-  },
-  driverItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: C.border,
-    gap: 12,
-  },
-  driverIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#DBEAFE',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  driverInfo: {
-    flex: 1,
-  },
-  driverName: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: C.text,
-    marginBottom: 2,
-  },
-  driverPhone: {
-    fontSize: 13,
-    color: C.muted,
-    marginTop: 2,
-  },
-  driverLicense: {
-    fontSize: 12,
-    color: C.muted,
-    marginTop: 2,
-  },
+  rejectBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, paddingVertical: 14, borderRadius: 14, borderWidth: 2, borderColor: C.red, backgroundColor: C.redL },
+  rejectTxt: { fontSize: 14, fontWeight: '700', color: C.red },
+  acceptBtn: { flex: 2, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, paddingVertical: 14, borderRadius: 14, backgroundColor: C.g600 },
+  acceptTxt: { fontSize: 14, fontWeight: '700', color: '#fff' },
+
+  /* Driver modal */
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.55)', justifyContent: 'flex-end' },
+  modalSheet:   { backgroundColor: C.card, borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: '82%', overflow: 'hidden' },
+  modalHead:    { overflow: 'hidden' },
+  modalHeadGrad:{ paddingHorizontal: 20, paddingTop: 20, paddingBottom: 18 },
+  modalHeadRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 },
+  modalHeadLeft:{ flexDirection: 'row', alignItems: 'center', gap: 10 },
+  modalTitle:   { fontSize: 18, fontWeight: '800', color: '#fff' },
+  modalSub:     { fontSize: 12, color: 'rgba(255,255,255,0.5)' },
+  modalCloseBtn:{ width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center' },
+  modalLoader:  { padding: 48, alignItems: 'center', gap: 12 },
+  modalLoaderTxt:{ fontSize: 14, color: C.muted },
+  modalEmpty:   { padding: 48, alignItems: 'center', gap: 10 },
+  modalEmptyTitle:{ fontSize: 16, fontWeight: '700', color: C.text },
+  modalEmptySub:  { fontSize: 13, color: C.muted, textAlign: 'center' },
+  driverItem:     { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 16, borderBottomWidth: 1, borderBottomColor: C.border },
+  driverItemAvatar:{ width: 48, height: 48, borderRadius: 24, backgroundColor: C.g50, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: C.g100 },
+  driverItemInfo: { flex: 1 },
+  driverItemName: { fontSize: 15, fontWeight: '700', color: C.text, marginBottom: 2 },
+  driverItemPhone:{ fontSize: 12, color: C.sub, marginTop: 1 },
+  driverItemLic:  { fontSize: 11, color: C.muted, marginTop: 1 },
 });

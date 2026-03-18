@@ -1,666 +1,542 @@
+/**
+ * BusCreateTemplateScreen.js - Create new bus service quote template
+ */
+
 import React, { useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  TextInput,
-  ActivityIndicator,
-  Alert,
-  Modal,
-  Switch,
+  View, Text, StyleSheet, TouchableOpacity, ScrollView,
+  TextInput, StatusBar, Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/Feather';
-import CustomDropdown from '../../../../components/CustomDropdown';
-import api from '../../../../lib/api';
-import { showConfirm, showError, showInfo, showSuccess } from '../../../../services/alertService';
+import Ionicons from 'react-native-vector-icons/Ionicons';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import { createTemplate } from '../../../api/client';
+import { showError, showSuccess } from '../../../../services/alertService';
+
+const { width: W } = Dimensions.get('window');
 
 const C = {
-  bg: '#F7FAFC',
-  surface: '#FFFFFF',
-  text: '#1E293B',
-  muted: '#64748B',
-  border: '#E2E8F0',
-  brand: '#3B82F6',
-  green: '#10B981',
-  red: '#EF4444',
+  g900: '#022C22', g800: '#065F46', g700: '#047857', g600: '#059669',
+  g500: '#10B981', g400: '#34D399', g50: '#ECFDF5',
+  bg: '#F1F5F9', card: '#FFFFFF', border: '#E2E8F0', text: '#0F172A',
+  sub: '#475569', muted: '#94A3B8',
+  amber: '#D97706', amberL: '#FFFBEB',
+  red: '#DC2626', redL: '#FEF2F2',
+  indigo: '#4F46E5', indigoL: '#EEF2FF',
 };
 
 const BUS_CATEGORIES = [
-  { label: 'Mini Bus (20-30 seats)', value: 'mini_bus' },
-  { label: 'Standard Bus (30-40 seats)', value: 'standard_bus' },
-  { label: 'Luxury Bus (40-50 seats)', value: 'luxury_bus' },
-  { label: 'Sleeper Bus', value: 'sleeper_bus' },
-  { label: 'Volvo Bus', value: 'volvo_bus' },
-  { label: 'Mercedes Bus', value: 'mercedes_bus' },
+  { id: 'mini',     name: 'Mini Bus',      icon: 'bus' },
+  { id: 'standard', name: 'Standard Bus',  icon: 'bus' },
+  { id: 'luxury',   name: 'Luxury Coach',  icon: 'bus' },
+  { id: 'tempo',    name: 'Tempo',         icon: 'bus-side' },
+  { id: 'ac',       name: 'AC Bus',        icon: 'bus' },
+  { id: 'school',   name: 'School Bus',    icon: 'bus-school' },
 ];
 
-const VEHICLE_TYPE_OPTIONS = [
-  'AC Bus',
-  'Non-AC Bus',
-  'Seater Bus',
-  'Sleeper Bus',
-  'Pushback Seater',
-  'Luxury Coach',
-  'Mini Bus',
-  'Tempo Traveller',
-];
-
-const DEFAULT_INCLUSIONS = [
-  'Professional driver',
-  'Vehicle insurance',
-  'Toll charges included',
-  'Parking charges',
-  'Driver allowance',
-];
-
-const DEFAULT_EXCLUSIONS = [
-  'Food and beverages',
-  'State permit charges',
-  'Entry tickets',
-  'Extra stops',
-];
-
-const DEFAULT_TERMS = [
-  'Advance payment required to confirm booking',
-  'Cancellation charges apply as per policy',
-  'Extra hours will be charged separately',
-  'Vehicle type subject to availability',
+const TEMPLATE_SUGGESTIONS = [
+  {
+    name: 'Mini Bus City Tour',
+    category: 'mini',
+    description: 'Mini bus for local city tours and short trips',
+    inclusions: ['Mini bus with driver', 'Valid insurance & registration', 'Fuel included', '24x7 roadside support', 'First aid kit'],
+    exclusions: ['Toll charges', 'Traffic challans/fines', 'Parking charges', 'Extra km charges'],
+    terms: ['Seating capacity must not be exceeded', 'No alcohol/smoking on board', 'Security deposit refundable', 'Advance payment required'],
+    baseRateHint: 3000, perKmRateHint: 18, perDayRateHint: 4500, securityDepositHint: 5000,
+  },
+  {
+    name: 'Standard Bus Outstation',
+    category: 'standard',
+    description: 'Standard bus for outstation trips and group travel',
+    inclusions: ['Standard bus with experienced driver', 'Valid permits & insurance', 'GPS tracking', 'Fuel for agreed route', 'Water bottles'],
+    exclusions: ['Toll & border charges', 'Traffic challans/fines', 'Entry tax charges', 'Night halt charges'],
+    terms: ['Valid permits required for state borders', 'Driver night halt to be arranged', 'Security deposit refundable after trip', 'Route deviation charges extra'],
+    baseRateHint: 6000, perKmRateHint: 22, perDayRateHint: 8000, securityDepositHint: 8000,
+  },
+  {
+    name: 'Luxury Coach Premium',
+    category: 'luxury',
+    description: 'Luxury coach for corporate events and premium travel',
+    inclusions: ['Luxury coach with professional driver', 'AC & recliner seats', 'Valid permits & insurance', 'GPS tracking', 'On-board entertainment'],
+    exclusions: ['Toll & highway charges', 'Traffic challans/fines', 'Extra km beyond contract', 'Night halt charges'],
+    terms: ['Premium vehicle — no luggage on seats', 'Security deposit: ₹10,000 refundable', 'Advance payment 50%', 'Cancellation policy applies'],
+    baseRateHint: 12000, perKmRateHint: 35, perDayRateHint: 15000, securityDepositHint: 12000,
+  },
 ];
 
 export default function BusCreateTemplateScreen({ navigation }) {
-  const [submitting, setSubmitting] = useState(false);
-
-  // Basic Info
   const [name, setName] = useState('');
   const [category, setCategory] = useState('');
   const [description, setDescription] = useState('');
+  const [inclusions, setInclusions] = useState([]);
+  const [exclusions, setExclusions] = useState([]);
+  const [terms, setTerms] = useState([]);
+  const [baseRate, setBaseRate] = useState('');
+  const [perKmRate, setPerKmRate] = useState('');
+  const [perDayRate, setPerDayRate] = useState('');
+  const [securityDeposit, setSecurityDeposit] = useState('');
+  const [isDefault, setIsDefault] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(true);
+  const [newInclusion, setNewInclusion] = useState('');
+  const [newExclusion, setNewExclusion] = useState('');
+  const [newTerm, setNewTerm] = useState('');
 
-  // Vehicle Types
-  const [selectedVehicleTypes, setSelectedVehicleTypes] = useState([]);
-
-  // Pricing Hints
-  const [baseRateHint, setBaseRateHint] = useState('');
-  const [perKmRateHint, setPerKmRateHint] = useState('');
-  const [perDayRateHint, setPerDayRateHint] = useState('');
-
-  // Lists
-  const [inclusions, setInclusions] = useState([...DEFAULT_INCLUSIONS]);
-  const [exclusions, setExclusions] = useState([...DEFAULT_EXCLUSIONS]);
-  const [termsConditions, setTermsConditions] = useState([...DEFAULT_TERMS]);
-
-  // Active status
-  const [isActive, setIsActive] = useState(true);
-
-  // Modal states
-  const [editModalVisible, setEditModalVisible] = useState(false);
-  const [editType, setEditType] = useState(null);
-  const [editList, setEditList] = useState([]);
-  const [newItemText, setNewItemText] = useState('');
-
-  const toggleVehicleType = (type) => {
-    if (selectedVehicleTypes.includes(type)) {
-      setSelectedVehicleTypes(selectedVehicleTypes.filter(t => t !== type));
-    } else {
-      setSelectedVehicleTypes([...selectedVehicleTypes, type]);
-    }
+  const loadSuggestion = (sg) => {
+    setName(sg.name); setCategory(sg.category); setDescription(sg.description);
+    setInclusions(sg.inclusions); setExclusions(sg.exclusions); setTerms(sg.terms);
+    setBaseRate(sg.baseRateHint.toString()); setPerKmRate(sg.perKmRateHint.toString());
+    setPerDayRate(sg.perDayRateHint.toString()); setSecurityDeposit(sg.securityDepositHint.toString());
+    setShowSuggestions(false);
   };
 
-  const openEditModal = (type) => {
-    setEditType(type);
-    if (type === 'inclusions') setEditList([...inclusions]);
-    else if (type === 'exclusions') setEditList([...exclusions]);
-    else if (type === 'terms') setEditList([...termsConditions]);
-    setEditModalVisible(true);
+  const addItem = (val, list, setList, setVal) => {
+    const v = val.trim();
+    if (v && !list.includes(v)) { setList([...list, v]); setVal(''); }
   };
 
-  const saveEditModal = () => {
-    if (editType === 'inclusions') setInclusions([...editList]);
-    else if (editType === 'exclusions') setExclusions([...editList]);
-    else if (editType === 'terms') setTermsConditions([...editList]);
-    setEditModalVisible(false);
-    setEditList([]);
-    setNewItemText('');
-  };
-
-  const addItemToList = () => {
-    if (newItemText.trim() && !editList.includes(newItemText.trim())) {
-      setEditList([...editList, newItemText.trim()]);
-      setNewItemText('');
-    }
-  };
-
-  const removeItemFromList = (item) => {
-    setEditList(editList.filter((i) => i !== item));
-  };
+  const removeItem = (item, list, setList) => setList(list.filter(i => i !== item));
 
   const handleSubmit = async () => {
-    // Validation
-    if (!name.trim()) {
-      showError('Please enter template name');
-      return;
-    }
-    if (!category) {
-      showError('Please select a category');
-      return;
-    }
-    if (inclusions.length === 0) {
-      showError('Please add at least one inclusion');
-      return;
-    }
+    if (!name.trim() || !category) { showError('Please enter template name and select category'); return; }
+    if (inclusions.length === 0) { showError('Please add at least one inclusion'); return; }
 
+    setIsSubmitting(true);
     try {
-      setSubmitting(true);
-      const response = await api.post('/vendor/bus-templates', {
-        name: name.trim(),
-        category,
+      await createTemplate('bus', {
+        name: name.trim(), category,
         description: description.trim() || null,
-        vehicleTypes: selectedVehicleTypes,
-        inclusions,
-        exclusions,
-        termsConditions,
-        baseRateHint: baseRateHint ? parseFloat(baseRateHint) : null,
-        perKmRateHint: perKmRateHint ? parseFloat(perKmRateHint) : null,
-        perDayRateHint: perDayRateHint ? parseFloat(perDayRateHint) : null,
-        isActive,
+        inclusions, exclusions,
+        termsConditions: terms,
+        baseRateHint: baseRate ? parseFloat(baseRate) : null,
+        perKmRateHint: perKmRate ? parseFloat(perKmRate) : null,
+        perDayRateHint: perDayRate ? parseFloat(perDayRate) : null,
+        securityDepositHint: securityDeposit ? parseFloat(securityDeposit) : null,
+        isDefault, isActive: true,
       });
-
-      if (response.data.success) {
-        showSuccess('Template created successfully!', 'Success', { actions: [{ label: 'OK', onPress: () => navigation.goBack(), variant: 'primary' }] });
-      }
+      showSuccess('Template created!', 'Success', { actions: [{ label: 'OK', onPress: () => navigation.goBack(), variant: 'primary' }] });
     } catch (error) {
-      console.error('Error creating template:', error);
-      showError(error?.response?.data?.error || 'Failed to create template');
+      showError('Failed to create template. Please try again.');
     } finally {
-      setSubmitting(false);
+      setIsSubmitting(false);
     }
   };
 
-  return (
-    <SafeAreaView style={styles.safe}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Icon name="arrow-left" size={22} color={C.text} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Create Template</Text>
-        <View style={{ width: 40 }} />
+  const SectionCard = ({ icon, iconColor, iconBg, title, children }) => (
+    <View style={s.section}>
+      <View style={s.sectionHead}>
+        <View style={[s.sectionIconBox, { backgroundColor: iconBg }]}>
+          <Icon name={icon} size={16} color={iconColor} />
+        </View>
+        <Text style={s.sectionTitle}>{title}</Text>
       </View>
+      {children}
+    </View>
+  );
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+  return (
+    <SafeAreaView style={s.container} edges={['top']}>
+      <StatusBar barStyle="light-content" backgroundColor={C.g900} />
+
+      {/* Hero Header */}
+      <LinearGradient colors={[C.g900, C.g800, C.g700]} style={s.hero}>
+        <View style={[s.deco, { width: 160, height: 160, top: -50, right: -30, opacity: 0.07 }]} />
+        <View style={[s.deco, { width: 70, height: 70, top: 15, right: 80, opacity: 0.05 }]} />
+        <View style={s.heroRow}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
+            <Icon name="arrow-left" size={22} color="#fff" />
+          </TouchableOpacity>
+          <View style={{ flex: 1 }}>
+            <Text style={s.heroTitle}>New Template</Text>
+            <Text style={s.heroSub}>Bus & Tempo — create a reusable quote template</Text>
+          </View>
+          <View style={s.heroBadge}>
+            <MaterialCommunityIcons name="bus" size={20} color={C.amber} />
+          </View>
+        </View>
+      </LinearGradient>
+
+      <ScrollView style={s.scroll} contentContainerStyle={s.scrollContent} showsVerticalScrollIndicator={false}>
+
+        {/* Quick Start */}
+        {showSuggestions && (
+          <View style={s.quickBox}>
+            <LinearGradient colors={[C.amberL, '#fff']} style={s.quickHeader}>
+              <View style={s.quickIconBox}>
+                <Ionicons name="flash" size={18} color={C.amber} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={s.quickTitle}>Quick Start Templates</Text>
+                <Text style={s.quickSub}>Load a pre-built template and customize</Text>
+              </View>
+              <TouchableOpacity onPress={() => setShowSuggestions(false)} style={s.quickSkip}>
+                <Text style={s.quickSkipText}>Skip</Text>
+              </TouchableOpacity>
+            </LinearGradient>
+
+            {TEMPLATE_SUGGESTIONS.map((sg, i) => (
+              <TouchableOpacity key={i} style={s.sgCard} onPress={() => loadSuggestion(sg)} activeOpacity={0.7}>
+                <View style={s.sgIconBox}>
+                  <MaterialCommunityIcons name="bus" size={18} color={C.amber} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={s.sgName}>{sg.name}</Text>
+                  <Text style={s.sgDesc} numberOfLines={1}>{sg.description}</Text>
+                </View>
+                <View style={s.sgRate}>
+                  <Text style={s.sgRateText}>₹{sg.baseRateHint}/base</Text>
+                </View>
+                <Icon name="chevron-right" size={16} color={C.muted} />
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+
         {/* Basic Info */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Basic Information</Text>
-
-          <Text style={styles.inputLabel}>Template Name *</Text>
+        <SectionCard icon="info" iconColor={C.indigo} iconBg={C.indigoL} title="Basic Information">
+          <Text style={s.label}>Template Name *</Text>
           <TextInput
-            style={styles.input}
+            style={s.input}
+            placeholder="e.g., Mini Bus City Tour"
+            placeholderTextColor={C.muted}
             value={name}
             onChangeText={setName}
-            placeholder="e.g., Standard AC Bus Package"
-            placeholderTextColor={C.muted}
           />
 
-          <CustomDropdown
-            label="Bus Category *"
-            value={category}
-            items={BUS_CATEGORIES}
-            onValueChange={setCategory}
-            placeholder="Select category"
-          />
+          <Text style={s.label}>Category *</Text>
+          <View style={s.catGrid}>
+            {BUS_CATEGORIES.map(cat => (
+              <TouchableOpacity
+                key={cat.id}
+                style={[s.catChip, category === cat.id && s.catChipActive]}
+                onPress={() => setCategory(cat.id)}
+              >
+                <MaterialCommunityIcons
+                  name={cat.icon}
+                  size={13}
+                  color={category === cat.id ? '#fff' : C.sub}
+                />
+                <Text style={[s.catChipText, category === cat.id && s.catChipTextActive]}>
+                  {cat.name}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
 
-          <Text style={styles.inputLabel}>Description</Text>
+          <Text style={s.label}>Description <Text style={s.optional}>(optional)</Text></Text>
           <TextInput
-            style={[styles.input, styles.textArea]}
-            value={description}
-            onChangeText={setDescription}
+            style={[s.input, s.textArea]}
             placeholder="Brief description of this template..."
             placeholderTextColor={C.muted}
-            multiline
-            numberOfLines={3}
-            textAlignVertical="top"
+            value={description}
+            onChangeText={setDescription}
+            multiline numberOfLines={3}
           />
-        </View>
+        </SectionCard>
 
-        {/* Vehicle Types */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Vehicle Types</Text>
-          <Text style={styles.cardSubtitle}>Select applicable vehicle types</Text>
-
-          <View style={styles.checkboxGrid}>
-            {VEHICLE_TYPE_OPTIONS.map((type) => (
-              <TouchableOpacity
-                key={type}
-                style={styles.checkbox}
-                onPress={() => toggleVehicleType(type)}
-              >
-                <View style={[styles.checkboxBox, selectedVehicleTypes.includes(type) && styles.checkboxBoxChecked]}>
-                  {selectedVehicleTypes.includes(type) && (
-                    <Icon name="check" size={14} color="#fff" />
-                  )}
-                </View>
-                <Text style={styles.checkboxLabel}>{type}</Text>
-              </TouchableOpacity>
+        {/* Rate Hints */}
+        <SectionCard icon="tag" iconColor={C.amber} iconBg={C.amberL} title="Rate Hints">
+          <Text style={s.sectionNote}>These are hints only — actual rates set while quoting</Text>
+          <View style={s.rateGrid}>
+            {[
+              { label: 'Base Rate (₹)', val: baseRate, set: setBaseRate, ph: '3000' },
+              { label: 'Per KM Rate (₹)', val: perKmRate, set: setPerKmRate, ph: '18' },
+              { label: 'Per Day Rate (₹)', val: perDayRate, set: setPerDayRate, ph: '4500' },
+              { label: 'Security Deposit (₹)', val: securityDeposit, set: setSecurityDeposit, ph: '5000' },
+            ].map((f, i) => (
+              <View key={i} style={s.rateField}>
+                <Text style={s.label}>{f.label}</Text>
+                <TextInput
+                  style={s.input}
+                  placeholder={f.ph}
+                  placeholderTextColor={C.muted}
+                  value={f.val}
+                  onChangeText={f.set}
+                  keyboardType="numeric"
+                />
+              </View>
             ))}
           </View>
-        </View>
-
-        {/* Pricing Hints */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Pricing Hints (Optional)</Text>
-          <Text style={styles.cardSubtitle}>Suggested pricing to help you quote faster</Text>
-
-          <Text style={styles.inputLabel}>Base Rate (₹)</Text>
-          <TextInput
-            style={styles.input}
-            value={baseRateHint}
-            onChangeText={setBaseRateHint}
-            placeholder="e.g., 15000"
-            keyboardType="decimal-pad"
-            placeholderTextColor={C.muted}
-          />
-
-          <Text style={styles.inputLabel}>Per KM Rate (₹)</Text>
-          <TextInput
-            style={styles.input}
-            value={perKmRateHint}
-            onChangeText={setPerKmRateHint}
-            placeholder="e.g., 30"
-            keyboardType="decimal-pad"
-            placeholderTextColor={C.muted}
-          />
-
-          <Text style={styles.inputLabel}>Per Day Rate (₹)</Text>
-          <TextInput
-            style={styles.input}
-            value={perDayRateHint}
-            onChangeText={setPerDayRateHint}
-            placeholder="e.g., 8000"
-            keyboardType="decimal-pad"
-            placeholderTextColor={C.muted}
-          />
-        </View>
+        </SectionCard>
 
         {/* Inclusions */}
-        <View style={styles.card}>
-          <View style={styles.cardHeader}>
-            <Text style={styles.cardTitle}>Inclusions ({inclusions.length})</Text>
-            <TouchableOpacity onPress={() => openEditModal('inclusions')}>
-              <Icon name="edit-2" size={18} color={C.brand} />
+        <SectionCard icon="check-circle" iconColor={C.g600} iconBg={C.g50} title="Inclusions *">
+          <View style={s.addRow}>
+            <TextInput
+              style={[s.input, s.addInput]}
+              placeholder="Add inclusion item..."
+              placeholderTextColor={C.muted}
+              value={newInclusion}
+              onChangeText={setNewInclusion}
+              onSubmitEditing={() => addItem(newInclusion, inclusions, setInclusions, setNewInclusion)}
+            />
+            <TouchableOpacity
+              style={[s.addBtn, { backgroundColor: C.g600 }]}
+              onPress={() => addItem(newInclusion, inclusions, setInclusions, setNewInclusion)}
+            >
+              <Icon name="plus" size={20} color="#fff" />
             </TouchableOpacity>
           </View>
-          <View style={styles.chipContainer}>
-            {inclusions.map((item, idx) => (
-              <View key={idx} style={[styles.chip, { backgroundColor: '#D1FAE5' }]}>
-                <Icon name="check-circle" size={14} color="#059669" />
-                <Text style={[styles.chipText, { color: '#059669' }]}>{item}</Text>
+          {inclusions.map((item, i) => (
+            <View key={i} style={[s.listItem, { backgroundColor: C.g50, borderColor: C.g400 + '40' }]}>
+              <View style={s.listDot}>
+                <Icon name="check" size={11} color="#fff" />
               </View>
-            ))}
-          </View>
-        </View>
-
-        {/* Exclusions */}
-        <View style={styles.card}>
-          <View style={styles.cardHeader}>
-            <Text style={styles.cardTitle}>Exclusions ({exclusions.length})</Text>
-            <TouchableOpacity onPress={() => openEditModal('exclusions')}>
-              <Icon name="edit-2" size={18} color={C.brand} />
-            </TouchableOpacity>
-          </View>
-          <View style={styles.chipContainer}>
-            {exclusions.map((item, idx) => (
-              <View key={idx} style={[styles.chip, { backgroundColor: '#FEE2E2' }]}>
-                <Icon name="x-circle" size={14} color="#DC2626" />
-                <Text style={[styles.chipText, { color: '#DC2626' }]}>{item}</Text>
-              </View>
-            ))}
-          </View>
-        </View>
-
-        {/* Terms & Conditions */}
-        <View style={styles.card}>
-          <View style={styles.cardHeader}>
-            <Text style={styles.cardTitle}>Terms & Conditions ({termsConditions.length})</Text>
-            <TouchableOpacity onPress={() => openEditModal('terms')}>
-              <Icon name="edit-2" size={18} color={C.brand} />
-            </TouchableOpacity>
-          </View>
-          {termsConditions.map((term, idx) => (
-            <View key={idx} style={styles.termRow}>
-              <Text style={styles.termNumber}>{idx + 1}.</Text>
-              <Text style={styles.termText}>{term}</Text>
+              <Text style={s.listItemText}>{item}</Text>
+              <TouchableOpacity onPress={() => removeItem(item, inclusions, setInclusions)} style={s.removeBtn}>
+                <Icon name="x" size={14} color={C.red} />
+              </TouchableOpacity>
             </View>
           ))}
-        </View>
-
-        {/* Active Status */}
-        <View style={styles.card}>
-          <View style={styles.switchRow}>
-            <View style={styles.switchLabel}>
-              <Text style={styles.cardTitle}>Active Status</Text>
-              <Text style={styles.cardSubtitle}>
-                {isActive ? 'Template is active and can be used' : 'Template is inactive'}
-              </Text>
-            </View>
-            <Switch
-              value={isActive}
-              onValueChange={setIsActive}
-              trackColor={{ false: '#E2E8F0', true: '#86EFAC' }}
-              thumbColor={isActive ? C.green : '#94A3B8'}
-            />
-          </View>
-        </View>
-
-        <View style={{ height: 100 }} />
-      </ScrollView>
-
-      {/* Submit Button */}
-      <View style={styles.footer}>
-        <TouchableOpacity
-          style={[styles.submitBtn, submitting && styles.submitBtnDisabled]}
-          onPress={handleSubmit}
-          disabled={submitting}
-        >
-          {submitting ? (
-            <ActivityIndicator size="small" color="#fff" />
-          ) : (
-            <>
-              <Icon name="check" size={18} color="#fff" />
-              <Text style={styles.submitBtnText}>Create Template</Text>
-            </>
+          {inclusions.length === 0 && (
+            <Text style={s.emptyHint}>No inclusions added yet</Text>
           )}
-        </TouchableOpacity>
-      </View>
+        </SectionCard>
 
-      {/* Edit Modal */}
-      <Modal
-        visible={editModalVisible}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setEditModalVisible(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>
-                Edit {editType === 'inclusions' ? 'Inclusions' : editType === 'exclusions' ? 'Exclusions' : 'Terms'}
-              </Text>
-              <TouchableOpacity onPress={() => setEditModalVisible(false)}>
-                <Icon name="x" size={24} color={C.text} />
-              </TouchableOpacity>
-            </View>
-
-            <ScrollView style={styles.modalBody}>
-              {editList.map((item, idx) => (
-                <View key={idx} style={styles.modalItem}>
-                  <Text style={styles.modalItemText}>{item}</Text>
-                  <TouchableOpacity onPress={() => removeItemFromList(item)}>
-                    <Icon name="trash-2" size={18} color={C.red} />
-                  </TouchableOpacity>
-                </View>
-              ))}
-            </ScrollView>
-
-            <View style={styles.modalAddSection}>
-              <TextInput
-                style={styles.modalInput}
-                value={newItemText}
-                onChangeText={setNewItemText}
-                placeholder="Add new item..."
-                placeholderTextColor={C.muted}
-              />
-              <TouchableOpacity style={styles.modalAddBtn} onPress={addItemToList}>
-                <Icon name="plus" size={20} color="#fff" />
-              </TouchableOpacity>
-            </View>
-
-            <TouchableOpacity style={styles.modalSaveBtn} onPress={saveEditModal}>
-              <Text style={styles.modalSaveBtnText}>Save Changes</Text>
+        {/* Exclusions */}
+        <SectionCard icon="x-circle" iconColor={C.red} iconBg={C.redL} title="Exclusions">
+          <View style={s.addRow}>
+            <TextInput
+              style={[s.input, s.addInput]}
+              placeholder="Add exclusion item..."
+              placeholderTextColor={C.muted}
+              value={newExclusion}
+              onChangeText={setNewExclusion}
+              onSubmitEditing={() => addItem(newExclusion, exclusions, setExclusions, setNewExclusion)}
+            />
+            <TouchableOpacity
+              style={[s.addBtn, { backgroundColor: C.red }]}
+              onPress={() => addItem(newExclusion, exclusions, setExclusions, setNewExclusion)}
+            >
+              <Icon name="plus" size={20} color="#fff" />
             </TouchableOpacity>
           </View>
+          {exclusions.map((item, i) => (
+            <View key={i} style={[s.listItem, { backgroundColor: C.redL, borderColor: C.red + '30' }]}>
+              <View style={[s.listDot, { backgroundColor: C.red }]}>
+                <Icon name="x" size={11} color="#fff" />
+              </View>
+              <Text style={s.listItemText}>{item}</Text>
+              <TouchableOpacity onPress={() => removeItem(item, exclusions, setExclusions)} style={s.removeBtn}>
+                <Icon name="x" size={14} color={C.red} />
+              </TouchableOpacity>
+            </View>
+          ))}
+          {exclusions.length === 0 && (
+            <Text style={s.emptyHint}>No exclusions added yet</Text>
+          )}
+        </SectionCard>
+
+        {/* Terms */}
+        <SectionCard icon="file-text" iconColor={C.indigo} iconBg={C.indigoL} title="Terms & Conditions">
+          <View style={s.addRow}>
+            <TextInput
+              style={[s.input, s.addInput]}
+              placeholder="Add a term or condition..."
+              placeholderTextColor={C.muted}
+              value={newTerm}
+              onChangeText={setNewTerm}
+              onSubmitEditing={() => addItem(newTerm, terms, setTerms, setNewTerm)}
+            />
+            <TouchableOpacity
+              style={[s.addBtn, { backgroundColor: C.indigo }]}
+              onPress={() => addItem(newTerm, terms, setTerms, setNewTerm)}
+            >
+              <Icon name="plus" size={20} color="#fff" />
+            </TouchableOpacity>
+          </View>
+          {terms.map((item, i) => (
+            <View key={i} style={[s.listItem, { backgroundColor: C.indigoL, borderColor: C.indigo + '30' }]}>
+              <View style={s.termNumBox}>
+                <Text style={s.termNumText}>{i + 1}</Text>
+              </View>
+              <Text style={s.listItemText}>{item}</Text>
+              <TouchableOpacity onPress={() => removeItem(item, terms, setTerms)} style={s.removeBtn}>
+                <Icon name="x" size={14} color={C.red} />
+              </TouchableOpacity>
+            </View>
+          ))}
+          {terms.length === 0 && (
+            <Text style={s.emptyHint}>No terms added yet</Text>
+          )}
+        </SectionCard>
+
+        {/* Settings */}
+        <View style={s.section}>
+          <TouchableOpacity
+            style={s.checkRow}
+            onPress={() => setIsDefault(!isDefault)}
+            activeOpacity={0.7}
+          >
+            <View style={[s.checkbox, isDefault && s.checkboxOn]}>
+              {isDefault && <Icon name="check" size={13} color="#fff" />}
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={s.checkLabel}>Set as default template</Text>
+              <Text style={s.checkSub}>Auto-selected when creating quotes for this category</Text>
+            </View>
+          </TouchableOpacity>
         </View>
-      </Modal>
+
+        <View style={{ height: 24 }} />
+      </ScrollView>
+
+      {/* Footer */}
+      <View style={s.footer}>
+        <TouchableOpacity style={s.cancelBtn} onPress={() => navigation.goBack()}>
+          <Text style={s.cancelBtnText}>Cancel</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[s.submitBtn, isSubmitting && { opacity: 0.6 }]}
+          onPress={handleSubmit}
+          disabled={isSubmitting}
+        >
+          <Icon name="save" size={18} color="#fff" />
+          <Text style={s.submitBtnText}>{isSubmitting ? 'Creating...' : 'Create Template'}</Text>
+        </TouchableOpacity>
+      </View>
     </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: C.bg,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: C.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: C.border,
-  },
+const s = StyleSheet.create({
+  container: { flex: 1, backgroundColor: C.bg },
+
+  hero: { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 20, overflow: 'hidden' },
+  deco: { position: 'absolute', borderRadius: 999, backgroundColor: '#fff' },
+  heroRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  heroTitle: { fontSize: 20, fontWeight: '800', color: '#fff' },
+  heroSub: { fontSize: 12, color: 'rgba(255,255,255,0.7)', marginTop: 2 },
   backBtn: {
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
+    width: 40, height: 40, borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    justifyContent: 'center', alignItems: 'center',
   },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: C.text,
+  heroBadge: {
+    width: 42, height: 42, borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    justifyContent: 'center', alignItems: 'center',
+    borderWidth: 1, borderColor: C.amber + '50',
   },
-  content: {
-    flex: 1,
-    padding: 16,
+
+  scroll: { flex: 1 },
+  scrollContent: { padding: 16 },
+
+  quickBox: {
+    backgroundColor: C.card, borderRadius: 18, marginBottom: 14,
+    borderWidth: 1, borderColor: C.amber + '40', overflow: 'hidden',
   },
-  card: {
-    backgroundColor: C.surface,
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: C.border,
+  quickHeader: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    paddingHorizontal: 16, paddingVertical: 14,
   },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
+  quickIconBox: {
+    width: 38, height: 38, borderRadius: 10,
+    backgroundColor: '#fff', justifyContent: 'center', alignItems: 'center',
+    borderWidth: 1, borderColor: C.amber + '40',
   },
-  cardTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: C.text,
+  quickTitle: { fontSize: 14, fontWeight: '700', color: C.text },
+  quickSub: { fontSize: 12, color: C.sub, marginTop: 2 },
+  quickSkip: { paddingHorizontal: 10, paddingVertical: 6 },
+  quickSkipText: { fontSize: 13, fontWeight: '600', color: C.amber },
+  sgCard: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    paddingHorizontal: 16, paddingVertical: 13,
+    borderTopWidth: 1, borderTopColor: C.border,
   },
-  cardSubtitle: {
-    fontSize: 13,
-    color: C.muted,
-    marginTop: 4,
-    marginBottom: 12,
+  sgIconBox: {
+    width: 36, height: 36, borderRadius: 10,
+    backgroundColor: C.amberL, justifyContent: 'center', alignItems: 'center',
   },
-  inputLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: C.text,
-    marginBottom: 8,
-    marginTop: 12,
+  sgName: { fontSize: 13, fontWeight: '700', color: C.text, marginBottom: 2 },
+  sgDesc: { fontSize: 12, color: C.sub },
+  sgRate: {
+    backgroundColor: C.amberL, paddingHorizontal: 8, paddingVertical: 4,
+    borderRadius: 8, borderWidth: 1, borderColor: C.amber + '30',
   },
+  sgRateText: { fontSize: 11, fontWeight: '700', color: C.amber },
+
+  section: {
+    backgroundColor: C.card, borderRadius: 16, padding: 16,
+    marginBottom: 12, borderWidth: 1, borderColor: C.border,
+    shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 6, elevation: 2,
+  },
+  sectionHead: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 14 },
+  sectionIconBox: { width: 32, height: 32, borderRadius: 9, justifyContent: 'center', alignItems: 'center' },
+  sectionTitle: { fontSize: 15, fontWeight: '700', color: C.text },
+  sectionNote: { fontSize: 12, color: C.muted, marginBottom: 12, lineHeight: 17 },
+
+  label: { fontSize: 13, fontWeight: '600', color: C.text, marginBottom: 7 },
+  optional: { fontWeight: '400', color: C.muted },
+
   input: {
-    backgroundColor: C.bg,
+    borderWidth: 1.5, borderColor: C.border, borderRadius: 12,
+    paddingHorizontal: 14, paddingVertical: 11,
+    fontSize: 14, color: C.text, backgroundColor: C.bg, marginBottom: 12,
+  },
+  textArea: { height: 80, textAlignVertical: 'top' },
+
+  catGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 },
+  catChip: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    paddingHorizontal: 14, paddingVertical: 8,
+    borderRadius: 20, backgroundColor: C.bg,
+    borderWidth: 1.5, borderColor: C.border,
+  },
+  catChipActive: { backgroundColor: C.g700, borderColor: C.g700 },
+  catChipText: { fontSize: 13, fontWeight: '600', color: C.sub },
+  catChipTextActive: { color: '#fff' },
+
+  rateGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 0 },
+  rateField: { width: '50%', paddingRight: 8 },
+
+  addRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10 },
+  addInput: { flex: 1, marginBottom: 0 },
+  addBtn: { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+
+  listItem: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    padding: 10, borderRadius: 10, marginBottom: 7,
     borderWidth: 1,
-    borderColor: C.border,
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 14,
-    color: C.text,
   },
-  textArea: {
-    height: 80,
+  listDot: {
+    width: 20, height: 20, borderRadius: 10,
+    backgroundColor: C.g600, justifyContent: 'center', alignItems: 'center',
   },
-  checkboxGrid: {
-    gap: 12,
+  listItemText: { flex: 1, fontSize: 13, color: C.text, lineHeight: 18 },
+  removeBtn: { padding: 4 },
+  termNumBox: {
+    width: 22, height: 22, borderRadius: 6, backgroundColor: C.indigo,
+    justifyContent: 'center', alignItems: 'center',
   },
+  termNumText: { fontSize: 11, fontWeight: '700', color: '#fff' },
+  emptyHint: { fontSize: 12, color: C.muted, textAlign: 'center', paddingVertical: 8 },
+
+  checkRow: { flexDirection: 'row', alignItems: 'center', gap: 14 },
   checkbox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    paddingVertical: 8,
+    width: 22, height: 22, borderRadius: 6,
+    borderWidth: 2, borderColor: C.border,
+    alignItems: 'center', justifyContent: 'center', backgroundColor: C.bg,
   },
-  checkboxBox: {
-    width: 20,
-    height: 20,
-    borderRadius: 4,
-    borderWidth: 2,
-    borderColor: C.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  checkboxBoxChecked: {
-    backgroundColor: C.brand,
-    borderColor: C.brand,
-  },
-  checkboxLabel: {
-    fontSize: 14,
-    color: C.text,
-  },
-  chipContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  chip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-  },
-  chipText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  termRow: {
-    flexDirection: 'row',
-    marginBottom: 8,
-  },
-  termNumber: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: C.brand,
-    marginRight: 8,
-  },
-  termText: {
-    flex: 1,
-    fontSize: 14,
-    color: C.text,
-  },
-  switchRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  switchLabel: {
-    flex: 1,
-  },
+  checkboxOn: { backgroundColor: C.g700, borderColor: C.g700 },
+  checkLabel: { fontSize: 14, fontWeight: '600', color: C.text, marginBottom: 2 },
+  checkSub: { fontSize: 12, color: C.muted },
+
   footer: {
-    padding: 16,
-    backgroundColor: C.surface,
-    borderTopWidth: 1,
-    borderTopColor: C.border,
+    flexDirection: 'row', paddingHorizontal: 16, paddingVertical: 12,
+    backgroundColor: C.card, borderTopWidth: 1, borderTopColor: C.border, gap: 12,
   },
+  cancelBtn: {
+    flex: 1, paddingVertical: 14, borderRadius: 14,
+    backgroundColor: C.bg, alignItems: 'center', justifyContent: 'center',
+    borderWidth: 1, borderColor: C.border,
+  },
+  cancelBtnText: { fontSize: 15, fontWeight: '600', color: C.sub },
   submitBtn: {
-    backgroundColor: C.brand,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 14,
-    borderRadius: 10,
+    flex: 2, flexDirection: 'row', paddingVertical: 14, borderRadius: 14,
+    backgroundColor: C.g700, alignItems: 'center', justifyContent: 'center', gap: 8,
   },
-  submitBtnDisabled: {
-    opacity: 0.6,
-  },
-  submitBtnText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#fff',
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'flex-end',
-  },
-  modalContent: {
-    backgroundColor: C.surface,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    padding: 20,
-    maxHeight: '80%',
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: C.text,
-  },
-  modalBody: {
-    maxHeight: 300,
-  },
-  modalItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 12,
-    backgroundColor: C.bg,
-    borderRadius: 8,
-    marginBottom: 8,
-  },
-  modalItemText: {
-    flex: 1,
-    fontSize: 14,
-    color: C.text,
-  },
-  modalAddSection: {
-    flexDirection: 'row',
-    gap: 8,
-    marginTop: 16,
-    marginBottom: 16,
-  },
-  modalInput: {
-    flex: 1,
-    backgroundColor: C.bg,
-    borderWidth: 1,
-    borderColor: C.border,
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 14,
-    color: C.text,
-  },
-  modalAddBtn: {
-    backgroundColor: C.brand,
-    width: 48,
-    height: 48,
-    borderRadius: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalSaveBtn: {
-    backgroundColor: C.brand,
-    paddingVertical: 14,
-    borderRadius: 10,
-    alignItems: 'center',
-  },
-  modalSaveBtnText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#fff',
-  },
+  submitBtnText: { fontSize: 15, fontWeight: '700', color: '#fff' },
 });

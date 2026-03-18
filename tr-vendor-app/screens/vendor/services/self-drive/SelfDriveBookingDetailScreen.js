@@ -10,11 +10,13 @@ import {
   Alert,
   Linking,
   TextInput,
+  StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Feather';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import LinearGradient from 'react-native-linear-gradient';
 import { showError, showConfirm, showInfo, showSuccess } from '../../../../services/alertService';
 import {
   getBookingById,
@@ -26,33 +28,28 @@ import {
 } from '../../../api/client';
 
 const C = {
-  bg: '#F7FAFC',
-  surface: '#FFFFFF',
-  text: '#0F172A',
-  muted: '#64748B',
-  border: '#E2E8F0',
-  brand: '#22C55E',
-  blue: '#3B82F6',
-  orange: '#F59E0B',
-  purple: '#8B5CF6',
-  red: '#EF4444',
-  amber: '#F59E0B',
-  green: '#22C55E',
-  emerald: '#10B981',
-  indigo: '#6366F1',
+  g900: '#022C22', g800: '#065F46', g700: '#047857', g500: '#059669', g400: '#34D399',
+  g50: '#ECFDF5', g100: '#D1FAE5',
+  bg: '#F1F5F9', card: '#FFFFFF', border: '#E2E8F0', text: '#0F172A', sub: '#475569', muted: '#94A3B8',
+  green: '#059669', greenL: '#ECFDF5', greenD: '#065F46',
+  amber: '#D97706', amberL: '#FFFBEB',
+  red: '#DC2626', redL: '#FEF2F2',
+  blue: '#2563EB', blueL: '#EFF6FF',
+  purple: '#7C3AED', purpleL: '#F5F3FF',
+  teal: '#0D9488', tealL: '#F0FDFA',
 };
 
 const STATUS_CONFIG = {
-  PENDING_PAYMENT: { color: C.amber, bg: '#FEF3C7', label: 'Awaiting Payment' },
-  PAYMENT_VERIFIED: { color: C.green, bg: '#D1FAE5', label: 'Payment Verified' },
-  PENDING_VENDOR: { color: C.orange, bg: '#FEF3C7', label: 'Pending' },
-  BROADCASTED: { color: C.blue, bg: '#DBEAFE', label: 'Open' },
-  ACCEPTED: { color: C.green, bg: '#DCFCE7', label: 'Accepted' },
-  CONFIRMED: { color: C.emerald, bg: '#D1FAE5', label: 'Confirmed' },
-  READY_FOR_PICKUP: { color: '#0891B2', bg: '#CFFAFE', label: 'Ready for Pickup' },
-  IN_PROGRESS: { color: C.purple, bg: '#F3E8FF', label: 'In Progress' },
-  COMPLETED: { color: C.muted, bg: '#F3F4F6', label: 'Completed' },
-  CANCELLED: { color: C.red, bg: '#FEE2E2', label: 'Cancelled' },
+  PENDING_PAYMENT: { color: C.amber, bg: C.amberL, label: 'Awaiting Payment', icon: 'hourglass-outline' },
+  PAYMENT_VERIFIED: { color: C.green, bg: C.greenL, label: 'Payment Verified', icon: 'checkmark-circle' },
+  PENDING_VENDOR: { color: C.amber, bg: C.amberL, label: 'Pending', icon: 'hourglass-outline' },
+  BROADCASTED: { color: C.blue, bg: C.blueL, label: 'Open', icon: 'radio-outline' },
+  ACCEPTED: { color: C.g700, bg: C.g50, label: 'Accepted', icon: 'checkmark-circle' },
+  CONFIRMED: { color: C.green, bg: C.greenL, label: 'Confirmed', icon: 'checkmark-circle' },
+  READY_FOR_PICKUP: { color: C.teal, bg: C.tealL, label: 'Ready for Pickup', icon: 'car-outline' },
+  IN_PROGRESS: { color: C.purple, bg: C.purpleL, label: 'In Progress', icon: 'car-sport-outline' },
+  COMPLETED: { color: C.muted, bg: C.bg, label: 'Completed', icon: 'checkmark-done-circle-outline' },
+  CANCELLED: { color: C.red, bg: C.redL, label: 'Cancelled', icon: 'close-circle-outline' },
 };
 
 export default function SelfDriveBookingDetailScreen({ route, navigation }) {
@@ -253,17 +250,25 @@ export default function SelfDriveBookingDetailScreen({ route, navigation }) {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.safe}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-            <Icon name="arrow-left" size={22} color={C.text} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Booking Details</Text>
-          <View style={{ width: 40 }} />
-        </View>
+      <SafeAreaView style={styles.safe} edges={['left', 'right', 'bottom']}>
+        <StatusBar barStyle="light-content" backgroundColor={C.g900} />
+        <LinearGradient
+          colors={[C.g900, C.g800, C.g700]}
+          style={styles.gradientHeader}
+        >
+          <View style={styles.decoCircle1} />
+          <View style={styles.decoCircle2} />
+          <View style={styles.headerRow}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+              <Icon name="arrow-left" size={22} color="#fff" />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>Booking Details</Text>
+            <View style={{ width: 44 }} />
+          </View>
+        </LinearGradient>
         <View style={styles.centered}>
-          <ActivityIndicator size="large" color={C.brand} />
-          <Text style={styles.loadingText}>Loading...</Text>
+          <ActivityIndicator size="large" color={C.g500} />
+          <Text style={styles.loadingText}>Loading booking details...</Text>
         </View>
       </SafeAreaView>
     );
@@ -271,14 +276,22 @@ export default function SelfDriveBookingDetailScreen({ route, navigation }) {
 
   if (!booking) {
     return (
-      <SafeAreaView style={styles.safe}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-            <Icon name="arrow-left" size={22} color={C.text} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Booking Details</Text>
-          <View style={{ width: 40 }} />
-        </View>
+      <SafeAreaView style={styles.safe} edges={['left', 'right', 'bottom']}>
+        <StatusBar barStyle="light-content" backgroundColor={C.g900} />
+        <LinearGradient
+          colors={[C.g900, C.g800, C.g700]}
+          style={styles.gradientHeader}
+        >
+          <View style={styles.decoCircle1} />
+          <View style={styles.decoCircle2} />
+          <View style={styles.headerRow}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+              <Icon name="arrow-left" size={22} color="#fff" />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>Booking Details</Text>
+            <View style={{ width: 44 }} />
+          </View>
+        </LinearGradient>
         <View style={styles.centered}>
           <Ionicons name="alert-circle-outline" size={64} color={C.muted} />
           <Text style={styles.emptyText}>Booking not found</Text>
@@ -290,52 +303,75 @@ export default function SelfDriveBookingDetailScreen({ route, navigation }) {
   const statusConfig = getStatusConfig(booking.status);
 
   return (
-    <SafeAreaView style={styles.safe}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Icon name="arrow-left" size={22} color={C.text} />
-        </TouchableOpacity>
-        <View style={styles.headerCenter}>
-          <Text style={styles.headerTitle}>Booking #{booking.bookingNumber || booking.id}</Text>
-          <Text style={styles.headerSubtitle}>Self Drive</Text>
+    <SafeAreaView style={styles.safe} edges={['left', 'right', 'bottom']}>
+      <StatusBar barStyle="light-content" backgroundColor={C.g900} />
+
+      {/* Gradient Header */}
+      <LinearGradient
+        colors={[C.g900, C.g800, C.g700]}
+        style={styles.gradientHeader}
+      >
+        {/* Decorative Circles */}
+        <View style={styles.decoCircle1} />
+        <View style={styles.decoCircle2} />
+
+        <View style={styles.headerRow}>
+          {/* Back Button */}
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+            <Icon name="arrow-left" size={22} color="#fff" />
+          </TouchableOpacity>
+
+          {/* Center: icon + booking number */}
+          <View style={styles.headerCenter}>
+            <View style={styles.headerIconRow}>
+              <MaterialCommunityIcons name="car-side" size={18} color={C.g400} />
+              <Text style={styles.headerTitle}>
+                #{booking.bookingNumber || booking.id}
+              </Text>
+            </View>
+            <Text style={styles.headerSubtitle}>Self Drive</Text>
+          </View>
+
+          {/* Status Badge */}
+          <View style={[styles.statusBadge, { backgroundColor: statusConfig.bg }]}>
+            <Text style={[styles.statusBadgeText, { color: statusConfig.color }]}>
+              {statusConfig.label}
+            </Text>
+          </View>
         </View>
-        <View style={{ width: 40 }} />
-      </View>
+      </LinearGradient>
 
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.brand} />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.g500} />
         }
         showsVerticalScrollIndicator={false}
       >
         {/* Status Banner */}
-        <View style={[styles.statusBanner, { backgroundColor: statusConfig.bg }]}>
-          <View style={styles.statusContent}>
-            <Icon name="check-circle" size={24} color={statusConfig.color} />
-            <View style={styles.statusTextWrap}>
-              <Text style={[styles.statusLabel, { color: statusConfig.color }]}>
-                {statusConfig.label}
-              </Text>
-              <Text style={styles.statusDate}>
-                Created on {formatDate(booking.createdAt)}
-              </Text>
-            </View>
+        <View style={[styles.statusBanner, { borderLeftColor: statusConfig.color }]}>
+          <Ionicons name={statusConfig.icon} size={26} color={statusConfig.color} />
+          <View style={styles.statusTextWrap}>
+            <Text style={[styles.statusLabel, { color: statusConfig.color }]}>
+              {statusConfig.label}
+            </Text>
+            <Text style={styles.statusDate}>
+              Created on {formatDate(booking.createdAt)}
+            </Text>
           </View>
         </View>
 
         {/* Customer Info Card */}
         <View style={styles.card}>
           <View style={styles.cardHeaderRow}>
-            <Ionicons name="person-circle-outline" size={22} color={C.blue} />
+            <Ionicons name="person-circle-outline" size={22} color={C.g700} />
             <Text style={styles.cardTitle}>Customer Information</Text>
           </View>
 
           <View style={styles.customerGrid}>
             <View style={styles.infoBox}>
-              <View style={[styles.infoIconBox, { backgroundColor: '#DBEAFE' }]}>
+              <View style={[styles.infoIconBox, { backgroundColor: C.blueL }]}>
                 <Ionicons name="person" size={20} color={C.blue} />
               </View>
               <View style={styles.infoContent}>
@@ -346,7 +382,7 @@ export default function SelfDriveBookingDetailScreen({ route, navigation }) {
 
             {booking.customerEmail && (
               <View style={[styles.infoBox, styles.infoBoxFull]}>
-                <View style={[styles.infoIconBox, { backgroundColor: '#F3E8FF' }]}>
+                <View style={[styles.infoIconBox, { backgroundColor: C.purpleL }]}>
                   <Ionicons name="mail" size={20} color={C.purple} />
                 </View>
                 <View style={styles.infoContent}>
@@ -362,7 +398,7 @@ export default function SelfDriveBookingDetailScreen({ route, navigation }) {
           {/* Quick Actions */}
           <View style={styles.quickActions}>
             <TouchableOpacity
-              style={[styles.quickActionBtn, { backgroundColor: '#F3E8FF' }]}
+              style={[styles.quickActionBtn, { backgroundColor: C.purpleL }]}
               onPress={handleChat}
             >
               <Ionicons name="chatbubble" size={20} color={C.purple} />
@@ -374,15 +410,18 @@ export default function SelfDriveBookingDetailScreen({ route, navigation }) {
         {/* Vehicle & Trip Details */}
         <View style={styles.card}>
           <View style={styles.cardHeaderRow}>
-            <MaterialCommunityIcons name="car-side" size={22} color={C.emerald} />
+            <MaterialCommunityIcons name="car-side" size={22} color={C.g700} />
             <Text style={styles.cardTitle}>Vehicle & Trip Details</Text>
           </View>
 
           {/* Vehicle Info */}
           <View style={styles.vehicleBox}>
-            <View style={styles.vehicleIconWrap}>
-              <MaterialCommunityIcons name="car-side" size={32} color={C.emerald} />
-            </View>
+            <LinearGradient
+              colors={[C.g50, C.g100]}
+              style={styles.vehicleIconWrap}
+            >
+              <MaterialCommunityIcons name="car-side" size={32} color={C.g700} />
+            </LinearGradient>
             <View style={styles.vehicleInfo}>
               <Text style={styles.vehicleName}>
                 {booking.requestedVehicleName || booking.vehicleName || 'Self-Drive Car'}
@@ -427,8 +466,8 @@ export default function SelfDriveBookingDetailScreen({ route, navigation }) {
 
           {/* Pickup & Drop Dates */}
           <View style={styles.dateGrid}>
-            <View style={[styles.dateBox, { backgroundColor: '#DBEAFE' }]}>
-              <Text style={[styles.dateBoxLabel, { color: C.blue }]}>PICKUP</Text>
+            <View style={[styles.dateBox, { backgroundColor: C.blueL }]}>
+              <Text style={[styles.dateBoxLabel, { color: C.g700 }]}>PICKUP</Text>
               <Text style={styles.dateBoxDate}>{formatDate(booking.pickupDate)}</Text>
               {booking.pickupTime && (
                 <Text style={styles.dateBoxTime}>{formatTime(booking.pickupTime)}</Text>
@@ -436,7 +475,7 @@ export default function SelfDriveBookingDetailScreen({ route, navigation }) {
             </View>
 
             {(booking.dropDate || booking.returnDate) && (
-              <View style={[styles.dateBox, { backgroundColor: '#FEE2E2' }]}>
+              <View style={[styles.dateBox, { backgroundColor: C.redL }]}>
                 <Text style={[styles.dateBoxLabel, { color: C.red }]}>DROP-OFF</Text>
                 <Text style={styles.dateBoxDate}>{formatDate(booking.dropDate || booking.returnDate)}</Text>
                 {(booking.dropTime || booking.returnTime) && (
@@ -450,7 +489,7 @@ export default function SelfDriveBookingDetailScreen({ route, navigation }) {
         {/* Payment Summary */}
         <View style={styles.card}>
           <View style={styles.cardHeaderRow}>
-            <Ionicons name="card-outline" size={22} color={C.indigo} />
+            <Ionicons name="card-outline" size={22} color={C.g700} />
             <Text style={styles.cardTitle}>Payment Summary</Text>
           </View>
 
@@ -519,12 +558,12 @@ export default function SelfDriveBookingDetailScreen({ route, navigation }) {
 
         {/* Payment Verified Info Card */}
         {booking.status === 'PAYMENT_VERIFIED' && booking.isOwnBooking && (
-          <View style={[styles.card, { backgroundColor: '#D1FAE5', borderColor: C.green }]}>
+          <View style={[styles.card, { backgroundColor: C.g50, borderColor: C.g100 }]}>
             <View style={styles.cardHeaderRow}>
-              <Ionicons name="checkmark-circle" size={22} color={C.green} />
-              <Text style={[styles.cardTitle, { color: C.green }]}>Advance Payment Received!</Text>
+              <Ionicons name="checkmark-circle" size={22} color={C.g700} />
+              <Text style={[styles.cardTitle, { color: C.g700 }]}>Advance Payment Received!</Text>
             </View>
-            <Text style={[styles.tripControlDesc, { color: '#065F46' }]}>
+            <Text style={[styles.tripControlDesc, { color: C.g700 }]}>
               Customer has paid the advance amount. You can now generate OTP to start the trip when the customer arrives.
             </Text>
           </View>
@@ -534,18 +573,18 @@ export default function SelfDriveBookingDetailScreen({ route, navigation }) {
         {(booking.status === 'ACCEPTED' || booking.status === 'CONFIRMED' || booking.status === 'READY_FOR_PICKUP' || booking.status === 'IN_PROGRESS' || (booking.status === 'PAYMENT_VERIFIED' && booking.isOwnBooking)) && (
           <View style={styles.card}>
             <View style={styles.cardHeaderRow}>
-              <Ionicons name="key-outline" size={22} color={C.purple} />
+              <Ionicons name="key-outline" size={22} color={C.g700} />
               <Text style={styles.cardTitle}>Trip Control</Text>
             </View>
 
             {/* Error/Success Messages */}
             {otpError && (
-              <View style={[styles.messageBox, { backgroundColor: '#FEE2E2', borderColor: '#FCA5A5' }]}>
+              <View style={[styles.messageBox, { backgroundColor: C.redL, borderColor: '#FCA5A5' }]}>
                 <Text style={[styles.messageText, { color: C.red }]}>{otpError}</Text>
               </View>
             )}
             {otpSuccess && (
-              <View style={[styles.messageBox, { backgroundColor: '#D1FAE5', borderColor: '#6EE7B7' }]}>
+              <View style={[styles.messageBox, { backgroundColor: C.greenL, borderColor: '#6EE7B7' }]}>
                 <Text style={[styles.messageText, { color: C.green }]}>{otpSuccess}</Text>
               </View>
             )}
@@ -557,7 +596,7 @@ export default function SelfDriveBookingDetailScreen({ route, navigation }) {
                   When customer arrives for pickup, generate OTP to start the trip.
                 </Text>
                 <TouchableOpacity
-                  style={[styles.otpButton, { backgroundColor: C.purple }]}
+                  style={[styles.otpButton, { backgroundColor: C.g700 }]}
                   onPress={handleGenerateOtp}
                   disabled={otpLoading}
                 >
@@ -577,7 +616,7 @@ export default function SelfDriveBookingDetailScreen({ route, navigation }) {
             {booking.status === 'READY_FOR_PICKUP' && (
               <View>
                 <View style={styles.otpSentBox}>
-                  <Ionicons name="checkmark-circle" size={20} color={C.blue} />
+                  <Ionicons name="checkmark-circle" size={20} color={C.g700} />
                   <View style={{ flex: 1 }}>
                     <Text style={styles.otpSentTitle}>OTP sent to customer!</Text>
                     <Text style={styles.otpSentDesc}>
@@ -624,8 +663,8 @@ export default function SelfDriveBookingDetailScreen({ route, navigation }) {
                   onPress={handleGenerateOtp}
                   disabled={otpLoading}
                 >
-                  <Icon name="refresh-cw" size={18} color={C.purple} />
-                  <Text style={[styles.otpButtonText, { color: C.purple }]}>Resend OTP</Text>
+                  <Icon name="refresh-cw" size={18} color={C.g700} />
+                  <Text style={[styles.otpButtonText, { color: C.g700 }]}>Resend OTP</Text>
                 </TouchableOpacity>
               </View>
             )}
@@ -633,7 +672,7 @@ export default function SelfDriveBookingDetailScreen({ route, navigation }) {
             {/* For IN_PROGRESS - End Trip */}
             {booking.status === 'IN_PROGRESS' && (
               <View>
-                <View style={[styles.otpSentBox, { backgroundColor: '#F3E8FF', borderColor: '#C084FC' }]}>
+                <View style={[styles.otpSentBox, { backgroundColor: C.purpleL, borderColor: '#C084FC' }]}>
                   <Ionicons name="car" size={20} color={C.purple} />
                   <View style={{ flex: 1 }}>
                     <Text style={[styles.otpSentTitle, { color: C.purple }]}>Trip is in progress</Text>
@@ -664,7 +703,7 @@ export default function SelfDriveBookingDetailScreen({ route, navigation }) {
 
         {/* Completed Status */}
         {booking.status === 'COMPLETED' && (
-          <View style={[styles.card, { backgroundColor: '#D1FAE5', borderColor: C.green }]}>
+          <View style={[styles.card, { backgroundColor: C.greenL, borderColor: C.green }]}>
             <View style={{ alignItems: 'center', paddingVertical: 12 }}>
               <Ionicons name="checkmark-circle" size={48} color={C.green} />
               <Text style={[styles.cardTitle, { marginTop: 12, color: C.green }]}>Trip Completed!</Text>
@@ -679,7 +718,7 @@ export default function SelfDriveBookingDetailScreen({ route, navigation }) {
         {booking.customerNotes && (
           <View style={styles.card}>
             <View style={styles.cardHeaderRow}>
-              <Ionicons name="chatbox-ellipses-outline" size={22} color={C.orange} />
+              <Ionicons name="chatbox-ellipses-outline" size={22} color={C.amber} />
               <Text style={styles.cardTitle}>Customer Notes</Text>
             </View>
             <View style={styles.notesBox}>
@@ -749,19 +788,44 @@ const styles = StyleSheet.create({
     color: C.muted,
     marginTop: 12,
   },
-  header: {
+
+  // Gradient Header
+  gradientHeader: {
+    paddingHorizontal: 16,
+    paddingTop: 14,
+    paddingBottom: 18,
+    overflow: 'hidden',
+  },
+  decoCircle1: {
+    position: 'absolute',
+    width: 120,
+    height: 120,
+    top: -40,
+    right: -20,
+    borderRadius: 60,
+    backgroundColor: '#fff',
+    opacity: 0.06,
+  },
+  decoCircle2: {
+    position: 'absolute',
+    width: 80,
+    height: 80,
+    bottom: -20,
+    left: 10,
+    borderRadius: 40,
+    backgroundColor: '#fff',
+    opacity: 0.05,
+  },
+  headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: C.surface,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: C.border,
   },
   backBtn: {
-    width: 40,
-    height: 40,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255,255,255,0.15)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -769,31 +833,55 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
   },
+  headerIconRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
   headerTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: C.text,
+    color: '#fff',
   },
   headerSubtitle: {
     fontSize: 12,
-    color: C.muted,
+    color: 'rgba(255,255,255,0.65)',
     marginTop: 2,
   },
+  statusBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 20,
+  },
+  statusBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+  },
+
   scrollView: {
     flex: 1,
   },
   scrollContent: {
     padding: 16,
   },
+
+  // Status Banner
   statusBanner: {
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 16,
-  },
-  statusContent: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
+    backgroundColor: C.card,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: C.border,
+    borderLeftWidth: 4,
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
   },
   statusTextWrap: {
     flex: 1,
@@ -807,8 +895,10 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: C.muted,
   },
+
+  // Cards
   card: {
-    backgroundColor: C.surface,
+    backgroundColor: C.card,
     borderRadius: 16,
     padding: 16,
     marginBottom: 12,
@@ -831,6 +921,8 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: C.text,
   },
+
+  // Customer Grid
   customerGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -867,6 +959,8 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: C.text,
   },
+
+  // Quick Actions
   quickActions: {
     flexDirection: 'row',
     gap: 8,
@@ -887,6 +981,8 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
   },
+
+  // Vehicle Box
   vehicleBox: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -900,7 +996,6 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 16,
-    backgroundColor: '#D1FAE5',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -921,15 +1016,17 @@ const styles = StyleSheet.create({
     marginTop: 8,
     paddingHorizontal: 10,
     paddingVertical: 4,
-    backgroundColor: '#DCFCE7',
+    backgroundColor: C.g50,
     borderRadius: 12,
     alignSelf: 'flex-start',
   },
   assignedText: {
     fontSize: 11,
     fontWeight: '600',
-    color: C.green,
+    color: C.g700,
   },
+
+  // Trip Info Grid
   tripInfoGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -954,6 +1051,8 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: C.text,
   },
+
+  // Date Grid
   dateGrid: {
     flexDirection: 'row',
     gap: 12,
@@ -979,6 +1078,8 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: C.muted,
   },
+
+  // Payment
   paymentDetails: {
     gap: 12,
   },
@@ -1004,16 +1105,18 @@ const styles = StyleSheet.create({
   paymentValueTotal: {
     fontSize: 20,
     fontWeight: '700',
-    color: C.emerald,
+    color: C.g700,
   },
   paymentDivider: {
     height: 1,
     backgroundColor: C.border,
     marginVertical: 4,
   },
+
+  // Notes
   notesBox: {
     padding: 14,
-    backgroundColor: '#FEF3C7',
+    backgroundColor: C.amberL,
     borderRadius: 12,
   },
   notesText: {
@@ -1021,11 +1124,13 @@ const styles = StyleSheet.create({
     color: C.text,
     lineHeight: 20,
   },
+
+  // Action Bar
   actionBar: {
     flexDirection: 'row',
     gap: 12,
     padding: 16,
-    backgroundColor: C.surface,
+    backgroundColor: C.card,
     borderTopWidth: 1,
     borderTopColor: C.border,
     shadowColor: '#000',
@@ -1045,18 +1150,19 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   rejectBtn: {
-    backgroundColor: C.surface,
-    borderColor: '#FEE2E2',
+    backgroundColor: C.redL,
+    borderColor: C.red,
   },
   acceptBtn: {
-    backgroundColor: C.brand,
-    borderColor: C.brand,
+    backgroundColor: C.g700,
+    borderColor: C.g700,
   },
   actionBtnText: {
     fontSize: 14,
     fontWeight: '700',
   },
-  // Trip Control Styles
+
+  // Trip Control / OTP
   messageBox: {
     padding: 12,
     borderRadius: 8,
@@ -1085,7 +1191,7 @@ const styles = StyleSheet.create({
   otpButtonOutline: {
     backgroundColor: 'transparent',
     borderWidth: 2,
-    borderColor: C.purple,
+    borderColor: C.g700,
   },
   otpButtonText: {
     fontSize: 14,
@@ -1097,16 +1203,16 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     gap: 12,
     padding: 14,
-    backgroundColor: '#DBEAFE',
+    backgroundColor: C.g50,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#93C5FD',
+    borderColor: C.g100,
     marginBottom: 16,
   },
   otpSentTitle: {
     fontSize: 14,
     fontWeight: '700',
-    color: C.blue,
+    color: C.g700,
     marginBottom: 4,
   },
   otpSentDesc: {
@@ -1130,9 +1236,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderWidth: 2,
-    borderColor: C.border,
+    borderColor: C.g400,
     borderRadius: 12,
-    backgroundColor: C.surface,
+    backgroundColor: C.card,
   },
   otpInput: {
     flex: 1,

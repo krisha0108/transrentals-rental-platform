@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  RefreshControl, ActivityIndicator, Modal, TextInput,
+  RefreshControl, ActivityIndicator, Modal, TextInput, StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import LinearGradient from 'react-native-linear-gradient';
+import { useFocusEffect } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Feather';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -11,33 +13,36 @@ import { getFleetIncidents, addFleetIncident } from '../../api/client';
 import CustomAlert from '../../../components/CustomAlert';
 
 const C = {
-  bg: '#F7FAFC', surface: '#FFFFFF', text: '#1E293B', subtext: '#475569',
-  muted: '#94A3B8', border: '#E2E8F0', red: '#EF4444', orange: '#F59E0B',
-  green: '#10B981', blue: '#3B82F6', purple: '#8B5CF6',
+  g900: '#022C22', g800: '#065F46', g700: '#047857', g600: '#059669',
+  g500: '#10B981', g400: '#34D399', g100: '#D1FAE5', g50: '#ECFDF5',
+  bg: '#F1F5F9', card: '#FFFFFF', border: '#E2E8F0',
+  text: '#0F172A', sub: '#475569', muted: '#94A3B8',
+  red: '#DC2626', redL: '#FEF2F2', redD: '#991B1B',
+  amber: '#D97706',
 };
 
 const INCIDENT_TYPES = [
-  { key: 'accident', label: 'Accident', icon: 'car-crash' },
-  { key: 'breakdown', label: 'Breakdown', icon: 'engine-off' },
-  { key: 'flat_tyre', label: 'Flat Tyre', icon: 'tire' },
+  { key: 'accident',       label: 'Accident',       icon: 'car-off' },
+  { key: 'breakdown',      label: 'Breakdown',      icon: 'engine-off' },
+  { key: 'flat_tyre',      label: 'Flat Tyre',      icon: 'tire' },
   { key: 'engine_failure', label: 'Engine Failure', icon: 'engine' },
-  { key: 'electrical', label: 'Electrical', icon: 'lightning-bolt' },
-  { key: 'theft', label: 'Theft', icon: 'lock-alert' },
-  { key: 'vandalism', label: 'Vandalism', icon: 'hammer' },
-  { key: 'weather', label: 'Weather', icon: 'weather-pouring' },
-  { key: 'road_damage', label: 'Road Damage', icon: 'road' },
-  { key: 'other', label: 'Other', icon: 'dots-horizontal' },
+  { key: 'electrical',     label: 'Electrical',     icon: 'lightning-bolt' },
+  { key: 'theft',          label: 'Theft',          icon: 'lock-alert' },
+  { key: 'vandalism',      label: 'Vandalism',      icon: 'hammer' },
+  { key: 'weather',        label: 'Weather',        icon: 'weather-pouring' },
+  { key: 'road_damage',    label: 'Road Damage',    icon: 'road' },
+  { key: 'other',          label: 'Other',          icon: 'dots-horizontal' },
 ];
 
 const SEVERITY_CFG = {
   MINOR:    { label: 'Minor',    color: '#10B981', bg: '#D1FAE5' },
-  MODERATE: { label: 'Moderate', color: '#F59E0B', bg: '#FEF3C7' },
-  MAJOR:    { label: 'Major',    color: '#EF4444', bg: '#FEE2E2' },
+  MODERATE: { label: 'Moderate', color: '#D97706', bg: '#FEF3C7' },
+  MAJOR:    { label: 'Major',    color: '#DC2626', bg: '#FEE2E2' },
   CRITICAL: { label: 'Critical', color: '#991B1B', bg: '#FEE2E2' },
 };
 
 const STATUS_CFG = {
-  OPEN:     { label: 'Open',     color: '#EF4444', bg: '#FEE2E2' },
+  OPEN:     { label: 'Open',     color: '#DC2626', bg: '#FEE2E2' },
   RESOLVED: { label: 'Resolved', color: '#10B981', bg: '#D1FAE5' },
 };
 
@@ -45,15 +50,19 @@ function fmt(n) { return Math.round(n || 0).toLocaleString('en-IN'); }
 function fmtDate(d) { return d ? new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '-'; }
 
 export default function IncidentsScreen({ navigation }) {
-  const [vehicles, setVehicles] = useState([]);
+  const [vehicles, setVehicles]   = useState([]);
   const [incidents, setIncidents] = useState([]);
-  const [summary, setSummary] = useState({});
-  const [loading, setLoading] = useState(true);
+  const [summary, setSummary]     = useState({});
+  const [loading, setLoading]     = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [tab, setTab] = useState('incidents');
 
   const [modal, setModal] = useState(false);
-  const [form, setForm] = useState({ vendorFleetId: '', incidentDate: new Date(), incidentType: 'accident', severity: 'MINOR', location: '', description: '', estimatedCost: '', notes: '' });
+  const [showVehicleDrop, setShowVehicleDrop] = useState(false);
+  const [form, setForm] = useState({
+    vendorFleetId: '', incidentDate: new Date(), incidentType: 'accident',
+    severity: 'MINOR', location: '', description: '', estimatedCost: '', notes: '',
+  });
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -73,10 +82,15 @@ export default function IncidentsScreen({ navigation }) {
   }, []);
 
   useEffect(() => { fetchData(); }, [fetchData]);
+  useFocusEffect(useCallback(() => {
+    StatusBar.setBarStyle('light-content');
+    StatusBar.setBackgroundColor('#022C22');
+  }, []));
   const onRefresh = () => { setRefreshing(true); fetchData(); };
 
   const openAdd = () => {
     setForm({ vendorFleetId: vehicles[0]?.id || '', incidentDate: new Date(), incidentType: 'accident', severity: 'MINOR', location: '', description: '', estimatedCost: '', notes: '' });
+    setShowVehicleDrop(false);
     setModal(true);
   };
 
@@ -103,162 +117,332 @@ export default function IncidentsScreen({ navigation }) {
     } finally { setSaving(false); }
   };
 
-  if (loading) return (
-    <SafeAreaView style={s.safe} edges={['top']}>
-      <View style={s.header}><TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}><Icon name="arrow-left" size={22} color="#fff" /></TouchableOpacity><Text style={s.headerTitle}>Incidents</Text></View>
-      <View style={s.centered}><ActivityIndicator size="large" color={C.red} /></View>
-    </SafeAreaView>
-  );
-
   const vehicleIncidents = vehicles.map(v => {
     const vInc = incidents.filter(i => i.vehicleId === v.id);
     return { ...v, count: vInc.length, openCount: vInc.filter(i => i.status === 'OPEN').length };
   });
 
-  return (
-    <SafeAreaView style={s.safe} edges={['top']}>
-      <View style={s.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}><Icon name="arrow-left" size={22} color="#fff" /></TouchableOpacity>
-        <View style={{ flex: 1 }}>
-          <Text style={s.headerTitle}>Incidents</Text>
-          <Text style={s.headerSub}>Report & track vehicle incidents</Text>
+  if (loading) return (
+    <SafeAreaView style={st.safe} edges={['top']}>
+      <StatusBar barStyle="light-content" backgroundColor={C.g900} />
+      <LinearGradient colors={[C.g900, C.g800, C.g700]} style={st.heroLoading}>
+        <View style={st.heroTopSimple}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={st.backBtn}>
+            <Icon name="arrow-left" size={20} color="#fff" />
+          </TouchableOpacity>
+          <Text style={st.heroTitle}>Incidents</Text>
+          <View style={{ width: 38 }} />
         </View>
-        <TouchableOpacity onPress={openAdd} style={s.addBtn}><Icon name="plus" size={20} color="#fff" /></TouchableOpacity>
-      </View>
+      </LinearGradient>
+      <View style={st.centered}><ActivityIndicator size="large" color={C.g600} /></View>
+    </SafeAreaView>
+  );
 
-      <View style={s.statsRow}>
-        {[
-          { label: 'Total', value: summary.total || 0 },
-          { label: 'Open', value: summary.open || 0 },
-          { label: 'Resolved', value: summary.resolved || 0 },
-          { label: 'Est. Cost', value: `\u20B9${fmt(summary.totalCost)}` },
-        ].map(st => (
-          <View key={st.label} style={s.statCard}>
-            <Text style={s.statVal}>{st.value}</Text>
-            <Text style={s.statLabel}>{st.label}</Text>
+  return (
+    <SafeAreaView style={st.safe} edges={['top']}>
+      <StatusBar barStyle="light-content" backgroundColor={C.g900} />
+
+      {/* ── HERO HEADER ── */}
+      <LinearGradient colors={[C.g900, C.g800, C.g700]} style={st.hero}>
+        <View style={[st.deco, { width: 180, height: 180, top: -70, right: -50, opacity: 0.07 }]} />
+        <View style={[st.deco, { width: 80,  height: 80,  top: 10,  right: 110, opacity: 0.04 }]} />
+
+        <View style={st.heroTop}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={st.backBtn}>
+            <Icon name="arrow-left" size={20} color="#fff" />
+          </TouchableOpacity>
+          <View style={st.heroMid}>
+            <View style={st.heroBadge}>
+              <MaterialCommunityIcons name="alert-circle-outline" size={12} color={C.g400} />
+              <Text style={st.heroBadgeTxt}>Fleet Management</Text>
+            </View>
+            <Text style={st.heroTitle}>Incidents</Text>
+            <Text style={st.heroSub}>Report & track vehicle incidents</Text>
           </View>
-        ))}
+          <TouchableOpacity onPress={openAdd} style={st.addBtn}>
+            <Icon name="plus" size={20} color="#fff" />
+          </TouchableOpacity>
+        </View>
+
+        <View style={st.statsRow}>
+          {[
+            { label: 'Total',     value: summary.total || 0,             color: '#fff' },
+            { label: 'Open',      value: summary.open || 0,              color: '#FCA5A5' },
+            { label: 'Resolved',  value: summary.resolved || 0,          color: C.g400 },
+            { label: 'Est. Cost', value: `₹${fmt(summary.totalCost)}`,   color: '#FCD34D' },
+          ].map((s, i) => (
+            <React.Fragment key={s.label}>
+              {i > 0 && <View style={st.statDiv} />}
+              <View style={st.statBox}>
+                <Text style={[st.statVal, { color: s.color }]}>{s.value}</Text>
+                <Text style={st.statLabel}>{s.label}</Text>
+              </View>
+            </React.Fragment>
+          ))}
+        </View>
+      </LinearGradient>
+
+      {/* ── TABS ── */}
+      <View style={st.tabRow}>
+        <TouchableOpacity style={[st.tab, tab === 'incidents' && st.tabActive]} onPress={() => setTab('incidents')}>
+          <Text style={[st.tabTxt, tab === 'incidents' && st.tabTxtActive]}>All Incidents</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={[st.tab, tab === 'vehicles' && st.tabActive]} onPress={() => setTab('vehicles')}>
+          <Text style={[st.tabTxt, tab === 'vehicles' && st.tabTxtActive]}>Vehicles</Text>
+        </TouchableOpacity>
       </View>
 
-      <View style={s.tabRow}>
-        <TouchableOpacity style={[s.tabBtn, tab === 'incidents' && s.tabActive]} onPress={() => setTab('incidents')}><Text style={[s.tabText, tab === 'incidents' && s.tabTextActive]}>All Incidents</Text></TouchableOpacity>
-        <TouchableOpacity style={[s.tabBtn, tab === 'vehicles' && s.tabActive]} onPress={() => setTab('vehicles')}><Text style={[s.tabText, tab === 'vehicles' && s.tabTextActive]}>Vehicles</Text></TouchableOpacity>
-      </View>
-
-      <ScrollView contentContainerStyle={s.scroll} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[C.red]} />}>
+      <ScrollView
+        contentContainerStyle={st.scroll}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[C.g600]} tintColor={C.g600} />}
+      >
         {tab === 'incidents' ? (
           incidents.length > 0 ? incidents.map(inc => {
-            const sev = SEVERITY_CFG[inc.severity] || SEVERITY_CFG.MINOR;
-            const st = STATUS_CFG[inc.status] || STATUS_CFG.OPEN;
+            const sev      = SEVERITY_CFG[inc.severity] || SEVERITY_CFG.MINOR;
+            const st2      = STATUS_CFG[inc.status]    || STATUS_CFG.OPEN;
             const typeInfo = INCIDENT_TYPES.find(t => t.key === inc.incidentType) || INCIDENT_TYPES[9];
             return (
-              <View key={inc.id} style={s.incCard}>
-                <View style={s.incTop}>
-                  <View style={[s.incIcon, { backgroundColor: '#FEE2E2' }]}>
-                    <MaterialCommunityIcons name={typeInfo.icon} size={18} color={C.red} />
+              <View key={inc.id} style={[st.card, { borderLeftWidth: 3, borderLeftColor: sev.color }]}>
+                <View style={st.cardTop}>
+                  <View style={[st.cardIcon, { backgroundColor: C.redL }]}>
+                    <MaterialCommunityIcons name={typeInfo.icon} size={20} color={C.red} />
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text style={s.incType}>{typeInfo.label}</Text>
-                    <Text style={s.incVehicle}>{inc.vehicleName}  ·  {fmtDate(inc.incidentDate)}</Text>
+                    <Text style={st.cardPrimary}>{typeInfo.label}</Text>
+                    <Text style={st.cardMeta}>{inc.vehicleName} · {fmtDate(inc.incidentDate)}</Text>
                   </View>
-                  <View style={[s.sevBadge, { backgroundColor: sev.bg }]}>
-                    <Text style={[s.sevText, { color: sev.color }]}>{sev.label}</Text>
+                  <View style={[st.sevBadge, { backgroundColor: sev.bg }]}>
+                    <Text style={[st.sevTxt, { color: sev.color }]}>{sev.label}</Text>
                   </View>
                 </View>
-                <Text style={s.incDesc}>{inc.description}</Text>
-                <View style={s.incBottom}>
-                  <View style={[s.statusBadge, { backgroundColor: st.bg }]}>
-                    <View style={[s.statusDot, { backgroundColor: st.color }]} />
-                    <Text style={[s.statusText, { color: st.color }]}>{st.label}</Text>
+                <Text style={st.incDesc}>{inc.description}</Text>
+                <View style={st.cardBottom}>
+                  <View style={[st.statusBadge, { backgroundColor: st2.bg }]}>
+                    <View style={[st.statusDot, { backgroundColor: st2.color }]} />
+                    <Text style={[st.statusTxt, { color: st2.color }]}>{st2.label}</Text>
                   </View>
-                  {inc.location ? <Text style={s.incLocation}>{inc.location}</Text> : null}
-                  {inc.estimatedCost ? <Text style={s.incCost}>{'\u20B9'}{fmt(inc.estimatedCost)}</Text> : null}
+                  {inc.location ? <Text style={st.incLocation}>{inc.location}</Text> : null}
+                  {inc.estimatedCost ? <Text style={[st.cardCost, { color: C.red, marginLeft: 'auto' }]}>₹{fmt(inc.estimatedCost)}</Text> : null}
                 </View>
               </View>
             );
           }) : (
-            <View style={s.emptyState}><MaterialCommunityIcons name="shield-check" size={36} color={C.green} /><Text style={s.emptyTitle}>No incidents reported</Text><Text style={s.emptyMsg}>All clear! Tap + to report an incident</Text></View>
+            <View style={st.empty}>
+              <View style={st.emptyIcon}><MaterialCommunityIcons name="shield-check" size={32} color={C.g500} /></View>
+              <Text style={st.emptyTitle}>No incidents reported</Text>
+              <Text style={st.emptyMsg}>All clear! Tap + to report an incident</Text>
+            </View>
           )
         ) : (
           vehicleIncidents.map(v => (
-            <View key={v.id} style={s.incCard}>
-              <View style={s.incTop}>
-                <View style={[s.incIcon, { backgroundColor: '#DBEAFE' }]}>
-                  <MaterialCommunityIcons name="car" size={18} color={C.blue} />
-                </View>
+            <View key={v.id} style={st.card}>
+              <View style={st.cardTop}>
+                <LinearGradient colors={[C.g800, C.g600]} style={st.cardIconGrad}>
+                  <MaterialCommunityIcons name="car" size={20} color="#fff" />
+                </LinearGradient>
                 <View style={{ flex: 1 }}>
-                  <Text style={s.incType}>{v.vehicleName}</Text>
-                  <Text style={s.incVehicle}>{v.registrationNumber || 'No Reg'}</Text>
+                  <Text style={st.cardPrimary}>{v.vehicleName}</Text>
+                  <Text style={st.cardMeta}>{v.registrationNumber || 'No Reg'}</Text>
                 </View>
                 <View style={{ alignItems: 'flex-end' }}>
-                  <Text style={s.incCost}>{v.count} incidents</Text>
-                  {v.openCount > 0 && <Text style={[s.incLocation, { color: C.red }]}>{v.openCount} open</Text>}
+                  <Text style={[st.cardCost, { color: C.text }]}>{v.count} incidents</Text>
+                  {v.openCount > 0 && <Text style={[st.cardMeta, { color: C.red }]}>{v.openCount} open</Text>}
                 </View>
               </View>
             </View>
           ))
         )}
-        <View style={{ height: 30 }} />
+        <View style={{ height: 80 }} />
       </ScrollView>
 
-      {/* Report Incident Modal */}
+      {/* ── REPORT INCIDENT MODAL ── */}
       <Modal visible={modal} transparent animationType="slide">
-        <View style={s.modalOverlay}>
-          <ScrollView style={s.modalScroll} contentContainerStyle={s.modalContent} keyboardShouldPersistTaps="handled">
-            <View style={s.modalHeader}>
-              <Text style={s.modalTitle}>Report Incident</Text>
-              <TouchableOpacity onPress={() => setModal(false)}><Icon name="x" size={20} color={C.muted} /></TouchableOpacity>
-            </View>
+        <View style={st.modalOverlay}>
+          <StatusBar barStyle="light-content" backgroundColor={C.g900} />
+          <ScrollView style={st.modalSheet} contentContainerStyle={{ paddingBottom: 50 }} keyboardShouldPersistTaps="handled">
 
-            <Text style={s.formLabel}>VEHICLE</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
-              {vehicles.map(v => (
-                <TouchableOpacity key={v.id} style={[s.chipBtn, form.vendorFleetId === v.id && s.chipActive]} onPress={() => setForm(f => ({ ...f, vendorFleetId: v.id }))}>
-                  <Text style={[s.chipText, form.vendorFleetId === v.id && s.chipTextActive]} numberOfLines={1}>{v.vehicleName}</Text>
+            {/* Modal hero */}
+            <LinearGradient colors={[C.g900, C.g800]} style={st.modalHero}>
+              <View style={st.modalHeroRow}>
+                <View style={st.modalHeroBadge}>
+                  <MaterialCommunityIcons name="alert-circle" size={22} color="rgba(255,255,255,0.9)" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={st.modalHeroTitle}>Report Incident</Text>
+                  <Text style={st.modalHeroSub}>Log a vehicle incident or breakdown</Text>
+                </View>
+                <TouchableOpacity style={st.modalCloseBtn} onPress={() => setModal(false)}>
+                  <Icon name="x" size={16} color="rgba(255,255,255,0.8)" />
                 </TouchableOpacity>
-              ))}
-            </ScrollView>
+              </View>
+            </LinearGradient>
 
-            <Text style={s.formLabel}>INCIDENT TYPE</Text>
-            <View style={s.chipsRow}>
-              {INCIDENT_TYPES.map(t => (
-                <TouchableOpacity key={t.key} style={[s.chipBtn, form.incidentType === t.key && s.chipActive]} onPress={() => setForm(f => ({ ...f, incidentType: t.key }))}>
-                  <Text style={[s.chipText, form.incidentType === t.key && s.chipTextActive]}>{t.label}</Text>
+            <View style={st.modalBody}>
+
+              {/* Vehicle Dropdown */}
+              <View style={st.formSection}>
+                <Text style={st.formSectionTitle}>Select Vehicle <Text style={st.reqTag}>*</Text></Text>
+                {(() => {
+                  const sel = vehicles.find(v => v.id === form.vendorFleetId);
+                  return (
+                    <>
+                      <TouchableOpacity
+                        style={[st.vDropTrigger, showVehicleDrop && st.vDropTriggerOpen]}
+                        onPress={() => setShowVehicleDrop(p => !p)}
+                        activeOpacity={0.8}
+                      >
+                        <LinearGradient colors={[C.g800, C.g600]} style={st.vDropIconBox}>
+                          <MaterialCommunityIcons name="car" size={15} color="#fff" />
+                        </LinearGradient>
+                        <View style={{ flex: 1 }}>
+                          {sel ? (
+                            <>
+                              <Text style={st.vDropName} numberOfLines={1}>{sel.vehicleName}</Text>
+                              <Text style={st.vDropReg}>{sel.registrationNumber || 'No Reg No.'}</Text>
+                            </>
+                          ) : (
+                            <Text style={st.vDropPlaceholder}>Select a vehicle...</Text>
+                          )}
+                        </View>
+                        <MaterialCommunityIcons
+                          name={showVehicleDrop ? 'chevron-up' : 'chevron-down'}
+                          size={20} color={C.muted}
+                        />
+                      </TouchableOpacity>
+                      {showVehicleDrop && (
+                        <ScrollView style={st.vDropList} keyboardShouldPersistTaps="handled" nestedScrollEnabled>
+                          {vehicles.map((v, idx) => (
+                            <TouchableOpacity
+                              key={v.id}
+                              style={[
+                                st.vDropItem,
+                                form.vendorFleetId === v.id && st.vDropItemActive,
+                                idx === vehicles.length - 1 && { borderBottomWidth: 0 },
+                              ]}
+                              onPress={() => { setForm(f => ({ ...f, vendorFleetId: v.id })); setShowVehicleDrop(false); }}
+                              activeOpacity={0.7}
+                            >
+                              <View style={[st.vDropItemIcon, form.vendorFleetId === v.id && { backgroundColor: C.g50 }]}>
+                                <MaterialCommunityIcons name="car" size={16} color={form.vendorFleetId === v.id ? C.g700 : C.muted} />
+                              </View>
+                              <View style={{ flex: 1 }}>
+                                <Text style={[st.vDropItemName, form.vendorFleetId === v.id && { color: C.g700 }]} numberOfLines={1}>{v.vehicleName}</Text>
+                                <Text style={st.vDropItemReg}>{v.registrationNumber || 'No Reg No.'}</Text>
+                              </View>
+                              {form.vendorFleetId === v.id && (
+                                <MaterialCommunityIcons name="check-circle" size={18} color={C.g600} />
+                              )}
+                            </TouchableOpacity>
+                          ))}
+                        </ScrollView>
+                      )}
+                    </>
+                  );
+                })()}
+              </View>
+
+              {/* Incident Type */}
+              <View style={st.formSection}>
+                <Text style={st.formSectionTitle}>Incident Type</Text>
+                <View style={st.typeGrid}>
+                  {INCIDENT_TYPES.map(t => {
+                    const active = form.incidentType === t.key;
+                    return (
+                      <TouchableOpacity
+                        key={t.key}
+                        style={[st.typeChip, active && st.typeChipActive]}
+                        onPress={() => setForm(f => ({ ...f, incidentType: t.key }))}
+                        activeOpacity={0.75}
+                      >
+                        <MaterialCommunityIcons name={t.icon} size={14} color={active ? C.red : C.muted} />
+                        <Text style={[st.typeChipTxt, active && st.typeChipTxtActive]}>{t.label}</Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </View>
+
+              {/* Date */}
+              <View style={st.formSection}>
+                <Text style={st.formSectionTitle}>Incident Date</Text>
+                <TouchableOpacity style={st.inputRow} onPress={() => setShowDatePicker(true)}>
+                  <View style={st.inputIconBox}><Icon name="calendar" size={15} color={C.g700} /></View>
+                  <Text style={st.inputRowTxt}>{form.incidentDate.toLocaleDateString('en-IN')}</Text>
+                  <Icon name="chevron-right" size={15} color={C.muted} />
                 </TouchableOpacity>
-              ))}
+                {showDatePicker && (
+                  <DateTimePicker value={form.incidentDate} mode="date" maximumDate={new Date()} onChange={(_, d) => { setShowDatePicker(false); if (d) setForm(f => ({ ...f, incidentDate: d })); }} />
+                )}
+              </View>
+
+              {/* Severity */}
+              <View style={st.formSection}>
+                <Text style={st.formSectionTitle}>Severity Level</Text>
+                <View style={st.sevRow}>
+                  {Object.entries(SEVERITY_CFG).map(([key, cfg]) => {
+                    const active = form.severity === key;
+                    return (
+                      <TouchableOpacity
+                        key={key}
+                        style={[st.sevChip, active && { backgroundColor: cfg.bg, borderColor: cfg.color }]}
+                        onPress={() => setForm(f => ({ ...f, severity: key }))}
+                        activeOpacity={0.75}
+                      >
+                        <View style={[st.sevDot, { backgroundColor: cfg.color }]} />
+                        <Text style={[st.sevChipTxt, active && { color: cfg.color, fontWeight: '800' }]}>{cfg.label}</Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </View>
+
+              {/* Description */}
+              <View style={st.formSection}>
+                <Text style={st.formSectionTitle}>Description <Text style={st.reqTag}>*</Text></Text>
+                <TextInput
+                  style={st.textArea}
+                  value={form.description}
+                  onChangeText={v => setForm(f => ({ ...f, description: v }))}
+                  placeholder="Describe what happened in detail..."
+                  placeholderTextColor={C.muted}
+                  multiline
+                />
+              </View>
+
+              {/* Location */}
+              <View style={st.formSection}>
+                <Text style={st.formSectionTitle}>Location <Text style={st.optTag}>(Optional)</Text></Text>
+                <View style={st.inputBox}>
+                  <View style={st.inputPfx}><Icon name="map-pin" size={14} color={C.g700} /></View>
+                  <TextInput style={st.inputField} value={form.location} onChangeText={v => setForm(f => ({ ...f, location: v }))} placeholder="Where did it happen?" placeholderTextColor={C.muted} />
+                </View>
+              </View>
+
+              {/* Estimated Cost */}
+              <View style={st.formSection}>
+                <Text style={st.formSectionTitle}>Estimated Cost <Text style={st.optTag}>(Optional)</Text></Text>
+                <View style={st.inputBox}>
+                  <View style={st.inputPfx}><Text style={st.inputPfxTxt}>₹</Text></View>
+                  <TextInput style={st.inputField} keyboardType="numeric" value={form.estimatedCost} onChangeText={v => setForm(f => ({ ...f, estimatedCost: v }))} placeholder="0.00" placeholderTextColor={C.muted} />
+                </View>
+              </View>
+
+              {/* Notes */}
+              <View style={st.formSection}>
+                <Text style={st.formSectionTitle}>Notes <Text style={st.optTag}>(Optional)</Text></Text>
+                <TextInput style={st.notesInput} value={form.notes} onChangeText={v => setForm(f => ({ ...f, notes: v }))} placeholder="Any additional notes..." placeholderTextColor={C.muted} multiline />
+              </View>
+
+              {/* Save */}
+              <TouchableOpacity onPress={handleSave} disabled={saving} activeOpacity={0.85}>
+                <LinearGradient colors={[C.g800, C.g600]} style={[st.saveBtn, saving && { opacity: 0.6 }]}>
+                  {saving ? <ActivityIndicator size="small" color="#fff" /> : (
+                    <><MaterialCommunityIcons name="alert-circle" size={18} color="#fff" /><Text style={st.saveBtnTxt}>Report Incident</Text></>
+                  )}
+                </LinearGradient>
+              </TouchableOpacity>
+
             </View>
-
-            <Text style={s.formLabel}>DATE</Text>
-            <TouchableOpacity style={s.dateInput} onPress={() => setShowDatePicker(true)}>
-              <Icon name="calendar" size={16} color={C.muted} /><Text style={s.dateText}>{form.incidentDate.toLocaleDateString('en-IN')}</Text>
-            </TouchableOpacity>
-            {showDatePicker && <DateTimePicker value={form.incidentDate} mode="date" maximumDate={new Date()} onChange={(_, d) => { setShowDatePicker(false); if (d) setForm(f => ({ ...f, incidentDate: d })); }} />}
-
-            <Text style={s.formLabel}>SEVERITY</Text>
-            <View style={s.chipsRow}>
-              {Object.entries(SEVERITY_CFG).map(([key, cfg]) => (
-                <TouchableOpacity key={key} style={[s.chipBtn, form.severity === key && { backgroundColor: cfg.bg, borderColor: cfg.color }]} onPress={() => setForm(f => ({ ...f, severity: key }))}>
-                  <Text style={[s.chipText, form.severity === key && { color: cfg.color, fontWeight: '700' }]}>{cfg.label}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-
-            <Text style={s.formLabel}>DESCRIPTION *</Text>
-            <TextInput style={[s.textInput, { height: 80, textAlignVertical: 'top' }]} value={form.description} onChangeText={v => setForm(f => ({ ...f, description: v }))} placeholder="Describe what happened..." placeholderTextColor={C.muted} multiline />
-
-            <Text style={s.formLabel}>LOCATION</Text>
-            <TextInput style={s.textInput} value={form.location} onChangeText={v => setForm(f => ({ ...f, location: v }))} placeholder="Where did it happen?" placeholderTextColor={C.muted} />
-
-            <Text style={s.formLabel}>ESTIMATED COST</Text>
-            <TextInput style={s.textInput} keyboardType="numeric" value={form.estimatedCost} onChangeText={v => setForm(f => ({ ...f, estimatedCost: v }))} placeholder="Optional" placeholderTextColor={C.muted} />
-
-            <Text style={s.formLabel}>NOTES</Text>
-            <TextInput style={[s.textInput, { height: 60, textAlignVertical: 'top' }]} value={form.notes} onChangeText={v => setForm(f => ({ ...f, notes: v }))} placeholder="Optional" placeholderTextColor={C.muted} multiline />
-
-            <TouchableOpacity style={[s.saveBtn, saving && { opacity: 0.6 }]} onPress={handleSave} disabled={saving}>
-              {saving ? <ActivityIndicator size="small" color="#fff" /> : <><Icon name="alert-triangle" size={18} color="#fff" /><Text style={s.saveBtnText}>Report Incident</Text></>}
-            </TouchableOpacity>
-            <View style={{ height: 30 }} />
           </ScrollView>
         </View>
       </Modal>
@@ -268,62 +452,120 @@ export default function IncidentsScreen({ navigation }) {
   );
 }
 
-const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: C.bg },
-  centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14, backgroundColor: '#B91C1C' },
-  backBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
-  headerTitle: { fontSize: 20, fontWeight: '700', color: '#fff' },
-  headerSub: { fontSize: 12, color: 'rgba(255,255,255,0.65)', marginTop: 1 },
-  addBtn: { width: 38, height: 38, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.2)', justifyContent: 'center', alignItems: 'center' },
+const st = StyleSheet.create({
+  safe:    { flex: 1, backgroundColor: C.bg },
+  centered:{ flex: 1, justifyContent: 'center', alignItems: 'center' },
 
-  statsRow: { flexDirection: 'row', gap: 6, paddingHorizontal: 16, paddingVertical: 10, backgroundColor: '#B91C1C', paddingBottom: 16 },
-  statCard: { flex: 1, backgroundColor: 'rgba(255,255,255,0.12)', borderRadius: 10, paddingVertical: 8, alignItems: 'center' },
-  statVal: { fontSize: 14, fontWeight: '800', color: '#fff' },
-  statLabel: { fontSize: 9, color: 'rgba(255,255,255,0.65)', marginTop: 2 },
+  hero:        { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 18, overflow: 'hidden' },
+  heroLoading: { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 18 },
+  heroTopSimple: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  deco: { position: 'absolute', borderRadius: 999, backgroundColor: '#fff' },
+  heroTop: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, marginBottom: 18 },
+  backBtn: { width: 38, height: 38, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.12)', justifyContent: 'center', alignItems: 'center', marginTop: 4 },
+  heroMid: { flex: 1 },
+  heroBadge: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: 'rgba(255,255,255,0.12)', alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20, marginBottom: 6 },
+  heroBadgeTxt: { fontSize: 11, fontWeight: '600', color: C.g400 },
+  heroTitle: { fontSize: 24, fontWeight: '800', color: '#fff', marginBottom: 3 },
+  heroSub:   { fontSize: 13, color: 'rgba(255,255,255,0.6)' },
+  addBtn: { width: 38, height: 38, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.15)', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)', marginTop: 4 },
+
+  statsRow: { flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 14, paddingVertical: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
+  statDiv:  { width: 1, backgroundColor: 'rgba(255,255,255,0.12)', marginVertical: 4 },
+  statBox:  { flex: 1, alignItems: 'center' },
+  statVal:  { fontSize: 16, fontWeight: '800', marginBottom: 3 },
+  statLabel:{ fontSize: 9, fontWeight: '700', color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: 0.4 },
 
   tabRow: { flexDirection: 'row', paddingHorizontal: 16, paddingVertical: 10, gap: 8 },
-  tabBtn: { flex: 1, paddingVertical: 10, borderRadius: 12, backgroundColor: '#F1F5F9', alignItems: 'center' },
-  tabActive: { backgroundColor: '#B91C1C' },
-  tabText: { fontSize: 13, fontWeight: '600', color: C.subtext },
-  tabTextActive: { color: '#fff' },
+  tab:       { flex: 1, paddingVertical: 10, borderRadius: 12, backgroundColor: C.card, borderWidth: 1, borderColor: C.border, alignItems: 'center' },
+  tabActive: { backgroundColor: C.g700, borderColor: C.g700 },
+  tabTxt:    { fontSize: 13, fontWeight: '600', color: C.muted },
+  tabTxtActive: { color: '#fff' },
 
-  scroll: { padding: 16, gap: 10 },
-  incCard: { backgroundColor: C.surface, borderRadius: 14, padding: 14, borderWidth: 1, borderColor: C.border },
-  incTop: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  incIcon: { width: 36, height: 36, borderRadius: 10, justifyContent: 'center', alignItems: 'center' },
-  incType: { fontSize: 14, fontWeight: '700', color: C.text },
-  incVehicle: { fontSize: 11, color: C.muted, marginTop: 1 },
-  sevBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
-  sevText: { fontSize: 10, fontWeight: '700' },
-  incDesc: { fontSize: 12, color: C.subtext, marginTop: 8, lineHeight: 18 },
-  incBottom: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: '#F1F5F9' },
-  statusBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
-  statusDot: { width: 5, height: 5, borderRadius: 3 },
-  statusText: { fontSize: 10, fontWeight: '700' },
-  incLocation: { fontSize: 11, color: C.muted },
-  incCost: { fontSize: 12, fontWeight: '700', color: C.red, marginLeft: 'auto' },
+  scroll: { padding: 16, gap: 10, paddingBottom: 100 },
 
-  emptyState: { alignItems: 'center', paddingVertical: 50 },
-  emptyTitle: { fontSize: 16, fontWeight: '700', color: C.text, marginTop: 12 },
-  emptyMsg: { fontSize: 13, color: C.muted, marginTop: 4 },
+  card:     { backgroundColor: C.card, borderRadius: 16, padding: 14, borderWidth: 1, borderColor: C.border, shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 2 },
+  cardTop:  { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  cardIcon: { width: 44, height: 44, borderRadius: 13, justifyContent: 'center', alignItems: 'center', flexShrink: 0 },
+  cardIconGrad: { width: 44, height: 44, borderRadius: 13, justifyContent: 'center', alignItems: 'center', flexShrink: 0 },
+  cardPrimary: { fontSize: 14, fontWeight: '700', color: C.text, marginBottom: 2 },
+  cardMeta:    { fontSize: 11, color: C.muted },
+  cardCost:    { fontSize: 14, fontWeight: '800' },
+  cardBottom:  { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: C.border },
+  incDesc:     { fontSize: 13, color: C.sub, marginTop: 10, lineHeight: 19 },
+  incLocation: { fontSize: 12, color: C.muted },
+  sevBadge:    { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10 },
+  sevTxt:      { fontSize: 11, fontWeight: '700' },
+  statusBadge: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
+  statusDot:   { width: 6, height: 6, borderRadius: 3 },
+  statusTxt:   { fontSize: 11, fontWeight: '700' },
 
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)' },
-  modalScroll: { marginTop: 60, backgroundColor: C.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24 },
-  modalContent: { padding: 20 },
-  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
-  modalTitle: { fontSize: 18, fontWeight: '700', color: C.text },
+  empty:     { alignItems: 'center', paddingVertical: 60 },
+  emptyIcon: { width: 72, height: 72, borderRadius: 36, backgroundColor: C.card, justifyContent: 'center', alignItems: 'center', marginBottom: 16, borderWidth: 1, borderColor: C.border },
+  emptyTitle:{ fontSize: 17, fontWeight: '800', color: C.text, marginBottom: 6 },
+  emptyMsg:  { fontSize: 13, color: C.muted, textAlign: 'center' },
 
-  formLabel: { fontSize: 10, fontWeight: '700', color: C.muted, letterSpacing: 0.8, marginBottom: 6, marginTop: 12 },
-  chipsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  chipBtn: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10, backgroundColor: '#F1F5F9', borderWidth: 1.5, borderColor: 'transparent' },
-  chipActive: { backgroundColor: '#FEE2E2', borderColor: C.red },
-  chipText: { fontSize: 12, color: C.subtext },
-  chipTextActive: { color: '#991B1B', fontWeight: '700' },
-  textInput: { backgroundColor: '#F8FAFC', borderWidth: 1, borderColor: C.border, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontSize: 14, color: C.text },
-  dateInput: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: '#F8FAFC', borderWidth: 1, borderColor: C.border, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12 },
-  dateText: { fontSize: 14, color: C.text },
+  /* Modal */
+  modalOverlay: { flex: 1, backgroundColor: C.bg },
+  modalSheet:   { flex: 1 },
 
-  saveBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: '#B91C1C', paddingVertical: 14, borderRadius: 14, marginTop: 20 },
-  saveBtnText: { fontSize: 15, fontWeight: '700', color: '#fff' },
+  /* Modal hero */
+  modalHero: { paddingHorizontal: 20, paddingTop: 52, paddingBottom: 20 },
+  modalHeroRow: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+  modalHeroBadge: { width: 48, height: 48, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.15)', justifyContent: 'center', alignItems: 'center' },
+  modalHeroTitle: { fontSize: 18, fontWeight: '800', color: '#fff', marginBottom: 2 },
+  modalHeroSub:   { fontSize: 12, color: 'rgba(255,255,255,0.65)' },
+  modalCloseBtn:  { width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.15)', justifyContent: 'center', alignItems: 'center' },
+
+  /* Modal body */
+  modalBody: { padding: 20 },
+  formSection: { marginBottom: 20 },
+  formSectionTitle: { fontSize: 11, fontWeight: '800', color: C.muted, letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 10 },
+  reqTag: { color: C.red, fontWeight: '800' },
+  optTag: { fontWeight: '500', color: C.muted, textTransform: 'none', letterSpacing: 0 },
+
+  /* Vehicle dropdown */
+  vDropTrigger: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: C.card, borderRadius: 14, borderWidth: 1.5, borderColor: C.border, paddingHorizontal: 12, paddingVertical: 11 },
+  vDropTriggerOpen: { borderColor: C.g600, borderBottomLeftRadius: 0, borderBottomRightRadius: 0 },
+  vDropIconBox: { width: 36, height: 36, borderRadius: 10, justifyContent: 'center', alignItems: 'center' },
+  vDropName: { fontSize: 14, fontWeight: '700', color: C.text },
+  vDropReg: { fontSize: 11, color: C.muted, marginTop: 1, fontFamily: 'monospace' },
+  vDropPlaceholder: { fontSize: 14, color: C.muted },
+  vDropList: { backgroundColor: C.card, borderWidth: 1.5, borderTopWidth: 0, borderColor: C.g600, borderBottomLeftRadius: 14, borderBottomRightRadius: 14, overflow: 'hidden', maxHeight: 200 },
+  vDropItem: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 12, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: C.border },
+  vDropItemActive: { backgroundColor: C.g50 },
+  vDropItemIcon: { width: 34, height: 34, borderRadius: 9, backgroundColor: '#F1F5F9', justifyContent: 'center', alignItems: 'center' },
+  vDropItemName: { fontSize: 13, fontWeight: '700', color: C.text },
+  vDropItemReg: { fontSize: 11, color: C.muted, marginTop: 1, fontFamily: 'monospace' },
+
+  /* Incident type chips */
+  typeGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  typeChip: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 11, paddingVertical: 8, borderRadius: 12, backgroundColor: C.card, borderWidth: 1.5, borderColor: C.border },
+  typeChipActive: { backgroundColor: C.redL, borderColor: C.red },
+  typeChipTxt: { fontSize: 12, fontWeight: '700', color: C.muted },
+  typeChipTxtActive: { color: C.red },
+
+  /* Date input row */
+  inputRow: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: C.card, borderWidth: 1.5, borderColor: C.border, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 13 },
+  inputIconBox: { width: 28, height: 28, borderRadius: 8, backgroundColor: C.g50, justifyContent: 'center', alignItems: 'center' },
+  inputRowTxt: { flex: 1, fontSize: 14, color: C.text, fontWeight: '600' },
+
+  /* Severity chips */
+  sevRow: { flexDirection: 'row', gap: 8 },
+  sevChip: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 10, borderRadius: 12, backgroundColor: C.card, borderWidth: 1.5, borderColor: C.border },
+  sevDot: { width: 8, height: 8, borderRadius: 4 },
+  sevChipTxt: { fontSize: 12, fontWeight: '700', color: C.muted },
+
+  /* Input box with prefix */
+  inputBox: { flexDirection: 'row', alignItems: 'center', backgroundColor: C.card, borderWidth: 1.5, borderColor: C.border, borderRadius: 14, overflow: 'hidden' },
+  inputPfx: { width: 44, height: 48, justifyContent: 'center', alignItems: 'center', backgroundColor: C.bg, borderRightWidth: 1, borderRightColor: C.border },
+  inputPfxTxt: { fontSize: 13, fontWeight: '800', color: C.g700 },
+  inputField: { flex: 1, paddingHorizontal: 13, fontSize: 14, color: C.text, height: 48 },
+
+  /* Text areas */
+  textArea:   { backgroundColor: C.card, borderWidth: 1.5, borderColor: C.border, borderRadius: 14, padding: 14, fontSize: 14, color: C.text, height: 90, textAlignVertical: 'top' },
+  notesInput: { backgroundColor: C.card, borderWidth: 1.5, borderColor: C.border, borderRadius: 14, padding: 14, fontSize: 14, color: C.text, height: 72, textAlignVertical: 'top' },
+
+  /* Save */
+  saveBtn:    { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 16, borderRadius: 16 },
+  saveBtnTxt: { fontSize: 15, fontWeight: '800', color: '#fff' },
 });

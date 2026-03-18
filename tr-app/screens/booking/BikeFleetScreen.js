@@ -184,9 +184,10 @@ const BikeFleetScreen = () => {
     setLocationQuery(text);
     setSelectedLocation(null);
 
-    if (text.length > 0) {
+    const trimmed = text.trim();
+    if (trimmed.length > 0) {
       const filtered = allLocations.filter(loc =>
-        loc.name?.toLowerCase().includes(text.toLowerCase())
+        loc.name?.toLowerCase().includes(trimmed.toLowerCase())
       );
       setFilteredLocations(filtered);
       setShowLocationDropdown(true);

@@ -11,6 +11,7 @@ import {
   Platform,
   ActivityIndicator,
   StatusBar,
+  Keyboard,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Feather';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -145,11 +146,11 @@ export default function PackerMoverScreen() {
     setExpandedIndex((prev) => (prev === i ? null : i));
   };
 
-  const filteredLocations = query.length
+  const filteredLocations = query.trim().length
     ? allLocations.filter(
         (l) =>
           typeof l.name === 'string' &&
-          l.name.toLowerCase().includes(query.toLowerCase()),
+          l.name.toLowerCase().includes(query.trim().toLowerCase()),
       )
     : allLocations.slice(0, 35);
 
@@ -161,17 +162,18 @@ export default function PackerMoverScreen() {
   };
 
   const handleLocationSelect = (loc) => {
+    Keyboard.dismiss();
     setPickupLocation(loc.name);
     setPickupLocationId(loc.id);
     setQuery('');
     setShowSuggestions(false);
   };
 
-  const filteredDestLocations = destQuery.length
+  const filteredDestLocations = destQuery.trim().length
     ? allLocations.filter(
         (l) =>
           typeof l.name === 'string' &&
-          l.name.toLowerCase().includes(destQuery.toLowerCase()),
+          l.name.toLowerCase().includes(destQuery.trim().toLowerCase()),
       )
     : allLocations.slice(0, 35);
 
@@ -182,6 +184,7 @@ export default function PackerMoverScreen() {
   };
 
   const handleDestSelect = (loc) => {
+    Keyboard.dismiss();
     setDestination(loc.name);
     setDestQuery('');
     setShowDestSuggestions(false);
@@ -435,7 +438,7 @@ export default function PackerMoverScreen() {
                   placeholderTextColor={TEXT_MUTED}
                   style={styles.locationInput}
                   onFocus={() => setShowSuggestions(true)}
-                  onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
+                  onBlur={() => setTimeout(() => setShowSuggestions(false), 300)}
                 />
                 {pickupLocation ? (
                   <TouchableOpacity
@@ -502,7 +505,7 @@ export default function PackerMoverScreen() {
                   placeholderTextColor={TEXT_MUTED}
                   style={styles.locationInput}
                   onFocus={() => setShowDestSuggestions(true)}
-                  onBlur={() => setTimeout(() => setShowDestSuggestions(false), 150)}
+                  onBlur={() => setTimeout(() => setShowDestSuggestions(false), 300)}
                 />
                 {destination ? (
                   <TouchableOpacity

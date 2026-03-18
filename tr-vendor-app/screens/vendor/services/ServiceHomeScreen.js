@@ -17,7 +17,7 @@ import Icon from 'react-native-vector-icons/Feather';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import api from '../../../lib/api';
+import { getBookingsByService } from '../../api/client';
 
 const GREEN = '#09B368';
 const BG = '#F5F5F7';
@@ -159,28 +159,27 @@ export default function ServiceHomeScreen({ route, navigation }) {
 
   const fetchStats = async () => {
     try {
-      const vendorData = await AsyncStorage.getItem('vendor');
-      if (!vendorData) return;
-      const vendor = JSON.parse(vendorData);
-
-      // Fetch stats for this service
-      const [quoteRes, bookingRes, templateRes, earningsRes] = await Promise.all([
-        api.get('/vendor/quote-requests', { params: { vendorId: vendor.id, serviceType, status: 'PENDING' } }).catch(() => ({ data: { requests: [] } })),
-        api.get('/vendor/bookings', { params: { vendorId: vendor.id, serviceType } }).catch(() => ({ data: { bookings: [] } })),
-        api.get('/vendor/templates', { params: { vendorId: vendor.id, serviceType } }).catch(() => ({ data: { templates: [] } })),
-        api.get('/vendor/earnings', { params: { vendorId: vendor.id, serviceType } }).catch(() => ({ data: { total: 0 } })),
-      ]);
-
+      const res = await getBookingsByService(serviceType, { limit: 200 }).catch(() => ({ bookings: [] }));
+      const bookings = res?.bookings || [];
+      const totalBookings = bookings.filter(b =>
+        ['ACCEPTED','CONFIRMED','IN_PROGRESS','COMPLETED','READY_FOR_PICKUP'].includes(b.status)
+      ).length;
+      const earnings = bookings
+        .filter(b => b.status === 'COMPLETED')
+        .reduce((s, b) => s + (b.grandTotal || b.totalAmount || 0), 0);
+      const openRequests = bookings.filter(b =>
+        ['PENDING','PENDING_VENDOR','BROADCASTED'].includes(b.status)
+      ).length;
       setStats({
-        quoteRequests: quoteRes.data?.requests?.length || quoteRes.data?.total || 0,
-        myQuotes: 0, // Will be set from my quotes API
-        bookings: bookingRes.data?.bookings?.length || bookingRes.data?.total || 0,
-        activeTrips: bookingRes.data?.bookings?.filter(b => b.status === 'IN_PROGRESS')?.length || 0,
-        templates: templateRes.data?.templates?.length || 0,
-        earnings: earningsRes.data?.total || 0,
+        quoteRequests: openRequests,
+        myQuotes: 0,
+        bookings: totalBookings,
+        activeTrips: bookings.filter(b => b.status === 'IN_PROGRESS').length,
+        templates: 0,
+        earnings,
       });
-    } catch (error) {
-      console.log('Error fetching service stats:', error.message);
+    } catch (e) {
+      console.error('ServiceHome stats error:', e.message);
     }
   };
 

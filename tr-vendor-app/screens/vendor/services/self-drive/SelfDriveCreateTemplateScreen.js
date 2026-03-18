@@ -1,34 +1,40 @@
+/**
+ * SelfDriveCreateTemplateScreen.js - Create new self-drive quote template
+ */
+
 import React, { useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  TextInput,
-  Alert,
-  Switch,
-  KeyboardAvoidingView,
-  Platform,
+  View, Text, StyleSheet, TouchableOpacity, ScrollView,
+  TextInput, StatusBar, Switch, Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/Feather';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { createTemplate } from '../../../api/client';
-import { showConfirm, showError, showInfo, showSuccess } from '../../../../services/alertService';
+import { showError, showSuccess } from '../../../../services/alertService';
 
-const SERVICE_COLOR = '#3B82F6'; // Blue for self-drive
-const GREEN = '#09B368';
-const DARK = '#0F172A';
-const BG = '#F5F5F7';
+const { width: W } = Dimensions.get('window');
+
+const C = {
+  g900: '#022C22', g800: '#065F46', g700: '#047857', g600: '#047857',
+  g500: '#059669', g50: '#ECFDF5', g100: '#D1FAE5',
+  bg: '#F1F5F9', card: '#FFFFFF', border: '#E2E8F0', text: '#0F172A',
+  sub: '#475569', muted: '#94A3B8',
+  amber: '#D97706', amberL: '#FFFBEB',
+  red: '#DC2626', redL: '#FEF2F2',
+  green: '#059669', greenL: '#ECFDF5',
+  indigo: '#4F46E5', indigoL: '#EEF2FF',
+};
 
 const SELF_DRIVE_CATEGORIES = [
-  { id: 'hatchback', name: 'Hatchback', icon: 'car-hatchback' },
-  { id: 'sedan', name: 'Sedan', icon: 'car-sedan' },
-  { id: 'suv', name: 'SUV', icon: 'car-estate' },
-  { id: 'muv', name: 'MUV', icon: 'van-utility' },
-  { id: 'compact-suv', name: 'Compact SUV', icon: 'car-sports' },
-  { id: 'luxury', name: 'Luxury', icon: 'car-sports' },
+  { id: 'hatchback',   name: 'Hatchback',   icon: 'car-hatchback' },
+  { id: 'sedan',       name: 'Sedan',       icon: 'car-sedan'     },
+  { id: 'suv',         name: 'SUV',         icon: 'car-estate'    },
+  { id: 'muv',         name: 'MUV',         icon: 'van-utility'   },
+  { id: 'compact-suv', name: 'Compact SUV', icon: 'car-sports'    },
+  { id: 'luxury',      name: 'Luxury',      icon: 'car-sports'    },
 ];
 
 const TEMPLATE_SUGGESTIONS = [
@@ -46,7 +52,6 @@ const TEMPLATE_SUGGESTIONS = [
       'Fuel charges',
       'Toll & parking charges',
       'State permit charges (if applicable)',
-      'Extra km charges apply',
     ],
     terms: [
       'Valid driving license mandatory',
@@ -54,10 +59,7 @@ const TEMPLATE_SUGGESTIONS = [
       'Car must be returned with same fuel level',
       'Late return charges: ₹200/hour',
     ],
-    dailyRateHint: 1200,
-    kmLimitPerDay: 120,
-    extraKmRateHint: 10,
-    securityDepositHint: 3000,
+    dailyRate: '1200', kmLimit: '120', extraKmRate: '10', securityDeposit: '3000',
   },
   {
     name: 'SUV Weekend Package',
@@ -68,24 +70,18 @@ const TEMPLATE_SUGGESTIONS = [
       'Zero depreciation insurance',
       '300 km/day limit',
       'GPS navigation included',
-      '24x7 support',
     ],
     exclusions: [
       'Fuel charges',
       'Inter-state travel charges',
       'Toll, parking & permit fees',
-      'Driver charges (if needed)',
     ],
     terms: [
       'Minimum 2 days booking required',
       'Valid license with 2+ years experience',
-      'Advance booking recommended',
       'Cancellation: 24 hours notice required',
     ],
-    dailyRateHint: 3500,
-    kmLimitPerDay: 300,
-    extraKmRateHint: 15,
-    securityDepositHint: 8000,
+    dailyRate: '3500', kmLimit: '300', extraKmRate: '15', securityDeposit: '8000',
   },
   {
     name: 'Luxury Sedan Premium',
@@ -96,7 +92,6 @@ const TEMPLATE_SUGGESTIONS = [
       'Full insurance coverage',
       'Unlimited km (within city)',
       'Premium fuel included for 1st tank',
-      'Concierge support',
     ],
     exclusions: [
       'Inter-city travel charges extra',
@@ -106,670 +101,486 @@ const TEMPLATE_SUGGESTIONS = [
     terms: [
       'Valid license with 3+ years experience',
       'Verification & KYC mandatory',
-      'Premium deposit required',
       'Late charges: ₹500/hour',
     ],
-    dailyRateHint: 6000,
-    kmLimitPerDay: 150,
-    extraKmRateHint: 25,
-    securityDepositHint: 15000,
+    dailyRate: '6000', kmLimit: '150', extraKmRate: '25', securityDeposit: '15000',
   },
 ];
 
-const SelfDriveCreateTemplateScreen = ({ navigation }) => {
-  const [showSuggestions, setShowSuggestions] = useState(true);
+const catIcon = (id) => {
+  const cat = SELF_DRIVE_CATEGORIES.find(c => c.id === id);
+  return cat ? cat.icon : 'car';
+};
+
+export default function SelfDriveCreateTemplateScreen({ navigation }) {
   const [name, setName] = useState('');
-  const [category, setCategory] = useState('hatchback');
+  const [category, setCategory] = useState('');
   const [description, setDescription] = useState('');
   const [inclusions, setInclusions] = useState([]);
-  const [newInclusion, setNewInclusion] = useState('');
   const [exclusions, setExclusions] = useState([]);
-  const [newExclusion, setNewExclusion] = useState('');
   const [terms, setTerms] = useState([]);
-  const [newTerm, setNewTerm] = useState('');
   const [dailyRate, setDailyRate] = useState('');
   const [kmLimit, setKmLimit] = useState('');
   const [extraKmRate, setExtraKmRate] = useState('');
   const [securityDeposit, setSecurityDeposit] = useState('');
   const [isDefault, setIsDefault] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(true);
+  const [newInclusion, setNewInclusion] = useState('');
+  const [newExclusion, setNewExclusion] = useState('');
+  const [newTerm, setNewTerm] = useState('');
 
-  const loadSuggestion = (suggestion) => {
-    setName(suggestion.name);
-    setCategory(suggestion.category);
-    setDescription(suggestion.description);
-    setInclusions(suggestion.inclusions);
-    setExclusions(suggestion.exclusions);
-    setTerms(suggestion.terms);
-    setDailyRate(suggestion.dailyRateHint.toString());
-    setKmLimit(suggestion.kmLimitPerDay.toString());
-    setExtraKmRate(suggestion.extraKmRateHint.toString());
-    setSecurityDeposit(suggestion.securityDepositHint.toString());
+  const loadSuggestion = (sg) => {
+    setName(sg.name); setCategory(sg.category); setDescription(sg.description);
+    setInclusions(sg.inclusions); setExclusions(sg.exclusions); setTerms(sg.terms);
+    setDailyRate(sg.dailyRate); setKmLimit(sg.kmLimit);
+    setExtraKmRate(sg.extraKmRate); setSecurityDeposit(sg.securityDeposit);
     setShowSuggestions(false);
   };
 
-  const addInclusion = () => {
-    if (newInclusion.trim()) {
-      setInclusions([...inclusions, newInclusion.trim()]);
-      setNewInclusion('');
-    }
+  const addItem = (val, list, setList, setVal) => {
+    const v = val.trim();
+    if (v && !list.includes(v)) { setList([...list, v]); setVal(''); }
   };
 
-  const removeInclusion = (index) => {
-    setInclusions(inclusions.filter((_, i) => i !== index));
-  };
-
-  const addExclusion = () => {
-    if (newExclusion.trim()) {
-      setExclusions([...exclusions, newExclusion.trim()]);
-      setNewExclusion('');
-    }
-  };
-
-  const removeExclusion = (index) => {
-    setExclusions(exclusions.filter((_, i) => i !== index));
-  };
-
-  const addTerm = () => {
-    if (newTerm.trim()) {
-      setTerms([...terms, newTerm.trim()]);
-      setNewTerm('');
-    }
-  };
-
-  const removeTerm = (index) => {
-    setTerms(terms.filter((_, i) => i !== index));
-  };
+  const removeItem = (item, list, setList) => setList(list.filter(i => i !== item));
 
   const handleSubmit = async () => {
-    // Validation
-    if (!name.trim()) {
-      showError('Please enter a template name');
-      return;
-    }
+    if (!name.trim() || !category) { showError('Please enter template name and select category'); return; }
+    if (inclusions.length === 0) { showError('Please add at least one inclusion'); return; }
 
+    setIsSubmitting(true);
     try {
-      setIsSubmitting(true);
-
-      const templateData = {
-        name: name.trim(),
-        category,
+      await createTemplate('self-drive', {
+        name: name.trim(), category,
         description: description.trim() || null,
-        inclusions,
-        exclusions,
+        inclusions, exclusions,
         termsConditions: terms,
-        dailyRateHint: dailyRate ? parseFloat(dailyRate) : null,
-        kmLimitPerDay: kmLimit ? parseInt(kmLimit) : null,
-        extraKmRateHint: extraKmRate ? parseFloat(extraKmRate) : null,
+        dailyRateHint:       dailyRate       ? parseFloat(dailyRate)       : null,
+        kmLimitPerDay:       kmLimit         ? parseInt(kmLimit)           : null,
+        extraKmRateHint:     extraKmRate     ? parseFloat(extraKmRate)     : null,
         securityDepositHint: securityDeposit ? parseFloat(securityDeposit) : null,
-        isDefault,
-        isActive: true,
-      };
-
-      await createTemplate('self-drive', templateData);
-
-      showSuccess('Template created successfully!', 'Success', { actions: [{ label: 'OK', onPress: () => navigation.goBack(), variant: 'primary' }] });
+        isDefault, isActive: true,
+      });
+      showSuccess('Template created!', 'Success', { actions: [{ label: 'OK', onPress: () => navigation.goBack(), variant: 'primary' }] });
     } catch (error) {
-      console.error('Error creating template:', error);
       showError('Failed to create template. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  const SectionCard = ({ icon, iconColor, iconBg, title, children }) => (
+    <View style={s.section}>
+      <View style={s.sectionHead}>
+        <View style={[s.sectionIconBox, { backgroundColor: iconBg }]}>
+          <Icon name={icon} size={16} color={iconColor} />
+        </View>
+        <Text style={s.sectionTitle}>{title}</Text>
+      </View>
+      {children}
+    </View>
+  );
+
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.keyboardView}
-      >
-        {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-            <Icon name="arrow-left" size={24} color={DARK} />
+    <SafeAreaView style={s.container} edges={['top']}>
+      <StatusBar barStyle="light-content" backgroundColor={C.g900} />
+
+      {/* Hero Header */}
+      <LinearGradient colors={[C.g900, C.g800, C.g700]} style={s.hero}>
+        <View style={[s.deco, { width: 160, height: 160, top: -50, right: -30, opacity: 0.07 }]} />
+        <View style={[s.deco, { width: 70, height: 70, top: 15, right: 80, opacity: 0.05 }]} />
+        <View style={s.heroRow}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
+            <Icon name="arrow-left" size={22} color="#fff" />
           </TouchableOpacity>
-          <View style={styles.headerTextContainer}>
-            <Text style={styles.headerTitle}>Create Template</Text>
-            <Text style={styles.headerSubtitle}>Self-Drive Quote Template</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={s.heroTitle}>New Template</Text>
+            <Text style={s.heroSub}>Create a reusable self-drive quote template</Text>
           </View>
+          <View style={s.heroBadge}>
+            <MaterialCommunityIcons name="car" size={20} color={C.g400} />
+          </View>
+        </View>
+      </LinearGradient>
+
+      <ScrollView style={s.scroll} contentContainerStyle={s.scrollContent} showsVerticalScrollIndicator={false}>
+
+        {/* Quick Start */}
+        {showSuggestions && (
+          <View style={s.quickBox}>
+            <LinearGradient colors={[C.g50, '#fff']} style={s.quickHeader}>
+              <View style={s.quickIconBox}>
+                <Ionicons name="flash" size={18} color={C.g700} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={s.quickTitle}>Quick Start Templates</Text>
+                <Text style={s.quickSub}>Load a pre-built template and customize</Text>
+              </View>
+              <TouchableOpacity onPress={() => setShowSuggestions(false)} style={s.quickSkip}>
+                <Text style={s.quickSkipText}>Skip</Text>
+              </TouchableOpacity>
+            </LinearGradient>
+
+            {TEMPLATE_SUGGESTIONS.map((sg, i) => (
+              <TouchableOpacity key={i} style={s.sgCard} onPress={() => loadSuggestion(sg)} activeOpacity={0.7}>
+                <View style={s.sgIconBox}>
+                  <MaterialCommunityIcons name={catIcon(sg.category)} size={18} color={C.g700} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={s.sgName}>{sg.name}</Text>
+                  <Text style={s.sgDesc} numberOfLines={1}>{sg.description}</Text>
+                </View>
+                <View style={s.sgRate}>
+                  <Text style={s.sgRateText}>₹{sg.dailyRate}/day</Text>
+                </View>
+                <Icon name="chevron-right" size={16} color={C.muted} />
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+
+        {/* Basic Info */}
+        <SectionCard icon="info" iconColor={C.indigo} iconBg={C.indigoL} title="Basic Information">
+          <Text style={s.label}>Template Name *</Text>
+          <TextInput
+            style={s.input}
+            placeholder="e.g., Hatchback Daily Rental"
+            placeholderTextColor={C.muted}
+            value={name}
+            onChangeText={setName}
+          />
+
+          <Text style={s.label}>Category *</Text>
+          <View style={s.catGrid}>
+            {SELF_DRIVE_CATEGORIES.map(cat => (
+              <TouchableOpacity
+                key={cat.id}
+                style={[s.catChip, category === cat.id && s.catChipActive]}
+                onPress={() => setCategory(cat.id)}
+              >
+                <MaterialCommunityIcons
+                  name={cat.icon}
+                  size={13}
+                  color={category === cat.id ? '#fff' : C.sub}
+                />
+                <Text style={[s.catChipText, category === cat.id && s.catChipTextActive]}>
+                  {cat.name}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          <Text style={s.label}>Description <Text style={s.optional}>(optional)</Text></Text>
+          <TextInput
+            style={[s.input, s.textArea]}
+            placeholder="Brief description of this template..."
+            placeholderTextColor={C.muted}
+            value={description}
+            onChangeText={setDescription}
+            multiline numberOfLines={3}
+          />
+        </SectionCard>
+
+        {/* Rate Hints */}
+        <SectionCard icon="tag" iconColor={C.g700} iconBg={C.g50} title="Rate Hints">
+          <Text style={s.sectionNote}>These are hints only — actual rates set while quoting</Text>
+          <View style={s.rateGrid}>
+            {[
+              { label: 'Daily Rate (₹)',       val: dailyRate,       set: setDailyRate,       ph: '1200', numeric: true },
+              { label: 'KM Limit/Day',         val: kmLimit,         set: setKmLimit,         ph: '120',  numeric: true },
+              { label: 'Extra KM Rate (₹/km)', val: extraKmRate,     set: setExtraKmRate,     ph: '10',   numeric: true },
+              { label: 'Security Deposit (₹)', val: securityDeposit, set: setSecurityDeposit, ph: '3000', numeric: true },
+            ].map((f, i) => (
+              <View key={i} style={s.rateField}>
+                <Text style={s.label}>{f.label}</Text>
+                <TextInput
+                  style={s.input}
+                  placeholder={f.ph}
+                  placeholderTextColor={C.muted}
+                  value={f.val}
+                  onChangeText={f.set}
+                  keyboardType="numeric"
+                />
+              </View>
+            ))}
+          </View>
+        </SectionCard>
+
+        {/* Inclusions */}
+        <SectionCard icon="check-circle" iconColor={C.green} iconBg={C.greenL} title="Inclusions *">
+          <View style={s.addRow}>
+            <TextInput
+              style={[s.input, s.addInput]}
+              placeholder="Add inclusion item..."
+              placeholderTextColor={C.muted}
+              value={newInclusion}
+              onChangeText={setNewInclusion}
+              onSubmitEditing={() => addItem(newInclusion, inclusions, setInclusions, setNewInclusion)}
+            />
+            <TouchableOpacity
+              style={[s.addBtn, { backgroundColor: C.green }]}
+              onPress={() => addItem(newInclusion, inclusions, setInclusions, setNewInclusion)}
+            >
+              <Icon name="plus" size={20} color="#fff" />
+            </TouchableOpacity>
+          </View>
+          {inclusions.map((item, i) => (
+            <View key={i} style={[s.listItem, { backgroundColor: C.greenL, borderColor: C.green + '40' }]}>
+              <View style={[s.listDot, { backgroundColor: C.green }]}>
+                <Icon name="check" size={11} color="#fff" />
+              </View>
+              <Text style={s.listItemText}>{item}</Text>
+              <TouchableOpacity onPress={() => removeItem(item, inclusions, setInclusions)} style={s.removeBtn}>
+                <Icon name="x" size={14} color={C.red} />
+              </TouchableOpacity>
+            </View>
+          ))}
+          {inclusions.length === 0 && <Text style={s.emptyHint}>No inclusions added yet</Text>}
+        </SectionCard>
+
+        {/* Exclusions */}
+        <SectionCard icon="x-circle" iconColor={C.red} iconBg={C.redL} title="Exclusions">
+          <View style={s.addRow}>
+            <TextInput
+              style={[s.input, s.addInput]}
+              placeholder="Add exclusion item..."
+              placeholderTextColor={C.muted}
+              value={newExclusion}
+              onChangeText={setNewExclusion}
+              onSubmitEditing={() => addItem(newExclusion, exclusions, setExclusions, setNewExclusion)}
+            />
+            <TouchableOpacity
+              style={[s.addBtn, { backgroundColor: C.red }]}
+              onPress={() => addItem(newExclusion, exclusions, setExclusions, setNewExclusion)}
+            >
+              <Icon name="plus" size={20} color="#fff" />
+            </TouchableOpacity>
+          </View>
+          {exclusions.map((item, i) => (
+            <View key={i} style={[s.listItem, { backgroundColor: C.redL, borderColor: C.red + '30' }]}>
+              <View style={[s.listDot, { backgroundColor: C.red }]}>
+                <Icon name="x" size={11} color="#fff" />
+              </View>
+              <Text style={s.listItemText}>{item}</Text>
+              <TouchableOpacity onPress={() => removeItem(item, exclusions, setExclusions)} style={s.removeBtn}>
+                <Icon name="x" size={14} color={C.red} />
+              </TouchableOpacity>
+            </View>
+          ))}
+          {exclusions.length === 0 && <Text style={s.emptyHint}>No exclusions added yet</Text>}
+        </SectionCard>
+
+        {/* Terms */}
+        <SectionCard icon="file-text" iconColor={C.indigo} iconBg={C.indigoL} title="Terms & Conditions">
+          <View style={s.addRow}>
+            <TextInput
+              style={[s.input, s.addInput]}
+              placeholder="Add a term or condition..."
+              placeholderTextColor={C.muted}
+              value={newTerm}
+              onChangeText={setNewTerm}
+              onSubmitEditing={() => addItem(newTerm, terms, setTerms, setNewTerm)}
+            />
+            <TouchableOpacity
+              style={[s.addBtn, { backgroundColor: C.indigo }]}
+              onPress={() => addItem(newTerm, terms, setTerms, setNewTerm)}
+            >
+              <Icon name="plus" size={20} color="#fff" />
+            </TouchableOpacity>
+          </View>
+          {terms.map((item, i) => (
+            <View key={i} style={[s.listItem, { backgroundColor: C.indigoL, borderColor: C.indigo + '30' }]}>
+              <View style={s.termNumBox}>
+                <Text style={s.termNumText}>{i + 1}</Text>
+              </View>
+              <Text style={s.listItemText}>{item}</Text>
+              <TouchableOpacity onPress={() => removeItem(item, terms, setTerms)} style={s.removeBtn}>
+                <Icon name="x" size={14} color={C.red} />
+              </TouchableOpacity>
+            </View>
+          ))}
+          {terms.length === 0 && <Text style={s.emptyHint}>No terms added yet</Text>}
+        </SectionCard>
+
+        {/* Settings */}
+        <View style={s.section}>
           <TouchableOpacity
-            style={[styles.submitButton, isSubmitting && styles.submitButtonDisabled]}
-            onPress={handleSubmit}
-            disabled={isSubmitting}
+            style={s.checkRow}
+            onPress={() => setIsDefault(!isDefault)}
+            activeOpacity={0.7}
           >
-            {isSubmitting ? (
-              <Text style={styles.submitButtonText}>Saving...</Text>
-            ) : (
-              <>
-                <Icon name="check" size={20} color="#FFF" />
-                <Text style={styles.submitButtonText}>Save</Text>
-              </>
-            )}
+            <View style={[s.checkbox, isDefault && s.checkboxOn]}>
+              {isDefault && <Icon name="check" size={13} color="#fff" />}
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={s.checkLabel}>Set as default template</Text>
+              <Text style={s.checkSub}>Auto-selected when creating quotes for this category</Text>
+            </View>
           </TouchableOpacity>
         </View>
 
-        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-          {/* Quick Start Suggestions */}
-          {showSuggestions && (
-            <View style={styles.suggestionsCard}>
-              <View style={styles.suggestionsHeader}>
-                <View style={styles.suggestionsHeaderLeft}>
-                  <Icon name="zap" size={20} color="#F59E0B" />
-                  <Text style={styles.suggestionsTitle}>Quick Start</Text>
-                </View>
-                <TouchableOpacity onPress={() => setShowSuggestions(false)}>
-                  <Icon name="x" size={20} color="#64748B" />
-                </TouchableOpacity>
-              </View>
-              <Text style={styles.suggestionsSubtitle}>
-                Choose a pre-built template to get started quickly
-              </Text>
-              {TEMPLATE_SUGGESTIONS.map((suggestion, index) => (
-                <TouchableOpacity
-                  key={index}
-                  style={styles.suggestionItem}
-                  onPress={() => loadSuggestion(suggestion)}
-                >
-                  <MaterialCommunityIcons
-                    name={
-                      SELF_DRIVE_CATEGORIES.find((c) => c.id === suggestion.category)?.icon ||
-                      'car'
-                    }
-                    size={24}
-                    color={SERVICE_COLOR}
-                  />
-                  <View style={styles.suggestionInfo}>
-                    <Text style={styles.suggestionName}>{suggestion.name}</Text>
-                    <Text style={styles.suggestionDescription}>{suggestion.description}</Text>
-                  </View>
-                  <Icon name="chevron-right" size={20} color="#94A3B8" />
-                </TouchableOpacity>
-              ))}
-            </View>
-          )}
+        <View style={{ height: 24 }} />
+      </ScrollView>
 
-          {/* Basic Info */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Basic Information</Text>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>
-                Template Name <Text style={styles.required}>*</Text>
-              </Text>
-              <TextInput
-                style={styles.input}
-                value={name}
-                onChangeText={setName}
-                placeholder="e.g., Hatchback Daily Rental"
-                placeholderTextColor="#94A3B8"
-              />
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>
-                Category <Text style={styles.required}>*</Text>
-              </Text>
-              <View style={styles.categoryGrid}>
-                {SELF_DRIVE_CATEGORIES.map((cat) => (
-                  <TouchableOpacity
-                    key={cat.id}
-                    style={[
-                      styles.categoryOption,
-                      category === cat.id && styles.categoryOptionActive,
-                    ]}
-                    onPress={() => setCategory(cat.id)}
-                  >
-                    <MaterialCommunityIcons
-                      name={cat.icon}
-                      size={20}
-                      color={category === cat.id ? '#FFF' : SERVICE_COLOR}
-                    />
-                    <Text
-                      style={[
-                        styles.categoryOptionText,
-                        category === cat.id && styles.categoryOptionTextActive,
-                      ]}
-                    >
-                      {cat.name}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Description (Optional)</Text>
-              <TextInput
-                style={[styles.input, styles.textArea]}
-                value={description}
-                onChangeText={setDescription}
-                placeholder="Brief description of this template"
-                placeholderTextColor="#94A3B8"
-                multiline
-                numberOfLines={3}
-              />
-            </View>
-          </View>
-
-          {/* Rate Hints */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Rate Hints (Optional)</Text>
-            <Text style={styles.sectionSubtitle}>
-              These values will auto-fill when using this template
-            </Text>
-
-            <View style={styles.rateGrid}>
-              <View style={styles.rateInput}>
-                <Text style={styles.label}>Daily Rate (₹)</Text>
-                <TextInput
-                  style={styles.input}
-                  value={dailyRate}
-                  onChangeText={setDailyRate}
-                  placeholder="0"
-                  keyboardType="numeric"
-                  placeholderTextColor="#94A3B8"
-                />
-              </View>
-
-              <View style={styles.rateInput}>
-                <Text style={styles.label}>KM/Day</Text>
-                <TextInput
-                  style={styles.input}
-                  value={kmLimit}
-                  onChangeText={setKmLimit}
-                  placeholder="0"
-                  keyboardType="numeric"
-                  placeholderTextColor="#94A3B8"
-                />
-              </View>
-            </View>
-
-            <View style={styles.rateGrid}>
-              <View style={styles.rateInput}>
-                <Text style={styles.label}>Extra KM (₹/km)</Text>
-                <TextInput
-                  style={styles.input}
-                  value={extraKmRate}
-                  onChangeText={setExtraKmRate}
-                  placeholder="0"
-                  keyboardType="numeric"
-                  placeholderTextColor="#94A3B8"
-                />
-              </View>
-
-              <View style={styles.rateInput}>
-                <Text style={styles.label}>Security Deposit (₹)</Text>
-                <TextInput
-                  style={styles.input}
-                  value={securityDeposit}
-                  onChangeText={setSecurityDeposit}
-                  placeholder="0"
-                  keyboardType="numeric"
-                  placeholderTextColor="#94A3B8"
-                />
-              </View>
-            </View>
-          </View>
-
-          {/* Inclusions */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Inclusions</Text>
-            <Text style={styles.sectionSubtitle}>What's included in the package</Text>
-
-            <View style={styles.addItemContainer}>
-              <TextInput
-                style={styles.addItemInput}
-                value={newInclusion}
-                onChangeText={setNewInclusion}
-                placeholder="Add inclusion..."
-                placeholderTextColor="#94A3B8"
-                onSubmitEditing={addInclusion}
-              />
-              <TouchableOpacity style={styles.addItemButton} onPress={addInclusion}>
-                <Icon name="plus" size={20} color="#FFF" />
-              </TouchableOpacity>
-            </View>
-
-            {inclusions.map((item, index) => (
-              <View key={index} style={styles.listItem}>
-                <Icon name="check-circle" size={16} color={GREEN} />
-                <Text style={styles.listItemText}>{item}</Text>
-                <TouchableOpacity onPress={() => removeInclusion(index)}>
-                  <Icon name="x" size={18} color="#EF4444" />
-                </TouchableOpacity>
-              </View>
-            ))}
-          </View>
-
-          {/* Exclusions */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Exclusions</Text>
-            <Text style={styles.sectionSubtitle}>What's not included</Text>
-
-            <View style={styles.addItemContainer}>
-              <TextInput
-                style={styles.addItemInput}
-                value={newExclusion}
-                onChangeText={setNewExclusion}
-                placeholder="Add exclusion..."
-                placeholderTextColor="#94A3B8"
-                onSubmitEditing={addExclusion}
-              />
-              <TouchableOpacity style={styles.addItemButton} onPress={addExclusion}>
-                <Icon name="plus" size={20} color="#FFF" />
-              </TouchableOpacity>
-            </View>
-
-            {exclusions.map((item, index) => (
-              <View key={index} style={styles.listItem}>
-                <Icon name="x-circle" size={16} color="#EF4444" />
-                <Text style={styles.listItemText}>{item}</Text>
-                <TouchableOpacity onPress={() => removeExclusion(index)}>
-                  <Icon name="x" size={18} color="#EF4444" />
-                </TouchableOpacity>
-              </View>
-            ))}
-          </View>
-
-          {/* Terms & Conditions */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Terms & Conditions</Text>
-            <Text style={styles.sectionSubtitle}>Important rental policies</Text>
-
-            <View style={styles.addItemContainer}>
-              <TextInput
-                style={styles.addItemInput}
-                value={newTerm}
-                onChangeText={setNewTerm}
-                placeholder="Add term/condition..."
-                placeholderTextColor="#94A3B8"
-                onSubmitEditing={addTerm}
-              />
-              <TouchableOpacity style={styles.addItemButton} onPress={addTerm}>
-                <Icon name="plus" size={20} color="#FFF" />
-              </TouchableOpacity>
-            </View>
-
-            {terms.map((item, index) => (
-              <View key={index} style={styles.listItem}>
-                <Icon name="info" size={16} color={SERVICE_COLOR} />
-                <Text style={styles.listItemText}>{item}</Text>
-                <TouchableOpacity onPress={() => removeTerm(index)}>
-                  <Icon name="x" size={18} color="#EF4444" />
-                </TouchableOpacity>
-              </View>
-            ))}
-          </View>
-
-          {/* Default Template */}
-          <View style={styles.section}>
-            <View style={styles.defaultToggle}>
-              <View style={styles.defaultToggleInfo}>
-                <Text style={styles.defaultToggleTitle}>Set as Default Template</Text>
-                <Text style={styles.defaultToggleSubtitle}>
-                  Auto-select this template when creating quotes
-                </Text>
-              </View>
-              <Switch
-                value={isDefault}
-                onValueChange={setIsDefault}
-                trackColor={{ false: '#E2E8F0', true: SERVICE_COLOR + '40' }}
-                thumbColor={isDefault ? SERVICE_COLOR : '#F1F5F9'}
-              />
-            </View>
-          </View>
-
-          <View style={styles.bottomPadding} />
-        </ScrollView>
-      </KeyboardAvoidingView>
+      {/* Footer */}
+      <View style={s.footer}>
+        <TouchableOpacity style={s.cancelBtn} onPress={() => navigation.goBack()}>
+          <Text style={s.cancelBtnText}>Cancel</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[s.submitBtn, isSubmitting && { opacity: 0.6 }]}
+          onPress={handleSubmit}
+          disabled={isSubmitting}
+        >
+          <Icon name="save" size={18} color="#fff" />
+          <Text style={s.submitBtnText}>{isSubmitting ? 'Creating...' : 'Create Template'}</Text>
+        </TouchableOpacity>
+      </View>
     </SafeAreaView>
   );
-};
+}
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: BG,
+const s = StyleSheet.create({
+  container: { flex: 1, backgroundColor: C.bg },
+
+  // Hero
+  hero: { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 20, overflow: 'hidden' },
+  deco: { position: 'absolute', borderRadius: 999, backgroundColor: '#fff' },
+  heroRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  heroTitle: { fontSize: 20, fontWeight: '800', color: '#fff' },
+  heroSub: { fontSize: 12, color: 'rgba(255,255,255,0.7)', marginTop: 2 },
+  backBtn: {
+    width: 40, height: 40, borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    justifyContent: 'center', alignItems: 'center',
   },
-  keyboardView: {
-    flex: 1,
+  heroBadge: {
+    width: 42, height: 42, borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    justifyContent: 'center', alignItems: 'center',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)',
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: '#FFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+
+  scroll: { flex: 1 },
+  scrollContent: { padding: 16 },
+
+  // Quick Start
+  quickBox: {
+    backgroundColor: C.card, borderRadius: 18, marginBottom: 14,
+    borderWidth: 1, borderColor: C.g100, overflow: 'hidden',
   },
-  backButton: {
-    padding: 8,
-    marginRight: 8,
+  quickHeader: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    paddingHorizontal: 16, paddingVertical: 14,
   },
-  headerTextContainer: {
-    flex: 1,
+  quickIconBox: {
+    width: 38, height: 38, borderRadius: 10,
+    backgroundColor: '#fff', justifyContent: 'center', alignItems: 'center',
+    borderWidth: 1, borderColor: C.g100,
   },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: DARK,
+  quickTitle: { fontSize: 14, fontWeight: '700', color: C.text },
+  quickSub: { fontSize: 12, color: C.sub, marginTop: 2 },
+  quickSkip: { paddingHorizontal: 10, paddingVertical: 6 },
+  quickSkipText: { fontSize: 13, fontWeight: '600', color: C.g700 },
+  sgCard: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    paddingHorizontal: 16, paddingVertical: 13,
+    borderTopWidth: 1, borderTopColor: C.border,
   },
-  headerSubtitle: {
-    fontSize: 13,
-    color: '#64748B',
-    marginTop: 2,
+  sgIconBox: {
+    width: 36, height: 36, borderRadius: 10,
+    backgroundColor: C.g50, justifyContent: 'center', alignItems: 'center',
   },
-  submitButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: SERVICE_COLOR,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 10,
-    gap: 6,
+  sgName: { fontSize: 13, fontWeight: '700', color: C.text, marginBottom: 2 },
+  sgDesc: { fontSize: 12, color: C.sub },
+  sgRate: {
+    backgroundColor: C.g50, paddingHorizontal: 8, paddingVertical: 4,
+    borderRadius: 8, borderWidth: 1, borderColor: C.g100,
   },
-  submitButtonDisabled: {
-    opacity: 0.6,
-  },
-  submitButtonText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#FFF',
-  },
-  content: {
-    flex: 1,
-  },
-  suggestionsCard: {
-    backgroundColor: '#FEF3C7',
-    margin: 16,
-    padding: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#FDE68A',
-  },
-  suggestionsHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 4,
-  },
-  suggestionsHeaderLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  suggestionsTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#92400E',
-  },
-  suggestionsSubtitle: {
-    fontSize: 13,
-    color: '#92400E',
-    marginBottom: 12,
-  },
-  suggestionItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFF',
-    padding: 12,
-    borderRadius: 10,
-    marginBottom: 8,
-    gap: 12,
-  },
-  suggestionInfo: {
-    flex: 1,
-  },
-  suggestionName: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: DARK,
-    marginBottom: 2,
-  },
-  suggestionDescription: {
-    fontSize: 13,
-    color: '#64748B',
-  },
+  sgRateText: { fontSize: 11, fontWeight: '700', color: C.g700 },
+
+  // Section
   section: {
-    backgroundColor: '#FFF',
-    marginHorizontal: 16,
-    marginBottom: 16,
-    padding: 16,
-    borderRadius: 12,
+    backgroundColor: C.card, borderRadius: 16, padding: 16,
+    marginBottom: 12, borderWidth: 1, borderColor: C.border,
+    shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 6, elevation: 2,
   },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: DARK,
-    marginBottom: 4,
-  },
-  sectionSubtitle: {
-    fontSize: 13,
-    color: '#64748B',
-    marginBottom: 16,
-  },
-  inputGroup: {
-    marginBottom: 16,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: DARK,
-    marginBottom: 8,
-  },
-  required: {
-    color: '#EF4444',
-  },
-  input: {
-    backgroundColor: '#F8FAFC',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    fontSize: 15,
-    color: DARK,
-  },
-  textArea: {
-    height: 80,
-    textAlignVertical: 'top',
-  },
-  categoryGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  categoryOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: SERVICE_COLOR,
-    backgroundColor: '#FFF',
-    gap: 6,
-  },
-  categoryOptionActive: {
-    backgroundColor: SERVICE_COLOR,
-    borderColor: SERVICE_COLOR,
-  },
-  categoryOptionText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: SERVICE_COLOR,
-  },
-  categoryOptionTextActive: {
-    color: '#FFF',
-  },
-  rateGrid: {
-    flexDirection: 'row',
-    gap: 12,
-    marginBottom: 12,
-  },
-  rateInput: {
-    flex: 1,
-  },
-  addItemContainer: {
-    flexDirection: 'row',
-    gap: 8,
-    marginBottom: 12,
-  },
-  addItemInput: {
-    flex: 1,
-    backgroundColor: '#F8FAFC',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 14,
-    color: DARK,
-  },
-  addItemButton: {
-    backgroundColor: SERVICE_COLOR,
-    width: 40,
-    height: 40,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  listItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F8FAFC',
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 8,
-    gap: 8,
-  },
-  listItemText: {
-    flex: 1,
-    fontSize: 14,
-    color: '#475569',
-  },
-  defaultToggle: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  defaultToggleInfo: {
-    flex: 1,
-  },
-  defaultToggleTitle: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: DARK,
-    marginBottom: 4,
-  },
-  defaultToggleSubtitle: {
-    fontSize: 13,
-    color: '#64748B',
-  },
-  bottomPadding: {
-    height: 24,
-  },
-});
+  sectionHead: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 14 },
+  sectionIconBox: { width: 32, height: 32, borderRadius: 9, justifyContent: 'center', alignItems: 'center' },
+  sectionTitle: { fontSize: 15, fontWeight: '700', color: C.text },
+  sectionNote: { fontSize: 12, color: C.muted, marginBottom: 12, lineHeight: 17 },
 
-export default SelfDriveCreateTemplateScreen;
+  label: { fontSize: 13, fontWeight: '600', color: C.text, marginBottom: 7 },
+  optional: { fontWeight: '400', color: C.muted },
+
+  input: {
+    borderWidth: 1.5, borderColor: C.border, borderRadius: 12,
+    paddingHorizontal: 14, paddingVertical: 11,
+    fontSize: 14, color: C.text, backgroundColor: C.bg, marginBottom: 12,
+  },
+  textArea: { height: 80, textAlignVertical: 'top' },
+
+  catGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 },
+  catChip: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    paddingHorizontal: 14, paddingVertical: 8,
+    borderRadius: 20, backgroundColor: C.bg,
+    borderWidth: 1.5, borderColor: C.border,
+  },
+  catChipActive: { backgroundColor: C.g700, borderColor: C.g700 },
+  catChipText: { fontSize: 13, fontWeight: '600', color: C.sub },
+  catChipTextActive: { color: '#fff' },
+
+  rateGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 0 },
+  rateField: { width: '50%', paddingRight: 8 },
+
+  addRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10 },
+  addInput: { flex: 1, marginBottom: 0 },
+  addBtn: { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+
+  listItem: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    padding: 10, borderRadius: 10, marginBottom: 7,
+    borderWidth: 1,
+  },
+  listDot: {
+    width: 20, height: 20, borderRadius: 10,
+    justifyContent: 'center', alignItems: 'center',
+  },
+  listItemText: { flex: 1, fontSize: 13, color: C.text, lineHeight: 18 },
+  removeBtn: { padding: 4 },
+  termNumBox: {
+    width: 22, height: 22, borderRadius: 6, backgroundColor: C.indigo,
+    justifyContent: 'center', alignItems: 'center',
+  },
+  termNumText: { fontSize: 11, fontWeight: '700', color: '#fff' },
+  emptyHint: { fontSize: 12, color: C.muted, textAlign: 'center', paddingVertical: 8 },
+
+  checkRow: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+  checkbox: {
+    width: 22, height: 22, borderRadius: 6,
+    borderWidth: 2, borderColor: C.border,
+    alignItems: 'center', justifyContent: 'center', backgroundColor: C.bg,
+  },
+  checkboxOn: { backgroundColor: C.g700, borderColor: C.g700 },
+  checkLabel: { fontSize: 14, fontWeight: '600', color: C.text, marginBottom: 2 },
+  checkSub: { fontSize: 12, color: C.muted },
+
+  // Footer
+  footer: {
+    flexDirection: 'row', paddingHorizontal: 16, paddingVertical: 12,
+    backgroundColor: C.card, borderTopWidth: 1, borderTopColor: C.border, gap: 12,
+  },
+  cancelBtn: {
+    flex: 1, paddingVertical: 14, borderRadius: 14,
+    backgroundColor: C.bg, alignItems: 'center', justifyContent: 'center',
+    borderWidth: 1, borderColor: C.border,
+  },
+  cancelBtnText: { fontSize: 15, fontWeight: '600', color: C.sub },
+  submitBtn: {
+    flex: 2, flexDirection: 'row', paddingVertical: 14, borderRadius: 14,
+    backgroundColor: C.g700, alignItems: 'center', justifyContent: 'center', gap: 8,
+  },
+  submitBtnText: { fontSize: 15, fontWeight: '700', color: '#fff' },
+});

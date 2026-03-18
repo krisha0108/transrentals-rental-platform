@@ -1,32 +1,27 @@
 import React, { useState, useEffect } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  TextInput,
-  ActivityIndicator,
-  Alert,
-  Modal,
+  View, Text, StyleSheet, ScrollView, TouchableOpacity,
+  TextInput, ActivityIndicator, Modal, StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/Feather';
+import Ionicons from 'react-native-vector-icons/Ionicons';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import CustomDropdown from '../../../../components/CustomDropdown';
 import { getQuoteRequestById, getFleetVehicles, submitQuote, getTemplates } from '../../../api/client';
-import { showConfirm, showError, showInfo, showSuccess } from '../../../../services/alertService';
+import { showError, showSuccess } from '../../../../services/alertService';
 
 const C = {
-  bg: '#F7FAFC',
-  surface: '#FFFFFF',
-  text: '#1E293B',
-  muted: '#64748B',
-  border: '#E2E8F0',
-  brand: '#FF6B35',
-  green: '#10B981',
-  orange: '#F59E0B',
-  red: '#EF4444',
-  blue: '#3B82F6',
+  g900: '#022C22', g800: '#065F46', g700: '#047857', g600: '#059669',
+  g500: '#10B981', g400: '#34D399', g100: '#D1FAE5', g50: '#ECFDF5',
+  bg: '#F1F5F9', card: '#FFFFFF', border: '#E2E8F0',
+  text: '#0F172A', sub: '#475569', muted: '#94A3B8',
+  blue: '#2563EB', blueL: '#EFF6FF',
+  purple: '#7C3AED', purpleL: '#F5F3FF',
+  amber: '#D97706', amberL: '#FFFBEB',
+  red: '#DC2626', redL: '#FEF2F2',
+  orange: '#EA580C', orangeL: '#FFF7ED',
 };
 
 const DEFAULT_INCLUSIONS = [
@@ -57,37 +52,33 @@ const DEFAULT_TERMS = [
 
 export default function BusSendQuoteScreen({ navigation, route }) {
   const { requestId } = route.params || {};
-  const [loading, setLoading] = useState(true);
+  const [loading,    setLoading]    = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [request, setRequest] = useState(null);
-  const [fleetVehicles, setFleetVehicles] = useState([]);
-  const [templates, setTemplates] = useState([]);
+  const [request,    setRequest]    = useState(null);
+  const [fleetVehicles, setFleetVehicles]     = useState([]);
+  const [templates,     setTemplates]         = useState([]);
   const [selectedTemplateId, setSelectedTemplateId] = useState('');
 
-  // Form state - Match web app fields exactly
   const [selectedFleetId, setSelectedFleetId] = useState('');
-  const [vehicleName, setVehicleName] = useState('');
-  const [vehicleNumber, setVehicleNumber] = useState('');
-  const [baseRate, setBaseRate] = useState('');
+  const [vehicleName,     setVehicleName]     = useState('');
+  const [vehicleNumber,   setVehicleNumber]   = useState('');
+  const [baseRate,        setBaseRate]        = useState('');
   const [driverAllowance, setDriverAllowance] = useState('');
-  const [tollCharges, setTollCharges] = useState('');
+  const [tollCharges,     setTollCharges]     = useState('');
   const [additionalCharges, setAdditionalCharges] = useState('');
-  const [advancePercent, setAdvancePercent] = useState('40');
-  const [notes, setNotes] = useState('');
-  const [validityDays, setValidityDays] = useState('2');
+  const [advancePercent,  setAdvancePercent]  = useState('40');
+  const [notes,           setNotes]           = useState('');
+  const [validityDays,    setValidityDays]    = useState('2');
 
-  // Inclusions/Exclusions/Terms
-  const [inclusions, setInclusions] = useState([...DEFAULT_INCLUSIONS]);
-  const [exclusions, setExclusions] = useState([...DEFAULT_EXCLUSIONS]);
-  const [termsConditions, setTermsConditions] = useState([...DEFAULT_TERMS]);
-  const [editModalVisible, setEditModalVisible] = useState(false);
-  const [editType, setEditType] = useState(null);
-  const [editList, setEditList] = useState([]);
-  const [newItemText, setNewItemText] = useState('');
+  const [inclusions,        setInclusions]        = useState([...DEFAULT_INCLUSIONS]);
+  const [exclusions,        setExclusions]        = useState([...DEFAULT_EXCLUSIONS]);
+  const [termsConditions,   setTermsConditions]   = useState([...DEFAULT_TERMS]);
+  const [editModalVisible,  setEditModalVisible]  = useState(false);
+  const [editType,          setEditType]          = useState(null);
+  const [editList,          setEditList]          = useState([]);
+  const [newItemText,       setNewItemText]       = useState('');
 
-  useEffect(() => {
-    fetchData();
-  }, []);
+  useEffect(() => { fetchData(); }, []);
 
   const fetchData = async () => {
     try {
@@ -99,26 +90,17 @@ export default function BusSendQuoteScreen({ navigation, route }) {
       ]);
       setRequest(requestData.request || requestData);
 
-      // Filter bus fleet
       const busFleet = (fleetsData.fleet || fleetsData.fleets || fleetsData.vehicles || []).filter(
-        (v) =>
-          v.services?.slug === 'bus-rental' ||
-          v.services?.name?.toLowerCase().includes('bus')
+        (v) => v.services?.slug === 'bus-rental' || v.services?.name?.toLowerCase().includes('bus')
       );
-      console.log('[Bus] Total fleet:', fleetsData.fleet?.length || 0, 'Filtered:', busFleet.length);
       setFleetVehicles(busFleet);
 
-      // Set active templates
       const activeTemplates = (templatesData.templates || []).filter((t) => t.isActive !== false);
       setTemplates(activeTemplates);
 
-      // Auto-select default template if exists
       const defaultTemplate = activeTemplates.find((t) => t.isDefault);
-      if (defaultTemplate) {
-        handleTemplateSelection(defaultTemplate.id);
-      }
+      if (defaultTemplate) handleTemplateSelection(defaultTemplate.id);
     } catch (error) {
-      console.error('Error fetching data:', error);
       showError('Failed to load data');
     } finally {
       setLoading(false);
@@ -128,41 +110,25 @@ export default function BusSendQuoteScreen({ navigation, route }) {
   const handleTemplateSelection = (templateId) => {
     setSelectedTemplateId(templateId);
     if (!templateId) {
-      // Reset to defaults
       setInclusions([...DEFAULT_INCLUSIONS]);
       setExclusions([...DEFAULT_EXCLUSIONS]);
       setTermsConditions([...DEFAULT_TERMS]);
       return;
     }
-
     const template = templates.find((t) => t.id === templateId);
     if (template) {
-      if (template.inclusions && Array.isArray(template.inclusions)) {
-        setInclusions([...template.inclusions]);
-      }
-      if (template.exclusions && Array.isArray(template.exclusions)) {
-        setExclusions([...template.exclusions]);
-      }
-      if (template.termsConditions && Array.isArray(template.termsConditions)) {
-        setTermsConditions([...template.termsConditions]);
-      }
-      if (template.baseRateHint) {
-        setBaseRate(template.baseRateHint.toString());
-      }
+      if (template.inclusions?.length)      setInclusions([...template.inclusions]);
+      if (template.exclusions?.length)      setExclusions([...template.exclusions]);
+      if (template.termsConditions?.length) setTermsConditions([...template.termsConditions]);
+      if (template.baseRateHint)            setBaseRate(template.baseRateHint.toString());
     }
   };
 
   const handleFleetSelection = (fleetId) => {
     setSelectedFleetId(fleetId);
-    if (!fleetId) {
-      setVehicleName('');
-      setVehicleNumber('');
-      return;
-    }
-
+    if (!fleetId) { setVehicleName(''); setVehicleNumber(''); return; }
     const selectedVehicle = fleetVehicles.find((v) => v.id === fleetId);
     if (selectedVehicle) {
-      // Build vehicle name: Brand + Model or just Category
       let displayName = '';
       if (selectedVehicle.vehicle_models) {
         const brandName = selectedVehicle.vehicle_models.brands?.name || '';
@@ -174,7 +140,6 @@ export default function BusSendQuoteScreen({ navigation, route }) {
       } else if (selectedVehicle.chauffeur_vehicle_categories) {
         displayName = selectedVehicle.chauffeur_vehicle_categories.name;
       }
-
       setVehicleName(displayName);
       setVehicleNumber(selectedVehicle.registrationNumber || '');
     }
@@ -204,16 +169,13 @@ export default function BusSendQuoteScreen({ navigation, route }) {
     }
   };
 
-  const removeItemFromList = (item) => {
-    setEditList(editList.filter((i) => i !== item));
-  };
+  const removeItemFromList = (item) => setEditList(editList.filter((i) => i !== item));
 
   const calculateTotal = () => {
-    const base = parseFloat(baseRate) || 0;
-    const driver = parseFloat(driverAllowance) || 0;
-    const toll = parseFloat(tollCharges) || 0;
-    const additional = parseFloat(additionalCharges) || 0;
-    return base + driver + toll + additional;
+    return (parseFloat(baseRate) || 0)
+      + (parseFloat(driverAllowance) || 0)
+      + (parseFloat(tollCharges) || 0)
+      + (parseFloat(additionalCharges) || 0);
   };
 
   const calculateAdvance = () => {
@@ -223,41 +185,34 @@ export default function BusSendQuoteScreen({ navigation, route }) {
   };
 
   const handleSubmit = async () => {
-    if (!vehicleName) {
-      showError('Please enter vehicle name/model or select from fleet');
-      return;
-    }
-    if (!baseRate || parseFloat(baseRate) <= 0) {
-      showError('Please enter valid base rate');
-      return;
-    }
-
+    if (!vehicleName) { showError('Please enter vehicle name/model or select from fleet'); return; }
+    if (!baseRate || parseFloat(baseRate) <= 0) { showError('Please enter valid base rate'); return; }
     try {
       setSubmitting(true);
-      // Match web app's exact field structure
       await submitQuote('bus', {
-        requestId: requestId,
-        templateId: selectedTemplateId || null,
-        fleetId: selectedFleetId || null,
-        vehicleCategory: request?.vehicleCategory || null,
-        vehicleName: vehicleName,
-        vehicleNumber: vehicleNumber || null,
-        seats: request?.passengerCount || 17,
-        baseAmount: parseFloat(baseRate) || 0,
-        driverAllowance: parseFloat(driverAllowance) || 0,
-        tollEstimate: parseFloat(tollCharges) || 0,
-        parkingEstimate: parseFloat(additionalCharges) || 0,
-        advanceAmount: calculateAdvance(),
-        advancePercent: parseInt(advancePercent) || 40,
+        requestId:        requestId,
+        templateId:       selectedTemplateId || null,
+        fleetId:          selectedFleetId || null,
+        vehicleCategory:  request?.vehicleCategory || null,
+        vehicleName:      vehicleName,
+        vehicleNumber:    vehicleNumber || null,
+        seats:            request?.passengerCount || 17,
+        baseAmount:       parseFloat(baseRate) || 0,
+        driverAllowance:  parseFloat(driverAllowance) || 0,
+        tollEstimate:     parseFloat(tollCharges) || 0,
+        parkingEstimate:  parseFloat(additionalCharges) || 0,
+        advanceAmount:    calculateAdvance(),
+        advancePercent:   parseInt(advancePercent) || 40,
         inclusions,
         exclusions,
         termsConditions,
-        vendorMessage: notes || null,
-        validityDays: parseInt(validityDays) || 3,
+        vendorMessage:    notes || null,
+        validityDays:     parseInt(validityDays) || 3,
       });
-      showSuccess('Quote sent successfully!', 'Success', { actions: [{ label: 'OK', onPress: () => navigation.goBack(), variant: 'primary' }] });
+      showSuccess('Quote sent successfully!', 'Success', {
+        actions: [{ label: 'OK', onPress: () => navigation.goBack(), variant: 'primary' }],
+      });
     } catch (error) {
-      console.error('Error submitting quote:', error);
       showError(error?.response?.data?.error || 'Failed to send quote');
     } finally {
       setSubmitting(false);
@@ -266,9 +221,21 @@ export default function BusSendQuoteScreen({ navigation, route }) {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.safe}>
+      <SafeAreaView style={styles.safe} edges={['top']}>
+        <StatusBar backgroundColor={C.g900} barStyle="light-content" />
+        <LinearGradient colors={[C.g900, C.g800, C.g700]} style={styles.gradientHeader}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtnWhite}>
+            <Icon name="arrow-left" size={22} color="#fff" />
+          </TouchableOpacity>
+          <View style={styles.headerCenter}>
+            <Text style={styles.headerTitleWhite}>Send Quote</Text>
+            <Text style={styles.headerSubtitleWhite}>Bus & Tempo</Text>
+          </View>
+          <View style={{ width: 40 }} />
+        </LinearGradient>
         <View style={styles.centered}>
-          <ActivityIndicator size="large" color={C.brand} />
+          <ActivityIndicator size="large" color={C.g500} />
+          <Text style={styles.loadingText}>Loading request...</Text>
         </View>
       </SafeAreaView>
     );
@@ -278,95 +245,104 @@ export default function BusSendQuoteScreen({ navigation, route }) {
   const advance = calculateAdvance();
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Icon name="arrow-left" size={22} color={C.text} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Send Quote - Bus</Text>
-        <View style={{ width: 40 }} />
-      </View>
+    <SafeAreaView style={styles.safe} edges={['top']}>
+      <StatusBar backgroundColor={C.g900} barStyle="light-content" />
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <LinearGradient colors={[C.g900, C.g800, C.g700]} style={styles.gradientHeader}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtnWhite}>
+          <Icon name="arrow-left" size={22} color="#fff" />
+        </TouchableOpacity>
+        <View style={styles.headerCenter}>
+          <Text style={styles.headerTitleWhite}>Send Quote</Text>
+          <Text style={styles.headerSubtitleWhite}>Bus & Tempo</Text>
+        </View>
+        <View style={{ width: 40 }} />
+      </LinearGradient>
+
+      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+
         {/* Request Summary */}
-        <View style={[styles.card, { backgroundColor: '#FFF4ED', borderColor: '#FFE4CC' }]}>
-          <Text style={[styles.cardTitle, { color: '#C2410C' }]}>Request Summary</Text>
-          <View style={styles.row}>
-            <Text style={styles.label}>Customer:</Text>
-            <Text style={styles.value}>{request?.customerName}</Text>
-          </View>
-          <View style={styles.row}>
-            <Text style={styles.label}>Location:</Text>
-            <Text style={styles.value}>{request?.locationName}</Text>
-          </View>
-          <View style={styles.row}>
-            <Text style={styles.label}>Duration:</Text>
-            <Text style={styles.value}>{request?.totalDays} days</Text>
-          </View>
-          <View style={styles.row}>
-            <Text style={styles.label}>Dates:</Text>
-            <Text style={styles.value}>
-              {new Date(request?.pickupDate).toLocaleDateString()} -{' '}
-              {new Date(request?.dropDate).toLocaleDateString()}
-            </Text>
-          </View>
-          {request?.passengerCount && (
-            <View style={styles.row}>
-              <Text style={styles.label}>Passengers:</Text>
-              <Text style={styles.value}>{request?.passengerCount}</Text>
+        <View style={[styles.card, { backgroundColor: C.amberL, borderColor: '#FDE68A', marginTop: 20 }]}>
+          <View style={styles.cardHeaderRow}>
+            <View style={[styles.cardIconWrap, { backgroundColor: '#FDE68A' }]}>
+              <MaterialCommunityIcons name="bus" size={18} color={C.amber} />
             </View>
-          )}
+            <View>
+              <Text style={[styles.cardTitle, { color: C.orange }]}>Request Summary</Text>
+              <Text style={[styles.cardSubtitle, { color: '#92400E' }]}>Customer's requirement</Text>
+            </View>
+          </View>
+          <View style={styles.summaryGrid}>
+            <View style={styles.summaryCell}>
+              <Text style={styles.summaryCellLabel}>Customer</Text>
+              <Text style={styles.summaryCellValue}>{request?.customerName}</Text>
+            </View>
+            <View style={styles.summaryCell}>
+              <Text style={styles.summaryCellLabel}>Pickup</Text>
+              <Text style={styles.summaryCellValue}>{request?.pickupCity || request?.locationName || 'N/A'}</Text>
+            </View>
+            {request?.pickupDate ? (
+              <View style={styles.summaryCell}>
+                <Text style={styles.summaryCellLabel}>Pickup Date</Text>
+                <Text style={styles.summaryCellValue}>{new Date(request.pickupDate).toLocaleDateString()}</Text>
+              </View>
+            ) : null}
+            {request?.passengerCount ? (
+              <View style={styles.summaryCell}>
+                <Text style={styles.summaryCellLabel}>Passengers</Text>
+                <Text style={styles.summaryCellValue}>{request.passengerCount}</Text>
+              </View>
+            ) : null}
+          </View>
         </View>
 
         {/* Template Selection */}
         {templates.length > 0 && (
-          <View style={styles.card}>
-            <View style={styles.cardHeader}>
-              <Text style={styles.cardTitle}>Use Template</Text>
-              <Icon name="file-text" size={18} color={C.blue} />
+          <View style={[styles.card, { backgroundColor: C.orangeL, borderColor: '#FED7AA' }]}>
+            <View style={styles.cardHeaderRow}>
+              <View style={[styles.cardIconWrap, { backgroundColor: '#FED7AA' }]}>
+                <Icon name="zap" size={18} color={C.orange} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.cardTitle, { color: C.orange }]}>Quick Fill with Template</Text>
+                <Text style={[styles.cardSubtitle, { color: '#7C2D12' }]}>Auto-fill rates, inclusions & terms</Text>
+              </View>
             </View>
-            <Text style={[styles.label, { marginBottom: 12 }]}>
-              Select a template to auto-fill pricing, inclusions, and terms
-            </Text>
-
             <CustomDropdown
-              label="Select Template (Optional)"
+              label=""
               value={selectedTemplateId}
               items={[
-                { label: '-- No Template --', value: '' },
+                { label: '-- Select a template (optional) --', value: '' },
                 ...templates.map((template) => ({
-                  label: `${template.name}${template.isDefault ? ' (Default)' : ''}`,
+                  label: template.name + (template.description ? ` - ${template.description}` : ''),
                   value: template.id,
                 })),
               ]}
               onValueChange={handleTemplateSelection}
-              placeholder="-- No Template --"
+              placeholder="-- Select a template (optional) --"
+              searchable={templates.length > 5}
             />
-
-            {selectedTemplateId && (
-              <View style={{ marginTop: 12, padding: 12, backgroundColor: '#D1FAE5', borderRadius: 8 }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                  <Icon name="check-circle" size={16} color="#059669" />
-                  <Text style={{ fontSize: 13, color: '#059669', fontWeight: '600' }}>
-                    Template applied - Inclusions, Exclusions & Terms loaded
-                  </Text>
-                </View>
-              </View>
-            )}
           </View>
         )}
 
-        {/* Vehicle Details - Match Web App */}
+        {/* Vehicle Details */}
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>Vehicle Details (Optional)</Text>
+          <View style={styles.cardHeaderRow}>
+            <View style={[styles.cardIconWrap, { backgroundColor: C.g50 }]}>
+              <MaterialCommunityIcons name="bus" size={18} color={C.g600} />
+            </View>
+            <View>
+              <Text style={styles.cardTitle}>Vehicle Details</Text>
+              <Text style={styles.cardSubtitle}>Select from fleet or enter manually</Text>
+            </View>
+          </View>
 
           <CustomDropdown
-            label="Select from your fleet"
+            label="Select from Fleet (Optional)"
             value={selectedFleetId}
             items={[
-              { label: '-- Select a vehicle from fleet (or enter manually below) --', value: '' },
+              { label: '-- Manual Entry --', value: '' },
               ...fleetVehicles.map((vehicle) => {
-                // Build display name like web app
                 let displayName = '';
                 if (vehicle.vehicle_models) {
                   displayName = vehicle.vehicle_models.brands?.name
@@ -378,28 +354,19 @@ export default function BusSendQuoteScreen({ navigation, route }) {
                   displayName = vehicle.chauffeur_vehicle_categories.name;
                 }
                 const regNum = vehicle.registrationNumber ? ` (${vehicle.registrationNumber})` : '';
-                return {
-                  label: `${displayName}${regNum}`,
-                  value: vehicle.id,
-                };
+                return { label: `${displayName}${regNum}`, value: vehicle.id };
               }),
             ]}
             onValueChange={handleFleetSelection}
-            placeholder="-- Select a vehicle from fleet --"
+            placeholder="-- Manual Entry --"
             searchable={fleetVehicles.length > 5}
           />
-          <Text style={[styles.label, { fontSize: 12, marginTop: 4, marginBottom: 12, color: C.muted }]}>
-            Select a vehicle from your fleet to auto-fill details, or enter manually below
-          </Text>
 
-          <Text style={styles.inputLabel}>Vehicle Name/Model</Text>
+          <Text style={styles.inputLabel}>Vehicle Name/Model <Text style={{ color: C.red }}>*</Text></Text>
           <TextInput
             style={styles.input}
             value={vehicleName}
-            onChangeText={(text) => {
-              setVehicleName(text);
-              setSelectedFleetId(''); // Clear fleet selection when manually typing
-            }}
+            onChangeText={(text) => { setVehicleName(text); setSelectedFleetId(''); }}
             placeholder="e.g., Force Traveller 17 Seater"
             placeholderTextColor={C.muted}
           />
@@ -408,20 +375,25 @@ export default function BusSendQuoteScreen({ navigation, route }) {
           <TextInput
             style={styles.input}
             value={vehicleNumber}
-            onChangeText={(text) => {
-              setVehicleNumber(text.toUpperCase());
-              setSelectedFleetId(''); // Clear fleet selection when manually typing
-            }}
+            onChangeText={(text) => { setVehicleNumber(text.toUpperCase()); setSelectedFleetId(''); }}
             placeholder="e.g., DL 01 AB 1234"
             placeholderTextColor={C.muted}
           />
         </View>
 
-        {/* Pricing - Match Web App */}
+        {/* Pricing */}
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>Pricing</Text>
+          <View style={styles.cardHeaderRow}>
+            <View style={[styles.cardIconWrap, { backgroundColor: C.g50 }]}>
+              <Ionicons name="wallet-outline" size={18} color={C.g600} />
+            </View>
+            <View>
+              <Text style={styles.cardTitle}>Pricing Details</Text>
+              <Text style={styles.cardSubtitle}>Set your competitive rates</Text>
+            </View>
+          </View>
 
-          <Text style={styles.inputLabel}>Base Rate (₹) *</Text>
+          <Text style={styles.inputLabel}>Base Rate (₹) <Text style={{ color: C.red }}>*</Text></Text>
           <TextInput
             style={styles.input}
             value={baseRate}
@@ -462,7 +434,7 @@ export default function BusSendQuoteScreen({ navigation, route }) {
           />
 
           <CustomDropdown
-            label="Advance Payment Required (%)"
+            label="Advance Payment Required"
             value={advancePercent}
             items={[
               { label: '20%', value: '20' },
@@ -478,60 +450,78 @@ export default function BusSendQuoteScreen({ navigation, route }) {
         </View>
 
         {/* Quote Summary */}
-        {baseRate && parseFloat(baseRate) > 0 && (
-          <View style={[styles.card, { backgroundColor: '#F0F9FF', borderColor: '#BAE6FD' }]}>
-            <Text style={[styles.cardTitle, { color: '#0369A1' }]}>Quote Summary</Text>
-            <View style={styles.row}>
-              <Text style={styles.summaryLabel}>Base Rate</Text>
-              <Text style={styles.summaryValue}>₹{parseFloat(baseRate).toFixed(0)}</Text>
+        {total > 0 && (
+          <View style={[styles.card, { backgroundColor: C.blueL, borderColor: '#BFDBFE' }]}>
+            <View style={styles.cardHeaderRow}>
+              <View style={[styles.cardIconWrap, { backgroundColor: '#DBEAFE' }]}>
+                <Ionicons name="calculator-outline" size={18} color={C.blue} />
+              </View>
+              <View>
+                <Text style={[styles.cardTitle, { color: C.blue }]}>Quote Summary</Text>
+                <Text style={[styles.cardSubtitle, { color: '#1E40AF' }]}>Calculated breakdown</Text>
+              </View>
+            </View>
+            <View style={styles.summaryLine}>
+              <Text style={styles.summaryLineLabel}>Base Rate</Text>
+              <Text style={styles.summaryLineValue}>₹{parseFloat(baseRate || 0).toFixed(0)}</Text>
             </View>
             {parseFloat(driverAllowance || 0) > 0 && (
-              <View style={styles.row}>
-                <Text style={styles.summaryLabel}>Driver Allowance</Text>
-                <Text style={styles.summaryValue}>₹{parseFloat(driverAllowance).toFixed(0)}</Text>
+              <View style={styles.summaryLine}>
+                <Text style={styles.summaryLineLabel}>Driver Allowance</Text>
+                <Text style={styles.summaryLineValue}>₹{parseFloat(driverAllowance).toFixed(0)}</Text>
               </View>
             )}
             {parseFloat(tollCharges || 0) > 0 && (
-              <View style={styles.row}>
-                <Text style={styles.summaryLabel}>Toll Charges</Text>
-                <Text style={styles.summaryValue}>₹{parseFloat(tollCharges).toFixed(0)}</Text>
+              <View style={styles.summaryLine}>
+                <Text style={styles.summaryLineLabel}>Toll Charges</Text>
+                <Text style={styles.summaryLineValue}>₹{parseFloat(tollCharges).toFixed(0)}</Text>
               </View>
             )}
             {parseFloat(additionalCharges || 0) > 0 && (
-              <View style={styles.row}>
-                <Text style={styles.summaryLabel}>Additional Charges</Text>
-                <Text style={styles.summaryValue}>₹{parseFloat(additionalCharges).toFixed(0)}</Text>
+              <View style={styles.summaryLine}>
+                <Text style={styles.summaryLineLabel}>Additional Charges</Text>
+                <Text style={styles.summaryLineValue}>₹{parseFloat(additionalCharges).toFixed(0)}</Text>
               </View>
             )}
-            <View style={styles.divider} />
-            <View style={styles.row}>
-              <Text style={styles.totalLabel}>Total</Text>
-              <Text style={styles.totalValue}>₹{total.toFixed(0)}</Text>
+            <View style={styles.summaryDivider} />
+            <View style={styles.summaryLine}>
+              <Text style={[styles.summaryLineLabel, { fontWeight: '700', color: C.text }]}>
+                Advance ({advancePercent}%)
+              </Text>
+              <Text style={[styles.summaryLineValue, { color: C.blue, fontSize: 17, fontWeight: '800' }]}>
+                ₹{advance.toFixed(0)}
+              </Text>
             </View>
-            <View style={styles.row}>
-              <Text style={styles.totalLabel}>Advance ({advancePercent}%)</Text>
-              <Text style={styles.totalValue}>₹{advance.toFixed(0)}</Text>
-            </View>
-            <View style={styles.row}>
-              <Text style={styles.label}>Balance on pickup</Text>
-              <Text style={styles.value}>₹{(total - advance).toFixed(0)}</Text>
+            <View style={styles.summaryLine}>
+              <Text style={styles.summaryLineLabel}>Balance on pickup</Text>
+              <Text style={styles.summaryLineValue}>₹{(total - advance).toFixed(0)}</Text>
             </View>
           </View>
         )}
 
         {/* Inclusions */}
         <View style={styles.card}>
-          <View style={styles.cardHeader}>
-            <Text style={styles.cardTitle}>Inclusions ({inclusions.length})</Text>
-            <TouchableOpacity onPress={() => openEditModal('inclusions')}>
-              <Icon name="edit-2" size={18} color={C.brand} />
+          <View style={[styles.cardHeaderRow, { marginBottom: 14 }]}>
+            <View style={[styles.cardIconWrap, { backgroundColor: C.g50 }]}>
+              <Icon name="check-circle" size={18} color={C.g600} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.cardTitle}>Inclusions ({inclusions.length})</Text>
+              <Text style={styles.cardSubtitle}>What's included in the quote</Text>
+            </View>
+            <TouchableOpacity
+              style={[styles.editChip, { backgroundColor: C.g50 }]}
+              onPress={() => openEditModal('inclusions')}
+            >
+              <Icon name="edit-2" size={13} color={C.g700} />
+              <Text style={[styles.editChipText, { color: C.g700 }]}>Edit</Text>
             </TouchableOpacity>
           </View>
-          <View style={styles.chipContainer}>
+          <View style={styles.chipWrap}>
             {inclusions.map((item, idx) => (
-              <View key={idx} style={[styles.chip, { backgroundColor: '#D1FAE5' }]}>
-                <Icon name="check-circle" size={14} color="#059669" />
-                <Text style={[styles.chipText, { color: '#059669' }]}>{item}</Text>
+              <View key={idx} style={[styles.chip, { backgroundColor: C.g50, borderColor: C.g100 }]}>
+                <Icon name="check-circle" size={13} color={C.g600} />
+                <Text style={[styles.chipText, { color: C.g700 }]}>{item}</Text>
               </View>
             ))}
           </View>
@@ -539,17 +529,27 @@ export default function BusSendQuoteScreen({ navigation, route }) {
 
         {/* Exclusions */}
         <View style={styles.card}>
-          <View style={styles.cardHeader}>
-            <Text style={styles.cardTitle}>Exclusions ({exclusions.length})</Text>
-            <TouchableOpacity onPress={() => openEditModal('exclusions')}>
-              <Icon name="edit-2" size={18} color={C.brand} />
+          <View style={[styles.cardHeaderRow, { marginBottom: 14 }]}>
+            <View style={[styles.cardIconWrap, { backgroundColor: C.redL }]}>
+              <Icon name="x-circle" size={18} color={C.red} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.cardTitle}>Exclusions ({exclusions.length})</Text>
+              <Text style={styles.cardSubtitle}>What's not covered</Text>
+            </View>
+            <TouchableOpacity
+              style={[styles.editChip, { backgroundColor: C.redL }]}
+              onPress={() => openEditModal('exclusions')}
+            >
+              <Icon name="edit-2" size={13} color={C.red} />
+              <Text style={[styles.editChipText, { color: C.red }]}>Edit</Text>
             </TouchableOpacity>
           </View>
-          <View style={styles.chipContainer}>
+          <View style={styles.chipWrap}>
             {exclusions.map((item, idx) => (
-              <View key={idx} style={[styles.chip, { backgroundColor: '#FEE2E2' }]}>
-                <Icon name="x-circle" size={14} color="#DC2626" />
-                <Text style={[styles.chipText, { color: '#DC2626' }]}>{item}</Text>
+              <View key={idx} style={[styles.chip, { backgroundColor: C.redL, borderColor: '#FECACA' }]}>
+                <Icon name="x-circle" size={13} color={C.red} />
+                <Text style={[styles.chipText, { color: C.red }]}>{item}</Text>
               </View>
             ))}
           </View>
@@ -557,30 +557,50 @@ export default function BusSendQuoteScreen({ navigation, route }) {
 
         {/* Terms & Conditions */}
         <View style={styles.card}>
-          <View style={styles.cardHeader}>
-            <Text style={styles.cardTitle}>Terms & Conditions ({termsConditions.length})</Text>
-            <TouchableOpacity onPress={() => openEditModal('terms')}>
-              <Icon name="edit-2" size={18} color={C.brand} />
+          <View style={[styles.cardHeaderRow, { marginBottom: 14 }]}>
+            <View style={[styles.cardIconWrap, { backgroundColor: C.purpleL }]}>
+              <Ionicons name="document-text-outline" size={18} color={C.purple} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.cardTitle}>Terms & Conditions ({termsConditions.length})</Text>
+              <Text style={styles.cardSubtitle}>Service policies</Text>
+            </View>
+            <TouchableOpacity
+              style={[styles.editChip, { backgroundColor: C.purpleL }]}
+              onPress={() => openEditModal('terms')}
+            >
+              <Icon name="edit-2" size={13} color={C.purple} />
+              <Text style={[styles.editChipText, { color: C.purple }]}>Edit</Text>
             </TouchableOpacity>
           </View>
           {termsConditions.map((term, idx) => (
             <View key={idx} style={styles.termRow}>
-              <Text style={styles.termNumber}>{idx + 1}.</Text>
+              <View style={[styles.termBullet, { backgroundColor: C.purpleL }]}>
+                <Text style={[styles.termNumber, { color: C.purple }]}>{idx + 1}</Text>
+              </View>
               <Text style={styles.termText}>{term}</Text>
             </View>
           ))}
         </View>
 
-        {/* Additional Info */}
+        {/* Additional Information */}
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>Additional Information</Text>
+          <View style={styles.cardHeaderRow}>
+            <View style={[styles.cardIconWrap, { backgroundColor: C.bg }]}>
+              <Ionicons name="chatbox-ellipses-outline" size={18} color={C.sub} />
+            </View>
+            <View>
+              <Text style={styles.cardTitle}>Additional Information</Text>
+              <Text style={styles.cardSubtitle}>Notes & validity</Text>
+            </View>
+          </View>
 
           <Text style={styles.inputLabel}>Notes for Customer</Text>
           <TextInput
             style={[styles.input, styles.textArea]}
             value={notes}
             onChangeText={setNotes}
-            placeholder="Any special notes..."
+            placeholder="Any special notes or conditions..."
             placeholderTextColor={C.muted}
             multiline
             numberOfLines={3}
@@ -598,10 +618,10 @@ export default function BusSendQuoteScreen({ navigation, route }) {
           />
         </View>
 
-        <View style={{ height: 100 }} />
+        <View style={{ height: 110 }} />
       </ScrollView>
 
-      {/* Submit Button */}
+      {/* Footer */}
       <View style={styles.footer}>
         <TouchableOpacity
           style={[styles.submitBtn, submitting && styles.submitBtnDisabled]}
@@ -612,9 +632,9 @@ export default function BusSendQuoteScreen({ navigation, route }) {
             <ActivityIndicator size="small" color="#fff" />
           ) : (
             <>
-              <Icon name="send" size={18} color="#fff" />
+              <Ionicons name="paper-plane" size={20} color="#fff" />
               <Text style={styles.submitBtnText}>
-                Send Quote (₹{total.toFixed(0)})
+                Send Quote {total > 0 ? `• ₹${total.toFixed(0)}` : ''}
               </Text>
             </>
           )}
@@ -629,22 +649,31 @@ export default function BusSendQuoteScreen({ navigation, route }) {
         onRequestClose={() => setEditModalVisible(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+          <View style={styles.modalSheet}>
+            <View style={styles.modalHandle} />
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>
-                Edit {editType === 'inclusions' ? 'Inclusions' : editType === 'exclusions' ? 'Exclusions' : 'Terms'}
-              </Text>
-              <TouchableOpacity onPress={() => setEditModalVisible(false)}>
-                <Icon name="x" size={24} color={C.text} />
+              <View style={styles.modalTitleRow}>
+                {editType === 'inclusions' && <Icon name="check-circle" size={20} color={C.g600} style={{ marginRight: 8 }} />}
+                {editType === 'exclusions' && <Icon name="x-circle" size={20} color={C.red} style={{ marginRight: 8 }} />}
+                {editType === 'terms' && <Ionicons name="document-text-outline" size={20} color={C.purple} style={{ marginRight: 8 }} />}
+                <Text style={styles.modalTitle}>
+                  Edit {editType === 'inclusions' ? 'Inclusions' : editType === 'exclusions' ? 'Exclusions' : 'Terms'}
+                </Text>
+              </View>
+              <TouchableOpacity style={styles.modalCloseBtn} onPress={() => setEditModalVisible(false)}>
+                <Icon name="x" size={20} color={C.sub} />
               </TouchableOpacity>
             </View>
 
-            <ScrollView style={styles.modalBody}>
+            <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
               {editList.map((item, idx) => (
                 <View key={idx} style={styles.modalItem}>
+                  <View style={styles.modalItemIndexWrap}>
+                    <Text style={styles.modalItemIndex}>{idx + 1}</Text>
+                  </View>
                   <Text style={styles.modalItemText}>{item}</Text>
-                  <TouchableOpacity onPress={() => removeItemFromList(item)}>
-                    <Icon name="trash-2" size={18} color={C.red} />
+                  <TouchableOpacity style={styles.modalDeleteBtn} onPress={() => removeItemFromList(item)}>
+                    <Icon name="trash-2" size={16} color={C.red} />
                   </TouchableOpacity>
                 </View>
               ))}
@@ -657,6 +686,8 @@ export default function BusSendQuoteScreen({ navigation, route }) {
                 onChangeText={setNewItemText}
                 placeholder="Add new item..."
                 placeholderTextColor={C.muted}
+                onSubmitEditing={addItemToList}
+                returnKeyType="done"
               />
               <TouchableOpacity style={styles.modalAddBtn} onPress={addItemToList}>
                 <Icon name="plus" size={20} color="#fff" />
@@ -664,6 +695,7 @@ export default function BusSendQuoteScreen({ navigation, route }) {
             </View>
 
             <TouchableOpacity style={styles.modalSaveBtn} onPress={saveEditModal}>
+              <Ionicons name="checkmark" size={20} color="#fff" />
               <Text style={styles.modalSaveBtnText}>Save Changes</Text>
             </TouchableOpacity>
           </View>
@@ -674,244 +706,111 @@ export default function BusSendQuoteScreen({ navigation, route }) {
 }
 
 const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: C.bg,
+  safe: { flex: 1, backgroundColor: C.bg },
+
+  gradientHeader: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: 16, paddingVertical: 14,
   },
-  centered: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+  backBtnWhite: {
+    width: 40, height: 40, borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.15)', justifyContent: 'center', alignItems: 'center',
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: C.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: C.border,
-  },
-  backBtn: {
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: C.text,
-  },
-  content: {
-    flex: 1,
-    padding: 16,
-  },
+  headerCenter:        { alignItems: 'center', flex: 1 },
+  headerTitleWhite:    { fontSize: 18, fontWeight: '700', color: '#fff' },
+  headerSubtitleWhite: { fontSize: 12, color: 'rgba(255,255,255,0.75)', marginTop: 2 },
+
+  centered:    { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 12 },
+  loadingText: { fontSize: 14, color: C.sub },
+
+  scrollView: { flex: 1, paddingHorizontal: 16 },
+
   card: {
-    backgroundColor: C.surface,
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: C.border,
+    backgroundColor: C.card, borderRadius: 16, padding: 16, marginBottom: 16,
+    borderWidth: 1, borderColor: C.border,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 4, elevation: 2,
   },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  cardTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: C.text,
-  },
-  row: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 8,
-  },
-  label: {
-    fontSize: 14,
-    color: C.muted,
-  },
-  value: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: C.text,
-  },
-  inputLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: C.text,
-    marginBottom: 8,
-    marginTop: 8,
-  },
+  cardHeaderRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 14 },
+  cardIconWrap:  { width: 38, height: 38, borderRadius: 10, justifyContent: 'center', alignItems: 'center' },
+  cardTitle:     { fontSize: 15, fontWeight: '700', color: C.text },
+  cardSubtitle:  { fontSize: 12, color: C.muted, marginTop: 1 },
+
+  summaryGrid:      { gap: 10 },
+  summaryCell:      { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  summaryCellLabel: { fontSize: 13, color: '#92400E', fontWeight: '500' },
+  summaryCellValue: { fontSize: 13, fontWeight: '700', color: C.text, maxWidth: '60%', textAlign: 'right' },
+
+  inputLabel: { fontSize: 13, fontWeight: '600', color: C.sub, marginBottom: 7, marginTop: 12 },
   input: {
-    backgroundColor: C.bg,
-    borderWidth: 1,
-    borderColor: C.border,
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 14,
-    color: C.text,
+    backgroundColor: C.bg, borderWidth: 1, borderColor: C.border,
+    borderRadius: 10, padding: 12, fontSize: 14, color: C.text,
   },
-  textArea: {
-    height: 80,
-  },
-  summaryLabel: {
-    fontSize: 14,
-    color: C.muted,
-  },
-  summaryValue: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: C.text,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: C.border,
-    marginVertical: 12,
-  },
-  totalLabel: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: C.text,
-  },
-  totalValue: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: C.brand,
-  },
-  chipContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
+  textArea: { height: 88, textAlignVertical: 'top' },
+
+  summaryLine:      { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
+  summaryLineLabel: { fontSize: 14, color: C.sub },
+  summaryLineValue: { fontSize: 14, fontWeight: '600', color: C.text },
+  summaryDivider:   { height: 1, backgroundColor: '#BFDBFE', marginVertical: 10 },
+
+  chipWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    paddingHorizontal: 11, paddingVertical: 6, borderRadius: 20, borderWidth: 1,
   },
-  chipText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  termRow: {
-    flexDirection: 'row',
-    marginBottom: 8,
-  },
-  termNumber: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: C.brand,
-    marginRight: 8,
-  },
-  termText: {
-    flex: 1,
-    fontSize: 14,
-    color: C.text,
-  },
+  chipText:  { fontSize: 12, fontWeight: '600' },
+  editChip:  { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 10 },
+  editChipText: { fontSize: 12, fontWeight: '700' },
+
+  termRow:    { flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginBottom: 10 },
+  termBullet: { width: 24, height: 24, borderRadius: 8, justifyContent: 'center', alignItems: 'center', flexShrink: 0 },
+  termNumber: { fontSize: 11, fontWeight: '800' },
+  termText:   { flex: 1, fontSize: 13, color: C.sub, lineHeight: 20 },
+
   footer: {
-    padding: 16,
-    backgroundColor: C.surface,
-    borderTopWidth: 1,
-    borderTopColor: C.border,
+    paddingHorizontal: 16, paddingTop: 12, paddingBottom: 24,
+    backgroundColor: C.card, borderTopWidth: 1, borderTopColor: C.border,
+    shadowColor: '#000', shadowOffset: { width: 0, height: -3 },
+    shadowOpacity: 0.06, shadowRadius: 10, elevation: 12,
   },
   submitBtn: {
-    backgroundColor: C.brand,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 14,
-    borderRadius: 10,
+    backgroundColor: C.g600, flexDirection: 'row', alignItems: 'center',
+    justifyContent: 'center', gap: 10, paddingVertical: 15, borderRadius: 14,
   },
-  submitBtnDisabled: {
-    opacity: 0.6,
+  submitBtnDisabled: { opacity: 0.6 },
+  submitBtnText:     { fontSize: 16, fontWeight: '700', color: '#fff' },
+
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'flex-end' },
+  modalSheet: {
+    backgroundColor: C.card, borderTopLeftRadius: 24, borderTopRightRadius: 24,
+    paddingHorizontal: 20, paddingBottom: 32, maxHeight: '82%',
   },
-  submitBtnText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#fff',
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'flex-end',
-  },
-  modalContent: {
-    backgroundColor: C.surface,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    padding: 20,
-    maxHeight: '80%',
+  modalHandle: {
+    width: 40, height: 4, borderRadius: 2,
+    backgroundColor: C.border, alignSelf: 'center', marginTop: 12, marginBottom: 16,
   },
   modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    marginBottom: 16, paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: C.border,
   },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: C.text,
-  },
-  modalBody: {
-    maxHeight: 300,
-  },
+  modalTitleRow: { flexDirection: 'row', alignItems: 'center' },
+  modalTitle:    { fontSize: 17, fontWeight: '700', color: C.text },
+  modalCloseBtn: { width: 32, height: 32, borderRadius: 16, backgroundColor: C.bg, justifyContent: 'center', alignItems: 'center' },
+  modalBody:     { maxHeight: 280, marginBottom: 8 },
   modalItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 12,
-    backgroundColor: C.bg,
-    borderRadius: 8,
-    marginBottom: 8,
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    padding: 12, backgroundColor: C.bg, borderRadius: 12, marginBottom: 8,
+    borderWidth: 1, borderColor: C.border,
   },
-  modalItemText: {
-    flex: 1,
-    fontSize: 14,
-    color: C.text,
-  },
-  modalAddSection: {
-    flexDirection: 'row',
-    gap: 8,
-    marginTop: 16,
-    marginBottom: 16,
-  },
+  modalItemIndexWrap: { width: 24, height: 24, borderRadius: 8, backgroundColor: C.border, justifyContent: 'center', alignItems: 'center' },
+  modalItemIndex:     { fontSize: 11, fontWeight: '800', color: C.sub },
+  modalItemText:      { flex: 1, fontSize: 13, color: C.text },
+  modalDeleteBtn:     { width: 30, height: 30, borderRadius: 8, backgroundColor: C.redL, justifyContent: 'center', alignItems: 'center' },
+  modalAddSection:    { flexDirection: 'row', gap: 10, marginTop: 12, marginBottom: 14 },
   modalInput: {
-    flex: 1,
-    backgroundColor: C.bg,
-    borderWidth: 1,
-    borderColor: C.border,
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 14,
-    color: C.text,
+    flex: 1, backgroundColor: C.bg, borderWidth: 1, borderColor: C.border,
+    borderRadius: 10, padding: 12, fontSize: 14, color: C.text,
   },
-  modalAddBtn: {
-    backgroundColor: C.brand,
-    width: 48,
-    height: 48,
-    borderRadius: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalSaveBtn: {
-    backgroundColor: C.brand,
-    paddingVertical: 14,
-    borderRadius: 10,
-    alignItems: 'center',
-  },
-  modalSaveBtnText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#fff',
-  },
+  modalAddBtn:     { width: 48, height: 48, borderRadius: 10, backgroundColor: C.g600, justifyContent: 'center', alignItems: 'center' },
+  modalSaveBtn:    { backgroundColor: C.g600, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 14, borderRadius: 14 },
+  modalSaveBtnText:{ fontSize: 16, fontWeight: '700', color: '#fff' },
 });

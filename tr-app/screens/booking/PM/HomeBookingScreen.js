@@ -107,7 +107,7 @@ const HomeBookingScreen = () => {
     } else {
       // Filter locations that match the query
       const filtered = allLocations.filter((city) =>
-        city.name.toLowerCase().includes(text.toLowerCase())
+        city.name.toLowerCase().includes(text.trim().toLowerCase())
       );
       setFilteredLocations(filtered);
       setShowNoResults(filtered.length === 0); // Show "No results" if no matching locations

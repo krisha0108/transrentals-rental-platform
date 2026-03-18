@@ -21,6 +21,7 @@ import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/nativ
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import LinearGradient from 'react-native-linear-gradient';
 import { widthPercentageToDP as wp, heightPercentageToDP as hp } from 'react-native-responsive-screen';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import fleetService from '../../services/fleetService';
 import api, { BASE_URL } from '../../api';
 
@@ -77,13 +78,18 @@ const SelfDriveFleetScreen = () => {
   const passedDropDate = route.params?.dropDate;
 
   // Dates
-  const [pickupDate] = useState(() => passedPickupDate ? new Date(passedPickupDate) : new Date());
-  const [dropDate] = useState(() => {
+  const [pickupDate, setPickupDate] = useState(() => passedPickupDate ? new Date(passedPickupDate) : new Date());
+  const [dropDate, setDropDate] = useState(() => {
     if (passedDropDate) return new Date(passedDropDate);
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
     return tomorrow;
   });
+
+  // Date picker state (Android)
+  const [datePickerVisible, setDatePickerVisible] = useState(false);
+  const [datePickerMode, setDatePickerMode] = useState('date');
+  const [datePickerTarget, setDatePickerTarget] = useState('pickup');
 
   // State for cars
   const [cars, setCars] = useState([]);
@@ -208,6 +214,26 @@ const SelfDriveFleetScreen = () => {
     const end = new Date(dropDate.getFullYear(), dropDate.getMonth(), dropDate.getDate());
     const diffDays = Math.round((end - start) / (1000 * 60 * 60 * 24)) + 1;
     return Math.max(1, diffDays);
+  };
+
+  const calculateTotalPrice = (car) => {
+    const days = calculateDays();
+    const baseTotal = car.lowestPrice * days;
+    let discount = 0;
+    let discountLabel = '';
+
+    if (days >= 28 && car.monthlyDiscount > 0) {
+      discount = car.monthlyDiscount;
+      discountLabel = `${car.monthlyDiscount}% monthly discount`;
+    } else if (days >= 7 && car.weeklyDiscount > 0) {
+      discount = car.weeklyDiscount;
+      discountLabel = `${car.weeklyDiscount}% weekly discount`;
+    }
+
+    const discountAmount = Math.round(baseTotal * discount / 100);
+    const finalPrice = baseTotal - discountAmount;
+
+    return { baseTotal, finalPrice, discountAmount, discountLabel, discount };
   };
 
   const handleRequestQuote = async () => {
@@ -365,6 +391,69 @@ const SelfDriveFleetScreen = () => {
     });
   };
 
+  const openDatePicker = (target) => {
+    setDatePickerTarget(target);
+    setDatePickerMode('date');
+    setDatePickerVisible(true);
+  };
+
+  const onDatePickerChange = (event, selected) => {
+    if (event.type === 'dismissed') {
+      setDatePickerVisible(false);
+      return;
+    }
+    if (!selected) {
+      setDatePickerVisible(false);
+      return;
+    }
+
+    if (datePickerMode === 'date') {
+      // Date selected, now ask for time
+      const current = datePickerTarget === 'pickup' ? pickupDate : dropDate;
+      const merged = new Date(
+        selected.getFullYear(), selected.getMonth(), selected.getDate(),
+        current.getHours(), current.getMinutes()
+      );
+      if (datePickerTarget === 'pickup') {
+        setPickupDate(merged);
+        if (dropDate <= merged) {
+          const newDrop = new Date(merged);
+          newDrop.setDate(newDrop.getDate() + 1);
+          setDropDate(newDrop);
+        }
+      } else {
+        if (merged > pickupDate) {
+          setDropDate(merged);
+        } else {
+          Alert.alert('Invalid Date', 'Drop date must be after pickup date');
+          setDatePickerVisible(false);
+          return;
+        }
+      }
+      setDatePickerMode('time');
+      setDatePickerVisible(true);
+      return;
+    }
+
+    if (datePickerMode === 'time') {
+      if (datePickerTarget === 'pickup') {
+        const upd = new Date(pickupDate);
+        upd.setHours(selected.getHours(), selected.getMinutes());
+        setPickupDate(upd);
+        if (dropDate <= upd) {
+          const newDrop = new Date(upd);
+          newDrop.setDate(newDrop.getDate() + 1);
+          setDropDate(newDrop);
+        }
+      } else {
+        const upd = new Date(dropDate);
+        upd.setHours(selected.getHours(), selected.getMinutes());
+        setDropDate(upd);
+      }
+      setDatePickerVisible(false);
+    }
+  };
+
   // Filter cars based on search query
   const filteredCars = cars.filter(car => {
     if (!searchQuery.trim()) return true;
@@ -447,13 +536,39 @@ const SelfDriveFleetScreen = () => {
           )}
         </View>
 
-        <View style={styles.priceRow}>
-          <Text style={styles.priceLabel}>Starting from</Text>
-          <View style={styles.priceValueWrap}>
-            <Text style={styles.priceCurrency}>&#8377;</Text>
-            <Text style={styles.price}>{item.lowestPrice}</Text>
-          </View>
-        </View>
+        {(() => {
+          const p = calculateTotalPrice(item);
+          return (
+            <View style={{ marginTop: hp('1.5%'), paddingTop: hp('1.5%'), borderTopWidth: 1, borderTopColor: '#F1F5F9' }}>
+              {/* Price Row */}
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                <View>
+                  <Text style={{ fontSize: wp('2.8%'), color: TEXT_MUTED, fontWeight: '500' }}>
+                    {calculateDays()} day{calculateDays() > 1 ? 's' : ''} · &#8377;{item.lowestPrice}/day
+                  </Text>
+                </View>
+                <View style={{ flexDirection: 'row', alignItems: 'baseline' }}>
+                  {p.discount > 0 && (
+                    <Text style={{ fontSize: wp('3.2%'), color: TEXT_MUTED, textDecorationLine: 'line-through', marginRight: wp('1.5%') }}>
+                      &#8377;{p.baseTotal.toLocaleString('en-IN')}
+                    </Text>
+                  )}
+                  <Text style={{ fontSize: wp('3.8%'), fontWeight: '800', color: TEAL }}>&#8377;</Text>
+                  <Text style={{ fontSize: wp('5.2%'), fontWeight: '900', color: TEAL }}>{p.finalPrice.toLocaleString('en-IN')}</Text>
+                </View>
+              </View>
+              {/* Discount Badge */}
+              {p.discount > 0 && (
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: hp('0.8%'), backgroundColor: '#F0FDF4', borderRadius: wp('2%'), paddingHorizontal: wp('2.5%'), paddingVertical: hp('0.5%'), alignSelf: 'flex-end' }}>
+                  <Ionicons name="pricetag" size={wp('3%')} color="#16A34A" style={{ marginRight: wp('1%') }} />
+                  <Text style={{ fontSize: wp('2.7%'), color: '#16A34A', fontWeight: '700' }}>
+                    {p.discountLabel} · Save &#8377;{p.discountAmount.toLocaleString('en-IN')}
+                  </Text>
+                </View>
+              )}
+            </View>
+          );
+        })()}
 
         <TouchableOpacity
           style={styles.bookBtnWrap}
@@ -753,8 +868,9 @@ const SelfDriveFleetScreen = () => {
 
             {/* Car Details */}
             <View style={styles.bookingDetails}>
+              <Text style={{ fontSize: wp('3%'), color: TEXT_MUTED, fontWeight: '500', marginBottom: hp('0.2%') }}>{selectedCar?.brandName}</Text>
               <Text style={styles.bookingCarName}>
-                {selectedCar?.brandName} {selectedCar?.name}
+                {selectedCar?.name}
               </Text>
 
               <View style={styles.carSpecsRow}>
@@ -932,18 +1048,31 @@ const SelfDriveFleetScreen = () => {
             {/* Pricing Info */}
             <View style={styles.pricingInfo}>
               <Text style={styles.sectionTitle}>Estimated Price</Text>
-              <View style={styles.priceRangeBox}>
-                <LinearGradient
-                  colors={[TEAL_DEEP, TEAL_MID]}
-                  style={styles.priceRangeGradient}
-                >
-                  <Text style={styles.priceStartingLabel}>Starting from</Text>
-                  <Text style={styles.priceRangeText}>
-                    &#8377;{(selectedCar?.lowestPrice * calculateDays()).toLocaleString('en-IN')}
-                  </Text>
-                  <Text style={styles.priceNote}>for {calculateDays()} day{calculateDays() > 1 ? 's' : ''}</Text>
-                </LinearGradient>
-              </View>
+              {(() => {
+                const p = selectedCar ? calculateTotalPrice(selectedCar) : null;
+                if (!p) return null;
+                return (
+                  <View style={styles.priceRangeBox}>
+                    <LinearGradient
+                      colors={[TEAL_DEEP, TEAL_MID]}
+                      style={styles.priceRangeGradient}
+                    >
+                      <Text style={styles.priceStartingLabel}>Starting from</Text>
+                      <Text style={styles.priceRangeText}>
+                        &#8377;{p.finalPrice.toLocaleString('en-IN')}
+                      </Text>
+                      <Text style={styles.priceNote}>for {calculateDays()} day{calculateDays() > 1 ? 's' : ''} (&#8377;{selectedCar.lowestPrice}/day)</Text>
+                      {p.discount > 0 && (
+                        <View style={{ backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: wp('2%'), paddingHorizontal: wp('3%'), paddingVertical: hp('0.4%'), marginTop: hp('0.5%') }}>
+                          <Text style={{ color: '#fff', fontSize: wp('2.8%'), fontWeight: '600', textAlign: 'center' }}>
+                            {p.discountLabel} — You save &#8377;{p.discountAmount.toLocaleString('en-IN')}
+                          </Text>
+                        </View>
+                      )}
+                    </LinearGradient>
+                  </View>
+                );
+              })()}
               <View style={styles.vendorCountWrap}>
                 <Ionicons name="people-circle-outline" size={wp('4.5%')} color={TEAL} />
                 <Text style={styles.vendorCountText}>
@@ -1047,32 +1176,34 @@ const SelfDriveFleetScreen = () => {
         </View>
       </LinearGradient>
 
-      {/* Date Summary */}
+      {/* Date Summary — Tap to change */}
       <View style={styles.dateSummary}>
         <View style={styles.dateSummaryCard}>
-          <View style={styles.dateSummaryItem}>
+          <TouchableOpacity style={styles.dateSummaryItem} onPress={() => openDatePicker('pickup')} activeOpacity={0.7}>
             <View style={styles.dateSummaryIconWrap}>
               <Ionicons name="calendar" size={wp('3.5%')} color={TEAL} />
             </View>
             <View>
               <Text style={styles.dateSummaryLabel}>Pickup</Text>
               <Text style={styles.dateSummaryText}>{formatDate(pickupDate)}</Text>
+              <Text style={{ fontSize: wp('2.5%'), color: TEAL, fontWeight: '600', marginTop: hp('0.2%') }}>Tap to change</Text>
             </View>
-          </View>
+          </TouchableOpacity>
 
           <View style={styles.dateSummaryArrow}>
             <Ionicons name="arrow-forward" size={wp('4%')} color={TEAL} />
           </View>
 
-          <View style={styles.dateSummaryItem}>
+          <TouchableOpacity style={styles.dateSummaryItem} onPress={() => openDatePicker('drop')} activeOpacity={0.7}>
             <View style={[styles.dateSummaryIconWrap, { backgroundColor: '#FEE2E2' }]}>
               <Ionicons name="calendar" size={wp('3.5%')} color="#EF4444" />
             </View>
             <View>
               <Text style={styles.dateSummaryLabel}>Drop</Text>
               <Text style={styles.dateSummaryText}>{formatDate(dropDate)}</Text>
+              <Text style={{ fontSize: wp('2.5%'), color: TEAL, fontWeight: '600', marginTop: hp('0.2%') }}>Tap to change</Text>
             </View>
-          </View>
+          </TouchableOpacity>
 
           <View style={styles.daysBadge}>
             <Text style={styles.daysBadgeText}>{calculateDays()} Day{calculateDays() > 1 ? 's' : ''}</Text>
@@ -1171,6 +1302,17 @@ const SelfDriveFleetScreen = () => {
       {renderFilterModal()}
       {renderBookingModal()}
       {renderPhoneModal()}
+
+      {/* Android Date/Time Picker */}
+      {datePickerVisible && Platform.OS === 'android' && (
+        <DateTimePicker
+          value={datePickerTarget === 'pickup' ? pickupDate : dropDate}
+          mode={datePickerMode}
+          display="default"
+          onChange={onDatePickerChange}
+          minimumDate={datePickerTarget === 'pickup' ? new Date() : pickupDate}
+        />
+      )}
     </SafeAreaView>
   );
 };

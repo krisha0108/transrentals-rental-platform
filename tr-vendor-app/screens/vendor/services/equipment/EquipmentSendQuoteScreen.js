@@ -1,32 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  TextInput,
-  ActivityIndicator,
-  Alert,
-  Modal,
+  View, Text, StyleSheet, ScrollView, TouchableOpacity,
+  TextInput, ActivityIndicator, Modal, StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/Feather';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import CustomDropdown from '../../../../components/CustomDropdown';
 import { getQuoteRequestById, getFleetVehicles, submitQuote, getTemplates } from '../../../api/client';
-import { showConfirm, showError, showInfo, showSuccess } from '../../../../services/alertService';
+import { showError, showSuccess } from '../../../../services/alertService';
 
 const C = {
-  bg: '#F7FAFC',
-  surface: '#FFFFFF',
-  text: '#1E293B',
-  muted: '#64748B',
-  border: '#E2E8F0',
-  brand: '#FF6B35',
-  green: '#10B981',
-  orange: '#F59E0B',
-  red: '#EF4444',
-  blue: '#3B82F6',
+  g900: '#022C22', g800: '#065F46', g700: '#047857', g600: '#059669',
+  g500: '#10B981', g400: '#34D399', g100: '#D1FAE5', g50: '#ECFDF5',
+  bg: '#F1F5F9', card: '#FFFFFF', border: '#E2E8F0',
+  text: '#0F172A', sub: '#475569', muted: '#94A3B8',
+  blue: '#2563EB', blueL: '#EFF6FF',
+  red: '#DC2626', redL: '#FEF2F2',
 };
 
 const DEFAULT_INCLUSIONS = [
@@ -55,14 +46,10 @@ const DEFAULT_TERMS = [
 ];
 
 const EQUIPMENT_CATEGORIES = [
-  { id: '1', name: 'Cranes' },
-  { id: '2', name: 'Earthmoving Equipment' },
-  { id: '3', name: 'Material Handling' },
-  { id: '4', name: 'Concrete Equipment' },
-  { id: '5', name: 'Road Construction' },
-  { id: '6', name: 'Power & HVAC' },
-  { id: '7', name: 'Lifting Equipment' },
-  { id: '8', name: 'Other Equipment' },
+  { id: '1', name: 'Cranes' }, { id: '2', name: 'Earthmoving Equipment' },
+  { id: '3', name: 'Material Handling' }, { id: '4', name: 'Concrete Equipment' },
+  { id: '5', name: 'Road Construction' }, { id: '6', name: 'Power & HVAC' },
+  { id: '7', name: 'Lifting Equipment' }, { id: '8', name: 'Other Equipment' },
 ];
 
 export default function EquipmentSendQuoteScreen({ navigation, route }) {
@@ -74,7 +61,6 @@ export default function EquipmentSendQuoteScreen({ navigation, route }) {
   const [templates, setTemplates] = useState([]);
   const [selectedTemplateId, setSelectedTemplateId] = useState('');
 
-  // Form state
   const [selectedFleetId, setSelectedFleetId] = useState('');
   const [equipmentName, setEquipmentName] = useState('');
   const [equipmentModel, setEquipmentModel] = useState('');
@@ -89,7 +75,6 @@ export default function EquipmentSendQuoteScreen({ navigation, route }) {
   const [notes, setNotes] = useState('');
   const [validityDays, setValidityDays] = useState('2');
 
-  // Inclusions/Exclusions/Terms
   const [inclusions, setInclusions] = useState([...DEFAULT_INCLUSIONS]);
   const [exclusions, setExclusions] = useState([...DEFAULT_EXCLUSIONS]);
   const [termsConditions, setTermsConditions] = useState([...DEFAULT_TERMS]);
@@ -98,9 +83,7 @@ export default function EquipmentSendQuoteScreen({ navigation, route }) {
   const [editList, setEditList] = useState([]);
   const [newItemText, setNewItemText] = useState('');
 
-  useEffect(() => {
-    fetchData();
-  }, []);
+  useEffect(() => { fetchData(); }, []);
 
   const fetchData = async () => {
     try {
@@ -112,36 +95,25 @@ export default function EquipmentSendQuoteScreen({ navigation, route }) {
       ]);
       setRequest(requestData.request || requestData);
 
-      // Filter equipment fleet - support both singular and plural
-      const equipmentFleet = (fleetsData.fleet || fleetsData.fleets || fleetsData.vehicles || []).filter(
-        (v) => {
-          const service = v.services || v.service;
-          return (
-            service?.slug === 'equipment-rental' ||
-            service?.name?.toLowerCase().includes('equipment')
-          );
-        }
-      );
+      const equipmentFleet = (fleetsData.fleet || fleetsData.fleets || fleetsData.vehicles || []).filter((v) => {
+        const service = v.services || v.service;
+        return service?.slug === 'equipment-rental' || service?.name?.toLowerCase().includes('equipment');
+      });
       setFleetVehicles(equipmentFleet);
 
-      // Set active templates
       const activeTemplates = (templatesData.templates || []).filter((t) => t.isActive !== false);
       setTemplates(activeTemplates);
 
-      // Auto-select default template if exists
       const defaultTemplate = activeTemplates.find((t) => t.isDefault);
-      if (defaultTemplate) {
-        handleTemplateSelection(defaultTemplate.id);
-      }
+      if (defaultTemplate) handleTemplateSelection(defaultTemplate.id, activeTemplates);
     } catch (error) {
-      console.error('Error fetching data:', error);
       showError('Failed to load data');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleTemplateSelection = (templateId) => {
+  const handleTemplateSelection = (templateId, templatesList) => {
     setSelectedTemplateId(templateId);
     if (!templateId) {
       setInclusions([...DEFAULT_INCLUSIONS]);
@@ -149,86 +121,40 @@ export default function EquipmentSendQuoteScreen({ navigation, route }) {
       setTermsConditions([...DEFAULT_TERMS]);
       return;
     }
-
-    const template = templates.find((t) => t.id === templateId);
+    const list = templatesList || templates;
+    const template = list.find((t) => t.id === templateId);
     if (template) {
-      // Set inclusions, exclusions, terms
-      if (template.inclusions && Array.isArray(template.inclusions)) {
-        setInclusions([...template.inclusions]);
-      }
-      if (template.exclusions && Array.isArray(template.exclusions)) {
-        setExclusions([...template.exclusions]);
-      }
-      if (template.termsConditions && Array.isArray(template.termsConditions)) {
-        setTermsConditions([...template.termsConditions]);
-      }
-
-      // Auto-fill rates from template
-      if (template.dailyRateHint || template.baseRateHint) {
-        setDailyRate((template.dailyRateHint || template.baseRateHint).toString());
-      }
-      if (template.weeklyRateHint) {
-        setWeeklyRate(template.weeklyRateHint.toString());
-      }
-      if (template.monthlyRateHint) {
-        setMonthlyRate(template.monthlyRateHint.toString());
-      }
-      if (template.deliveryChargesHint) {
-        setDeliveryCharges(template.deliveryChargesHint.toString());
-      }
-      if (template.operatorChargesHint) {
-        setOperatorCharges(template.operatorChargesHint.toString());
-      }
-      if (template.securityDepositHint) {
-        setSecurityDeposit(template.securityDepositHint.toString());
-      }
-      if (template.advancePercentHint) {
-        setAdvancePercent(template.advancePercentHint.toString());
-      }
+      if (Array.isArray(template.inclusions)) setInclusions([...template.inclusions]);
+      if (Array.isArray(template.exclusions)) setExclusions([...template.exclusions]);
+      if (Array.isArray(template.termsConditions)) setTermsConditions([...template.termsConditions]);
+      if (template.dailyRateHint || template.baseRateHint) setDailyRate((template.dailyRateHint || template.baseRateHint).toString());
+      if (template.weeklyRateHint) setWeeklyRate(template.weeklyRateHint.toString());
+      if (template.monthlyRateHint) setMonthlyRate(template.monthlyRateHint.toString());
+      if (template.deliveryChargesHint) setDeliveryCharges(template.deliveryChargesHint.toString());
+      if (template.operatorChargesHint) setOperatorCharges(template.operatorChargesHint.toString());
+      if (template.securityDepositHint) setSecurityDeposit(template.securityDepositHint.toString());
+      if (template.advancePercentHint) setAdvancePercent(template.advancePercentHint.toString());
     }
   };
 
   const handleFleetSelection = (fleetId) => {
     setSelectedFleetId(fleetId);
-    if (!fleetId) {
-      setEquipmentName('');
-      setEquipmentModel('');
-      setEquipmentCategory('');
-      return;
-    }
-
+    if (!fleetId) { setEquipmentName(''); setEquipmentModel(''); setEquipmentCategory(''); return; }
     const selectedEquip = fleetVehicles.find((v) => v.id === fleetId);
     if (selectedEquip) {
       let brandName = '';
       let modelName = '';
-      let categoryName = '';
       let categoryId = '';
-
-      // Check if vehicle has model (using ID field)
       if (selectedEquip.vehicleModelId && selectedEquip.vehicle_models) {
         modelName = selectedEquip.vehicle_models.name || '';
-        // Get brand from the model's brand relation
-        if (selectedEquip.vehicle_models.brands) {
-          brandName = selectedEquip.vehicle_models.brands.name || '';
-        }
+        if (selectedEquip.vehicle_models.brands) brandName = selectedEquip.vehicle_models.brands.name || '';
       }
-
-      // Check if vehicle has direct brand
-      if (selectedEquip.brandId && selectedEquip.brands) {
-        brandName = selectedEquip.brands.name || '';
-      }
-
-      // Check if vehicle has category
+      if (selectedEquip.brandId && selectedEquip.brands) brandName = selectedEquip.brands.name || '';
       if (selectedEquip.vehicleCategoryId && selectedEquip.chauffeur_vehicle_categories) {
-        categoryName = selectedEquip.chauffeur_vehicle_categories.name || '';
         categoryId = selectedEquip.chauffeur_vehicle_categories.id || '';
       }
-
-      // Combine brand and model for equipment name
-      const fullName = brandName && modelName ? `${brandName} ${modelName}` : brandName || modelName || categoryName || '';
-
+      const fullName = brandName && modelName ? `${brandName} ${modelName}` : brandName || modelName || '';
       setEquipmentName(fullName);
-      // Use registration number for model/make field
       setEquipmentModel(selectedEquip.registrationNumber || '');
       setEquipmentCategory(categoryId || selectedEquip.vehicleCategoryId || '');
     }
@@ -258,9 +184,7 @@ export default function EquipmentSendQuoteScreen({ navigation, route }) {
     }
   };
 
-  const removeItemFromList = (item) => {
-    setEditList(editList.filter((i) => i !== item));
-  };
+  const removeItemFromList = (item) => setEditList(editList.filter((i) => i !== item));
 
   const calculateTotal = () => {
     const rate = parseFloat(dailyRate) || 0;
@@ -277,28 +201,18 @@ export default function EquipmentSendQuoteScreen({ navigation, route }) {
   };
 
   const handleSubmit = async () => {
-    if (!equipmentName) {
-      showError('Please enter equipment name or select from fleet');
-      return;
-    }
-    if (!equipmentCategory) {
-      showError('Please select equipment category');
-      return;
-    }
-    if (!dailyRate || parseFloat(dailyRate) <= 0) {
-      showError('Please enter daily rate');
-      return;
-    }
+    if (!equipmentName) { showError('Please enter equipment name or select from fleet'); return; }
+    if (!equipmentCategory) { showError('Please select equipment category'); return; }
+    if (!dailyRate || parseFloat(dailyRate) <= 0) { showError('Please enter daily rate'); return; }
 
     try {
       setSubmitting(true);
-      // Match web app's exact field structure
       await submitQuote('equipment', {
-        requestId: requestId,
+        requestId,
         templateId: selectedTemplateId || null,
         fleetId: selectedFleetId || null,
-        equipmentCategory: equipmentCategory,
-        equipmentName: equipmentName,
+        equipmentCategory,
+        equipmentName,
         equipmentModel: equipmentModel || null,
         quantity: request?.quantity || 1,
         dailyRate: parseFloat(dailyRate) || 0,
@@ -321,7 +235,6 @@ export default function EquipmentSendQuoteScreen({ navigation, route }) {
       });
       showSuccess('Quote sent successfully!', 'Success', { actions: [{ label: 'OK', onPress: () => navigation.goBack(), variant: 'primary' }] });
     } catch (error) {
-      console.error('Error submitting quote:', error);
       showError(error?.response?.data?.error || 'Failed to send quote');
     } finally {
       setSubmitting(false);
@@ -330,11 +243,21 @@ export default function EquipmentSendQuoteScreen({ navigation, route }) {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.safe}>
-        <View style={styles.centered}>
-          <ActivityIndicator size="large" color={C.brand} />
-        </View>
-      </SafeAreaView>
+      <View style={s.safe}>
+        <StatusBar barStyle="light-content" backgroundColor={C.g900} />
+        <LinearGradient colors={[C.g900, '#064E3B', C.g700]} style={s.heroMin}>
+          <SafeAreaView edges={['top']}>
+            <View style={s.topBar}>
+              <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()}>
+                <Icon name="arrow-left" size={18} color="#fff" />
+              </TouchableOpacity>
+              <Text style={s.heroTitle}>Send Quote</Text>
+              <View style={{ width: 36 }} />
+            </View>
+          </SafeAreaView>
+        </LinearGradient>
+        <View style={s.centered}><ActivityIndicator size="large" color={C.g600} /></View>
+      </View>
     );
   }
 
@@ -342,101 +265,77 @@ export default function EquipmentSendQuoteScreen({ navigation, route }) {
   const advance = calculateAdvance();
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Icon name="arrow-left" size={22} color={C.text} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Send Quote - Equipment</Text>
-        <View style={{ width: 40 }} />
-      </View>
+    <SafeAreaView style={s.safe} edges={['top']}>
+      <StatusBar barStyle="light-content" backgroundColor={C.g900} />
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <LinearGradient
+        colors={[C.g900, '#064E3B', C.g700]}
+        start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+        style={s.hero}
+      >
+        <View style={s.deco1} /><View style={s.deco2} />
+        <View style={s.topBar}>
+          <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()}>
+            <Icon name="arrow-left" size={18} color="#fff" />
+          </TouchableOpacity>
+          <Text style={s.heroTitle}>Send Quote</Text>
+          <View style={{ width: 36 }} />
+        </View>
+        <Text style={s.heroSub}>Equipment Rental</Text>
+      </LinearGradient>
+
+      <ScrollView style={s.scroll} showsVerticalScrollIndicator={false} contentContainerStyle={s.content}>
         {/* Request Summary */}
-        <View style={[styles.card, { backgroundColor: '#FFF4ED', borderColor: '#FFE4CC' }]}>
-          <Text style={[styles.cardTitle, { color: '#C2410C' }]}>Request Summary</Text>
-          <View style={styles.row}>
-            <Text style={styles.label}>Customer:</Text>
-            <Text style={styles.value}>{request?.customerName}</Text>
-          </View>
-          <View style={styles.row}>
-            <Text style={styles.label}>Location:</Text>
-            <Text style={styles.value}>{request?.locationName || request?.city}</Text>
-          </View>
-          {request?.equipmentType && (
-            <View style={styles.row}>
-              <Text style={styles.label}>Equipment Type:</Text>
-              <Text style={styles.value}>{request?.equipmentType}</Text>
-            </View>
+        <View style={[s.card, { backgroundColor: C.g50, borderColor: C.g100 }]}>
+          <Text style={[s.cardTitle, { color: C.g800 }]}>Request Summary</Text>
+          {request?.customerName && <SummaryRow label="Customer" value={request.customerName} />}
+          {(request?.locationName || request?.city || request?.deliveryCity) && (
+            <SummaryRow label="Location" value={request?.locationName || request?.city || request?.deliveryCity} />
           )}
-          {request?.durationDays && (
-            <View style={styles.row}>
-              <Text style={styles.label}>Duration:</Text>
-              <Text style={styles.value}>{request?.durationDays} days</Text>
-            </View>
-          )}
-          {request?.durationHours && (
-            <View style={styles.row}>
-              <Text style={styles.label}>Hours:</Text>
-              <Text style={styles.value}>{request?.durationHours} hours</Text>
-            </View>
+          {request?.equipmentType && <SummaryRow label="Equipment Type" value={request.equipmentType} />}
+          {(request?.durationDays || request?.rentalDays) && (
+            <SummaryRow label="Duration" value={`${request.durationDays || request.rentalDays} days`} />
           )}
         </View>
 
         {/* Template Selection */}
         {templates.length > 0 && (
-          <View style={styles.card}>
-            <View style={styles.cardHeader}>
-              <Text style={styles.cardTitle}>Use Template</Text>
-              <Icon name="file-text" size={18} color={C.blue} />
+          <View style={s.card}>
+            <View style={s.cardHeader}>
+              <Text style={s.cardTitle}>Use Template</Text>
+              <Icon name="file-text" size={16} color={C.blue} />
             </View>
-            <Text style={[styles.label, { marginBottom: 12 }]}>
-              Select a template to auto-fill pricing, inclusions, and terms
-            </Text>
-
             <CustomDropdown
               label="Select Template (Optional)"
               value={selectedTemplateId}
               items={[
                 { label: '-- No Template --', value: '' },
-                ...templates.map((template) => ({
-                  label: `${template.name}${template.isDefault ? ' (Default)' : ''}`,
-                  value: template.id,
-                })),
+                ...templates.map((t) => ({ label: `${t.name}${t.isDefault ? ' (Default)' : ''}`, value: t.id })),
               ]}
-              onValueChange={handleTemplateSelection}
+              onValueChange={(val) => handleTemplateSelection(val)}
               placeholder="-- No Template --"
             />
-
             {selectedTemplateId && (
-              <View style={{ marginTop: 12, padding: 12, backgroundColor: '#D1FAE5', borderRadius: 8 }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                  <Icon name="check-circle" size={16} color="#059669" />
-                  <Text style={{ fontSize: 13, color: '#059669', fontWeight: '600' }}>
-                    Template applied - Rates, Inclusions, Exclusions & Terms loaded
-                  </Text>
-                </View>
+              <View style={s.templateApplied}>
+                <Icon name="check-circle" size={14} color={C.g600} />
+                <Text style={s.templateAppliedTxt}>Template applied — Rates, Inclusions & Terms loaded</Text>
               </View>
             )}
           </View>
         )}
 
         {/* Equipment Details */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Equipment Details</Text>
-
+        <View style={s.card}>
+          <Text style={s.cardTitle}>Equipment Details</Text>
           <CustomDropdown
             label="Select from Fleet (Optional)"
             value={selectedFleetId}
             items={[
               { label: '-- Manual Entry --', value: '' },
-              ...fleetVehicles.map((equipment) => {
-                const name = equipment.vehicleModel?.name || equipment.vehicleCategory?.name || 'Equipment';
-                const regNo = equipment.registrationNumber || '';
-                return {
-                  label: regNo ? `${name} (${regNo})` : name,
-                  value: equipment.id,
-                };
+              ...fleetVehicles.map((eq) => {
+                const name = eq.vehicleModel?.name || eq.vehicleCategory?.name || 'Equipment';
+                const reg = eq.registrationNumber || '';
+                return { label: reg ? `${name} (${reg})` : name, value: eq.id };
               }),
             ]}
             onValueChange={handleFleetSelection}
@@ -444,26 +343,11 @@ export default function EquipmentSendQuoteScreen({ navigation, route }) {
             searchable={fleetVehicles.length > 5}
           />
 
-          <Text style={styles.inputLabel}>Equipment Name *</Text>
-          <TextInput
-            style={styles.input}
-            value={equipmentName}
-            onChangeText={setEquipmentName}
-            placeholder="e.g., Mobile Crane 20 Ton"
-            placeholderTextColor={C.muted}
-            editable={!selectedFleetId}
-          />
+          <Text style={s.inputLabel}>Equipment Name *</Text>
+          <TextInput style={s.input} value={equipmentName} onChangeText={setEquipmentName} placeholder="e.g., Mobile Crane 20 Ton" placeholderTextColor={C.muted} editable={!selectedFleetId} />
 
-          <Text style={styles.inputLabel}>Equipment Registration Number</Text>
-          <TextInput
-            style={styles.input}
-            value={equipmentModel}
-            onChangeText={setEquipmentModel}
-            placeholder="e.g., GJ87YH6534"
-            placeholderTextColor={C.muted}
-            editable={!selectedFleetId}
-            autoCapitalize="characters"
-          />
+          <Text style={s.inputLabel}>Registration Number</Text>
+          <TextInput style={s.input} value={equipmentModel} onChangeText={setEquipmentModel} placeholder="e.g., GJ87YH6534" placeholderTextColor={C.muted} editable={!selectedFleetId} autoCapitalize="characters" />
 
           <CustomDropdown
             label="Equipment Category *"
@@ -475,78 +359,31 @@ export default function EquipmentSendQuoteScreen({ navigation, route }) {
         </View>
 
         {/* Pricing */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Pricing Details</Text>
+        <View style={s.card}>
+          <Text style={s.cardTitle}>Pricing Details</Text>
 
-          <Text style={styles.inputLabel}>Daily Rate (₹/day) *</Text>
-          <TextInput
-            style={styles.input}
-            value={dailyRate}
-            onChangeText={setDailyRate}
-            placeholder="e.g., 5000"
-            keyboardType="decimal-pad"
-            placeholderTextColor={C.muted}
-          />
+          <Text style={s.inputLabel}>Daily Rate (₹/day) *</Text>
+          <TextInput style={s.input} value={dailyRate} onChangeText={setDailyRate} placeholder="e.g., 5000" keyboardType="decimal-pad" placeholderTextColor={C.muted} />
 
-          <Text style={styles.inputLabel}>Weekly Rate (₹/week)</Text>
-          <TextInput
-            style={styles.input}
-            value={weeklyRate}
-            onChangeText={setWeeklyRate}
-            placeholder="e.g., 30000 (optional)"
-            keyboardType="decimal-pad"
-            placeholderTextColor={C.muted}
-          />
+          <Text style={s.inputLabel}>Weekly Rate (₹/week)</Text>
+          <TextInput style={s.input} value={weeklyRate} onChangeText={setWeeklyRate} placeholder="e.g., 30000" keyboardType="decimal-pad" placeholderTextColor={C.muted} />
 
-          <Text style={styles.inputLabel}>Monthly Rate (₹/month)</Text>
-          <TextInput
-            style={styles.input}
-            value={monthlyRate}
-            onChangeText={setMonthlyRate}
-            placeholder="e.g., 100000 (optional)"
-            keyboardType="decimal-pad"
-            placeholderTextColor={C.muted}
-          />
+          <Text style={s.inputLabel}>Monthly Rate (₹/month)</Text>
+          <TextInput style={s.input} value={monthlyRate} onChangeText={setMonthlyRate} placeholder="e.g., 100000" keyboardType="decimal-pad" placeholderTextColor={C.muted} />
 
-          <Text style={styles.inputLabel}>Delivery Charges (₹)</Text>
-          <TextInput
-            style={styles.input}
-            value={deliveryCharges}
-            onChangeText={setDeliveryCharges}
-            placeholder="e.g., 2000 (if delivery required)"
-            keyboardType="decimal-pad"
-            placeholderTextColor={C.muted}
-          />
+          <Text style={s.inputLabel}>Delivery Charges (₹)</Text>
+          <TextInput style={s.input} value={deliveryCharges} onChangeText={setDeliveryCharges} placeholder="e.g., 2000" keyboardType="decimal-pad" placeholderTextColor={C.muted} />
 
-          <Text style={styles.inputLabel}>Operator Charges (₹/day)</Text>
-          <TextInput
-            style={styles.input}
-            value={operatorCharges}
-            onChangeText={setOperatorCharges}
-            placeholder="e.g., 1500 (if operator required)"
-            keyboardType="decimal-pad"
-            placeholderTextColor={C.muted}
-          />
+          <Text style={s.inputLabel}>Operator Charges (₹/day)</Text>
+          <TextInput style={s.input} value={operatorCharges} onChangeText={setOperatorCharges} placeholder="e.g., 1500" keyboardType="decimal-pad" placeholderTextColor={C.muted} />
 
-          <Text style={styles.inputLabel}>Security Deposit (₹)</Text>
-          <TextInput
-            style={styles.input}
-            value={securityDeposit}
-            onChangeText={setSecurityDeposit}
-            placeholder="e.g., 20000"
-            keyboardType="decimal-pad"
-            placeholderTextColor={C.muted}
-          />
+          <Text style={s.inputLabel}>Security Deposit (₹)</Text>
+          <TextInput style={s.input} value={securityDeposit} onChangeText={setSecurityDeposit} placeholder="e.g., 20000" keyboardType="decimal-pad" placeholderTextColor={C.muted} />
 
           <CustomDropdown
             label="Advance Payment Required"
             value={advancePercent}
-            items={[
-              { label: '30%', value: '30' },
-              { label: '40%', value: '40' },
-              { label: '50%', value: '50' },
-              { label: '100%', value: '100' },
-            ]}
+            items={[{ label: '30%', value: '30' }, { label: '40%', value: '40' }, { label: '50%', value: '50' }, { label: '100%', value: '100' }]}
             onValueChange={setAdvancePercent}
             placeholder="Select advance %"
           />
@@ -554,176 +391,110 @@ export default function EquipmentSendQuoteScreen({ navigation, route }) {
 
         {/* Quote Summary */}
         {total > 0 && (
-          <View style={[styles.card, { backgroundColor: '#F0F9FF', borderColor: '#BAE6FD' }]}>
-            <Text style={[styles.cardTitle, { color: '#0369A1' }]}>Quote Summary</Text>
-            <View style={styles.row}>
-              <Text style={styles.summaryLabel}>Total</Text>
-              <Text style={styles.summaryValue}>₹{total.toFixed(0)}</Text>
-            </View>
-            <View style={styles.divider} />
-            <View style={styles.row}>
-              <Text style={styles.totalLabel}>Advance ({advancePercent}%)</Text>
-              <Text style={styles.totalValue}>₹{advance.toFixed(0)}</Text>
-            </View>
-            <View style={styles.row}>
-              <Text style={styles.label}>Balance on delivery</Text>
-              <Text style={styles.value}>₹{(total - advance).toFixed(0)}</Text>
-            </View>
-            {securityDeposit && parseFloat(securityDeposit) > 0 && (
-              <View style={[styles.row, { marginTop: 8 }]}>
-                <Text style={styles.label}>Security Deposit (Refundable)</Text>
-                <Text style={styles.value}>₹{parseFloat(securityDeposit).toFixed(0)}</Text>
-              </View>
+          <View style={[s.card, { backgroundColor: C.blueL, borderColor: '#BAE6FD' }]}>
+            <Text style={[s.cardTitle, { color: C.blue }]}>Quote Summary</Text>
+            <View style={s.summaryRow}><Text style={s.summaryLabel}>Total Amount</Text><Text style={s.summaryValue}>₹{total.toFixed(0)}</Text></View>
+            <View style={s.divider} />
+            <View style={s.summaryRow}><Text style={[s.summaryLabel, { fontWeight: '700', color: C.text }]}>Advance ({advancePercent}%)</Text><Text style={[s.summaryValue, { fontSize: 18, color: C.blue }]}>₹{advance.toFixed(0)}</Text></View>
+            <View style={s.summaryRow}><Text style={s.summaryLabel}>Balance on delivery</Text><Text style={s.summaryValue}>₹{(total - advance).toFixed(0)}</Text></View>
+            {parseFloat(securityDeposit) > 0 && (
+              <View style={s.summaryRow}><Text style={s.summaryLabel}>Security Deposit (Refundable)</Text><Text style={s.summaryValue}>₹{parseFloat(securityDeposit).toFixed(0)}</Text></View>
             )}
           </View>
         )}
 
         {/* Inclusions */}
-        <View style={styles.card}>
-          <View style={styles.cardHeader}>
-            <Text style={styles.cardTitle}>Inclusions ({inclusions.length})</Text>
-            <TouchableOpacity onPress={() => openEditModal('inclusions')}>
-              <Icon name="edit-2" size={18} color={C.brand} />
-            </TouchableOpacity>
+        <View style={s.card}>
+          <View style={s.cardHeader}>
+            <Text style={s.cardTitle}>Inclusions ({inclusions.length})</Text>
+            <TouchableOpacity onPress={() => openEditModal('inclusions')}><Icon name="edit-2" size={16} color={C.g600} /></TouchableOpacity>
           </View>
-          <View style={styles.chipContainer}>
+          <View style={s.chipContainer}>
             {inclusions.map((item, idx) => (
-              <View key={idx} style={[styles.chip, { backgroundColor: '#D1FAE5' }]}>
-                <Icon name="check-circle" size={14} color="#059669" />
-                <Text style={[styles.chipText, { color: '#059669' }]}>{item}</Text>
+              <View key={idx} style={[s.chip, { backgroundColor: C.g50 }]}>
+                <Icon name="check-circle" size={12} color={C.g600} />
+                <Text style={[s.chipText, { color: C.g700 }]}>{item}</Text>
               </View>
             ))}
           </View>
         </View>
 
         {/* Exclusions */}
-        <View style={styles.card}>
-          <View style={styles.cardHeader}>
-            <Text style={styles.cardTitle}>Exclusions ({exclusions.length})</Text>
-            <TouchableOpacity onPress={() => openEditModal('exclusions')}>
-              <Icon name="edit-2" size={18} color={C.brand} />
-            </TouchableOpacity>
+        <View style={s.card}>
+          <View style={s.cardHeader}>
+            <Text style={s.cardTitle}>Exclusions ({exclusions.length})</Text>
+            <TouchableOpacity onPress={() => openEditModal('exclusions')}><Icon name="edit-2" size={16} color={C.g600} /></TouchableOpacity>
           </View>
-          <View style={styles.chipContainer}>
+          <View style={s.chipContainer}>
             {exclusions.map((item, idx) => (
-              <View key={idx} style={[styles.chip, { backgroundColor: '#FEE2E2' }]}>
-                <Icon name="x-circle" size={14} color="#DC2626" />
-                <Text style={[styles.chipText, { color: '#DC2626' }]}>{item}</Text>
+              <View key={idx} style={[s.chip, { backgroundColor: C.redL }]}>
+                <Icon name="x-circle" size={12} color={C.red} />
+                <Text style={[s.chipText, { color: C.red }]}>{item}</Text>
               </View>
             ))}
           </View>
         </View>
 
-        {/* Terms & Conditions */}
-        <View style={styles.card}>
-          <View style={styles.cardHeader}>
-            <Text style={styles.cardTitle}>Terms & Conditions ({termsConditions.length})</Text>
-            <TouchableOpacity onPress={() => openEditModal('terms')}>
-              <Icon name="edit-2" size={18} color={C.brand} />
-            </TouchableOpacity>
+        {/* Terms */}
+        <View style={s.card}>
+          <View style={s.cardHeader}>
+            <Text style={s.cardTitle}>Terms & Conditions ({termsConditions.length})</Text>
+            <TouchableOpacity onPress={() => openEditModal('terms')}><Icon name="edit-2" size={16} color={C.g600} /></TouchableOpacity>
           </View>
           {termsConditions.map((term, idx) => (
-            <View key={idx} style={styles.termRow}>
-              <Text style={styles.termNumber}>{idx + 1}.</Text>
-              <Text style={styles.termText}>{term}</Text>
+            <View key={idx} style={s.termRow}>
+              <Text style={s.termNum}>{idx + 1}.</Text>
+              <Text style={s.termText}>{term}</Text>
             </View>
           ))}
         </View>
 
-        {/* Additional Info */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Additional Information</Text>
-
-          <Text style={styles.inputLabel}>Notes for Customer</Text>
-          <TextInput
-            style={[styles.input, styles.textArea]}
-            value={notes}
-            onChangeText={setNotes}
-            placeholder="Any special notes..."
-            placeholderTextColor={C.muted}
-            multiline
-            numberOfLines={3}
-            textAlignVertical="top"
-          />
-
-          <Text style={styles.inputLabel}>Quote Valid For (Days)</Text>
-          <TextInput
-            style={styles.input}
-            value={validityDays}
-            onChangeText={setValidityDays}
-            placeholder="2"
-            keyboardType="number-pad"
-            placeholderTextColor={C.muted}
-          />
+        {/* Additional */}
+        <View style={s.card}>
+          <Text style={s.cardTitle}>Additional Information</Text>
+          <Text style={s.inputLabel}>Notes for Customer</Text>
+          <TextInput style={[s.input, s.textArea]} value={notes} onChangeText={setNotes} placeholder="Any special notes..." placeholderTextColor={C.muted} multiline numberOfLines={3} textAlignVertical="top" />
+          <Text style={s.inputLabel}>Quote Valid For (Days)</Text>
+          <TextInput style={s.input} value={validityDays} onChangeText={setValidityDays} placeholder="2" keyboardType="number-pad" placeholderTextColor={C.muted} />
         </View>
 
-        <View style={{ height: 100 }} />
+        <View style={{ height: 20 }} />
       </ScrollView>
 
-      {/* Submit Button */}
-      <View style={styles.footer}>
-        <TouchableOpacity
-          style={[styles.submitBtn, submitting && styles.submitBtnDisabled]}
-          onPress={handleSubmit}
-          disabled={submitting}
-        >
-          {submitting ? (
-            <ActivityIndicator size="small" color="#fff" />
-          ) : (
+      {/* Footer */}
+      <View style={s.footer}>
+        <TouchableOpacity style={[s.submitBtn, submitting && { opacity: 0.6 }]} onPress={handleSubmit} disabled={submitting}>
+          {submitting ? <ActivityIndicator size="small" color="#fff" /> : (
             <>
               <Icon name="send" size={18} color="#fff" />
-              <Text style={styles.submitBtnText}>
-                Send Quote{total > 0 ? ` (₹${total.toFixed(0)})` : ''}
-              </Text>
+              <Text style={s.submitBtnTxt}>Send Quote{total > 0 ? ` (₹${total.toFixed(0)})` : ''}</Text>
             </>
           )}
         </TouchableOpacity>
       </View>
 
       {/* Edit Modal */}
-      <Modal
-        visible={editModalVisible}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setEditModalVisible(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>
-                Edit {editType === 'inclusions' ? 'Inclusions' : editType === 'exclusions' ? 'Exclusions' : 'Terms'}
-              </Text>
-              <TouchableOpacity onPress={() => setEditModalVisible(false)}>
-                <Icon name="x" size={24} color={C.text} />
-              </TouchableOpacity>
+      <Modal visible={editModalVisible} animationType="slide" transparent onRequestClose={() => setEditModalVisible(false)}>
+        <View style={s.modalOverlay}>
+          <View style={s.modalContent}>
+            <View style={s.modalHeader}>
+              <Text style={s.modalTitle}>Edit {editType === 'inclusions' ? 'Inclusions' : editType === 'exclusions' ? 'Exclusions' : 'Terms'}</Text>
+              <TouchableOpacity onPress={() => setEditModalVisible(false)}><Icon name="x" size={22} color={C.text} /></TouchableOpacity>
             </View>
-
-            <ScrollView style={styles.modalBody}>
+            <ScrollView style={{ maxHeight: 300 }}>
               {editList.map((item, idx) => (
-                <View key={idx} style={styles.modalItem}>
-                  <Text style={styles.modalItemText}>{item}</Text>
-                  <TouchableOpacity onPress={() => removeItemFromList(item)}>
-                    <Icon name="trash-2" size={18} color={C.red} />
-                  </TouchableOpacity>
+                <View key={idx} style={s.modalItem}>
+                  <Text style={s.modalItemText}>{item}</Text>
+                  <TouchableOpacity onPress={() => removeItemFromList(item)}><Icon name="trash-2" size={16} color={C.red} /></TouchableOpacity>
                 </View>
               ))}
             </ScrollView>
-
-            <View style={styles.modalAddSection}>
-              <TextInput
-                style={styles.modalInput}
-                value={newItemText}
-                onChangeText={setNewItemText}
-                placeholder="Add new item..."
-                placeholderTextColor={C.muted}
-              />
-              <TouchableOpacity style={styles.modalAddBtn} onPress={addItemToList}>
-                <Icon name="plus" size={20} color="#fff" />
-              </TouchableOpacity>
+            <View style={s.modalAddRow}>
+              <TextInput style={s.modalInput} value={newItemText} onChangeText={setNewItemText} placeholder="Add new item..." placeholderTextColor={C.muted} />
+              <TouchableOpacity style={s.modalAddBtn} onPress={addItemToList}><Icon name="plus" size={18} color="#fff" /></TouchableOpacity>
             </View>
-
-            <TouchableOpacity style={styles.modalSaveBtn} onPress={saveEditModal}>
-              <Text style={styles.modalSaveBtnText}>Save Changes</Text>
+            <TouchableOpacity style={s.modalSaveBtn} onPress={saveEditModal}>
+              <Text style={s.modalSaveTxt}>Save Changes</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -732,245 +503,68 @@ export default function EquipmentSendQuoteScreen({ navigation, route }) {
   );
 }
 
-const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: C.bg,
-  },
-  centered: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: C.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: C.border,
-  },
-  backBtn: {
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: C.text,
-  },
-  content: {
-    flex: 1,
-    padding: 16,
-  },
-  card: {
-    backgroundColor: C.surface,
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: C.border,
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  cardTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: C.text,
-  },
-  row: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 8,
-  },
-  label: {
-    fontSize: 14,
-    color: C.muted,
-  },
-  value: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: C.text,
-  },
-  inputLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: C.text,
-    marginBottom: 8,
-    marginTop: 8,
-  },
-  input: {
-    backgroundColor: C.bg,
-    borderWidth: 1,
-    borderColor: C.border,
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 14,
-    color: C.text,
-  },
-  textArea: {
-    height: 80,
-  },
-  summaryLabel: {
-    fontSize: 14,
-    color: C.muted,
-  },
-  summaryValue: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: C.text,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: C.border,
-    marginVertical: 12,
-  },
-  totalLabel: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: C.text,
-  },
-  totalValue: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: C.brand,
-  },
-  chipContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  chip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-  },
-  chipText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  termRow: {
-    flexDirection: 'row',
-    marginBottom: 8,
-  },
-  termNumber: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: C.brand,
-    marginRight: 8,
-  },
-  termText: {
-    flex: 1,
-    fontSize: 14,
-    color: C.text,
-  },
-  footer: {
-    padding: 16,
-    backgroundColor: C.surface,
-    borderTopWidth: 1,
-    borderTopColor: C.border,
-  },
-  submitBtn: {
-    backgroundColor: C.brand,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 14,
-    borderRadius: 10,
-  },
-  submitBtnDisabled: {
-    opacity: 0.6,
-  },
-  submitBtnText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#fff',
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'flex-end',
-  },
-  modalContent: {
-    backgroundColor: C.surface,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    padding: 20,
-    maxHeight: '80%',
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: C.text,
-  },
-  modalBody: {
-    maxHeight: 300,
-  },
-  modalItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 12,
-    backgroundColor: C.bg,
-    borderRadius: 8,
-    marginBottom: 8,
-  },
-  modalItemText: {
-    flex: 1,
-    fontSize: 14,
-    color: C.text,
-  },
-  modalAddSection: {
-    flexDirection: 'row',
-    gap: 8,
-    marginTop: 16,
-    marginBottom: 16,
-  },
-  modalInput: {
-    flex: 1,
-    backgroundColor: C.bg,
-    borderWidth: 1,
-    borderColor: C.border,
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 14,
-    color: C.text,
-  },
-  modalAddBtn: {
-    backgroundColor: C.brand,
-    width: 48,
-    height: 48,
-    borderRadius: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalSaveBtn: {
-    backgroundColor: C.brand,
-    paddingVertical: 14,
-    borderRadius: 10,
-    alignItems: 'center',
-  },
-  modalSaveBtnText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#fff',
-  },
+function SummaryRow({ label, value }) {
+  return (
+    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
+      <Text style={{ fontSize: 13, color: C.sub }}>{label}</Text>
+      <Text style={{ fontSize: 13, fontWeight: '600', color: C.text }}>{value}</Text>
+    </View>
+  );
+}
+
+const s = StyleSheet.create({
+  safe: { flex: 1, backgroundColor: C.bg },
+  centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+
+  hero: { paddingHorizontal: 16, paddingBottom: 16 },
+  heroMin: { paddingHorizontal: 16, paddingBottom: 16 },
+  deco1: { position: 'absolute', top: -40, right: -40, width: 160, height: 160, borderRadius: 80, backgroundColor: 'rgba(52,211,153,0.08)' },
+  deco2: { position: 'absolute', bottom: -20, left: -20, width: 100, height: 100, borderRadius: 50, backgroundColor: 'rgba(52,211,153,0.06)' },
+  topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 12 },
+  backBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center' },
+  heroTitle: { fontSize: 17, fontWeight: '700', color: '#fff' },
+  heroSub: { fontSize: 12, color: 'rgba(255,255,255,0.5)', marginTop: 4 },
+
+  scroll: { flex: 1 },
+  content: { padding: 16, paddingBottom: 20 },
+
+  card: { backgroundColor: C.card, borderRadius: 16, padding: 16, marginBottom: 16, borderWidth: 1, borderColor: C.border, shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 6, elevation: 2 },
+  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+  cardTitle: { fontSize: 16, fontWeight: '700', color: C.text, marginBottom: 12 },
+
+  templateApplied: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8, padding: 10, backgroundColor: C.g50, borderRadius: 8 },
+  templateAppliedTxt: { fontSize: 12, color: C.g700, fontWeight: '600', flex: 1 },
+
+  inputLabel: { fontSize: 13, fontWeight: '600', color: C.text, marginBottom: 6, marginTop: 10 },
+  input: { backgroundColor: C.bg, borderWidth: 1, borderColor: C.border, borderRadius: 10, padding: 12, fontSize: 14, color: C.text },
+  textArea: { height: 80 },
+
+  summaryRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
+  summaryLabel: { fontSize: 14, color: C.sub },
+  summaryValue: { fontSize: 14, fontWeight: '700', color: C.text },
+  divider: { height: 1, backgroundColor: '#BAE6FD', marginVertical: 8 },
+
+  chipContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  chip: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 14 },
+  chipText: { fontSize: 11, fontWeight: '600' },
+
+  termRow: { flexDirection: 'row', marginBottom: 8 },
+  termNum: { fontSize: 13, fontWeight: '700', color: C.g600, marginRight: 6, width: 18 },
+  termText: { flex: 1, fontSize: 13, color: C.sub, lineHeight: 18 },
+
+  footer: { padding: 16, backgroundColor: C.card, borderTopWidth: 1, borderTopColor: C.border },
+  submitBtn: { backgroundColor: C.g600, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 14, borderRadius: 12 },
+  submitBtnTxt: { fontSize: 16, fontWeight: '700', color: '#fff' },
+
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+  modalContent: { backgroundColor: C.card, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, maxHeight: '80%' },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
+  modalTitle: { fontSize: 18, fontWeight: '700', color: C.text },
+  modalItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 12, backgroundColor: C.bg, borderRadius: 8, marginBottom: 8 },
+  modalItemText: { flex: 1, fontSize: 14, color: C.text },
+  modalAddRow: { flexDirection: 'row', gap: 8, marginTop: 12, marginBottom: 12 },
+  modalInput: { flex: 1, backgroundColor: C.bg, borderWidth: 1, borderColor: C.border, borderRadius: 8, padding: 12, fontSize: 14, color: C.text },
+  modalAddBtn: { backgroundColor: C.g600, width: 46, height: 46, borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
+  modalSaveBtn: { backgroundColor: C.g600, paddingVertical: 14, borderRadius: 12, alignItems: 'center' },
+  modalSaveTxt: { fontSize: 15, fontWeight: '700', color: '#fff' },
 });
