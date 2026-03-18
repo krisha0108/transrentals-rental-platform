@@ -6,7 +6,7 @@ import { sendVendorDirectNotification } from '@/lib/utils/vendor-notification-se
 
 export const dynamic = 'force-dynamic';
 
-type BookingType = 'bike' | 'car' | 'self-drive' | 'truck' | 'bus' | 'packers' | 'equipment' | 'luxury' | 'chauffeur';
+type BookingType = 'bike' | 'car' | 'self-drive' | 'truck' | 'bus' | 'packers' | 'equipment' | 'luxury' | 'chauffeur' | 'wander_quote';
 
 async function fetchBooking(bookingType: BookingType, bookingId: string) {
   switch (bookingType) {
@@ -106,6 +106,24 @@ async function fetchBooking(bookingType: BookingType, bookingId: string) {
         razorpayOrderId: null,
       } : null);
 
+    case 'wander_quote':
+      return (prisma as any).wander_bookings.findUnique({
+        where: { id: bookingId },
+        include: {
+          customer: { select: { name: true, phone: true, email: true } },
+        },
+      }).then((b: any) => b ? {
+        ...b,
+        bookingNumber: b.bookingId,
+        customerName: b.customer?.name || 'Customer',
+        customerEmail: b.customer?.email || '',
+        customerPhone: b.customer?.phone || '',
+        vehicleName: 'Wander Tour',
+        grandTotal: b.amount,
+        hasRazorpayOrder: false,
+        razorpayOrderId: null,
+      } : null);
+
     default:
       return null;
   }
@@ -121,7 +139,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Booking ID is required' }, { status: 400 });
     }
 
-    if (!['bike', 'car', 'self-drive', 'truck', 'bus', 'packers', 'equipment', 'luxury', 'chauffeur'].includes(bookingType)) {
+    if (!['bike', 'car', 'self-drive', 'truck', 'bus', 'packers', 'equipment', 'luxury', 'chauffeur', 'wander_quote'].includes(bookingType)) {
       return NextResponse.json({ error: 'Invalid booking type' }, { status: 400 });
     }
 
@@ -131,7 +149,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
     }
 
-    const payableStatuses = ['PENDING', 'PENDING_PAYMENT'];
+    const payableStatuses = ['PENDING', 'PENDING_PAYMENT', 'PAYMENT_PENDING'];
     if (!payableStatuses.includes(booking.status)) {
       return NextResponse.json(
         { error: 'Booking is not available for payment at this stage' },

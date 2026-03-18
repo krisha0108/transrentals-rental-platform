@@ -860,6 +860,109 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Handle Wander Booking
+    if (bookingType === 'wander') {
+      const wanderBooking = await (prisma as any).wander_bookings.findUnique({
+        where: { id: bookingId },
+      });
+
+      if (!wanderBooking) {
+        return NextResponse.json(
+          { success: false, error: 'Wander booking not found' },
+          { status: 404 }
+        );
+      }
+
+      if (action === 'verify') {
+        await (prisma as any).wander_bookings.update({
+          where: { id: bookingId },
+          data: {
+            status: 'CONFIRMED',
+            advancePaid: true,
+          },
+        });
+
+        // Notify customer
+        try {
+          await prisma.notifications.create({
+            data: prepareNotificationData({
+              customerId: wanderBooking.customerId,
+              title: '✅ Payment Approved!',
+              body: `Your wander tour advance payment of ₹${wanderBooking.advanceAmount || 0} has been approved. Booking is confirmed!`,
+              type: 'payment',
+              serviceType: 'wander',
+              bookingId: bookingId,
+              quoteId: null,
+            }),
+          });
+
+          await sendFCMNotification({
+            customerId: wanderBooking.customerId,
+            title: '✅ Payment Approved!',
+            body: `Your wander tour booking is confirmed. Advance of ₹${wanderBooking.advanceAmount || 0} has been verified.`,
+            data: { type: 'payment', serviceType: 'wander', bookingId },
+          });
+        } catch (notifError) {
+          logger.error('Failed to send wander payment notification', notifError);
+        }
+
+        // Notify vendor
+        sendVendorDirectNotification({
+          vendorId: wanderBooking.vendorId,
+          title: '💰 Advance Payment Verified!',
+          body: `Customer advance payment for wander booking #${wanderBooking.bookingId} has been verified. Booking confirmed.`,
+          type: 'payment_received',
+          serviceType: 'wander',
+          bookingId,
+          bookingNumber: wanderBooking.bookingId,
+        }).catch((err: any) => console.error('[PaymentVerify] Wander vendor notify failed:', err));
+
+        return NextResponse.json({
+          success: true,
+          message: 'Wander booking payment verified. Booking confirmed.',
+        });
+      } else if (action === 'reject') {
+        await (prisma as any).wander_bookings.update({
+          where: { id: bookingId },
+          data: { status: 'PAYMENT_PENDING' },
+        });
+
+        // Notify customer
+        try {
+          await prisma.notifications.create({
+            data: prepareNotificationData({
+              customerId: wanderBooking.customerId,
+              title: '❌ Payment Rejected',
+              body: `Your wander tour advance payment was rejected. ${notes || 'Please contact support.'}`,
+              type: 'payment',
+              serviceType: 'wander',
+              bookingId: bookingId,
+              quoteId: null,
+            }),
+          });
+
+          await sendFCMNotification({
+            customerId: wanderBooking.customerId,
+            title: '❌ Payment Rejected',
+            body: `Your wander tour payment was rejected. ${notes || 'Please try again or contact support.'}`,
+            data: { type: 'payment', serviceType: 'wander', bookingId },
+          });
+        } catch (notifError) {
+          logger.error('Failed to send wander payment rejection notification', notifError);
+        }
+
+        return NextResponse.json({
+          success: true,
+          message: 'Wander booking payment rejected.',
+        });
+      }
+
+      return NextResponse.json(
+        { success: false, error: 'Invalid action' },
+        { status: 400 }
+      );
+    }
+
     // Handle Chauffeur Booking (existing logic)
     const booking = await prisma.chauffeur_bookings.findUnique({
       where: { id: bookingId },

@@ -539,6 +539,62 @@ export async function POST(request: NextRequest) {
     }
 
     // ============================================
+    // 9. WANDER BOOKINGS
+    // ============================================
+    try {
+      const wanderBookings = await (prisma as any).wander_bookings.findMany({
+        where: {
+          status: { in: DROPPABLE_STATUSES.wander },
+        },
+        select: {
+          id: true,
+          bookingId: true,
+          customerId: true,
+          vendorId: true,
+          travelDate: true,
+          status: true,
+          quoteRequestId: true,
+        },
+      });
+
+      let wanderDropped = 0;
+      for (const booking of wanderBookings) {
+        if (!shouldAutoDrop(booking.travelDate)) continue;
+
+        const quotesReceived = await (prisma as any).wander_quotes.count({
+          where: { quoteRequestId: booking.quoteRequestId },
+        });
+
+        await (prisma as any).wander_bookings.update({
+          where: { id: booking.id },
+          data: {
+            status: 'DROPPED',
+            droppedAt: now,
+            dropReason: getDropReasonForDB(quotesReceived),
+          },
+        });
+
+        // Also expire the quote request
+        await (prisma as any).wander_quote_requests.update({
+          where: { id: booking.quoteRequestId },
+          data: { status: 'EXPIRED' },
+        }).catch(() => {});
+
+        await sendDropNotification(booking.customerId, booking.bookingId, 'wander', quotesReceived);
+
+        if (booking.vendorId) {
+          await sendVendorDropNotification(booking.vendorId, booking.bookingId, 'wander');
+        }
+
+        wanderDropped++;
+      }
+      results.services.wander = wanderDropped;
+      results.totalDropped += wanderDropped;
+    } catch (err: any) {
+      results.errors.push({ service: 'wander', error: err.message });
+    }
+
+    // ============================================
     // ALSO DROP ORPHAN QUOTE REQUESTS (no booking created)
     // ============================================
     try {
@@ -685,6 +741,15 @@ async function dropOrphanQuoteRequests(now: Date) {
     where: {
       status: { in: ['PENDING', 'QUOTES_RECEIVED'] },
       pickupDate: { lt: cutoff },
+    },
+    data: { status: 'EXPIRED' },
+  }).catch(() => {});
+
+  // Wander quote requests (no booking created, travel date passed)
+  await (prisma as any).wander_quote_requests.updateMany({
+    where: {
+      status: { in: ['PENDING', 'QUOTED'] },
+      travelDate: { lt: cutoff },
     },
     data: { status: 'EXPIRED' },
   }).catch(() => {});

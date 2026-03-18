@@ -208,7 +208,12 @@ export default function BusRentalFleetScreen() {
       navigation.navigate('CustomerDashboard');
       return true;
     } else if (step > 1) {
-      setStep(step - 1);
+      // For local trips, skip destination step (3) when going back
+      if (step === 4 && tripType === 'local') {
+        setStep(2);
+      } else {
+        setStep(step - 1);
+      }
       return true;
     }
     navigation.goBack();
@@ -217,8 +222,9 @@ export default function BusRentalFleetScreen() {
 
   // Location search with debounce
   useEffect(() => {
-    if (fromSearch.length >= 2) {
-      const timer = setTimeout(() => searchLocations('from', fromSearch), 300);
+    const trimmed = fromSearch.trim();
+    if (trimmed.length >= 2) {
+      const timer = setTimeout(() => searchLocations('from', trimmed), 300);
       return () => clearTimeout(timer);
     } else {
       setFromResults([]);
@@ -226,8 +232,9 @@ export default function BusRentalFleetScreen() {
   }, [fromSearch]);
 
   useEffect(() => {
-    if (toSearch.length >= 2) {
-      const timer = setTimeout(() => searchLocations('to', toSearch), 300);
+    const trimmed = toSearch.trim();
+    if (trimmed.length >= 2) {
+      const timer = setTimeout(() => searchLocations('to', trimmed), 300);
       return () => clearTimeout(timer);
     } else {
       setToResults([]);
@@ -346,12 +353,23 @@ export default function BusRentalFleetScreen() {
       Alert.alert('Required', 'Please enter pickup location');
       return;
     }
+    // For local trips, skip destination step and auto-set destination = pickup
+    if (step === 2 && tripType === 'local') {
+      setToLocation(fromLocation);
+      setToSearch(fromSearch);
+      setStep(4); // skip step 3 (destination)
+      return;
+    }
     if (step === 3 && !toLocation && !toSearch.trim()) {
       Alert.alert('Required', 'Please enter drop location');
       return;
     }
     if (step === 4 && (!passengers || parseInt(passengers) < 1)) {
       Alert.alert('Required', 'Please enter number of passengers');
+      return;
+    }
+    if (step === 4 && parseInt(passengers) < 10) {
+      Alert.alert('Required', 'Minimum 10 passengers required for bus booking');
       return;
     }
 
@@ -738,18 +756,20 @@ export default function BusRentalFleetScreen() {
 
       <View style={styles.passengerCard}>
         <View style={styles.passengerInputContainer}>
-          <TouchableOpacity
-            style={styles.passengerButton}
-            onPress={() => setPassengers(Math.max(1, parseInt(passengers || 0) - 1).toString())}
-            activeOpacity={0.7}
-          >
-            <LinearGradient
-              colors={[TEAL_MID, TEAL]}
-              style={styles.passengerBtnGradient}
+          {parseInt(passengers || 0) > 10 && (
+            <TouchableOpacity
+              style={styles.passengerButton}
+              onPress={() => setPassengers(Math.max(10, parseInt(passengers || 0) - 1).toString())}
+              activeOpacity={0.7}
             >
-              <Ionicons name="remove" size={wp('6%')} color="#fff" />
-            </LinearGradient>
-          </TouchableOpacity>
+              <LinearGradient
+                colors={[TEAL_MID, TEAL]}
+                style={styles.passengerBtnGradient}
+              >
+                <Ionicons name="remove" size={wp('6%')} color="#fff" />
+              </LinearGradient>
+            </TouchableOpacity>
+          )}
 
           <View style={styles.passengerDisplay}>
             <TextInput

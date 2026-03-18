@@ -78,11 +78,11 @@ function CategoryDropdown({
         onClick={() => setOpen(o => !o)}
         className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl border-2 text-left transition-all ${
           open
-            ? 'border-blue-500 ring-2 ring-blue-100'
+            ? 'border-green-500 ring-2 ring-green-100'
             : selected
             ? selected.isSOS
               ? 'border-red-400 bg-red-50'
-              : 'border-blue-400 bg-blue-50'
+              : 'border-green-400 bg-green-50'
             : 'border-gray-200 hover:border-gray-300 bg-white'
         }`}
       >
@@ -91,7 +91,7 @@ function CategoryDropdown({
         ) : selected ? (
           <>
             {selected.isSOS && <Zap className="h-4 w-4 text-red-500 flex-shrink-0" />}
-            <span className={`flex-1 text-sm font-semibold ${selected.isSOS ? 'text-red-700' : 'text-blue-700'}`}>
+            <span className={`flex-1 text-sm font-semibold ${selected.isSOS ? 'text-red-700' : 'text-green-700'}`}>
               {selected.name}
             </span>
             {selected.description && (
@@ -122,7 +122,7 @@ function CategoryDropdown({
         <div className="absolute left-0 right-0 top-full mt-1.5 z-30 bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden">
           {/* Search box */}
           <div className="p-2 border-b border-gray-100">
-            <div className="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-2 border border-gray-200 focus-within:border-blue-400 focus-within:ring-1 focus-within:ring-blue-100 transition-all">
+            <div className="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-2 border border-gray-200 focus-within:border-green-400 focus-within:ring-1 focus-within:ring-green-100 transition-all">
               <Search className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
               <input
                 ref={inputRef}
@@ -152,7 +152,7 @@ function CategoryDropdown({
                     type="button"
                     onClick={() => select(cat)}
                     className={`w-full flex items-center gap-3 px-4 py-2.5 text-left transition-colors ${
-                      isSelected ? 'bg-blue-50' : 'hover:bg-gray-50'
+                      isSelected ? 'bg-green-50' : 'hover:bg-gray-50'
                     }`}
                   >
                     {cat.isSOS ? (
@@ -166,7 +166,7 @@ function CategoryDropdown({
                     )}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className={`text-sm font-medium ${isSelected ? 'text-blue-700' : 'text-gray-800'}`}>
+                        <span className={`text-sm font-medium ${isSelected ? 'text-green-700' : 'text-gray-800'}`}>
                           {cat.name}
                         </span>
                         {cat.isSOS && (
@@ -179,7 +179,7 @@ function CategoryDropdown({
                         <p className="text-xs text-gray-400 truncate mt-0.5">{cat.description}</p>
                       )}
                     </div>
-                    {isSelected && <Check className="h-4 w-4 text-blue-500 flex-shrink-0" />}
+                    {isSelected && <Check className="h-4 w-4 text-green-600 flex-shrink-0" />}
                   </button>
                 );
               })
@@ -239,14 +239,18 @@ export default function CreatePostPage() {
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-2xl mx-auto px-4 py-6">
 
-        {/* Header */}
-        <div className="flex items-center gap-3 mb-6">
-          <Link href="/vendor/social" className="p-2 rounded-xl hover:bg-gray-200 text-gray-600 transition-colors">
-            <ArrowLeft className="h-5 w-5" />
-          </Link>
-          <div>
-            <h1 className="text-xl font-bold text-gray-900">Create Post</h1>
-            <p className="text-xs text-gray-500">Share with the vendor community</p>
+        {/* Dark Green Banner Header */}
+        <div className="relative bg-[#071a0d] rounded-2xl overflow-hidden px-6 pt-6 pb-5 mb-6">
+          <div className="absolute -top-8 -right-8 w-40 h-40 bg-green-500/15 rounded-full blur-2xl pointer-events-none" />
+          <div className="flex items-center gap-3">
+            <Link href="/vendor/social" className="p-2 -ml-1 rounded-xl hover:bg-white/10 text-white/70 transition-colors">
+              <ArrowLeft className="h-5 w-5" />
+            </Link>
+            <div>
+              <span className="text-[10px] font-bold uppercase tracking-widest text-green-400 mb-0.5 block">Vendor Network</span>
+              <h1 className="text-xl font-black text-white tracking-tight leading-none">Create Post</h1>
+              <p className="text-green-200/50 text-xs mt-1">Share with the vendor community</p>
+            </div>
           </div>
         </div>
 
@@ -327,7 +331,7 @@ export default function CreatePostPage() {
               type="submit"
               disabled={submitting || !content.trim() || !selectedCategory}
               className={`flex-1 py-3 rounded-xl text-sm font-semibold text-white flex items-center justify-center gap-2 disabled:opacity-50 transition-colors shadow-sm ${
-                isSOS ? 'bg-red-500 hover:bg-red-600' : 'bg-blue-600 hover:bg-blue-700'
+                isSOS ? 'bg-red-500 hover:bg-red-600' : 'bg-green-700 hover:bg-green-600'
               }`}
             >
               <Send className="h-4 w-4" />

@@ -74,6 +74,14 @@ export async function GET(request: NextRequest) {
         );
       }
 
+      // Check if package is active
+      if (localPackage.isActive === false) {
+        return NextResponse.json(
+          { success: false, error: 'This package is currently not available' },
+          { status: 404 }
+        );
+      }
+
       // Check night charges
       let nightCharge = 0;
       if (localPackage.nightChargesApply && pickupTime && localPackage.nightChargeAmount) {

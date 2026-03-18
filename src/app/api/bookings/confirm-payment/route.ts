@@ -283,6 +283,36 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    // Try wander booking
+    let wanderBooking = await (prisma as any).wander_bookings.findUnique({
+      where: { id: bookingId },
+    });
+
+    if (wanderBooking) {
+      const updatedBooking = await (prisma as any).wander_bookings.update({
+        where: { id: bookingId },
+        data: {
+          status: 'PAYMENT_SUBMITTED',
+          paymentMethod: paymentMethod || 'BANK_TRANSFER',
+          advancePaymentRef: paymentReference,
+          advancePaymentProof: paymentProof || null,
+          advancePaidAt: new Date(),
+        },
+      });
+
+      return NextResponse.json({
+        success: true,
+        message: 'Payment confirmation submitted successfully',
+        booking: {
+          id: updatedBooking.id,
+          bookingNumber: updatedBooking.bookingId,
+          status: updatedBooking.status,
+          advancePaymentRef: updatedBooking.advancePaymentRef,
+          type: 'wander_quote',
+        },
+      });
+    }
+
     // No booking found
     return NextResponse.json(
       { error: 'Booking not found' },

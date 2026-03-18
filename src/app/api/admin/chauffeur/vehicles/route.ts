@@ -12,9 +12,22 @@ function generateId(): string {
 }
 
 // GET - List all vehicle categories
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const { searchParams } = new URL(request.url);
+    const serviceSlug = searchParams.get('serviceSlug');
+
+    // Build where clause — optionally filter by service
+    const where: any = {};
+    if (serviceSlug) {
+      const service = await prisma.services.findFirst({ where: { slug: serviceSlug } });
+      if (service) {
+        where.serviceId = service.id;
+      }
+    }
+
     const categories = await prisma.chauffeur_vehicle_categories.findMany({
+      where,
       orderBy: { displayOrder: 'asc' },
       include: {
         _count: {

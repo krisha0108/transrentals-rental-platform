@@ -10,6 +10,7 @@ function generateId(): string {
 
 import logger from '@/lib/security/logger';
 import { sendPushNotification, sendNotificationToCustomer } from '@/lib/services/push-notification-service';
+import { sendVendorDirectNotification } from '@/lib/utils/vendor-notification-sender';
 export const dynamic = 'force-dynamic';
 
 // GET - Get conversation with messages
@@ -185,30 +186,40 @@ export async function POST(
       },
     });
 
-    // Send FCM push notification for new message (no DB storage)
+    // Send notifications (FCM push + in-app) for new message
     try {
       const msgPreview = content.length > 60 ? content.substring(0, 60) + '...' : content;
       if (isFromVendor && conversation.customerId) {
-        // Vendor sent → notify customer
+        // Vendor sent → notify customer (FCM + in-app DB notification)
         await sendNotificationToCustomer(
           conversation.customerId,
           { title: '💬 New message from vendor', body: msgPreview },
           { type: 'chat', screen: 'BookingChat', conversationId, bookingId: conversation.bookingId || '', bookingType: conversation.bookingType || '' }
         );
+        // Save in-app notification for customer
+        try {
+          await prisma.notifications.create({
+            data: {
+              customerId: conversation.customerId,
+              title: '💬 New message from vendor',
+              body: msgPreview,
+              type: 'chat',
+              serviceType: 'wander',
+              bookingId: conversation.bookingId || null,
+            },
+          });
+        } catch {}
       } else if (!isFromVendor && conversation.vendorId) {
-        // Customer sent → notify vendor
-        const vendor = await prisma.vendors.findUnique({
-          where: { id: conversation.vendorId },
-          select: { fcmToken: true },
+        // Customer sent → notify vendor (FCM push + in-app settings notification)
+        await sendVendorDirectNotification({
+          vendorId: conversation.vendorId,
+          title: '💬 New message from customer',
+          body: msgPreview,
+          type: 'new_message',
+          serviceType: conversation.bookingType || 'wander',
+          bookingId: conversation.bookingId || undefined,
+          data: { screen: 'ChatDetail', conversationId, bookingId: conversation.bookingId || '' },
         });
-        if (vendor?.fcmToken) {
-          await sendPushNotification(
-            vendor.fcmToken,
-            { title: '💬 New message from customer', body: msgPreview },
-            { type: 'chat', screen: 'ChatDetail', conversationId, bookingId: conversation.bookingId || '' },
-            { channelId: 'chat_channel', sound: 'chat' }
-          );
-        }
       }
     } catch (notifErr) {
       console.error('[Chat] Push notification failed:', notifErr);

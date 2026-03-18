@@ -59,6 +59,7 @@ export async function GET(
       luxuryBooking,
       packersBooking,
       truckBooking,
+      wanderBooking,
     ] = await Promise.all([
       // Bike Rental
       prisma.bike_bookings.findUnique({
@@ -137,6 +138,26 @@ export async function GET(
           vendors: { select: { id: true, businessName: true, phone: true, email: true } },
         },
       }).catch(() => null),
+
+      // Wander Tours
+      (prisma as any).wander_bookings.findUnique({
+        where: { id: bookingId },
+        include: {
+          customer: customerInclude,
+          vendor: { select: { id: true, businessName: true, phone: true, email: true } },
+          quoteRequest: {
+            include: {
+              listing: {
+                select: {
+                  title: true, duration: true,
+                  mainLocation: { select: { id: true, name: true } },
+                },
+              },
+            },
+          },
+          quote: { select: { amount: true, notes: true } },
+        },
+      }).catch(() => null),
     ]);
 
     // Find which booking exists
@@ -176,6 +197,10 @@ export async function GET(
       booking = truckBooking;
       serviceName = 'Truck Transport';
       serviceSlug = 'truck-transport';
+    } else if (wanderBooking) {
+      booking = wanderBooking;
+      serviceName = 'Wander Tours';
+      serviceSlug = 'wander';
     }
 
     if (!booking) {
@@ -304,6 +329,7 @@ async function findBookingById(bookingId: string) {
     { fn: () => prisma.luxury_bookings.findUnique({ where: { id: bookingId } }), slug: 'luxury-car-rental', table: 'luxury' },
     { fn: () => prisma.packers_bookings.findUnique({ where: { id: bookingId } }), slug: 'packers-and-movers', table: 'packers' },
     { fn: () => prisma.truck_bookings.findUnique({ where: { id: bookingId } }), slug: 'truck-transport', table: 'truck' },
+    { fn: () => (prisma as any).wander_bookings.findUnique({ where: { id: bookingId }, include: { customer: { select: { name: true, phone: true, email: true } } } }), slug: 'wander', table: 'wander' },
   ];
 
   const results = await Promise.all(searches.map(s => s.fn().catch(() => null)));
@@ -770,6 +796,41 @@ export async function PUT(
         return NextResponse.json({ success: true, message: 'Payment verified successfully.' });
       }
 
+      if (table === 'wander') {
+        await (prisma as any).wander_bookings.update({
+          where: { id: bookingId },
+          data: { status: 'CONFIRMED', advancePaid: true },
+        });
+
+        try {
+          await prisma.notifications.create({
+            data: prepareNotificationData({
+              customerId: booking.customerId,
+              title: 'Payment Approved!',
+              body: `Your wander tour advance payment has been approved. Booking confirmed!`,
+              type: 'payment', serviceType: 'wander', bookingId, quoteId: null,
+            }),
+          });
+          await sendFCMNotification({
+            customerId: booking.customerId,
+            title: 'Payment Approved!',
+            body: `Your wander tour booking is confirmed. Advance payment verified.`,
+            data: { type: 'payment', serviceType: 'wander', bookingId },
+          });
+        } catch (e) { logger.error('Notification error', e); }
+
+        if (booking.vendorId) {
+          sendVendorDirectNotification({
+            vendorId: booking.vendorId,
+            title: 'Advance Payment Received!',
+            body: `Customer advance payment for wander booking #${booking.bookingId} has been verified.`,
+            type: 'payment_received', serviceType: 'wander', bookingId, bookingNumber: booking.bookingId,
+          }).catch((err: any) => logger.error('Vendor notify failed', err));
+        }
+
+        return NextResponse.json({ success: true, message: 'Wander booking payment verified successfully.' });
+      }
+
       return NextResponse.json({ success: false, error: 'Unsupported booking type for payment verification' }, { status: 400 });
     }
 
@@ -780,7 +841,7 @@ export async function PUT(
       const serviceTypeMap: Record<string, string> = {
         'bike-rental': 'bike', 'self-drive': 'self-drive', 'car-rental': 'car',
         'bus-rental': 'bus', 'truck-transport': 'truck', 'equipment-rental': 'equipment',
-        'luxury-car-rental': 'luxury', 'packers-and-movers': 'packers',
+        'luxury-car-rental': 'luxury', 'packers-and-movers': 'packers', 'wander': 'wander',
       };
 
       if (table === 'chauffeur') {
@@ -860,6 +921,11 @@ export async function PUT(
             advancePaidAt: null,
             vendorNotes: `Payment rejected: ${rejectNotes}`,
           },
+        });
+      } else if (table === 'wander') {
+        await (prisma as any).wander_bookings.update({
+          where: { id: bookingId },
+          data: { status: 'PAYMENT_PENDING' },
         });
       }
 
