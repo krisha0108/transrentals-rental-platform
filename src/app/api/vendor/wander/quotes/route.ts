@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
         where,
         include: {
           listing: { select: { id: true, title: true, listingId: true, priceType: true, basePrice: true, priceTiers: true, inclusions: true, exclusions: true, requireAdvancePayment: true, advancePaymentType: true, advancePaymentValue: true } },
-          customer: { select: { name: true, phone: true, email: true } },
+          customer: { select: { name: true, phone: true, email: true, isB2B: true, b2bStatus: true, companyName: true } },
           quotes: {
             where: { vendorId: auth.vendorId },
             select: { id: true, amount: true, status: true },

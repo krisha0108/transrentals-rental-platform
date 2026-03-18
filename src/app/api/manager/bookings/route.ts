@@ -96,6 +96,7 @@ export async function GET(request: NextRequest) {
       luxuryBookings,
       packersBookings,
       truckBookings,
+      wanderBookings,
     ] = await Promise.all([
       // Bike Rental
       shouldFetchService('bike-rental') || shouldFetchService('bike')
@@ -194,6 +195,28 @@ export async function GET(request: NextRequest) {
             include: {
               customers: customerInclude,
               vendors: { select: { businessName: true } },
+            },
+            orderBy: { createdAt: 'desc' },
+          }).catch(() => [])
+        : Promise.resolve([]),
+
+      // Wander Tours
+      shouldFetchService('wander') || shouldFetchService('tour')
+        ? (prisma as any).wander_bookings.findMany({
+            where: buildFilter({}),
+            include: {
+              customer: customerInclude,
+              vendor: { select: { businessName: true } },
+              quoteRequest: {
+                include: {
+                  listing: {
+                    select: {
+                      title: true,
+                      mainLocation: { select: { name: true } },
+                    },
+                  },
+                },
+              },
             },
             orderBy: { createdAt: 'desc' },
           }).catch(() => [])
@@ -371,6 +394,30 @@ export async function GET(request: NextRequest) {
         advancePaymentVerified: b.advancePaymentVerified,
         createdAt: b.createdAt,
       })),
+      ...wanderBookings.map((b: any) => ({
+        id: b.id,
+        bookingNumber: b.bookingId,
+        status: b.status,
+        serviceName: 'Wander Tours',
+        serviceSlug: 'wander',
+        customerName: b.customer?.name,
+        customerPhone: b.customer?.phone,
+        customerEmail: b.customer?.email,
+        vendorName: b.vendor?.businessName,
+        locationName: b.quoteRequest?.listing?.mainLocation?.name || null,
+        pickupDate: b.travelDate,
+        pickupTime: null,
+        dropDate: null,
+        totalAmount: b.amount,
+        dailyRate: null,
+        totalDays: null,
+        advancePaymentVerified: b.advancePaid || false,
+        isB2BBooking: b.isB2BBooking,
+        companyName: b.companyName,
+        invoiceSent: b.invoiceSent,
+        tourTitle: b.quoteRequest?.listing?.title,
+        createdAt: b.createdAt,
+      })),
     ];
 
     // Sort by creation date (newest first)
@@ -387,6 +434,7 @@ export async function GET(request: NextRequest) {
       { slug: 'luxury-car-rental', name: 'Luxury Cars' },
       { slug: 'packers-and-movers', name: 'Packers & Movers' },
       { slug: 'truck-transport', name: 'Truck Transport' },
+      { slug: 'wander', name: 'Wander Tours' },
     ];
 
     // Only include services that manager is assigned to

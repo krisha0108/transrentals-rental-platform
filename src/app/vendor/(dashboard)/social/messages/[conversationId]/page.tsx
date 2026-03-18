@@ -49,7 +49,7 @@ function PostCardBubble({ card, isMine }: { card: PostCardData; isMine: boolean 
     }`}>
       {/* Header */}
       <div className={`px-3 py-2 flex items-center gap-2 ${
-        sos ? 'bg-red-500' : isMine ? 'bg-emerald-600' : 'bg-violet-600'
+        sos ? 'bg-red-500' : isMine ? 'bg-emerald-600' : 'bg-green-700'
       }`}>
         <div className="w-7 h-7 rounded-full bg-white/20 flex items-center justify-center text-white font-bold text-xs flex-shrink-0">
           {card.vendorName.charAt(0).toUpperCase()}

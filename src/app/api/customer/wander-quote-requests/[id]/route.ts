@@ -11,7 +11,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
       include: {
         listing: {
           select: {
-            id: true, title: true, listingId: true, duration: true,
+            id: true, slug: true, title: true, listingId: true, duration: true,
             images: true, shortDescription: true,
             priceType: true, basePrice: true, priceTiers: true,
             requireAdvancePayment: true, advancePaymentType: true, advancePaymentValue: true,

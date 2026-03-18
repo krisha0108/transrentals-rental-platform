@@ -210,8 +210,49 @@ export default function VendorWanderQuoteDetailPage() {
 
         {req?.customer && (
           <div className="p-3 bg-gray-50 rounded-lg text-sm">
-            <p className="text-xs text-gray-500 mb-1">Customer</p>
+            <div className="flex items-center justify-between mb-1 gap-2">
+              <p className="text-xs text-gray-500">Customer</p>
+              {/* Booking type badge */}
+              {req.bookingFor === 'COMPANY' ? (
+                <span className="flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">
+                  🏢 B2B — Company
+                </span>
+              ) : req.customer?.isB2B && req.customer?.b2bStatus === 'APPROVED' ? (
+                <span className="flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-100 text-purple-700">
+                  👤 B2B — Personal
+                </span>
+              ) : (
+                <span className="flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-gray-100 text-gray-500">
+                  👤 Regular Customer
+                </span>
+              )}
+            </div>
             <p className="font-medium text-gray-800">{req.customer.name} — {req.customer.phone}</p>
+            {req.bookingFor === 'COMPANY' && req.companyName && (
+              <p className="text-xs text-blue-600 mt-0.5">🏢 {req.companyName}</p>
+            )}
+          </div>
+        )}
+
+        {/* Advance payment notice — only for non-company bookings */}
+        {hasAdvance && req?.bookingFor !== 'COMPANY' && (
+          <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-2">
+            <Zap className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="text-xs font-bold text-amber-700">
+                Advance payment required from customer:
+                {listing.advancePaymentType === 'PERCENTAGE'
+                  ? ` ${listing.advancePaymentValue}% of your quoted amount`
+                  : ` ₹${Number(listing.advancePaymentValue).toLocaleString('en-IN')} fixed`}
+              </p>
+              <p className="text-xs text-amber-600 mt-0.5">This booking requires advance payment before confirmation.</p>
+            </div>
+          </div>
+        )}
+        {req?.bookingFor === 'COMPANY' && (
+          <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg flex items-start gap-2">
+            <Info className="w-4 h-4 text-blue-500 flex-shrink-0 mt-0.5" />
+            <p className="text-xs text-blue-700 font-medium">B2B Company booking — No advance payment. Send invoice after trip completion.</p>
           </div>
         )}
 
@@ -270,17 +311,25 @@ export default function VendorWanderQuoteDetailPage() {
         <div className="bg-white border border-gray-200 rounded-xl p-5">
           <h2 className="font-semibold text-gray-900 mb-4">Submit Your Quote</h2>
 
-          {/* Advance payment notice (always visible if set) */}
-          {hasAdvance && (
+          {/* Advance payment notice — only for non-company bookings */}
+          {hasAdvance && req?.bookingFor !== 'COMPANY' && (
             <div className="mb-5 flex items-start gap-2.5 bg-amber-50 border border-amber-200 rounded-xl p-3.5">
               <Zap className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
               <p className="text-xs text-amber-700">
-                <span className="font-bold">Advance payment is enabled</span> for this tour —
-                customer will be asked to pay{' '}
+                <span className="font-bold">Advance payment required</span> — customer will pay{' '}
                 {listing?.advancePaymentType === 'PERCENTAGE'
                   ? <><span className="font-bold">{listing.advancePaymentValue}%</span> of your quoted price upfront</>
                   : <><span className="font-bold">₹{Number(listing?.advancePaymentValue).toLocaleString('en-IN')}</span> fixed advance</>}
-                {' '}and the balance on trip day.
+                {' '}before confirmation.
+              </p>
+            </div>
+          )}
+          {/* B2B Company — no advance needed */}
+          {req?.bookingFor === 'COMPANY' && (
+            <div className="mb-5 flex items-start gap-2.5 bg-blue-50 border border-blue-200 rounded-xl p-3.5">
+              <Info className="w-4 h-4 text-blue-500 flex-shrink-0 mt-0.5" />
+              <p className="text-xs text-blue-700">
+                <span className="font-bold">B2B Company booking</span> — No advance payment needed. Customer will pay via invoice after trip completion.
               </p>
             </div>
           )}

@@ -239,6 +239,7 @@ const approvedNavigationItems: NavItem[] = [
       { name: 'Quote Requests', href: '/vendor/wander/quotes', icon: Inbox },
       { name: 'Bookings', href: '/vendor/wander/bookings', icon: CalendarCheck },
       { name: 'Analytics', href: '/vendor/wander/analytics', icon: BarChart3 },
+      { name: 'Reviews', href: '/vendor/wander/reviews', icon: Star },
     ],
   },
   // {
@@ -713,7 +714,7 @@ export function VendorSidebar({ isOpen, onClose, vendorStatus, approvedServiceId
           )}
 
           {/* Navigation */}
-          <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
+          <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto sidebar-scroll">
             {navigationItems.map((item) => renderNavItem(item))}
           </nav>
 

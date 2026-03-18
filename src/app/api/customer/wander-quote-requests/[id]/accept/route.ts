@@ -20,7 +20,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
             requireAdvancePayment: true, advancePaymentType: true, advancePaymentValue: true,
           },
         },
-        customer: { select: { id: true, name: true } },
+        customer: { select: { id: true, name: true, email: true, companyName: true } },
       },
     });
     if (!quoteRequest) return NextResponse.json({ error: 'Request not found' }, { status: 404 });
@@ -56,8 +56,11 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     });
 
     const listing = quoteRequest.listing;
+    const isB2BCompany = quoteRequest.bookingFor === 'COMPANY';
+
+    // B2B company bookings skip advance payment — invoice will be sent after trip
     let advanceAmount = null;
-    if (listing?.requireAdvancePayment && listing?.advancePaymentValue) {
+    if (!isB2BCompany && listing?.requireAdvancePayment && listing?.advancePaymentValue) {
       advanceAmount = listing.advancePaymentType === 'PERCENTAGE'
         ? Math.round((Number(quote.amount) * listing.advancePaymentValue) / 100)
         : Number(listing.advancePaymentValue);
@@ -75,6 +78,8 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
         groupSize: quoteRequest.groupSize,
         amount: quote.amount,
         advanceAmount,
+        isB2BBooking: isB2BCompany,
+        companyName: isB2BCompany ? (quoteRequest.companyName || quoteRequest.customer?.companyName || null) : null,
         status: advanceAmount ? 'PAYMENT_PENDING' : 'CONFIRMED',
       },
     });

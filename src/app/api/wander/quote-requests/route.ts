@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { listingId, name, phone, email, travelDate, groupSize, pickupLocation, requirements } = body;
+    const { listingId, name, phone, email, travelDate, groupSize, pickupLocation, requirements, bookingFor, companyName } = body;
 
     if (!listingId) return NextResponse.json({ error: 'Tour listing is required' }, { status: 400 });
     if (!name?.trim()) return NextResponse.json({ error: 'Name is required' }, { status: 400 });
@@ -65,6 +65,8 @@ export async function POST(request: NextRequest) {
         groupSize: groupSize ? parseInt(groupSize) : 1,
         pickupLocation: pickupLocation?.trim() || null,
         requirements: requirements?.trim() || null,
+        bookingFor: bookingFor === 'COMPANY' ? 'COMPANY' : 'PERSONAL',
+        companyName: bookingFor === 'COMPANY' ? (companyName?.trim() || null) : null,
         status: 'PENDING',
       },
     });

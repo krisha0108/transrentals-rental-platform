@@ -3725,8 +3725,6 @@ model vendors {
   vendor_service_requests                                         vendor_service_requests[]
   vendor_staff                                                    vendor_staff[]
   vendor_truck_templates                                          vendor_truck_templates[]
-  b2b_vendor_quotes                                               b2b_vendor_quotes[]
-  b2b_trips                                                       b2b_trips[]
   social_posts                                                    social_posts[]
   social_post_likes                                               social_post_likes[]
   social_post_comments                                            social_post_comments[]
@@ -4645,6 +4643,8 @@ model wander_quote_requests {
   groupSize       Int                         @default(1)
   pickupLocation  String?
   requirements    String?                     @db.Text
+  bookingFor      String                      @default("PERSONAL")
+  companyName     String?
   status          wander_quote_request_status @default(PENDING)
   droppedAt       DateTime?
   dropReason      String?                     @db.Text
@@ -4700,6 +4700,11 @@ model wander_bookings {
   transactionId      String?
   advancePaymentRef  String?
   advancePaymentProof String?              @db.Text
+  isB2BBooking       Boolean               @default(false)
+  companyName        String?
+  invoiceSent        Boolean               @default(false)
+  invoiceSentAt      DateTime?
+  invoiceNotes       String?               @db.Text
   balancePaid        Boolean               @default(false)
   balancePaidAt      DateTime?
   guideAssigned      String?
