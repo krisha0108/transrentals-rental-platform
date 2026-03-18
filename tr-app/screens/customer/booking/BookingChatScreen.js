@@ -233,9 +233,6 @@ export default function BookingChatScreen() {
             <Ionicons name="document-text-outline" size={wp(5)} color="#FFFFFF" />
           </TouchableOpacity>
         )}
-        <TouchableOpacity style={styles.phoneBtn}>
-          <Ionicons name="call-outline" size={wp(5)} color="#FFFFFF" />
-        </TouchableOpacity>
       </LinearGradient>
 
       <KeyboardAvoidingView
