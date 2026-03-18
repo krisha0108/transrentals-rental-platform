@@ -262,6 +262,26 @@ export const SERVICE_CONFIGS: Record<string, ServiceConfig> = {
     serviceType: 'hourly-car-rental',
     flowType: 'TRIP_FIRST',
   },
+  'round-trip': {
+    serviceName: 'Round Trip Cab',
+    serviceType: 'outstation-car-rental',
+    flowType: 'TRIP_FIRST',
+    subServices: [
+      { label: '🚗 Sedan (4 seater)', value: 'sedan' },
+      { label: '🚙 SUV (6-7 seater)', value: 'suv' },
+      { label: '🚐 Tempo Traveller', value: 'tempo' },
+    ],
+  },
+  'one-way-cab': {
+    serviceName: 'One Way Cab',
+    serviceType: 'one-way-car-rental',
+    flowType: 'TRIP_FIRST',
+    subServices: [
+      { label: '🚗 Sedan (4 seater)', value: 'sedan' },
+      { label: '🚙 SUV (6-7 seater)', value: 'suv' },
+      { label: '🏎️ Luxury Car', value: 'luxury' },
+    ],
+  },
 
   // LUXURY CAR - TRIP_FIRST (with broadcast to vendors)
   'luxury-car-rental': {
@@ -460,6 +480,31 @@ export const SERVICE_CONFIGS: Record<string, ServiceConfig> = {
     flowType: 'QUOTE_BASED',
   },
 };
+
+// Car-with-driver service slugs that don't contain 'car' in their serviceType
+const CAR_DRIVER_EXTRA_TYPES = new Set(['airport-transfer', 'local-taxi', 'outstation-cab']);
+
+/**
+ * Returns true if this service type is a "car with driver" service.
+ * Covers services whose serviceType doesn't literally contain 'car'
+ * (e.g. chauffeur-service, local-taxi, outstation-cab).
+ */
+export function isCarWithDriverServiceType(serviceType: string): boolean {
+  const st = serviceType.toLowerCase();
+  if (CAR_DRIVER_EXTRA_TYPES.has(st)) return true;
+  if (st.includes('chauffeur')) return true;
+  // Standard car-with-driver (excludes self-drive and luxury)
+  if (
+    st.includes('car') &&
+    !st.includes('selfdrive') &&
+    !st.includes('self-drive') &&
+    !st.includes('luxury') &&
+    !st.includes('wedding-car') &&
+    !st.includes('vintage') &&
+    !st.includes('sports-car')
+  ) return true;
+  return false;
+}
 
 // Helper to get flow type from service type
 export function getFlowType(serviceType: string): FlowType {
