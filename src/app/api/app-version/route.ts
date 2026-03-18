@@ -14,7 +14,7 @@ export const dynamic = 'force-dynamic';
 export async function GET() {
   return NextResponse.json({
     success: true,
-    latestVersion: '2.9',       // Change this when you publish a new version
+    latestVersion: '3.0',       // Change this when you publish a new version
     forceUpdate: false,          // true = no skip, user MUST update
     updateMessage: 'New booking features and bug fixes and performance improvements.',
     playStoreUrl: 'https://play.google.com/store/apps/details?id=com.transrentals.customer',
