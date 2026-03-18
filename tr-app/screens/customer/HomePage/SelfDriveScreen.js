@@ -39,6 +39,9 @@ const faqList = [
   { q: 'Can I take it outstation?', a: 'Mention it in notes while requesting quote, vendor will quote accordingly.' },
 ];
 
+
+
+
 export default function SelfDriveScreen() {
   const navigation = useNavigation();
 

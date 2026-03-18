@@ -60,6 +60,7 @@ import {
   Plane,
   Building2,
   Smile,
+  Compass,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { signOut } from 'next-auth/react';
@@ -624,6 +625,26 @@ export function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
               </p>
               <div className="space-y-1">
                 {missionControls.map((item) => renderNavItem(item, true))}
+              </div>
+            </div>
+
+            {/* Tour Management */}
+            <div>
+              <p className="px-3 mb-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                Tour Management
+              </p>
+              <div className="space-y-1">
+                {renderNavItem({
+                  name: 'Tour Management',
+                  href: '/admin/wander',
+                  icon: Compass,
+                  children: [
+                    { name: 'Categories', href: '/admin/wander/categories', icon: Layers },
+                    { name: 'Experiences', href: '/admin/wander/experiences', icon: Compass },
+                    { name: 'Listings', href: '/admin/wander/listings', icon: List },
+                    { name: 'Quote Requests', href: '/admin/wander/quotes', icon: MessageSquare },
+                  ],
+                })}
               </div>
             </div>
 

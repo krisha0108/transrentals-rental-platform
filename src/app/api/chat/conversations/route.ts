@@ -2,6 +2,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { prisma } from '@/lib/db/prisma';
+import crypto from 'crypto';
+
+function generateId(): string {
+  return 'c' + crypto.randomBytes(12).toString('base64url').toLowerCase().slice(0, 24);
+}
 
 import logger from '@/lib/security/logger';
 export const dynamic = 'force-dynamic';
@@ -236,6 +241,7 @@ export async function POST(request: NextRequest) {
     // Create new conversation
     const conversation = await prisma.chat_conversations.create({
       data: {
+        id: generateId(),
         vendorId,
         customerId: resolvedCustomerId,
         bookingType,
