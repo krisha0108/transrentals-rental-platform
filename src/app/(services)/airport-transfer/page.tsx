@@ -4,6 +4,7 @@ import { prisma } from '@/lib/db/prisma';
 import { AirportRoutesGrid } from '@/components/services/AirportRoutesGrid';
 import Link from 'next/link';
 import { Plane, Star, Shield, Clock, IndianRupee, MapPin, ArrowRight, CheckCircle2 } from 'lucide-react';
+import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
 
 export const metadata: Metadata = {
   title: 'Airport Transfer - Cab Service Starting @₹499 | TransRentals',
@@ -119,68 +120,20 @@ export default async function AirportTransferPage() {
 
   return (
     <>
-      {/* Hero Section */}
-      <section className="relative py-24 md:py-32 bg-gradient-to-br from-blue-700 via-indigo-600 to-violet-700 text-white overflow-hidden">
-        {/* Decorative Floating Elements */}
-        <div className="absolute top-20 left-10 w-72 h-72 bg-blue-400/20 rounded-full blur-3xl" />
-        <div className="absolute bottom-10 right-10 w-96 h-96 bg-indigo-300/15 rounded-full blur-3xl" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-violet-400/10 rounded-full blur-3xl" />
-
-        {/* Background Pattern */}
-        <div className="absolute inset-0 opacity-[0.07]">
-          <div
-            className="absolute inset-0"
-            style={{
-              backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
-            }}
-          />
-        </div>
-
-        <div className="container-custom relative z-10">
-          <div className="max-w-4xl mx-auto text-center">
-            <div className="inline-flex items-center gap-2 px-5 py-2.5 bg-white/15 backdrop-blur-md rounded-full text-sm font-medium mb-8 border border-white/20 shadow-lg shadow-blue-900/20">
-              <Plane className="w-4 h-4" />
-              Airport Transfer Service
-            </div>
-
-            <h1 className="text-4xl md:text-6xl lg:text-7xl font-extrabold mb-6 tracking-tight">
-              Airport{' '}
-              <span className="bg-gradient-to-r from-amber-300 via-yellow-200 to-amber-300 bg-clip-text text-transparent">
-                Pickup & Drop
-              </span>
-            </h1>
-
-            <p className="text-lg md:text-2xl mb-10 text-white/80 max-w-2xl mx-auto leading-relaxed">
-              Fixed Price Airport Transfers - 45 Min Free Waiting Starting @₹499
-            </p>
-
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-12">
-              {[
-                { icon: Star, label: '4.9/5 Rating' },
-                { icon: Clock, label: '45 Min Free Wait' },
-                { icon: Plane, label: '50+ Airports' },
-                { icon: IndianRupee, label: 'Starting @₹499' },
-              ].map((item) => (
-                <div
-                  key={item.label}
-                  className="bg-white/10 backdrop-blur-md rounded-2xl p-5 border border-white/15 hover:bg-white/15 transition-all duration-300 hover:scale-105"
-                >
-                  <item.icon className="w-7 h-7 mx-auto mb-2.5 text-blue-300" />
-                  <p className="text-sm font-medium">{item.label}</p>
-                </div>
-              ))}
-            </div>
-
-            <a
-              href="#routes"
-              className="inline-flex items-center gap-3 px-10 py-4 bg-white text-blue-700 font-bold rounded-2xl hover:bg-blue-50 transition-all duration-300 shadow-xl shadow-black/20 hover:shadow-2xl hover:scale-105 text-lg"
-            >
-              Explore Routes
-              <ArrowRight className="w-5 h-5" />
-            </a>
-          </div>
-        </div>
-      </section>
+      {/* Hero with booking form - REPLACED */}
+      <ServiceHeroWithChat
+        badge="Airport Transfer Service"
+        title="Airport Pickup & Drop"
+        titleHighlight="Starting @₹499"
+        description="Fixed price airport transfers with 45 min free waiting. Professional meet & greet at 50+ airports."
+        features={[
+          { icon: 'star', text: '4.9/5 Rating', color: 'text-amber-500' },
+          { icon: 'shield', text: '45 Min Free Wait', color: 'text-blue-600' },
+          { icon: 'zap', text: 'Flight Tracking', color: 'text-violet-600' },
+        ]}
+        gradientFrom="blue-50"
+        gradientTo="indigo-50"
+      />
 
       {/* Why Choose Airport Transfer */}
       <section className="py-20 bg-white">

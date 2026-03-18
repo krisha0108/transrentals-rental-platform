@@ -4,7 +4,7 @@ import { DynamicServicePage } from '@/components/services/DynamicServicePage';
 import { BikeTypesCards } from '@/components/services/BikeTypesCards';
 import { BikeFleetShowcase } from '@/components/services/BikeFleetShowcase';
 import { BikeServiceSchema } from '@/components/seo/schemas';
-import { SimpleServiceHero } from '@/components/services/SimpleServiceHero';
+import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
 import { ServiceLocationsGrid } from '@/components/services/ServiceLocationsGrid';
 import { ServiceFleetDisplay } from '@/components/services/ServiceFleetDisplay';
 import { formatPriceHighlight } from '@/lib/utils';
@@ -132,8 +132,8 @@ export default function BikeRentalPage() {
         reviewCount={2850}
       />
 
-      {/* Simple Hero without booking form */}
-      <SimpleServiceHero
+      {/* Hero with booking form */}
+      <ServiceHeroWithChat
         badge="Bike Rental Services"
         title="Rent Bikes"
         titleHighlight="Starting @₹399/Day"
@@ -143,14 +143,8 @@ export default function BikeRentalPage() {
           { icon: 'shield', text: 'Verified Vendors', color: 'text-blue-600' },
           { icon: 'zap', text: 'Quick Booking', color: 'text-green-600' },
         ]}
-        stats={[
-          { value: '500+', label: 'Bikes Available' },
-          { value: '150+', label: 'Cities Covered' },
-          { value: '50K+', label: 'Happy Customers' },
-        ]}
         gradientFrom="blue-50"
         gradientTo="green-50"
-        gradientAccent="from-primary to-green-600"
       />
 
       {/* Fleet Display from Database */}
