@@ -1080,7 +1080,6 @@ export default function LuxuryCarRentalScreen() {
                 value={locationSearch}
                 onChangeText={(text) => {
                   setLocationSearch(text);
-                  fetchLocations(text);
                 }}
               />
             </View>
@@ -1103,7 +1102,9 @@ export default function LuxuryCarRentalScreen() {
               </View>
             ) : (
               <FlatList
-                data={locations}
+                data={locationSearch.trim().length > 0
+                  ? locations.filter(loc => loc.name?.toLowerCase().includes(locationSearch.trim().toLowerCase()))
+                  : locations}
                 keyExtractor={(item) => item.id}
                 renderItem={({ item }) => (
                   <TouchableOpacity

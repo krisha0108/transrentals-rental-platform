@@ -221,19 +221,19 @@ export default function TruckRentalScreen() {
 
   const textSafe = (t) => (t || '').toLowerCase();
 
-  const filteredLocations = query.length
+  const filteredLocations = query.trim().length
     ? allLocations.filter(
         (l) =>
           typeof l.name === 'string' &&
-          l.name.toLowerCase().includes(textSafe(query)),
+          l.name.toLowerCase().includes(textSafe(query.trim())),
       )
     : allLocations.slice(0, 35);
 
-  const filteredDestinations = destinationQuery.length
+  const filteredDestinations = destinationQuery.trim().length
     ? allLocations.filter(
         (l) =>
           typeof l.name === 'string' &&
-          l.name.toLowerCase().includes(textSafe(destinationQuery)),
+          l.name.toLowerCase().includes(textSafe(destinationQuery.trim())),
       )
     : allLocations.slice(0, 35);
 

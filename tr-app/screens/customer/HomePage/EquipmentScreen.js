@@ -176,11 +176,11 @@ export default function EquipmentScreen() {
     }
   };
 
-  const filteredLocations = query.length
+  const filteredLocations = query.trim().length
     ? allLocations.filter(
         (l) =>
           typeof l.name === 'string' &&
-          l.name.toLowerCase().includes(query.toLowerCase()),
+          l.name.toLowerCase().includes(query.trim().toLowerCase()),
       )
     : allLocations.slice(0, 40);
 
