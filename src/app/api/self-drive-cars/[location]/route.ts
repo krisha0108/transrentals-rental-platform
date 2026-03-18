@@ -238,6 +238,8 @@ export async function GET(
       if (model.seatingCapacity) car.seatingCapacity = model.seatingCapacity;
       if (model.features) car.features = parseJsonField<string[]>(model.features, []);
       if (model.specs) car.specs = parseJsonField<Record<string, unknown>>(model.specs, {});
+      if (model.weeklyDiscount) (car as any).weeklyDiscount = model.weeklyDiscount;
+      if (model.monthlyDiscount) (car as any).monthlyDiscount = model.monthlyDiscount;
 
       aggregatedCars.push(car);
     }
