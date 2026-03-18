@@ -175,15 +175,18 @@ export async function POST(
 // PATCH - Update existing package
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { slug: string } }
+  { params }: { params: Promise<{ slug: string }> }
 ) {
   try {
+    const { slug: serviceSlug } = await params;
     const body = await request.json();
     const {
       id,
       vehicleCategoryId,
       locationId,
       name,
+      hours,
+      kms,
       basePrice,
       extraKmCharge,
       extraHourCharge,
@@ -201,21 +204,38 @@ export async function PATCH(
       );
     }
 
+    // Auto-update name when hours or kms change
+    const finalHours = hours !== undefined ? hours : undefined;
+    const finalKms = kms !== undefined ? kms : undefined;
+    let finalName = name;
+    if (finalHours !== undefined || finalKms !== undefined) {
+      // Fetch existing to fill in missing values
+      const existing = await prisma.chauffeur_local_packages.findUnique({ where: { id } });
+      if (existing) {
+        const h = finalHours !== undefined ? finalHours : existing.hours;
+        const k = finalKms !== undefined ? finalKms : existing.kms;
+        finalName = `${h}hr/${k}km`;
+      }
+    }
+
+    const updateData: any = {};
+    if (vehicleCategoryId !== undefined) updateData.vehicleCategoryId = vehicleCategoryId;
+    if (locationId !== undefined) updateData.locationId = locationId || null;
+    if (finalName !== undefined) updateData.name = finalName;
+    if (finalHours !== undefined) updateData.hours = finalHours;
+    if (finalKms !== undefined) updateData.kms = finalKms;
+    if (basePrice !== undefined) updateData.basePrice = basePrice;
+    if (extraKmCharge !== undefined) updateData.extraKmCharge = extraKmCharge;
+    if (extraHourCharge !== undefined) updateData.extraHourCharge = extraHourCharge;
+    if (nightChargesApply !== undefined) updateData.nightChargesApply = nightChargesApply;
+    if (nightChargeAmount !== undefined) updateData.nightChargeAmount = nightChargeAmount;
+    if (isPopular !== undefined) updateData.isPopular = isPopular;
+    if (displayOrder !== undefined) updateData.displayOrder = displayOrder;
+    if (isActive !== undefined) updateData.isActive = isActive;
+
     const pkg = await prisma.chauffeur_local_packages.update({
       where: { id },
-      data: {
-        ...(vehicleCategoryId && { vehicleCategoryId }),
-        locationId: locationId || null,
-        name,
-        basePrice,
-        extraKmCharge,
-        extraHourCharge,
-        nightChargesApply,
-        nightChargeAmount,
-        isPopular,
-        displayOrder,
-        isActive,
-      },
+      data: updateData,
       include: {
         chauffeur_vehicle_categories: {
           select: {

@@ -1309,7 +1309,8 @@ const styles = StyleSheet.create({
     backgroundColor: CARD,
     borderRadius: wp('3%'),
     paddingHorizontal: wp('4%'),
-    paddingVertical: Platform.OS === 'ios' ? hp('1.3%') : hp('0.3%'),
+    paddingVertical: Platform.OS === 'ios' ? hp('1.8%') : hp('1.2%'),
+    minHeight: hp('6.5%'),
     borderWidth: 1,
     borderColor: BORDER,
     ...SHADOW_SM,
@@ -1317,10 +1318,10 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     marginLeft: wp('2.5%'),
-    fontSize: wp('3.5%'),
+    fontSize: wp('3.8%'),
     color: TEXT_PRIMARY,
     fontWeight: '500',
-    paddingVertical: hp('0.5%'),
+    paddingVertical: hp('0.8%'),
   },
 
   /* ── Results ── */

@@ -9,7 +9,7 @@ import {
 
 export const dynamic = 'force-dynamic';
 
-type BookingType = 'bike' | 'car' | 'self-drive' | 'truck' | 'bus' | 'packers' | 'equipment' | 'luxury' | 'chauffeur';
+type BookingType = 'bike' | 'car' | 'self-drive' | 'truck' | 'bus' | 'packers' | 'equipment' | 'luxury' | 'chauffeur' | 'wander_quote';
 
 // POST - Verify Razorpay payment and update booking
 export async function POST(request: NextRequest) {
@@ -465,6 +465,47 @@ export async function POST(request: NextRequest) {
           paymentStatus: 'PARTIAL',
           transactionId: razorpay_payment_id,
           paidAmount: advanceAmount,
+        },
+      });
+    }
+
+    // ─── WANDER QUOTE ─────────────────────────────────────────────────────────
+    if (bookingType === 'wander_quote') {
+      const booking = await (prisma as any).wander_bookings.findUnique({
+        where: { id: bookingId },
+      });
+      if (!booking) return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
+
+      await (prisma as any).wander_bookings.update({
+        where: { id: bookingId },
+        data: {
+          status: 'CONFIRMED',
+          advancePaid: true,
+          advancePaidAt: paidAt,
+          paymentMethod: 'ONLINE',
+          transactionId: razorpay_payment_id,
+        },
+      });
+
+      await sendVendorDirectNotification({
+        vendorId: booking.vendorId,
+        title: 'Advance Payment Received',
+        body: `Customer has paid the advance for tour booking ${booking.bookingId}. Please confirm the tour.`,
+        type: 'advance_paid',
+        serviceType: 'wander',
+        bookingId: booking.id,
+        bookingNumber: booking.bookingId,
+      }).catch(() => {});
+
+      return NextResponse.json({
+        success: true,
+        message: 'Advance payment verified! Your tour booking is confirmed.',
+        booking: {
+          id: booking.id,
+          bookingNumber: booking.bookingId,
+          status: 'CONFIRMED',
+          transactionId: razorpay_payment_id,
+          paidAmount: booking.advanceAmount ?? 0,
         },
       });
     }

@@ -45,6 +45,8 @@ model admin_users {
   phone                     String?
   admin_users               admin_users?               @relation("admin_usersToadmin_users", fields: [createdById], references: [id])
   other_admin_users         admin_users[]              @relation("admin_usersToadmin_users")
+  b2b_invoices              b2b_invoices[]
+  b2b_super_quotes          b2b_super_quotes[]
   blog_posts                blog_posts[]
   manager_locations         manager_locations[]
   manager_services          manager_services[]
@@ -55,8 +57,6 @@ model admin_users {
   vendor_payout_batches     vendor_payout_batches[]
   vendor_service_requests   vendor_service_requests[]
   vendors                   vendors[]
-  b2b_super_quotes          b2b_super_quotes[]
-  b2b_invoices              b2b_invoices[]
 
   @@index([createdById], map: "admin_users_createdById_fkey")
 }
@@ -193,8 +193,6 @@ model bike_bookings {
   vendorNotes                                     String?                     @db.Text
   adminNotes                                      String?                     @db.Text
   cancellationReason                              String?                     @db.Text
-  droppedAt                                       DateTime?
-  dropReason                                      String?                     @db.Text
   createdAt                                       DateTime                    @default(now())
   updatedAt                                       DateTime                    @updatedAt
   lastPaymentError                                String?                     @db.Text
@@ -232,6 +230,8 @@ model bike_bookings {
   platformFee                                     Float                       @default(0)
   acceptedQuoteId                                 String?                     @unique
   quoteRequestId                                  String?                     @unique
+  droppedAt                                       DateTime?
+  dropReason                                      String?                     @db.Text
   bike_quotes                                     bike_quotes?                @relation(fields: [acceptedQuoteId], references: [id])
   vendors_bike_bookings_acceptedVendorIdTovendors vendors?                    @relation("bike_bookings_acceptedVendorIdTovendors", fields: [acceptedVendorId], references: [id])
   vendors_bike_bookings_assignedVendorIdTovendors vendors?                    @relation("bike_bookings_assignedVendorIdTovendors", fields: [assignedVendorId], references: [id])
@@ -482,8 +482,6 @@ model bus_bookings {
   cancelledAt            DateTime?
   cancelledBy            String?
   cancellationReason     String?                    @db.Text
-  droppedAt              DateTime?
-  dropReason             String?                    @db.Text
   refundAmount           Float?
   rating                 Int?
   review                 String?                    @db.Text
@@ -497,6 +495,8 @@ model bus_bookings {
   advancePaymentProof    String?
   advancePaymentRef      String?
   advancePaymentVerified Boolean                    @default(false)
+  droppedAt              DateTime?
+  dropReason             String?                    @db.Text
   bus_quotes             bus_quotes                 @relation(fields: [acceptedQuoteId], references: [id])
   customers              customers?                 @relation(fields: [customerId], references: [id])
   bus_quote_requests     bus_quote_requests         @relation(fields: [quoteRequestId], references: [id])
@@ -693,8 +693,6 @@ model car_bookings {
   cancelledAt                                    DateTime?
   cancelledBy                                    String?
   completedAt                                    DateTime?
-  droppedAt                                      DateTime?
-  dropReason                                     String?                    @db.Text
   createdAt                                      DateTime                   @default(now())
   updatedAt                                      DateTime                   @updatedAt
   advanceAmount                                  Float?
@@ -712,6 +710,8 @@ model car_bookings {
   advancePercentage                              Float?
   acceptedQuoteId                                String?                    @unique
   quoteRequestId                                 String?                    @unique
+  droppedAt                                      DateTime?
+  dropReason                                     String?                    @db.Text
   self_drive_quotes                              self_drive_quotes?         @relation(fields: [acceptedQuoteId], references: [id])
   vendors_car_bookings_acceptedVendorIdTovendors vendors?                   @relation("car_bookings_acceptedVendorIdTovendors", fields: [acceptedVendorId], references: [id])
   vendors_car_bookings_assignedVendorIdTovendors vendors?                   @relation("car_bookings_assignedVendorIdTovendors", fields: [assignedVendorId], references: [id])
@@ -918,15 +918,15 @@ model chauffeur_bookings {
   driverReview                                         String?                          @db.Text
   cancelledAt                                          DateTime?
   cancelledBy                                          String?
-  droppedAt                                            DateTime?
-  dropReason                                           String?                          @db.Text
   refundAmount                                         Float?
   refundTransactionId                                  String?
   completedAt                                          DateTime?
-  numberOfVehicles                                     Int?
-  numberOfEmployees                                    Int?
   createdAt                                            DateTime                         @default(now())
   updatedAt                                            DateTime                         @updatedAt
+  numberOfEmployees                                    Int?
+  numberOfVehicles                                     Int?
+  droppedAt                                            DateTime?
+  dropReason                                           String?                          @db.Text
   vendors_chauffeur_bookings_acceptedVendorIdTovendors vendors?                         @relation("chauffeur_bookings_acceptedVendorIdTovendors", fields: [acceptedVendorId], references: [id])
   vendors_chauffeur_bookings_assignedVendorIdTovendors vendors?                         @relation("chauffeur_bookings_assignedVendorIdTovendors", fields: [assignedVendorId], references: [id])
   customers                                            customers?                       @relation(fields: [customerId], references: [id])
@@ -1012,10 +1012,10 @@ model chauffeur_route_packages {
   isPopular                                                    Boolean                      @default(false)
   displayOrder                                                 Int                          @default(0)
   isActive                                                     Boolean                      @default(true)
-  isAirportTransfer                                            Boolean                      @default(false)
-  forcePackagePricing                                          Boolean                      @default(false)
   createdAt                                                    DateTime                     @default(now())
   updatedAt                                                    DateTime                     @updatedAt
+  isAirportTransfer                                            Boolean                      @default(false)
+  forcePackagePricing                                          Boolean                      @default(false)
   locations_chauffeur_route_packages_fromLocationIdTolocations locations                    @relation("chauffeur_route_packages_fromLocationIdTolocations", fields: [fromLocationId], references: [id], onDelete: Cascade)
   locations_chauffeur_route_packages_toLocationIdTolocations   locations                    @relation("chauffeur_route_packages_toLocationIdTolocations", fields: [toLocationId], references: [id], onDelete: Cascade)
   chauffeur_vehicle_categories                                 chauffeur_vehicle_categories @relation(fields: [vehicleCategoryId], references: [id], onDelete: Cascade)
@@ -1220,17 +1220,17 @@ model customers {
   createdAt                 DateTime                    @default(now())
   updatedAt                 DateTime                    @updatedAt
   fcmToken                  String?                     @db.Text
-  isB2B                     Boolean                     @default(false)
-  companyName               String?
-  companyEmail              String?
-  companyPhone              String?
-  companyAddress            String?                     @db.Text
-  gstin                     String?
-  businessType              String?
-  b2bStatus                 b2b_customer_status?
   b2bApprovedAt             DateTime?
   b2bApprovedById           String?
   b2bRejectionReason        String?                     @db.Text
+  b2bStatus                 b2b_customer_status?
+  businessType              String?
+  companyName               String?
+  gstin                     String?
+  isB2B                     Boolean                     @default(false)
+  companyEmail              String?
+  companyPhone              String?
+  companyAddress            String?                     @db.Text
   b2b_bookings              b2b_bookings[]
   bike_bookings             bike_bookings[]
   bike_quote_requests       bike_quote_requests[]
@@ -1239,6 +1239,7 @@ model customers {
   car_bookings              car_bookings[]
   chat_conversations        chat_conversations[]
   chauffeur_bookings        chauffeur_bookings[]
+  customer_wallet           customer_wallets?
   equipment_bookings        equipment_bookings[]
   equipment_quote_requests  equipment_quote_requests[]
   helpdesk_tickets          helpdesk_tickets[]
@@ -1250,7 +1251,10 @@ model customers {
   self_drive_quote_requests self_drive_quote_requests[]
   truck_bookings            truck_bookings[]
   truck_quote_requests      truck_quote_requests[]
-  customer_wallet           customer_wallets?
+  wander_bookings           wander_bookings[]
+  wander_quote_requests     wander_quote_requests[]
+  wander_reviews            wander_reviews[]
+  wander_wishlists          wander_wishlists[]
 
   @@index([email])
   @@index([isActive])
@@ -1364,14 +1368,14 @@ model equipment_bookings {
   cancelledAt              DateTime?
   cancelledBy              String?
   cancellationReason       String?                          @db.Text
-  droppedAt                DateTime?
-  dropReason               String?                          @db.Text
   refundAmount             Float?
   rating                   Int?
   review                   String?                          @db.Text
   equipmentRating          Int?
   createdAt                DateTime                         @default(now())
   updatedAt                DateTime                         @updatedAt
+  droppedAt                DateTime?
+  dropReason               String?                          @db.Text
   equipment_quotes         equipment_quotes                 @relation(fields: [acceptedQuoteId], references: [id])
   customers                customers?                       @relation(fields: [customerId], references: [id])
   equipment_quote_requests equipment_quote_requests         @relation(fields: [quoteRequestId], references: [id])
@@ -1802,6 +1806,8 @@ model locations {
   vendor_approved_locations                                                   vendor_approved_locations[]
   vendor_fleet_locations                                                      vendor_fleet_locations[]
   vendor_location_requests                                                    vendor_location_requests[]
+  wander_listings                                                             wander_listings[]
+  wander_experiences                                                          wander_experiences[] @relation("WanderExperienceLocation")
 
   @@index([isActive])
   @@index([parentId])
@@ -1906,8 +1912,6 @@ model luxury_bookings {
   cancelledAt                                       DateTime?
   cancelledBy                                       String?
   cancellationReason                                String?                       @db.Text
-  droppedAt                                         DateTime?
-  dropReason                                        String?                       @db.Text
   rating                                            Int?
   review                                            String?                       @db.Text
   driverRating                                      Int?
@@ -1933,6 +1937,8 @@ model luxury_bookings {
   paymentTransactionId                              String?
   quoteRequestId                                    String?                       @unique
   refundAmount                                      Float?
+  droppedAt                                         DateTime?
+  dropReason                                        String?                       @db.Text
   luxury_bids                                       luxury_bids[]
   luxury_quotes                                     luxury_quotes?                @relation(fields: [acceptedQuoteId], references: [id])
   vendors_luxury_bookings_acceptedVendorIdTovendors vendors?                      @relation("luxury_bookings_acceptedVendorIdTovendors", fields: [acceptedVendorId], references: [id])
@@ -2211,8 +2217,6 @@ model packers_bookings {
   cancelledAt            DateTime?
   cancelledBy            String?
   cancellationReason     String?                        @db.Text
-  droppedAt              DateTime?
-  dropReason             String?                        @db.Text
   refundAmount           Float?
   rating                 Int?
   review                 String?                        @db.Text
@@ -2223,6 +2227,8 @@ model packers_bookings {
   deliveryOtpSent        Boolean                        @default(false)
   loadingOtpSent         Boolean                        @default(false)
   packingOtpSent         Boolean                        @default(false)
+  droppedAt              DateTime?
+  dropReason             String?                        @db.Text
   packers_quotes         packers_quotes                 @relation(fields: [acceptedQuoteId], references: [id])
   customers              customers?                     @relation(fields: [customerId], references: [id])
   packers_quote_requests packers_quote_requests         @relation(fields: [quoteRequestId], references: [id])
@@ -2437,7 +2443,6 @@ model pages {
   updatedAt     DateTime     @updatedAt
   authorId      String
   admin_users   admin_users  @relation(fields: [authorId], references: [id])
-  seo_meta      seo_meta?
 
   @@index([authorId], map: "pages_authorId_fkey")
 }
@@ -2708,15 +2713,14 @@ model seo_meta {
   canonicalUrl       String?
   noindex            Boolean     @default(false)
   nofollow           Boolean     @default(false)
-  pageHeading        String?
-  pageDescription    String?     @db.Text
-  servicePageId      String?     @unique
   pageId             String?     @unique
   blogPostId         String?     @unique
   createdAt          DateTime    @default(now())
   updatedAt          DateTime    @updatedAt
+  pageDescription    String?     @db.Text
+  pageHeading        String?
+  servicePageId      String?     @unique
   blog_posts         blog_posts? @relation(fields: [blogPostId], references: [id], onDelete: Cascade)
-  pages              pages?      @relation(fields: [pageId], references: [id], onDelete: Cascade)
 }
 
 model service_locations {
@@ -2922,8 +2926,6 @@ model truck_bookings {
   cancelledAt            DateTime?
   cancelledBy            String?
   cancellationReason     String?                      @db.Text
-  droppedAt              DateTime?
-  dropReason             String?                      @db.Text
   refundAmount           Float?
   rating                 Int?
   review                 String?                      @db.Text
@@ -2937,6 +2939,8 @@ model truck_bookings {
   assignedDriverId       String?
   assignedVehicleId      String?
   paymentMethod          String?
+  droppedAt              DateTime?
+  dropReason             String?                      @db.Text
   truck_quotes           truck_quotes                 @relation(fields: [acceptedQuoteId], references: [id])
   vendor_staff           vendor_staff?                @relation(fields: [assignedDriverId], references: [id])
   vendor_fleets          vendor_fleets?               @relation(fields: [assignedVehicleId], references: [id])
@@ -3059,11 +3063,11 @@ model vehicle_model_locations {
   locationId      String
   isActive        Boolean        @default(true)
   basePricePerDay Float?
-  kmLimit         Int?
-  extraKmRate     Float?
-  securityDeposit Float?
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
+  extraKmRate     Float?
+  kmLimit         Int?
+  securityDeposit Float?
   locations       locations      @relation(fields: [locationId], references: [id], onDelete: Cascade)
   vehicle_models  vehicle_models @relation(fields: [vehicleModelId], references: [id], onDelete: Cascade)
 
@@ -3261,10 +3265,10 @@ model vendor_documents {
   status          vendor_documents_status       @default(PENDING)
   verifiedAt      DateTime?
   verifiedById    String?
-  uploadedById    String?
   rejectionReason String?                       @db.Text
   createdAt       DateTime                      @default(now())
   updatedAt       DateTime                      @updatedAt
+  uploadedById    String?
   uploadedByAdmin admin_users?                  @relation("vendor_documents_uploadedBy", fields: [uploadedById], references: [id])
   vendors         vendors                       @relation(fields: [vendorId], references: [id], onDelete: Cascade)
   admin_users     admin_users?                  @relation("vendor_documents_verifiedBy", fields: [verifiedById], references: [id])
@@ -3377,6 +3381,8 @@ model vendor_fleets {
   fitnessImage                 String?
   permitImage                  String?
   rcImage                      String?
+  b2b_trips                    b2b_trips[]
+  b2b_quote_vehicles           b2b_vendor_quote_vehicles[]
   bike_quotes                  bike_quotes[]
   fleet_fuel_records           fleet_fuel_records[]
   fleet_incidents              fleet_incidents[]
@@ -3397,8 +3403,6 @@ model vendor_fleets {
   chauffeur_vehicle_categories chauffeur_vehicle_categories? @relation(fields: [vehicleCategoryId], references: [id])
   vehicle_models               vehicle_models?               @relation(fields: [vehicleModelId], references: [id], onDelete: Cascade)
   vendors                      vendors                       @relation(fields: [vendorId], references: [id], onDelete: Cascade)
-  b2b_quote_vehicles           b2b_vendor_quote_vehicles[]
-  b2b_trips                    b2b_trips[]
 
   @@index([brandId])
   @@index([isActive])
@@ -3559,46 +3563,46 @@ model vendor_service_requests {
 }
 
 model vendor_staff {
-  id                String                   @id
-  vendorId          String
-  name              String
-  phone             String
-  email             String?                  @unique
-  address           String?                  @db.Text
-  city              String?
-  state             String?
-  pincode           String?
-  dateOfBirth       DateTime?
-  joiningDate       DateTime                 @default(now())
-  profilePhoto      String?
-  role              vendor_staff_role        @default(DRIVER)
-  status            vendor_staff_status      @default(ACTIVE)
-  aadharNumber      String?
-  aadharDocument    String?
-  panNumber         String?
-  panDocument       String?
-  licenseNumber     String?
-  licenseType       String?
-  licenseExpiry     DateTime?
-  licenseDocument   String?
-  bankName          String?
-  accountNumber     String?
-  ifscCode          String?
-  accountHolderName String?
-  salary            Float                    @default(0)
-  emergencyContact  String?
-  emergencyPhone    String?
-  createdAt         DateTime                 @default(now())
-  updatedAt         DateTime                 @updatedAt
-  password          String?
-  fcmToken          String?                  @db.Text
-  lastLoginAt       DateTime?
-  staff_attendance  staff_attendance[]
-  truck_bookings    truck_bookings[]
-  assigned_bookings    vendor_direct_bookings[]    @relation("direct_booking_driver")
-  b2b_quote_vehicles   b2b_vendor_quote_vehicles[]
-  b2b_trips            b2b_trips[]
-  vendors              vendors                     @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  id                 String                      @id
+  vendorId           String
+  name               String
+  phone              String
+  email              String?                     @unique
+  address            String?                     @db.Text
+  city               String?
+  state              String?
+  pincode            String?
+  dateOfBirth        DateTime?
+  joiningDate        DateTime                    @default(now())
+  profilePhoto       String?
+  role               vendor_staff_role           @default(DRIVER)
+  status             vendor_staff_status         @default(ACTIVE)
+  aadharNumber       String?
+  aadharDocument     String?
+  panNumber          String?
+  panDocument        String?
+  licenseNumber      String?
+  licenseType        String?
+  licenseExpiry      DateTime?
+  licenseDocument    String?
+  bankName           String?
+  accountNumber      String?
+  ifscCode           String?
+  accountHolderName  String?
+  salary             Float                       @default(0)
+  emergencyContact   String?
+  emergencyPhone     String?
+  createdAt          DateTime                    @default(now())
+  updatedAt          DateTime                    @updatedAt
+  password           String?
+  fcmToken           String?                     @db.Text
+  lastLoginAt        DateTime?
+  b2b_trips          b2b_trips[]
+  b2b_quote_vehicles b2b_vendor_quote_vehicles[]
+  staff_attendance   staff_attendance[]
+  truck_bookings     truck_bookings[]
+  assigned_bookings  vendor_direct_bookings[]    @relation("direct_booking_driver")
+  vendors            vendors                     @relation(fields: [vendorId], references: [id], onDelete: Cascade)
 
   @@unique([vendorId, phone])
   @@index([email])
@@ -3665,6 +3669,8 @@ model vendors {
   updatedAt                                                       DateTime                         @updatedAt
   fcmToken                                                        String?                          @db.Text
   slug                                                            String?                          @unique(map: "slug")
+  b2b_trips                                                       b2b_trips[]
+  b2b_vendor_quotes                                               b2b_vendor_quotes[]
   bike_bookings_bike_bookings_acceptedVendorIdTovendors           bike_bookings[]                  @relation("bike_bookings_acceptedVendorIdTovendors")
   bike_bookings_bike_bookings_assignedVendorIdTovendors           bike_bookings[]                  @relation("bike_bookings_assignedVendorIdTovendors")
   bike_quotes                                                     bike_quotes[]
@@ -3719,8 +3725,6 @@ model vendors {
   vendor_service_requests                                         vendor_service_requests[]
   vendor_staff                                                    vendor_staff[]
   vendor_truck_templates                                          vendor_truck_templates[]
-  b2b_vendor_quotes                                               b2b_vendor_quotes[]
-  b2b_trips                                                       b2b_trips[]
   social_posts                                                    social_posts[]
   social_post_likes                                               social_post_likes[]
   social_post_comments                                            social_post_comments[]
@@ -3731,6 +3735,9 @@ model vendors {
   vendor_conversations_2                                          vendor_conversations[]           @relation("conv_vendor2")
   vendor_messages                                                 vendor_messages[]                @relation("msg_sender")
   admin_users                                                     admin_users?                     @relation(fields: [approvedById], references: [id])
+  wander_bookings                                                 wander_bookings[]
+  wander_listings                                                 wander_listings[]
+  wander_quotes                                                   wander_quotes[]
 
   @@index([approvedById], map: "vendors_approvedById_fkey")
   @@index([email])
@@ -3773,6 +3780,7 @@ model web_vitals {
   @@index([createdAt])
   @@index([lcpRating])
   @@index([pagePath])
+  @@index([sessionId])
 }
 
 model conversion_events {
@@ -4273,6 +4281,454 @@ model fleet_fuel_records {
   @@index([vendorId])
   @@index([vendorFleetId])
   @@index([fuelDate])
+}
+
+model customer_wallets {
+  id            String    @id @default(cuid())
+  customerId    String    @unique
+  balance       Float     @default(0)
+  totalEarned   Float     @default(0)
+  totalRedeemed Float     @default(0)
+  solanaWallet  String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  customers     customers @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([customerId])
+}
+
+model backr_transactions {
+  id            String   @id @default(cuid())
+  customerId    String
+  type          String
+  amount        Float
+  balance       Float
+  bookingId     String?
+  bookingNumber String?
+  serviceType   String?
+  description   String?  @db.Text
+  createdAt     DateTime @default(now())
+
+  @@index([customerId])
+  @@index([bookingId])
+}
+
+model b2b_bookings {
+  id                   String              @id @default(cuid())
+  bookingNumber        String              @unique
+  customerId           String
+  customerName         String
+  customerEmail        String?
+  customerPhone        String
+  companyName          String
+  serviceType          String
+  vehiclesRequired     Int
+  passengerCount       Int?
+  vehicleCategory      String?
+  pickupLocation       String
+  dropLocation         String?
+  tripType             String
+  scheduledDate        DateTime
+  scheduledTime        String
+  returnDate           DateTime?
+  returnTime           String?
+  specialNotes         String?             @db.Text
+  status               b2b_booking_status  @default(OPEN_FOR_QUOTES)
+  totalVehiclesFilled  Int                 @default(0)
+  vendorCostTotal      Float?
+  companyMargin        Float?
+  gstAmount            Float?
+  finalAmount          Float?
+  acceptedSuperQuoteId String?
+  cancelledAt          DateTime?
+  cancelledBy          String?
+  cancellationReason   String?             @db.Text
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
+  customer             customers           @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  invoices             b2b_invoices[]
+  superQuotes          b2b_super_quotes[]
+  trips                b2b_trips[]
+  vendorQuotes         b2b_vendor_quotes[]
+
+  @@index([customerId])
+  @@index([status])
+  @@index([scheduledDate])
+  @@index([createdAt])
+}
+
+model b2b_vendor_quotes {
+  id              String                      @id @default(cuid())
+  quoteNumber     String                      @unique
+  bookingId       String
+  vendorId        String
+  vehicleCount    Int
+  pricePerVehicle Float?
+  totalPrice      Float
+  notes           String?                     @db.Text
+  status          b2b_vendor_quote_status     @default(SUBMITTED)
+  revisionNotes   String?                     @db.Text
+  createdAt       DateTime                    @default(now())
+  updatedAt       DateTime                    @updatedAt
+  superQuoteItems b2b_super_quote_items[]
+  quoteVehicles   b2b_vendor_quote_vehicles[]
+  booking         b2b_bookings                @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  vendor          vendors                     @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+
+  @@index([bookingId])
+  @@index([vendorId])
+  @@index([status])
+}
+
+model b2b_vendor_quote_vehicles {
+  id              String            @id @default(cuid())
+  quoteId         String
+  vendorFleetId   String
+  driverStaffId   String?
+  vehicleName     String?
+  vehicleNumber   String?
+  driverName      String?
+  driverPhone     String?
+  basePrice       Float?
+  perKmRate       Float?
+  perHourRate     Float?
+  perDayRate      Float?
+  driverAllowance Float?
+  nightCharges    Float?
+  extraKmCharge   Float?
+  extraHourCharge Float?
+  createdAt       DateTime          @default(now())
+  driver          vendor_staff?     @relation(fields: [driverStaffId], references: [id])
+  quote           b2b_vendor_quotes @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  vehicle         vendor_fleets     @relation(fields: [vendorFleetId], references: [id], onDelete: Cascade)
+
+  @@index([quoteId])
+  @@index([vendorFleetId])
+  @@index([driverStaffId], map: "b2b_vendor_quote_vehicles_driverStaffId_fkey")
+}
+
+model b2b_super_quotes {
+  id              String                  @id @default(cuid())
+  quoteNumber     String                  @unique
+  bookingId       String
+  createdById     String
+  vendorCostTotal Float
+  companyMargin   Float
+  gstPercent      Float                   @default(18)
+  gstAmount       Float
+  finalAmount     Float
+  notes           String?                 @db.Text
+  status          b2b_super_quote_status  @default(DRAFT)
+  sentAt          DateTime?
+  acceptedAt      DateTime?
+  rejectedAt      DateTime?
+  rejectionReason String?                 @db.Text
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
+  items           b2b_super_quote_items[]
+  booking         b2b_bookings            @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  createdBy       admin_users             @relation(fields: [createdById], references: [id])
+
+  @@index([bookingId])
+  @@index([status])
+  @@index([createdById], map: "b2b_super_quotes_createdById_fkey")
+}
+
+model b2b_super_quote_items {
+  id            String            @id @default(cuid())
+  superQuoteId  String
+  vendorQuoteId String
+  vehicleCount  Int
+  vendorPrice   Float
+  createdAt     DateTime          @default(now())
+  superQuote    b2b_super_quotes  @relation(fields: [superQuoteId], references: [id], onDelete: Cascade)
+  vendorQuote   b2b_vendor_quotes @relation(fields: [vendorQuoteId], references: [id], onDelete: Cascade)
+
+  @@index([superQuoteId])
+  @@index([vendorQuoteId])
+}
+
+model b2b_trips {
+  id                 String          @id @default(cuid())
+  tripCode           String          @unique
+  bookingId          String
+  vendorId           String
+  vendorFleetId      String
+  driverStaffId      String?
+  vehicleName        String?
+  vehicleNumber      String?
+  driverName         String?
+  driverPhone        String?
+  pickupLocation     String
+  dropLocation       String?
+  scheduledDate      DateTime
+  scheduledTime      String
+  otp                String?
+  otpGeneratedAt     DateTime?
+  status             b2b_trip_status @default(PENDING)
+  driverArrivedAt    DateTime?
+  startedAt          DateTime?
+  completedAt        DateTime?
+  cancelledAt        DateTime?
+  cancelledBy        String?
+  cancellationReason String?         @db.Text
+  passengerNotes     String?         @db.Text
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+  booking            b2b_bookings    @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  driver             vendor_staff?   @relation(fields: [driverStaffId], references: [id])
+  vehicle            vendor_fleets   @relation(fields: [vendorFleetId], references: [id], onDelete: Cascade)
+  vendor             vendors         @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+
+  @@index([bookingId])
+  @@index([vendorId])
+  @@index([tripCode])
+  @@index([status])
+  @@index([scheduledDate])
+  @@index([driverStaffId], map: "b2b_trips_driverStaffId_fkey")
+  @@index([vendorFleetId], map: "b2b_trips_vendorFleetId_fkey")
+}
+
+model b2b_invoices {
+  id              String             @id @default(cuid())
+  invoiceNumber   String             @unique
+  bookingId       String
+  companyName     String
+  customerEmail   String?
+  customerPhone   String?
+  totalVehicles   Int
+  tripsCompleted  Int
+  vendorCostTotal Float
+  companyMargin   Float
+  subtotal        Float
+  gstPercent      Float              @default(18)
+  gstAmount       Float
+  totalAmount     Float
+  dueDate         DateTime
+  paidAt          DateTime?
+  paidAmount      Float?
+  paymentMethod   String?
+  transactionRef  String?
+  pdfUrl          String?            @db.Text
+  status          b2b_invoice_status @default(GENERATED)
+  generatedById   String
+  notes           String?            @db.Text
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+  booking         b2b_bookings       @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  generatedBy     admin_users        @relation(fields: [generatedById], references: [id])
+
+  @@index([bookingId])
+  @@index([status])
+  @@index([dueDate])
+  @@index([generatedById], map: "b2b_invoices_generatedById_fkey")
+}
+
+model wander_categories {
+  id            String              @id @default(cuid())
+  name          String
+  slug          String              @unique
+  icon          String?
+  description   String?             @db.Text
+  coverImage    String?
+  displayOrder  Int                 @default(0)
+  isActive      Boolean             @default(true)
+  parentId      String?
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+  listings      wander_listings[]   @relation("CategoryListings")
+  subListings   wander_listings[]   @relation("SubCategoryListings")
+  parent        wander_categories?  @relation("CategorySubCategories", fields: [parentId], references: [id], onDelete: Cascade)
+  subCategories wander_categories[] @relation("CategorySubCategories")
+  experiences   wander_experiences[]
+
+  @@index([isActive])
+  @@index([displayOrder])
+  @@index([parentId])
+}
+
+model wander_experiences {
+  id           String                   @id @default(cuid())
+  title        String
+  slug         String                   @unique
+  description  String?                  @db.Text
+  duration     String?
+  categoryId   String
+  locationId   String
+  coverImage   String?
+  highlights   String?                  @db.Text
+  displayOrder Int                      @default(0)
+  status       wander_experience_status @default(ACTIVE)
+  createdAt    DateTime                 @default(now())
+  updatedAt    DateTime                 @updatedAt
+  category     wander_categories        @relation(fields: [categoryId], references: [id])
+  location     locations                @relation("WanderExperienceLocation", fields: [locationId], references: [id])
+  listings     wander_listings[]
+
+  @@index([categoryId])
+  @@index([locationId])
+  @@index([status])
+}
+
+model wander_listings {
+  id                 String                     @id @default(cuid())
+  listingId          String                     @unique
+  slug               String?                    @unique
+  vendorId           String
+  experienceId       String?
+  categoryId         String
+  subCategoryId      String?
+  mainLocationId     String
+  title              String
+  shortDescription   String?
+  description        String?                    @db.Text
+  duration           String
+  highlights         String?                    @db.Text
+  basePrice          Float?
+  priceType          wander_price_type          @default(ON_REQUEST)
+  minGroupSize       Int                        @default(1)
+  maxGroupSize       Int?
+  customPlaces       String?                    @db.LongText
+  itinerary          String?                    @db.LongText
+  priceTiers         String?                    @db.LongText
+  vehicleOptions     String?                    @db.Text
+  inclusions         String?                    @db.Text
+  exclusions         String?                    @db.Text
+  images             String?                    @db.LongText
+  pickupType         String?
+  meetingPoint       String?                    @db.Text
+  guideLanguages     String?                    @db.Text
+  availableDays      String?                    @db.Text
+  advanceNoticeHours Int                        @default(24)
+  cancellationPolicy wander_cancellation_policy @default(MODERATE)
+  cancellationNotes     String?                    @db.Text
+  requireAdvancePayment Boolean                    @default(false)
+  advancePaymentType    String?
+  advancePaymentValue   Float?
+  rating             Float                      @default(0)
+  totalRatings       Int                        @default(0)
+  totalBookings      Int                        @default(0)
+  metaTitle          String?
+  metaDescription    String?                    @db.Text
+  metaKeywords       String?                    @db.Text
+  ogImage            String?
+  tourStartDate      DateTime?                  @db.Date
+  tourEndDate        DateTime?                  @db.Date
+  status             wander_listing_status      @default(DRAFT)
+  createdAt          DateTime                   @default(now())
+  updatedAt          DateTime                   @updatedAt
+  category           wander_categories          @relation("CategoryListings", fields: [categoryId], references: [id])
+  subCategory        wander_categories?         @relation("SubCategoryListings", fields: [subCategoryId], references: [id])
+  mainLocation       locations                  @relation(fields: [mainLocationId], references: [id])
+  vendor             vendors                    @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  experience         wander_experiences?        @relation(fields: [experienceId], references: [id])
+  quoteRequests      wander_quote_requests[]
+  reviews            wander_reviews[]
+  wishlists          wander_wishlists[]
+
+  @@index([vendorId])
+  @@index([categoryId])
+  @@index([subCategoryId])
+  @@index([mainLocationId])
+  @@index([title])
+  @@index([status])
+}
+
+model wander_quote_requests {
+  id              String                      @id @default(cuid())
+  requestId       String                      @unique
+  wanderListingId String
+  customerId      String
+  travelDate      DateTime                    @db.Date
+  groupSize       Int                         @default(1)
+  pickupLocation  String?
+  requirements    String?                     @db.Text
+  bookingFor      String                      @default("PERSONAL")
+  companyName     String?
+  status          wander_quote_request_status @default(PENDING)
+  droppedAt       DateTime?
+  dropReason      String?                     @db.Text
+  createdAt       DateTime                    @default(now())
+  updatedAt       DateTime                    @updatedAt
+  booking         wander_bookings?
+  customer        customers                   @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  listing         wander_listings             @relation(fields: [wanderListingId], references: [id], onDelete: Cascade)
+  quotes          wander_quotes[]
+
+  @@index([wanderListingId])
+  @@index([customerId])
+  @@index([status])
+  @@index([travelDate])
+}
+
+model wander_quotes {
+  id               String                @id @default(cuid())
+  quoteRequestId   String
+  vendorId         String
+  amount           Float
+  perPersonAmount  Float?
+  customInclusions String?               @db.Text
+  customExclusions String?               @db.Text
+  validUntil       DateTime?
+  notes            String?               @db.Text
+  status           wander_quote_status   @default(PENDING)
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
+  booking          wander_bookings?
+  quoteRequest     wander_quote_requests @relation(fields: [quoteRequestId], references: [id], onDelete: Cascade)
+  vendor           vendors               @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+
+  @@index([quoteRequestId])
+  @@index([vendorId])
+  @@index([status])
+}
+
+model wander_bookings {
+  id                 String                @id @default(cuid())
+  bookingId          String                @unique
+  quoteRequestId     String                @unique
+  quoteId            String                @unique
+  customerId         String
+  vendorId           String
+  travelDate         DateTime              @db.Date
+  groupSize          Int
+  amount             Float
+  advancePaid        Boolean               @default(false)
+  advancePaidAt      DateTime?
+  advanceAmount      Float?
+  paymentMethod      String?
+  transactionId      String?
+  advancePaymentRef  String?
+  advancePaymentProof String?              @db.Text
+  isB2BBooking       Boolean               @default(false)
+  companyName        String?
+  invoiceSent        Boolean               @default(false)
+  invoiceSentAt      DateTime?
+  invoiceNotes       String?               @db.Text
+  balancePaid        Boolean               @default(false)
+  balancePaidAt      DateTime?
+  guideAssigned      String?
+  guidePhone         String?
+  startOTP           String?
+  endOTP             String?
+  status             wander_booking_status @default(PAYMENT_PENDING)
+  startedAt          DateTime?
+  completedAt        DateTime?
+  droppedAt          DateTime?
+  dropReason         String?               @db.Text
+  cancelledAt        DateTime?
+  cancellationReason String?               @db.Text
+  createdAt          DateTime              @default(now())
+  updatedAt          DateTime              @updatedAt
+  customer           customers             @relation(fields: [customerId], references: [id])
+  quote              wander_quotes         @relation(fields: [quoteId], references: [id])
+  quoteRequest       wander_quote_requests @relation(fields: [quoteRequestId], references: [id], onDelete: Cascade)
+  vendor             vendors               @relation(fields: [vendorId], references: [id])
+
+  @@index([customerId])
+  @@index([vendorId])
+  @@index([status])
+  @@index([travelDate])
 }
 
 enum conversion_events_eventType {
@@ -4901,41 +5357,6 @@ enum p2p_urgency {
   LOW
 }
 
-// Backr Token Wallet
-model customer_wallets {
-  id              String   @id @default(cuid())
-  customerId      String   @unique
-  balance         Float    @default(0)
-  totalEarned     Float    @default(0)
-  totalRedeemed   Float    @default(0)
-  solanaWallet    String?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  customers       customers @relation(fields: [customerId], references: [id], onDelete: Cascade)
-
-  @@index([customerId])
-}
-
-model backr_transactions {
-  id              String   @id @default(cuid())
-  customerId      String
-  type            String   // 'CREDIT' or 'DEBIT'
-  amount          Float
-  balance         Float    // balance after transaction
-  bookingId       String?
-  bookingNumber   String?
-  serviceType     String?  // bike, car, bus, truck, equipment, packers, luxury, chauffeur
-  description     String?  @db.Text
-  createdAt       DateTime @default(now())
-
-  @@index([customerId])
-  @@index([bookingId])
-}
-
-// ============================================================
-// B2B MODULE
-// ============================================================
-
 enum b2b_customer_status {
   PENDING
   APPROVED
@@ -4989,217 +5410,92 @@ enum b2b_invoice_status {
   CANCELLED
 }
 
-model b2b_bookings {
-  id                  String              @id @default(cuid())
-  bookingNumber       String              @unique
-  customerId          String
-  customerName        String
-  customerEmail       String?
-  customerPhone       String
-  companyName         String
-  serviceType         String              // car, bus, bike, truck, equipment, packers, self-drive, luxury
-  vehiclesRequired    Int
-  passengerCount      Int?
-  vehicleCategory     String?             // sedan, suv, hatchback, bus-ac, mini-bus etc.
-  pickupLocation      String
-  dropLocation        String?
-  tripType            String              // ONE_WAY, ROUND_TRIP, HOURLY
-  scheduledDate       DateTime
-  scheduledTime       String
-  returnDate          DateTime?
-  returnTime          String?
-  specialNotes        String?             @db.Text
-  status              b2b_booking_status  @default(OPEN_FOR_QUOTES)
-  totalVehiclesFilled Int                 @default(0)
-  vendorCostTotal     Float?
-  companyMargin       Float?
-  gstAmount           Float?
-  finalAmount         Float?
-  acceptedSuperQuoteId String?
-  cancelledAt         DateTime?
-  cancelledBy         String?
-  cancellationReason  String?             @db.Text
-  createdAt           DateTime            @default(now())
-  updatedAt           DateTime            @updatedAt
+enum wander_experience_status {
+  ACTIVE
+  DRAFT
+  INACTIVE
+}
 
-  customer            customers           @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  vendorQuotes        b2b_vendor_quotes[]
-  superQuotes         b2b_super_quotes[]
-  trips               b2b_trips[]
-  invoices            b2b_invoices[]
+enum wander_price_type {
+  PER_PERSON
+  PER_GROUP
+  ON_REQUEST
+}
 
+enum wander_listing_status {
+  DRAFT
+  ACTIVE
+  PAUSED
+  INACTIVE
+}
+
+enum wander_cancellation_policy {
+  FLEXIBLE
+  MODERATE
+  STRICT
+}
+
+enum wander_quote_request_status {
+  PENDING
+  QUOTED
+  ACCEPTED
+  REJECTED
+  CANCELLED
+  DROPPED
+}
+
+enum wander_quote_status {
+  PENDING
+  ACCEPTED
+  REJECTED
+  EXPIRED
+}
+
+enum wander_booking_status {
+  PAYMENT_PENDING
+  PAYMENT_SUBMITTED
+  CONFIRMED
+  GUIDE_ASSIGNED
+  STARTED
+  COMPLETED
+  CANCELLED
+  DROPPED
+}
+
+model wander_reviews {
+  id             String           @id @default(cuid())
+  listingId      String
+  bookingId      String           @unique
+  customerId     String
+  rating         Int              // 1-5
+  title          String?
+  review         String?          @db.Text
+  images         String?          @db.Text  // JSON array of image URLs
+  vendorReply    String?          @db.Text
+  vendorRepliedAt DateTime?
+  isVerified     Boolean          @default(true) // verified purchase
+  status         String           @default("ACTIVE") // ACTIVE, HIDDEN, FLAGGED
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  listing        wander_listings  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  customer       customers        @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([listingId])
   @@index([customerId])
-  @@index([status])
-  @@index([scheduledDate])
-  @@index([createdAt])
+  @@index([rating])
 }
 
-model b2b_vendor_quotes {
-  id              String                   @id @default(cuid())
-  quoteNumber     String                   @unique
-  bookingId       String
-  vendorId        String
-  vehicleCount    Int
-  pricePerVehicle Float?
-  totalPrice      Float
-  notes           String?                  @db.Text
-  status          b2b_vendor_quote_status  @default(SUBMITTED)
-  revisionNotes   String?                  @db.Text
-  createdAt       DateTime                 @default(now())
-  updatedAt       DateTime                 @updatedAt
+model wander_wishlists {
+  id          String          @id @default(cuid())
+  customerId  String
+  listingId   String
+  createdAt   DateTime        @default(now())
+  customer    customers       @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  listing     wander_listings @relation(fields: [listingId], references: [id], onDelete: Cascade)
 
-  booking         b2b_bookings             @relation(fields: [bookingId], references: [id], onDelete: Cascade)
-  vendor          vendors                  @relation(fields: [vendorId], references: [id], onDelete: Cascade)
-  quoteVehicles   b2b_vendor_quote_vehicles[]
-  superQuoteItems b2b_super_quote_items[]
-
-  @@index([bookingId])
-  @@index([vendorId])
-  @@index([status])
-}
-
-model b2b_vendor_quote_vehicles {
-  id              String            @id @default(cuid())
-  quoteId         String
-  vendorFleetId   String
-  driverStaffId   String?
-  vehicleName     String?
-  vehicleNumber   String?
-  driverName      String?
-  driverPhone     String?
-  basePrice       Float?
-  perKmRate       Float?
-  perHourRate     Float?
-  perDayRate      Float?
-  driverAllowance Float?
-  nightCharges    Float?
-  extraKmCharge   Float?
-  extraHourCharge Float?
-  createdAt       DateTime          @default(now())
-
-  quote           b2b_vendor_quotes @relation(fields: [quoteId], references: [id], onDelete: Cascade)
-  vehicle         vendor_fleets     @relation(fields: [vendorFleetId], references: [id], onDelete: Cascade)
-  driver          vendor_staff?     @relation(fields: [driverStaffId], references: [id], onDelete: SetNull)
-
-  @@index([quoteId])
-  @@index([vendorFleetId])
-}
-
-model b2b_super_quotes {
-  id              String                  @id @default(cuid())
-  quoteNumber     String                  @unique
-  bookingId       String
-  createdById     String                  // manager/admin who created
-  vendorCostTotal Float
-  companyMargin   Float
-  gstPercent      Float                   @default(18)
-  gstAmount       Float
-  finalAmount     Float
-  notes           String?                 @db.Text
-  status          b2b_super_quote_status  @default(DRAFT)
-  sentAt          DateTime?
-  acceptedAt      DateTime?
-  rejectedAt      DateTime?
-  rejectionReason String?                 @db.Text
-  createdAt       DateTime                @default(now())
-  updatedAt       DateTime                @updatedAt
-
-  booking         b2b_bookings            @relation(fields: [bookingId], references: [id], onDelete: Cascade)
-  createdBy       admin_users             @relation(fields: [createdById], references: [id])
-  items           b2b_super_quote_items[]
-
-  @@index([bookingId])
-  @@index([status])
-}
-
-model b2b_super_quote_items {
-  id              String            @id @default(cuid())
-  superQuoteId    String
-  vendorQuoteId   String
-  vehicleCount    Int
-  vendorPrice     Float
-  createdAt       DateTime          @default(now())
-
-  superQuote      b2b_super_quotes  @relation(fields: [superQuoteId], references: [id], onDelete: Cascade)
-  vendorQuote     b2b_vendor_quotes @relation(fields: [vendorQuoteId], references: [id], onDelete: Cascade)
-
-  @@index([superQuoteId])
-  @@index([vendorQuoteId])
-}
-
-model b2b_trips {
-  id              String          @id @default(cuid())
-  tripCode        String          @unique
-  bookingId       String
-  vendorId        String
-  vendorFleetId   String
-  driverStaffId   String?
-  vehicleName     String?
-  vehicleNumber   String?
-  driverName      String?
-  driverPhone     String?
-  pickupLocation  String
-  dropLocation    String?
-  scheduledDate   DateTime
-  scheduledTime   String
-  otp             String?
-  otpGeneratedAt  DateTime?
-  status          b2b_trip_status @default(PENDING)
-  driverArrivedAt DateTime?
-  startedAt       DateTime?
-  completedAt     DateTime?
-  cancelledAt     DateTime?
-  cancelledBy     String?
-  cancellationReason String?     @db.Text
-  passengerNotes  String?        @db.Text
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
-
-  booking         b2b_bookings   @relation(fields: [bookingId], references: [id], onDelete: Cascade)
-  vendor          vendors        @relation(fields: [vendorId], references: [id], onDelete: Cascade)
-  vehicle         vendor_fleets  @relation(fields: [vendorFleetId], references: [id], onDelete: Cascade)
-  driver          vendor_staff?  @relation(fields: [driverStaffId], references: [id], onDelete: SetNull)
-
-  @@index([bookingId])
-  @@index([vendorId])
-  @@index([tripCode])
-  @@index([status])
-  @@index([scheduledDate])
-}
-
-model b2b_invoices {
-  id                String             @id @default(cuid())
-  invoiceNumber     String             @unique
-  bookingId         String
-  companyName       String
-  customerEmail     String?
-  customerPhone     String?
-  totalVehicles     Int
-  tripsCompleted    Int
-  vendorCostTotal   Float
-  companyMargin     Float
-  subtotal          Float
-  gstPercent        Float              @default(18)
-  gstAmount         Float
-  totalAmount       Float
-  dueDate           DateTime
-  paidAt            DateTime?
-  paidAmount        Float?
-  paymentMethod     String?
-  transactionRef    String?
-  pdfUrl            String?            @db.Text
-  status            b2b_invoice_status @default(GENERATED)
-  generatedById     String
-  notes             String?            @db.Text
-  createdAt         DateTime           @default(now())
-  updatedAt         DateTime           @updatedAt
-
-  booking           b2b_bookings       @relation(fields: [bookingId], references: [id], onDelete: Cascade)
-  generatedBy       admin_users        @relation(fields: [generatedById], references: [id])
-
-  @@index([bookingId])
-  @@index([status])
-  @@index([dueDate])
+  @@unique([customerId, listingId])
+  @@index([customerId])
+  @@index([listingId])
 }
 
 // ── Social Network ────────────────────────────────────────────────────────────

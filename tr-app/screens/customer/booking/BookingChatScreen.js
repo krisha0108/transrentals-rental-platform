@@ -233,14 +233,11 @@ export default function BookingChatScreen() {
             <Ionicons name="document-text-outline" size={wp(5)} color="#FFFFFF" />
           </TouchableOpacity>
         )}
-        <TouchableOpacity style={styles.phoneBtn}>
-          <Ionicons name="call-outline" size={wp(5)} color="#FFFFFF" />
-        </TouchableOpacity>
       </LinearGradient>
 
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 80 : 0}
       >
         {/* ── Messages ───────────────────────────────────── */}

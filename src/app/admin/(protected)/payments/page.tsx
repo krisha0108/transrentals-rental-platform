@@ -23,6 +23,7 @@ import {
   Truck,
   Package,
   Crown,
+  Compass,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -30,7 +31,7 @@ import { cn } from '@/lib/utils';
 interface PendingPayment {
   id: string;
   bookingNumber: string;
-  bookingType: 'bike' | 'chauffeur' | 'bus' | 'car' | 'truck' | 'equipment' | 'packers' | 'luxury';
+  bookingType: 'bike' | 'chauffeur' | 'bus' | 'car' | 'truck' | 'equipment' | 'packers' | 'luxury' | 'wander';
   customerName: string;
   customerPhone: string;
   customerEmail: string;
@@ -53,7 +54,7 @@ interface PendingPayment {
 export default function PaymentsPage() {
   const [payments, setPayments] = useState<PendingPayment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [filter, setFilter] = useState<'all' | 'bike' | 'chauffeur' | 'bus' | 'car' | 'truck' | 'equipment' | 'packers' | 'luxury'>('all');
+  const [filter, setFilter] = useState<'all' | 'bike' | 'chauffeur' | 'bus' | 'car' | 'truck' | 'equipment' | 'packers' | 'luxury' | 'wander'>('all');
   const [selectedPayment, setSelectedPayment] = useState<PendingPayment | null>(null);
   const [isVerifying, setIsVerifying] = useState(false);
   const [verifyNotes, setVerifyNotes] = useState('');
@@ -130,6 +131,7 @@ export default function PaymentsPage() {
       equipment: { label: 'Equipment', className: 'bg-teal-100 text-teal-700' },
       packers: { label: 'Packers & Movers', className: 'bg-pink-100 text-pink-700' },
       luxury: { label: 'Luxury Car', className: 'bg-yellow-100 text-yellow-800' },
+      wander: { label: 'Wander Tour', className: 'bg-indigo-100 text-indigo-700' },
     };
     return badges[type] || { label: type, className: 'bg-gray-100 text-gray-700' };
   };
@@ -257,6 +259,18 @@ export default function PaymentsPage() {
         >
           <Crown className="w-4 h-4" />
           Luxury Car
+        </button>
+        <button
+          onClick={() => setFilter('wander')}
+          className={cn(
+            'px-4 py-2 rounded-lg font-medium transition whitespace-nowrap flex-shrink-0 flex items-center gap-2',
+            filter === 'wander'
+              ? 'bg-indigo-100 text-indigo-700'
+              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+          )}
+        >
+          <Compass className="w-4 h-4" />
+          Wander Tours
         </button>
       </div>
 

@@ -39,8 +39,10 @@ import {
   Briefcase,
   Hash,
   ShieldCheck,
+  Compass,
 } from 'lucide-react';
 import B2BDashboard from './B2BDashboard';
+import TourDashboard from './TourDashboard';
 
 const currencyFormatter = new Intl.NumberFormat('en-IN', {
   style: 'currency',
@@ -181,7 +183,7 @@ export default function CustomerDashboardPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingBookings, setIsLoadingBookings] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [dashboardView, setDashboardView] = useState<'b2b' | 'personal'>('personal');
+  const [dashboardView, setDashboardView] = useState<'b2b' | 'personal' | 'tour'>('personal');
   const [currentPage, setCurrentPage] = useState(1);
 
   // Service filter
@@ -238,6 +240,10 @@ export default function CustomerDashboardPage() {
   const [busBookings, setBusBookings] = useState<BusBookingItem[]>([]);
   const [isLoadingBusData, setIsLoadingBusData] = useState(false);
 
+  // Wander tour quote requests
+  const [tourQuoteRequests, setTourQuoteRequests] = useState<any[]>([]);
+  const [isLoadingTourQuotes, setIsLoadingTourQuotes] = useState(false);
+
   // Use local Next.js API routes instead of external Laravel API
   const useLocalAPI = true;
 
@@ -293,6 +299,7 @@ export default function CustomerDashboardPage() {
       fetchBusData(identifier);
       if (parsedId) {
         fetchFinancials(parsedId);
+        fetchTourQuotes(parsedId);
       }
     } catch (e) {
       router.push('/customer/login');
@@ -427,6 +434,19 @@ export default function CustomerDashboardPage() {
       setIsLoadingBusData(false);
     }
   };
+  const fetchTourQuotes = async (customerId: string | number) => {
+    setIsLoadingTourQuotes(true);
+    try {
+      const res = await fetch(`/api/customer/wander-quote-requests?customer_id=${customerId}`);
+      const data = await res.json();
+      if (data.requests) setTourQuoteRequests(data.requests);
+    } catch {
+      // ignore
+    } finally {
+      setIsLoadingTourQuotes(false);
+    }
+  };
+
   const fetchStats = async (identifier: string, customerId?: string | number) => {
     try {
       // Use local API (Prisma/trans_cms database)
@@ -885,6 +905,13 @@ export default function CustomerDashboardPage() {
     { key: 'Dropped', label: 'Dropped', count: stats?.dropped || 0, icon: XCircle, color: 'red' },
   ] as const;
 
+  const tourStatsConfig = [
+    { label: 'Tour Requests', count: tourQuoteRequests.length, icon: Compass, sub: 'Total submitted' },
+    { label: 'Pending', count: tourQuoteRequests.filter(r => r.status === 'PENDING').length, icon: Clock, sub: 'Awaiting quotes' },
+    { label: 'Quotes Received', count: tourQuoteRequests.filter(r => r.status === 'QUOTED').length, icon: MessageCircle, sub: 'Vendors responded' },
+    { label: 'Accepted', count: tourQuoteRequests.filter(r => r.status === 'ACCEPTED').length, icon: CheckCircle, sub: 'Confirmed tours' },
+  ];
+
   const normalizedLocationSearch = locationSearch.trim().toLowerCase();
   const filteredLocationOptions = normalizedLocationSearch
     ? locationOptions.filter((location) => location.toLowerCase().includes(normalizedLocationSearch))
@@ -1189,12 +1216,12 @@ export default function CustomerDashboardPage() {
           </div>
         )}
 
-        {/* B2B / Personal Dashboard Toggle */}
-        {customer?.isB2B && customer?.b2bStatus === 'APPROVED' && (
-          <div className="bg-gradient-to-r from-slate-800 to-slate-900 border-b border-white/10">
-            <div className="container mx-auto px-4 max-w-6xl">
-              <div className="flex items-center justify-between py-2">
-                <div className="flex items-center gap-1">
+        {/* Dashboard Tab Toggle */}
+        <div className="bg-gradient-to-r from-slate-800 to-slate-900 border-b border-white/10">
+          <div className="container mx-auto px-4 max-w-6xl">
+            <div className="flex items-center justify-between py-2">
+              <div className="flex items-center gap-1">
+                {customer?.isB2B && customer?.b2bStatus === 'APPROVED' && (
                   <button
                     onClick={() => setDashboardView('b2b')}
                     className={`px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2 ${
@@ -1205,27 +1232,39 @@ export default function CustomerDashboardPage() {
                   >
                     <Building2 className="w-4 h-4" /> B2B Dashboard
                   </button>
-                  <button
-                    onClick={() => setDashboardView('personal')}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2 ${
-                      dashboardView === 'personal'
-                        ? 'bg-purple-600 text-white shadow-lg'
-                        : 'text-gray-300 hover:bg-white/10'
-                    }`}
-                  >
-                    <User className="w-4 h-4" /> Personal Dashboard
-                  </button>
-                </div>
+                )}
+                <button
+                  onClick={() => setDashboardView('personal')}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2 ${
+                    dashboardView === 'personal'
+                      ? 'bg-purple-600 text-white shadow-lg'
+                      : 'text-gray-300 hover:bg-white/10'
+                  }`}
+                >
+                  <Car className="w-4 h-4" /> {customer?.isB2B ? 'Personal' : 'My Bookings'}
+                </button>
+                <button
+                  onClick={() => setDashboardView('tour')}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2 ${
+                    dashboardView === 'tour'
+                      ? 'bg-indigo-600 text-white shadow-lg'
+                      : 'text-gray-300 hover:bg-white/10'
+                  }`}
+                >
+                  <Compass className="w-4 h-4" /> Tours
+                </button>
+              </div>
+              {customer?.isB2B && customer?.b2bStatus === 'APPROVED' && (
                 <button
                   onClick={() => setShowCompanyModal(true)}
                   className="px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2 text-amber-300 hover:bg-white/10 border border-amber-500/30"
                 >
                   <Edit3 className="w-4 h-4" /> Manage Company
                 </button>
-              </div>
+              )}
             </div>
           </div>
-        )}
+        </div>
 
         {/* B2B Dashboard View */}
         {dashboardView === 'b2b' && customer?.isB2B ? (
@@ -1235,6 +1274,10 @@ export default function CustomerDashboardPage() {
               customerName={customer.name}
               companyName={customer.companyName || null}
             />
+          </div>
+        ) : dashboardView === 'tour' ? (
+          <div className="container mx-auto px-4 max-w-6xl py-6">
+            <TourDashboard customerId={String(customer?.id)} />
           </div>
         ) : (
         <>
@@ -1282,6 +1325,8 @@ export default function CustomerDashboardPage() {
                 );
               })}
             </div>
+
+            {/* Tour overview moved to Tours tab */}
           </div>
         </div>
 
@@ -1619,6 +1664,8 @@ export default function CustomerDashboardPage() {
               </div>
             )}
           </div>
+
+          {/* Tour data moved to Tours tab */}
 
           {/* Quick Links */}
           <div className="mt-6 grid gap-4 grid-cols-1 sm:grid-cols-2">

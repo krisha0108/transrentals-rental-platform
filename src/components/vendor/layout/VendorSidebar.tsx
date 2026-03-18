@@ -63,6 +63,8 @@ import {
   History,
   User,
   Image,
+  Compass,
+  MapIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { signOut, useSession } from 'next-auth/react';
@@ -225,6 +227,19 @@ const approvedNavigationItems: NavItem[] = [
     children: [
       { name: 'Open Requests', href: '/vendor/b2b-bookings', icon: Inbox },
       { name: 'My Assignments', href: '/vendor/b2b-bookings/my-quotes', icon: CalendarCheck },
+    ],
+  },
+  {
+    name: 'Wander Tours',
+    href: '/vendor/wander',
+    icon: Compass,
+    children: [
+      { name: 'My Listings', href: '/vendor/wander/listings', icon: MapIcon },
+      { name: 'Create Tour', href: '/vendor/wander/listings/new', icon: Plus },
+      { name: 'Quote Requests', href: '/vendor/wander/quotes', icon: Inbox },
+      { name: 'Bookings', href: '/vendor/wander/bookings', icon: CalendarCheck },
+      { name: 'Analytics', href: '/vendor/wander/analytics', icon: BarChart3 },
+      { name: 'Reviews', href: '/vendor/wander/reviews', icon: Star },
     ],
   },
   // {
@@ -699,7 +714,7 @@ export function VendorSidebar({ isOpen, onClose, vendorStatus, approvedServiceId
           )}
 
           {/* Navigation */}
-          <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
+          <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto sidebar-scroll">
             {navigationItems.map((item) => renderNavItem(item))}
           </nav>
 

@@ -5,7 +5,7 @@ import { CreditCard, Shield } from 'lucide-react';
 import { RazorpayPayment } from './RazorpayPayment';
 import { PaymentConfirmation } from '@/components/bike/PaymentConfirmation';
 
-type BookingType = 'bike' | 'car' | 'self-drive' | 'truck' | 'bus' | 'packers' | 'equipment' | 'luxury' | 'chauffeur';
+type BookingType = 'bike' | 'car' | 'self-drive' | 'truck' | 'bus' | 'packers' | 'equipment' | 'luxury' | 'chauffeur' | 'wander_quote';
 
 interface BookingPaymentProps {
   bookingId: string;

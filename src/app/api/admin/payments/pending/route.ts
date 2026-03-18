@@ -317,6 +317,45 @@ export async function GET(request: NextRequest) {
       });
     }
 
+    // Fetch Wander Bookings with PAYMENT_SUBMITTED status
+    if (bookingType === 'all' || bookingType === 'wander') {
+      const wanderBookings = await (prisma as any).wander_bookings.findMany({
+        where: { status: 'PAYMENT_SUBMITTED' },
+        include: {
+          customer: { select: { name: true, phone: true, email: true } },
+          quoteRequest: { select: { pickupLocation: true, listing: { select: { title: true } } } },
+        },
+        orderBy: { advancePaidAt: 'desc' },
+        take: 50,
+      });
+
+      wanderBookings.forEach((b: any) => {
+        const tourName = b.quoteRequest?.listing?.title || b.quoteRequest?.pickupLocation || 'Wander Tour';
+        results.push({
+          id: b.id,
+          bookingNumber: b.bookingId,
+          bookingType: 'wander',
+          customerName: b.customer?.name || 'Customer',
+          customerPhone: b.customer?.phone || '',
+          customerEmail: b.customer?.email || '',
+          serviceType: 'Wander Tour',
+          vehicleName: tourName,
+          location: tourName,
+          pickupDate: b.travelDate,
+          grandTotal: b.amount,
+          advanceAmount: b.advanceAmount,
+          advancePaymentRef: b.advancePaymentRef,
+          advancePaymentProof: b.advancePaymentProof,
+          advancePaymentDate: b.advancePaidAt,
+          paymentMethod: b.paymentMethod,
+          paymentStatus: 'PENDING',
+          status: b.status,
+          createdAt: b.createdAt,
+          updatedAt: b.updatedAt,
+        });
+      });
+    }
+
     // Sort all results by date
     results.sort((a, b) => {
       const dateA = new Date(a.advancePaymentDate || a.createdAt).getTime();
