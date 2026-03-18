@@ -186,7 +186,7 @@ export default function CarRentalFleetScreen({ navigation, route }) {
         AsyncStorage.getItem('customer'),
         locationService.getLocations('CITY', true),
         locationService.getLocations('CITY', true, 'car-rental-with-driver'),
-        bookingService.getChauffeurVehicleCategories(),
+        bookingService.getChauffeurVehicleCategories('car-rental-with-driver'),
         fetch(`${BASE_URL}/api/payment-details?service=car-rental`).then(r => r.json()),
       ]);
 
@@ -303,9 +303,10 @@ export default function CarRentalFleetScreen({ navigation, route }) {
 
   const filteredLocations = (query, isAirport = false) => {
     const source = isAirport ? airports : allLocations;
-    if (!query.length) return source.slice(0, 20);
+    const trimmed = query.trim();
+    if (!trimmed.length) return source.slice(0, 20);
     return source.filter(l =>
-      l.name?.toLowerCase().includes(query.toLowerCase())
+      l.name?.toLowerCase().includes(trimmed.toLowerCase())
     ).slice(0, 20);
   };
 
@@ -557,38 +558,34 @@ export default function CarRentalFleetScreen({ navigation, route }) {
         </TouchableOpacity>
 
         {showSuggestions && (
-          <View
-            style={styles.suggestionsBox}
-            onMoveShouldSetResponder={() => true}
-            onResponderGrant={() => {
-              if (scrollViewRef.current) {
-                scrollViewRef.current.setNativeProps({ scrollEnabled: false });
-              }
-            }}
-            onResponderRelease={() => {
-              if (scrollViewRef.current) {
-                scrollViewRef.current.setNativeProps({ scrollEnabled: true });
-              }
-            }}
-            onResponderTerminate={() => {
-              if (scrollViewRef.current) {
-                scrollViewRef.current.setNativeProps({ scrollEnabled: true });
-              }
-            }}
-          >
+          <View style={styles.suggestionsBox}>
             <ScrollView
               style={{ maxHeight: height * 0.35 }}
               nestedScrollEnabled={true}
-              keyboardShouldPersistTaps="always"
+              keyboardShouldPersistTaps="handled"
               showsVerticalScrollIndicator={true}
               scrollEventThrottle={16}
               bounces={false}
+              onScrollBeginDrag={() => {
+                if (scrollViewRef.current) {
+                  scrollViewRef.current.setNativeProps({ scrollEnabled: false });
+                }
+              }}
+              onScrollEndDrag={() => {
+                if (scrollViewRef.current) {
+                  scrollViewRef.current.setNativeProps({ scrollEnabled: true });
+                }
+              }}
             >
               {filteredLocations(query, showAirports).map((loc) => (
                 <TouchableOpacity
                   key={loc.id}
                   style={styles.suggestionItem}
-                  onPress={() => handleLocationSelect(loc, target)}
+                  activeOpacity={0.6}
+                  onPress={() => {
+                    Keyboard.dismiss();
+                    handleLocationSelect(loc, target);
+                  }}
                 >
                   <Ionicons
                     name={loc.type === 'AIRPORT' || loc.isAirport ? 'airplane-outline' : 'location'}
@@ -655,7 +652,7 @@ export default function CarRentalFleetScreen({ navigation, route }) {
 
   /* ─── Filtered Vehicles (Step 2) ─── */
   const filteredVehicles = useMemo(() => {
-    let vehicles = vehicleCategories.filter(v => v.isActive);
+    let vehicles = vehicleCategories.filter(v => v.isActive && (v.cityPricingCount > 0 || v.localPackagesCount > 0 || v.routePackagesCount > 0));
 
     if (vehicleSearchQuery.trim()) {
       const q = vehicleSearchQuery.trim().toLowerCase();

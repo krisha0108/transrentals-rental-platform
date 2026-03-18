@@ -111,9 +111,9 @@ export default function SelfDriveScreen() {
 
   const textSafe = (t) => (t || '').toLowerCase();
 
-  const filteredLocations = query.length
+  const filteredLocations = query.trim().length
     ? allLocations.filter(
-        (l) => typeof l.name === 'string' && l.name.toLowerCase().includes(textSafe(query))
+        (l) => typeof l.name === 'string' && l.name.toLowerCase().includes(textSafe(query.trim()))
       )
     : allLocations.slice(0, 35);
 

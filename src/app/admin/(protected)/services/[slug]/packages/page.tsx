@@ -88,10 +88,11 @@ export default function ServicePackagesPage() {
 
   const fetchData = async () => {
     try {
+      const cacheBust = `_t=${Date.now()}`;
       const [packagesRes, categoriesRes, locationsRes] = await Promise.all([
-        fetch(`/api/admin/services/${serviceSlug}/packages`),
-        fetch(`/api/admin/services/${serviceSlug}/vehicles`),
-        fetch(`/api/services/${serviceSlug}/locations`),
+        fetch(`/api/admin/services/${serviceSlug}/packages?${cacheBust}`, { cache: 'no-store' }),
+        fetch(`/api/admin/services/${serviceSlug}/vehicles?${cacheBust}`, { cache: 'no-store' }),
+        fetch(`/api/services/${serviceSlug}/locations?${cacheBust}`, { cache: 'no-store' }),
       ]);
 
       const packagesData = await packagesRes.json();
@@ -154,7 +155,7 @@ export default function ServicePackagesPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...formData,
-          name: formData.name || `${formData.hours}hr/${formData.kms}km`,
+          name: `${formData.hours}hr/${formData.kms}km`,
           locationId: formData.locationId || null,
         }),
       });
@@ -163,7 +164,22 @@ export default function ServicePackagesPage() {
 
       if (data.success) {
         setShowForm(false);
-        fetchData();
+        setFormData(defaultFormData);
+        if (method === 'PATCH' && data.package) {
+          // Directly update the local state with the response
+          setPackages(prev => prev.map(p => {
+            if (p.id === data.package.id) {
+              return {
+                ...p,
+                ...data.package,
+                location: data.package.locations || p.location,
+              };
+            }
+            return p;
+          }));
+        } else {
+          await fetchData();
+        }
       } else {
         setError(data.error || 'Failed to save package');
       }

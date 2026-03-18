@@ -1340,7 +1340,7 @@ export function ChatBookingHero({
       const b2bPayload = {
         customerId: String(customerData.id),
         serviceType: 'bus',
-        vehiclesRequired: 1,
+        vehiclesRequired: parseInt(bookingData.vehiclesRequired) || 1,
         passengerCount: parseInt(bookingData.passengers) || 1,
         vehicleCategory: bookingData.subService || 'standard',
         pickupLocation: bookingData.pickupLocation || '',
@@ -2118,8 +2118,13 @@ export function ChatBookingHero({
       } else {
         // For equipment services, go directly to pickup datetime (no destination needed)
         const isEquipmentService = serviceType.includes('equipment') || serviceType.includes('jcb');
+        const isBusLocal = (serviceType.includes('bus') || serviceType.includes('tempo')) && bookingData.busTripType === 'local';
         if (isEquipmentService) {
           askForPickupDateTime();
+        } else if (isBusLocal) {
+          // For local bus trips, destination = pickup location, skip destination step
+          setBookingData((prev: any) => ({ ...prev, destination: value }));
+          askForPassengers();
         } else {
           // Ask for destination after location
           askForDestination();
@@ -2233,7 +2238,15 @@ export function ChatBookingHero({
       if (value === 'company') {
         addUserMessage('Company / Corporate');
         setBookingData((prev: any) => ({ ...prev, bookingPurpose: 'company' }));
-        handleB2BBusSubmit();
+        // Ask for number of vehicles before submitting B2B booking
+        addShiviMessage(
+          'How many buses/vehicles do you need? 🚌\n(Enter number of vehicles required)',
+          undefined,
+          500,
+          'text',
+          'e.g., 1, 2, 3'
+        );
+        setCurrentStep('b2b-vehicles');
       } else {
         addUserMessage('Personal');
         setBookingData((prev: any) => ({ ...prev, bookingPurpose: 'personal' }));
@@ -2489,14 +2502,30 @@ export function ChatBookingHero({
       setInputValue('');
     } else if (currentStep === 'passengers') {
       const passengers = parseInt(inputValue);
+      const isBusOrTempo = serviceType.includes('bus') || serviceType.includes('tempo');
       if (isNaN(passengers) || passengers < 1) {
         addShiviMessage('Please enter a valid number of passengers (at least 1) 👥', undefined, 500, 'text', 'e.g., 4');
+        setInputValue('');
+        return;
+      }
+      if (isBusOrTempo && passengers < 10) {
+        addShiviMessage('For bus bookings, minimum 10 passengers are required 🚌', undefined, 500, 'text', 'e.g., 10, 15, 20');
         setInputValue('');
         return;
       }
       setBookingData((prev: any) => ({ ...prev, passengers: inputValue }));
       askForPickupDateTime();
       setInputValue('');
+    } else if (currentStep === 'b2b-vehicles') {
+      const numVehicles = parseInt(inputValue);
+      if (isNaN(numVehicles) || numVehicles < 1) {
+        addShiviMessage('Please enter a valid number of vehicles (at least 1) 🚌', undefined, 500, 'text', 'e.g., 1, 2, 3');
+        setInputValue('');
+        return;
+      }
+      setBookingData((prev: any) => ({ ...prev, vehiclesRequired: inputValue }));
+      setInputValue('');
+      handleB2BBusSubmit();
     } else if (currentStep === 'no-of-equipment') {
       const noOfEquipment = parseInt(inputValue);
       if (isNaN(noOfEquipment) || noOfEquipment < 1) {

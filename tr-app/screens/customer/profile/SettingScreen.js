@@ -135,7 +135,7 @@ const SettingScreen = ({ navigation }) => {
 
   const handleShareApp = async () => {
     const firstName = customer?.name ? customer.name.split(' ')[0] : '';
-    const playStoreUrl = 'https://play.google.com/store/apps/details?id=com.transrentals.app';
+    const playStoreUrl = 'https://play.google.com/store/apps/details?id=com.transrentals.customer';
 
     const shareMessage =
 `${firstName ? `Hey! ${firstName} here. ` : ''}I've been using *TransRentals* for all my vehicle rental needs and it's amazing!

@@ -468,8 +468,9 @@ const bookingService = {
   /**
    * Get all chauffeur vehicle categories (fleet)
    */
-  getChauffeurVehicleCategories: async () => {
-    const response = await api.get('/admin/chauffeur/vehicles');
+  getChauffeurVehicleCategories: async (serviceSlug = '') => {
+    const params = serviceSlug ? `?serviceSlug=${serviceSlug}` : '';
+    const response = await api.get(`/admin/chauffeur/vehicles${params}`);
     return response.data;
   },
 
@@ -477,7 +478,7 @@ const bookingService = {
    * Get local packages for a city/vehicle
    */
   getChauffeurLocalPackages: async (params = {}) => {
-    const response = await api.get('/admin/chauffeur/packages', { params });
+    const response = await api.get('/admin/chauffeur/packages', { params: { ...params, activeOnly: 'true' } });
     return response.data;
   },
 

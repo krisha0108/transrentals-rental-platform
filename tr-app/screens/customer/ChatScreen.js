@@ -270,7 +270,8 @@ import {
   KeyboardAvoidingView,
   Platform,
   StatusBar,
-  Animated, Easing
+  Animated, Easing,
+  Keyboard,
 } from 'react-native';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -280,6 +281,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import ShimmerPlaceHolder from 'react-native-shimmer-placeholder';
 import LinearGradient from 'react-native-linear-gradient';
 import { useFocusEffect } from '@react-navigation/native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   widthPercentageToDP as wp,
   heightPercentageToDP as hp,
@@ -309,6 +311,15 @@ export default function ChatScreen({ route, navigation }) {
   const [loading, setLoading] = useState(true);
 
   const slideAnim = useRef(new Animated.Value(0)).current;
+
+  // Scroll to end when keyboard opens
+  useEffect(() => {
+    const showSub = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      () => setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 150)
+    );
+    return () => showSub.remove();
+  }, []);
 
   /* ── StatusBar management ──────────────── */
   useFocusEffect(
@@ -550,10 +561,8 @@ export default function ChatScreen({ route, navigation }) {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={{ flex: 1, backgroundColor: BG }}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
+    <SafeAreaView style={{ flex: 1, backgroundColor: TEAL_DEEP }} edges={['bottom']}>
+    <View style={{ flex: 1, backgroundColor: BG, paddingBottom: Platform.OS === 'android' ? keyboardHeight : 0 }}>
       {/* ── Teal Gradient Header ─────────────── */}
       <LinearGradient
         colors={[TEAL_DEEP, TEAL_MID, '#047857']}
@@ -661,7 +670,8 @@ export default function ChatScreen({ route, navigation }) {
           <Ionicons name="send" size={wp(4.5)} color="#fff" />
         </TouchableOpacity>
       </View>
-    </KeyboardAvoidingView>
+    </View>
+    </SafeAreaView>
   );
 }
 
