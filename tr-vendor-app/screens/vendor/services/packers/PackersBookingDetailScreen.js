@@ -1,63 +1,49 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  RefreshControl,
-  ActivityIndicator,
-  Alert,
-  Linking,
-  Modal,
-  FlatList,
+  View, Text, StyleSheet, ScrollView, TouchableOpacity,
+  RefreshControl, ActivityIndicator, Linking, Modal, FlatList,
+  StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/Feather';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import { showError, showConfirm, showInfo, showSuccess } from '../../../../services/alertService';
+import Ionicons from 'react-native-vector-icons/Ionicons';
+import { showError, showConfirm, showSuccess } from '../../../../services/alertService';
 import {
-  getBookingById,
-  acceptBooking,
-  rejectBooking,
-  assignOperator,
-  getStaffDrivers,
+  getBookingById, acceptBooking, rejectBooking, assignOperator, getStaffDrivers,
 } from '../../../api/client';
 
 const C = {
-  bg: '#F7FAFC',
-  surface: '#FFFFFF',
-  text: '#0F172A',
-  muted: '#6B7280',
-  border: '#E5E7EB',
-  brand: '#22C55E',
-  blue: '#2563EB',
-  orange: '#F59E0B',
-  purple: '#8B5CF6',
-  red: '#EF4444',
-  amber: '#F59E0B',
-  green: '#22C55E',
+  g900: '#022C22', g800: '#065F46', g700: '#047857', g600: '#059669',
+  g500: '#10B981', g400: '#34D399', g100: '#D1FAE5', g50: '#ECFDF5',
+  bg: '#F1F5F9', card: '#FFFFFF', border: '#E2E8F0',
+  text: '#0F172A', sub: '#475569', muted: '#94A3B8',
+  blue: '#2563EB', blueL: '#EFF6FF',
+  amber: '#D97706', amberL: '#FFFBEB',
+  red: '#DC2626', redL: '#FEF2F2',
+  purple: '#7C3AED', purpleL: '#F5F3FF',
 };
 
 const STATUS_CONFIG = {
-  PENDING_PAYMENT: { color: C.amber, bg: '#FEF3C7', label: 'Awaiting Payment' },
-  PAYMENT_SUBMITTED: { color: C.orange, bg: '#FED7AA', label: 'Payment Submitted' },
-  ADVANCE_PAID: { color: C.green, bg: '#D1FAE5', label: 'Advance Paid' },
-  CONFIRMED: { color: C.green, bg: '#DCFCE7', label: 'Confirmed' },
-  PAYMENT_VERIFIED: { color: C.green, bg: '#D1FAE5', label: 'Payment Verified' },
-  PENDING_VENDOR: { color: C.orange, bg: '#FEF3C7', label: 'Pending' },
-  BROADCASTED: { color: C.blue, bg: '#DBEAFE', label: 'Open' },
-  ACCEPTED: { color: C.green, bg: '#DCFCE7', label: 'Accepted' },
-  VEHICLE_ASSIGNED: { color: C.blue, bg: '#DBEAFE', label: 'Team Assigned' },
-  TEAM_ASSIGNED: { color: C.blue, bg: '#DBEAFE', label: 'Team Assigned' },
-  PACKING: { color: C.purple, bg: '#E9D5FF', label: 'Packing in Progress' },
-  LOADING: { color: C.purple, bg: '#DDD6FE', label: 'Loading in Progress' },
-  IN_TRANSIT: { color: C.purple, bg: '#F3E8FF', label: 'In Transit' },
-  UNLOADING: { color: C.purple, bg: '#DDD6FE', label: 'Unloading in Progress' },
-  UNPACKING: { color: C.purple, bg: '#E9D5FF', label: 'Unpacking in Progress' },
-  IN_PROGRESS: { color: C.purple, bg: '#F3E8FF', label: 'In Progress' },
-  COMPLETED: { color: C.muted, bg: '#F3F4F6', label: 'Completed' },
-  CANCELLED: { color: C.red, bg: '#FEE2E2', label: 'Cancelled' },
+  PENDING_PAYMENT:  { color: '#D97706', bg: '#FFFBEB', label: 'Awaiting Payment',       icon: 'time-outline'         },
+  PAYMENT_SUBMITTED:{ color: '#EA580C', bg: '#FFF7ED', label: 'Payment Submitted',       icon: 'hourglass-outline'    },
+  ADVANCE_PAID:     { color: '#059669', bg: '#ECFDF5', label: 'Advance Paid',            icon: 'checkmark-circle'     },
+  PAYMENT_VERIFIED: { color: '#059669', bg: '#ECFDF5', label: 'Payment Verified',        icon: 'checkmark-circle'     },
+  PENDING_VENDOR:   { color: '#EA580C', bg: '#FFF7ED', label: 'Pending',                 icon: 'hourglass-outline'    },
+  BROADCASTED:      { color: '#2563EB', bg: '#EFF6FF', label: 'Open',                    icon: 'radio-outline'        },
+  ACCEPTED:         { color: '#059669', bg: '#ECFDF5', label: 'Accepted',                icon: 'checkmark-circle'     },
+  CONFIRMED:        { color: '#047857', bg: '#D1FAE5', label: 'Confirmed',               icon: 'shield-checkmark'     },
+  VEHICLE_ASSIGNED: { color: '#2563EB', bg: '#EFF6FF', label: 'Team Assigned',           icon: 'people-outline'       },
+  TEAM_ASSIGNED:    { color: '#2563EB', bg: '#EFF6FF', label: 'Team Assigned',           icon: 'people-outline'       },
+  PACKING:          { color: '#7C3AED', bg: '#F5F3FF', label: 'Packing in Progress',     icon: 'cube-outline'         },
+  LOADING:          { color: '#7C3AED', bg: '#F5F3FF', label: 'Loading in Progress',     icon: 'arrow-up-circle'      },
+  IN_TRANSIT:       { color: '#7C3AED', bg: '#F5F3FF', label: 'In Transit',              icon: 'navigate-circle'      },
+  UNLOADING:        { color: '#7C3AED', bg: '#F5F3FF', label: 'Unloading in Progress',   icon: 'arrow-down-circle'    },
+  UNPACKING:        { color: '#7C3AED', bg: '#F5F3FF', label: 'Unpacking in Progress',   icon: 'cube-outline'         },
+  IN_PROGRESS:      { color: '#7C3AED', bg: '#F5F3FF', label: 'In Progress',             icon: 'navigate-circle'      },
+  COMPLETED:        { color: '#047857', bg: '#D1FAE5', label: 'Completed',               icon: 'trophy-outline'       },
+  CANCELLED:        { color: '#DC2626', bg: '#FEF2F2', label: 'Cancelled',               icon: 'close-circle'         },
 };
 
 export default function PackersBookingDetailScreen({ route, navigation }) {
@@ -76,58 +62,47 @@ export default function PackersBookingDetailScreen({ route, navigation }) {
       const response = await getBookingById('packers', bookingId);
       setBooking(response?.booking || response);
     } catch (error) {
-      console.error('[PackersBookingDetail] Error:', error);
       showError('Failed to load booking details');
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   }, [bookingId]);
 
-  useEffect(() => {
-    fetchBooking();
-  }, [fetchBooking]);
+  useEffect(() => { fetchBooking(); }, [fetchBooking]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     await fetchBooking();
-    setRefreshing(false);
   }, [fetchBooking]);
 
   const handleAccept = async () => {
     showConfirm('Accept Booking', 'Are you sure you want to accept this booking?', async () => {
-          try {
-            setActionLoading(true);
-            await acceptBooking('packers', bookingId);
-            await fetchBooking();
-            showSuccess('Booking accepted successfully');
-          } catch (error) {
-            showError(error?.response?.data?.error || 'Failed to accept booking');
-          } finally {
-            setActionLoading(false);
-          }
-        }, { confirmText: 'Accept' });
+      try {
+        setActionLoading(true);
+        await acceptBooking('packers', bookingId);
+        await fetchBooking();
+        showSuccess('Booking accepted successfully');
+      } catch (error) {
+        showError(error?.response?.data?.error || 'Failed to accept booking');
+      } finally { setActionLoading(false); }
+    }, { confirmText: 'Accept' });
   };
 
   const handleReject = async () => {
     showConfirm('Reject Booking', 'Are you sure you want to reject this booking?', async () => {
-          try {
-            setActionLoading(true);
-            await rejectBooking('packers', bookingId, 'Vendor rejected');
-            await fetchBooking();
-            showSuccess('Booking rejected');
-          } catch (error) {
-            showError(error?.response?.data?.error || 'Failed to reject booking');
-          } finally {
-            setActionLoading(false);
-          }
-        }, { confirmText: 'Reject', destructive: true });
+      try {
+        setActionLoading(true);
+        await rejectBooking('packers', bookingId, 'Vendor rejected');
+        await fetchBooking();
+        showSuccess('Booking rejected');
+      } catch (error) {
+        showError(error?.response?.data?.error || 'Failed to reject booking');
+      } finally { setActionLoading(false); }
+    }, { confirmText: 'Reject', destructive: true });
   };
 
-  const handleCall = (phone) => {
-    if (phone) {
-      Linking.openURL(`tel:${phone}`);
-    }
-  };
+  const handleCall = (phone) => { if (phone) Linking.openURL(`tel:${phone}`); };
 
   const handleChat = () => {
     navigation.navigate('ChatScreen', {
@@ -138,47 +113,12 @@ export default function PackersBookingDetailScreen({ route, navigation }) {
     });
   };
 
-  const formatDate = (dateStr) => {
-    if (!dateStr) return '--';
-    const date = new Date(dateStr);
-    return date.toLocaleDateString('en-IN', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-    });
-  };
-
-  const getStatusConfig = (status) => {
-    return STATUS_CONFIG[status] || STATUS_CONFIG.PENDING_PAYMENT;
-  };
-
-  const canAccept = () => {
-    const acceptableStatuses = ['PENDING_VENDOR', 'BROADCASTED', 'PAYMENT_VERIFIED'];
-    return acceptableStatuses.includes(booking?.status);
-  };
-
-  const canReject = () => {
-    const rejectableStatuses = ['PENDING_VENDOR', 'BROADCASTED', 'PAYMENT_VERIFIED'];
-    return rejectableStatuses.includes(booking?.status);
-  };
-
-  const canAssignDriver = () => {
-    const assignableStatuses = ['ADVANCE_PAID', 'ACCEPTED', 'PAYMENT_VERIFIED', 'VEHICLE_ASSIGNED', 'TEAM_ASSIGNED'];
-    return assignableStatuses.includes(booking?.status) && !booking?.teamLeaderName;
-  };
-
-  const canChangeDriver = () => {
-    const changeableStatuses = ['VEHICLE_ASSIGNED', 'TEAM_ASSIGNED', 'ACCEPTED', 'PAYMENT_VERIFIED'];
-    return changeableStatuses.includes(booking?.status) && booking?.teamLeaderName;
-  };
-
   const fetchDrivers = async () => {
     try {
       setLoadingDrivers(true);
       const response = await getStaffDrivers();
       setDrivers(response?.drivers || response?.staff || []);
     } catch (error) {
-      console.error('Error fetching drivers:', error);
       showError('Failed to load drivers');
     } finally {
       setLoadingDrivers(false);
@@ -202,377 +142,361 @@ export default function PackersBookingDetailScreen({ route, navigation }) {
       await fetchBooking();
       showSuccess(isChanging ? 'Team leader changed successfully' : 'Team leader assigned successfully');
     } catch (error) {
-      console.error('Error assigning team leader:', error);
       showError(error?.response?.data?.error || 'Failed to assign team leader');
-    } finally {
-      setActionLoading(false);
-    }
+    } finally { setActionLoading(false); }
   };
+
+  const formatDate = (d) => {
+    if (!d) return '--';
+    return new Date(d).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+  };
+
+  const canAccept = () => ['PENDING_VENDOR', 'BROADCASTED', 'PAYMENT_VERIFIED'].includes(booking?.status);
+  const canReject = () => ['PENDING_VENDOR', 'BROADCASTED', 'PAYMENT_VERIFIED'].includes(booking?.status);
+  const canAssignDriver = () => ['ADVANCE_PAID', 'ACCEPTED', 'PAYMENT_VERIFIED', 'VEHICLE_ASSIGNED', 'TEAM_ASSIGNED'].includes(booking?.status) && !booking?.teamLeaderName;
+  const canChangeDriver = () => ['VEHICLE_ASSIGNED', 'TEAM_ASSIGNED', 'ACCEPTED', 'PAYMENT_VERIFIED'].includes(booking?.status) && booking?.teamLeaderName;
+
+  const GradientHeader = ({ title }) => (
+    <LinearGradient colors={[C.g900, '#064E3B', C.g700]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.heroPlain}>
+      <View style={s.deco1} /><View style={s.deco2} />
+      <View style={s.topBar}>
+        <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()}>
+          <Icon name="arrow-left" size={18} color="#fff" />
+        </TouchableOpacity>
+        <View style={s.titleWrap}>
+          <MaterialCommunityIcons name="truck-delivery" size={18} color={C.g400} />
+          <Text style={s.heroTitle}>{title}</Text>
+        </View>
+        <View style={{ width: 36 }} />
+      </View>
+    </LinearGradient>
+  );
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.safe}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-            <Icon name="arrow-left" size={20} color={C.text} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Booking Details</Text>
-          <View style={{ width: 36 }} />
+      <View style={s.safe}>
+        <StatusBar barStyle="light-content" backgroundColor={C.g900} />
+        <SafeAreaView edges={['top']}>
+          <GradientHeader title="Booking Detail" />
+        </SafeAreaView>
+        <View style={s.centered}>
+          <ActivityIndicator size="large" color={C.g600} />
+          <Text style={s.centeredTxt}>Loading booking...</Text>
         </View>
-        <View style={styles.loaderContainer}>
-          <ActivityIndicator size="large" color={C.brand} />
-        </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
   if (!booking) {
     return (
-      <SafeAreaView style={styles.safe}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-            <Icon name="arrow-left" size={20} color={C.text} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Booking Details</Text>
-          <View style={{ width: 36 }} />
+      <View style={s.safe}>
+        <StatusBar barStyle="light-content" backgroundColor={C.g900} />
+        <SafeAreaView edges={['top']}>
+          <GradientHeader title="Booking Detail" />
+        </SafeAreaView>
+        <View style={s.centered}>
+          <Ionicons name="alert-circle-outline" size={56} color={C.muted} />
+          <Text style={s.centeredTxt}>Booking not found</Text>
         </View>
-        <View style={styles.emptyContainer}>
-          <Icon name="alert-circle" size={48} color={C.muted} />
-          <Text style={styles.emptyText}>Booking not found</Text>
-        </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
-  const statusConfig = getStatusConfig(booking.status);
+  const sc = STATUS_CONFIG[booking.status] || STATUS_CONFIG.PENDING_PAYMENT;
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Icon name="arrow-left" size={20} color={C.text} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Booking #{booking.bookingNumber || booking.id}</Text>
-        <View style={{ width: 36 }} />
-      </View>
+    <SafeAreaView style={s.safe} edges={['top']}>
+      <StatusBar barStyle="light-content" backgroundColor={C.g900} />
+
+      <LinearGradient
+        colors={[C.g900, '#064E3B', C.g700]}
+        start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+        style={s.hero}
+      >
+        <View style={s.deco1} /><View style={s.deco2} />
+
+        <View style={s.topBar}>
+          <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()}>
+            <Icon name="arrow-left" size={18} color="#fff" />
+          </TouchableOpacity>
+          <View style={s.titleWrap}>
+            <MaterialCommunityIcons name="truck-delivery" size={18} color={C.g400} />
+            <Text style={s.heroTitle}>Booking Detail</Text>
+          </View>
+          <TouchableOpacity style={s.backBtn} onPress={handleChat}>
+            <Icon name="message-circle" size={18} color={C.g400} />
+          </TouchableOpacity>
+        </View>
+
+        <View style={s.heroCard}>
+          <View style={s.heroCardTop}>
+            <View>
+              <Text style={s.heroLabel}>BOOKING #</Text>
+              <Text style={s.heroNumber}>{booking.bookingNumber || String(booking.id).slice(-8)}</Text>
+            </View>
+            <View style={[s.statusPill, { backgroundColor: sc.color + '22', borderColor: sc.color + '40' }]}>
+              <Ionicons name={sc.icon} size={12} color={sc.color} />
+              <Text style={[s.statusPillTxt, { color: sc.color }]}>{sc.label}</Text>
+            </View>
+          </View>
+          <View style={s.heroMeta}>
+            <View style={s.heroMetaItem}>
+              <Ionicons name="calendar-outline" size={11} color="rgba(255,255,255,0.4)" />
+              <Text style={s.heroMetaTxt}>Created {formatDate(booking.createdAt)}</Text>
+            </View>
+            {booking.shiftingType && (
+              <View style={s.heroMetaItem}>
+                <MaterialCommunityIcons name="home-switch-outline" size={11} color="rgba(255,255,255,0.4)" />
+                <Text style={s.heroMetaTxt}>{booking.shiftingType}</Text>
+              </View>
+            )}
+          </View>
+        </View>
+      </LinearGradient>
 
       <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.brand} />
-        }
+        style={s.scroll}
+        contentContainerStyle={s.scrollContent}
         showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.g400} colors={[C.g600]} />}
       >
-        <View style={styles.statusHeaderCard}>
-          <View style={[styles.statusBadge, { backgroundColor: statusConfig.bg }]}>
-            <Text style={[styles.statusBadgeText, { color: statusConfig.color }]}>
-              {statusConfig.label}
-            </Text>
-          </View>
-          <Text style={styles.createdDate}>Created on {formatDate(booking.createdAt)}</Text>
-        </View>
-
-        <View style={styles.card}>
-          <View style={styles.cardHeader}>
-            <MaterialCommunityIcons name="truck-delivery" size={24} color={C.brand} />
-            <Text style={styles.cardTitle}>Packers & Movers</Text>
-          </View>
-
-          {booking.shiftingType && (
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Shifting Type</Text>
-              <Text style={styles.detailValue}>{booking.shiftingType}</Text>
+        {/* Shifting Details */}
+        <View style={s.card}>
+          <View style={s.cardTitleRow}>
+            <View style={[s.cardIconBox, { backgroundColor: C.g50 }]}>
+              <MaterialCommunityIcons name="truck-delivery" size={18} color={C.g600} />
             </View>
-          )}
+            <Text style={s.cardTitle}>Packers & Movers</Text>
+          </View>
 
           {booking.teamSize && (
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Team Size</Text>
-              <Text style={styles.detailValue}>{booking.teamSize} members</Text>
+            <View style={s.infoRow}>
+              <Text style={s.infoLabel}>Team Size</Text>
+              <Text style={s.infoValue}>{booking.teamSize} members</Text>
             </View>
           )}
-        </View>
 
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Shifting Details</Text>
-
-          <View style={styles.locationItem}>
-            <Icon name="map-pin" size={16} color={C.brand} />
-            <View style={{ flex: 1, marginLeft: 8 }}>
-              <Text style={styles.locationLabel}>From</Text>
-              <Text style={styles.locationText}>{booking.pickupCity || 'Not specified'}</Text>
-              {booking.pickupAddress && (
-                <Text style={styles.locationAddress}>{booking.pickupAddress}</Text>
-              )}
-              {booking.pickupFloor && (
-                <Text style={styles.locationSubtext}>Floor: {booking.pickupFloor}</Text>
-              )}
-            </View>
-          </View>
-
-          {booking.dropCity && (
-            <View style={styles.locationItem}>
-              <Icon name="map-pin" size={16} color={C.red} />
-              <View style={{ flex: 1, marginLeft: 8 }}>
-                <Text style={styles.locationLabel}>To</Text>
-                <Text style={styles.locationText}>{booking.dropCity}</Text>
-                {booking.dropAddress && (
-                  <Text style={styles.locationAddress}>{booking.dropAddress}</Text>
-                )}
-                {booking.dropFloor && (
-                  <Text style={styles.locationSubtext}>Floor: {booking.dropFloor}</Text>
-                )}
+          <View style={s.locationBlock}>
+            <View style={s.locationRow}>
+              <View style={[s.locationDot, { backgroundColor: C.g600 }]} />
+              <View style={s.locationContent}>
+                <Text style={s.locationLabel}>FROM</Text>
+                <Text style={s.locationCity}>{booking.pickupCity || 'Not specified'}</Text>
+                {booking.pickupAddress && <Text style={s.locationAddress}>{booking.pickupAddress}</Text>}
+                {booking.pickupFloor && <Text style={s.locationSub}>Floor: {booking.pickupFloor}</Text>}
               </View>
             </View>
-          )}
-
-          <View style={styles.detailRow}>
-            <Icon name="calendar" size={16} color={C.muted} />
-            <View style={{ flex: 1, marginLeft: 8 }}>
-              <Text style={styles.detailLabel}>Scheduled Date</Text>
-              <Text style={styles.detailValue}>{formatDate(booking.scheduledDate)}</Text>
-            </View>
+            <View style={s.locationLine} />
+            {booking.dropCity && (
+              <View style={s.locationRow}>
+                <View style={[s.locationDot, { backgroundColor: C.red }]} />
+                <View style={s.locationContent}>
+                  <Text style={s.locationLabel}>TO</Text>
+                  <Text style={s.locationCity}>{booking.dropCity}</Text>
+                  {booking.dropAddress && <Text style={s.locationAddress}>{booking.dropAddress}</Text>}
+                  {booking.dropFloor && <Text style={s.locationSub}>Floor: {booking.dropFloor}</Text>}
+                </View>
+              </View>
+            )}
           </View>
 
+          <View style={s.divider} />
+          <View style={s.infoRow}>
+            <Text style={s.infoLabel}>Scheduled Date</Text>
+            <Text style={s.infoValue}>{formatDate(booking.scheduledDate)}</Text>
+          </View>
           {booking.scheduledTime && (
-            <View style={styles.detailRow}>
-              <Icon name="clock" size={16} color={C.muted} />
-              <View style={{ flex: 1, marginLeft: 8 }}>
-                <Text style={styles.detailLabel}>Scheduled Time</Text>
-                <Text style={styles.detailValue}>{booking.scheduledTime}</Text>
-              </View>
+            <View style={s.infoRow}>
+              <Text style={s.infoLabel}>Scheduled Time</Text>
+              <Text style={s.infoValue}>{booking.scheduledTime}</Text>
             </View>
           )}
         </View>
 
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Customer Info</Text>
-          <View style={styles.customerRow}>
-            <View style={styles.customerAvatar}>
-              <Icon name="user" size={20} color={C.blue} />
+        {/* Customer Info */}
+        <View style={s.card}>
+          <View style={s.cardTitleRow}>
+            <View style={[s.cardIconBox, { backgroundColor: C.blueL }]}>
+              <Ionicons name="person-outline" size={18} color={C.blue} />
             </View>
-            <View style={styles.customerInfo}>
-              <Text style={styles.customerName}>{booking.customerName || 'Customer'}</Text>
+            <Text style={s.cardTitle}>Customer</Text>
+          </View>
+          <View style={s.customerRow}>
+            <View style={s.customerAvatar}>
+              <Icon name="user" size={22} color={C.blue} />
             </View>
-            <View style={styles.customerActions}>
-              <TouchableOpacity
-                style={[styles.iconBtn, { backgroundColor: '#DBEAFE' }]}
-                onPress={handleChat}
-              >
-                <Icon name="message-circle" size={18} color={C.blue} />
-              </TouchableOpacity>
+            <View style={{ flex: 1 }}>
+              <Text style={s.customerName}>{booking.customerName || 'Customer'}</Text>
             </View>
+            <TouchableOpacity style={[s.iconBtn, { backgroundColor: C.blueL }]} onPress={handleChat}>
+              <Icon name="message-circle" size={18} color={C.blue} />
+            </TouchableOpacity>
           </View>
         </View>
 
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Payment Summary</Text>
-          <View style={styles.paymentRow}>
-            <Text style={styles.paymentLabel}>Total Amount</Text>
-            <Text style={styles.paymentValue}>
+        {/* Payment Summary */}
+        <View style={s.card}>
+          <View style={s.cardTitleRow}>
+            <View style={[s.cardIconBox, { backgroundColor: C.g50 }]}>
+              <Ionicons name="receipt-outline" size={18} color={C.g600} />
+            </View>
+            <Text style={s.cardTitle}>Payment Summary</Text>
+          </View>
+          <View style={s.infoRow}>
+            <Text style={s.infoLabel}>Total Amount</Text>
+            <Text style={[s.infoValue, { fontSize: 18, color: C.g700 }]}>
               ₹{(booking.totalAmount || booking.amount || 0).toLocaleString()}
             </Text>
           </View>
-
           {(booking.advancePaid || booking.paidAmount) > 0 && (
-            <View style={styles.paymentRow}>
-              <Text style={styles.paymentLabel}>Advance Paid</Text>
-              <Text style={[styles.paymentValue, { color: C.green }]}>
+            <View style={s.infoRow}>
+              <Text style={s.infoLabel}>Advance Paid</Text>
+              <Text style={[s.infoValue, { color: C.g600 }]}>
                 ₹{(booking.advancePaid || booking.paidAmount || 0).toLocaleString()}
               </Text>
             </View>
           )}
-
-          {(booking.balanceAmount > 0 || (booking.totalAmount > (booking.advancePaid || 0))) && (
-            <View style={[styles.paymentRow, styles.paymentRowDivider]}>
-              <Text style={[styles.paymentLabel, { fontWeight: '600' }]}>Balance</Text>
-              <Text style={[styles.paymentValue, { color: C.amber }]}>
-                ₹{((booking.totalAmount || 0) - (booking.advancePaid || booking.paidAmount || 0)).toLocaleString()}
-              </Text>
-            </View>
+          {(booking.totalAmount > (booking.advancePaid || booking.paidAmount || 0)) && (
+            <>
+              <View style={s.divider} />
+              <View style={s.infoRow}>
+                <Text style={[s.infoLabel, { fontWeight: '700', color: C.text }]}>Balance Due</Text>
+                <Text style={[s.infoValue, { color: C.amber }]}>
+                  ₹{((booking.totalAmount || 0) - (booking.advancePaid || booking.paidAmount || 0)).toLocaleString()}
+                </Text>
+              </View>
+            </>
           )}
         </View>
 
-
-        {/* Assign Team Leader Button */}
+        {/* Assign Team Leader */}
         {canAssignDriver() && (
-          <TouchableOpacity
-            style={styles.assignDriverButton}
-            onPress={handleAssignDriverPress}
-            disabled={actionLoading}
-          >
+          <TouchableOpacity style={s.assignBtn} onPress={handleAssignDriverPress} disabled={actionLoading}>
             <Icon name="user-plus" size={20} color="#fff" />
-            <Text style={styles.assignDriverText}>Assign Team Leader</Text>
+            <Text style={s.assignBtnTxt}>Assign Team Leader</Text>
           </TouchableOpacity>
         )}
 
-        {/* Show assigned team leader info if exists */}
+        {/* Team Leader Card */}
         {booking?.teamLeaderName && (
-          <View style={[styles.card, { backgroundColor: '#F0F9FF' }]}>
-            <View style={styles.driverCardHeader}>
-              <Text style={styles.cardTitle}>Team Leader Details</Text>
+          <View style={[s.card, { backgroundColor: C.blueL, borderColor: '#BFDBFE' }]}>
+            <View style={s.cardTitleRowSpaced}>
+              <View style={s.cardTitleRow}>
+                <View style={[s.cardIconBox, { backgroundColor: C.card }]}>
+                  <Ionicons name="people-outline" size={18} color={C.blue} />
+                </View>
+                <Text style={s.cardTitle}>Team Leader</Text>
+              </View>
               {canChangeDriver() && (
-                <TouchableOpacity
-                  style={styles.changeDriverBtn}
-                  onPress={handleAssignDriverPress}
-                  disabled={actionLoading}
-                >
-                  <Icon name="edit-2" size={16} color={C.blue} />
-                  <Text style={styles.changeDriverText}>Change</Text>
+                <TouchableOpacity style={s.changeBtn} onPress={handleAssignDriverPress} disabled={actionLoading}>
+                  <Icon name="edit-2" size={14} color={C.blue} />
+                  <Text style={s.changeBtnTxt}>Change</Text>
                 </TouchableOpacity>
               )}
             </View>
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Name</Text>
-              <Text style={styles.detailValue}>{booking.teamLeaderName}</Text>
+            <View style={s.infoRow}>
+              <Text style={s.infoLabel}>Name</Text>
+              <Text style={s.infoValue}>{booking.teamLeaderName}</Text>
             </View>
             {booking.teamLeaderPhone && (
-              <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>Phone</Text>
+              <View style={s.infoRow}>
+                <Text style={s.infoLabel}>Phone</Text>
                 <TouchableOpacity onPress={() => handleCall(booking.teamLeaderPhone)}>
-                  <Text style={[styles.detailValue, { color: C.blue }]}>{booking.teamLeaderPhone}</Text>
+                  <Text style={[s.infoValue, { color: C.blue }]}>{booking.teamLeaderPhone}</Text>
                 </TouchableOpacity>
               </View>
             )}
           </View>
         )}
 
-        {/* Trip Status Display */}
-        {(booking?.status === 'VEHICLE_ASSIGNED' || booking?.status === 'TEAM_ASSIGNED') && booking?.teamLeaderName && (
-          <View style={[styles.card, { backgroundColor: '#EFF6FF', borderColor: C.blue }]}>
-            <View style={styles.tripStatusRow}>
-              <Icon name="info" size={20} color={C.blue} />
-              <Text style={styles.tripStatusText}>Team assigned, ready to start</Text>
-            </View>
+        {/* Packing Status Banners */}
+        {['VEHICLE_ASSIGNED', 'TEAM_ASSIGNED'].includes(booking?.status) && booking?.teamLeaderName && (
+          <View style={[s.statusBanner, { backgroundColor: C.blueL, borderColor: '#BFDBFE' }]}>
+            <Ionicons name="people-outline" size={20} color={C.blue} />
+            <Text style={[s.statusBannerTxt, { color: C.blue }]}>Team assigned, ready to start</Text>
           </View>
         )}
-
         {booking?.status === 'PACKING' && (
-          <View style={[styles.card, { backgroundColor: '#F5F3FF', borderColor: C.purple }]}>
-            <View style={styles.tripStatusRow}>
-              <Icon name="package" size={20} color={C.purple} />
-              <Text style={styles.tripStatusText}>Packing in progress</Text>
+          <View style={[s.statusBanner, { backgroundColor: C.purpleL, borderColor: '#DDD6FE' }]}>
+            <Icon name="package" size={20} color={C.purple} />
+            <View style={{ flex: 1 }}>
+              <Text style={[s.statusBannerTxt, { color: C.purple }]}>Packing in progress</Text>
+              {booking.packingStartedAt && <Text style={s.statusBannerSub}>Started: {new Date(booking.packingStartedAt).toLocaleString('en-IN')}</Text>}
             </View>
-            {booking.packingStartedAt && (
-              <Text style={styles.tripStatusSubtext}>
-                Started: {new Date(booking.packingStartedAt).toLocaleString('en-IN')}
-              </Text>
-            )}
           </View>
         )}
-
         {booking?.status === 'LOADING' && (
-          <View style={[styles.card, { backgroundColor: '#EDE9FE', borderColor: C.purple }]}>
-            <View style={styles.tripStatusRow}>
-              <Icon name="upload" size={20} color={C.purple} />
-              <Text style={styles.tripStatusText}>Loading in progress</Text>
+          <View style={[s.statusBanner, { backgroundColor: C.purpleL, borderColor: '#DDD6FE' }]}>
+            <Icon name="upload" size={20} color={C.purple} />
+            <View style={{ flex: 1 }}>
+              <Text style={[s.statusBannerTxt, { color: C.purple }]}>Loading in progress</Text>
+              {booking.loadingStartedAt && <Text style={s.statusBannerSub}>Started: {new Date(booking.loadingStartedAt).toLocaleString('en-IN')}</Text>}
             </View>
-            {booking.loadingStartedAt && (
-              <Text style={styles.tripStatusSubtext}>
-                Started: {new Date(booking.loadingStartedAt).toLocaleString('en-IN')}
-              </Text>
-            )}
           </View>
         )}
-
         {booking?.status === 'IN_TRANSIT' && (
-          <View style={[styles.card, { backgroundColor: '#FAF5FF', borderColor: C.purple }]}>
-            <View style={styles.tripStatusRow}>
-              <Icon name="truck" size={20} color={C.purple} />
-              <Text style={styles.tripStatusText}>In transit</Text>
+          <View style={[s.statusBanner, { backgroundColor: C.purpleL, borderColor: '#DDD6FE' }]}>
+            <Icon name="truck" size={20} color={C.purple} />
+            <View style={{ flex: 1 }}>
+              <Text style={[s.statusBannerTxt, { color: C.purple }]}>In transit</Text>
+              {booking.transitStartedAt && <Text style={s.statusBannerSub}>Started: {new Date(booking.transitStartedAt).toLocaleString('en-IN')}</Text>}
             </View>
-            {booking.transitStartedAt && (
-              <Text style={styles.tripStatusSubtext}>
-                Started: {new Date(booking.transitStartedAt).toLocaleString('en-IN')}
-              </Text>
-            )}
           </View>
         )}
-
         {booking?.status === 'UNLOADING' && (
-          <View style={[styles.card, { backgroundColor: '#EDE9FE', borderColor: C.purple }]}>
-            <View style={styles.tripStatusRow}>
-              <Icon name="download" size={20} color={C.purple} />
-              <Text style={styles.tripStatusText}>Unloading in progress</Text>
+          <View style={[s.statusBanner, { backgroundColor: C.purpleL, borderColor: '#DDD6FE' }]}>
+            <Icon name="download" size={20} color={C.purple} />
+            <View style={{ flex: 1 }}>
+              <Text style={[s.statusBannerTxt, { color: C.purple }]}>Unloading in progress</Text>
+              {booking.unloadingStartedAt && <Text style={s.statusBannerSub}>Started: {new Date(booking.unloadingStartedAt).toLocaleString('en-IN')}</Text>}
             </View>
-            {booking.unloadingStartedAt && (
-              <Text style={styles.tripStatusSubtext}>
-                Started: {new Date(booking.unloadingStartedAt).toLocaleString('en-IN')}
-              </Text>
-            )}
           </View>
         )}
-
         {booking?.status === 'UNPACKING' && (
-          <View style={[styles.card, { backgroundColor: '#F5F3FF', borderColor: C.purple }]}>
-            <View style={styles.tripStatusRow}>
-              <Icon name="package" size={20} color={C.purple} />
-              <Text style={styles.tripStatusText}>Unpacking in progress</Text>
+          <View style={[s.statusBanner, { backgroundColor: C.purpleL, borderColor: '#DDD6FE' }]}>
+            <Icon name="package" size={20} color={C.purple} />
+            <View style={{ flex: 1 }}>
+              <Text style={[s.statusBannerTxt, { color: C.purple }]}>Unpacking in progress</Text>
+              {booking.unpackingStartedAt && <Text style={s.statusBannerSub}>Started: {new Date(booking.unpackingStartedAt).toLocaleString('en-IN')}</Text>}
             </View>
-            {booking.unpackingStartedAt && (
-              <Text style={styles.tripStatusSubtext}>
-                Started: {new Date(booking.unpackingStartedAt).toLocaleString('en-IN')}
-              </Text>
-            )}
           </View>
         )}
-
         {booking?.status === 'IN_PROGRESS' && (
-          <View style={[styles.card, { backgroundColor: '#FAF5FF', borderColor: C.purple }]}>
-            <View style={styles.tripStatusRow}>
-              <Icon name="navigation" size={20} color={C.purple} />
-              <Text style={styles.tripStatusText}>Service in progress</Text>
+          <View style={[s.statusBanner, { backgroundColor: C.purpleL, borderColor: '#DDD6FE' }]}>
+            <Icon name="navigation" size={20} color={C.purple} />
+            <View style={{ flex: 1 }}>
+              <Text style={[s.statusBannerTxt, { color: C.purple }]}>Service in progress</Text>
+              {booking.tripStartedAt && <Text style={s.statusBannerSub}>Started: {new Date(booking.tripStartedAt).toLocaleString('en-IN')}</Text>}
             </View>
-            {booking.tripStartedAt && (
-              <Text style={styles.tripStatusSubtext}>
-                Started: {new Date(booking.tripStartedAt).toLocaleString('en-IN')}
-              </Text>
-            )}
           </View>
         )}
-
         {booking?.status === 'COMPLETED' && (
-          <View style={[styles.card, { backgroundColor: '#F0FDF4', borderColor: C.green }]}>
-            <View style={styles.tripStatusRow}>
-              <Icon name="check-circle" size={20} color={C.green} />
-              <Text style={styles.tripStatusText}>Service completed</Text>
+          <View style={[s.statusBanner, { backgroundColor: C.g50, borderColor: C.g100 }]}>
+            <Icon name="check-circle" size={20} color={C.g600} />
+            <View style={{ flex: 1 }}>
+              <Text style={[s.statusBannerTxt, { color: C.g700 }]}>Service completed</Text>
+              {booking.completedAt && <Text style={s.statusBannerSub}>Completed: {new Date(booking.completedAt).toLocaleString('en-IN')}</Text>}
             </View>
-            {booking.completedAt && (
-              <Text style={styles.tripStatusSubtext}>
-                Completed: {new Date(booking.completedAt).toLocaleString('en-IN')}
-              </Text>
-            )}
           </View>
         )}
 
-        <View style={{ height: 80 }} />
+        <View style={{ height: 90 }} />
       </ScrollView>
 
       {(canAccept() || canReject()) && (
-        <View style={styles.actionBar}>
+        <View style={s.actionBar}>
           {canReject() && (
-            <TouchableOpacity
-              style={[styles.actionBtn, styles.rejectBtn]}
-              onPress={handleReject}
-              disabled={actionLoading}
-            >
+            <TouchableOpacity style={[s.actionBtn, s.rejectBtn]} onPress={handleReject} disabled={actionLoading}>
               <Icon name="x" size={18} color={C.red} />
-              <Text style={[styles.actionBtnText, { color: C.red }]}>Decline</Text>
+              <Text style={[s.actionBtnTxt, { color: C.red }]}>Decline</Text>
             </TouchableOpacity>
           )}
           {canAccept() && (
-            <TouchableOpacity
-              style={[styles.actionBtn, styles.acceptBtn]}
-              onPress={handleAccept}
-              disabled={actionLoading}
-            >
-              {actionLoading ? (
-                <ActivityIndicator size="small" color="#fff" />
-              ) : (
+            <TouchableOpacity style={[s.actionBtn, s.acceptBtn]} onPress={handleAccept} disabled={actionLoading}>
+              {actionLoading ? <ActivityIndicator size="small" color="#fff" /> : (
                 <>
                   <Icon name="check-circle" size={18} color="#fff" />
-                  <Text style={[styles.actionBtnText, { color: '#fff' }]}>Accept Booking</Text>
+                  <Text style={[s.actionBtnTxt, { color: '#fff' }]}>Accept Booking</Text>
                 </>
               )}
             </TouchableOpacity>
@@ -580,54 +504,40 @@ export default function PackersBookingDetailScreen({ route, navigation }) {
         </View>
       )}
 
-      {/* Driver Selection Modal */}
-      <Modal
-        visible={showDriverModal}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setShowDriverModal(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>
-                {booking?.teamLeaderName ? 'Change Team Leader' : 'Select Team Leader'}
-              </Text>
-              <TouchableOpacity onPress={() => setShowDriverModal(false)} style={styles.modalCloseBtn}>
-                <Icon name="x" size={24} color={C.text} />
+      <Modal visible={showDriverModal} animationType="slide" transparent onRequestClose={() => setShowDriverModal(false)}>
+        <View style={s.modalOverlay}>
+          <View style={s.modalSheet}>
+            <View style={s.modalHandle} />
+            <View style={s.modalHeader}>
+              <Text style={s.modalTitle}>{booking?.teamLeaderName ? 'Change Team Leader' : 'Select Team Leader'}</Text>
+              <TouchableOpacity onPress={() => setShowDriverModal(false)} style={s.modalClose}>
+                <Icon name="x" size={22} color={C.text} />
               </TouchableOpacity>
             </View>
-
             {loadingDrivers ? (
-              <View style={styles.modalLoader}>
-                <ActivityIndicator size="large" color={C.brand} />
+              <View style={s.modalLoader}>
+                <ActivityIndicator size="large" color={C.g600} />
               </View>
             ) : drivers.length === 0 ? (
-              <View style={styles.emptyDrivers}>
+              <View style={s.modalEmpty}>
                 <Icon name="users" size={48} color={C.muted} />
-                <Text style={styles.emptyDriversText}>No team leaders available</Text>
-                <Text style={styles.emptyDriversSubtext}>Add team leaders from Staff Management</Text>
+                <Text style={s.modalEmptyTxt}>No team leaders available</Text>
+                <Text style={s.modalEmptySub}>Add staff from Staff Management</Text>
               </View>
             ) : (
               <FlatList
                 data={drivers}
                 keyExtractor={(item) => item.id}
                 renderItem={({ item }) => (
-                  <TouchableOpacity
-                    style={styles.driverItem}
-                    onPress={() => handleSelectDriver(item)}
-                  >
-                    <View style={styles.driverIcon}>
-                      <Icon name="user" size={24} color={C.brand} />
+                  <TouchableOpacity style={s.driverItem} onPress={() => handleSelectDriver(item)}>
+                    <View style={s.driverAvatar}>
+                      <Icon name="user" size={22} color={C.g600} />
                     </View>
-                    <View style={styles.driverInfo}>
-                      <Text style={styles.driverName}>{item.name}</Text>
-                      {item.phone && <Text style={styles.driverPhone}>{item.phone}</Text>}
-                      {item.licenseNumber && (
-                        <Text style={styles.driverLicense}>License: {item.licenseNumber}</Text>
-                      )}
+                    <View style={{ flex: 1 }}>
+                      <Text style={s.driverName}>{item.name}</Text>
+                      {item.phone && <Text style={s.driverPhone}>{item.phone}</Text>}
                     </View>
-                    <Icon name="chevron-right" size={20} color={C.muted} />
+                    <Icon name="chevron-right" size={18} color={C.muted} />
                   </TouchableOpacity>
                 )}
               />
@@ -639,410 +549,95 @@ export default function PackersBookingDetailScreen({ route, navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: C.bg,
-  },
-  loaderContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 12,
-  },
-  emptyText: {
-    fontSize: 16,
-    color: C.muted,
-    fontWeight: '500',
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: C.surface,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: C.border,
-  },
-  backBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headerTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: C.text,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    padding: 16,
-  },
-  statusHeaderCard: {
-    backgroundColor: C.surface,
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: C.border,
-  },
-  statusBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    alignSelf: 'flex-start',
-    marginBottom: 8,
-  },
-  statusBadgeText: {
-    fontSize: 12,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  createdDate: {
-    fontSize: 12,
-    color: C.muted,
-  },
+const s = StyleSheet.create({
+  safe: { flex: 1, backgroundColor: C.bg },
+  centered: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 12 },
+  centeredTxt: { fontSize: 15, color: C.muted, marginTop: 8 },
+
+  hero: { paddingHorizontal: 16, paddingBottom: 20 },
+  heroPlain: { paddingHorizontal: 16, paddingBottom: 16 },
+  deco1: { position: 'absolute', top: -40, right: -40, width: 160, height: 160, borderRadius: 80, backgroundColor: 'rgba(52,211,153,0.08)' },
+  deco2: { position: 'absolute', bottom: -20, left: -20, width: 100, height: 100, borderRadius: 50, backgroundColor: 'rgba(52,211,153,0.06)' },
+  topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 12, marginBottom: 16 },
+  backBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center' },
+  titleWrap: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  heroTitle: { fontSize: 17, fontWeight: '700', color: '#fff' },
+
+  heroCard: { backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 16, padding: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)' },
+  heroCardTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 },
+  heroLabel: { fontSize: 10, fontWeight: '700', color: C.g400, letterSpacing: 1, marginBottom: 4 },
+  heroNumber: { fontSize: 20, fontWeight: '800', color: '#fff' },
+  statusPill: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20, borderWidth: 1 },
+  statusPillTxt: { fontSize: 11, fontWeight: '700' },
+  heroMeta: { flexDirection: 'row', gap: 16 },
+  heroMetaItem: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  heroMetaTxt: { fontSize: 11, color: 'rgba(255,255,255,0.5)' },
+
+  scroll: { flex: 1 },
+  scrollContent: { padding: 16 },
+
   card: {
-    backgroundColor: C.surface,
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: C.border,
+    backgroundColor: C.card, borderRadius: 16, padding: 16, marginBottom: 12,
+    borderWidth: 1, borderColor: C.border,
+    shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 2,
   },
-  cardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 16,
-  },
-  cardTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: C.text,
-    marginBottom: 12,
-  },
-  detailRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 8,
-  },
-  detailLabel: {
-    fontSize: 14,
-    color: C.muted,
-  },
-  detailValue: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: C.text,
-  },
-  locationItem: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: 16,
-  },
-  locationLabel: {
-    fontSize: 11,
-    color: C.muted,
-    textTransform: 'uppercase',
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-  locationText: {
-    fontSize: 14,
-    color: C.text,
-    fontWeight: '500',
-  },
-  locationAddress: {
-    fontSize: 12,
-    color: C.muted,
-    marginTop: 4,
-    lineHeight: 18,
-  },
-  locationSubtext: {
-    fontSize: 11,
-    color: C.muted,
-    marginTop: 2,
-  },
-  detailsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-  },
-  detailItem: {
-    flex: 1,
-    minWidth: '45%',
-    backgroundColor: C.bg,
-    padding: 12,
-    borderRadius: 8,
-    gap: 4,
-  },
-  customerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  customerAvatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#DBEAFE',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  customerInfo: {
-    flex: 1,
-  },
-  customerName: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: C.text,
-    marginBottom: 2,
-  },
-  customerContact: {
-    fontSize: 13,
-    color: C.muted,
-  },
-  customerActions: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  iconBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  paymentRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 8,
-  },
-  paymentRowDivider: {
-    borderTopWidth: 1,
-    borderTopColor: C.border,
-    marginTop: 8,
-    paddingTop: 12,
-  },
-  paymentLabel: {
-    fontSize: 14,
-    color: C.muted,
-  },
-  paymentValue: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: C.text,
-  },
-  actionsContainer: {
-    flexDirection: 'row',
-    gap: 12,
-    marginTop: 8,
-  },
+  cardTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 14 },
+  cardTitleRowSpaced: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 },
+  cardIconBox: { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  cardTitle: { fontSize: 15, fontWeight: '700', color: C.text },
+
+  infoRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 7 },
+  infoLabel: { fontSize: 13, color: C.muted },
+  infoValue: { fontSize: 14, fontWeight: '600', color: C.text, textAlign: 'right', flex: 1, marginLeft: 12 },
+  divider: { height: 1, backgroundColor: C.border, marginVertical: 8 },
+
+  locationBlock: { marginTop: 12 },
+  locationRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingVertical: 4 },
+  locationDot: { width: 10, height: 10, borderRadius: 5, marginTop: 5 },
+  locationLine: { width: 2, height: 16, backgroundColor: C.border, marginLeft: 4, marginVertical: 2 },
+  locationContent: { flex: 1 },
+  locationLabel: { fontSize: 10, fontWeight: '700', color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 3 },
+  locationCity: { fontSize: 14, fontWeight: '600', color: C.text },
+  locationAddress: { fontSize: 12, color: C.sub, marginTop: 3, lineHeight: 17 },
+  locationSub: { fontSize: 11, color: C.muted, marginTop: 2 },
+
+  customerRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  customerAvatar: { width: 48, height: 48, borderRadius: 24, backgroundColor: C.blueL, alignItems: 'center', justifyContent: 'center' },
+  customerName: { fontSize: 15, fontWeight: '700', color: C.text },
+  iconBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
+
+  changeBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 12, paddingVertical: 6, backgroundColor: C.card, borderRadius: 8 },
+  changeBtnTxt: { fontSize: 13, fontWeight: '600', color: C.blue },
+
+  statusBanner: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, padding: 14, borderRadius: 14, borderWidth: 1, marginBottom: 12 },
+  statusBannerTxt: { fontSize: 14, fontWeight: '600' },
+  statusBannerSub: { fontSize: 12, color: C.sub, marginTop: 4 },
+
+  assignBtn: { backgroundColor: C.g600, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 15, borderRadius: 12, marginBottom: 12 },
+  assignBtnTxt: { fontSize: 15, fontWeight: '700', color: '#fff' },
+
   actionBar: {
-    flexDirection: 'row',
-    gap: 12,
-    padding: 16,
-    backgroundColor: C.surface,
-    borderTopWidth: 1,
-    borderTopColor: C.border,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: -2 },
-    elevation: 10,
+    flexDirection: 'row', gap: 12, padding: 16,
+    backgroundColor: C.card, borderTopWidth: 1, borderTopColor: C.border,
+    shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 12, shadowOffset: { width: 0, height: -3 }, elevation: 12,
   },
-  actionBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 14,
-    borderRadius: 12,
-    borderWidth: 1,
-  },
-  rejectBtn: {
-    backgroundColor: C.surface,
-    borderColor: '#FEE2E2',
-  },
-  acceptBtn: {
-    backgroundColor: C.brand,
-    borderColor: C.brand,
-  },
-  actionBtnText: {
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  actionButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 14,
-    borderRadius: 10,
-    borderWidth: 1,
-  },
-  rejectButton: {
-    backgroundColor: C.surface,
-    borderColor: C.red,
-  },
-  acceptButton: {
-    backgroundColor: C.brand,
-    borderColor: C.brand,
-  },
-  actionButtonText: {
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  assignDriverButton: {
-    backgroundColor: C.brand,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 16,
-    borderRadius: 10,
-    marginTop: 12,
-  },
-  assignDriverText: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#fff',
-  },
-  driverCardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  changeDriverBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    backgroundColor: '#DBEAFE',
-    borderRadius: 8,
-  },
-  changeDriverText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: C.blue,
-  },
-  tripStatusRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  tripStatusText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: C.text,
-    flex: 1,
-  },
-  tripStatusSubtext: {
-    fontSize: 13,
-    color: C.muted,
-    marginTop: 8,
-    marginLeft: 32,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
-  },
-  modalContent: {
-    backgroundColor: C.surface,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    maxHeight: '80%',
-    paddingBottom: 20,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: C.border,
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: C.text,
-  },
-  modalCloseBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  modalLoader: {
-    padding: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  emptyDrivers: {
-    padding: 40,
-    alignItems: 'center',
-    gap: 12,
-  },
-  emptyDriversText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: C.text,
-  },
-  emptyDriversSubtext: {
-    fontSize: 14,
-    color: C.muted,
-    textAlign: 'center',
-  },
-  driverItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: C.border,
-    gap: 12,
-  },
-  driverIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#DBEAFE',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  driverInfo: {
-    flex: 1,
-  },
-  driverName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: C.text,
-    marginBottom: 4,
-  },
-  driverPhone: {
-    fontSize: 14,
-    color: C.muted,
-    marginBottom: 2,
-  },
-  driverLicense: {
-    fontSize: 12,
-    color: C.muted,
-  },
+  actionBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 14, borderRadius: 12, borderWidth: 1 },
+  rejectBtn: { backgroundColor: C.card, borderColor: '#FECACA' },
+  acceptBtn: { backgroundColor: C.g600, borderColor: C.g600 },
+  actionBtnTxt: { fontSize: 14, fontWeight: '700' },
+
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+  modalSheet: { backgroundColor: C.card, borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: '80%', paddingBottom: 24 },
+  modalHandle: { width: 36, height: 4, borderRadius: 2, backgroundColor: C.border, alignSelf: 'center', marginTop: 12, marginBottom: 4 },
+  modalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: C.border },
+  modalTitle: { fontSize: 17, fontWeight: '700', color: C.text },
+  modalClose: { width: 32, height: 32, borderRadius: 16, backgroundColor: C.bg, alignItems: 'center', justifyContent: 'center' },
+  modalLoader: { padding: 40, alignItems: 'center' },
+  modalEmpty: { padding: 40, alignItems: 'center', gap: 10 },
+  modalEmptyTxt: { fontSize: 15, fontWeight: '600', color: C.text },
+  modalEmptySub: { fontSize: 13, color: C.muted, textAlign: 'center' },
+  driverItem: { flexDirection: 'row', alignItems: 'center', padding: 16, borderBottomWidth: 1, borderBottomColor: C.border, gap: 12 },
+  driverAvatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: C.g50, alignItems: 'center', justifyContent: 'center' },
+  driverName: { fontSize: 15, fontWeight: '600', color: C.text, marginBottom: 3 },
+  driverPhone: { fontSize: 13, color: C.muted },
 });

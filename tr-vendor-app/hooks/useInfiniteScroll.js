@@ -12,6 +12,7 @@ export const useInfiniteScroll = (fetchFunction, options = {}) => {
     pageSize = 20,
     service = null,
     type = null,
+    filterKey = 'type',
   } = options;
 
   const [data, setData] = useState([]);
@@ -74,9 +75,9 @@ export const useInfiniteScroll = (fetchFunction, options = {}) => {
         params.endDate = effectiveDates.end;
       }
 
-      // Add type filter if provided (for quote requests: 'open', 'quoted', etc.)
+      // Add type/status filter if provided
       if (type) {
-        params.type = type;
+        params[filterKey] = type;
       }
 
       // Fetch data
@@ -130,7 +131,7 @@ export const useInfiniteScroll = (fetchFunction, options = {}) => {
       setRefreshing(false);
       isFetchingRef.current = false;
     }
-  }, [fetchFunction, service, type, pageSize, dateFilter, hasMore]);
+  }, [fetchFunction, service, type, filterKey, pageSize, dateFilter, hasMore]);
 
   /**
    * Load more data (called when user scrolls to end)

@@ -1,5 +1,5 @@
 import { Metadata } from 'next';
-import { SimpleServiceHero } from '@/components/services/SimpleServiceHero';
+import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
 import { ServiceLocationsGrid } from '@/components/services/ServiceLocationsGrid';
 import { ServiceFleetDisplay } from '@/components/services/ServiceFleetDisplay';
 
@@ -16,8 +16,8 @@ export const metadata: Metadata = {
 export default function SelfDriveCarRentalPage() {
   return (
     <>
-      {/* Simple Hero without booking form */}
-      <SimpleServiceHero
+      {/* Hero with booking form */}
+      <ServiceHeroWithChat
         badge="Self Drive Car Rental"
         title="Drive Yourself"
         titleHighlight="Starting @₹899/Day"
@@ -27,14 +27,8 @@ export default function SelfDriveCarRentalPage() {
           { icon: 'shield', text: 'Fully Insured', color: 'text-blue-600' },
           { icon: 'zap', text: 'Instant Booking', color: 'text-green-600' },
         ]}
-        stats={[
-          { value: '200+', label: 'Cars Available' },
-          { value: '250+', label: 'Cities Covered' },
-          { value: '1L+', label: 'Happy Customers' },
-        ]}
         gradientFrom="blue-50"
         gradientTo="indigo-50"
-        gradientAccent="from-blue-600 to-indigo-600"
       />
 
       {/* Fleet Display from Database */}

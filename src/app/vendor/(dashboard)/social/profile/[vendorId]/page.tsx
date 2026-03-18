@@ -63,7 +63,7 @@ function timeAgo(dateStr: string) {
 
 function VendorAvatar({ vendor, size = 40 }: { vendor: { businessName: string; logo?: string }; size?: number }) {
   const [err, setErr] = useState(false);
-  const colors = ['bg-blue-500', 'bg-purple-500', 'bg-green-600', 'bg-orange-500', 'bg-pink-500', 'bg-teal-500', 'bg-emerald-500'];
+  const colors = ['bg-green-600', 'bg-teal-500', 'bg-emerald-600', 'bg-green-700', 'bg-teal-600', 'bg-green-500', 'bg-emerald-500'];
   const color = colors[vendor.businessName.charCodeAt(0) % colors.length];
 
   if (vendor.logo && !err) {
@@ -174,7 +174,7 @@ export default function VendorSocialProfilePage({
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+        <Loader2 className="h-8 w-8 animate-spin text-green-600" />
       </div>
     );
   }
@@ -183,7 +183,7 @@ export default function VendorSocialProfilePage({
     return (
       <div className="flex flex-col items-center justify-center min-h-screen gap-3">
         <p className="text-gray-500 font-medium">Vendor not found</p>
-        <Link href="/vendor/social" className="text-blue-600 text-sm hover:underline">
+        <Link href="/vendor/social" className="text-green-600 text-sm hover:underline">
           Back to feed
         </Link>
       </div>
@@ -203,7 +203,7 @@ export default function VendorSocialProfilePage({
         {/* Profile card */}
         <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden mb-4 shadow-sm">
           {/* Cover gradient */}
-          <div className="h-24 bg-gradient-to-r from-blue-500 to-purple-600" />
+          <div className="h-24 bg-gradient-to-br from-[#071a0d] to-green-800" />
           <div className="px-5 pb-5">
             <div className="flex items-end justify-between -mt-10 mb-4">
               <div className="ring-4 ring-white rounded-full">
@@ -217,7 +217,7 @@ export default function VendorSocialProfilePage({
                     className={`px-5 py-2 rounded-xl text-sm font-semibold transition-colors ${
                       following
                         ? 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                        : 'bg-blue-600 text-white hover:bg-blue-700'
+                        : 'bg-green-700 text-white hover:bg-green-600'
                     } disabled:opacity-60`}
                   >
                     {followLoading ? '...' : following ? 'Following' : 'Follow'}
@@ -283,7 +283,7 @@ export default function VendorSocialProfilePage({
               key={tab}
               onClick={() => setActiveTab(tab)}
               className={`flex-1 py-2 text-sm font-medium rounded-lg capitalize transition-colors ${
-                activeTab === tab ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-100'
+                activeTab === tab ? 'bg-green-700 text-white' : 'text-gray-600 hover:bg-gray-100'
               }`}
             >
               {tab === 'fleet' ? `Fleet (${vendor.fleetsCount ?? vendor.vendor_fleets.length})` : 'Posts'}
@@ -305,7 +305,7 @@ export default function VendorSocialProfilePage({
                   <div className="p-4 pb-3">
                     <div className="flex items-center gap-2 flex-wrap mb-2">
                       <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                        post.category.isSOS ? 'bg-red-100 text-red-700' : 'bg-blue-50 text-blue-700'
+                        post.category.isSOS ? 'bg-red-100 text-red-700' : 'bg-green-50 text-green-700'
                       }`}>
                         {post.category.isSOS && '⚡ '}{post.category.name}
                       </span>
@@ -373,20 +373,20 @@ export default function VendorSocialProfilePage({
                   const seats = v.seatingCapacity;
 
                   return (
-                    <div key={v.id} className="bg-white border border-gray-200 rounded-xl p-3.5 hover:border-blue-200 transition-colors">
+                    <div key={v.id} className="bg-white border border-gray-200 rounded-xl p-3.5 hover:border-green-200 transition-colors">
                       <div className="flex items-start justify-between gap-2 mb-1">
                         <div className="min-w-0">
                           <div className="text-sm font-bold text-gray-900 truncate">{displayName}</div>
                           {subName && <div className="text-xs text-gray-500 truncate">{subName}</div>}
                         </div>
                         {seats && (
-                          <span className="flex-shrink-0 text-[10px] font-bold bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded-full">
+                          <span className="flex-shrink-0 text-[10px] font-bold bg-green-50 text-green-700 px-1.5 py-0.5 rounded-full">
                             {seats}s
                           </span>
                         )}
                       </div>
                       {service && (
-                        <div className="text-[10px] font-semibold text-violet-600 bg-violet-50 px-2 py-0.5 rounded-full inline-block mb-1.5">
+                        <div className="text-[10px] font-semibold text-green-700 bg-green-50 px-2 py-0.5 rounded-full inline-block mb-1.5">
                           {service}
                         </div>
                       )}

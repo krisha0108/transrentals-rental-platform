@@ -29,6 +29,7 @@ export async function GET(request: NextRequest) {
           select: { id: true, amount: true, status: true, vendorId: true, createdAt: true },
           orderBy: { amount: 'asc' },
         },
+        booking: { select: { id: true, status: true, isB2BBooking: true, companyName: true } },
       },
       orderBy: { createdAt: 'desc' },
     });

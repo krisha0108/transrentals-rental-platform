@@ -13,7 +13,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
       include: {
         category: { select: { id: true, name: true, icon: true, slug: true, description: true } },
         mainLocation: { select: { id: true, name: true, slug: true } },
-        vendor: { select: { id: true, businessName: true, phone: true } },
+        vendor: { select: { id: true, businessName: true, phone: true, logo: true, description: true, rating: true, totalRatings: true, createdAt: true, _count: { select: { wander_listings: { where: { status: 'ACTIVE' } } } } } },
         _count: { select: { quoteRequests: true } },
       },
     });

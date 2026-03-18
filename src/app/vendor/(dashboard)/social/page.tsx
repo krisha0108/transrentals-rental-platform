@@ -50,7 +50,7 @@ function groupSOSByVendor(posts: any[]): VendorStoryGroup[] {
 function VendorAvatar({ vendor, size = 40 }: { vendor: { businessName: string; logo?: string }; size?: number }) {
   const [err, setErr] = useState(false);
   const palette = [
-    'bg-violet-500', 'bg-blue-500', 'bg-emerald-500', 'bg-orange-500',
+    'bg-green-500', 'bg-blue-500', 'bg-emerald-500', 'bg-orange-500',
     'bg-pink-500', 'bg-teal-500', 'bg-indigo-500', 'bg-rose-500',
   ];
   const color = palette[vendor.businessName.charCodeAt(0) % palette.length];
@@ -312,7 +312,7 @@ function CommentModal({ post, currentVendorId, onClose }: { post: Post; currentV
         </div>
         <div className="flex-1 overflow-y-auto p-4 space-y-3">
           {loading ? (
-            <div className="flex justify-center py-10"><div className="animate-spin h-6 w-6 border-2 border-violet-500 border-t-transparent rounded-full" /></div>
+            <div className="flex justify-center py-10"><div className="animate-spin h-6 w-6 border-2 border-green-600 border-t-transparent rounded-full" /></div>
           ) : comments.length === 0 ? (
             <div className="text-center py-10">
               <MessageCircle className="h-10 w-10 text-gray-200 mx-auto mb-2" strokeWidth={1.5} />
@@ -340,9 +340,9 @@ function CommentModal({ post, currentVendorId, onClose }: { post: Post; currentV
         <div className="p-4 border-t border-gray-100 bg-gray-50/50">
           <form onSubmit={submit} className="flex gap-2">
             <input value={text} onChange={e => setText(e.target.value)} placeholder="Add a comment..."
-              className="flex-1 bg-white border border-gray-200 rounded-full px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400 focus:border-transparent shadow-sm" />
+              className="flex-1 bg-white border border-gray-200 rounded-full px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-400 focus:border-transparent shadow-sm" />
             <button type="submit" disabled={submitting || !text.trim()}
-              className="w-10 h-10 bg-violet-600 text-white rounded-full flex items-center justify-center hover:bg-violet-700 disabled:opacity-40 transition-colors flex-shrink-0">
+              className="w-10 h-10 bg-green-600 text-white rounded-full flex items-center justify-center hover:bg-green-700 disabled:opacity-40 transition-colors flex-shrink-0">
               <Send className="h-4 w-4" />
             </button>
           </form>
@@ -362,8 +362,8 @@ async function generatePostCard(post: Post): Promise<Blob> {
   const ctx = canvas.getContext('2d')!;
 
   const sos = post.category.isSOS;
-  const accent1 = sos ? '#ef4444' : '#7c3aed';
-  const accent2 = sos ? '#f97316' : '#4f46e5';
+  const accent1 = sos ? '#ef4444' : '#16a34a';
+  const accent2 = sos ? '#f97316' : '#22c55e';
 
   // White card background
   ctx.fillStyle = '#ffffff';
@@ -376,7 +376,7 @@ async function generatePostCard(post: Post): Promise<Blob> {
   ctx.fillRect(0, 0, W, 10);
 
   // Subtle background tint
-  ctx.fillStyle = sos ? '#fff7f7' : '#faf8ff';
+  ctx.fillStyle = sos ? '#fff7f7' : '#f0fdf4';
   ctx.fillRect(0, 10, W, H - 10);
 
   // Avatar circle
@@ -402,9 +402,9 @@ async function generatePostCard(post: Post): Promise<Blob> {
   // Category pill
   const catText = (sos ? '⚡ ' : '') + post.category.name;
   const catW = ctx.measureText(catText).width + 24;
-  ctx.fillStyle = sos ? '#fee2e2' : '#ede9fe';
+  ctx.fillStyle = sos ? '#fee2e2' : '#dcfce7';
   roundRect(ctx, 92, 95, catW, 24, 12);
-  ctx.fillStyle = sos ? '#dc2626' : '#7c3aed';
+  ctx.fillStyle = sos ? '#dc2626' : '#16a34a';
   ctx.font = 'bold 13px system-ui, -apple-system, sans-serif';
   ctx.fillText(catText, 104, 112);
 
@@ -505,17 +505,17 @@ function ShareInChatModal({ post, onClose }: { post: Post; onClose: () => void }
       <div className="bg-white rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between px-4 py-4 border-b border-gray-100">
           <h3 className="font-bold text-gray-900 flex items-center gap-2">
-            <MessageSquare className="h-4 w-4 text-violet-500" /> Share in Chat
+            <MessageSquare className="h-4 w-4 text-green-600" /> Share in Chat
           </h3>
           <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400"><X className="h-4 w-4" /></button>
         </div>
-        <div className="px-4 py-3 bg-violet-50 border-b border-violet-100">
-          <p className="text-[11px] text-violet-600 font-semibold mb-1">{post.vendor.businessName} · {post.category.name}</p>
+        <div className="px-4 py-3 bg-green-50 border-b border-green-100">
+          <p className="text-[11px] text-green-600 font-semibold mb-1">{post.vendor.businessName} · {post.category.name}</p>
           <p className="text-xs text-gray-600 line-clamp-2 leading-relaxed">{post.content}</p>
         </div>
         {loading ? (
           <div className="py-10 flex justify-center">
-            <div className="animate-spin h-6 w-6 border-2 border-violet-500 border-t-transparent rounded-full" />
+            <div className="animate-spin h-6 w-6 border-2 border-green-600 border-t-transparent rounded-full" />
           </div>
         ) : conversations.length === 0 ? (
           <div className="py-10 text-center">
@@ -536,7 +536,7 @@ function ShareInChatModal({ post, onClose }: { post: Post; onClose: () => void }
                 {sent === conv.id ? (
                   <span className="text-xs text-green-600 font-bold">Sent!</span>
                 ) : sending === conv.id ? (
-                  <div className="animate-spin h-4 w-4 border-2 border-violet-500 border-t-transparent rounded-full flex-shrink-0" />
+                  <div className="animate-spin h-4 w-4 border-2 border-green-600 border-t-transparent rounded-full flex-shrink-0" />
                 ) : (
                   <Send className="h-4 w-4 text-gray-300 flex-shrink-0" />
                 )}
@@ -619,7 +619,7 @@ function PostCard({ post, currentVendorId, onLike, onSave, onDelete, onComment, 
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
               <Link href={`/vendor/social/profile/${post.vendor.id}`}
-                className="font-bold text-gray-900 hover:text-violet-600 text-sm transition-colors leading-tight block truncate">
+                className="font-bold text-gray-900 hover:text-green-700 text-sm transition-colors leading-tight block truncate">
                 {post.vendor.businessName}
               </Link>
               <p className="text-xs text-gray-400 mt-0.5 truncate">{post.vendor.ownerName}</p>
@@ -628,7 +628,7 @@ function PostCard({ post, currentVendorId, onLike, onSave, onDelete, onComment, 
             <span className={`flex-shrink-0 flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold mt-0.5 ${
               post.category.isSOS
                 ? 'bg-red-100 text-red-600'
-                : 'bg-violet-50 text-violet-600'
+                : 'bg-green-50 text-green-600'
             }`}>
               {post.category.isSOS && <Zap className="h-2.5 w-2.5" />}
               {post.category.name}
@@ -660,8 +660,8 @@ function PostCard({ post, currentVendorId, onLike, onSave, onDelete, onComment, 
                 <button onClick={handleFollow} disabled={followLoading}
                   className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2.5 disabled:opacity-50">
                   {followLoading
-                    ? <span className="h-4 w-4 border-2 border-violet-400 border-t-transparent rounded-full animate-spin" />
-                    : <Users className="h-4 w-4 text-violet-500" />}
+                    ? <span className="h-4 w-4 border-2 border-green-400 border-t-transparent rounded-full animate-spin" />
+                    : <Users className="h-4 w-4 text-green-600" />}
                   {followedByMe ? 'Unfollow' : 'Follow'}
                 </button>
               )}
@@ -694,7 +694,7 @@ function PostCard({ post, currentVendorId, onLike, onSave, onDelete, onComment, 
 
         {/* Comment */}
         <button onClick={() => onComment(post)}
-          className="group flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium text-gray-500 hover:bg-gray-100 hover:text-violet-500 transition-all">
+          className="group flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium text-gray-500 hover:bg-gray-100 hover:text-green-600 transition-all">
           <MessageCircle className="h-[17px] w-[17px] group-hover:scale-110 transition-transform" />
           <span className="text-xs min-w-[12px]">{post.commentsCount || ''}</span>
         </button>
@@ -716,7 +716,7 @@ function PostCard({ post, currentVendorId, onLike, onSave, onDelete, onComment, 
         </button>
         {/* Share in Chat */}
         <button onClick={() => onShareInChat(post)} title="Share in Chat"
-          className="group flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium text-gray-400 hover:bg-violet-50 hover:text-violet-600 transition-all">
+          className="group flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium text-gray-400 hover:bg-green-50 hover:text-green-600 transition-all">
           <MessageSquare className="h-[17px] w-[17px] group-hover:scale-110 transition-transform" />
         </button>
       </div>
@@ -854,18 +854,20 @@ function SocialFeedContent() {
       <div className="max-w-2xl mx-auto px-4 py-6">
 
         {/* ── Page Header ── */}
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <div className="flex items-center gap-2 mb-0.5">
-              <TrendingUp className="h-5 w-5 text-violet-500" />
-              <h1 className="text-xl font-bold text-gray-900">Vendor Network</h1>
+        <div className="relative bg-[#071a0d] rounded-2xl overflow-hidden px-6 pt-6 pb-5 mb-5">
+          <div className="absolute -top-8 -right-8 w-40 h-40 bg-green-500/15 rounded-full blur-2xl pointer-events-none" />
+          <div className="absolute bottom-0 left-1/3 w-32 h-32 bg-emerald-600/10 rounded-full blur-2xl pointer-events-none" />
+          <div className="relative flex items-center justify-between">
+            <div>
+              <span className="text-[10px] font-bold uppercase tracking-widest text-green-400 mb-1.5 block">TransRentals</span>
+              <h1 className="text-2xl font-black text-white tracking-tight leading-none">Vendor Network</h1>
+              <p className="text-green-200/50 text-xs mt-1.5">Connect · Collaborate · Grow</p>
             </div>
-            <p className="text-xs text-gray-400 ml-7">Connect · Collaborate · Grow</p>
+            <Link href="/vendor/social/create"
+              className="flex items-center gap-2 px-4 py-2.5 bg-green-600 text-white rounded-xl text-sm font-bold hover:bg-green-500 shadow-lg shadow-green-900/30 transition-all active:scale-95 flex-shrink-0">
+              <PenSquare className="h-4 w-4" /> New Post
+            </Link>
           </div>
-          <Link href="/vendor/social/create"
-            className="flex items-center gap-2 px-4 py-2.5 bg-violet-600 text-white rounded-xl text-sm font-bold hover:bg-violet-700 shadow-sm transition-all hover:shadow-md active:scale-95">
-            <PenSquare className="h-4 w-4" /> New Post
-          </Link>
         </div>
 
         {/* ── SOS Strip ── */}
@@ -879,7 +881,7 @@ function SocialFeedContent() {
             <button key={tab} onClick={() => setActiveTab(tab)}
               className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${
                 activeTab === tab
-                  ? 'bg-violet-600 text-white shadow-sm'
+                  ? 'bg-green-700 text-white shadow-sm'
                   : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
               }`}>
               {tab === 'feed' ? '🏠 Feed' : '🔖 Saved'}
@@ -895,8 +897,8 @@ function SocialFeedContent() {
                 onClick={() => setSelectedCategory(cat.id === selectedCategory ? '' : cat.id)}
                 className={`px-3.5 py-1.5 rounded-full text-xs font-bold flex-shrink-0 transition-all border ${
                   selectedCategory === cat.id
-                    ? 'bg-violet-600 text-white border-violet-600 shadow-sm'
-                    : 'bg-white border-gray-200 text-gray-600 hover:border-violet-300 hover:text-violet-600'
+                    ? 'bg-green-700 text-white border-green-700 shadow-sm'
+                    : 'bg-white border-gray-200 text-gray-600 hover:border-green-300 hover:text-green-700'
                 }`}>
                 {cat.name}
               </button>
@@ -918,7 +920,7 @@ function SocialFeedContent() {
             </p>
             {activeTab === 'feed' && (
               <Link href="/vendor/social/create"
-                className="inline-flex items-center gap-2 mt-5 px-5 py-2.5 bg-violet-600 text-white rounded-xl text-sm font-bold hover:bg-violet-700 transition-colors">
+                className="inline-flex items-center gap-2 mt-5 px-5 py-2.5 bg-green-600 text-white rounded-xl text-sm font-bold hover:bg-green-700 transition-colors">
                 <PenSquare className="h-4 w-4" /> Create Post
               </Link>
             )}
@@ -933,10 +935,10 @@ function SocialFeedContent() {
             ))}
             {nextCursor && (
               <button onClick={loadMore} disabled={loadingMore}
-                className="w-full py-3 text-sm font-bold text-violet-600 hover:bg-violet-50 rounded-xl border border-violet-100 disabled:opacity-50 transition-colors">
+                className="w-full py-3 text-sm font-bold text-green-600 hover:bg-green-50 rounded-xl border border-green-100 disabled:opacity-50 transition-colors">
                 {loadingMore ? (
                   <span className="flex items-center justify-center gap-2">
-                    <span className="animate-spin h-4 w-4 border-2 border-violet-600 border-t-transparent rounded-full inline-block" />
+                    <span className="animate-spin h-4 w-4 border-2 border-green-600 border-t-transparent rounded-full inline-block" />
                     Loading...
                   </span>
                 ) : 'Load more posts'}

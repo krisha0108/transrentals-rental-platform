@@ -277,8 +277,53 @@ export default function CustomerWanderQuoteDetailPage() {
           {/* ── LEFT SIDEBAR ──────────────────────────────────────────────── */}
           <div className="lg:col-span-1 space-y-4">
 
-            {/* Payment UI — advance payment pending */}
-            {isAccepted && wanderBooking?.advanceAmount && wanderBooking?.status === 'PAYMENT_PENDING' && (
+            {/* B2B Company Booking — invoice awaited banner */}
+            {isAccepted && wanderBooking?.isB2BBooking && wanderBooking?.status === 'CONFIRMED' && !wanderBooking?.invoiceSent && (
+              <div className="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-2xl p-5 text-white shadow-lg">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center flex-shrink-0">
+                    <Building2 className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <p className="font-black text-base">B2B Company Booking</p>
+                    <p className="text-blue-100 text-xs">Invoice after trip completion</p>
+                  </div>
+                </div>
+                <p className="text-sm text-blue-50 leading-relaxed mt-2">
+                  No advance payment required. The vendor will send an invoice after your tour is completed.
+                </p>
+                {wanderBooking?.companyName && (
+                  <p className="text-xs text-blue-200 mt-2">Company: <span className="font-semibold text-white">{wanderBooking.companyName}</span></p>
+                )}
+                {wanderBooking?.bookingId && (
+                  <p className="text-xs text-blue-200 mt-1 font-mono">{wanderBooking.bookingId}</p>
+                )}
+              </div>
+            )}
+
+            {/* B2B Invoice Sent banner */}
+            {isAccepted && wanderBooking?.isB2BBooking && wanderBooking?.invoiceSent && (
+              <div className="bg-gradient-to-br from-amber-500 to-orange-600 rounded-2xl p-5 text-white shadow-lg">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center flex-shrink-0">
+                    <Send className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <p className="font-black text-base">Invoice Received</p>
+                    <p className="text-amber-100 text-xs">Please process payment</p>
+                  </div>
+                </div>
+                <p className="text-sm text-amber-50 leading-relaxed mt-2">
+                  Your vendor has sent an invoice of <span className="font-bold">₹{Number(wanderBooking.amount).toLocaleString('en-IN')}</span>. Please process the payment to complete the booking.
+                </p>
+                {wanderBooking?.invoiceNotes && (
+                  <p className="text-xs text-amber-200 mt-2">{wanderBooking.invoiceNotes}</p>
+                )}
+              </div>
+            )}
+
+            {/* Payment UI — advance payment pending (non-B2B only) */}
+            {isAccepted && !wanderBooking?.isB2BBooking && wanderBooking?.advanceAmount && wanderBooking?.status === 'PAYMENT_PENDING' && (
               <div>
                 <div className="mb-3">
                   <p className="text-sm font-bold text-gray-900">Complete Your Booking</p>
@@ -293,14 +338,18 @@ export default function CustomerWanderQuoteDetailPage() {
                   bookingNumber={wanderBooking.bookingId}
                   serviceSlug="wander"
                   onSuccess={() => {
-                    setWanderBooking((b: any) => ({ ...b, status: 'PAYMENT_SUBMITTED' }));
+                    // Refetch from server — Razorpay sets CONFIRMED, manual sets PAYMENT_SUBMITTED
+                    fetch(`/api/customer/wander-quote-requests/${id}`)
+                      .then(r => r.json())
+                      .then(d => { if (d.booking) setWanderBooking(d.booking); })
+                      .catch(() => setWanderBooking((b: any) => ({ ...b, status: 'PAYMENT_SUBMITTED' })));
                   }}
                 />
               </div>
             )}
 
-            {/* Payment Under Review banner — manual payment submitted, awaiting admin */}
-            {isAccepted && wanderBooking?.status === 'PAYMENT_SUBMITTED' && (
+            {/* Payment Under Review banner — manual payment submitted, awaiting admin (non-B2B only) */}
+            {isAccepted && !wanderBooking?.isB2BBooking && wanderBooking?.status === 'PAYMENT_SUBMITTED' && (
               <div className="bg-gradient-to-br from-amber-400 to-orange-500 rounded-2xl p-5 text-white shadow-lg">
                 <div className="flex items-center gap-3 mb-2">
                   <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center flex-shrink-0">
@@ -323,8 +372,8 @@ export default function CustomerWanderQuoteDetailPage() {
               </div>
             )}
 
-            {/* Confirmed banner */}
-            {isAccepted && (!wanderBooking?.advanceAmount || wanderBooking?.status === 'CONFIRMED') && (
+            {/* Confirmed banner (non-B2B only) */}
+            {isAccepted && !wanderBooking?.isB2BBooking && (!wanderBooking?.advanceAmount || wanderBooking?.status === 'CONFIRMED') && (
               <div className="bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl p-5 text-white shadow-lg">
                 <div className="flex items-center gap-3 mb-2">
                   <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center flex-shrink-0">
@@ -761,8 +810,19 @@ function ReviewCard({ bookingId, customerId }: { bookingId: string; customerId: 
   const [title, setTitle] = useState('');
   const [review, setReview] = useState('');
   const [submitted, setSubmitted] = useState(false);
+  const [existingReview, setExistingReview] = useState<any>(null);
+  const [checkingExisting, setCheckingExisting] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (!bookingId) { setCheckingExisting(false); return; }
+    fetch(`/api/wander/reviews?bookingId=${bookingId}`)
+      .then(r => r.json())
+      .then(d => { if (d.exists) setExistingReview(d.review); })
+      .catch(() => {})
+      .finally(() => setCheckingExisting(false));
+  }, [bookingId]);
 
   const handleSubmit = async () => {
     if (!rating) { setError('Please select a rating'); return; }
@@ -781,12 +841,46 @@ function ReviewCard({ bookingId, customerId }: { bookingId: string; customerId: 
     finally { setSubmitting(false); }
   };
 
-  if (submitted) {
+  if (checkingExisting) return null;
+
+  if (submitted || existingReview) {
     return (
-      <div className="bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200 rounded-2xl p-5 text-center">
-        <Star className="w-8 h-8 text-amber-400 fill-amber-400 mx-auto mb-2" />
-        <p className="font-bold text-gray-900 text-sm">Thank you for your review!</p>
-        <p className="text-xs text-gray-500 mt-1">Your feedback helps other travelers</p>
+      <div className="bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200 rounded-2xl p-5">
+        <div className="flex items-center gap-3 mb-3">
+          <div className="w-9 h-9 bg-amber-100 rounded-full flex items-center justify-center">
+            <Star className="w-5 h-5 text-amber-500 fill-amber-500" />
+          </div>
+          <div>
+            <p className="font-bold text-gray-900 text-sm">Review Submitted</p>
+            <p className="text-xs text-gray-500">Thank you! Your feedback helps other travelers</p>
+          </div>
+        </div>
+        {existingReview && (
+          <div className="space-y-2">
+            <div className="bg-white rounded-xl p-3 border border-amber-100">
+              <div className="flex items-center gap-0.5 mb-1.5">
+                {[1,2,3,4,5].map(s => (
+                  <Star key={s} className={`w-3.5 h-3.5 ${s <= existingReview.rating ? 'fill-amber-400 text-amber-400' : 'text-gray-200'}`} />
+                ))}
+              </div>
+              {existingReview.title && <p className="text-sm font-semibold text-gray-800">{existingReview.title}</p>}
+              {existingReview.review && <p className="text-xs text-gray-600 mt-0.5">{existingReview.review}</p>}
+            </div>
+            {existingReview.vendorReply && (
+              <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-3">
+                <p className="text-[10px] font-bold text-indigo-500 uppercase tracking-wider mb-1 flex items-center gap-1">
+                  <MessageSquare className="w-3 h-3" /> Vendor Reply
+                </p>
+                <p className="text-xs text-indigo-800 leading-relaxed">{existingReview.vendorReply}</p>
+                {existingReview.vendorRepliedAt && (
+                  <p className="text-[10px] text-indigo-400 mt-1">
+                    {new Date(existingReview.vendorRepliedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     );
   }

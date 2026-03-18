@@ -166,13 +166,16 @@ export default function TourDashboard({ customerId }: TourDashboardProps) {
                       </div>
 
                       <div className="flex items-center justify-between">
-                        <div className="text-xs">
+                        <div className="text-xs flex items-center gap-2">
                           {quoteCount > 0 ? (
                             <span className="text-emerald-600 font-semibold">
                               {quoteCount} quote{quoteCount > 1 ? 's' : ''} · from ₹{Number(lowestQuote.amount).toLocaleString('en-IN')}
                             </span>
                           ) : (
                             <span className="text-gray-400">Waiting for quotes...</span>
+                          )}
+                          {req.bookingFor === 'COMPANY' && (
+                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700">🏢 Company</span>
                           )}
                         </div>
                         <ChevronRight className="w-4 h-4 text-gray-300" />

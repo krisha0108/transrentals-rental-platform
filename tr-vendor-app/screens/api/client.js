@@ -43,9 +43,9 @@ export async function getBaseURL() {
     return cachedBaseURL;
   }
   // 3) default - production (use this for release builds)
-  cachedBaseURL = DEFAULT_PROD;
+  // cachedBaseURL = DEFAULT_PROD;
   // DEV fallback: uncomment below + comment above line if testing without __DEV__ flag
-  // cachedBaseURL = inferLocalBase();
+  cachedBaseURL = inferLocalBase();
   return cachedBaseURL;
 }
 
@@ -638,9 +638,10 @@ export async function getAvailableLocations() {
  * No mapping needed - all services use their original names
  */
 function mapServiceTypeForBackend(serviceType) {
-  // Currently no mapping needed, backend uses same names
-  // Keep this function for future mappings if needed
-  return serviceType;
+  const map = {
+    'chauffeur': 'car',
+  };
+  return map[serviceType] || serviceType;
 }
 
 /**

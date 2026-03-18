@@ -246,11 +246,21 @@ export default function VendorWanderBookingDetailPage() {
 
         {/* Customer Details */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-          <div className="px-5 py-3.5 border-b border-gray-100">
+          <div className="px-5 py-3.5 border-b border-gray-100 flex items-center justify-between gap-2">
             <h2 className="font-bold text-gray-900 text-sm">Customer Details</h2>
+            {booking.isB2BBooking && booking.companyName ? (
+              <span className="flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">🏢 B2B — Company</span>
+            ) : booking.isB2BBooking ? (
+              <span className="flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-100 text-purple-700">👤 B2B — Personal</span>
+            ) : (
+              <span className="flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-gray-100 text-gray-500">👤 Regular</span>
+            )}
           </div>
           <div className="p-5 space-y-4">
             <Row label="Name" value={booking.customer?.name || '—'} />
+            {booking.isB2BBooking && booking.companyName && (
+              <Row label="Company" value={<span className="text-blue-700 font-semibold">🏢 {booking.companyName}</span>} />
+            )}
             {booking.customer?.phone && (
               <Row
                 label="Phone"

@@ -8,24 +8,35 @@ import {
   RefreshControl,
   ActivityIndicator,
   Alert,
+  StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Feather';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import LinearGradient from 'react-native-linear-gradient';
 import { getQuoteRequestById } from '../../../api/client';
 import { showError, showSuccess, showInfo, showConfirm } from '../../../../services/alertService';
 
-const GREEN = '#09B368';
-const BG = '#F5F5F7';
-const DARK = '#0F172A';
+const C = {
+  g900: '#022C22', g800: '#065F46', g700: '#047857', g500: '#059669', g400: '#34D399',
+  g50: '#ECFDF5', g100: '#D1FAE5',
+  bg: '#F1F5F9', card: '#FFFFFF', border: '#E2E8F0', text: '#0F172A', sub: '#475569', muted: '#94A3B8',
+  green: '#059669', greenL: '#ECFDF5', greenD: '#065F46',
+  amber: '#D97706', amberL: '#FFFBEB',
+  red: '#DC2626', redL: '#FEF2F2',
+  blue: '#2563EB', blueL: '#EFF6FF',
+  purple: '#7C3AED', purpleL: '#F5F3FF',
+};
 
-const STATUS_COLORS = {
-  PENDING: '#F59E0B',
-  QUOTED: '#3B82F6',
-  ACCEPTED: '#10B981',
-  REJECTED: '#EF4444',
-  EXPIRED: '#6B7280',
+const STATUS_CFG = {
+  PENDING:         { label: 'Pending',          bg: C.amberL,   text: C.amber,  icon: 'time-outline' },
+  QUOTED:          { label: 'Quoted',           bg: C.blueL,    text: C.blue,   icon: 'document-text' },
+  QUOTES_RECEIVED: { label: 'Quotes Received',  bg: C.g50,      text: C.g700,   icon: 'mail-outline' },
+  ACCEPTED:        { label: 'Accepted',         bg: C.greenL,   text: C.green,  icon: 'checkmark-circle' },
+  REJECTED:        { label: 'Rejected',         bg: C.redL,     text: C.red,    icon: 'close-circle' },
+  EXPIRED:         { label: 'Expired',          bg: '#F1F5F9',  text: '#6B7280', icon: 'alert-circle' },
+  CANCELLED:       { label: 'Cancelled',        bg: C.redL,     text: C.red,    icon: 'close-circle-outline' },
 };
 
 export default function SelfDriveQuoteRequestDetailScreen({ route, navigation }) {
@@ -115,19 +126,24 @@ export default function SelfDriveQuoteRequestDetailScreen({ route, navigation })
   if (loading) {
     return (
       <SafeAreaView style={styles.safe} edges={['top']}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-            <Icon name="arrow-left" size={22} color={DARK} />
-          </TouchableOpacity>
-          <View style={styles.headerCenter}>
-            <Text style={styles.headerTitle}>Request Details</Text>
-            <Text style={styles.headerSubtitle}>Self Drive</Text>
+        <StatusBar barStyle="light-content" backgroundColor={C.g900} />
+        <LinearGradient colors={[C.g900, C.g800, C.g700]} style={styles.gradientHeader}>
+          <View style={styles.decorCircle1} />
+          <View style={styles.decorCircle2} />
+          <View style={styles.headerRow}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+              <Icon name="arrow-left" size={20} color="#fff" />
+            </TouchableOpacity>
+            <View style={styles.headerCenter}>
+              <Text style={styles.headerTitle}>Request Details</Text>
+              <Text style={styles.headerSubtitle}>Self Drive</Text>
+            </View>
+            <View style={{ width: 40 }} />
           </View>
-          <View style={{ width: 40 }} />
-        </View>
+        </LinearGradient>
         <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-          <View style={styles.skeletonBanner} />
-          <View style={{ padding: 16, paddingTop: 8 }}>
+          <View style={{ padding: 16, paddingTop: 16 }}>
+            <View style={styles.skeletonBanner} />
             {[1, 2, 3].map(i => (
               <View key={i} style={styles.skeletonCard}>
                 <View style={styles.skeletonLine} />
@@ -144,15 +160,25 @@ export default function SelfDriveQuoteRequestDetailScreen({ route, navigation })
   if (!request) {
     return (
       <SafeAreaView style={styles.safe} edges={['top']}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-            <Icon name="arrow-left" size={22} color={DARK} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Request Detail</Text>
-          <View style={{ width: 40 }} />
-        </View>
+        <StatusBar barStyle="light-content" backgroundColor={C.g900} />
+        <LinearGradient colors={[C.g900, C.g800, C.g700]} style={styles.gradientHeader}>
+          <View style={styles.decorCircle1} />
+          <View style={styles.decorCircle2} />
+          <View style={styles.headerRow}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+              <Icon name="arrow-left" size={20} color="#fff" />
+            </TouchableOpacity>
+            <View style={styles.headerCenter}>
+              <Text style={styles.headerTitle}>Request Detail</Text>
+              <Text style={styles.headerSubtitle}>Self Drive</Text>
+            </View>
+            <View style={{ width: 40 }} />
+          </View>
+        </LinearGradient>
         <View style={styles.emptyState}>
-          <Ionicons name="clipboard-outline" size={64} color="#CBD5E1" />
+          <View style={styles.emptyIconWrap}>
+            <Ionicons name="clipboard-outline" size={48} color={C.muted} />
+          </View>
           <Text style={styles.emptyTitle}>Request Not Found</Text>
           <Text style={styles.emptySubtitle}>This request may have been removed</Text>
         </View>
@@ -161,7 +187,7 @@ export default function SelfDriveQuoteRequestDetailScreen({ route, navigation })
   }
 
   const status = request.status?.toUpperCase() || 'PENDING';
-  const statusColor = STATUS_COLORS[status] || '#6B7280';
+  const cfg = STATUS_CFG[status] || { label: status, bg: '#F1F5F9', text: '#6B7280', icon: 'help-circle-outline' };
 
   // Customer Information
   const customerName = request.customerName || request.customer_name || 'Customer';
@@ -209,75 +235,105 @@ export default function SelfDriveQuoteRequestDetailScreen({ route, navigation })
   const requestNumber = request.requestNumber || request.request_number || (request.id || request._id)?.toString().slice(-8);
   const notes = request.customerNotes || request.customer_notes || request.notes || request.description || request.additionalInfo || request.specialRequirements || request.additional_details || request.other_info;
 
+  const vehicleName = vehicleModelName || vehicleTypeDisplay || 'Vehicle';
+
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Icon name="arrow-left" size={22} color={DARK} />
-        </TouchableOpacity>
-        <View style={styles.headerCenter}>
-          <Text style={styles.headerTitle}>Request Details</Text>
-          <Text style={styles.headerSubtitle}>Self Drive</Text>
+      <StatusBar barStyle="light-content" backgroundColor={C.g900} />
+
+      {/* Gradient Header */}
+      <LinearGradient colors={[C.g900, C.g800, C.g700]} style={styles.gradientHeader}>
+        <View style={styles.decorCircle1} />
+        <View style={styles.decorCircle2} />
+        <View style={styles.headerRow}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+            <Icon name="arrow-left" size={20} color="#fff" />
+          </TouchableOpacity>
+          <View style={styles.headerCenter}>
+            <Text style={styles.headerTitle}>Request Details</Text>
+            <Text style={styles.headerSubtitle}>Self Drive</Text>
+          </View>
+          {/* Right status badge */}
+          <View style={[styles.headerStatusBadge, { backgroundColor: cfg.bg }]}>
+            <Ionicons name={cfg.icon} size={12} color={cfg.text} />
+            <Text style={[styles.headerStatusText, { color: cfg.text }]}>{cfg.label}</Text>
+          </View>
         </View>
-        <View style={{ width: 40 }} />
-      </View>
+      </LinearGradient>
 
       <ScrollView
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[GREEN]} />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[C.g700]} tintColor={C.g700} />
         }
       >
-        {/* Status Banner */}
-        <View style={[styles.statusBanner, { backgroundColor: `${statusColor}15` }]}>
+        {/* Status/Quote Banner */}
+        <View style={[styles.statusBanner, { backgroundColor: cfg.bg, borderColor: cfg.text + '22' }]}>
           <View style={styles.statusContent}>
-            <Ionicons name={getStatusIcon(status)} size={24} color={statusColor} />
+            <View style={[styles.statusIconCircle, { backgroundColor: cfg.text + '18' }]}>
+              <Ionicons name={cfg.icon} size={22} color={cfg.text} />
+            </View>
             <View style={styles.statusTextWrap}>
-              <Text style={[styles.statusLabel, { color: statusColor }]}>{status}</Text>
+              <Text style={[styles.statusLabel, { color: cfg.text }]}>{cfg.label}</Text>
               <Text style={styles.requestNumberText}>Request #{requestNumber}</Text>
             </View>
           </View>
           {!request.hasQuoted && (status === 'PENDING' || status === 'QUOTES_RECEIVED') && (
             <TouchableOpacity style={styles.sendQuoteBtn} onPress={handleSendQuote}>
-              <Ionicons name="paper-plane" size={16} color="#fff" />
+              <Ionicons name="paper-plane" size={15} color="#fff" />
               <Text style={styles.sendQuoteBtnText}>Send Quote</Text>
             </TouchableOpacity>
           )}
           {request.hasQuoted && (
             <View style={styles.quotedBadge}>
-              <Ionicons name="checkmark-circle" size={14} color="#10B981" />
-              <Text style={styles.quotedBadgeText}>Quoted</Text>
+              <Ionicons name="checkmark-circle" size={14} color={C.green} />
+              <Text style={styles.quotedBadgeText}>Quoted ✓</Text>
             </View>
           )}
         </View>
 
+        {/* Quoted Banner */}
         {request.hasQuoted && (
           <View style={styles.quotedBanner}>
-            <Ionicons name="checkmark-circle" size={22} color="#10B981" />
+            <View style={styles.quotedBannerLeft}>
+              <Ionicons name="checkmark-circle" size={22} color={C.green} />
+            </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.quotedBannerTitle}>You've already sent a quote</Text>
               {request.vendorQuote?.grandTotal ? (
-                <Text style={styles.quotedBannerAmount}>
-                  ₹{Number(request.vendorQuote.grandTotal).toLocaleString('en-IN')}
-                  {request.vendorQuote?.status ? `  •  ${request.vendorQuote.status}` : ''}
-                </Text>
+                <View style={styles.quotedBannerRow}>
+                  <Text style={styles.quotedBannerAmount}>
+                    ₹{Number(request.vendorQuote.grandTotal).toLocaleString('en-IN')}
+                  </Text>
+                  {request.vendorQuote?.status ? (
+                    <View style={[styles.quotedStatusPill, { backgroundColor: cfg.bg }]}>
+                      <Text style={[styles.quotedStatusPillText, { color: cfg.text }]}>
+                        {request.vendorQuote.status}
+                      </Text>
+                    </View>
+                  ) : null}
+                </View>
               ) : null}
             </View>
           </View>
         )}
 
         <View style={styles.content}>
+
           {/* Customer Information */}
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <Ionicons name="person-circle-outline" size={20} color="#64748B" />
+              <View style={styles.sectionIconBox}>
+                <Ionicons name="person-circle-outline" size={17} color={C.g700} />
+              </View>
               <Text style={styles.sectionTitle}>Customer Information</Text>
             </View>
             <View style={styles.card}>
               <View style={styles.infoRow}>
-                <Ionicons name="person" size={18} color="#64748B" />
+                <View style={[styles.infoIconBox, { backgroundColor: C.blueL }]}>
+                  <Ionicons name="person" size={16} color={C.blue} />
+                </View>
                 <View style={styles.infoContent}>
                   <Text style={styles.infoLabel}>Name</Text>
                   <Text style={styles.infoValue}>{customerName}</Text>
@@ -285,7 +341,9 @@ export default function SelfDriveQuoteRequestDetailScreen({ route, navigation })
               </View>
               {customerEmail && (
                 <View style={styles.infoRow}>
-                  <Ionicons name="mail" size={18} color="#64748B" />
+                  <View style={[styles.infoIconBox, { backgroundColor: C.purpleL }]}>
+                    <Ionicons name="mail" size={16} color={C.purple} />
+                  </View>
                   <View style={styles.infoContent}>
                     <Text style={styles.infoLabel}>Email</Text>
                     <Text style={styles.infoValue}>{customerEmail}</Text>
@@ -295,16 +353,20 @@ export default function SelfDriveQuoteRequestDetailScreen({ route, navigation })
             </View>
           </View>
 
-          {/* Vehicle Information */}
+          {/* Vehicle Preference */}
           {(vehicleModelName || vehicleBrand || vehicleTypeDisplay || transmission || fuelType) && (
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
-                <MaterialCommunityIcons name="car" size={20} color="#64748B" />
+                <View style={styles.sectionIconBox}>
+                  <MaterialCommunityIcons name="car" size={17} color={C.g700} />
+                </View>
                 <Text style={styles.sectionTitle}>Vehicle Preference</Text>
               </View>
               <View style={styles.card}>
                 <View style={styles.vehicleInfo}>
-                  <MaterialCommunityIcons name="car" size={32} color={GREEN} />
+                  <LinearGradient colors={[C.g50, C.g100]} style={styles.vehicleIconBox}>
+                    <MaterialCommunityIcons name="car" size={28} color={C.g700} />
+                  </LinearGradient>
                   <View style={{ flex: 1 }}>
                     {vehicleModelName ? (
                       <>
@@ -336,7 +398,9 @@ export default function SelfDriveQuoteRequestDetailScreen({ route, navigation })
                   <View style={styles.vehicleSpecsRow}>
                     {transmissionName && (
                       <View style={styles.specItem}>
-                        <MaterialCommunityIcons name="car-shift-pattern" size={18} color="#64748B" />
+                        <View style={[styles.specIconBox, { backgroundColor: C.g50 }]}>
+                          <MaterialCommunityIcons name="car-shift-pattern" size={15} color={C.g700} />
+                        </View>
                         <View style={styles.specContent}>
                           <Text style={styles.specLabel}>Transmission</Text>
                           <Text style={styles.specValue}>{transmissionName}</Text>
@@ -345,7 +409,9 @@ export default function SelfDriveQuoteRequestDetailScreen({ route, navigation })
                     )}
                     {fuelTypeName && (
                       <View style={styles.specItem}>
-                        <MaterialCommunityIcons name="gas-station" size={18} color="#64748B" />
+                        <View style={[styles.specIconBox, { backgroundColor: C.g50 }]}>
+                          <MaterialCommunityIcons name="gas-station" size={15} color={C.g700} />
+                        </View>
                         <View style={styles.specContent}>
                           <Text style={styles.specLabel}>Fuel Type</Text>
                           <Text style={styles.specValue}>{fuelTypeName}</Text>
@@ -358,15 +424,19 @@ export default function SelfDriveQuoteRequestDetailScreen({ route, navigation })
             </View>
           )}
 
-          {/* Booking Details */}
+          {/* Rental Details */}
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <Ionicons name="calendar-outline" size={20} color="#64748B" />
+              <View style={styles.sectionIconBox}>
+                <Ionicons name="calendar-outline" size={17} color={C.g700} />
+              </View>
               <Text style={styles.sectionTitle}>Rental Details</Text>
             </View>
             <View style={styles.card}>
               <View style={styles.infoRow}>
-                <Ionicons name="location" size={18} color={GREEN} />
+                <View style={[styles.infoIconBox, { backgroundColor: C.greenL }]}>
+                  <Ionicons name="location" size={16} color={C.green} />
+                </View>
                 <View style={styles.infoContent}>
                   <Text style={styles.infoLabel}>Pickup Location</Text>
                   <Text style={styles.infoValue}>{pickupLocation}</Text>
@@ -374,7 +444,9 @@ export default function SelfDriveQuoteRequestDetailScreen({ route, navigation })
               </View>
               {destination && (
                 <View style={styles.infoRow}>
-                  <Ionicons name="location" size={18} color="#EF4444" />
+                  <View style={[styles.infoIconBox, { backgroundColor: C.redL }]}>
+                    <Ionicons name="location" size={16} color={C.red} />
+                  </View>
                   <View style={styles.infoContent}>
                     <Text style={styles.infoLabel}>Destination</Text>
                     <Text style={styles.infoValue}>{destination}</Text>
@@ -383,14 +455,18 @@ export default function SelfDriveQuoteRequestDetailScreen({ route, navigation })
               )}
               <View style={styles.dateTimeRow}>
                 <View style={styles.dateTimeItem}>
-                  <Ionicons name="calendar" size={16} color="#64748B" />
+                  <View style={[styles.dateTimeIconBox, { backgroundColor: C.g50 }]}>
+                    <Ionicons name="calendar" size={14} color={C.g700} />
+                  </View>
                   <View style={styles.dateTimeContent}>
                     <Text style={styles.infoLabel}>Pickup Date</Text>
                     <Text style={styles.dateTimeValue}>{formatDate(pickupDate)}</Text>
                   </View>
                 </View>
                 <View style={styles.dateTimeItem}>
-                  <Ionicons name="time" size={16} color="#64748B" />
+                  <View style={[styles.dateTimeIconBox, { backgroundColor: C.g50 }]}>
+                    <Ionicons name="time" size={14} color={C.g700} />
+                  </View>
                   <View style={styles.dateTimeContent}>
                     <Text style={styles.infoLabel}>Time</Text>
                     <Text style={styles.dateTimeValue}>{formatTime(pickupTime)}</Text>
@@ -400,14 +476,18 @@ export default function SelfDriveQuoteRequestDetailScreen({ route, navigation })
               {returnDate && (
                 <View style={styles.dateTimeRow}>
                   <View style={styles.dateTimeItem}>
-                    <Ionicons name="calendar" size={16} color="#64748B" />
+                    <View style={[styles.dateTimeIconBox, { backgroundColor: C.g50 }]}>
+                      <Ionicons name="calendar" size={14} color={C.g700} />
+                    </View>
                     <View style={styles.dateTimeContent}>
                       <Text style={styles.infoLabel}>Return Date</Text>
                       <Text style={styles.dateTimeValue}>{formatDate(returnDate)}</Text>
                     </View>
                   </View>
                   <View style={styles.dateTimeItem}>
-                    <Ionicons name="time" size={16} color="#64748B" />
+                    <View style={[styles.dateTimeIconBox, { backgroundColor: C.g50 }]}>
+                      <Ionicons name="time" size={14} color={C.g700} />
+                    </View>
                     <View style={styles.dateTimeContent}>
                       <Text style={styles.infoLabel}>Time</Text>
                       <Text style={styles.dateTimeValue}>{formatTime(returnTime)}</Text>
@@ -417,7 +497,9 @@ export default function SelfDriveQuoteRequestDetailScreen({ route, navigation })
               )}
               {passengers && (
                 <View style={styles.infoRow}>
-                  <Ionicons name="people" size={18} color="#64748B" />
+                  <View style={[styles.infoIconBox, { backgroundColor: C.g50 }]}>
+                    <Ionicons name="people" size={16} color={C.g700} />
+                  </View>
                   <View style={styles.infoContent}>
                     <Text style={styles.infoLabel}>Total Passengers</Text>
                     <Text style={styles.infoValue}>{passengers}</Text>
@@ -426,10 +508,12 @@ export default function SelfDriveQuoteRequestDetailScreen({ route, navigation })
               )}
               {doorstepDelivery !== null && doorstepDelivery !== undefined && (
                 <View style={styles.infoRow}>
-                  <MaterialCommunityIcons name="truck-delivery" size={18} color="#64748B" />
+                  <View style={[styles.infoIconBox, { backgroundColor: isDoorstepDelivery ? C.greenL : C.redL }]}>
+                    <MaterialCommunityIcons name="truck-delivery" size={16} color={isDoorstepDelivery ? C.green : C.red} />
+                  </View>
                   <View style={styles.infoContent}>
                     <Text style={styles.infoLabel}>Doorstep Delivery</Text>
-                    <Text style={[styles.infoValue, { color: isDoorstepDelivery ? GREEN : '#EF4444' }]}>
+                    <Text style={[styles.infoValue, { color: isDoorstepDelivery ? C.green : C.red }]}>
                       {isDoorstepDelivery ? 'Yes' : 'No'}
                     </Text>
                   </View>
@@ -438,15 +522,20 @@ export default function SelfDriveQuoteRequestDetailScreen({ route, navigation })
             </View>
           </View>
 
-          {/* Additional Notes */}
+          {/* Special Requirements */}
           {notes && (
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
-                <Ionicons name="chatbox-outline" size={20} color="#64748B" />
+                <View style={styles.sectionIconBox}>
+                  <Ionicons name="chatbox-outline" size={17} color={C.g700} />
+                </View>
                 <Text style={styles.sectionTitle}>Special Requirements</Text>
               </View>
-              <View style={styles.card}>
-                <Text style={styles.notesText}>{notes}</Text>
+              <View style={[styles.card, { backgroundColor: C.amberL, borderColor: C.amber + '30' }]}>
+                <View style={{ flexDirection: 'row', gap: 10, alignItems: 'flex-start' }}>
+                  <Ionicons name="information-circle-outline" size={18} color={C.amber} style={{ marginTop: 1 }} />
+                  <Text style={styles.notesText}>{notes}</Text>
+                </View>
               </View>
             </View>
           )}
@@ -454,19 +543,25 @@ export default function SelfDriveQuoteRequestDetailScreen({ route, navigation })
           {/* Request Timeline */}
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <Ionicons name="time-outline" size={20} color="#64748B" />
+              <View style={styles.sectionIconBox}>
+                <Ionicons name="time-outline" size={17} color={C.g700} />
+              </View>
               <Text style={styles.sectionTitle}>Request Timeline</Text>
             </View>
             <View style={styles.card}>
               <View style={styles.timelineRow}>
-                <Ionicons name="add-circle" size={16} color={GREEN} />
+                <View style={[styles.timelineIconBox, { backgroundColor: C.g50 }]}>
+                  <Ionicons name="add-circle" size={14} color={C.g700} />
+                </View>
                 <Text style={styles.timelineText}>
                   Received on {formatDate(request.createdAt || request.created_at)}
                 </Text>
               </View>
               {request.updatedAt && request.updatedAt !== request.createdAt && (
                 <View style={styles.timelineRow}>
-                  <Ionicons name="refresh" size={16} color="#64748B" />
+                  <View style={[styles.timelineIconBox, { backgroundColor: '#F8FAFC' }]}>
+                    <Ionicons name="refresh" size={14} color={C.muted} />
+                  </View>
                   <Text style={styles.timelineText}>
                     Updated on {formatDate(request.updatedAt)}
                   </Text>
@@ -477,7 +572,7 @@ export default function SelfDriveQuoteRequestDetailScreen({ route, navigation })
         </View>
       </ScrollView>
 
-      {/* Bottom Action Button */}
+      {/* Bottom Action Bars */}
       {request.hasQuoted && (status === 'ACCEPTED' || request.vendorQuote?.status === 'ACCEPTED') && (
         <View style={styles.bottomBar}>
           <TouchableOpacity
@@ -491,7 +586,7 @@ export default function SelfDriveQuoteRequestDetailScreen({ route, navigation })
             }}
           >
             <Ionicons name="document-text-outline" size={20} color="#fff" />
-            <Text style={styles.sendQuoteButtonText}>View Booking Details</Text>
+            <Text style={styles.bottomBtnText}>View Booking Details</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -499,13 +594,13 @@ export default function SelfDriveQuoteRequestDetailScreen({ route, navigation })
         <View style={styles.bottomBar}>
           <TouchableOpacity style={styles.sendQuoteButton} onPress={handleSendQuote}>
             <Ionicons name="paper-plane" size={20} color="#fff" />
-            <Text style={styles.sendQuoteButtonText}>Send Quote to Customer</Text>
+            <Text style={styles.bottomBtnText}>Send Quote to Customer</Text>
           </TouchableOpacity>
         </View>
       )}
       {request.hasQuoted && status !== 'ACCEPTED' && request.vendorQuote?.status !== 'ACCEPTED' && (
         <View style={styles.quotedBottomBar}>
-          <Ionicons name="checkmark-circle" size={22} color="#10B981" />
+          <Ionicons name="checkmark-circle" size={22} color={C.green} />
           <View style={{ flex: 1, marginLeft: 10 }}>
             <Text style={styles.quotedBottomTitle}>Quote Already Sent</Text>
             {request.vendorQuote?.grandTotal ? (
@@ -522,106 +617,235 @@ export default function SelfDriveQuoteRequestDetailScreen({ route, navigation })
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: BG },
+  safe: { flex: 1, backgroundColor: C.bg },
 
-  header: {
+  /* ── Gradient Header ── */
+  gradientHeader: {
+    paddingHorizontal: 16,
+    paddingTop: 10,
+    paddingBottom: 16,
+    overflow: 'hidden',
+  },
+  decorCircle1: {
+    position: 'absolute',
+    width: 160,
+    height: 160,
+    borderRadius: 80,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    top: -60,
+    right: -40,
+  },
+  decorCircle2: {
+    position: 'absolute',
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    bottom: -30,
+    left: 20,
+  },
+  headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
   },
   backBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: BG,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: 'rgba(255,255,255,0.15)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   headerCenter: { alignItems: 'center', flex: 1 },
-  headerTitle: { fontSize: 18, fontWeight: '700', color: DARK },
-  headerSubtitle: { fontSize: 12, color: '#64748B', marginTop: 2 },
-
-  skeletonBanner: { height: 80, backgroundColor: '#E2E8F0', borderRadius: 16, marginHorizontal: 16, marginTop: 16 },
-  skeletonCard: { backgroundColor: '#fff', borderRadius: 16, padding: 16, borderWidth: 1, borderColor: '#E2E8F0', gap: 12, marginBottom: 20 },
-  skeletonLine: { height: 12, backgroundColor: '#E2E8F0', borderRadius: 6, width: '100%' },
-  quotedBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#DCFCE7', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 10 },
-  quotedBadgeText: { fontSize: 12, fontWeight: '600', color: '#166534' },
-  quotedBanner: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F0FDF4', marginHorizontal: 16, marginTop: 10, borderRadius: 14, padding: 14, gap: 10, borderWidth: 1, borderColor: '#BBF7D0' },
-  quotedBannerTitle: { fontSize: 13, fontWeight: '700', color: '#166534' },
-  quotedBannerAmount: { fontSize: 12, color: '#166534', marginTop: 2 },
-  quotedBottomBar: { flexDirection: 'row', alignItems: 'center', padding: 16, backgroundColor: '#F0FDF4', borderTopWidth: 1, borderTopColor: '#BBF7D0' },
-  quotedBottomTitle: { fontSize: 14, fontWeight: '700', color: '#166534' },
-  quotedBottomSub: { fontSize: 12, color: '#166534', marginTop: 2 },
-
-  loaderWrap: {
-    flex: 1,
-    justifyContent: 'center',
+  headerTitle: { fontSize: 18, fontWeight: '700', color: '#fff', letterSpacing: 0.2 },
+  headerSubtitle: { fontSize: 12, color: 'rgba(255,255,255,0.75)', marginTop: 2 },
+  headerStatusBadge: {
+    flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 4,
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+    borderRadius: 10,
   },
-  loaderText: { fontSize: 14, color: '#64748B', marginTop: 8 },
+  headerStatusText: { fontSize: 11, fontWeight: '700' },
+
+  /* ── Skeleton ── */
+  skeletonBanner: {
+    height: 76,
+    backgroundColor: '#E2E8F0',
+    borderRadius: 16,
+    marginBottom: 16,
+  },
+  skeletonCard: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: C.border,
+    gap: 12,
+    marginBottom: 16,
+  },
+  skeletonLine: {
+    height: 12,
+    backgroundColor: '#E2E8F0',
+    borderRadius: 6,
+    width: '100%',
+  },
 
   scrollView: { flex: 1 },
 
+  /* ── Status Banner ── */
   statusBanner: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 20,
     marginHorizontal: 16,
     marginTop: 16,
+    marginBottom: 4,
     borderRadius: 16,
+    borderWidth: 1,
+    padding: 14,
   },
   statusContent: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
+  statusIconCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   statusTextWrap: { flex: 1 },
-  statusLabel: { fontSize: 16, fontWeight: '700' },
-  requestNumberText: { fontSize: 12, color: '#64748B', marginTop: 2 },
+  statusLabel: { fontSize: 15, fontWeight: '700' },
+  requestNumberText: { fontSize: 12, color: C.muted, marginTop: 2 },
   sendQuoteBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: GREEN,
-    paddingHorizontal: 16,
+    backgroundColor: C.g700,
+    paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 12,
+    elevation: 2,
+    shadowColor: C.g700,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
   },
   sendQuoteBtnText: { fontSize: 13, fontWeight: '600', color: '#fff' },
+  quotedBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: C.greenL,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 10,
+  },
+  quotedBadgeText: { fontSize: 12, fontWeight: '600', color: C.greenD },
 
-  content: { padding: 16, paddingTop: 8, paddingBottom: 100 },
+  /* ── Quoted Banner ── */
+  quotedBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    marginHorizontal: 16,
+    marginTop: 10,
+    borderRadius: 14,
+    padding: 14,
+    gap: 12,
+    borderLeftWidth: 4,
+    borderLeftColor: C.g700,
+    borderWidth: 1,
+    borderColor: C.border,
+    elevation: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+  },
+  quotedBannerLeft: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: C.greenL,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  quotedBannerTitle: { fontSize: 13, fontWeight: '700', color: C.text },
+  quotedBannerRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 4 },
+  quotedBannerAmount: { fontSize: 15, fontWeight: '800', color: C.g800 },
+  quotedStatusPill: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 8,
+  },
+  quotedStatusPillText: { fontSize: 11, fontWeight: '700' },
 
+  /* ── Content ── */
+  content: { padding: 16, paddingTop: 12, paddingBottom: 110 },
+
+  /* ── Sections ── */
   section: { marginBottom: 20 },
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    marginBottom: 10
+    marginBottom: 10,
   },
-  sectionTitle: { fontSize: 16, fontWeight: '700', color: DARK },
+  sectionIconBox: {
+    width: 30,
+    height: 30,
+    borderRadius: 8,
+    backgroundColor: C.g50,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: C.g100,
+  },
+  sectionTitle: { fontSize: 15, fontWeight: '700', color: C.text },
 
+  /* ── Card ── */
   card: {
-    backgroundColor: '#fff',
+    backgroundColor: C.card,
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    gap: 12,
+    borderColor: C.border,
+    gap: 14,
+    elevation: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 3,
   },
 
-  infoRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 12
+  /* ── Info Rows ── */
+  infoRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
+  infoIconBox: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    flexShrink: 0,
   },
-  infoContent: { flex: 1 },
-  infoLabel: { fontSize: 12, color: '#64748B', marginBottom: 2 },
-  infoValue: { fontSize: 14, color: DARK, fontWeight: '600' },
+  infoContent: { flex: 1, paddingTop: 2 },
+  infoLabel: { fontSize: 11, color: C.muted, marginBottom: 2, textTransform: 'uppercase', letterSpacing: 0.4 },
+  infoValue: { fontSize: 14, color: C.text, fontWeight: '600' },
 
-  vehicleInfo: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
+  /* ── Vehicle ── */
+  vehicleInfo: { flexDirection: 'row', alignItems: 'flex-start', gap: 14 },
+  vehicleIconBox: {
+    width: 54,
+    height: 54,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: C.g100,
+    flexShrink: 0,
+  },
   vehicleHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -629,20 +853,22 @@ const styles = StyleSheet.create({
     gap: 8,
     marginBottom: 4,
   },
-  vehicleName: { fontSize: 16, fontWeight: '700', color: DARK, flex: 1 },
-  vehicleBrand: { fontSize: 13, color: '#64748B', marginTop: 0 },
+  vehicleName: { fontSize: 16, fontWeight: '700', color: C.text, flex: 1 },
+  vehicleBrand: { fontSize: 13, color: C.sub },
   categoryBadge: {
-    backgroundColor: '#FEF3C7',
+    backgroundColor: C.g50,
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 8,
+    borderWidth: 1,
+    borderColor: C.g100,
   },
-  categoryText: { fontSize: 11, fontWeight: '600', color: '#92400E' },
+  categoryText: { fontSize: 11, fontWeight: '700', color: C.g700 },
 
   vehicleSpecsRow: {
     flexDirection: 'row',
     gap: 12,
-    paddingTop: 8,
+    paddingTop: 4,
   },
   specItem: {
     flex: 1,
@@ -650,33 +876,52 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     gap: 8,
   },
-  specContent: { flex: 1 },
-  specLabel: { fontSize: 11, color: '#64748B', marginBottom: 2 },
-  specValue: { fontSize: 13, fontWeight: '600', color: DARK },
-
-  dateTimeRow: {
-    flexDirection: 'row',
-    gap: 12,
-    paddingTop: 8,
+  specIconBox: {
+    width: 30,
+    height: 30,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+    flexShrink: 0,
   },
+  specContent: { flex: 1, paddingTop: 1 },
+  specLabel: { fontSize: 11, color: C.muted, marginBottom: 2, textTransform: 'uppercase', letterSpacing: 0.3 },
+  specValue: { fontSize: 13, fontWeight: '600', color: C.text },
+
+  /* ── Date/Time Grid ── */
+  dateTimeRow: { flexDirection: 'row', gap: 12 },
   dateTimeItem: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 8,
   },
-  dateTimeContent: { flex: 1 },
-  dateTimeValue: { fontSize: 13, fontWeight: '600', color: DARK, marginTop: 2 },
-
-  notesText: { fontSize: 14, color: '#475569', lineHeight: 20 },
-
-  timelineRow: {
-    flexDirection: 'row',
+  dateTimeIconBox: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    justifyContent: 'center',
     alignItems: 'center',
-    gap: 8
+    flexShrink: 0,
   },
-  timelineText: { fontSize: 13, color: '#64748B' },
+  dateTimeContent: { flex: 1, paddingTop: 1 },
+  dateTimeValue: { fontSize: 13, fontWeight: '600', color: C.text, marginTop: 2 },
 
+  /* ── Notes ── */
+  notesText: { fontSize: 14, color: C.sub, lineHeight: 22, flex: 1 },
+
+  /* ── Timeline ── */
+  timelineRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  timelineIconBox: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  timelineText: { fontSize: 13, color: C.sub },
+
+  /* ── Bottom Bars ── */
   bottomBar: {
     position: 'absolute',
     bottom: 0,
@@ -686,43 +931,76 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
+    borderTopColor: C.border,
+    elevation: 12,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: -2 },
+    shadowOffset: { width: 0, height: -3 },
     shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 10,
+    shadowRadius: 10,
   },
   sendQuoteButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: GREEN,
+    backgroundColor: C.g700,
     paddingVertical: 14,
-    borderRadius: 12,
+    borderRadius: 14,
+    elevation: 3,
+    shadowColor: C.g700,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
   },
   viewBookingButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: '#2563EB',
+    backgroundColor: C.green,
     paddingVertical: 14,
-    borderRadius: 12,
+    borderRadius: 14,
+    elevation: 3,
+    shadowColor: C.green,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
   },
-  sendQuoteButtonText: { fontSize: 16, fontWeight: '700', color: '#fff' },
+  bottomBtnText: { fontSize: 16, fontWeight: '700', color: '#fff' },
 
+  quotedBottomBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    backgroundColor: C.g50,
+    borderTopWidth: 1,
+    borderTopColor: C.g100,
+  },
+  quotedBottomTitle: { fontSize: 14, fontWeight: '700', color: C.g800 },
+  quotedBottomSub: { fontSize: 12, color: C.g700, marginTop: 2 },
+
+  /* ── Empty State ── */
   emptyState: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     paddingVertical: 80,
   },
-  emptyTitle: { fontSize: 18, fontWeight: '600', color: DARK, marginTop: 16 },
+  emptyIconWrap: {
+    width: 90,
+    height: 90,
+    borderRadius: 45,
+    backgroundColor: C.g50,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: C.g100,
+  },
+  emptyTitle: { fontSize: 18, fontWeight: '700', color: C.text, marginTop: 20 },
   emptySubtitle: {
     fontSize: 14,
-    color: '#64748B',
+    color: C.sub,
     marginTop: 8,
     textAlign: 'center',
     paddingHorizontal: 32,

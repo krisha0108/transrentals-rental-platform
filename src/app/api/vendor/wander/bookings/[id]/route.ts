@@ -53,7 +53,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
     if (!auth.authenticated || !auth.vendorId)
       return NextResponse.json({ error: auth.error }, { status: 401 });
 
-    const { action } = await request.json();
+    const { action, invoiceNotes } = await request.json();
 
     const booking = await (prisma as any).wander_bookings.findFirst({
       where: { id: params.id, vendorId: auth.vendorId },
@@ -139,6 +139,52 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
       }
 
       return NextResponse.json({ success: true, status: updated.status });
+    }
+
+    if (action === 'send_invoice') {
+      if (!booking.isB2BBooking) {
+        return NextResponse.json({ error: 'Invoice can only be sent for B2B company bookings' }, { status: 400 });
+      }
+      if (booking.status !== 'COMPLETED') {
+        return NextResponse.json({ error: 'Invoice can only be sent after trip is completed' }, { status: 400 });
+      }
+      if (booking.invoiceSent) {
+        return NextResponse.json({ error: 'Invoice already sent for this booking' }, { status: 400 });
+      }
+      await (prisma as any).wander_bookings.update({
+        where: { id: params.id },
+        data: {
+          invoiceSent: true,
+          invoiceSentAt: new Date(),
+          invoiceNotes: invoiceNotes?.trim() || null,
+        },
+      });
+
+      // Notify customer — invoice sent
+      try {
+        const tourTitle = booking.quoteRequest?.listing?.title || 'your tour';
+        const notifTitle = '🧾 Invoice Sent!';
+        const notifBody = `Your invoice of ₹${Number(booking.amount).toLocaleString('en-IN')} for "${tourTitle}" has been sent. Please process the payment.`;
+        await prisma.notifications.create({
+          data: {
+            customerId: booking.customerId,
+            title: notifTitle,
+            body: notifBody,
+            type: 'booking',
+            serviceType: 'wander',
+            bookingId: booking.id,
+          },
+        });
+        await sendNotificationToCustomer(
+          booking.customerId,
+          { title: notifTitle, body: notifBody },
+          { type: 'invoice_sent', screen: 'WanderQuoteDetail', bookingId: booking.id }
+        );
+      } catch (notifErr) {
+        console.error('[Wander Invoice Notification]', notifErr);
+      }
+
+      return NextResponse.json({ success: true, message: 'Invoice sent successfully' });
     }
 
     return NextResponse.json({ error: 'Invalid action' }, { status: 400 });

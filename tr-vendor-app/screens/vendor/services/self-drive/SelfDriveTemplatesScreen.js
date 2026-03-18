@@ -1,696 +1,587 @@
-import React, { useState, useEffect, useCallback } from 'react';
+/**
+ * SelfDriveTemplatesScreen.js - Self-drive quote templates list
+ */
+
+import React, { useState, useEffect } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  ActivityIndicator,
-  Alert,
-  RefreshControl,
-  TextInput,
+  View, Text, StyleSheet, TouchableOpacity, ScrollView,
+  RefreshControl, StatusBar, Modal, FlatList, Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/Feather';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { getTemplates, deleteTemplate, updateTemplate } from '../../../api/client';
-import { showConfirm, showError, showInfo, showSuccess } from '../../../../services/alertService';
+import { showConfirm, showError, showSuccess } from '../../../../services/alertService';
 
-const SERVICE_COLOR = '#3B82F6'; // Blue for self-drive
-const GREEN = '#09B368';
-const DARK = '#0F172A';
-const BG = '#F5F5F7';
+const { width: W } = Dimensions.get('window');
 
-const SELF_DRIVE_CATEGORIES = [
-  { id: 'all', name: 'All Templates', icon: 'view-grid' },
-  { id: 'hatchback', name: 'Hatchback', icon: 'car-hatchback' },
-  { id: 'sedan', name: 'Sedan', icon: 'car-sedan' },
-  { id: 'suv', name: 'SUV', icon: 'car-estate' },
-  { id: 'muv', name: 'MUV', icon: 'van-utility' },
-  { id: 'compact-suv', name: 'Compact SUV', icon: 'car-sports' },
-  { id: 'luxury', name: 'Luxury', icon: 'car-sports' },
+const C = {
+  g900: '#022C22', g800: '#065F46', g700: '#047857', g600: '#047857',
+  g500: '#059669', g400: '#34D399', g100: '#D1FAE5', g50: '#ECFDF5',
+  bg: '#F0F4F8', card: '#FFFFFF', border: '#E2E8F0', text: '#0F172A',
+  sub: '#475569', muted: '#94A3B8',
+  amber: '#D97706', amberL: '#FFFBEB',
+  red: '#DC2626', redL: '#FEF2F2',
+  green: '#059669', greenL: '#ECFDF5',
+  orange: '#EA580C', orangeL: '#FFF7ED',
+  indigo: '#4F46E5', indigoL: '#EEF2FF',
+  teal: '#0D9488', tealL: '#F0FDFA',
+};
+
+const CATEGORIES = [
+  { id: 'all',         name: 'All'         },
+  { id: 'hatchback',   name: 'Hatchback'   },
+  { id: 'sedan',       name: 'Sedan'       },
+  { id: 'suv',         name: 'SUV'         },
+  { id: 'muv',         name: 'MUV'         },
+  { id: 'compact-suv', name: 'Compact SUV' },
+  { id: 'luxury',      name: 'Luxury'      },
 ];
 
-const SelfDriveTemplatesScreen = ({ navigation }) => {
+const CATEGORY_ICONS = {
+  hatchback:   'car-hatchback',
+  sedan:       'car-sedan',
+  suv:         'car-estate',
+  muv:         'van-utility',
+  'compact-suv': 'car-sports',
+  luxury:      'car-sports',
+  all:         'view-grid',
+};
+
+export default function SelfDriveTemplatesScreen({ navigation }) {
   const [templates, setTemplates] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [categoryFilter, setCategoryFilter] = useState('all');
-  const [expandedTemplateId, setExpandedTemplateId] = useState(null);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [previewTemplate, setPreviewTemplate] = useState(null);
 
-  useEffect(() => {
-    fetchTemplates();
-  }, [categoryFilter]);
+  useEffect(() => { fetchTemplates(); }, [categoryFilter]);
 
   const fetchTemplates = async () => {
     try {
       setIsLoading(true);
       const params = categoryFilter !== 'all' ? { category: categoryFilter } : {};
       const data = await getTemplates('self-drive', params);
-
-      console.log('[SelfDrive Templates] API Response:', data);
-      console.log('[SelfDrive Templates] Is Array?:', Array.isArray(data));
-
-      // Ensure we always set an array
-      if (Array.isArray(data)) {
-        setTemplates(data);
-      } else if (data && Array.isArray(data.templates)) {
-        setTemplates(data.templates);
-      } else {
-        console.log('[SelfDrive Templates] Setting empty array, data was:', typeof data, data);
-        setTemplates([]);
-      }
-    } catch (error) {
-      console.error('Error fetching self-drive templates:', error);
-      setTemplates([]); // Set empty array on error
-      showError('Failed to load templates');
-    } finally {
-      setIsLoading(false);
-    }
+      if (Array.isArray(data)) setTemplates(data);
+      else if (data?.templates) setTemplates(data.templates);
+      else setTemplates([]);
+    } catch { showError('Failed to load templates'); setTemplates([]); }
+    finally { setIsLoading(false); }
   };
 
-  const onRefresh = useCallback(async () => {
-    setRefreshing(true);
-    await fetchTemplates();
-    setRefreshing(false);
-  }, [categoryFilter]);
+  const onRefresh = async () => { setRefreshing(true); await fetchTemplates(); setRefreshing(false); };
 
-  const handleDelete = (template) => {
-    showConfirm('Delete Template', `Are you sure you want to delete "${template.name}"?`, async () => {
-            try {
-              await deleteTemplate('self-drive', template.id);
-              showSuccess('Template deleted successfully!');
-              fetchTemplates();
-            } catch (error) {
-              console.error('Error deleting template:', error);
-              showError('Failed to delete template');
-            }
-          }, { confirmText: 'Delete', destructive: true });
+  const handleDelete = (id, name) => {
+    showConfirm('Delete Template', `Delete "${name}"?`, async () => {
+      try {
+        if (previewTemplate?.id === id) setPreviewTemplate(null);
+        await deleteTemplate('self-drive', id);
+        showSuccess('Template deleted');
+        fetchTemplates();
+      } catch { showError('Failed to delete'); }
+    }, { confirmText: 'Delete', destructive: true });
   };
 
-  const handleToggleActive = async (template) => {
+  const handleToggle = async (template) => {
     try {
-      await updateTemplate('self-drive', template.id, {
-        isActive: !template.isActive,
-      });
-      showSuccess(`Template ${!template.isActive ? 'activated' : 'deactivated'} successfully!`);
+      await updateTemplate('self-drive', template.id, { isActive: !template.isActive });
+      if (previewTemplate?.id === template.id)
+        setPreviewTemplate(p => ({ ...p, isActive: !p.isActive }));
       fetchTemplates();
-    } catch (error) {
-      console.error('Error toggling template status:', error);
-      showError('Failed to update template status');
-    }
+    } catch { showError('Failed to update template'); }
   };
 
-  const handleEdit = (template) => {
-    navigation.navigate('SelfDriveEditTemplate', { templateId: template.id });
-  };
+  const catLabel = (id) => CATEGORIES.find(c => c.id === id)?.name || id;
+  const catIcon  = (id) => CATEGORY_ICONS[id] || 'car';
 
-  const toggleExpand = (templateId) => {
-    setExpandedTemplateId(expandedTemplateId === templateId ? null : templateId);
-  };
-
-  const filteredTemplates = templates.filter((template) => {
-    if (searchQuery.trim() === '') return true;
-    const query = searchQuery.toLowerCase();
-    return (
-      template.name.toLowerCase().includes(query) ||
-      (template.description && template.description.toLowerCase().includes(query))
-    );
-  });
-
-  const getCategoryIcon = (category) => {
-    const cat = SELF_DRIVE_CATEGORIES.find((c) => c.id === category);
-    return cat ? cat.icon : 'car';
-  };
-
-  const getCategoryName = (category) => {
-    const cat = SELF_DRIVE_CATEGORIES.find((c) => c.id === category);
-    return cat ? cat.name : category;
-  };
-
-  const renderTemplate = (template) => {
-    const isExpanded = expandedTemplateId === template.id;
-
-    return (
-      <View key={template.id} style={styles.templateCard}>
-        {/* Header */}
-        <TouchableOpacity
-          onPress={() => toggleExpand(template.id)}
-          style={styles.templateHeader}
-          activeOpacity={0.7}
-        >
-          <View style={styles.templateHeaderLeft}>
-            <MaterialCommunityIcons
-              name={getCategoryIcon(template.category)}
-              size={24}
-              color={template.isActive ? SERVICE_COLOR : '#94A3B8'}
-            />
-            <View style={styles.templateInfo}>
-              <Text style={[styles.templateName, !template.isActive && styles.inactiveText]}>
-                {template.name}
-              </Text>
-              {template.description && (
-                <Text style={styles.templateDescription} numberOfLines={1}>
-                  {template.description}
-                </Text>
-              )}
-              <View style={styles.templateMeta}>
-                <View
-                  style={[
-                    styles.categoryBadge,
-                    { backgroundColor: template.isActive ? SERVICE_COLOR + '15' : '#F1F5F9' },
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.categoryBadgeText,
-                      { color: template.isActive ? SERVICE_COLOR : '#64748B' },
-                    ]}
-                  >
-                    {getCategoryName(template.category)}
-                  </Text>
-                </View>
-                {template.isDefault && (
-                  <View style={styles.defaultBadge}>
-                    <Icon name="star" size={12} color="#F59E0B" />
-                    <Text style={styles.defaultBadgeText}>Default</Text>
-                  </View>
-                )}
-              </View>
+  // ── Card ──────────────────────────────────────────────────────────────────
+  const TemplateCard = ({ t }) => (
+    <View style={s.card}>
+      {/* Top: icon + name + status */}
+      <TouchableOpacity style={s.cardMain} onPress={() => setPreviewTemplate(t)} activeOpacity={0.8}>
+        <View style={s.cardIconWrap}>
+          <LinearGradient colors={[C.g900, C.g700]} style={s.cardIconGrad}>
+            <MaterialCommunityIcons name={catIcon(t.category)} size={22} color="#fff" />
+          </LinearGradient>
+          {t.isDefault && (
+            <View style={s.cardStarBadge}>
+              <Icon name="star" size={9} color="#fff" />
             </View>
+          )}
+        </View>
+
+        <View style={s.cardInfo}>
+          <Text style={s.cardName} numberOfLines={1}>{t.name}</Text>
+          <View style={s.cardMetaRow}>
+            <View style={s.catTag}>
+              <Text style={s.catTagText}>{catLabel(t.category)}</Text>
+            </View>
+            {t.dailyRateHint ? (
+              <Text style={s.cardRate}>₹{t.dailyRateHint}/day</Text>
+            ) : null}
           </View>
-          <Icon name={isExpanded ? 'chevron-up' : 'chevron-down'} size={20} color="#94A3B8" />
+        </View>
+
+        <View style={[s.activePill, t.isActive ? s.activePillOn : s.activePillOff]}>
+          <View style={[s.activeDot, { backgroundColor: t.isActive ? C.g500 : C.muted }]} />
+          <Text style={[s.activePillText, { color: t.isActive ? C.g700 : C.muted }]}>
+            {t.isActive ? 'Active' : 'Off'}
+          </Text>
+        </View>
+
+        <Icon name="chevron-right" size={16} color={C.muted} style={{ marginLeft: 4 }} />
+      </TouchableOpacity>
+
+      {/* Stats bar */}
+      <View style={s.statsBar}>
+        <View style={s.statItem}>
+          <Icon name="check-circle" size={12} color={C.green} />
+          <Text style={s.statText}>{t.inclusions?.length || 0} inclusions</Text>
+        </View>
+        {t.exclusions?.length > 0 && (
+          <View style={s.statItem}>
+            <Icon name="x-circle" size={12} color={C.red} />
+            <Text style={s.statText}>{t.exclusions.length} exclusions</Text>
+          </View>
+        )}
+        {t.kmLimitPerDay ? (
+          <View style={s.statItem}>
+            <MaterialCommunityIcons name="speedometer" size={12} color={C.muted} />
+            <Text style={s.statText}>{t.kmLimitPerDay} km/day</Text>
+          </View>
+        ) : (
+          <View style={s.statItem}>
+            <Icon name="bar-chart-2" size={12} color={C.muted} />
+            <Text style={s.statText}>Used {t.usageCount || 0}×</Text>
+          </View>
+        )}
+      </View>
+
+      {/* Action buttons */}
+      <View style={s.cardActions}>
+        <TouchableOpacity
+          style={[s.actionBtn, s.actionEdit]}
+          onPress={() => navigation.navigate('SelfDriveEditTemplate', { templateId: t.id })}
+        >
+          <Icon name="edit-2" size={14} color={C.indigo} />
+          <Text style={[s.actionBtnText, { color: C.indigo }]}>Edit</Text>
         </TouchableOpacity>
 
-        {/* Expanded Content */}
-        {isExpanded && (
-          <View style={styles.templateBody}>
-            {/* Rate Hints */}
-            {(template.dailyRateHint || template.kmLimitPerDay || template.extraKmRateHint) && (
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Rate Hints</Text>
-                {template.dailyRateHint && (
-                  <View style={styles.rateRow}>
-                    <Text style={styles.rateLabel}>Daily Rate:</Text>
-                    <Text style={styles.rateValue}>₹{template.dailyRateHint}</Text>
-                  </View>
-                )}
-                {template.kmLimitPerDay && (
-                  <View style={styles.rateRow}>
-                    <Text style={styles.rateLabel}>KM Limit/Day:</Text>
-                    <Text style={styles.rateValue}>{template.kmLimitPerDay} km</Text>
-                  </View>
-                )}
-                {template.extraKmRateHint && (
-                  <View style={styles.rateRow}>
-                    <Text style={styles.rateLabel}>Extra KM Rate:</Text>
-                    <Text style={styles.rateValue}>₹{template.extraKmRateHint}/km</Text>
-                  </View>
-                )}
-                {template.securityDepositHint && (
-                  <View style={styles.rateRow}>
-                    <Text style={styles.rateLabel}>Security Deposit:</Text>
-                    <Text style={styles.rateValue}>₹{template.securityDepositHint}</Text>
-                  </View>
-                )}
+        <TouchableOpacity
+          style={[s.actionBtn, t.isActive ? s.actionDeactivate : s.actionActivate]}
+          onPress={() => handleToggle(t)}
+        >
+          <Icon name={t.isActive ? 'x' : 'check'} size={14} color={t.isActive ? C.orange : C.green} />
+          <Text style={[s.actionBtnText, { color: t.isActive ? C.orange : C.green }]}>
+            {t.isActive ? 'Deactivate' : 'Activate'}
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[s.actionBtn, s.actionDelete]}
+          onPress={() => handleDelete(t.id, t.name)}
+        >
+          <Icon name="trash-2" size={14} color={C.red} />
+          <Text style={[s.actionBtnText, { color: C.red }]}>Delete</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+
+  // ── Preview Modal ─────────────────────────────────────────────────────────
+  const PreviewModal = () => {
+    const t = previewTemplate;
+    if (!t) return null;
+    return (
+      <Modal visible={!!t} animationType="slide" transparent={false} onRequestClose={() => setPreviewTemplate(null)}>
+        <SafeAreaView style={s.sheet} edges={['top']}>
+          <StatusBar barStyle="light-content" backgroundColor={C.g900} />
+
+          {/* Sheet header */}
+          <LinearGradient colors={[C.g900, C.g800, C.g700]} style={s.sheetHeader}>
+            <View style={[s.deco, { width: 130, height: 130, top: -40, right: -20, opacity: 0.08 }]} />
+            <View style={s.sheetHeaderRow}>
+              <View style={s.sheetIconRing}>
+                <LinearGradient colors={[C.g900, C.g700]} style={s.sheetIconGrad}>
+                  <MaterialCommunityIcons name={catIcon(t.category)} size={26} color="#fff" />
+                </LinearGradient>
               </View>
-            )}
+              <View style={{ flex: 1, marginLeft: 14 }}>
+                <Text style={s.sheetName} numberOfLines={2}>{t.name}</Text>
+                <View style={s.sheetMetaRow}>
+                  <View style={s.sheetCatTag}>
+                    <Text style={s.sheetCatText}>{catLabel(t.category)}</Text>
+                  </View>
+                  {t.isDefault && (
+                    <View style={s.sheetStarTag}>
+                      <Icon name="star" size={10} color={C.amber} />
+                      <Text style={s.sheetStarText}>Default</Text>
+                    </View>
+                  )}
+                  <View style={[s.sheetStatusTag, { backgroundColor: t.isActive ? C.g600 + '30' : 'rgba(255,255,255,0.1)' }]}>
+                    <View style={[s.activeDot, { backgroundColor: t.isActive ? C.g400 : C.muted }]} />
+                    <Text style={s.sheetStatusText}>{t.isActive ? 'Active' : 'Inactive'}</Text>
+                  </View>
+                </View>
+              </View>
+            </View>
+            <TouchableOpacity onPress={() => setPreviewTemplate(null)} style={s.sheetCloseX}>
+              <Icon name="x" size={18} color="#fff" />
+            </TouchableOpacity>
+            {t.description ? (
+              <Text style={s.sheetDesc}>{t.description}</Text>
+            ) : null}
+          </LinearGradient>
+
+          <ScrollView
+            style={s.sheetScroll}
+            contentContainerStyle={s.sheetScrollContent}
+            showsVerticalScrollIndicator={false}
+          >
+            {/* Rates */}
+            {(t.dailyRateHint || t.kmLimitPerDay || t.extraKmRateHint || t.securityDepositHint) ? (
+              <View style={s.mCard}>
+                <View style={s.mCardHead}>
+                  <View style={[s.mCardIcon, { backgroundColor: C.g50 }]}>
+                    <Icon name="tag" size={14} color={C.g700} />
+                  </View>
+                  <Text style={s.mCardTitle}>Rate Hints</Text>
+                </View>
+                <View style={s.rateGrid}>
+                  {[
+                    { l: 'Daily Rate',   v: t.dailyRateHint,       unit: '' },
+                    { l: 'KM/Day',       v: t.kmLimitPerDay,       unit: ' km' },
+                    { l: 'Extra KM',     v: t.extraKmRateHint,     unit: '/km' },
+                    { l: 'Deposit',      v: t.securityDepositHint, unit: '' },
+                  ].filter(r => r.v).map((r, i) => (
+                    <View key={i} style={s.rateBox}>
+                      <Text style={s.rateBoxLabel}>{r.l}</Text>
+                      <Text style={s.rateBoxVal}>
+                        {r.unit === ' km' || r.unit === '/km' ? '' : '₹'}{r.v}{r.unit}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            ) : null}
 
             {/* Inclusions */}
-            {template.inclusions && template.inclusions.length > 0 && (
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Inclusions</Text>
-                {template.inclusions.map((item, idx) => (
-                  <View key={idx} style={styles.listItem}>
-                    <Icon name="check-circle" size={16} color={GREEN} />
-                    <Text style={styles.listItemText}>{item}</Text>
+            {t.inclusions?.length > 0 && (
+              <View style={s.mCard}>
+                <View style={s.mCardHead}>
+                  <View style={[s.mCardIcon, { backgroundColor: C.greenL }]}>
+                    <Icon name="check-circle" size={14} color={C.green} />
+                  </View>
+                  <Text style={s.mCardTitle}>Inclusions ({t.inclusions.length})</Text>
+                </View>
+                {t.inclusions.map((item, i) => (
+                  <View key={i} style={s.mListRow}>
+                    <View style={[s.mListDot, { backgroundColor: C.green }]} />
+                    <Text style={s.mListText}>{item}</Text>
                   </View>
                 ))}
               </View>
             )}
 
             {/* Exclusions */}
-            {template.exclusions && template.exclusions.length > 0 && (
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Exclusions</Text>
-                {template.exclusions.map((item, idx) => (
-                  <View key={idx} style={styles.listItem}>
-                    <Icon name="x-circle" size={16} color="#EF4444" />
-                    <Text style={styles.listItemText}>{item}</Text>
+            {t.exclusions?.length > 0 && (
+              <View style={s.mCard}>
+                <View style={s.mCardHead}>
+                  <View style={[s.mCardIcon, { backgroundColor: C.redL }]}>
+                    <Icon name="x-circle" size={14} color={C.red} />
+                  </View>
+                  <Text style={[s.mCardTitle, { color: C.red }]}>Exclusions ({t.exclusions.length})</Text>
+                </View>
+                {t.exclusions.map((item, i) => (
+                  <View key={i} style={s.mListRow}>
+                    <View style={[s.mListDot, { backgroundColor: C.red }]} />
+                    <Text style={s.mListText}>{item}</Text>
                   </View>
                 ))}
               </View>
             )}
 
-            {/* Terms & Conditions */}
-            {template.termsConditions && template.termsConditions.length > 0 && (
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Terms & Conditions</Text>
-                {template.termsConditions.map((item, idx) => (
-                  <View key={idx} style={styles.listItem}>
-                    <Icon name="info" size={16} color={SERVICE_COLOR} />
-                    <Text style={styles.listItemText}>{item}</Text>
+            {/* Terms */}
+            {t.termsConditions?.length > 0 && (
+              <View style={s.mCard}>
+                <View style={s.mCardHead}>
+                  <View style={[s.mCardIcon, { backgroundColor: C.indigoL }]}>
+                    <Icon name="file-text" size={14} color={C.indigo} />
+                  </View>
+                  <Text style={s.mCardTitle}>Terms & Conditions</Text>
+                </View>
+                {t.termsConditions.map((item, i) => (
+                  <View key={i} style={s.mListRow}>
+                    <View style={s.mTermNum}>
+                      <Text style={s.mTermNumText}>{i + 1}</Text>
+                    </View>
+                    <Text style={s.mListText}>{item}</Text>
                   </View>
                 ))}
               </View>
             )}
-
-            {/* Actions */}
-            <View style={styles.actionsRow}>
-              <TouchableOpacity
-                style={[styles.actionButton, styles.editButton]}
-                onPress={() => handleEdit(template)}
-              >
-                <Icon name="edit-2" size={16} color={SERVICE_COLOR} />
-                <Text style={[styles.actionButtonText, { color: SERVICE_COLOR }]}>Edit</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.actionButton, styles.toggleButton]}
-                onPress={() => handleToggleActive(template)}
-              >
-                <Icon
-                  name={template.isActive ? 'eye-off' : 'eye'}
-                  size={16}
-                  color={template.isActive ? '#F59E0B' : GREEN}
-                />
-                <Text
-                  style={[
-                    styles.actionButtonText,
-                    { color: template.isActive ? '#F59E0B' : GREEN },
-                  ]}
-                >
-                  {template.isActive ? 'Deactivate' : 'Activate'}
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.actionButton, styles.deleteButton]}
-                onPress={() => handleDelete(template)}
-              >
-                <Icon name="trash-2" size={16} color="#EF4444" />
-                <Text style={[styles.actionButtonText, { color: '#EF4444' }]}>Delete</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        )}
-      </View>
+            <View style={{ height: 32 }} />
+          </ScrollView>
+        </SafeAreaView>
+      </Modal>
     );
   };
 
+  // ── Main ──────────────────────────────────────────────────────────────────
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={s.container} edges={['top']}>
+      <StatusBar barStyle="light-content" backgroundColor={C.g900} />
+
       {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Icon name="arrow-left" size={24} color={DARK} />
-        </TouchableOpacity>
-        <View style={styles.headerTextContainer}>
-          <Text style={styles.headerTitle}>Self-Drive Templates</Text>
-          <Text style={styles.headerSubtitle}>Manage your quote templates</Text>
-        </View>
-        <TouchableOpacity
-          style={styles.addButton}
-          onPress={() => navigation.navigate('SelfDriveCreateTemplate')}
-        >
-          <Icon name="plus" size={24} color="#FFF" />
-        </TouchableOpacity>
-      </View>
-
-      {/* Search Bar */}
-      <View style={styles.searchContainer}>
-        <Icon name="search" size={20} color="#94A3B8" style={styles.searchIcon} />
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Search templates..."
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-          placeholderTextColor="#94A3B8"
-        />
-        {searchQuery.length > 0 && (
-          <TouchableOpacity onPress={() => setSearchQuery('')} style={styles.clearButton}>
-            <Icon name="x" size={20} color="#94A3B8" />
+      <LinearGradient colors={[C.g900, C.g800, C.g700]} style={s.header}>
+        <View style={[s.deco, { width: 180, height: 180, top: -70, right: -50, opacity: 0.07 }]} />
+        <View style={[s.deco, { width: 80, height: 80, top: 10, right: 90, opacity: 0.04 }]} />
+        <View style={s.headerRow}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
+            <Icon name="arrow-left" size={22} color="#fff" />
           </TouchableOpacity>
-        )}
-      </View>
-
-      {/* Category Filter */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.categoryContainer}
-        contentContainerStyle={styles.categoryContent}
-      >
-        {SELF_DRIVE_CATEGORIES.map((cat) => (
-          <TouchableOpacity
-            key={cat.id}
-            style={[
-              styles.categoryChip,
-              categoryFilter === cat.id && styles.categoryChipActive,
-            ]}
-            onPress={() => setCategoryFilter(cat.id)}
-          >
-            <MaterialCommunityIcons
-              name={cat.icon}
-              size={18}
-              color={categoryFilter === cat.id ? '#FFF' : SERVICE_COLOR}
-            />
-            <Text
-              style={[
-                styles.categoryChipText,
-                categoryFilter === cat.id && styles.categoryChipTextActive,
-              ]}
-            >
-              {cat.name}
+          <View style={{ flex: 1 }}>
+            <Text style={s.headerTitle}>Self-Drive Templates</Text>
+            <Text style={s.headerSub}>
+              {isLoading ? 'Loading...' : `${templates.length} template${templates.length !== 1 ? 's' : ''}`}
             </Text>
+          </View>
+          <TouchableOpacity style={s.addBtn} onPress={() => navigation.navigate('SelfDriveCreateTemplate')}>
+            <Icon name="plus" size={20} color="#fff" />
           </TouchableOpacity>
-        ))}
-      </ScrollView>
-
-      {/* Templates List */}
-      {isLoading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={SERVICE_COLOR} />
-          <Text style={styles.loadingText}>Loading templates...</Text>
         </View>
-      ) : filteredTemplates.length === 0 ? (
-        <ScrollView
-          contentContainerStyle={styles.emptyContainer}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-        >
-          <MaterialCommunityIcons name="file-document-outline" size={80} color="#CBD5E1" />
-          <Text style={styles.emptyTitle}>
-            {searchQuery ? 'No templates found' : 'No templates yet'}
-          </Text>
-          <Text style={styles.emptySubtitle}>
-            {searchQuery
-              ? 'Try a different search term'
-              : 'Create your first template to get started'}
-          </Text>
-          {!searchQuery && (
+      </LinearGradient>
+
+      {/* Category filter */}
+      <View style={s.filterWrap}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.filterRow}>
+          {CATEGORIES.map(cat => (
             <TouchableOpacity
-              style={styles.emptyButton}
-              onPress={() => navigation.navigate('SelfDriveCreateTemplate')}
+              key={cat.id}
+              style={[s.filterChip, categoryFilter === cat.id && s.filterChipOn]}
+              onPress={() => setCategoryFilter(cat.id)}
             >
-              <Icon name="plus" size={20} color="#FFF" />
-              <Text style={styles.emptyButtonText}>Create Template</Text>
+              <Text style={[s.filterChipText, categoryFilter === cat.id && s.filterChipTextOn]}>
+                {cat.name}
+              </Text>
             </TouchableOpacity>
-          )}
+          ))}
         </ScrollView>
+      </View>
+
+      {/* Content */}
+      {isLoading ? (
+        <View style={s.centerWrap}>
+          <MaterialCommunityIcons name="car" size={56} color={C.g500} style={{ opacity: 0.35 }} />
+          <Text style={s.centerText}>Loading templates...</Text>
+        </View>
+      ) : templates.length === 0 ? (
+        <View style={s.centerWrap}>
+          <View style={s.emptyBox}>
+            <Icon name="file-text" size={36} color={C.muted} />
+          </View>
+          <Text style={s.emptyTitle}>No templates yet</Text>
+          <Text style={s.emptyText}>Create templates to speed up quote process</Text>
+          <TouchableOpacity style={s.emptyCreateBtn} onPress={() => navigation.navigate('SelfDriveCreateTemplate')}>
+            <Icon name="plus" size={16} color="#fff" />
+            <Text style={s.emptyCreateText}>Create Template</Text>
+          </TouchableOpacity>
+        </View>
       ) : (
-        <ScrollView
-          style={styles.listContainer}
-          contentContainerStyle={styles.listContent}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-        >
-          {filteredTemplates.map(renderTemplate)}
-        </ScrollView>
+        <FlatList
+          data={templates}
+          keyExtractor={t => String(t.id)}
+          renderItem={({ item }) => <TemplateCard t={item} />}
+          contentContainerStyle={s.listContent}
+          showsVerticalScrollIndicator={false}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.g500} />}
+        />
       )}
+
+      <PreviewModal />
     </SafeAreaView>
   );
-};
+}
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: BG,
+const s = StyleSheet.create({
+  container: { flex: 1, backgroundColor: C.bg },
+
+  // Header
+  header: { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 20, overflow: 'hidden' },
+  deco: { position: 'absolute', borderRadius: 999, backgroundColor: '#fff' },
+  headerRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  headerTitle: { fontSize: 20, fontWeight: '800', color: '#fff' },
+  headerSub: { fontSize: 12, color: 'rgba(255,255,255,0.65)', marginTop: 2 },
+  backBtn: {
+    width: 40, height: 40, borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    justifyContent: 'center', alignItems: 'center',
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: '#FFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+  addBtn: {
+    width: 40, height: 40, borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.2)', justifyContent: 'center', alignItems: 'center',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)',
   },
-  backButton: {
-    padding: 8,
-    marginRight: 8,
+
+  // Filter
+  filterWrap: { backgroundColor: C.card, borderBottomWidth: 1, borderBottomColor: C.border },
+  filterRow: { paddingHorizontal: 16, paddingVertical: 10, gap: 8 },
+  filterChip: {
+    paddingHorizontal: 16, paddingVertical: 7, borderRadius: 20,
+    backgroundColor: C.bg, borderWidth: 1.5, borderColor: C.border,
   },
-  headerTextContainer: {
-    flex: 1,
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: DARK,
-  },
-  headerSubtitle: {
-    fontSize: 13,
-    color: '#64748B',
-    marginTop: 2,
-  },
-  addButton: {
-    backgroundColor: SERVICE_COLOR,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFF',
-    marginHorizontal: 16,
-    marginTop: 12,
-    marginBottom: 8,
-    paddingHorizontal: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-  },
-  searchIcon: {
-    marginRight: 8,
-  },
-  searchInput: {
-    flex: 1,
-    paddingVertical: 12,
-    fontSize: 15,
-    color: DARK,
-  },
-  clearButton: {
-    padding: 4,
-  },
-  categoryContainer: {
-    maxHeight: 56,
-    marginBottom: 12,
-  },
-  categoryContent: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    alignItems: 'center',
-  },
-  categoryChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: '#FFF',
-    borderWidth: 1,
-    borderColor: SERVICE_COLOR,
-    marginRight: 8,
-    height: 40,
-    justifyContent: 'center',
-  },
-  categoryChipActive: {
-    backgroundColor: SERVICE_COLOR,
-    borderColor: SERVICE_COLOR,
-  },
-  categoryChipText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: SERVICE_COLOR,
-  },
-  categoryChipTextActive: {
-    color: '#FFF',
-  },
-  loadingContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  loadingText: {
-    marginTop: 12,
-    fontSize: 15,
-    color: '#64748B',
-  },
-  emptyContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 32,
-  },
-  emptyTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: DARK,
-    marginTop: 16,
-  },
-  emptySubtitle: {
-    fontSize: 15,
-    color: '#64748B',
-    textAlign: 'center',
-    marginTop: 8,
-  },
-  emptyButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: SERVICE_COLOR,
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 12,
-    marginTop: 24,
-    gap: 8,
-  },
-  emptyButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FFF',
-  },
-  listContainer: {
-    flex: 1,
-  },
-  listContent: {
-    padding: 16,
-  },
-  templateCard: {
-    backgroundColor: '#FFF',
-    borderRadius: 12,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
+  filterChipOn: { backgroundColor: C.g700, borderColor: C.g700 },
+  filterChipText: { fontSize: 13, fontWeight: '600', color: C.sub },
+  filterChipTextOn: { color: '#fff' },
+
+  // List
+  listContent: { padding: 16, paddingBottom: 32 },
+
+  // Card
+  card: {
+    backgroundColor: C.card, borderRadius: 18, marginBottom: 14,
+    borderWidth: 1, borderColor: C.border,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.07, shadowRadius: 10, elevation: 4,
     overflow: 'hidden',
   },
-  templateHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 16,
+  cardMain: {
+    flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: 14, paddingTop: 14, paddingBottom: 12, gap: 12,
   },
-  templateHeaderLeft: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
+  cardIconWrap: { position: 'relative' },
+  cardIconGrad: {
+    width: 50, height: 50, borderRadius: 14,
+    justifyContent: 'center', alignItems: 'center',
   },
-  templateInfo: {
-    flex: 1,
+  cardStarBadge: {
+    position: 'absolute', top: -4, right: -4,
+    width: 18, height: 18, borderRadius: 9,
+    backgroundColor: C.amber, justifyContent: 'center', alignItems: 'center',
+    borderWidth: 2, borderColor: C.card,
   },
-  templateName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: DARK,
-    marginBottom: 4,
+  cardInfo: { flex: 1 },
+  cardName: { fontSize: 15, fontWeight: '700', color: C.text, marginBottom: 5 },
+  cardMetaRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  catTag: {
+    backgroundColor: C.g50, paddingHorizontal: 8, paddingVertical: 3,
+    borderRadius: 8, borderWidth: 1, borderColor: C.g100,
   },
-  inactiveText: {
-    color: '#94A3B8',
+  catTagText: { fontSize: 11, fontWeight: '700', color: C.g700 },
+  cardRate: { fontSize: 12, color: C.sub, fontWeight: '600' },
+  activePill: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    paddingHorizontal: 8, paddingVertical: 4, borderRadius: 10,
   },
-  templateDescription: {
-    fontSize: 13,
-    color: '#64748B',
-    marginBottom: 6,
-  },
-  templateMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  categoryBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-  },
-  categoryBadgeText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  defaultBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FEF3C7',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-    gap: 4,
-  },
-  defaultBadgeText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#F59E0B',
-  },
-  templateBody: {
-    paddingHorizontal: 16,
-    paddingBottom: 16,
-    borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
-  },
-  section: {
-    marginBottom: 16,
-  },
-  sectionTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: DARK,
-    marginBottom: 8,
-  },
-  rateRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 6,
-  },
-  rateLabel: {
-    fontSize: 14,
-    color: '#64748B',
-  },
-  rateValue: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: DARK,
-  },
-  listItem: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: 8,
-    gap: 8,
-  },
-  listItemText: {
-    flex: 1,
-    fontSize: 14,
-    color: '#475569',
-    lineHeight: 20,
-  },
-  actionsRow: {
-    flexDirection: 'row',
-    gap: 8,
-    marginTop: 8,
-  },
-  actionButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 10,
-    borderRadius: 8,
-    gap: 6,
-  },
-  editButton: {
-    backgroundColor: SERVICE_COLOR + '15',
-  },
-  toggleButton: {
-    backgroundColor: '#F1F5F9',
-  },
-  deleteButton: {
-    backgroundColor: '#FEE2E2',
-  },
-  actionButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-});
+  activePillOn: { backgroundColor: C.g50 },
+  activePillOff: { backgroundColor: C.bg },
+  activeDot: { width: 6, height: 6, borderRadius: 3 },
+  activePillText: { fontSize: 11, fontWeight: '700' },
 
-export default SelfDriveTemplatesScreen;
+  // Stats bar
+  statsBar: {
+    flexDirection: 'row', alignItems: 'center', gap: 16,
+    paddingHorizontal: 14, paddingVertical: 10,
+    borderTopWidth: 1, borderTopColor: C.border,
+    backgroundColor: C.bg,
+  },
+  statItem: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  statText: { fontSize: 12, color: C.muted, fontWeight: '500' },
+
+  // Action buttons
+  cardActions: {
+    flexDirection: 'row',
+    borderTopWidth: 1, borderTopColor: C.border,
+  },
+  actionBtn: {
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: 6, paddingVertical: 11,
+  },
+  actionEdit: { backgroundColor: C.indigoL },
+  actionDeactivate: { backgroundColor: C.orangeL },
+  actionActivate: { backgroundColor: C.greenL },
+  actionDelete: { backgroundColor: C.redL },
+  actionBtnText: { fontSize: 12, fontWeight: '700' },
+
+  // Empty
+  centerWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
+  emptyBox: {
+    width: 80, height: 80, borderRadius: 20,
+    backgroundColor: C.card, borderWidth: 1, borderColor: C.border,
+    justifyContent: 'center', alignItems: 'center', marginBottom: 16,
+  },
+  emptyTitle: { fontSize: 18, fontWeight: '700', color: C.text, marginBottom: 8 },
+  emptyText: { fontSize: 13, color: C.muted, textAlign: 'center', marginBottom: 24, lineHeight: 19 },
+  centerText: { fontSize: 14, color: C.muted, marginTop: 12 },
+  emptyCreateBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    backgroundColor: C.g700, paddingHorizontal: 24, paddingVertical: 13, borderRadius: 14,
+  },
+  emptyCreateText: { fontSize: 14, fontWeight: '700', color: '#fff' },
+
+  // Modal
+  sheet: { flex: 1, backgroundColor: C.bg },
+  sheetHeader: { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 18, overflow: 'hidden' },
+  sheetHeaderRow: { flexDirection: 'row', alignItems: 'flex-start' },
+  sheetIconRing: {
+    width: 52, height: 52, borderRadius: 14,
+    overflow: 'hidden',
+    borderWidth: 2, borderColor: 'rgba(255,255,255,0.25)',
+  },
+  sheetIconGrad: {
+    width: '100%', height: '100%',
+    justifyContent: 'center', alignItems: 'center',
+  },
+  sheetCloseX: {
+    position: 'absolute', top: 14, right: 16,
+    width: 34, height: 34, borderRadius: 10,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    justifyContent: 'center', alignItems: 'center',
+  },
+  sheetName: { fontSize: 17, fontWeight: '800', color: '#fff', marginBottom: 8 },
+  sheetMetaRow: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
+  sheetCatTag: {
+    backgroundColor: 'rgba(255,255,255,0.15)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10,
+  },
+  sheetCatText: { fontSize: 12, fontWeight: '600', color: 'rgba(255,255,255,0.9)' },
+  sheetStarTag: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    backgroundColor: C.amber + '30', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10,
+  },
+  sheetStarText: { fontSize: 12, fontWeight: '600', color: C.amber },
+  sheetStatusTag: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10,
+  },
+  sheetStatusText: { fontSize: 12, fontWeight: '600', color: 'rgba(255,255,255,0.85)' },
+  sheetDesc: {
+    fontSize: 13, color: 'rgba(255,255,255,0.75)', marginTop: 12, lineHeight: 19,
+  },
+
+  sheetScroll: { backgroundColor: C.bg },
+  sheetScrollContent: { padding: 16 },
+
+  mCard: {
+    backgroundColor: C.card, borderRadius: 14, padding: 14,
+    marginBottom: 12, borderWidth: 1, borderColor: C.border,
+  },
+  mCardHead: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 },
+  mCardIcon: { width: 30, height: 30, borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
+  mCardTitle: { fontSize: 14, fontWeight: '700', color: C.text },
+  rateGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  rateBox: {
+    flex: 1, minWidth: '40%', backgroundColor: C.g50,
+    borderRadius: 10, padding: 12, borderWidth: 1, borderColor: C.g100,
+  },
+  rateBoxLabel: { fontSize: 10, fontWeight: '700', color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 },
+  rateBoxVal: { fontSize: 17, fontWeight: '800', color: C.g700 },
+  mListRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginBottom: 7 },
+  mListDot: { width: 7, height: 7, borderRadius: 4, marginTop: 6 },
+  mListText: { flex: 1, fontSize: 13, color: C.text, lineHeight: 19 },
+  mTermNum: {
+    width: 22, height: 22, borderRadius: 6, backgroundColor: C.indigo,
+    justifyContent: 'center', alignItems: 'center', marginTop: 1,
+  },
+  mTermNumText: { fontSize: 11, fontWeight: '700', color: '#fff' },
+});

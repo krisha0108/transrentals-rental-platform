@@ -10,13 +10,23 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const listingId = searchParams.get('listingId');
     const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '10');
+    const limit = parseInt(searchParams.get('limit') || '5');
+
+    // bookingId check — return whether review exists for this booking
+    const bookingId = searchParams.get('bookingId');
+    if (bookingId) {
+      const existing = await (prisma as any).wander_reviews.findUnique({
+        where: { bookingId },
+        select: { id: true, rating: true, title: true, review: true, createdAt: true, vendorReply: true, vendorRepliedAt: true },
+      });
+      return NextResponse.json({ exists: !!existing, review: existing || null });
+    }
 
     if (!listingId) return NextResponse.json({ error: 'listingId required' }, { status: 400 });
 
     const where: any = { listingId, status: 'ACTIVE' };
 
-    const [reviews, total, stats] = await Promise.all([
+    const [reviews, total] = await Promise.all([
       (prisma as any).wander_reviews.findMany({
         where,
         include: {
@@ -27,26 +37,29 @@ export async function GET(request: NextRequest) {
         take: limit,
       }),
       (prisma as any).wander_reviews.count({ where }),
-      (prisma as any).wander_reviews.aggregate({
-        where,
-        _avg: { rating: true },
-        _count: { rating: true },
-      }),
     ]);
 
-    // Rating distribution
-    const distribution = await Promise.all(
-      [5, 4, 3, 2, 1].map(async (r) => ({
-        rating: r,
-        count: await (prisma as any).wander_reviews.count({ where: { ...where, rating: r } }),
-      }))
-    );
+    // Aggregate from ALL active reviews for this listing (not just this page)
+    const allActive = await (prisma as any).wander_reviews.findMany({
+      where,
+      select: { rating: true },
+    });
+
+    const totalRatings = allActive.length;
+    const avgRating = totalRatings > 0
+      ? Math.round((allActive.reduce((sum: number, r: any) => sum + r.rating, 0) / totalRatings) * 10) / 10
+      : 0;
+
+    // Distribution per star level
+    const distribution = [5, 4, 3, 2, 1].map((r) => ({
+      rating: r,
+      count: allActive.filter((rev: any) => rev.rating === r).length,
+    }));
 
     return NextResponse.json({
       reviews,
-      total,
-      avgRating: Math.round((stats._avg.rating || 0) * 10) / 10,
-      totalRatings: stats._count.rating,
+      totalRatings,
+      avgRating,
       distribution,
       page,
       totalPages: Math.ceil(total / limit),
@@ -57,64 +70,67 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST - Submit a review (customer only, must have completed booking)
+// POST - Submit a review (customer, must have completed booking)
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { bookingId, customerId, rating, title, review, images } = body;
+    const { bookingId, customerId, rating, title, review } = body;
 
-    if (!bookingId || !customerId || !rating) {
-      return NextResponse.json({ error: 'bookingId, customerId, and rating are required' }, { status: 400 });
-    }
-    if (rating < 1 || rating > 5) {
+    if (!bookingId) return NextResponse.json({ error: 'bookingId is required' }, { status: 400 });
+    if (!customerId) return NextResponse.json({ error: 'customerId is required' }, { status: 400 });
+    if (!rating || rating < 1 || rating > 5) {
       return NextResponse.json({ error: 'Rating must be between 1 and 5' }, { status: 400 });
     }
 
     // Verify booking exists, belongs to customer, and is COMPLETED
     const booking = await (prisma as any).wander_bookings.findFirst({
-      where: { id: bookingId, customerId },
+      where: { id: bookingId, customerId, status: 'COMPLETED' },
       include: { quoteRequest: { select: { wanderListingId: true } } },
     });
-    if (!booking) return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
-    if (booking.status !== 'COMPLETED') {
-      return NextResponse.json({ error: 'You can only review completed tours' }, { status: 400 });
+    if (!booking) {
+      return NextResponse.json({ error: 'Booking not found or not yet completed' }, { status: 404 });
     }
 
     // Check if already reviewed
     const existing = await (prisma as any).wander_reviews.findUnique({
       where: { bookingId },
     });
-    if (existing) return NextResponse.json({ error: 'You have already reviewed this booking' }, { status: 400 });
+    if (existing) {
+      return NextResponse.json({ error: 'You have already reviewed this booking' }, { status: 400 });
+    }
 
-    const listingId = booking.quoteRequest?.wanderListingId;
-    if (!listingId) return NextResponse.json({ error: 'Listing not found for this booking' }, { status: 400 });
+    const listingId = booking.listingId || booking.quoteRequest?.wanderListingId;
+    if (!listingId) {
+      return NextResponse.json({ error: 'Listing not found for this booking' }, { status: 400 });
+    }
 
     const newReview = await (prisma as any).wander_reviews.create({
       data: {
+        id: 'rev_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8),
         listingId,
         bookingId,
         customerId,
         rating: parseInt(rating),
         title: title?.trim() || null,
         review: review?.trim() || null,
-        images: images ? JSON.stringify(images) : null,
         isVerified: true,
         status: 'ACTIVE',
       },
     });
 
-    // Update listing average rating
-    const aggr = await (prisma as any).wander_reviews.aggregate({
+    // Recalculate listing average rating from all ACTIVE reviews
+    const allActive = await (prisma as any).wander_reviews.findMany({
       where: { listingId, status: 'ACTIVE' },
-      _avg: { rating: true },
-      _count: { rating: true },
+      select: { rating: true },
     });
+    const totalRatings = allActive.length;
+    const avgRating = totalRatings > 0
+      ? Math.round((allActive.reduce((sum: number, r: any) => sum + r.rating, 0) / totalRatings) * 10) / 10
+      : 0;
+
     await (prisma as any).wander_listings.update({
       where: { id: listingId },
-      data: {
-        rating: Math.round((aggr._avg.rating || 0) * 10) / 10,
-        totalRatings: aggr._count.rating,
-      },
+      data: { rating: avgRating, totalRatings },
     });
 
     return NextResponse.json({ success: true, review: newReview }, { status: 201 });

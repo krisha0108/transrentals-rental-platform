@@ -59,6 +59,7 @@ export async function GET(
       luxuryBooking,
       packersBooking,
       truckBooking,
+      wanderBooking,
     ] = await Promise.all([
       // Bike Rental
       prisma.bike_bookings.findUnique({
@@ -137,6 +138,26 @@ export async function GET(
           vendors: { select: { id: true, businessName: true, phone: true, email: true } },
         },
       }).catch(() => null),
+
+      // Wander Tours
+      (prisma as any).wander_bookings.findUnique({
+        where: { id: bookingId },
+        include: {
+          customer: customerInclude,
+          vendor: { select: { id: true, businessName: true, phone: true, email: true } },
+          quoteRequest: {
+            include: {
+              listing: {
+                select: {
+                  title: true, duration: true,
+                  mainLocation: { select: { id: true, name: true } },
+                },
+              },
+            },
+          },
+          quote: { select: { amount: true, notes: true } },
+        },
+      }).catch(() => null),
     ]);
 
     // Find which booking exists
@@ -176,6 +197,10 @@ export async function GET(
       booking = truckBooking;
       serviceName = 'Truck Transport';
       serviceSlug = 'truck-transport';
+    } else if (wanderBooking) {
+      booking = wanderBooking;
+      serviceName = 'Wander Tours';
+      serviceSlug = 'wander';
     }
 
     if (!booking) {

@@ -145,6 +145,7 @@ function ExperienceCard({ exp }: { exp: any }) {
 
 /* ─── TourCard ─────────────────────────────────────── */
 function TourCard({ listing, isWishlisted, onToggleWishlist }: { listing: any; isWishlisted?: boolean; onToggleWishlist?: (id: string) => void }) {
+  const [vendorLogoError, setVendorLogoError] = useState(false);
   const images: string[] = (() => { try { return JSON.parse(listing.images || '[]'); } catch { return []; } })();
   const coverImg = images[0] || null;
 
@@ -179,10 +180,10 @@ function TourCard({ listing, isWishlisted, onToggleWishlist }: { listing: any; i
   return (
     <Link
       href={`/wander/${listing.slug || listing.id}`}
-      className="group relative bg-white rounded-[20px] overflow-hidden shadow-[0_1px_3px_rgba(0,0,0,0.04),0_4px_12px_rgba(0,0,0,0.03)] hover:shadow-[0_8px_30px_rgba(0,0,0,0.08)] transition-all duration-500 border border-gray-100/80 hover:-translate-y-1.5 flex flex-col"
+      className="group relative bg-white rounded-3xl overflow-hidden shadow-[0_2px_8px_rgba(0,0,0,0.06),0_1px_2px_rgba(0,0,0,0.04)] hover:shadow-[0_16px_48px_rgba(79,70,229,0.12),0_4px_16px_rgba(0,0,0,0.08)] transition-all duration-500 border border-gray-100 hover:border-indigo-100 hover:-translate-y-2 flex flex-col"
     >
       {/* Image */}
-      <div className="relative h-56 bg-gradient-to-br from-slate-100 to-indigo-50 overflow-hidden flex-shrink-0">
+      <div className="relative h-64 bg-gradient-to-br from-slate-100 to-indigo-50 overflow-hidden flex-shrink-0">
         {coverImg ? (
           <img
             src={coverImg}
@@ -191,32 +192,32 @@ function TourCard({ listing, isWishlisted, onToggleWishlist }: { listing: any; i
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-50">
-            <span className="text-7xl opacity-30">{listing.category?.icon || '🗺️'}</span>
+            <span className="text-8xl opacity-20">{listing.category?.icon || '🗺️'}</span>
           </div>
         )}
-        {/* Gradient overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-transparent" />
+        {/* Gradient overlay — stronger at bottom */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/10 to-transparent" />
 
-        {/* Top bar: Category + Actions */}
-        <div className="absolute top-0 left-0 right-0 p-3 flex items-start justify-between">
+        {/* Top bar: Category + Wishlist */}
+        <div className="absolute top-0 left-0 right-0 p-3.5 flex items-start justify-between">
           {listing.category && (
-            <span className="inline-flex items-center gap-1 bg-white/90 backdrop-blur-md text-[10px] font-bold text-gray-800 px-2.5 py-1.5 rounded-lg shadow-sm">
+            <span className="inline-flex items-center gap-1.5 bg-white/95 backdrop-blur-md text-[11px] font-bold text-gray-800 px-3 py-1.5 rounded-xl shadow-sm">
               {listing.category.icon} {listing.category.name}
             </span>
           )}
           <div className="flex items-center gap-1.5">
             {popular && (
-              <div className="bg-gradient-to-r from-orange-500 to-rose-500 text-white text-[10px] font-bold px-2.5 py-1 rounded-lg flex items-center gap-1 shadow-sm">
+              <div className="bg-gradient-to-r from-orange-500 to-rose-500 text-white text-[10px] font-bold px-2.5 py-1.5 rounded-xl flex items-center gap-1 shadow-sm">
                 <TrendingUp className="w-2.5 h-2.5" /> Hot
               </div>
             )}
             {onToggleWishlist && (
               <button
                 onClick={(e) => { e.preventDefault(); e.stopPropagation(); onToggleWishlist(listing.id); }}
-                className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all shadow-sm backdrop-blur-md ${
+                className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all shadow-sm backdrop-blur-md ${
                   isWishlisted
                     ? 'bg-red-500 text-white scale-105'
-                    : 'bg-white/80 text-gray-500 hover:text-red-500 hover:bg-white'
+                    : 'bg-white/85 text-gray-500 hover:text-red-500 hover:bg-white hover:scale-105'
                 }`}
               >
                 <Heart className={`w-4 h-4 ${isWishlisted ? 'fill-white' : ''}`} />
@@ -225,74 +226,84 @@ function TourCard({ listing, isWishlisted, onToggleWishlist }: { listing: any; i
           </div>
         </div>
 
-        {/* Bottom bar on image: Location + Rating */}
-        <div className="absolute bottom-0 left-0 right-0 p-3 flex items-end justify-between">
-          {listing.mainLocation?.name && (
-            <span className="inline-flex items-center gap-1 bg-black/40 backdrop-blur-sm text-white text-[11px] font-medium px-2.5 py-1 rounded-lg">
-              <MapPin className="w-3 h-3" /> {listing.mainLocation.name}
-            </span>
-          )}
-          {listing.rating > 0 && (
-            <span className="inline-flex items-center gap-1 bg-black/40 backdrop-blur-sm text-white text-[11px] font-semibold px-2.5 py-1 rounded-lg">
-              <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
-              {listing.rating} <span className="text-white/60 font-normal">({listing.totalRatings})</span>
-            </span>
-          )}
+        {/* Bottom bar on image: Location + Rating + Duration */}
+        <div className="absolute bottom-0 left-0 right-0 px-3.5 pb-3.5 pt-8">
+          <div className="flex items-end justify-between">
+            <div className="space-y-1.5">
+              {listing.mainLocation?.name && (
+                <span className="flex items-center gap-1.5 text-white text-xs font-medium drop-shadow-sm">
+                  <MapPin className="w-3.5 h-3.5 text-white/80" /> {listing.mainLocation.name}
+                </span>
+              )}
+              {listing.duration && (
+                <span className="flex items-center gap-1.5 text-white/80 text-[11px]">
+                  <Clock className="w-3 h-3" /> {listing.duration}
+                </span>
+              )}
+            </div>
+            {listing.rating > 0 && (
+              <span className="inline-flex items-center gap-1 bg-amber-400 text-gray-900 text-[11px] font-bold px-2.5 py-1.5 rounded-xl shadow-sm">
+                <Star className="w-3 h-3 fill-gray-900" />
+                {listing.rating}
+                <span className="text-gray-700 font-normal text-[10px]">({listing.totalRatings})</span>
+              </span>
+            )}
+          </div>
         </div>
       </div>
 
       {/* Content */}
-      <div className="p-4 flex flex-col flex-1">
+      <div className="p-5 flex flex-col flex-1">
         {/* Vendor */}
         {listing.vendor?.businessName && (
-          <div className="flex items-center gap-1.5 mb-2">
-            {listing.vendor.logo ? (
-              <img src={listing.vendor.logo} alt="" className="w-4 h-4 rounded-full object-cover flex-shrink-0 ring-1 ring-gray-200" />
+          <div className="flex items-center gap-2 mb-2.5">
+            {listing.vendor.logo && !vendorLogoError ? (
+              <img src={listing.vendor.logo} alt="" onError={() => setVendorLogoError(true)} className="w-5 h-5 rounded-full object-cover flex-shrink-0 ring-1 ring-gray-200" />
             ) : (
-              <span className="w-4 h-4 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center flex-shrink-0 text-[7px] font-bold text-white">
-                {listing.vendor.businessName[0]}
+              <span className="w-5 h-5 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center flex-shrink-0 text-[8px] font-bold text-white">
+                {listing.vendor.businessName[0]?.toUpperCase()}
               </span>
             )}
-            <span className="text-[11px] text-gray-400 truncate">{listing.vendor.businessName}</span>
+            <span className="text-xs text-gray-400 truncate">{listing.vendor.businessName}</span>
           </div>
         )}
 
         {/* Title */}
-        <h3 className="font-bold text-gray-900 text-[15px] leading-snug mb-2 line-clamp-2 group-hover:text-indigo-600 transition-colors">
+        <h3 className="font-bold text-gray-900 text-base leading-snug mb-2 line-clamp-2 group-hover:text-indigo-600 transition-colors">
           {listing.title}
         </h3>
 
-        {/* Meta: Duration + Dates */}
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mb-auto">
-          {listing.duration && (
-            <span className="text-[11px] text-gray-400 flex items-center gap-1">
-              <Clock className="w-3 h-3 text-indigo-400/70" /> {listing.duration}
-            </span>
-          )}
-          {listing.tourStartDate && (
-            <span className="text-[11px] text-gray-400 flex items-center gap-1">
-              <Calendar className="w-3 h-3 text-indigo-400/70" />
+        {/* Tour dates if available */}
+        {listing.tourStartDate && (
+          <div className="flex items-center gap-1.5 mb-3">
+            <span className="inline-flex items-center gap-1 text-[11px] text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-lg font-medium">
+              <Calendar className="w-3 h-3" />
               {new Date(listing.tourStartDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
               {listing.tourEndDate && listing.tourEndDate !== listing.tourStartDate && (
                 <> – {new Date(listing.tourEndDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</>
               )}
             </span>
-          )}
-        </div>
+          </div>
+        )}
 
         {/* Price bar */}
-        <div className="flex items-center justify-between pt-3 mt-3 border-t border-gray-100/80">
+        <div className="flex items-center justify-between pt-3.5 mt-auto border-t border-gray-100">
           {showCustomQuote ? (
-            <span className="text-xs font-bold text-indigo-600 bg-indigo-50 px-3 py-1 rounded-lg">Get Quote</span>
+            <div>
+              <span className="text-[10px] text-gray-400 block mb-0.5">Price on request</span>
+              <span className="text-sm font-bold text-indigo-600">Get Free Quote</span>
+            </div>
           ) : (
             <div>
               {isStartingFrom && <span className="text-[10px] text-gray-400 block leading-tight">Starting from</span>}
-              <span className="text-lg font-black text-gray-900 tracking-tight">{priceLabel}</span>
-              {priceSuffix && <span className="text-[11px] text-gray-400 ml-1">{priceSuffix}</span>}
+              <div className="flex items-baseline gap-1">
+                <span className="text-xl font-black text-gray-900 tracking-tight">{priceLabel}</span>
+                {priceSuffix && <span className="text-xs text-gray-400">{priceSuffix}</span>}
+              </div>
             </div>
           )}
-          <span className="w-8 h-8 bg-gray-100 group-hover:bg-gradient-to-r group-hover:from-indigo-600 group-hover:to-violet-600 rounded-xl flex items-center justify-center transition-all duration-300 group-hover:shadow-lg group-hover:shadow-indigo-500/20">
-            <ArrowRight className="w-4 h-4 text-gray-400 group-hover:text-white transition-colors" />
+          <span className="w-9 h-9 bg-indigo-50 group-hover:bg-gradient-to-r group-hover:from-indigo-600 group-hover:to-violet-600 rounded-2xl flex items-center justify-center transition-all duration-300 group-hover:shadow-lg group-hover:shadow-indigo-500/25 group-hover:scale-110">
+            <ArrowRight className="w-4 h-4 text-indigo-400 group-hover:text-white transition-colors" />
           </span>
         </div>
       </div>
@@ -926,7 +937,7 @@ export default function WanderHomePage() {
                   <p className="text-xs font-bold text-indigo-600 uppercase tracking-widest">Curated Experiences</p>
                   <span className="text-[10px] text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">Compare vendors</span>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                   {visibleExps.map((exp: any) => (
                     <ExperienceCard key={exp.id} exp={exp} />
                   ))}
@@ -1089,7 +1100,7 @@ export default function WanderHomePage() {
                             <p className="text-xs text-gray-400">{toursWithoutDates.length} tour{toursWithoutDates.length !== 1 ? 's' : ''} · no fixed dates</p>
                           </div>
                         </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                           {toursWithoutDates.map(listing => (
                             <TourCard key={listing.id} listing={listing} isWishlisted={wishlistedIds.has(listing.id)} onToggleWishlist={toggleWishlist} />
                           ))}
@@ -1106,7 +1117,7 @@ export default function WanderHomePage() {
             </div>
           ) : (
             <>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {listings.map(listing => (
                   <TourCard key={listing.id} listing={listing} isWishlisted={wishlistedIds.has(listing.id)} onToggleWishlist={toggleWishlist} />
                 ))}
@@ -1114,11 +1125,19 @@ export default function WanderHomePage() {
 
               {/* Load more */}
               {page < totalPages && (
-                <div className="flex justify-center mt-10">
+                <div className="flex flex-col items-center gap-3 mt-10">
+                  {/* Progress bar */}
+                  <div className="w-48 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-gradient-to-r from-indigo-500 to-violet-500 rounded-full transition-all duration-500"
+                      style={{ width: `${(listings.length / total) * 100}%` }}
+                    />
+                  </div>
+                  <p className="text-xs text-gray-400">Showing <span className="font-semibold text-gray-700">{listings.length}</span> of <span className="font-semibold text-gray-700">{total}</span> tours</p>
                   <button
                     onClick={loadMore}
                     disabled={loadingMore}
-                    className="flex items-center gap-2 px-8 py-3 bg-white border border-gray-200 text-gray-700 font-semibold rounded-xl hover:bg-gray-50 hover:border-indigo-300 transition text-sm disabled:opacity-50"
+                    className="flex items-center gap-2 px-8 py-3 bg-white border border-gray-200 text-gray-700 font-semibold rounded-2xl hover:bg-indigo-50 hover:border-indigo-300 hover:text-indigo-700 transition-all text-sm disabled:opacity-50 shadow-sm"
                   >
                     {loadingMore ? (
                       <><Loader2 className="w-4 h-4 animate-spin" /> Loading...</>
@@ -1130,11 +1149,135 @@ export default function WanderHomePage() {
               )}
               {page >= totalPages && listings.length > 0 && (
                 <p className="text-center text-xs text-gray-400 mt-8">
-                  Showing all {total} tour{total !== 1 ? 's' : ''}
+                  ✓ All {total} tour{total !== 1 ? 's' : ''} shown
                 </p>
               )}
             </>
           )}
+        </div>
+      </section>
+
+      {/* ══════════════════════════════════════════════════
+          HOW IT WORKS
+      ══════════════════════════════════════════════════ */}
+      <section className="py-28 px-4 sm:px-6 bg-[#050816] relative overflow-hidden">
+        {/* Background blobs */}
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute top-0 left-1/4 w-[600px] h-[600px] rounded-full bg-indigo-600/10 blur-[140px]" />
+          <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] rounded-full bg-violet-600/10 blur-[120px]" />
+        </div>
+        {/* Grid lines */}
+        <div className="absolute inset-0 opacity-[0.025]" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,.15) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.15) 1px, transparent 1px)', backgroundSize: '60px 60px' }} />
+
+        <div className="relative max-w-6xl mx-auto">
+          {/* Header */}
+          <div className="text-center mb-20">
+            <div className="inline-flex items-center gap-2 bg-indigo-500/10 border border-indigo-400/20 text-indigo-400 text-xs font-semibold px-4 py-2 rounded-full mb-6">
+              <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full" />
+              How It Works
+            </div>
+            <h2 className="text-4xl sm:text-5xl font-black text-white mb-4 leading-tight">
+              3 steps to your<br />
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-violet-400 to-fuchsia-400">
+                perfect trip
+              </span>
+            </h2>
+            <p className="text-gray-400 text-sm max-w-sm mx-auto leading-relaxed">
+              No hidden fees. No confusion. Just browse, request, and travel.
+            </p>
+          </div>
+
+          {/* Steps grid */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 lg:gap-6 relative">
+            {/* Connecting dashes (desktop only) */}
+            <div className="hidden lg:flex absolute top-10 left-[calc(33.33%+12px)] right-[calc(33.33%+12px)] items-center justify-between pointer-events-none" style={{ zIndex: 0 }}>
+              <div className="flex-1 border-t-2 border-dashed border-white/10" />
+            </div>
+
+            {[
+              {
+                num: '01',
+                emoji: '🔍',
+                title: 'Browse & Discover',
+                desc: 'Explore 500+ curated tours across adventure, heritage, beaches, and wildlife. Filter by destination, dates, and budget.',
+                gradient: 'from-indigo-500 to-blue-500',
+                glow: 'shadow-indigo-500/30',
+                tag: 'Start here',
+                tagColor: 'bg-indigo-500/15 text-indigo-300 border-indigo-500/20',
+              },
+              {
+                num: '02',
+                emoji: '💬',
+                title: 'Request a Quote',
+                desc: 'Tell vendors your group size, dates, and preferences. Get multiple personalised offers from verified local operators.',
+                gradient: 'from-violet-500 to-purple-500',
+                glow: 'shadow-violet-500/30',
+                tag: 'Compare offers',
+                tagColor: 'bg-violet-500/15 text-violet-300 border-violet-500/20',
+              },
+              {
+                num: '03',
+                emoji: '🚀',
+                title: 'Book & Travel',
+                desc: 'Pick the best offer, pay securely, and start your adventure. Our support team is with you every step of the way.',
+                gradient: 'from-fuchsia-500 to-pink-500',
+                glow: 'shadow-fuchsia-500/30',
+                tag: 'Best price',
+                tagColor: 'bg-fuchsia-500/15 text-fuchsia-300 border-fuchsia-500/20',
+              },
+            ].map((s, i) => (
+              <div
+                key={s.num}
+                className="relative bg-white/[0.04] hover:bg-white/[0.07] border border-white/[0.08] hover:border-white/[0.15] rounded-3xl p-8 transition-all duration-300 group overflow-hidden"
+                style={{ zIndex: 1 }}
+              >
+                {/* Large watermark number */}
+                <span className="absolute -top-4 -right-2 text-[120px] font-black text-white/[0.03] leading-none select-none pointer-events-none">
+                  {s.num}
+                </span>
+
+                {/* Top row: icon + tag */}
+                <div className="flex items-start justify-between mb-7">
+                  <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${s.gradient} flex items-center justify-center text-3xl shadow-xl ${s.glow} group-hover:scale-110 transition-transform duration-300`}>
+                    {s.emoji}
+                  </div>
+                  <span className={`text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-full border ${s.tagColor}`}>
+                    {s.tag}
+                  </span>
+                </div>
+
+                {/* Step number pill */}
+                <div className="flex items-center gap-2 mb-3">
+                  <span className={`text-xs font-black text-transparent bg-clip-text bg-gradient-to-r ${s.gradient}`}>
+                    STEP {s.num}
+                  </span>
+                  <div className="flex-1 h-px bg-white/10" />
+                </div>
+
+                {/* Content */}
+                <h3 className="text-xl font-black text-white mb-3">{s.title}</h3>
+                <p className="text-sm text-gray-400 leading-relaxed">{s.desc}</p>
+
+                {/* Bottom arrow */}
+                {i < 2 && (
+                  <div className="lg:hidden flex justify-center mt-8 mb-2">
+                    <div className="w-px h-8 bg-gradient-to-b from-white/20 to-transparent" />
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+
+          {/* CTA row */}
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-14">
+            <button
+              onClick={() => listingsRef.current?.scrollIntoView({ behavior: 'smooth' })}
+              className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-bold rounded-2xl transition-all shadow-xl shadow-indigo-500/25 hover:scale-[1.02] active:scale-[0.98] text-sm"
+            >
+              Explore Tours <ArrowRight className="w-4 h-4" />
+            </button>
+            <p className="text-xs text-gray-500">Free to browse · No account needed</p>
+          </div>
         </div>
       </section>
 
@@ -1191,6 +1334,123 @@ export default function WanderHomePage() {
                 <p className="text-sm text-gray-400 leading-relaxed">{item.desc}</p>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ══════════════════════════════════════════════════
+          TRAVELER TESTIMONIALS
+      ══════════════════════════════════════════════════ */}
+      <section className="py-24 px-4 sm:px-6 bg-gradient-to-b from-white to-gray-50 relative overflow-hidden">
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-gradient-to-r from-indigo-50 via-violet-50 to-purple-50 rounded-full blur-3xl opacity-70 pointer-events-none" />
+        <div className="relative max-w-6xl mx-auto">
+          <div className="text-center mb-14">
+            <p className="text-xs font-bold text-indigo-600 uppercase tracking-[0.2em] mb-3">Traveler Stories</p>
+            <h2 className="text-3xl sm:text-4xl font-black text-gray-900 mb-3">Real trips. Real smiles.</h2>
+            <p className="text-gray-400 text-sm max-w-sm mx-auto">Thousands of travelers have explored India through Wander. Here's what they say.</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {[
+              {
+                name: 'Priya Sharma',
+                location: 'Mumbai',
+                tour: '7 Days Goa Beach Tour',
+                rating: 5,
+                avatar: 'P',
+                color: 'from-pink-500 to-rose-500',
+                text: 'Absolutely loved the experience! The vendor was super responsive, the hotel was exactly as described, and the itinerary was perfectly planned. Will definitely book again through Wander.',
+              },
+              {
+                name: 'Rahul Mehta',
+                location: 'Delhi',
+                tour: 'Leh-Ladakh Adventure',
+                rating: 5,
+                avatar: 'R',
+                color: 'from-indigo-500 to-violet-500',
+                text: 'Getting multiple quotes from different operators saved us ₹8,000! The comparison feature is amazing. Our Ladakh trip was the best holiday we\'ve ever taken as a family.',
+                featured: true,
+              },
+              {
+                name: 'Ananya Rao',
+                location: 'Bangalore',
+                tour: 'Kerala Backwaters 5D',
+                rating: 5,
+                avatar: 'A',
+                color: 'from-emerald-500 to-teal-500',
+                text: 'From booking to checkout, everything was seamless. The houseboat experience was surreal. Huge thanks to the Wander team for recommending the right vendor for our group.',
+              },
+            ].map((t) => (
+              <div
+                key={t.name}
+                className={`relative bg-white rounded-3xl p-7 border shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col ${
+                  t.featured ? 'border-indigo-200 shadow-indigo-100/80 ring-2 ring-indigo-200/50' : 'border-gray-100'
+                }`}
+              >
+                {t.featured && (
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                    <span className="inline-flex items-center gap-1 bg-gradient-to-r from-indigo-600 to-violet-600 text-white text-[10px] font-bold px-3 py-1 rounded-full shadow-md">
+                      <Sparkles className="w-2.5 h-2.5" /> Featured Review
+                    </span>
+                  </div>
+                )}
+                {/* Stars */}
+                <div className="flex items-center gap-0.5 mb-4">
+                  {[...Array(t.rating)].map((_, i) => (
+                    <Star key={i} className="w-4 h-4 fill-amber-400 text-amber-400" />
+                  ))}
+                </div>
+                {/* Quote */}
+                <p className="text-sm text-gray-600 leading-relaxed flex-1 mb-5">"{t.text}"</p>
+                {/* Tour badge */}
+                <div className="flex items-center gap-1.5 mb-5">
+                  <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-indigo-600 bg-indigo-50 px-3 py-1 rounded-lg border border-indigo-100">
+                    <Compass className="w-3 h-3" /> {t.tour}
+                  </span>
+                </div>
+                {/* Reviewer */}
+                <div className="flex items-center gap-3 pt-4 border-t border-gray-100">
+                  <div className={`w-10 h-10 rounded-2xl bg-gradient-to-br ${t.color} flex items-center justify-center text-white font-black text-sm flex-shrink-0`}>
+                    {t.avatar}
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-gray-900">{t.name}</p>
+                    <p className="text-xs text-gray-400 flex items-center gap-1"><MapPin className="w-3 h-3" /> {t.location}</p>
+                  </div>
+                  <div className="ml-auto">
+                    <span className="text-[10px] text-emerald-600 font-semibold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100">✓ Verified Trip</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Rating summary bar */}
+          <div className="mt-12 bg-white border border-gray-100 rounded-3xl p-8 shadow-sm flex flex-col sm:flex-row items-center gap-8 max-w-2xl mx-auto">
+            <div className="text-center flex-shrink-0">
+              <p className="text-6xl font-black text-gray-900">4.8</p>
+              <div className="flex items-center justify-center gap-0.5 my-2">
+                {[...Array(5)].map((_, i) => <Star key={i} className="w-4 h-4 fill-amber-400 text-amber-400" />)}
+              </div>
+              <p className="text-xs text-gray-400">Average rating</p>
+            </div>
+            <div className="flex-1 w-full space-y-2">
+              {[
+                { label: '5 stars', width: '82%', count: '2,140' },
+                { label: '4 stars', width: '13%', count: '339' },
+                { label: '3 stars', width: '3%', count: '78' },
+                { label: '2 stars', width: '1%', count: '26' },
+                { label: '1 star', width: '1%', count: '13' },
+              ].map(r => (
+                <div key={r.label} className="flex items-center gap-3">
+                  <span className="text-[11px] text-gray-400 w-12 flex-shrink-0">{r.label}</span>
+                  <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
+                    <div className="h-full bg-gradient-to-r from-amber-400 to-orange-400 rounded-full" style={{ width: r.width }} />
+                  </div>
+                  <span className="text-[11px] text-gray-400 w-10 text-right flex-shrink-0">{r.count}</span>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </section>

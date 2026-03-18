@@ -1,32 +1,23 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  FlatList,
-  TouchableOpacity,
-  RefreshControl,
-  ActivityIndicator,
-  Alert,
+  View, Text, StyleSheet, FlatList, TouchableOpacity,
+  RefreshControl, ActivityIndicator, StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/Feather';
-import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import { getTemplates, deleteTemplate, updateTemplate } from '../../../api/client';
-import { showConfirm, showError, showInfo, showSuccess } from '../../../../services/alertService';
+import { showConfirm, showError, showSuccess } from '../../../../services/alertService';
 
 const C = {
-  bg: '#F7FAFC',
-  surface: '#FFFFFF',
-  text: '#1E293B',
-  muted: '#64748B',
-  border: '#E2E8F0',
-  brand: '#8B5CF6',
-  green: '#10B981',
-  orange: '#8B5CF6',
-  red: '#EF4444',
-  blue: '#3B82F6',
+  g900: '#022C22', g800: '#065F46', g700: '#047857', g600: '#059669',
+  g500: '#10B981', g400: '#34D399', g100: '#D1FAE5', g50: '#ECFDF5',
+  bg: '#F1F5F9', card: '#FFFFFF', border: '#E2E8F0',
+  text: '#0F172A', sub: '#475569', muted: '#94A3B8',
+  blue: '#2563EB', blueL: '#EFF6FF',
+  red: '#DC2626', redL: '#FEF2F2',
 };
 
 export default function PackersTemplatesScreen({ navigation }) {
@@ -38,11 +29,8 @@ export default function PackersTemplatesScreen({ navigation }) {
   const fetchTemplates = useCallback(async () => {
     try {
       const data = await getTemplates('packers');
-      if (data && data.templates) {
-        setTemplates(data.templates);
-      }
+      if (data && data.templates) setTemplates(data.templates);
     } catch (error) {
-      console.error('Error fetching templates:', error);
       showError('Failed to fetch templates');
     } finally {
       setLoading(false);
@@ -50,27 +38,16 @@ export default function PackersTemplatesScreen({ navigation }) {
     }
   }, []);
 
-  useEffect(() => {
-    fetchTemplates();
-  }, [fetchTemplates]);
+  useEffect(() => { fetchTemplates(); }, [fetchTemplates]);
 
-  const onRefresh = () => {
-    setRefreshing(true);
-    fetchTemplates();
-  };
+  const onRefresh = () => { setRefreshing(true); fetchTemplates(); };
 
   const handleToggleActive = async (template) => {
     setActionLoading(template.id);
     try {
-      const response = await api.patch(`/vendor/packers-templates/${template.id}`, {
-        isActive: !template.isActive,
-      });
-
-      if (data && data.templates) {
-        setTemplates(prev =>
-          prev.map(t => t.id === template.id ? { ...t, isActive: !t.isActive } : t)
-        );
-      }
+      await updateTemplate('packers', template.id, { isActive: !template.isActive });
+      setTemplates(prev => prev.map(t => t.id === template.id ? { ...t, isActive: !t.isActive } : t));
+      showSuccess(template.isActive ? 'Template deactivated' : 'Template activated');
     } catch (error) {
       showError('Failed to update template');
     } finally {
@@ -79,128 +56,94 @@ export default function PackersTemplatesScreen({ navigation }) {
   };
 
   const handleDelete = async (template) => {
-    showConfirm('Delete Template', `Are you sure you want to delete "${template.name}"?`, async () => {
-            setActionLoading(template.id);
-            try {
-              const response = await api.delete(`/vendor/packers-templates/${template.id}`);
-              if (data && data.templates) {
-                fetchTemplates();
-              }
-            } catch (error) {
-              showError('Failed to delete template');
-            } finally {
-              setActionLoading(null);
-            }
-          }, { confirmText: 'Delete', destructive: true });
+    showConfirm('Delete Template', `Delete "${template.name}"?`, async () => {
+      setActionLoading(template.id);
+      try {
+        await deleteTemplate('packers', template.id);
+        fetchTemplates();
+        showSuccess('Template deleted');
+      } catch (error) {
+        showError('Failed to delete template');
+      } finally {
+        setActionLoading(null);
+      }
+    }, { confirmText: 'Delete', destructive: true });
   };
 
   const renderTemplate = ({ item }) => {
     const isLoading = actionLoading === item.id;
-
     return (
-      <View style={[styles.card, !item.isActive && styles.cardInactive]}>
-        {/* Header */}
-        <View style={[styles.cardHeader, { backgroundColor: item.isActive ? C.brand : C.muted }]}>
-          <View style={styles.headerLeft}>
-            <MaterialCommunityIcons name="truck" size={16} color="#fff" />
-            <Text style={styles.categoryText}>
-              {item.category || 'Packers Template'}
-            </Text>
+      <View style={[s.card, !item.isActive && { opacity: 0.6 }]}>
+        <LinearGradient
+          colors={item.isActive ? [C.g800, C.g700] : ['#475569', '#64748B']}
+          start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+          style={s.cardHeader}
+        >
+          <View style={s.cardHeaderLeft}>
+            <MaterialCommunityIcons name="truck-delivery" size={16} color="rgba(255,255,255,0.8)" />
+            <Text style={s.cardHeaderText}>{item.category || 'Packers Template'}</Text>
           </View>
-          <View style={[styles.statusBadge, item.isActive ? styles.statusActive : styles.statusInactive]}>
-            <Text style={[styles.statusText, item.isActive ? styles.statusTextActive : styles.statusTextInactive]}>
-              {item.isActive ? 'Active' : 'Inactive'}
-            </Text>
+          <View style={s.statusBadge}>
+            <Text style={s.statusBadgeTxt}>{item.isActive ? 'Active' : 'Inactive'}</Text>
           </View>
-        </View>
+        </LinearGradient>
 
-        {/* Body */}
-        <View style={styles.cardBody}>
-          <Text style={styles.templateName}>{item.name}</Text>
+        <View style={s.cardBody}>
+          <Text style={s.templateName}>{item.name}</Text>
+          {item.description && <Text style={s.description} numberOfLines={2}>{item.description}</Text>}
 
-          {item.description && (
-            <Text style={styles.description} numberOfLines={2}>{item.description}</Text>
-          )}
-
-          {/* Pricing Hints */}
-          {item.baseRateHint && (
-            <View style={styles.pricingSection}>
-              <View style={styles.priceRow}>
-                <Text style={styles.priceLabel}>Base Rate</Text>
-                <Text style={styles.priceValue}>₹{item.baseRateHint?.toLocaleString()}/km</Text>
-              </View>
+          {item.baseRateHint ? (
+            <View style={s.priceRow}>
+              <Text style={s.priceLabel}>Base Rate</Text>
+              <Text style={s.priceValue}>₹{item.baseRateHint?.toLocaleString()}</Text>
             </View>
-          )}
+          ) : null}
 
-          {/* Truck Types */}
           {Array.isArray(item.shiftingTypes) && item.shiftingTypes.length > 0 && (
-            <View style={styles.tagsRow}>
-              {item.shiftingTypes.slice(0, 3).map((tt, idx) => (
-                <View key={idx} style={styles.tag}>
-                  <Text style={styles.tagText}>{tt}</Text>
-                </View>
+            <View style={s.tagsRow}>
+              {item.shiftingTypes.slice(0, 3).map((t, idx) => (
+                <View key={idx} style={s.tag}><Text style={s.tagTxt}>{t}</Text></View>
               ))}
               {item.shiftingTypes.length > 3 && (
-                <View style={styles.tag}>
-                  <Text style={styles.tagText}>+{item.shiftingTypes.length - 3}</Text>
-                </View>
+                <View style={s.tag}><Text style={s.tagTxt}>+{item.shiftingTypes.length - 3}</Text></View>
               )}
             </View>
           )}
 
-          {/* Inclusions Preview */}
           {Array.isArray(item.inclusions) && item.inclusions.length > 0 && (
-            <View style={styles.inclusionsPreview}>
-              <Text style={styles.inclusionsLabel}>Includes:</Text>
-              <Text style={styles.inclusionsText} numberOfLines={2}>
-                {item.inclusions.slice(0, 3).join(', ')}
-                {item.inclusions.length > 3 && ` +${item.inclusions.length - 3} more`}
+            <View style={s.inclusionsPreview}>
+              <Text style={s.inclusionsLabel}>Includes:</Text>
+              <Text style={s.inclusionsText} numberOfLines={2}>
+                {item.inclusions.slice(0, 3).join(', ')}{item.inclusions.length > 3 ? ` +${item.inclusions.length - 3} more` : ''}
               </Text>
             </View>
           )}
 
-          {/* Actions */}
-          <View style={styles.actions}>
+          <View style={s.actions}>
             <TouchableOpacity
-              style={[
-                styles.actionBtn,
-                item.isActive ? styles.actionBtnActive : styles.actionBtnInactive,
-              ]}
+              style={[s.actionBtn, item.isActive ? { backgroundColor: C.g50 } : { backgroundColor: C.bg }]}
               onPress={() => handleToggleActive(item)}
               disabled={isLoading}
             >
-              {isLoading ? (
-                <ActivityIndicator size="small" color={item.isActive ? C.green : C.muted} />
-              ) : (
+              {isLoading ? <ActivityIndicator size="small" color={C.g600} /> : (
                 <>
-                  <Ionicons
-                    name={item.isActive ? 'toggle' : 'toggle-outline'}
-                    size={16}
-                    color={item.isActive ? C.green : C.muted}
-                  />
-                  <Text
-                    style={[
-                      styles.actionBtnText,
-                      { color: item.isActive ? C.green : C.muted },
-                    ]}
-                  >
+                  <Ionicons name={item.isActive ? 'toggle' : 'toggle-outline'} size={16} color={item.isActive ? C.g600 : C.muted} />
+                  <Text style={[s.actionBtnTxt, { color: item.isActive ? C.g700 : C.muted }]}>
                     {item.isActive ? 'Active' : 'Inactive'}
                   </Text>
                 </>
               )}
             </TouchableOpacity>
-
             <TouchableOpacity
-              style={[styles.actionBtn, styles.actionBtnEdit]}
+              style={[s.actionBtn, { backgroundColor: C.blueL }]}
               onPress={() => navigation.navigate('PackersEditTemplate', { templateId: item.id })}
               disabled={isLoading}
             >
               <Icon name="edit-2" size={14} color={C.blue} />
-              <Text style={[styles.actionBtnText, { color: C.blue }]}>Edit</Text>
+              <Text style={[s.actionBtnTxt, { color: C.blue }]}>Edit</Text>
             </TouchableOpacity>
-
             <TouchableOpacity
-              style={[styles.actionBtn, styles.actionBtnDelete]}
+              style={[s.actionBtn, { flex: 0, paddingHorizontal: 14, backgroundColor: C.redL }]}
               onPress={() => handleDelete(item)}
               disabled={isLoading}
             >
@@ -214,61 +157,75 @@ export default function PackersTemplatesScreen({ navigation }) {
 
   if (loading) {
     return (
-      <View style={styles.centered}>
-        <ActivityIndicator size="large" color={C.brand} />
-        <Text style={styles.loadingText}>Loading templates...</Text>
+      <View style={s.safe}>
+        <StatusBar barStyle="light-content" backgroundColor={C.g900} />
+        <LinearGradient colors={[C.g900, '#064E3B', C.g700]} style={s.heroMin}>
+          <SafeAreaView edges={['top']}>
+            <View style={s.topBar}>
+              <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()}>
+                <Icon name="arrow-left" size={18} color="#fff" />
+              </TouchableOpacity>
+              <View style={s.titleWrap}>
+                <MaterialCommunityIcons name="truck-delivery" size={18} color={C.g400} />
+                <Text style={s.heroTitle}>Quote Templates</Text>
+              </View>
+              <View style={{ width: 36 }} />
+            </View>
+          </SafeAreaView>
+        </LinearGradient>
+        <View style={s.centered}>
+          <ActivityIndicator size="large" color={C.g600} />
+        </View>
       </View>
     );
   }
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Icon name="arrow-left" size={22} color={C.text} />
-        </TouchableOpacity>
-        <View style={styles.headerCenter}>
-          <Text style={styles.headerTitle}>Quote Templates</Text>
-          <Text style={styles.headerSubtitle}>Packers Truck / Transporter Movers</Text>
+    <SafeAreaView style={s.safe} edges={['top']}>
+      <StatusBar barStyle="light-content" backgroundColor={C.g900} />
+
+      <LinearGradient
+        colors={[C.g900, '#064E3B', C.g700]}
+        start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+        style={s.heroMin}
+      >
+        <View style={s.deco1} /><View style={s.deco2} />
+        <View style={s.topBar}>
+          <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()}>
+            <Icon name="arrow-left" size={18} color="#fff" />
+          </TouchableOpacity>
+          <View style={s.titleWrap}>
+            <MaterialCommunityIcons name="truck-delivery" size={18} color={C.g400} />
+            <Text style={s.heroTitle}>Quote Templates</Text>
+          </View>
+          <TouchableOpacity style={s.backBtn} onPress={onRefresh}>
+            <Icon name="refresh-cw" size={16} color={C.g400} />
+          </TouchableOpacity>
         </View>
-        <TouchableOpacity onPress={onRefresh} style={styles.refreshBtn}>
-          <Icon name="refresh-cw" size={20} color={C.brand} />
-        </TouchableOpacity>
-      </View>
+        <Text style={s.heroSub}>Packers & Movers</Text>
+      </LinearGradient>
 
       <FlatList
         data={templates}
         renderItem={renderTemplate}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.list}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[C.brand]} />
-        }
+        contentContainerStyle={s.list}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.g400} colors={[C.g600]} />}
         ListEmptyComponent={
-          <View style={styles.empty}>
+          <View style={s.empty}>
             <MaterialCommunityIcons name="file-document-outline" size={64} color={C.muted} />
-            <Text style={styles.emptyTitle}>No Templates Yet</Text>
-            <Text style={styles.emptyText}>
-              Create templates to quickly fill quote details when sending quotes to customers
-            </Text>
-            <TouchableOpacity
-              style={styles.emptyBtn}
-              onPress={() => navigation.navigate('PackersCreateTemplate')}
-            >
+            <Text style={s.emptyTitle}>No Templates Yet</Text>
+            <Text style={s.emptyText}>Create templates to quickly fill quote details when sending quotes to customers</Text>
+            <TouchableOpacity style={s.emptyBtn} onPress={() => navigation.navigate('PackersCreateTemplate')}>
               <Icon name="plus" size={20} color="#fff" />
-              <Text style={styles.emptyBtnText}>Create First Template</Text>
+              <Text style={s.emptyBtnTxt}>Create First Template</Text>
             </TouchableOpacity>
           </View>
         }
       />
 
-      {/* Add Button */}
       {templates.length > 0 && (
-        <TouchableOpacity
-          style={styles.fab}
-          onPress={() => navigation.navigate('PackersCreateTemplate')}
-        >
+        <TouchableOpacity style={s.fab} onPress={() => navigation.navigate('PackersCreateTemplate')}>
           <Icon name="plus" size={24} color="#fff" />
         </TouchableOpacity>
       )}
@@ -276,276 +233,61 @@ export default function PackersTemplatesScreen({ navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: C.bg,
-  },
-  centered: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: C.bg,
-  },
-  loadingText: {
-    marginTop: 12,
-    fontSize: 14,
-    color: C.muted,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: C.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: C.border,
-  },
-  backBtn: {
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  headerCenter: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: C.text,
-  },
-  headerSubtitle: {
-    fontSize: 12,
-    color: C.muted,
-    marginTop: 2,
-  },
-  refreshBtn: {
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  list: {
-    padding: 16,
-    paddingBottom: 80,
-  },
+const s = StyleSheet.create({
+  safe: { flex: 1, backgroundColor: C.bg },
+  centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+
+  heroMin: { paddingHorizontal: 16, paddingBottom: 16 },
+  deco1: { position: 'absolute', top: -40, right: -40, width: 160, height: 160, borderRadius: 80, backgroundColor: 'rgba(52,211,153,0.08)' },
+  deco2: { position: 'absolute', bottom: -20, left: -20, width: 100, height: 100, borderRadius: 50, backgroundColor: 'rgba(52,211,153,0.06)' },
+  topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 12 },
+  backBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center' },
+  titleWrap: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  heroTitle: { fontSize: 17, fontWeight: '700', color: '#fff' },
+  heroSub: { fontSize: 12, color: 'rgba(255,255,255,0.5)', marginTop: 4 },
+
+  list: { padding: 16, paddingBottom: 90 },
+
   card: {
-    backgroundColor: C.surface,
-    borderRadius: 16,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: C.border,
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
+    backgroundColor: C.card, borderRadius: 16, marginBottom: 16, overflow: 'hidden',
+    borderWidth: 1, borderColor: C.border,
+    shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 3,
   },
-  cardInactive: {
-    opacity: 0.6,
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-  },
-  headerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  categoryText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#fff',
-    opacity: 0.9,
-  },
-  statusBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 10,
-  },
-  statusActive: {
-    backgroundColor: '#DCFCE7',
-  },
-  statusInactive: {
-    backgroundColor: '#F3F4F6',
-  },
-  statusText: {
-    fontSize: 10,
-    fontWeight: '700',
-  },
-  statusTextActive: {
-    color: '#166534',
-  },
-  statusTextInactive: {
-    color: '#6B7280',
-  },
-  cardBody: {
-    padding: 16,
-  },
-  templateName: {
-    fontSize: 17,
-    fontWeight: '700',
-    color: C.text,
-    marginBottom: 8,
-  },
-  description: {
-    fontSize: 13,
-    color: C.muted,
-    marginBottom: 12,
-    lineHeight: 18,
-  },
-  pricingSection: {
-    marginBottom: 12,
-  },
-  priceRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 6,
-  },
-  priceLabel: {
-    fontSize: 13,
-    color: C.muted,
-  },
-  priceValue: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: C.text,
-  },
-  priceValueSmall: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: C.text,
-  },
-  tagsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-    marginBottom: 12,
-  },
-  tag: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    backgroundColor: '#FEF3C7',
-    borderRadius: 12,
-  },
-  tagText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: C.orange,
-  },
-  inclusionsPreview: {
-    marginBottom: 12,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: C.border,
-  },
-  inclusionsLabel: {
-    fontSize: 11,
-    color: C.muted,
-    marginBottom: 4,
-  },
-  inclusionsText: {
-    fontSize: 12,
-    color: C.text,
-    lineHeight: 18,
-  },
-  actions: {
-    flexDirection: 'row',
-    gap: 8,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: C.border,
-  },
-  actionBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 4,
-    paddingVertical: 10,
-    borderRadius: 10,
-    backgroundColor: C.bg,
-  },
-  actionBtnActive: {
-    backgroundColor: '#DCFCE7',
-  },
-  actionBtnInactive: {
-    backgroundColor: '#F3F4F6',
-  },
-  actionBtnEdit: {
-    backgroundColor: '#EFF6FF',
-  },
-  actionBtnDelete: {
-    flex: 0,
-    paddingHorizontal: 14,
-    backgroundColor: '#FEE2E2',
-  },
-  actionBtnText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  empty: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 60,
-    paddingHorizontal: 32,
-  },
-  emptyTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: C.text,
-    marginTop: 16,
-  },
-  emptyText: {
-    fontSize: 14,
-    color: C.muted,
-    marginTop: 8,
-    textAlign: 'center',
-    lineHeight: 20,
-  },
-  emptyBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: 24,
-    paddingVertical: 14,
-    backgroundColor: C.brand,
-    borderRadius: 12,
-    marginTop: 24,
-    shadowColor: C.brand,
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 4,
-  },
-  emptyBtnText: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#fff',
-  },
+  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 10 },
+  cardHeaderLeft: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  cardHeaderText: { fontSize: 12, fontWeight: '600', color: '#fff', opacity: 0.9 },
+  statusBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.2)' },
+  statusBadgeTxt: { fontSize: 10, fontWeight: '700', color: '#fff' },
+
+  cardBody: { padding: 16 },
+  templateName: { fontSize: 17, fontWeight: '700', color: C.text, marginBottom: 6 },
+  description: { fontSize: 13, color: C.muted, marginBottom: 12, lineHeight: 18 },
+
+  priceRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+  priceLabel: { fontSize: 13, color: C.muted },
+  priceValue: { fontSize: 16, fontWeight: '700', color: C.text },
+
+  tagsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 12 },
+  tag: { paddingHorizontal: 10, paddingVertical: 4, backgroundColor: C.g50, borderRadius: 12 },
+  tagTxt: { fontSize: 11, fontWeight: '600', color: C.g700 },
+
+  inclusionsPreview: { marginBottom: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: C.border },
+  inclusionsLabel: { fontSize: 11, color: C.muted, marginBottom: 4 },
+  inclusionsText: { fontSize: 12, color: C.text, lineHeight: 18 },
+
+  actions: { flexDirection: 'row', gap: 8, paddingTop: 12, borderTopWidth: 1, borderTopColor: C.border },
+  actionBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 10, borderRadius: 10 },
+  actionBtnTxt: { fontSize: 12, fontWeight: '700' },
+
+  empty: { alignItems: 'center', justifyContent: 'center', paddingVertical: 60, paddingHorizontal: 32 },
+  emptyTitle: { fontSize: 20, fontWeight: '700', color: C.text, marginTop: 16 },
+  emptyText: { fontSize: 14, color: C.muted, marginTop: 8, textAlign: 'center', lineHeight: 20 },
+  emptyBtn: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 24, paddingVertical: 14, backgroundColor: C.g600, borderRadius: 12, marginTop: 24 },
+  emptyBtnTxt: { fontSize: 15, fontWeight: '700', color: '#fff' },
+
   fab: {
-    position: 'absolute',
-    bottom: 24,
-    right: 24,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: C.brand,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: C.brand,
-    shadowOpacity: 0.4,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 6,
+    position: 'absolute', bottom: 24, right: 24, width: 56, height: 56, borderRadius: 28,
+    backgroundColor: C.g600, justifyContent: 'center', alignItems: 'center',
+    shadowColor: C.g700, shadowOpacity: 0.4, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 8,
   },
 });

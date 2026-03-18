@@ -49,6 +49,45 @@
   }
 }
 
+/* ── Global Scrollbar (green brand theme) ── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #f0fdf4;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb {
+  background: #16a34a;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #22c55e;
+}
+::-webkit-scrollbar-corner {
+  background: #f0fdf4;
+}
+
+/* ── Dark Sidebar Scrollbar ── */
+.sidebar-scroll::-webkit-scrollbar {
+  width: 4px;
+}
+.sidebar-scroll::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 4px;
+}
+.sidebar-scroll::-webkit-scrollbar-thumb {
+  background: #16a34a;
+  border-radius: 4px;
+}
+.sidebar-scroll::-webkit-scrollbar-thumb:hover {
+  background: #22c55e;
+}
+.sidebar-scroll::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
 @layer base {
   * {
     @apply border-border;
