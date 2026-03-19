@@ -203,9 +203,7 @@ export default function DashboardScreen({ navigation }) {
   const manageItems = [
     { label: 'Fleet',          sub: `${profile?.fleetsCount ?? 0} vehicles`, icon: 'car-outline',             lib: 'ion', color: C.blue,   route: 'FleetListScreen' },
     { label: 'Staff',          sub: 'Manage team',                           icon: 'people-outline',           lib: 'ion', color: C.purple, route: 'StaffListScreen' },
-    { label: 'Chats',          sub: 'Messages',                              icon: 'chatbubble-outline',       lib: 'ion', color: C.g600,   route: 'ChatListScreen' },
-    { label: 'Profile',        sub: 'Settings',                              icon: 'person-circle-outline',    lib: 'ion', color: C.amber,  route: 'ProfileScreen' },
-    { label: 'Direct Booking', sub: 'Walk-ins',                              icon: 'book-outline',             lib: 'ion', color: C.orange, route: 'DirectBookings' },
+{ label: 'Direct Booking', sub: 'Walk-ins',                              icon: 'book-outline',             lib: 'ion', color: C.orange, route: 'DirectBookings' },
     { label: 'Booking Links',  sub: 'Share & track',                         icon: 'link-outline',             lib: 'ion', color: C.indigo, route: 'BookingLinks' },
     { label: 'Financials',     sub: 'P&L reports',                           icon: 'bar-chart-outline',        lib: 'ion', color: C.purple, route: 'Financials' },
     { label: 'P2P Market',     sub: 'Trade fleet',                           icon: 'swap-horizontal-outline',  lib: 'ion', color: C.teal,   route: 'P2PDashboard' },
@@ -574,6 +572,29 @@ export default function DashboardScreen({ navigation }) {
               <Text style={s.sectionTitle}>Manage</Text>
               <View style={s.manageGrid}>
                 {manageItems.map((m, i) => (
+                  <TouchableOpacity key={i} style={s.manageCard}
+                    onPress={() => navigation.navigate(m.route)} activeOpacity={0.75}>
+                    <View style={[s.manageIconBox, { backgroundColor: m.color + '14' }]}>
+                      <Ico lib={m.lib} name={m.icon} size={20} color={m.color} />
+                    </View>
+                    <Text style={s.manageLabel}>{m.label}</Text>
+                    <Text style={s.manageSub}>{m.sub}</Text>
+                    <Ionicons name="chevron-forward" size={12} color={C.muted} style={s.manageArrow} />
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+          )}
+
+          {/* ── Community / Social ───────────────────── */}
+          {isApproved && (
+            <View style={s.section}>
+              <Text style={s.sectionTitle}>Community</Text>
+              <View style={s.manageGrid}>
+                {[
+                  { label: 'Social Feed',  sub: 'Posts & updates',  icon: 'newspaper-outline',     lib: 'ion', color: C.pink,   route: 'SocialFeed' },
+                  { label: 'Messages',     sub: 'Vendor chats',     icon: 'chatbubbles-outline',   lib: 'ion', color: C.blue,   route: 'SocialMessagesScreen' },
+                ].map((m, i) => (
                   <TouchableOpacity key={i} style={s.manageCard}
                     onPress={() => navigation.navigate(m.route)} activeOpacity={0.75}>
                     <View style={[s.manageIconBox, { backgroundColor: m.color + '14' }]}>

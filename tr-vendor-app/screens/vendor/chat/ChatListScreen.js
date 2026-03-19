@@ -138,6 +138,7 @@ export default function ChatListScreen({ navigation }) {
           customerName: item.customerName,
           bookingNumber: item.bookingNumber,
           serviceType: item.bookingType,
+          customerAvatar: item.customerAvatar || null,
         })}
         activeOpacity={0.78}
       >
@@ -357,7 +358,7 @@ const st = StyleSheet.create({
   filterChipBadgeTxt: { fontSize: 10, fontWeight: '800', color: C.muted },
 
   /* List */
-  listContent: { padding: 14, paddingBottom: 100, gap: 10 },
+  listContent: { padding: 14, paddingBottom: 120, gap: 10 },
 
   /* Chat card */
   chatCard: {

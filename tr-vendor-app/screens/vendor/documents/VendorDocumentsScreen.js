@@ -1,73 +1,72 @@
-// screens/vendor/documents/VendorDocumentsScreen.js
-// Document upload screen matching web app flow
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  ActivityIndicator,
-  RefreshControl,
-  Modal,
-  TextInput,
-  Platform,
-  Alert,
-  Image,
+  View, Text, StyleSheet, ScrollView, TouchableOpacity,
+  ActivityIndicator, RefreshControl, Modal, TextInput,
+  Platform, StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
+import LinearGradient from 'react-native-linear-gradient';
+import Icon from 'react-native-vector-icons/Feather';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { launchImageLibrary, launchCamera } from 'react-native-image-picker';
 import { pick, types } from '@react-native-documents/picker';
-import { showError, showConfirm, showInfo, showSuccess } from '../../../services/alertService';
+import { showError, showConfirm, showSuccess } from '../../../services/alertService';
 import {
-  getVendorDocuments,
-  uploadVendorDocument,
-  deleteVendorDocument,
-  getStoredVendor,
+  getVendorDocuments, uploadVendorDocument,
+  deleteVendorDocument, getStoredVendor,
 } from '../../api/client';
 
-const BRAND = {
-  primary: '#1FC77A',
-  primaryDark: '#12AD66',
-  ink: '#0F1720',
-  text: '#334155',
-  subText: '#64748B',
-  bg: '#F6F8FB',
-  card: '#FFFFFF',
-  border: '#E6EDF5',
-  error: '#EF4444',
-  blue: '#3B82F6',
-  yellow: '#F59E0B',
-  green: '#10B981',
+const C = {
+  g900: '#022C22', g800: '#065F46', g700: '#047857', g600: '#059669',
+  g500: '#10B981', g400: '#34D399', g100: '#D1FAE5', g50: '#ECFDF5',
+  bg: '#F1F5F9', card: '#FFFFFF', border: '#E2E8F0',
+  text: '#0F172A', sub: '#475569', muted: '#94A3B8',
+  blue: '#3B82F6', blueL: '#EFF6FF',
+  amber: '#D97706', amberL: '#FFFBEB',
+  red: '#DC2626', redL: '#FEF2F2',
+  purple: '#7C3AED', purpleL: '#F5F3FF',
+  orange: '#EA580C', orangeL: '#FFF7ED',
+  indigo: '#4F46E5', indigoL: '#EEF2FF',
 };
 
 const DOCUMENT_TYPES = [
-  { type: 'GST_CERTIFICATE', name: 'GST Certificate', required: true, description: 'GST registration certificate' },
-  { type: 'PAN_CARD', name: 'PAN Card', required: true, description: 'Business or proprietor PAN' },
-  { type: 'BUSINESS_REGISTRATION', name: 'Business Registration', required: false, description: 'Company registration certificate' },
-  { type: 'ADDRESS_PROOF', name: 'Address Proof', required: true, description: 'Utility bill, rent agreement, etc.' },
-  { type: 'CANCELLED_CHEQUE', name: 'Cancelled Cheque', required: false, description: 'For bank verification' },
-  { type: 'OWNER_AADHAAR', name: 'Owner Aadhaar', required: false, description: 'Owner/proprietor Aadhaar card' },
+  { type: 'GST_CERTIFICATE',      name: 'GST Certificate',       required: true,  description: 'GST registration certificate',      icon: 'file-certificate-outline', color: C.g700,   bg: C.g50 },
+  { type: 'PAN_CARD',             name: 'PAN Card',              required: true,  description: 'Business or proprietor PAN',         icon: 'card-account-details-outline', color: C.blue,   bg: C.blueL },
+  { type: 'BUSINESS_REGISTRATION',name: 'Business Registration', required: false, description: 'Company registration certificate',    icon: 'domain',                   color: C.indigo, bg: C.indigoL },
+  { type: 'ADDRESS_PROOF',        name: 'Address Proof',         required: true,  description: 'Utility bill, rent agreement, etc.', icon: 'map-marker-outline',       color: C.orange, bg: C.orangeL },
+  { type: 'CANCELLED_CHEQUE',     name: 'Cancelled Cheque',      required: false, description: 'For bank verification',              icon: 'bank-outline',             color: C.purple, bg: C.purpleL },
+  { type: 'OWNER_AADHAAR',        name: 'Owner Aadhaar',         required: false, description: 'Owner/proprietor Aadhaar card',      icon: 'shield-account-outline',   color: C.amber,  bg: C.amberL },
 ];
 
+const STATUS_META = {
+  APPROVED: { label: 'Approved', color: C.g700,  bg: C.g50,   icon: 'check-circle',        mcIcon: 'check-decagram' },
+  REJECTED: { label: 'Rejected', color: C.red,   bg: C.redL,  icon: 'x-circle',            mcIcon: 'close-circle-outline' },
+  PENDING:  { label: 'Pending',  color: C.amber, bg: C.amberL,icon: 'clock',               mcIcon: 'timer-sand' },
+};
+
 export default function VendorDocumentsScreen({ navigation }) {
-  const [documents, setDocuments] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [uploading, setUploading] = useState(null);
+  const [documents, setDocuments]           = useState([]);
+  const [loading, setLoading]               = useState(true);
+  const [refreshing, setRefreshing]         = useState(false);
+  const [uploading, setUploading]           = useState(null);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [selectedDocType, setSelectedDocType] = useState(null);
   const [documentNumber, setDocumentNumber] = useState('');
-  const [selectedFile, setSelectedFile] = useState(null);
-  const [vendor, setVendor] = useState(null);
+  const [selectedFile, setSelectedFile]     = useState(null);
+  const [vendor, setVendor]                 = useState(null);
+
+  useFocusEffect(useCallback(() => {
+    StatusBar.setBarStyle('light-content');
+    StatusBar.setBackgroundColor(C.g900);
+  }, []));
 
   const fetchDocuments = useCallback(async () => {
     try {
       const docs = await getVendorDocuments();
       setDocuments(Array.isArray(docs) ? docs : []);
-    } catch (error) {
-      console.error('Failed to fetch documents:', error);
+    } catch (e) {
       setDocuments([]);
     } finally {
       setLoading(false);
@@ -80,41 +79,11 @@ export default function VendorDocumentsScreen({ navigation }) {
     setVendor(v);
   }, []);
 
-  useEffect(() => {
-    fetchDocuments();
-    loadVendor();
-  }, [fetchDocuments, loadVendor]);
+  useEffect(() => { fetchDocuments(); loadVendor(); }, [fetchDocuments, loadVendor]);
 
-  const onRefresh = useCallback(() => {
-    setRefreshing(true);
-    fetchDocuments();
-  }, [fetchDocuments]);
+  const onRefresh = useCallback(() => { setRefreshing(true); fetchDocuments(); }, [fetchDocuments]);
 
-  const getDocumentByType = (type) => {
-    return documents.find((doc) => doc.documentType === type);
-  };
-
-  const getStatusIcon = (status) => {
-    switch (status) {
-      case 'APPROVED':
-        return <Ionicons name="checkmark-circle" size={20} color={BRAND.green} />;
-      case 'REJECTED':
-        return <Ionicons name="alert-circle" size={20} color={BRAND.error} />;
-      default:
-        return <Ionicons name="time" size={20} color={BRAND.yellow} />;
-    }
-  };
-
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'APPROVED':
-        return { bg: '#D1FAE5', text: '#059669' };
-      case 'REJECTED':
-        return { bg: '#FEE2E2', text: '#DC2626' };
-      default:
-        return { bg: '#FEF3C7', text: '#D97706' };
-    }
-  };
+  const getDocumentByType = (type) => documents.find((d) => d.documentType === type);
 
   const openUploadModal = (docType) => {
     setSelectedDocType(docType);
@@ -126,84 +95,32 @@ export default function VendorDocumentsScreen({ navigation }) {
   const handleSelectFile = async (source) => {
     try {
       if (source === 'camera') {
-        const result = await launchCamera({
-          mediaType: 'photo',
-          quality: 0.8,
-          maxWidth: 1920,
-          maxHeight: 1920,
-        });
-
+        const result = await launchCamera({ mediaType: 'photo', quality: 0.8, maxWidth: 1920, maxHeight: 1920 });
         if (result.didCancel) return;
-        if (result.errorCode) {
-          showError(result.errorMessage || 'Failed to capture image');
-          return;
-        }
-
+        if (result.errorCode) { showError(result.errorMessage || 'Failed to capture image'); return; }
         const asset = result.assets?.[0];
-        if (asset) {
-          setSelectedFile({
-            uri: asset.uri,
-            name: asset.fileName || `photo_${Date.now()}.jpg`,
-            type: asset.type || 'image/jpeg',
-            size: asset.fileSize,
-          });
-        }
+        if (asset) setSelectedFile({ uri: asset.uri, name: asset.fileName || `photo_${Date.now()}.jpg`, type: asset.type || 'image/jpeg', size: asset.fileSize });
       } else if (source === 'gallery') {
-        const result = await launchImageLibrary({
-          mediaType: 'photo',
-          quality: 0.8,
-          maxWidth: 1920,
-          maxHeight: 1920,
-        });
-
+        const result = await launchImageLibrary({ mediaType: 'photo', quality: 0.8, maxWidth: 1920, maxHeight: 1920 });
         if (result.didCancel) return;
-        if (result.errorCode) {
-          showError(result.errorMessage || 'Failed to select image');
-          return;
-        }
-
+        if (result.errorCode) { showError(result.errorMessage || 'Failed to select image'); return; }
         const asset = result.assets?.[0];
-        if (asset) {
-          setSelectedFile({
-            uri: asset.uri,
-            name: asset.fileName || `image_${Date.now()}.jpg`,
-            type: asset.type || 'image/jpeg',
-            size: asset.fileSize,
-          });
-        }
+        if (asset) setSelectedFile({ uri: asset.uri, name: asset.fileName || `image_${Date.now()}.jpg`, type: asset.type || 'image/jpeg', size: asset.fileSize });
       } else if (source === 'document') {
-        const [result] = await pick({
-          type: [types.pdf, types.images],
-        });
-
+        const [result] = await pick({ type: [types.pdf, types.images] });
         if (result) {
-          // Check file size (max 5MB)
-          if (result.size > 5 * 1024 * 1024) {
-            showError('File size must be less than 5MB');
-            return;
-          }
-          setSelectedFile({
-            uri: result.uri,
-            name: result.name,
-            type: result.type,
-            size: result.size,
-          });
+          if (result.size > 5 * 1024 * 1024) { showError('File size must be less than 5MB'); return; }
+          setSelectedFile({ uri: result.uri, name: result.name, type: result.type, size: result.size });
         }
       }
-    } catch (error) {
-      // New picker throws error with code for cancel
-      if (error?.code !== 'DOCUMENT_PICKER_CANCELED') {
-        console.error('File selection error:', error);
-        showError('Failed to select file');
-      }
+    } catch (e) {
+      if (e?.code !== 'DOCUMENT_PICKER_CANCELED') showError('Failed to select file');
     }
   };
 
   const handleUpload = async () => {
     if (!selectedFile || !selectedDocType) return;
-
     setUploading(selectedDocType.type);
-
     try {
       const formData = new FormData();
       formData.append('file', {
@@ -212,21 +129,15 @@ export default function VendorDocumentsScreen({ navigation }) {
         type: selectedFile.type,
       });
       formData.append('documentType', selectedDocType.type);
-      if (documentNumber.trim()) {
-        formData.append('documentNumber', documentNumber.trim());
-      }
-
+      if (documentNumber.trim()) formData.append('documentNumber', documentNumber.trim());
       await uploadVendorDocument(formData);
-
       setShowUploadModal(false);
       setSelectedFile(null);
       setDocumentNumber('');
       fetchDocuments();
-
       showSuccess('Document uploaded successfully');
-    } catch (error) {
-      console.error('Upload failed:', error);
-      showError(error?.response?.data?.error || 'Upload failed. Please try again.');
+    } catch (e) {
+      showError(e?.response?.data?.error || 'Upload failed. Please try again.');
     } finally {
       setUploading(null);
     }
@@ -234,24 +145,15 @@ export default function VendorDocumentsScreen({ navigation }) {
 
   const handleDelete = async (docId) => {
     showConfirm('Delete Document', 'Are you sure you want to delete this document?', async () => {
-            try {
-              await deleteVendorDocument(docId);
-              fetchDocuments();
-              showSuccess('Document deleted successfully');
-            } catch (error) {
-              console.error('Delete failed:', error);
-              showError('Failed to delete document');
-            }
-          }, { confirmText: 'Delete', destructive: true });
+      try {
+        await deleteVendorDocument(docId);
+        fetchDocuments();
+        showSuccess('Document deleted');
+      } catch (e) {
+        showError('Failed to delete document');
+      }
+    }, { confirmText: 'Delete', destructive: true });
   };
-
-  const allRequiredUploaded = DOCUMENT_TYPES
-    .filter((dt) => dt.required)
-    .every((dt) => getDocumentByType(dt.type));
-
-  const approvedCount = documents.filter((d) => d.status === 'APPROVED').length;
-  const pendingCount = documents.filter((d) => d.status === 'PENDING').length;
-  const rejectedCount = documents.filter((d) => d.status === 'REJECTED').length;
 
   const handleContinue = () => {
     if (vendor?.status === 'DOCUMENTS_PENDING' || vendor?.status === 'PENDING_APPROVAL') {
@@ -261,322 +163,322 @@ export default function VendorDocumentsScreen({ navigation }) {
     }
   };
 
+  const allRequiredUploaded = DOCUMENT_TYPES.filter(d => d.required).every(d => getDocumentByType(d.type));
+  const approvedCount  = documents.filter(d => d.status === 'APPROVED').length;
+  const pendingCount   = documents.filter(d => d.status === 'PENDING').length;
+  const rejectedCount  = documents.filter(d => d.status === 'REJECTED').length;
+  const uploadedCount  = documents.length;
+
   if (loading) {
     return (
-      <SafeAreaView style={styles.safe}>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={BRAND.primary} />
-          <Text style={styles.loadingText}>Loading documents...</Text>
+      <SafeAreaView style={st.safe} edges={['top']}>
+        <StatusBar barStyle="light-content" backgroundColor={C.g900} />
+        <LinearGradient colors={[C.g900, C.g800, C.g700]} style={st.heroLoading}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={st.backBtn}>
+            <Icon name="arrow-left" size={20} color="#fff" />
+          </TouchableOpacity>
+          <Text style={st.heroTitle}>Documents</Text>
+          <View style={{ width: 38 }} />
+        </LinearGradient>
+        <View style={st.loaderWrap}>
+          <ActivityIndicator size="large" color={C.g600} />
+          <Text style={st.loaderTxt}>Loading documents...</Text>
         </View>
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[BRAND.primary]} />
-        }
-      >
-        {/* Header */}
-        <View style={styles.header}>
-          <View>
-            <Text style={styles.headerTitle}>Business Documents</Text>
-            <Text style={styles.headerSubtitle}>
-              {documents.length === 0
-                ? 'Step 1: Upload your business documents for verification'
-                : 'Upload your documents for verification'}
-            </Text>
-          </View>
-        </View>
+    <SafeAreaView style={st.safe} edges={['top']}>
+      <StatusBar barStyle="light-content" backgroundColor={C.g900} />
 
-        {/* First Time Welcome Banner */}
-        {documents.length === 0 && (
-          <View style={styles.welcomeBanner}>
-            <View style={styles.welcomeIcon}>
-              <Ionicons name="rocket" size={32} color={BRAND.blue} />
-            </View>
-            <View style={styles.welcomeContent}>
-              <Text style={styles.welcomeTitle}>Welcome to TransRentals!</Text>
-              <Text style={styles.welcomeText}>
-                Let's get you started. Upload your business documents to verify your account and start receiving bookings.
-              </Text>
-              <View style={styles.welcomeSteps}>
-                <View style={styles.welcomeStepItem}>
-                  <View style={styles.welcomeStepBadge}>
-                    <Text style={styles.welcomeStepNumber}>1</Text>
-                  </View>
-                  <Text style={styles.welcomeStepText}>Upload Documents</Text>
-                </View>
-                <Ionicons name="arrow-forward" size={16} color={BRAND.subText} />
-                <View style={styles.welcomeStepItem}>
-                  <View style={[styles.welcomeStepBadge, { backgroundColor: '#FEF3C7' }]}>
-                    <Text style={styles.welcomeStepNumber}>2</Text>
-                  </View>
-                  <Text style={styles.welcomeStepText}>Select Services</Text>
-                </View>
-                <Ionicons name="arrow-forward" size={16} color={BRAND.subText} />
-                <View style={styles.welcomeStepItem}>
-                  <View style={[styles.welcomeStepBadge, { backgroundColor: '#E5E7EB' }]}>
-                    <Text style={styles.welcomeStepNumber}>3</Text>
-                  </View>
-                  <Text style={styles.welcomeStepText}>Add Locations</Text>
-                </View>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={st.scrollContent}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[C.g600]} tintColor={C.g600} />}
+      >
+        {/* ── HERO ── */}
+        <LinearGradient colors={[C.g900, C.g800, C.g700]} style={st.hero}>
+          <View style={[st.blob, { width: 180, height: 180, top: -70, right: -50, opacity: 0.07 }]} />
+          <View style={[st.blob, { width: 80, height: 80, bottom: 5, left: -20, opacity: 0.05 }]} />
+
+          <View style={st.heroNav}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={st.backBtn}>
+              <Icon name="arrow-left" size={20} color="#fff" />
+            </TouchableOpacity>
+            <View style={st.heroMid}>
+              <View style={st.heroBadge}>
+                <MaterialCommunityIcons name="file-document-multiple-outline" size={11} color={C.g400} />
+                <Text style={st.heroBadgeTxt}>Vendor Portal</Text>
               </View>
+              <Text style={st.heroTitle}>Business Documents</Text>
+              <Text style={st.heroSub}>Upload & manage your verification documents</Text>
+            </View>
+            <View style={{ width: 38 }} />
+          </View>
+
+          {/* Stats strip */}
+          <View style={st.statsStrip}>
+            {[
+              { value: uploadedCount, label: 'Uploaded',  color: '#fff' },
+              { value: approvedCount, label: 'Approved',  color: C.g400 },
+              { value: pendingCount,  label: 'Pending',   color: '#FCD34D' },
+              { value: rejectedCount, label: 'Rejected',  color: '#FCA5A5' },
+            ].map((s, i) => (
+              <React.Fragment key={i}>
+                {i > 0 && <View style={st.statsDivider} />}
+                <View style={st.statItem}>
+                  <Text style={[st.statValue, { color: s.color }]}>{s.value}</Text>
+                  <Text style={st.statLabel}>{s.label}</Text>
+                </View>
+              </React.Fragment>
+            ))}
+          </View>
+        </LinearGradient>
+
+        {/* ── STATUS BANNER ── */}
+        {documents.length === 0 ? (
+          <LinearGradient colors={[C.blueL, '#DBEAFE']} style={st.welcomeBanner}>
+            <View style={st.welcomeIconBox}>
+              <MaterialCommunityIcons name="rocket-launch-outline" size={28} color={C.blue} />
+            </View>
+            <Text style={st.welcomeTitle}>Welcome to TransRentals!</Text>
+            <Text style={st.welcomeText}>Upload your business documents to verify your account and start receiving bookings.</Text>
+            <View style={st.stepsRow}>
+              {['Upload Docs', 'Select Services', 'Add Locations'].map((step, i) => (
+                <React.Fragment key={i}>
+                  {i > 0 && <MaterialCommunityIcons name="chevron-right" size={16} color={C.blue + '80'} />}
+                  <View style={st.stepItem}>
+                    <LinearGradient colors={i === 0 ? [C.g700, C.g500] : ['#CBD5E1', '#CBD5E1']} style={st.stepBadge}>
+                      <Text style={st.stepNum}>{i + 1}</Text>
+                    </LinearGradient>
+                    <Text style={st.stepTxt}>{step}</Text>
+                  </View>
+                </React.Fragment>
+              ))}
+            </View>
+          </LinearGradient>
+        ) : allRequiredUploaded ? (
+          <View style={[st.statusBanner, { backgroundColor: C.g50, borderColor: C.g100 }]}>
+            <View style={[st.statusBannerIcon, { backgroundColor: C.g100 }]}>
+              <MaterialCommunityIcons name="check-decagram" size={22} color={C.g700} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={[st.statusBannerTitle, { color: C.g700 }]}>All Required Documents Uploaded</Text>
+              <Text style={[st.statusBannerSub, { color: C.g600 }]}>Documents will be verified within 24–48 hours.</Text>
+            </View>
+          </View>
+        ) : (
+          <View style={[st.statusBanner, { backgroundColor: C.amberL, borderColor: '#FDE68A' }]}>
+            <View style={[st.statusBannerIcon, { backgroundColor: '#FEF3C7' }]}>
+              <MaterialCommunityIcons name="timer-sand" size={22} color={C.amber} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={[st.statusBannerTitle, { color: C.amber }]}>Documents Pending</Text>
+              <Text style={[st.statusBannerSub, { color: C.amber + 'BB' }]}>Upload all required (*) documents to proceed.</Text>
             </View>
           </View>
         )}
 
-        {/* Progress Card */}
-        <View style={styles.progressCard}>
-          <View style={styles.progressHeader}>
-            <Text style={styles.progressTitle}>Document Status</Text>
-            <View style={[styles.statusBadge, allRequiredUploaded ? styles.statusBadgeGreen : styles.statusBadgeYellow]}>
-              <Text style={[styles.statusBadgeText, allRequiredUploaded ? styles.statusTextGreen : styles.statusTextYellow]}>
-                {allRequiredUploaded ? 'All Required Uploaded' : 'Documents Pending'}
-              </Text>
+        {/* ── DOCUMENT LIST ── */}
+        <View style={st.section}>
+          <View style={st.sectionHead}>
+            <View style={[st.sectionIconBox, { backgroundColor: C.indigoL }]}>
+              <MaterialCommunityIcons name="file-document-multiple-outline" size={18} color={C.indigo} />
             </View>
-          </View>
-          <View style={styles.statsRow}>
-            <View style={styles.statItem}>
-              <Text style={styles.statNumber}>{documents.length}</Text>
-              <Text style={styles.statLabel}>Uploaded</Text>
-            </View>
-            <View style={styles.statItem}>
-              <Text style={[styles.statNumber, { color: BRAND.green }]}>{approvedCount}</Text>
-              <Text style={styles.statLabel}>Approved</Text>
-            </View>
-            <View style={styles.statItem}>
-              <Text style={[styles.statNumber, { color: BRAND.yellow }]}>{pendingCount}</Text>
-              <Text style={styles.statLabel}>Pending</Text>
-            </View>
-            <View style={styles.statItem}>
-              <Text style={[styles.statNumber, { color: BRAND.error }]}>{rejectedCount}</Text>
-              <Text style={styles.statLabel}>Rejected</Text>
-            </View>
-          </View>
-        </View>
-
-        {/* Document List */}
-        <View style={styles.docListCard}>
-          <View style={styles.docListHeader}>
-            <Ionicons name="document-text-outline" size={20} color={BRAND.ink} />
-            <Text style={styles.docListTitle}>Required Documents</Text>
+            <Text style={st.sectionTitle}>Required Documents</Text>
+            <Text style={st.sectionCount}>{uploadedCount}/{DOCUMENT_TYPES.length}</Text>
           </View>
 
-          {DOCUMENT_TYPES.map((docType) => {
-            const uploadedDoc = getDocumentByType(docType.type);
-            const statusColors = uploadedDoc ? getStatusColor(uploadedDoc.status) : null;
+          {DOCUMENT_TYPES.map((docType, idx) => {
+            const uploaded = getDocumentByType(docType.type);
+            const sm = uploaded ? (STATUS_META[uploaded.status] || STATUS_META.PENDING) : null;
+            const isLast = idx === DOCUMENT_TYPES.length - 1;
 
             return (
-              <View key={docType.type} style={styles.docItem}>
-                <View style={styles.docItemLeft}>
-                  <View style={[styles.docIcon, uploadedDoc && styles.docIconUploaded]}>
-                    <Ionicons
-                      name="document-text"
-                      size={24}
-                      color={uploadedDoc ? BRAND.blue : BRAND.subText}
-                    />
-                  </View>
-                  <View style={styles.docInfo}>
-                    <View style={styles.docNameRow}>
-                      <Text style={styles.docName}>{docType.name}</Text>
-                      {docType.required && <Text style={styles.requiredBadge}>*Required</Text>}
-                    </View>
-                    <Text style={styles.docDescription}>{docType.description}</Text>
-                    {uploadedDoc?.documentNumber && (
-                      <Text style={styles.docNumber}>Number: {uploadedDoc.documentNumber}</Text>
+              <View key={docType.type} style={[st.docRow, isLast && { borderBottomWidth: 0 }]}>
+                {/* Icon */}
+                <View style={[st.docIconBox, { backgroundColor: uploaded ? docType.bg : C.bg }]}>
+                  <MaterialCommunityIcons
+                    name={uploaded ? docType.icon : 'file-upload-outline'}
+                    size={20}
+                    color={uploaded ? docType.color : C.muted}
+                  />
+                </View>
+
+                {/* Content */}
+                <View style={st.docContent}>
+                  <View style={st.docTopRow}>
+                    <Text style={st.docName}>{docType.name}</Text>
+                    {docType.required && (
+                      <View style={st.requiredPill}>
+                        <Text style={st.requiredTxt}>Required</Text>
+                      </View>
                     )}
                   </View>
-                </View>
+                  <Text style={st.docDesc}>{docType.description}</Text>
+                  {uploaded?.documentNumber && (
+                    <Text style={st.docNum}>#{uploaded.documentNumber}</Text>
+                  )}
 
-                <View style={styles.docItemRight}>
-                  {uploadedDoc ? (
-                    <>
-                      <View style={[styles.statusPill, { backgroundColor: statusColors?.bg }]}>
-                        {getStatusIcon(uploadedDoc.status)}
-                        <Text style={[styles.statusText, { color: statusColors?.text }]}>
-                          {uploadedDoc.status}
-                        </Text>
-                      </View>
-                      {uploadedDoc.status !== 'APPROVED' && (
-                        <TouchableOpacity
-                          style={styles.deleteBtn}
-                          onPress={() => handleDelete(uploadedDoc.id)}
-                        >
-                          <Ionicons name="trash-outline" size={18} color={BRAND.error} />
-                        </TouchableOpacity>
-                      )}
-                    </>
-                  ) : (
-                    <TouchableOpacity
-                      style={styles.uploadBtn}
-                      onPress={() => openUploadModal(docType)}
-                    >
-                      <Ionicons name="cloud-upload-outline" size={18} color={BRAND.blue} />
-                      <Text style={styles.uploadBtnText}>Upload</Text>
-                    </TouchableOpacity>
+                  {/* Status + Actions */}
+                  <View style={st.docActions}>
+                    {uploaded ? (
+                      <>
+                        <View style={[st.statusPill, { backgroundColor: sm.bg }]}>
+                          <MaterialCommunityIcons name={sm.mcIcon} size={12} color={sm.color} />
+                          <Text style={[st.statusTxt, { color: sm.color }]}>{sm.label}</Text>
+                        </View>
+                        {uploaded.status !== 'APPROVED' && (
+                          <TouchableOpacity style={st.deleteBtn} onPress={() => handleDelete(uploaded.id)}>
+                            <Icon name="trash-2" size={14} color={C.red} />
+                            <Text style={st.deleteTxt}>Delete</Text>
+                          </TouchableOpacity>
+                        )}
+                      </>
+                    ) : (
+                      <TouchableOpacity style={st.uploadBtn} onPress={() => openUploadModal(docType)}>
+                        <MaterialCommunityIcons name="cloud-upload-outline" size={14} color={C.blue} />
+                        <Text style={st.uploadBtnTxt}>Upload</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+
+                  {/* Rejection reason */}
+                  {uploaded?.status === 'REJECTED' && uploaded.rejectionReason && (
+                    <View style={st.rejectionBox}>
+                      <MaterialCommunityIcons name="alert-circle-outline" size={14} color={C.red} />
+                      <Text style={st.rejectionTxt}>{uploaded.rejectionReason}</Text>
+                      <TouchableOpacity style={st.reuploadBtn} onPress={() => openUploadModal(docType)}>
+                        <Text style={st.reuploadTxt}>Re-upload</Text>
+                      </TouchableOpacity>
+                    </View>
                   )}
                 </View>
-
-                {uploadedDoc?.status === 'REJECTED' && uploadedDoc.rejectionReason && (
-                  <View style={styles.rejectionBox}>
-                    <Ionicons name="alert-circle" size={16} color={BRAND.error} />
-                    <Text style={styles.rejectionText}>
-                      <Text style={styles.rejectionLabel}>Rejection Reason: </Text>
-                      {uploadedDoc.rejectionReason}
-                    </Text>
-                    <TouchableOpacity
-                      style={styles.reuploadBtn}
-                      onPress={() => openUploadModal(docType)}
-                    >
-                      <Text style={styles.reuploadBtnText}>Re-upload</Text>
-                    </TouchableOpacity>
-                  </View>
-                )}
               </View>
             );
           })}
         </View>
 
-        {/* Continue Button */}
-        {allRequiredUploaded ? (
-          <TouchableOpacity style={styles.continueBtn} onPress={handleContinue}>
-            <Text style={styles.continueBtnText}>Continue to Services</Text>
-            <Ionicons name="arrow-forward" size={20} color="#fff" />
-          </TouchableOpacity>
-        ) : documents.length > 0 ? (
-          <TouchableOpacity style={styles.continueBtn} onPress={handleContinue}>
-            <Text style={styles.continueBtnText}>Continue to Services</Text>
-            <Ionicons name="arrow-forward" size={20} color="#fff" />
+        {/* ── CONTINUE / SKIP ── */}
+        {documents.length > 0 ? (
+          <TouchableOpacity onPress={handleContinue} style={st.continueWrap} activeOpacity={0.85}>
+            <LinearGradient colors={[C.g700, C.g500]} style={st.continueBtn}>
+              <Text style={st.continueTxt}>Continue to Services</Text>
+              <MaterialCommunityIcons name="arrow-right" size={20} color="#fff" />
+            </LinearGradient>
           </TouchableOpacity>
         ) : (
-          <TouchableOpacity style={styles.skipBtn} onPress={handleContinue}>
-            <Text style={styles.skipBtnText}>Skip for now (You can upload documents later)</Text>
-            <Ionicons name="arrow-forward" size={18} color={BRAND.subText} />
+          <TouchableOpacity style={st.skipBtn} onPress={handleContinue} activeOpacity={0.8}>
+            <Text style={st.skipTxt}>Skip for now — upload documents later</Text>
+            <Icon name="chevron-right" size={16} color={C.muted} />
           </TouchableOpacity>
         )}
 
-        {/* Info Box */}
-        <View style={styles.infoBox}>
-          <Ionicons name="information-circle-outline" size={20} color={BRAND.blue} />
-          <Text style={styles.infoText}>
+        {/* ── INFO NOTE ── */}
+        <View style={st.infoNote}>
+          <MaterialCommunityIcons name="information-outline" size={16} color={C.blue} />
+          <Text style={st.infoNoteTxt}>
             {allRequiredUploaded
-              ? 'All required documents uploaded! Documents will be verified within 24-48 hours.'
-              : 'Upload all required documents to proceed. Documents will be verified within 24-48 hours.'}
+              ? 'All required documents uploaded! Verification takes 24–48 hours.'
+              : 'Upload all required documents marked * to proceed. Verification takes 24–48 hours.'}
           </Text>
         </View>
+
+        <View style={{ height: 120 }} />
       </ScrollView>
 
-      {/* Upload Modal */}
-      <Modal
-        visible={showUploadModal}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setShowUploadModal(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>
-                Upload {selectedDocType?.name}
-              </Text>
-              <TouchableOpacity
-                style={styles.modalClose}
-                onPress={() => setShowUploadModal(false)}
-              >
-                <Ionicons name="close" size={24} color={BRAND.text} />
+      {/* ── UPLOAD MODAL ── */}
+      <Modal visible={showUploadModal} animationType="slide" transparent onRequestClose={() => setShowUploadModal(false)}>
+        <View style={st.modalOverlay}>
+          <View style={st.modalSheet}>
+            {/* Handle */}
+            <View style={st.modalHandle} />
+
+            {/* Header */}
+            <View style={st.modalHeader}>
+              <View style={[st.modalIconBox, { backgroundColor: selectedDocType?.bg || C.g50 }]}>
+                <MaterialCommunityIcons name={selectedDocType?.icon || 'file-upload-outline'} size={20} color={selectedDocType?.color || C.g700} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={st.modalTitle}>Upload Document</Text>
+                <Text style={st.modalSub}>{selectedDocType?.name}</Text>
+              </View>
+              <TouchableOpacity style={st.modalCloseBtn} onPress={() => setShowUploadModal(false)}>
+                <Icon name="x" size={18} color={C.sub} />
               </TouchableOpacity>
             </View>
 
-            {/* Document Number Input */}
-            <View style={styles.modalInputGroup}>
-              <Text style={styles.modalLabel}>Document Number (Optional)</Text>
+            {/* Doc number input */}
+            <View style={st.inputGroup}>
+              <Text style={st.inputLabel}>Document Number <Text style={st.inputOptional}>(Optional)</Text></Text>
               <TextInput
-                style={styles.modalInput}
+                style={st.input}
                 placeholder="e.g., 22AAAAA0000A1Z5"
-                placeholderTextColor="#A3B3C2"
+                placeholderTextColor={C.muted}
                 value={documentNumber}
                 onChangeText={setDocumentNumber}
                 autoCapitalize="characters"
               />
             </View>
 
-            {/* File Selection */}
-            <View style={styles.modalInputGroup}>
-              <Text style={styles.modalLabel}>Upload File *</Text>
-
+            {/* File picker */}
+            <View style={st.inputGroup}>
+              <Text style={st.inputLabel}>File <Text style={{ color: C.red }}>*</Text></Text>
               {selectedFile ? (
-                <View style={styles.selectedFileBox}>
-                  <View style={styles.selectedFileInfo}>
-                    <Ionicons name="document" size={32} color={BRAND.blue} />
-                    <View style={styles.selectedFileDetails}>
-                      <Text style={styles.selectedFileName} numberOfLines={1}>
-                        {selectedFile.name}
-                      </Text>
-                      <Text style={styles.selectedFileSize}>
-                        {selectedFile.size ? `${(selectedFile.size / 1024 / 1024).toFixed(2)} MB` : 'Unknown size'}
-                      </Text>
-                    </View>
+                <View style={st.selectedFileBox}>
+                  <View style={[st.selectedFileIcon, { backgroundColor: C.g50 }]}>
+                    <MaterialCommunityIcons name="file-check-outline" size={22} color={C.g700} />
                   </View>
-                  <TouchableOpacity
-                    style={styles.removeFileBtn}
-                    onPress={() => setSelectedFile(null)}
-                  >
-                    <Ionicons name="close-circle" size={24} color={BRAND.error} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={st.selectedFileName} numberOfLines={1}>{selectedFile.name}</Text>
+                    <Text style={st.selectedFileSize}>
+                      {selectedFile.size ? `${(selectedFile.size / 1024 / 1024).toFixed(2)} MB` : '—'}
+                    </Text>
+                  </View>
+                  <TouchableOpacity onPress={() => setSelectedFile(null)}>
+                    <Icon name="x-circle" size={20} color={C.red} />
                   </TouchableOpacity>
                 </View>
               ) : (
-                <View style={styles.fileSourceOptions}>
-                  <TouchableOpacity
-                    style={styles.fileSourceBtn}
-                    onPress={() => handleSelectFile('camera')}
-                  >
-                    <Ionicons name="camera" size={24} color={BRAND.blue} />
-                    <Text style={styles.fileSourceText}>Camera</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={styles.fileSourceBtn}
-                    onPress={() => handleSelectFile('gallery')}
-                  >
-                    <Ionicons name="images" size={24} color={BRAND.blue} />
-                    <Text style={styles.fileSourceText}>Gallery</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={styles.fileSourceBtn}
-                    onPress={() => handleSelectFile('document')}
-                  >
-                    <Ionicons name="document" size={24} color={BRAND.blue} />
-                    <Text style={styles.fileSourceText}>Files</Text>
-                  </TouchableOpacity>
+                <View style={st.sourceBtns}>
+                  {[
+                    { key: 'camera',   icon: 'camera-outline',  label: 'Camera',  color: C.g700,   bg: C.g50 },
+                    { key: 'gallery',  icon: 'image-multiple-outline', label: 'Gallery', color: C.blue,   bg: C.blueL },
+                    { key: 'document', icon: 'file-pdf-box',    label: 'Files',   color: C.purple, bg: C.purpleL },
+                  ].map(s => (
+                    <TouchableOpacity key={s.key} style={[st.sourceBtn, { borderColor: s.color + '40' }]} onPress={() => handleSelectFile(s.key)}>
+                      <View style={[st.sourceBtnIcon, { backgroundColor: s.bg }]}>
+                        <MaterialCommunityIcons name={s.icon} size={22} color={s.color} />
+                      </View>
+                      <Text style={[st.sourceBtnTxt, { color: s.color }]}>{s.label}</Text>
+                    </TouchableOpacity>
+                  ))}
                 </View>
               )}
-              <Text style={styles.fileHint}>PNG, JPG, WebP, or PDF (max 5MB)</Text>
+              <Text style={st.fileHint}>PNG, JPG, WebP, or PDF · Max 5MB</Text>
             </View>
 
             {/* Actions */}
-            <View style={styles.modalActions}>
-              <TouchableOpacity
-                style={styles.cancelBtn}
-                onPress={() => setShowUploadModal(false)}
-              >
-                <Text style={styles.cancelBtnText}>Cancel</Text>
+            <View style={st.modalActions}>
+              <TouchableOpacity style={st.cancelBtn} onPress={() => setShowUploadModal(false)}>
+                <Text style={st.cancelTxt}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.submitBtn, !selectedFile && styles.submitBtnDisabled]}
+                style={[st.submitWrap, (!selectedFile || !!uploading) && { opacity: 0.5 }]}
                 onPress={handleUpload}
                 disabled={!selectedFile || !!uploading}
+                activeOpacity={0.85}
               >
-                {uploading ? (
-                  <ActivityIndicator size="small" color="#fff" />
-                ) : (
-                  <>
-                    <Ionicons name="cloud-upload" size={18} color="#fff" />
-                    <Text style={styles.submitBtnText}>Upload</Text>
-                  </>
-                )}
+                <LinearGradient colors={[C.g700, C.g500]} style={st.submitBtn}>
+                  {uploading
+                    ? <ActivityIndicator size="small" color="#fff" />
+                    : <>
+                        <MaterialCommunityIcons name="cloud-upload-outline" size={18} color="#fff" />
+                        <Text style={st.submitTxt}>Upload</Text>
+                      </>
+                  }
+                </LinearGradient>
               </TouchableOpacity>
             </View>
           </View>
@@ -586,495 +488,121 @@ export default function VendorDocumentsScreen({ navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: BRAND.bg,
-  },
-  scrollContent: {
-    padding: 16,
-    paddingBottom: 32,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: 12,
-    fontSize: 15,
-    color: BRAND.subText,
-  },
+const st = StyleSheet.create({
+  safe:          { flex: 1, backgroundColor: C.bg },
+  scrollContent: { paddingBottom: 20 },
 
-  // Header
-  header: {
-    marginBottom: 16,
-  },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: '800',
-    color: BRAND.ink,
-  },
-  headerSubtitle: {
-    fontSize: 14,
-    color: BRAND.subText,
-    marginTop: 4,
-  },
+  /* ── Hero ── */
+  hero:        { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 20, overflow: 'hidden' },
+  heroLoading: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingTop: 14, paddingBottom: 18, gap: 12 },
+  blob:        { position: 'absolute', borderRadius: 999, backgroundColor: '#fff' },
+  heroNav:     { flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginBottom: 18 },
+  backBtn:     { width: 38, height: 38, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)', marginTop: 2 },
+  heroMid:     { flex: 1 },
+  heroBadge:   { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: 'rgba(255,255,255,0.1)', alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20, marginBottom: 5 },
+  heroBadgeTxt:{ fontSize: 11, fontWeight: '600', color: C.g400 },
+  heroTitle:   { fontSize: 24, fontWeight: '800', color: '#fff', marginBottom: 3 },
+  heroSub:     { fontSize: 13, color: 'rgba(255,255,255,0.6)' },
 
-  // Welcome Banner
-  welcomeBanner: {
-    backgroundColor: '#EFF6FF',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#DBEAFE',
-  },
-  welcomeIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: BRAND.card,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 12,
-  },
-  welcomeContent: {
-    flex: 1,
-  },
-  welcomeTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: BRAND.ink,
-    marginBottom: 6,
-  },
-  welcomeText: {
-    fontSize: 14,
-    color: BRAND.text,
-    lineHeight: 20,
-    marginBottom: 12,
-  },
-  welcomeSteps: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#DBEAFE',
-  },
-  welcomeStepItem: {
-    alignItems: 'center',
-    flex: 1,
-  },
-  welcomeStepBadge: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: BRAND.blue,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 4,
-  },
-  welcomeStepNumber: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#fff',
-  },
-  welcomeStepText: {
-    fontSize: 11,
-    color: BRAND.text,
-    textAlign: 'center',
-  },
+  /* Stats strip */
+  statsStrip:  { flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 14, paddingVertical: 12, paddingHorizontal: 6, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
+  statItem:    { flex: 1, alignItems: 'center' },
+  statValue:   { fontSize: 20, fontWeight: '800', marginBottom: 2 },
+  statLabel:   { fontSize: 10, color: 'rgba(255,255,255,0.55)', fontWeight: '600' },
+  statsDivider:{ width: 1, backgroundColor: 'rgba(255,255,255,0.12)', marginVertical: 4 },
 
-  // Progress Card
-  progressCard: {
-    backgroundColor: BRAND.card,
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: BRAND.border,
-  },
-  progressHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  progressTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: BRAND.ink,
-  },
-  statusBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-  },
-  statusBadgeGreen: {
-    backgroundColor: '#D1FAE5',
-  },
-  statusBadgeYellow: {
-    backgroundColor: '#FEF3C7',
-  },
-  statusBadgeText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  statusTextGreen: {
-    color: '#059669',
-  },
-  statusTextYellow: {
-    color: '#D97706',
-  },
-  statsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-  },
-  statItem: {
-    alignItems: 'center',
-  },
-  statNumber: {
-    fontSize: 24,
-    fontWeight: '800',
-    color: BRAND.blue,
-  },
-  statLabel: {
-    fontSize: 12,
-    color: BRAND.subText,
-    marginTop: 2,
-  },
+  /* ── Banners ── */
+  welcomeBanner: { marginHorizontal: 16, marginTop: 14, borderRadius: 18, padding: 18, borderWidth: 1, borderColor: '#BFDBFE' },
+  welcomeIconBox:{ width: 50, height: 50, borderRadius: 14, backgroundColor: C.blueL, alignItems: 'center', justifyContent: 'center', marginBottom: 10, borderWidth: 1, borderColor: '#BFDBFE' },
+  welcomeTitle:  { fontSize: 16, fontWeight: '800', color: C.text, marginBottom: 5 },
+  welcomeText:   { fontSize: 13, color: C.sub, lineHeight: 20, marginBottom: 14 },
+  stepsRow:      { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 12, borderTopWidth: 1, borderTopColor: '#BFDBFE' },
+  stepItem:      { alignItems: 'center', flex: 1 },
+  stepBadge:     { width: 26, height: 26, borderRadius: 13, alignItems: 'center', justifyContent: 'center', marginBottom: 4 },
+  stepNum:       { fontSize: 12, fontWeight: '800', color: '#fff' },
+  stepTxt:       { fontSize: 10, color: C.sub, fontWeight: '600', textAlign: 'center' },
 
-  // Document List
-  docListCard: {
-    backgroundColor: BRAND.card,
-    borderRadius: 16,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: BRAND.border,
-    marginBottom: 16,
-  },
-  docListHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    backgroundColor: '#F8FAFC',
-    borderBottomWidth: 1,
-    borderBottomColor: BRAND.border,
-    gap: 8,
-  },
-  docListTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: BRAND.ink,
-  },
-  docItem: {
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: BRAND.border,
-  },
-  docItemLeft: {
-    flexDirection: 'row',
-    flex: 1,
-  },
-  docIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
-    backgroundColor: '#F1F5F9',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
-  },
-  docIconUploaded: {
-    backgroundColor: '#EFF6FF',
-  },
-  docInfo: {
-    flex: 1,
-  },
-  docNameRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 2,
-  },
-  docName: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: BRAND.ink,
-  },
-  requiredBadge: {
-    fontSize: 11,
-    color: BRAND.error,
-    fontWeight: '600',
-  },
-  docDescription: {
-    fontSize: 13,
-    color: BRAND.subText,
-  },
-  docNumber: {
-    fontSize: 12,
-    color: BRAND.subText,
-    marginTop: 4,
-  },
-  docItemRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginTop: 12,
-    justifyContent: 'flex-end',
-  },
-  statusPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    gap: 4,
-  },
-  statusText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  deleteBtn: {
-    padding: 8,
-  },
-  uploadBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: BRAND.blue,
-    gap: 6,
-  },
-  uploadBtnText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: BRAND.blue,
-  },
-  rejectionBox: {
-    marginTop: 12,
-    padding: 12,
-    backgroundColor: '#FEF2F2',
-    borderRadius: 8,
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    alignItems: 'center',
-    gap: 8,
-  },
-  rejectionText: {
-    flex: 1,
-    fontSize: 13,
-    color: BRAND.error,
-  },
-  rejectionLabel: {
-    fontWeight: '700',
-  },
-  reuploadBtn: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    backgroundColor: BRAND.card,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: BRAND.border,
-  },
-  reuploadBtnText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: BRAND.text,
-  },
+  statusBanner:      { flexDirection: 'row', alignItems: 'center', gap: 12, marginHorizontal: 16, marginTop: 14, borderRadius: 14, padding: 14, borderWidth: 1 },
+  statusBannerIcon:  { width: 42, height: 42, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  statusBannerTitle: { fontSize: 14, fontWeight: '700', marginBottom: 2 },
+  statusBannerSub:   { fontSize: 12, fontWeight: '500' },
 
-  // Continue Button
-  continueBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: BRAND.primary,
-    paddingVertical: 16,
-    borderRadius: 12,
-    gap: 8,
-    marginBottom: 16,
-  },
-  continueBtnText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#fff',
-  },
+  /* ── Section ── */
+  section:       { backgroundColor: C.card, marginHorizontal: 16, marginTop: 14, borderRadius: 18, borderWidth: 1, borderColor: C.border, overflow: 'hidden', shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 8, elevation: 2 },
+  sectionHead:   { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16, paddingVertical: 13, borderBottomWidth: 1, borderBottomColor: C.border, backgroundColor: '#FAFBFC' },
+  sectionIconBox:{ width: 34, height: 34, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  sectionTitle:  { flex: 1, fontSize: 14, fontWeight: '700', color: C.text },
+  sectionCount:  { fontSize: 12, fontWeight: '700', color: C.muted, backgroundColor: C.bg, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10 },
 
-  // Skip Button
-  skipBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 14,
-    borderRadius: 12,
-    gap: 6,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: BRAND.border,
-    backgroundColor: BRAND.card,
-  },
-  skipBtnText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: BRAND.subText,
-  },
+  /* Doc row */
+  docRow:     { flexDirection: 'row', alignItems: 'flex-start', gap: 12, padding: 14, borderBottomWidth: 1, borderBottomColor: C.border },
+  docIconBox: { width: 42, height: 42, borderRadius: 12, alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 2 },
+  docContent: { flex: 1 },
+  docTopRow:  { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 3 },
+  docName:    { fontSize: 14, fontWeight: '700', color: C.text },
+  requiredPill:{ backgroundColor: C.redL, paddingHorizontal: 7, paddingVertical: 2, borderRadius: 8 },
+  requiredTxt: { fontSize: 10, fontWeight: '700', color: C.red },
+  docDesc:    { fontSize: 12, color: C.muted, marginBottom: 4 },
+  docNum:     { fontSize: 11, color: C.sub, fontWeight: '600', marginBottom: 4 },
 
-  // Info Box
-  infoBox: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    padding: 12,
-    backgroundColor: '#EFF6FF',
-    borderRadius: 8,
-    gap: 8,
-  },
-  infoText: {
-    flex: 1,
-    fontSize: 13,
-    color: BRAND.text,
-    lineHeight: 18,
-  },
+  docActions:  { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 6 },
+  statusPill:  { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
+  statusTxt:   { fontSize: 11, fontWeight: '700' },
+  deleteBtn:   { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20, backgroundColor: C.redL },
+  deleteTxt:   { fontSize: 11, fontWeight: '700', color: C.red },
+  uploadBtn:   { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 12, paddingVertical: 5, borderRadius: 20, backgroundColor: C.blueL, borderWidth: 1, borderColor: C.blue + '30' },
+  uploadBtnTxt:{ fontSize: 12, fontWeight: '700', color: C.blue },
 
-  // Modal
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'flex-end',
-  },
-  modalContent: {
-    backgroundColor: BRAND.card,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    padding: 20,
-    maxHeight: '80%',
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: BRAND.ink,
-  },
-  modalClose: {
-    padding: 4,
-  },
-  modalInputGroup: {
-    marginBottom: 20,
-  },
-  modalLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: BRAND.text,
-    marginBottom: 8,
-  },
-  modalInput: {
-    borderWidth: 1,
-    borderColor: BRAND.border,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    fontSize: 15,
-    color: BRAND.ink,
-    backgroundColor: '#FBFDFF',
-  },
-  fileSourceOptions: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  fileSourceBtn: {
-    flex: 1,
-    alignItems: 'center',
-    padding: 20,
-    borderWidth: 2,
-    borderStyle: 'dashed',
-    borderColor: BRAND.border,
-    borderRadius: 12,
-    backgroundColor: '#FBFDFF',
-  },
-  fileSourceText: {
-    marginTop: 8,
-    fontSize: 13,
-    fontWeight: '600',
-    color: BRAND.text,
-  },
-  fileHint: {
-    marginTop: 8,
-    fontSize: 12,
-    color: BRAND.subText,
-    textAlign: 'center',
-  },
-  selectedFileBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 12,
-    borderWidth: 1,
-    borderColor: BRAND.primary,
-    borderRadius: 12,
-    backgroundColor: '#F0FDF4',
-  },
-  selectedFileInfo: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  selectedFileDetails: {
-    flex: 1,
-  },
-  selectedFileName: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: BRAND.ink,
-  },
-  selectedFileSize: {
-    fontSize: 12,
-    color: BRAND.subText,
-    marginTop: 2,
-  },
-  removeFileBtn: {
-    padding: 4,
-  },
-  modalActions: {
-    flexDirection: 'row',
-    gap: 12,
-    marginTop: 8,
-  },
-  cancelBtn: {
-    flex: 1,
-    paddingVertical: 14,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: BRAND.border,
-    alignItems: 'center',
-  },
-  cancelBtnText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: BRAND.text,
-  },
-  submitBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 14,
-    borderRadius: 12,
-    backgroundColor: BRAND.blue,
-    gap: 6,
-  },
-  submitBtnDisabled: {
-    backgroundColor: '#93C5FD',
-  },
-  submitBtnText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#fff',
-  },
+  rejectionBox: { flexDirection: 'row', alignItems: 'flex-start', gap: 6, marginTop: 8, padding: 10, backgroundColor: C.redL, borderRadius: 10, flexWrap: 'wrap' },
+  rejectionTxt: { flex: 1, fontSize: 12, color: C.red, lineHeight: 18 },
+  reuploadBtn:  { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, backgroundColor: C.card, borderWidth: 1, borderColor: C.border },
+  reuploadTxt:  { fontSize: 11, fontWeight: '700', color: C.sub },
+
+  /* ── Continue / Skip ── */
+  continueWrap: { marginHorizontal: 16, marginTop: 16, borderRadius: 16, overflow: 'hidden' },
+  continueBtn:  { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 16, gap: 8 },
+  continueTxt:  { fontSize: 15, fontWeight: '700', color: '#fff' },
+  skipBtn:      { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginHorizontal: 16, marginTop: 12, paddingVertical: 14, borderRadius: 14, borderWidth: 1, borderColor: C.border, backgroundColor: C.card, gap: 6 },
+  skipTxt:      { fontSize: 13, fontWeight: '600', color: C.muted },
+
+  /* ── Info note ── */
+  infoNote:    { flexDirection: 'row', alignItems: 'flex-start', gap: 8, marginHorizontal: 16, marginTop: 14, padding: 12, backgroundColor: C.blueL, borderRadius: 12 },
+  infoNoteTxt: { flex: 1, fontSize: 12, color: C.blue, lineHeight: 18, fontWeight: '500' },
+
+  /* ── Loader ── */
+  loaderWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 10 },
+  loaderTxt:  { fontSize: 14, color: C.muted },
+
+  /* ── Modal ── */
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.55)', justifyContent: 'flex-end' },
+  modalSheet:   { backgroundColor: C.card, borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 20, paddingTop: 12 },
+  modalHandle:  { width: 36, height: 4, borderRadius: 2, backgroundColor: C.border, alignSelf: 'center', marginBottom: 16 },
+  modalHeader:  { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 20 },
+  modalIconBox: { width: 42, height: 42, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  modalTitle:   { fontSize: 16, fontWeight: '800', color: C.text },
+  modalSub:     { fontSize: 12, color: C.muted, marginTop: 1 },
+  modalCloseBtn:{ width: 32, height: 32, borderRadius: 10, backgroundColor: C.bg, alignItems: 'center', justifyContent: 'center' },
+
+  inputGroup: { marginBottom: 18 },
+  inputLabel: { fontSize: 13, fontWeight: '700', color: C.sub, marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.4 },
+  inputOptional:{ fontSize: 11, fontWeight: '500', color: C.muted, textTransform: 'none' },
+  input:      { borderWidth: 1.5, borderColor: C.border, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 13, fontSize: 14, color: C.text, backgroundColor: '#FAFBFC' },
+
+  sourceBtns:   { flexDirection: 'row', gap: 10 },
+  sourceBtn:    { flex: 1, alignItems: 'center', paddingVertical: 16, borderRadius: 14, borderWidth: 1.5, borderStyle: 'dashed', backgroundColor: '#FAFBFC' },
+  sourceBtnIcon:{ width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginBottom: 6 },
+  sourceBtnTxt: { fontSize: 12, fontWeight: '700' },
+  fileHint:     { fontSize: 11, color: C.muted, textAlign: 'center', marginTop: 8 },
+
+  selectedFileBox:  { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderWidth: 1.5, borderColor: C.g500 + '60', borderRadius: 14, backgroundColor: C.g50 },
+  selectedFileIcon: { width: 42, height: 42, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  selectedFileName: { fontSize: 13, fontWeight: '700', color: C.text },
+  selectedFileSize: { fontSize: 11, color: C.muted, marginTop: 2 },
+
+  modalActions: { flexDirection: 'row', gap: 12, marginTop: 4 },
+  cancelBtn:    { flex: 1, paddingVertical: 14, borderRadius: 14, borderWidth: 1.5, borderColor: C.border, alignItems: 'center' },
+  cancelTxt:    { fontSize: 15, fontWeight: '700', color: C.sub },
+  submitWrap:   { flex: 1, borderRadius: 14, overflow: 'hidden' },
+  submitBtn:    { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 14, gap: 8 },
+  submitTxt:    { fontSize: 15, fontWeight: '700', color: '#fff' },
 });

@@ -1,228 +1,571 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
-  View, Text, StyleSheet, FlatList, TouchableOpacity,
-  RefreshControl, ActivityIndicator, LayoutAnimation, Platform, UIManager,
+  View, Text, StyleSheet, FlatList, ScrollView, TouchableOpacity,
+  RefreshControl, ActivityIndicator, StatusBar, Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/Feather';
+import MCI from 'react-native-vector-icons/MaterialCommunityIcons';
 import { getB2BOpenBookings } from '../../api/client';
-import { useInfiniteScroll } from '../../../hooks/useInfiniteScroll';
-
-if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
-  UIManager.setLayoutAnimationEnabledExperimental(true);
-}
 
 const C = {
-  bg: '#F7FAFC', surface: '#FFFFFF', text: '#1E293B', subtext: '#475569',
-  muted: '#94A3B8', border: '#E2E8F0', brand: '#6366F1',
-  green: '#10B981', orange: '#F59E0B', red: '#EF4444', blue: '#3B82F6', purple: '#8B5CF6',
+  g950: '#011B14', g900: '#022C22', g800: '#064E3B', g700: '#047857', g600: '#059669',
+  g500: '#10B981', g400: '#34D399', g300: '#6EE7B7', g100: '#D1FAE5', g50: '#ECFDF5',
+  bg: '#F0FDF9', surface: '#FFFFFF',
+  text: '#1E293B', sub: '#475569', muted: '#94A3B8', border: '#E2E8F0',
+  amber: '#F59E0B', amberBg: '#FFFBEB', red: '#EF4444', redBg: '#FEF2F2',
+  blue: '#3B82F6', blueBg: '#EFF6FF', purple: '#8B5CF6', purpleBg: '#F5F3FF',
 };
 
 const STATUS_CONFIG = {
-  OPEN_FOR_QUOTES: { label: 'Open', color: C.green },
-  QUOTES_RECEIVED: { label: 'Quotes Received', color: C.blue },
-  VENDOR_ASSIGNED: { label: 'Assigned', color: C.purple },
-  CONFIRMED: { label: 'Confirmed', color: '#059669' },
-  IN_PROGRESS: { label: 'In Progress', color: C.purple },
-  COMPLETED: { label: 'Completed', color: '#059669' },
-  CANCELLED: { label: 'Cancelled', color: C.red },
+  OPEN_FOR_QUOTES:  { label: 'Open for Quotes',  bg: '#D1FAE5', text: '#065F46' },
+  QUOTES_RECEIVED:  { label: 'Quotes Received',  bg: '#FEF3C7', text: '#92400E' },
+  SUPER_QUOTE_SENT: { label: 'Super Quote Sent', bg: '#E0E7FF', text: '#3730A3' },
+  CONFIRMED:        { label: 'Confirmed',         bg: '#DBEAFE', text: '#1E40AF' },
+  IN_PROGRESS:      { label: 'In Progress',       bg: C.g100,    text: '#065F46' },
+  COMPLETED:        { label: 'Completed',          bg: '#F1F5F9', text: '#475569' },
+  CANCELLED:        { label: 'Cancelled',          bg: '#FEE2E2', text: '#991B1B' },
 };
 
-const fmt = (d) => d ? new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '--';
+const SERVICE_ICON = {
+  CAR:        { icon: 'car',            color: C.blue,   bg: C.blueBg   },
+  BUS:        { icon: 'bus',            color: C.amber,  bg: C.amberBg  },
+  BIKE:       { icon: 'motorbike',      color: C.g500,   bg: C.g50      },
+  TRUCK:      { icon: 'truck',          color: C.purple, bg: C.purpleBg },
+  LUXURY:     { icon: 'star',           color: '#EAB308',bg: '#FEFCE8'  },
+  SELF_DRIVE: { icon: 'steering',       color: '#14B8A6',bg: '#F0FDFA'  },
+};
+
+const fmt = (d) =>
+  d ? new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '--';
+
+const PAGE_SIZE = 15;
 
 export default function B2BOpenBookingsScreen({ navigation }) {
+  const [allBookings, setAllBookings] = useState([]);
+  const [loading, setLoading]         = useState(true);
+  const [refreshing, setRefreshing]   = useState(false);
+  const [page, setPage]               = useState(1);
+  const [hasMore, setHasMore]         = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [selectedFilter, setSelectedFilter] = useState('all');
-  const [expandedId, setExpandedId] = useState(null);
+  const [serviceFilter, setServiceFilter]   = useState('all');
+  const [filterModalOpen, setFilterModalOpen] = useState(false);
 
-  const { data: allBookings, loading, refreshing, hasMore, loadMore, refresh, initialLoad } =
-    useInfiniteScroll(getB2BOpenBookings, {});
+  const loadBookings = useCallback(async (pageNum = 1, isRefresh = false) => {
+    try {
+      const res = await getB2BOpenBookings({ page: pageNum, limit: PAGE_SIZE });
+      const items = res.bookings || res.data || [];
+      const total = res.pagination?.total || items.length;
 
-  useEffect(() => { initialLoad(); }, [initialLoad]);
+      if (isRefresh || pageNum === 1) {
+        setAllBookings(items);
+      } else {
+        setAllBookings(prev => [...prev, ...items]);
+      }
+      setHasMore(pageNum * PAGE_SIZE < total);
+      setPage(pageNum);
+    } catch (e) {
+      console.error('B2BOpenBookings fetch error:', e);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+      setLoadingMore(false);
+    }
+  }, []);
 
-  const bookings = selectedFilter === 'all'
-    ? allBookings
-    : selectedFilter === 'open'
-      ? allBookings.filter(b => b.status === 'OPEN_FOR_QUOTES')
-      : allBookings.filter(b => b.vendorQuotes?.length > 0);
+  useEffect(() => {
+    loadBookings(1);
+  }, [loadBookings]);
 
-  const toggleExpand = (id) => {
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-    setExpandedId(prev => prev === id ? null : id);
-  };
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    loadBookings(1, true);
+  }, [loadBookings]);
 
-  const renderBooking = ({ item }) => {
-    const sc = STATUS_CONFIG[item.status] || { label: item.status, color: C.muted };
-    const hasQuoted = item.vendorQuotes?.length > 0;
-    const isExpanded = expandedId === item.id;
+  const onEndReached = useCallback(() => {
+    if (!hasMore || loadingMore || loading) return;
+    setLoadingMore(true);
+    loadBookings(page + 1);
+  }, [hasMore, loadingMore, loading, page, loadBookings]);
 
-    return (
-      <View style={s.card}>
-        <TouchableOpacity
-          activeOpacity={0.8}
-          onPress={() => navigation.navigate('B2BBookingDetail', { bookingId: item.id })}
-        >
-          <View style={s.cardTop}>
-            <View style={s.cardTopLeft}>
-              <Text style={s.num}>#{item.bookingNumber}</Text>
-              {hasQuoted && (
-                <View style={[s.quotedChip]}>
-                  <Icon name="check" size={10} color={C.green} />
-                  <Text style={s.quotedText}>Quoted</Text>
-                </View>
-              )}
-            </View>
-            <View style={[s.badge, { backgroundColor: sc.color + '20' }]}>
-              <Text style={[s.badgeText, { color: sc.color }]}>{sc.label}</Text>
-            </View>
-          </View>
+  const filteredBookings = allBookings.filter(b => {
+    const myQuote = b.vendorQuotes?.[0];
+    // Service type filter
+    if (serviceFilter !== 'all') {
+      const sType = (b.serviceType || '').toLowerCase().replace(/\s/g, '-');
+      if (sType !== serviceFilter) return false;
+    }
+    // Status filter
+    if (selectedFilter === 'all')          return true;
+    if (selectedFilter === 'yet_to_quote') return !myQuote;
+    if (selectedFilter === 'submitted')    return ['SUBMITTED', 'UNDER_REVIEW'].includes(myQuote?.status);
+    if (selectedFilter === 'confirmed')    return myQuote?.status === 'CONFIRMED';
+    if (selectedFilter === 'rejected')     return ['REJECTED', 'WITHDRAWN'].includes(myQuote?.status);
+    return true;
+  });
 
-          <View style={s.body}>
-            <View style={s.row}>
-              <Icon name="briefcase" size={14} color={C.muted} />
-              <Text style={s.rowText} numberOfLines={1}>
-                {item.companyName || item.customer?.companyName || item.customer?.name || 'N/A'}
-              </Text>
-            </View>
-            <View style={s.row}>
-              <Icon name="layers" size={14} color={C.muted} />
-              <Text style={s.rowText}>{item.serviceType || 'N/A'} · {item.vehiclesRequired || 0} vehicles</Text>
-            </View>
-            <View style={s.row}>
-              <Icon name="map-pin" size={14} color={C.muted} />
-              <Text style={s.rowText} numberOfLines={1}>
-                {item.pickupLocation || 'N/A'} → {item.dropLocation || 'N/A'}
-              </Text>
-            </View>
-            <View style={s.row}>
-              <Icon name="calendar" size={14} color={C.muted} />
-              <Text style={s.rowText}>{fmt(item.scheduledDate)}{item.scheduledTime ? ` ${item.scheduledTime}` : ''}</Text>
-            </View>
-          </View>
+  const serviceFilters = [
+    { key: 'all',        label: 'All Services', icon: 'apps',        mci: true,  color: C.g700,   bg: C.g50    },
+    { key: 'car',        label: 'Car Rental',   icon: 'car',         mci: true,  color: C.blue,   bg: C.blueBg },
+    { key: 'self-drive', label: 'Self Drive',   icon: 'steering',    mci: true,  color: '#14B8A6',bg: '#F0FDFA'},
+    { key: 'bus',        label: 'Bus',          icon: 'bus',         mci: true,  color: C.amber,  bg: C.amberBg},
+    { key: 'luxury',     label: 'Luxury Car',   icon: 'star',        mci: true,  color: '#EAB308',bg: '#FEFCE8'},
+    { key: 'bike',       label: 'Bike',         icon: 'motorbike',   mci: true,  color: C.g500,   bg: C.g50   },
+  ];
 
-          <View style={s.footer}>
-            <View>
-              <Text style={s.quotesCount}>{item._count?.vendorQuotes || 0} quotes · {item._count?.trips || 0} trips</Text>
-            </View>
-            <View style={s.footerRight}>
-              <TouchableOpacity style={s.expandBtn} onPress={() => toggleExpand(item.id)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                <Icon name={isExpanded ? 'chevron-up' : 'chevron-down'} size={16} color={C.muted} />
-              </TouchableOpacity>
-              <Icon name="chevron-right" size={18} color={C.brand} />
-            </View>
-          </View>
-        </TouchableOpacity>
-
-        {isExpanded && (
-          <View style={s.expanded}>
-            <View style={s.expandDivider} />
-            {item.tripType && (
-              <View style={s.eRow}><Icon name="navigation" size={13} color={C.muted} /><Text style={s.eLabel}>Trip Type</Text><Text style={s.eVal}>{item.tripType}</Text></View>
-            )}
-            {item.notes && (
-              <View style={[s.eRow, { alignItems: 'flex-start' }]}><Icon name="file-text" size={13} color={C.muted} /><Text style={s.eLabel}>Notes</Text><Text style={[s.eVal, { flex: 1 }]}>{item.notes}</Text></View>
-            )}
-            <TouchableOpacity style={s.viewBtn} onPress={() => navigation.navigate('B2BBookingDetail', { bookingId: item.id })}>
-              <Text style={s.viewBtnText}>{hasQuoted ? 'View Quote' : 'Submit Quote'}</Text>
-              <Icon name="arrow-right" size={14} color={C.brand} />
-            </TouchableOpacity>
-          </View>
-        )}
-      </View>
-    );
+  const filterCounts = {
+    all:          allBookings.length,
+    yet_to_quote: allBookings.filter(b => !b.vendorQuotes?.length).length,
+    submitted:    allBookings.filter(b => ['SUBMITTED', 'UNDER_REVIEW'].includes(b.vendorQuotes?.[0]?.status)).length,
+    confirmed:    allBookings.filter(b => b.vendorQuotes?.[0]?.status === 'CONFIRMED').length,
+    rejected:     allBookings.filter(b => ['REJECTED', 'WITHDRAWN'].includes(b.vendorQuotes?.[0]?.status)).length,
   };
 
   const filters = [
-    { key: 'all', label: 'All' },
-    { key: 'open', label: 'Open' },
-    { key: 'quoted', label: 'Quoted' },
+    { key: 'all',          label: 'All'          },
+    { key: 'yet_to_quote', label: 'To Quote'     },
+    { key: 'submitted',    label: 'Submitted'    },
+    { key: 'confirmed',    label: 'Confirmed'    },
+    { key: 'rejected',     label: 'Not Selected' },
   ];
 
-  return (
-    <SafeAreaView style={s.safe} edges={['top']}>
-      <View style={s.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
-          <Icon name="arrow-left" size={22} color={C.text} />
-        </TouchableOpacity>
-        <Text style={s.headerTitle}>B2B Open Bookings</Text>
-        <View style={{ width: 36 }} />
+  const renderBooking = useCallback(({ item }) => {
+    const sc = STATUS_CONFIG[item.status] || { label: item.status, bg: '#F1F5F9', text: C.sub };
+    const hasQuoted = !!(item.vendorQuotes?.length > 0 || item.hasQuoted);
+    const svcKey = (item.serviceType || '').toUpperCase().replace(/[\s-]/g, '_');
+    const svc = SERVICE_ICON[svcKey] || { icon: 'briefcase', color: C.sub, bg: '#F1F5F9' };
+
+    return (
+      <View style={s.card}>
+        {/* Card top row */}
+        <View style={s.cardTopRow}>
+          {/* Service icon + type */}
+          <View style={[s.svcBox, { backgroundColor: svc.bg }]}>
+            <MCI name={svc.icon} size={18} color={svc.color} />
+          </View>
+          <View style={s.cardTopMid}>
+            <Text style={s.bookingNum}>#{item.bookingNumber}</Text>
+            <Text style={[s.companyName, { color: svc.color, fontWeight: '600' }]} numberOfLines={1}>
+              {item.serviceType || 'B2B Booking'}
+            </Text>
+            {item.vehicleCategory ? (
+              <Text style={s.vehicleCategoryText} numberOfLines={1}>
+                {item.vehicleCategory}
+              </Text>
+            ) : null}
+          </View>
+          <View style={s.cardTopRight}>
+            <View style={[s.statusPill, { backgroundColor: sc.bg }]}>
+              <Text style={[s.statusPillText, { color: sc.text }]}>{sc.label}</Text>
+            </View>
+            {hasQuoted && (
+              <View style={s.quotedChip}>
+                <Icon name="check" size={10} color={C.g600} />
+                <Text style={s.quotedChipText}>Quoted</Text>
+              </View>
+            )}
+          </View>
+        </View>
+
+        {/* Route row */}
+        <View style={s.routeRow}>
+          <View style={s.routeDot} />
+          <View style={s.routeLine} />
+          <MCI name="briefcase" size={14} color={C.sub} />
+          <View style={s.routeLine} />
+          <View style={[s.routeDot, { backgroundColor: C.red }]} />
+          <View style={s.routeCities}>
+            <Text style={s.routeCity} numberOfLines={1}>
+              {item.pickupLocation || 'N/A'}
+            </Text>
+            <Text style={s.routeCity} numberOfLines={1}>
+              {item.dropLocation || item.pickupLocation || 'N/A'}
+            </Text>
+          </View>
+        </View>
+
+        {/* Info chips */}
+        <View style={s.chipsRow}>
+          <View style={s.chip}>
+            <Icon name="calendar" size={12} color={C.sub} />
+            <Text style={s.chipText}>{fmt(item.scheduledDate)}</Text>
+          </View>
+          <View style={s.chip}>
+            <Icon name="truck" size={12} color={C.sub} />
+            <Text style={s.chipText}>{item.vehiclesRequired || 0} vehicles</Text>
+          </View>
+          {item.tripType && (
+            <View style={s.chip}>
+              <Icon name="navigation" size={12} color={C.sub} />
+              <Text style={s.chipText}>{item.tripType}</Text>
+            </View>
+          )}
+        </View>
+
+        {/* Footer */}
+        <View style={s.cardFooter}>
+          <TouchableOpacity
+            style={hasQuoted ? s.btnGreen : s.btnBlue}
+            onPress={() => navigation.navigate('B2BBookingDetail', { bookingId: item.id, booking: item })}
+            activeOpacity={0.7}
+          >
+            <Text style={hasQuoted ? s.btnGreenText : s.btnBlueText}>
+              {hasQuoted ? 'View Details' : 'Submit Quote'}
+            </Text>
+            <Icon name="arrow-right" size={14} color={hasQuoted ? C.g700 : C.blue} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={s.chatBtn}
+            onPress={() => navigation.navigate('ChatScreen', { bookingId: item.id, customerName: 'B2B Manager', bookingNumber: item.bookingNumber, serviceType: item.serviceType })}
+            activeOpacity={0.7}
+          >
+            <Icon name="message-circle" size={16} color={C.sub} />
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }, [navigation]);
+
+  const activeServiceFilter = serviceFilters.find(f => f.key === serviceFilter);
+  const isServiceFiltered = serviceFilter !== 'all';
+
+  const ListHeader = (
+    <>
+      {/* Header gradient */}
+      <LinearGradient colors={[C.g950, C.g900, C.g800]} style={s.headerGrad}>
+        <View style={s.deco1} />
+        <View style={s.deco2} />
+        <SafeAreaView edges={['top']}>
+          <View style={s.headerRow}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={s.headerBtn}>
+              <Icon name="arrow-left" size={20} color="#fff" />
+            </TouchableOpacity>
+            <View style={s.headerCenter}>
+              <Text style={s.headerTitle}>Open Requests</Text>
+              <Text style={s.headerSub}>Corporate bookings available for quoting</Text>
+            </View>
+            <TouchableOpacity style={s.headerBtn} onPress={() => setFilterModalOpen(true)} activeOpacity={0.8}>
+              <Icon name="filter" size={18} color={isServiceFiltered ? C.g400 : 'rgba(255,255,255,0.7)'} />
+              {isServiceFiltered && <View style={s.filterBadge} />}
+            </TouchableOpacity>
+          </View>
+          {/* Active filter pill */}
+          {isServiceFiltered && (
+            <View style={s.activeFilterRow}>
+              <View style={s.activeFilterPill}>
+                <MCI name={activeServiceFilter?.icon} size={13} color={activeServiceFilter?.color} />
+                <Text style={[s.activeFilterText, { color: activeServiceFilter?.color }]}>
+                  {activeServiceFilter?.label}
+                </Text>
+                <TouchableOpacity onPress={() => setServiceFilter('all')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                  <Icon name="x" size={12} color={activeServiceFilter?.color} />
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
+        </SafeAreaView>
+      </LinearGradient>
+
+      {/* Status filter tabs */}
+      <View style={s.tabsBarWrap}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.tabsBar}>
+          {filters.map(f => (
+            <TouchableOpacity
+              key={f.key}
+              style={[s.tab, selectedFilter === f.key && s.tabActive]}
+              onPress={() => setSelectedFilter(f.key)}
+              activeOpacity={0.7}
+            >
+              <Text style={[s.tabText, selectedFilter === f.key && s.tabTextActive]}>
+                {f.label}
+              </Text>
+              <View style={[s.tabPill, selectedFilter === f.key && s.tabPillActive]}>
+                <Text style={[s.tabPillText, selectedFilter === f.key && s.tabPillTextActive]}>
+                  {filterCounts[f.key]}
+                </Text>
+              </View>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
       </View>
 
-      <View style={s.tabs}>
-        {filters.map(f => (
-          <TouchableOpacity key={f.key} style={[s.tab, selectedFilter === f.key && s.tabActive]} onPress={() => setSelectedFilter(f.key)}>
-            <Text style={[s.tabText, selectedFilter === f.key && s.tabTextActive]}>{f.label}</Text>
-            <View style={[s.tabBadge, selectedFilter === f.key && s.tabBadgeActive]}>
-              <Text style={[s.tabBadgeText, selectedFilter === f.key && s.tabBadgeTextActive]}>
-                {f.key === 'all' ? allBookings.length : f.key === 'open' ? allBookings.filter(b => b.status === 'OPEN_FOR_QUOTES').length : allBookings.filter(b => b.vendorQuotes?.length > 0).length}
+    </>
+  );
+
+  return (
+    <View style={s.root}>
+      <StatusBar barStyle="light-content" backgroundColor={C.g950} />
+
+      {/* Service Filter Modal */}
+      <Modal
+        visible={filterModalOpen}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setFilterModalOpen(false)}
+      >
+        <TouchableOpacity style={s.modalOverlay} activeOpacity={1} onPress={() => setFilterModalOpen(false)}>
+          <View style={s.filterSheet}>
+            <View style={s.sheetHandle} />
+            <View style={s.sheetHeader}>
+              <Text style={s.sheetTitle}>Filter by Service</Text>
+              <TouchableOpacity onPress={() => setFilterModalOpen(false)}>
+                <Icon name="x" size={20} color={C.sub} />
+              </TouchableOpacity>
+            </View>
+            <View style={s.sheetGrid}>
+              {serviceFilters.map(f => {
+                const isActive = serviceFilter === f.key;
+                return (
+                  <TouchableOpacity
+                    key={f.key}
+                    style={[s.sheetOption, isActive && { borderColor: f.color, backgroundColor: f.bg }]}
+                    onPress={() => { setServiceFilter(f.key); setFilterModalOpen(false); }}
+                    activeOpacity={0.75}
+                  >
+                    <View style={[s.sheetOptionIcon, { backgroundColor: isActive ? f.color + '22' : C.bg }]}>
+                      <MCI name={f.icon} size={22} color={isActive ? f.color : C.muted} />
+                    </View>
+                    <Text style={[s.sheetOptionText, isActive && { color: f.color, fontWeight: '700' }]}>
+                      {f.label}
+                    </Text>
+                    {isActive && <View style={[s.sheetOptionDot, { backgroundColor: f.color }]} />}
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+      <FlatList
+        data={filteredBookings}
+        keyExtractor={(item) => String(item.id)}
+        renderItem={renderBooking}
+        contentContainerStyle={s.listContent}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.g600} />
+        }
+        onEndReached={onEndReached}
+        onEndReachedThreshold={0.4}
+        ListHeaderComponent={ListHeader}
+        stickyHeaderIndices={[0]}
+        ListEmptyComponent={
+          !loading ? (
+            <View style={s.emptyBox}>
+              <MCI name="briefcase-search" size={48} color={C.muted} />
+              <Text style={s.emptyTitle}>No bookings found</Text>
+              <Text style={s.emptySub}>
+                {selectedFilter === 'quoted'
+                  ? "You haven't submitted any quotes yet"
+                  : 'Check back later for new B2B bookings'}
               </Text>
             </View>
-          </TouchableOpacity>
-        ))}
-      </View>
-
-      <FlatList
-        data={bookings}
-        keyExtractor={(item) => item.id}
-        renderItem={renderBooking}
-        contentContainerStyle={s.list}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={C.brand} />}
-        onEndReached={loadMore}
-        onEndReachedThreshold={0.3}
-        ListEmptyComponent={
-          !loading && (
-            <View style={s.empty}>
-              <Icon name="inbox" size={48} color={C.muted} />
-              <Text style={s.emptyText}>No open bookings</Text>
-              <Text style={s.emptySubtext}>Check back later for new B2B bookings</Text>
-            </View>
-          )
+          ) : null
         }
         ListFooterComponent={
-          loading && !refreshing ? <ActivityIndicator style={{ padding: 20 }} color={C.brand} /> : null
+          loading && !refreshing
+            ? <ActivityIndicator style={s.loadMore} color={C.g600} />
+            : loadingMore
+              ? <ActivityIndicator style={s.loadMore} color={C.g600} />
+              : <View style={{ height: 40 }} />
         }
       />
-    </SafeAreaView>
+    </View>
   );
 }
 
 const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: C.bg },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 14, backgroundColor: C.surface, borderBottomWidth: 1, borderBottomColor: C.border },
-  backBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: C.bg, justifyContent: 'center', alignItems: 'center' },
-  headerTitle: { fontSize: 18, fontWeight: '700', color: C.text },
-  tabs: { flexDirection: 'row', paddingHorizontal: 16, paddingVertical: 10, gap: 8, backgroundColor: C.surface },
-  tab: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: C.bg, gap: 6 },
-  tabActive: { backgroundColor: C.brand },
-  tabText: { fontSize: 13, fontWeight: '600', color: C.subtext },
-  tabTextActive: { color: '#fff' },
-  tabBadge: { minWidth: 20, height: 20, borderRadius: 10, backgroundColor: C.border, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 6 },
-  tabBadgeActive: { backgroundColor: 'rgba(255,255,255,0.3)' },
-  tabBadgeText: { fontSize: 11, fontWeight: '700', color: C.subtext },
-  tabBadgeTextActive: { color: '#fff' },
-  list: { padding: 16, paddingBottom: 40 },
-  card: { backgroundColor: C.surface, borderRadius: 14, padding: 14, marginBottom: 10, elevation: 2, shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 } },
-  cardTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  cardTopLeft: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  num: { fontSize: 14, fontWeight: '700', color: C.brand },
-  quotedChip: { flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: C.green + '15', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10 },
-  quotedText: { fontSize: 10, fontWeight: '700', color: C.green },
-  badge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
-  badgeText: { fontSize: 11, fontWeight: '700' },
-  body: { marginTop: 10, gap: 6 },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  rowText: { fontSize: 13, color: C.subtext, flex: 1 },
-  footer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: C.border },
-  quotesCount: { fontSize: 12, color: C.muted },
-  footerRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  expandBtn: { padding: 4 },
-  expanded: { marginTop: 4 },
-  expandDivider: { height: 1, backgroundColor: C.border, marginBottom: 10 },
-  eRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 },
-  eLabel: { fontSize: 12, color: C.muted, width: 70 },
-  eVal: { fontSize: 13, color: C.text, fontWeight: '500' },
-  viewBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 10, paddingVertical: 10, backgroundColor: C.brand + '10', borderRadius: 10 },
-  viewBtnText: { fontSize: 14, fontWeight: '600', color: C.brand },
-  empty: { alignItems: 'center', paddingTop: 80 },
-  emptyText: { fontSize: 16, fontWeight: '600', color: C.text, marginTop: 12 },
-  emptySubtext: { fontSize: 13, color: C.subtext, marginTop: 4 },
+  root: { flex: 1, backgroundColor: C.bg },
+
+  /* Header */
+  headerGrad: { paddingBottom: 16 },
+  deco1: {
+    position: 'absolute', width: 160, height: 160, borderRadius: 80,
+    backgroundColor: 'rgba(255,255,255,0.04)', top: -30, right: -30,
+  },
+  deco2: {
+    position: 'absolute', width: 100, height: 100, borderRadius: 50,
+    backgroundColor: 'rgba(255,255,255,0.03)', bottom: 8, left: -20,
+  },
+  headerRow: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: 8, paddingTop: 12, paddingBottom: 4,
+  },
+  headerBtn: {
+    width: 36, height: 36, borderRadius: 18,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    justifyContent: 'center', alignItems: 'center',
+  },
+  headerCenter: { flex: 1, alignItems: 'center' },
+  headerTitle: { color: '#fff', fontSize: 18, fontWeight: '700' },
+  headerSub: { color: 'rgba(255,255,255,0.65)', fontSize: 11, marginTop: 2 },
+
+  /* Filter tabs */
+  tabsBarWrap: {
+    backgroundColor: C.surface,
+    borderBottomWidth: 1, borderBottomColor: C.border,
+  },
+  tabsBar: {
+    flexDirection: 'row',
+    paddingHorizontal: 16, paddingVertical: 10, gap: 8,
+  },
+  tab: {
+    flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: 14, paddingVertical: 7,
+    borderRadius: 20, gap: 6, backgroundColor: C.bg,
+  },
+  tabActive: { borderBottomWidth: 0, backgroundColor: C.g50 },
+  tabText: { fontSize: 13, fontWeight: '600', color: C.sub },
+  tabTextActive: { color: C.g700, fontWeight: '700' },
+  tabPill: {
+    minWidth: 20, height: 18, borderRadius: 9,
+    backgroundColor: C.border, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 5,
+  },
+  tabPillActive: { backgroundColor: C.g100 },
+  tabPillText: { fontSize: 10, fontWeight: '700', color: C.sub },
+  tabPillTextActive: { color: C.g700 },
+
+  /* Active filter pill in header */
+  activeFilterRow: { alignItems: 'center', paddingBottom: 10 },
+  activeFilterPill: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 20,
+    paddingHorizontal: 12, paddingVertical: 5,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.25)',
+  },
+  activeFilterText: { fontSize: 12, fontWeight: '700' },
+
+  /* Filter badge dot */
+  filterBadge: {
+    position: 'absolute', top: 6, right: 6,
+    width: 8, height: 8, borderRadius: 4,
+    backgroundColor: C.g400, borderWidth: 1.5, borderColor: C.g950,
+  },
+
+  /* Service filter modal */
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'flex-end' },
+  filterSheet: {
+    backgroundColor: C.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24,
+    paddingBottom: 32,
+  },
+  sheetHandle: {
+    width: 40, height: 4, borderRadius: 2, backgroundColor: C.border,
+    alignSelf: 'center', marginTop: 10, marginBottom: 4,
+  },
+  sheetHeader: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: 20, paddingVertical: 14,
+    borderBottomWidth: 1, borderBottomColor: C.border,
+  },
+  sheetTitle: { fontSize: 16, fontWeight: '700', color: C.text },
+  sheetGrid: {
+    flexDirection: 'row', flexWrap: 'wrap',
+    padding: 16, gap: 12,
+  },
+  sheetOption: {
+    width: '46%', flexGrow: 1,
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    backgroundColor: C.bg, borderRadius: 14,
+    borderWidth: 1.5, borderColor: C.border,
+    padding: 14,
+  },
+  sheetOptionIcon: {
+    width: 38, height: 38, borderRadius: 10,
+    justifyContent: 'center', alignItems: 'center',
+  },
+  sheetOptionText: { flex: 1, fontSize: 13, fontWeight: '600', color: C.sub },
+  sheetOptionDot: { width: 8, height: 8, borderRadius: 4 },
+
+  /* List */
+  listContent: { paddingBottom: 20 },
+
+  /* Card */
+  card: {
+    backgroundColor: C.surface, borderRadius: 16,
+    borderWidth: 1, borderColor: C.border,
+    marginHorizontal: 14, marginBottom: 12, overflow: 'hidden',
+    elevation: 2, shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 },
+  },
+
+  /* Card top row */
+  cardTopRow: {
+    flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: 14, paddingTop: 14, paddingBottom: 10, gap: 10,
+  },
+  svcBox: {
+    width: 38, height: 38, borderRadius: 10,
+    justifyContent: 'center', alignItems: 'center',
+  },
+  cardTopMid: { flex: 1 },
+  bookingNum: { fontSize: 11, fontWeight: '700', color: C.muted, fontVariant: ['tabular-nums'] },
+  companyName: { fontSize: 14, fontWeight: '700', color: C.text, marginTop: 1 },
+  vehicleCategoryText: { fontSize: 12, color: C.sub, marginTop: 2 },
+  cardTopRight: { alignItems: 'flex-end', gap: 4 },
+  statusPill: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
+  statusPillText: { fontSize: 10, fontWeight: '700' },
+  quotedChip: {
+    flexDirection: 'row', alignItems: 'center', gap: 3,
+    backgroundColor: C.g50, paddingHorizontal: 7, paddingVertical: 2, borderRadius: 8,
+  },
+  quotedChipText: { fontSize: 10, fontWeight: '700', color: C.g600 },
+
+  /* Route row */
+  routeRow: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: '#F8FAFC', borderRadius: 10,
+    marginHorizontal: 14, marginBottom: 10, paddingVertical: 8, paddingHorizontal: 10, gap: 4,
+  },
+  routeDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: C.g500 },
+  routeLine: { flex: 1, height: 1, backgroundColor: C.border },
+  routeCities: {
+    position: 'absolute', left: 0, right: 0,
+    flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 20,
+    top: 20,
+  },
+  routeCity: { fontSize: 10, color: C.sub, fontWeight: '500', maxWidth: '45%' },
+
+  /* Chips */
+  chipsRow: {
+    flexDirection: 'row', flexWrap: 'wrap',
+    paddingHorizontal: 14, paddingBottom: 10, gap: 6,
+  },
+  chip: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    backgroundColor: C.bg, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4,
+    borderWidth: 1, borderColor: C.border,
+  },
+  chipText: { fontSize: 11, color: C.sub, fontWeight: '500' },
+
+  /* Footer */
+  cardFooter: {
+    paddingHorizontal: 14, paddingBottom: 12, paddingTop: 4,
+    borderTopWidth: 1, borderTopColor: '#F8FAFC',
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+  },
+  chatBtn: {
+    width: 36, height: 36, borderRadius: 10,
+    backgroundColor: '#F1F5F9', borderWidth: 1, borderColor: C.border,
+    justifyContent: 'center', alignItems: 'center',
+  },
+  btnGreen: {
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
+    backgroundColor: C.g50, borderRadius: 10, paddingVertical: 9,
+    borderWidth: 1, borderColor: C.g100,
+  },
+  btnGreenText: { fontSize: 13, fontWeight: '700', color: C.g700 },
+  btnBlue: {
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
+    backgroundColor: C.blueBg, borderRadius: 10, paddingVertical: 9,
+    borderWidth: 1, borderColor: '#BFDBFE',
+  },
+  btnBlueText: { fontSize: 13, fontWeight: '700', color: C.blue },
+
+  /* Empty */
+  emptyBox: { alignItems: 'center', paddingTop: 80, paddingHorizontal: 32 },
+  emptyTitle: { fontSize: 16, fontWeight: '700', color: C.text, marginTop: 14 },
+  emptySub: { fontSize: 13, color: C.sub, marginTop: 6, textAlign: 'center', lineHeight: 19 },
+
+  /* Load more */
+  loadMore: { paddingVertical: 24 },
 });

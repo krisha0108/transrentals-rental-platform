@@ -1,78 +1,102 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  RefreshControl,
-  ActivityIndicator,
-  Image,
-  Alert,
-  Platform,
+  View, Text, StyleSheet, ScrollView, TouchableOpacity,
+  RefreshControl, ActivityIndicator, Image, Platform, StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
+import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/Feather';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { launchImageLibrary } from 'react-native-image-picker';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getVendorProfile, logoutVendor, uploadVendorLogo, getBaseURL } from '../../api/client';
-import { showConfirm, showError, showInfo, showSuccess } from '../../../services/alertService';
+import { showConfirm, showError, showSuccess } from '../../../services/alertService';
 
 const C = {
-  bg: '#F7FAFC',
-  surface: '#FFFFFF',
-  card: '#F9FAFB',
-  text: '#0F172A',
-  muted: '#6B7280',
-  border: '#E5E7EB',
-  brand: '#22C55E',
-  blue: '#2563EB',
-  purple: '#8B5CF6',
-  orange: '#F59E0B',
-  red: '#EF4444',
+  g900: '#022C22', g800: '#065F46', g700: '#047857', g600: '#059669',
+  g500: '#10B981', g400: '#34D399', g300: '#6EE7B7', g100: '#D1FAE5', g50: '#ECFDF5',
+  bg: '#F1F5F9', card: '#FFFFFF', border: '#E2E8F0',
+  text: '#0F172A', sub: '#475569', muted: '#94A3B8',
+  blue: '#3B82F6', blueL: '#EFF6FF',
+  amber: '#D97706', amberL: '#FFFBEB',
+  red: '#DC2626', redL: '#FEF2F2',
+  purple: '#7C3AED', purpleL: '#F5F3FF',
+  orange: '#EA580C', orangeL: '#FFF7ED',
+  indigo: '#4F46E5', indigoL: '#EEF2FF',
+};
+
+const MENU_SECTIONS = [
+  {
+    section: 'Account',
+    icon: 'account-circle-outline',
+    items: [
+      { name: 'Business Profile',  icon: 'briefcase',    mcIcon: 'domain',               route: 'BusinessProfileScreen', color: C.g700,   bg: C.g50 },
+      { name: 'Documents',         icon: 'file-text',    mcIcon: 'file-document-outline', route: 'VendorDocuments',       color: C.blue,   bg: C.blueL },
+      { name: 'Bank Details',      icon: 'credit-card',  mcIcon: 'bank-outline',          route: 'BankDetailsScreen',     color: C.indigo, bg: C.indigoL },
+    ],
+  },
+  {
+    section: 'Services',
+    icon: 'view-grid-outline',
+    items: [
+      { name: 'My Services',  icon: 'layers',   mcIcon: 'car-multiple',  route: 'VendorServices',   color: C.purple, bg: C.purpleL },
+      { name: 'My Locations', icon: 'map-pin',  mcIcon: 'map-marker-outline', route: 'VendorLocations',  color: C.orange, bg: C.orangeL },
+    ],
+  },
+  {
+    section: 'Support',
+    icon: 'headset',
+    items: [
+      { name: 'Help & Support', icon: 'help-circle', mcIcon: 'help-circle-outline', route: 'HelpSupportScreen', color: C.amber, bg: C.amberL },
+      { name: 'About Us',       icon: 'info',        mcIcon: 'information-outline',  route: 'AboutUsScreen',    color: C.g700,  bg: C.g50 },
+    ],
+  },
+];
+
+const STATUS_META = {
+  APPROVED:           { label: 'Verified',         color: C.g700,   bg: C.g50,    icon: 'check-circle',           mcIcon: 'check-decagram' },
+  DOCUMENTS_PENDING:  { label: 'Docs Pending',      color: C.amber,  bg: C.amberL, icon: 'alert-circle',           mcIcon: 'file-clock-outline' },
+  PENDING:            { label: 'Pending Review',    color: C.amber,  bg: C.amberL, icon: 'clock',                  mcIcon: 'timer-sand' },
+  UNDER_REVIEW:       { label: 'Under Review',      color: C.blue,   bg: C.blueL,  icon: 'eye',                    mcIcon: 'magnify-scan' },
+  REJECTED:           { label: 'Rejected',          color: C.red,    bg: C.redL,   icon: 'x-circle',               mcIcon: 'close-circle-outline' },
 };
 
 export default function ProfileScreen({ navigation }) {
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading]     = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [profile, setProfile] = useState(null);
-  const [baseURL, setBaseURL] = useState('');
+  const [profile, setProfile]     = useState(null);
+  const [baseURL, setBaseURL]     = useState('');
 
-  // Get base URL on mount
+  useFocusEffect(useCallback(() => {
+    StatusBar.setBarStyle('light-content');
+    StatusBar.setBackgroundColor(C.g900);
+  }, []));
+
   useEffect(() => {
-    const loadBaseURL = async () => {
-      const url = await getBaseURL();
-      setBaseURL(url);
-    };
-    loadBaseURL();
+    getBaseURL().then(url => setBaseURL(url));
   }, []);
 
-  // Helper to get full image URL
   const getFullImageURL = (url) => {
     if (!url) return null;
-    if (url.startsWith('http')) return url; // Already full URL
-    // Only prepend baseURL if it's loaded
+    if (url.startsWith('http')) return url;
     if (!baseURL) return null;
-    return `${baseURL}${url}`; // Prepend baseURL for relative paths
+    return `${baseURL}${url}`;
   };
 
   const fetchProfile = useCallback(async () => {
     try {
       const data = await getVendorProfile();
-      console.log('[Profile] Fetched profile, logo:', data?.logo);
       setProfile(data);
-    } catch (error) {
-      console.log('Error fetching profile:', error);
+    } catch (e) {
+      console.log('Profile fetch error:', e);
     } finally {
       setLoading(false);
     }
   }, []);
 
-  useEffect(() => {
-    fetchProfile();
-  }, [fetchProfile]);
+  useEffect(() => { fetchProfile(); }, [fetchProfile]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -82,70 +106,24 @@ export default function ProfileScreen({ navigation }) {
 
   const handleUpdateProfileImage = async () => {
     try {
-      const result = await launchImageLibrary({
-        mediaType: 'photo',
-        quality: 0.8,
-        maxWidth: 1024,
-        maxHeight: 1024,
-        includeBase64: false,
-      });
-
-      if (result.didCancel) {
-        return;
-      }
-
-      if (result.errorCode) {
-        showError(result.errorMessage || 'Failed to pick image');
-        return;
-      }
-
+      const result = await launchImageLibrary({ mediaType: 'photo', quality: 0.8, maxWidth: 1024, maxHeight: 1024 });
+      if (result.didCancel) return;
+      if (result.errorCode) { showError(result.errorMessage || 'Failed to pick image'); return; }
       const asset = result.assets?.[0];
-      if (!asset?.uri) {
-        showError('No image selected');
-        return;
-      }
-
-      // Validate file size (max 5MB)
-      if (asset.fileSize && asset.fileSize > 5 * 1024 * 1024) {
-        showError('Image size must be less than 5MB');
-        return;
-      }
+      if (!asset?.uri) { showError('No image selected'); return; }
+      if (asset.fileSize && asset.fileSize > 5 * 1024 * 1024) { showError('Image size must be less than 5MB'); return; }
 
       setUploading(true);
-
-      console.log('[ProfileScreen] Starting upload process...');
-      console.log('[ProfileScreen] Asset details:', {
-        uri: asset.uri,
-        type: asset.type,
-        size: asset.fileSize,
-        name: asset.fileName,
-      });
-
-      // Create FormData
       const formData = new FormData();
-
-      // For Android, ensure proper file URI format
       const fileUri = Platform.OS === 'android' ? asset.uri : asset.uri.replace('file://', '');
-
-      formData.append('logo', {
-        uri: fileUri,
-        type: asset.type || 'image/jpeg',
-        name: asset.fileName || `logo-${Date.now()}.jpg`,
-      });
-
-      console.log('[ProfileScreen] FormData created with file URI:', fileUri);
-
-      // Upload
+      formData.append('logo', { uri: fileUri, type: asset.type || 'image/jpeg', name: asset.fileName || `logo-${Date.now()}.jpg` });
       const response = await uploadVendorLogo(formData);
-
       if (response.success) {
-        // Update local profile with new logo
         setProfile({ ...profile, logo: response.logo });
-        showSuccess('Profile image updated successfully!');
+        showSuccess('Profile image updated!');
       }
-    } catch (error) {
-      console.error('Upload error:', error);
-      showError(error?.response?.data?.error || 'Failed to upload image');
+    } catch (e) {
+      showError(e?.response?.data?.error || 'Failed to upload image');
     } finally {
       setUploading(false);
     }
@@ -153,400 +131,328 @@ export default function ProfileScreen({ navigation }) {
 
   const handleLogout = () => {
     showConfirm('Logout', 'Are you sure you want to logout?', async () => {
-            try {
-              await logoutVendor();
-              navigation.reset({
-                index: 0,
-                routes: [{ name: 'VendorLoginScreen' }],
-              });
-            } catch (error) {
-              console.log('Logout error:', error);
-            }
-          }, { confirmText: 'Logout', destructive: true });
-  };
-
-  const profileMenuItems = [
-    {
-      section: 'Account',
-      items: [
-        { name: 'Business Profile', icon: 'briefcase', route: 'BusinessProfileScreen' },
-        { name: 'Documents', icon: 'file-text', route: 'VendorDocuments' },
-        { name: 'Bank Details', icon: 'credit-card', route: 'BankDetailsScreen' },
-      ],
-    },
-    {
-      section: 'Services',
-      items: [
-        { name: 'My Services', icon: 'layers', route: 'VendorServices' },
-        { name: 'My Locations', icon: 'map-pin', route: 'VendorLocations' },
-      ],
-    },
-    {
-      section: 'Support',
-      items: [
-        { name: 'Help & Support', icon: 'help-circle', route: 'HelpSupportScreen' },
-        { name: 'About Us', icon: 'info', route: 'AboutUsScreen' },
-      ],
-    },
-  ];
-
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'APPROVED':
-        return { bg: '#DCFCE7', text: '#166534' };
-      case 'DOCUMENTS_PENDING':
-      case 'PENDING':
-        return { bg: '#FEF3C7', text: '#92400E' };
-      case 'UNDER_REVIEW':
-        return { bg: '#DBEAFE', text: '#1E40AF' };
-      default:
-        return { bg: '#FEE2E2', text: '#991B1B' };
-    }
+      try {
+        await logoutVendor();
+        navigation.reset({ index: 0, routes: [{ name: 'VendorLoginScreen' }] });
+      } catch (e) { console.log('Logout error:', e); }
+    }, { confirmText: 'Logout', destructive: true });
   };
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.safe}>
-        <View style={styles.loaderContainer}>
-          <ActivityIndicator size="large" color={C.brand} />
+      <SafeAreaView style={st.safe} edges={['top']}>
+        <StatusBar barStyle="light-content" backgroundColor={C.g900} />
+        <LinearGradient colors={[C.g900, C.g800, C.g700]} style={st.heroSkeleton}>
+          <View style={st.heroTopRow}>
+            <Text style={st.heroTitle}>My Profile</Text>
+          </View>
+        </LinearGradient>
+        <View style={st.loaderWrap}>
+          <ActivityIndicator size="large" color={C.g600} />
+          <Text style={st.loaderTxt}>Loading profile...</Text>
         </View>
       </SafeAreaView>
     );
   }
 
-  const statusColors = getStatusColor(profile?.status);
+  const statusKey = profile?.status || 'PENDING';
+  const statusMeta = STATUS_META[statusKey] || STATUS_META.PENDING;
+  const logoUrl = getFullImageURL(profile?.logo);
+  const initials = (profile?.businessName || 'V').charAt(0).toUpperCase();
+
+  const stats = [
+    { value: profile?.fleetsCount || 0,              label: 'Vehicles',  icon: 'car-multiple',       color: C.g700,   bg: C.g50 },
+    { value: profile?.approvedServicesCount || 0,    label: 'Services',  icon: 'view-grid',           color: C.blue,   bg: C.blueL },
+    { value: profile?.approvedLocationsCount || 0,   label: 'Locations', icon: 'map-marker-outline',  color: C.orange, bg: C.orangeL },
+    { value: profile?.rating?.toFixed(1) || '--',    label: 'Rating',    icon: 'star',                color: C.amber,  bg: C.amberL },
+  ];
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView style={st.safe} edges={['top']}>
+      <StatusBar barStyle="light-content" backgroundColor={C.g900} />
+
       <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor={C.brand}
-          />
-        }
+        style={st.scroll}
+        contentContainerStyle={st.scrollContent}
         showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[C.g600]} tintColor={C.g600} />}
       >
-        {/* Profile Header */}
-        <View style={styles.profileHeader}>
-          <View style={styles.avatarContainer}>
-            {profile?.logo && getFullImageURL(profile.logo) ? (
-              <Image
-                key={profile.logo} // Force re-render when logo changes
-                source={{ uri: getFullImageURL(profile.logo) }}
-                style={styles.avatar}
-                onError={(e) => {
-                  console.log('[Profile] Image load error:', e.nativeEvent.error);
-                  console.log('[Profile] Image URL:', getFullImageURL(profile.logo));
-                  console.log('[Profile] baseURL:', baseURL);
-                }}
-                onLoad={() => {
-                  console.log('[Profile] Image loaded successfully:', getFullImageURL(profile.logo));
-                }}
-              />
-            ) : (
-              <View style={styles.avatarPlaceholder}>
-                <Icon name="building" size={32} color={C.brand} />
+
+        {/* ── HERO ── */}
+        <LinearGradient colors={[C.g900, C.g800, C.g700]} style={st.hero}>
+          {/* Decorative blobs */}
+          <View style={[st.blob, { width: 200, height: 200, top: -80, right: -60, opacity: 0.07 }]} />
+          <View style={[st.blob, { width: 100, height: 100, top: 20, left: -30, opacity: 0.05 }]} />
+          <View style={[st.blob, { width: 60,  height: 60,  bottom: 10, right: 80, opacity: 0.04 }]} />
+
+          {/* Top row */}
+          <View style={st.heroTopRow}>
+            <View>
+              <View style={st.heroBadge}>
+                <MaterialCommunityIcons name="store-check" size={11} color={C.g400} />
+                <Text style={st.heroBadgeTxt}>Vendor Portal</Text>
               </View>
-            )}
-            <TouchableOpacity
-              style={styles.editAvatarBtn}
-              onPress={handleUpdateProfileImage}
-              disabled={uploading}
-            >
-              {uploading ? (
-                <ActivityIndicator size="small" color="#fff" />
-              ) : (
-                <Icon name="camera" size={14} color="#fff" />
-              )}
+              <Text style={st.heroTitle}>My Profile</Text>
+            </View>
+            <TouchableOpacity style={st.settingsBtn} onPress={() => navigation.navigate('BusinessProfileScreen')}>
+              <Icon name="settings" size={18} color="rgba(255,255,255,0.85)" />
             </TouchableOpacity>
           </View>
 
-          <Text style={styles.businessName}>{profile?.businessName || 'Business Name'}</Text>
-          <Text style={styles.ownerName}>{profile?.ownerName || 'Owner Name'}</Text>
+          {/* Avatar + Info */}
+          <View style={st.heroBody}>
+            {/* Avatar */}
+            <TouchableOpacity style={st.avatarWrap} onPress={handleUpdateProfileImage} disabled={uploading}>
+              {logoUrl ? (
+                <Image source={{ uri: logoUrl }} style={st.avatar} />
+              ) : (
+                <LinearGradient colors={[C.g600, C.g500]} style={st.avatarPlaceholder}>
+                  <Text style={st.avatarInitial}>{initials}</Text>
+                </LinearGradient>
+              )}
+              <LinearGradient colors={[C.g600, C.g500]} style={st.cameraBadge}>
+                {uploading
+                  ? <ActivityIndicator size="small" color="#fff" />
+                  : <Icon name="camera" size={12} color="#fff" />
+                }
+              </LinearGradient>
+            </TouchableOpacity>
 
-          <View style={[styles.statusBadge, { backgroundColor: statusColors.bg }]}>
-            <Text style={[styles.statusText, { color: statusColors.text }]}>
-              {profile?.status?.replace(/_/g, ' ') || 'PENDING'}
-            </Text>
+            {/* Name & Status */}
+            <View style={st.heroInfo}>
+              <Text style={st.heroName} numberOfLines={1}>{profile?.businessName || 'Business Name'}</Text>
+              <Text style={st.heroOwner} numberOfLines={1}>{profile?.ownerName || 'Owner Name'}</Text>
+
+              {/* Status pill */}
+              <View style={[st.statusPill, { backgroundColor: 'rgba(255,255,255,0.12)', borderColor: 'rgba(255,255,255,0.2)' }]}>
+                <MaterialCommunityIcons name={statusMeta.mcIcon} size={12} color={statusMeta.color === C.g700 ? C.g400 : '#fff'} />
+                <Text style={[st.statusTxt, { color: statusMeta.color === C.g700 ? C.g400 : '#fff' }]}>
+                  {statusMeta.label}
+                </Text>
+              </View>
+            </View>
           </View>
 
-          {/* Contact Info */}
-          <View style={styles.contactRow}>
-            <View style={styles.contactItem}>
-              <Icon name="mail" size={14} color={C.muted} />
-              <Text style={styles.contactText}>{profile?.email || 'email@example.com'}</Text>
+          {/* Contact strip */}
+          <View style={st.contactStrip}>
+            <View style={st.contactItem}>
+              <Icon name="mail" size={12} color="rgba(255,255,255,0.5)" />
+              <Text style={st.contactTxt} numberOfLines={1}>{profile?.email || '—'}</Text>
             </View>
-            <View style={styles.contactItem}>
-              <Icon name="phone" size={14} color={C.muted} />
-              <Text style={styles.contactText}>{profile?.phone || '+91 XXXXXXXXXX'}</Text>
+            <View style={st.contactDot} />
+            <View style={st.contactItem}>
+              <Icon name="phone" size={12} color="rgba(255,255,255,0.5)" />
+              <Text style={st.contactTxt}>{profile?.phone || '—'}</Text>
             </View>
           </View>
+        </LinearGradient>
+
+        {/* ── STATS ── */}
+        <View style={st.statsGrid}>
+          {stats.map((s, i) => (
+            <View key={i} style={st.statCard}>
+              <View style={[st.statIconBox, { backgroundColor: s.bg }]}>
+                <MaterialCommunityIcons name={s.icon} size={20} color={s.color} />
+              </View>
+              <Text style={st.statValue}>{s.value}</Text>
+              <Text style={st.statLabel}>{s.label}</Text>
+            </View>
+          ))}
         </View>
 
-        {/* Stats Row */}
-        <View style={styles.statsRow}>
-          <View style={styles.statItem}>
-            <Text style={styles.statValue}>{profile?.fleetsCount || 0}</Text>
-            <Text style={styles.statLabel}>Vehicles</Text>
-          </View>
-          <View style={styles.statDivider} />
-          <View style={styles.statItem}>
-            <Text style={styles.statValue}>{profile?.approvedServicesCount || 0}</Text>
-            <Text style={styles.statLabel}>Services</Text>
-          </View>
-          <View style={styles.statDivider} />
-          <View style={styles.statItem}>
-            <Text style={styles.statValue}>{profile?.approvedLocationsCount || 0}</Text>
-            <Text style={styles.statLabel}>Locations</Text>
-          </View>
-          <View style={styles.statDivider} />
-          <View style={styles.statItem}>
-            <Text style={styles.statValue}>{profile?.rating?.toFixed(1) || '--'}</Text>
-            <Text style={styles.statLabel}>Rating</Text>
-          </View>
-        </View>
+        {/* ── MENU SECTIONS ── */}
+        {MENU_SECTIONS.map((section, si) => (
+          <View key={si} style={st.section}>
+            {/* Section header */}
+            <View style={st.sectionHead}>
+              <MaterialCommunityIcons name={section.icon} size={14} color={C.g600} />
+              <Text style={st.sectionTitle}>{section.section}</Text>
+            </View>
 
-        {/* Menu Sections */}
-        {profileMenuItems.map((section, sectionIndex) => (
-          <View key={sectionIndex} style={styles.menuSection}>
-            <Text style={styles.sectionTitle}>{section.section}</Text>
-            <View style={styles.menuCard}>
-              {section.items.map((item, itemIndex) => (
+            <View style={st.menuCard}>
+              {section.items.map((item, ii) => (
                 <TouchableOpacity
-                  key={itemIndex}
-                  style={[
-                    styles.menuItem,
-                    itemIndex < section.items.length - 1 && styles.menuItemBorder,
-                  ]}
+                  key={ii}
+                  style={[st.menuRow, ii < section.items.length - 1 && st.menuRowBorder]}
                   onPress={() => item.route && navigation.navigate(item.route)}
+                  activeOpacity={0.75}
                 >
-                  <View style={styles.menuItemLeft}>
-                    <View style={styles.menuIconContainer}>
-                      <Icon name={item.icon} size={18} color={C.brand} />
-                    </View>
-                    <Text style={styles.menuItemText}>{item.name}</Text>
+                  <View style={[st.menuIconBox, { backgroundColor: item.bg }]}>
+                    <MaterialCommunityIcons name={item.mcIcon} size={18} color={item.color} />
                   </View>
-                  <Icon name="chevron-right" size={18} color={C.muted} />
+                  <Text style={st.menuLabel}>{item.name}</Text>
+                  <View style={st.menuArrow}>
+                    <Icon name="chevron-right" size={16} color={C.muted} />
+                  </View>
                 </TouchableOpacity>
               ))}
             </View>
           </View>
         ))}
 
-        {/* Logout Button */}
-        <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
-          <Icon name="log-out" size={18} color={C.red} />
-          <Text style={styles.logoutText}>Logout</Text>
+        {/* ── LOGOUT ── */}
+        <TouchableOpacity style={st.logoutBtn} onPress={handleLogout} activeOpacity={0.8}>
+          <LinearGradient colors={['#FEE2E2', '#FECACA']} style={st.logoutGrad}>
+            <View style={st.logoutIconBox}>
+              <Icon name="log-out" size={18} color={C.red} />
+            </View>
+            <Text style={st.logoutTxt}>Logout</Text>
+            <Icon name="chevron-right" size={16} color={C.red} style={{ marginLeft: 'auto' }} />
+          </LinearGradient>
         </TouchableOpacity>
 
-        {/* Version */}
-        <Text style={styles.versionText}>Version 1.0.0</Text>
+        {/* ── VERSION ── */}
+        <View style={st.versionRow}>
+          <MaterialCommunityIcons name="shield-check-outline" size={13} color={C.g500} />
+          <Text style={st.versionTxt}>TransRentals Vendor · v2.8</Text>
+        </View>
 
-        <View style={{ height: 100 }} />
+        <View style={{ height: 120 }} />
       </ScrollView>
     </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: C.bg,
-  },
-  loaderContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    padding: 16,
-  },
+const st = StyleSheet.create({
+  safe:   { flex: 1, backgroundColor: C.bg },
+  scroll: { flex: 1 },
+  scrollContent: { paddingBottom: 20 },
 
-  // Profile Header
-  profileHeader: {
-    backgroundColor: C.surface,
-    borderRadius: 16,
-    padding: 20,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: C.border,
-    marginBottom: 16,
-  },
-  avatarContainer: {
-    position: 'relative',
-    marginBottom: 12,
-  },
-  avatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-  },
-  avatarPlaceholder: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: '#F0FDF4',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: '#BBF7D0',
-  },
-  editAvatarBtn: {
-    position: 'absolute',
-    bottom: 0,
-    right: 0,
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: C.brand,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: '#fff',
-  },
-  businessName: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: C.text,
-    textAlign: 'center',
-  },
-  ownerName: {
-    fontSize: 14,
-    color: C.muted,
-    marginTop: 2,
-  },
-  statusBadge: {
-    marginTop: 10,
-    paddingVertical: 4,
-    paddingHorizontal: 12,
-    borderRadius: 12,
-  },
-  statusText: {
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  contactRow: {
-    marginTop: 16,
-    width: '100%',
-  },
-  contactItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 6,
-  },
-  contactText: {
-    fontSize: 13,
-    color: C.muted,
-    marginLeft: 8,
-  },
-
-  // Stats Row
-  statsRow: {
-    flexDirection: 'row',
-    backgroundColor: C.surface,
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: C.border,
-    marginBottom: 16,
-  },
-  statItem: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  statValue: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: C.text,
-  },
-  statLabel: {
-    fontSize: 11,
-    color: C.muted,
-    marginTop: 2,
-  },
-  statDivider: {
-    width: 1,
-    backgroundColor: C.border,
-    marginVertical: 4,
-  },
-
-  // Menu Section
-  menuSection: {
-    marginBottom: 16,
-  },
-  sectionTitle: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: C.muted,
-    marginBottom: 8,
-    marginLeft: 4,
-  },
-  menuCard: {
-    backgroundColor: C.surface,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: C.border,
+  /* ── Hero ── */
+  hero: {
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 20,
     overflow: 'hidden',
   },
-  menuItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 14,
+  heroSkeleton: {
+    paddingHorizontal: 20, paddingTop: 16, paddingBottom: 20,
   },
-  menuItemBorder: {
-    borderBottomWidth: 1,
-    borderBottomColor: C.border,
+  blob: {
+    position: 'absolute', borderRadius: 999, backgroundColor: '#fff',
   },
-  menuItemLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  heroTopRow: {
+    flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 20,
   },
-  menuIconContainer: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    backgroundColor: '#F0FDF4',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
+  heroBadge: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    backgroundColor: 'rgba(255,255,255,0.1)', alignSelf: 'flex-start',
+    paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20, marginBottom: 6,
   },
-  menuItemText: {
-    fontSize: 15,
-    color: C.text,
-    fontWeight: '500',
+  heroBadgeTxt: { fontSize: 11, fontWeight: '600', color: C.g400 },
+  heroTitle:    { fontSize: 26, fontWeight: '800', color: '#fff' },
+  settingsBtn:  {
+    width: 40, height: 40, borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    alignItems: 'center', justifyContent: 'center',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)',
+    marginTop: 4,
   },
 
-  // Logout
-  logoutBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#FEE2E2',
-    borderRadius: 12,
-    padding: 14,
-    marginTop: 8,
+  /* Avatar */
+  heroBody:    { flexDirection: 'row', alignItems: 'center', gap: 16, marginBottom: 16 },
+  avatarWrap:  { position: 'relative' },
+  avatar:      { width: 80, height: 80, borderRadius: 22, borderWidth: 3, borderColor: 'rgba(255,255,255,0.25)' },
+  avatarPlaceholder: {
+    width: 80, height: 80, borderRadius: 22,
+    alignItems: 'center', justifyContent: 'center',
+    borderWidth: 3, borderColor: 'rgba(255,255,255,0.2)',
   },
-  logoutText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: C.red,
-    marginLeft: 8,
+  avatarInitial: { fontSize: 32, fontWeight: '800', color: '#fff' },
+  cameraBadge: {
+    position: 'absolute', bottom: -4, right: -4,
+    width: 26, height: 26, borderRadius: 13,
+    alignItems: 'center', justifyContent: 'center',
+    borderWidth: 2, borderColor: C.g800,
   },
 
-  // Version
-  versionText: {
-    textAlign: 'center',
-    fontSize: 12,
-    color: C.muted,
-    marginTop: 16,
+  /* Info */
+  heroInfo:  { flex: 1 },
+  heroName:  { fontSize: 18, fontWeight: '800', color: '#fff', marginBottom: 3 },
+  heroOwner: { fontSize: 13, color: 'rgba(255,255,255,0.65)', marginBottom: 10 },
+  statusPill: {
+    flexDirection: 'row', alignItems: 'center', gap: 5, alignSelf: 'flex-start',
+    paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20,
+    borderWidth: 1,
   },
+  statusTxt: { fontSize: 11, fontWeight: '700' },
+
+  /* Contact strip */
+  contactStrip: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', gap: 8,
+  },
+  contactItem: { flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1 },
+  contactTxt:  { fontSize: 12, color: 'rgba(255,255,255,0.65)', fontWeight: '500', flex: 1 },
+  contactDot:  { width: 4, height: 4, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.2)' },
+
+  /* ── Stats Grid ── */
+  statsGrid: {
+    flexDirection: 'row', flexWrap: 'wrap',
+    paddingHorizontal: 16, paddingTop: 16, gap: 10,
+  },
+  statCard: {
+    width: '22%', flex: 1,
+    backgroundColor: C.card, borderRadius: 16,
+    alignItems: 'center', paddingVertical: 14, paddingHorizontal: 6,
+    borderWidth: 1, borderColor: C.border,
+    shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 6, elevation: 2,
+  },
+  statIconBox: {
+    width: 38, height: 38, borderRadius: 12,
+    alignItems: 'center', justifyContent: 'center', marginBottom: 8,
+  },
+  statValue: { fontSize: 18, fontWeight: '800', color: C.text, marginBottom: 3 },
+  statLabel: { fontSize: 10, color: C.muted, fontWeight: '600', textAlign: 'center' },
+
+  /* ── Sections ── */
+  section:      { paddingHorizontal: 16, marginTop: 20 },
+  sectionHead:  { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 10 },
+  sectionTitle: { fontSize: 13, fontWeight: '700', color: C.g700, textTransform: 'uppercase', letterSpacing: 0.5 },
+
+  menuCard: {
+    backgroundColor: C.card, borderRadius: 16,
+    borderWidth: 1, borderColor: C.border,
+    overflow: 'hidden',
+    shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 6, elevation: 2,
+  },
+  menuRow: {
+    flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: 14, paddingVertical: 13, gap: 12,
+  },
+  menuRowBorder: { borderBottomWidth: 1, borderBottomColor: C.border },
+  menuIconBox:   {
+    width: 38, height: 38, borderRadius: 12,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  menuLabel: { flex: 1, fontSize: 15, fontWeight: '600', color: C.text },
+  menuArrow: {
+    width: 28, height: 28, borderRadius: 8,
+    backgroundColor: C.bg, alignItems: 'center', justifyContent: 'center',
+  },
+
+  /* ── Logout ── */
+  logoutBtn:  { marginHorizontal: 16, marginTop: 20, borderRadius: 16, overflow: 'hidden' },
+  logoutGrad: {
+    flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: 14, paddingVertical: 14, gap: 12,
+  },
+  logoutIconBox: {
+    width: 38, height: 38, borderRadius: 12,
+    backgroundColor: '#FECACA', alignItems: 'center', justifyContent: 'center',
+  },
+  logoutTxt: { fontSize: 15, fontWeight: '700', color: C.red },
+
+  /* ── Version ── */
+  versionRow: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: 6, marginTop: 20,
+  },
+  versionTxt: { fontSize: 12, color: C.muted, fontWeight: '500' },
+
+  /* ── Loader ── */
+  loaderWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 10 },
+  loaderTxt:  { fontSize: 14, color: C.muted },
 });

@@ -1,35 +1,46 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   TextInput, Switch, ActivityIndicator, Platform,
-  KeyboardAvoidingView,
+  KeyboardAvoidingView, StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/Feather';
 import MCI from 'react-native-vector-icons/MaterialCommunityIcons';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { createP2PBooking } from '../../api/client';
+import { createP2PBooking, updateP2PBooking } from '../../api/client';
 import CustomAlert from '../../../components/CustomAlert';
 
 const C = {
-  bg: '#F7FAFC', surface: '#FFFFFF', text: '#1E293B', sub: '#475569',
-  muted: '#94A3B8', border: '#E2E8F0', brand: '#10B981',
-  blue: '#3B82F6', purple: '#8B5CF6', amber: '#F59E0B', red: '#EF4444',
+  g950: '#011B14', g900: '#022C22', g800: '#064E3B', g700: '#047857',
+  g600: '#059669', g500: '#10B981', g400: '#34D399', g300: '#6EE7B7',
+  g100: '#D1FAE5', g50: '#ECFDF5',
+  bg: '#F8FAFC', surface: '#FFFFFF',
+  text: '#0F172A', sub: '#334155', muted: '#94A3B8',
+  border: '#E2E8F0', borderMed: '#CBD5E1',
+  amber: '#F59E0B', amberDark: '#D97706', amberBg: '#FFFBEB',
+  red: '#EF4444', redDark: '#DC2626', redBg: '#FEF2F2',
+  blue: '#3B82F6', blueBg: '#EFF6FF', blueDark: '#1D4ED8',
+  purple: '#8B5CF6', purpleBg: '#F5F3FF',
 };
 
 const TRUCK_VEHICLES = ['Mini Truck', 'LCV', '14ft', '17ft', '19ft', '22ft', '32ft'];
 const CAR_VEHICLES = ['Sedan', 'SUV', 'Luxury', 'Tempo Traveller'];
 const REASONS = ['No Vehicle Available', 'Vehicle Under Maintenance', 'Overbooked', 'Route Not Covered', 'Other'];
 const URGENCY_OPTIONS = [
-  { value: 'HIGH', label: 'High', desc: 'Needs partner ASAP', color: C.red, bg: '#FEE2E2' },
-  { value: 'MEDIUM', label: 'Medium', desc: 'Within a day', color: C.amber, bg: '#FEF3C7' },
-  { value: 'LOW', label: 'Low', desc: 'Flexible timeline', color: C.brand, bg: '#D1FAE5' },
+  { value: 'HIGH', label: 'High', desc: 'ASAP', color: C.red, activeBg: C.redBg, activeBorder: C.red },
+  { value: 'MEDIUM', label: 'Medium', desc: 'Within a day', color: C.amber, activeBg: C.amberBg, activeBorder: C.amber },
+  { value: 'LOW', label: 'Low', desc: 'Flexible', color: C.g500, activeBg: C.g50, activeBorder: C.g500 },
 ];
 
 function fmtDate(d) { return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }); }
 function fmtTime(d) { return d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }); }
 
-export default function PostBookingScreen({ navigation }) {
+export default function PostBookingScreen({ navigation, route }) {
+  const editData = route?.params?.editData || null;
+  const isEditing = !!editData;
+
   const [loading, setLoading] = useState(false);
   const [alert, setAlert] = useState({ visible: false, type: 'info', title: '', message: '', actions: [] });
   const showAlert = (type, title, message) => setAlert({ visible: true, type, title, message, actions: [{ label: 'OK', variant: 'primary', onPress: () => hideAlert() }] });
@@ -74,6 +85,33 @@ export default function PostBookingScreen({ navigation }) {
 
   const vehicleOptions = serviceType === 'truck' ? TRUCK_VEHICLES : CAR_VEHICLES;
 
+  // Pre-populate form when editing
+  useEffect(() => {
+    if (!editData) return;
+    setServiceType(editData.serviceType || 'truck');
+    setVehicleRequired(editData.vehicleRequired || '');
+    setFromCity(editData.fromCity || '');
+    setToCity(editData.toCity || '');
+    if (editData.tripDate) setTripDate(new Date(editData.tripDate));
+    if (editData.tripTime) {
+      const [h, m] = editData.tripTime.split(':').map(Number);
+      const t = new Date(); t.setHours(h, m, 0, 0); setTripTime(t);
+    }
+    setGoodsType(editData.goodsType || '');
+    setEstimatedWeight(editData.estimatedWeight ? String(editData.estimatedWeight) : '');
+    setNeedInsurance(!!editData.needInsurance);
+    setNeedLabour(!!editData.needLabour);
+    setLabourCount(editData.labourCount ? String(editData.labourCount) : '');
+    setPassengers(editData.passengers ? String(editData.passengers) : '');
+    setCustomerBudget(editData.customerBudget ? String(editData.customerBudget) : '');
+    if (editData.commission && editData.customerBudget && editData.customerBudget > 0) {
+      setCommissionPercent(String(Math.round((editData.commission / editData.customerBudget) * 100)));
+    }
+    setUrgency(editData.urgency || 'MEDIUM');
+    setReason(editData.reasonForSharing || '');
+    setNotes(editData.notes || '');
+  }, []);
+
   const onDateChange = (event, selectedDate) => {
     if (Platform.OS === 'android') setShowDatePicker(false);
     if (event.type === 'dismissed' || !selectedDate) return;
@@ -117,10 +155,14 @@ export default function PostBookingScreen({ navigation }) {
         notes: notes.trim() || undefined,
       };
 
-      await createP2PBooking(data);
+      if (isEditing) {
+        await updateP2PBooking(editData.id, data);
+      } else {
+        await createP2PBooking(data);
+      }
       setAlert({
-        visible: true, type: 'success', title: 'Booking Shared!',
-        message: 'Your booking has been posted to the P2P marketplace.',
+        visible: true, type: 'success', title: isEditing ? 'Booking Updated!' : 'Booking Shared!',
+        message: isEditing ? 'Your booking posting has been updated.' : 'Your booking has been posted to the P2P marketplace.',
         actions: [{ label: 'Done', variant: 'primary', onPress: () => { hideAlert(); navigation.navigate('MyPostingsScreen', { initialTab: 'bookings' }); } }],
       });
     } catch (err) {
@@ -129,208 +171,445 @@ export default function PostBookingScreen({ navigation }) {
   };
 
   return (
-    <SafeAreaView style={s.safe} edges={['top']}>
-      <View style={s.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
-          <Icon name="arrow-left" size={22} color="#fff" />
-        </TouchableOpacity>
-        <Text style={s.headerTitle}>Share Booking</Text>
-        <View style={{ width: 40 }} />
-      </View>
+    <View style={s.root}>
+      <StatusBar barStyle="light-content" backgroundColor={C.g950} />
+
+      {/* ── HEADER ── */}
+      <LinearGradient colors={[C.g950, C.g900, C.g800]} style={s.headerGradient}>
+        {/* Decorative circles */}
+        <View style={s.headerCircle1} />
+        <View style={s.headerCircle2} />
+        <SafeAreaView edges={['top']}>
+          <View style={s.headerRow}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
+              <Icon name="arrow-left" size={20} color="#fff" />
+            </TouchableOpacity>
+            <View style={s.headerCenter}>
+              <View style={s.headerIconWrap}>
+                <MCI name="share-variant" size={22} color="#fff" />
+              </View>
+              <Text style={s.headerTitle}>{isEditing ? 'Edit Booking' : 'Share Booking'}</Text>
+              <Text style={s.headerSub}>{isEditing ? 'Update your booking posting' : 'Sub-contract a booking to partner vendor'}</Text>
+            </View>
+            <View style={{ width: 44 }} />
+          </View>
+        </SafeAreaView>
+      </LinearGradient>
 
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}>
         <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
 
-          {/* Service Type */}
-          <View style={s.section}>
-            <SectionHead icon="truck-fast-outline" color={C.purple} bg="#F3E8FF" title="Service Type" />
-            <View style={s.chipRow}>
-              {[{ value: 'truck', label: 'Truck', icon: 'truck' }, { value: 'car', label: 'Car', icon: 'car' }].map(opt => {
-                const active = serviceType === opt.value;
+          {/* ── STEP 1: SERVICE TYPE ── */}
+          <SectionCard>
+            <StepHeader step="1" gradColors={[C.g700, C.g500]} title="Service Type" />
+            <View style={s.serviceTypeRow}>
+              {/* Truck card */}
+              {(() => {
+                const active = serviceType === 'truck';
                 return (
-                  <TouchableOpacity key={opt.value} style={[s.typeChip, active && s.typeChipActive]} onPress={() => { setServiceType(opt.value); setVehicleRequired(''); }}>
-                    <MCI name={opt.icon} size={20} color={active ? C.purple : C.muted} />
-                    <Text style={[s.typeChipText, active && { color: C.purple }]}>{opt.label}</Text>
-                    {active && <View style={[s.chipDot, { backgroundColor: C.purple }]} />}
+                  <TouchableOpacity
+                    style={[s.serviceCard, active && s.serviceCardActiveGreen]}
+                    onPress={() => { setServiceType('truck'); setVehicleRequired(''); }}
+                    activeOpacity={0.8}
+                  >
+                    {active && <View style={s.serviceCardCheckDot} />}
+                    <View style={[s.serviceCardIconWrap, active ? s.serviceCardIconWrapGreen : s.serviceCardIconWrapGray]}>
+                      <MCI name="truck" size={28} color={active ? C.g600 : C.muted} />
+                    </View>
+                    <Text style={[s.serviceCardLabel, active && { color: C.g700 }]}>Truck</Text>
+                    <Text style={[s.serviceCardSub, active && { color: C.g500 }]}>Freight & logistics</Text>
                   </TouchableOpacity>
                 );
-              })}
+              })()}
+              {/* Car card */}
+              {(() => {
+                const active = serviceType === 'car';
+                return (
+                  <TouchableOpacity
+                    style={[s.serviceCard, active && s.serviceCardActivePurple]}
+                    onPress={() => { setServiceType('car'); setVehicleRequired(''); }}
+                    activeOpacity={0.8}
+                  >
+                    {active && <View style={s.serviceCardCheckDotPurple} />}
+                    <View style={[s.serviceCardIconWrap, active ? s.serviceCardIconWrapPurple : s.serviceCardIconWrapGray]}>
+                      <MCI name="car" size={28} color={active ? C.purple : C.muted} />
+                    </View>
+                    <Text style={[s.serviceCardLabel, active && { color: C.purple }]}>Car</Text>
+                    <Text style={[s.serviceCardSub, active && { color: C.purple }]}>Rides & transfers</Text>
+                  </TouchableOpacity>
+                );
+              })()}
             </View>
-          </View>
+          </SectionCard>
 
-          {/* Vehicle Required */}
-          <View style={s.section}>
-            <SectionHead icon="car-cog" color={C.blue} bg="#DBEAFE" title="Vehicle Required" />
+          {/* ── STEP 2: VEHICLE REQUIRED ── */}
+          <SectionCard>
+            <StepHeader step="2" gradColors={[C.blueDark, C.blue]} title="Vehicle Required" />
             <View style={s.chipGrid}>
               {vehicleOptions.map(v => {
                 const active = vehicleRequired === v;
+                const isTruck = serviceType === 'truck';
                 return (
-                  <TouchableOpacity key={v} style={[s.optionChip, active && s.optionChipActive]} onPress={() => setVehicleRequired(active ? '' : v)}>
-                    <Text style={[s.optionChipText, active && s.optionChipTextActive]}>{v}</Text>
+                  <TouchableOpacity
+                    key={v}
+                    style={[s.vehicleChip, active && s.vehicleChipActive]}
+                    onPress={() => setVehicleRequired(active ? '' : v)}
+                    activeOpacity={0.75}
+                  >
+                    <MCI
+                      name={isTruck ? 'truck' : 'car'}
+                      size={13}
+                      color={active ? C.g700 : C.muted}
+                      style={{ marginRight: 5 }}
+                    />
+                    <Text style={[s.vehicleChipText, active && s.vehicleChipTextActive]}>{v}</Text>
                   </TouchableOpacity>
                 );
               })}
             </View>
-          </View>
+          </SectionCard>
 
-          {/* Route & Date */}
-          <View style={s.section}>
-            <SectionHead icon="map-pin" color={C.brand} bg="#D1FAE5" title="Route & Schedule" feather />
-            <View style={s.rowFields}>
-              <View style={{ flex: 1 }}>
-                <Text style={s.fieldLabel}>From City *</Text>
-                <TextInput style={s.input} placeholder="e.g. Mumbai" placeholderTextColor={C.muted} value={fromCity} onChangeText={setFromCity} />
+          {/* ── STEP 3: ROUTE & SCHEDULE ── */}
+          <SectionCard>
+            <StepHeader step="3" gradColors={['#6D28D9', C.purple]} title="Route & Schedule" />
+
+            {/* Boarding pass style route card */}
+            <View style={s.routeCard}>
+              <View style={s.routeHalf}>
+                <View style={s.routeDotRow}>
+                  <View style={s.routeDotGreen} />
+                  <Text style={s.routeCityLabel}>FROM CITY</Text>
+                </View>
+                <TextInput
+                  style={s.routeInput}
+                  placeholder="e.g. Mumbai"
+                  placeholderTextColor={C.muted}
+                  value={fromCity}
+                  onChangeText={setFromCity}
+                />
               </View>
-              <View style={{ flex: 1 }}>
-                <Text style={s.fieldLabel}>To City</Text>
-                <TextInput style={s.input} placeholder="e.g. Delhi" placeholderTextColor={C.muted} value={toCity} onChangeText={setToCity} />
+              <View style={s.routeDivider}>
+                <View style={s.routeDividerLine} />
+                <View style={s.routeArrowCircle}>
+                  <MCI name="arrow-right" size={14} color={C.purple} />
+                </View>
+                <View style={s.routeDividerLine} />
+              </View>
+              <View style={s.routeHalf}>
+                <View style={s.routeDotRow}>
+                  <View style={s.routeDotRed} />
+                  <Text style={s.routeCityLabel}>TO CITY</Text>
+                </View>
+                <TextInput
+                  style={s.routeInput}
+                  placeholder="e.g. Delhi"
+                  placeholderTextColor={C.muted}
+                  value={toCity}
+                  onChangeText={setToCity}
+                />
               </View>
             </View>
 
-            <View style={[s.rowFields, { marginTop: 12 }]}>
-              <View style={{ flex: 1 }}>
-                <Text style={s.fieldLabel}>Trip Date *</Text>
-                <TouchableOpacity style={s.dateBtn} onPress={() => setShowDatePicker(true)}>
-                  <Icon name="calendar" size={16} color={C.muted} />
-                  <Text style={[s.dateBtnText, tripDate && { color: C.text }]}>{tripDate ? fmtDate(tripDate) : 'Select date'}</Text>
-                </TouchableOpacity>
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={s.fieldLabel}>Trip Time</Text>
-                <TouchableOpacity style={s.dateBtn} onPress={() => setShowTimePicker(true)}>
-                  <Icon name="clock" size={16} color={C.muted} />
-                  <Text style={[s.dateBtnText, tripTime && { color: C.text }]}>{tripTime ? fmtTime(tripTime) : 'Optional'}</Text>
-                </TouchableOpacity>
-              </View>
+            {/* Date + Time buttons */}
+            <View style={s.dateTimeRow}>
+              <TouchableOpacity
+                style={[s.dateTimeCard, tripDate && s.dateTimeCardActive]}
+                onPress={() => setShowDatePicker(true)}
+                activeOpacity={0.8}
+              >
+                <Icon name="calendar" size={18} color={tripDate ? C.g600 : C.muted} />
+                <View style={{ flex: 1 }}>
+                  <Text style={s.dateTimeCardLabel}>Trip Date *</Text>
+                  <Text style={[s.dateTimeCardValue, tripDate && { color: C.text }]}>
+                    {tripDate ? fmtDate(tripDate) : 'Select date'}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[s.dateTimeCard, tripTime && s.dateTimeCardActive]}
+                onPress={() => setShowTimePicker(true)}
+                activeOpacity={0.8}
+              >
+                <Icon name="clock" size={18} color={tripTime ? C.g600 : C.muted} />
+                <View style={{ flex: 1 }}>
+                  <Text style={s.dateTimeCardLabel}>Trip Time</Text>
+                  <Text style={[s.dateTimeCardValue, tripTime && { color: C.text }]}>
+                    {tripTime ? fmtTime(tripTime) : 'Optional'}
+                  </Text>
+                </View>
+              </TouchableOpacity>
             </View>
-          </View>
+          </SectionCard>
 
-          {/* Truck-specific: Goods & Requirements */}
+          {/* ── STEP 4a: GOODS DETAILS (truck only) ── */}
           {serviceType === 'truck' && (
-            <View style={s.section}>
-              <SectionHead icon="package-variant" color={C.amber} bg="#FEF3C7" title="Goods Details" />
-              <Text style={s.fieldLabel}>Goods Type</Text>
-              <TextInput style={s.input} placeholder="e.g. Furniture, Electronics" placeholderTextColor={C.muted} value={goodsType} onChangeText={setGoodsType} />
+            <SectionCard>
+              <StepHeader step="4" gradColors={[C.amberDark, C.amber]} title="Goods Details" />
 
-              <Text style={[s.fieldLabel, { marginTop: 12 }]}>Estimated Weight (kg)</Text>
-              <TextInput style={s.input} placeholder="e.g. 5000" placeholderTextColor={C.muted} value={estimatedWeight} onChangeText={setEstimatedWeight} keyboardType="number-pad" />
-
-              <View style={[s.switchRow, { marginTop: 16 }]}>
-                <View style={{ flex: 1 }}>
-                  <Text style={s.switchLabel}>Need Insurance</Text>
-                  <Text style={s.switchSub}>Transit insurance for goods</Text>
+              {/* Goods Type */}
+              <View style={s.fieldCard}>
+                <View style={[s.fieldCardIconBox, { backgroundColor: C.amberBg }]}>
+                  <MCI name="package-variant" size={18} color={C.amber} />
                 </View>
-                <Switch value={needInsurance} onValueChange={setNeedInsurance} trackColor={{ false: C.border, true: C.brand + '55' }} thumbColor={needInsurance ? C.brand : '#f4f4f5'} />
+                <View style={{ flex: 1 }}>
+                  <Text style={s.fieldCardLabel}>Goods Type</Text>
+                  <TextInput
+                    style={s.fieldCardInput}
+                    placeholder="e.g. Furniture, Electronics"
+                    placeholderTextColor={C.muted}
+                    value={goodsType}
+                    onChangeText={setGoodsType}
+                  />
+                </View>
               </View>
 
-              <View style={[s.switchRow, { marginTop: 12 }]}>
-                <View style={{ flex: 1 }}>
-                  <Text style={s.switchLabel}>Need Labour</Text>
-                  <Text style={s.switchSub}>Loading / unloading help</Text>
+              {/* Weight */}
+              <View style={[s.fieldCard, { marginTop: 10 }]}>
+                <View style={[s.fieldCardIconBox, { backgroundColor: '#F0F9FF' }]}>
+                  <MCI name="weight" size={18} color={C.blue} />
                 </View>
-                <Switch value={needLabour} onValueChange={setNeedLabour} trackColor={{ false: C.border, true: C.brand + '55' }} thumbColor={needLabour ? C.brand : '#f4f4f5'} />
+                <View style={{ flex: 1 }}>
+                  <Text style={s.fieldCardLabel}>Estimated Weight (kg)</Text>
+                  <TextInput
+                    style={s.fieldCardInput}
+                    placeholder="e.g. 5000"
+                    placeholderTextColor={C.muted}
+                    value={estimatedWeight}
+                    onChangeText={setEstimatedWeight}
+                    keyboardType="number-pad"
+                  />
+                </View>
               </View>
+
+              {/* Insurance toggle */}
+              <View style={[s.toggleCard, { marginTop: 12 }]}>
+                <View style={[s.toggleCardIconBox, { backgroundColor: C.amberBg }]}>
+                  <MCI name="shield-check" size={20} color={C.amber} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={s.toggleCardLabel}>Need Insurance</Text>
+                  <Text style={s.toggleCardSub}>Transit insurance for goods</Text>
+                </View>
+                <Switch
+                  value={needInsurance}
+                  onValueChange={setNeedInsurance}
+                  trackColor={{ false: C.border, true: C.g500 }}
+                  thumbColor={needInsurance ? '#fff' : '#f4f4f5'}
+                />
+              </View>
+
+              {/* Labour toggle */}
+              <View style={[s.toggleCard, { marginTop: 10 }]}>
+                <View style={[s.toggleCardIconBox, { backgroundColor: '#FEF3C7' }]}>
+                  <MCI name="account-hard-hat" size={20} color={C.amberDark} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={s.toggleCardLabel}>Need Labour</Text>
+                  <Text style={s.toggleCardSub}>Loading / unloading help</Text>
+                </View>
+                <Switch
+                  value={needLabour}
+                  onValueChange={setNeedLabour}
+                  trackColor={{ false: C.border, true: C.g500 }}
+                  thumbColor={needLabour ? '#fff' : '#f4f4f5'}
+                />
+              </View>
+
+              {/* Labour count */}
               {needLabour && (
-                <View style={{ marginTop: 10 }}>
-                  <Text style={s.fieldLabel}>Number of Labourers</Text>
-                  <TextInput style={s.input} placeholder="e.g. 2" placeholderTextColor={C.muted} value={labourCount} onChangeText={setLabourCount} keyboardType="number-pad" />
+                <View style={[s.fieldCard, { marginTop: 10 }]}>
+                  <View style={[s.fieldCardIconBox, { backgroundColor: C.g50 }]}>
+                    <MCI name="account-group" size={18} color={C.g600} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={s.fieldCardLabel}>Number of Labourers</Text>
+                    <TextInput
+                      style={s.fieldCardInput}
+                      placeholder="e.g. 2"
+                      placeholderTextColor={C.muted}
+                      value={labourCount}
+                      onChangeText={setLabourCount}
+                      keyboardType="number-pad"
+                    />
+                  </View>
                 </View>
               )}
-            </View>
+            </SectionCard>
           )}
 
-          {/* Car-specific: Passengers */}
+          {/* ── STEP 4b: PASSENGER DETAILS (car only) ── */}
           {serviceType === 'car' && (
-            <View style={s.section}>
-              <SectionHead icon="account-group" color={C.blue} bg="#DBEAFE" title="Passenger Details" />
-              <Text style={s.fieldLabel}>Number of Passengers</Text>
-              <TextInput style={s.input} placeholder="e.g. 4" placeholderTextColor={C.muted} value={passengers} onChangeText={setPassengers} keyboardType="number-pad" />
-            </View>
+            <SectionCard>
+              <StepHeader step="4" gradColors={[C.blueDark, C.blue]} title="Passenger Details" />
+              <View style={s.fieldCard}>
+                <View style={[s.fieldCardIconBox, { backgroundColor: C.blueBg }]}>
+                  <MCI name="account-group" size={18} color={C.blue} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={s.fieldCardLabel}>Number of Passengers</Text>
+                  <TextInput
+                    style={s.fieldCardInput}
+                    placeholder="e.g. 4"
+                    placeholderTextColor={C.muted}
+                    value={passengers}
+                    onChangeText={setPassengers}
+                    keyboardType="number-pad"
+                  />
+                </View>
+              </View>
+            </SectionCard>
           )}
 
-          {/* Budget & Commission */}
-          <View style={s.section}>
-            <SectionHead icon="currency-inr" color={C.amber} bg="#FEF3C7" title="Budget & Commission" />
-            <Text style={s.fieldLabel}>Customer Budget *</Text>
-            <View style={s.priceRow}>
-              <View style={s.pricePrefix}><Text style={s.pricePrefixText}>{'\u20B9'}</Text></View>
-              <TextInput style={[s.input, s.priceInput]} placeholder="0" placeholderTextColor={C.muted} value={customerBudget} onChangeText={setCustomerBudget} keyboardType="number-pad" />
-            </View>
+          {/* ── STEP 5: BUDGET & COMMISSION ── */}
+          <SectionCard>
+            <StepHeader step="5" gradColors={[C.amberDark, C.amber]} title="Budget & Commission" />
 
-            <Text style={[s.fieldLabel, { marginTop: 14 }]}>Your Commission (%)</Text>
-            <View style={s.rowFields}>
-              <TextInput style={[s.input, { flex: 1 }]} placeholder="10" placeholderTextColor={C.muted} value={commissionPercent} onChangeText={setCommissionPercent} keyboardType="number-pad" />
-              <View style={[s.commBadge, { backgroundColor: '#ECFDF5' }]}>
-                <Text style={{ fontSize: 12, fontWeight: '700', color: C.brand }}>{'\u20B9'}{commissionAmount.toLocaleString('en-IN')}</Text>
+            {/* Customer Budget — dark gradient card */}
+            <LinearGradient colors={[C.g800, C.g700]} style={s.budgetCard}>
+              <Text style={s.budgetCardLabel}>CUSTOMER BUDGET</Text>
+              <View style={s.budgetInputRow}>
+                <Text style={s.budgetRupee}>{'\u20B9'}</Text>
+                <TextInput
+                  style={s.budgetInput}
+                  placeholder="0"
+                  placeholderTextColor="rgba(255,255,255,0.4)"
+                  value={customerBudget}
+                  onChangeText={setCustomerBudget}
+                  keyboardType="number-pad"
+                />
+              </View>
+            </LinearGradient>
+
+            {/* Commission row */}
+            <View style={s.commissionRow}>
+              <View style={s.commissionLabelCol}>
+                <MCI name="percent" size={16} color={C.amber} />
+                <Text style={s.commissionLabel}>Your Commission %</Text>
+              </View>
+              <TextInput
+                style={s.commissionInput}
+                placeholder="10"
+                placeholderTextColor={C.muted}
+                value={commissionPercent}
+                onChangeText={setCommissionPercent}
+                keyboardType="number-pad"
+              />
+              <View style={s.commissionBadge}>
+                <Text style={s.commissionBadgeText}>{'\u20B9'}{commissionAmount.toLocaleString('en-IN')}</Text>
               </View>
             </View>
 
             {/* Earnings Preview */}
             {budget > 0 && (
-              <View style={s.previewCard}>
+              <LinearGradient colors={[C.g900, C.g800]} style={s.previewCard}>
                 <View style={s.previewRow}>
                   <Text style={s.previewLabel}>Customer Budget</Text>
-                  <Text style={s.previewValue}>{'\u20B9'}{budget.toLocaleString('en-IN')}</Text>
+                  <Text style={s.previewValueWhite}>{'\u20B9'}{budget.toLocaleString('en-IN')}</Text>
                 </View>
                 <View style={s.previewRow}>
                   <Text style={s.previewLabel}>Your Commission ({commPct}%)</Text>
-                  <Text style={[s.previewValue, { color: C.brand }]}>{'\u20B9'}{commissionAmount.toLocaleString('en-IN')}</Text>
+                  <Text style={[s.previewValueWhite, { color: C.g300 }]}>{'\u20B9'}{commissionAmount.toLocaleString('en-IN')}</Text>
                 </View>
                 <View style={s.previewDivider} />
                 <View style={s.previewRow}>
-                  <Text style={s.previewLabel}>Partner Earning</Text>
-                  <Text style={s.previewValue}>{'\u20B9'}{partnerEarning.toLocaleString('en-IN')}</Text>
+                  <Text style={[s.previewLabel, { fontWeight: '800', color: '#fff', fontSize: 14 }]}>PARTNER EARNS</Text>
+                  <Text style={[s.previewValueWhite, { fontSize: 20, color: C.g300, fontWeight: '800' }]}>{'\u20B9'}{partnerEarning.toLocaleString('en-IN')}</Text>
                 </View>
                 <View style={s.previewRow}>
-                  <Text style={[s.previewLabel, { fontSize: 11 }]}>Platform Fee (5%)</Text>
-                  <Text style={[s.previewValue, { fontSize: 11, color: C.muted }]}>-{'\u20B9'}{platformFee.toLocaleString('en-IN')}</Text>
+                  <Text style={[s.previewLabel, { fontSize: 11, color: 'rgba(255,255,255,0.4)' }]}>Platform Fee (5%)</Text>
+                  <Text style={[s.previewValueWhite, { fontSize: 11, color: 'rgba(255,255,255,0.4)' }]}>-{'\u20B9'}{platformFee.toLocaleString('en-IN')}</Text>
                 </View>
-              </View>
+              </LinearGradient>
             )}
-          </View>
+          </SectionCard>
 
-          {/* Urgency */}
-          <View style={s.section}>
-            <SectionHead icon="alert-circle" color={C.red} bg="#FEE2E2" title="Urgency" feather />
-            <View style={s.chipRow}>
+          {/* ── STEP 6: URGENCY LEVEL ── */}
+          <SectionCard>
+            <StepHeader step="6" gradColors={[C.redDark, C.red]} title="Urgency Level" />
+            <View style={s.urgencyRow}>
               {URGENCY_OPTIONS.map(opt => {
                 const active = urgency === opt.value;
                 return (
-                  <TouchableOpacity key={opt.value} style={[s.urgencyChip, { borderColor: active ? opt.color : C.border, backgroundColor: active ? opt.bg : C.surface }]} onPress={() => setUrgency(opt.value)}>
+                  <TouchableOpacity
+                    key={opt.value}
+                    style={[
+                      s.urgencyCard,
+                      { borderColor: active ? opt.activeBorder : C.border, backgroundColor: active ? opt.activeBg : C.surface },
+                    ]}
+                    onPress={() => setUrgency(opt.value)}
+                    activeOpacity={0.8}
+                  >
+                    <View style={[s.urgencyDot, { backgroundColor: active ? opt.color : C.muted }]} />
                     <Text style={[s.urgencyLabel, { color: active ? opt.color : C.muted }]}>{opt.label}</Text>
                     <Text style={[s.urgencyDesc, { color: active ? opt.color : C.muted }]}>{opt.desc}</Text>
                   </TouchableOpacity>
                 );
               })}
             </View>
-          </View>
+          </SectionCard>
 
-          {/* Reason */}
-          <View style={s.section}>
-            <SectionHead icon="help-circle" color={C.blue} bg="#DBEAFE" title="Reason for Sharing" feather />
+          {/* ── STEP 7: REASON ── */}
+          <SectionCard>
+            <StepHeader step="7" gradColors={[C.blueDark, C.blue]} title="Why are you sharing?" />
             <View style={s.chipGrid}>
               {REASONS.map(r => {
                 const active = reason === r;
                 return (
-                  <TouchableOpacity key={r} style={[s.optionChip, active && s.optionChipActive]} onPress={() => setReason(active ? '' : r)}>
-                    <Text style={[s.optionChipText, active && s.optionChipTextActive]}>{r}</Text>
+                  <TouchableOpacity
+                    key={r}
+                    style={[s.vehicleChip, active && s.vehicleChipActive]}
+                    onPress={() => setReason(active ? '' : r)}
+                    activeOpacity={0.75}
+                  >
+                    <MCI
+                      name="chat-question"
+                      size={12}
+                      color={active ? C.g700 : C.muted}
+                      style={{ marginRight: 5 }}
+                    />
+                    <Text style={[s.vehicleChipText, active && s.vehicleChipTextActive]}>{r}</Text>
                   </TouchableOpacity>
                 );
               })}
             </View>
-          </View>
+          </SectionCard>
 
-          {/* Notes */}
-          <View style={s.section}>
-            <SectionHead icon="file-text" color={C.sub} bg="#F1F5F9" title="Additional Notes" feather />
-            <TextInput style={[s.input, s.textArea]} placeholder="Any special requirements, route details, or remarks..." placeholderTextColor={C.muted} value={notes} onChangeText={setNotes} multiline textAlignVertical="top" />
-          </View>
+          {/* ── NOTES ── */}
+          <SectionCard>
+            <View style={s.notesSectionHead}>
+              <View style={[s.notesIconWrap, { backgroundColor: C.g50 }]}>
+                <MCI name="note-text" size={17} color={C.g600} />
+              </View>
+              <Text style={s.notesSectionTitle}>Additional Notes</Text>
+            </View>
+            <TextInput
+              style={s.notesInput}
+              placeholder="Any special requirements, route details, or remarks..."
+              placeholderTextColor={C.muted}
+              value={notes}
+              onChangeText={setNotes}
+              multiline
+              textAlignVertical="top"
+            />
+          </SectionCard>
 
-          {/* Submit */}
-          <TouchableOpacity style={[s.submitBtn, loading && { opacity: 0.6 }]} onPress={handleSubmit} disabled={loading} activeOpacity={0.85}>
-            {loading ? <ActivityIndicator size="small" color="#fff" /> : (
-              <><Icon name="share-2" size={20} color="#fff" /><Text style={s.submitBtnText}>Share Booking</Text></>
-            )}
+          {/* ── SUBMIT ── */}
+          <TouchableOpacity onPress={handleSubmit} disabled={loading} activeOpacity={0.85} style={loading ? { opacity: 0.6 } : {}}>
+            <LinearGradient
+              colors={[C.g700, C.g600, C.g500]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={s.submitBtn}
+            >
+              {loading ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <>
+                  <Icon name="share-2" size={20} color="#fff" />
+                  <Text style={s.submitBtnText}>Share Booking</Text>
+                </>
+              )}
+            </LinearGradient>
           </TouchableOpacity>
 
           <TouchableOpacity style={s.cancelBtn} onPress={() => navigation.goBack()}>
@@ -349,75 +628,258 @@ export default function PostBookingScreen({ navigation }) {
       )}
 
       <CustomAlert visible={alert.visible} type={alert.type} title={alert.title} message={alert.message} onClose={hideAlert} actions={alert.actions} />
-    </SafeAreaView>
-  );
-}
-
-function SectionHead({ icon, color, bg, title, feather }) {
-  const IC = feather ? Icon : MCI;
-  return (
-    <View style={s.sectionHeader}>
-      <View style={[s.sectionIcon, { backgroundColor: bg }]}><IC name={icon} size={16} color={color} /></View>
-      <Text style={s.sectionTitle}>{title}</Text>
     </View>
   );
 }
 
+// ── Sub-components ──────────────────────────────────────────────────────────
+
+function SectionCard({ children }) {
+  return <View style={s.sectionCard}>{children}</View>;
+}
+
+function StepHeader({ step, gradColors, title }) {
+  return (
+    <View style={s.stepHeader}>
+      <LinearGradient colors={gradColors} style={s.stepCircle}>
+        <Text style={s.stepNumber}>{step}</Text>
+      </LinearGradient>
+      <Text style={s.stepTitle}>{title}</Text>
+    </View>
+  );
+}
+
+// ── Styles ──────────────────────────────────────────────────────────────────
+
 const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: C.bg },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 14, backgroundColor: C.purple },
-  backBtn: { width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.15)' },
-  headerTitle: { fontSize: 18, fontWeight: '700', color: '#FFFFFF' },
+  root: { flex: 1, backgroundColor: C.bg },
+
+  // Header
+  headerGradient: { paddingBottom: 20, overflow: 'hidden' },
+  headerCircle1: {
+    position: 'absolute', width: 200, height: 200, borderRadius: 100,
+    backgroundColor: 'rgba(255,255,255,0.04)', top: -60, right: -50,
+  },
+  headerCircle2: {
+    position: 'absolute', width: 140, height: 140, borderRadius: 70,
+    backgroundColor: 'rgba(255,255,255,0.04)', bottom: -30, left: -30,
+  },
+  headerRow: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: 16, paddingTop: 10, paddingBottom: 6,
+  },
+  backBtn: {
+    width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.12)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)',
+  },
+  headerCenter: { flex: 1, alignItems: 'center', gap: 6 },
+  headerIconWrap: {
+    width: 48, height: 48, borderRadius: 24,
+    backgroundColor: 'rgba(139,92,246,0.35)',
+    borderWidth: 1.5, borderColor: 'rgba(139,92,246,0.5)',
+    justifyContent: 'center', alignItems: 'center',
+  },
+  headerTitle: { fontSize: 22, fontWeight: '800', color: '#FFFFFF', letterSpacing: 0.2 },
+  headerSub: { fontSize: 12, color: 'rgba(255,255,255,0.6)', textAlign: 'center' },
+
+  // Scroll
   scroll: { padding: 16, gap: 14 },
 
-  section: { backgroundColor: C.surface, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: C.border },
-  sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 16 },
-  sectionIcon: { width: 32, height: 32, borderRadius: 10, justifyContent: 'center', alignItems: 'center' },
-  sectionTitle: { fontSize: 14, fontWeight: '700', color: C.text },
+  // Section card
+  sectionCard: {
+    backgroundColor: C.surface, borderRadius: 18, overflow: 'hidden',
+    shadowColor: '#0F172A', shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.07, shadowRadius: 10, elevation: 3,
+  },
 
-  chipRow: { flexDirection: 'row', gap: 10 },
-  typeChip: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 14, borderRadius: 12, borderWidth: 2, borderColor: C.border, backgroundColor: C.surface },
-  typeChipActive: { borderColor: C.purple, backgroundColor: '#F3E8FF' },
-  typeChipText: { fontSize: 14, fontWeight: '700', color: C.muted },
-  chipDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: C.purple },
+  // Step header
+  stepHeader: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    backgroundColor: '#F8FAFC', paddingHorizontal: 16, paddingVertical: 14,
+    borderBottomWidth: 1, borderBottomColor: C.border,
+  },
+  stepCircle: {
+    width: 28, height: 28, borderRadius: 14,
+    justifyContent: 'center', alignItems: 'center',
+  },
+  stepNumber: { fontSize: 13, fontWeight: '800', color: '#fff' },
+  stepTitle: { fontSize: 15, fontWeight: '700', color: C.text, letterSpacing: 0.1 },
 
-  chipGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  optionChip: { paddingVertical: 10, paddingHorizontal: 14, borderRadius: 10, borderWidth: 2, borderColor: C.border, backgroundColor: C.surface },
-  optionChipActive: { borderColor: C.purple, backgroundColor: '#F3E8FF' },
-  optionChipText: { fontSize: 12, fontWeight: '600', color: C.muted },
-  optionChipTextActive: { color: C.purple },
+  // Service type
+  serviceTypeRow: { flexDirection: 'row', gap: 12, padding: 16 },
+  serviceCard: {
+    flex: 1, alignItems: 'center', paddingVertical: 20, paddingHorizontal: 12,
+    borderRadius: 14, borderWidth: 2, borderColor: C.border, backgroundColor: C.surface,
+    gap: 6, position: 'relative', overflow: 'hidden',
+  },
+  serviceCardActiveGreen: { borderColor: C.g500, backgroundColor: C.g50 },
+  serviceCardActivePurple: { borderColor: C.purple, backgroundColor: C.purpleBg },
+  serviceCardCheckDot: {
+    position: 'absolute', top: 10, right: 10,
+    width: 8, height: 8, borderRadius: 4, backgroundColor: C.g500,
+  },
+  serviceCardCheckDotPurple: {
+    position: 'absolute', top: 10, right: 10,
+    width: 8, height: 8, borderRadius: 4, backgroundColor: C.purple,
+  },
+  serviceCardIconWrap: {
+    width: 56, height: 56, borderRadius: 16, justifyContent: 'center', alignItems: 'center',
+  },
+  serviceCardIconWrapGreen: { backgroundColor: C.g100 },
+  serviceCardIconWrapPurple: { backgroundColor: '#EDE9FE' },
+  serviceCardIconWrapGray: { backgroundColor: '#F1F5F9' },
+  serviceCardLabel: { fontSize: 15, fontWeight: '800', color: C.muted, letterSpacing: 0.1 },
+  serviceCardSub: { fontSize: 11, color: C.muted, textAlign: 'center' },
 
-  fieldLabel: { fontSize: 12, fontWeight: '700', color: C.sub, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8, marginTop: 4 },
-  input: { backgroundColor: '#F8FAFC', borderWidth: 1, borderColor: C.border, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontSize: 14, color: C.text },
-  textArea: { height: 90, textAlignVertical: 'top' },
-  rowFields: { flexDirection: 'row', gap: 12, marginTop: 4 },
+  // Vehicle chips grid
+  chipGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, padding: 16 },
+  vehicleChip: {
+    flexDirection: 'row', alignItems: 'center',
+    paddingVertical: 12, paddingHorizontal: 14, borderRadius: 12,
+    borderWidth: 2, borderColor: C.border, backgroundColor: C.surface,
+  },
+  vehicleChipActive: { borderColor: C.g600, backgroundColor: C.g50 },
+  vehicleChipText: { fontSize: 12, fontWeight: '600', color: C.muted },
+  vehicleChipTextActive: { color: C.g700, fontWeight: '700' },
 
-  dateBtn: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: '#F8FAFC', borderWidth: 1, borderColor: C.border, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 13 },
-  dateBtnText: { fontSize: 14, color: C.muted },
+  // Route card (boarding pass style)
+  routeCard: {
+    marginHorizontal: 16, marginTop: 16, marginBottom: 4,
+    backgroundColor: '#F8FAFC', borderRadius: 14, borderWidth: 1, borderColor: C.border,
+    overflow: 'hidden',
+  },
+  routeHalf: { paddingHorizontal: 16, paddingVertical: 14 },
+  routeDotRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 },
+  routeDotGreen: { width: 10, height: 10, borderRadius: 5, backgroundColor: C.g500 },
+  routeDotRed: { width: 10, height: 10, borderRadius: 5, backgroundColor: C.red },
+  routeCityLabel: { fontSize: 10, fontWeight: '700', color: C.muted, letterSpacing: 1, textTransform: 'uppercase' },
+  routeInput: { fontSize: 16, fontWeight: '700', color: C.text, paddingVertical: 0 },
+  routeDivider: {
+    flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16,
+    borderTopWidth: 1, borderBottomWidth: 1, borderStyle: 'dashed', borderColor: C.borderMed,
+    paddingVertical: 10,
+  },
+  routeDividerLine: { flex: 1, height: 1, backgroundColor: C.borderMed },
+  routeArrowCircle: {
+    width: 28, height: 28, borderRadius: 14, backgroundColor: C.purpleBg,
+    borderWidth: 1, borderColor: '#DDD6FE', justifyContent: 'center', alignItems: 'center',
+    marginHorizontal: 10,
+  },
 
-  priceRow: { flexDirection: 'row', alignItems: 'stretch' },
-  pricePrefix: { justifyContent: 'center', alignItems: 'center', backgroundColor: '#F1F5F9', borderWidth: 1, borderColor: C.border, borderTopLeftRadius: 12, borderBottomLeftRadius: 12, paddingHorizontal: 14, borderRightWidth: 0 },
-  pricePrefixText: { fontSize: 16, fontWeight: '700', color: C.sub },
-  priceInput: { flex: 1, borderTopLeftRadius: 0, borderBottomLeftRadius: 0 },
+  // Date/time cards
+  dateTimeRow: { flexDirection: 'row', gap: 12, padding: 16, paddingTop: 12 },
+  dateTimeCard: {
+    flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10,
+    paddingVertical: 14, paddingHorizontal: 14, borderRadius: 14,
+    borderWidth: 1.5, borderColor: C.border, backgroundColor: C.surface,
+  },
+  dateTimeCardActive: { borderColor: C.g400, backgroundColor: C.g50 },
+  dateTimeCardLabel: { fontSize: 10, fontWeight: '700', color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 },
+  dateTimeCardValue: { fontSize: 13, fontWeight: '600', color: C.muted },
 
-  commBadge: { justifyContent: 'center', alignItems: 'center', paddingHorizontal: 14, borderRadius: 12, borderWidth: 1, borderColor: C.brand + '33' },
+  // Field card (icon + label + input)
+  fieldCard: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    marginHorizontal: 16, backgroundColor: '#F8FAFC',
+    borderRadius: 12, borderWidth: 1, borderColor: C.border,
+    paddingHorizontal: 12, paddingVertical: 10,
+  },
+  fieldCardIconBox: {
+    width: 38, height: 38, borderRadius: 10, justifyContent: 'center', alignItems: 'center',
+  },
+  fieldCardLabel: { fontSize: 10, fontWeight: '700', color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 3 },
+  fieldCardInput: { fontSize: 14, color: C.text, fontWeight: '500', paddingVertical: 0 },
 
-  previewCard: { backgroundColor: '#F8FAFC', borderRadius: 12, padding: 14, marginTop: 14, gap: 8, borderWidth: 1, borderColor: C.border },
+  // Toggle card (icon + label + switch)
+  toggleCard: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    marginHorizontal: 16, paddingVertical: 12, paddingHorizontal: 12,
+    backgroundColor: '#F8FAFC', borderRadius: 12, borderWidth: 1, borderColor: C.border,
+  },
+  toggleCardIconBox: {
+    width: 40, height: 40, borderRadius: 10, justifyContent: 'center', alignItems: 'center',
+  },
+  toggleCardLabel: { fontSize: 14, fontWeight: '600', color: C.text },
+  toggleCardSub: { fontSize: 12, color: C.muted, marginTop: 1 },
+
+  // Budget card
+  budgetCard: {
+    marginHorizontal: 16, marginTop: 4, borderRadius: 14, paddingHorizontal: 18, paddingVertical: 16,
+  },
+  budgetCardLabel: { fontSize: 11, fontWeight: '700', color: 'rgba(255,255,255,0.6)', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 8 },
+  budgetInputRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  budgetRupee: { fontSize: 30, fontWeight: '700', color: 'rgba(255,255,255,0.7)' },
+  budgetInput: { flex: 1, fontSize: 36, fontWeight: '800', color: '#fff', paddingVertical: 0 },
+
+  // Commission row
+  commissionRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    marginHorizontal: 16, marginTop: 12,
+    backgroundColor: '#F8FAFC', borderRadius: 12, borderWidth: 1, borderColor: C.border,
+    paddingHorizontal: 12, paddingVertical: 10,
+  },
+  commissionLabelCol: { flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1 },
+  commissionLabel: { fontSize: 13, fontWeight: '600', color: C.sub },
+  commissionInput: {
+    width: 56, textAlign: 'center', fontSize: 16, fontWeight: '700', color: C.text,
+    backgroundColor: C.surface, borderRadius: 8, borderWidth: 1.5, borderColor: C.border,
+    paddingVertical: 6,
+  },
+  commissionBadge: {
+    paddingHorizontal: 12, paddingVertical: 7, borderRadius: 10,
+    backgroundColor: C.g50, borderWidth: 1.5, borderColor: C.g300,
+  },
+  commissionBadgeText: { fontSize: 13, fontWeight: '700', color: C.g700 },
+
+  // Earnings preview
+  previewCard: {
+    marginHorizontal: 16, marginTop: 12, marginBottom: 16,
+    borderRadius: 14, paddingHorizontal: 16, paddingVertical: 14, gap: 8,
+    shadowColor: C.g950, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 12, elevation: 5,
+  },
   previewRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  previewLabel: { fontSize: 13, color: C.sub },
-  previewValue: { fontSize: 14, fontWeight: '700', color: C.text },
-  previewDivider: { height: 1, backgroundColor: C.border, marginVertical: 4 },
+  previewLabel: { fontSize: 13, color: 'rgba(255,255,255,0.6)' },
+  previewValueWhite: { fontSize: 14, fontWeight: '700', color: '#fff' },
+  previewDivider: { height: 1, backgroundColor: 'rgba(255,255,255,0.12)', marginVertical: 4 },
 
-  switchRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 6, gap: 12 },
-  switchLabel: { fontSize: 14, fontWeight: '600', color: C.text },
-  switchSub: { fontSize: 12, color: C.muted, marginTop: 1 },
+  // Urgency
+  urgencyRow: { flexDirection: 'row', gap: 10, padding: 16 },
+  urgencyCard: {
+    flex: 1, alignItems: 'center', paddingVertical: 18,
+    borderRadius: 14, borderWidth: 2, gap: 6,
+  },
+  urgencyDot: { width: 8, height: 8, borderRadius: 4 },
+  urgencyLabel: { fontSize: 13, fontWeight: '800' },
+  urgencyDesc: { fontSize: 10, textAlign: 'center', fontWeight: '500' },
 
-  urgencyChip: { flex: 1, alignItems: 'center', paddingVertical: 14, borderRadius: 12, borderWidth: 2, gap: 4 },
-  urgencyLabel: { fontSize: 14, fontWeight: '700' },
-  urgencyDesc: { fontSize: 10 },
+  // Notes section
+  notesSectionHead: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    backgroundColor: '#F8FAFC', paddingHorizontal: 16, paddingVertical: 14,
+    borderBottomWidth: 1, borderBottomColor: C.border,
+  },
+  notesIconWrap: { width: 34, height: 34, borderRadius: 10, justifyContent: 'center', alignItems: 'center', backgroundColor: C.g50 },
+  notesSectionTitle: { fontSize: 15, fontWeight: '700', color: C.text },
+  notesInput: {
+    margin: 16,
+    backgroundColor: '#F8FAFC', borderWidth: 1, borderColor: C.border,
+    borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12,
+    fontSize: 14, color: C.text, height: 100, textAlignVertical: 'top',
+  },
 
-  submitBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, backgroundColor: C.purple, paddingVertical: 16, borderRadius: 16, marginTop: 8 },
-  submitBtnText: { fontSize: 16, fontWeight: '700', color: '#fff' },
-  cancelBtn: { alignItems: 'center', paddingVertical: 14, borderRadius: 16, borderWidth: 2, borderColor: C.border, marginTop: 8 },
+  // Submit
+  submitBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10,
+    paddingVertical: 18, borderRadius: 18, marginTop: 4,
+    shadowColor: C.g800, shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.3, shadowRadius: 12, elevation: 8,
+  },
+  submitBtnText: { fontSize: 17, fontWeight: '800', color: '#fff', letterSpacing: 0.3 },
+
+  cancelBtn: {
+    alignItems: 'center', paddingVertical: 15, borderRadius: 18,
+    borderWidth: 2, borderColor: C.border, marginTop: 10,
+    backgroundColor: C.surface,
+  },
   cancelBtnText: { fontSize: 14, fontWeight: '600', color: C.muted },
 });

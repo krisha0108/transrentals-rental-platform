@@ -11,9 +11,12 @@ import {
   Alert,
   Dimensions,
   Platform,
+  StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/Feather';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { getStaffAttendance, markStaffAttendance } from '../../api/staff-api';
 import { showError, showSuccess, showInfo, showConfirm } from '../../../services/alertService';
 
@@ -192,18 +195,35 @@ export default function StaffAttendanceScreen({ navigation }) {
     }
   };
 
+  const GradHeader = () => (
+    <LinearGradient colors={['#022C22', '#064E3B', '#047857']} style={s.headerGrad}>
+      <SafeAreaView edges={['top']}>
+        <View style={s.headerRow}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={s.glassBtn}>
+            <Icon name="arrow-left" size={20} color="#fff" />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={onRefresh} style={s.glassBtn}>
+            <Icon name="refresh-cw" size={17} color="rgba(255,255,255,0.7)" />
+          </TouchableOpacity>
+        </View>
+        <View style={s.heroSection}>
+          <View style={s.heroIconWrap}>
+            <MaterialCommunityIcons name="calendar-check" size={26} color="#34D399" />
+          </View>
+          <Text style={s.heroTitle}>Staff Attendance</Text>
+          <Text style={s.heroSub}>{MONTH_NAMES[month]} {year}</Text>
+        </View>
+      </SafeAreaView>
+    </LinearGradient>
+  );
+
   if (loading) {
     return (
-      <SafeAreaView style={s.safe}>
-        <View style={s.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={s.headerBtn}>
-            <Icon name="arrow-left" size={20} color={C.text} />
-          </TouchableOpacity>
-          <Text style={s.headerTitle}>Staff Attendance</Text>
-          <View style={{ width: 40 }} />
-        </View>
+      <View style={{ flex: 1, backgroundColor: C.bg }}>
+        <StatusBar barStyle="light-content" backgroundColor="#022C22" />
+        <GradHeader />
         <View style={s.loader}><ActivityIndicator size="large" color={C.brand} /></View>
-      </SafeAreaView>
+      </View>
     );
   }
 
@@ -211,17 +231,9 @@ export default function StaffAttendanceScreen({ navigation }) {
   const markedCount = Object.keys(modalRecords).length;
 
   return (
-    <SafeAreaView style={s.safe}>
-      {/* ── Header ── */}
-      <View style={s.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={s.headerBtn}>
-          <Icon name="arrow-left" size={20} color={C.text} />
-        </TouchableOpacity>
-        <Text style={s.headerTitle}>Staff Attendance</Text>
-        <TouchableOpacity onPress={onRefresh} style={s.headerBtn}>
-          <Icon name="refresh-cw" size={17} color={C.muted} />
-        </TouchableOpacity>
-      </View>
+    <View style={{ flex: 1, backgroundColor: C.bg }}>
+      <StatusBar barStyle="light-content" backgroundColor="#022C22" />
+      <GradHeader />
 
       <ScrollView
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.brand} />}
@@ -510,23 +522,37 @@ export default function StaffAttendanceScreen({ navigation }) {
           </TouchableOpacity>
         </TouchableOpacity>
       </Modal>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: C.bg },
   loader: { flex: 1, justifyContent: 'center', alignItems: 'center' },
 
-  // Header
-  header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    backgroundColor: C.surface, paddingHorizontal: 14, paddingVertical: 14,
-    borderBottomWidth: 1, borderBottomColor: C.border,
-    ...shadow(3),
+  // Gradient Header
+  headerGrad: {
+    paddingHorizontal: 16,
+    paddingBottom: 20,
   },
-  headerBtn: { width: 40, height: 40, borderRadius: 12, backgroundColor: C.bg, alignItems: 'center', justifyContent: 'center' },
-  headerTitle: { fontSize: 17, fontWeight: '800', color: C.text, letterSpacing: -0.3 },
+  headerRow: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingTop: 8, marginBottom: 16,
+  },
+  glassBtn: {
+    width: 40, height: 40, borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  heroSection: { alignItems: 'center' },
+  heroIconWrap: {
+    width: 56, height: 56, borderRadius: 28,
+    backgroundColor: 'rgba(52,211,153,0.15)',
+    borderWidth: 1.5, borderColor: 'rgba(52,211,153,0.25)',
+    alignItems: 'center', justifyContent: 'center', marginBottom: 10,
+  },
+  heroTitle: { fontSize: 20, fontWeight: '800', color: '#fff', letterSpacing: -0.3 },
+  heroSub: { fontSize: 13, color: 'rgba(255,255,255,0.65)', marginTop: 3 },
 
   // Month
   monthBar: {

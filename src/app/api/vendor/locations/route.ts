@@ -266,7 +266,7 @@ export async function POST(request: NextRequest) {
         },
       },
     });
-    if (alreadyApproved) {
+    if (alreadyApproved && alreadyApproved.isActive) {
       return NextResponse.json({ error: 'Location already approved' }, { status: 400 });
     }
 

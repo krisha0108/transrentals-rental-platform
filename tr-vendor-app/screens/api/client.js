@@ -1626,6 +1626,14 @@ export async function b2bVerifyOtp(tripCode, otp) {
 }
 
 /**
+ * Withdraw a B2B quote
+ */
+export async function withdrawB2BQuote(quoteId) {
+  const res = await apiPatch(`/vendor/b2b-quotes/${quoteId}`, { action: 'withdraw' });
+  return res.data;
+}
+
+/**
  * Get B2B stats for dashboard
  */
 export async function getB2BStats() {

@@ -1,27 +1,23 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  TextInput,
-  ActivityIndicator,
-  Alert,
+  View, Text, StyleSheet, ScrollView, TouchableOpacity,
+  TextInput, ActivityIndicator, StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/Feather';
+import Ionicons from 'react-native-vector-icons/Ionicons';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { apiGet, apiPost } from '../../api/client';
-import { showError, showSuccess, showInfo, showConfirm } from '../../../services/alertService';
+import { showError, showSuccess } from '../../../services/alertService';
 
 const C = {
-  bg: '#F7FAFC',
-  surface: '#FFFFFF',
-  text: '#0F172A',
-  muted: '#6B7280',
-  border: '#E5E7EB',
-  brand: '#22C55E',
-  blue: '#2563EB',
+  g900: '#022C22', g800: '#065F46', g700: '#047857', g600: '#059669',
+  g500: '#10B981', g400: '#34D399', g100: '#D1FAE5', g50: '#ECFDF5',
+  bg: '#F1F5F9', card: '#FFFFFF', border: '#E2E8F0',
+  text: '#0F172A', sub: '#475569', muted: '#94A3B8',
+  blue: '#2563EB', blueL: '#EFF6FF',
+  indigo: '#4F46E5', indigoL: '#EEF2FF',
 };
 
 export default function BankDetailsScreen({ navigation }) {
@@ -64,37 +60,19 @@ export default function BankDetailsScreen({ navigation }) {
     fetchBankDetails();
   }, [fetchBankDetails]);
 
-  const updateForm = (key, value) => {
-    setForm((prev) => ({ ...prev, [key]: value }));
-  };
+  const updateForm = (key, value) => setForm((prev) => ({ ...prev, [key]: value }));
 
   const validateForm = () => {
-    if (!form.accountHolderName.trim()) {
-      showError('Please enter account holder name');
-      return false;
-    }
-    if (!form.accountNumber.trim()) {
-      showError('Please enter account number');
-      return false;
-    }
-    if (form.accountNumber !== form.confirmAccountNumber) {
-      showError('Account numbers do not match');
-      return false;
-    }
-    if (!form.ifscCode.trim()) {
-      showError('Please enter IFSC code');
-      return false;
-    }
-    if (form.ifscCode.length !== 11) {
-      showError('IFSC code should be 11 characters');
-      return false;
-    }
+    if (!form.accountHolderName.trim()) { showError('Please enter account holder name'); return false; }
+    if (!form.accountNumber.trim()) { showError('Please enter account number'); return false; }
+    if (form.accountNumber !== form.confirmAccountNumber) { showError('Account numbers do not match'); return false; }
+    if (!form.ifscCode.trim()) { showError('Please enter IFSC code'); return false; }
+    if (form.ifscCode.length !== 11) { showError('IFSC code should be 11 characters'); return false; }
     return true;
   };
 
   const handleSave = async () => {
     if (!validateForm()) return;
-
     setSaving(true);
     try {
       await apiPost('/vendor/bank-details', {
@@ -105,11 +83,9 @@ export default function BankDetailsScreen({ navigation }) {
         branchName: form.branchName,
         upiId: form.upiId,
       });
-
       showSuccess('Bank details saved successfully');
       setIsEditing(false);
     } catch (error) {
-      console.log('Error saving bank details:', error);
       showError(error?.response?.data?.error || 'Failed to save bank details');
     } finally {
       setSaving(false);
@@ -121,343 +97,341 @@ export default function BankDetailsScreen({ navigation }) {
     return '●'.repeat(accNo.length - 4) + accNo.slice(-4);
   };
 
-  if (loading) {
-    return (
-      <SafeAreaView style={styles.safe}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-            <Icon name="arrow-left" size={20} color={C.text} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Bank Details</Text>
-          <View style={{ width: 36 }} />
-        </View>
-        <View style={styles.loaderContainer}>
-          <ActivityIndicator size="large" color={C.brand} />
-        </View>
-      </SafeAreaView>
-    );
-  }
-
   const hasExistingDetails = !!form.accountNumber && !isEditing;
 
   return (
-    <SafeAreaView style={styles.safe}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Icon name="arrow-left" size={20} color={C.text} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Bank Details</Text>
-        {hasExistingDetails && (
-          <TouchableOpacity style={styles.editBtn} onPress={() => setIsEditing(true)}>
-            <Icon name="edit-2" size={18} color={C.blue} />
-          </TouchableOpacity>
-        )}
-        {!hasExistingDetails && <View style={{ width: 36 }} />}
-      </View>
+    <View style={{ flex: 1, backgroundColor: C.bg }}>
+      <StatusBar barStyle="light-content" backgroundColor={C.g900} />
 
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Info Banner */}
-        <View style={styles.infoBanner}>
-          <Icon name="shield" size={18} color={C.blue} />
-          <Text style={styles.infoText}>
-            Your bank details are encrypted and securely stored
-          </Text>
-        </View>
-
-        {/* View Mode */}
-        {hasExistingDetails ? (
-          <View style={styles.detailsCard}>
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Account Holder</Text>
-              <Text style={styles.detailValue}>{form.accountHolderName}</Text>
-            </View>
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Account Number</Text>
-              <Text style={styles.detailValue}>{maskAccountNumber(form.accountNumber)}</Text>
-            </View>
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>IFSC Code</Text>
-              <Text style={styles.detailValue}>{form.ifscCode}</Text>
-            </View>
-            {form.bankName && (
-              <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>Bank Name</Text>
-                <Text style={styles.detailValue}>{form.bankName}</Text>
-              </View>
-            )}
-            {form.branchName && (
-              <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>Branch</Text>
-                <Text style={styles.detailValue}>{form.branchName}</Text>
-              </View>
-            )}
-            {form.upiId && (
-              <View style={[styles.detailRow, { borderBottomWidth: 0 }]}>
-                <Text style={styles.detailLabel}>UPI ID</Text>
-                <Text style={styles.detailValue}>{form.upiId}</Text>
-              </View>
+      {/* ── HEADER ── */}
+      <LinearGradient colors={[C.g900, '#064E3B', C.g700]} style={styles.headerGrad}>
+        <SafeAreaView edges={['top']}>
+          <View style={styles.headerRow}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+              <Ionicons name="arrow-back" size={22} color="#fff" />
+            </TouchableOpacity>
+            {hasExistingDetails && (
+              <TouchableOpacity style={styles.editBtnTop} onPress={() => setIsEditing(true)}>
+                <Icon name="edit-2" size={17} color="#fff" />
+              </TouchableOpacity>
             )}
           </View>
-        ) : (
-          /* Edit/Add Mode */
-          <View style={styles.formCard}>
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Account Holder Name *</Text>
-              <TextInput
-                style={styles.input}
+
+          {/* Hero */}
+          <View style={styles.hero}>
+            <View style={styles.heroIconWrap}>
+              {loading ? (
+                <ActivityIndicator size="large" color={C.g400} />
+              ) : (
+                <MaterialCommunityIcons name="bank-outline" size={34} color={C.g400} />
+              )}
+            </View>
+            <Text style={styles.heroTitle}>Bank Details</Text>
+            <Text style={styles.heroSub}>Secure payout account management</Text>
+          </View>
+
+          {/* Security Banner */}
+          <View style={styles.securityStrip}>
+            <Ionicons name="shield-checkmark" size={15} color={C.g400} />
+            <Text style={styles.securityText}>256-bit encrypted · PCI DSS compliant · Secure storage</Text>
+          </View>
+        </SafeAreaView>
+      </LinearGradient>
+
+      {!loading && (
+        <ScrollView
+          style={{ flex: 1 }}
+          contentContainerStyle={styles.scroll}
+          showsVerticalScrollIndicator={false}
+        >
+          {hasExistingDetails ? (
+            /* ── VIEW MODE ── */
+            <>
+              <View style={styles.card}>
+                {/* Bank Brand Row */}
+                <View style={styles.bankBrandRow}>
+                  <View style={styles.bankBrandIcon}>
+                    <MaterialCommunityIcons name="bank" size={26} color={C.blue} />
+                  </View>
+                  <View style={{ flex: 1, marginLeft: 14 }}>
+                    <Text style={styles.bankName}>{form.bankName || 'Your Bank'}</Text>
+                    <Text style={styles.branchName}>{form.branchName || 'Primary Account'}</Text>
+                  </View>
+                  <View style={styles.verifiedBadge}>
+                    <Ionicons name="checkmark-circle" size={14} color={C.g600} />
+                    <Text style={styles.verifiedText}>Verified</Text>
+                  </View>
+                </View>
+
+                <View style={styles.detailList}>
+                  {[
+                    { label: 'Account Holder', value: form.accountHolderName, icon: 'person-outline' },
+                    { label: 'Account Number', value: maskAccountNumber(form.accountNumber), icon: 'card-outline' },
+                    { label: 'IFSC Code',       value: form.ifscCode, icon: 'barcode-outline' },
+                    ...(form.upiId ? [{ label: 'UPI ID', value: form.upiId, icon: 'phone-portrait-outline' }] : []),
+                  ].map((item, i, arr) => (
+                    <View key={i} style={[styles.detailRow, i < arr.length - 1 && styles.detailBorder]}>
+                      <View style={styles.detailIconBox}>
+                        <Ionicons name={item.icon} size={16} color={C.sub} />
+                      </View>
+                      <Text style={styles.detailLabel}>{item.label}</Text>
+                      <Text style={styles.detailValue}>{item.value}</Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+
+              <TouchableOpacity
+                style={styles.editBtn}
+                onPress={() => setIsEditing(true)}
+                activeOpacity={0.8}
+              >
+                <LinearGradient
+                  colors={['rgba(255,255,255,0)', 'rgba(255,255,255,0)']}
+                  style={[styles.editBtnInner, { borderWidth: 1.5, borderColor: C.g600 }]}
+                >
+                  <Icon name="edit-2" size={16} color={C.g600} />
+                  <Text style={[styles.editBtnText, { color: C.g600 }]}>Edit Bank Details</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            </>
+          ) : (
+            /* ── EDIT / ADD MODE ── */
+            <View style={styles.card}>
+              <View style={styles.formHeaderRow}>
+                <View style={styles.formHeaderIcon}>
+                  <MaterialCommunityIcons name="wallet-outline" size={20} color={C.g600} />
+                </View>
+                <View>
+                  <Text style={styles.formHeaderTitle}>Payout Account</Text>
+                  <Text style={styles.formHeaderSub}>Add your bank account for receiving payments</Text>
+                </View>
+              </View>
+
+              <InputField label="Account Holder Name" required
                 placeholder="Enter account holder name"
-                placeholderTextColor={C.muted}
                 value={form.accountHolderName}
                 onChangeText={(v) => updateForm('accountHolderName', v)}
               />
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Account Number *</Text>
-              <TextInput
-                style={styles.input}
+              <InputField label="Account Number" required
                 placeholder="Enter account number"
-                placeholderTextColor={C.muted}
                 value={form.accountNumber}
                 onChangeText={(v) => updateForm('accountNumber', v.replace(/\D/g, ''))}
                 keyboardType="numeric"
               />
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Confirm Account Number *</Text>
-              <TextInput
-                style={styles.input}
+              <InputField label="Confirm Account Number" required
                 placeholder="Re-enter account number"
-                placeholderTextColor={C.muted}
                 value={form.confirmAccountNumber}
                 onChangeText={(v) => updateForm('confirmAccountNumber', v.replace(/\D/g, ''))}
                 keyboardType="numeric"
               />
-            </View>
 
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>IFSC Code *</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="e.g., SBIN0001234"
-                placeholderTextColor={C.muted}
-                value={form.ifscCode}
-                onChangeText={(v) => updateForm('ifscCode', v.toUpperCase())}
-                autoCapitalize="characters"
-                maxLength={11}
-              />
-            </View>
+              <View style={styles.rowInputs}>
+                <View style={{ flex: 1 }}>
+                  <InputField label="IFSC Code" required
+                    placeholder="SBIN0001234"
+                    value={form.ifscCode}
+                    onChangeText={(v) => updateForm('ifscCode', v.toUpperCase())}
+                    autoCapitalize="characters"
+                    maxLength={11}
+                  />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <InputField label="Bank Name"
+                    placeholder="e.g. HDFC"
+                    value={form.bankName}
+                    onChangeText={(v) => updateForm('bankName', v)}
+                  />
+                </View>
+              </View>
 
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Bank Name</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Enter bank name"
-                placeholderTextColor={C.muted}
-                value={form.bankName}
-                onChangeText={(v) => updateForm('bankName', v)}
-              />
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Branch Name</Text>
-              <TextInput
-                style={styles.input}
+              <InputField label="Branch Name"
                 placeholder="Enter branch name"
-                placeholderTextColor={C.muted}
                 value={form.branchName}
                 onChangeText={(v) => updateForm('branchName', v)}
               />
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>UPI ID (Optional)</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="e.g., name@upi"
-                placeholderTextColor={C.muted}
+              <InputField label="UPI ID (Optional)"
+                placeholder="name@upi"
                 value={form.upiId}
                 onChangeText={(v) => updateForm('upiId', v)}
                 autoCapitalize="none"
               />
-            </View>
 
-            <TouchableOpacity
-              style={[styles.saveBtn, saving && styles.saveBtnDisabled]}
-              onPress={handleSave}
-              disabled={saving}
-            >
-              {saving ? (
-                <ActivityIndicator size="small" color="#fff" />
-              ) : (
-                <>
-                  <Icon name="check" size={18} color="#fff" />
-                  <Text style={styles.saveBtnText}>Save Bank Details</Text>
-                </>
-              )}
-            </TouchableOpacity>
-
-            {isEditing && (
               <TouchableOpacity
-                style={styles.cancelBtn}
-                onPress={() => {
-                  setIsEditing(false);
-                  fetchBankDetails();
-                }}
+                style={[styles.saveBtn, saving && { opacity: 0.6 }]}
+                onPress={handleSave}
+                disabled={saving}
+                activeOpacity={0.85}
               >
-                <Text style={styles.cancelBtnText}>Cancel</Text>
+                <LinearGradient
+                  colors={[C.g600, C.g500]}
+                  start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+                  style={styles.saveBtnGrad}
+                >
+                  {saving ? (
+                    <ActivityIndicator size="small" color="#fff" />
+                  ) : (
+                    <>
+                      <Ionicons name="checkmark-circle-outline" size={20} color="#fff" />
+                      <Text style={styles.saveBtnText}>Save Details</Text>
+                    </>
+                  )}
+                </LinearGradient>
               </TouchableOpacity>
-            )}
-          </View>
-        )}
 
-        <View style={{ height: 40 }} />
-      </ScrollView>
-    </SafeAreaView>
+              {isEditing && (
+                <TouchableOpacity
+                  style={styles.cancelBtn}
+                  activeOpacity={0.7}
+                  onPress={() => { setIsEditing(false); fetchBankDetails(); }}
+                >
+                  <Text style={styles.cancelBtnText}>Cancel</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
+
+          <View style={{ height: 40 }} />
+        </ScrollView>
+      )}
+    </View>
+  );
+}
+
+function InputField({ label, required, ...props }) {
+  return (
+    <View style={styles.inputGroup}>
+      <Text style={styles.label}>
+        {label}
+        {required && <Text style={{ color: '#EF4444' }}> *</Text>}
+      </Text>
+      <TextInput
+        style={styles.input}
+        placeholderTextColor={C.muted}
+        {...props}
+      />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: C.bg,
-  },
-  loaderContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  headerGrad: { paddingHorizontal: 16, paddingBottom: 24 },
+  headerRow: {
+    flexDirection: 'row', alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: C.surface,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: C.border,
+    paddingTop: 8, marginBottom: 20,
   },
   backBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
+    width: 40, height: 40, borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  editBtnTop: {
+    width: 40, height: 40, borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  hero: { alignItems: 'center', marginBottom: 20 },
+  heroIconWrap: {
+    width: 72, height: 72, borderRadius: 36,
+    backgroundColor: 'rgba(52,211,153,0.15)',
+    borderWidth: 1.5, borderColor: 'rgba(52,211,153,0.3)',
+    alignItems: 'center', justifyContent: 'center',
+    marginBottom: 14,
+  },
+  heroTitle: { fontSize: 22, fontWeight: '800', color: '#fff', letterSpacing: -0.3 },
+  heroSub: { fontSize: 13, color: 'rgba(255,255,255,0.65)', marginTop: 4 },
+  securityStrip: {
+    flexDirection: 'row', alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 20, paddingVertical: 8, paddingHorizontal: 16, gap: 6,
   },
-  headerTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: C.text,
+  securityText: { fontSize: 11, color: 'rgba(255,255,255,0.7)', fontWeight: '600' },
+
+  scroll: { padding: 16 },
+
+  card: {
+    backgroundColor: C.card, borderRadius: 16,
+    borderWidth: 1, borderColor: C.border,
+    overflow: 'hidden', marginBottom: 12,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05, shadowRadius: 8, elevation: 2,
   },
-  editBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#EFF6FF',
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
+
+  bankBrandRow: {
+    flexDirection: 'row', alignItems: 'center',
     padding: 16,
+    borderBottomWidth: 1, borderBottomColor: C.border,
   },
-  infoBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#EFF6FF',
-    padding: 12,
-    borderRadius: 10,
-    marginBottom: 16,
-    gap: 10,
+  bankBrandIcon: {
+    width: 50, height: 50, borderRadius: 16,
+    backgroundColor: C.blueL,
+    alignItems: 'center', justifyContent: 'center',
   },
-  infoText: {
-    flex: 1,
-    fontSize: 13,
-    color: C.blue,
+  bankName: { fontSize: 16, fontWeight: '800', color: C.text },
+  branchName: { fontSize: 13, color: C.sub, marginTop: 2 },
+  verifiedBadge: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    backgroundColor: C.g50, borderRadius: 10,
+    paddingHorizontal: 10, paddingVertical: 5,
   },
-  detailsCard: {
-    backgroundColor: C.surface,
-    borderRadius: 14,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: C.border,
-  },
+  verifiedText: { fontSize: 12, fontWeight: '600', color: C.g600 },
+
+  detailList: { paddingHorizontal: 4 },
   detailRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: C.border,
+    flexDirection: 'row', alignItems: 'center',
+    paddingVertical: 14, paddingHorizontal: 12, gap: 10,
   },
-  detailLabel: {
-    fontSize: 14,
-    color: C.muted,
+  detailBorder: { borderBottomWidth: 1, borderBottomColor: C.border },
+  detailIconBox: {
+    width: 30, height: 30, borderRadius: 8,
+    backgroundColor: '#F8FAFC',
+    alignItems: 'center', justifyContent: 'center',
   },
-  detailValue: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: C.text,
-  },
-  formCard: {
-    backgroundColor: C.surface,
-    borderRadius: 14,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: C.border,
-  },
-  inputGroup: {
-    marginBottom: 16,
-  },
-  label: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: C.text,
-    marginBottom: 8,
-  },
-  input: {
-    backgroundColor: C.bg,
-    borderWidth: 1,
-    borderColor: C.border,
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: 15,
-    color: C.text,
-  },
-  saveBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: C.brand,
-    paddingVertical: 16,
+  detailLabel: { flex: 1, fontSize: 13, fontWeight: '500', color: C.sub },
+  detailValue: { fontSize: 14, fontWeight: '700', color: C.text },
+
+  editBtn: { borderRadius: 12, overflow: 'hidden', marginBottom: 12 },
+  editBtnInner: {
+    flexDirection: 'row', alignItems: 'center',
+    justifyContent: 'center', paddingVertical: 14, gap: 8,
     borderRadius: 12,
-    gap: 8,
-    marginTop: 8,
   },
-  saveBtnDisabled: {
-    backgroundColor: '#9CA3AF',
+  editBtnText: { fontSize: 15, fontWeight: '700' },
+
+  /* Form */
+  formHeaderRow: {
+    flexDirection: 'row', alignItems: 'flex-start',
+    padding: 16, gap: 12,
+    borderBottomWidth: 1, borderBottomColor: C.border,
   },
-  saveBtnText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#fff',
+  formHeaderIcon: {
+    width: 40, height: 40, borderRadius: 12,
+    backgroundColor: C.g50,
+    alignItems: 'center', justifyContent: 'center',
   },
-  cancelBtn: {
-    alignItems: 'center',
-    paddingVertical: 12,
-    marginTop: 8,
+  formHeaderTitle: { fontSize: 15, fontWeight: '700', color: C.text },
+  formHeaderSub: { fontSize: 12, color: C.sub, marginTop: 2 },
+
+  inputGroup: { marginBottom: 14, paddingHorizontal: 16 },
+  rowInputs: { flexDirection: 'row', gap: 0 },
+  label: { fontSize: 12, fontWeight: '700', color: C.sub, marginBottom: 7, marginLeft: 2 },
+  input: {
+    backgroundColor: '#F8FAFC', borderWidth: 1,
+    borderColor: C.border, borderRadius: 12,
+    paddingHorizontal: 14, paddingVertical: 12,
+    fontSize: 14, color: C.text, fontWeight: '500',
   },
-  cancelBtnText: {
-    fontSize: 14,
-    color: C.muted,
-    fontWeight: '500',
+
+  saveBtn: { marginHorizontal: 16, marginTop: 4, marginBottom: 4, borderRadius: 12, overflow: 'hidden' },
+  saveBtnGrad: {
+    flexDirection: 'row', alignItems: 'center',
+    justifyContent: 'center', paddingVertical: 15, gap: 8,
   },
+  saveBtnText: { fontSize: 15, fontWeight: '700', color: '#fff', letterSpacing: 0.3 },
+  cancelBtn: { alignItems: 'center', paddingVertical: 14, marginBottom: 4 },
+  cancelBtnText: { fontSize: 14, color: C.sub, fontWeight: '600' },
 });

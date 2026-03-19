@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
           const carBooking = await prisma.car_bookings.findUnique({
             where: { id: conv.bookingId },
             include: {
-              customers: { select: { id: true, name: true, email: true, phone: true } },
+              customers: { select: { id: true, name: true, email: true, phone: true, avatar: true } },
             },
           });
           if (carBooking) {
@@ -52,7 +52,7 @@ export async function GET(request: NextRequest) {
             const bikeBooking = await prisma.bike_bookings.findUnique({
               where: { id: conv.bookingId },
               include: {
-                customers: { select: { id: true, name: true, email: true, phone: true } },
+                customers: { select: { id: true, name: true, email: true, phone: true, avatar: true } },
               },
             });
             if (bikeBooking) {
@@ -66,7 +66,7 @@ export async function GET(request: NextRequest) {
             const chauffeurBooking = await prisma.chauffeur_bookings.findUnique({
               where: { id: conv.bookingId },
               include: {
-                customers: { select: { id: true, name: true, email: true, phone: true } },
+                customers: { select: { id: true, name: true, email: true, phone: true, avatar: true } },
               },
             });
             if (chauffeurBooking) {
@@ -80,7 +80,7 @@ export async function GET(request: NextRequest) {
             const luxuryBooking = await prisma.luxury_bookings.findUnique({
               where: { id: conv.bookingId },
               include: {
-                customers: { select: { id: true, name: true, email: true, phone: true } },
+                customers: { select: { id: true, name: true, email: true, phone: true, avatar: true } },
               },
             });
             if (luxuryBooking) {
@@ -94,7 +94,7 @@ export async function GET(request: NextRequest) {
             const busBooking = await prisma.bus_bookings.findUnique({
               where: { id: conv.bookingId },
               include: {
-                customers: { select: { id: true, name: true, email: true, phone: true } },
+                customers: { select: { id: true, name: true, email: true, phone: true, avatar: true } },
               },
             });
             if (busBooking) {
@@ -108,7 +108,7 @@ export async function GET(request: NextRequest) {
             const packersBooking = await prisma.packers_bookings.findUnique({
               where: { id: conv.bookingId },
               include: {
-                customers: { select: { id: true, name: true, email: true, phone: true } },
+                customers: { select: { id: true, name: true, email: true, phone: true, avatar: true } },
               },
             });
             if (packersBooking) {
@@ -122,7 +122,7 @@ export async function GET(request: NextRequest) {
             const truckBooking = await prisma.truck_bookings.findUnique({
               where: { id: conv.bookingId },
               include: {
-                customers: { select: { id: true, name: true, email: true, phone: true } },
+                customers: { select: { id: true, name: true, email: true, phone: true, avatar: true } },
               },
             });
             if (truckBooking) {
@@ -136,7 +136,7 @@ export async function GET(request: NextRequest) {
             const b2bBooking = await prisma.b2b_bookings.findUnique({
               where: { id: conv.bookingId },
               include: {
-                customer: { select: { id: true, name: true, email: true, phone: true } },
+                customer: { select: { id: true, name: true, email: true, phone: true, avatar: true } },
               },
             });
             if (b2bBooking) {
@@ -150,7 +150,7 @@ export async function GET(request: NextRequest) {
             const equipmentBooking = await prisma.equipment_bookings.findUnique({
               where: { id: conv.bookingId },
               include: {
-                customers: { select: { id: true, name: true, email: true, phone: true } },
+                customers: { select: { id: true, name: true, email: true, phone: true, avatar: true } },
               },
             });
             if (equipmentBooking) {
@@ -163,6 +163,14 @@ export async function GET(request: NextRequest) {
         // Use display ID for guest bookings
         const displayCustomerId = conv.customerId || `guest-${conv.bookingId}`;
 
+        // Build full avatar URL if avatar is just a filename
+        const buildAvatarUrl = (avatar: string | null | undefined) => {
+          if (!avatar) return null;
+          if (avatar.startsWith('http://') || avatar.startsWith('https://') || avatar.startsWith('data:')) return avatar;
+          const baseUrl = request.nextUrl.origin;
+          return `${baseUrl}/uploads/profile_images/${avatar}`;
+        };
+
         return {
           id: conv.id,
           bookingId: conv.bookingId,
@@ -173,7 +181,7 @@ export async function GET(request: NextRequest) {
           customerName: customer?.name || booking?.customerName || 'Guest Customer',
           customerEmail: customer?.email || booking?.customerEmail,
           customerPhone: customer?.phone || booking?.customerPhone,
-          customerAvatar: customer?.image || null,
+          customerAvatar: buildAvatarUrl(customer?.avatar),
           lastMessage: conv.lastMessageText,
           lastMessageAt: conv.lastMessageAt?.toISOString(),
           lastSenderType: conv.lastSenderType,
