@@ -5620,3 +5620,104 @@ model vendor_messages {
   @@index([createdAt])
   @@index([isRead])
 }
+
+// ─── Web Stories ───────────────────────────────────────────────────────────────
+
+enum WebStoryBgType {
+  IMAGE
+  VIDEO
+  COLOR
+  GRADIENT
+}
+
+enum WebStoryHeadingSize {
+  SM
+  MD
+  LG
+}
+
+enum WebStoryTextPosition {
+  TOP
+  MIDDLE
+  BOTTOM
+}
+
+enum WebStoryTextAnimation {
+  NONE
+  FADE
+  SLIDE_UP
+  SLIDE_DOWN
+}
+
+enum WebStoryReactionType {
+  HEART
+  FIRE
+  THUMBS_UP
+}
+
+model web_stories {
+  id               String               @id
+  title            String
+  slug             String               @unique
+  description      String?              @db.Text
+  metaDescription  String?              @db.VarChar(300)
+  coverImage       String?
+  coverImageSquare String?
+  publisherName    String?
+  publisherLogo    String?
+  category         String?
+  isPublished      Boolean              @default(false)
+  isArchived       Boolean              @default(false)
+  displayOrder     Int                  @default(0)
+  expiresAt        DateTime?
+  publishedAt      DateTime?
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+  slides           web_story_slides[]
+  reactions        web_story_reactions[]
+
+  @@index([isPublished])
+  @@index([isArchived])
+  @@index([expiresAt])
+  @@index([displayOrder])
+}
+
+model web_story_slides {
+  id            String                @id
+  storyId       String
+  order         Int                   @default(0)
+  duration      Int                   @default(7)
+  bgType        WebStoryBgType        @default(IMAGE)
+  bgImage       String?
+  bgVideo       String?
+  bgColor       String?
+  bgGradient    String?
+  heading       String?
+  headingSize   WebStoryHeadingSize   @default(LG)
+  headingColor  String                @default("#FFFFFF")
+  subtext       String?               @db.Text
+  subtextColor  String                @default("#FFFFFF")
+  textPosition  WebStoryTextPosition  @default(BOTTOM)
+  textAnimation WebStoryTextAnimation @default(FADE)
+  ctaText       String?
+  ctaUrl        String?
+  ctaStyle      String?
+  canvasData    String?  @db.Text
+  createdAt     DateTime              @default(now())
+  story         web_stories           @relation(fields: [storyId], references: [id], onDelete: Cascade)
+
+  @@index([storyId])
+  @@index([order])
+}
+
+model web_story_reactions {
+  id           String               @id
+  storyId      String
+  reactionType WebStoryReactionType
+  userIp       String?
+  createdAt    DateTime             @default(now())
+  story        web_stories          @relation(fields: [storyId], references: [id], onDelete: Cascade)
+
+  @@index([storyId])
+  @@index([reactionType])
+}
