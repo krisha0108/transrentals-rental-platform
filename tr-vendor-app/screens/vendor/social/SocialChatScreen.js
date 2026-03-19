@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
-  SafeAreaView,
   View,
   Text,
   FlatList,
@@ -12,20 +11,25 @@ import {
   ActivityIndicator,
   Alert,
   Image,
+  StatusBar,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Feather';
+import LinearGradient from 'react-native-linear-gradient';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getMessages, sendMessage } from '../../api/socialApi';
 import { getFullImageURL } from '../../api/client';
 
 const G = {
-  bg: '#F5F7FA', surface: '#FFFFFF', text: '#0A0F1E', muted: '#6B7280',
-  border: '#E8EDF2', violet: '#7C3AED', violetL: '#F5F3FF',
-  red: '#DC2626', redL: '#FEF2F2', green: '#16A34A', greenL: '#F0FDF4',
+  bg: '#F8FAFC', surface: '#FFFFFF', text: '#1E293B', muted: '#64748B',
+  border: '#E2E8F0', violet: '#059669', violetL: '#ECFDF5',
+  red: '#EF4444', redL: '#FEF2F2', green: '#059669', greenL: '#ECFDF5',
   sentBg: '#D1FAE5', receivedBg: '#FFFFFF',
+  g950: '#011B14', g900: '#022C22', g800: '#064E3B', g600: '#059669',
 };
 
-const AVATAR_COLORS = ['#7C3AED', '#DC2626', '#16A34A', '#F97316', '#0891B2', '#DB2777', '#D97706'];
+const AVATAR_COLORS = ['#059669', '#DC2626', '#16A34A', '#F97316', '#0891B2', '#DB2777', '#D97706'];
 const getAvatarColor = (name) => AVATAR_COLORS[(name?.charCodeAt(0) || 0) % AVATAR_COLORS.length];
 
 const formatTime = (dateStr) => {
@@ -81,7 +85,7 @@ function AvatarCircle({ name, logo, size = 36 }) {
 
 // ── Post Card Message ─────────────────────────────────────────────────
 function PostCardMessage({ data, isSent }) {
-  const headerBg = isSent ? '#16A34A' : '#7C3AED';
+  const headerBg = isSent ? '#059669' : '#047857';
   return (
     <View style={[styles.postCardMsg, { borderColor: headerBg + '40' }]}>
       <View style={[styles.postCardMsgHeader, { backgroundColor: headerBg }]}>
@@ -102,6 +106,7 @@ function PostCardMessage({ data, isSent }) {
 
 export default function SocialChatScreen({ route, navigation }) {
   const { conversationId, otherVendor } = route.params || {};
+  const insets = useSafeAreaInsets();
   const [currentVendorId, setCurrentVendorId] = useState(null);
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -241,13 +246,19 @@ export default function SocialChatScreen({ route, navigation }) {
     );
   };
 
+  useFocusEffect(useCallback(() => {
+    StatusBar.setBarStyle('light-content');
+    if (Platform.OS === 'android') StatusBar.setBackgroundColor(G.g950);
+  }, []));
+
   return (
-    <SafeAreaView style={styles.safe}>
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={0}>
+    <View style={styles.safe}>
+      <StatusBar barStyle="light-content" backgroundColor={G.g950} translucent={false} />
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         {/* Header */}
-        <View style={styles.header}>
+        <LinearGradient colors={[G.g950, G.g900, G.g800]} style={[styles.header, { paddingTop: insets.top + 8 }]}>
           <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-            <Icon name="arrow-left" size={20} color={G.text} />
+            <Icon name="arrow-left" size={20} color="#fff" />
           </TouchableOpacity>
           <AvatarCircle name={otherVendor?.businessName} logo={otherVendor?.logo} size={38} />
           <View style={styles.headerInfo}>
@@ -258,9 +269,9 @@ export default function SocialChatScreen({ route, navigation }) {
             style={styles.headerProfileBtn}
             onPress={() => navigation.navigate('SocialProfileScreen', { vendorId: otherVendor?.id })}
           >
-            <Icon name="user" size={18} color={G.violet} />
+            <Icon name="user" size={18} color="#fff" />
           </TouchableOpacity>
-        </View>
+        </LinearGradient>
 
         {/* Messages */}
         {loading ? (
@@ -276,6 +287,8 @@ export default function SocialChatScreen({ route, navigation }) {
             renderItem={renderItem}
             contentContainerStyle={styles.msgList}
             showsVerticalScrollIndicator={false}
+            onLayout={() => flatListRef.current?.scrollToEnd({ animated: false })}
+            onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
             ListEmptyComponent={
               <View style={styles.emptyChat}>
                 <AvatarCircle name={otherVendor?.businessName} logo={otherVendor?.logo} size={64} />
@@ -309,7 +322,7 @@ export default function SocialChatScreen({ route, navigation }) {
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -321,15 +334,14 @@ const styles = StyleSheet.create({
   // Header
   header: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: G.surface, paddingHorizontal: 12, paddingVertical: 10,
-    borderBottomWidth: 1, borderBottomColor: G.border, gap: 10,
+    paddingHorizontal: 12, paddingVertical: 12, gap: 10,
   },
   backBtn: { padding: 4 },
   headerInfo: { flex: 1 },
-  headerName: { fontSize: 16, fontWeight: '700', color: G.text },
-  headerSub: { fontSize: 12, color: G.muted },
+  headerName: { fontSize: 16, fontWeight: '700', color: '#fff' },
+  headerSub: { fontSize: 12, color: 'rgba(255,255,255,0.7)' },
   headerProfileBtn: {
-    width: 36, height: 36, borderRadius: 10, backgroundColor: G.violetL,
+    width: 36, height: 36, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.15)',
     alignItems: 'center', justifyContent: 'center',
   },
 
@@ -358,7 +370,7 @@ const styles = StyleSheet.create({
   msgTime: { fontSize: 10, color: G.muted },
   msgTimeSent: { color: '#065F46' },
   msgRead: { fontSize: 11, color: G.muted },
-  msgReadDone: { color: G.violet },
+  msgReadDone: { color: G.green },
 
   // Post card message
   postCardMsg: { borderRadius: 10, borderWidth: 1, overflow: 'hidden', minWidth: 200 },

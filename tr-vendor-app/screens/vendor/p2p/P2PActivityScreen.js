@@ -1,13 +1,14 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
-  RefreshControl, ActivityIndicator, Modal, TextInput,
+  RefreshControl, ActivityIndicator, Modal, TextInput, StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Icon from 'react-native-vector-icons/Feather';
 import MCI from 'react-native-vector-icons/MaterialCommunityIcons';
+import LinearGradient from 'react-native-linear-gradient';
 import {
   getP2PTransactions, getP2PStats,
   startP2PTrip, completeP2PTrip, cancelP2PTransaction,
@@ -16,27 +17,33 @@ import {
 import CustomAlert from '../../../components/CustomAlert';
 
 const C = {
-  bg: '#F8FAFC', surface: '#FFFFFF', text: '#1A1A2E', sub: '#64748B',
-  muted: '#94A3B8', border: '#E2E8F0', brand: '#10B981',
-  blue: '#3B82F6', purple: '#8B5CF6', amber: '#F59E0B', red: '#EF4444',
-  indigo: '#6366F1', sky: '#0EA5E9', emerald: '#059669',
+  g950: '#011B14', g900: '#022C22', g800: '#064E3B', g700: '#047857',
+  g600: '#059669', g500: '#10B981', g400: '#34D399', g300: '#6EE7B7',
+  g100: '#D1FAE5', g50: '#ECFDF5',
+  bg: '#F8FAFC', surface: '#FFFFFF',
+  text: '#0F172A', sub: '#334155', muted: '#94A3B8',
+  border: '#E2E8F0',
+  amber: '#F59E0B', amberBg: '#FFFBEB',
+  red: '#EF4444', redBg: '#FEF2F2',
+  blue: '#3B82F6', blueBg: '#EFF6FF', blueDark: '#1D4ED8',
+  purple: '#8B5CF6', purpleBg: '#F5F3FF',
+  sky: '#0EA5E9', skyBg: '#E0F2FE',
 };
 
-// Category config matching web version
 const CATEGORY_CONFIG = {
-  VEHICLE_SHARED: { label: 'Vehicle Shared', bg: '#DBEAFE', text: '#1D4ED8', accent: C.blue },
-  VEHICLE_RECEIVED: { label: 'Vehicle Received', bg: '#E0F2FE', text: '#0369A1', accent: C.sky },
-  BOOKING_SHARED: { label: 'Booking Shared', bg: '#F3E8FF', text: '#7C3AED', accent: C.purple },
-  BOOKING_RECEIVED: { label: 'Booking Received', bg: '#D1FAE5', text: '#047857', accent: C.emerald },
+  VEHICLE_SHARED:   { label: 'Vehicle Shared',   bg: '#DBEAFE', text: '#1D4ED8', accent: C.blue },
+  VEHICLE_RECEIVED: { label: 'Vehicle Received',  bg: '#E0F2FE', text: '#0369A1', accent: C.sky },
+  BOOKING_SHARED:   { label: 'Booking Shared',    bg: '#F5F3FF', text: '#7C3AED', accent: C.purple },
+  BOOKING_RECEIVED: { label: 'Booking Received',  bg: '#D1FAE5', text: '#047857', accent: C.g700 },
 };
 
 const TRIP_STATUS = {
-  PENDING: { label: 'Pending', bg: '#F1F5F9', text: '#475569', icon: 'clock' },
-  CONFIRMED: { label: 'Confirmed', bg: '#FEF3C7', text: '#92400E', icon: 'clock' },
-  IN_PROGRESS: { label: 'In Progress', bg: '#DBEAFE', text: '#1E40AF', icon: 'play' },
-  COMPLETED: { label: 'Completed', bg: '#D1FAE5', text: '#065F46', icon: 'check-circle' },
-  CANCELLED: { label: 'Cancelled', bg: '#FEE2E2', text: '#991B1B', icon: 'x-circle' },
-  SETTLED: { label: 'Settled', bg: '#D1FAE5', text: '#065F46', icon: 'check-circle' },
+  PENDING:     { label: 'Pending',     bg: '#F1F5F9', text: '#475569', icon: 'clock' },
+  CONFIRMED:   { label: 'Confirmed',   bg: '#FFFBEB', text: '#92400E', icon: 'clock' },
+  IN_PROGRESS: { label: 'In Progress', bg: '#EFF6FF', text: '#1E40AF', icon: 'play' },
+  COMPLETED:   { label: 'Completed',   bg: '#D1FAE5', text: '#065F46', icon: 'check-circle' },
+  CANCELLED:   { label: 'Cancelled',   bg: '#FEF2F2', text: '#991B1B', icon: 'x-circle' },
+  SETTLED:     { label: 'Settled',     bg: '#D1FAE5', text: '#065F46', icon: 'check-circle' },
 };
 
 const MAIN_TABS = [
@@ -45,10 +52,10 @@ const MAIN_TABS = [
 ];
 
 const STATUS_FILTERS = [
-  { key: 'all', label: 'All' },
+  { key: 'all',         label: 'All' },
   { key: 'IN_PROGRESS', label: 'Active' },
-  { key: 'COMPLETED', label: 'Completed' },
-  { key: 'CANCELLED', label: 'Cancelled' },
+  { key: 'COMPLETED',   label: 'Completed' },
+  { key: 'CANCELLED',   label: 'Cancelled' },
 ];
 
 function fmtDate(d) {
@@ -74,21 +81,21 @@ function getRelativeTime(d) {
 
 export default function P2PActivityScreen({ navigation }) {
   const [currentVendorId, setCurrentVendorId] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
+  const [loading, setLoading]           = useState(true);
+  const [refreshing, setRefreshing]     = useState(false);
   const [transactions, setTransactions] = useState([]);
-  const [stats, setStats] = useState(null);
-  const [mainTab, setMainTab] = useState('VEHICLE');
+  const [stats, setStats]               = useState(null);
+  const [mainTab, setMainTab]           = useState('VEHICLE');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [page, setPage] = useState(1);
-  const [pagination, setPagination] = useState(null);
+  const [page, setPage]                 = useState(1);
+  const [pagination, setPagination]     = useState(null);
   const [actionLoading, setActionLoading] = useState(null);
 
   // Rating modal
-  const [ratingModal, setRatingModal] = useState(false);
-  const [selTx, setSelTx] = useState(null);
-  const [rating, setRating] = useState(5);
-  const [review, setReview] = useState('');
+  const [ratingModal, setRatingModal]           = useState(false);
+  const [selTx, setSelTx]                       = useState(null);
+  const [rating, setRating]                     = useState(5);
+  const [review, setReview]                     = useState('');
   const [submittingRating, setSubmittingRating] = useState(false);
 
   const [alert, setAlert] = useState({ visible: false, type: 'info', title: '', message: '' });
@@ -105,10 +112,8 @@ export default function P2PActivityScreen({ navigation }) {
     })();
   }, []);
 
-  const isVendorA = (tx) => currentVendorId && tx.vendorA?.id === currentVendorId;
-
+  const isVendorA  = (tx) => currentVendorId && tx.vendorA?.id === currentVendorId;
   const getPartner = (tx) => isVendorA(tx) ? tx.vendorB : tx.vendorA;
-
   const getMyEarning = (tx) => isVendorA(tx) ? tx.vendorAEarning : tx.vendorBEarning;
 
   const getCategory = (tx) => {
@@ -121,9 +126,9 @@ export default function P2PActivityScreen({ navigation }) {
   const getMyRole = (tx) => {
     const cat = getCategory(tx);
     switch (cat) {
-      case 'VEHICLE_SHARED': return 'You shared your vehicle';
+      case 'VEHICLE_SHARED':   return 'You shared your vehicle';
       case 'VEHICLE_RECEIVED': return 'You requested this vehicle';
-      case 'BOOKING_SHARED': return 'You shared this booking';
+      case 'BOOKING_SHARED':   return 'You shared this booking';
       case 'BOOKING_RECEIVED': return 'You accepted this booking';
       default: return '';
     }
@@ -203,190 +208,211 @@ export default function P2PActivityScreen({ navigation }) {
       } else {
         showAlert('error', 'Error', msg);
       }
-    }
-    finally { setSubmittingRating(false); }
+    } finally { setSubmittingRating(false); }
+  };
+
+  // ─── Category avatar gradient map ───
+  const CAT_GRADS = {
+    VEHICLE_SHARED:   ['#1E3A5F', '#2563EB'],
+    VEHICLE_RECEIVED: ['#0C4A6E', '#0EA5E9'],
+    BOOKING_SHARED:   ['#3B0764', '#7C3AED'],
+    BOOKING_RECEIVED: [C.g900, C.g700],
   };
 
   const renderTransaction = ({ item }) => {
-    const category = getCategory(item);
-    const catCfg = CATEGORY_CONFIG[category] || CATEGORY_CONFIG.VEHICLE_SHARED;
-    const tsc = TRIP_STATUS[item.tripStatus] || TRIP_STATUS.PENDING;
-    const partner = getPartner(item);
-    const myEarning = getMyEarning(item);
-    const roleText = getMyRole(item);
-    const isA = isVendorA(item);
+    const category   = getCategory(item);
+    const catCfg     = CATEGORY_CONFIG[category] || CATEGORY_CONFIG.VEHICLE_SHARED;
+    const tsc        = TRIP_STATUS[item.tripStatus] || TRIP_STATUS.PENDING;
+    const partner    = getPartner(item);
+    const myEarning  = getMyEarning(item);
+    const roleText   = getMyRole(item);
+    const isA        = isVendorA(item);
+    const avatarGrad = CAT_GRADS[category] || CAT_GRADS.VEHICLE_SHARED;
+    const isVehicle  = item.postingType === 'VEHICLE';
 
     return (
-      <View style={[s.card, { borderLeftColor: catCfg.accent }]}>
-        {/* Top bar: Category + Status + Time */}
-        <View style={s.cardTopBar}>
-          <View style={s.cardTopLeft}>
-            <View style={[s.categoryBadge, { backgroundColor: catCfg.bg }]}>
-              <Text style={[s.categoryText, { color: catCfg.text }]}>{catCfg.label}</Text>
-            </View>
-            <View style={[s.tripBadge, { backgroundColor: tsc.bg }]}>
-              <Icon name={tsc.icon} size={10} color={tsc.text} />
-              <Text style={[s.tripBadgeText, { color: tsc.text }]}>{tsc.label}</Text>
-            </View>
+      <View style={s.card}>
+
+        {/* ── TOP ROW ── */}
+        <View style={s.cardTop}>
+          {/* Category badge */}
+          <View style={[s.catBadge, { backgroundColor: catCfg.bg }]}>
+            <MCI name={isVehicle ? 'truck' : 'package-variant'} size={10} color={catCfg.text} />
+            <Text style={[s.catBadgeText, { color: catCfg.text }]}>{catCfg.label}</Text>
           </View>
-          <Text style={s.timeText}>{getRelativeTime(item.createdAt)}</Text>
+          {/* TX number */}
+          <Text style={s.txNum} numberOfLines={1}>{item.transactionNumber}</Text>
+          <View style={{ flex: 1 }} />
+          {/* Status pill */}
+          <View style={[s.statusPill, { backgroundColor: tsc.bg }]}>
+            <Icon name={tsc.icon} size={9} color={tsc.text} />
+            <Text style={[s.statusPillText, { color: tsc.text }]}>{tsc.label}</Text>
+          </View>
+          {/* Time ago */}
+          <Text style={s.headTime}>{getRelativeTime(item.createdAt)}</Text>
         </View>
 
-        {/* Main content */}
+        {/* ── ROUTE ROW ── */}
+        <View style={s.routeRow}>
+          <View style={s.routeDotGreen} />
+          <Text style={s.routeCity} numberOfLines={1}>{item.fromCity || '-'}</Text>
+          <View style={s.routeLine} />
+          <View style={s.routeIconWrap}>
+            <MCI name={isVehicle ? 'truck' : 'package-variant'} size={12} color={C.muted} />
+          </View>
+          <View style={s.routeLine} />
+          <Text style={s.routeCity} numberOfLines={1}>{item.toCity || '-'}</Text>
+          <View style={s.routeDotRed} />
+        </View>
+
+        {/* ── CARD BODY ── */}
         <View style={s.cardBody}>
-          <View style={s.cardMainRow}>
-            {/* Left icon */}
-            <View style={[s.cardIcon, { backgroundColor: catCfg.bg }]}>
-              <MCI name={item.postingType === 'VEHICLE' ? 'truck' : 'package-variant'} size={22} color={catCfg.accent} />
-            </View>
 
-            {/* Center details */}
-            <View style={s.cardDetails}>
-              {/* Tx number + Role */}
-              <View style={s.txRow}>
-                <Text style={s.txNumber}>{item.transactionNumber}</Text>
+          {/* Role text */}
+          {!!roleText && (
+            <Text style={s.roleText}>{roleText}</Text>
+          )}
+
+          {/* Partner row */}
+          {partner && (
+            <View style={s.partnerRow}>
+              <LinearGradient colors={avatarGrad} style={s.partnerAvatar}>
+                <Text style={s.partnerInitial}>{partner.businessName?.charAt(0)?.toUpperCase() || '?'}</Text>
+              </LinearGradient>
+              <View style={{ flex: 1 }}>
+                <Text style={s.partnerName} numberOfLines={1}>{partner.businessName || '-'}</Text>
+                {!!partner.city && <Text style={s.partnerCity}>{partner.city}</Text>}
               </View>
-              {!!roleText && <Text style={s.roleText}>{roleText}</Text>}
-
-              {/* Partner */}
-              {partner && (
-                <View style={s.partnerRow}>
-                  <Text style={s.partnerLabel}>Partner:</Text>
-                  <View style={s.partnerAvatar}>
-                    <Text style={s.partnerInitial}>{partner.businessName?.charAt(0) || '?'}</Text>
-                  </View>
-                  <Text style={s.partnerName} numberOfLines={1}>{partner.businessName || '-'}</Text>
-                  {!!partner.city && <Text style={s.partnerCity}>({partner.city})</Text>}
+              {/* Payment status pill */}
+              {item.paymentStatus === 'PAID' && (
+                <View style={[s.payPill, { backgroundColor: C.g50, borderColor: C.g300 }]}>
+                  <Icon name="check-circle" size={9} color={C.g600} />
+                  <Text style={[s.payText, { color: C.g700 }]}>PAID</Text>
                 </View>
               )}
-
-              {/* Route */}
-              <View style={s.routeRow}>
-                <MCI name="map-marker" size={14} color={C.blue} />
-                <Text style={s.routeCity} numberOfLines={1}>{item.fromCity || '-'}</Text>
-                <Icon name="arrow-right" size={12} color={C.muted} />
-                <Text style={s.routeCity} numberOfLines={1}>{item.toCity || '-'}</Text>
-              </View>
-
-              {/* Info row */}
-              <View style={s.infoRow}>
-                <View style={s.infoChip}>
-                  <Icon name="calendar" size={11} color={C.muted} />
-                  <Text style={s.infoText}>{fmtDate(item.tripDate)}</Text>
+              {item.paymentStatus === 'SETTLED' && (
+                <View style={[s.payPill, { backgroundColor: C.blueBg, borderColor: '#93C5FD' }]}>
+                  <Icon name="check-circle" size={9} color={C.blue} />
+                  <Text style={[s.payText, { color: C.blueDark }]}>SETTLED</Text>
                 </View>
-                {!!item.vehicleName && (
-                  <View style={s.infoChip}>
-                    <MCI name="truck" size={11} color={C.muted} />
-                    <Text style={s.infoText} numberOfLines={1}>
-                      {item.vehicleName}{item.vehicleNumber ? ` (${item.vehicleNumber})` : ''}
-                    </Text>
-                  </View>
-                )}
-                {!!item.driverName && (
-                  <View style={s.infoChip}>
-                    <Icon name="user" size={11} color={C.muted} />
-                    <Text style={s.infoText}>{item.driverName}</Text>
-                  </View>
-                )}
-                {!!item.driverPhone && (
-                  <View style={s.infoChip}>
-                    <Icon name="phone" size={11} color={C.muted} />
-                    <Text style={s.infoText}>{item.driverPhone}</Text>
-                  </View>
-                )}
-              </View>
-            </View>
-
-            {/* Right: Amount */}
-            <View style={s.cardAmountCol}>
-              <Text style={s.agreedAmt}>{fmtPrice(item.agreedAmount)}</Text>
-              {myEarning != null && (
-                <>
-                  <Text style={s.myEarning}>+{fmtPrice(myEarning)}</Text>
-                  <Text style={s.earningLabel}>Your earning</Text>
-                </>
               )}
-              <View style={s.payStatusWrap}>
-                {item.paymentStatus === 'PAID' && <Icon name="check-circle" size={10} color={C.brand} />}
-                <Text style={[s.payStatusText, {
-                  color: item.paymentStatus === 'PAID' ? C.brand :
-                    item.paymentStatus === 'SETTLED' ? C.blue : C.amber,
-                }]}>{item.paymentStatus || 'PENDING'}</Text>
-              </View>
+              {(!item.paymentStatus || item.paymentStatus === 'PENDING') && (
+                <View style={[s.payPill, { backgroundColor: C.amberBg, borderColor: '#FCD34D' }]}>
+                  <MCI name="clock-outline" size={9} color={C.amber} />
+                  <Text style={[s.payText, { color: '#92400E' }]}>PENDING</Text>
+                </View>
+              )}
             </View>
+          )}
+
+          {/* Info chips row */}
+          <View style={s.infoRow}>
+            <View style={[s.infoChip, { backgroundColor: C.g50, borderColor: C.g100 }]}>
+              <Icon name="calendar" size={10} color={C.g600} />
+              <Text style={[s.infoChipText, { color: C.g700 }]}>{fmtDate(item.tripDate)}</Text>
+            </View>
+            {!!item.vehicleName && (
+              <View style={[s.infoChip, { backgroundColor: '#F8FAFC', borderColor: C.border }]}>
+                <MCI name="truck" size={10} color={C.muted} />
+                <Text style={[s.infoChipText, { color: C.sub }]} numberOfLines={1}>
+                  {item.vehicleName}{item.vehicleNumber ? ` · ${item.vehicleNumber}` : ''}
+                </Text>
+              </View>
+            )}
+            {!!item.driverName && (
+              <View style={[s.infoChip, { backgroundColor: '#F8FAFC', borderColor: C.border }]}>
+                <Icon name="user" size={10} color={C.muted} />
+                <Text style={[s.infoChipText, { color: C.sub }]}>{item.driverName}</Text>
+              </View>
+            )}
+          </View>
+
+          {/* Amount footer */}
+          <View style={s.amountFooter}>
+            <View>
+              <Text style={s.amtLabel}>DEAL VALUE</Text>
+              <Text style={s.amtMain}>{fmtPrice(item.agreedAmount)}</Text>
+            </View>
+            {myEarning != null && (
+              <View style={s.earningBox}>
+                <Text style={s.amtLabel}>YOUR EARNING</Text>
+                <Text style={s.amtEarning}>+{fmtPrice(myEarning)}</Text>
+              </View>
+            )}
           </View>
         </View>
 
-        {/* Action Buttons */}
-        {(item.tripStatus === 'CONFIRMED' || item.tripStatus === 'IN_PROGRESS' || item.tripStatus === 'PENDING' || item.tripStatus === 'COMPLETED') && (
+        {/* ── ACTION BUTTONS ── */}
+        {(item.tripStatus === 'CONFIRMED' || item.tripStatus === 'IN_PROGRESS' ||
+          item.tripStatus === 'PENDING'   || item.tripStatus === 'COMPLETED') && (
           <View style={s.actionsRow}>
-            {/* Start Trip — vendorA only, CONFIRMED */}
+            {/* Start Trip */}
             {item.tripStatus === 'CONFIRMED' && isA && (
               <TouchableOpacity
-                style={[s.actionBtn, { backgroundColor: C.blue }]}
                 onPress={() => handleTripAction(item.id, 'start')}
                 disabled={actionLoading === item.id}
+                style={{ flex: 1 }}
               >
-                {actionLoading === item.id ? <ActivityIndicator size="small" color="#fff" /> : (
-                  <>
-                    <MCI name="play" size={15} color="#fff" />
-                    <Text style={s.actionBtnText}>Start Trip</Text>
-                  </>
-                )}
+                <LinearGradient colors={[C.g700, C.g600]} style={s.actionGradBtn}>
+                  {actionLoading === item.id
+                    ? <ActivityIndicator size="small" color="#fff" />
+                    : <><MCI name="play" size={14} color="#fff" /><Text style={s.actionBtnTextWhite}>Start Trip</Text></>
+                  }
+                </LinearGradient>
               </TouchableOpacity>
             )}
 
-            {/* Complete Trip — vendorA only, IN_PROGRESS */}
+            {/* Complete Trip */}
             {item.tripStatus === 'IN_PROGRESS' && isA && (
               <TouchableOpacity
-                style={[s.actionBtn, { backgroundColor: C.brand }]}
                 onPress={() => handleTripAction(item.id, 'complete')}
                 disabled={actionLoading === item.id}
+                style={{ flex: 1 }}
               >
-                {actionLoading === item.id ? <ActivityIndicator size="small" color="#fff" /> : (
-                  <>
-                    <Icon name="check-circle" size={14} color="#fff" />
-                    <Text style={s.actionBtnText}>Complete Trip</Text>
-                  </>
-                )}
+                <LinearGradient colors={[C.g700, C.g600]} style={s.actionGradBtn}>
+                  {actionLoading === item.id
+                    ? <ActivityIndicator size="small" color="#fff" />
+                    : <><Icon name="check-circle" size={14} color="#fff" /><Text style={s.actionBtnTextWhite}>Complete Trip</Text></>
+                  }
+                </LinearGradient>
               </TouchableOpacity>
             )}
 
-            {/* Cancel — either vendor, PENDING or CONFIRMED */}
+            {/* Cancel */}
             {['PENDING', 'CONFIRMED'].includes(item.tripStatus) && (
               <TouchableOpacity
-                style={[s.actionBtn, s.actionBtnCancel]}
+                style={[s.actionOutlineBtn, { flex: 1, backgroundColor: C.redBg, borderColor: '#FCA5A5' }]}
                 onPress={() => handleTripAction(item.id, 'cancel')}
                 disabled={actionLoading === item.id}
               >
                 <Icon name="x-circle" size={14} color={C.red} />
-                <Text style={[s.actionBtnText, { color: C.red }]}>Cancel</Text>
+                <Text style={[s.actionBtnTextColored, { color: C.red }]}>Cancel</Text>
               </TouchableOpacity>
             )}
 
-            {/* IN_PROGRESS message for vendorB */}
+            {/* Trip in progress (vendor B) */}
             {item.tripStatus === 'IN_PROGRESS' && !isA && (
-              <View style={[s.actionBtn, { backgroundColor: '#EFF6FF' }]}>
+              <View style={[s.actionOutlineBtn, { flex: 1, backgroundColor: C.blueBg, borderColor: '#93C5FD' }]}>
                 <Icon name="clock" size={14} color={C.blue} />
-                <Text style={[s.actionBtnText, { color: C.blue }]}>Trip in progress...</Text>
+                <Text style={[s.actionBtnTextColored, { color: C.blueDark }]}>Trip in progress...</Text>
               </View>
             )}
 
-            {/* Rate Partner — COMPLETED */}
+            {/* Rate / Rated */}
             {item.tripStatus === 'COMPLETED' && (() => {
               const alreadyRated = (item.p2p_ratings || []).some(r => r.raterVendorId === currentVendorId);
               return alreadyRated ? (
-                <View style={[s.actionBtn, { backgroundColor: '#ECFDF5' }]}>
-                  <MCI name="star-check" size={15} color={C.brand} />
-                  <Text style={[s.actionBtnText, { color: '#065F46' }]}>Rated</Text>
+                <View style={[s.actionOutlineBtn, { flex: 1, backgroundColor: C.g50, borderColor: C.g300 }]}>
+                  <MCI name="star-check" size={15} color={C.g600} />
+                  <Text style={[s.actionBtnTextColored, { color: C.g700 }]}>Rated</Text>
                 </View>
               ) : (
                 <TouchableOpacity
-                  style={[s.actionBtn, { backgroundColor: '#FEF3C7' }]}
+                  style={[s.actionOutlineBtn, { flex: 1, backgroundColor: C.amberBg, borderColor: '#FCD34D' }]}
                   onPress={() => openRating(item)}
                 >
                   <MCI name="star" size={15} color={C.amber} />
-                  <Text style={[s.actionBtnText, { color: '#92400E' }]}>Rate Partner</Text>
+                  <Text style={[s.actionBtnTextColored, { color: '#92400E' }]}>Rate Partner</Text>
                 </TouchableOpacity>
               );
             })()}
@@ -397,162 +423,173 @@ export default function P2PActivityScreen({ navigation }) {
   };
 
   const totalPages = pagination?.totalPages || 1;
-  const total = pagination?.total || 0;
+  const total      = pagination?.total || 0;
 
-  return (
-    <SafeAreaView style={s.safe} edges={['top']}>
-      {/* Header */}
-      <View style={s.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
-          <Icon name="arrow-left" size={22} color="#fff" />
-        </TouchableOpacity>
-        <View style={s.headerCenter}>
-          <Text style={s.headerTitle}>My P2P Activity</Text>
-          <Text style={s.headerSub}>Track your transactions & earnings</Text>
-        </View>
-        <View style={{ width: 40 }} />
-      </View>
-
-      {/* Stats Grid */}
+  // ─── List Header ───
+  const ListHeader = () => (
+    <>
+      {/* Stats strip */}
       {stats && (
-        <View style={s.statsGrid}>
-          {/* Row 1 */}
-          <View style={s.statsGridRow}>
-            {/* Earnings - green gradient card */}
-            <View style={[s.statCard, s.statEarnings]}>
-              <View style={s.statCardRow}>
-                <View style={s.statIconGreen}>
-                  <MCI name="cash-multiple" size={18} color="#fff" />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={s.statEarningsVal}>{fmtPrice(stats.totalEarnings)}</Text>
-                  <Text style={s.statEarningsLabel}>Total Earnings</Text>
-                </View>
-              </View>
-            </View>
-
-            {/* Total Deals */}
-            <View style={[s.statCard, s.statWhite]}>
-              <View style={s.statCardRow}>
-                <View style={[s.statIconCircle, { backgroundColor: '#DBEAFE' }]}>
-                  <MCI name="swap-horizontal" size={18} color={C.blue} />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={s.statVal}>{stats.totalTransactions || 0}</Text>
-                  <Text style={s.statLabel}>Total Deals</Text>
-                </View>
-              </View>
-            </View>
+        <View style={s.statsCard}>
+          <View style={s.statItem}>
+            <Text style={s.statVal}>{stats.totalTransactions || 0}</Text>
+            <Text style={s.statLabel}>TOTAL DEALS</Text>
           </View>
-
-          {/* Row 2 */}
-          <View style={s.statsGridRow}>
-            {/* Completed */}
-            <View style={[s.statCard, s.statWhite]}>
-              <View style={s.statCardRow}>
-                <View style={[s.statIconCircle, { backgroundColor: '#F3E8FF' }]}>
-                  <Icon name="check-circle" size={18} color={C.purple} />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={s.statVal}>{stats.completedTransactions || 0}</Text>
-                  <Text style={s.statLabel}>Completed</Text>
-                </View>
-              </View>
-            </View>
-
-            {/* P2P Rating */}
-            <View style={[s.statCard, s.statWhite]}>
-              <View style={s.statCardRow}>
-                <View style={[s.statIconCircle, { backgroundColor: '#FEF3C7' }]}>
-                  <MCI name="star" size={18} color={C.amber} />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={s.statVal}>
-                    {stats.averageRating ? Number(stats.averageRating).toFixed(1) : 'N/A'}
-                    {stats.totalRatings ? <Text style={s.ratingCount}> ({stats.totalRatings})</Text> : null}
-                  </Text>
-                  <Text style={s.statLabel}>P2P Rating</Text>
-                </View>
-              </View>
-            </View>
+          <View style={s.statDivider} />
+          <View style={s.statItem}>
+            <Text style={s.statVal}>{stats.completedTransactions || 0}</Text>
+            <Text style={s.statLabel}>COMPLETED</Text>
+          </View>
+          <View style={s.statDivider} />
+          <View style={s.statItem}>
+            <Text style={s.statVal}>{stats.averageRating ? Number(stats.averageRating).toFixed(1) : 'N/A'}</Text>
+            <Text style={s.statLabel}>AVG RATING</Text>
           </View>
         </View>
       )}
 
-      {/* Main Tabs: Vehicle Deals / Booking Deals */}
-      <View style={s.tabContainer}>
-        <View style={s.tabRow}>
+      {/* Main tab bar */}
+      <View style={s.tabBarWrap}>
+        <View style={s.tabBar}>
           {MAIN_TABS.map(t => {
             const active = mainTab === t.key;
-            return (
-              <TouchableOpacity
-                key={t.key}
-                style={[s.tab, active && s.tabActive]}
-                onPress={() => setMainTab(t.key)}
-              >
-                <MCI name={t.icon === 'truck' ? 'truck' : 'package-variant'} size={16} color={active ? C.blue : C.muted} />
-                <Text style={[s.tabText, active && s.tabTextActive]}>{t.label}</Text>
-                {active && <View style={s.tabIndicator} />}
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-
-        {/* Status Filters inside tab container */}
-        <View style={s.filterRow}>
-          {STATUS_FILTERS.map(f => {
-            const active = statusFilter === f.key;
-            return (
-              <TouchableOpacity
-                key={f.key}
-                style={[s.filterChip, active && s.filterChipActive]}
-                onPress={() => setStatusFilter(f.key)}
-              >
-                <Text style={[s.filterText, active && s.filterTextActive]}>{f.label}</Text>
+            return active ? (
+              <LinearGradient key={t.key} colors={[C.g700, C.g600]} style={s.tabItemActive}>
+                <MCI name={t.key === 'VEHICLE' ? 'truck' : 'package-variant'} size={15} color="#fff" />
+                <Text style={s.tabTextActive}>{t.label}</Text>
+              </LinearGradient>
+            ) : (
+              <TouchableOpacity key={t.key} style={s.tabItemInactive} onPress={() => setMainTab(t.key)}>
+                <MCI name={t.key === 'VEHICLE' ? 'truck' : 'package-variant'} size={15} color={C.g700} />
+                <Text style={s.tabTextInactive}>{t.label}</Text>
               </TouchableOpacity>
             );
           })}
         </View>
       </View>
 
+      {/* Status filter chips */}
+      <View style={s.filterRow}>
+        {STATUS_FILTERS.map(f => {
+          const active = statusFilter === f.key;
+          return active ? (
+            <LinearGradient key={f.key} colors={[C.g700, C.g600]} style={s.filterChipActive}>
+              <Text style={s.filterTextActive}>{f.label}</Text>
+            </LinearGradient>
+          ) : (
+            <TouchableOpacity
+              key={f.key}
+              style={s.filterChipInactive}
+              onPress={() => setStatusFilter(f.key)}
+            >
+              <Text style={s.filterTextInactive}>{f.label}</Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+    </>
+  );
+
+  return (
+    <View style={s.root}>
+      <StatusBar barStyle="light-content" backgroundColor={C.g950} />
+
+      {/* ─────────── FIXED HEADER ─────────── */}
+      <SafeAreaView edges={['top']} style={{ backgroundColor: C.g950 }}>
+        <LinearGradient colors={[C.g950, C.g900, C.g800]} style={s.headerGrad}>
+          {/* Decorative circles */}
+          <View style={s.decCircle1} />
+          <View style={s.decCircle2} />
+
+          {/* Nav row */}
+          <View style={s.headerRow}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
+              <Icon name="arrow-left" size={20} color="#fff" />
+            </TouchableOpacity>
+            <View style={s.headerCenter}>
+              <Text style={s.headerTitle}>My P2P Activity</Text>
+              <Text style={s.headerSub}>Track transactions & earnings</Text>
+            </View>
+            <View style={{ width: 40 }} />
+          </View>
+
+          {/* Earnings hero card inside gradient */}
+          <View style={s.earningsCard}>
+            {/* Icon circle */}
+            <View style={s.earningsIconCircle}>
+              <MCI name="cash-multiple" size={24} color={C.g400} />
+            </View>
+            {/* Center: amount */}
+            <View style={{ flex: 1, marginLeft: 14 }}>
+              <Text style={s.earningsAmt}>{stats ? fmtPrice(stats.totalEarnings) : '—'}</Text>
+              <Text style={s.earningsLabel}>Total Earnings</Text>
+            </View>
+            {/* Right: deal + rating pills */}
+            <View style={s.earningsPills}>
+              <View style={s.earningsPillGreen}>
+                <MCI name="handshake" size={9} color={C.g400} />
+                <Text style={s.earningsPillGreenText}>
+                  Deals: {stats?.totalTransactions ?? '—'}
+                </Text>
+              </View>
+              <View style={s.earningsPillAmber}>
+                <MCI name="star" size={9} color={C.amber} />
+                <Text style={s.earningsPillAmberText}>
+                  {stats?.averageRating ? Number(stats.averageRating).toFixed(1) : 'N/A'} ★
+                </Text>
+              </View>
+            </View>
+          </View>
+        </LinearGradient>
+      </SafeAreaView>
+
+      {/* ─────────── CONTENT ─────────── */}
       {loading ? (
-        <View style={s.center}><ActivityIndicator size="large" color={C.blue} /></View>
+        <View style={s.center}>
+          <ActivityIndicator size="large" color={C.g600} />
+          <Text style={s.loadingText}>Loading activity...</Text>
+        </View>
       ) : (
         <FlatList
           data={transactions}
           renderItem={renderTransaction}
           keyExtractor={item => item.id}
-          contentContainerStyle={s.list}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[C.blue]} />}
+          contentContainerStyle={s.listContent}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[C.g600]} tintColor={C.g600} />
+          }
+          ListHeaderComponent={<ListHeader />}
           ListEmptyComponent={
-            <View style={s.empty}>
-              <View style={[s.emptyIconWrap, { backgroundColor: mainTab === 'VEHICLE' ? '#DBEAFE' : '#F3E8FF' }]}>
-                <MCI name={mainTab === 'VEHICLE' ? 'truck' : 'package-variant'} size={36}
-                  color={mainTab === 'VEHICLE' ? C.blue : C.purple} />
-              </View>
+            <View style={s.emptyWrap}>
+              <LinearGradient colors={[C.g800, C.g700]} style={s.emptyIconCircle}>
+                <MCI name={mainTab === 'VEHICLE' ? 'truck' : 'package-variant'} size={38} color="#fff" />
+              </LinearGradient>
               <Text style={s.emptyTitle}>
                 {mainTab === 'VEHICLE' ? 'No vehicle deals yet' : 'No booking deals yet'}
               </Text>
               <Text style={s.emptyMsg}>
                 {mainTab === 'VEHICLE'
                   ? 'Share your empty vehicles or request vehicles from other vendors to see deals here.'
-                  : 'Share bookings you can\'t fulfill or accept bookings from other vendors to see deals here.'}
+                  : "Share bookings you can't fulfill or accept bookings from other vendors to see deals here."}
               </Text>
               <TouchableOpacity
-                style={[s.emptyBtn, { backgroundColor: mainTab === 'VEHICLE' ? C.blue : C.purple }]}
                 onPress={() => navigation.navigate(mainTab === 'VEHICLE' ? 'BrowseVehiclesScreen' : 'BrowseBookingsScreen')}
               >
-                <Text style={s.emptyBtnText}>
-                  {mainTab === 'VEHICLE' ? 'Browse Vehicles' : 'Browse Bookings'}
-                </Text>
+                <LinearGradient colors={[C.g700, C.g600]} style={s.emptyBtn}>
+                  <MCI name={mainTab === 'VEHICLE' ? 'truck' : 'package-variant'} size={16} color="#fff" />
+                  <Text style={s.emptyBtnText}>
+                    {mainTab === 'VEHICLE' ? 'Browse Vehicles' : 'Browse Bookings'}
+                  </Text>
+                </LinearGradient>
               </TouchableOpacity>
             </View>
           }
           ListFooterComponent={totalPages > 1 ? (
             <View style={s.pagination}>
               <Text style={s.pageShowText}>
-                Showing <Text style={s.pageBold}>{((pagination?.page || 1) - 1) * 20 + 1}</Text>
-                {' - '}
+                Showing{' '}
+                <Text style={s.pageBold}>{((pagination?.page || 1) - 1) * 20 + 1}</Text>
+                {' – '}
                 <Text style={s.pageBold}>{Math.min((pagination?.page || 1) * 20, total)}</Text>
                 {' of '}
                 <Text style={s.pageBold}>{total}</Text>
@@ -563,17 +600,19 @@ export default function P2PActivityScreen({ navigation }) {
                   disabled={page <= 1}
                   onPress={() => setPage(p => Math.max(1, p - 1))}
                 >
-                  <Icon name="chevron-left" size={16} color={page <= 1 ? C.muted : C.text} />
+                  <Icon name="chevron-left" size={15} color={page <= 1 ? C.muted : C.g700} />
                   <Text style={[s.pageBtnText, page <= 1 && { color: C.muted }]}>Prev</Text>
                 </TouchableOpacity>
-                <Text style={s.pageInfo}>{page} / {totalPages}</Text>
+                <View style={s.pageIndicator}>
+                  <Text style={s.pageIndicatorText}>{page} / {totalPages}</Text>
+                </View>
                 <TouchableOpacity
                   style={[s.pageBtn, page >= totalPages && s.pageBtnDisabled]}
                   disabled={page >= totalPages}
                   onPress={() => setPage(p => Math.min(totalPages, p + 1))}
                 >
                   <Text style={[s.pageBtnText, page >= totalPages && { color: C.muted }]}>Next</Text>
-                  <Icon name="chevron-right" size={16} color={page >= totalPages ? C.muted : C.text} />
+                  <Icon name="chevron-right" size={15} color={page >= totalPages ? C.muted : C.g700} />
                 </TouchableOpacity>
               </View>
             </View>
@@ -581,259 +620,393 @@ export default function P2PActivityScreen({ navigation }) {
         />
       )}
 
-      {/* Rating Modal */}
+      {/* ─────────── RATING MODAL ─────────── */}
       <Modal visible={ratingModal} transparent animationType="slide">
         <View style={s.modalOverlay}>
           <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={() => setRatingModal(false)} />
-          <View style={s.modalContent}>
-            <View style={s.modalHandle} />
-            <View style={s.modalHeader}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                <View style={[s.modalIconWrap, { backgroundColor: '#FEF3C7' }]}>
-                  <MCI name="star" size={18} color={C.amber} />
+          <View style={s.modalSheet}>
+
+            {/* Gradient header */}
+            <LinearGradient colors={[C.g800, C.g700]} style={s.modalHeader}>
+              <View style={s.modalHandle} />
+              <View style={s.modalHeaderRow}>
+                <View style={s.modalStarCircle}>
+                  <MCI name="star" size={20} color={C.amber} />
                 </View>
-                <Text style={s.modalTitle}>Rate Partner</Text>
+                <View style={{ flex: 1, marginLeft: 12 }}>
+                  <Text style={s.modalTitle}>Rate Partner</Text>
+                  <Text style={s.modalTitleSub}>{getPartner(selTx || {})?.businessName || 'Partner'}</Text>
+                </View>
+                <TouchableOpacity onPress={() => setRatingModal(false)} style={s.modalCloseBtn}>
+                  <Icon name="x" size={18} color="rgba(255,255,255,0.75)" />
+                </TouchableOpacity>
               </View>
-              <TouchableOpacity onPress={() => setRatingModal(false)} style={s.modalCloseBtn}>
-                <Icon name="x" size={20} color={C.muted} />
+            </LinearGradient>
+
+            {/* Body */}
+            <View style={s.modalBody}>
+              <Text style={s.formLabel}>OVERALL RATING</Text>
+
+              <View style={s.starsRow}>
+                {[1, 2, 3, 4, 5].map(n => (
+                  <TouchableOpacity key={n} onPress={() => setRating(n)} style={s.starBtn}>
+                    <MCI
+                      name={n <= rating ? 'star' : 'star-outline'}
+                      size={40}
+                      color={n <= rating ? C.amber : C.border}
+                    />
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              <Text style={s.ratingLabel}>
+                {rating === 1 ? 'Poor' : rating === 2 ? 'Fair' : rating === 3 ? 'Good' : rating === 4 ? 'Very Good' : 'Excellent'}
+              </Text>
+
+              <Text style={[s.formLabel, { marginTop: 20 }]}>REVIEW (Optional)</Text>
+              <TextInput
+                style={s.reviewInput}
+                value={review}
+                onChangeText={setReview}
+                placeholder="Share your experience with this partner..."
+                placeholderTextColor={C.muted}
+                multiline
+                textAlignVertical="top"
+              />
+
+              <TouchableOpacity
+                style={{ opacity: submittingRating ? 0.6 : 1, marginTop: 20 }}
+                onPress={handleSubmitRating}
+                disabled={submittingRating}
+              >
+                <LinearGradient colors={[C.amber, '#D97706']} style={s.submitBtn}>
+                  {submittingRating
+                    ? <ActivityIndicator size="small" color="#fff" />
+                    : <>
+                        <MCI name="star-check" size={18} color="#fff" />
+                        <Text style={s.submitBtnText}>Submit Rating</Text>
+                      </>
+                  }
+                </LinearGradient>
               </TouchableOpacity>
             </View>
-
-            <Text style={s.modalSub}>
-              {selTx?.transactionNumber} - {getPartner(selTx || {})?.businessName || 'Partner'}
-            </Text>
-
-            <Text style={s.formLabel}>OVERALL RATING</Text>
-            <View style={s.starsRow}>
-              {[1, 2, 3, 4, 5].map(n => (
-                <TouchableOpacity key={n} onPress={() => setRating(n)} style={s.starBtn}>
-                  <MCI
-                    name={n <= rating ? 'star' : 'star-outline'}
-                    size={40}
-                    color={n <= rating ? C.amber : C.border}
-                  />
-                </TouchableOpacity>
-              ))}
-            </View>
-            <Text style={s.ratingLabel}>
-              {rating === 1 ? 'Poor' : rating === 2 ? 'Fair' : rating === 3 ? 'Good' : rating === 4 ? 'Very Good' : 'Excellent'}
-            </Text>
-
-            <Text style={s.formLabel}>REVIEW (Optional)</Text>
-            <TextInput
-              style={s.reviewInput}
-              value={review}
-              onChangeText={setReview}
-              placeholder="Share your experience with this partner..."
-              placeholderTextColor={C.muted}
-              multiline
-              textAlignVertical="top"
-            />
-
-            <TouchableOpacity
-              style={[s.submitBtn, submittingRating && { opacity: 0.6 }]}
-              onPress={handleSubmitRating}
-              disabled={submittingRating}
-            >
-              {submittingRating ? <ActivityIndicator size="small" color="#fff" /> : (
-                <>
-                  <MCI name="star-check" size={18} color="#fff" />
-                  <Text style={s.submitBtnText}>Submit Rating</Text>
-                </>
-              )}
-            </TouchableOpacity>
           </View>
         </View>
       </Modal>
 
-      <CustomAlert visible={alert.visible} type={alert.type} title={alert.title} message={alert.message} onClose={hideAlert} />
-    </SafeAreaView>
+      <CustomAlert
+        visible={alert.visible}
+        type={alert.type}
+        title={alert.title}
+        message={alert.message}
+        onClose={hideAlert}
+      />
+    </View>
   );
 }
 
 const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: C.bg },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  root:   { flex: 1, backgroundColor: C.bg },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 12 },
+  loadingText: { fontSize: 13, color: C.muted, fontWeight: '500' },
 
-  // Header - gradient style
-  header: {
-    flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 16,
-    backgroundColor: C.blue,
+  // ─── Header gradient ───
+  headerGrad: {
+    paddingHorizontal: 16,
+    paddingTop: 14,
+    paddingBottom: 20,
+    overflow: 'hidden',
   },
-  backBtn: { width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.15)' },
+  decCircle1: {
+    position: 'absolute', width: 180, height: 180, borderRadius: 90,
+    backgroundColor: 'rgba(52,211,153,0.06)', top: -60, right: -40,
+  },
+  decCircle2: {
+    position: 'absolute', width: 120, height: 120, borderRadius: 60,
+    backgroundColor: 'rgba(52,211,153,0.04)', bottom: -30, left: -20,
+  },
+  headerRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 16 },
+  backBtn: {
+    width: 40, height: 40, borderRadius: 20,
+    justifyContent: 'center', alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)',
+  },
   headerCenter: { flex: 1, marginLeft: 12 },
-  headerTitle: { fontSize: 20, fontWeight: '700', color: '#fff' },
-  headerSub: { fontSize: 12, color: 'rgba(255,255,255,0.7)', marginTop: 2 },
+  headerTitle: { fontSize: 20, fontWeight: '700', color: '#fff', letterSpacing: -0.3 },
+  headerSub:   { fontSize: 12, color: 'rgba(255,255,255,0.6)', marginTop: 2 },
 
-  // Stats Grid
-  statsGrid: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 4, gap: 8 },
-  statsGridRow: { flexDirection: 'row', gap: 8 },
-  statCard: {
-    flex: 1, borderRadius: 14, padding: 14,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 4, elevation: 1,
+  // ─── Earnings hero card ───
+  earningsCard: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 20, padding: 16,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
   },
-  statWhite: { backgroundColor: '#fff', borderWidth: 1, borderColor: C.border },
-  statEarnings: { backgroundColor: '#059669' },
-  statCardRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  statIconGreen: {
-    width: 38, height: 38, borderRadius: 12, justifyContent: 'center', alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.2)',
+  earningsIconCircle: {
+    width: 48, height: 48, borderRadius: 24,
+    backgroundColor: 'rgba(52,211,153,0.2)',
+    justifyContent: 'center', alignItems: 'center',
   },
-  statIconCircle: {
-    width: 38, height: 38, borderRadius: 12, justifyContent: 'center', alignItems: 'center',
+  earningsAmt:   { fontSize: 28, fontWeight: '800', color: C.g300, letterSpacing: -1 },
+  earningsLabel: { fontSize: 12, color: 'rgba(255,255,255,0.6)', marginTop: 2 },
+  earningsPills: { gap: 6, alignItems: 'flex-end' },
+  earningsPillGreen: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    backgroundColor: 'rgba(52,211,153,0.15)', borderRadius: 10,
+    paddingHorizontal: 8, paddingVertical: 4,
+    borderWidth: 1, borderColor: 'rgba(52,211,153,0.25)',
   },
-  statEarningsVal: { fontSize: 16, fontWeight: '800', color: '#fff' },
-  statEarningsLabel: { fontSize: 11, color: 'rgba(255,255,255,0.8)', fontWeight: '500' },
-  statVal: { fontSize: 17, fontWeight: '800', color: C.text },
-  statLabel: { fontSize: 11, color: C.sub, fontWeight: '500' },
-  ratingCount: { fontSize: 12, fontWeight: '400', color: C.muted },
+  earningsPillGreenText: { fontSize: 10, fontWeight: '700', color: C.g300 },
+  earningsPillAmber: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    backgroundColor: 'rgba(245,158,11,0.15)', borderRadius: 10,
+    paddingHorizontal: 8, paddingVertical: 4,
+    borderWidth: 1, borderColor: 'rgba(245,158,11,0.25)',
+  },
+  earningsPillAmberText: { fontSize: 10, fontWeight: '700', color: C.amber },
 
-  // Tabs
-  tabContainer: { backgroundColor: C.surface, borderBottomWidth: 1, borderBottomColor: C.border },
-  tabRow: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: C.border },
-  tab: {
+  // ─── Stats card ───
+  statsCard: {
+    flexDirection: 'row', backgroundColor: C.surface,
+    borderRadius: 16, marginHorizontal: 16, marginTop: 14, marginBottom: 4,
+    borderWidth: 1, borderColor: C.border,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06, shadowRadius: 8, elevation: 3,
+  },
+  statItem:    { flex: 1, alignItems: 'center', paddingVertical: 14 },
+  statDivider: { width: 1, height: 36, backgroundColor: C.border, alignSelf: 'center' },
+  statVal:     { fontSize: 20, fontWeight: '800', color: C.text, letterSpacing: -0.5 },
+  statLabel:   { fontSize: 9, fontWeight: '700', color: C.muted, marginTop: 3, textTransform: 'uppercase', letterSpacing: 0.6 },
+
+  // ─── Tab bar ───
+  tabBarWrap: { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 4 },
+  tabBar: {
+    flexDirection: 'row', backgroundColor: '#F1F5F9',
+    borderRadius: 14, padding: 4,
+  },
+  tabItemActive: {
     flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    gap: 8, paddingVertical: 14, position: 'relative',
+    gap: 7, paddingVertical: 10, borderRadius: 10,
   },
-  tabActive: { backgroundColor: 'rgba(59,130,246,0.04)' },
-  tabText: { fontSize: 14, fontWeight: '600', color: C.muted },
-  tabTextActive: { color: C.blue, fontWeight: '700' },
-  tabIndicator: { position: 'absolute', bottom: 0, left: 0, right: 0, height: 2.5, backgroundColor: C.blue, borderTopLeftRadius: 2, borderTopRightRadius: 2 },
-
-  // Filters
-  filterRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingHorizontal: 16, paddingVertical: 12 },
-  filterChip: {
-    paddingHorizontal: 16, paddingVertical: 7, borderRadius: 20,
-    backgroundColor: '#F1F5F9',
+  tabItemInactive: {
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: 7, paddingVertical: 10, borderRadius: 10,
   },
-  filterChipActive: { backgroundColor: C.blue },
-  filterText: { fontSize: 12, fontWeight: '600', color: C.sub },
-  filterTextActive: { color: '#fff', fontWeight: '700' },
+  tabTextActive:   { fontSize: 13, fontWeight: '700', color: '#fff' },
+  tabTextInactive: { fontSize: 13, fontWeight: '600', color: C.g700 },
 
-  // List
-  list: { padding: 16, paddingBottom: 100 },
+  // ─── Filter chips ───
+  filterRow: {
+    flexDirection: 'row', gap: 8, paddingHorizontal: 16,
+    paddingVertical: 10, paddingBottom: 12,
+  },
+  filterChipActive: {
+    paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20,
+  },
+  filterChipInactive: {
+    paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20,
+    backgroundColor: C.surface, borderWidth: 1.5, borderColor: C.border,
+  },
+  filterTextActive:   { fontSize: 12, fontWeight: '700', color: '#fff' },
+  filterTextInactive: { fontSize: 12, fontWeight: '600', color: C.sub },
 
-  // Card
+  // ─── List ───
+  listContent: { paddingHorizontal: 16, paddingBottom: 110 },
+
+  // ─── Card ───
   card: {
-    backgroundColor: C.surface, borderRadius: 14, marginBottom: 12, overflow: 'hidden',
-    borderWidth: 1, borderColor: C.border, borderLeftWidth: 4,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 8, elevation: 2,
+    backgroundColor: C.surface, borderRadius: 16, marginBottom: 14,
+    borderWidth: 1, borderColor: C.border,
+    shadowColor: '#0F172A', shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.07, shadowRadius: 10, elevation: 3,
+    overflow: 'hidden',
   },
 
-  // Card top bar
-  cardTopBar: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 14, paddingVertical: 10, backgroundColor: '#FAFBFC',
+  // Card top row
+  cardTop: {
+    flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap',
+    gap: 6, paddingHorizontal: 12, paddingVertical: 10,
     borderBottomWidth: 1, borderBottomColor: '#F1F5F9',
   },
-  cardTopLeft: { flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1 },
-  categoryBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
-  categoryText: { fontSize: 10, fontWeight: '700' },
-  tripBadge: { flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: 7, paddingVertical: 3, borderRadius: 6 },
-  tripBadgeText: { fontSize: 10, fontWeight: '600' },
-  timeText: { fontSize: 10, color: C.muted },
+  catBadge: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8,
+  },
+  catBadgeText:  { fontSize: 10, fontWeight: '700' },
+  txNum:         { fontSize: 11, fontWeight: '500', color: C.muted, fontVariant: ['tabular-nums'] },
+  statusPill: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6,
+  },
+  statusPillText: { fontSize: 10, fontWeight: '700' },
+  headTime:       { fontSize: 10, color: C.muted },
+
+  // Route row
+  routeRow: {
+    flexDirection: 'row', alignItems: 'center',
+    marginHorizontal: 12, marginVertical: 8,
+    backgroundColor: '#F8FAFC', borderRadius: 10,
+    paddingVertical: 8, paddingHorizontal: 10,
+    borderWidth: 1, borderColor: C.border,
+    gap: 6,
+  },
+  routeDotGreen: { width: 8, height: 8, borderRadius: 4, backgroundColor: C.g500 },
+  routeDotRed:   { width: 8, height: 8, borderRadius: 4, backgroundColor: C.red },
+  routeLine:     { flex: 1, height: 1, backgroundColor: '#CBD5E1' },
+  routeIconWrap: {
+    width: 22, height: 22, borderRadius: 11, backgroundColor: '#F1F5F9',
+    justifyContent: 'center', alignItems: 'center',
+  },
+  routeCity: { fontSize: 12, fontWeight: '600', color: C.text, maxWidth: 90 },
 
   // Card body
-  cardBody: { paddingHorizontal: 14, paddingVertical: 12 },
-  cardMainRow: { flexDirection: 'row', gap: 12 },
-  cardIcon: { width: 44, height: 44, borderRadius: 14, justifyContent: 'center', alignItems: 'center' },
-  cardDetails: { flex: 1, gap: 6 },
+  cardBody: { paddingHorizontal: 14, paddingTop: 10, paddingBottom: 12 },
+  roleText: { fontSize: 11, color: C.g600, fontStyle: 'italic', marginBottom: 8 },
 
-  // Tx row
-  txRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  txNumber: { fontSize: 13, fontWeight: '700', color: C.text, fontFamily: 'monospace' },
-  roleText: { fontSize: 11, color: C.muted, fontStyle: 'italic' },
-
-  // Partner
-  partnerRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  partnerLabel: { fontSize: 11, color: C.muted },
+  // Partner row
+  partnerRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10 },
   partnerAvatar: {
-    width: 20, height: 20, borderRadius: 10,
-    backgroundColor: C.blue, justifyContent: 'center', alignItems: 'center',
+    width: 34, height: 34, borderRadius: 17,
+    justifyContent: 'center', alignItems: 'center',
   },
-  partnerInitial: { fontSize: 9, fontWeight: '700', color: '#fff' },
-  partnerName: { fontSize: 13, fontWeight: '600', color: C.text, flex: 1 },
-  partnerCity: { fontSize: 11, color: C.muted },
+  partnerInitial: { fontSize: 13, fontWeight: '700', color: '#fff' },
+  partnerName:    { fontSize: 13, fontWeight: '700', color: C.text },
+  partnerCity:    { fontSize: 11, color: C.muted, marginTop: 1 },
 
-  // Route
-  routeRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    backgroundColor: '#F8FAFC', borderRadius: 8, paddingVertical: 6, paddingHorizontal: 10,
+  // Payment pill
+  payPill: {
+    flexDirection: 'row', alignItems: 'center', gap: 3,
+    paddingHorizontal: 7, paddingVertical: 3, borderRadius: 8, borderWidth: 1,
   },
-  routeCity: { fontSize: 13, fontWeight: '600', color: C.text, flex: 1 },
+  payText: { fontSize: 9, fontWeight: '700' },
 
-  // Info
-  infoRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 2 },
-  infoChip: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  infoText: { fontSize: 11, color: C.sub },
+  // Info chips
+  infoRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 12 },
+  infoChip: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, borderWidth: 1,
+  },
+  infoChipText: { fontSize: 11, fontWeight: '600' },
 
-  // Amount column
-  cardAmountCol: { alignItems: 'flex-end', paddingLeft: 8, minWidth: 85 },
-  agreedAmt: { fontSize: 15, fontWeight: '800', color: C.text },
-  myEarning: { fontSize: 13, fontWeight: '700', color: C.brand, marginTop: 2 },
-  earningLabel: { fontSize: 9, color: C.muted, marginTop: 1 },
-  payStatusWrap: { flexDirection: 'row', alignItems: 'center', gap: 3, marginTop: 4 },
-  payStatusText: { fontSize: 10, fontWeight: '600' },
+  // Amount footer
+  amountFooter: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end',
+    paddingTop: 10, borderTopWidth: 1, borderTopColor: C.border,
+  },
+  amtLabel:   { fontSize: 9, fontWeight: '700', color: C.muted, textTransform: 'uppercase', letterSpacing: 0.7, marginBottom: 2 },
+  amtMain:    { fontSize: 22, fontWeight: '800', color: C.text, letterSpacing: -0.5 },
+  earningBox: { alignItems: 'flex-end' },
+  amtEarning: { fontSize: 20, fontWeight: '800', color: C.g600, letterSpacing: -0.5 },
 
-  // Actions
+  // Action buttons row
   actionsRow: {
-    flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingHorizontal: 14, paddingVertical: 10,
-    borderTopWidth: 1, borderTopColor: '#F1F5F9',
+    flexDirection: 'row', flexWrap: 'wrap', gap: 8,
+    paddingHorizontal: 14, paddingVertical: 10,
+    borderTopWidth: 1, borderTopColor: C.border,
   },
-  actionBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    paddingHorizontal: 14, paddingVertical: 9, borderRadius: 10,
+  actionGradBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: 6, paddingVertical: 10, borderRadius: 12,
   },
-  actionBtnCancel: { backgroundColor: '#FEF2F2', borderWidth: 1, borderColor: '#FCA5A5' },
-  actionBtnText: { fontSize: 12, fontWeight: '700', color: '#fff' },
+  actionOutlineBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: 6, paddingVertical: 10, borderRadius: 12, borderWidth: 1,
+  },
+  actionBtnTextWhite:   { fontSize: 12, fontWeight: '700', color: '#fff' },
+  actionBtnTextColored: { fontSize: 12, fontWeight: '700' },
 
-  // Pagination
+  // ─── Pagination ───
   pagination: {
-    backgroundColor: C.surface, borderRadius: 14, padding: 14, marginTop: 4,
+    backgroundColor: C.surface, borderRadius: 16, padding: 16,
+    marginTop: 4, marginBottom: 4,
     borderWidth: 1, borderColor: C.border,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04, shadowRadius: 4, elevation: 1,
   },
-  pageShowText: { fontSize: 12, color: C.sub, textAlign: 'center', marginBottom: 10 },
-  pageBold: { fontWeight: '700', color: C.text },
-  pageButtons: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 12 },
+  pageShowText: { fontSize: 12, color: C.sub, textAlign: 'center', marginBottom: 12 },
+  pageBold:     { fontWeight: '700', color: C.text },
+  pageButtons:  { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10 },
   pageBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
-    paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10,
-    borderWidth: 1, borderColor: C.border, backgroundColor: C.surface,
+    paddingHorizontal: 16, paddingVertical: 9, borderRadius: 12,
+    borderWidth: 1.5, borderColor: C.border, backgroundColor: C.surface,
   },
   pageBtnDisabled: { opacity: 0.4 },
-  pageBtnText: { fontSize: 13, fontWeight: '600', color: C.text },
-  pageInfo: { fontSize: 13, fontWeight: '600', color: C.sub, paddingHorizontal: 6 },
-
-  // Empty
-  empty: { alignItems: 'center', paddingVertical: 60, paddingHorizontal: 30, gap: 10 },
-  emptyIconWrap: { width: 72, height: 72, borderRadius: 36, justifyContent: 'center', alignItems: 'center', marginBottom: 4 },
-  emptyTitle: { fontSize: 17, fontWeight: '700', color: C.text },
-  emptyMsg: { fontSize: 13, color: C.muted, textAlign: 'center', lineHeight: 19 },
-  emptyBtn: {
-    marginTop: 12, paddingHorizontal: 24, paddingVertical: 12, borderRadius: 12,
+  pageBtnText:     { fontSize: 13, fontWeight: '600', color: C.g700 },
+  pageIndicator: {
+    paddingHorizontal: 16, paddingVertical: 9, borderRadius: 12,
+    backgroundColor: C.g50, borderWidth: 1, borderColor: C.g100,
   },
-  emptyBtnText: { fontSize: 14, fontWeight: '600', color: '#fff' },
+  pageIndicatorText: { fontSize: 13, fontWeight: '700', color: C.g700 },
 
-  // Modal
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-  modalContent: { backgroundColor: C.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20 },
-  modalHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: C.border, alignSelf: 'center', marginBottom: 16 },
-  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
-  modalIconWrap: { width: 36, height: 36, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
-  modalTitle: { fontSize: 18, fontWeight: '700', color: C.text },
-  modalCloseBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#F1F5F9', justifyContent: 'center', alignItems: 'center' },
-  modalSub: { fontSize: 13, color: C.muted, marginBottom: 16, marginLeft: 46 },
-  formLabel: { fontSize: 10, fontWeight: '700', color: C.muted, letterSpacing: 0.8, marginBottom: 6, marginTop: 16 },
-  starsRow: { flexDirection: 'row', justifyContent: 'center', gap: 6, paddingVertical: 8 },
-  starBtn: { padding: 4 },
-  ratingLabel: { fontSize: 14, fontWeight: '600', color: C.amber, textAlign: 'center', marginBottom: 4 },
+  // ─── Empty state ───
+  emptyWrap: {
+    alignItems: 'center', paddingVertical: 64, paddingHorizontal: 32, gap: 12,
+  },
+  emptyIconCircle: {
+    width: 88, height: 88, borderRadius: 44,
+    justifyContent: 'center', alignItems: 'center', marginBottom: 6,
+  },
+  emptyTitle: { fontSize: 18, fontWeight: '700', color: C.text, textAlign: 'center' },
+  emptyMsg:   { fontSize: 13, color: C.muted, textAlign: 'center', lineHeight: 20 },
+  emptyBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    marginTop: 8, paddingHorizontal: 28, paddingVertical: 14, borderRadius: 14,
+  },
+  emptyBtnText: { fontSize: 14, fontWeight: '700', color: '#fff' },
+
+  // ─── Rating Modal ───
+  modalOverlay: {
+    flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end',
+  },
+  modalSheet: {
+    backgroundColor: C.surface,
+    borderTopLeftRadius: 28, borderTopRightRadius: 28,
+    overflow: 'hidden',
+  },
+  modalHeader: { paddingTop: 10, paddingHorizontal: 20, paddingBottom: 18 },
+  modalHandle: {
+    width: 40, height: 4, borderRadius: 2,
+    backgroundColor: 'rgba(255,255,255,0.3)',
+    alignSelf: 'center', marginBottom: 16,
+  },
+  modalHeaderRow: { flexDirection: 'row', alignItems: 'center' },
+  modalStarCircle: {
+    width: 42, height: 42, borderRadius: 21,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    justifyContent: 'center', alignItems: 'center',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)',
+  },
+  modalTitle:    { fontSize: 18, fontWeight: '700', color: '#fff' },
+  modalTitleSub: { fontSize: 12, color: 'rgba(255,255,255,0.65)', marginTop: 2 },
+  modalCloseBtn: {
+    width: 34, height: 34, borderRadius: 17,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    justifyContent: 'center', alignItems: 'center',
+  },
+  modalBody: { paddingHorizontal: 22, paddingVertical: 20 },
+
+  formLabel: {
+    fontSize: 10, fontWeight: '700', color: C.muted,
+    letterSpacing: 0.9, textTransform: 'uppercase', marginBottom: 8,
+  },
+  starsRow: {
+    flexDirection: 'row', justifyContent: 'center', gap: 4, paddingVertical: 6,
+  },
+  starBtn:     { padding: 4 },
+  ratingLabel: {
+    fontSize: 14, fontWeight: '700', color: C.amber,
+    textAlign: 'center', marginTop: 4,
+  },
   reviewInput: {
-    backgroundColor: '#F8FAFC', borderWidth: 1, borderColor: C.border, borderRadius: 12,
-    paddingHorizontal: 14, paddingVertical: 12, fontSize: 14, color: C.text, height: 90,
+    backgroundColor: C.bg, borderWidth: 1.5, borderColor: C.border,
+    borderRadius: 14, paddingHorizontal: 14, paddingVertical: 12,
+    fontSize: 14, color: C.text, height: 92,
   },
   submitBtn: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
-    backgroundColor: C.amber, paddingVertical: 14, borderRadius: 14, marginTop: 20,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: 8, paddingVertical: 15, borderRadius: 16,
   },
   submitBtnText: { fontSize: 15, fontWeight: '700', color: '#fff' },
 });

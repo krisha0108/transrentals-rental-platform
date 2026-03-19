@@ -10,22 +10,23 @@ import {
   Alert,
   Modal,
   Platform,
+  StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/Feather';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import { addStaff, updateStaff } from '../../api/client';
 import { showConfirm, showError, showInfo, showSuccess } from '../../../services/alertService';
 
 const C = {
-  bg: '#F7FAFC',
-  surface: '#FFFFFF',
-  text: '#0F172A',
-  muted: '#6B7280',
-  border: '#E5E7EB',
-  brand: '#22C55E',
-  blue: '#2563EB',
-  red: '#EF4444',
+  g900: '#022C22', g800: '#065F46', g700: '#047857', g600: '#059669',
+  g500: '#10B981', g400: '#34D399', g100: '#D1FAE5', g50: '#ECFDF5',
+  bg: '#F1F5F9', surface: '#FFFFFF', border: '#E2E8F0',
+  text: '#0F172A', sub: '#475569', muted: '#94A3B8',
+  blue: '#3B82F6', blueL: '#EFF6FF',
+  red: '#EF4444', redL: '#FEF2F2',
 };
 
 const ROLES = [
@@ -285,15 +286,29 @@ export default function AddStaffScreen({ route, navigation }) {
   const isDriver = form.role === 'DRIVER';
 
   return (
-    <SafeAreaView style={styles.safe}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Icon name="arrow-left" size={20} color={C.text} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>{isEditing ? 'Edit Staff' : 'Add Staff'}</Text>
-        <View style={{ width: 36 }} />
-      </View>
+    <View style={{ flex: 1, backgroundColor: C.bg }}>
+      <StatusBar barStyle="light-content" backgroundColor={C.g900} />
+
+      {/* ── HEADER ── */}
+      <LinearGradient colors={[C.g900, '#064E3B', C.g700]} style={styles.headerGrad}>
+        <SafeAreaView edges={['top']}>
+          <View style={styles.headerRow}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.glassBtn}>
+              <Icon name="arrow-left" size={20} color="#fff" />
+            </TouchableOpacity>
+            <View style={styles.headerCenter}>
+              <View style={styles.headerIconWrap}>
+                <MaterialCommunityIcons
+                  name={isEditing ? 'account-edit' : 'account-plus'}
+                  size={18} color={C.g400}
+                />
+              </View>
+              <Text style={styles.headerTitle}>{isEditing ? 'Edit Staff' : 'Add Staff'}</Text>
+            </View>
+            <View style={{ width: 40 }} />
+          </View>
+        </SafeAreaView>
+      </LinearGradient>
 
       <ScrollView
         style={styles.scrollView}
@@ -644,21 +659,23 @@ export default function AddStaffScreen({ route, navigation }) {
         </View>
 
         {/* Submit Button */}
-        <TouchableOpacity
-          style={[styles.submitBtn, loading && styles.submitBtnDisabled]}
-          onPress={handleSubmit}
-          disabled={loading}
-        >
-          {loading ? (
-            <ActivityIndicator size="small" color="#fff" />
-          ) : (
-            <>
-              <Icon name="check" size={18} color="#fff" />
-              <Text style={styles.submitBtnText}>
-                {isEditing ? 'Update Staff' : 'Add Staff'}
-              </Text>
-            </>
-          )}
+        <TouchableOpacity onPress={handleSubmit} disabled={loading} activeOpacity={0.85}>
+          <LinearGradient
+            colors={loading ? ['#9CA3AF', '#9CA3AF'] : [C.g600, C.g500]}
+            start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+            style={styles.submitBtn}
+          >
+            {loading ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <>
+                <Icon name="check" size={18} color="#fff" />
+                <Text style={styles.submitBtnText}>
+                  {isEditing ? 'Update Staff' : 'Add Staff'}
+                </Text>
+              </>
+            )}
+          </LinearGradient>
         </TouchableOpacity>
 
         <View style={{ height: 40 }} />
@@ -714,7 +731,7 @@ export default function AddStaffScreen({ route, navigation }) {
                   }}
                 >
                   <Text style={styles.optionText}>{role.label}</Text>
-                  {form.role === role.value && <Icon name="check" size={20} color={C.brand} />}
+                  {form.role === role.value && <Icon name="check" size={20} color={C.g600} />}
                 </TouchableOpacity>
               ))}
             </ScrollView>
@@ -748,7 +765,7 @@ export default function AddStaffScreen({ route, navigation }) {
                   }}
                 >
                   <Text style={styles.optionText}>{status.label}</Text>
-                  {form.status === status.value && <Icon name="check" size={20} color={C.brand} />}
+                  {form.status === status.value && <Icon name="check" size={20} color={C.g600} />}
                 </TouchableOpacity>
               ))}
             </ScrollView>
@@ -782,7 +799,7 @@ export default function AddStaffScreen({ route, navigation }) {
                   }}
                 >
                   <Text style={styles.optionText}>{type.label}</Text>
-                  {form.licenseType === type.value && <Icon name="check" size={20} color={C.brand} />}
+                  {form.licenseType === type.value && <Icon name="check" size={20} color={C.g600} />}
                 </TouchableOpacity>
               ))}
             </ScrollView>
@@ -816,43 +833,51 @@ export default function AddStaffScreen({ route, navigation }) {
                   }}
                 >
                   <Text style={styles.optionText}>{state}</Text>
-                  {form.state === state && <Icon name="check" size={20} color={C.brand} />}
+                  {form.state === state && <Icon name="check" size={20} color={C.g600} />}
                 </TouchableOpacity>
               ))}
             </ScrollView>
           </View>
         </View>
       </Modal>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: C.bg,
+  // Header
+  headerGrad: {
+    paddingHorizontal: 16,
+    paddingBottom: 16,
   },
-  header: {
+  headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: C.surface,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: C.border,
+    paddingTop: 8,
   },
-  backBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+  glassBtn: {
+    width: 40, height: 40, borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  headerCenter: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    gap: 8,
+  },
+  headerIconWrap: {
+    width: 32, height: 32, borderRadius: 10,
+    backgroundColor: 'rgba(52,211,153,0.15)',
+    borderWidth: 1, borderColor: 'rgba(52,211,153,0.2)',
+    alignItems: 'center', justifyContent: 'center',
   },
   headerTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: C.text,
+    fontSize: 17,
+    fontWeight: '800',
+    color: '#fff',
+    letterSpacing: -0.3,
   },
   scrollView: {
     flex: 1,
@@ -862,17 +887,22 @@ const styles = StyleSheet.create({
   },
   section: {
     backgroundColor: C.surface,
-    borderRadius: 14,
+    borderRadius: 16,
     padding: 16,
     marginBottom: 16,
     borderWidth: 1,
     borderColor: C.border,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05, shadowRadius: 8, elevation: 2,
   },
   sectionTitle: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '700',
-    color: C.text,
+    color: C.sub,
     marginBottom: 16,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   inputGroup: {
     marginBottom: 16,
@@ -947,13 +977,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: C.brand,
     paddingVertical: 16,
-    borderRadius: 12,
+    borderRadius: 14,
     gap: 8,
-  },
-  submitBtnDisabled: {
-    backgroundColor: '#9CA3AF',
   },
   submitBtnText: {
     fontSize: 16,

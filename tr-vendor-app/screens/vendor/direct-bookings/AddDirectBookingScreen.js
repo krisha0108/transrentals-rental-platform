@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  TextInput, ActivityIndicator, KeyboardAvoidingView, Platform,
+  TextInput, ActivityIndicator, KeyboardAvoidingView, Platform, StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/Feather';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
@@ -11,23 +12,26 @@ import { createDirectBooking } from '../../api/client';
 import CustomAlert from '../../../components/CustomAlert';
 
 const C = {
-  bg: '#F7FAFC', surface: '#FFFFFF', text: '#1E293B', subtext: '#475569',
-  muted: '#94A3B8', border: '#E2E8F0', brand: '#3B82F6', green: '#10B981',
-  orange: '#F59E0B', red: '#EF4444', purple: '#8B5CF6', emerald: '#059669',
+  g900: '#022C22', g800: '#064E3B', g700: '#047857', g600: '#059669',
+  g500: '#10B981', g400: '#34D399', g300: '#6EE7B7', g100: '#D1FAE5', g50: '#ECFDF5',
+  bg: '#F0FDF9', surface: '#FFFFFF',
+  text: '#1E293B', subtext: '#475569', muted: '#94A3B8', border: '#D1FAE5',
+  blue: '#3B82F6', indigo: '#6366F1', purple: '#8B5CF6',
+  amber: '#F59E0B', orange: '#F97316', red: '#EF4444', teal: '#14B8A6',
 };
 
 /* ─── Static data ─── */
 
 const SERVICE_TYPES = [
-  { value: 'car-with-driver', label: 'Car w/ Driver', icon: 'car',            color: '#3B82F6' },
-  { value: 'self-drive',      label: 'Self-Drive',    icon: 'car-side',       color: '#8B5CF6' },
-  { value: 'bike',            label: 'Bike',          icon: 'motorbike',      color: '#F59E0B' },
-  { value: 'bus',             label: 'Bus & Tempo',   icon: 'bus',            color: '#10B981' },
-  { value: 'luxury',          label: 'Luxury Car',    icon: 'car-sports',     color: '#EAB308' },
-  { value: 'transporter',     label: 'Transporter',   icon: 'truck',          color: '#64748B' },
-  { value: 'packers-movers',  label: 'Packers',       icon: 'package-variant',color: '#0EA5E9' },
-  { value: 'equipment',       label: 'Equipment',     icon: 'wrench',         color: '#EF4444' },
-  { value: 'general',         label: 'General',       icon: 'clipboard-text', color: '#6B7280' },
+  { value: 'car-with-driver', label: 'Car w/ Driver', icon: 'car',             color: C.blue   },
+  { value: 'self-drive',      label: 'Self-Drive',    icon: 'car-side',        color: C.purple },
+  { value: 'bike',            label: 'Bike',          icon: 'motorbike',       color: C.amber  },
+  { value: 'bus',             label: 'Bus & Tempo',   icon: 'bus',             color: C.teal   },
+  { value: 'luxury',          label: 'Luxury Car',    icon: 'car-sports',      color: '#EAB308'},
+  { value: 'transporter',     label: 'Transporter',   icon: 'truck',           color: C.orange },
+  { value: 'packers-movers',  label: 'Packers',       icon: 'package-variant', color: C.indigo },
+  { value: 'equipment',       label: 'Equipment',     icon: 'wrench',          color: C.red    },
+  { value: 'general',         label: 'General',       icon: 'clipboard-text',  color: C.muted  },
 ];
 
 const VEHICLE_OPTIONS = {
@@ -58,9 +62,7 @@ export default function AddDirectBookingScreen({ navigation }) {
   const [saving, setSaving] = useState(false);
   const [showPickupDate, setShowPickupDate] = useState(false);
   const [showReturnDate, setShowReturnDate] = useState(false);
-  const [showVehicleModal, setShowVehicleModal] = useState(false);
 
-  // Custom alert state
   const [alert, setAlert] = useState({ visible: false, type: 'info', title: '', message: '', actions: null });
   const showAlert = (type, title, message) => setAlert({ visible: true, type, title, message, actions: null });
   const hideAlert = () => setAlert(p => ({ ...p, visible: false }));
@@ -71,14 +73,12 @@ export default function AddDirectBookingScreen({ navigation }) {
     pickupDate: null, returnDate: null,
     pickupLocation: '', dropLocation: '',
     notes: '',
-    // service-specific
     tripType: '', passengerCount: '', helmetCount: '',
     occasion: '', licenseNumber: '', pickupTime: '',
     useType: '', goodsType: '', goodsWeight: '', weightUnit: 'KG',
     moveSize: '', packingRequired: '', floorInfo: '',
     equipDuration: '', equipUnits: '',
     truckType: '',
-    // payment
     totalAmount: '', paymentStatus: 'pending', paymentMode: '', paidAmount: '',
   });
 
@@ -163,8 +163,8 @@ export default function AddDirectBookingScreen({ navigation }) {
 
   /* ─── Render helpers ─── */
 
-  const renderDropdownChips = (options, selectedValue, onSelect, cols = 2) => (
-    <View style={[s.chipGrid, { flexWrap: 'wrap' }]}>
+  const renderChips = (options, selectedValue, onSelect, cols = 2) => (
+    <View style={s.chipGrid}>
       {options.map(opt => {
         const val = typeof opt === 'string' ? opt : opt.value;
         const label = typeof opt === 'string' ? opt : opt.label;
@@ -172,10 +172,10 @@ export default function AddDirectBookingScreen({ navigation }) {
         return (
           <TouchableOpacity
             key={val}
-            style={[s.optionChip, active && s.optionChipActive, { width: cols === 3 ? '31%' : '48%' }]}
+            style={[s.chip, active && s.chipActive, { width: cols === 3 ? '31%' : '48%' }]}
             onPress={() => onSelect(active ? '' : val)}
           >
-            <Text style={[s.optionChipText, active && s.optionChipTextActive]} numberOfLines={2}>{label}</Text>
+            <Text style={[s.chipTxt, active && s.chipTxtActive]} numberOfLines={2}>{label}</Text>
           </TouchableOpacity>
         );
       })}
@@ -188,8 +188,8 @@ export default function AddDirectBookingScreen({ navigation }) {
     if (svc === 'car-with-driver') return (
       <View style={s.fieldGroup}>
         <Text style={s.fieldLabel}>Trip Type</Text>
-        {renderDropdownChips(CAR_TRIP_TYPES, form.tripType, v => set('tripType', v))}
-        <Text style={[s.fieldLabel, { marginTop: 12 }]}>Pickup Time</Text>
+        {renderChips(CAR_TRIP_TYPES, form.tripType, v => set('tripType', v))}
+        <Text style={[s.fieldLabel, { marginTop: 14 }]}>Pickup Time</Text>
         <TextInput style={s.input} placeholder="e.g. 06:00 AM" placeholderTextColor={C.muted} value={form.pickupTime} onChangeText={v => set('pickupTime', v)} />
       </View>
     );
@@ -198,7 +198,7 @@ export default function AddDirectBookingScreen({ navigation }) {
       <View style={s.fieldGroup}>
         <Text style={s.fieldLabel}>Pickup Time</Text>
         <TextInput style={s.input} placeholder="e.g. 10:00 AM" placeholderTextColor={C.muted} value={form.pickupTime} onChangeText={v => set('pickupTime', v)} />
-        <Text style={[s.fieldLabel, { marginTop: 12 }]}>License Number (optional)</Text>
+        <Text style={[s.fieldLabel, { marginTop: 14 }]}>License Number (optional)</Text>
         <TextInput style={s.input} placeholder="DL-XXXX-XXXXXXXX" placeholderTextColor={C.muted} value={form.licenseNumber} onChangeText={v => set('licenseNumber', v)} />
       </View>
     );
@@ -207,16 +207,16 @@ export default function AddDirectBookingScreen({ navigation }) {
       <View style={s.fieldGroup}>
         <Text style={s.fieldLabel}>Pickup Time</Text>
         <TextInput style={s.input} placeholder="e.g. 09:00 AM" placeholderTextColor={C.muted} value={form.pickupTime} onChangeText={v => set('pickupTime', v)} />
-        <Text style={[s.fieldLabel, { marginTop: 12 }]}>Helmets Required</Text>
-        {renderDropdownChips(['No helmet', '1 Helmet', '2 Helmets'], form.helmetCount, v => set('helmetCount', v), 3)}
+        <Text style={[s.fieldLabel, { marginTop: 14 }]}>Helmets Required</Text>
+        {renderChips(['No helmet', '1 Helmet', '2 Helmets'], form.helmetCount, v => set('helmetCount', v), 3)}
       </View>
     );
 
     if (svc === 'bus') return (
       <View style={s.fieldGroup}>
         <Text style={s.fieldLabel}>Trip Type</Text>
-        {renderDropdownChips(BUS_TRIP_TYPES, form.tripType, v => set('tripType', v))}
-        <Text style={[s.fieldLabel, { marginTop: 12 }]}>No. of Passengers</Text>
+        {renderChips(BUS_TRIP_TYPES, form.tripType, v => set('tripType', v))}
+        <Text style={[s.fieldLabel, { marginTop: 14 }]}>No. of Passengers</Text>
         <TextInput style={s.input} placeholder="e.g. 20" placeholderTextColor={C.muted} value={form.passengerCount} onChangeText={v => set('passengerCount', v)} keyboardType="number-pad" />
       </View>
     );
@@ -224,8 +224,8 @@ export default function AddDirectBookingScreen({ navigation }) {
     if (svc === 'luxury') return (
       <View style={s.fieldGroup}>
         <Text style={s.fieldLabel}>Occasion</Text>
-        {renderDropdownChips(LUXURY_OCCASIONS, form.occasion, v => set('occasion', v))}
-        <Text style={[s.fieldLabel, { marginTop: 12 }]}>Pickup Time</Text>
+        {renderChips(LUXURY_OCCASIONS, form.occasion, v => set('occasion', v))}
+        <Text style={[s.fieldLabel, { marginTop: 14 }]}>Pickup Time</Text>
         <TextInput style={s.input} placeholder="e.g. 07:00 PM" placeholderTextColor={C.muted} value={form.pickupTime} onChangeText={v => set('pickupTime', v)} />
       </View>
     );
@@ -235,22 +235,22 @@ export default function AddDirectBookingScreen({ navigation }) {
         <Text style={s.fieldLabel}>Use Type</Text>
         <View style={s.toggleRow}>
           {['Personal', 'Commercial'].map(opt => (
-            <TouchableOpacity key={opt} style={[s.toggleBtn, form.useType === opt && s.toggleBtnActive]} onPress={() => set('useType', opt)}>
-              <Text style={[s.toggleBtnText, form.useType === opt && s.toggleBtnTextActive]}>{opt}</Text>
+            <TouchableOpacity key={opt} style={[s.toggle, form.useType === opt && s.toggleActive]} onPress={() => set('useType', opt)}>
+              <Text style={[s.toggleTxt, form.useType === opt && s.toggleTxtActive]}>{opt}</Text>
             </TouchableOpacity>
           ))}
         </View>
-        <Text style={[s.fieldLabel, { marginTop: 12 }]}>Truck Type</Text>
-        {renderDropdownChips(TRUCK_TYPES, form.truckType, v => set('truckType', v))}
-        <Text style={[s.fieldLabel, { marginTop: 12 }]}>Goods Type</Text>
-        {renderDropdownChips(GOODS_TYPES, form.goodsType, v => set('goodsType', v), 3)}
-        <Text style={[s.fieldLabel, { marginTop: 12 }]}>Approx. Weight (optional)</Text>
+        <Text style={[s.fieldLabel, { marginTop: 14 }]}>Truck Type</Text>
+        {renderChips(TRUCK_TYPES, form.truckType, v => set('truckType', v))}
+        <Text style={[s.fieldLabel, { marginTop: 14 }]}>Goods Type</Text>
+        {renderChips(GOODS_TYPES, form.goodsType, v => set('goodsType', v), 3)}
+        <Text style={[s.fieldLabel, { marginTop: 14 }]}>Approx. Weight (optional)</Text>
         <View style={s.weightRow}>
           <TextInput style={[s.input, { flex: 1 }]} placeholder="e.g. 500" placeholderTextColor={C.muted} value={form.goodsWeight} onChangeText={v => set('goodsWeight', v)} keyboardType="number-pad" />
           <View style={s.unitToggle}>
             {['KG', 'TON'].map(u => (
               <TouchableOpacity key={u} style={[s.unitBtn, form.weightUnit === u && s.unitBtnActive]} onPress={() => set('weightUnit', u)}>
-                <Text style={[s.unitBtnText, form.weightUnit === u && s.unitBtnTextActive]}>{u}</Text>
+                <Text style={[s.unitBtnTxt, form.weightUnit === u && s.unitBtnTxtActive]}>{u}</Text>
               </TouchableOpacity>
             ))}
           </View>
@@ -261,16 +261,16 @@ export default function AddDirectBookingScreen({ navigation }) {
     if (svc === 'packers-movers') return (
       <View style={s.fieldGroup}>
         <Text style={s.fieldLabel}>Move Size</Text>
-        {renderDropdownChips(MOVE_SIZES, form.moveSize, v => set('moveSize', v))}
-        <Text style={[s.fieldLabel, { marginTop: 12 }]}>Packing Required?</Text>
+        {renderChips(MOVE_SIZES, form.moveSize, v => set('moveSize', v))}
+        <Text style={[s.fieldLabel, { marginTop: 14 }]}>Packing Required?</Text>
         <View style={s.toggleRow}>
           {['Yes', 'No', 'Partial'].map(opt => (
-            <TouchableOpacity key={opt} style={[s.toggleBtn, form.packingRequired === opt && s.toggleBtnActive, { flex: 1 }]} onPress={() => set('packingRequired', opt)}>
-              <Text style={[s.toggleBtnText, form.packingRequired === opt && s.toggleBtnTextActive]}>{opt}</Text>
+            <TouchableOpacity key={opt} style={[s.toggle, form.packingRequired === opt && s.toggleActive, { flex: 1 }]} onPress={() => set('packingRequired', opt)}>
+              <Text style={[s.toggleTxt, form.packingRequired === opt && s.toggleTxtActive]}>{opt}</Text>
             </TouchableOpacity>
           ))}
         </View>
-        <Text style={[s.fieldLabel, { marginTop: 12 }]}>Floor / Lift Info (optional)</Text>
+        <Text style={[s.fieldLabel, { marginTop: 14 }]}>Floor / Lift Info (optional)</Text>
         <TextInput style={s.input} placeholder="e.g. 3rd floor, no lift" placeholderTextColor={C.muted} value={form.floorInfo} onChangeText={v => set('floorInfo', v)} />
       </View>
     );
@@ -278,41 +278,52 @@ export default function AddDirectBookingScreen({ navigation }) {
     if (svc === 'equipment') return (
       <View style={s.fieldGroup}>
         <Text style={s.fieldLabel}>Equipment Type</Text>
-        {renderDropdownChips(
+        {renderChips(
           ['JCB / Excavator', 'Grove Crane', 'Hydra Crane', 'Tower Crane', 'Bulldozer', 'Dumper', 'Loader', 'Generator', 'Concrete Mixer', 'Other'],
-          form.vehicleType, v => set('vehicleType', v)
+          form.vehicleType, v => set('vehicleType', v),
         )}
-        <Text style={[s.fieldLabel, { marginTop: 12 }]}>Rental Duration</Text>
-        {renderDropdownChips(EQUIP_DURATIONS, form.equipDuration, v => set('equipDuration', v))}
-        <Text style={[s.fieldLabel, { marginTop: 12 }]}>No. of Units (optional)</Text>
+        <Text style={[s.fieldLabel, { marginTop: 14 }]}>Rental Duration</Text>
+        {renderChips(EQUIP_DURATIONS, form.equipDuration, v => set('equipDuration', v))}
+        <Text style={[s.fieldLabel, { marginTop: 14 }]}>No. of Units (optional)</Text>
         <TextInput style={s.input} placeholder="e.g. 2" placeholderTextColor={C.muted} value={form.equipUnits} onChangeText={v => set('equipUnits', v)} keyboardType="number-pad" />
       </View>
     );
 
-    return null; // general
+    return null;
   };
 
-  const svcMeta = SERVICE_TYPES.find(s => s.value === form.serviceType) || SERVICE_TYPES[0];
+  const svcMeta = SERVICE_TYPES.find(sv => sv.value === form.serviceType) || SERVICE_TYPES[0];
 
   return (
-    <SafeAreaView style={s.safe} edges={['top']}>
-      {/* Header */}
-      <View style={s.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
-          <Icon name="arrow-left" size={22} color={C.text} />
-        </TouchableOpacity>
-        <Text style={s.headerTitle}>Add Direct Booking</Text>
-        <View style={{ width: 40 }} />
-      </View>
+    <View style={s.root}>
+      <StatusBar barStyle="light-content" backgroundColor={C.g900} />
+
+      {/* Gradient Header */}
+      <LinearGradient colors={[C.g900, C.g800, C.g700]} style={s.grad}>
+        <SafeAreaView edges={['top']}>
+          <View style={s.gradTop}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
+              <Icon name="arrow-left" size={22} color="#fff" />
+            </TouchableOpacity>
+            <View style={{ flex: 1 }}>
+              <Text style={s.gradTitle}>Add Direct Booking</Text>
+              <Text style={s.gradSub}>Manual walk-in entry</Text>
+            </View>
+            <View style={[s.heroIcon, { backgroundColor: 'rgba(255,255,255,0.12)' }]}>
+              <MaterialCommunityIcons name="book-plus" size={26} color="#fff" />
+            </View>
+          </View>
+        </SafeAreaView>
+      </LinearGradient>
 
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled">
 
           {/* 1. Service Type */}
           <View style={s.section}>
-            <View style={s.sectionHeader}>
-              <View style={[s.sectionIcon, { backgroundColor: '#DBEAFE' }]}>
-                <Icon name="truck" size={16} color={C.brand} />
+            <View style={s.sectionHead}>
+              <View style={[s.sectionIcon, { backgroundColor: C.g100 }]}>
+                <MaterialCommunityIcons name="car-multiple" size={17} color={C.g700} />
               </View>
               <Text style={s.sectionTitle}>Service Type</Text>
             </View>
@@ -322,32 +333,31 @@ export default function AddDirectBookingScreen({ navigation }) {
                 return (
                   <TouchableOpacity
                     key={svc.value}
-                    style={[s.serviceCard, active && { borderColor: svc.color, backgroundColor: svc.color + '10' }]}
+                    style={[s.svcCard, active && { borderColor: svc.color, backgroundColor: svc.color + '12' }]}
                     onPress={() => changeService(svc.value)}
                   >
                     <MaterialCommunityIcons name={svc.icon} size={22} color={active ? svc.color : C.muted} />
-                    <Text style={[s.serviceLabel, active && { color: svc.color }]}>{svc.label}</Text>
+                    <Text style={[s.svcCardLabel, active && { color: svc.color }]}>{svc.label}</Text>
                     {active && <View style={[s.activeDot, { backgroundColor: svc.color }]} />}
                   </TouchableOpacity>
                 );
               })}
             </View>
 
-            {/* Vehicle type chips */}
             {vehicles.length > 0 && form.serviceType !== 'transporter' && form.serviceType !== 'equipment' && (
               <View style={{ marginTop: 16 }}>
                 <Text style={s.fieldLabel}>Vehicle (optional)</Text>
-                {renderDropdownChips(vehicles, form.vehicleType, v => set('vehicleType', v), 3)}
+                {renderChips(vehicles, form.vehicleType, v => set('vehicleType', v), 3)}
               </View>
             )}
           </View>
 
           {/* 2. Service-specific fields */}
           {form.serviceType !== 'general' && (
-            <View style={[s.section, { borderColor: svcMeta.color + '40', borderWidth: 1.5 }]}>
-              <View style={s.sectionHeader}>
-                <View style={[s.sectionIcon, { backgroundColor: svcMeta.color + '20' }]}>
-                  <MaterialCommunityIcons name={svcMeta.icon} size={16} color={svcMeta.color} />
+            <View style={[s.section, { borderColor: svcMeta.color + '50', borderWidth: 1.5 }]}>
+              <View style={s.sectionHead}>
+                <View style={[s.sectionIcon, { backgroundColor: svcMeta.color + '18' }]}>
+                  <MaterialCommunityIcons name={svcMeta.icon} size={17} color={svcMeta.color} />
                 </View>
                 <Text style={s.sectionTitle}>{svcMeta.label} Details</Text>
               </View>
@@ -357,36 +367,54 @@ export default function AddDirectBookingScreen({ navigation }) {
 
           {/* 3. Customer Details */}
           <View style={s.section}>
-            <View style={s.sectionHeader}>
+            <View style={s.sectionHead}>
               <View style={[s.sectionIcon, { backgroundColor: '#E0E7FF' }]}>
-                <Icon name="user" size={16} color="#6366F1" />
+                <Icon name="user" size={16} color={C.indigo} />
               </View>
               <Text style={s.sectionTitle}>Customer Details</Text>
             </View>
 
             <Text style={s.fieldLabel}>Full Name *</Text>
-            <TextInput style={s.input} placeholder="Customer full name" placeholderTextColor={C.muted}
-              value={form.customerName} onChangeText={v => set('customerName', v)} />
+            <TextInput
+              style={s.input}
+              placeholder="Customer full name"
+              placeholderTextColor={C.muted}
+              value={form.customerName}
+              onChangeText={v => set('customerName', v)}
+            />
 
             <View style={s.rowFields}>
               <View style={{ flex: 1 }}>
                 <Text style={s.fieldLabel}>Phone *</Text>
-                <TextInput style={s.input} placeholder="10-digit mobile" placeholderTextColor={C.muted}
-                  value={form.customerPhone} onChangeText={v => set('customerPhone', v)} keyboardType="phone-pad" />
+                <TextInput
+                  style={s.input}
+                  placeholder="10-digit mobile"
+                  placeholderTextColor={C.muted}
+                  value={form.customerPhone}
+                  onChangeText={v => set('customerPhone', v)}
+                  keyboardType="phone-pad"
+                />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={s.fieldLabel}>Email (optional)</Text>
-                <TextInput style={s.input} placeholder="email@example.com" placeholderTextColor={C.muted}
-                  value={form.customerEmail} onChangeText={v => set('customerEmail', v)} keyboardType="email-address" autoCapitalize="none" />
+                <TextInput
+                  style={s.input}
+                  placeholder="email@example.com"
+                  placeholderTextColor={C.muted}
+                  value={form.customerEmail}
+                  onChangeText={v => set('customerEmail', v)}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                />
               </View>
             </View>
           </View>
 
           {/* 4. Schedule & Location */}
           <View style={s.section}>
-            <View style={s.sectionHeader}>
-              <View style={[s.sectionIcon, { backgroundColor: '#D1FAE5' }]}>
-                <Icon name="map-pin" size={16} color={C.green} />
+            <View style={s.sectionHead}>
+              <View style={[s.sectionIcon, { backgroundColor: C.g100 }]}>
+                <Icon name="map-pin" size={16} color={C.g700} />
               </View>
               <Text style={s.sectionTitle}>Schedule & Location</Text>
             </View>
@@ -395,8 +423,8 @@ export default function AddDirectBookingScreen({ navigation }) {
               <View style={{ flex: 1 }}>
                 <Text style={s.fieldLabel}>{form.serviceType === 'equipment' ? 'Start Date' : 'Pickup Date'}</Text>
                 <TouchableOpacity style={s.dateBtn} onPress={() => setShowPickupDate(true)}>
-                  <Icon name="calendar" size={16} color={C.muted} />
-                  <Text style={[s.dateBtnText, form.pickupDate && { color: C.text }]}>
+                  <Icon name="calendar" size={16} color={C.g600} />
+                  <Text style={[s.dateBtnTxt, form.pickupDate && { color: C.text }]}>
                     {form.pickupDate ? fmtDate(form.pickupDate) : 'Select date'}
                   </Text>
                 </TouchableOpacity>
@@ -406,8 +434,8 @@ export default function AddDirectBookingScreen({ navigation }) {
                   {form.serviceType === 'packers-movers' ? 'Move-in Date' : form.serviceType === 'equipment' ? 'End Date' : 'Return Date'}
                 </Text>
                 <TouchableOpacity style={s.dateBtn} onPress={() => setShowReturnDate(true)}>
-                  <Icon name="calendar" size={16} color={C.muted} />
-                  <Text style={[s.dateBtnText, form.returnDate && { color: C.text }]}>
+                  <Icon name="calendar" size={16} color={C.g600} />
+                  <Text style={[s.dateBtnTxt, form.returnDate && { color: C.text }]}>
                     {form.returnDate ? fmtDate(form.returnDate) : 'Select date'}
                   </Text>
                 </TouchableOpacity>
@@ -419,10 +447,13 @@ export default function AddDirectBookingScreen({ navigation }) {
                 <Text style={s.fieldLabel}>
                   {form.serviceType === 'packers-movers' ? 'Current Address (Pickup)' : 'Pickup Location'}
                 </Text>
-                <TextInput style={s.input}
+                <TextInput
+                  style={s.input}
                   placeholder={form.serviceType === 'packers-movers' ? 'Current home / office address' : 'Pickup address or area'}
                   placeholderTextColor={C.muted}
-                  value={form.pickupLocation} onChangeText={v => set('pickupLocation', v)} />
+                  value={form.pickupLocation}
+                  onChangeText={v => set('pickupLocation', v)}
+                />
               </>
             )}
 
@@ -431,78 +462,100 @@ export default function AddDirectBookingScreen({ navigation }) {
                 <Text style={s.fieldLabel}>
                   {form.serviceType === 'packers-movers' ? 'New Address (Drop)' : 'Drop Location'} (optional)
                 </Text>
-                <TextInput style={s.input}
+                <TextInput
+                  style={s.input}
                   placeholder={form.serviceType === 'packers-movers' ? 'New home / office address' : 'Drop address'}
                   placeholderTextColor={C.muted}
-                  value={form.dropLocation} onChangeText={v => set('dropLocation', v)} />
+                  value={form.dropLocation}
+                  onChangeText={v => set('dropLocation', v)}
+                />
               </>
             )}
 
             <Text style={s.fieldLabel}>Additional Notes (optional)</Text>
-            <TextInput style={[s.input, { height: 70, textAlignVertical: 'top' }]} multiline
+            <TextInput
+              style={[s.input, { height: 72, textAlignVertical: 'top' }]}
+              multiline
               placeholder="Any special requirements or remarks..."
               placeholderTextColor={C.muted}
-              value={form.notes} onChangeText={v => set('notes', v)} />
+              value={form.notes}
+              onChangeText={v => set('notes', v)}
+            />
           </View>
 
           {/* 5. Payment */}
           <View style={s.section}>
-            <View style={s.sectionHeader}>
+            <View style={s.sectionHead}>
               <View style={[s.sectionIcon, { backgroundColor: '#FEF3C7' }]}>
-                <Icon name="credit-card" size={16} color={C.orange} />
+                <Icon name="credit-card" size={16} color={C.amber} />
               </View>
               <Text style={s.sectionTitle}>Payment</Text>
             </View>
 
             <Text style={s.fieldLabel}>Total Amount (₹)</Text>
-            <TextInput style={s.input} placeholder="0" placeholderTextColor={C.muted}
-              value={form.totalAmount} onChangeText={v => set('totalAmount', v)} keyboardType="number-pad" />
+            <TextInput
+              style={s.input}
+              placeholder="0"
+              placeholderTextColor={C.muted}
+              value={form.totalAmount}
+              onChangeText={v => set('totalAmount', v)}
+              keyboardType="number-pad"
+            />
 
-            <Text style={[s.fieldLabel, { marginTop: 12 }]}>Payment Status</Text>
+            <Text style={[s.fieldLabel, { marginTop: 14 }]}>Payment Status</Text>
             <View style={s.payStatusRow}>
               {[
-                { value: 'pending',   label: 'Pending',  color: C.orange },
+                { value: 'pending',   label: 'Pending',  color: C.amber  },
                 { value: 'partial',   label: 'Advance',  color: C.orange },
-                { value: 'collected', label: 'Paid',     color: C.green  },
+                { value: 'collected', label: 'Paid',     color: C.g600   },
               ].map(opt => (
-                <TouchableOpacity key={opt.value}
+                <TouchableOpacity
+                  key={opt.value}
                   style={[s.payStatusBtn, form.paymentStatus === opt.value && { backgroundColor: opt.color + '15', borderColor: opt.color }]}
                   onPress={() => set('paymentStatus', opt.value)}
                 >
                   {form.paymentStatus === opt.value && <Icon name="check-circle" size={14} color={opt.color} />}
-                  <Text style={[s.payStatusText, form.paymentStatus === opt.value && { color: opt.color }]}>{opt.label}</Text>
+                  <Text style={[s.payStatusTxt, form.paymentStatus === opt.value && { color: opt.color }]}>{opt.label}</Text>
                 </TouchableOpacity>
               ))}
             </View>
 
             {(form.paymentStatus === 'collected' || form.paymentStatus === 'partial') && (
-              <View style={{ marginTop: 12 }}>
+              <View style={{ marginTop: 14 }}>
                 <Text style={s.fieldLabel}>{form.paymentStatus === 'partial' ? 'Advance Collected (₹)' : 'Amount Collected (₹)'}</Text>
-                <TextInput style={s.input} placeholder="0" placeholderTextColor={C.muted}
-                  value={form.paidAmount} onChangeText={v => set('paidAmount', v)} keyboardType="number-pad" />
-                <Text style={[s.fieldLabel, { marginTop: 12 }]}>Payment Mode</Text>
-                {renderDropdownChips(
+                <TextInput
+                  style={s.input}
+                  placeholder="0"
+                  placeholderTextColor={C.muted}
+                  value={form.paidAmount}
+                  onChangeText={v => set('paidAmount', v)}
+                  keyboardType="number-pad"
+                />
+                <Text style={[s.fieldLabel, { marginTop: 14 }]}>Payment Mode</Text>
+                {renderChips(
                   [{ value: 'cash', label: 'Cash' }, { value: 'upi', label: 'UPI' }, { value: 'card', label: 'Card' }, { value: 'bank_transfer', label: 'Bank Transfer' }],
-                  form.paymentMode, v => set('paymentMode', v)
+                  form.paymentMode, v => set('paymentMode', v),
                 )}
               </View>
             )}
           </View>
 
           {/* Submit */}
-          <TouchableOpacity style={[s.submitBtn, saving && { opacity: 0.6 }]} onPress={handleSubmit} disabled={saving}>
-            {saving ? (
-              <ActivityIndicator size="small" color="#fff" />
-            ) : (
-              <>
-                <Icon name="check" size={20} color="#fff" />
-                <Text style={s.submitBtnText}>Save Booking</Text>
-              </>
-            )}
+          <TouchableOpacity style={[s.submitWrap, saving && { opacity: 0.6 }]} onPress={handleSubmit} disabled={saving}>
+            <LinearGradient colors={[C.g700, C.g600, C.g500]} style={s.submitBtn} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
+              {saving ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <>
+                  <Icon name="check" size={20} color="#fff" />
+                  <Text style={s.submitBtnTxt}>Save Booking</Text>
+                </>
+              )}
+            </LinearGradient>
           </TouchableOpacity>
 
           <TouchableOpacity style={s.cancelBtn} onPress={() => navigation.goBack()}>
-            <Text style={s.cancelBtnText}>Cancel</Text>
+            <Text style={s.cancelBtnTxt}>Cancel</Text>
           </TouchableOpacity>
 
           <View style={{ height: 40 }} />
@@ -533,70 +586,76 @@ export default function AddDirectBookingScreen({ navigation }) {
         onClose={hideAlert}
         actions={alert.actions}
       />
-    </SafeAreaView>
+    </View>
   );
 }
 
 const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: C.bg },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12, backgroundColor: C.surface, borderBottomWidth: 1, borderBottomColor: C.border },
-  backBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
-  headerTitle: { fontSize: 18, fontWeight: '600', color: C.text },
+  root: { flex: 1, backgroundColor: C.bg },
 
-  scroll: { padding: 16, gap: 12 },
+  /* Gradient header */
+  grad: { paddingBottom: 18 },
+  gradTop: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingTop: 12, paddingBottom: 14, gap: 10 },
+  backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.12)', justifyContent: 'center', alignItems: 'center' },
+  gradTitle: { fontSize: 20, fontWeight: '800', color: '#fff', letterSpacing: -0.3 },
+  gradSub: { fontSize: 12, color: 'rgba(255,255,255,0.6)', marginTop: 2 },
+  heroIcon: { width: 48, height: 48, borderRadius: 24, justifyContent: 'center', alignItems: 'center' },
 
-  // Sections
-  section: { backgroundColor: C.surface, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: C.border },
-  sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 16 },
-  sectionIcon: { width: 32, height: 32, borderRadius: 10, justifyContent: 'center', alignItems: 'center' },
-  sectionTitle: { fontSize: 14, fontWeight: '700', color: C.text },
+  scroll: { padding: 14, gap: 12 },
 
-  // Service grid
+  /* Sections */
+  section: { backgroundColor: C.surface, borderRadius: 18, padding: 16, borderWidth: 1, borderColor: C.border, shadowColor: C.g900, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8, elevation: 1 },
+  sectionHead: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 16 },
+  sectionIcon: { width: 34, height: 34, borderRadius: 10, justifyContent: 'center', alignItems: 'center' },
+  sectionTitle: { fontSize: 14, fontWeight: '800', color: C.text },
+
+  /* Service grid */
   serviceGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  serviceCard: { width: '31%', alignItems: 'center', gap: 6, paddingVertical: 14, borderRadius: 12, borderWidth: 2, borderColor: C.border, backgroundColor: C.surface },
-  serviceLabel: { fontSize: 11, fontWeight: '600', color: C.muted, textAlign: 'center' },
+  svcCard: { width: '31%', alignItems: 'center', gap: 6, paddingVertical: 14, borderRadius: 14, borderWidth: 2, borderColor: C.border, backgroundColor: C.surface },
+  svcCardLabel: { fontSize: 10, fontWeight: '700', color: C.muted, textAlign: 'center' },
   activeDot: { width: 6, height: 6, borderRadius: 3 },
 
-  // Fields
+  /* Fields */
   fieldGroup: {},
-  fieldLabel: { fontSize: 12, fontWeight: '700', color: C.subtext, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8, marginTop: 4 },
-  input: { backgroundColor: '#F8FAFC', borderWidth: 1, borderColor: C.border, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontSize: 14, color: C.text },
-  rowFields: { flexDirection: 'row', gap: 12, marginTop: 4 },
+  fieldLabel: { fontSize: 11, fontWeight: '700', color: C.subtext, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8, marginTop: 4 },
+  input: { backgroundColor: C.g50, borderWidth: 1.5, borderColor: C.g100, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 13, fontSize: 14, color: C.text },
+  rowFields: { flexDirection: 'row', gap: 10, marginTop: 4 },
 
-  // Chip grid
-  chipGrid: { flexDirection: 'row', gap: 8 },
-  optionChip: { paddingVertical: 10, paddingHorizontal: 12, borderRadius: 10, borderWidth: 2, borderColor: C.border, backgroundColor: C.surface, alignItems: 'center' },
-  optionChipActive: { borderColor: C.brand, backgroundColor: '#EFF6FF' },
-  optionChipText: { fontSize: 12, fontWeight: '600', color: C.muted, textAlign: 'center' },
-  optionChipTextActive: { color: C.brand },
+  /* Chips */
+  chipGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  chip: { paddingVertical: 10, paddingHorizontal: 10, borderRadius: 10, borderWidth: 2, borderColor: C.border, backgroundColor: C.surface, alignItems: 'center' },
+  chipActive: { borderColor: C.g700, backgroundColor: C.g50 },
+  chipTxt: { fontSize: 12, fontWeight: '600', color: C.muted, textAlign: 'center' },
+  chipTxtActive: { color: C.g700 },
 
-  // Toggle
+  /* Toggle */
   toggleRow: { flexDirection: 'row', gap: 8 },
-  toggleBtn: { flex: 1, paddingVertical: 12, borderRadius: 12, borderWidth: 2, borderColor: C.border, alignItems: 'center' },
-  toggleBtnActive: { borderColor: C.brand, backgroundColor: '#EFF6FF' },
-  toggleBtnText: { fontSize: 13, fontWeight: '700', color: C.muted },
-  toggleBtnTextActive: { color: C.brand },
+  toggle: { flex: 1, paddingVertical: 12, borderRadius: 12, borderWidth: 2, borderColor: C.border, alignItems: 'center', backgroundColor: C.surface },
+  toggleActive: { borderColor: C.g700, backgroundColor: C.g50 },
+  toggleTxt: { fontSize: 13, fontWeight: '700', color: C.muted },
+  toggleTxtActive: { color: C.g700 },
 
-  // Weight
+  /* Weight */
   weightRow: { flexDirection: 'row', gap: 10, alignItems: 'center' },
   unitToggle: { flexDirection: 'row', borderRadius: 10, overflow: 'hidden', borderWidth: 2, borderColor: C.border },
-  unitBtn: { paddingHorizontal: 16, paddingVertical: 10, backgroundColor: C.surface },
-  unitBtnActive: { backgroundColor: '#1E293B' },
-  unitBtnText: { fontSize: 13, fontWeight: '700', color: C.muted },
-  unitBtnTextActive: { color: '#fff' },
+  unitBtn: { paddingHorizontal: 16, paddingVertical: 11, backgroundColor: C.surface },
+  unitBtnActive: { backgroundColor: C.g700 },
+  unitBtnTxt: { fontSize: 13, fontWeight: '700', color: C.muted },
+  unitBtnTxtActive: { color: '#fff' },
 
-  // Date
-  dateBtn: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: '#F8FAFC', borderWidth: 1, borderColor: C.border, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 13 },
-  dateBtnText: { fontSize: 14, color: C.muted },
+  /* Date */
+  dateBtn: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: C.g50, borderWidth: 1.5, borderColor: C.g100, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 13 },
+  dateBtnTxt: { fontSize: 14, color: C.muted },
 
-  // Payment
+  /* Payment */
   payStatusRow: { flexDirection: 'row', gap: 8 },
-  payStatusBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, paddingVertical: 12, borderRadius: 12, borderWidth: 2, borderColor: C.border },
-  payStatusText: { fontSize: 12, fontWeight: '700', color: C.muted },
+  payStatusBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, paddingVertical: 12, borderRadius: 12, borderWidth: 2, borderColor: C.border, backgroundColor: C.surface },
+  payStatusTxt: { fontSize: 12, fontWeight: '700', color: C.muted },
 
-  // Submit
-  submitBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, backgroundColor: C.brand, paddingVertical: 16, borderRadius: 16, marginTop: 8 },
-  submitBtnText: { fontSize: 16, fontWeight: '700', color: '#fff' },
-  cancelBtn: { alignItems: 'center', paddingVertical: 14, borderRadius: 16, borderWidth: 2, borderColor: C.border, marginTop: 8 },
-  cancelBtnText: { fontSize: 14, fontWeight: '600', color: C.muted },
+  /* Submit */
+  submitWrap: { borderRadius: 16, overflow: 'hidden', marginTop: 8 },
+  submitBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, paddingVertical: 18 },
+  submitBtnTxt: { fontSize: 16, fontWeight: '800', color: '#fff', letterSpacing: 0.2 },
+  cancelBtn: { alignItems: 'center', paddingVertical: 15, borderRadius: 16, borderWidth: 2, borderColor: C.border, marginTop: 8 },
+  cancelBtnTxt: { fontSize: 14, fontWeight: '600', color: C.muted },
 });

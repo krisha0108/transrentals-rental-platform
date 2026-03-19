@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import LinearGradient from 'react-native-linear-gradient';
 import { showError, showSuccess } from '../../../services/alertService';
 import {
   getVendorServices,
@@ -21,19 +22,21 @@ import {
   apiDelete,
 } from '../../api/client';
 
-const BRAND = {
-  primary: '#1FC77A',
-  primaryDark: '#12AD66',
-  ink: '#0F1720',
-  text: '#334155',
-  subText: '#64748B',
-  bg: '#F6F8FB',
-  card: '#FFFFFF',
-  border: '#E6EDF5',
-  error: '#EF4444',
-  blue: '#3B82F6',
+// ── Design tokens matching DashboardScreen ───────────────────────
+const C = {
+  g900: '#022C22', g800: '#065F46', g700: '#047857',
+  g600: '#059669', g500: '#10B981', g400: '#34D399',
+  g100: '#D1FAE5', g50:  '#ECFDF5',
+  bg:     '#F1F5F9', // Light grayish-blue for background
+  card:   '#FFFFFF',
+  border: '#E2E8F0',
+  text:   '#0F172A',
+  sub:    '#475569',
+  muted:  '#94A3B8',
+  blue:   '#2563EB', blueL:   '#EFF6FF',
   yellow: '#F59E0B',
-  green: '#10B981',
+  red:    '#EF4444',
+  green:  '#10B981',
 };
 
 const SERVICE_ICONS = {
@@ -189,59 +192,80 @@ export default function VendorServicesScreen({ navigation }) {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.safe}>
+      <View style={styles.safe}>
+        <LinearGradient colors={[C.g900, '#064E3B', C.g700]} style={styles.headerGrad}>
+          <SafeAreaView edges={['top']}>
+             <View style={styles.headerContent}>
+                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+                  <Ionicons name="arrow-back" size={24} color="#fff" />
+                </TouchableOpacity>
+                <Text style={styles.headerTitle}>My Services</Text>
+                <View style={{ width: 40 }} />
+             </View>
+          </SafeAreaView>
+        </LinearGradient>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={BRAND.primary} />
+          <ActivityIndicator size="large" color={C.g500} />
           <Text style={styles.loadingText}>Loading services...</Text>
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <View style={styles.safe}>
+      {/* HEADER */}
+      <LinearGradient colors={[C.g900, '#064E3B', C.g700]} style={styles.headerGrad}>
+        <SafeAreaView edges={['top']}>
+          <View style={styles.headerContent}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+              <Ionicons name="arrow-back" size={24} color="#fff" />
+            </TouchableOpacity>
+            <View style={{ flex: 1, alignItems: 'center' }}>
+              <Text style={styles.headerTitle}>My Services</Text>
+              <Text style={styles.headerSubtitle}>Manage your offerings</Text>
+            </View>
+            <View style={{ width: 40 }} />
+          </View>
+        </SafeAreaView>
+      </LinearGradient>
+
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[BRAND.primary]} />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[C.g500]} />
         }
         keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
       >
-        {/* Header */}
-        <View style={styles.header}>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.headerTitle}>My Services</Text>
-            <Text style={styles.headerSubtitle}>Manage the services you offer</Text>
-          </View>
-        </View>
 
         {/* Stats */}
         <View style={styles.statsRow}>
-          <View style={[styles.statCard, { borderColor: '#D1FAE5' }]}>
-            <View style={[styles.statIcon, { backgroundColor: '#D1FAE5' }]}>
-              <Ionicons name="checkmark-circle" size={22} color={BRAND.green} />
+          <View style={[styles.statCard, { borderColor: C.g100 }]}>
+            <View style={[styles.statIcon, { backgroundColor: C.g100 }]}>
+              <Ionicons name="checkmark-circle" size={20} color={C.green} />
             </View>
             <View>
               <Text style={styles.statLabel}>Approved</Text>
-              <Text style={[styles.statNumber, { color: BRAND.green }]}>{approvedCount}</Text>
+              <Text style={[styles.statNumber, { color: C.green }]}>{approvedCount}</Text>
             </View>
           </View>
           <View style={[styles.statCard, { borderColor: '#FEF3C7' }]}>
             <View style={[styles.statIcon, { backgroundColor: '#FEF3C7' }]}>
-              <Ionicons name="time" size={22} color={BRAND.yellow} />
+              <Ionicons name="time" size={20} color={C.yellow} />
             </View>
             <View>
               <Text style={styles.statLabel}>Pending</Text>
-              <Text style={[styles.statNumber, { color: BRAND.yellow }]}>{pendingCount}</Text>
+              <Text style={[styles.statNumber, { color: C.yellow }]}>{pendingCount}</Text>
             </View>
           </View>
-          <View style={[styles.statCard, { borderColor: '#DBEAFE' }]}>
-            <View style={[styles.statIcon, { backgroundColor: '#DBEAFE' }]}>
-              <Ionicons name="add-circle" size={22} color={BRAND.blue} />
+          <View style={[styles.statCard, { borderColor: C.blueL }]}>
+            <View style={[styles.statIcon, { backgroundColor: C.blueL }]}>
+              <Ionicons name="add-circle" size={20} color={C.blue} />
             </View>
             <View>
               <Text style={styles.statLabel}>Available</Text>
-              <Text style={[styles.statNumber, { color: BRAND.blue }]}>{availableCount}</Text>
+              <Text style={[styles.statNumber, { color: C.blue }]}>{availableCount}</Text>
             </View>
           </View>
         </View>
@@ -249,17 +273,17 @@ export default function VendorServicesScreen({ navigation }) {
         {/* Search + Select All row */}
         <View style={styles.searchRow}>
           <View style={styles.searchBox}>
-            <Ionicons name="search" size={18} color={BRAND.subText} />
+            <Ionicons name="search" size={18} color={C.muted} />
             <TextInput
               style={styles.searchInput}
               placeholder="Search services..."
-              placeholderTextColor={BRAND.subText}
+              placeholderTextColor={C.muted}
               value={search}
               onChangeText={setSearch}
             />
             {search.length > 0 && (
               <TouchableOpacity onPress={() => setSearch('')}>
-                <Ionicons name="close-circle" size={18} color={BRAND.subText} />
+                <Ionicons name="close-circle" size={18} color={C.muted} />
               </TouchableOpacity>
             )}
           </View>
@@ -268,7 +292,7 @@ export default function VendorServicesScreen({ navigation }) {
               <Ionicons
                 name={allAvailableSelected ? 'checkmark-done-circle' : 'checkmark-done-circle-outline'}
                 size={18}
-                color={BRAND.blue}
+                color={C.blue}
               />
               <Text style={styles.selectAllText}>
                 {allAvailableSelected ? 'Deselect' : 'All'}
@@ -280,7 +304,7 @@ export default function VendorServicesScreen({ navigation }) {
         {/* Selected banner */}
         {selectedIds.length > 0 && (
           <View style={styles.selectedBanner}>
-            <Ionicons name="layers" size={16} color={BRAND.blue} />
+            <Ionicons name="layers" size={16} color={C.blue} />
             <Text style={styles.selectedBannerText}>
               {selectedIds.length} service{selectedIds.length > 1 ? 's' : ''} selected
             </Text>
@@ -293,7 +317,7 @@ export default function VendorServicesScreen({ navigation }) {
         {/* Services List */}
         {filteredServices.length === 0 ? (
           <View style={styles.emptyState}>
-            <Ionicons name="layers-outline" size={48} color="#CBD5E1" />
+            <Ionicons name="layers-outline" size={48} color={C.muted} />
             <Text style={styles.emptyTitle}>No services found</Text>
           </View>
         ) : (
@@ -305,37 +329,37 @@ export default function VendorServicesScreen({ navigation }) {
 
               const cardBg =
                 status === 'approved'
-                  ? '#F0FDF4'
+                  ? C.card
                   : status === 'pending'
                   ? '#FFFBEB'
                   : isSelected
-                  ? '#EFF6FF'
-                  : BRAND.card;
+                  ? C.blueL
+                  : C.card;
 
               const cardBorder =
                 status === 'approved'
-                  ? '#86EFAC'
+                  ? C.g100
                   : status === 'pending'
                   ? '#FDE68A'
                   : isSelected
-                  ? BRAND.blue
-                  : BRAND.border;
+                  ? C.blue
+                  : C.border;
 
               const iconBg =
                 status === 'approved'
-                  ? '#D1FAE5'
+                  ? C.g50
                   : status === 'pending'
                   ? '#FEF3C7'
                   : isSelected
                   ? '#BFDBFE'
-                  : '#EFF6FF';
+                  : C.blueL;
 
               const iconColor =
                 status === 'approved'
-                  ? BRAND.green
+                  ? C.g600
                   : status === 'pending'
-                  ? BRAND.yellow
-                  : BRAND.blue;
+                  ? C.yellow
+                  : C.blue;
 
               return (
                 <TouchableOpacity
@@ -350,7 +374,7 @@ export default function VendorServicesScreen({ navigation }) {
                       <Ionicons
                         name={isSelected ? 'checkmark-circle' : getServiceIcon(service.slug)}
                         size={26}
-                        color={isSelected ? BRAND.blue : iconColor}
+                        color={isSelected ? C.blue : iconColor}
                       />
                     ) : (
                       <Ionicons name={getServiceIcon(service.slug)} size={26} color={iconColor} />
@@ -380,7 +404,7 @@ export default function VendorServicesScreen({ navigation }) {
                       )}
                       {status === 'available' && isSelected && (
                         <View style={[styles.statusBadge, { backgroundColor: '#DBEAFE' }]}>
-                          <Text style={[styles.statusBadgeText, { color: BRAND.blue }]}>Selected</Text>
+                          <Text style={[styles.statusBadgeText, { color: C.blue }]}>Selected</Text>
                         </View>
                       )}
                       {status === 'available' && !isSelected && (
@@ -422,7 +446,7 @@ export default function VendorServicesScreen({ navigation }) {
 
         {/* Info note */}
         <View style={styles.infoBox}>
-          <Ionicons name="information-circle-outline" size={18} color={BRAND.blue} />
+          <Ionicons name="information-circle-outline" size={20} color={C.blue} />
           <Text style={styles.infoText}>
             Select services you want to offer and submit a request. Admin will review and approve based on your fleet capabilities.
           </Text>
@@ -432,11 +456,17 @@ export default function VendorServicesScreen({ navigation }) {
       {/* Floating Request Button */}
       {selectedIds.length > 0 && (
         <View style={styles.floatingBar}>
-          <TouchableOpacity style={styles.floatingBtn} onPress={() => setShowRequestModal(true)}>
-            <Ionicons name="send" size={18} color="#fff" />
-            <Text style={styles.floatingBtnText}>
-              Request {selectedIds.length} Service{selectedIds.length > 1 ? 's' : ''}
-            </Text>
+          <TouchableOpacity style={styles.floatingBtn} onPress={() => setShowRequestModal(true)} activeOpacity={0.8}>
+            <LinearGradient 
+              colors={[C.blue, '#2D5CEB']}
+              start={{x: 0, y: 0}} end={{x: 1, y: 0}}
+              style={styles.floatingBtnGrad}
+            >
+              <Ionicons name="send" size={18} color="#fff" />
+              <Text style={styles.floatingBtnText}>
+                Request {selectedIds.length} Service{selectedIds.length > 1 ? 's' : ''}
+              </Text>
+            </LinearGradient>
           </TouchableOpacity>
         </View>
       )}
@@ -458,7 +488,7 @@ export default function VendorServicesScreen({ navigation }) {
                 onPress={() => !submitting && setShowRequestModal(false)}
                 style={styles.modalCloseBtn}
               >
-                <Ionicons name="close" size={22} color={BRAND.text} />
+                <Ionicons name="close" size={22} color={C.text} />
               </TouchableOpacity>
             </View>
 
@@ -541,7 +571,7 @@ export default function VendorServicesScreen({ navigation }) {
               <Ionicons
                 name={actionModal?.type === 'approved' ? 'trash' : 'close-circle'}
                 size={32}
-                color={actionModal?.type === 'approved' ? BRAND.error : BRAND.yellow}
+                color={actionModal?.type === 'approved' ? C.red : C.yellow}
               />
             </View>
             <Text style={styles.actionModalTitle}>
@@ -566,7 +596,7 @@ export default function VendorServicesScreen({ navigation }) {
                   styles.submitBtn,
                   {
                     backgroundColor:
-                      actionModal?.type === 'approved' ? BRAND.error : BRAND.yellow,
+                      actionModal?.type === 'approved' ? C.red : C.yellow,
                   },
                   actioning && styles.submitBtnDisabled,
                 ]}
@@ -585,104 +615,143 @@ export default function VendorServicesScreen({ navigation }) {
           </View>
         </View>
       </Modal>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: BRAND.bg },
+  safe: { flex: 1, backgroundColor: C.bg },
   scrollContent: { padding: 16, paddingBottom: 100 },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  loadingText: { marginTop: 12, fontSize: 15, color: BRAND.subText },
+  loadingText: { marginTop: 12, fontSize: 15, color: C.sub },
 
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
-  headerTitle: { fontSize: 24, fontWeight: '800', color: BRAND.ink },
-  headerSubtitle: { fontSize: 14, color: BRAND.subText, marginTop: 4 },
+  /* Header matches Dashboard pattern */
+  headerGrad: {
+    paddingHorizontal: 16,
+    paddingBottom: 20,
+    paddingTop: 10,
+  },
+  headerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  backBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.25)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#fff',
+    letterSpacing: -0.2,
+  },
+  headerSubtitle: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.7)',
+    marginTop: 2,
+  },
 
   statsRow: { flexDirection: 'row', marginBottom: 14, gap: 8 },
   statCard: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 10,
-    backgroundColor: BRAND.card,
-    borderRadius: 12,
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+    padding: 12,
+    backgroundColor: C.card,
+    borderRadius: 14,
     borderWidth: 1,
-    gap: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 2,
+    gap: 6,
   },
-  statIcon: { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  statLabel: { fontSize: 10, color: BRAND.subText },
-  statNumber: { fontSize: 17, fontWeight: '800' },
+  statIcon: { width: 34, height: 34, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  statLabel: { fontSize: 11, color: C.sub, fontWeight: '500' },
+  statNumber: { fontSize: 20, fontWeight: '800' },
 
-  searchRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 },
+  searchRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 16 },
   searchBox: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: BRAND.card,
-    borderRadius: 10,
+    backgroundColor: C.card,
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: BRAND.border,
-    paddingHorizontal: 12,
-    paddingVertical: 9,
+    borderColor: C.border,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
     gap: 8,
   },
-  searchInput: { flex: 1, fontSize: 14, color: BRAND.ink, padding: 0 },
+  searchInput: { flex: 1, fontSize: 14, color: C.text, padding: 0 },
   selectAllBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#EFF6FF',
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 9,
+    backgroundColor: C.blueL,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
     borderWidth: 1,
     borderColor: '#DBEAFE',
-    gap: 5,
+    gap: 6,
   },
-  selectAllText: { fontSize: 13, fontWeight: '700', color: BRAND.blue },
+  selectAllText: { fontSize: 13, fontWeight: '700', color: C.blue },
 
   selectedBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#EFF6FF',
-    borderRadius: 10,
+    backgroundColor: C.blueL,
+    borderRadius: 12,
     paddingHorizontal: 14,
-    paddingVertical: 10,
-    marginBottom: 10,
+    paddingVertical: 12,
+    marginBottom: 16,
     borderWidth: 1,
     borderColor: '#BFDBFE',
     gap: 8,
   },
-  selectedBannerText: { flex: 1, fontSize: 13, fontWeight: '600', color: BRAND.blue },
-  clearText: { fontSize: 13, fontWeight: '700', color: BRAND.blue },
+  selectedBannerText: { flex: 1, fontSize: 13, fontWeight: '600', color: C.blue },
+  clearText: { fontSize: 13, fontWeight: '700', color: C.blue },
 
-  servicesList: { gap: 10, marginBottom: 16 },
+  servicesList: { gap: 12, marginBottom: 20 },
   serviceCard: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: 14,
-    borderRadius: 14,
-    borderWidth: 1.5,
+    borderRadius: 16,
+    borderWidth: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 2,
     gap: 12,
   },
   serviceIconWrap: {
     width: 48,
     height: 48,
-    borderRadius: 13,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
     flexShrink: 0,
   },
   serviceInfo: { flex: 1, minWidth: 0 },
-  serviceName: { fontSize: 14, fontWeight: '700', color: BRAND.ink },
-  serviceMeta: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6, marginTop: 4 },
+  serviceName: { fontSize: 15, fontWeight: '800', color: C.text, letterSpacing: -0.2 },
+  serviceMeta: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8, marginTop: 4 },
   subCountBadge: {
-    backgroundColor: '#F1F5F9',
+    backgroundColor: C.bg,
     paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 20,
+    paddingVertical: 3,
+    borderRadius: 8,
   },
-  subCountText: { fontSize: 11, color: BRAND.subText },
+  subCountText: { fontSize: 11, fontWeight: '500', color: C.sub },
   statusBadge: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -692,7 +761,7 @@ const styles = StyleSheet.create({
     gap: 3,
   },
   statusBadgeText: { fontSize: 11, fontWeight: '600' },
-  tapHint: { fontSize: 11, color: '#A3B3C2' },
+  tapHint: { fontSize: 11, color: C.muted, fontWeight: '500' },
 
   withdrawBtn: {
     flexDirection: 'row',
@@ -722,36 +791,41 @@ const styles = StyleSheet.create({
   removeBtnText: { fontSize: 11, fontWeight: '700', color: '#991B1B' },
 
   emptyState: { alignItems: 'center', paddingVertical: 60 },
-  emptyTitle: { fontSize: 15, fontWeight: '600', color: BRAND.subText, marginTop: 12 },
+  emptyTitle: { fontSize: 15, fontWeight: '600', color: C.muted, marginTop: 12 },
 
   infoBox: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    backgroundColor: '#EFF6FF',
-    borderRadius: 10,
-    padding: 12,
-    gap: 8,
+    backgroundColor: C.blueL,
+    borderRadius: 14,
+    padding: 16,
+    gap: 12,
   },
-  infoText: { flex: 1, fontSize: 13, color: BRAND.text, lineHeight: 18 },
+  infoText: { flex: 1, fontSize: 13, color: C.text, lineHeight: 18, fontWeight: '500' },
 
   // Floating button
   floatingBar: {
     position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
+    bottom: 0, left: 0, right: 0,
     padding: 16,
-    backgroundColor: BRAND.bg,
+    backgroundColor: C.card,
     borderTopWidth: 1,
-    borderTopColor: BRAND.border,
+    borderTopColor: C.border,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 10,
   },
   floatingBtn: {
+    borderRadius: 14,
+    overflow: 'hidden',
+  },
+  floatingBtnGrad: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: BRAND.blue,
-    borderRadius: 14,
-    paddingVertical: 15,
+    paddingVertical: 16,
     gap: 8,
   },
   floatingBtnText: { fontSize: 15, fontWeight: '700', color: '#fff' },
@@ -759,69 +833,83 @@ const styles = StyleSheet.create({
   // Modal
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
   modalContent: {
-    backgroundColor: BRAND.card,
+    backgroundColor: C.card,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    padding: 20,
+    padding: 24,
     maxHeight: '90%',
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 20,
   },
-  modalTitle: { fontSize: 18, fontWeight: '700', color: BRAND.ink },
+  modalTitle: { fontSize: 18, fontWeight: '800', color: C.text },
   modalCloseBtn: { padding: 4 },
 
-  selectedChips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 },
+  selectedChips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 20 },
   chip: {
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    backgroundColor: '#DBEAFE',
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    backgroundColor: C.blueL,
     borderRadius: 20,
   },
-  chipText: { fontSize: 13, fontWeight: '600', color: BRAND.blue },
+  chipText: { fontSize: 13, fontWeight: '600', color: C.blue },
 
-  inputGroup: { marginBottom: 14 },
-  inputLabel: { fontSize: 13, fontWeight: '600', color: BRAND.text, marginBottom: 6 },
+  inputGroup: { marginBottom: 16 },
+  inputLabel: { fontSize: 13, fontWeight: '700', color: C.sub, marginBottom: 8 },
   textInput: {
     borderWidth: 1,
-    borderColor: BRAND.border,
-    borderRadius: 10,
+    borderColor: C.border,
+    borderRadius: 12,
     paddingHorizontal: 14,
-    paddingVertical: 10,
+    paddingVertical: 12,
     fontSize: 14,
-    color: BRAND.ink,
-    backgroundColor: '#FBFDFF',
+    color: C.text,
+    backgroundColor: C.bg,
   },
-  textarea: { height: 80, textAlignVertical: 'top' },
+  textarea: { height: 100, textAlignVertical: 'top' },
 
-  modalActions: { flexDirection: 'row', gap: 10, marginTop: 8 },
+  modalActions: { flexDirection: 'row', gap: 12, marginTop: 12 },
   cancelBtn: {
     flex: 1,
-    paddingVertical: 13,
+    paddingVertical: 15,
     borderRadius: 12,
-    borderWidth: 1,
-    borderColor: BRAND.border,
+    backgroundColor: C.bg,
     alignItems: 'center',
+    justifyContent: 'center',
   },
-  cancelBtnText: { fontSize: 14, fontWeight: '600', color: BRAND.text },
+  cancelBtnText: { fontSize: 15, fontWeight: '700', color: C.text },
   submitBtn: {
     flex: 1,
     flexDirection: 'row',
+    paddingVertical: 15,
+    borderRadius: 12,
+    backgroundColor: C.blue,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 13,
-    borderRadius: 12,
-    backgroundColor: BRAND.blue,
-    gap: 6,
+    gap: 8,
   },
   submitBtnDisabled: { opacity: 0.6 },
-  submitBtnText: { fontSize: 14, fontWeight: '700', color: '#fff' },
+  submitBtnText: { fontSize: 15, fontWeight: '700', color: '#fff' },
 
-  // Action modal (withdraw/remove)
-  actionModalIcon: { alignItems: 'center', marginBottom: 14 },
-  actionModalTitle: { fontSize: 18, fontWeight: '700', color: BRAND.ink, textAlign: 'center', marginBottom: 8 },
-  actionModalMsg: { fontSize: 14, color: BRAND.subText, textAlign: 'center', lineHeight: 20, marginBottom: 20 },
+  actionModalIcon: {
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  actionModalTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: C.text,
+    textAlign: 'center',
+    marginBottom: 12,
+  },
+  actionModalMsg: {
+    fontSize: 14,
+    color: C.sub,
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: 24,
+  },
 });

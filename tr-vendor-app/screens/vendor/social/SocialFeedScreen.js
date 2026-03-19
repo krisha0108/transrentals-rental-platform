@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
-  SafeAreaView,
   View,
   Text,
   FlatList,
@@ -16,8 +15,16 @@ import {
   Linking,
   PanResponder,
   Image,
+  StatusBar,
+  Platform,
+  Animated,
+  KeyboardAvoidingView,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Feather';
+import MCI from 'react-native-vector-icons/MaterialCommunityIcons';
+import LG from 'react-native-linear-gradient';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import RNShare from 'react-native-share';
 import RNFS from 'react-native-fs';
@@ -41,13 +48,14 @@ import { getFullImageURL } from '../../api/client';
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
 
 const G = {
-  bg: '#F5F7FA', surface: '#FFFFFF', text: '#0A0F1E', muted: '#6B7280',
-  border: '#E8EDF2', violet: '#7C3AED', violetL: '#F5F3FF',
-  red: '#DC2626', redL: '#FEF2F2', green: '#16A34A', greenL: '#F0FDF4',
+  bg: '#F8FAFC', surface: '#FFFFFF', text: '#1E293B', muted: '#64748B',
+  border: '#E2E8F0', violet: '#059669', violetL: '#ECFDF5',
+  red: '#EF4444', redL: '#FEF2F2', green: '#059669', greenL: '#ECFDF5',
   orange: '#F97316', orangeL: '#FFF7ED', amber: '#D97706', amberL: '#FFFBEB',
+  g950: '#011B14', g900: '#022C22', g800: '#064E3B', g600: '#059669',
 };
 
-const AVATAR_COLORS = ['#7C3AED', '#DC2626', '#16A34A', '#F97316', '#0891B2', '#DB2777', '#D97706'];
+const AVATAR_COLORS = ['#059669', '#DC2626', '#16A34A', '#F97316', '#0891B2', '#DB2777', '#D97706'];
 const getAvatarColor = (name) => AVATAR_COLORS[(name?.charCodeAt(0) || 0) % AVATAR_COLORS.length];
 
 const formatTimeAgo = (dateStr) => {
@@ -87,11 +95,11 @@ function wrapText(text, maxChars = 62) {
 const PostCardSVG = React.forwardRef(({ post }, ref) => {
   if (!post) return null;
   const isSOS = post.category?.isSOS || post.category?.name?.toLowerCase() === 'sos';
-  const accent1 = isSOS ? '#ef4444' : '#7c3aed';
-  const accent2 = isSOS ? '#f97316' : '#4f46e5';
-  const bgTint = isSOS ? '#fff7f7' : '#faf8ff';
-  const catBg = isSOS ? '#fee2e2' : '#ede9fe';
-  const catColor = isSOS ? '#dc2626' : '#7c3aed';
+  const accent1 = isSOS ? '#ef4444' : '#059669';
+  const accent2 = isSOS ? '#f97316' : '#047857';
+  const bgTint = isSOS ? '#fff7f7' : '#f0fdf4';
+  const catBg = isSOS ? '#fee2e2' : '#d1fae5';
+  const catColor = isSOS ? '#dc2626' : '#059669';
 
   const vendorName = post.vendor?.businessName || 'Vendor';
   const ownerName = post.vendor?.ownerName || '';
@@ -146,12 +154,56 @@ const PostCardSVG = React.forwardRef(({ post }, ref) => {
   );
 });
 
-// ── SOS Story Progress Bar ────────────────────────────────────────────
-function StoryProgressBar({ count, current, duration }) {
+// ── SOS Story Progress Bar (animated, pauseable) ─────────────────────
+function StoryProgressBar({ count, current, duration, storyKey, paused }) {
+  const progress = useRef(new Animated.Value(0)).current;
+  const animRef = useRef(null);
+  const currentValRef = useRef(0);
+  const remainingRef = useRef(duration);
+
+  // Track current value for pause/resume
+  useEffect(() => {
+    const id = progress.addListener(({ value }) => { currentValRef.current = value; });
+    return () => progress.removeListener(id);
+  }, []);
+
+  // Reset and start on story change
+  useEffect(() => {
+    if (animRef.current) animRef.current.stop();
+    progress.setValue(0);
+    currentValRef.current = 0;
+    remainingRef.current = duration;
+    animRef.current = Animated.timing(progress, { toValue: 1, duration, useNativeDriver: false });
+    animRef.current.start();
+    return () => { if (animRef.current) animRef.current.stop(); };
+  }, [storyKey]);
+
+  // Pause / resume
+  useEffect(() => {
+    if (paused) {
+      if (animRef.current) animRef.current.stop();
+      remainingRef.current = duration * (1 - currentValRef.current);
+    } else {
+      if (animRef.current) animRef.current.stop();
+      animRef.current = Animated.timing(progress, {
+        toValue: 1, duration: remainingRef.current, useNativeDriver: false,
+      });
+      animRef.current.start();
+    }
+  }, [paused]);
+
   return (
     <View style={styles.progressBarRow}>
       {Array.from({ length: count }).map((_, i) => (
-        <View key={i} style={[styles.progressSegment, i < current && styles.progressSegmentDone, i === current && styles.progressSegmentActive]} />
+        <View key={i} style={styles.progressSegment}>
+          {i < current ? (
+            <View style={[styles.progressFill, { width: '100%' }]} />
+          ) : i === current ? (
+            <Animated.View style={[styles.progressFill, {
+              width: progress.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] }),
+            }]} />
+          ) : null}
+        </View>
       ))}
     </View>
   );
@@ -188,6 +240,7 @@ function AvatarCircle({ name, logo, size = 40, style }) {
 }
 
 export default function SocialFeedScreen({ navigation }) {
+  const insets = useSafeAreaInsets();
   const [currentVendorId, setCurrentVendorId] = useState(null);
   const [tab, setTab] = useState('feed'); // 'feed' | 'saved'
   const [posts, setPosts] = useState([]);
@@ -211,14 +264,22 @@ export default function SocialFeedScreen({ navigation }) {
   const [storyVisible, setStoryVisible] = useState(false);
   const [storyGroupIdx, setStoryGroupIdx] = useState(0);
   const [storyPostIdx, setStoryPostIdx] = useState(0);
+  const [storyPaused, setStoryPaused] = useState(false);
   const storyTimerRef = useRef(null);
+  const storyTimerStartRef = useRef(null);
+  const storyRemainingRef = useRef(15000);
 
-  // Comment modal
+  // Comment modal (feed)
   const [commentPost, setCommentPost] = useState(null);
   const [comments, setComments] = useState([]);
   const [commentText, setCommentText] = useState('');
   const [commentsLoading, setCommentsLoading] = useState(false);
   const [sendingComment, setSendingComment] = useState(false);
+
+  // Story inline comment input
+  const [storyCommentText, setStoryCommentText] = useState('');
+  const [storySendingComment, setStorySendingComment] = useState(false);
+  const storyCommentInputRef = useRef(null);
 
   // Three-dot menu
   const [menuPost, setMenuPost] = useState(null);
@@ -304,6 +365,11 @@ export default function SocialFeedScreen({ navigation }) {
     return Array.from(map.values());
   }, [sosPosts]);
 
+  useFocusEffect(useCallback(() => {
+    StatusBar.setBarStyle('light-content');
+    if (Platform.OS === 'android') StatusBar.setBackgroundColor(G.g950);
+  }, []));
+
   useEffect(() => { initialLoad(); }, []);
   useEffect(() => { if (!loading) fetchFeed(true); }, [activeCategoryId]);
   useEffect(() => { if (shareCardPost && sharingCard) doShareCapture(); }, [shareCardPost, sharingCard]);
@@ -335,29 +401,55 @@ export default function SocialFeedScreen({ navigation }) {
   const openStory = (groupIndex) => {
     setStoryGroupIdx(groupIndex);
     setStoryPostIdx(0);
+    setStoryPaused(false);
+    setStoryCommentText('');
+    storyRemainingRef.current = 15000;
     setStoryVisible(true);
   };
 
+  const STORY_DURATION = 15000;
+
+  const advanceStory = useCallback(() => {
+    const currentGroup = sosGroups[storyGroupIdx];
+    const totalPosts = currentGroup?.posts.length || 1;
+    if (storyPostIdx < totalPosts - 1) {
+      setStoryPostIdx((i) => i + 1);
+    } else if (storyGroupIdx < sosGroups.length - 1) {
+      setStoryGroupIdx((g) => g + 1);
+      setStoryPostIdx(0);
+    } else {
+      setStoryVisible(false);
+    }
+  }, [storyGroupIdx, storyPostIdx, sosGroups]);
+
+  // Start/reset timer when story changes
   useEffect(() => {
-    if (storyVisible) {
-      const currentGroup = sosGroups[storyGroupIdx];
-      const totalPosts = currentGroup?.posts.length || 1;
-      storyTimerRef.current = setTimeout(() => {
-        if (storyPostIdx < totalPosts - 1) {
-          setStoryPostIdx((i) => i + 1);
-        } else if (storyGroupIdx < sosGroups.length - 1) {
-          setStoryGroupIdx((g) => g + 1);
-          setStoryPostIdx(0);
-        } else {
-          setStoryVisible(false);
-        }
-      }, 30000);
+    if (!storyVisible || storyPaused) return;
+    clearTimeout(storyTimerRef.current);
+    storyRemainingRef.current = STORY_DURATION;
+    storyTimerStartRef.current = Date.now();
+    storyTimerRef.current = setTimeout(advanceStory, STORY_DURATION);
+    return () => clearTimeout(storyTimerRef.current);
+  }, [storyVisible, storyGroupIdx, storyPostIdx]);
+
+  // Pause / resume timer
+  useEffect(() => {
+    if (!storyVisible) return;
+    if (storyPaused) {
+      clearTimeout(storyTimerRef.current);
+      const elapsed = Date.now() - (storyTimerStartRef.current || Date.now());
+      storyRemainingRef.current = Math.max(0, storyRemainingRef.current - elapsed);
+    } else {
+      storyTimerStartRef.current = Date.now();
+      storyTimerRef.current = setTimeout(advanceStory, storyRemainingRef.current);
     }
     return () => clearTimeout(storyTimerRef.current);
-  }, [storyVisible, storyGroupIdx, storyPostIdx, sosGroups]);
+  }, [storyPaused]);
 
   const storyPrev = () => {
     clearTimeout(storyTimerRef.current);
+    storyRemainingRef.current = STORY_DURATION;
+    setStoryPaused(false);
     if (storyPostIdx > 0) {
       setStoryPostIdx((i) => i - 1);
     } else if (storyGroupIdx > 0) {
@@ -369,16 +461,9 @@ export default function SocialFeedScreen({ navigation }) {
 
   const storyNext = () => {
     clearTimeout(storyTimerRef.current);
-    const currentGroup = sosGroups[storyGroupIdx];
-    const totalPosts = currentGroup?.posts.length || 1;
-    if (storyPostIdx < totalPosts - 1) {
-      setStoryPostIdx((i) => i + 1);
-    } else if (storyGroupIdx < sosGroups.length - 1) {
-      setStoryGroupIdx((g) => g + 1);
-      setStoryPostIdx(0);
-    } else {
-      setStoryVisible(false);
-    }
+    storyRemainingRef.current = STORY_DURATION;
+    setStoryPaused(false);
+    advanceStory();
   };
 
   // Ref to hold latest story state for PanResponder (avoids stale closures)
@@ -412,18 +497,51 @@ export default function SocialFeedScreen({ navigation }) {
     })
   ).current;
 
+  // FAB — keep navigation ref fresh so PanResponder closure never goes stale
+  const fabNavRef = useRef(null);
+  fabNavRef.current = navigation;
+
+  const fabPanResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onPanResponderRelease: (_, gs) => {
+        // swipe-up OR tap
+        if (gs.dy < -20 || (Math.abs(gs.dx) < 12 && Math.abs(gs.dy) < 12)) {
+          fabNavRef.current?.navigate('CreatePostScreen');
+        }
+      },
+    })
+  ).current;
+
+  // Screen swipe-left → open Messages
+  const screenNavRef = useRef(null);
+  screenNavRef.current = navigation;
+
+  const screenPanResponder = useRef(
+    PanResponder.create({
+      // Only claim horizontal swipes where dx dominates
+      onMoveShouldSetPanResponder: (_, gs) =>
+        Math.abs(gs.dx) > 20 && Math.abs(gs.dx) > Math.abs(gs.dy) * 1.5,
+      onPanResponderRelease: (_, gs) => {
+        if (gs.dx < -60) {
+          screenNavRef.current?.navigate('SocialMessagesScreen');
+        }
+      },
+    })
+  ).current;
+
   // ── Actions ───────────────────────────────────────────────────────────
+  const toggleLikeLocal = (list, postId) =>
+    list.map((p) => p.id === postId
+      ? { ...p, isLiked: !p.isLiked, likesCount: p.isLiked ? (p.likesCount || 1) - 1 : (p.likesCount || 0) + 1 }
+      : p
+    );
+
   const handleLike = async (postId) => {
-    setPosts((prev) => prev.map((p) =>
-      p.id === postId
-        ? { ...p, isLiked: !p.isLiked, likesCount: p.isLiked ? (p.likesCount || 1) - 1 : (p.likesCount || 0) + 1 }
-        : p
-    ));
-    setSavedPosts((prev) => prev.map((p) =>
-      p.id === postId
-        ? { ...p, isLiked: !p.isLiked, likesCount: p.isLiked ? (p.likesCount || 1) - 1 : (p.likesCount || 0) + 1 }
-        : p
-    ));
+    setPosts((prev) => toggleLikeLocal(prev, postId));
+    setSavedPosts((prev) => toggleLikeLocal(prev, postId));
+    setSosPosts((prev) => toggleLikeLocal(prev, postId));
     try { await toggleLike(postId); } catch (e) { console.log('[Social] like error', e); }
   };
 
@@ -543,6 +661,8 @@ export default function SocialFeedScreen({ navigation }) {
 
   // ── Comments ──────────────────────────────────────────────────────────
   const openComments = async (post) => {
+    // pause story if open
+    if (storyVisible) setStoryPaused(true);
     setCommentPost(post);
     setComments([]);
     setCommentsLoading(true);
@@ -556,6 +676,30 @@ export default function SocialFeedScreen({ navigation }) {
     }
   };
 
+  const closeComments = () => {
+    setCommentPost(null);
+    if (storyVisible) setStoryPaused(false);
+  };
+
+  const handleStoryComment = async (postId) => {
+    const text = storyCommentText.trim();
+    if (!text || storySendingComment) return;
+    setStoryCommentText('');
+    storyCommentInputRef.current?.blur();
+    setStorySendingComment(true);
+    try {
+      await addComment(postId, text);
+      setSosPosts((prev) => prev.map((p) =>
+        p.id === postId ? { ...p, commentsCount: (p.commentsCount || 0) + 1 } : p
+      ));
+    } catch (e) {
+      Alert.alert('Error', 'Could not send comment.');
+      setStoryCommentText(text);
+    } finally {
+      setStorySendingComment(false);
+    }
+  };
+
   const handleAddComment = async () => {
     if (!commentText.trim() || !commentPost) return;
     const text = commentText.trim();
@@ -565,9 +709,12 @@ export default function SocialFeedScreen({ navigation }) {
       const res = await addComment(commentPost.id, text);
       const newComment = res?.data?.comment || res?.comment;
       if (newComment) setComments((prev) => [...prev, newComment]);
-      setPosts((prev) => prev.map((p) =>
+      // update count in all lists
+      const incCount = (list) => list.map((p) =>
         p.id === commentPost.id ? { ...p, commentsCount: (p.commentsCount || 0) + 1 } : p
-      ));
+      );
+      setPosts(incCount);
+      setSosPosts(incCount);
     } catch (e) {
       Alert.alert('Error', 'Could not add comment.');
     } finally {
@@ -590,62 +737,76 @@ export default function SocialFeedScreen({ navigation }) {
   const renderPost = ({ item }) => {
     const isSOS = item.category?.name?.toLowerCase() === 'sos' || item.type === 'sos';
     const isOwn = String(item.vendorId) === String(currentVendorId);
+    const accentColor = isSOS ? G.red : G.green;
+    const catBg = isSOS ? '#FEF2F2' : '#ECFDF5';
+    const catText = isSOS ? G.red : G.green;
 
     return (
-      <View style={[styles.postCard, isSOS && styles.postCardSOS]}>
-        {/* Post Header */}
-        <View style={styles.postHeader}>
-          <TouchableOpacity
-            style={styles.postVendorRow}
-            onPress={() => navigation.navigate('SocialProfileScreen', { vendorId: item.vendorId })}
-            activeOpacity={0.75}
-          >
-            <AvatarCircle name={item.vendor?.businessName} logo={item.vendor?.logo} size={44} />
-            <View style={styles.postVendorInfo}>
-              <Text style={styles.postVendorName} numberOfLines={1}>
-                {item.vendor?.businessName || 'Unknown Vendor'}
-              </Text>
-              <Text style={styles.postMeta} numberOfLines={1}>
-                {item.vendor?.ownerName && `${item.vendor.ownerName} · `}
-                {item.vendor?.city && `${item.vendor.city} · `}
-                {formatTimeAgo(item.createdAt)}
-              </Text>
+      <View style={styles.postCard}>
+        {/* Colored left accent bar */}
+        <View style={[styles.postAccentBar, { backgroundColor: accentColor }]} />
+
+        <View style={styles.postInner}>
+          {/* Post Header */}
+          <View style={styles.postHeader}>
+            <TouchableOpacity
+              style={styles.postVendorRow}
+              onPress={() => navigation.navigate('SocialProfileScreen', { vendorId: item.vendorId })}
+              activeOpacity={0.75}
+            >
+              <AvatarCircle name={item.vendor?.businessName} logo={item.vendor?.logo} size={42} />
+              <View style={styles.postVendorInfo}>
+                <Text style={styles.postVendorName} numberOfLines={1}>
+                  {item.vendor?.businessName || 'Unknown Vendor'}
+                </Text>
+                <Text style={styles.postMeta} numberOfLines={1}>
+                  {item.vendor?.city ? `${item.vendor.city} · ` : ''}{formatTimeAgo(item.createdAt)}
+                </Text>
+              </View>
+            </TouchableOpacity>
+            <View style={styles.postHeaderRight}>
+              <View style={[styles.catBadge, { backgroundColor: catBg }]}>
+                {isSOS && <Icon name="alert-circle" size={10} color={catText} style={{ marginRight: 3 }} />}
+                <Text style={[styles.catBadgeText, { color: catText }]}>
+                  {isSOS ? 'SOS' : (item.category?.name || 'General')}
+                </Text>
+              </View>
+              <TouchableOpacity style={styles.menuBtn} onPress={() => setMenuPost(item)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                <Icon name="more-vertical" size={18} color={G.muted} />
+              </TouchableOpacity>
             </View>
-          </TouchableOpacity>
-          <View style={styles.postHeaderRight}>
-            {renderCategoryBadge(item)}
-            <TouchableOpacity style={styles.menuBtn} onPress={() => setMenuPost(item)}>
-              <Icon name="more-vertical" size={18} color={G.muted} />
+          </View>
+
+          {/* Content */}
+          <Text style={styles.postContent}>{item.content}</Text>
+
+          {/* Action bar */}
+          <View style={styles.actionBar}>
+            <TouchableOpacity style={[styles.actionBtn, item.isLiked && styles.actionBtnLiked]} onPress={() => handleLike(item.id)}>
+              <MCI name={item.isLiked ? 'heart' : 'heart-outline'} size={17} color={item.isLiked ? G.red : G.muted} />
+              <Text style={[styles.actionLabel, item.isLiked && { color: G.red }]}>
+                {item.likesCount > 0 ? item.likesCount : 'Like'}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.actionBtn} onPress={() => openComments(item)}>
+              <MCI name="comment-outline" size={17} color={G.muted} />
+              <Text style={styles.actionLabel}>{item.commentsCount > 0 ? item.commentsCount : 'Comment'}</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={[styles.actionBtn, item.isSaved && styles.actionBtnSaved]} onPress={() => handleSave(item.id)}>
+              <MCI name={item.isSaved ? 'bookmark' : 'bookmark-outline'} size={17} color={item.isSaved ? G.green : G.muted} />
+              <Text style={[styles.actionLabel, item.isSaved && { color: G.green }]}>Save</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.actionBtnShare} onPress={() => handleShareToChat(item)}>
+              <Icon name="send" size={15} color={G.green} />
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.actionBtnShare} onPress={() => handleShare(item)} disabled={sharingCard}>
+              <Icon name="share-2" size={15} color={sharingCard ? G.border : G.muted} />
             </TouchableOpacity>
           </View>
-        </View>
-
-        {/* Content */}
-        <Text style={styles.postContent}>{item.content}</Text>
-
-        {/* Action bar */}
-        <View style={styles.actionBar}>
-          <TouchableOpacity style={styles.actionBtn} onPress={() => handleLike(item.id)}>
-            <Icon name="heart" size={18} color={item.isLiked ? G.red : G.muted} fill={item.isLiked ? G.red : 'none'} />
-            {item.likesCount > 0 && <Text style={[styles.actionCount, item.isLiked && { color: G.red }]}>{item.likesCount}</Text>}
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.actionBtn} onPress={() => openComments(item)}>
-            <Icon name="message-circle" size={18} color={G.muted} />
-            {item.commentsCount > 0 && <Text style={styles.actionCount}>{item.commentsCount}</Text>}
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.actionBtn} onPress={() => handleSave(item.id)}>
-            <Icon name="bookmark" size={18} color={item.isSaved ? G.violet : G.muted} />
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.actionBtn} onPress={() => handleShareToChat(item)}>
-            <Icon name="send" size={18} color={G.violet} />
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.actionBtn} onPress={() => handleShare(item)} disabled={sharingCard}>
-            <Icon name="share-2" size={18} color={sharingCard ? G.border : G.muted} />
-          </TouchableOpacity>
         </View>
       </View>
     );
@@ -655,24 +816,27 @@ export default function SocialFeedScreen({ navigation }) {
 
   // ── Main Render ───────────────────────────────────────────────────────
   return (
-    <SafeAreaView style={styles.safe}>
+    <View style={styles.safe} {...screenPanResponder.panHandlers}>
+      <StatusBar barStyle="light-content" backgroundColor={G.g950} translucent={false} />
       {/* Header */}
-      <View style={styles.header}>
+      <LG colors={[G.g950, G.g900, G.g800]} style={[styles.header, { paddingTop: insets.top + 10 }]}>
         <View style={styles.headerLeft}>
           <View style={styles.headerIconWrap}>
-            <Icon name="trending-up" size={20} color={G.violet} />
+            <Icon name="trending-up" size={18} color="#fff" />
           </View>
-          <Text style={styles.headerTitle}>Vendor Network</Text>
+          <View>
+            <Text style={styles.headerTitle}>Vendor Network</Text>
+            <Text style={styles.headerSub}>Connect · Share · Grow</Text>
+          </View>
         </View>
         <TouchableOpacity
-          style={styles.newPostBtn}
-          onPress={() => navigation.navigate('CreatePostScreen')}
+          style={styles.headerMsgBtn}
+          onPress={() => navigation.navigate('SocialMessagesScreen')}
           activeOpacity={0.8}
         >
-          <Icon name="plus" size={16} color="#fff" />
-          <Text style={styles.newPostBtnText}>New Post</Text>
+          <Icon name="message-circle" size={20} color="#fff" />
         </TouchableOpacity>
-      </View>
+      </LG>
 
       <FlatList
         data={displayPosts}
@@ -686,19 +850,18 @@ export default function SocialFeedScreen({ navigation }) {
             {/* SOS Strip — one circle per vendor */}
             {sosGroups.length > 0 && (
               <View style={styles.sosStrip}>
-                <Text style={styles.sosStripLabel}>
-                  <Icon name="alert-circle" size={13} color={G.red} /> SOS Posts
-                </Text>
+                <View style={styles.sosStripHeader}>
+                  <View style={styles.sosStripIconWrap}>
+                    <Icon name="alert-circle" size={14} color={G.red} />
+                  </View>
+                  <Text style={styles.sosStripLabel}>Urgent SOS</Text>
+                  <Text style={styles.sosStripCount}>{sosPosts.length} post{sosPosts.length !== 1 ? 's' : ''}</Text>
+                </View>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.sosScrollContent}>
                   {sosGroups.map((group, index) => (
                     <TouchableOpacity key={group.vendor?.id || index} style={styles.sosCircleWrap} onPress={() => openStory(index)} activeOpacity={0.8}>
                       <View style={styles.sosCircleBorder}>
-                        <AvatarCircle name={group.vendor?.businessName} size={52} />
-                        {group.posts.length > 1 && (
-                          <View style={styles.sosPostCountBadge}>
-                            <Text style={styles.sosPostCountText}>{group.posts.length}</Text>
-                          </View>
-                        )}
+                        <AvatarCircle name={group.vendor?.businessName} logo={group.vendor?.logo} size={52} />
                       </View>
                       <Text style={styles.sosCircleName} numberOfLines={1}>
                         {group.vendor?.businessName?.split(' ')[0] || 'SOS'}
@@ -713,7 +876,7 @@ export default function SocialFeedScreen({ navigation }) {
             <View style={styles.tabsRow}>
               {['feed', 'saved'].map((t) => (
                 <TouchableOpacity key={t} style={[styles.tab, tab === t && styles.tabActive]} onPress={() => switchTab(t)}>
-                  <Icon name={t === 'feed' ? 'rss' : 'bookmark'} size={14} color={tab === t ? G.violet : G.muted} />
+                  <Icon name={t === 'feed' ? 'rss' : 'bookmark'} size={14} color={tab === t ? G.green : G.muted} />
                   <Text style={[styles.tabText, tab === t && styles.tabTextActive]}>
                     {t === 'feed' ? 'Feed' : 'Saved'}
                   </Text>
@@ -784,59 +947,155 @@ export default function SocialFeedScreen({ navigation }) {
         </View>
       )}
 
-      {/* ── Floating Chat Button ──────────────────────────────────────── */}
-      <TouchableOpacity
-        style={styles.floatingChatBtn}
-        onPress={() => navigation.navigate('SocialMessagesScreen')}
-        activeOpacity={0.85}
-      >
-        <Icon name="message-circle" size={24} color="#fff" />
-      </TouchableOpacity>
+      {/* ── Floating New Post Button (tap or swipe-up) ─────────────────── */}
+      <View style={styles.floatingNewPostBtn} {...fabPanResponder.panHandlers}>
+        <Icon name="plus" size={26} color="#fff" />
+      </View>
 
       {/* ── SOS Story Viewer Modal ─────────────────────────────────────── */}
       <Modal visible={storyVisible} transparent animationType="fade" statusBarTranslucent onRequestClose={() => setStoryVisible(false)}>
-        <View style={styles.storyOverlay} {...storyPanResponder.panHandlers}>
+        <KeyboardAvoidingView style={styles.storyOverlay} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
           {sosGroups[storyGroupIdx]?.posts[storyPostIdx] && (() => {
             const currentPost = sosGroups[storyGroupIdx].posts[storyPostIdx];
             const currentGroup = sosGroups[storyGroupIdx];
+            const storyKey = `${storyGroupIdx}_${storyPostIdx}`;
             return (
               <>
-                {/* Progress bar */}
-                <View style={styles.storyTopBar}>
-                  <StoryProgressBar count={currentGroup.posts.length} current={storyPostIdx} duration={30000} />
-                  <TouchableOpacity style={styles.storyCloseBtn} onPress={() => setStoryVisible(false)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-                    <Icon name="x" size={22} color="#fff" />
-                  </TouchableOpacity>
-                </View>
-
-                {/* Vendor info */}
-                <View style={styles.storyHeader}>
-                  <AvatarCircle name={currentPost.vendor?.businessName} size={40} />
-                  <View style={styles.storyHeaderInfo}>
-                    <Text style={styles.storyVendorName}>{currentPost.vendor?.businessName}</Text>
-                    <Text style={styles.storyMeta}>
-                      {currentPost.category?.name} · {formatTimeAgo(currentPost.createdAt)}
-                    </Text>
+                {/* Story canvas — fills all space above bottom bar */}
+                <View style={{ flex: 1 }} {...storyPanResponder.panHandlers}>
+                  {/* Tap zones: press-and-hold = pause, tap = next/prev */}
+                  <View style={styles.storyTapZones} pointerEvents="box-none">
+                    <TouchableOpacity
+                      style={styles.storyTapLeft}
+                      onPress={storyPrev}
+                      onLongPress={() => setStoryPaused(true)}
+                      onPressOut={() => setStoryPaused(false)}
+                      activeOpacity={1}
+                      delayLongPress={150}
+                    />
+                    <TouchableOpacity
+                      style={styles.storyTapRight}
+                      onPress={storyNext}
+                      onLongPress={() => setStoryPaused(true)}
+                      onPressOut={() => setStoryPaused(false)}
+                      activeOpacity={1}
+                      delayLongPress={150}
+                    />
                   </View>
-                  {sosGroups.length > 1 && (
-                    <Text style={styles.storyGroupCounter}>{storyGroupIdx + 1} / {sosGroups.length}</Text>
+
+                  {/* Pause indicator */}
+                  {storyPaused && (
+                    <View style={styles.storyPausedOverlay} pointerEvents="none">
+                      <Icon name="pause" size={40} color="rgba(255,255,255,0.7)" />
+                    </View>
                   )}
+
+                  {/* Top bar: progress + header */}
+                  <View style={styles.storyTopBar}>
+                    <StoryProgressBar
+                      count={currentGroup.posts.length}
+                      current={storyPostIdx}
+                      duration={15000}
+                      storyKey={storyKey}
+                      paused={storyPaused}
+                    />
+                    <View style={styles.storyHeaderRow}>
+                      {/* Vendor avatar + name — tap to view profile */}
+                      <TouchableOpacity
+                        style={styles.storySenderRow}
+                        onPress={() => {
+                          setStoryVisible(false);
+                          navigation.navigate('SocialProfileScreen', { vendorId: currentPost.vendorId });
+                        }}
+                        activeOpacity={0.8}
+                      >
+                        <View style={styles.storyAvatarBorder}>
+                          <AvatarCircle name={currentPost.vendor?.businessName} logo={currentPost.vendor?.logo} size={36} />
+                        </View>
+                        <View style={styles.storyHeaderInfo}>
+                          <Text style={styles.storyVendorName} numberOfLines={1}>
+                            {currentPost.vendor?.businessName || 'Vendor'}
+                          </Text>
+                          <Text style={styles.storyMeta}>
+                            {formatTimeAgo(currentPost.createdAt)}
+                            {sosGroups.length > 1 ? `  ·  ${storyGroupIdx + 1}/${sosGroups.length}` : ''}
+                          </Text>
+                        </View>
+                      </TouchableOpacity>
+                      <TouchableOpacity style={styles.storyCloseBtn} onPress={() => setStoryVisible(false)} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
+                        <Icon name="x" size={22} color="#fff" />
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+
+                  {/* Content */}
+                  <View style={styles.storyContent}>
+                    <View style={styles.storySOSBadge}>
+                      <Icon name="alert-circle" size={14} color="#fff" />
+                      <Text style={styles.storySOSBadgeText}>SOS · URGENT</Text>
+                    </View>
+                    <Text style={styles.storyText}>{currentPost.content}</Text>
+                    {currentPost.vendor?.city ? (
+                      <View style={styles.storyLocationRow}>
+                        <Icon name="map-pin" size={13} color="rgba(255,255,255,0.6)" />
+                        <Text style={styles.storyLocationText}>{currentPost.vendor.city}</Text>
+                      </View>
+                    ) : null}
+                  </View>
+
+                  {/* Gradient fade at bottom of canvas */}
+                  <LG colors={['transparent', 'rgba(0,0,0,0.85)']} style={styles.storyBottomGradient} pointerEvents="none" />
                 </View>
 
-                {/* Content */}
-                <View style={styles.storyContent}>
-                  <Text style={styles.storyText}>{currentPost.content}</Text>
-                </View>
+                {/* Bottom bar — in normal flow so KAV pushes it above keyboard */}
+                <View style={styles.storyBottomBar}>
+                  {/* Comment input row — first */}
+                  <View style={styles.storyCommentRow}>
+                    <TextInput
+                      ref={storyCommentInputRef}
+                      style={styles.storyCommentInput}
+                      placeholder="Add a comment..."
+                      placeholderTextColor="rgba(255,255,255,0.55)"
+                      value={storyCommentText}
+                      onChangeText={setStoryCommentText}
+                      onFocus={() => setStoryPaused(true)}
+                      onBlur={() => { if (!storyCommentText.trim()) setStoryPaused(false); }}
+                      returnKeyType="send"
+                      onSubmitEditing={() => handleStoryComment(currentPost.id)}
+                      blurOnSubmit={false}
+                    />
+                    <TouchableOpacity
+                      style={[styles.storyCommentSend, (!storyCommentText.trim() || storySendingComment) && { opacity: 0.35 }]}
+                      onPress={() => handleStoryComment(currentPost.id)}
+                      disabled={!storyCommentText.trim() || storySendingComment}
+                    >
+                      {storySendingComment
+                        ? <ActivityIndicator size="small" color="#fff" />
+                        : <Icon name="send" size={18} color="#fff" />}
+                    </TouchableOpacity>
+                  </View>
 
-                {/* Tap zones (below the header/close button) */}
-                <View style={styles.storyTapZones} pointerEvents="box-none">
-                  <TouchableOpacity style={styles.storyTapLeft} onPress={storyPrev} activeOpacity={1} />
-                  <TouchableOpacity style={styles.storyTapRight} onPress={storyNext} activeOpacity={1} />
+                  {/* Like button — second */}
+                  <TouchableOpacity
+                    style={styles.storyLikeBtn}
+                    onPress={() => handleLike(currentPost.id)}
+                  >
+                    <MCI
+                      name={currentPost.isLiked ? 'heart' : 'heart-outline'}
+                      size={28}
+                      color={currentPost.isLiked ? '#FF4D4D' : '#fff'}
+                    />
+                    {currentPost.likesCount > 0 && (
+                      <Text style={[styles.storyActionCount, currentPost.isLiked && { color: '#FF4D4D' }]}>
+                        {currentPost.likesCount}
+                      </Text>
+                    )}
+                  </TouchableOpacity>
                 </View>
               </>
             );
           })()}
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* ── Three-dot Menu Modal ───────────────────────────────────────── */}
@@ -942,14 +1201,14 @@ export default function SocialFeedScreen({ navigation }) {
       </Modal>
 
       {/* ── Comment Modal ──────────────────────────────────────────────── */}
-      <Modal visible={!!commentPost} transparent animationType="slide" onRequestClose={() => setCommentPost(null)}>
+      <Modal visible={!!commentPost} transparent animationType="slide" onRequestClose={() => closeComments()}>
         <View style={styles.commentOverlay}>
-          <TouchableOpacity style={styles.commentBackdrop} onPress={() => setCommentPost(null)} />
+          <TouchableOpacity style={styles.commentBackdrop} onPress={() => closeComments()} />
           <View style={styles.commentSheet}>
             <View style={styles.commentSheetHandle} />
             <View style={styles.commentSheetHeader}>
               <Text style={styles.commentSheetTitle}>Comments</Text>
-              <TouchableOpacity onPress={() => setCommentPost(null)}>
+              <TouchableOpacity onPress={() => closeComments()}>
                 <Icon name="x" size={20} color={G.muted} />
               </TouchableOpacity>
             </View>
@@ -998,7 +1257,7 @@ export default function SocialFeedScreen({ navigation }) {
           </View>
         </View>
       </Modal>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -1008,27 +1267,37 @@ const styles = StyleSheet.create({
   // Header
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    backgroundColor: G.surface, paddingHorizontal: 16, paddingVertical: 12,
-    borderBottomWidth: 1, borderBottomColor: G.border,
+    paddingHorizontal: 16, paddingBottom: 14,
   },
-  headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   headerIconWrap: {
-    width: 36, height: 36, borderRadius: 10, backgroundColor: G.violetL,
+    width: 36, height: 36, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.15)',
     alignItems: 'center', justifyContent: 'center',
   },
-  headerTitle: { fontSize: 20, fontWeight: '700', color: G.text },
-  newPostBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: G.violet,
-    paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10,
+  headerTitle: { fontSize: 18, fontWeight: '800', color: '#fff', letterSpacing: 0.3 },
+  headerSub: { fontSize: 11, color: 'rgba(255,255,255,0.6)', marginTop: 1 },
+  headerMsgBtn: {
+    width: 38, height: 38, borderRadius: 19,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    alignItems: 'center', justifyContent: 'center',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)',
   },
-  newPostBtnText: { color: '#fff', fontWeight: '700', fontSize: 13 },
 
   // SOS Strip
-  sosStrip: { backgroundColor: G.surface, paddingTop: 12, paddingBottom: 8, borderBottomWidth: 1, borderBottomColor: G.border, marginBottom: 4 },
-  sosStripLabel: { fontSize: 12, fontWeight: '700', color: G.red, paddingHorizontal: 16, marginBottom: 8 },
-  sosScrollContent: { paddingHorizontal: 12, gap: 12 },
-  sosCircleWrap: { alignItems: 'center', width: 64 },
-  sosCircleBorder: { padding: 2, borderRadius: 30, borderWidth: 2, borderColor: G.red, marginBottom: 4 },
+  sosStrip: {
+    backgroundColor: G.surface, paddingTop: 12, paddingBottom: 12,
+    borderBottomWidth: 1, borderBottomColor: G.border, marginBottom: 4,
+    borderLeftWidth: 3, borderLeftColor: G.red,
+    marginHorizontal: 12, marginTop: 8, borderRadius: 10,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 4, elevation: 2,
+  },
+  sosStripHeader: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, marginBottom: 10, gap: 6 },
+  sosStripIconWrap: { width: 22, height: 22, borderRadius: 11, backgroundColor: '#FEF2F2', alignItems: 'center', justifyContent: 'center' },
+  sosStripLabel: { fontSize: 12, fontWeight: '700', color: G.red, flex: 1 },
+  sosStripCount: { fontSize: 11, color: G.muted, fontWeight: '500' },
+  sosScrollContent: { paddingHorizontal: 10, gap: 12 },
+  sosCircleWrap: { alignItems: 'center', width: 62 },
+  sosCircleBorder: { padding: 2.5, borderRadius: 32, borderWidth: 2.5, borderColor: G.red, marginBottom: 5 },
   sosCircleName: { fontSize: 10, color: G.text, fontWeight: '600', textAlign: 'center' },
   sosPostCountBadge: {
     position: 'absolute', top: -4, right: -4,
@@ -1038,11 +1307,11 @@ const styles = StyleSheet.create({
   },
   sosPostCountText: { fontSize: 9, color: '#fff', fontWeight: '700' },
 
-  // Floating chat button
-  floatingChatBtn: {
+  // Floating New Post button
+  floatingNewPostBtn: {
     position: 'absolute', bottom: 24, right: 20,
     width: 56, height: 56, borderRadius: 28,
-    backgroundColor: '#16A34A',
+    backgroundColor: G.g950,
     alignItems: 'center', justifyContent: 'center',
     shadowColor: '#000', shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.22, shadowRadius: 6, elevation: 8,
@@ -1053,45 +1322,59 @@ const styles = StyleSheet.create({
   tabsRow: {
     flexDirection: 'row', backgroundColor: G.surface,
     borderBottomWidth: 1, borderBottomColor: G.border,
+    marginTop: 4,
   },
   tab: {
     flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    gap: 6, paddingVertical: 12, borderBottomWidth: 2, borderBottomColor: 'transparent',
+    gap: 6, paddingVertical: 13, borderBottomWidth: 2.5, borderBottomColor: 'transparent',
   },
-  tabActive: { borderBottomColor: G.violet },
+  tabActive: { borderBottomColor: G.green },
   tabText: { fontSize: 14, fontWeight: '600', color: G.muted },
-  tabTextActive: { color: G.violet },
+  tabTextActive: { color: G.green },
 
   // Category chips
   chipsContent: { paddingHorizontal: 12, paddingVertical: 10, gap: 8 },
   chip: {
-    paddingHorizontal: 14, paddingVertical: 6, borderRadius: 20,
+    paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20,
     backgroundColor: G.surface, borderWidth: 1, borderColor: G.border,
   },
-  chipActive: { backgroundColor: G.violetL, borderColor: G.violet },
+  chipActive: { backgroundColor: G.greenL, borderColor: G.green },
   chipText: { fontSize: 13, fontWeight: '600', color: G.muted },
-  chipTextActive: { color: G.violet },
+  chipTextActive: { color: G.green },
 
   // Post card
   listContent: { paddingBottom: 100 },
   postCard: {
-    backgroundColor: G.surface, marginHorizontal: 12, marginVertical: 5,
-    borderRadius: 14, padding: 14, borderWidth: 1, borderColor: G.border,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 3, elevation: 1,
+    backgroundColor: G.surface, marginHorizontal: 12, marginVertical: 6,
+    borderRadius: 14, borderWidth: 1, borderColor: G.border, overflow: 'hidden',
+    flexDirection: 'row',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 6, elevation: 3,
   },
-  postCardSOS: { borderLeftWidth: 4, borderLeftColor: G.red },
+  postAccentBar: { width: 4 },
+  postInner: { flex: 1, padding: 14 },
   postHeader: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 10 },
   postVendorRow: { flexDirection: 'row', alignItems: 'center', flex: 1, gap: 10 },
   postVendorInfo: { flex: 1 },
-  postVendorName: { fontSize: 15, fontWeight: '700', color: G.text },
+  postVendorName: { fontSize: 14, fontWeight: '700', color: G.text },
   postMeta: { fontSize: 11, color: G.muted, marginTop: 2 },
   postHeaderRight: { flexDirection: 'row', alignItems: 'center', gap: 6, marginLeft: 8 },
-  menuBtn: { padding: 4 },
-  catBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
+  menuBtn: { padding: 2 },
+  catBadge: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 20 },
   catBadgeText: { fontSize: 10, fontWeight: '700' },
-  postContent: { fontSize: 14, color: G.text, lineHeight: 21, marginBottom: 12 },
-  actionBar: { flexDirection: 'row', alignItems: 'center', borderTopWidth: 1, borderTopColor: G.border, paddingTop: 10, gap: 4 },
-  actionBtn: { flexDirection: 'row', alignItems: 'center', flex: 1, justifyContent: 'center', gap: 4, paddingVertical: 2 },
+  postContent: { fontSize: 14, color: G.text, lineHeight: 22, marginBottom: 14 },
+  actionBar: { flexDirection: 'row', alignItems: 'center', borderTopWidth: 1, borderTopColor: G.border, paddingTop: 10, gap: 6 },
+  actionBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    paddingHorizontal: 8, paddingVertical: 5, borderRadius: 8,
+    backgroundColor: G.bg, flex: 1, justifyContent: 'center',
+  },
+  actionBtnLiked: { backgroundColor: '#FEF2F2' },
+  actionBtnSaved: { backgroundColor: G.greenL },
+  actionBtnShare: {
+    width: 32, height: 32, borderRadius: 8, backgroundColor: G.bg,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  actionLabel: { fontSize: 11, color: G.muted, fontWeight: '600' },
   actionCount: { fontSize: 12, color: G.muted, fontWeight: '600' },
 
   // Load more / empty
@@ -1103,25 +1386,71 @@ const styles = StyleSheet.create({
 
   // Story overlay
   storyOverlay: { flex: 1, backgroundColor: '#000' },
-  storyTopBar: {
-    position: 'absolute', top: 0, left: 0, right: 0, zIndex: 20,
-    paddingTop: 44, paddingHorizontal: 12, paddingBottom: 8,
-  },
-  progressBarRow: { flexDirection: 'row', gap: 4, marginBottom: 12 },
-  progressSegment: { flex: 1, height: 2, borderRadius: 1, backgroundColor: 'rgba(255,255,255,0.3)' },
-  progressSegmentDone: { backgroundColor: '#fff' },
-  progressSegmentActive: { backgroundColor: 'rgba(255,255,255,0.7)' },
-  storyCloseBtn: { position: 'absolute', top: 44, right: 16, zIndex: 30, padding: 6 },
-  storyHeader: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingTop: 88, gap: 10 },
-  storyHeaderInfo: { flex: 1 },
-  storyGroupCounter: { fontSize: 12, color: 'rgba(255,255,255,0.6)', fontWeight: '600' },
-  storyVendorName: { fontSize: 16, fontWeight: '700', color: '#fff' },
-  storyMeta: { fontSize: 12, color: 'rgba(255,255,255,0.65)', marginTop: 2 },
-  storyContent: { flex: 1, justifyContent: 'center', paddingHorizontal: 24, paddingTop: 32 },
-  storyText: { fontSize: 20, color: '#fff', lineHeight: 30, fontWeight: '500' },
-  storyTapZones: { position: 'absolute', top: 120, bottom: 0, left: 0, right: 0, flexDirection: 'row', zIndex: 10 },
+  storyTapZones: { position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, flexDirection: 'row', zIndex: 5 },
   storyTapLeft: { flex: 1 },
   storyTapRight: { flex: 1 },
+
+  // Story top bar
+  storyTopBar: {
+    position: 'absolute', top: 0, left: 0, right: 0, zIndex: 20,
+    paddingTop: 52, paddingHorizontal: 10, paddingBottom: 8,
+  },
+  progressBarRow: { flexDirection: 'row', gap: 3, marginBottom: 12 },
+  progressSegment: {
+    flex: 1, height: 3, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.25)',
+    overflow: 'hidden',
+  },
+  progressFill: { height: '100%', backgroundColor: '#fff', borderRadius: 2 },
+  storyHeaderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  storySenderRow: { flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 },
+  storyAvatarBorder: { borderRadius: 22, borderWidth: 2, borderColor: G.red, padding: 2 },
+  storyHeaderInfo: { flex: 1 },
+  storyVendorName: { fontSize: 15, fontWeight: '700', color: '#fff' },
+  storyMeta: { fontSize: 11, color: 'rgba(255,255,255,0.6)', marginTop: 1 },
+  storyCloseBtn: { padding: 6, zIndex: 30 },
+
+  // Story content
+  storyContent: { flex: 1, justifyContent: 'center', paddingHorizontal: 24, paddingTop: 140, paddingBottom: 20 },
+  storySOSBadge: {
+    flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start',
+    backgroundColor: G.red, paddingHorizontal: 12, paddingVertical: 5,
+    borderRadius: 20, marginBottom: 20,
+  },
+  storySOSBadgeText: { color: '#fff', fontWeight: '700', fontSize: 11, letterSpacing: 1 },
+  storyText: { fontSize: 22, color: '#fff', lineHeight: 34, fontWeight: '500' },
+  storyLocationRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 16 },
+  storyLocationText: { fontSize: 13, color: 'rgba(255,255,255,0.6)' },
+
+  // Story pause overlay
+  storyPausedOverlay: {
+    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 15,
+    alignItems: 'center', justifyContent: 'center',
+  },
+
+  storyBottomGradient: {
+    position: 'absolute', bottom: 0, left: 0, right: 0, height: 140, zIndex: 19,
+  },
+
+  // Story bottom bar — Instagram style (normal flow, KAV pushes above keyboard)
+  storyBottomBar: {
+    flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: 14, paddingVertical: 12, gap: 10,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+  },
+  storyLikeBtn: {
+    alignItems: 'center', justifyContent: 'center', gap: 3, paddingHorizontal: 4,
+  },
+  storyActionCount: { color: '#fff', fontSize: 12, fontWeight: '700', textAlign: 'center' },
+  storyCommentRow: {
+    flex: 1, flexDirection: 'row', alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderRadius: 24, borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)',
+    paddingHorizontal: 14, paddingVertical: 2,
+  },
+  storyCommentInput: {
+    flex: 1, color: '#fff', fontSize: 14, paddingVertical: 9, paddingRight: 4,
+  },
+  storyCommentSend: { paddingLeft: 8, paddingVertical: 6 },
 
   // Menu modal
   menuOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'flex-end' },
@@ -1150,7 +1479,7 @@ const styles = StyleSheet.create({
     flex: 1, backgroundColor: G.bg, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10,
     fontSize: 14, color: G.text, maxHeight: 80, borderWidth: 1, borderColor: G.border,
   },
-  commentSendBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: G.violet, alignItems: 'center', justifyContent: 'center' },
+  commentSendBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: G.green, alignItems: 'center', justifyContent: 'center' },
   commentSendBtnDisabled: { backgroundColor: G.border },
 
   // Share to chat

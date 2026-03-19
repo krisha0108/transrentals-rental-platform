@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  SafeAreaView,
   View,
   Text,
   TextInput,
@@ -12,20 +11,26 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
+  StatusBar,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Feather';
+import LinearGradient from 'react-native-linear-gradient';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import { getSocialCategories, createSocialPost } from '../../api/socialApi';
 
 const G = {
-  bg: '#F5F7FA', surface: '#FFFFFF', text: '#0A0F1E', muted: '#6B7280',
-  border: '#E8EDF2', violet: '#7C3AED', violetL: '#F5F3FF',
-  red: '#DC2626', redL: '#FEF2F2', green: '#16A34A', greenL: '#F0FDF4',
+  bg: '#F8FAFC', surface: '#FFFFFF', text: '#1E293B', muted: '#64748B',
+  border: '#E2E8F0', violet: '#059669', violetL: '#ECFDF5',
+  red: '#EF4444', redL: '#FEF2F2', green: '#059669', greenL: '#ECFDF5',
   orange: '#F97316', orangeL: '#FFF7ED', amber: '#D97706', amberL: '#FFFBEB',
+  g950: '#011B14', g900: '#022C22', g800: '#064E3B',
 };
 
 const MAX_CHARS = 1000;
 
 export default function CreatePostScreen({ navigation }) {
+  const insets = useSafeAreaInsets();
   const [content, setContent] = useState('');
   const [categories, setCategories] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState(null);
@@ -76,13 +81,19 @@ export default function CreatePostScreen({ navigation }) {
     }
   };
 
+  useFocusEffect(useCallback(() => {
+    StatusBar.setBarStyle('light-content');
+    if (Platform.OS === 'android') StatusBar.setBackgroundColor(G.g950);
+  }, []));
+
   return (
-    <SafeAreaView style={styles.safe}>
+    <View style={styles.safe}>
+      <StatusBar barStyle="light-content" backgroundColor={G.g950} translucent={false} />
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         {/* Header */}
-        <View style={styles.header}>
+        <LinearGradient colors={[G.g950, G.g900, G.g800]} style={[styles.header, { paddingTop: insets.top + 10 }]}>
           <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-            <Icon name="arrow-left" size={20} color={G.text} />
+            <Icon name="arrow-left" size={20} color="#fff" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Create Post</Text>
           <TouchableOpacity
@@ -94,7 +105,7 @@ export default function CreatePostScreen({ navigation }) {
               ? <ActivityIndicator size="small" color="#fff" />
               : <Text style={styles.submitBtnText}>Post</Text>}
           </TouchableOpacity>
-        </View>
+        </LinearGradient>
 
         <ScrollView style={styles.scroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
           {/* Category picker */}
@@ -221,7 +232,7 @@ export default function CreatePostScreen({ navigation }) {
           </View>
         </Modal>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -232,16 +243,16 @@ const styles = StyleSheet.create({
   // Header
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    backgroundColor: G.surface, paddingHorizontal: 16, paddingVertical: 12,
-    borderBottomWidth: 1, borderBottomColor: G.border,
+    paddingHorizontal: 16, paddingVertical: 14,
   },
   backBtn: { padding: 4 },
-  headerTitle: { fontSize: 18, fontWeight: '700', color: G.text },
+  headerTitle: { fontSize: 18, fontWeight: '700', color: '#fff' },
   submitBtn: {
-    backgroundColor: G.violet, paddingHorizontal: 18, paddingVertical: 8,
+    backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: 18, paddingVertical: 8,
     borderRadius: 10, minWidth: 64, alignItems: 'center',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.4)',
   },
-  submitBtnDisabled: { backgroundColor: G.border },
+  submitBtnDisabled: { backgroundColor: 'rgba(255,255,255,0.08)', borderColor: 'rgba(255,255,255,0.15)' },
   submitBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
 
   // Sections
@@ -281,7 +292,7 @@ const styles = StyleSheet.create({
   // Tips
   tipsCard: {
     margin: 16, backgroundColor: G.violetL, borderRadius: 12,
-    padding: 14, borderWidth: 1, borderColor: '#DDD6FE',
+    padding: 14, borderWidth: 1, borderColor: '#6EE7B7',
   },
   tipsTitle: { fontSize: 13, fontWeight: '700', color: G.violet, marginBottom: 8 },
   tipItem: { fontSize: 13, color: G.violet, lineHeight: 20, opacity: 0.8 },

@@ -1,25 +1,32 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
-  RefreshControl, ActivityIndicator, Modal, TextInput, ScrollView, Linking, Share,
+  RefreshControl, ActivityIndicator, Modal, TextInput, ScrollView, Linking, Share, StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/Feather';
 import MCI from 'react-native-vector-icons/MaterialCommunityIcons';
 import { getP2PBookings, acceptP2PBooking, getVendorFleet, getStaffDrivers, getP2PComments, addP2PComment } from '../../api/client';
 import CustomAlert from '../../../components/CustomAlert';
 
 const C = {
-  bg: '#F8FAFC', surface: '#FFFFFF', text: '#1A1A2E', sub: '#64748B',
-  muted: '#94A3B8', border: '#E2E8F0', brand: '#10B981',
-  blue: '#3B82F6', purple: '#8B5CF6', amber: '#F59E0B', red: '#EF4444',
-  indigo: '#6366F1',
+  g950: '#011B14', g900: '#022C22', g800: '#064E3B', g700: '#047857',
+  g600: '#059669', g500: '#10B981', g400: '#34D399', g300: '#6EE7B7',
+  g100: '#D1FAE5', g50: '#ECFDF5',
+  bg: '#F8FAFC', surface: '#FFFFFF',
+  text: '#0F172A', sub: '#334155', muted: '#94A3B8',
+  border: '#E2E8F0',
+  amber: '#F59E0B', amberBg: '#FFFBEB',
+  red: '#EF4444', redBg: '#FEF2F2',
+  blue: '#3B82F6', blueBg: '#EFF6FF',
+  purple: '#8B5CF6', purpleBg: '#F5F3FF',
 };
 
 const URG = {
-  HIGH: { bg: '#FEE2E2', text: '#DC2626', label: 'HIGH' },
-  MEDIUM: { bg: '#FEF3C7', text: '#D97706', label: 'MEDIUM' },
-  LOW: { bg: '#D1FAE5', text: '#059669', label: 'LOW' },
+  HIGH: { accent: C.red, bg: '#FEE2E2', text: '#DC2626', label: 'HIGH', dot: '#EF4444' },
+  MEDIUM: { accent: C.amber, bg: '#FEF3C7', text: '#D97706', label: 'MEDIUM', dot: '#F59E0B' },
+  LOW: { accent: C.g600, bg: C.g50, text: C.g700, label: 'LOW', dot: C.g500 },
 };
 
 function fmtDate(d) {
@@ -88,7 +95,6 @@ export default function BrowseBookingsScreen({ navigation }) {
       setTotalPages(res?.pagination?.totalPages || res?.totalPages || 1);
       setTotalCount(res?.pagination?.total || bList.length);
 
-      // Fetch comment counts
       if (bList.length > 0) {
         const ids = bList.map(b => b.id).join(',');
         getP2PComments({ postingType: 'BOOKING', postingIds: ids, mode: 'counts' })
@@ -102,7 +108,8 @@ export default function BrowseBookingsScreen({ navigation }) {
   useEffect(() => { fetchBookings(); }, [fetchBookings]);
   const onRefresh = () => { setRefreshing(true); setPage(1); fetchBookings(); };
 
-  // Comments
+  const doSearch = () => { setPage(1); fetchBookings(); };
+
   const toggleComments = async (id) => {
     const isExpanded = expandedComments[id];
     setExpandedComments(p => ({ ...p, [id]: !isExpanded }));
@@ -131,7 +138,6 @@ export default function BrowseBookingsScreen({ navigation }) {
     finally { setSendingComment(p => ({ ...p, [id]: false })); }
   };
 
-  // Share
   const shareWhatsApp = (item) => {
     const msg = `📦 *Booking Available - P2P*\n\n` +
       `*${item.vehicleRequired || item.bookingType}*\n` +
@@ -153,7 +159,6 @@ export default function BrowseBookingsScreen({ navigation }) {
     setShareOpen(null);
   };
 
-  // Accept
   const openAccept = async (booking) => {
     setSelBooking(booking);
     setVehicleName(''); setVehicleNumber('');
@@ -209,393 +214,545 @@ export default function BrowseBookingsScreen({ navigation }) {
 
     return (
       <View style={s.card}>
-        {/* Top row: Urgency + Posting # */}
-        <View style={s.cardTop}>
-          <Text style={s.postingNum}>{item.postingNumber || ''}</Text>
-          <View style={[s.urgBadge, { backgroundColor: urg.bg }]}>
-            <Text style={[s.urgText, { color: urg.text }]}>{urg.label}</Text>
-          </View>
-        </View>
+        {/* Left urgency accent bar */}
+        <View style={[s.urgAccentBar, { backgroundColor: urg.accent }]} />
 
-        {/* Vendor Info */}
-        <View style={s.vendorRow}>
-          <View style={s.vendorAvatar}>
-            <Text style={s.vendorInitial}>{item.vendor?.businessName?.charAt(0) || '?'}</Text>
+        <View style={s.cardInner}>
+          {/* ── TOP ROW: urgency badge + YOU EARN ── */}
+          <View style={s.cardTopRow}>
+            <View style={s.cardTopLeft}>
+              <View style={[s.urgBadge, { backgroundColor: urg.bg }]}>
+                <View style={[s.urgDot, { backgroundColor: urg.dot }]} />
+                <Text style={[s.urgBadgeTxt, { color: urg.text }]}>{urg.label} URGENCY</Text>
+              </View>
+            </View>
+            <View style={s.earnBlock}>
+              <Text style={s.earnLabel}>YOU EARN</Text>
+              <Text style={s.earnAmt}>{fmtPrice(item.partnerEarning)}</Text>
+            </View>
           </View>
-          <View style={{ flex: 1 }}>
-            <Text style={s.vendorName} numberOfLines={1}>{item.vendor?.businessName || 'Vendor'}</Text>
-            <View style={s.vendorMeta}>
-              <Text style={s.vendorCity}>{item.vendor?.city || '-'}</Text>
-              {item.vendor?.rating > 0 && (
-                <View style={s.ratingWrap}>
-                  <MCI name="star" size={12} color={C.amber} />
-                  <Text style={s.ratingText}>{Number(item.vendor.rating).toFixed(1)}</Text>
-                  {item.vendor.totalRatings > 0 && (
-                    <Text style={s.ratingCount}>({item.vendor.totalRatings})</Text>
-                  )}
+
+          {/* ── ROUTE ROW ── */}
+          <View style={s.routeBar}>
+            <View style={s.routeEndWrap}>
+              <View style={s.routeFromDot} />
+              <Text style={s.routeCity} numberOfLines={1}>{item.fromCity || '-'}</Text>
+            </View>
+            <View style={s.routeMid}>
+              <View style={s.routeLine} />
+              <MCI name="package-variant-closed" size={15} color={C.g600} />
+              <View style={s.routeLine} />
+            </View>
+            <View style={s.routeEndWrap}>
+              <View style={s.routeToDot} />
+              <Text style={s.routeCity} numberOfLines={1}>{item.toCity || 'Local'}</Text>
+            </View>
+          </View>
+          {!!item.postingNumber && (
+            <Text style={s.postingNum}>{item.postingNumber}</Text>
+          )}
+
+          {/* ── POSTER ROW ── */}
+          <View style={s.posterRow}>
+            <LinearGradient colors={[C.g700, C.g600]} style={s.posterAvatar}>
+              <Text style={s.posterInitial}>{item.vendor?.businessName?.charAt(0) || '?'}</Text>
+            </LinearGradient>
+            <View style={s.posterInfo}>
+              <Text style={s.posterName} numberOfLines={1}>{item.vendor?.businessName || 'Vendor'}</Text>
+              <View style={s.posterMeta}>
+                <MCI name="map-marker-outline" size={11} color={C.muted} />
+                <Text style={s.posterCity}>{item.vendor?.city || '-'}</Text>
+                {item.vendor?.rating > 0 && (
+                  <View style={s.ratingWrap}>
+                    <MCI name="star" size={11} color={C.amber} />
+                    <Text style={s.ratingTxt}>{Number(item.vendor.rating).toFixed(1)}</Text>
+                  </View>
+                )}
+              </View>
+            </View>
+            <Text style={s.posterTime}>{relTime(item.createdAt)}</Text>
+          </View>
+
+          {/* ── TRIP INFO CHIPS ── */}
+          <View style={s.tripInfoRow}>
+            <View style={s.tripChip}>
+              <Icon name="calendar" size={11} color={C.g700} />
+              <Text style={s.tripChipTxt}>{fmtDate(item.tripDate)}</Text>
+            </View>
+            {!!item.tripTime && (
+              <View style={s.tripChip}>
+                <Icon name="clock" size={11} color={C.g700} />
+                <Text style={s.tripChipTxt}>{item.tripTime}</Text>
+              </View>
+            )}
+            <View style={[s.tripChip, { backgroundColor: C.purpleBg, borderColor: '#DDD6FE' }]}>
+              <MCI name={item.serviceType === 'truck' ? 'truck' : 'car-side'} size={12} color={C.purple} />
+              <Text style={[s.tripChipTxt, { color: C.purple }]}>{item.bookingType || item.serviceType?.toUpperCase()}</Text>
+            </View>
+            {!!item.vehicleRequired && (
+              <View style={[s.tripChip, { backgroundColor: '#F1F5F9', borderColor: C.border }]}>
+                <MCI name="truck-outline" size={11} color={C.sub} />
+                <Text style={[s.tripChipTxt, { color: C.sub }]}>{item.vehicleRequired}</Text>
+              </View>
+            )}
+            {!!item.goodsType && (
+              <View style={[s.tripChip, { backgroundColor: C.amberBg, borderColor: '#FDE68A' }]}>
+                <MCI name="package-variant" size={11} color={C.amber} />
+                <Text style={[s.tripChipTxt, { color: '#D97706' }]}>{item.goodsType}</Text>
+              </View>
+            )}
+            {!!item.returnDate && (
+              <View style={[s.tripChip, { backgroundColor: C.blueBg, borderColor: '#BFDBFE' }]}>
+                <MCI name="calendar-arrow-left" size={11} color={C.blue} />
+                <Text style={[s.tripChipTxt, { color: C.blue }]}>Ret: {fmtDate(item.returnDate)}</Text>
+              </View>
+            )}
+          </View>
+
+          {/* ── PASSENGER / WEIGHT DETAILS ── */}
+          {(item.passengers > 0 || !!item.estimatedWeight) && (
+            <View style={s.detailsRow}>
+              {item.passengers > 0 && (
+                <View style={s.detailChip}>
+                  <MCI name="account-group" size={12} color={C.blue} />
+                  <Text style={s.detailTxt}>{item.passengers} pax</Text>
+                </View>
+              )}
+              {!!item.estimatedWeight && (
+                <View style={s.detailChip}>
+                  <MCI name="weight" size={12} color={C.muted} />
+                  <Text style={s.detailTxt}>~{item.estimatedWeight} kg</Text>
                 </View>
               )}
             </View>
-          </View>
-        </View>
+          )}
 
-        {/* Booking type & vehicle tags */}
-        <View style={s.tagsRow}>
-          <View style={[s.tagPill, { backgroundColor: '#F3E8FF' }]}>
-            <MCI name={item.serviceType === 'truck' ? 'truck' : 'car-side'} size={12} color={C.purple} />
-            <Text style={[s.tagText, { color: C.purple }]}>{item.bookingType || item.serviceType?.toUpperCase()}</Text>
-          </View>
-          {!!item.vehicleRequired && (
-            <View style={s.tagPill}>
-              <Text style={s.tagText}>{item.vehicleRequired}</Text>
+          {/* ── REASON BOX ── */}
+          {!!item.reason && (
+            <View style={s.reasonBox}>
+              <Icon name="alert-circle" size={12} color={C.amber} />
+              <Text style={s.reasonTxt}>{item.reason}</Text>
             </View>
           )}
-          {!!item.vehicleCategory && (
-            <View style={[s.tagPill, { backgroundColor: '#F1F5F9' }]}>
-              <Text style={s.tagText}>{item.vehicleCategory}</Text>
+
+          {/* ── BUDGET BREAKDOWN CARD ── */}
+          <View style={s.budgetCard}>
+            <View style={s.budgetRow}>
+              <Text style={s.budgetRowLabel}>Customer Budget</Text>
+              <Text style={s.budgetRowVal}>{fmtPrice(item.customerBudget)}</Text>
             </View>
-          )}
-        </View>
-
-        {/* Route */}
-        <View style={s.routeRow}>
-          <MCI name="map-marker" size={14} color={C.purple} />
-          <Text style={s.routeCity} numberOfLines={1}>{item.fromCity || '-'}</Text>
-          {!!item.toCity && (
-            <>
-              <Icon name="arrow-right" size={12} color={C.muted} />
-              <Text style={s.routeCity} numberOfLines={1}>{item.toCity}</Text>
-            </>
-          )}
-          {!!item.returnDate && (
-            <View style={[s.tagPill, { backgroundColor: '#DBEAFE', marginLeft: 6 }]}>
-              <Text style={[s.tagText, { color: C.blue, fontSize: 10 }]}>Round Trip</Text>
-            </View>
-          )}
-        </View>
-
-        {/* Date */}
-        <View style={s.infoRow}>
-          <View style={s.infoChip}>
-            <Icon name="calendar" size={11} color={C.muted} />
-            <Text style={s.infoText}>{fmtDate(item.tripDate)}</Text>
-          </View>
-          {!!item.tripTime && (
-            <View style={s.infoChip}>
-              <Icon name="clock" size={11} color={C.muted} />
-              <Text style={s.infoText}>{item.tripTime}</Text>
-            </View>
-          )}
-          {!!item.returnDate && (
-            <View style={s.infoChip}>
-              <MCI name="calendar-arrow-left" size={12} color={C.blue} />
-              <Text style={[s.infoText, { color: C.blue }]}>Return: {fmtDate(item.returnDate)}</Text>
-            </View>
-          )}
-        </View>
-
-        {/* Passengers / Goods */}
-        <View style={s.detailsRow}>
-          {item.passengers > 0 && (
-            <View style={s.detailChip}>
-              <MCI name="account-group" size={12} color={C.blue} />
-              <Text style={s.detailText}>{item.passengers} pax</Text>
-            </View>
-          )}
-          {!!item.goodsType && (
-            <View style={s.detailChip}>
-              <MCI name="package-variant" size={12} color={C.amber} />
-              <Text style={s.detailText}>{item.goodsType}</Text>
-            </View>
-          )}
-          {!!item.estimatedWeight && (
-            <View style={s.detailChip}>
-              <Text style={s.detailText}>~{item.estimatedWeight} kg</Text>
-            </View>
-          )}
-        </View>
-
-        {/* Reason */}
-        {!!item.reason && (
-          <View style={s.reasonBox}>
-            <Icon name="alert-circle" size={12} color={C.amber} />
-            <Text style={s.reasonText}>{item.reason}</Text>
-          </View>
-        )}
-
-        {/* Commission Breakdown */}
-        <View style={s.commRow}>
-          <View style={s.commItem}>
-            <Text style={s.commLabel}>CUSTOMER BUDGET</Text>
-            <Text style={s.commVal}>{fmtPrice(item.customerBudget)}</Text>
-          </View>
-          <View style={[s.commItem, { borderLeftWidth: 1, borderLeftColor: '#E2E8F0' }]}>
-            <Text style={s.commLabel}>YOUR EARNING</Text>
-            <Text style={[s.commVal, { color: C.brand }]}>{fmtPrice(item.partnerEarning)}</Text>
-          </View>
-          <View style={[s.commItem, { borderLeftWidth: 1, borderLeftColor: '#E2E8F0' }]}>
-            <Text style={s.commLabel}>COMMISSION</Text>
-            <Text style={[s.commVal, { color: C.purple }]}>{fmtPrice(item.commission)}</Text>
-          </View>
-        </View>
-
-        {/* Action Buttons */}
-        <View style={s.actionsRow}>
-          <TouchableOpacity style={s.accBtn} onPress={() => openAccept(item)}>
-            <Icon name="plus" size={14} color="#fff" />
-            <Text style={s.accBtnText}>Accept Booking</Text>
-          </TouchableOpacity>
-          {!!item.vendor?.phone && (
-            <TouchableOpacity style={s.iconBtn} onPress={() => Linking.openURL(`tel:${item.vendor.phone}`)}>
-              <Icon name="phone" size={16} color={C.brand} />
-            </TouchableOpacity>
-          )}
-          {!!item.vendor?.phone && (
-            <TouchableOpacity style={s.iconBtn}
-              onPress={() => Linking.openURL(`https://wa.me/91${item.vendor.phone.replace(/\D/g, '')}`)}>
-              <MCI name="whatsapp" size={18} color="#25D366" />
-            </TouchableOpacity>
-          )}
-        </View>
-
-        {/* Comment & Share Bar */}
-        <View style={s.socialBar}>
-          <TouchableOpacity style={s.socialBtn} onPress={() => toggleComments(item.id)}>
-            <MCI name="comment-outline" size={16} color={C.sub} />
-            <Text style={s.socialText}>{cCount}</Text>
-            <Icon name={isExpanded ? 'chevron-up' : 'chevron-down'} size={14} color={C.muted} />
-          </TouchableOpacity>
-
-          <TouchableOpacity style={s.socialBtn} onPress={() => setShareOpen(shareOpen === item.id ? null : item.id)}>
-            <Icon name="share-2" size={14} color={C.sub} />
-            <Text style={s.socialText}>Share</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Share dropdown */}
-        {shareOpen === item.id && (
-          <View style={s.shareMenu}>
-            <TouchableOpacity style={s.shareOption} onPress={() => shareGeneric(item)}>
-              <Icon name="copy" size={14} color={C.sub} />
-              <Text style={s.shareOptionText}>Copy & Share</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={s.shareOption} onPress={() => shareWhatsApp(item)}>
-              <MCI name="whatsapp" size={16} color="#25D366" />
-              <Text style={s.shareOptionText}>WhatsApp</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-
-        {/* Expanded Comments */}
-        {isExpanded && (
-          <View style={s.commentsSection}>
-            {loadingComments[item.id] ? (
-              <ActivityIndicator size="small" color={C.purple} style={{ padding: 12 }} />
-            ) : comments.length === 0 ? (
-              <Text style={s.noComments}>No comments yet. Be the first!</Text>
-            ) : (
-              comments.map(c => (
-                <View key={c.id} style={s.commentItem}>
-                  <View style={s.commentAvatar}>
-                    <Text style={s.commentInitial}>{c.vendor?.businessName?.charAt(0) || '?'}</Text>
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <View style={s.commentHeader}>
-                      <Text style={s.commentName}>{c.vendor?.businessName || 'Vendor'}</Text>
-                      <Text style={s.commentTime}>{relTime(c.createdAt)}</Text>
-                    </View>
-                    <Text style={s.commentMsg}>{c.message}</Text>
-                  </View>
-                </View>
-              ))
+            {item.commission > 0 && (
+              <View style={s.budgetRow}>
+                <Text style={s.budgetRowLabel}>Your Commission</Text>
+                <Text style={[s.budgetRowVal, { color: C.muted }]}>
+                  {fmtPrice(item.commission)}
+                  {item.customerBudget > 0 && (
+                    <Text style={s.budgetPct}> ({Math.round((item.commission / item.customerBudget) * 100)}%)</Text>
+                  )}
+                </Text>
+              </View>
             )}
-            <View style={s.commentInputRow}>
-              <TextInput
-                style={s.commentInput}
-                value={commentInputs[item.id] || ''}
-                onChangeText={t => setCommentInputs(p => ({ ...p, [item.id]: t }))}
-                placeholder="Write a comment..."
-                placeholderTextColor={C.muted}
-                onSubmitEditing={() => sendComment(item.id)}
-              />
+            <View style={s.budgetDivider} />
+            <View style={s.budgetRow}>
+              <Text style={[s.budgetRowLabel, { color: C.g700, fontWeight: '700' }]}>You Earn (est.)</Text>
+              <Text style={s.budgetEarnVal}>{fmtPrice(item.partnerEarning)}</Text>
+            </View>
+          </View>
+
+          {/* ── SPECIAL REQUIREMENTS ── */}
+          {(item.insuranceNeeded || item.labourNeeded) && (
+            <View style={s.reqRow}>
+              {!!item.insuranceNeeded && (
+                <View style={s.reqBadge}>
+                  <MCI name="shield-check-outline" size={12} color={C.amber} />
+                  <Text style={s.reqBadgeTxt}>Insurance Needed</Text>
+                </View>
+              )}
+              {!!item.labourNeeded && (
+                <View style={s.reqBadge}>
+                  <MCI name="account-hard-hat-outline" size={12} color={C.amber} />
+                  <Text style={s.reqBadgeTxt}>Labour Needed</Text>
+                </View>
+              )}
+            </View>
+          )}
+
+          {/* ── ACTION BUTTONS ── */}
+          <View style={s.actionsRow}>
+            <TouchableOpacity style={s.acceptBtnWrap} onPress={() => openAccept(item)} activeOpacity={0.85}>
+              <LinearGradient colors={[C.g700, C.g600]} style={s.acceptBtnGrad}>
+                <Icon name="check-circle" size={14} color="#fff" />
+                <Text style={s.acceptBtnTxt}>Accept Booking</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+            {!!item.vendor?.phone && (
+              <TouchableOpacity style={s.iconActionBtn} onPress={() => Linking.openURL(`tel:${item.vendor.phone}`)}>
+                <Icon name="phone" size={16} color={C.g700} />
+              </TouchableOpacity>
+            )}
+            {!!item.vendor?.phone && (
               <TouchableOpacity
-                style={[s.commentSendBtn, !(commentInputs[item.id] || '').trim() && { opacity: 0.4 }]}
-                onPress={() => sendComment(item.id)}
-                disabled={!(commentInputs[item.id] || '').trim() || sendingComment[item.id]}
-              >
-                {sendingComment[item.id]
-                  ? <ActivityIndicator size="small" color="#fff" />
-                  : <Icon name="send" size={14} color="#fff" />}
+                style={[s.iconActionBtn, { backgroundColor: '#DCFCE7', borderColor: '#BBF7D0' }]}
+                onPress={() => Linking.openURL(`https://wa.me/91${item.vendor.phone.replace(/\D/g, '')}`)}>
+                <MCI name="whatsapp" size={18} color="#25D366" />
+              </TouchableOpacity>
+            )}
+          </View>
+
+          {/* ── SOCIAL BAR ── */}
+          <View style={s.socialBar}>
+            <TouchableOpacity style={s.socialBtn} onPress={() => toggleComments(item.id)}>
+              <MCI name="comment-outline" size={15} color={C.muted} />
+              <Text style={s.socialTxt}>{cCount > 0 ? cCount : ''} Comments</Text>
+              <Icon name={isExpanded ? 'chevron-up' : 'chevron-down'} size={13} color={C.muted} />
+            </TouchableOpacity>
+            <TouchableOpacity style={s.socialBtn} onPress={() => setShareOpen(shareOpen === item.id ? null : item.id)}>
+              <Icon name="share-2" size={13} color={C.muted} />
+              <Text style={s.socialTxt}>Share</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* ── SHARE MENU ── */}
+          {shareOpen === item.id && (
+            <View style={s.shareMenu}>
+              <TouchableOpacity style={s.shareOption} onPress={() => shareGeneric(item)}>
+                <View style={s.shareIconBox}>
+                  <Icon name="copy" size={13} color={C.sub} />
+                </View>
+                <Text style={s.shareOptionTxt}>Copy & Share</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[s.shareOption, { borderBottomWidth: 0 }]} onPress={() => shareWhatsApp(item)}>
+                <View style={[s.shareIconBox, { backgroundColor: '#DCFCE7' }]}>
+                  <MCI name="whatsapp" size={15} color="#25D366" />
+                </View>
+                <Text style={s.shareOptionTxt}>WhatsApp</Text>
               </TouchableOpacity>
             </View>
-          </View>
-        )}
+          )}
+
+          {/* ── EXPANDED COMMENTS ── */}
+          {isExpanded && (
+            <View style={s.commentsSection}>
+              <View style={s.commentsDivider} />
+              {loadingComments[item.id] ? (
+                <ActivityIndicator size="small" color={C.g600} style={{ paddingVertical: 14 }} />
+              ) : comments.length === 0 ? (
+                <Text style={s.noCommentsTxt}>No comments yet. Be the first!</Text>
+              ) : (
+                comments.map(c => (
+                  <View key={c.id} style={s.commentItem}>
+                    <LinearGradient colors={[C.g700, C.g600]} style={s.commentAvatar}>
+                      <Text style={s.commentInitial}>{c.vendor?.businessName?.charAt(0) || '?'}</Text>
+                    </LinearGradient>
+                    <View style={{ flex: 1 }}>
+                      <View style={s.commentHeader}>
+                        <Text style={s.commentName}>{c.vendor?.businessName || 'Vendor'}</Text>
+                        <Text style={s.commentTime}>{relTime(c.createdAt)}</Text>
+                      </View>
+                      <Text style={s.commentMsg}>{c.message}</Text>
+                    </View>
+                  </View>
+                ))
+              )}
+              <View style={s.commentInputRow}>
+                <TextInput
+                  style={s.commentInput}
+                  value={commentInputs[item.id] || ''}
+                  onChangeText={t => setCommentInputs(p => ({ ...p, [item.id]: t }))}
+                  placeholder="Write a comment..."
+                  placeholderTextColor={C.muted}
+                  onSubmitEditing={() => sendComment(item.id)}
+                />
+                <TouchableOpacity
+                  style={[s.commentSendBtn, !(commentInputs[item.id] || '').trim() && { opacity: 0.4 }]}
+                  onPress={() => sendComment(item.id)}
+                  disabled={!(commentInputs[item.id] || '').trim() || sendingComment[item.id]}
+                >
+                  {sendingComment[item.id]
+                    ? <ActivityIndicator size="small" color="#fff" />
+                    : <LinearGradient colors={[C.g700, C.g600]} style={s.commentSendGrad}>
+                        <Icon name="send" size={13} color="#fff" />
+                      </LinearGradient>}
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
+        </View>
       </View>
     );
   };
 
-  return (
-    <SafeAreaView style={s.safe} edges={['top']}>
-      {/* Header */}
-      <View style={s.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
-          <Icon name="arrow-left" size={22} color="#fff" />
-        </TouchableOpacity>
-        <View style={s.headerCenter}>
-          <Text style={s.headerTitle}>Available Bookings</Text>
-          <Text style={s.headerSub}>Accept bookings from other vendors</Text>
-        </View>
-        <TouchableOpacity onPress={() => navigation.navigate('PostBookingScreen')} style={s.addBtn}>
-          <Icon name="plus" size={20} color="#fff" />
-        </TouchableOpacity>
-      </View>
+  const ListHeader = () => (
+    <>
+      <StatusBar barStyle="light-content" backgroundColor={C.g950} />
+      {/* ── HEADER ── */}
+      <LinearGradient colors={[C.g950, C.g900, C.g800]} style={s.header}>
+        {/* Decorative circles */}
+        <View style={s.decCircle1} />
+        <View style={s.decCircle2} />
+        <SafeAreaView edges={['top']}>
+          <View style={s.headerInner}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
+              <Icon name="arrow-left" size={22} color="#fff" />
+            </TouchableOpacity>
+            <View style={s.headerCenter}>
+              <Text style={s.headerTitle}>Load Requests</Text>
+              <Text style={s.headerSub}>Find bookings that need partners</Text>
+            </View>
+            <TouchableOpacity onPress={() => navigation.navigate('PostBookingScreen')} style={s.addBtn}>
+              <LinearGradient colors={[C.g600, C.g500]} style={s.addBtnGrad}>
+                <Icon name="plus" size={20} color="#fff" />
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
+        </SafeAreaView>
+      </LinearGradient>
 
-      {/* Search */}
-      <View style={s.searchRow}>
+      {/* ── SEARCH BAR ── */}
+      <View style={s.searchWrap}>
         <View style={s.searchBox}>
-          <Icon name="search" size={16} color={C.muted} />
-          <TextInput style={s.searchInput} value={search} onChangeText={setSearch}
-            placeholder="Search bookings..." placeholderTextColor={C.muted}
-            onSubmitEditing={() => { setPage(1); fetchBookings(); }} returnKeyType="search" />
+          <Icon name="search" size={16} color={C.g600} />
+          <TextInput
+            style={s.searchInput}
+            value={search}
+            onChangeText={setSearch}
+            placeholder="Search by city, vehicle type..."
+            placeholderTextColor={C.muted}
+            onSubmitEditing={doSearch}
+            returnKeyType="search"
+          />
+          {search.length > 0 && (
+            <TouchableOpacity onPress={() => { setSearch(''); doSearch(); }}>
+              <View style={s.searchClearBtn}>
+                <Icon name="x" size={12} color={C.muted} />
+              </View>
+            </TouchableOpacity>
+          )}
         </View>
       </View>
 
-      {/* Filters */}
-      <View style={s.filterRow}>
-        {['all', 'truck', 'car'].map(f => (
-          <TouchableOpacity key={f}
-            style={[s.filterChip, serviceFilter === f && s.filterActive]}
-            onPress={() => { setServiceFilter(f); setPage(1); }}>
-            {f !== 'all' && <MCI name={f === 'truck' ? 'truck' : 'car-side'} size={13}
-              color={serviceFilter === f ? '#fff' : C.muted} />}
-            <Text style={[s.filterText, serviceFilter === f && s.filterTextActive]}>
-              {f === 'all' ? 'All' : f.charAt(0).toUpperCase() + f.slice(1)}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-
-      {/* Urgency filters */}
-      <View style={s.filterRow}>
-        {['all', 'HIGH', 'MEDIUM', 'LOW'].map(u => {
-          const uc = URG[u];
-          const active = urgencyFilter === u;
-          return (
-            <TouchableOpacity key={u}
-              style={[s.filterChip, active && { backgroundColor: uc?.bg || C.purple, borderColor: uc?.text }]}
-              onPress={() => { setUrgencyFilter(u); setPage(1); }}>
-              {uc && <View style={[s.urgDot, { backgroundColor: uc.text }]} />}
-              <Text style={[s.filterText, active && { color: uc?.text || '#fff', fontWeight: '700' }]}>
-                {u === 'all' ? 'All Urgency' : u}
+      {/* ── SERVICE FILTERS ── */}
+      <View style={s.filterSection}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.filterScroll}>
+          {['all', 'truck', 'car'].map(f => (
+            <TouchableOpacity
+              key={f}
+              style={[s.filterPill, serviceFilter === f && s.filterPillActive]}
+              onPress={() => { setServiceFilter(f); setPage(1); }}>
+              {f !== 'all' && (
+                <MCI
+                  name={f === 'truck' ? 'truck' : 'car-side'}
+                  size={13}
+                  color={serviceFilter === f ? '#fff' : C.muted}
+                />
+              )}
+              <Text style={[s.filterPillTxt, serviceFilter === f && s.filterPillTxtActive]}>
+                {f === 'all' ? 'All Types' : f.charAt(0).toUpperCase() + f.slice(1)}
               </Text>
             </TouchableOpacity>
-          );
-        })}
+          ))}
+        </ScrollView>
       </View>
 
+      {/* ── URGENCY FILTERS ── */}
+      <View style={s.filterSection}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.filterScroll}>
+          {['all', 'HIGH', 'MEDIUM', 'LOW'].map(u => {
+            const uc = URG[u];
+            const active = urgencyFilter === u;
+            return (
+              <TouchableOpacity
+                key={u}
+                style={[
+                  s.filterPill,
+                  active && uc
+                    ? { backgroundColor: uc.bg, borderColor: uc.dot, borderWidth: 1.5 }
+                    : active && { backgroundColor: C.g50, borderColor: C.g400, borderWidth: 1.5 },
+                ]}
+                onPress={() => { setUrgencyFilter(u); setPage(1); }}>
+                {uc && <View style={[s.urgDotFilter, { backgroundColor: uc.dot }]} />}
+                <Text style={[
+                  s.filterPillTxt,
+                  active && uc ? { color: uc.text, fontWeight: '700' } : active && { color: C.g700, fontWeight: '700' },
+                ]}>
+                  {u === 'all' ? 'All Urgency' : u.charAt(0) + u.slice(1).toLowerCase()}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+      </View>
+
+      {/* ── RESULT COUNT ── */}
       {!loading && totalCount > 0 && (
-        <Text style={s.resultCount}>Showing {bookings.length} of {totalCount} bookings</Text>
+        <View style={s.resultRow}>
+          <View style={s.resultDot} />
+          <Text style={s.resultTxt}>{bookings.length} of {totalCount} load requests</Text>
+        </View>
       )}
+    </>
+  );
 
-      {loading ? (
-        <View style={s.center}><ActivityIndicator size="large" color={C.purple} /></View>
-      ) : (
-        <FlatList
-          data={bookings}
-          renderItem={renderBooking}
-          keyExtractor={item => item.id}
-          contentContainerStyle={s.list}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[C.purple]} />}
-          ListEmptyComponent={
-            <View style={s.empty}>
-              <View style={[s.emptyIcon, { backgroundColor: '#F3E8FF' }]}>
-                <MCI name="package-variant" size={36} color={C.purple} />
+  if (loading) {
+    return (
+      <View style={s.flex}>
+        <StatusBar barStyle="light-content" backgroundColor={C.g950} />
+        <LinearGradient colors={[C.g950, C.g900, C.g800]} style={s.header}>
+          <View style={s.decCircle1} />
+          <View style={s.decCircle2} />
+          <SafeAreaView edges={['top']}>
+            <View style={s.headerInner}>
+              <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
+                <Icon name="arrow-left" size={22} color="#fff" />
+              </TouchableOpacity>
+              <View style={s.headerCenter}>
+                <Text style={s.headerTitle}>Load Requests</Text>
+                <Text style={s.headerSub}>Find bookings that need partners</Text>
               </View>
-              <Text style={s.emptyTitle}>No bookings available</Text>
-              <Text style={s.emptyMsg}>Try adjusting your filters or check back later</Text>
-              <TouchableOpacity style={s.emptyBtn} onPress={() => navigation.navigate('PostBookingScreen')}>
-                <Icon name="plus" size={16} color="#fff" />
-                <Text style={s.emptyBtnText}>Post a Booking</Text>
-              </TouchableOpacity>
+              <View style={{ width: 40 }} />
             </View>
-          }
-          ListFooterComponent={totalPages > 1 ? (
-            <View style={s.pagination}>
-              <TouchableOpacity style={[s.pageBtn, page <= 1 && s.pageBtnDisabled]}
-                disabled={page <= 1} onPress={() => setPage(p => p - 1)}>
-                <Icon name="chevron-left" size={16} color={page <= 1 ? C.muted : C.text} />
-                <Text style={[s.pageBtnText, page <= 1 && { color: C.muted }]}>Prev</Text>
-              </TouchableOpacity>
-              <Text style={s.pageInfo}>Page {page} / {totalPages}</Text>
-              <TouchableOpacity style={[s.pageBtn, page >= totalPages && s.pageBtnDisabled]}
-                disabled={page >= totalPages} onPress={() => setPage(p => p + 1)}>
-                <Text style={[s.pageBtnText, page >= totalPages && { color: C.muted }]}>Next</Text>
-                <Icon name="chevron-right" size={16} color={page >= totalPages ? C.muted : C.text} />
-              </TouchableOpacity>
-            </View>
-          ) : null}
-        />
-      )}
+          </SafeAreaView>
+        </LinearGradient>
+        <View style={s.loadingCenter}>
+          <View style={s.loadingSpinnerWrap}>
+            <ActivityIndicator size="large" color={C.g600} />
+          </View>
+          <Text style={s.loadingTxt}>Loading load requests...</Text>
+        </View>
+      </View>
+    );
+  }
 
-      {/* Accept Modal */}
+  return (
+    <View style={s.flex}>
+      <StatusBar barStyle="light-content" backgroundColor={C.g950} />
+      <FlatList
+        data={bookings}
+        renderItem={renderBooking}
+        keyExtractor={item => item.id}
+        contentContainerStyle={s.listContent}
+        ListHeaderComponent={ListHeader}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[C.g600]} tintColor={C.g600} />
+        }
+        ListEmptyComponent={
+          <View style={s.emptyWrap}>
+            <LinearGradient colors={[C.g800, C.g700, C.g600]} style={s.emptyIconCircle}>
+              <MCI name="package-variant" size={38} color="#fff" />
+            </LinearGradient>
+            <Text style={s.emptyTitle}>No Load Requests</Text>
+            <Text style={s.emptyMsg}>No bookings match your filters right now.{'\n'}Try adjusting the filters or post your own booking.</Text>
+            <TouchableOpacity onPress={() => navigation.navigate('PostBookingScreen')} activeOpacity={0.85}>
+              <LinearGradient colors={[C.g700, C.g600]} style={s.emptyBtn}>
+                <Icon name="plus" size={16} color="#fff" />
+                <Text style={s.emptyBtnTxt}>Share a Booking</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
+        }
+        ListFooterComponent={totalPages > 1 ? (
+          <View style={s.pagination}>
+            <TouchableOpacity
+              style={[s.pageBtn, page <= 1 && s.pageBtnDisabled]}
+              disabled={page <= 1}
+              onPress={() => setPage(p => p - 1)}>
+              <Icon name="chevron-left" size={16} color={page <= 1 ? C.muted : C.g700} />
+              <Text style={[s.pageBtnTxt, page <= 1 && { color: C.muted }]}>Prev</Text>
+            </TouchableOpacity>
+            <LinearGradient colors={[C.g800, C.g700]} style={s.pageInfoPill}>
+              <Text style={s.pageInfoTxt}>{page} / {totalPages}</Text>
+            </LinearGradient>
+            <TouchableOpacity
+              style={[s.pageBtn, page >= totalPages && s.pageBtnDisabled]}
+              disabled={page >= totalPages}
+              onPress={() => setPage(p => p + 1)}>
+              <Text style={[s.pageBtnTxt, page >= totalPages && { color: C.muted }]}>Next</Text>
+              <Icon name="chevron-right" size={16} color={page >= totalPages ? C.muted : C.g700} />
+            </TouchableOpacity>
+          </View>
+        ) : null}
+      />
+
+      {/* ── ACCEPT MODAL ── */}
       <Modal visible={accModal} transparent animationType="slide">
         <View style={s.modalOverlay}>
-          <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={() => setAccModal(false)} />
-          <ScrollView bounces={false} style={{ maxHeight: '88%' }}>
-            <View style={s.modalContent}>
+          <TouchableOpacity style={s.modalBackdrop} activeOpacity={1} onPress={() => setAccModal(false)} />
+          <View style={s.modalSheet}>
+            {/* Modal Header */}
+            <LinearGradient colors={[C.g950, C.g800]} style={s.modalHeader}>
               <View style={s.modalHandle} />
-              <View style={s.modalHeader}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                  <View style={[s.modalIconWrap, { backgroundColor: '#F3E8FF' }]}>
-                    <Icon name="check-circle" size={16} color={C.purple} />
-                  </View>
-                  <Text style={s.modalTitle}>Accept Booking</Text>
+              <View style={s.modalHeaderRow}>
+                <View style={s.modalHeaderIcon}>
+                  <Icon name="check-circle" size={17} color="#fff" />
                 </View>
+                <Text style={s.modalHeaderTitle}>Accept Booking</Text>
                 <TouchableOpacity onPress={() => setAccModal(false)} style={s.modalCloseBtn}>
-                  <Icon name="x" size={20} color={C.muted} />
+                  <Icon name="x" size={18} color="rgba(255,255,255,0.75)" />
                 </TouchableOpacity>
               </View>
+            </LinearGradient>
 
-              {/* Booking summary */}
-              <View style={s.modalSummary}>
-                <View style={{ flex: 1 }}>
+            <ScrollView
+              bounces={false}
+              style={s.modalScroll}
+              contentContainerStyle={s.modalScrollContent}
+              showsVerticalScrollIndicator={false}
+            >
+              {/* Booking Summary Card */}
+              <LinearGradient colors={[C.g50, C.g100]} style={s.modalSummaryCard}>
+                <View style={s.modalSummaryIconWrap}>
+                  <MCI name="package-variant-closed" size={22} color={C.g700} />
+                </View>
+                <View style={s.modalSummaryInfo}>
                   <Text style={s.modalSummaryNum}>{selBooking?.postingNumber}</Text>
                   <Text style={s.modalSummaryTitle}>{selBooking?.vehicleRequired || selBooking?.bookingType}</Text>
-                  <Text style={s.modalSummaryRoute}>
-                    <MCI name="map-marker" size={12} color={C.purple} /> {selBooking?.fromCity} → {selBooking?.toCity || '-'}
-                  </Text>
+                  <View style={s.modalSummaryRouteRow}>
+                    <View style={s.modalRouteFromDot} />
+                    <Text style={s.modalSummaryRoute}>{selBooking?.fromCity}</Text>
+                    <Icon name="arrow-right" size={12} color={C.muted} />
+                    <View style={s.modalRouteToDot} />
+                    <Text style={s.modalSummaryRoute}>{selBooking?.toCity || '-'}</Text>
+                  </View>
+                  <View style={s.modalDateRow}>
+                    <Icon name="calendar" size={11} color={C.g700} />
+                    <Text style={s.modalDateTxt}>{fmtDate(selBooking?.tripDate)}</Text>
+                  </View>
+                </View>
+                <View style={s.modalEarnTag}>
+                  <Text style={s.modalEarnTagLabel}>YOU EARN</Text>
+                  <Text style={s.modalEarnTagAmt}>{fmtPrice(selBooking?.partnerEarning)}</Text>
+                </View>
+              </LinearGradient>
+
+              {/* Commission Tiles */}
+              <View style={s.modalTilesRow}>
+                <View style={s.modalTile}>
+                  <Text style={s.modalTileLabel}>Budget</Text>
+                  <Text style={s.modalTileVal}>{fmtPrice(selBooking?.customerBudget)}</Text>
+                </View>
+                <View style={[s.modalTile, { backgroundColor: C.g50, borderColor: C.g100 }]}>
+                  <Text style={[s.modalTileLabel, { color: C.g700 }]}>You Earn</Text>
+                  <Text style={[s.modalTileVal, { color: C.g700, fontSize: 15 }]}>{fmtPrice(selBooking?.partnerEarning)}</Text>
+                </View>
+                <View style={[s.modalTile, { backgroundColor: C.purpleBg, borderColor: '#DDD6FE' }]}>
+                  <Text style={[s.modalTileLabel, { color: C.purple }]}>Commission</Text>
+                  <Text style={[s.modalTileVal, { color: C.purple }]}>{fmtPrice(selBooking?.commission)}</Text>
                 </View>
               </View>
 
-              {/* Commission */}
-              <View style={s.modalCommRow}>
-                <View style={s.modalCommItem}>
-                  <Text style={s.modalCommLabel}>Budget</Text>
-                  <Text style={s.modalCommVal}>{fmtPrice(selBooking?.customerBudget)}</Text>
-                </View>
-                <View style={[s.modalCommItem, { backgroundColor: '#F3E8FF' }]}>
-                  <Text style={[s.modalCommLabel, { color: C.purple }]}>Commission</Text>
-                  <Text style={[s.modalCommVal, { color: C.purple }]}>{fmtPrice(selBooking?.commission)}</Text>
-                </View>
-                <View style={[s.modalCommItem, { backgroundColor: '#D1FAE5' }]}>
-                  <Text style={[s.modalCommLabel, { color: '#047857' }]}>Your Earning</Text>
-                  <Text style={[s.modalCommVal, { color: C.brand, fontSize: 16 }]}>{fmtPrice(selBooking?.partnerEarning)}</Text>
-                </View>
-              </View>
-
-              {/* Vehicle from fleet */}
+              {/* Fleet Selection */}
               {fleetVehicles.length > 0 && (
                 <>
-                  <Text style={s.fLabel}>SELECT FROM FLEET</Text>
-                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+                  <Text style={s.fieldLabel}>SELECT FROM FLEET</Text>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.pickRow}>
                     {fleetVehicles.slice(0, 10).map(v => {
                       const nm = v.vehicle_models?.brands?.name && v.vehicle_models?.name
                         ? `${v.vehicle_models.brands.name} ${v.vehicle_models.name}`
                         : v.name || v.vehicleName || 'Vehicle';
                       return (
                         <TouchableOpacity key={v.id} style={s.pickChip} onPress={() => selectFleetVehicle(v)}>
-                          <MCI name="truck" size={12} color={C.purple} />
-                          <Text style={s.pickText} numberOfLines={1}>{nm}</Text>
+                          <MCI name="truck" size={12} color={C.g700} />
+                          <Text style={s.pickChipTxt} numberOfLines={1}>{nm}</Text>
                         </TouchableOpacity>
                       );
                     })}
@@ -603,200 +760,551 @@ export default function BrowseBookingsScreen({ navigation }) {
                 </>
               )}
 
-              <Text style={s.fLabel}>VEHICLE NAME *</Text>
-              <TextInput style={s.input} value={vehicleName} onChangeText={setVehicleName}
-                placeholder="e.g. Tata Ace, Innova Crysta" placeholderTextColor={C.muted} />
-              <Text style={s.fLabel}>VEHICLE NUMBER</Text>
-              <TextInput style={s.input} value={vehicleNumber} onChangeText={setVehicleNumber}
-                placeholder="e.g. MH04AB1234" placeholderTextColor={C.muted} autoCapitalize="characters" />
+              {/* Vehicle Fields */}
+              <View style={s.fieldCard}>
+                <View style={s.fieldCardIconWrap}>
+                  <LinearGradient colors={[C.g700, C.g600]} style={s.fieldCardIcon}>
+                    <MCI name="truck" size={16} color="#fff" />
+                  </LinearGradient>
+                </View>
+                <View style={s.fieldCardBody}>
+                  <Text style={s.fieldLabel}>VEHICLE NAME *</Text>
+                  <TextInput
+                    style={s.fieldInput}
+                    value={vehicleName}
+                    onChangeText={setVehicleName}
+                    placeholder="e.g. Tata Ace, Innova Crysta"
+                    placeholderTextColor={C.muted}
+                  />
+                  <Text style={[s.fieldLabel, { marginTop: 12 }]}>VEHICLE NUMBER</Text>
+                  <TextInput
+                    style={s.fieldInput}
+                    value={vehicleNumber}
+                    onChangeText={setVehicleNumber}
+                    placeholder="e.g. MH04AB1234"
+                    placeholderTextColor={C.muted}
+                    autoCapitalize="characters"
+                  />
+                </View>
+              </View>
 
-              {/* Driver from staff */}
+              {/* Driver Selection */}
               {staffDrivers.length > 0 && (
                 <>
-                  <Text style={s.fLabel}>SELECT DRIVER</Text>
-                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+                  <Text style={[s.fieldLabel, { marginTop: 18 }]}>SELECT DRIVER</Text>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.pickRow}>
                     {staffDrivers.map(d => (
-                      <TouchableOpacity key={d.id} style={s.pickChip} onPress={() => selectDriver(d)}>
+                      <TouchableOpacity
+                        key={d.id}
+                        style={[s.pickChip, { backgroundColor: C.blueBg, borderColor: '#BFDBFE' }]}
+                        onPress={() => selectDriver(d)}>
                         <MCI name="account" size={12} color={C.blue} />
-                        <Text style={s.pickText}>{d.name}</Text>
+                        <Text style={[s.pickChipTxt, { color: C.blue }]}>{d.name}</Text>
                       </TouchableOpacity>
                     ))}
                   </ScrollView>
                 </>
               )}
 
-              <Text style={s.fLabel}>DRIVER NAME *</Text>
-              <TextInput style={s.input} value={driverName} onChangeText={setDriverName}
-                placeholder="Driver name" placeholderTextColor={C.muted} />
-              <Text style={s.fLabel}>DRIVER PHONE *</Text>
-              <TextInput style={s.input} value={driverPhone} onChangeText={setDriverPhone}
-                placeholder="10-digit phone" placeholderTextColor={C.muted} keyboardType="phone-pad" />
-              <Text style={s.fLabel}>NOTES (Optional)</Text>
-              <TextInput style={[s.input, { height: 60, textAlignVertical: 'top' }]}
-                value={accNotes} onChangeText={setAccNotes}
-                placeholder="Any additional info..." placeholderTextColor={C.muted} multiline />
+              {/* Driver Fields */}
+              <View style={s.fieldCard}>
+                <View style={s.fieldCardIconWrap}>
+                  <LinearGradient colors={['#3B82F6', '#2563EB']} style={s.fieldCardIcon}>
+                    <MCI name="account" size={16} color="#fff" />
+                  </LinearGradient>
+                </View>
+                <View style={s.fieldCardBody}>
+                  <Text style={s.fieldLabel}>DRIVER NAME *</Text>
+                  <TextInput
+                    style={s.fieldInput}
+                    value={driverName}
+                    onChangeText={setDriverName}
+                    placeholder="Driver name"
+                    placeholderTextColor={C.muted}
+                  />
+                  <Text style={[s.fieldLabel, { marginTop: 12 }]}>DRIVER PHONE *</Text>
+                  <TextInput
+                    style={s.fieldInput}
+                    value={driverPhone}
+                    onChangeText={setDriverPhone}
+                    placeholder="10-digit phone"
+                    placeholderTextColor={C.muted}
+                    keyboardType="phone-pad"
+                  />
+                </View>
+              </View>
 
-              <TouchableOpacity style={[s.submitBtn, submitting && { opacity: 0.6 }]}
-                onPress={handleAccept} disabled={submitting}>
-                {submitting ? <ActivityIndicator size="small" color="#fff" /> : (
-                  <><Icon name="check" size={16} color="#fff" /><Text style={s.submitBtnText}>Accept Booking</Text></>
-                )}
+              {/* Notes */}
+              <Text style={[s.fieldLabel, { marginTop: 18 }]}>NOTES (Optional)</Text>
+              <TextInput
+                style={[s.fieldInput, { height: 64, textAlignVertical: 'top', borderRadius: 14 }]}
+                value={accNotes}
+                onChangeText={setAccNotes}
+                placeholder="Any additional information..."
+                placeholderTextColor={C.muted}
+                multiline
+              />
+
+              {/* Submit */}
+              <TouchableOpacity
+                style={[s.submitWrap, submitting && { opacity: 0.6 }]}
+                onPress={handleAccept}
+                disabled={submitting}
+                activeOpacity={0.85}>
+                <LinearGradient colors={[C.g700, C.g600]} style={s.submitBtn}>
+                  {submitting
+                    ? <ActivityIndicator size="small" color="#fff" />
+                    : <>
+                        <Icon name="check" size={17} color="#fff" />
+                        <Text style={s.submitBtnTxt}>Accept Booking</Text>
+                      </>}
+                </LinearGradient>
               </TouchableOpacity>
-            </View>
-          </ScrollView>
+            </ScrollView>
+          </View>
         </View>
       </Modal>
 
-      <CustomAlert visible={alert.visible} type={alert.type} title={alert.title} message={alert.message} onClose={hideAlert} />
-    </SafeAreaView>
+      <CustomAlert
+        visible={alert.visible}
+        type={alert.type}
+        title={alert.title}
+        message={alert.message}
+        onClose={hideAlert}
+      />
+    </View>
   );
 }
 
 const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: C.bg },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  flex: { flex: 1, backgroundColor: C.bg },
 
-  // Header
-  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 16, backgroundColor: C.purple },
-  backBtn: { width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.15)' },
-  headerCenter: { flex: 1, marginLeft: 12 },
-  headerTitle: { fontSize: 20, fontWeight: '700', color: '#fff' },
-  headerSub: { fontSize: 11, color: 'rgba(255,255,255,0.7)', marginTop: 2 },
-  addBtn: { width: 40, height: 40, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.2)', justifyContent: 'center', alignItems: 'center' },
-
-  // Search
-  searchRow: { paddingHorizontal: 16, paddingTop: 12 },
-  searchBox: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: C.surface, borderRadius: 12, borderWidth: 1, borderColor: C.border, paddingHorizontal: 12 },
-  searchInput: { flex: 1, fontSize: 14, color: C.text, paddingVertical: 10 },
-
-  // Filters
-  filterRow: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 16, paddingVertical: 4, gap: 8 },
-  filterChip: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20, backgroundColor: '#F1F5F9' },
-  filterActive: { backgroundColor: C.purple },
-  filterText: { fontSize: 12, fontWeight: '600', color: C.sub },
-  filterTextActive: { color: '#fff', fontWeight: '700' },
-  urgDot: { width: 6, height: 6, borderRadius: 3 },
-
-  resultCount: { fontSize: 12, color: C.sub, paddingHorizontal: 16, paddingVertical: 4 },
-
-  list: { padding: 16, paddingBottom: 80 },
-
-  // Card
-  card: {
-    backgroundColor: C.surface, borderRadius: 16, marginBottom: 14, overflow: 'hidden',
-    borderWidth: 1, borderColor: C.border,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 8, elevation: 2,
+  // ── HEADER ──
+  header: { paddingBottom: 20, overflow: 'hidden' },
+  decCircle1: {
+    position: 'absolute', width: 200, height: 200, borderRadius: 100,
+    backgroundColor: 'rgba(255,255,255,0.03)', top: -60, right: -40,
   },
-  cardTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 14, paddingTop: 12 },
-  postingNum: { fontSize: 11, color: C.muted, fontFamily: 'monospace' },
-  urgBadge: { paddingHorizontal: 10, paddingVertical: 3, borderRadius: 6 },
-  urgText: { fontSize: 10, fontWeight: '800' },
+  decCircle2: {
+    position: 'absolute', width: 140, height: 140, borderRadius: 70,
+    backgroundColor: 'rgba(255,255,255,0.04)', top: 20, left: -50,
+  },
+  headerInner: {
+    flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: 16, paddingTop: 14, gap: 12,
+  },
+  backBtn: {
+    width: 40, height: 40, borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    justifyContent: 'center', alignItems: 'center',
+  },
+  headerCenter: { flex: 1 },
+  headerTitle: { fontSize: 20, fontWeight: '800', color: '#fff', letterSpacing: -0.3 },
+  headerSub: { fontSize: 12, color: 'rgba(255,255,255,0.6)', marginTop: 2 },
+  addBtn: { width: 40, height: 40, borderRadius: 20, overflow: 'hidden' },
+  addBtnGrad: { flex: 1, justifyContent: 'center', alignItems: 'center' },
 
-  // Vendor
-  vendorRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 14, paddingTop: 8 },
-  vendorAvatar: { width: 36, height: 36, borderRadius: 12, backgroundColor: C.purple, justifyContent: 'center', alignItems: 'center' },
-  vendorInitial: { fontSize: 14, fontWeight: '700', color: '#fff' },
-  vendorName: { fontSize: 14, fontWeight: '600', color: C.text },
-  vendorMeta: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 1 },
-  vendorCity: { fontSize: 11, color: C.muted },
+  // ── SEARCH ──
+  searchWrap: { paddingHorizontal: 14, paddingTop: 14, paddingBottom: 6 },
+  searchBox: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    backgroundColor: C.surface, borderRadius: 14,
+    borderWidth: 1.5, borderColor: C.border,
+    paddingHorizontal: 14, paddingVertical: 4,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05, shadowRadius: 6, elevation: 2,
+  },
+  searchInput: { flex: 1, fontSize: 14, color: C.text, paddingVertical: 10 },
+  searchClearBtn: {
+    width: 22, height: 22, borderRadius: 11,
+    backgroundColor: '#F1F5F9', justifyContent: 'center', alignItems: 'center',
+  },
+
+  // ── FILTERS ──
+  filterSection: { paddingBottom: 2 },
+  filterScroll: { paddingHorizontal: 14, paddingVertical: 5, gap: 8 },
+  filterPill: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20,
+    backgroundColor: C.surface, borderWidth: 1, borderColor: C.border,
+  },
+  filterPillActive: { backgroundColor: C.g700, borderColor: C.g700 },
+  filterPillTxt: { fontSize: 12, fontWeight: '600', color: C.muted },
+  filterPillTxtActive: { color: '#fff', fontWeight: '700' },
+  urgDotFilter: { width: 7, height: 7, borderRadius: 3.5 },
+
+  // ── RESULT COUNT ──
+  resultRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 7,
+    paddingHorizontal: 14, paddingVertical: 8,
+  },
+  resultDot: { width: 7, height: 7, borderRadius: 3.5, backgroundColor: C.g500 },
+  resultTxt: { fontSize: 12, color: C.muted, fontWeight: '600' },
+
+  // ── LIST ──
+  listContent: { paddingBottom: 36, gap: 12, paddingTop: 4 },
+
+  // ── CARD ──
+  card: {
+    marginHorizontal: 14,
+    flexDirection: 'row',
+    backgroundColor: C.surface,
+    borderRadius: 18,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: C.border,
+    overflow: 'hidden',
+  },
+  urgAccentBar: { width: 5, borderRadius: 0 },
+  cardInner: { flex: 1, padding: 14 },
+
+  // Card top row
+  cardTopRow: {
+    flexDirection: 'row', alignItems: 'flex-start',
+    justifyContent: 'space-between', marginBottom: 12,
+  },
+  cardTopLeft: { gap: 6 },
+  urgBadge: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    paddingHorizontal: 10, paddingVertical: 5,
+    borderRadius: 8, alignSelf: 'flex-start',
+  },
+  urgDot: { width: 6, height: 6, borderRadius: 3 },
+  urgBadgeTxt: { fontSize: 10, fontWeight: '800', letterSpacing: 0.4 },
+  earnBlock: { alignItems: 'flex-end' },
+  earnLabel: {
+    fontSize: 9, color: C.muted, fontWeight: '700',
+    letterSpacing: 1, textTransform: 'uppercase', marginBottom: 3,
+  },
+  earnAmt: {
+    fontSize: 24, fontWeight: '900', color: C.g600,
+    letterSpacing: -0.5, lineHeight: 28,
+  },
+
+  // Route bar
+  routeBar: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: '#F8FAFC', borderRadius: 12, padding: 12,
+    marginBottom: 6, borderWidth: 1, borderColor: C.border,
+  },
+  routeEndWrap: { flex: 1, alignItems: 'center', gap: 5 },
+  routeFromDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: C.g500 },
+  routeToDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: C.red },
+  routeMid: { flex: 0.6, flexDirection: 'row', alignItems: 'center', gap: 4 },
+  routeLine: { flex: 1, height: 1.5, backgroundColor: C.border },
+  routeCity: { fontSize: 12, fontWeight: '700', color: C.text, textAlign: 'center' },
+  postingNum: {
+    fontSize: 10, color: C.muted, fontWeight: '600',
+    fontFamily: 'monospace', textAlign: 'center', marginBottom: 10,
+  },
+
+  // Poster row
+  posterRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    paddingBottom: 12, marginBottom: 10,
+    borderBottomWidth: 1, borderBottomColor: '#F1F5F9',
+  },
+  posterAvatar: {
+    width: 36, height: 36, borderRadius: 18,
+    justifyContent: 'center', alignItems: 'center',
+  },
+  posterInitial: { fontSize: 13, fontWeight: '800', color: '#fff' },
+  posterInfo: { flex: 1 },
+  posterName: { fontSize: 13, fontWeight: '700', color: C.text },
+  posterMeta: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 2 },
+  posterCity: { fontSize: 11, color: C.muted },
   ratingWrap: { flexDirection: 'row', alignItems: 'center', gap: 3 },
-  ratingText: { fontSize: 11, fontWeight: '700', color: C.amber },
-  ratingCount: { fontSize: 10, color: C.muted },
+  ratingTxt: { fontSize: 11, fontWeight: '700', color: C.amber },
+  posterTime: { fontSize: 10, color: C.muted, fontWeight: '500' },
 
-  // Tags
-  tagsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, paddingHorizontal: 14, marginTop: 10 },
-  tagPill: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#F1F5F9', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
-  tagText: { fontSize: 11, fontWeight: '600', color: C.sub },
+  // Trip info chips
+  tripInfoRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 10 },
+  tripChip: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    backgroundColor: C.g50, borderRadius: 8,
+    paddingHorizontal: 9, paddingVertical: 5,
+    borderWidth: 1, borderColor: C.g100,
+  },
+  tripChipTxt: { fontSize: 11, fontWeight: '600', color: C.g700 },
 
-  // Route
-  routeRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginHorizontal: 14, marginTop: 8, backgroundColor: '#F8FAFC', borderRadius: 10, paddingVertical: 8, paddingHorizontal: 10 },
-  routeCity: { fontSize: 13, fontWeight: '600', color: C.text, flex: 1 },
+  // Details row
+  detailsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 8 },
+  detailChip: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    backgroundColor: '#F1F5F9', paddingHorizontal: 9,
+    paddingVertical: 5, borderRadius: 8,
+  },
+  detailTxt: { fontSize: 11, color: C.sub, fontWeight: '500' },
 
-  // Info
-  infoRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, paddingHorizontal: 14, marginTop: 8 },
-  infoChip: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  infoText: { fontSize: 12, color: C.sub },
+  // Reason box
+  reasonBox: {
+    flexDirection: 'row', alignItems: 'center', gap: 7,
+    backgroundColor: '#FFFBEB', borderRadius: 10, padding: 9,
+    marginBottom: 10, borderWidth: 1, borderColor: '#FDE68A',
+  },
+  reasonTxt: { fontSize: 12, color: '#92400E', flex: 1, lineHeight: 17 },
 
-  // Details
-  detailsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, paddingHorizontal: 14, marginTop: 8 },
-  detailChip: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#F1F5F9', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8 },
-  detailText: { fontSize: 11, color: C.sub, fontWeight: '500' },
+  // Budget breakdown card
+  budgetCard: {
+    backgroundColor: '#F8FAFC', borderRadius: 12, padding: 12,
+    marginBottom: 12, borderWidth: 1, borderColor: C.border,
+  },
+  budgetRow: {
+    flexDirection: 'row', justifyContent: 'space-between',
+    alignItems: 'center', marginBottom: 6,
+  },
+  budgetRowLabel: { fontSize: 12, color: C.muted, fontWeight: '500' },
+  budgetRowVal: { fontSize: 13, color: C.sub, fontWeight: '700' },
+  budgetPct: { fontSize: 10, color: C.muted, fontWeight: '400' },
+  budgetDivider: { height: 1, backgroundColor: C.border, marginVertical: 6 },
+  budgetEarnVal: { fontSize: 15, fontWeight: '900', color: C.g600 },
 
-  // Reason
-  reasonBox: { flexDirection: 'row', alignItems: 'center', gap: 6, marginHorizontal: 14, marginTop: 8, backgroundColor: '#FFF7ED', borderRadius: 8, padding: 8 },
-  reasonText: { fontSize: 12, color: '#C2410C', flex: 1 },
-
-  // Commission
-  commRow: { flexDirection: 'row', marginHorizontal: 14, marginTop: 10, backgroundColor: '#F8FAFC', borderRadius: 12, overflow: 'hidden' },
-  commItem: { flex: 1, paddingVertical: 10, paddingHorizontal: 8, alignItems: 'center' },
-  commLabel: { fontSize: 8, color: C.muted, fontWeight: '700', letterSpacing: 0.5 },
-  commVal: { fontSize: 13, fontWeight: '800', color: C.text, marginTop: 2 },
+  // Special requirements
+  reqRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 },
+  reqBadge: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    backgroundColor: C.amberBg, borderRadius: 8,
+    paddingHorizontal: 10, paddingVertical: 5,
+    borderWidth: 1, borderColor: '#FDE68A',
+  },
+  reqBadgeTxt: { fontSize: 11, fontWeight: '600', color: '#D97706' },
 
   // Actions
-  actionsRow: { flexDirection: 'row', gap: 8, paddingHorizontal: 14, marginTop: 12 },
-  accBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: C.purple, paddingVertical: 11, borderRadius: 12 },
-  accBtnText: { fontSize: 13, fontWeight: '700', color: '#fff' },
-  iconBtn: { width: 42, height: 42, borderRadius: 12, backgroundColor: '#F1F5F9', justifyContent: 'center', alignItems: 'center' },
+  actionsRow: { flexDirection: 'row', gap: 8, marginBottom: 4 },
+  acceptBtnWrap: { flex: 1, borderRadius: 13, overflow: 'hidden' },
+  acceptBtnGrad: {
+    flexDirection: 'row', alignItems: 'center',
+    justifyContent: 'center', gap: 7, paddingVertical: 13,
+  },
+  acceptBtnTxt: { fontSize: 13, fontWeight: '700', color: '#fff', letterSpacing: 0.2 },
+  iconActionBtn: {
+    width: 46, height: 46, borderRadius: 13,
+    backgroundColor: C.g50, justifyContent: 'center',
+    alignItems: 'center', borderWidth: 1, borderColor: C.border,
+  },
 
   // Social bar
-  socialBar: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 14, paddingVertical: 10, borderTopWidth: 1, borderTopColor: '#F1F5F9', marginTop: 10 },
+  socialBar: {
+    flexDirection: 'row', justifyContent: 'space-between',
+    paddingTop: 10, marginTop: 6,
+    borderTopWidth: 1, borderTopColor: '#F1F5F9',
+  },
   socialBtn: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  socialText: { fontSize: 12, color: C.sub, fontWeight: '500' },
+  socialTxt: { fontSize: 12, color: C.muted, fontWeight: '500' },
 
   // Share menu
-  shareMenu: { marginHorizontal: 14, marginBottom: 10, backgroundColor: '#F8FAFC', borderRadius: 12, borderWidth: 1, borderColor: C.border, overflow: 'hidden' },
-  shareOption: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, borderBottomWidth: 1, borderBottomColor: '#F1F5F9' },
-  shareOptionText: { fontSize: 13, color: C.text, fontWeight: '500' },
+  shareMenu: {
+    marginTop: 10, backgroundColor: C.surface,
+    borderRadius: 12, borderWidth: 1, borderColor: C.border, overflow: 'hidden',
+  },
+  shareOption: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    padding: 12, borderBottomWidth: 1, borderBottomColor: C.border,
+  },
+  shareIconBox: {
+    width: 30, height: 30, borderRadius: 8,
+    backgroundColor: '#F1F5F9', justifyContent: 'center', alignItems: 'center',
+  },
+  shareOptionTxt: { fontSize: 13, color: C.text, fontWeight: '500' },
 
   // Comments
-  commentsSection: { backgroundColor: '#FAFBFC', borderTopWidth: 1, borderTopColor: '#F1F5F9', paddingHorizontal: 14, paddingVertical: 10 },
-  noComments: { fontSize: 12, color: C.muted, textAlign: 'center', paddingVertical: 12 },
+  commentsSection: { marginTop: 8 },
+  commentsDivider: { height: 1, backgroundColor: '#F1F5F9', marginBottom: 10 },
+  noCommentsTxt: { fontSize: 12, color: C.muted, textAlign: 'center', paddingVertical: 12 },
   commentItem: { flexDirection: 'row', gap: 8, marginBottom: 10 },
-  commentAvatar: { width: 28, height: 28, borderRadius: 14, backgroundColor: '#F3E8FF', justifyContent: 'center', alignItems: 'center' },
-  commentInitial: { fontSize: 10, fontWeight: '700', color: C.purple },
+  commentAvatar: {
+    width: 28, height: 28, borderRadius: 14,
+    justifyContent: 'center', alignItems: 'center',
+  },
+  commentInitial: { fontSize: 10, fontWeight: '700', color: '#fff' },
   commentHeader: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   commentName: { fontSize: 12, fontWeight: '600', color: C.text },
   commentTime: { fontSize: 10, color: C.muted },
   commentMsg: { fontSize: 12, color: C.sub, marginTop: 2, lineHeight: 17 },
-  commentInputRow: { flexDirection: 'row', gap: 8, marginTop: 6 },
-  commentInput: { flex: 1, backgroundColor: '#fff', borderWidth: 1, borderColor: C.border, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8, fontSize: 13, color: C.text },
-  commentSendBtn: { width: 38, height: 38, borderRadius: 10, backgroundColor: C.purple, justifyContent: 'center', alignItems: 'center' },
+  commentInputRow: { flexDirection: 'row', gap: 8, marginTop: 8 },
+  commentInput: {
+    flex: 1, backgroundColor: '#F8FAFC',
+    borderWidth: 1, borderColor: C.border,
+    borderRadius: 10, paddingHorizontal: 12,
+    paddingVertical: 8, fontSize: 13, color: C.text,
+  },
+  commentSendBtn: {
+    width: 38, height: 38, borderRadius: 10,
+    overflow: 'hidden', justifyContent: 'center', alignItems: 'center',
+  },
+  commentSendGrad: {
+    flex: 1, width: 38, justifyContent: 'center', alignItems: 'center',
+  },
 
   // Pagination
-  pagination: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 12, paddingVertical: 16 },
-  pageBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10, borderWidth: 1, borderColor: C.border, backgroundColor: C.surface },
+  pagination: {
+    flexDirection: 'row', alignItems: 'center',
+    justifyContent: 'center', gap: 12,
+    paddingVertical: 16, marginHorizontal: 14,
+  },
+  pageBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    paddingHorizontal: 18, paddingVertical: 10,
+    borderRadius: 12, borderWidth: 1,
+    borderColor: C.border, backgroundColor: C.surface,
+  },
   pageBtnDisabled: { opacity: 0.4 },
-  pageBtnText: { fontSize: 13, fontWeight: '600', color: C.text },
-  pageInfo: { fontSize: 13, fontWeight: '600', color: C.sub },
+  pageBtnTxt: { fontSize: 13, fontWeight: '600', color: C.g700 },
+  pageInfoPill: { paddingHorizontal: 18, paddingVertical: 9, borderRadius: 12 },
+  pageInfoTxt: { fontSize: 13, fontWeight: '700', color: '#fff' },
 
-  // Empty
-  empty: { alignItems: 'center', paddingVertical: 60, gap: 10, paddingHorizontal: 30 },
-  emptyIcon: { width: 72, height: 72, borderRadius: 36, justifyContent: 'center', alignItems: 'center', marginBottom: 4 },
-  emptyTitle: { fontSize: 17, fontWeight: '700', color: C.text },
-  emptyMsg: { fontSize: 13, color: C.muted, textAlign: 'center' },
-  emptyBtn: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 12, backgroundColor: C.purple, paddingHorizontal: 24, paddingVertical: 12, borderRadius: 12 },
-  emptyBtnText: { fontSize: 14, fontWeight: '600', color: '#fff' },
+  // Loading
+  loadingCenter: {
+    flex: 1, justifyContent: 'center', alignItems: 'center', gap: 14,
+  },
+  loadingSpinnerWrap: {
+    width: 64, height: 64, borderRadius: 32,
+    backgroundColor: C.surface, justifyContent: 'center', alignItems: 'center',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08, shadowRadius: 8, elevation: 3,
+  },
+  loadingTxt: { fontSize: 13, color: C.muted, fontWeight: '500' },
 
-  // Modal
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-  modalContent: { backgroundColor: C.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, paddingBottom: 30 },
-  modalHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: C.border, alignSelf: 'center', marginBottom: 16 },
-  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
-  modalIconWrap: { width: 36, height: 36, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
-  modalTitle: { fontSize: 18, fontWeight: '700', color: C.text },
-  modalCloseBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#F1F5F9', justifyContent: 'center', alignItems: 'center' },
-  modalSummary: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: '#F3E8FF', borderRadius: 12, padding: 12, marginBottom: 8 },
-  modalSummaryNum: { fontSize: 10, color: C.muted, fontFamily: 'monospace' },
-  modalSummaryTitle: { fontSize: 14, fontWeight: '600', color: C.text, marginTop: 2 },
-  modalSummaryRoute: { fontSize: 12, color: C.sub, marginTop: 4 },
-  modalCommRow: { flexDirection: 'row', gap: 6, marginBottom: 8 },
-  modalCommItem: { flex: 1, backgroundColor: '#F8FAFC', borderRadius: 10, padding: 10, alignItems: 'center' },
-  modalCommLabel: { fontSize: 9, color: C.muted, fontWeight: '600' },
-  modalCommVal: { fontSize: 14, fontWeight: '800', color: C.text, marginTop: 2 },
-  fLabel: { fontSize: 10, fontWeight: '700', color: C.muted, letterSpacing: 0.8, marginBottom: 6, marginTop: 12 },
-  input: { backgroundColor: '#F8FAFC', borderWidth: 1, borderColor: C.border, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 11, fontSize: 14, color: C.text },
-  pickChip: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#F3E8FF', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, borderWidth: 1, borderColor: '#E9D5FF' },
-  pickText: { fontSize: 12, color: C.text, fontWeight: '500', maxWidth: 120 },
-  submitBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: C.purple, paddingVertical: 14, borderRadius: 14, marginTop: 16 },
-  submitBtnText: { fontSize: 15, fontWeight: '700', color: '#fff' },
+  // Empty state
+  emptyWrap: {
+    alignItems: 'center', paddingVertical: 60,
+    paddingHorizontal: 32, gap: 14,
+  },
+  emptyIconCircle: {
+    width: 84, height: 84, borderRadius: 42,
+    justifyContent: 'center', alignItems: 'center', marginBottom: 4,
+  },
+  emptyTitle: { fontSize: 18, fontWeight: '800', color: C.text, letterSpacing: -0.2 },
+  emptyMsg: { fontSize: 13, color: C.muted, textAlign: 'center', lineHeight: 20 },
+  emptyBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    paddingHorizontal: 28, paddingVertical: 14,
+    borderRadius: 14, marginTop: 4,
+  },
+  emptyBtnTxt: { fontSize: 14, fontWeight: '700', color: '#fff' },
+
+  // ── MODAL ──
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
+  modalBackdrop: { flex: 1 },
+  modalSheet: {
+    backgroundColor: C.surface,
+    borderTopLeftRadius: 28, borderTopRightRadius: 28,
+    overflow: 'hidden',
+  },
+  modalHeader: {
+    paddingTop: 10, paddingBottom: 18, paddingHorizontal: 20,
+  },
+  modalHandle: {
+    width: 40, height: 4, borderRadius: 2,
+    backgroundColor: 'rgba(255,255,255,0.25)',
+    alignSelf: 'center', marginBottom: 16,
+  },
+  modalHeaderRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  modalHeaderIcon: {
+    width: 38, height: 38, borderRadius: 13,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    justifyContent: 'center', alignItems: 'center',
+  },
+  modalHeaderTitle: { flex: 1, fontSize: 18, fontWeight: '800', color: '#fff' },
+  modalCloseBtn: {
+    width: 32, height: 32, borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    justifyContent: 'center', alignItems: 'center',
+  },
+  modalScroll: { maxHeight: '80%' },
+  modalScrollContent: { padding: 20, paddingBottom: 36 },
+
+  // Modal summary card
+  modalSummaryCard: {
+    flexDirection: 'row', alignItems: 'flex-start',
+    borderRadius: 16, padding: 14,
+    marginBottom: 14, borderWidth: 1, borderColor: C.g100, gap: 12,
+  },
+  modalSummaryIconWrap: {
+    width: 42, height: 42, borderRadius: 13,
+    backgroundColor: 'rgba(4,120,87,0.12)',
+    justifyContent: 'center', alignItems: 'center',
+  },
+  modalSummaryInfo: { flex: 1 },
+  modalSummaryNum: {
+    fontSize: 10, color: C.muted, fontFamily: 'monospace',
+    fontWeight: '600', marginBottom: 3,
+  },
+  modalSummaryTitle: { fontSize: 14, fontWeight: '700', color: C.text },
+  modalSummaryRouteRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 5,
+  },
+  modalRouteFromDot: {
+    width: 8, height: 8, borderRadius: 4, backgroundColor: C.g500,
+  },
+  modalRouteToDot: {
+    width: 8, height: 8, borderRadius: 4, backgroundColor: C.red,
+  },
+  modalSummaryRoute: { fontSize: 12, color: C.sub },
+  modalDateRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 4 },
+  modalDateTxt: { fontSize: 11, color: C.g700, fontWeight: '600' },
+  modalEarnTag: { alignItems: 'flex-end' },
+  modalEarnTagLabel: {
+    fontSize: 9, color: C.muted, fontWeight: '700',
+    letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 3,
+  },
+  modalEarnTagAmt: { fontSize: 18, fontWeight: '900', color: C.g600, letterSpacing: -0.5 },
+
+  // Commission tiles
+  modalTilesRow: { flexDirection: 'row', gap: 8, marginBottom: 16 },
+  modalTile: {
+    flex: 1, backgroundColor: '#F8FAFC',
+    borderRadius: 12, padding: 10,
+    alignItems: 'center', borderWidth: 1, borderColor: C.border,
+  },
+  modalTileLabel: { fontSize: 9, color: C.muted, fontWeight: '600', marginBottom: 4 },
+  modalTileVal: { fontSize: 13, fontWeight: '800', color: C.text },
+
+  // Field sections
+  fieldLabel: {
+    fontSize: 10, fontWeight: '700', color: C.muted,
+    letterSpacing: 0.8, marginBottom: 8, marginTop: 4,
+  },
+  fieldCard: {
+    flexDirection: 'row', gap: 12,
+    backgroundColor: '#F8FAFC', borderRadius: 14,
+    padding: 14, borderWidth: 1, borderColor: C.border,
+    marginBottom: 6,
+  },
+  fieldCardIconWrap: { paddingTop: 2 },
+  fieldCardIcon: {
+    width: 36, height: 36, borderRadius: 10,
+    justifyContent: 'center', alignItems: 'center',
+  },
+  fieldCardBody: { flex: 1 },
+  fieldInput: {
+    backgroundColor: C.surface,
+    borderWidth: 1.5, borderColor: C.border,
+    borderRadius: 11, paddingHorizontal: 13,
+    paddingVertical: 10, fontSize: 14, color: C.text,
+  },
+
+  // Pick chips
+  pickRow: { gap: 8, paddingBottom: 4 },
+  pickChip: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    backgroundColor: C.g50, paddingHorizontal: 12,
+    paddingVertical: 8, borderRadius: 10,
+    borderWidth: 1, borderColor: C.g100,
+  },
+  pickChipTxt: {
+    fontSize: 12, color: C.g700, fontWeight: '600', maxWidth: 120,
+  },
+
+  // Submit
+  submitWrap: { borderRadius: 14, overflow: 'hidden', marginTop: 20 },
+  submitBtn: {
+    flexDirection: 'row', alignItems: 'center',
+    justifyContent: 'center', gap: 8, paddingVertical: 16,
+  },
+  submitBtnTxt: { fontSize: 15, fontWeight: '800', color: '#fff', letterSpacing: 0.2 },
 });

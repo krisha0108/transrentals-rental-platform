@@ -1,35 +1,40 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  RefreshControl, ActivityIndicator,
+  RefreshControl, ActivityIndicator, StatusBar, Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
+import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/Feather';
 import MCI from 'react-native-vector-icons/MaterialCommunityIcons';
 import { getP2PStats, getP2PMyPostings, getP2PTransactions } from '../../api/client';
 
+const SW = Dimensions.get('window').width;
+
 const C = {
-  bg: '#F7FAFC', surface: '#FFFFFF', text: '#1E293B', sub: '#475569',
-  muted: '#94A3B8', border: '#E2E8F0', brand: '#10B981',
-  blue: '#3B82F6', purple: '#8B5CF6', amber: '#F59E0B',
-  red: '#EF4444', emerald: '#059669', indigo: '#6366F1',
+  g950: '#011B14', g900: '#022C22', g800: '#064E3B', g700: '#047857',
+  g600: '#059669', g500: '#10B981', g400: '#34D399', g300: '#6EE7B7',
+  g200: '#A7F3D0', g100: '#D1FAE5', g50: '#ECFDF5',
+  bg: '#F8FAFC', surface: '#FFFFFF',
+  text: '#0F172A', sub: '#334155', muted: '#94A3B8',
+  border: '#E2E8F0',
+  amber: '#F59E0B', amberBg: '#FFFBEB',
+  red: '#EF4444', redBg: '#FEF2F2',
+  blue: '#3B82F6', blueBg: '#EFF6FF',
+  purple: '#8B5CF6', purpleBg: '#F5F3FF',
 };
 
 const STATUS_COLORS = {
-  ACTIVE: { bg: '#D1FAE5', text: '#065F46' },
-  PENDING: { bg: '#FEF3C7', text: '#92400E' },
-  CONFIRMED: { bg: '#DBEAFE', text: '#1E40AF' },
-  IN_PROGRESS: { bg: '#E0E7FF', text: '#3730A3' },
-  COMPLETED: { bg: '#D1FAE5', text: '#065F46' },
-  CANCELLED: { bg: '#FEE2E2', text: '#991B1B' },
+  ACTIVE:      '#10B981', PENDING:     '#F59E0B', CONFIRMED:   '#3B82F6',
+  IN_PROGRESS: '#6366F1', COMPLETED:   '#10B981', CANCELLED:   '#EF4444',
 };
 
 export default function P2PDashboardScreen({ navigation }) {
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [stats, setStats] = useState(null);
-  const [recentTx, setRecentTx] = useState([]);
+  const [loading, setLoading]         = useState(true);
+  const [refreshing, setRefreshing]   = useState(false);
+  const [stats, setStats]             = useState(null);
+  const [recentTx, setRecentTx]       = useState([]);
   const [activePostings, setActivePostings] = useState([]);
 
   const fetchAll = useCallback(async () => {
@@ -52,232 +57,433 @@ export default function P2PDashboardScreen({ navigation }) {
   useFocusEffect(useCallback(() => { fetchAll(); }, [fetchAll]));
   const onRefresh = () => { setRefreshing(true); fetchAll(); };
 
+  const earnings = stats?.totalEarnings ? Number(stats.totalEarnings) : 0;
+  const deals    = stats?.completedTransactions || stats?.completedDeals || 0;
+  const posts    = stats?.activePostings || 0;
+  const rating   = (stats?.averageRating || stats?.rating) ? Number(stats.averageRating || stats.rating).toFixed(1) : '—';
+
+  const fmtEarnings = earnings >= 100000
+    ? '₹' + (earnings / 100000).toFixed(1) + 'L'
+    : earnings >= 1000
+    ? '₹' + (earnings / 1000).toFixed(1) + 'K'
+    : '₹' + earnings.toLocaleString('en-IN');
+
+  const HeaderBlock = () => (
+    <LinearGradient colors={[C.g950, C.g900, '#043D2B']} style={s.header}>
+      {/* Decorative circles */}
+      <View style={s.decCircleLg} />
+      <View style={s.decCircleMd} />
+
+      <SafeAreaView edges={['top']}>
+        {/* Top nav row */}
+        <View style={s.nav}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={s.navBtn} activeOpacity={0.7}>
+            <Icon name="arrow-left" size={20} color="#fff" />
+          </TouchableOpacity>
+          <View style={s.navCenter}>
+            <Text style={s.navTitle}>P2P Marketplace</Text>
+            <Text style={s.navSub}>Vendor-to-Vendor Network</Text>
+          </View>
+          <TouchableOpacity onPress={onRefresh} style={s.navBtn} activeOpacity={0.7}>
+            <Icon name="refresh-cw" size={16} color="rgba(255,255,255,0.7)" />
+          </TouchableOpacity>
+        </View>
+
+        {/* Earnings hero card */}
+        <View style={s.heroCard}>
+          <View style={s.heroIconCircle}>
+            <MCI name="cash-multiple" size={26} color={C.g400} />
+          </View>
+          <View style={s.heroContent}>
+            <Text style={s.heroLabel}>TOTAL EARNINGS</Text>
+            <Text style={s.heroAmount}>{fmtEarnings}</Text>
+            <View style={s.heroChipsRow}>
+              <View style={s.heroChip}>
+                <Text style={s.heroChipText}>Deals: {deals}</Text>
+              </View>
+              <View style={[s.heroChip, { marginLeft: 6 }]}>
+                <Text style={s.heroChipText}>Active: {posts}</Text>
+              </View>
+            </View>
+          </View>
+          <View style={s.heroRatingBadge}>
+            <MCI name="star" size={14} color={C.amber} />
+            <Text style={s.heroRatingText}>{rating}</Text>
+          </View>
+        </View>
+      </SafeAreaView>
+    </LinearGradient>
+  );
+
   if (loading) return (
-    <SafeAreaView style={s.safe} edges={['top']}>
-      <Header navigation={navigation} />
-      <View style={s.center}><ActivityIndicator size="large" color={C.brand} /></View>
-    </SafeAreaView>
+    <View style={{ flex: 1, backgroundColor: C.bg }}>
+      <StatusBar barStyle="light-content" backgroundColor={C.g950} />
+      <HeaderBlock />
+      <View style={s.center}>
+        <ActivityIndicator size="large" color={C.g600} />
+        <Text style={s.loadingText}>Loading P2P data...</Text>
+      </View>
+    </View>
   );
 
   return (
-    <SafeAreaView style={s.safe} edges={['top']}>
-      <Header navigation={navigation} />
-      <ScrollView contentContainerStyle={s.scroll} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[C.brand]} />}>
+    <View style={{ flex: 1, backgroundColor: C.bg }}>
+      <StatusBar barStyle="light-content" backgroundColor={C.g950} />
 
-        {/* Stats Cards */}
-        <View style={s.statsGrid}>
-          <View style={[s.statCard, { borderLeftColor: C.brand }]}>
-            <MCI name="currency-inr" size={20} color={C.brand} />
-            <Text style={s.statVal}>{stats?.totalEarnings ? `₹${Number(stats.totalEarnings).toLocaleString('en-IN')}` : '₹0'}</Text>
-            <Text style={s.statLabel}>Total Earnings</Text>
-          </View>
-          <View style={[s.statCard, { borderLeftColor: C.blue }]}>
-            <MCI name="handshake-outline" size={20} color={C.blue} />
-            <Text style={s.statVal}>{stats?.completedTransactions || stats?.completedDeals || 0}</Text>
-            <Text style={s.statLabel}>Completed Deals</Text>
-          </View>
-          <View style={[s.statCard, { borderLeftColor: C.amber }]}>
-            <MCI name="post-outline" size={20} color={C.amber} />
-            <Text style={s.statVal}>{stats?.activePostings || 0}</Text>
-            <Text style={s.statLabel}>Active Postings</Text>
-          </View>
-          <View style={[s.statCard, { borderLeftColor: C.purple }]}>
-            <MCI name="star-outline" size={20} color={C.purple} />
-            <Text style={s.statVal}>{(stats?.averageRating || stats?.rating) ? Number(stats.averageRating || stats.rating).toFixed(1) : '-'}</Text>
-            <Text style={s.statLabel}>P2P Rating</Text>
-          </View>
-        </View>
+      <HeaderBlock />
 
-        {/* Quick Actions */}
-        <Text style={s.sectionTitle}>Quick Actions</Text>
-        <View style={s.actionsGrid}>
+      <ScrollView
+        contentContainerStyle={{ paddingBottom: 48 }}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[C.g500]} />}
+        showsVerticalScrollIndicator={false}
+      >
+
+        {/* ── Stats Strip (single card, 4 items) ── */}
+        <View style={s.statsCard}>
           {[
-            { label: 'Post Vehicle', icon: 'truck', color: C.emerald, screen: 'PostVehicleScreen' },
-            { label: 'Share Booking', icon: 'share-2', color: C.purple, screen: 'PostBookingScreen', feather: true },
-            { label: 'Find Vehicles', icon: 'magnify', color: C.blue, screen: 'BrowseVehiclesScreen' },
-            { label: 'Find Bookings', icon: 'text-box-search-outline', color: C.amber, screen: 'BrowseBookingsScreen' },
-          ].map(a => (
-            <TouchableOpacity key={a.label} style={s.actionCard} onPress={() => navigation.navigate(a.screen)}>
-              <View style={[s.actionIcon, { backgroundColor: a.color + '15' }]}>
-                {a.feather
-                  ? <Icon name={a.icon} size={22} color={a.color} />
-                  : <MCI name={a.icon} size={22} color={a.color} />
-                }
-              </View>
-              <Text style={s.actionLabel}>{a.label}</Text>
-            </TouchableOpacity>
+            { val: fmtEarnings, lbl: 'Earnings',    color: C.g600 },
+            { val: deals,       lbl: 'Deals Done',  color: C.blue },
+            { val: posts,       lbl: 'Active Posts', color: C.purple },
+            { val: rating,      lbl: 'Rating',       color: C.amber },
+          ].map((st, i, arr) => (
+            <View key={st.lbl} style={s.statItem}>
+              <Text style={[s.statVal, { color: st.color }]}>{st.val}</Text>
+              <Text style={s.statLbl}>{st.lbl}</Text>
+              {i < arr.length - 1 && <View style={s.statDivider} />}
+            </View>
           ))}
         </View>
 
-        {/* Manage */}
-        <Text style={s.sectionTitle}>Manage</Text>
-        <View style={s.manageRow}>
-          <TouchableOpacity style={s.manageCard} onPress={() => navigation.navigate('MyPostingsScreen')}>
-            <MCI name="format-list-bulleted" size={22} color={C.indigo} />
-            <Text style={s.manageLabel}>My Postings</Text>
-            <Icon name="chevron-right" size={16} color={C.muted} />
-          </TouchableOpacity>
-          <TouchableOpacity style={s.manageCard} onPress={() => navigation.navigate('P2PActivityScreen')}>
-            <MCI name="swap-horizontal" size={22} color={C.brand} />
-            <Text style={s.manageLabel}>Activity</Text>
-            <Icon name="chevron-right" size={16} color={C.muted} />
-          </TouchableOpacity>
+        {/* ── Quick Actions (2×2 pastel grid) ── */}
+        <View style={s.section}>
+          <Text style={s.sectionTitle}>Quick Actions</Text>
+          <View style={s.actionsGrid}>
+            {[
+              { label: 'Post Vehicle',   sub: 'Share idle vehicle',     icon: 'truck',                  mci: true,  pastel: '#E8FDF5', iconBg: C.g50,      iconColor: C.g600,   screen: 'PostVehicleScreen' },
+              { label: 'Share Booking',  sub: 'Sub-contract a trip',    icon: 'share-variant',          mci: true,  pastel: '#F3EEFF', iconBg: '#EDE9FE',   iconColor: C.purple, screen: 'PostBookingScreen' },
+              { label: 'Find Vehicles',  sub: 'Rent from vendors',      icon: 'magnify',                mci: true,  pastel: '#EFF6FF', iconBg: '#DBEAFE',   iconColor: C.blue,   screen: 'BrowseVehiclesScreen' },
+              { label: 'Find Bookings',  sub: 'Accept load requests',   icon: 'text-box-search-outline', mci: true, pastel: '#FFFBEB', iconBg: '#FEF3C7',   iconColor: C.amber,  screen: 'BrowseBookingsScreen' },
+            ].map(a => (
+              <TouchableOpacity
+                key={a.label}
+                style={[s.actionCard, { backgroundColor: a.pastel }]}
+                activeOpacity={0.85}
+                onPress={() => navigation.navigate(a.screen)}
+              >
+                <View style={[s.actionIconBox, { backgroundColor: a.iconBg }]}>
+                  <MCI name={a.icon} size={24} color={a.iconColor} />
+                </View>
+                <Text style={[s.actionLabel, { color: a.iconColor }]}>{a.label}</Text>
+                <Text style={s.actionSub}>{a.sub}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
         </View>
 
-        {/* Recent Transactions */}
+        {/* ── Manage (white cards, subtle) ── */}
+        <View style={s.section}>
+          <Text style={s.sectionTitle}>Manage</Text>
+          <View style={s.manageCard}>
+            {[
+              { label: 'My Postings', sub: `${posts} active listings`,  icon: 'format-list-bulleted', iconBg: C.g50,      iconColor: C.g700,   screen: 'MyPostingsScreen' },
+              { label: 'My Activity', sub: `${deals} deals completed`,  icon: 'swap-horizontal',      iconBg: '#EDE9FE',   iconColor: C.purple, screen: 'P2PActivityScreen' },
+            ].map((m, i, arr) => (
+              <TouchableOpacity
+                key={m.label}
+                style={[s.manageRow, i < arr.length - 1 && s.manageRowBorder]}
+                activeOpacity={0.8}
+                onPress={() => navigation.navigate(m.screen)}
+              >
+                <View style={[s.manageIconBox, { backgroundColor: m.iconBg }]}>
+                  <MCI name={m.icon} size={20} color={m.iconColor} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={s.manageLabel}>{m.label}</Text>
+                  <Text style={s.manageSub}>{m.sub}</Text>
+                </View>
+                <Icon name="chevron-right" size={18} color={C.muted} />
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
+        {/* ── Recent Transactions ── */}
         {recentTx.length > 0 && (
-          <>
-            <View style={s.sectionHeader}>
+          <View style={s.section}>
+            <View style={s.sectionRow}>
               <Text style={s.sectionTitle}>Recent Transactions</Text>
               <TouchableOpacity onPress={() => navigation.navigate('P2PActivityScreen')}>
                 <Text style={s.seeAll}>See All</Text>
               </TouchableOpacity>
             </View>
             {recentTx.map(tx => {
-              const stc = STATUS_COLORS[tx.tripStatus] || STATUS_COLORS.PENDING;
+              const sc = STATUS_COLORS[tx.tripStatus] || C.amber;
               return (
                 <View key={tx.id} style={s.txCard}>
-                  <View style={s.txRow}>
-                    <Text style={s.txNum}>{tx.transactionNumber || 'TXN'}</Text>
-                    <View style={[s.txBadge, { backgroundColor: stc.bg }]}>
-                      <Text style={[s.txBadgeText, { color: stc.text }]}>{tx.tripStatus?.replace(/_/g, ' ')}</Text>
+                  <View style={[s.txBar, { backgroundColor: sc }]} />
+                  <View style={s.txContent}>
+                    <View style={s.txTop}>
+                      <Text style={s.txNum}>{tx.transactionNumber || 'TXN'}</Text>
+                      <View style={[s.txBadge, { backgroundColor: sc + '18' }]}>
+                        <View style={[s.txBadgeDot, { backgroundColor: sc }]} />
+                        <Text style={[s.txBadgeText, { color: sc }]}>
+                          {tx.tripStatus?.replace(/_/g, ' ')}
+                        </Text>
+                      </View>
                     </View>
-                  </View>
-                  <Text style={s.txRoute}>{tx.fromCity || '-'} → {tx.toCity || '-'}</Text>
-                  <View style={s.txRow}>
-                    <Text style={s.txMuted}>{tx.vehicleName || '-'}</Text>
-                    <Text style={s.txAmount}>₹{Number(tx.agreedAmount || 0).toLocaleString('en-IN')}</Text>
+                    <View style={s.txRouteRow}>
+                      <View style={[s.txRouteDot, { backgroundColor: C.g500 }]} />
+                      <Text style={s.txRouteCity} numberOfLines={1}>{tx.fromCity || '-'}</Text>
+                      <View style={s.txRouteLine} />
+                      <View style={[s.txRouteDot, { backgroundColor: C.red }]} />
+                      <Text style={s.txRouteCity} numberOfLines={1}>{tx.toCity || '-'}</Text>
+                    </View>
+                    <View style={s.txBottom}>
+                      <Text style={s.txVehicle}>{tx.vehicleName || '-'}</Text>
+                      <Text style={s.txAmt}>₹{Number(tx.agreedAmount || 0).toLocaleString('en-IN')}</Text>
+                    </View>
                   </View>
                 </View>
               );
             })}
-          </>
+          </View>
         )}
 
-        {/* Active Postings */}
+        {/* ── Active Postings (horizontal scroll) ── */}
         {activePostings.length > 0 && (
-          <>
-            <View style={s.sectionHeader}>
+          <View style={s.section}>
+            <View style={s.sectionRow}>
               <Text style={s.sectionTitle}>Active Postings</Text>
               <TouchableOpacity onPress={() => navigation.navigate('MyPostingsScreen')}>
                 <Text style={s.seeAll}>See All</Text>
               </TouchableOpacity>
             </View>
-            {activePostings.map(p => (
-              <View key={p.id} style={s.postCard}>
-                <View style={s.txRow}>
-                  <View style={[s.typeBadge, { backgroundColor: p._type === 'vehicle' ? '#DBEAFE' : '#F3E8FF' }]}>
-                    <Text style={{ fontSize: 10, fontWeight: '700', color: p._type === 'vehicle' ? C.blue : C.purple }}>
-                      {p._type === 'vehicle' ? 'VEHICLE' : 'BOOKING'}
-                    </Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ gap: 12, paddingRight: 4 }}>
+              {activePostings.map(p => {
+                const isV = p._type === 'vehicle';
+                const tc  = isV ? C.blue   : C.purple;
+                const tbg = isV ? '#EFF6FF' : '#F5F3FF';
+                return (
+                  <View key={p.id} style={s.postCard}>
+                    <View style={s.postTop}>
+                      <View style={[s.postTypeBadge, { backgroundColor: tbg }]}>
+                        <MCI name={isV ? 'truck' : 'package-variant'} size={10} color={tc} />
+                        <Text style={[s.postTypeText, { color: tc }]}>{isV ? 'VEHICLE' : 'BOOKING'}</Text>
+                      </View>
+                      <Text style={s.postNum} numberOfLines={1}>{p.postingNumber || ''}</Text>
+                    </View>
+                    <View style={s.postRouteRow}>
+                      <View style={[s.postRouteDot, { backgroundColor: C.g500 }]} />
+                      <Text style={s.postRouteCity} numberOfLines={1}>{p.fromCity || '-'}</Text>
+                      <View style={s.postRouteLine} />
+                      <View style={[s.postRouteDot, { backgroundColor: C.red }]} />
+                      <Text style={s.postRouteCity} numberOfLines={1}>{p.toCity || '-'}</Text>
+                    </View>
+                    <View style={[s.postStatusChip, { backgroundColor: C.g50 }]}>
+                      <View style={[s.postStatusDot, { backgroundColor: C.g500 }]} />
+                      <Text style={[s.postStatusText, { color: C.g700 }]}>{p.status || 'ACTIVE'}</Text>
+                    </View>
                   </View>
-                  <Text style={s.postNum}>{p.postingNumber}</Text>
-                </View>
-                <Text style={s.txRoute}>{p.fromCity || '-'} → {p.toCity || '-'}</Text>
-                <Text style={s.txMuted}>{p.vehicleName || p.vehicleRequired || '-'}</Text>
-              </View>
-            ))}
-          </>
+                );
+              })}
+            </ScrollView>
+          </View>
         )}
 
-        {/* How it Works */}
-        <Text style={s.sectionTitle}>How P2P Works</Text>
-        <View style={s.howRow}>
+        {/* ── How P2P Works ── */}
+        <View style={s.section}>
+          <Text style={s.sectionTitle}>How It Works</Text>
           {[
-            { step: '1', label: 'Post', icon: 'plus-circle', desc: 'Share vehicle or booking' },
-            { step: '2', label: 'Connect', icon: 'users', desc: 'Other vendors respond' },
-            { step: '3', label: 'Execute', icon: 'truck', desc: 'Complete the trip' },
-            { step: '4', label: 'Earn', icon: 'dollar-sign', desc: 'Get paid securely' },
-          ].map(h => (
-            <View key={h.step} style={s.howCard}>
-              <View style={s.howStep}><Text style={s.howStepText}>{h.step}</Text></View>
-              <Icon name={h.icon} size={18} color={C.brand} />
-              <Text style={s.howLabel}>{h.label}</Text>
-              <Text style={s.howDesc}>{h.desc}</Text>
+            { n: '1', icon: 'plus-circle',   mci: false, label: 'Post',    desc: 'Share your vehicle or sub-contract a booking', pastel: C.g50,      color: C.g600 },
+            { n: '2', icon: 'account-group', mci: true,  label: 'Connect', desc: 'Other vendors discover and respond',            pastel: '#EFF6FF',  color: C.blue },
+            { n: '3', icon: 'navigation',    mci: false, label: 'Execute', desc: 'Coordinate and complete the trip together',     pastel: '#F5F3FF',  color: C.purple },
+            { n: '4', icon: 'trending-up',   mci: false, label: 'Earn',    desc: 'Payment settled securely on completion',        pastel: '#FFFBEB',  color: C.amber },
+          ].map((h, i, arr) => (
+            <View key={h.n} style={s.howRow}>
+              {/* Left: step number + connector */}
+              <View style={s.howLeft}>
+                <View style={[s.howNumBadge, { backgroundColor: h.pastel }]}>
+                  <Text style={[s.howNumText, { color: h.color }]}>{h.n}</Text>
+                </View>
+                {i < arr.length - 1 && <View style={s.howConnector} />}
+              </View>
+              {/* Right: icon + text */}
+              <View style={[s.howIconBox, { backgroundColor: h.pastel }]}>
+                {h.mci
+                  ? <MCI name={h.icon} size={18} color={h.color} />
+                  : <Icon name={h.icon} size={18} color={h.color} />
+                }
+              </View>
+              <View style={{ flex: 1, paddingBottom: i < arr.length - 1 ? 20 : 0 }}>
+                <Text style={s.howLabel}>{h.label}</Text>
+                <Text style={s.howDesc}>{h.desc}</Text>
+              </View>
             </View>
           ))}
         </View>
 
-        <View style={{ height: 40 }} />
       </ScrollView>
-    </SafeAreaView>
-  );
-}
-
-function Header({ navigation }) {
-  return (
-    <View style={s.header}>
-      <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
-        <Icon name="arrow-left" size={22} color="#fff" />
-      </TouchableOpacity>
-      <View style={{ flex: 1 }}>
-        <Text style={s.headerTitle}>P2P Marketplace</Text>
-        <Text style={s.headerSub}>Share vehicles & bookings with vendors</Text>
-      </View>
     </View>
   );
 }
 
 const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: C.bg },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14, backgroundColor: C.brand },
-  backBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
-  headerTitle: { fontSize: 20, fontWeight: '700', color: '#fff' },
-  headerSub: { fontSize: 11, color: 'rgba(255,255,255,0.7)', marginTop: 1 },
-  scroll: { padding: 16, paddingTop: 12 },
+  loadingText: { marginTop: 12, fontSize: 14, color: C.muted, fontWeight: '500' },
 
-  statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 20 },
-  statCard: {
-    width: '48%', backgroundColor: C.surface, borderRadius: 14, padding: 14,
-    borderWidth: 1, borderColor: C.border, borderLeftWidth: 4, gap: 4,
+  // Header
+  header: { paddingBottom: 0, overflow: 'hidden' },
+  decCircleLg: {
+    position: 'absolute', width: 200, height: 200, borderRadius: 100,
+    backgroundColor: 'rgba(16,185,129,0.06)', top: -60, right: -60,
   },
-  statVal: { fontSize: 20, fontWeight: '800', color: C.text },
-  statLabel: { fontSize: 11, color: C.muted, fontWeight: '500' },
-
-  sectionTitle: { fontSize: 15, fontWeight: '700', color: C.text, marginBottom: 10 },
-  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
-  seeAll: { fontSize: 13, color: C.brand, fontWeight: '600' },
-
-  actionsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 20 },
-  actionCard: {
-    width: '48%', backgroundColor: C.surface, borderRadius: 14, padding: 16, alignItems: 'center',
-    borderWidth: 1, borderColor: C.border, gap: 8,
+  decCircleMd: {
+    position: 'absolute', width: 140, height: 140, borderRadius: 70,
+    backgroundColor: 'rgba(6,214,160,0.05)', bottom: -20, left: -20,
   },
-  actionIcon: { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center' },
-  actionLabel: { fontSize: 13, fontWeight: '600', color: C.text },
 
-  manageRow: { gap: 10, marginBottom: 20 },
-  manageCard: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-    backgroundColor: C.surface, borderRadius: 14, padding: 16,
+  // Nav
+  nav: {
+    flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: 16, paddingTop: 10, paddingBottom: 14,
+  },
+  navBtn: {
+    width: 40, height: 40, borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    justifyContent: 'center', alignItems: 'center',
+  },
+  navCenter: { flex: 1, marginHorizontal: 10, alignItems: 'center' },
+  navTitle:  { fontSize: 20, fontWeight: '800', color: '#fff' },
+  navSub:    { fontSize: 11, color: 'rgba(255,255,255,0.6)', marginTop: 2 },
+
+  // Earnings Hero Card
+  heroCard: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 20, padding: 20,
+    marginHorizontal: 16, marginTop: 4, marginBottom: 18,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)',
+  },
+  heroIconCircle: {
+    width: 48, height: 48, borderRadius: 24,
+    backgroundColor: 'rgba(52,211,153,0.2)',
+    justifyContent: 'center', alignItems: 'center',
+    marginRight: 14,
+  },
+  heroContent: { flex: 1 },
+  heroLabel:   { fontSize: 10, color: C.g300, fontWeight: '700', letterSpacing: 1, textTransform: 'uppercase' },
+  heroAmount:  { fontSize: 32, fontWeight: '900', color: C.g300, marginTop: 2, letterSpacing: -0.5 },
+  heroChipsRow:{ flexDirection: 'row', marginTop: 6 },
+  heroChip: {
+    backgroundColor: 'rgba(110,231,183,0.15)',
+    borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3,
+    borderWidth: 1, borderColor: 'rgba(110,231,183,0.25)',
+  },
+  heroChipText: { fontSize: 10, color: C.g300, fontWeight: '600' },
+  heroRatingBadge: {
+    flexDirection: 'row', alignItems: 'center', gap: 3,
+    backgroundColor: 'rgba(245,158,11,0.15)',
+    borderRadius: 10, paddingHorizontal: 10, paddingVertical: 6,
+    borderWidth: 1, borderColor: 'rgba(245,158,11,0.25)',
+    marginLeft: 10,
+  },
+  heroRatingText: { fontSize: 14, fontWeight: '800', color: '#FCD34D', marginLeft: 2 },
+
+  // Section
+  section:     { paddingHorizontal: 16, marginTop: 22 },
+  sectionRow:  { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+  sectionTitle:{ fontSize: 12, fontWeight: '800', color: C.text, marginBottom: 12, textTransform: 'uppercase', letterSpacing: 1 },
+  seeAll:      { fontSize: 13, color: C.g600, fontWeight: '700' },
+
+  // Stats strip — single white card
+  statsCard: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: C.surface, borderRadius: 18, marginHorizontal: 16, marginTop: 16,
+    paddingVertical: 16,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 2,
     borderWidth: 1, borderColor: C.border,
   },
-  manageLabel: { flex: 1, fontSize: 14, fontWeight: '600', color: C.text },
+  statItem:   { flex: 1, alignItems: 'center', position: 'relative' },
+  statVal:    { fontSize: 20, fontWeight: '800', letterSpacing: -0.5 },
+  statLbl:    { fontSize: 10, color: C.muted, fontWeight: '500', marginTop: 3 },
+  statDivider:{ position: 'absolute', right: 0, top: '15%', width: 1, height: '70%', backgroundColor: C.border },
 
+  // Quick Actions — 2x2 pastel grid
+  actionsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  actionCard: {
+    width: (SW - 42) / 2, borderRadius: 18, padding: 16,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 6, elevation: 1,
+  },
+  actionIconBox:{ width: 44, height: 44, borderRadius: 14, justifyContent: 'center', alignItems: 'center', marginBottom: 12 },
+  actionLabel: { fontSize: 14, fontWeight: '800' },
+  actionSub:   { fontSize: 11, color: C.muted, marginTop: 3, lineHeight: 15 },
+
+  // Manage — single white card with rows
+  manageCard: {
+    backgroundColor: C.surface, borderRadius: 18,
+    borderWidth: 1, borderColor: C.border,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 6, elevation: 2,
+    overflow: 'hidden',
+  },
+  manageRow:       { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 16 },
+  manageRowBorder: { borderBottomWidth: 1, borderBottomColor: C.border },
+  manageIconBox:   { width: 40, height: 40, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
+  manageLabel:     { fontSize: 14, fontWeight: '700', color: C.text },
+  manageSub:       { fontSize: 11, color: C.muted, marginTop: 2 },
+
+  // Transactions
   txCard: {
-    backgroundColor: C.surface, borderRadius: 12, padding: 14,
-    borderWidth: 1, borderColor: C.border, marginBottom: 8, gap: 6,
+    flexDirection: 'row', alignItems: 'stretch',
+    backgroundColor: C.surface, borderRadius: 14, marginBottom: 10, overflow: 'hidden',
+    borderWidth: 1, borderColor: C.border,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 4, elevation: 1,
   },
-  txRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  txNum: { fontSize: 12, fontWeight: '700', color: C.text, fontFamily: 'monospace' },
-  txBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
-  txBadgeText: { fontSize: 9, fontWeight: '700' },
-  txRoute: { fontSize: 13, color: C.sub },
-  txMuted: { fontSize: 12, color: C.muted },
-  txAmount: { fontSize: 14, fontWeight: '700', color: C.brand },
+  txBar:    { width: 4, alignSelf: 'stretch' },
+  txContent:{ flex: 1, padding: 14 },
+  txTop:    { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
+  txNum:    { fontSize: 12, fontWeight: '700', color: C.text, fontFamily: 'monospace' },
+  txBadge:  { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
+  txBadgeDot: { width: 6, height: 6, borderRadius: 3 },
+  txBadgeText:{ fontSize: 9, fontWeight: '800', letterSpacing: 0.3 },
+  txRouteRow:  { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
+  txRouteDot:  { width: 7, height: 7, borderRadius: 4 },
+  txRouteCity: { fontSize: 12, fontWeight: '600', color: C.sub, marginHorizontal: 6, maxWidth: SW * 0.22 },
+  txRouteLine: { flex: 1, height: 1, backgroundColor: C.border },
+  txBottom:    { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  txVehicle:   { fontSize: 11, color: C.muted },
+  txAmt:       { fontSize: 15, fontWeight: '900', color: C.g700 },
 
+  // Active Postings
   postCard: {
-    backgroundColor: C.surface, borderRadius: 12, padding: 14,
-    borderWidth: 1, borderColor: C.border, marginBottom: 8, gap: 6,
+    width: SW * 0.65, backgroundColor: C.surface, borderRadius: 16, padding: 14,
+    borderWidth: 1, borderColor: C.border,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 4, elevation: 1,
   },
-  typeBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
-  postNum: { fontSize: 12, fontWeight: '600', color: C.muted, fontFamily: 'monospace' },
+  postTop:       { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
+  postTypeBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
+  postTypeText:  { fontSize: 9, fontWeight: '800', letterSpacing: 0.3 },
+  postNum:       { fontSize: 10, color: C.muted, fontFamily: 'monospace', maxWidth: SW * 0.3 },
+  postRouteRow:  { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
+  postRouteDot:  { width: 7, height: 7, borderRadius: 4 },
+  postRouteCity: { fontSize: 12, fontWeight: '600', color: C.sub, marginHorizontal: 6, maxWidth: SW * 0.2 },
+  postRouteLine: { flex: 1, height: 1, backgroundColor: C.border },
+  postStatusChip:{ flexDirection: 'row', alignItems: 'center', gap: 5, alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
+  postStatusDot: { width: 6, height: 6, borderRadius: 3 },
+  postStatusText:{ fontSize: 10, fontWeight: '700' },
 
-  howRow: { flexDirection: 'row', gap: 8, marginBottom: 20 },
-  howCard: { flex: 1, backgroundColor: C.surface, borderRadius: 12, padding: 10, alignItems: 'center', borderWidth: 1, borderColor: C.border, gap: 4 },
-  howStep: { width: 20, height: 20, borderRadius: 10, backgroundColor: C.brand, justifyContent: 'center', alignItems: 'center' },
-  howStepText: { fontSize: 10, fontWeight: '800', color: '#fff' },
-  howLabel: { fontSize: 11, fontWeight: '700', color: C.text },
-  howDesc: { fontSize: 9, color: C.muted, textAlign: 'center' },
+  // How It Works — open rows, no card box
+  howRow: {
+    flexDirection: 'row', alignItems: 'flex-start', gap: 12, marginBottom: 0,
+  },
+  howLeft: { alignItems: 'center', width: 32 },
+  howNumBadge: {
+    width: 32, height: 32, borderRadius: 16,
+    justifyContent: 'center', alignItems: 'center',
+  },
+  howNumText: { fontSize: 13, fontWeight: '900' },
+  howConnector: { width: 2, flex: 1, minHeight: 20, backgroundColor: C.border, marginTop: 4 },
+  howIconBox:  { width: 36, height: 36, borderRadius: 10, justifyContent: 'center', alignItems: 'center', marginTop: 2 },
+  howLabel:    { fontSize: 14, fontWeight: '700', color: C.text, marginTop: 4 },
+  howDesc:     { fontSize: 11, color: C.muted, marginTop: 3, lineHeight: 16 },
 });

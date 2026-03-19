@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
-  SafeAreaView,
   View,
   Text,
   FlatList,
@@ -10,19 +9,25 @@ import {
   RefreshControl,
   ActivityIndicator,
   Image,
+  StatusBar,
+  Platform,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Feather';
+import LinearGradient from 'react-native-linear-gradient';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import { getConversations } from '../../api/socialApi';
 import { getFullImageURL } from '../../api/client';
 
 const G = {
-  bg: '#F5F7FA', surface: '#FFFFFF', text: '#0A0F1E', muted: '#6B7280',
-  border: '#E8EDF2', violet: '#7C3AED', violetL: '#F5F3FF',
-  red: '#DC2626', redL: '#FEF2F2', green: '#16A34A', greenL: '#F0FDF4',
+  bg: '#F8FAFC', surface: '#FFFFFF', text: '#1E293B', muted: '#64748B',
+  border: '#E2E8F0', violet: '#059669', violetL: '#ECFDF5',
+  red: '#EF4444', redL: '#FEF2F2', green: '#059669', greenL: '#ECFDF5',
   orange: '#F97316', orangeL: '#FFF7ED', amber: '#D97706', amberL: '#FFFBEB',
+  g950: '#011B14', g900: '#022C22', g800: '#064E3B', g600: '#059669',
 };
 
-const AVATAR_COLORS = ['#7C3AED', '#DC2626', '#16A34A', '#F97316', '#0891B2', '#DB2777', '#D97706'];
+const AVATAR_COLORS = ['#059669', '#DC2626', '#16A34A', '#F97316', '#0891B2', '#DB2777', '#D97706'];
 const getAvatarColor = (name) => AVATAR_COLORS[(name?.charCodeAt(0) || 0) % AVATAR_COLORS.length];
 
 const formatTime = (dateStr) => {
@@ -77,6 +82,7 @@ function AvatarCircle({ name, logo, size = 44 }) {
 }
 
 export default function SocialMessagesScreen({ navigation }) {
+  const insets = useSafeAreaInsets();
   const [conversations, setConversations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -162,12 +168,18 @@ export default function SocialMessagesScreen({ navigation }) {
     );
   };
 
+  useFocusEffect(useCallback(() => {
+    StatusBar.setBarStyle('light-content');
+    if (Platform.OS === 'android') StatusBar.setBackgroundColor(G.g950);
+  }, []));
+
   return (
-    <SafeAreaView style={styles.safe}>
+    <View style={styles.safe}>
+      <StatusBar barStyle="light-content" backgroundColor={G.g950} translucent={false} />
       {/* Header */}
-      <View style={styles.header}>
+      <LinearGradient colors={[G.g950, G.g900, G.g800]} style={[styles.header, { paddingTop: insets.top + 10 }]}>
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-          <Icon name="arrow-left" size={20} color={G.text} />
+          <Icon name="arrow-left" size={20} color="#fff" />
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <Text style={styles.headerTitle}>Messages</Text>
@@ -181,7 +193,7 @@ export default function SocialMessagesScreen({ navigation }) {
             <Text style={styles.totalUnreadText}>{totalUnread > 99 ? '99+' : totalUnread}</Text>
           </View>
         )}
-      </View>
+      </LinearGradient>
 
       {/* Search */}
       <View style={styles.searchBar}>
@@ -229,7 +241,7 @@ export default function SocialMessagesScreen({ navigation }) {
           showsVerticalScrollIndicator={false}
         />
       )}
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -241,15 +253,14 @@ const styles = StyleSheet.create({
   // Header
   header: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: G.surface, paddingHorizontal: 16, paddingVertical: 12,
-    borderBottomWidth: 1, borderBottomColor: G.border, gap: 10,
+    paddingHorizontal: 16, paddingVertical: 14, gap: 10,
   },
   backBtn: { padding: 4 },
   headerCenter: { flex: 1 },
-  headerTitle: { fontSize: 20, fontWeight: '700', color: G.text },
-  headerSub: { fontSize: 12, color: G.muted, marginTop: 1 },
+  headerTitle: { fontSize: 20, fontWeight: '700', color: '#fff' },
+  headerSub: { fontSize: 12, color: 'rgba(255,255,255,0.7)', marginTop: 1 },
   totalUnreadBadge: {
-    minWidth: 24, height: 24, borderRadius: 12, backgroundColor: G.violet,
+    minWidth: 24, height: 24, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.25)',
     alignItems: 'center', justifyContent: 'center', paddingHorizontal: 6,
   },
   totalUnreadText: { color: '#fff', fontSize: 11, fontWeight: '700' },
@@ -271,9 +282,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', backgroundColor: G.surface,
     borderRadius: 14, padding: 12, marginBottom: 8,
     borderWidth: 1, borderColor: G.border,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.03, shadowRadius: 3, elevation: 1,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 4, elevation: 2,
   },
-  convItemUnread: { backgroundColor: G.violetL, borderColor: '#C4B5FD' },
+  convItemUnread: { backgroundColor: G.violetL, borderColor: '#6EE7B7', borderLeftWidth: 3, borderLeftColor: G.green },
   avatarWrap: { position: 'relative', marginRight: 12 },
   unreadDot: {
     position: 'absolute', top: -3, right: -3,
