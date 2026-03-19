@@ -2,9 +2,10 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   RefreshControl, ActivityIndicator, Linking, Share, Modal,
-  TextInput, Image,
+  TextInput, Image, StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/Feather';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -13,37 +14,36 @@ import { getBookingLinks, updateBookingLink, getBookingLinkQR } from '../../api/
 import CustomAlert from '../../../components/CustomAlert';
 import { ListSkeleton } from '../../../components/SkeletonLoader';
 
-// Lazy-load native modules (require native rebuild)
 let RNShare = null;
 let RNFS = null;
 try {
   RNShare = require('react-native-share').default;
   RNFS = require('react-native-fs');
-  console.log('[BookingLinks] react-native-share:', !!RNShare, 'RNFS:', !!RNFS);
 } catch (e) {
   console.warn('[BookingLinks] Native share modules not available:', e.message);
 }
 
 const C = {
-  bg: '#F7FAFC', surface: '#FFFFFF', text: '#1E293B', subtext: '#475569',
-  muted: '#94A3B8', border: '#E2E8F0', brand: '#3B82F6', green: '#10B981',
-  orange: '#F59E0B', red: '#EF4444', purple: '#8B5CF6', emerald: '#059669',
-  indigo: '#6366F1',
+  g900: '#022C22', g800: '#064E3B', g700: '#047857', g600: '#059669',
+  g500: '#10B981', g400: '#34D399', g300: '#6EE7B7', g100: '#D1FAE5', g50: '#ECFDF5',
+  bg: '#F0FDF9', surface: '#FFFFFF',
+  text: '#1E293B', subtext: '#475569', muted: '#94A3B8', border: '#D1FAE5',
+  blue: '#3B82F6', indigo: '#6366F1', purple: '#8B5CF6',
+  amber: '#F59E0B', orange: '#F97316', red: '#EF4444', teal: '#14B8A6',
 };
 
-/* ── Service visual config ── */
 const SVC_META = {
-  'car-with-driver': { icon: 'car',            iconLib: 'mci', color: '#3B82F6', bg: '#DBEAFE', label: 'Car with Driver' },
-  'self-drive':      { icon: 'car-side',        iconLib: 'mci', color: '#8B5CF6', bg: '#F3E8FF', label: 'Self-Drive Car' },
-  bike:              { icon: 'motorbike',        iconLib: 'mci', color: '#F59E0B', bg: '#FEF3C7', label: 'Bike Rental' },
-  bus:               { icon: 'bus',              iconLib: 'mci', color: '#10B981', bg: '#D1FAE5', label: 'Bus & Tempo' },
-  luxury:            { icon: 'car-sports',       iconLib: 'mci', color: '#EAB308', bg: '#FEF9C3', label: 'Luxury Car' },
-  transporter:       { icon: 'truck',            iconLib: 'mci', color: '#64748B', bg: '#F1F5F9', label: 'Transporter' },
-  'packers-movers':  { icon: 'package-variant',  iconLib: 'mci', color: '#0EA5E9', bg: '#E0F2FE', label: 'Packers & Movers' },
-  equipment:         { icon: 'wrench',           iconLib: 'mci', color: '#EF4444', bg: '#FEE2E2', label: 'Equipment Rental' },
-  all:               { icon: 'globe',            iconLib: 'f',   color: '#6366F1', bg: '#E0E7FF', label: 'All Services' },
+  'car-with-driver': { icon: 'car',            iconLib: 'mci', color: C.blue,    bg: '#DBEAFE', label: 'Car with Driver'   },
+  'self-drive':      { icon: 'car-side',        iconLib: 'mci', color: C.purple,  bg: '#F3E8FF', label: 'Self-Drive Car'    },
+  bike:              { icon: 'motorbike',        iconLib: 'mci', color: C.amber,   bg: '#FEF3C7', label: 'Bike Rental'       },
+  bus:               { icon: 'bus',              iconLib: 'mci', color: C.teal,    bg: C.g100,    label: 'Bus & Tempo'       },
+  luxury:            { icon: 'car-sports',       iconLib: 'mci', color: '#EAB308', bg: '#FEF9C3', label: 'Luxury Car'        },
+  transporter:       { icon: 'truck',            iconLib: 'mci', color: C.orange,  bg: '#FFF7ED', label: 'Transporter'       },
+  'packers-movers':  { icon: 'package-variant',  iconLib: 'mci', color: C.indigo,  bg: '#E0E7FF', label: 'Packers & Movers'  },
+  equipment:         { icon: 'wrench',           iconLib: 'mci', color: C.red,     bg: '#FEE2E2', label: 'Equipment Rental'  },
+  all:               { icon: 'globe',            iconLib: 'f',   color: C.g600,    bg: C.g100,    label: 'All Services'      },
 };
-const DEFAULT_META = { icon: 'link', iconLib: 'f', color: '#6B7280', bg: '#F3F4F6', label: 'Booking Link' };
+const DEFAULT_META = { icon: 'link', iconLib: 'f', color: C.muted, bg: '#F3F4F6', label: 'Booking Link' };
 
 export default function BookingLinksScreen({ navigation }) {
   const [links, setLinks] = useState([]);
@@ -52,22 +52,18 @@ export default function BookingLinksScreen({ navigation }) {
   const [refreshing, setRefreshing] = useState(false);
   const [copiedId, setCopiedId] = useState(null);
 
-  // QR modal
-  const [qrModal, setQrModal] = useState(null); // { url, label, linkId }
+  const [qrModal, setQrModal] = useState(null);
   const [qrDataUrl, setQrDataUrl] = useState(null);
   const [qrLoading, setQrLoading] = useState(false);
 
-  // Customize modal
   const [customizeLink, setCustomizeLink] = useState(null);
   const [customizeData, setCustomizeData] = useState({ formTitle: '', welcomeMsg: '' });
   const [saving, setSaving] = useState(false);
 
-  // Alert
   const [alert, setAlert] = useState({ visible: false, type: 'info', title: '', message: '', actions: null });
   const showAlert = (type, title, message) => setAlert({ visible: true, type, title, message, actions: null });
   const hideAlert = () => setAlert(p => ({ ...p, visible: false }));
 
-  /* ── Fetch ── */
   const fetchLinks = useCallback(async () => {
     try {
       const res = await getBookingLinks();
@@ -83,10 +79,8 @@ export default function BookingLinksScreen({ navigation }) {
   }, []);
 
   useEffect(() => { fetchLinks(); }, [fetchLinks]);
-
   const onRefresh = () => { setRefreshing(true); fetchLinks(); };
 
-  /* ── Toggle active ── */
   const toggleActive = async (link) => {
     try {
       await updateBookingLink(link.id, { isActive: !link.isActive });
@@ -96,36 +90,25 @@ export default function BookingLinksScreen({ navigation }) {
     }
   };
 
-  /* ── Copy link ── */
   const copyLink = (link) => {
     Clipboard.setString(link.url);
     setCopiedId(link.id);
     setTimeout(() => setCopiedId(null), 2000);
   };
 
-  /* ── Share WhatsApp ── */
   const shareWhatsApp = (link) => {
     const msg = `Book ${link.serviceLabel} with us: ${link.url}`;
     Linking.openURL(`whatsapp://send?text=${encodeURIComponent(msg)}`);
   };
 
-  /* ── Share native ── */
   const shareLink = async (link) => {
     try {
-      await Share.share({
-        message: `Book ${link.serviceLabel} with us: ${link.url}`,
-      });
-    } catch (err) {
-      // user cancelled
-    }
+      await Share.share({ message: `Book ${link.serviceLabel} with us: ${link.url}` });
+    } catch (err) {}
   };
 
-  /* ── Preview in browser ── */
-  const previewLink = (link) => {
-    Linking.openURL(link.url);
-  };
+  const previewLink = (link) => { Linking.openURL(link.url); };
 
-  /* ── QR Code ── */
   const openQr = async (link) => {
     setQrModal({ url: link.url, label: link.serviceLabel, linkId: link.id });
     setQrDataUrl(null);
@@ -144,21 +127,16 @@ export default function BookingLinksScreen({ navigation }) {
     if (!qrModal || !qrDataUrl) return;
     try {
       if (RNShare && RNFS) {
-        // Write base64 QR to a temp file, then share the file
         const base64Data = qrDataUrl.replace(/^data:image\/\w+;base64,/, '');
         const fileName = `booking-qr-${Date.now()}.png`;
         const filePath = `${RNFS.CachesDirectoryPath}/${fileName}`;
-
         await RNFS.writeFile(filePath, base64Data, 'base64');
-        console.log('[BookingLinks] QR image saved to:', filePath);
-
         const shareOptions = {
           title: `Book ${qrModal.label}`,
           message: `Book ${qrModal.label} with us!\n${qrModal.url}`,
           url: `file://${filePath}`,
           type: 'image/png',
         };
-
         if (social === 'whatsapp') {
           shareOptions.social = RNShare.Social.WHATSAPP;
           await RNShare.shareSingle(shareOptions);
@@ -166,7 +144,6 @@ export default function BookingLinksScreen({ navigation }) {
           await RNShare.open(shareOptions);
         }
       } else {
-        // Fallback: share link text only
         const msg = `Book ${qrModal.label} with us!\nScan the QR code or click here: ${qrModal.url}`;
         if (social === 'whatsapp') {
           Linking.openURL(`whatsapp://send?text=${encodeURIComponent(msg)}`);
@@ -176,9 +153,7 @@ export default function BookingLinksScreen({ navigation }) {
       }
     } catch (err) {
       console.error('[BookingLinks] Share error:', err);
-      if (err?.message?.includes?.('User did not share') || err?.message?.includes?.('CANCELED')) {
-        return;
-      }
+      if (err?.message?.includes?.('User did not share') || err?.message?.includes?.('CANCELED')) return;
       if (err?.message?.includes?.('not installed') || err?.error?.includes?.('not installed')) {
         showAlert('warning', 'Not Available', 'WhatsApp is not installed on this device');
       } else {
@@ -187,7 +162,6 @@ export default function BookingLinksScreen({ navigation }) {
     }
   };
 
-  /* ── Customize ── */
   const openCustomize = (link) => {
     setCustomizeLink(link);
     setCustomizeData({ formTitle: link.formTitle || '', welcomeMsg: link.welcomeMsg || '' });
@@ -208,176 +182,175 @@ export default function BookingLinksScreen({ navigation }) {
     }
   };
 
-  /* ── Stats ── */
-  const activeCount = links.filter(l => l.isActive).length;
-  const totalViews = links.reduce((s, l) => s + (l.clickCount || 0), 0);
+  const activeCount   = links.filter(l => l.isActive).length;
+  const totalViews    = links.reduce((s, l) => s + (l.clickCount || 0), 0);
   const totalBookings = links.reduce((s, l) => s + (l.bookingCount || 0), 0);
 
-  /* ── Loading ── */
+  /* ── Loading state ── */
   if (loading) return (
-    <SafeAreaView style={s.safe} edges={['top']}>
-      <View style={s.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
-          <Icon name="arrow-left" size={22} color="#fff" />
-        </TouchableOpacity>
-        <View style={{ flex: 1 }}>
-          <Text style={s.headerTitle}>Booking Links</Text>
-        </View>
-      </View>
+    <View style={s.root}>
+      <StatusBar barStyle="light-content" backgroundColor={C.g900} />
+      <LinearGradient colors={[C.g900, C.g800, C.g700]} style={s.grad}>
+        <SafeAreaView edges={['top']}>
+          <View style={s.gradTop}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
+              <Icon name="arrow-left" size={22} color="#fff" />
+            </TouchableOpacity>
+            <Text style={s.gradTitle}>Booking Links</Text>
+          </View>
+        </SafeAreaView>
+      </LinearGradient>
       <ListSkeleton count={3} />
-    </SafeAreaView>
+    </View>
   );
 
   return (
-    <SafeAreaView style={s.safe} edges={['top']}>
-      {/* Header */}
-      <View style={s.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
-          <Icon name="arrow-left" size={22} color="#fff" />
-        </TouchableOpacity>
-        <View style={{ flex: 1 }}>
-          <Text style={s.headerTitle}>Booking Links</Text>
-          <Text style={s.headerSub}>Share links to get direct bookings</Text>
-        </View>
-        <TouchableOpacity onPress={onRefresh} style={s.refreshBtn}>
-          <Icon name="refresh-cw" size={18} color="#fff" />
-        </TouchableOpacity>
-      </View>
+    <View style={s.root}>
+      <StatusBar barStyle="light-content" backgroundColor={C.g900} />
 
-      {/* Stats Row */}
-      <View style={s.statsRow}>
-        {[
-          { label: 'Active', value: activeCount, icon: 'zap', color: '#22C55E' },
-          { label: 'Views', value: totalViews, icon: 'eye', color: '#3B82F6' },
-          { label: 'Bookings', value: totalBookings, icon: 'book-open', color: '#8B5CF6' },
-        ].map(stat => (
-          <View key={stat.label} style={s.statCard}>
-            <View style={[s.statIconWrap, { backgroundColor: stat.color + '15' }]}>
-              <Icon name={stat.icon} size={16} color={stat.color} />
+      {/* Gradient Header */}
+      <LinearGradient colors={[C.g900, C.g800, C.g700]} style={s.grad}>
+        <SafeAreaView edges={['top']}>
+          <View style={s.gradTop}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
+              <Icon name="arrow-left" size={22} color="#fff" />
+            </TouchableOpacity>
+            <View style={{ flex: 1 }}>
+              <Text style={s.gradTitle}>Booking Links</Text>
+              <Text style={s.gradSub}>Share links to get direct bookings</Text>
             </View>
-            <Text style={s.statValue}>{stat.value}</Text>
-            <Text style={s.statLabel}>{stat.label}</Text>
+            <TouchableOpacity onPress={onRefresh} style={s.refreshBtn}>
+              <Icon name="refresh-cw" size={18} color="rgba(255,255,255,0.8)" />
+            </TouchableOpacity>
           </View>
-        ))}
-      </View>
+
+          {/* Stats strip */}
+          <View style={s.statsStrip}>
+            <View style={s.statItem}>
+              <Icon name="zap" size={14} color={C.g400} style={{ marginBottom: 4 }} />
+              <Text style={[s.statNum, { color: C.g400 }]}>{activeCount}</Text>
+              <Text style={s.statLbl}>Active</Text>
+            </View>
+            <View style={s.statDiv} />
+            <View style={s.statItem}>
+              <Icon name="eye" size={14} color="#93C5FD" style={{ marginBottom: 4 }} />
+              <Text style={[s.statNum, { color: '#93C5FD' }]}>{totalViews}</Text>
+              <Text style={s.statLbl}>Views</Text>
+            </View>
+            <View style={s.statDiv} />
+            <View style={s.statItem}>
+              <Icon name="book-open" size={14} color="#C4B5FD" style={{ marginBottom: 4 }} />
+              <Text style={[s.statNum, { color: '#C4B5FD' }]}>{totalBookings}</Text>
+              <Text style={s.statLbl}>Bookings</Text>
+            </View>
+          </View>
+        </SafeAreaView>
+      </LinearGradient>
 
       <ScrollView
         contentContainerStyle={s.scroll}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[C.indigo]} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[C.g600]} tintColor={C.g600} />}
       >
         {links.map(link => {
           const meta = SVC_META[link.serviceType] || DEFAULT_META;
           const isCopied = copiedId === link.id;
 
           return (
-            <View key={link.id} style={[s.card, !link.isActive && { opacity: 0.55 }]}>
-              {/* Colored top strip */}
-              <View style={[s.cardStrip, { backgroundColor: meta.color }]} />
+            <View key={link.id} style={[s.card, !link.isActive && { opacity: 0.6 }]}>
+              {/* Left accent */}
+              <View style={[s.cardAccent, { backgroundColor: meta.color }]} />
 
-              <View style={s.cardBody}>
-                {/* Top row: icon + info + toggle */}
-                <View style={s.cardTopRow}>
-                  {/* Service icon */}
-                  <View style={[s.svcIcon, { backgroundColor: meta.bg }]}>
+              <View style={s.cardInner}>
+                {/* Top row */}
+                <View style={s.cardTop}>
+                  <View style={[s.svcIconWrap, { backgroundColor: meta.bg }]}>
                     {meta.iconLib === 'mci' ? (
-                      <MaterialCommunityIcons name={meta.icon} size={22} color={meta.color} />
+                      <MaterialCommunityIcons name={meta.icon} size={24} color={meta.color} />
                     ) : (
-                      <Icon name={meta.icon} size={20} color={meta.color} />
+                      <Icon name={meta.icon} size={22} color={meta.color} />
                     )}
                   </View>
 
-                  {/* Info */}
                   <View style={{ flex: 1 }}>
                     <View style={s.nameRow}>
                       <Text style={s.svcName}>{link.serviceLabel || meta.label}</Text>
-                      <View style={[s.activeBadge, { backgroundColor: link.isActive ? '#DCFCE7' : '#F3F4F6' }]}>
-                        <View style={[s.activeDot, { backgroundColor: link.isActive ? C.green : C.muted }]} />
-                        <Text style={[s.activeText, { color: link.isActive ? C.emerald : C.muted }]}>
+                      <View style={[s.statusPill, { backgroundColor: link.isActive ? C.g100 : '#F3F4F6' }]}>
+                        <View style={[s.statusDot, { backgroundColor: link.isActive ? C.g600 : C.muted }]} />
+                        <Text style={[s.statusTxt, { color: link.isActive ? C.g700 : C.muted }]}>
                           {link.isActive ? 'Active' : 'Paused'}
                         </Text>
                       </View>
                     </View>
 
-                    {/* URL */}
                     <Text style={[s.urlText, { color: meta.color }]} numberOfLines={1}>{link.url}</Text>
 
-                    {/* Custom title */}
                     {link.formTitle ? (
-                      <Text style={s.formTitleText} numberOfLines={1}>"{link.formTitle}"</Text>
+                      <Text style={s.formTitle} numberOfLines={1}>"{link.formTitle}"</Text>
                     ) : null}
 
-                    {/* Stats */}
-                    <View style={s.statsInline}>
-                      <View style={s.statInline}>
-                        <Icon name="eye" size={12} color={C.muted} />
-                        <Text style={s.statInlineVal}>{link.clickCount || 0}</Text>
-                        <Text style={s.statInlineLabel}>views</Text>
+                    <View style={s.inlineStats}>
+                      <View style={s.inlineStat}>
+                        <Icon name="eye" size={11} color={C.muted} />
+                        <Text style={s.inlineStatVal}>{link.clickCount || 0}</Text>
+                        <Text style={s.inlineStatLbl}>views</Text>
                       </View>
-                      <View style={s.statInline}>
-                        <Icon name="book-open" size={12} color={C.muted} />
-                        <Text style={s.statInlineVal}>{link.bookingCount || 0}</Text>
-                        <Text style={s.statInlineLabel}>bookings</Text>
+                      <View style={s.inlineStat}>
+                        <Icon name="book-open" size={11} color={C.muted} />
+                        <Text style={s.inlineStatVal}>{link.bookingCount || 0}</Text>
+                        <Text style={s.inlineStatLbl}>bookings</Text>
                       </View>
                     </View>
                   </View>
 
-                  {/* Toggle */}
                   <TouchableOpacity onPress={() => toggleActive(link)} style={s.toggleBtn}>
                     <Ionicons
                       name={link.isActive ? 'toggle' : 'toggle-outline'}
-                      size={36}
-                      color={link.isActive ? C.green : C.muted}
+                      size={38}
+                      color={link.isActive ? C.g600 : C.muted}
                     />
                   </TouchableOpacity>
                 </View>
 
-                {/* Action buttons */}
-                <View style={s.actionsRow}>
-                  {/* Copy */}
+                {/* Action chips */}
+                <View style={s.chipsRow}>
                   <TouchableOpacity
-                    style={[s.actionChip, isCopied && { backgroundColor: '#DCFCE7', borderColor: C.green }]}
+                    style={[s.chip, isCopied && { backgroundColor: C.g100, borderColor: C.g400 }]}
                     onPress={() => copyLink(link)}
                   >
-                    <Icon name={isCopied ? 'check' : 'copy'} size={14} color={isCopied ? C.green : C.subtext} />
-                    <Text style={[s.actionChipText, isCopied && { color: C.green }]}>
-                      {isCopied ? 'Copied!' : 'Copy'}
-                    </Text>
+                    <Icon name={isCopied ? 'check' : 'copy'} size={13} color={isCopied ? C.g600 : C.subtext} />
+                    <Text style={[s.chipTxt, isCopied && { color: C.g600 }]}>{isCopied ? 'Copied!' : 'Copy'}</Text>
                   </TouchableOpacity>
 
-                  {/* WhatsApp */}
                   <TouchableOpacity
-                    style={[s.actionChip, { backgroundColor: '#DCFCE710', borderColor: '#25D36640' }]}
+                    style={[s.chip, { backgroundColor: '#F0FDF4', borderColor: '#86EFAC' }]}
                     onPress={() => shareWhatsApp(link)}
                   >
-                    <Ionicons name="logo-whatsapp" size={14} color="#128C7E" />
-                    <Text style={[s.actionChipText, { color: '#128C7E' }]}>WhatsApp</Text>
+                    <Ionicons name="logo-whatsapp" size={13} color="#128C7E" />
+                    <Text style={[s.chipTxt, { color: '#128C7E' }]}>WhatsApp</Text>
                   </TouchableOpacity>
 
-                  {/* QR */}
                   <TouchableOpacity
-                    style={[s.actionChip, { backgroundColor: '#F3E8FF', borderColor: '#8B5CF640' }]}
+                    style={[s.chip, { backgroundColor: '#F5F3FF', borderColor: '#DDD6FE' }]}
                     onPress={() => openQr(link)}
                   >
-                    <MaterialCommunityIcons name="qrcode" size={14} color={C.purple} />
-                    <Text style={[s.actionChipText, { color: C.purple }]}>QR</Text>
+                    <MaterialCommunityIcons name="qrcode" size={13} color={C.purple} />
+                    <Text style={[s.chipTxt, { color: C.purple }]}>QR Code</Text>
                   </TouchableOpacity>
 
-                  {/* Customize */}
                   <TouchableOpacity
-                    style={[s.actionChip, { backgroundColor: '#FEF3C7', borderColor: '#F59E0B40' }]}
+                    style={[s.chip, { backgroundColor: '#FFFBEB', borderColor: '#FDE68A' }]}
                     onPress={() => openCustomize(link)}
                   >
-                    <Icon name="settings" size={13} color={C.orange} />
-                    <Text style={[s.actionChipText, { color: C.orange }]}>Edit</Text>
+                    <Icon name="settings" size={12} color={C.amber} />
+                    <Text style={[s.chipTxt, { color: C.amber }]}>Edit</Text>
                   </TouchableOpacity>
 
-                  {/* Share */}
                   <TouchableOpacity
-                    style={[s.actionChip, { backgroundColor: '#DBEAFE', borderColor: '#3B82F640' }]}
+                    style={[s.chip, { backgroundColor: '#EFF6FF', borderColor: '#BFDBFE' }]}
                     onPress={() => shareLink(link)}
                   >
-                    <Icon name="share-2" size={13} color={C.brand} />
-                    <Text style={[s.actionChipText, { color: C.brand }]}>Share</Text>
+                    <Icon name="share-2" size={12} color={C.blue} />
+                    <Text style={[s.chipTxt, { color: C.blue }]}>Share</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -387,12 +360,12 @@ export default function BookingLinksScreen({ navigation }) {
 
         {/* Empty state */}
         {links.length === 0 && (
-          <View style={s.emptyState}>
-            <View style={s.emptyIcon}>
-              <Icon name="globe" size={36} color={C.indigo} />
-            </View>
+          <View style={s.emptyWrap}>
+            <LinearGradient colors={[C.g100, C.g50]} style={s.emptyIcon}>
+              <Icon name="link" size={38} color={C.g600} />
+            </LinearGradient>
             <Text style={s.emptyTitle}>No booking links yet</Text>
-            <Text style={s.emptyMsg}>Your booking links will appear here once your services are approved.</Text>
+            <Text style={s.emptySub}>Your booking links will appear here once your services are approved.</Text>
           </View>
         )}
 
@@ -402,67 +375,76 @@ export default function BookingLinksScreen({ navigation }) {
       {/* ── QR Code Modal ── */}
       <Modal visible={!!qrModal} transparent animationType="slide">
         <View style={s.modalOverlay}>
-          <View style={s.modalContent}>
-            {/* Header */}
-            <View style={s.qrHeader}>
-              <View>
-                <Text style={s.qrHeaderTitle}>QR Code</Text>
-                <Text style={s.qrHeaderSub}>{qrModal?.label}</Text>
+          <View style={s.modalSheet}>
+            {/* QR Header — handle inside gradient so no white strip */}
+            <LinearGradient colors={[C.g900, C.g800, C.g700]} style={s.modalHead}>
+              <View style={s.modalHandle} />
+              <View style={s.modalHeadRow}>
+                <View>
+                  <Text style={s.modalHeadTitle}>QR Code</Text>
+                  <Text style={s.modalHeadSub}>{qrModal?.label}</Text>
+                </View>
+                <TouchableOpacity onPress={() => setQrModal(null)} style={s.modalCloseBtn}>
+                  <Icon name="x" size={18} color="#fff" />
+                </TouchableOpacity>
               </View>
-              <TouchableOpacity onPress={() => setQrModal(null)} style={s.qrCloseBtn}>
-                <Icon name="x" size={18} color="#fff" />
-              </TouchableOpacity>
-            </View>
+            </LinearGradient>
 
             <View style={s.qrBody}>
-              {/* QR Image */}
-              <View style={s.qrImageWrap}>
+              {/* QR image */}
+              <View style={s.qrFrame}>
                 {qrLoading ? (
-                  <ActivityIndicator size="large" color={C.purple} />
+                  <ActivityIndicator size="large" color={C.g600} />
                 ) : qrDataUrl ? (
                   <Image source={{ uri: qrDataUrl }} style={s.qrImage} resizeMode="contain" />
                 ) : (
-                  <Text style={{ color: C.muted }}>Failed to load QR</Text>
+                  <View style={{ alignItems: 'center', gap: 8 }}>
+                    <Icon name="alert-circle" size={28} color={C.muted} />
+                    <Text style={{ color: C.muted, fontSize: 13 }}>Failed to load QR</Text>
+                  </View>
                 )}
               </View>
 
               {/* URL pill */}
               <View style={s.urlPill}>
-                <Text style={s.urlPillText} numberOfLines={1}>{qrModal?.url}</Text>
+                <Icon name="link" size={13} color={C.muted} />
+                <Text style={s.urlPillTxt} numberOfLines={1}>{qrModal?.url}</Text>
                 <TouchableOpacity
                   onPress={() => { if (qrModal) { Clipboard.setString(qrModal.url); showAlert('success', 'Copied!', 'Link copied to clipboard'); } }}
                   style={s.urlPillCopy}
                 >
-                  <Icon name="copy" size={12} color={C.subtext} />
-                  <Text style={s.urlPillCopyText}>Copy</Text>
+                  <Text style={s.urlPillCopyTxt}>Copy</Text>
                 </TouchableOpacity>
               </View>
 
-              {/* Share actions */}
-              <View style={s.qrActions}>
+              {/* Actions */}
+              <TouchableOpacity
+                style={[s.qrShareBtn, !qrDataUrl && { opacity: 0.4 }]}
+                onPress={() => shareQrImage()}
+                disabled={!qrDataUrl}
+              >
+                <LinearGradient colors={[C.g700, C.g600]} style={s.qrShareGrad} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
+                  <Icon name="share-2" size={17} color="#fff" />
+                  <Text style={s.qrShareTxt}>Share QR Image</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+
+              <View style={s.qrSecRow}>
                 <TouchableOpacity
-                  style={[s.qrShareBtn, !qrDataUrl && { opacity: 0.4 }]}
-                  onPress={() => shareQrImage()}
+                  style={[s.qrSecBtn, { backgroundColor: '#F0FDF4', borderColor: '#86EFAC' }, !qrDataUrl && { opacity: 0.4 }]}
+                  onPress={() => shareQrImage('whatsapp')}
                   disabled={!qrDataUrl}
                 >
-                  <Icon name="share-2" size={18} color="#fff" />
-                  <Text style={s.qrShareBtnText}>Share QR Image</Text>
+                  <Ionicons name="logo-whatsapp" size={17} color="#128C7E" />
+                  <Text style={[s.qrSecTxt, { color: '#128C7E' }]}>WhatsApp</Text>
                 </TouchableOpacity>
-
-                <View style={s.qrSecondaryRow}>
-                  <TouchableOpacity
-                    style={[s.qrWhatsAppBtn, !qrDataUrl && { opacity: 0.4 }]}
-                    onPress={() => shareQrImage('whatsapp')}
-                    disabled={!qrDataUrl}
-                  >
-                    <Ionicons name="logo-whatsapp" size={18} color="#128C7E" />
-                    <Text style={s.qrWhatsAppText}>WhatsApp</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={s.qrPreviewBtn} onPress={() => { if (qrModal) Linking.openURL(qrModal.url); }}>
-                    <Icon name="external-link" size={16} color={C.subtext} />
-                    <Text style={s.qrPreviewText}>Preview</Text>
-                  </TouchableOpacity>
-                </View>
+                <TouchableOpacity
+                  style={[s.qrSecBtn, { backgroundColor: C.g50, borderColor: C.g100 }]}
+                  onPress={() => { if (qrModal) Linking.openURL(qrModal.url); }}
+                >
+                  <Icon name="external-link" size={16} color={C.g700} />
+                  <Text style={[s.qrSecTxt, { color: C.g700 }]}>Preview</Text>
+                </TouchableOpacity>
               </View>
             </View>
           </View>
@@ -472,57 +454,64 @@ export default function BookingLinksScreen({ navigation }) {
       {/* ── Customize Modal ── */}
       <Modal visible={!!customizeLink} transparent animationType="slide">
         <View style={s.modalOverlay}>
-          <View style={s.modalContent}>
-            {/* Header */}
-            <View style={[s.qrHeader, { backgroundColor: (SVC_META[customizeLink?.serviceType] || DEFAULT_META).color }]}>
-              <View>
-                <Text style={s.qrHeaderTitle}>Customize Form</Text>
-                <Text style={s.qrHeaderSub}>{customizeLink?.serviceLabel}</Text>
+          <View style={s.modalSheet}>
+            <LinearGradient
+              colors={[C.g900, C.g800, C.g700]}
+              style={s.modalHead}
+            >
+              <View style={s.modalHandle} />
+              <View style={s.modalHeadRow}>
+                <View>
+                  <Text style={s.modalHeadTitle}>Customize Form</Text>
+                  <Text style={s.modalHeadSub}>{customizeLink?.serviceLabel}</Text>
+                </View>
+                <TouchableOpacity onPress={() => setCustomizeLink(null)} style={s.modalCloseBtn}>
+                  <Icon name="x" size={18} color="#fff" />
+                </TouchableOpacity>
               </View>
-              <TouchableOpacity onPress={() => setCustomizeLink(null)} style={s.qrCloseBtn}>
-                <Icon name="x" size={18} color="#fff" />
-              </TouchableOpacity>
-            </View>
+            </LinearGradient>
 
-            <View style={s.customizeBody}>
-              <Text style={s.customizeLabel}>FORM TITLE</Text>
+            <View style={s.customBody}>
+              <Text style={s.fieldLabel}>FORM TITLE</Text>
               <TextInput
-                style={s.customizeInput}
+                style={s.input}
                 placeholder="e.g. Book a Bike with Rahul Travels"
                 placeholderTextColor={C.muted}
                 value={customizeData.formTitle}
                 onChangeText={v => setCustomizeData(p => ({ ...p, formTitle: v }))}
               />
-              <Text style={s.customizeHint}>Shown as the heading on your booking form</Text>
+              <Text style={s.fieldHint}>Shown as the heading on your booking form</Text>
 
-              <Text style={[s.customizeLabel, { marginTop: 16 }]}>WELCOME MESSAGE</Text>
+              <Text style={[s.fieldLabel, { marginTop: 16 }]}>WELCOME MESSAGE</Text>
               <TextInput
-                style={[s.customizeInput, { height: 80, textAlignVertical: 'top' }]}
+                style={[s.input, { height: 80, textAlignVertical: 'top' }]}
                 placeholder="e.g. Best rates in Pune. We offer Royal Enfield, Activa & more."
                 placeholderTextColor={C.muted}
                 value={customizeData.welcomeMsg}
                 onChangeText={v => setCustomizeData(p => ({ ...p, welcomeMsg: v }))}
                 multiline
               />
-              <Text style={s.customizeHint}>Shown as a note below your business name</Text>
+              <Text style={s.fieldHint}>Shown as a note below your business name</Text>
 
-              <View style={s.customizeBtns}>
-                <TouchableOpacity style={s.customizeCancelBtn} onPress={() => setCustomizeLink(null)}>
-                  <Text style={s.customizeCancelText}>Cancel</Text>
+              <View style={s.customBtns}>
+                <TouchableOpacity style={s.cancelBtn} onPress={() => setCustomizeLink(null)}>
+                  <Text style={s.cancelBtnTxt}>Cancel</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  style={[s.customizeSaveBtn, saving && { opacity: 0.6 }]}
+                  style={[s.saveWrap, saving && { opacity: 0.6 }]}
                   onPress={saveCustomize}
                   disabled={saving}
                 >
-                  {saving ? (
-                    <ActivityIndicator size="small" color="#fff" />
-                  ) : (
-                    <>
-                      <Icon name="check" size={16} color="#fff" />
-                      <Text style={s.customizeSaveText}>Save</Text>
-                    </>
-                  )}
+                  <LinearGradient colors={[C.g700, C.g600]} style={s.saveBtn} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
+                    {saving ? (
+                      <ActivityIndicator size="small" color="#fff" />
+                    ) : (
+                      <>
+                        <Icon name="check" size={16} color="#fff" />
+                        <Text style={s.saveBtnTxt}>Save</Text>
+                      </>
+                    )}
+                  </LinearGradient>
                 </TouchableOpacity>
               </View>
             </View>
@@ -538,156 +527,100 @@ export default function BookingLinksScreen({ navigation }) {
         onClose={hideAlert}
         actions={alert.actions}
       />
-    </SafeAreaView>
+    </View>
   );
 }
 
 const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: C.bg },
-  centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  root: { flex: 1, backgroundColor: C.bg },
 
-  // Header
-  header: {
-    flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14,
-    backgroundColor: C.indigo,
-  },
-  backBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
-  headerTitle: { fontSize: 20, fontWeight: '700', color: '#fff' },
-  headerSub: { fontSize: 12, color: '#C7D7FE', marginTop: 1 },
-  refreshBtn: { width: 38, height: 38, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.15)', justifyContent: 'center', alignItems: 'center' },
+  /* Gradient header */
+  grad: { paddingBottom: 18 },
+  gradTop: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingTop: 12, paddingBottom: 14, gap: 8 },
+  backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.12)', justifyContent: 'center', alignItems: 'center' },
+  gradTitle: { fontSize: 20, fontWeight: '800', color: '#fff', letterSpacing: -0.3 },
+  gradSub: { fontSize: 12, color: 'rgba(255,255,255,0.6)', marginTop: 2 },
+  refreshBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.1)', justifyContent: 'center', alignItems: 'center' },
 
-  // Stats
-  statsRow: {
-    flexDirection: 'row', gap: 10, paddingHorizontal: 16, paddingVertical: 14,
-    backgroundColor: C.indigo, paddingBottom: 20,
-  },
-  statCard: {
-    flex: 1, backgroundColor: 'rgba(255,255,255,0.12)', borderRadius: 16,
-    paddingVertical: 12, paddingHorizontal: 10, alignItems: 'center',
-  },
-  statIconWrap: { width: 32, height: 32, borderRadius: 10, justifyContent: 'center', alignItems: 'center', marginBottom: 6 },
-  statValue: { fontSize: 22, fontWeight: '800', color: '#fff' },
-  statLabel: { fontSize: 11, color: '#C7D7FE', marginTop: 2 },
+  statsStrip: { flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.1)', overflow: 'hidden' },
+  statItem: { flex: 1, paddingVertical: 13, alignItems: 'center' },
+  statNum: { fontSize: 20, fontWeight: '800', color: '#fff' },
+  statLbl: { fontSize: 9, color: 'rgba(255,255,255,0.55)', fontWeight: '700', marginTop: 2, textTransform: 'uppercase', letterSpacing: 0.5 },
+  statDiv: { width: 1, backgroundColor: 'rgba(255,255,255,0.12)', marginVertical: 10 },
 
-  scroll: { padding: 16, gap: 12 },
+  /* Scroll */
+  scroll: { padding: 14, paddingTop: 14, gap: 12, paddingBottom: 30 },
 
-  // Card
-  card: { backgroundColor: C.surface, borderRadius: 16, overflow: 'hidden', borderWidth: 1, borderColor: C.border },
-  cardStrip: { height: 3 },
-  cardBody: { padding: 14 },
+  /* Card */
+  card: { backgroundColor: C.surface, borderRadius: 18, flexDirection: 'row', overflow: 'hidden', borderWidth: 1, borderColor: C.border, shadowColor: C.g900, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 2 },
+  cardAccent: { width: 4 },
+  cardInner: { flex: 1, padding: 14 },
 
-  // Card top row
-  cardTopRow: { flexDirection: 'row', gap: 12, alignItems: 'flex-start' },
-  svcIcon: {
-    width: 48, height: 48, borderRadius: 16, justifyContent: 'center', alignItems: 'center',
-  },
-  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
-  svcName: { fontSize: 15, fontWeight: '700', color: C.text },
-  activeBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 12 },
-  activeDot: { width: 6, height: 6, borderRadius: 3 },
-  activeText: { fontSize: 11, fontWeight: '700' },
-  urlText: { fontSize: 11, fontFamily: 'monospace', marginTop: 4 },
-  formTitleText: { fontSize: 11, color: C.muted, fontStyle: 'italic', marginTop: 2 },
+  cardTop: { flexDirection: 'row', gap: 12, alignItems: 'flex-start', marginBottom: 14 },
+  svcIconWrap: { width: 50, height: 50, borderRadius: 16, justifyContent: 'center', alignItems: 'center' },
+  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 4 },
+  svcName: { fontSize: 15, fontWeight: '800', color: C.text },
+  statusPill: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 12 },
+  statusDot: { width: 6, height: 6, borderRadius: 3 },
+  statusTxt: { fontSize: 11, fontWeight: '700' },
+  urlText: { fontSize: 11, fontFamily: 'monospace', marginBottom: 2 },
+  formTitle: { fontSize: 11, color: C.muted, fontStyle: 'italic', marginBottom: 4 },
 
-  // Inline stats
-  statsInline: { flexDirection: 'row', gap: 14, marginTop: 8 },
-  statInline: { flexDirection: 'row', alignItems: 'center', gap: 3 },
-  statInlineVal: { fontSize: 12, fontWeight: '700', color: C.subtext },
-  statInlineLabel: { fontSize: 11, color: C.muted },
+  inlineStats: { flexDirection: 'row', gap: 14, marginTop: 6 },
+  inlineStat: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  inlineStatVal: { fontSize: 12, fontWeight: '700', color: C.subtext },
+  inlineStatLbl: { fontSize: 11, color: C.muted },
 
-  // Toggle
-  toggleBtn: { padding: 4 },
+  toggleBtn: { padding: 2, marginTop: 2 },
 
-  // Actions row
-  actionsRow: {
-    flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 14,
-    paddingTop: 14, borderTopWidth: 1, borderTopColor: '#F1F5F9', borderStyle: 'dashed',
-  },
-  actionChip: {
-    flexDirection: 'row', alignItems: 'center', gap: 5,
-    paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12,
-    backgroundColor: '#F8FAFC', borderWidth: 1.5, borderColor: C.border,
-  },
-  actionChipText: { fontSize: 12, fontWeight: '700', color: C.subtext },
+  /* Chips */
+  chipsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingTop: 12, borderTopWidth: 1, borderTopColor: C.border + '80' },
+  chip: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 11, paddingVertical: 8, borderRadius: 10, backgroundColor: C.surface, borderWidth: 1.5, borderColor: C.border },
+  chipTxt: { fontSize: 11, fontWeight: '700', color: C.subtext },
 
-  // Empty state
-  emptyState: { alignItems: 'center', paddingVertical: 50, paddingHorizontal: 30 },
-  emptyIcon: {
-    width: 72, height: 72, borderRadius: 22, backgroundColor: '#E0E7FF',
-    justifyContent: 'center', alignItems: 'center', marginBottom: 16,
-  },
-  emptyTitle: { fontSize: 18, fontWeight: '700', color: C.text },
-  emptyMsg: { fontSize: 14, color: C.muted, textAlign: 'center', marginTop: 6, lineHeight: 20 },
+  /* Empty */
+  emptyWrap: { alignItems: 'center', paddingVertical: 64, paddingHorizontal: 32, gap: 10 },
+  emptyIcon: { width: 90, height: 90, borderRadius: 45, justifyContent: 'center', alignItems: 'center', marginBottom: 6 },
+  emptyTitle: { fontSize: 17, fontWeight: '700', color: C.text },
+  emptySub: { fontSize: 13, color: C.muted, textAlign: 'center', lineHeight: 20 },
 
-  // Modal
+  /* Modal */
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-  modalContent: { backgroundColor: C.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24, overflow: 'hidden' },
+  modalSheet: { backgroundColor: C.surface, borderTopLeftRadius: 28, borderTopRightRadius: 28, overflow: 'hidden' },
+  modalHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.35)', alignSelf: 'center', marginTop: 12, marginBottom: 14 },
+  modalHead: { paddingHorizontal: 20, paddingBottom: 18 },
+  modalHeadRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  modalHeadTitle: { fontSize: 17, fontWeight: '800', color: '#fff' },
+  modalHeadSub: { fontSize: 13, color: 'rgba(255,255,255,0.65)', marginTop: 2 },
+  modalCloseBtn: { width: 34, height: 34, borderRadius: 17, backgroundColor: 'rgba(255,255,255,0.15)', justifyContent: 'center', alignItems: 'center' },
 
-  // QR Modal
-  qrHeader: {
-    backgroundColor: C.purple, paddingHorizontal: 20, paddingVertical: 18,
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-  },
-  qrHeaderTitle: { fontSize: 18, fontWeight: '700', color: '#fff' },
-  qrHeaderSub: { fontSize: 13, color: 'rgba(255,255,255,0.7)', marginTop: 2 },
-  qrCloseBtn: {
-    width: 34, height: 34, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.2)',
-    justifyContent: 'center', alignItems: 'center',
-  },
+  /* QR */
   qrBody: { padding: 20, alignItems: 'center' },
-  qrImageWrap: {
-    width: 200, height: 200, borderRadius: 20, backgroundColor: '#F8FAFC',
-    justifyContent: 'center', alignItems: 'center', marginBottom: 16,
-    borderWidth: 1, borderColor: C.border,
-  },
-  qrImage: { width: 180, height: 180, borderRadius: 12 },
+  qrFrame: { width: 210, height: 210, borderRadius: 20, backgroundColor: '#fff', justifyContent: 'center', alignItems: 'center', marginBottom: 16, borderWidth: 1.5, borderColor: C.border, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 12, elevation: 4 },
+  qrImage: { width: 190, height: 190, borderRadius: 12 },
 
-  // URL pill
-  urlPill: {
-    flexDirection: 'row', alignItems: 'center', gap: 8,
-    backgroundColor: '#F8FAFC', borderRadius: 12, paddingHorizontal: 12, paddingVertical: 8,
-    width: '100%', marginBottom: 16,
-  },
-  urlPillText: { flex: 1, fontSize: 11, fontFamily: 'monospace', color: C.muted },
-  urlPillCopy: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, backgroundColor: C.surface, borderWidth: 1, borderColor: C.border },
-  urlPillCopyText: { fontSize: 11, fontWeight: '600', color: C.subtext },
+  urlPill: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: C.g50, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, width: '100%', marginBottom: 16, borderWidth: 1, borderColor: C.g100 },
+  urlPillTxt: { flex: 1, fontSize: 11, fontFamily: 'monospace', color: C.muted },
+  urlPillCopy: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, backgroundColor: C.g100 },
+  urlPillCopyTxt: { fontSize: 11, fontWeight: '700', color: C.g700 },
 
-  // QR actions
-  qrActions: { width: '100%', gap: 10 },
-  qrShareBtn: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
-    backgroundColor: C.purple, paddingVertical: 14, borderRadius: 16,
-  },
-  qrShareBtnText: { fontSize: 15, fontWeight: '700', color: '#fff' },
-  qrSecondaryRow: { flexDirection: 'row', gap: 10 },
-  qrWhatsAppBtn: {
-    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
-    backgroundColor: '#DCFCE7', paddingVertical: 13, borderRadius: 14,
-  },
-  qrWhatsAppText: { fontSize: 13, fontWeight: '700', color: '#128C7E' },
-  qrPreviewBtn: {
-    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
-    backgroundColor: '#F1F5F9', paddingVertical: 13, borderRadius: 14,
-  },
-  qrPreviewText: { fontSize: 13, fontWeight: '600', color: C.subtext },
+  qrShareBtn: { width: '100%', borderRadius: 14, overflow: 'hidden', marginBottom: 10 },
+  qrShareGrad: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 15 },
+  qrShareTxt: { fontSize: 15, fontWeight: '700', color: '#fff' },
 
-  // Customize
-  customizeBody: { padding: 20 },
-  customizeLabel: { fontSize: 11, fontWeight: '700', color: C.muted, letterSpacing: 0.8, marginBottom: 6 },
-  customizeInput: {
-    backgroundColor: '#F8FAFC', borderWidth: 1, borderColor: C.border, borderRadius: 12,
-    paddingHorizontal: 14, paddingVertical: 12, fontSize: 14, color: C.text,
-  },
-  customizeHint: { fontSize: 11, color: C.muted, marginTop: 4 },
-  customizeBtns: { flexDirection: 'row', gap: 12, marginTop: 20 },
-  customizeCancelBtn: {
-    flex: 1, paddingVertical: 14, borderRadius: 14, borderWidth: 2, borderColor: C.border,
-    alignItems: 'center',
-  },
-  customizeCancelText: { fontSize: 14, fontWeight: '600', color: C.muted },
-  customizeSaveBtn: {
-    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
-    backgroundColor: C.indigo, paddingVertical: 14, borderRadius: 14,
-  },
-  customizeSaveText: { fontSize: 14, fontWeight: '700', color: '#fff' },
+  qrSecRow: { flexDirection: 'row', gap: 10, width: '100%' },
+  qrSecBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 13, borderRadius: 14, borderWidth: 1.5 },
+  qrSecTxt: { fontSize: 13, fontWeight: '700' },
+
+  /* Customize modal */
+  customBody: { padding: 20, paddingBottom: 36 },
+  fieldLabel: { fontSize: 11, fontWeight: '700', color: C.subtext, textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 8 },
+  input: { backgroundColor: C.g50, borderWidth: 1.5, borderColor: C.g100, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 13, fontSize: 14, color: C.text },
+  fieldHint: { fontSize: 11, color: C.muted, marginTop: 4 },
+  customBtns: { flexDirection: 'row', gap: 12, marginTop: 22 },
+  cancelBtn: { flex: 1, paddingVertical: 14, borderRadius: 14, borderWidth: 2, borderColor: C.border, alignItems: 'center' },
+  cancelBtnTxt: { fontSize: 14, fontWeight: '600', color: C.muted },
+  saveWrap: { flex: 1, borderRadius: 14, overflow: 'hidden' },
+  saveBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 14 },
+  saveBtnTxt: { fontSize: 14, fontWeight: '700', color: '#fff' },
 });

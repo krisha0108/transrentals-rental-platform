@@ -223,12 +223,12 @@ const Tab = createBottomTabNavigator();
 
 // Color Constants
 const C = {
-  brand: '#22C55E',
-  brandDark: '#16A34A',
-  brandLight: '#DCFCE7',
+  brand: '#047857',
+  brandDark: '#064E3B',
+  brandLight: '#D1FAE5',
   text: '#0F172A',
   muted: '#6B7280',
-  bg: '#F7FAFC',
+  bg: '#F0FDF9',
   surface: '#FFFFFF',
   gold: '#EAB308',
 };

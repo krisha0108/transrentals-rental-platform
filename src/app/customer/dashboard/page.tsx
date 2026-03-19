@@ -270,7 +270,18 @@ export default function CustomerDashboardPage() {
           .then(res => res.json())
           .then(data => {
             if (data.success && data.customers) {
-              const updated = { ...parsed, ...data.customers };
+              const rawAvatar = data.customers.avatar || data.customers.image;
+              const normalizedAvatar = rawAvatar
+                ? (rawAvatar.startsWith('http') || rawAvatar.startsWith('data:') || rawAvatar.startsWith('/')
+                    ? rawAvatar
+                    : `/uploads/profile_images/${rawAvatar}`)
+                : undefined;
+              const updated = {
+                ...parsed,
+                ...data.customers,
+                avatar: normalizedAvatar || parsed.avatar || parsed.image,
+                image: normalizedAvatar || parsed.avatar || parsed.image,
+              };
               localStorage.setItem('customer', JSON.stringify(updated));
               setCustomer(updated);
               if (updated.isB2B && updated.b2bStatus === 'APPROVED') {
@@ -653,6 +664,34 @@ export default function CustomerDashboardPage() {
     setProfileSuccess(false);
 
     try {
+      let savedAvatarFilename: string | undefined = customer?.avatar || customer?.image;
+
+      // If a new image was selected (base64 data URL), upload it first
+      if (profileForm.avatar && profileForm.avatar.startsWith('data:')) {
+        const formData = new FormData();
+        formData.append('customer_id', String(customer?.id));
+        // Convert base64 data URL to Blob without fetch (avoids CSP issues)
+        const [meta, b64] = profileForm.avatar.split(',');
+        const mime = meta.match(/:(.*?);/)?.[1] || 'image/jpeg';
+        const binary = atob(b64);
+        const arr = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) arr[i] = binary.charCodeAt(i);
+        const blob = new Blob([arr], { type: mime });
+        formData.append('image', blob, 'profile.jpg');
+
+        const uploadRes = await fetch('/api/customer/update-profile', {
+          method: 'POST',
+          body: formData,
+        });
+        const uploadData = await uploadRes.json();
+        if (uploadData.success && uploadData.customers?.avatar) {
+          savedAvatarFilename = uploadData.customers.avatar;
+        } else if (!uploadRes.ok) {
+          setProfileError('Failed to upload image. Please try again.');
+          return;
+        }
+      }
+
       const payload: Record<string, any> = {
         customer_id: customer?.id,
         name: profileForm.name,
@@ -667,19 +706,27 @@ export default function CustomerDashboardPage() {
       const data = await submitProfileUpdate(payload);
 
       if (data.success || data.status === 'success') {
+        const finalAvatar = savedAvatarFilename || data.customers?.avatar || data.customers?.image;
+        const avatarUrl = finalAvatar
+          ? (finalAvatar.startsWith('http') || finalAvatar.startsWith('data:')
+              ? finalAvatar
+              : `/uploads/profile_images/${finalAvatar}`)
+          : undefined;
+
         const updatedCustomer = {
           ...customer,
           name: profileForm.name,
           email: profileForm.email,
           phone: profileForm.phone,
-          avatar: profileForm.avatar,
-          image: profileForm.avatar || customer?.image,
+          avatar: avatarUrl,
+          image: avatarUrl,
           bank_name: profileForm.bank_name,
           account_number: profileForm.account_number,
           ifsc_code: profileForm.ifsc_code,
           upi_id: profileForm.upi_id,
         };
         setCustomer(updatedCustomer as Customer);
+        setProfileForm((prev) => ({ ...prev, avatar: avatarUrl || '' }));
         localStorage.setItem('customer', JSON.stringify(updatedCustomer));
         setProfileSuccess(true);
         setTimeout(() => {

@@ -11,6 +11,7 @@ import {
   ActivityIndicator,
   Keyboard,
   StatusBar,
+  Image,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
@@ -56,7 +57,7 @@ const BOOKING_DETAIL_SCREEN_MAP = {
 };
 
 export default function ChatScreen({ route, navigation }) {
-  const { bookingId, customerName, bookingNumber, serviceType } = route.params || {};
+  const { bookingId, customerName, bookingNumber, serviceType, customerAvatar } = route.params || {};
   const svc = SERVICE_MAP[serviceType] || { label: serviceType || 'Booking', color: C.g700, bg: C.g50, icon: 'car' };
   const customerInitial = (customerName || 'C').charAt(0).toUpperCase();
   const insets = useSafeAreaInsets();
@@ -162,9 +163,13 @@ export default function ChatScreen({ route, navigation }) {
         <View style={[st.msgRow, isVendor ? st.msgRowRight : st.msgRowLeft]}>
           {/* Customer avatar on left */}
           {!isVendor && (
-            <View style={[st.msgAvatar, { backgroundColor: svc.color }]}>
-              <Text style={st.msgAvatarTxt}>{customerInitial}</Text>
-            </View>
+            customerAvatar ? (
+              <Image source={{ uri: customerAvatar }} style={st.msgAvatarImg} />
+            ) : (
+              <View style={[st.msgAvatar, { backgroundColor: svc.color }]}>
+                <Text style={st.msgAvatarTxt}>{customerInitial}</Text>
+              </View>
+            )
           )}
 
           {/* Bubble */}
@@ -215,9 +220,13 @@ export default function ChatScreen({ route, navigation }) {
       </TouchableOpacity>
 
       {/* Customer avatar */}
-      <View style={[st.headerAvatar, { backgroundColor: svc.color }]}>
-        <Text style={st.headerAvatarTxt}>{customerInitial}</Text>
-      </View>
+      {customerAvatar ? (
+        <Image source={{ uri: customerAvatar }} style={st.headerAvatarImg} />
+      ) : (
+        <View style={[st.headerAvatar, { backgroundColor: svc.color }]}>
+          <Text style={st.headerAvatarTxt}>{customerInitial}</Text>
+        </View>
+      )}
 
       {/* Info */}
       <View style={st.headerInfo}>
@@ -256,7 +265,7 @@ export default function ChatScreen({ route, navigation }) {
 
       <KeyboardAvoidingView
         style={st.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={Platform.OS === 'ios' ? (insets.top + 54) : 0}
       >
         {/* Chat background tinted area */}
@@ -346,6 +355,10 @@ const st = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
     borderWidth: 2, borderColor: 'rgba(255,255,255,0.3)',
   },
+  headerAvatarImg: {
+    width: 44, height: 44, borderRadius: 22,
+    borderWidth: 2, borderColor: 'rgba(255,255,255,0.3)',
+  },
   headerAvatarTxt: {
     fontSize: 18, fontWeight: '800', color: '#fff',
   },
@@ -385,11 +398,12 @@ const st = StyleSheet.create({
   chatBg: {
     flex: 1,
     backgroundColor: C.bg,
+    overflow: 'hidden',
   },
   msgList: {
     paddingHorizontal: 14,
     paddingTop: 14,
-    paddingBottom: 10,
+    paddingBottom: 80,
     flexGrow: 1,
   },
 
@@ -430,6 +444,10 @@ const st = StyleSheet.create({
   msgAvatar: {
     width: 30, height: 30, borderRadius: 15,
     alignItems: 'center', justifyContent: 'center',
+    flexShrink: 0,
+  },
+  msgAvatarImg: {
+    width: 30, height: 30, borderRadius: 15,
     flexShrink: 0,
   },
   msgAvatarTxt: {

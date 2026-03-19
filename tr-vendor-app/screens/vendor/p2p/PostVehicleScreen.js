@@ -2,19 +2,28 @@ import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   TextInput, Switch, ActivityIndicator, Platform,
-  KeyboardAvoidingView, Modal, FlatList,
+  KeyboardAvoidingView, Modal, FlatList, StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/Feather';
 import MCI from 'react-native-vector-icons/MaterialCommunityIcons';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { createP2PVehicle, getVendorFleet, getStaffDrivers } from '../../api/client';
+import { createP2PVehicle, updateP2PVehicle, getVendorFleet, getStaffDrivers } from '../../api/client';
 import CustomAlert from '../../../components/CustomAlert';
 
 const C = {
-  bg: '#F7FAFC', surface: '#FFFFFF', text: '#1E293B', sub: '#475569',
-  muted: '#94A3B8', border: '#E2E8F0', brand: '#10B981',
-  blue: '#3B82F6', purple: '#8B5CF6', amber: '#F59E0B', red: '#EF4444',
+  g950: '#011B14', g900: '#022C22', g800: '#064E3B', g700: '#047857',
+  g600: '#059669', g500: '#10B981', g400: '#34D399', g300: '#6EE7B7',
+  g100: '#D1FAE5', g50: '#ECFDF5',
+  bg: '#F8FAFC', surface: '#FFFFFF',
+  text: '#0F172A', sub: '#334155', muted: '#94A3B8',
+  border: '#E2E8F0', borderMed: '#CBD5E1',
+  amber: '#F59E0B', amberBg: '#FFFBEB',
+  red: '#EF4444', redBg: '#FEF2F2',
+  blue: '#3B82F6', blueBg: '#EFF6FF', blueDark: '#1D4ED8',
+  purple: '#8B5CF6', purpleBg: '#F5F3FF',
+  teal: '#14B8A6', tealBg: '#F0FDFA',
 };
 
 const BODY_TYPES = ['Open', 'Closed', 'Container', 'Flatbed', 'Tanker'];
@@ -24,7 +33,6 @@ const GOODS_OPTIONS = ['General', 'Food', 'Chemicals', 'Electronics', 'Furniture
 function fmtDate(d) { return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }); }
 function fmtTime(d) { return d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }); }
 
-// Build display name from fleet vehicle object
 function getFleetVehicleName(v) {
   if (v.vehicle_models?.brands?.name && v.vehicle_models?.name) {
     return `${v.vehicle_models.brands.name} ${v.vehicle_models.name}`;
@@ -41,13 +49,31 @@ function getFleetVehicleName(v) {
   return v.name || v.vehicleName || 'Vehicle';
 }
 
-export default function PostVehicleScreen({ navigation }) {
+const BODY_TYPE_ICONS = {
+  Open: 'truck',
+  Closed: 'package-variant-closed',
+  Container: 'train-car-container',
+  Flatbed: 'truck-flatbed',
+  Tanker: 'tanker-truck',
+};
+
+const GOODS_ICONS = {
+  General: 'package-variant',
+  Food: 'food-apple',
+  Chemicals: 'flask',
+  Electronics: 'chip',
+  Furniture: 'sofa',
+  Construction: 'hammer-wrench',
+};
+
+export default function PostVehicleScreen({ navigation, route }) {
+  const editData = route?.params?.editData || null;
+  const isEditing = !!editData;
   const [loading, setLoading] = useState(false);
   const [alert, setAlert] = useState({ visible: false, type: 'info', title: '', message: '', actions: [] });
   const showAlert = (type, title, message) => setAlert({ visible: true, type, title, message, actions: [{ label: 'OK', variant: 'primary', onPress: () => hideAlert() }] });
   const hideAlert = () => setAlert(a => ({ ...a, visible: false }));
 
-  // Form state
   const [serviceType, setServiceType] = useState('truck');
   const [vehicleSource, setVehicleSource] = useState('fleet');
   const [fleetVehicles, setFleetVehicles] = useState([]);
@@ -58,11 +84,9 @@ export default function PostVehicleScreen({ navigation }) {
   const [vehicleNumber, setVehicleNumber] = useState('');
   const [vehicleCategory, setVehicleCategory] = useState('');
 
-  // Route
   const [fromCity, setFromCity] = useState('');
   const [toCity, setToCity] = useState('');
 
-  // Dates
   const [departureDate, setDepartureDate] = useState(null);
   const [departureTime, setDepartureTime] = useState(null);
   const [arrivalDate, setArrivalDate] = useState(null);
@@ -70,12 +94,10 @@ export default function PostVehicleScreen({ navigation }) {
   const [showDatePicker, setShowDatePicker] = useState(null);
   const [showTimePicker, setShowTimePicker] = useState(null);
 
-  // Pricing
   const [fullLoadPrice, setFullLoadPrice] = useState('');
   const [partLoadEnabled, setPartLoadEnabled] = useState(false);
   const [partLoadPrice, setPartLoadPrice] = useState('');
 
-  // Vehicle details
   const [capacity, setCapacity] = useState('');
   const [bodyType, setBodyType] = useState('');
   const [driverIncluded, setDriverIncluded] = useState(true);
@@ -89,7 +111,6 @@ export default function PostVehicleScreen({ navigation }) {
   const [goodsAccepted, setGoodsAccepted] = useState([]);
   const [notes, setNotes] = useState('');
 
-  // Fetch fleet vehicles and staff drivers
   useEffect(() => {
     (async () => {
       try {
@@ -108,7 +129,6 @@ export default function PostVehicleScreen({ navigation }) {
     })();
   }, []);
 
-  // Auto-fill from fleet selection
   useEffect(() => {
     if (vehicleSource === 'fleet' && selectedFleetId) {
       const v = fleetVehicles.find(f => String(f.id) === String(selectedFleetId));
@@ -118,6 +138,41 @@ export default function PostVehicleScreen({ navigation }) {
       }
     }
   }, [selectedFleetId, vehicleSource, fleetVehicles]);
+
+  // Pre-populate form when editing
+  useEffect(() => {
+    if (!editData) return;
+    setServiceType(editData.serviceType || 'truck');
+    setVehicleSource('manual');
+    setVehicleName(editData.vehicleName || '');
+    setVehicleNumber(editData.vehicleNumber || '');
+    setVehicleCategory(editData.vehicleCategory || '');
+    setFromCity(editData.fromCity || '');
+    setToCity(editData.toCity || '');
+    if (editData.departureDate) setDepartureDate(new Date(editData.departureDate));
+    if (editData.departureTime) {
+      const [h, m] = editData.departureTime.split(':').map(Number);
+      const t = new Date(); t.setHours(h, m, 0, 0); setDepartureTime(t);
+    }
+    if (editData.arrivalDate) setArrivalDate(new Date(editData.arrivalDate));
+    if (editData.arrivalTime) {
+      const [h, m] = editData.arrivalTime.split(':').map(Number);
+      const t = new Date(); t.setHours(h, m, 0, 0); setArrivalTime(t);
+    }
+    setFullLoadPrice(editData.priceFullLoad ? String(editData.priceFullLoad) : '');
+    setPartLoadEnabled(!!editData.acceptsPartLoad);
+    setPartLoadPrice(editData.pricePartLoad ? String(editData.pricePartLoad) : '');
+    setCapacity(editData.capacity || '');
+    setBodyType(editData.bodyType || '');
+    setDriverIncluded(editData.driverIncluded !== undefined ? editData.driverIncluded : true);
+    setDriverName(editData.driverName || '');
+    setDriverPhone(editData.driverPhone || '');
+    setFuelIncluded(!!editData.fuelIncluded);
+    setLabourAvailable(!!editData.labourAvailable);
+    setLabourCount(editData.labourCount ? String(editData.labourCount) : '');
+    setGoodsAccepted(Array.isArray(editData.goodsAccepted) ? editData.goodsAccepted : []);
+    setNotes(editData.notes || '');
+  }, []);
 
   const onDateChange = (event, selectedDate) => {
     if (Platform.OS === 'android') setShowDatePicker(null);
@@ -186,10 +241,14 @@ export default function PostVehicleScreen({ navigation }) {
         notes: notes.trim() || undefined,
       };
 
-      await createP2PVehicle(data);
+      if (isEditing) {
+        await updateP2PVehicle(editData.id, data);
+      } else {
+        await createP2PVehicle(data);
+      }
       setAlert({
-        visible: true, type: 'success', title: 'Vehicle Posted!',
-        message: 'Your vehicle has been posted to the P2P marketplace.',
+        visible: true, type: 'success', title: isEditing ? 'Vehicle Updated!' : 'Vehicle Posted!',
+        message: isEditing ? 'Your vehicle posting has been updated.' : 'Your vehicle has been posted to the P2P marketplace.',
         actions: [{ label: 'Done', variant: 'primary', onPress: () => { hideAlert(); navigation.navigate('MyPostingsScreen', { initialTab: 'vehicles' }); } }],
       });
     } catch (err) {
@@ -198,220 +257,413 @@ export default function PostVehicleScreen({ navigation }) {
   };
 
   return (
-    <SafeAreaView style={s.safe} edges={['top']}>
-      <View style={s.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
-          <Icon name="arrow-left" size={22} color="#fff" />
-        </TouchableOpacity>
-        <Text style={s.headerTitle}>Post Vehicle</Text>
-        <View style={{ width: 40 }} />
-      </View>
+    <View style={s.root}>
+      <StatusBar barStyle="light-content" backgroundColor={C.g950} />
+
+      {/* ── HEADER ── */}
+      <LinearGradient colors={[C.g950, C.g900, C.g800]} style={s.headerGradient}>
+        {/* Decorative circles */}
+        <View style={s.decCircle1} />
+        <View style={s.decCircle2} />
+        <SafeAreaView edges={['top']}>
+          <View style={s.headerInner}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
+              <Icon name="arrow-left" size={20} color="#fff" />
+            </TouchableOpacity>
+            <View style={s.headerCenter}>
+              <View style={s.headerIconCircle}>
+                <MCI name="truck-fast" size={24} color={C.g400} />
+              </View>
+              <Text style={s.headerTitle}>{isEditing ? 'Edit Vehicle' : 'Post Vehicle'}</Text>
+              <Text style={s.headerSub}>{isEditing ? 'Update your vehicle posting' : 'Share your idle vehicle on P2P'}</Text>
+            </View>
+            <View style={{ width: 44 }} />
+          </View>
+        </SafeAreaView>
+      </LinearGradient>
 
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}>
         <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
 
-          {/* Service Type */}
-          <View style={s.section}>
-            <SectionHead icon="truck-fast-outline" color={C.brand} bg="#D1FAE5" title="Service Type" />
-            <View style={s.chipRow}>
-              {[{ value: 'truck', label: 'Truck', icon: 'truck' }, { value: 'car', label: 'Car', icon: 'car' }].map(opt => {
-                const active = serviceType === opt.value;
-                return (
-                  <TouchableOpacity key={opt.value} style={[s.typeChip, active && s.typeChipActive]} onPress={() => setServiceType(opt.value)}>
-                    <MCI name={opt.icon} size={20} color={active ? C.brand : C.muted} />
-                    <Text style={[s.typeChipText, active && s.typeChipTextActive]}>{opt.label}</Text>
-                    {active && <View style={s.chipDot} />}
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-          </View>
+          {/* ── STEP 1: SERVICE TYPE ── */}
+          <SectionCard
+            step={1}
+            stepColor={[C.g700, C.g500]}
+            title="Service Type"
+            subtitle="What are you sharing?"
+          >
+            <View style={s.serviceTypeRow}>
+              {/* Truck card */}
+              <TouchableOpacity
+                style={[s.serviceCard, serviceType === 'truck' && s.serviceCardActiveTruck]}
+                onPress={() => setServiceType('truck')}
+                activeOpacity={0.8}
+              >
+                {serviceType === 'truck' && <View style={s.serviceCheckBadge} />}
+                <MCI name="truck" size={32} color={serviceType === 'truck' ? C.g700 : C.muted} />
+                <Text style={[s.serviceCardLabel, serviceType === 'truck' && { color: C.g800 }]}>Truck</Text>
+                <Text style={[s.serviceCardSub, serviceType === 'truck' && { color: C.g600 }]}>Freight & logistics</Text>
+              </TouchableOpacity>
 
-          {/* Vehicle Selection */}
-          <View style={s.section}>
-            <SectionHead icon="car-cog" color={C.blue} bg="#DBEAFE" title="Vehicle Selection" />
-            <View style={s.chipRow}>
+              {/* Car card */}
+              <TouchableOpacity
+                style={[s.serviceCard, serviceType === 'car' && s.serviceCardActiveCar]}
+                onPress={() => setServiceType('car')}
+                activeOpacity={0.8}
+              >
+                {serviceType === 'car' && <View style={[s.serviceCheckBadge, { backgroundColor: C.purple }]} />}
+                <MCI name="car-side" size={32} color={serviceType === 'car' ? C.purple : C.muted} />
+                <Text style={[s.serviceCardLabel, serviceType === 'car' && { color: '#5B21B6' }]}>Car</Text>
+                <Text style={[s.serviceCardSub, serviceType === 'car' && { color: C.purple }]}>Rides & transfers</Text>
+              </TouchableOpacity>
+            </View>
+          </SectionCard>
+
+          {/* ── STEP 2: VEHICLE SELECTION ── */}
+          <SectionCard
+            step={2}
+            stepColor={[C.blueDark, C.blue]}
+            title="Your Vehicle"
+            subtitle="Select from fleet or enter manually"
+          >
+            {/* Source toggle tabs */}
+            <View style={s.sourceToggleWrap}>
               {[{ value: 'fleet', label: 'From Fleet' }, { value: 'manual', label: 'Manual Entry' }].map(opt => {
                 const active = vehicleSource === opt.value;
                 return (
-                  <TouchableOpacity key={opt.value} style={[s.toggleBtn, active && s.toggleBtnActive]}
-                    onPress={() => { setVehicleSource(opt.value); setSelectedFleetId(''); setVehicleName(''); setVehicleNumber(''); }}>
-                    <Text style={[s.toggleBtnText, active && s.toggleBtnTextActive]}>{opt.label}</Text>
+                  <TouchableOpacity
+                    key={opt.value}
+                    style={[s.sourceTab, active && s.sourceTabActive]}
+                    onPress={() => { setVehicleSource(opt.value); setSelectedFleetId(''); setVehicleName(''); setVehicleNumber(''); }}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={[s.sourceTabText, active && s.sourceTabTextActive]}>{opt.label}</Text>
                   </TouchableOpacity>
                 );
               })}
             </View>
 
             {vehicleSource === 'fleet' ? (
-              <View style={{ marginTop: 14 }}>
-                <Text style={s.fieldLabel}>Select Vehicle</Text>
-                {fleetLoading ? <ActivityIndicator size="small" color={C.brand} style={{ marginVertical: 12 }} /> :
-                  fleetVehicles.length === 0 ? (
-                    <View style={s.emptyFleet}>
-                      <MCI name="car-off" size={24} color={C.muted} />
-                      <Text style={s.emptyFleetText}>No vehicles in your fleet.</Text>
-                      <TouchableOpacity onPress={() => setVehicleSource('manual')}>
-                        <Text style={[s.emptyFleetText, { color: C.brand, fontWeight: '700', marginTop: 4 }]}>Enter manually instead</Text>
-                      </TouchableOpacity>
-                    </View>
-                  ) : (
-                    <>
-                      {/* Dropdown Trigger */}
-                      <TouchableOpacity style={[s.dropdownBtn, selectedFleetId && s.dropdownBtnActive]} onPress={() => setFleetDropdownOpen(true)}>
-                        <MCI name={serviceType === 'truck' ? 'truck' : 'car'} size={18} color={selectedFleetId ? C.brand : C.muted} />
-                        <View style={{ flex: 1 }}>
-                          {selectedFleetId ? (
-                            <>
-                              <Text style={s.dropdownValue} numberOfLines={1}>{vehicleName || 'Selected'}</Text>
-                              {vehicleNumber ? <Text style={s.dropdownSub} numberOfLines={1}>{vehicleNumber}</Text> : null}
-                            </>
-                          ) : (
-                            <Text style={s.dropdownPlaceholder}>Tap to select vehicle</Text>
-                          )}
-                        </View>
-                        <Icon name="chevron-down" size={18} color={C.muted} />
-                      </TouchableOpacity>
+              <View style={{ marginTop: 16 }}>
+                {fleetLoading ? (
+                  <ActivityIndicator size="small" color={C.g500} style={{ marginVertical: 16 }} />
+                ) : fleetVehicles.length === 0 ? (
+                  <View style={s.emptyFleetBox}>
+                    <MCI name="car-off" size={28} color={C.muted} />
+                    <Text style={s.emptyFleetText}>No vehicles in your fleet.</Text>
+                    <TouchableOpacity onPress={() => setVehicleSource('manual')}>
+                      <Text style={s.emptyFleetLink}>Enter manually instead</Text>
+                    </TouchableOpacity>
+                  </View>
+                ) : (
+                  <>
+                    <TouchableOpacity
+                      style={[s.dropdownTrigger, selectedFleetId && s.dropdownTriggerActive]}
+                      onPress={() => setFleetDropdownOpen(true)}
+                      activeOpacity={0.8}
+                    >
+                      <View style={[s.dropdownIconBox, selectedFleetId && { backgroundColor: C.g100 }]}>
+                        <MCI name={serviceType === 'truck' ? 'truck' : 'car'} size={18} color={selectedFleetId ? C.g600 : C.muted} />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        {selectedFleetId ? (
+                          <>
+                            <Text style={s.dropdownVal} numberOfLines={1}>{vehicleName || 'Selected'}</Text>
+                            {vehicleNumber ? <Text style={s.dropdownValSub}>{vehicleNumber}</Text> : null}
+                          </>
+                        ) : (
+                          <Text style={s.dropdownPlaceholder}>Tap to select vehicle</Text>
+                        )}
+                      </View>
+                      <Icon name="chevron-down" size={18} color={selectedFleetId ? C.g600 : C.muted} />
+                    </TouchableOpacity>
 
-                      {/* Selected vehicle info (read-only) */}
-                      {selectedFleetId && (
-                        <View style={s.selectedCard}>
-                          <View style={s.selectedCardRow}>
-                            <MCI name={serviceType === 'truck' ? 'truck' : 'car'} size={22} color={C.brand} />
-                            <View style={{ flex: 1 }}>
-                              <Text style={s.selectedCardName}>{vehicleName || 'Vehicle'}</Text>
-                              {vehicleNumber ? <Text style={s.selectedCardNum}>{vehicleNumber}</Text> : null}
-                            </View>
-                            <TouchableOpacity onPress={() => { setSelectedFleetId(''); setVehicleName(''); setVehicleNumber(''); }} style={s.selectedCardClear}>
-                              <Icon name="x" size={14} color={C.muted} />
-                            </TouchableOpacity>
-                          </View>
+                    {selectedFleetId && (
+                      <View style={s.selectedBadge}>
+                        <View style={s.selectedBadgeIconBox}>
+                          <MCI name={serviceType === 'truck' ? 'truck' : 'car'} size={20} color={C.g600} />
                         </View>
-                      )}
-                    </>
-                  )}
+                        <View style={{ flex: 1 }}>
+                          <Text style={s.selectedBadgeName}>{vehicleName || 'Vehicle'}</Text>
+                          {vehicleNumber ? <Text style={s.selectedBadgeNum}>{vehicleNumber}</Text> : null}
+                        </View>
+                        <TouchableOpacity
+                          onPress={() => { setSelectedFleetId(''); setVehicleName(''); setVehicleNumber(''); }}
+                          style={s.selectedBadgeClear}
+                        >
+                          <Icon name="x" size={14} color={C.muted} />
+                        </TouchableOpacity>
+                      </View>
+                    )}
+                  </>
+                )}
               </View>
             ) : (
-              <View style={{ marginTop: 14 }}>
-                <Text style={s.fieldLabel}>Vehicle Name *</Text>
-                <TextInput style={s.input} placeholder="e.g. Tata Ace, Innova Crysta" placeholderTextColor={C.muted} value={vehicleName} onChangeText={setVehicleName} />
-                <Text style={[s.fieldLabel, { marginTop: 12 }]}>Vehicle Number</Text>
-                <TextInput style={s.input} placeholder="e.g. MH-04-AB-1234" placeholderTextColor={C.muted} value={vehicleNumber} onChangeText={setVehicleNumber} autoCapitalize="characters" />
+              <View style={{ marginTop: 16, gap: 12 }}>
+                <FieldCard
+                  iconName="car-info"
+                  iconColor={C.blue}
+                  iconBg={C.blueBg}
+                  label="Vehicle Name *"
+                  placeholder="e.g. Tata Ace, Innova Crysta"
+                  value={vehicleName}
+                  onChangeText={setVehicleName}
+                />
+                <FieldCard
+                  iconName="card-text"
+                  iconColor={C.blue}
+                  iconBg={C.blueBg}
+                  label="Vehicle Number"
+                  placeholder="e.g. MH-04-AB-1234"
+                  value={vehicleNumber}
+                  onChangeText={setVehicleNumber}
+                  autoCapitalize="characters"
+                />
               </View>
             )}
 
-            {/* Car category */}
+            {/* Car category chips */}
             {serviceType === 'car' && (
-              <View style={{ marginTop: 14 }}>
-                <Text style={s.fieldLabel}>Vehicle Category</Text>
+              <View style={{ marginTop: 16 }}>
+                <Text style={s.subLabel}>Vehicle Category</Text>
                 <View style={s.chipGrid}>
                   {CAR_CATEGORIES.map(cat => {
                     const active = vehicleCategory === cat;
                     return (
-                      <TouchableOpacity key={cat} style={[s.optionChip, active && s.optionChipActive]} onPress={() => setVehicleCategory(active ? '' : cat)}>
-                        <Text style={[s.optionChipText, active && s.optionChipTextActive]}>{cat}</Text>
+                      <TouchableOpacity
+                        key={cat}
+                        style={[s.chipPill, active && s.chipPillActive]}
+                        onPress={() => setVehicleCategory(active ? '' : cat)}
+                        activeOpacity={0.8}
+                      >
+                        <Text style={[s.chipPillText, active && s.chipPillTextActive]}>{cat}</Text>
                       </TouchableOpacity>
                     );
                   })}
                 </View>
               </View>
             )}
-          </View>
+          </SectionCard>
 
-          {/* Route & Dates */}
-          <View style={s.section}>
-            <SectionHead icon="map-pin" color={C.purple} bg="#EDE9FE" title="Route & Dates" feather />
-            <View style={s.rowFields}>
-              <View style={{ flex: 1 }}>
-                <Text style={s.fieldLabel}>From City *</Text>
-                <TextInput style={s.input} placeholder="e.g. Mumbai" placeholderTextColor={C.muted} value={fromCity} onChangeText={setFromCity} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={s.fieldLabel}>To City *</Text>
-                <TextInput style={s.input} placeholder="e.g. Delhi" placeholderTextColor={C.muted} value={toCity} onChangeText={setToCity} />
-              </View>
-            </View>
-
-            <View style={[s.rowFields, { marginTop: 12 }]}>
-              <View style={{ flex: 1 }}>
-                <Text style={s.fieldLabel}>Departure Date *</Text>
-                <TouchableOpacity style={s.dateBtn} onPress={() => setShowDatePicker('departure')}>
-                  <Icon name="calendar" size={16} color={C.muted} />
-                  <Text style={[s.dateBtnText, departureDate && { color: C.text }]}>{departureDate ? fmtDate(departureDate) : 'Select date'}</Text>
-                </TouchableOpacity>
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={s.fieldLabel}>Departure Time</Text>
-                <TouchableOpacity style={s.dateBtn} onPress={() => setShowTimePicker('departure')}>
-                  <Icon name="clock" size={16} color={C.muted} />
-                  <Text style={[s.dateBtnText, departureTime && { color: C.text }]}>{departureTime ? fmtTime(departureTime) : 'Set time'}</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-
-            <View style={[s.rowFields, { marginTop: 12 }]}>
-              <View style={{ flex: 1 }}>
-                <Text style={s.fieldLabel}>Arrival Date</Text>
-                <TouchableOpacity style={s.dateBtn} onPress={() => setShowDatePicker('arrival')}>
-                  <Icon name="calendar" size={16} color={C.muted} />
-                  <Text style={[s.dateBtnText, arrivalDate && { color: C.text }]}>{arrivalDate ? fmtDate(arrivalDate) : 'Optional'}</Text>
-                </TouchableOpacity>
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={s.fieldLabel}>Arrival Time</Text>
-                <TouchableOpacity style={s.dateBtn} onPress={() => setShowTimePicker('arrival')}>
-                  <Icon name="clock" size={16} color={C.muted} />
-                  <Text style={[s.dateBtnText, arrivalTime && { color: C.text }]}>{arrivalTime ? fmtTime(arrivalTime) : 'Optional'}</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-
-          {/* Pricing */}
-          <View style={s.section}>
-            <SectionHead icon="currency-inr" color={C.amber} bg="#FEF3C7" title="Pricing" />
-            <Text style={s.fieldLabel}>{serviceType === 'car' ? 'Trip Price *' : 'Full Load Price *'}</Text>
-            <View style={s.priceRow}>
-              <View style={s.pricePrefix}><Text style={s.pricePrefixText}>{'\u20B9'}</Text></View>
-              <TextInput style={[s.input, s.priceInput]} placeholder="0" placeholderTextColor={C.muted} value={fullLoadPrice} onChangeText={setFullLoadPrice} keyboardType="number-pad" />
-            </View>
-
-            {serviceType === 'truck' && (
-              <>
-                <View style={[s.switchRow, { marginTop: 16 }]}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={s.switchLabel}>Part Load Available</Text>
-                    <Text style={s.switchSub}>Allow partial cargo bookings</Text>
-                  </View>
-                  <Switch value={partLoadEnabled} onValueChange={setPartLoadEnabled} trackColor={{ false: C.border, true: C.brand + '55' }} thumbColor={partLoadEnabled ? C.brand : '#f4f4f5'} />
+          {/* ── STEP 3: ROUTE ── */}
+          <SectionCard
+            step={3}
+            stepColor={['#6D28D9', C.purple]}
+            title="Route"
+            subtitle="Where is the vehicle going?"
+          >
+            {/* Boarding-pass style route card */}
+            <View style={s.routeCard}>
+              {/* FROM */}
+              <View style={s.routeHalf}>
+                <View style={s.routeDotRow}>
+                  <View style={[s.routeDot, { backgroundColor: C.g500 }]} />
+                  <Text style={s.routeHalfLabel}>FROM CITY</Text>
                 </View>
-                {partLoadEnabled && (
-                  <View style={{ marginTop: 12 }}>
-                    <Text style={s.fieldLabel}>Part Load Price</Text>
-                    <View style={s.priceRow}>
-                      <View style={s.pricePrefix}><Text style={s.pricePrefixText}>{'\u20B9'}</Text></View>
-                      <TextInput style={[s.input, s.priceInput]} placeholder="0" placeholderTextColor={C.muted} value={partLoadPrice} onChangeText={setPartLoadPrice} keyboardType="number-pad" />
-                    </View>
+                <TextInput
+                  style={s.routeInput}
+                  placeholder="e.g. Mumbai"
+                  placeholderTextColor={C.muted}
+                  value={fromCity}
+                  onChangeText={setFromCity}
+                />
+              </View>
+
+              {/* Dashed divider with arrow */}
+              <View style={s.routeDividerWrap}>
+                <View style={s.routeDivider} />
+                <View style={s.routeArrowCircle}>
+                  <MCI name="arrow-down" size={14} color={C.g600} />
+                </View>
+              </View>
+
+              {/* TO */}
+              <View style={s.routeHalf}>
+                <View style={s.routeDotRow}>
+                  <View style={[s.routeDot, { backgroundColor: C.red }]} />
+                  <Text style={s.routeHalfLabel}>TO CITY</Text>
+                </View>
+                <TextInput
+                  style={s.routeInput}
+                  placeholder="e.g. Delhi"
+                  placeholderTextColor={C.muted}
+                  value={toCity}
+                  onChangeText={setToCity}
+                />
+              </View>
+            </View>
+
+            {/* Date / Time grid 2x2 */}
+            <View style={{ marginTop: 16, gap: 10 }}>
+              <View style={s.dateGrid}>
+                <TouchableOpacity
+                  style={[s.dateTile, departureDate && s.dateTileActive]}
+                  onPress={() => setShowDatePicker('departure')}
+                  activeOpacity={0.8}
+                >
+                  <Text style={s.dateTileLabel}>DEPARTURE DATE *</Text>
+                  <View style={s.dateTileRow}>
+                    <Icon name="calendar" size={16} color={departureDate ? C.g600 : C.muted} />
+                    <Text style={[s.dateTileValue, !departureDate && s.dateTilePlaceholder]}>
+                      {departureDate ? fmtDate(departureDate) : 'Select date'}
+                    </Text>
                   </View>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[s.dateTile, departureTime && s.dateTileActive]}
+                  onPress={() => setShowTimePicker('departure')}
+                  activeOpacity={0.8}
+                >
+                  <Text style={s.dateTileLabel}>DEPARTURE TIME</Text>
+                  <View style={s.dateTileRow}>
+                    <Icon name="clock" size={16} color={departureTime ? C.g600 : C.muted} />
+                    <Text style={[s.dateTileValue, !departureTime && s.dateTilePlaceholder]}>
+                      {departureTime ? fmtTime(departureTime) : 'Set time'}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              </View>
+
+              <View style={s.dateGrid}>
+                <TouchableOpacity
+                  style={[s.dateTile, arrivalDate && s.dateTileActive]}
+                  onPress={() => setShowDatePicker('arrival')}
+                  activeOpacity={0.8}
+                >
+                  <Text style={s.dateTileLabel}>ARRIVAL DATE</Text>
+                  <View style={s.dateTileRow}>
+                    <Icon name="calendar" size={16} color={arrivalDate ? C.g600 : C.muted} />
+                    <Text style={[s.dateTileValue, !arrivalDate && s.dateTilePlaceholder]}>
+                      {arrivalDate ? fmtDate(arrivalDate) : 'Optional'}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[s.dateTile, arrivalTime && s.dateTileActive]}
+                  onPress={() => setShowTimePicker('arrival')}
+                  activeOpacity={0.8}
+                >
+                  <Text style={s.dateTileLabel}>ARRIVAL TIME</Text>
+                  <View style={s.dateTileRow}>
+                    <Icon name="clock" size={16} color={arrivalTime ? C.g600 : C.muted} />
+                    <Text style={[s.dateTileValue, !arrivalTime && s.dateTilePlaceholder]}>
+                      {arrivalTime ? fmtTime(arrivalTime) : 'Optional'}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </SectionCard>
+
+          {/* ── STEP 4: PRICING ── */}
+          <SectionCard
+            step={4}
+            stepColor={['#B45309', C.amber]}
+            title="Pricing"
+            subtitle="Set your rates"
+          >
+            {/* Dark price display card */}
+            <LinearGradient colors={[C.g800, C.g700]} style={s.priceDisplayCard} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+              <Text style={s.priceDisplayLabel}>
+                {serviceType === 'car' ? 'TRIP PRICE *' : 'FULL LOAD PRICE *'}
+              </Text>
+              <View style={s.priceDisplayRow}>
+                <Text style={s.priceDisplaySymbol}>₹</Text>
+                <TextInput
+                  style={s.priceDisplayInput}
+                  placeholder="0"
+                  placeholderTextColor="rgba(255,255,255,0.3)"
+                  value={fullLoadPrice}
+                  onChangeText={setFullLoadPrice}
+                  keyboardType="number-pad"
+                />
+              </View>
+              <Text style={s.priceDisplaySub}>
+                {serviceType === 'car' ? 'per trip' : 'per full load'}
+              </Text>
+            </LinearGradient>
+
+            {/* Part load toggle (truck only) */}
+            {serviceType === 'truck' && (
+              <View style={{ marginTop: 14, gap: 10 }}>
+                <ToggleCard
+                  iconName="package-variant-closed"
+                  iconColor={C.amber}
+                  iconBg={C.amberBg}
+                  label="Part Load Available"
+                  sub="Allow partial cargo bookings"
+                  value={partLoadEnabled}
+                  onValueChange={setPartLoadEnabled}
+                  active={partLoadEnabled}
+                  activeColor={C.amber}
+                />
+
+                {partLoadEnabled && (
+                  <LinearGradient colors={['#FFFBEB', '#FEF3C7']} style={s.partLoadPriceCard} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
+                    <Text style={s.partLoadPriceLabel}>PART LOAD PRICE</Text>
+                    <View style={s.partLoadPriceRow}>
+                      <Text style={s.partLoadPriceSymbol}>₹</Text>
+                      <TextInput
+                        style={s.partLoadPriceInput}
+                        placeholder="0"
+                        placeholderTextColor={C.muted}
+                        value={partLoadPrice}
+                        onChangeText={setPartLoadPrice}
+                        keyboardType="number-pad"
+                      />
+                    </View>
+                  </LinearGradient>
                 )}
-              </>
+              </View>
             )}
-          </View>
+          </SectionCard>
 
-          {/* Vehicle Details */}
-          <View style={s.section}>
-            <SectionHead icon="cog-outline" color={C.blue} bg="#DBEAFE" title="Vehicle Details" />
-            <Text style={s.fieldLabel}>{serviceType === 'truck' ? 'Capacity (Tonnage)' : 'Seating Capacity'}</Text>
-            <TextInput style={s.input} placeholder={serviceType === 'truck' ? 'e.g. 9 (in tonnes)' : 'e.g. 5'} placeholderTextColor={C.muted} value={capacity} onChangeText={setCapacity} keyboardType="number-pad" />
+          {/* ── STEP 5: VEHICLE DETAILS ── */}
+          <SectionCard
+            step={5}
+            stepColor={['#0F766E', C.teal]}
+            title="Vehicle Details"
+            subtitle="Specs & features"
+          >
+            {/* Capacity field */}
+            <FieldCard
+              iconName={serviceType === 'truck' ? 'weight' : 'seat-passenger'}
+              iconColor={C.teal}
+              iconBg={C.tealBg}
+              label={serviceType === 'truck' ? 'Capacity (Tonnage)' : 'Seating Capacity'}
+              placeholder={serviceType === 'truck' ? 'e.g. 9 (in tonnes)' : 'e.g. 5'}
+              value={capacity}
+              onChangeText={setCapacity}
+              keyboardType="number-pad"
+            />
 
+            {/* Body type chips (truck only) */}
             {serviceType === 'truck' && (
               <View style={{ marginTop: 14 }}>
-                <Text style={s.fieldLabel}>Body Type</Text>
+                <Text style={s.subLabel}>Body Type</Text>
                 <View style={s.chipGrid}>
                   {BODY_TYPES.map(bt => {
                     const active = bodyType === bt;
                     return (
-                      <TouchableOpacity key={bt} style={[s.optionChip, active && s.optionChipActive]} onPress={() => setBodyType(active ? '' : bt)}>
-                        <Text style={[s.optionChipText, active && s.optionChipTextActive]}>{bt}</Text>
+                      <TouchableOpacity
+                        key={bt}
+                        style={[s.bodyTypeChip, active && s.bodyTypeChipActive]}
+                        onPress={() => setBodyType(active ? '' : bt)}
+                        activeOpacity={0.8}
+                      >
+                        {active ? (
+                          <LinearGradient colors={[C.g700, C.g500]} style={s.bodyTypeChipGrad} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
+                            <MCI name={BODY_TYPE_ICONS[bt] || 'truck'} size={14} color="#fff" />
+                            <Text style={s.bodyTypeChipTextActive}>{bt}</Text>
+                          </LinearGradient>
+                        ) : (
+                          <View style={s.bodyTypeChipInner}>
+                            <MCI name={BODY_TYPE_ICONS[bt] || 'truck'} size={14} color={C.muted} />
+                            <Text style={s.bodyTypeChipText}>{bt}</Text>
+                          </View>
+                        )}
                       </TouchableOpacity>
                     );
                   })}
@@ -419,84 +671,138 @@ export default function PostVehicleScreen({ navigation }) {
               </View>
             )}
 
-            {/* Driver */}
-            <View style={[s.switchRow, { marginTop: 16 }]}>
-              <View style={{ flex: 1 }}>
-                <Text style={s.switchLabel}>Driver Included</Text>
-                <Text style={s.switchSub}>Vehicle comes with a driver</Text>
-              </View>
-              <Switch value={driverIncluded} onValueChange={setDriverIncluded} trackColor={{ false: C.border, true: C.brand + '55' }} thumbColor={driverIncluded ? C.brand : '#f4f4f5'} />
+            {/* Driver toggle */}
+            <View style={{ marginTop: 16 }}>
+              <ToggleCard
+                iconName="steering"
+                iconColor={C.g700}
+                iconBg={C.g50}
+                label="Driver Included"
+                sub="Vehicle comes with a driver"
+                value={driverIncluded}
+                onValueChange={setDriverIncluded}
+                active={driverIncluded}
+                activeColor={C.g600}
+              />
             </View>
 
             {driverIncluded && (
-              <View style={{ marginTop: 12, gap: 10 }}>
-                {/* Driver dropdown */}
+              <View style={{ marginTop: 12, gap: 12 }}>
                 {staffDrivers.length > 0 && (
                   <>
-                    <Text style={s.fieldLabel}>Select from Staff</Text>
-                    <TouchableOpacity style={[s.dropdownBtn, driverName && s.dropdownBtnActive]} onPress={() => setDriverDropdownOpen(true)}>
-                      <MCI name="account" size={18} color={driverName ? C.brand : C.muted} />
+                    <Text style={s.subLabel}>Select from Staff</Text>
+                    <TouchableOpacity
+                      style={[s.dropdownTrigger, driverName && s.dropdownTriggerActive]}
+                      onPress={() => setDriverDropdownOpen(true)}
+                      activeOpacity={0.8}
+                    >
+                      <View style={[s.dropdownIconBox, driverName && { backgroundColor: C.g100 }]}>
+                        <MCI name="account" size={18} color={driverName ? C.g600 : C.muted} />
+                      </View>
                       <View style={{ flex: 1 }}>
                         {driverName ? (
                           <>
-                            <Text style={s.dropdownValue}>{driverName}</Text>
-                            {driverPhone ? <Text style={s.dropdownSub}>{driverPhone}</Text> : null}
+                            <Text style={s.dropdownVal}>{driverName}</Text>
+                            {driverPhone ? <Text style={s.dropdownValSub}>{driverPhone}</Text> : null}
                           </>
                         ) : (
                           <Text style={s.dropdownPlaceholder}>Tap to select driver</Text>
                         )}
                       </View>
-                      <Icon name="chevron-down" size={18} color={C.muted} />
+                      <Icon name="chevron-down" size={18} color={driverName ? C.g600 : C.muted} />
                     </TouchableOpacity>
                   </>
                 )}
-                <View style={s.rowFields}>
+
+                <View style={s.twoFieldRow}>
                   <View style={{ flex: 1 }}>
-                    <Text style={s.fieldLabel}>Driver Name</Text>
-                    <TextInput style={s.input} placeholder="Enter name" placeholderTextColor={C.muted} value={driverName} onChangeText={setDriverName} />
+                    <FieldCard
+                      iconName="account"
+                      iconColor={C.g700}
+                      iconBg={C.g50}
+                      label="Driver Name"
+                      placeholder="Enter name"
+                      value={driverName}
+                      onChangeText={setDriverName}
+                    />
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text style={s.fieldLabel}>Driver Phone</Text>
-                    <TextInput style={s.input} placeholder="Enter phone" placeholderTextColor={C.muted} value={driverPhone} onChangeText={setDriverPhone} keyboardType="phone-pad" />
+                    <FieldCard
+                      iconName="phone"
+                      iconColor={C.g700}
+                      iconBg={C.g50}
+                      label="Driver Phone"
+                      placeholder="Enter phone"
+                      value={driverPhone}
+                      onChangeText={setDriverPhone}
+                      keyboardType="phone-pad"
+                    />
                   </View>
                 </View>
               </View>
             )}
 
-            {/* Fuel */}
-            <View style={[s.switchRow, { marginTop: 12 }]}>
-              <View style={{ flex: 1 }}>
-                <Text style={s.switchLabel}>Fuel Included</Text>
-                <Text style={s.switchSub}>Fuel cost covered in price</Text>
-              </View>
-              <Switch value={fuelIncluded} onValueChange={setFuelIncluded} trackColor={{ false: C.border, true: C.brand + '55' }} thumbColor={fuelIncluded ? C.brand : '#f4f4f5'} />
+            {/* Fuel toggle */}
+            <View style={{ marginTop: 12 }}>
+              <ToggleCard
+                iconName="gas-station"
+                iconColor={C.amber}
+                iconBg={C.amberBg}
+                label="Fuel Included"
+                sub="Fuel cost covered in price"
+                value={fuelIncluded}
+                onValueChange={setFuelIncluded}
+                active={fuelIncluded}
+                activeColor={C.amber}
+              />
             </View>
 
             {/* Truck-specific: Labour & Goods */}
             {serviceType === 'truck' && (
               <>
-                <View style={[s.switchRow, { marginTop: 12 }]}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={s.switchLabel}>Labour Available</Text>
-                    <Text style={s.switchSub}>Loading / unloading labour</Text>
-                  </View>
-                  <Switch value={labourAvailable} onValueChange={setLabourAvailable} trackColor={{ false: C.border, true: C.brand + '55' }} thumbColor={labourAvailable ? C.brand : '#f4f4f5'} />
+                <View style={{ marginTop: 12 }}>
+                  <ToggleCard
+                    iconName="account-hard-hat"
+                    iconColor={C.blue}
+                    iconBg={C.blueBg}
+                    label="Labour Available"
+                    sub="Loading / unloading labour"
+                    value={labourAvailable}
+                    onValueChange={setLabourAvailable}
+                    active={labourAvailable}
+                    activeColor={C.blue}
+                  />
                 </View>
+
                 {labourAvailable && (
                   <View style={{ marginTop: 10 }}>
-                    <Text style={s.fieldLabel}>Number of Labourers</Text>
-                    <TextInput style={s.input} placeholder="e.g. 2" placeholderTextColor={C.muted} value={labourCount} onChangeText={setLabourCount} keyboardType="number-pad" />
+                    <FieldCard
+                      iconName="account-group"
+                      iconColor={C.blue}
+                      iconBg={C.blueBg}
+                      label="Number of Labourers"
+                      placeholder="e.g. 2"
+                      value={labourCount}
+                      onChangeText={setLabourCount}
+                      keyboardType="number-pad"
+                    />
                   </View>
                 )}
 
                 <View style={{ marginTop: 14 }}>
-                  <Text style={s.fieldLabel}>Goods Accepted</Text>
+                  <Text style={s.subLabel}>Goods Accepted</Text>
                   <View style={s.chipGrid}>
                     {GOODS_OPTIONS.map(g => {
                       const active = goodsAccepted.includes(g);
                       return (
-                        <TouchableOpacity key={g} style={[s.optionChip, active && s.optionChipActive]} onPress={() => toggleGoods(g)}>
-                          <Text style={[s.optionChipText, active && s.optionChipTextActive]}>{g}</Text>
+                        <TouchableOpacity
+                          key={g}
+                          style={[s.goodsChip, active && s.goodsChipActive]}
+                          onPress={() => toggleGoods(g)}
+                          activeOpacity={0.8}
+                        >
+                          <MCI name={GOODS_ICONS[g] || 'package'} size={14} color={active ? '#fff' : C.muted} />
+                          <Text style={[s.goodsChipText, active && s.goodsChipTextActive]}>{g}</Text>
                         </TouchableOpacity>
                       );
                     })}
@@ -504,19 +810,46 @@ export default function PostVehicleScreen({ navigation }) {
                 </View>
               </>
             )}
-          </View>
+          </SectionCard>
 
-          {/* Notes */}
-          <View style={s.section}>
-            <SectionHead icon="file-text" color={C.sub} bg="#F1F5F9" title="Additional Notes" feather />
-            <TextInput style={[s.input, s.textArea]} placeholder="Any special instructions, route details, or remarks..." placeholderTextColor={C.muted} value={notes} onChangeText={setNotes} multiline textAlignVertical="top" />
-          </View>
+          {/* ── NOTES ── */}
+          <SectionCard
+            step={6}
+            stepColor={[C.g700, C.g400]}
+            title="Additional Notes"
+            subtitle="Optional remarks & instructions"
+          >
+            <View style={s.notesCard}>
+              <MCI name="note-text" size={20} color={C.muted} style={{ marginBottom: 8 }} />
+              <TextInput
+                style={s.notesInput}
+                placeholder="Any special instructions, route details, or remarks..."
+                placeholderTextColor={C.muted}
+                value={notes}
+                onChangeText={setNotes}
+                multiline
+                textAlignVertical="top"
+              />
+            </View>
+          </SectionCard>
 
-          {/* Submit */}
-          <TouchableOpacity style={[s.submitBtn, loading && { opacity: 0.6 }]} onPress={handleSubmit} disabled={loading} activeOpacity={0.85}>
-            {loading ? <ActivityIndicator size="small" color="#fff" /> : (
-              <><Icon name="check" size={20} color="#fff" /><Text style={s.submitBtnText}>Post Vehicle</Text></>
-            )}
+          {/* ── SUBMIT ── */}
+          <TouchableOpacity onPress={handleSubmit} disabled={loading} activeOpacity={0.85} style={loading ? { opacity: 0.6 } : {}}>
+            <LinearGradient
+              colors={[C.g700, C.g600, C.g500]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={s.submitBtn}
+            >
+              {loading ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <>
+                  <MCI name="truck-fast" size={20} color="#fff" />
+                  <Text style={s.submitBtnText}>Post Vehicle</Text>
+                </>
+              )}
+            </LinearGradient>
           </TouchableOpacity>
 
           <TouchableOpacity style={s.cancelBtn} onPress={() => navigation.goBack()}>
@@ -527,10 +860,12 @@ export default function PostVehicleScreen({ navigation }) {
         </ScrollView>
       </KeyboardAvoidingView>
 
+      {/* ── DATE / TIME PICKERS ── */}
       {showDatePicker && (
         <DateTimePicker
           value={showDatePicker === 'departure' ? departureDate || new Date() : arrivalDate || departureDate || new Date()}
-          mode="date" display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+          mode="date"
+          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
           minimumDate={showDatePicker === 'arrival' && departureDate ? departureDate : new Date()}
           onChange={onDateChange}
         />
@@ -538,28 +873,35 @@ export default function PostVehicleScreen({ navigation }) {
       {showTimePicker && (
         <DateTimePicker
           value={showTimePicker === 'departure' ? departureTime || new Date() : arrivalTime || new Date()}
-          mode="time" display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+          mode="time"
+          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
           onChange={onTimeChange}
         />
       )}
 
-      {/* Fleet Dropdown Modal */}
+      {/* ── FLEET MODAL ── */}
       <Modal visible={fleetDropdownOpen} transparent animationType="slide">
         <TouchableOpacity style={s.modalOverlay} activeOpacity={1} onPress={() => setFleetDropdownOpen(false)}>
-          <TouchableOpacity style={s.modalContent} activeOpacity={1} onPress={() => {}}>
-            <View style={s.modalHeader}>
-              <Text style={s.modalTitle}>Select Vehicle</Text>
-              <TouchableOpacity onPress={() => setFleetDropdownOpen(false)} style={s.modalCloseBtn}>
-                <Icon name="x" size={20} color={C.muted} />
-              </TouchableOpacity>
-            </View>
-            <Text style={s.modalSub}>{fleetVehicles.length} vehicles in your fleet</Text>
+          <TouchableOpacity style={s.modalSheet} activeOpacity={1} onPress={() => {}}>
+            <LinearGradient colors={[C.g950, C.g800]} style={s.modalGradHeader}>
+              <View style={s.modalHandle} />
+              <View style={s.modalHeaderRow}>
+                <View style={s.modalHeaderIconBox}>
+                  <MCI name={serviceType === 'truck' ? 'truck' : 'car'} size={18} color="#fff" />
+                </View>
+                <Text style={s.modalTitle}>Select Vehicle</Text>
+                <TouchableOpacity onPress={() => setFleetDropdownOpen(false)} style={s.modalCloseBtn}>
+                  <Icon name="x" size={18} color="rgba(255,255,255,0.8)" />
+                </TouchableOpacity>
+              </View>
+              <Text style={s.modalSub}>{fleetVehicles.length} vehicles in your fleet</Text>
+            </LinearGradient>
             <FlatList
               data={fleetVehicles}
               keyExtractor={item => String(item.id)}
-              nestedScrollEnabled={true}
-              showsVerticalScrollIndicator={true}
-              contentContainerStyle={{ paddingBottom: 10 }}
+              nestedScrollEnabled
+              showsVerticalScrollIndicator
+              contentContainerStyle={{ paddingBottom: 16, paddingTop: 10 }}
               renderItem={({ item: v }) => {
                 const id = String(v.id);
                 const active = selectedFleetId === id;
@@ -568,164 +910,518 @@ export default function PostVehicleScreen({ navigation }) {
                 const category = v.chauffeur_vehicle_categories?.name || v.vehicle_models?.chauffeur_vehicle_categories?.name || '';
                 return (
                   <TouchableOpacity
-                    style={[s.fleetDropItem, active && s.fleetDropItemActive]}
+                    style={[s.modalListItem, active && s.modalListItemActive]}
                     onPress={() => { setSelectedFleetId(id); setFleetDropdownOpen(false); }}
+                    activeOpacity={0.8}
                   >
-                    <View style={[s.fleetDropIcon, active && { backgroundColor: '#D1FAE5' }]}>
-                      <MCI name={serviceType === 'truck' ? 'truck' : 'car'} size={22} color={active ? C.brand : C.muted} />
+                    <View style={[s.modalListIconBox, active && { backgroundColor: C.g100 }]}>
+                      <MCI name={serviceType === 'truck' ? 'truck' : 'car'} size={22} color={active ? C.g600 : C.muted} />
                     </View>
                     <View style={{ flex: 1 }}>
-                      <Text style={[s.fleetDropName, active && { color: C.brand }]} numberOfLines={1}>{name}</Text>
-                      {!!reg && <Text style={s.fleetDropReg}>{reg}</Text>}
-                      {!!category && <Text style={s.fleetDropCategory}>{category}</Text>}
+                      <Text style={[s.modalListName, active && { color: C.g700 }]} numberOfLines={1}>{name}</Text>
+                      {!!reg && <Text style={s.modalListReg}>{reg}</Text>}
+                      {!!category && <Text style={s.modalListCat}>{category}</Text>}
                     </View>
-                    {active && <Icon name="check-circle" size={18} color={C.brand} />}
+                    {active && <Icon name="check-circle" size={20} color={C.g500} />}
                   </TouchableOpacity>
                 );
               }}
-              ListEmptyComponent={<Text style={{ textAlign: 'center', color: C.muted, padding: 20 }}>No vehicles found</Text>}
+              ListEmptyComponent={<Text style={s.modalEmpty}>No vehicles found</Text>}
             />
           </TouchableOpacity>
         </TouchableOpacity>
       </Modal>
 
-      {/* Driver Dropdown Modal */}
+      {/* ── DRIVER MODAL ── */}
       <Modal visible={driverDropdownOpen} transparent animationType="slide">
         <TouchableOpacity style={s.modalOverlay} activeOpacity={1} onPress={() => setDriverDropdownOpen(false)}>
-          <TouchableOpacity style={s.modalContent} activeOpacity={1} onPress={() => {}}>
-            <View style={s.modalHeader}>
-              <Text style={s.modalTitle}>Select Driver</Text>
-              <TouchableOpacity onPress={() => setDriverDropdownOpen(false)} style={s.modalCloseBtn}>
-                <Icon name="x" size={20} color={C.muted} />
-              </TouchableOpacity>
-            </View>
-            <Text style={s.modalSub}>{staffDrivers.length} drivers available</Text>
+          <TouchableOpacity style={s.modalSheet} activeOpacity={1} onPress={() => {}}>
+            <LinearGradient colors={[C.g950, C.g800]} style={s.modalGradHeader}>
+              <View style={s.modalHandle} />
+              <View style={s.modalHeaderRow}>
+                <View style={s.modalHeaderIconBox}>
+                  <MCI name="account-tie" size={18} color="#fff" />
+                </View>
+                <Text style={s.modalTitle}>Select Driver</Text>
+                <TouchableOpacity onPress={() => setDriverDropdownOpen(false)} style={s.modalCloseBtn}>
+                  <Icon name="x" size={18} color="rgba(255,255,255,0.8)" />
+                </TouchableOpacity>
+              </View>
+              <Text style={s.modalSub}>{staffDrivers.length} drivers available</Text>
+            </LinearGradient>
             <FlatList
               data={staffDrivers}
               keyExtractor={item => String(item.id)}
-              nestedScrollEnabled={true}
-              showsVerticalScrollIndicator={true}
-              contentContainerStyle={{ paddingBottom: 10 }}
+              nestedScrollEnabled
+              showsVerticalScrollIndicator
+              contentContainerStyle={{ paddingBottom: 16, paddingTop: 10 }}
               renderItem={({ item: d }) => {
                 const active = driverName === (d.name || '');
                 return (
                   <TouchableOpacity
-                    style={[s.fleetDropItem, active && s.fleetDropItemActive]}
+                    style={[s.modalListItem, active && s.modalListItemActive]}
                     onPress={() => {
                       setDriverName(d.name || '');
                       setDriverPhone(d.phone || '');
                       setDriverDropdownOpen(false);
                     }}
+                    activeOpacity={0.8}
                   >
-                    <MCI name="account" size={20} color={active ? C.brand : C.muted} />
-                    <View style={{ flex: 1 }}>
-                      <Text style={[s.fleetDropName, active && { color: C.brand }]}>{d.name || 'Driver'}</Text>
-                      {!!d.phone && <Text style={s.fleetDropReg}>{d.phone}</Text>}
+                    <View style={[s.modalListIconBox, active && { backgroundColor: C.g100 }]}>
+                      <MCI name="account" size={20} color={active ? C.g600 : C.muted} />
                     </View>
-                    {active && <Icon name="check-circle" size={18} color={C.brand} />}
+                    <View style={{ flex: 1 }}>
+                      <Text style={[s.modalListName, active && { color: C.g700 }]}>{d.name || 'Driver'}</Text>
+                      {!!d.phone && <Text style={s.modalListReg}>{d.phone}</Text>}
+                    </View>
+                    {active && <Icon name="check-circle" size={20} color={C.g500} />}
                   </TouchableOpacity>
                 );
               }}
-              ListEmptyComponent={<Text style={{ textAlign: 'center', color: C.muted, padding: 20 }}>No drivers found</Text>}
+              ListEmptyComponent={<Text style={s.modalEmpty}>No drivers found</Text>}
             />
           </TouchableOpacity>
         </TouchableOpacity>
       </Modal>
 
       <CustomAlert visible={alert.visible} type={alert.type} title={alert.title} message={alert.message} onClose={hideAlert} actions={alert.actions} />
-    </SafeAreaView>
-  );
-}
-
-function SectionHead({ icon, color, bg, title, feather }) {
-  const IC = feather ? Icon : MCI;
-  return (
-    <View style={s.sectionHeader}>
-      <View style={[s.sectionIcon, { backgroundColor: bg }]}><IC name={icon} size={16} color={color} /></View>
-      <Text style={s.sectionTitle}>{title}</Text>
     </View>
   );
 }
 
+/* ─────────────────────────────────────────
+   SECTION CARD COMPONENT
+───────────────────────────────────────── */
+function SectionCard({ step, stepColor, title, subtitle, children }) {
+  return (
+    <View style={s.sectionCard}>
+      {/* Section header bar */}
+      <View style={s.sectionHeaderBar}>
+        <LinearGradient colors={stepColor || [C.g700, C.g500]} style={s.stepCircle}>
+          <Text style={s.stepNumber}>{step}</Text>
+        </LinearGradient>
+        <View style={{ flex: 1 }}>
+          <Text style={s.sectionTitle}>{title}</Text>
+          {subtitle ? <Text style={s.sectionSubtitle}>{subtitle}</Text> : null}
+        </View>
+      </View>
+      {/* Content */}
+      <View style={s.sectionContent}>
+        {children}
+      </View>
+    </View>
+  );
+}
+
+/* ─────────────────────────────────────────
+   FIELD CARD COMPONENT
+───────────────────────────────────────── */
+function FieldCard({ iconName, iconColor, iconBg, label, placeholder, value, onChangeText, keyboardType, autoCapitalize }) {
+  return (
+    <View style={s.fieldCard}>
+      <View style={[s.fieldIconBox, { backgroundColor: iconBg || C.g50 }]}>
+        <MCI name={iconName} size={18} color={iconColor || C.g600} />
+      </View>
+      <View style={{ flex: 1 }}>
+        <Text style={s.fieldCardLabel}>{label}</Text>
+        <TextInput
+          style={s.fieldCardInput}
+          placeholder={placeholder}
+          placeholderTextColor={C.muted}
+          value={value}
+          onChangeText={onChangeText}
+          keyboardType={keyboardType || 'default'}
+          autoCapitalize={autoCapitalize || 'none'}
+        />
+      </View>
+    </View>
+  );
+}
+
+/* ─────────────────────────────────────────
+   TOGGLE ROW CARD COMPONENT
+───────────────────────────────────────── */
+function ToggleCard({ iconName, iconColor, iconBg, label, sub, value, onValueChange, active, activeColor }) {
+  return (
+    <View style={[s.toggleCard, active && { borderColor: activeColor || C.g600 }]}>
+      <View style={[s.toggleCardIconBox, { backgroundColor: active ? (iconBg || C.g50) : '#F1F5F9' }]}>
+        <MCI name={iconName} size={18} color={active ? (iconColor || C.g600) : C.muted} />
+      </View>
+      <View style={{ flex: 1 }}>
+        <Text style={s.toggleCardLabel}>{label}</Text>
+        <Text style={s.toggleCardSub}>{sub}</Text>
+      </View>
+      <Switch
+        value={value}
+        onValueChange={onValueChange}
+        trackColor={{ false: C.borderMed, true: activeColor || C.g500 }}
+        thumbColor={value ? '#fff' : '#f4f4f5'}
+      />
+    </View>
+  );
+}
+
+/* ─────────────────────────────────────────
+   STYLES
+───────────────────────────────────────── */
 const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: C.bg },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 14, backgroundColor: C.brand },
-  backBtn: { width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.15)' },
-  headerTitle: { fontSize: 18, fontWeight: '700', color: '#FFFFFF' },
-  scroll: { padding: 16, gap: 14 },
+  root: { flex: 1, backgroundColor: C.bg },
 
-  section: { backgroundColor: C.surface, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: C.border },
-  sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 16 },
-  sectionIcon: { width: 32, height: 32, borderRadius: 10, justifyContent: 'center', alignItems: 'center' },
-  sectionTitle: { fontSize: 14, fontWeight: '700', color: C.text },
+  /* Header */
+  headerGradient: { paddingBottom: 20, position: 'relative', overflow: 'hidden' },
+  decCircle1: {
+    position: 'absolute', width: 200, height: 200, borderRadius: 100,
+    backgroundColor: 'rgba(255,255,255,0.04)', top: -60, right: -50,
+  },
+  decCircle2: {
+    position: 'absolute', width: 140, height: 140, borderRadius: 70,
+    backgroundColor: 'rgba(255,255,255,0.04)', bottom: -40, left: -30,
+  },
+  headerInner: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: 16, paddingTop: 12, paddingBottom: 4,
+  },
+  backBtn: {
+    width: 44, height: 44, borderRadius: 22,
+    justifyContent: 'center', alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)',
+  },
+  headerCenter: { flex: 1, alignItems: 'center', gap: 6 },
+  headerIconCircle: {
+    width: 48, height: 48, borderRadius: 24,
+    backgroundColor: 'rgba(16,185,129,0.2)',
+    justifyContent: 'center', alignItems: 'center',
+  },
+  headerTitle: { fontSize: 22, fontWeight: '800', color: '#FFFFFF', letterSpacing: 0.3 },
+  headerSub: { fontSize: 12, color: 'rgba(255,255,255,0.6)', letterSpacing: 0.2 },
 
-  chipRow: { flexDirection: 'row', gap: 10 },
-  typeChip: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 14, borderRadius: 12, borderWidth: 2, borderColor: C.border, backgroundColor: C.surface },
-  typeChipActive: { borderColor: C.brand, backgroundColor: '#ECFDF5' },
-  typeChipText: { fontSize: 14, fontWeight: '700', color: C.muted },
-  typeChipTextActive: { color: C.brand },
-  chipDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: C.brand },
+  /* Scroll */
+  scroll: { padding: 16, gap: 16 },
 
-  toggleBtn: { flex: 1, paddingVertical: 12, borderRadius: 12, borderWidth: 2, borderColor: C.border, alignItems: 'center' },
-  toggleBtnActive: { borderColor: C.blue, backgroundColor: '#EFF6FF' },
-  toggleBtnText: { fontSize: 13, fontWeight: '700', color: C.muted },
-  toggleBtnTextActive: { color: C.blue },
+  /* Section Card */
+  sectionCard: {
+    backgroundColor: C.surface,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: C.border,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
+    overflow: 'hidden',
+  },
+  sectionHeaderBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: '#F8FAFC',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: C.border,
+  },
+  stepCircle: {
+    width: 32, height: 32, borderRadius: 16,
+    justifyContent: 'center', alignItems: 'center',
+  },
+  stepNumber: { fontSize: 14, fontWeight: '800', color: '#fff' },
+  sectionTitle: { fontSize: 15, fontWeight: '700', color: C.text },
+  sectionSubtitle: { fontSize: 11, color: C.muted, marginTop: 1 },
+  sectionContent: { padding: 16 },
 
-  emptyFleet: { alignItems: 'center', paddingVertical: 20, gap: 4 },
+  /* Service Type */
+  serviceTypeRow: { flexDirection: 'row', gap: 12 },
+  serviceCard: {
+    flex: 1, paddingVertical: 20, borderRadius: 16, borderWidth: 2,
+    borderColor: C.border, backgroundColor: C.surface,
+    alignItems: 'center', justifyContent: 'center', gap: 6,
+    position: 'relative', overflow: 'hidden',
+  },
+  serviceCardActiveTruck: { borderColor: C.g600, backgroundColor: C.g50 },
+  serviceCardActiveCar: { borderColor: C.purple, backgroundColor: C.purpleBg },
+  serviceCheckBadge: {
+    position: 'absolute', top: 10, right: 10,
+    width: 8, height: 8, borderRadius: 4,
+    backgroundColor: C.g500,
+  },
+  serviceCardLabel: { fontSize: 15, fontWeight: '700', color: C.muted },
+  serviceCardSub: { fontSize: 11, color: C.muted },
+
+  /* Source toggle */
+  sourceToggleWrap: {
+    flexDirection: 'row', backgroundColor: '#F1F5F9',
+    borderRadius: 14, padding: 4, gap: 4,
+  },
+  sourceTab: {
+    flex: 1, paddingVertical: 11, borderRadius: 12, alignItems: 'center',
+  },
+  sourceTabActive: { backgroundColor: C.g700 },
+  sourceTabText: { fontSize: 13, fontWeight: '700', color: C.muted },
+  sourceTabTextActive: { color: '#fff' },
+
+  /* Empty fleet */
+  emptyFleetBox: { alignItems: 'center', paddingVertical: 24, gap: 6 },
   emptyFleetText: { fontSize: 13, color: C.muted },
+  emptyFleetLink: { fontSize: 13, color: C.g500, fontWeight: '700', marginTop: 4 },
 
-  // Dropdown fleet picker
-  dropdownBtn: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 12, borderWidth: 2, borderColor: C.border, backgroundColor: '#F8FAFC' },
-  dropdownBtnActive: { borderColor: C.brand, backgroundColor: '#ECFDF5' },
-  dropdownValue: { fontSize: 14, fontWeight: '600', color: C.text },
-  dropdownSub: { fontSize: 12, color: C.muted, marginTop: 1 },
+  /* Dropdown trigger */
+  dropdownTrigger: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    padding: 14, borderRadius: 14, borderWidth: 1.5, borderColor: C.border,
+    backgroundColor: '#F8FAFC',
+  },
+  dropdownTriggerActive: { borderColor: C.g500, backgroundColor: C.g50 },
+  dropdownIconBox: {
+    width: 36, height: 36, borderRadius: 10,
+    backgroundColor: '#F1F5F9',
+    justifyContent: 'center', alignItems: 'center',
+  },
+  dropdownVal: { fontSize: 14, fontWeight: '600', color: C.text },
+  dropdownValSub: { fontSize: 12, color: C.muted, marginTop: 1 },
   dropdownPlaceholder: { fontSize: 14, color: C.muted },
-  // Selected vehicle card (read-only)
-  selectedCard: { marginTop: 10, backgroundColor: '#ECFDF5', borderRadius: 12, padding: 14, borderWidth: 2, borderColor: C.brand },
-  selectedCardRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  selectedCardName: { fontSize: 15, fontWeight: '700', color: C.text },
-  selectedCardNum: { fontSize: 12, color: C.blue, fontFamily: 'monospace', marginTop: 2 },
-  selectedCardClear: { width: 28, height: 28, borderRadius: 14, backgroundColor: '#fff', justifyContent: 'center', alignItems: 'center' },
 
-  // Fleet dropdown modal
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-  modalContent: { backgroundColor: C.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, maxHeight: '65%' },
-  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
-  modalCloseBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#F1F5F9', justifyContent: 'center', alignItems: 'center' },
-  modalTitle: { fontSize: 18, fontWeight: '700', color: C.text },
-  modalSub: { fontSize: 13, color: C.muted, marginBottom: 12 },
-  fleetDropItem: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 12, borderWidth: 1, borderColor: C.border, backgroundColor: '#F8FAFC', marginBottom: 8 },
-  fleetDropItemActive: { borderColor: C.brand, backgroundColor: '#ECFDF5', borderWidth: 2 },
-  fleetDropIcon: { width: 40, height: 40, borderRadius: 10, backgroundColor: '#F1F5F9', justifyContent: 'center', alignItems: 'center' },
-  fleetDropName: { fontSize: 14, fontWeight: '700', color: C.text },
-  fleetDropReg: { fontSize: 12, color: C.blue, fontFamily: 'monospace', marginTop: 2 },
-  fleetDropCategory: { fontSize: 11, color: C.muted, marginTop: 1 },
+  /* Selected badge */
+  selectedBadge: {
+    marginTop: 10, flexDirection: 'row', alignItems: 'center', gap: 12,
+    padding: 14, borderRadius: 14, borderWidth: 2, borderColor: C.g400,
+    backgroundColor: C.g50,
+  },
+  selectedBadgeIconBox: {
+    width: 40, height: 40, borderRadius: 12,
+    backgroundColor: C.g100, justifyContent: 'center', alignItems: 'center',
+  },
+  selectedBadgeName: { fontSize: 15, fontWeight: '700', color: C.text },
+  selectedBadgeNum: { fontSize: 12, color: C.blue, fontFamily: 'monospace', marginTop: 2 },
+  selectedBadgeClear: {
+    width: 28, height: 28, borderRadius: 14,
+    backgroundColor: '#fff', justifyContent: 'center', alignItems: 'center',
+    borderWidth: 1, borderColor: C.border,
+  },
 
-  fieldLabel: { fontSize: 12, fontWeight: '700', color: C.sub, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8, marginTop: 4 },
-  input: { backgroundColor: '#F8FAFC', borderWidth: 1, borderColor: C.border, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontSize: 14, color: C.text },
-  textArea: { height: 90, textAlignVertical: 'top' },
-  rowFields: { flexDirection: 'row', gap: 12, marginTop: 4 },
+  /* Sub label */
+  subLabel: {
+    fontSize: 11, fontWeight: '700', color: C.muted,
+    textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 10,
+  },
 
-  dateBtn: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: '#F8FAFC', borderWidth: 1, borderColor: C.border, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 13 },
-  dateBtnText: { fontSize: 14, color: C.muted },
-
-  priceRow: { flexDirection: 'row', alignItems: 'stretch' },
-  pricePrefix: { justifyContent: 'center', alignItems: 'center', backgroundColor: '#F1F5F9', borderWidth: 1, borderColor: C.border, borderTopLeftRadius: 12, borderBottomLeftRadius: 12, paddingHorizontal: 14, borderRightWidth: 0 },
-  pricePrefixText: { fontSize: 16, fontWeight: '700', color: C.sub },
-  priceInput: { flex: 1, borderTopLeftRadius: 0, borderBottomLeftRadius: 0 },
-
-  switchRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 6, gap: 12 },
-  switchLabel: { fontSize: 14, fontWeight: '600', color: C.text },
-  switchSub: { fontSize: 12, color: C.muted, marginTop: 1 },
-
+  /* Chip grid */
   chipGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  optionChip: { paddingVertical: 10, paddingHorizontal: 14, borderRadius: 10, borderWidth: 2, borderColor: C.border, backgroundColor: C.surface },
-  optionChipActive: { borderColor: C.brand, backgroundColor: '#ECFDF5' },
-  optionChipText: { fontSize: 12, fontWeight: '600', color: C.muted },
-  optionChipTextActive: { color: C.brand },
+  chipPill: {
+    paddingVertical: 9, paddingHorizontal: 14, borderRadius: 10,
+    borderWidth: 1.5, borderColor: C.border, backgroundColor: C.surface,
+  },
+  chipPillActive: { borderColor: C.g600, backgroundColor: C.g50 },
+  chipPillText: { fontSize: 12, fontWeight: '600', color: C.muted },
+  chipPillTextActive: { color: C.g700 },
 
-  submitBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, backgroundColor: C.brand, paddingVertical: 16, borderRadius: 16, marginTop: 8 },
-  submitBtnText: { fontSize: 16, fontWeight: '700', color: '#fff' },
-  cancelBtn: { alignItems: 'center', paddingVertical: 14, borderRadius: 16, borderWidth: 2, borderColor: C.border, marginTop: 8 },
+  /* Route card */
+  routeCard: {
+    borderRadius: 16, borderWidth: 1.5, borderColor: C.borderMed,
+    backgroundColor: '#F8FAFC', overflow: 'hidden',
+  },
+  routeHalf: { padding: 16 },
+  routeDotRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 },
+  routeDot: { width: 8, height: 8, borderRadius: 4 },
+  routeHalfLabel: {
+    fontSize: 10, fontWeight: '700', color: C.muted,
+    textTransform: 'uppercase', letterSpacing: 1,
+  },
+  routeInput: {
+    fontSize: 16, fontWeight: '600', color: C.text,
+    paddingVertical: 4, padding: 0,
+  },
+  routeDividerWrap: { position: 'relative', height: 1 },
+  routeDivider: {
+    borderStyle: 'dashed', borderColor: C.borderMed,
+    borderTopWidth: 1, marginHorizontal: 16,
+  },
+  routeArrowCircle: {
+    position: 'absolute', top: -12, alignSelf: 'center',
+    width: 24, height: 24, borderRadius: 12,
+    backgroundColor: '#fff', borderWidth: 1, borderColor: C.border,
+    justifyContent: 'center', alignItems: 'center',
+  },
+
+  /* Date tiles */
+  dateGrid: { flexDirection: 'row', gap: 10 },
+  dateTile: {
+    flex: 1, backgroundColor: C.surface, borderRadius: 14, padding: 14,
+    borderWidth: 1.5, borderColor: C.border,
+  },
+  dateTileActive: { borderColor: C.g400, backgroundColor: C.g50 },
+  dateTileLabel: {
+    fontSize: 9, fontWeight: '700', color: C.muted,
+    textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 8,
+  },
+  dateTileRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  dateTileValue: { fontSize: 13, fontWeight: '600', color: C.text, flex: 1 },
+  dateTilePlaceholder: { color: C.muted, fontWeight: '400' },
+
+  /* Price display card */
+  priceDisplayCard: {
+    borderRadius: 16, padding: 20,
+    alignItems: 'flex-start',
+  },
+  priceDisplayLabel: {
+    fontSize: 11, fontWeight: '700', color: 'rgba(255,255,255,0.7)',
+    textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4,
+  },
+  priceDisplayRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 4, width: '100%' },
+  priceDisplaySymbol: { fontSize: 18, fontWeight: '700', color: C.g300, marginBottom: 6 },
+  priceDisplayInput: {
+    flex: 1, fontSize: 36, fontWeight: '800', color: '#fff',
+    padding: 0, textAlign: 'right',
+  },
+  priceDisplaySub: { fontSize: 12, color: 'rgba(255,255,255,0.55)', marginTop: 4 },
+
+  /* Part load price mini card */
+  partLoadPriceCard: {
+    borderRadius: 14, padding: 16,
+    borderWidth: 1, borderColor: '#FDE68A',
+  },
+  partLoadPriceLabel: {
+    fontSize: 10, fontWeight: '700', color: '#92400E',
+    textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 8,
+  },
+  partLoadPriceRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  partLoadPriceSymbol: { fontSize: 16, fontWeight: '700', color: C.amber },
+  partLoadPriceInput: {
+    flex: 1, fontSize: 20, fontWeight: '700', color: C.text,
+    padding: 0,
+  },
+
+  /* Field card */
+  fieldCard: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    backgroundColor: C.surface, borderRadius: 14,
+    borderWidth: 1.5, borderColor: C.border, padding: 14,
+  },
+  fieldIconBox: {
+    width: 36, height: 36, borderRadius: 10,
+    justifyContent: 'center', alignItems: 'center',
+  },
+  fieldCardLabel: {
+    fontSize: 10, fontWeight: '700', color: C.muted,
+    textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 4,
+  },
+  fieldCardInput: {
+    fontSize: 15, fontWeight: '600', color: C.text,
+    padding: 0,
+  },
+
+  /* Two field row */
+  twoFieldRow: { flexDirection: 'row', gap: 10 },
+
+  /* Body type chips */
+  bodyTypeChip: {
+    borderRadius: 10, borderWidth: 1.5, borderColor: C.border,
+    overflow: 'hidden',
+  },
+  bodyTypeChipActive: { borderColor: C.g500 },
+  bodyTypeChipGrad: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingVertical: 9, paddingHorizontal: 12,
+  },
+  bodyTypeChipInner: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingVertical: 9, paddingHorizontal: 12,
+    backgroundColor: C.surface,
+  },
+  bodyTypeChipText: { fontSize: 12, fontWeight: '600', color: C.muted },
+  bodyTypeChipTextActive: { fontSize: 12, fontWeight: '700', color: '#fff' },
+
+  /* Toggle card */
+  toggleCard: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    backgroundColor: C.surface, borderRadius: 14,
+    borderWidth: 1.5, borderColor: C.border, padding: 14,
+  },
+  toggleCardIconBox: {
+    width: 36, height: 36, borderRadius: 10,
+    justifyContent: 'center', alignItems: 'center',
+  },
+  toggleCardLabel: { fontSize: 14, fontWeight: '700', color: C.text },
+  toggleCardSub: { fontSize: 11, color: C.muted, marginTop: 1 },
+
+  /* Goods chips */
+  goodsChip: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingVertical: 9, paddingHorizontal: 12,
+    borderRadius: 10, borderWidth: 1.5, borderColor: C.border,
+    backgroundColor: C.surface,
+  },
+  goodsChipActive: { borderColor: C.g600, backgroundColor: C.g700 },
+  goodsChipText: { fontSize: 12, fontWeight: '600', color: C.muted },
+  goodsChipTextActive: { color: '#fff' },
+
+  /* Notes */
+  notesCard: {
+    backgroundColor: '#F8FAFC', borderRadius: 14,
+    borderWidth: 1.5, borderColor: C.border, padding: 14,
+  },
+  notesInput: {
+    fontSize: 14, color: C.text, height: 90,
+    textAlignVertical: 'top', padding: 0,
+  },
+
+  /* Submit / Cancel */
+  submitBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10,
+    paddingVertical: 18, borderRadius: 18, marginTop: 8,
+    shadowColor: C.g800, shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.3, shadowRadius: 15, elevation: 8,
+  },
+  submitBtnText: { fontSize: 17, fontWeight: '800', color: '#fff', letterSpacing: 0.3 },
+  cancelBtn: { alignItems: 'center', paddingVertical: 16, marginTop: 4 },
   cancelBtnText: { fontSize: 14, fontWeight: '600', color: C.muted },
+
+  /* Modal */
+  modalOverlay: {
+    flex: 1, backgroundColor: 'rgba(1,27,20,0.6)', justifyContent: 'flex-end',
+  },
+  modalSheet: {
+    backgroundColor: C.surface,
+    borderTopLeftRadius: 28, borderTopRightRadius: 28,
+    overflow: 'hidden', maxHeight: '65%',
+  },
+  modalGradHeader: { paddingTop: 10, paddingHorizontal: 20, paddingBottom: 18 },
+  modalHandle: {
+    width: 36, height: 4, borderRadius: 2,
+    backgroundColor: 'rgba(255,255,255,0.35)',
+    alignSelf: 'center', marginBottom: 14,
+  },
+  modalHeaderRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  modalHeaderIconBox: {
+    width: 36, height: 36, borderRadius: 10,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    justifyContent: 'center', alignItems: 'center',
+  },
+  modalTitle: { fontSize: 17, fontWeight: '800', color: '#fff', flex: 1 },
+  modalCloseBtn: {
+    width: 32, height: 32, borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    justifyContent: 'center', alignItems: 'center',
+  },
+  modalSub: { fontSize: 12, color: 'rgba(255,255,255,0.6)', marginTop: 6 },
+
+  modalListItem: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    padding: 14, borderRadius: 14, borderWidth: 1.5,
+    borderColor: C.border, backgroundColor: C.surface,
+    marginBottom: 8, marginHorizontal: 14,
+  },
+  modalListItemActive: {
+    borderColor: C.g500, backgroundColor: C.g50, borderWidth: 2,
+  },
+  modalListIconBox: {
+    width: 44, height: 44, borderRadius: 12,
+    backgroundColor: '#F1F5F9',
+    justifyContent: 'center', alignItems: 'center',
+  },
+  modalListName: { fontSize: 14, fontWeight: '700', color: C.text },
+  modalListReg: { fontSize: 12, color: C.blue, fontFamily: 'monospace', marginTop: 2 },
+  modalListCat: { fontSize: 11, color: C.muted, marginTop: 1 },
+  modalEmpty: { textAlign: 'center', color: C.muted, padding: 24, fontSize: 14 },
 });

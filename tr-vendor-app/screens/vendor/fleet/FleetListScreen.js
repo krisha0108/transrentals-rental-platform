@@ -491,7 +491,7 @@ const st = StyleSheet.create({
   clearFilterTxt: { fontSize: 12, color: C.red, fontWeight: '700' },
 
   /* Vehicle cards */
-  list: { paddingHorizontal: 16, paddingBottom: 100, gap: 10, paddingTop: 0 },
+  list: { paddingHorizontal: 16, paddingBottom: 120, gap: 10, paddingTop: 0 },
   vCard: {
     backgroundColor: C.card, borderRadius: 14,
     borderLeftWidth: 4,

@@ -14,6 +14,8 @@ export async function GET(request: NextRequest, { params }: { params: { tripCode
       select: {
         tripCode: true,
         status: true,
+        vendorId: true,
+        bookingId: true,
         vehicleName: true,
         vehicleNumber: true,
         driverName: true,
@@ -26,6 +28,7 @@ export async function GET(request: NextRequest, { params }: { params: { tripCode
         otp: true,
         startedAt: true,
         completedAt: true,
+        createdAt: true,
         booking: {
           select: {
             bookingNumber: true,

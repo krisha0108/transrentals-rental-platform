@@ -1,718 +1,531 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  ActivityIndicator,
-  Image,
-  Alert,
+  View, Text, StyleSheet, ScrollView, TouchableOpacity,
+  ActivityIndicator, Image, StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/Feather';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { apiGet, deleteStaff, debugAuthState } from '../../api/client';
-import { showConfirm, showError, showInfo, showSuccess } from '../../../services/alertService';
+import { showConfirm, showError } from '../../../services/alertService';
 
 const C = {
-  bg: '#F7FAFC',
-  surface: '#FFFFFF',
-  text: '#0F172A',
-  muted: '#6B7280',
-  border: '#E5E7EB',
-  brand: '#22C55E',
-  blue: '#2563EB',
-  orange: '#F59E0B',
-  red: '#EF4444',
-  purple: '#8B5CF6',
+  g900: '#022C22', g800: '#065F46', g700: '#047857', g600: '#059669',
+  g500: '#10B981', g400: '#34D399', g100: '#D1FAE5', g50: '#ECFDF5',
+  bg: '#F1F5F9', surface: '#FFFFFF', border: '#E2E8F0',
+  text: '#0F172A', sub: '#475569', muted: '#94A3B8',
+  blue: '#3B82F6', blueL: '#EFF6FF',
+  amber: '#D97706', amberL: '#FFFBEB',
+  red: '#EF4444', redL: '#FEF2F2',
+  purple: '#7C3AED', purpleL: '#F5F3FF',
 };
 
-const getRoleColor = (role) => {
-  switch (role?.toLowerCase()) {
-    case 'driver':
-      return { bg: '#DBEAFE', text: '#1E40AF' };
-    case 'manager':
-      return { bg: '#F3E8FF', text: '#7C3AED' };
-    case 'helper':
-      return { bg: '#FEF3C7', text: '#92400E' };
-    case 'accountant':
-      return { bg: '#DCFCE7', text: '#166534' };
-    default:
-      return { bg: '#F3F4F6', text: '#374151' };
-  }
+const ROLE_COLORS = {
+  driver:     { bg: '#DBEAFE', text: '#1E40AF' },
+  manager:    { bg: '#F3E8FF', text: '#7C3AED' },
+  helper:     { bg: '#FEF3C7', text: '#92400E' },
+  accountant: { bg: '#DCFCE7', text: '#166534' },
+  mechanic:   { bg: '#FEE2E2', text: '#991B1B' },
+  supervisor: { bg: '#E0E7FF', text: '#3730A3' },
+  default:    { bg: '#F1F5F9', text: '#64748B' },
 };
 
-const getStatusColor = (status) => {
+const getStatusDot = (status) => {
   switch (status?.toLowerCase()) {
-    case 'active':
-      return { bg: '#DCFCE7', text: '#166534' };
-    case 'on_leave':
-      return { bg: '#FEF3C7', text: '#92400E' };
-    case 'inactive':
-      return { bg: '#FEE2E2', text: '#991B1B' };
-    default:
-      return { bg: '#F3F4F6', text: '#374151' };
+    case 'active':   return C.g400;
+    case 'on_leave': return '#FCD34D';
+    case 'inactive': return '#FCA5A5';
+    default:         return C.muted;
   }
 };
+
+function Section({ icon, iconLib = 'feather', color, bg, title, children }) {
+  const I = iconLib === 'mci' ? MaterialCommunityIcons : Icon;
+  return (
+    <View style={s.section}>
+      <View style={s.sHead}>
+        <View style={[s.sIcon, { backgroundColor: bg }]}>
+          <I name={icon} size={13} color={color} />
+        </View>
+        <Text style={[s.sTitle, { color }]}>{title}</Text>
+      </View>
+      {children}
+    </View>
+  );
+}
+
+function IRow({ icon, iColor, iBg, label, value, last }) {
+  return (
+    <View style={[s.iRow, last && { borderBottomWidth: 0 }]}>
+      <View style={[s.iIcon, { backgroundColor: iBg }]}>
+        <Icon name={icon} size={13} color={iColor} />
+      </View>
+      <View style={{ flex: 1 }}>
+        <Text style={s.iLbl}>{label}</Text>
+        <Text style={s.iVal}>{value || '--'}</Text>
+      </View>
+    </View>
+  );
+}
+
+function KVRow({ label, value, last, green }) {
+  return (
+    <View style={[s.kv, last && { borderBottomWidth: 0 }]}>
+      <Text style={s.kvLbl}>{label}</Text>
+      <Text style={[s.kvVal, green && { color: C.g600 }]}>{value || '--'}</Text>
+    </View>
+  );
+}
 
 export default function StaffDetailScreen({ route, navigation }) {
   const { staffId } = route.params || {};
   const [loading, setLoading] = useState(true);
-  const [staff, setStaff] = useState(null);
+  const [staff, setStaff]     = useState(null);
 
   const fetchStaff = useCallback(async () => {
     if (!staffId) return;
-
     let retries = 0;
-    const maxRetries = 2;
-
-    while (retries <= maxRetries) {
+    while (retries <= 2) {
       try {
-        console.log(`[StaffDetail] Fetching staff (attempt ${retries + 1}/${maxRetries + 1}):`, staffId);
-
-        // Debug auth state before request
-        if (retries === 0) {
-          await debugAuthState();
-        }
-
-        const response = await apiGet(`/vendor/staff/${staffId}`);
-        console.log('[StaffDetail] ✅ Response received successfully');
-        setStaff(response.data?.staff || response.data);
+        if (retries === 0) await debugAuthState();
+        const res = await apiGet(`/vendor/staff/${staffId}`);
+        setStaff(res.data?.staff || res.data);
         setLoading(false);
-        return; // Success, exit
-      } catch (error) {
-        console.error(`[StaffDetail] ❌ Attempt ${retries + 1} failed:`, error?.response?.status, error?.response?.data);
-
-        if (error?.response?.status === 401 && retries < maxRetries) {
+        return;
+      } catch (err) {
+        if (err?.response?.status === 401 && retries < 2) {
           retries++;
-          console.log(`[StaffDetail] Retrying in 500ms...`);
-          await new Promise(resolve => setTimeout(resolve, 500));
+          await new Promise((r) => setTimeout(r, 500));
           continue;
         }
-
-        // Max retries reached or non-401 error
-        showError(error?.response?.status === 401
-            ? 'You do not have permission to view this staff member. This staff might belong to another vendor.'
-            : 'Failed to load staff details. Please try again.');
+        showError(err?.response?.status === 401
+          ? 'No permission to view this staff member.'
+          : 'Failed to load staff details.');
         setLoading(false);
         return;
       }
     }
   }, [staffId]);
 
-  useEffect(() => {
-    fetchStaff();
-  }, [fetchStaff]);
+  useEffect(() => { fetchStaff(); }, [fetchStaff]);
 
-  const handleDelete = () => {
-    showConfirm('Delete Staff', 'Are you sure you want to delete this staff member?', async () => {
-          try {
-            await deleteStaff(staffId);
-            navigation.goBack();
-          } catch (error) {
-            showError('Failed to delete staff');
-          }
-        }, { confirmText: 'Delete', destructive: true });
-  };
+  const handleDelete = () =>
+    showConfirm('Delete Staff', 'Are you sure you want to delete this staff member?',
+      async () => {
+        try { await deleteStaff(staffId); navigation.goBack(); }
+        catch { showError('Failed to delete staff'); }
+      },
+      { confirmText: 'Delete', destructive: true }
+    );
 
   const handleCall = () => {
-    if (staff?.phone) {
-      const url = `tel:${staff.phone}`;
-      import('react-native').then(({ Linking }) => {
-        Linking.openURL(url);
-      });
-    }
+    if (staff?.phone)
+      import('react-native').then(({ Linking }) => Linking.openURL(`tel:${staff.phone}`));
   };
 
-  const formatDate = (dateStr) => {
-    if (!dateStr) return '--';
-    const date = new Date(dateStr);
-    return date.toLocaleDateString('en-IN', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-    });
-  };
+  const fmt = (d) => d
+    ? new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+    : '--';
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.safe}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-            <Icon name="arrow-left" size={20} color={C.text} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Staff Details</Text>
-          <View style={{ width: 36 }} />
-        </View>
-        <View style={styles.loaderContainer}>
-          <ActivityIndicator size="large" color={C.brand} />
-        </View>
-      </SafeAreaView>
+      <View style={{ flex: 1, backgroundColor: C.bg }}>
+        <StatusBar barStyle="light-content" backgroundColor={C.g900} />
+        <LinearGradient colors={[C.g900, '#064E3B', C.g700]} style={s.grad}>
+          <SafeAreaView edges={['top']}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
+              <Icon name="arrow-left" size={20} color="#fff" />
+            </TouchableOpacity>
+          </SafeAreaView>
+        </LinearGradient>
+        <View style={s.center}><ActivityIndicator size="large" color={C.g600} /></View>
+      </View>
     );
   }
 
   if (!staff) {
     return (
-      <SafeAreaView style={styles.safe}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-            <Icon name="arrow-left" size={20} color={C.text} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Staff Details</Text>
-          <View style={{ width: 36 }} />
-        </View>
-        <View style={styles.emptyContainer}>
-          <Text style={styles.emptyText}>Staff not found</Text>
-        </View>
-      </SafeAreaView>
+      <View style={{ flex: 1, backgroundColor: C.bg }}>
+        <StatusBar barStyle="light-content" backgroundColor={C.g900} />
+        <LinearGradient colors={[C.g900, '#064E3B', C.g700]} style={s.grad}>
+          <SafeAreaView edges={['top']}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
+              <Icon name="arrow-left" size={20} color="#fff" />
+            </TouchableOpacity>
+          </SafeAreaView>
+        </LinearGradient>
+        <View style={s.center}><Text style={{ color: C.muted, fontSize: 16 }}>Staff not found</Text></View>
+      </View>
     );
   }
 
-  const roleColors = getRoleColor(staff.role);
-  const statusColors = getStatusColor(staff.status);
+  const rc = ROLE_COLORS[staff.role?.toLowerCase()] || ROLE_COLORS.default;
+  const dotColor = getStatusDot(staff.status);
+  const licExpired = staff.licenseExpiry && new Date(staff.licenseExpiry) < new Date();
 
   return (
-    <SafeAreaView style={styles.safe}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Icon name="arrow-left" size={20} color={C.text} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Staff Details</Text>
-        <TouchableOpacity style={styles.menuBtn} onPress={handleDelete}>
-          <Icon name="trash-2" size={18} color={C.red} />
-        </TouchableOpacity>
-      </View>
+    <View style={{ flex: 1, backgroundColor: C.bg }}>
+      <StatusBar barStyle="light-content" backgroundColor={C.g900} />
 
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Profile Card */}
-        <View style={styles.profileCard}>
-          <View style={styles.avatarContainer}>
-            {staff.photo ? (
-              <Image source={{ uri: staff.photo }} style={styles.avatar} />
-            ) : (
-              <View style={styles.avatarPlaceholder}>
-                <Icon name="user" size={36} color={C.muted} />
+      {/* Single scroll — gradient profile + all cards scroll together */}
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 60 }}>
+
+        {/* ── Gradient Profile Hero ── */}
+        <LinearGradient colors={[C.g900, '#064E3B', C.g700]} style={s.grad}>
+          <SafeAreaView edges={['top']}>
+            {/* Back + Delete */}
+            <View style={s.topRow}>
+              <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
+                <Icon name="arrow-left" size={20} color="#fff" />
+              </TouchableOpacity>
+              <TouchableOpacity style={s.deleteBtn} onPress={handleDelete}>
+                <Icon name="trash-2" size={16} color="#FCA5A5" />
+              </TouchableOpacity>
+            </View>
+
+            {/* Avatar */}
+            <View style={s.avatarWrap}>
+              {staff.photo ? (
+                <Image source={{ uri: staff.photo }} style={s.avatarImg} />
+              ) : (
+                <View style={s.avatarCircle}>
+                  <Text style={s.avatarLetter}>{staff.name?.charAt(0)?.toUpperCase() || 'S'}</Text>
+                </View>
+              )}
+              <View style={[s.onlineDot, { backgroundColor: dotColor }]} />
+            </View>
+
+            <Text style={s.name}>{staff.name}</Text>
+
+            {/* Badges */}
+            <View style={s.badges}>
+              <View style={s.rolePill}>
+                <Text style={s.rolePillTxt}>{staff.role?.replace(/_/g, ' ') || 'Staff'}</Text>
               </View>
-            )}
-            <View style={[styles.statusDot, { backgroundColor: statusColors.text }]} />
-          </View>
-
-          <Text style={styles.staffName}>{staff.name}</Text>
-
-          <View style={styles.badgeRow}>
-            <View style={[styles.badge, { backgroundColor: roleColors.bg }]}>
-              <Text style={[styles.badgeText, { color: roleColors.text }]}>
-                {staff.role?.replace(/_/g, ' ') || 'N/A'}
-              </Text>
-            </View>
-            <View style={[styles.badge, { backgroundColor: statusColors.bg }]}>
-              <Text style={[styles.badgeText, { color: statusColors.text }]}>
-                {staff.status?.replace(/_/g, ' ') || 'Active'}
-              </Text>
-            </View>
-          </View>
-
-          {/* Quick Actions */}
-          <View style={styles.quickActions}>
-            <TouchableOpacity style={styles.actionBtn} onPress={handleCall}>
-              <Icon name="phone" size={20} color={C.brand} />
-              <Text style={styles.actionText}>Call</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.actionBtn}
-              onPress={() => navigation.navigate('AddStaffScreen', { staffId, staff })}
-            >
-              <Icon name="edit-2" size={20} color={C.blue} />
-              <Text style={styles.actionText}>Edit</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* Contact Info */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Contact Information</Text>
-
-          <View style={styles.infoRow}>
-            <View style={styles.infoIcon}>
-              <Icon name="phone" size={16} color={C.brand} />
-            </View>
-            <View style={styles.infoContent}>
-              <Text style={styles.infoLabel}>Phone</Text>
-              <Text style={styles.infoValue}>{staff.phone || '--'}</Text>
-            </View>
-          </View>
-
-          {staff.email && (
-            <View style={styles.infoRow}>
-              <View style={styles.infoIcon}>
-                <Icon name="mail" size={16} color={C.blue} />
-              </View>
-              <View style={styles.infoContent}>
-                <Text style={styles.infoLabel}>Email</Text>
-                <Text style={styles.infoValue}>{staff.email}</Text>
-              </View>
-            </View>
-          )}
-
-          {(staff.address || staff.city || staff.state) && (
-            <View style={[styles.infoRow, { borderBottomWidth: 0 }]}>
-              <View style={styles.infoIcon}>
-                <Icon name="map-pin" size={16} color={C.orange} />
-              </View>
-              <View style={styles.infoContent}>
-                <Text style={styles.infoLabel}>Address</Text>
-                <Text style={styles.infoValue}>
-                  {[staff.address, staff.city, staff.state, staff.pincode].filter(Boolean).join(', ')}
+              <View style={s.statusPill}>
+                <View style={[s.statusDot, { backgroundColor: dotColor }]} />
+                <Text style={[s.statusPillTxt, { color: dotColor }]}>
+                  {staff.status?.replace(/_/g, ' ') || 'Active'}
                 </Text>
               </View>
             </View>
+
+            {/* Actions */}
+            <View style={s.actions}>
+              <TouchableOpacity style={s.callBtn} onPress={handleCall} activeOpacity={0.8}>
+                <Icon name="phone" size={15} color={C.g900} />
+                <Text style={s.callTxt}>Call</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={s.editBtn}
+                onPress={() => navigation.navigate('AddStaffScreen', { staffId, staff })}
+                activeOpacity={0.8}
+              >
+                <Icon name="edit-2" size={15} color="#fff" />
+                <Text style={s.editTxt}>Edit Profile</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Bottom info strip */}
+            <View style={s.strip}>
+              <View style={s.stripItem}>
+                <Text style={s.stripVal}>{fmt(staff.joiningDate)}</Text>
+                <Text style={s.stripLbl}>Joined</Text>
+              </View>
+              {staff.salary && (
+                <>
+                  <View style={s.stripSep} />
+                  <View style={s.stripItem}>
+                    <Text style={[s.stripVal, { color: C.g400 }]}>
+                      ₹{parseInt(staff.salary).toLocaleString()}
+                    </Text>
+                    <Text style={s.stripLbl}>Monthly Pay</Text>
+                  </View>
+                </>
+              )}
+              {staff.employeeId && (
+                <>
+                  <View style={s.stripSep} />
+                  <View style={s.stripItem}>
+                    <Text style={s.stripVal}>{staff.employeeId}</Text>
+                    <Text style={s.stripLbl}>Employee ID</Text>
+                  </View>
+                </>
+              )}
+            </View>
+          </SafeAreaView>
+        </LinearGradient>
+
+        {/* ── Info Cards ── */}
+        <View style={s.cards}>
+
+          {/* Contact */}
+          <Section icon="phone" color={C.g700} bg={C.g50} title="Contact Information">
+            <IRow icon="phone" iColor={C.g700} iBg={C.g50} label="Phone" value={staff.phone} />
+            {staff.email && (
+              <IRow icon="mail" iColor={C.blue} iBg={C.blueL} label="Email" value={staff.email} />
+            )}
+            {(staff.address || staff.city || staff.state) && (
+              <IRow
+                icon="map-pin" iColor={C.amber} iBg={C.amberL}
+                label="Address"
+                value={[staff.address, staff.city, staff.state, staff.pincode].filter(Boolean).join(', ')}
+                last
+              />
+            )}
+          </Section>
+
+          {/* Employment */}
+          <Section icon="briefcase" color={C.purple} bg={C.purpleL} title="Employment">
+            {staff.employeeId && <KVRow label="Employee ID" value={staff.employeeId} />}
+            <KVRow label="Joining Date" value={fmt(staff.joiningDate)} />
+            {staff.salary && (
+              <KVRow label="Monthly Salary" value={`₹${parseInt(staff.salary).toLocaleString()}`} green />
+            )}
+            <KVRow label="Status" value={staff.status?.replace(/_/g, ' ')} last />
+          </Section>
+
+          {/* Personal */}
+          {staff.dateOfBirth && (
+            <Section icon="user" color={C.amber} bg={C.amberL} title="Personal">
+              <KVRow label="Date of Birth" value={fmt(staff.dateOfBirth)} last />
+            </Section>
           )}
-        </View>
 
-        {/* Personal Details */}
-        {(staff.dateOfBirth) && (
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>Personal Details</Text>
-            <View style={[styles.detailRow, { borderBottomWidth: 0 }]}>
-              <Text style={styles.detailLabel}>Date of Birth</Text>
-              <Text style={styles.detailValue}>{formatDate(staff.dateOfBirth)}</Text>
-            </View>
-          </View>
-        )}
-
-        {/* Identity Documents */}
-        {(staff.aadharNumber || staff.panNumber) && (
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>Identity Documents</Text>
-            {staff.aadharNumber && (
-              <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>Aadhar Number</Text>
-                <Text style={styles.detailValue}>{staff.aadharNumber}</Text>
-              </View>
-            )}
-            {staff.panNumber && (
-              <View style={[styles.detailRow, !staff.aadharNumber && { borderBottomWidth: 0 }]}>
-                <Text style={styles.detailLabel}>PAN Number</Text>
-                <Text style={styles.detailValue}>{staff.panNumber}</Text>
-              </View>
-            )}
-          </View>
-        )}
-
-        {/* Employment Details */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Employment Details</Text>
-
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Joining Date</Text>
-            <Text style={styles.detailValue}>{formatDate(staff.joiningDate)}</Text>
-          </View>
-
-          {staff.salary && (
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Monthly Salary</Text>
-              <Text style={styles.detailValue}>₹{parseInt(staff.salary).toLocaleString()}</Text>
-            </View>
+          {/* Identity */}
+          {(staff.aadharNumber || staff.panNumber) && (
+            <Section icon="shield" color={C.blue} bg={C.blueL} title="Identity Documents">
+              {staff.aadharNumber && (
+                <KVRow label="Aadhar" value={staff.aadharNumber} last={!staff.panNumber} />
+              )}
+              {staff.panNumber && <KVRow label="PAN" value={staff.panNumber} last />}
+            </Section>
           )}
 
-          {staff.employeeId && (
-            <View style={[styles.detailRow, { borderBottomWidth: 0 }]}>
-              <Text style={styles.detailLabel}>Employee ID</Text>
-              <Text style={styles.detailValue}>{staff.employeeId}</Text>
-            </View>
-          )}
-        </View>
-
-        {/* License Details (for drivers) */}
-        {staff.role?.toLowerCase() === 'driver' && (
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>License Details</Text>
-
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>License Number</Text>
-              <Text style={styles.detailValue}>{staff.licenseNumber || '--'}</Text>
-            </View>
-
-            {staff.licenseType && (
-              <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>License Type</Text>
-                <Text style={styles.detailValue}>{staff.licenseType}</Text>
-              </View>
-            )}
-
-            <View style={[styles.detailRow, { borderBottomWidth: 0 }]}>
-              <Text style={styles.detailLabel}>License Expiry</Text>
-              <Text style={[
-                styles.detailValue,
-                staff.licenseExpiry && new Date(staff.licenseExpiry) < new Date() && { color: C.red }
-              ]}>
-                {formatDate(staff.licenseExpiry)}
-              </Text>
-            </View>
-
-            {staff.licenseExpiry && new Date(staff.licenseExpiry) < new Date() && (
-              <View style={styles.warningBanner}>
-                <Icon name="alert-triangle" size={16} color="#92400E" />
-                <Text style={styles.warningText}>License has expired!</Text>
-              </View>
-            )}
-          </View>
-        )}
-
-        {/* Bank Details */}
-        {(staff.bankName || staff.accountNumber || staff.ifscCode) && (
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>Bank Details</Text>
-            {staff.bankName && (
-              <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>Bank Name</Text>
-                <Text style={styles.detailValue}>{staff.bankName}</Text>
-              </View>
-            )}
-            {staff.accountHolderName && (
-              <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>Account Holder</Text>
-                <Text style={styles.detailValue}>{staff.accountHolderName}</Text>
-              </View>
-            )}
-            {staff.accountNumber && (
-              <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>Account Number</Text>
-                <Text style={styles.detailValue}>{staff.accountNumber}</Text>
-              </View>
-            )}
-            {staff.ifscCode && (
-              <View style={[styles.detailRow, { borderBottomWidth: 0 }]}>
-                <Text style={styles.detailLabel}>IFSC Code</Text>
-                <Text style={styles.detailValue}>{staff.ifscCode}</Text>
-              </View>
-            )}
-          </View>
-        )}
-
-        {/* Emergency Contact */}
-        {(staff.emergencyContact || staff.emergencyPhone) && (
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>Emergency Contact</Text>
-            {staff.emergencyContact && (
-              <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>Contact Name</Text>
-                <Text style={styles.detailValue}>{staff.emergencyContact}</Text>
-              </View>
-            )}
-            {staff.emergencyPhone && (
-              <View style={[styles.detailRow, { borderBottomWidth: 0 }]}>
-                <Text style={styles.detailLabel}>Contact Phone</Text>
-                <Text style={styles.detailValue}>{staff.emergencyPhone}</Text>
-              </View>
-            )}
-          </View>
-        )}
-
-        {/* Stats */}
-        {staff.stats && (
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>Performance</Text>
-            <View style={styles.statsGrid}>
-              <View style={styles.statItem}>
-                <Text style={styles.statValue}>{staff.stats.totalTrips || 0}</Text>
-                <Text style={styles.statLabel}>Total Trips</Text>
-              </View>
-              <View style={styles.statItem}>
-                <Text style={styles.statValue}>{staff.stats.completedTrips || 0}</Text>
-                <Text style={styles.statLabel}>Completed</Text>
-              </View>
-              <View style={styles.statItem}>
-                <Text style={styles.statValue}>{staff.stats.rating?.toFixed(1) || '--'}</Text>
-                <Text style={styles.statLabel}>Rating</Text>
-              </View>
-            </View>
-          </View>
-        )}
-
-        {/* Documents */}
-        {staff.documents && staff.documents.length > 0 && (
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>Documents</Text>
-            {staff.documents.map((doc, index) => (
-              <View key={index} style={styles.documentRow}>
-                <View style={styles.documentIcon}>
-                  <Icon name="file-text" size={18} color={C.blue} />
+          {/* License */}
+          {staff.role?.toLowerCase() === 'driver' && (
+            <Section icon="credit-card" color={C.g700} bg={C.g50} title="Driving License">
+              <KVRow label="License No." value={staff.licenseNumber} />
+              {staff.licenseType && <KVRow label="License Type" value={staff.licenseType} />}
+              <KVRow label="Expiry" value={fmt(staff.licenseExpiry)} last={!licExpired} />
+              {licExpired && (
+                <View style={s.warning}>
+                  <Icon name="alert-triangle" size={13} color="#92400E" />
+                  <Text style={s.warningTxt}>License expired — please renew</Text>
                 </View>
-                <View style={styles.documentContent}>
-                  <Text style={styles.documentName}>{doc.name}</Text>
-                  <Text style={styles.documentDate}>
-                    Uploaded: {formatDate(doc.uploadedAt)}
+              )}
+            </Section>
+          )}
+
+          {/* Bank */}
+          {(staff.bankName || staff.accountNumber) && (
+            <Section icon="credit-card" iconLib="mci" color={C.blue} bg={C.blueL} title="Bank Details">
+              {staff.bankName && <KVRow label="Bank" value={staff.bankName} />}
+              {staff.accountHolderName && <KVRow label="Account Holder" value={staff.accountHolderName} />}
+              {staff.accountNumber && <KVRow label="Account No." value={staff.accountNumber} />}
+              {staff.ifscCode && <KVRow label="IFSC" value={staff.ifscCode} last />}
+            </Section>
+          )}
+
+          {/* Emergency */}
+          {(staff.emergencyContact || staff.emergencyPhone) && (
+            <Section icon="alert-circle" color={C.red} bg={C.redL} title="Emergency Contact">
+              {staff.emergencyContact && (
+                <KVRow label="Name" value={staff.emergencyContact} last={!staff.emergencyPhone} />
+              )}
+              {staff.emergencyPhone && <KVRow label="Phone" value={staff.emergencyPhone} last />}
+            </Section>
+          )}
+
+          {/* Performance */}
+          {staff.stats && (
+            <Section icon="bar-chart-2" color={C.purple} bg={C.purpleL} title="Performance">
+              <View style={s.perf}>
+                <View style={s.perfItem}>
+                  <Text style={s.perfVal}>{staff.stats.totalTrips || 0}</Text>
+                  <Text style={s.perfLbl}>Total Trips</Text>
+                </View>
+                <View style={[s.perfItem, { borderLeftWidth: 1, borderRightWidth: 1, borderColor: C.border }]}>
+                  <Text style={[s.perfVal, { color: C.g600 }]}>{staff.stats.completedTrips || 0}</Text>
+                  <Text style={s.perfLbl}>Completed</Text>
+                </View>
+                <View style={s.perfItem}>
+                  <Text style={[s.perfVal, { color: C.amber }]}>
+                    {staff.stats.rating?.toFixed(1) || '--'}
                   </Text>
+                  <Text style={s.perfLbl}>Rating</Text>
                 </View>
-                <Icon name="chevron-right" size={18} color={C.muted} />
               </View>
-            ))}
-          </View>
-        )}
+            </Section>
+          )}
 
-        <View style={{ height: 40 }} />
+          {/* Documents */}
+          {staff.documents?.length > 0 && (
+            <Section icon="file-text" color={C.blue} bg={C.blueL} title="Documents">
+              {staff.documents.map((doc, i) => (
+                <View
+                  key={i}
+                  style={[s.docRow, i === staff.documents.length - 1 && { borderBottomWidth: 0 }]}
+                >
+                  <View style={s.docIcon}>
+                    <Icon name="file-text" size={14} color={C.blue} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={s.docName}>{doc.name}</Text>
+                    <Text style={s.docDate}>Uploaded {fmt(doc.uploadedAt)}</Text>
+                  </View>
+                  <Icon name="chevron-right" size={14} color={C.muted} />
+                </View>
+              ))}
+            </Section>
+          )}
+
+        </View>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
-const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: C.bg,
-  },
-  loaderContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  emptyText: {
-    fontSize: 16,
-    color: C.muted,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: C.surface,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: C.border,
+const s = StyleSheet.create({
+  /* Gradient hero */
+  grad: { paddingHorizontal: 16, paddingBottom: 0 },
+  topRow: {
+    flexDirection: 'row', alignItems: 'center',
+    justifyContent: 'space-between', paddingTop: 8, marginBottom: 20,
   },
   backBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
+    width: 40, height: 40, borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)',
+    alignItems: 'center', justifyContent: 'center',
   },
-  headerTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: C.text,
+  deleteBtn: {
+    width: 40, height: 40, borderRadius: 20,
+    backgroundColor: 'rgba(239,68,68,0.2)',
+    borderWidth: 1, borderColor: 'rgba(239,68,68,0.3)',
+    alignItems: 'center', justifyContent: 'center',
   },
-  menuBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#FEE2E2',
+
+  avatarWrap: { position: 'relative', alignSelf: 'center', marginBottom: 14 },
+  avatarImg: {
+    width: 90, height: 90, borderRadius: 45,
+    borderWidth: 3, borderColor: 'rgba(255,255,255,0.3)',
   },
-  scrollView: {
-    flex: 1,
+  avatarCircle: {
+    width: 90, height: 90, borderRadius: 45,
+    backgroundColor: 'rgba(52,211,153,0.18)',
+    borderWidth: 2.5, borderColor: 'rgba(52,211,153,0.4)',
+    alignItems: 'center', justifyContent: 'center',
   },
-  scrollContent: {
-    padding: 16,
+  avatarLetter: { fontSize: 36, fontWeight: '900', color: '#34D399' },
+  onlineDot: {
+    position: 'absolute', bottom: 3, right: 3,
+    width: 18, height: 18, borderRadius: 9,
+    borderWidth: 2.5, borderColor: C.g900,
   },
-  profileCard: {
-    backgroundColor: C.surface,
-    borderRadius: 14,
-    padding: 20,
-    alignItems: 'center',
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: C.border,
+
+  name: {
+    fontSize: 24, fontWeight: '800', color: '#fff',
+    textAlign: 'center', letterSpacing: -0.4, marginBottom: 10,
   },
-  avatarContainer: {
-    position: 'relative',
-    marginBottom: 12,
+  badges: { flexDirection: 'row', justifyContent: 'center', gap: 8, marginBottom: 18 },
+  rolePill: {
+    paddingHorizontal: 14, paddingVertical: 6, borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
   },
-  avatar: {
-    width: 90,
-    height: 90,
-    borderRadius: 45,
+  rolePillTxt: { fontSize: 12, fontWeight: '700', color: 'rgba(255,255,255,0.9)', textTransform: 'capitalize' },
+  statusPill: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
   },
-  avatarPlaceholder: {
-    width: 90,
-    height: 90,
-    borderRadius: 45,
-    backgroundColor: C.bg,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: C.border,
+  statusDot: { width: 7, height: 7, borderRadius: 4 },
+  statusPillTxt: { fontSize: 12, fontWeight: '700', textTransform: 'capitalize' },
+
+  actions: { flexDirection: 'row', justifyContent: 'center', gap: 10, marginBottom: 24 },
+  callBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 7,
+    backgroundColor: C.g400, paddingVertical: 11, paddingHorizontal: 26, borderRadius: 25,
   },
-  statusDot: {
-    position: 'absolute',
-    bottom: 4,
-    right: 4,
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    borderWidth: 2,
-    borderColor: C.surface,
+  callTxt: { fontSize: 14, fontWeight: '800', color: C.g900 },
+  editBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 7,
+    paddingVertical: 11, paddingHorizontal: 26, borderRadius: 25,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)',
   },
-  staffName: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: C.text,
-    marginBottom: 8,
-  },
-  badgeRow: {
+  editTxt: { fontSize: 14, fontWeight: '700', color: '#fff' },
+
+  strip: {
     flexDirection: 'row',
-    gap: 8,
-    marginBottom: 16,
+    backgroundColor: 'rgba(0,0,0,0.2)',
+    paddingVertical: 14, paddingHorizontal: 16,
+    borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.07)',
   },
-  badge: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
+  stripItem: { flex: 1, alignItems: 'center' },
+  stripVal: { fontSize: 13, fontWeight: '800', color: '#fff' },
+  stripLbl: {
+    fontSize: 9, color: 'rgba(255,255,255,0.5)',
+    marginTop: 2, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.4,
   },
-  badgeText: {
-    fontSize: 12,
-    fontWeight: '600',
-    textTransform: 'capitalize',
+  stripSep: { width: 1, backgroundColor: 'rgba(255,255,255,0.1)', marginVertical: 3 },
+
+  /* Info cards */
+  cards: { padding: 14, paddingTop: 14, gap: 10 },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+
+  section: {
+    backgroundColor: C.surface, borderRadius: 14,
+    borderWidth: 1, borderColor: C.border, overflow: 'hidden',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04, shadowRadius: 4, elevation: 1,
   },
-  quickActions: {
-    flexDirection: 'row',
-    gap: 12,
+  sHead: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    paddingHorizontal: 14, paddingVertical: 10,
+    backgroundColor: '#FAFBFC',
+    borderBottomWidth: 1, borderBottomColor: '#F1F5F9',
   },
-  actionBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    backgroundColor: C.bg,
-    borderRadius: 10,
-    gap: 8,
+  sIcon: { width: 26, height: 26, borderRadius: 7, alignItems: 'center', justifyContent: 'center' },
+  sTitle: { fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.7 },
+
+  iRow: {
+    flexDirection: 'row', alignItems: 'flex-start', gap: 10,
+    paddingVertical: 11, paddingHorizontal: 14,
+    borderBottomWidth: 1, borderBottomColor: '#F1F5F9',
   },
-  actionText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: C.text,
+  iIcon: { width: 30, height: 30, borderRadius: 8, alignItems: 'center', justifyContent: 'center', marginTop: 2 },
+  iLbl: { fontSize: 10, color: C.muted, marginBottom: 2, fontWeight: '500' },
+  iVal: { fontSize: 14, color: C.text, fontWeight: '600', lineHeight: 20 },
+
+  kv: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    paddingVertical: 11, paddingHorizontal: 14,
+    borderBottomWidth: 1, borderBottomColor: '#F1F5F9',
   },
-  card: {
-    backgroundColor: C.surface,
-    borderRadius: 14,
-    padding: 16,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: C.border,
+  kvLbl: { fontSize: 13, color: C.sub, fontWeight: '500' },
+  kvVal: { fontSize: 13, color: C.text, fontWeight: '700' },
+
+  warning: {
+    flexDirection: 'row', alignItems: 'center', gap: 7,
+    backgroundColor: '#FEF3C7', margin: 10, padding: 10, borderRadius: 8,
   },
-  cardTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: C.text,
-    marginBottom: 14,
+  warningTxt: { fontSize: 12, color: '#92400E', fontWeight: '600', flex: 1 },
+
+  perf: { flexDirection: 'row', paddingVertical: 8 },
+  perfItem: { flex: 1, alignItems: 'center', paddingVertical: 8 },
+  perfVal: { fontSize: 22, fontWeight: '800', color: C.text },
+  perfLbl: { fontSize: 10, color: C.muted, marginTop: 3, fontWeight: '600' },
+
+  docRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    paddingVertical: 11, paddingHorizontal: 14,
+    borderBottomWidth: 1, borderBottomColor: '#F1F5F9',
   },
-  infoRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: C.border,
-  },
-  infoIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: C.bg,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
-  },
-  infoContent: {
-    flex: 1,
-  },
-  infoLabel: {
-    fontSize: 11,
-    color: C.muted,
-    marginBottom: 2,
-  },
-  infoValue: {
-    fontSize: 14,
-    color: C.text,
-    fontWeight: '500',
-  },
-  detailRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: C.border,
-  },
-  detailLabel: {
-    fontSize: 14,
-    color: C.muted,
-  },
-  detailValue: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: C.text,
-  },
-  warningBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FEF3C7',
-    padding: 12,
-    borderRadius: 8,
-    marginTop: 12,
-    gap: 8,
-  },
-  warningText: {
-    fontSize: 13,
-    color: '#92400E',
-    fontWeight: '500',
-  },
-  statsGrid: {
-    flexDirection: 'row',
-  },
-  statItem: {
-    flex: 1,
-    alignItems: 'center',
-    paddingVertical: 8,
-  },
-  statValue: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: C.text,
-  },
-  statLabel: {
-    fontSize: 12,
-    color: C.muted,
-    marginTop: 4,
-  },
-  documentRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: C.border,
-  },
-  documentIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 8,
-    backgroundColor: '#EFF6FF',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
-  },
-  documentContent: {
-    flex: 1,
-  },
-  documentName: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: C.text,
-  },
-  documentDate: {
-    fontSize: 12,
-    color: C.muted,
-    marginTop: 2,
-  },
+  docIcon: { width: 30, height: 30, borderRadius: 8, backgroundColor: C.blueL, alignItems: 'center', justifyContent: 'center' },
+  docName: { fontSize: 13, fontWeight: '600', color: C.text },
+  docDate: { fontSize: 11, color: C.muted, marginTop: 2 },
 });

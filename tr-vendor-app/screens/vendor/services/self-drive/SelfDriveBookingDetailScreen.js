@@ -258,13 +258,15 @@ export default function SelfDriveBookingDetailScreen({ route, navigation }) {
         >
           <View style={styles.decoCircle1} />
           <View style={styles.decoCircle2} />
-          <View style={styles.headerRow}>
-            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-              <Icon name="arrow-left" size={22} color="#fff" />
-            </TouchableOpacity>
-            <Text style={styles.headerTitle}>Booking Details</Text>
-            <View style={{ width: 44 }} />
-          </View>
+          <SafeAreaView edges={['top']}>
+            <View style={styles.headerRow}>
+              <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+                <Icon name="arrow-left" size={22} color="#fff" />
+              </TouchableOpacity>
+              <Text style={styles.headerTitle}>Booking Details</Text>
+              <View style={{ width: 44 }} />
+            </View>
+          </SafeAreaView>
         </LinearGradient>
         <View style={styles.centered}>
           <ActivityIndicator size="large" color={C.g500} />
@@ -284,13 +286,15 @@ export default function SelfDriveBookingDetailScreen({ route, navigation }) {
         >
           <View style={styles.decoCircle1} />
           <View style={styles.decoCircle2} />
-          <View style={styles.headerRow}>
-            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-              <Icon name="arrow-left" size={22} color="#fff" />
-            </TouchableOpacity>
-            <Text style={styles.headerTitle}>Booking Details</Text>
-            <View style={{ width: 44 }} />
-          </View>
+          <SafeAreaView edges={['top']}>
+            <View style={styles.headerRow}>
+              <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+                <Icon name="arrow-left" size={22} color="#fff" />
+              </TouchableOpacity>
+              <Text style={styles.headerTitle}>Booking Details</Text>
+              <View style={{ width: 44 }} />
+            </View>
+          </SafeAreaView>
         </LinearGradient>
         <View style={styles.centered}>
           <Ionicons name="alert-circle-outline" size={64} color={C.muted} />
@@ -315,30 +319,32 @@ export default function SelfDriveBookingDetailScreen({ route, navigation }) {
         <View style={styles.decoCircle1} />
         <View style={styles.decoCircle2} />
 
-        <View style={styles.headerRow}>
-          {/* Back Button */}
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-            <Icon name="arrow-left" size={22} color="#fff" />
-          </TouchableOpacity>
+        <SafeAreaView edges={['top']}>
+          <View style={styles.headerRow}>
+            {/* Back Button */}
+            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+              <Icon name="arrow-left" size={22} color="#fff" />
+            </TouchableOpacity>
 
-          {/* Center: icon + booking number */}
-          <View style={styles.headerCenter}>
-            <View style={styles.headerIconRow}>
-              <MaterialCommunityIcons name="car-side" size={18} color={C.g400} />
-              <Text style={styles.headerTitle}>
-                #{booking.bookingNumber || booking.id}
+            {/* Center: icon + booking number */}
+            <View style={styles.headerCenter}>
+              <View style={styles.headerIconRow}>
+                <MaterialCommunityIcons name="car-side" size={18} color={C.g400} />
+                <Text style={styles.headerTitle} numberOfLines={1}>
+                  #{booking.bookingNumber || booking.id}
+                </Text>
+              </View>
+              <Text style={styles.headerSubtitle}>Self Drive</Text>
+            </View>
+
+            {/* Status Badge */}
+            <View style={[styles.statusBadge, { backgroundColor: statusConfig.bg }]}>
+              <Text style={[styles.statusBadgeText, { color: statusConfig.color }]} numberOfLines={1}>
+                {statusConfig.label}
               </Text>
             </View>
-            <Text style={styles.headerSubtitle}>Self Drive</Text>
           </View>
-
-          {/* Status Badge */}
-          <View style={[styles.statusBadge, { backgroundColor: statusConfig.bg }]}>
-            <Text style={[styles.statusBadgeText, { color: statusConfig.color }]}>
-              {statusConfig.label}
-            </Text>
-          </View>
-        </View>
+        </SafeAreaView>
       </LinearGradient>
 
       <ScrollView
@@ -852,6 +858,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 20,
+    maxWidth: 120,
+    flexShrink: 0,
   },
   statusBadgeText: {
     fontSize: 11,
@@ -863,6 +871,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: 16,
+    paddingBottom: 40,
   },
 
   // Status Banner

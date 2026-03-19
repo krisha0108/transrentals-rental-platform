@@ -92,7 +92,7 @@ export async function GET(request: NextRequest) {
           customer: { select: { name: true, companyName: true } },
           vendorQuotes: {
             where: { vendorId: auth.vendorId },
-            select: { id: true, status: true, vehicleCount: true }
+            select: { id: true, status: true, vehicleCount: true, totalPrice: true, quoteNumber: true, notes: true }
           },
           _count: { select: { vendorQuotes: true, trips: true } }
         },

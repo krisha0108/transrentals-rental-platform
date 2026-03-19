@@ -1,45 +1,34 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
-  SafeAreaView,
-  View,
-  Text,
-  FlatList,
-  TouchableOpacity,
-  StyleSheet,
-  ScrollView,
-  RefreshControl,
-  ActivityIndicator,
-  Alert,
-  Dimensions,
-  Image,
+  View, Text, FlatList, TouchableOpacity, StyleSheet,
+  RefreshControl, ActivityIndicator, Alert, Dimensions,
+  Image, StatusBar, Platform, Modal, Animated,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Feather';
+import MCI from 'react-native-vector-icons/MaterialCommunityIcons';
+import LinearGradient from 'react-native-linear-gradient';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
-  getSocialProfile,
-  toggleLike,
-  toggleSave,
-  toggleFollow,
-  getOrCreateConversation,
+  getSocialProfile, toggleLike, toggleSave, toggleFollow, getOrCreateConversation,
 } from '../../api/socialApi';
 import { getFullImageURL } from '../../api/client';
 
-const { width: SCREEN_W } = Dimensions.get('window');
+const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
 
-const G = {
-  bg: '#F5F7FA', surface: '#FFFFFF', text: '#0A0F1E', muted: '#6B7280',
-  border: '#E8EDF2', violet: '#7C3AED', violetL: '#F5F3FF',
-  red: '#DC2626', redL: '#FEF2F2', green: '#16A34A', greenL: '#F0FDF4',
-  orange: '#F97316', orangeL: '#FFF7ED', amber: '#D97706', amberL: '#FFFBEB',
+const C = {
+  g950: '#011B14', g900: '#022C22', g800: '#064E3B', g700: '#047857',
+  g600: '#059669', g500: '#10B981', g400: '#34D399', g100: '#D1FAE5', g50: '#ECFDF5',
+  bg: '#F8FAFC', card: '#FFFFFF', border: '#E2E8F0',
+  text: '#1E293B', sub: '#475569', muted: '#64748B',
+  red: '#EF4444', redL: '#FEF2F2',
+  blue: '#3B82F6', blueL: '#EFF6FF',
+  amber: '#D97706', amberL: '#FFFBEB',
 };
 
-const AVATAR_COLORS = ['#7C3AED', '#DC2626', '#16A34A', '#F97316', '#0891B2', '#DB2777', '#D97706'];
+const AVATAR_COLORS = ['#059669','#DC2626','#16A34A','#F97316','#0891B2','#DB2777','#D97706'];
 const getAvatarColor = (name) => AVATAR_COLORS[(name?.charCodeAt(0) || 0) % AVATAR_COLORS.length];
-
-const COVER_GRADIENTS = [
-  ['#7C3AED', '#4F46E5'], ['#DC2626', '#9333EA'], ['#16A34A', '#0891B2'],
-  ['#F97316', '#D97706'], ['#DB2777', '#7C3AED'],
-];
 
 const formatTimeAgo = (dateStr) => {
   if (!dateStr) return '';
@@ -51,39 +40,91 @@ const formatTimeAgo = (dateStr) => {
   return new Date(dateStr).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
 };
 
-function AvatarCircle({ name, logo, size = 40, style }) {
+function AvatarCircle({ name, logo, size = 40 }) {
   const [imgErr, setImgErr] = useState(false);
   const letter = name?.charAt(0)?.toUpperCase() || '?';
   const bg = getAvatarColor(name);
   const [uri, setUri] = useState(null);
-
   useEffect(() => {
-    if (logo) {
-      getFullImageURL(logo).then(setUri);
-    } else {
-      setUri(null);
-    }
+    if (logo) getFullImageURL(logo).then(setUri);
+    else setUri(null);
   }, [logo]);
-
   return (
-    <View style={[{ width: size, height: size, borderRadius: size / 2, backgroundColor: bg, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }, style]}>
-      {logo && uri && !imgErr ? (
-        <Image
-          source={{ uri }}
-          style={{ width: size, height: size, borderRadius: size / 2 }}
-          onError={() => setImgErr(true)}
-        />
-      ) : (
-        <Text style={{ color: '#fff', fontWeight: '700', fontSize: size * 0.38 }}>{letter}</Text>
-      )}
+    <View style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: bg, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+      {logo && uri && !imgErr
+        ? <Image source={{ uri }} style={{ width: size, height: size, borderRadius: size / 2 }} onError={() => setImgErr(true)} />
+        : <Text style={{ color: '#fff', fontWeight: '800', fontSize: size * 0.38 }}>{letter}</Text>}
     </View>
   );
 }
 
+const STORY_DURATION = 15000;
+
+// ── Story Progress Bar ──────────────────────────────────────────────────
+function StoryProgressBar({ count, current, storyKey, paused }) {
+  const progress = useRef(new Animated.Value(0)).current;
+  const animRef = useRef(null);
+  const currentValRef = useRef(0);
+  const remainingRef = useRef(STORY_DURATION);
+
+  useEffect(() => {
+    const id = progress.addListener(({ value }) => { currentValRef.current = value; });
+    return () => progress.removeListener(id);
+  }, []);
+
+  useEffect(() => {
+    if (animRef.current) animRef.current.stop();
+    progress.setValue(0);
+    currentValRef.current = 0;
+    remainingRef.current = STORY_DURATION;
+    animRef.current = Animated.timing(progress, { toValue: 1, duration: STORY_DURATION, useNativeDriver: false });
+    animRef.current.start();
+    return () => { if (animRef.current) animRef.current.stop(); };
+  }, [storyKey]);
+
+  useEffect(() => {
+    if (paused) {
+      if (animRef.current) animRef.current.stop();
+      remainingRef.current = STORY_DURATION * (1 - currentValRef.current);
+    } else {
+      if (animRef.current) animRef.current.stop();
+      animRef.current = Animated.timing(progress, { toValue: 1, duration: remainingRef.current, useNativeDriver: false });
+      animRef.current.start();
+    }
+  }, [paused]);
+
+  return (
+    <View style={{ flexDirection: 'row', gap: 3 }}>
+      {Array.from({ length: count }).map((_, i) => (
+        <View key={i} style={sst.seg}>
+          {i < current
+            ? <View style={[sst.fill, { width: '100%' }]} />
+            : i === current
+              ? <Animated.View style={[sst.fill, { width: progress.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] }) }]} />
+              : null}
+        </View>
+      ))}
+    </View>
+  );
+}
+
+const sst = StyleSheet.create({
+  seg: { flex: 1, height: 3, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.3)', overflow: 'hidden' },
+  fill: { height: '100%', backgroundColor: '#fff', borderRadius: 2 },
+});
+
 const FUEL_ICONS = { petrol: 'droplet', diesel: 'droplet', electric: 'zap', hybrid: 'battery-charging', cng: 'wind' };
+const FLEET_COLORS = [
+  { color: C.g700, bg: C.g50 },
+  { color: C.blue, bg: C.blueL },
+  { color: C.amber, bg: C.amberL },
+  { color: '#7C3AED', bg: '#F5F3FF' },
+  { color: '#EA580C', bg: '#FFF7ED' },
+];
 
 export default function SocialProfileScreen({ route, navigation }) {
   const { vendorId } = route.params || {};
+  const insets = useSafeAreaInsets();
   const [currentVendorId, setCurrentVendorId] = useState(null);
   const [profile, setProfile] = useState(null);
   const [posts, setPosts] = useState([]);
@@ -93,6 +134,14 @@ export default function SocialProfileScreen({ route, navigation }) {
   const [tab, setTab] = useState('posts');
   const [messagingLoading, setMessagingLoading] = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
+
+  // SOS story viewer
+  const [storyVisible, setStoryVisible] = useState(false);
+  const [storyIdx, setStoryIdx] = useState(0);
+  const [storyPaused, setStoryPaused] = useState(false);
+  const storyTimerRef = useRef(null);
+  const storyTimerStartRef = useRef(null);
+  const storyRemainingRef = useRef(STORY_DURATION);
 
   useEffect(() => {
     AsyncStorage.getItem('vendor_id').then((id) => setCurrentVendorId(id));
@@ -107,12 +156,16 @@ export default function SocialProfileScreen({ route, navigation }) {
       setPosts(data?.posts || []);
       setFleet(data?.fleet || data?.vehicles || []);
     } catch (e) {
-      console.log('[SocialProfile] error', e);
       Alert.alert('Error', 'Failed to load profile.');
     } finally {
       setLoading(false);
     }
   }, [vendorId]);
+
+  useFocusEffect(useCallback(() => {
+    StatusBar.setBarStyle('light-content');
+    if (Platform.OS === 'android') StatusBar.setBackgroundColor(C.g950);
+  }, []));
 
   useEffect(() => { fetchProfile(); }, [fetchProfile]);
 
@@ -121,6 +174,45 @@ export default function SocialProfileScreen({ route, navigation }) {
     await fetchProfile();
     setRefreshing(false);
   }, [fetchProfile]);
+
+  const isOwnProfile = String(vendorId) === String(currentVendorId);
+  const sosPosts = posts.filter((p) => p.category?.name?.toLowerCase() === 'sos' || p.type === 'sos');
+
+  // ── Story timer ───────────────────────────────────────────────────────
+  const advanceStory = useCallback(() => {
+    if (storyIdx < sosPosts.length - 1) setStoryIdx((i) => i + 1);
+    else setStoryVisible(false);
+  }, [storyIdx, sosPosts.length]);
+
+  useEffect(() => {
+    if (!storyVisible || storyPaused) return;
+    clearTimeout(storyTimerRef.current);
+    storyRemainingRef.current = STORY_DURATION;
+    storyTimerStartRef.current = Date.now();
+    storyTimerRef.current = setTimeout(advanceStory, STORY_DURATION);
+    return () => clearTimeout(storyTimerRef.current);
+  }, [storyVisible, storyIdx]);
+
+  useEffect(() => {
+    if (!storyVisible) return;
+    if (storyPaused) {
+      clearTimeout(storyTimerRef.current);
+      const elapsed = Date.now() - (storyTimerStartRef.current || Date.now());
+      storyRemainingRef.current = Math.max(0, storyRemainingRef.current - elapsed);
+    } else {
+      storyTimerStartRef.current = Date.now();
+      storyTimerRef.current = setTimeout(advanceStory, storyRemainingRef.current);
+    }
+    return () => clearTimeout(storyTimerRef.current);
+  }, [storyPaused]);
+
+  const openSosStory = () => {
+    if (!sosPosts.length) return;
+    setStoryIdx(0);
+    setStoryPaused(false);
+    storyRemainingRef.current = STORY_DURATION;
+    setStoryVisible(true);
+  };
 
   const handleFollow = async () => {
     setFollowLoading(true);
@@ -131,7 +223,7 @@ export default function SocialProfileScreen({ route, navigation }) {
         isFollowing: !prev.isFollowing,
         followersCount: prev.isFollowing ? (prev.followersCount || 1) - 1 : (prev.followersCount || 0) + 1,
       } : prev);
-    } catch (e) {
+    } catch {
       Alert.alert('Error', 'Could not update follow status.');
     } finally {
       setFollowLoading(false);
@@ -143,13 +235,9 @@ export default function SocialProfileScreen({ route, navigation }) {
     setMessagingLoading(true);
     try {
       const res = await getOrCreateConversation(vendorId);
-      // API returns { conversationId: '...' }
       const convId = res?.data?.conversationId || res?.conversationId || res?.data?.conversation?.id || res?.data?.id;
-      navigation.navigate('SocialChatScreen', {
-        conversationId: convId,
-        otherVendor: profile,
-      });
-    } catch (e) {
+      navigation.navigate('SocialChatScreen', { conversationId: convId, otherVendor: profile });
+    } catch {
       Alert.alert('Error', 'Could not open conversation.');
     } finally {
       setMessagingLoading(false);
@@ -162,57 +250,54 @@ export default function SocialProfileScreen({ route, navigation }) {
         ? { ...p, isLiked: !p.isLiked, likesCount: p.isLiked ? (p.likesCount || 1) - 1 : (p.likesCount || 0) + 1 }
         : p
     ));
-    try { await toggleLike(postId); } catch (e) { }
+    try { await toggleLike(postId); } catch {}
   };
 
   const handleSave = async (postId) => {
     setPosts((prev) => prev.map((p) => p.id === postId ? { ...p, isSaved: !p.isSaved } : p));
-    try { await toggleSave(postId); } catch (e) { }
+    try { await toggleSave(postId); } catch {}
   };
 
-  const isOwnProfile = String(vendorId) === String(currentVendorId);
-
-  const coverColorPair = COVER_GRADIENTS[(profile?.businessName?.charCodeAt(0) || 0) % COVER_GRADIENTS.length];
-
-  const StatItem = ({ value, label }) => (
-    <View style={styles.statItem}>
-      <Text style={styles.statValue}>{value ?? 0}</Text>
-      <Text style={styles.statLabel}>{label}</Text>
-    </View>
-  );
-
+  // ── Post card ─────────────────────────────────────────────────────────
   const renderPost = ({ item }) => {
     const isSOS = item.category?.name?.toLowerCase() === 'sos' || item.type === 'sos';
+    const accent = isSOS ? C.red : C.g600;
     return (
-      <View style={[styles.postCard, isSOS && styles.postCardSOS]}>
-        <View style={styles.postTopRow}>
-          {item.category && (
-            <View style={[styles.catBadge, { backgroundColor: isSOS ? G.redL : G.violetL }]}>
-              <Text style={[styles.catBadgeText, { color: isSOS ? G.red : G.violet }]}>
-                {isSOS ? '🚨 SOS' : item.category.name}
+      <View style={st.postCard}>
+        <View style={[st.postAccent, { backgroundColor: accent }]} />
+        <View style={st.postBody}>
+          <View style={st.postHeader}>
+            <View style={[st.catPill, { backgroundColor: isSOS ? C.redL : C.g50 }]}>
+              {isSOS && <Icon name="alert-circle" size={10} color={C.red} style={{ marginRight: 3 }} />}
+              <Text style={[st.catPillText, { color: isSOS ? C.red : C.g600 }]}>
+                {isSOS ? 'SOS' : (item.category?.name || 'General')}
               </Text>
             </View>
-          )}
-          <Text style={styles.postTime}>{formatTimeAgo(item.createdAt)}</Text>
-        </View>
-        <Text style={styles.postContent}>{item.content}</Text>
-        <View style={styles.postActions}>
-          <TouchableOpacity style={styles.actionBtn} onPress={() => handleLike(item.id)}>
-            <Icon name="heart" size={16} color={item.isLiked ? G.red : G.muted} />
-            {item.likesCount > 0 && <Text style={[styles.actionCount, item.isLiked && { color: G.red }]}>{item.likesCount}</Text>}
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.actionBtn} onPress={() => handleSave(item.id)}>
-            <Icon name="bookmark" size={16} color={item.isSaved ? G.violet : G.muted} />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.actionBtn}>
-            <Icon name="message-circle" size={16} color={G.muted} />
-            {item.commentsCount > 0 && <Text style={styles.actionCount}>{item.commentsCount}</Text>}
-          </TouchableOpacity>
+            <Text style={st.postTime}>{formatTimeAgo(item.createdAt)}</Text>
+          </View>
+          <Text style={st.postContent}>{item.content}</Text>
+          <View style={st.postFooter}>
+            <TouchableOpacity style={st.postAction} onPress={() => handleLike(item.id)}>
+              <MCI name={item.isLiked ? 'heart' : 'heart-outline'} size={16} color={item.isLiked ? C.red : C.muted} />
+              <Text style={[st.postActionText, item.isLiked && { color: C.red }]}>
+                {item.likesCount > 0 ? item.likesCount : 'Like'}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={st.postAction} onPress={() => handleSave(item.id)}>
+              <MCI name={item.isSaved ? 'bookmark' : 'bookmark-outline'} size={16} color={item.isSaved ? C.g600 : C.muted} />
+              <Text style={[st.postActionText, item.isSaved && { color: C.g600 }]}>Save</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={st.postAction}>
+              <MCI name="comment-outline" size={16} color={C.muted} />
+              <Text style={st.postActionText}>{item.commentsCount > 0 ? item.commentsCount : 'Comment'}</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
     );
   };
 
+  // ── Fleet card ────────────────────────────────────────────────────────
   const renderFleetCard = ({ item, index }) => {
     const brandName = item.vehicle_models?.brands?.name || item.brands?.name || '';
     const modelName = item.vehicle_models?.name || item.chauffeur_vehicle_categories?.name || 'Vehicle';
@@ -220,251 +305,479 @@ export default function SocialProfileScreen({ route, navigation }) {
     const fuelType = item.vehicle_models?.fuelType || item.fuelType || '';
     const year = item.year || item.modelYear || '';
     const regNo = item.registrationNumber || '';
-
+    const clr = FLEET_COLORS[index % FLEET_COLORS.length];
     return (
-      <View style={styles.fleetCard}>
-        <View style={[styles.fleetCardIcon, { backgroundColor: COVER_GRADIENTS[index % COVER_GRADIENTS.length][0] + '20' }]}>
-          <Icon name="truck" size={22} color={COVER_GRADIENTS[index % COVER_GRADIENTS.length][0]} />
+      <View style={st.fleetCard}>
+        <View style={[st.fleetIconBox, { backgroundColor: clr.bg }]}>
+          <MCI name="car-side" size={22} color={clr.color} />
         </View>
-        <Text style={styles.fleetVehicleName} numberOfLines={2}>{vehicleName}</Text>
-        <View style={styles.fleetDetails}>
-          {fuelType ? (
-            <View style={styles.fleetDetailRow}>
-              <Icon name={FUEL_ICONS[fuelType?.toLowerCase()] || 'droplet'} size={11} color={G.muted} />
-              <Text style={styles.fleetDetailText}>{fuelType}</Text>
-            </View>
-          ) : null}
-          {year ? (
-            <View style={styles.fleetDetailRow}>
-              <Icon name="calendar" size={11} color={G.muted} />
-              <Text style={styles.fleetDetailText}>{year}</Text>
-            </View>
-          ) : null}
-        </View>
-        {regNo ? <Text style={styles.fleetRegNo}>{regNo}</Text> : null}
-        {item.status && (
-          <View style={[styles.fleetStatusBadge, item.status === 'active' ? styles.fleetStatusActive : styles.fleetStatusInactive]}>
-            <Text style={[styles.fleetStatusText, item.status === 'active' ? { color: G.green } : { color: G.muted }]}>
+        <Text style={st.fleetName} numberOfLines={2}>{vehicleName}</Text>
+        {(fuelType || year) ? (
+          <View style={st.fleetMeta}>
+            {fuelType ? (
+              <View style={st.fleetMetaItem}>
+                <Icon name={FUEL_ICONS[fuelType?.toLowerCase()] || 'droplet'} size={10} color={C.muted} />
+                <Text style={st.fleetMetaText}>{fuelType}</Text>
+              </View>
+            ) : null}
+            {year ? (
+              <View style={st.fleetMetaItem}>
+                <Icon name="calendar" size={10} color={C.muted} />
+                <Text style={st.fleetMetaText}>{year}</Text>
+              </View>
+            ) : null}
+          </View>
+        ) : null}
+        {regNo ? (
+          <View style={st.fleetRegPill}>
+            <Text style={st.fleetRegText}>{regNo}</Text>
+          </View>
+        ) : null}
+        {item.status ? (
+          <View style={[st.fleetStatusPill, item.status === 'active' ? st.fleetStatusActive : st.fleetStatusInactive]}>
+            <View style={[st.fleetStatusDot, { backgroundColor: item.status === 'active' ? C.g600 : C.muted }]} />
+            <Text style={[st.fleetStatusText, { color: item.status === 'active' ? C.g600 : C.muted }]}>
               {item.status}
             </Text>
           </View>
-        )}
+        ) : null}
       </View>
     );
   };
 
+  // ── Loading ───────────────────────────────────────────────────────────
   if (loading) {
     return (
-      <SafeAreaView style={styles.safe}>
-        <View style={styles.loadingHeader}>
-          <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-            <Icon name="arrow-left" size={20} color={G.text} />
+      <View style={st.safe}>
+        <StatusBar barStyle="light-content" backgroundColor={C.g950} translucent={false} />
+        <LinearGradient colors={[C.g950, C.g900, C.g800]} style={[st.loadingHero, { paddingTop: insets.top + 10 }]}>
+          <TouchableOpacity style={st.backBtnGlass} onPress={() => navigation.goBack()}>
+            <Icon name="arrow-left" size={20} color="#fff" />
           </TouchableOpacity>
+        </LinearGradient>
+        <View style={st.loadingBody}>
+          <ActivityIndicator color={C.g600} size="large" />
+          <Text style={st.loadingText}>Loading profile...</Text>
         </View>
-        <View style={styles.loadingCenter}>
-          <ActivityIndicator color={G.violet} size="large" />
-          <Text style={styles.loadingText}>Loading profile...</Text>
-        </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
+  // ── Header component ──────────────────────────────────────────────────
+  const Header = () => (
+    <>
+      {/* Hero gradient */}
+      <LinearGradient colors={[C.g950, C.g900, C.g800]} style={[st.hero, { paddingTop: insets.top + 10 }]}>
+        {/* Back button */}
+        <TouchableOpacity style={st.backBtnGlass} onPress={() => navigation.goBack()}>
+          <Icon name="arrow-left" size={20} color="#fff" />
+        </TouchableOpacity>
+
+        {/* Avatar + name inside gradient */}
+        <View style={st.heroContent}>
+          <TouchableOpacity
+            style={st.avatarRing}
+            onPress={isOwnProfile && sosPosts.length > 0 ? openSosStory : undefined}
+            activeOpacity={isOwnProfile && sosPosts.length > 0 ? 0.8 : 1}
+          >
+            <AvatarCircle name={profile?.businessName} logo={profile?.logo} size={72} />
+            {isOwnProfile && sosPosts.length > 0 && (
+              <View style={st.sosRingDot} />
+            )}
+          </TouchableOpacity>
+          <View style={st.heroInfo}>
+            <Text style={st.heroName} numberOfLines={1}>{profile?.businessName || 'Vendor'}</Text>
+            {profile?.ownerName ? <Text style={st.heroOwner} numberOfLines={1}>{profile.ownerName}</Text> : null}
+            {profile?.city ? (
+              <View style={st.heroLocation}>
+                <Icon name="map-pin" size={12} color="rgba(255,255,255,0.55)" />
+                <Text style={st.heroLocationText}>{profile.city}</Text>
+              </View>
+            ) : null}
+          </View>
+        </View>
+
+        {/* Action buttons (non-own profile) */}
+        {!isOwnProfile && (
+          <View style={st.heroActions}>
+            <TouchableOpacity
+              style={[st.followBtn, profile?.isFollowing && st.followBtnActive]}
+              onPress={handleFollow}
+              disabled={followLoading}
+            >
+              {followLoading
+                ? <ActivityIndicator size="small" color={profile?.isFollowing ? C.g600 : '#fff'} />
+                : <>
+                    <Icon name={profile?.isFollowing ? 'user-check' : 'user-plus'} size={14} color={profile?.isFollowing ? C.g600 : '#fff'} />
+                    <Text style={[st.followBtnText, profile?.isFollowing && st.followBtnTextActive]}>
+                      {profile?.isFollowing ? 'Following' : 'Follow'}
+                    </Text>
+                  </>}
+            </TouchableOpacity>
+            <TouchableOpacity style={st.msgBtn} onPress={handleMessage} disabled={messagingLoading}>
+              {messagingLoading
+                ? <ActivityIndicator size="small" color="#fff" />
+                : <>
+                    <Icon name="message-circle" size={14} color="#fff" />
+                    <Text style={st.msgBtnText}>Message</Text>
+                  </>}
+            </TouchableOpacity>
+          </View>
+        )}
+      </LinearGradient>
+
+      {/* Bio (if any) */}
+      {profile?.bio ? (
+        <View style={st.bioCard}>
+          <Text style={st.bioText}>{profile.bio}</Text>
+        </View>
+      ) : null}
+
+      {/* Stats row */}
+      <View style={st.statsRow}>
+        {[
+          { icon: 'post-outline', value: posts.length, label: 'Posts', color: C.g700, bg: C.g50 },
+          { icon: 'account-multiple-outline', value: profile?.followersCount ?? 0, label: 'Followers', color: C.blue, bg: C.blueL },
+          { icon: 'account-check-outline', value: profile?.followingCount ?? 0, label: 'Following', color: '#7C3AED', bg: '#F5F3FF' },
+          { icon: 'car-multiple', value: fleet.length, label: 'Fleet', color: C.amber, bg: C.amberL },
+        ].map((s, i) => (
+          <View key={s.label} style={st.statCell}>
+            <View style={[st.statIconBox, { backgroundColor: s.bg }]}>
+              <MCI name={s.icon} size={18} color={s.color} />
+            </View>
+            <Text style={st.statValue}>{s.value}</Text>
+            <Text style={st.statLabel}>{s.label}</Text>
+          </View>
+        ))}
+      </View>
+
+      {/* Tabs */}
+      <View style={st.tabsRow}>
+        {[
+          { key: 'posts', icon: 'view-grid-outline', label: 'Posts' },
+          { key: 'fleet', icon: 'car-multiple', label: 'Fleet' },
+        ].map((t) => (
+          <TouchableOpacity
+            key={t.key}
+            style={[st.tab, tab === t.key && st.tabActive]}
+            onPress={() => setTab(t.key)}
+          >
+            <MCI name={t.icon} size={16} color={tab === t.key ? C.g600 : C.muted} />
+            <Text style={[st.tabText, tab === t.key && st.tabTextActive]}>{t.label}</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+    </>
+  );
+
   return (
-    <SafeAreaView style={styles.safe}>
+    <View style={st.safe}>
+      <StatusBar barStyle="light-content" backgroundColor={C.g950} translucent={false} />
       <FlatList
         data={tab === 'posts' ? posts : fleet}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item) => String(item.id)}
         renderItem={tab === 'posts' ? renderPost : renderFleetCard}
         numColumns={tab === 'fleet' ? 2 : 1}
-        key={tab} // force re-render on tab switch to handle numColumns change
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={G.violet} />}
+        key={tab}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.g600} />}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={tab === 'fleet' ? styles.fleetGrid : styles.listContent}
-        ListHeaderComponent={
-          <>
-            {/* Back button */}
-            <TouchableOpacity style={styles.backBtnAbsolute} onPress={() => navigation.goBack()}>
-              <Icon name="arrow-left" size={20} color="#fff" />
-            </TouchableOpacity>
-
-            {/* Cover */}
-            <View style={[styles.cover, { backgroundColor: coverColorPair[0] }]}>
-              <View style={[styles.coverOverlay, { backgroundColor: coverColorPair[1] + '55' }]} />
-            </View>
-
-            {/* Profile info */}
-            <View style={styles.profileSection}>
-              <View style={styles.avatarRow}>
-                <AvatarCircle name={profile?.businessName} logo={profile?.logo} size={72} style={styles.profileAvatar} />
-                {!isOwnProfile && (
-                  <View style={styles.profileActions}>
-                    <TouchableOpacity
-                      style={[styles.followBtn, profile?.isFollowing && styles.followBtnActive]}
-                      onPress={handleFollow}
-                      disabled={followLoading}
-                    >
-                      {followLoading
-                        ? <ActivityIndicator size="small" color={profile?.isFollowing ? G.violet : '#fff'} />
-                        : <>
-                          <Icon name={profile?.isFollowing ? 'user-check' : 'user-plus'} size={14} color={profile?.isFollowing ? G.violet : '#fff'} />
-                          <Text style={[styles.followBtnText, profile?.isFollowing && styles.followBtnTextActive]}>
-                            {profile?.isFollowing ? 'Following' : 'Follow'}
-                          </Text>
-                        </>}
-                    </TouchableOpacity>
-                    <TouchableOpacity style={styles.messageBtn} onPress={handleMessage} disabled={messagingLoading}>
-                      {messagingLoading
-                        ? <ActivityIndicator size="small" color={G.violet} />
-                        : <>
-                          <Icon name="message-circle" size={14} color={G.violet} />
-                          <Text style={styles.messageBtnText}>Message</Text>
-                        </>}
-                    </TouchableOpacity>
-                  </View>
-                )}
-              </View>
-
-              <Text style={styles.businessName}>{profile?.businessName || 'Vendor'}</Text>
-              {profile?.ownerName && <Text style={styles.ownerName}>{profile.ownerName}</Text>}
-              {profile?.city && (
-                <View style={styles.locationRow}>
-                  <Icon name="map-pin" size={13} color={G.muted} />
-                  <Text style={styles.locationText}>{profile.city}</Text>
-                </View>
-              )}
-              {profile?.bio && <Text style={styles.bio}>{profile.bio}</Text>}
-
-              {/* Stats */}
-              <View style={styles.statsRow}>
-                <StatItem value={posts.length} label="Posts" />
-                <View style={styles.statDivider} />
-                <StatItem value={profile?.followersCount} label="Followers" />
-                <View style={styles.statDivider} />
-                <StatItem value={profile?.followingCount} label="Following" />
-                <View style={styles.statDivider} />
-                <StatItem value={fleet.length} label="Fleets" />
-              </View>
-            </View>
-
-            {/* Tabs */}
-            <View style={styles.tabsRow}>
-              {['posts', 'fleet'].map((t) => (
-                <TouchableOpacity key={t} style={[styles.tab, tab === t && styles.tabActive]} onPress={() => setTab(t)}>
-                  <Icon name={t === 'posts' ? 'grid' : 'truck'} size={14} color={tab === t ? G.violet : G.muted} />
-                  <Text style={[styles.tabText, tab === t && styles.tabTextActive]}>
-                    {t === 'posts' ? 'Posts' : 'Fleet'}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </>
-        }
+        contentContainerStyle={tab === 'fleet' ? st.fleetGrid : st.list}
+        ListHeaderComponent={<Header />}
         ListEmptyComponent={
-          <View style={styles.emptyWrap}>
-            <Icon name={tab === 'fleet' ? 'truck' : 'grid'} size={44} color={G.border} />
-            <Text style={styles.emptyTitle}>No {tab === 'fleet' ? 'fleet' : 'posts'} yet</Text>
+          <View style={st.emptyWrap}>
+            <View style={st.emptyIconBox}>
+              <MCI name={tab === 'fleet' ? 'car-multiple' : 'post-outline'} size={32} color={C.muted} />
+            </View>
+            <Text style={st.emptyTitle}>No {tab === 'fleet' ? 'fleet' : 'posts'} yet</Text>
           </View>
         }
       />
-    </SafeAreaView>
+
+      {/* ── SOS Story Viewer ──────────────────────────────────────────── */}
+      {(() => {
+        const post = sosPosts[storyIdx];
+        return (
+          <Modal visible={storyVisible} transparent animationType="fade" statusBarTranslucent onRequestClose={() => setStoryVisible(false)}>
+            <View style={st.storyBg}>
+              {post && (
+                <>
+                  {/* Tap zones — left = prev, right = next/close */}
+                  <View style={st.storyTaps} pointerEvents="box-none">
+                    <TouchableOpacity
+                      style={{ flex: 1 }}
+                      onPress={() => storyIdx > 0 ? setStoryIdx((i) => i - 1) : null}
+                      onLongPress={() => setStoryPaused(true)}
+                      onPressOut={() => setStoryPaused(false)}
+                      activeOpacity={1} delayLongPress={150}
+                    />
+                    <TouchableOpacity
+                      style={{ flex: 1 }}
+                      onPress={() => storyIdx < sosPosts.length - 1 ? setStoryIdx((i) => i + 1) : setStoryVisible(false)}
+                      onLongPress={() => setStoryPaused(true)}
+                      onPressOut={() => setStoryPaused(false)}
+                      activeOpacity={1} delayLongPress={150}
+                    />
+                  </View>
+
+                  {/* Pause icon */}
+                  {storyPaused && (
+                    <View style={st.storyPauseIcon} pointerEvents="none">
+                      <Icon name="pause" size={44} color="rgba(255,255,255,0.7)" />
+                    </View>
+                  )}
+
+                  {/* Top bar: progress + header */}
+                  <View style={[st.storyTopBar, { paddingTop: insets.top + 10 }]}>
+                    <StoryProgressBar
+                      count={sosPosts.length}
+                      current={storyIdx}
+                      storyKey={String(storyIdx)}
+                      paused={storyPaused}
+                    />
+                    <View style={st.storyHeaderRow}>
+                      <View style={st.storySender}>
+                        <View style={st.storyAvatarRing}>
+                          <AvatarCircle name={profile?.businessName} logo={profile?.logo} size={36} />
+                        </View>
+                        <View>
+                          <Text style={st.storyVendorName} numberOfLines={1}>{profile?.businessName || 'My SOS'}</Text>
+                          <Text style={st.storyMeta}>
+                            {formatTimeAgo(post.createdAt)}
+                            {sosPosts.length > 1 ? `  ·  ${storyIdx + 1}/${sosPosts.length}` : ''}
+                          </Text>
+                        </View>
+                      </View>
+                      <TouchableOpacity onPress={() => setStoryVisible(false)} hitSlop={{ top: 14, bottom: 14, left: 14, right: 14 }}>
+                        <Icon name="x" size={22} color="#fff" />
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+
+                  {/* Content */}
+                  <View style={st.storyContent}>
+                    <View style={st.storySOSBadge}>
+                      <Icon name="alert-circle" size={14} color="#fff" />
+                      <Text style={st.storySOSText}>SOS · URGENT</Text>
+                    </View>
+                    <Text style={st.storyText}>{post.content}</Text>
+                    {profile?.city ? (
+                      <View style={st.storyCity}>
+                        <Icon name="map-pin" size={13} color="rgba(255,255,255,0.55)" />
+                        <Text style={st.storyCityText}>{profile.city}</Text>
+                      </View>
+                    ) : null}
+                    <View style={st.storyStats}>
+                      <View style={st.storyStat}>
+                        <MCI name="heart" size={15} color="rgba(255,255,255,0.75)" />
+                        <Text style={st.storyStatText}>{post.likesCount || 0} likes</Text>
+                      </View>
+                      <View style={st.storyStat}>
+                        <MCI name="comment-outline" size={15} color="rgba(255,255,255,0.75)" />
+                        <Text style={st.storyStatText}>{post.commentsCount || 0} comments</Text>
+                      </View>
+                    </View>
+                  </View>
+
+                  {/* Bottom gradient */}
+                  <LinearGradient colors={['transparent', 'rgba(0,0,0,0.8)']} style={st.storyGrad} pointerEvents="none" />
+                </>
+              )}
+            </View>
+          </Modal>
+        );
+      })()}
+    </View>
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: G.bg },
-  loadingHeader: { padding: 16 },
-  loadingCenter: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  loadingText: { color: G.muted, fontSize: 14, marginTop: 12 },
-  backBtn: { padding: 8 },
-  backBtnAbsolute: {
-    position: 'absolute', top: 16, left: 16, zIndex: 10,
-    width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(0,0,0,0.35)',
+const st = StyleSheet.create({
+  safe: { flex: 1, backgroundColor: C.bg },
+
+  // Loading
+  loadingHero: { paddingHorizontal: 16, paddingBottom: 20 },
+  loadingBody: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },
+  loadingText: { fontSize: 14, color: C.muted },
+
+  // Glass back button
+  backBtnGlass: {
+    width: 36, height: 36, borderRadius: 18,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)',
     alignItems: 'center', justifyContent: 'center',
+    marginBottom: 18,
   },
 
-  // Cover
-  cover: { height: 140, width: '100%' },
-  coverOverlay: { ...StyleSheet.absoluteFillObject },
+  // Hero
+  hero: { paddingHorizontal: 16, paddingBottom: 20 },
+  heroContent: { flexDirection: 'row', alignItems: 'center', gap: 14, marginBottom: 16 },
+  avatarRing: {
+    borderWidth: 3, borderColor: 'rgba(255,255,255,0.25)',
+    borderRadius: 40, padding: 2,
+  },
+  heroInfo: { flex: 1 },
+  heroName: { fontSize: 20, fontWeight: '800', color: '#fff', marginBottom: 2 },
+  heroOwner: { fontSize: 13, color: 'rgba(255,255,255,0.65)', marginBottom: 4 },
+  heroLocation: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  heroLocationText: { fontSize: 12, color: 'rgba(255,255,255,0.55)' },
 
-  // Profile section
-  profileSection: { backgroundColor: G.surface, paddingHorizontal: 16, paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: G.border },
-  avatarRow: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', marginTop: -36, marginBottom: 10 },
-  profileAvatar: { borderWidth: 3, borderColor: G.surface },
-  profileActions: { flexDirection: 'row', gap: 8, paddingBottom: 4 },
+  // Action buttons
+  heroActions: { flexDirection: 'row', gap: 10 },
   followBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 5,
-    backgroundColor: G.violet, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10,
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
+    backgroundColor: C.g600, paddingVertical: 10, borderRadius: 12,
   },
-  followBtnActive: { backgroundColor: G.violetL, borderWidth: 1, borderColor: G.violet },
+  followBtnActive: { backgroundColor: 'rgba(255,255,255,0.12)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)' },
   followBtnText: { color: '#fff', fontWeight: '700', fontSize: 13 },
-  followBtnTextActive: { color: G.violet },
-  messageBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 5,
-    backgroundColor: G.violetL, paddingHorizontal: 14, paddingVertical: 8,
-    borderRadius: 10, borderWidth: 1, borderColor: G.violet,
+  followBtnTextActive: { color: '#fff' },
+  msgBtn: {
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
+    backgroundColor: 'rgba(255,255,255,0.15)', paddingVertical: 10, borderRadius: 12,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.25)',
   },
-  messageBtnText: { color: G.violet, fontWeight: '700', fontSize: 13 },
-  businessName: { fontSize: 20, fontWeight: '800', color: G.text, marginBottom: 2 },
-  ownerName: { fontSize: 14, color: G.muted, marginBottom: 4 },
-  locationRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 6 },
-  locationText: { fontSize: 13, color: G.muted },
-  bio: { fontSize: 14, color: G.text, lineHeight: 20, marginBottom: 10 },
+  msgBtnText: { color: '#fff', fontWeight: '700', fontSize: 13 },
+
+  // Bio
+  bioCard: {
+    backgroundColor: C.card, marginHorizontal: 12, marginTop: 10,
+    borderRadius: 12, padding: 12,
+    borderWidth: 1, borderColor: C.border,
+  },
+  bioText: { fontSize: 14, color: C.text, lineHeight: 21 },
 
   // Stats
   statsRow: {
-    flexDirection: 'row', alignItems: 'center', backgroundColor: G.bg,
-    borderRadius: 12, padding: 12, borderWidth: 1, borderColor: G.border, marginTop: 8,
+    flexDirection: 'row', backgroundColor: C.card,
+    marginHorizontal: 12, marginTop: 10, borderRadius: 14,
+    borderWidth: 1, borderColor: C.border, overflow: 'hidden',
   },
-  statItem: { flex: 1, alignItems: 'center' },
-  statValue: { fontSize: 18, fontWeight: '700', color: G.text },
-  statLabel: { fontSize: 11, color: G.muted, marginTop: 2 },
-  statDivider: { width: 1, height: 28, backgroundColor: G.border },
+  statCell: {
+    flex: 1, alignItems: 'center', paddingVertical: 14, gap: 4,
+    borderRightWidth: 1, borderRightColor: C.border,
+  },
+  statIconBox: {
+    width: 34, height: 34, borderRadius: 10,
+    alignItems: 'center', justifyContent: 'center', marginBottom: 2,
+  },
+  statValue: { fontSize: 17, fontWeight: '800', color: C.text },
+  statLabel: { fontSize: 10, color: C.muted, fontWeight: '500' },
 
   // Tabs
-  tabsRow: { flexDirection: 'row', backgroundColor: G.surface, borderBottomWidth: 1, borderBottomColor: G.border },
+  tabsRow: {
+    flexDirection: 'row', backgroundColor: C.card,
+    marginHorizontal: 12, marginTop: 10, marginBottom: 6,
+    borderRadius: 12, borderWidth: 1, borderColor: C.border, overflow: 'hidden',
+  },
   tab: {
     flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    gap: 6, paddingVertical: 12, borderBottomWidth: 2, borderBottomColor: 'transparent',
+    gap: 7, paddingVertical: 13,
   },
-  tabActive: { borderBottomColor: G.violet },
-  tabText: { fontSize: 14, fontWeight: '600', color: G.muted },
-  tabTextActive: { color: G.violet },
+  tabActive: { backgroundColor: C.g50, borderBottomWidth: 2.5, borderBottomColor: C.g600 },
+  tabText: { fontSize: 14, fontWeight: '600', color: C.muted },
+  tabTextActive: { color: C.g600 },
 
-  // Post list
-  listContent: { paddingBottom: 100 },
+  // Post card
+  list: { paddingBottom: 100 },
   postCard: {
-    backgroundColor: G.surface, marginHorizontal: 12, marginVertical: 5,
-    borderRadius: 12, padding: 14, borderWidth: 1, borderColor: G.border,
+    flexDirection: 'row', backgroundColor: C.card,
+    marginHorizontal: 12, marginVertical: 4,
+    borderRadius: 14, borderWidth: 1, borderColor: C.border,
+    overflow: 'hidden',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 4, elevation: 2,
   },
-  postCardSOS: { borderLeftWidth: 4, borderLeftColor: G.red },
-  postTopRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
-  catBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
-  catBadgeText: { fontSize: 10, fontWeight: '700' },
-  postTime: { fontSize: 11, color: G.muted },
-  postContent: { fontSize: 14, color: G.text, lineHeight: 21, marginBottom: 10 },
-  postActions: { flexDirection: 'row', gap: 16, borderTopWidth: 1, borderTopColor: G.border, paddingTop: 10 },
-  actionBtn: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  actionCount: { fontSize: 12, color: G.muted, fontWeight: '600' },
+  postAccent: { width: 4 },
+  postBody: { flex: 1, padding: 13 },
+  postHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
+  catPill: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
+  catPillText: { fontSize: 10, fontWeight: '700' },
+  postTime: { fontSize: 11, color: C.muted },
+  postContent: { fontSize: 14, color: C.text, lineHeight: 21, marginBottom: 10 },
+  postFooter: { flexDirection: 'row', gap: 14, borderTopWidth: 1, borderTopColor: C.border, paddingTop: 9 },
+  postAction: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  postActionText: { fontSize: 12, color: C.muted, fontWeight: '500' },
 
   // Fleet grid
   fleetGrid: { paddingBottom: 100 },
   fleetCard: {
-    flex: 1, margin: 6, backgroundColor: G.surface, borderRadius: 14, padding: 14,
-    borderWidth: 1, borderColor: G.border, alignItems: 'center',
-    shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 3, elevation: 1,
+    flex: 1, margin: 4, backgroundColor: C.card, borderRadius: 14, padding: 14,
+    borderWidth: 1, borderColor: C.border, alignItems: 'center',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 3, elevation: 1,
   },
-  fleetCardIcon: { width: 50, height: 50, borderRadius: 14, alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
-  fleetVehicleName: { fontSize: 13, fontWeight: '700', color: G.text, textAlign: 'center', marginBottom: 6 },
-  fleetDetails: { gap: 3, alignItems: 'center' },
-  fleetDetailRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  fleetDetailText: { fontSize: 11, color: G.muted },
-  fleetRegNo: { fontSize: 11, color: '#2563EB', fontWeight: '600', marginTop: 6 },
-  fleetStatusBadge: { marginTop: 6, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 },
-  fleetStatusActive: { backgroundColor: G.greenL },
-  fleetStatusInactive: { backgroundColor: G.bg },
+  fleetIconBox: {
+    width: 50, height: 50, borderRadius: 14, alignItems: 'center', justifyContent: 'center', marginBottom: 10,
+  },
+  fleetName: { fontSize: 13, fontWeight: '700', color: C.text, textAlign: 'center', marginBottom: 6 },
+  fleetMeta: { gap: 3, alignItems: 'center' },
+  fleetMetaItem: { flexDirection: 'row', alignItems: 'center', gap: 3 },
+  fleetMetaText: { fontSize: 11, color: C.muted },
+  fleetRegPill: {
+    marginTop: 7, backgroundColor: '#EFF6FF',
+    paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6,
+  },
+  fleetRegText: { fontSize: 11, color: C.blue, fontWeight: '700' },
+  fleetStatusPill: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 6, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
+  fleetStatusActive: { backgroundColor: C.g50 },
+  fleetStatusInactive: { backgroundColor: C.bg },
+  fleetStatusDot: { width: 6, height: 6, borderRadius: 3 },
   fleetStatusText: { fontSize: 10, fontWeight: '600', textTransform: 'capitalize' },
 
   // Empty
-  emptyWrap: { alignItems: 'center', paddingVertical: 48 },
-  emptyTitle: { fontSize: 16, fontWeight: '600', color: G.muted, marginTop: 10 },
+  emptyWrap: { alignItems: 'center', paddingVertical: 52 },
+  emptyIconBox: {
+    width: 68, height: 68, borderRadius: 34, backgroundColor: C.bg,
+    borderWidth: 1, borderColor: C.border,
+    alignItems: 'center', justifyContent: 'center', marginBottom: 12,
+  },
+  emptyTitle: { fontSize: 15, fontWeight: '600', color: C.muted },
+
+  // SOS ring indicator on avatar
+  sosRingDot: {
+    position: 'absolute', bottom: 0, right: 0,
+    width: 16, height: 16, borderRadius: 8, backgroundColor: C.red,
+    borderWidth: 2, borderColor: C.g900,
+  },
+
+  // Story viewer
+  storyBg: { flex: 1, backgroundColor: '#000' },
+  storyTaps: {
+    position: 'absolute', top: 0, bottom: 0, left: 0, right: 0,
+    flexDirection: 'row', zIndex: 5,
+  },
+  storyPauseIcon: {
+    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+    alignItems: 'center', justifyContent: 'center', zIndex: 10,
+  },
+  storyTopBar: {
+    position: 'absolute', top: 0, left: 0, right: 0, zIndex: 20,
+    paddingHorizontal: 12, paddingBottom: 10,
+  },
+  storyHeaderRow: {
+    flexDirection: 'row', alignItems: 'center',
+    justifyContent: 'space-between', marginTop: 12,
+  },
+  storySender: { flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 },
+  storyAvatarRing: { borderRadius: 22, borderWidth: 2, borderColor: C.red, padding: 2 },
+  storyVendorName: { fontSize: 15, fontWeight: '700', color: '#fff' },
+  storyMeta: { fontSize: 11, color: 'rgba(255,255,255,0.6)', marginTop: 1 },
+  storyContent: {
+    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 2,
+    justifyContent: 'center', paddingHorizontal: 24, paddingTop: 130, paddingBottom: 40,
+  },
+  storySOSBadge: {
+    flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start',
+    backgroundColor: C.red, paddingHorizontal: 12, paddingVertical: 5,
+    borderRadius: 20, marginBottom: 18,
+  },
+  storySOSText: { color: '#fff', fontWeight: '700', fontSize: 11, letterSpacing: 1 },
+  storyText: { fontSize: 22, color: '#fff', lineHeight: 34, fontWeight: '500' },
+  storyCity: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 16 },
+  storyCityText: { fontSize: 13, color: 'rgba(255,255,255,0.55)' },
+  storyStats: {
+    flexDirection: 'row', gap: 18, marginTop: 22,
+    paddingTop: 14, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.15)',
+  },
+  storyStat: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  storyStatText: { color: 'rgba(255,255,255,0.75)', fontSize: 13 },
+  storyGrad: {
+    position: 'absolute', bottom: 0, left: 0, right: 0, height: 120, zIndex: 1,
+  },
 });
