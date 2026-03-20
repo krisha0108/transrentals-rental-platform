@@ -213,7 +213,7 @@ function CanvasEl({ el, selected, scale, canvasRef, onSelect, onChange, onDblCli
     const sx = e.clientX, sy = e.clientY, ox = el.x, oy = el.y;
     let lastEl = el;
     const move = (ev: MouseEvent) => {
-      lastEl = { ...el, x: Math.max(0, Math.min(CANVAS_W - el.w, ox + (ev.clientX - sx) / scale)), y: Math.max(0, Math.min(CANVAS_H - el.h, oy + (ev.clientY - sy) / scale)) };
+      lastEl = { ...el, x: ox + (ev.clientX - sx) / scale, y: oy + (ev.clientY - sy) / scale };
       onChange(lastEl);
       if (onDragMove) onDragMove(lastEl);
     };

@@ -64,7 +64,7 @@ const ANIM_CSS: Record<string, string> = {
 function ViewerCanvasElements({ elements, slideKey }: { elements: any[]; slideKey: string }) {
   if (!elements?.length) return null;
   return (
-    <div key={slideKey} className="absolute inset-0" style={{ containerType: 'inline-size' } as any}>
+    <div key={slideKey} className="absolute inset-0 overflow-hidden" style={{ containerType: 'inline-size' } as any}>
       {[...elements].sort((a, b) => (a.z || 0) - (b.z || 0)).map((el: any) => {
         const flipX = el.flipX ? ' scaleX(-1)' : '';
         const flipY = el.flipY ? ' scaleY(-1)' : '';
