@@ -1,6 +1,6 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
-import { SimpleServiceHero } from '@/components/services/SimpleServiceHero';
+import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
 import { ServiceLocationsGrid } from '@/components/services/ServiceLocationsGrid';
 import { ServiceFleetDisplay } from '@/components/services/ServiceFleetDisplay';
 import { formatPriceHighlight } from '@/lib/utils';
@@ -31,8 +31,8 @@ export const metadata: Metadata = {
 export default function MonthlyCarRentalPage() {
   return (
     <>
-      {/* Simple Hero without booking form */}
-      <SimpleServiceHero
+      {/* Hero with booking form */}
+      <ServiceHeroWithChat
         badge="Monthly Car Rental"
         title="Monthly Car Rental"
         titleHighlight="Starting @₹15,999/Month"
@@ -42,14 +42,8 @@ export default function MonthlyCarRentalPage() {
           { icon: 'shield', text: 'All Inclusive', color: 'text-blue-600' },
           { icon: 'zap', text: 'Flexible Plans', color: 'text-green-600' },
         ]}
-        stats={[
-          { value: '500+', label: 'Cars Available' },
-          { value: '100+', label: 'Cities Covered' },
-          { value: '10K+', label: 'Happy Subscribers' },
-        ]}
         gradientFrom="violet-50"
         gradientTo="purple-50"
-        gradientAccent="from-violet-600 to-purple-600"
       />
 
       {/* Fleet Display from Database */}

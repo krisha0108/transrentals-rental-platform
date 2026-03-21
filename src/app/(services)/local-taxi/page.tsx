@@ -1,7 +1,7 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
 import { getCitiesByPriority } from '@/data/indian-cities';
-import { CarRentalBookingHero } from '@/components/car-rental/CarRentalBookingHero';
+import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
 
 export const metadata: Metadata = {
   title: 'Local Taxi | Hourly Cab @₹399 | 4 Hour 8 Hour Taxi Package India',
@@ -31,12 +31,19 @@ export default function LocalTaxiPage() {
 
   return (
     <>
-      {/* Booking Hero - Same as Car Rental */}
-      <CarRentalBookingHero
-        city="Delhi"
-        citySlug="delhi"
-        serviceSlug="car-rental"
-        serviceTitle="Local Taxi"
+      {/* Hero with booking form */}
+      <ServiceHeroWithChat
+        badge="Local Taxi Service"
+        title="Local Taxi"
+        titleHighlight="Starting @₹399"
+        description="Book local taxi for hourly city travel. 4hr, 8hr, 12hr packages with professional drivers at affordable rates."
+        features={[
+          { icon: 'star', text: '4.8/5 Rating', color: 'text-amber-500' },
+          { icon: 'shield', text: 'Verified Drivers', color: 'text-blue-600' },
+          { icon: 'zap', text: 'Instant Booking', color: 'text-green-600' },
+        ]}
+        gradientFrom="blue-50"
+        gradientTo="cyan-50"
       />
 
       {/* Why Local Taxi */}

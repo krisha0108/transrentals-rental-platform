@@ -1,7 +1,7 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
 import { getCitiesByPriority } from '@/data/indian-cities';
-import { CarRentalBookingHero } from '@/components/car-rental/CarRentalBookingHero';
+import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
 import { formatPriceHighlight } from '@/lib/utils';
 
 export const metadata: Metadata = {
@@ -19,12 +19,19 @@ export default function OneWayCarRentalPage() {
 
   return (
     <>
-      {/* Booking Hero - Same as Car Rental */}
-      <CarRentalBookingHero
-        city="Delhi"
-        citySlug="delhi"
-        serviceSlug="car-rental"
-        serviceTitle="One Way Car Rental"
+      {/* Hero with booking form */}
+      <ServiceHeroWithChat
+        badge="One Way Car Rental"
+        title="One Way Car Rental"
+        titleHighlight="Drop at Any City @₹1299"
+        description="Book one-way car rental across India. No return charges. Convenient intercity travel with professional drivers."
+        features={[
+          { icon: 'star', text: '4.8/5 Rating', color: 'text-amber-500' },
+          { icon: 'shield', text: 'No Return Charges', color: 'text-blue-600' },
+          { icon: 'zap', text: 'Instant Booking', color: 'text-green-600' },
+        ]}
+        gradientFrom="blue-50"
+        gradientTo="sky-50"
       />
 
       {/* Why One Way Car Rental */}
