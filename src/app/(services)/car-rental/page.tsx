@@ -1,6 +1,6 @@
 import { Metadata } from 'next';
 import { CarSubServicesGrid } from '@/components/services/CarSubServicesGrid';
-import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
+import { SimpleServiceHero } from '@/components/services/SimpleServiceHero';
 import { ServiceLocationsGrid } from '@/components/services/ServiceLocationsGrid';
 import { ServiceFleetDisplay } from '@/components/services/ServiceFleetDisplay';
 
@@ -54,8 +54,8 @@ export default function CarRentalPage() {
         }}
       />
 
-      {/* Hero with booking form */}
-      <ServiceHeroWithChat
+      {/* Hero Section */}
+      <SimpleServiceHero
         badge="Car Rental Services"
         title="Car Rental"
         titleHighlight="Starting @₹999/Day"

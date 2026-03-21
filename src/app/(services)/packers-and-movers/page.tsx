@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 import { ServiceTypesGrid } from '@/components/services/ServiceTypesGrid';
 import { LocationsGrid } from '@/components/services/LocationsGrid';
 import { FAQSection } from '@/components/services/FAQSection';
-import { ServiceHeroVariant } from '@/components/services/ServiceHeroVariant';
+import { SimpleServiceHero } from '@/components/services/SimpleServiceHero';
 
 export const metadata: Metadata = {
   title: 'Packers and Movers - Professional Relocation Services | Starting @₹4999',
@@ -70,9 +70,8 @@ export default function PackersAndMoversPage() {
 
   return (
     <div className="flex flex-col">
-      {/* Hero with A/B Test Support - Add ?hero=form to URL to test form variant */}
-      <ServiceHeroVariant
-        serviceType="packers-and-movers"
+      {/* Hero Section */}
+      <SimpleServiceHero
         badge="Packers & Movers"
         title="Professional Relocation"
         titleHighlight="Starting @₹4999"

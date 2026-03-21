@@ -1,5 +1,5 @@
 import { Metadata } from 'next';
-import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
+import { SimpleServiceHero } from '@/components/services/SimpleServiceHero';
 import { ServiceLocationsGrid } from '@/components/services/ServiceLocationsGrid';
 import { ServiceFleetDisplay } from '@/components/services/ServiceFleetDisplay';
 
@@ -16,8 +16,8 @@ export const metadata: Metadata = {
 export default function SelfDriveCarRentalPage() {
   return (
     <>
-      {/* Hero with booking form */}
-      <ServiceHeroWithChat
+      {/* Hero Section */}
+      <SimpleServiceHero
         badge="Self Drive Car Rental"
         title="Drive Yourself"
         titleHighlight="Starting @₹899/Day"

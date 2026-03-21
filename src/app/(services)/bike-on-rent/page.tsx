@@ -4,7 +4,7 @@ import { DynamicServicePage } from '@/components/services/DynamicServicePage';
 import { BikeTypesCards } from '@/components/services/BikeTypesCards';
 import { BikeFleetShowcase } from '@/components/services/BikeFleetShowcase';
 import { BikeServiceSchema } from '@/components/seo/schemas';
-import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
+import { SimpleServiceHero } from '@/components/services/SimpleServiceHero';
 import { ServiceLocationsGrid } from '@/components/services/ServiceLocationsGrid';
 import { ServiceFleetDisplay } from '@/components/services/ServiceFleetDisplay';
 import { formatPriceHighlight } from '@/lib/utils';
@@ -132,8 +132,8 @@ export default function BikeRentalPage() {
         reviewCount={2850}
       />
 
-      {/* Hero with booking form */}
-      <ServiceHeroWithChat
+      {/* Hero Section */}
+      <SimpleServiceHero
         badge="Bike Rental Services"
         title="Rent Bikes"
         titleHighlight="Starting @₹399/Day"

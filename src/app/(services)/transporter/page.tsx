@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 import { LocationsGrid } from '@/components/services/LocationsGrid';
 import { FAQSection } from '@/components/services/FAQSection';
 import { TruckTypesCards } from '@/components/services/TruckTypesCards';
-import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
+import { SimpleServiceHero } from '@/components/services/SimpleServiceHero';
 import { formatPriceHighlight } from '@/lib/utils';
 
 export const metadata: Metadata = {
@@ -28,8 +28,8 @@ export const metadata: Metadata = {
 export default function TransporterPage() {
   return (
     <div className="flex flex-col">
-      {/* Hero with Chat Booking System */}
-      <ServiceHeroWithChat
+      {/* Hero Section */}
+      <SimpleServiceHero
         badge="Truck Rental & Transport"
         title="Transporter Services"
         titleHighlight="Starting @₹3999/Day"
