@@ -4,7 +4,6 @@ import { prisma } from '@/lib/db/prisma';
 import { OneWayCabRoutesGrid } from '@/components/services/OneWayCabRoutesGrid';
 import Link from 'next/link';
 import { Car, Star, Shield, Clock, IndianRupee, MapPin, ArrowRight, CheckCircle2 } from 'lucide-react';
-import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
 
 export const metadata: Metadata = {
   title: 'One Way Cab - Drop Taxi Service Starting @₹9/km | TransRentals',
@@ -104,20 +103,68 @@ export default async function OneWayCabPage() {
 
   return (
     <>
-      {/* Hero with booking form */}
-      <ServiceHeroWithChat
-        badge="One Way Cab Service"
-        title="Book One Way Drop Taxi"
-        titleHighlight="Pay Only One Side @₹9/km"
-        description="No return charges. Book one way cab across 500+ routes in India with professional drivers."
-        features={[
-          { icon: 'star', text: '4.9/5 Rating', color: 'text-amber-500' },
-          { icon: 'shield', text: 'No Return Charges', color: 'text-emerald-600' },
-          { icon: 'zap', text: '500+ Routes', color: 'text-green-600' },
-        ]}
-        gradientFrom="emerald-50"
-        gradientTo="teal-50"
-      />
+      {/* Hero Section */}
+      <section className="relative py-24 md:py-32 bg-gradient-to-br from-emerald-700 via-teal-600 to-cyan-700 text-white overflow-hidden">
+        {/* Decorative Floating Elements */}
+        <div className="absolute top-20 left-10 w-72 h-72 bg-emerald-400/20 rounded-full blur-3xl" />
+        <div className="absolute bottom-10 right-10 w-96 h-96 bg-teal-300/15 rounded-full blur-3xl" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-cyan-400/10 rounded-full blur-3xl" />
+
+        {/* Background Pattern */}
+        <div className="absolute inset-0 opacity-[0.07]">
+          <div
+            className="absolute inset-0"
+            style={{
+              backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
+            }}
+          />
+        </div>
+
+        <div className="container-custom relative z-10">
+          <div className="max-w-4xl mx-auto text-center">
+            <div className="inline-flex items-center gap-2 px-5 py-2.5 bg-white/15 backdrop-blur-md rounded-full text-sm font-medium mb-8 border border-white/20 shadow-lg shadow-emerald-900/20">
+              <Car className="w-4 h-4" />
+              One Way Cab Service
+            </div>
+
+            <h1 className="text-4xl md:text-6xl lg:text-7xl font-extrabold mb-6 tracking-tight">
+              Book One Way{' '}
+              <span className="bg-gradient-to-r from-yellow-300 via-amber-200 to-yellow-300 bg-clip-text text-transparent">
+                Drop Taxi
+              </span>
+            </h1>
+
+            <p className="text-lg md:text-2xl mb-10 text-white/80 max-w-2xl mx-auto leading-relaxed">
+              Pay Only One Side - No Return Charges Starting @₹9/km
+            </p>
+
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-12">
+              {[
+                { icon: Star, label: '4.9/5 Rating' },
+                { icon: Shield, label: 'No Return Charges' },
+                { icon: MapPin, label: '500+ Routes' },
+                { icon: IndianRupee, label: 'Starting @₹9/km' },
+              ].map((item) => (
+                <div
+                  key={item.label}
+                  className="bg-white/10 backdrop-blur-md rounded-2xl p-5 border border-white/15 hover:bg-white/15 transition-all duration-300 hover:scale-105"
+                >
+                  <item.icon className="w-7 h-7 mx-auto mb-2.5 text-emerald-300" />
+                  <p className="text-sm font-medium">{item.label}</p>
+                </div>
+              ))}
+            </div>
+
+            <a
+              href="#routes"
+              className="inline-flex items-center gap-3 px-10 py-4 bg-white text-emerald-700 font-bold rounded-2xl hover:bg-emerald-50 transition-all duration-300 shadow-xl shadow-black/20 hover:shadow-2xl hover:scale-105 text-lg"
+            >
+              Explore Routes
+              <ArrowRight className="w-5 h-5" />
+            </a>
+          </div>
+        </div>
+      </section>
 
       {/* Why Choose One Way Cab */}
       <section className="py-20 bg-white">

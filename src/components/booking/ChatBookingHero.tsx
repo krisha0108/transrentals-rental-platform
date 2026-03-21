@@ -13,7 +13,7 @@ import {
   WHATSAPP_NUMBER_DIGITS,
   WHATSAPP_NUMBER_DISPLAY,
 } from '@/lib/contact';
-import { getFlowType, FlowType, isCarWithDriverServiceType } from './serviceConfigs';
+import { getFlowType, FlowType } from './serviceConfigs';
 
 interface Message {
   id: string;
@@ -930,7 +930,7 @@ export function ChatBookingHero({
 
     const isBikeService = serviceType.includes('bike') || serviceType.includes('activa') || serviceType.includes('royal-enfield');
     const isLuxuryService = serviceType.includes('luxury') || serviceType.includes('wedding-car') || serviceType.includes('vintage') || serviceType.includes('sports-car');
-    const isCarService = isCarWithDriverServiceType(serviceType) && !isLuxuryService;
+    const isCarService = serviceType.includes('car') && !serviceType.includes('selfdrive') && !isLuxuryService;
     const isSelfDriveService = serviceType.includes('selfdrive') || serviceType.includes('self-drive');
     const isBusService = serviceType.includes('bus') || serviceType.includes('tempo');
     const isTruckService = serviceType.includes('truck') || serviceType.includes('transporter') || serviceType.includes('trailer');
@@ -1414,7 +1414,7 @@ export function ChatBookingHero({
 
       const isSelfDriveService = serviceType.includes('selfdrive') || serviceType.includes('self-drive');
       const isLuxuryService = serviceType.includes('luxury') || serviceType.includes('wedding-car') || serviceType.includes('vintage') || serviceType.includes('sports-car');
-      const isCarService = (isCarWithDriverServiceType(serviceType) && !isLuxuryService) || isFleetCar;
+      const isCarService = ((serviceType.includes('car') && !serviceType.includes('selfdrive') && !isLuxuryService) || serviceType === 'airport-transfer') || isFleetCar;
       const isBikeService = serviceType.includes('bike') || serviceType.includes('activa') || serviceType.includes('royal-enfield') || isFleetBike;
       const isBusService = serviceType.includes('bus') || serviceType.includes('tempo') || isFleetBus;
       const isTruckService = serviceType.includes('truck') || serviceType.includes('transporter') || serviceType.includes('trailer');
@@ -1858,8 +1858,7 @@ export function ChatBookingHero({
   };
 
   const handleOptionClick = (action: string, value?: string) => {
-    const isLuxuryServiceLocal = serviceType.includes('luxury') || serviceType.includes('wedding-car') || serviceType.includes('vintage') || serviceType.includes('sports-car');
-    const isCarService = isCarWithDriverServiceType(serviceType) && !isLuxuryServiceLocal;
+    const isCarService = serviceType.includes('car');
     const isAirportService = serviceType === 'airport-transfer';
 
     if (action === 'select-subservice') {
@@ -2313,7 +2312,7 @@ export function ChatBookingHero({
       const isTruckService = serviceType.includes('truck') || serviceType.includes('transporter') || serviceType.includes('trailer');
       const isPackersService = serviceType.includes('packers') || serviceType.includes('movers');
       const isEquipmentService = serviceType.includes('equipment') || serviceType.includes('jcb') || serviceType.includes('crane') || serviceType.includes('excavator') || serviceType.includes('generator') || serviceType.includes('hydra');
-      const isCarService = isCarWithDriverServiceType(serviceType) && !isSelfDriveService && !isLuxuryService;
+      const isCarService = serviceType.includes('car') && !isSelfDriveService && !isLuxuryService;
 
       // If a specific vehicle was selected (from fleet page), ask for vehicle confirmation first
       if (vehicleName) {
@@ -2450,7 +2449,7 @@ export function ChatBookingHero({
     } else if (currentStep === 'destination') {
       setBookingData((prev: any) => ({ ...prev, destination: inputValue }));
       const isLuxuryService = serviceType.includes('luxury') || serviceType.includes('wedding-car') || serviceType.includes('vintage') || serviceType.includes('sports-car');
-      const isCarService = isCarWithDriverServiceType(serviceType) && !isLuxuryService;
+      const isCarService = serviceType.includes('car') && !serviceType.includes('selfdrive') && !isLuxuryService;
       const isSelfDriveService = serviceType.includes('selfdrive') || serviceType.includes('self-drive');
       const isBikeService = serviceType.includes('bike') || serviceType.includes('activa') || serviceType.includes('royal-enfield');
       const isBusService = serviceType.includes('bus') || serviceType.includes('tempo');
@@ -2546,7 +2545,7 @@ export function ChatBookingHero({
       setBookingData((prev: any) => ({ ...prev, pickupDateTime: inputValue }));
       const isBikeService = serviceType.includes('bike') || serviceType.includes('activa') || serviceType.includes('royal-enfield');
       const isLuxuryService = serviceType.includes('luxury') || serviceType.includes('wedding-car') || serviceType.includes('vintage') || serviceType.includes('sports-car');
-      const isCarService = isCarWithDriverServiceType(serviceType) && !isLuxuryService;
+      const isCarService = serviceType.includes('car') && !serviceType.includes('selfdrive') && !isLuxuryService;
       const isSelfDriveService = serviceType.includes('selfdrive') || serviceType.includes('self-drive');
       const isBusService = serviceType.includes('bus') || serviceType.includes('tempo');
       const isTruckService = serviceType.includes('truck') || serviceType.includes('transporter') || serviceType.includes('trailer');

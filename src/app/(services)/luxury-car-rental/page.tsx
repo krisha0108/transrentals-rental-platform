@@ -1,6 +1,6 @@
 import { Metadata } from 'next';
 import { Crown, Star, Shield, Car, MapPin, Clock } from 'lucide-react';
-import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
+import { SimpleServiceHero } from '@/components/services/SimpleServiceHero';
 import { ServiceLocationsGrid } from '@/components/services/ServiceLocationsGrid';
 import { ServiceFleetDisplay } from '@/components/services/ServiceFleetDisplay';
 
@@ -17,8 +17,8 @@ export const metadata: Metadata = {
 export default function LuxuryCarRentalPage() {
   return (
     <>
-      {/* Hero with booking form */}
-      <ServiceHeroWithChat
+      {/* Simple Hero without booking form */}
+      <SimpleServiceHero
         badge="Premium Collection"
         title="Luxury & Exotic"
         titleHighlight="Car Rental"
@@ -28,8 +28,14 @@ export default function LuxuryCarRentalPage() {
           { icon: 'shield', text: 'Fully Insured', color: 'text-green-600' },
           { icon: 'zap', text: '20+ Exotic Cars', color: 'text-purple-600' },
         ]}
+        stats={[
+          { value: '100+', label: 'Luxury Cars' },
+          { value: '50+', label: 'Cities Covered' },
+          { value: '10K+', label: 'Premium Rides' },
+        ]}
         gradientFrom="purple-50"
         gradientTo="amber-50"
+        gradientAccent="from-purple-600 to-amber-500"
       />
 
       {/* Fleet Display from Database */}

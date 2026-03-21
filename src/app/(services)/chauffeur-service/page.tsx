@@ -33,8 +33,8 @@ export default function ChauffeurServicePage() {
     <>
       {/* Booking Hero - Same as Car Rental */}
       <CarRentalBookingHero
-        city=""
-        citySlug=""
+        city="Delhi"
+        citySlug="delhi"
         serviceSlug="car-rental"
         serviceTitle="Chauffeur Service"
       />

@@ -1,7 +1,7 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
 import { getCitiesByPriority } from '@/data/indian-cities';
-import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
+import { CarRentalBookingHero } from '@/components/car-rental/CarRentalBookingHero';
 import { formatPriceHighlight } from '@/lib/utils';
 
 export const metadata: Metadata = {
@@ -32,19 +32,12 @@ export default function OutstationCabPage() {
 
   return (
     <>
-      {/* Hero with booking form */}
-      <ServiceHeroWithChat
-        badge="Outstation Cab Service"
-        title="Outstation Cab"
-        titleHighlight="@₹12/Km All Inclusive"
-        description="Book intercity cab for outstation travel. Round trip & one-way options with professional drivers across India."
-        features={[
-          { icon: 'star', text: '4.8/5 Rating', color: 'text-amber-500' },
-          { icon: 'shield', text: 'All India Permit', color: 'text-blue-600' },
-          { icon: 'zap', text: 'Instant Booking', color: 'text-green-600' },
-        ]}
-        gradientFrom="blue-50"
-        gradientTo="indigo-50"
+      {/* Booking Hero - Same as Car Rental */}
+      <CarRentalBookingHero
+        city="Delhi"
+        citySlug="delhi"
+        serviceSlug="car-rental"
+        serviceTitle="Outstation Cab"
       />
 
       {/* Why Outstation Cab */}

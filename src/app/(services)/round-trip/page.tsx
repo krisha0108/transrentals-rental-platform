@@ -1,6 +1,6 @@
 import { Metadata } from 'next';
 import { RoundTripRoutesGrid } from '@/components/services/RoundTripRoutesGrid';
-import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
+import { ArrowLeftRight, Star, Shield, Clock, IndianRupee } from 'lucide-react';
 
 export const metadata: Metadata = {
   title: 'Round Trip Cab Service | Outstation Round Trip Taxi @ Best Rates | TransRentals',
@@ -31,20 +31,54 @@ export const metadata: Metadata = {
 export default function RoundTripPage() {
   return (
     <>
-      {/* Hero with booking form */}
-      <ServiceHeroWithChat
-        badge="Round Trip Cab Service"
-        title="Book Round Trip Cabs"
-        titleHighlight="Starting @₹10/km"
-        description="Go and return with same driver. Save 20-30% on outstation travel. All charges included."
-        features={[
-          { icon: 'star', text: 'Professional Drivers', color: 'text-amber-500' },
-          { icon: 'shield', text: 'All Charges Included', color: 'text-blue-600' },
-          { icon: 'zap', text: 'Flexible Return', color: 'text-green-600' },
-        ]}
-        gradientFrom="purple-50"
-        gradientTo="indigo-50"
-      />
+      {/* Hero Section */}
+      <section className="relative py-20 bg-gradient-to-br from-purple-600 via-indigo-600 to-blue-600 text-white overflow-hidden">
+        {/* Background Pattern */}
+        <div className="absolute inset-0 opacity-10">
+          <div
+            className="absolute inset-0"
+            style={{
+              backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
+            }}
+          />
+        </div>
+
+        <div className="container-custom relative z-10">
+          <div className="max-w-4xl mx-auto text-center">
+            <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/20 backdrop-blur-sm rounded-full text-sm font-medium mb-6">
+              <ArrowLeftRight className="w-4 h-4" />
+              Round Trip Packages
+            </div>
+
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6">
+              Book Round Trip Cabs
+            </h1>
+
+            <p className="text-xl md:text-2xl mb-8 text-white/90">
+              Go and Return with Same Driver - Save 20-30% on Travel Costs
+            </p>
+
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
+              <div className="bg-white/10 backdrop-blur-md rounded-lg p-4 border border-white/20">
+                <Star className="w-6 h-6 mx-auto mb-2" />
+                <p className="text-sm">Professional Drivers</p>
+              </div>
+              <div className="bg-white/10 backdrop-blur-md rounded-lg p-4 border border-white/20">
+                <Shield className="w-6 h-6 mx-auto mb-2" />
+                <p className="text-sm">All Charges Included</p>
+              </div>
+              <div className="bg-white/10 backdrop-blur-md rounded-lg p-4 border border-white/20">
+                <Clock className="w-6 h-6 mx-auto mb-2" />
+                <p className="text-sm">Flexible Return Time</p>
+              </div>
+              <div className="bg-white/10 backdrop-blur-md rounded-lg p-4 border border-white/20">
+                <IndianRupee className="w-6 h-6 mx-auto mb-2" />
+                <p className="text-sm">Starting @₹10/km</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
 
       {/* Why Choose Round Trip */}
       <section className="py-16 bg-white">

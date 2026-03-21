@@ -1,7 +1,7 @@
 import React from 'react';
 import type { Metadata } from 'next';
 import { FAQSection } from '@/components/services/FAQSection';
-import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
+import { SimpleServiceHero } from '@/components/services/SimpleServiceHero';
 import { ServiceLocationsGrid } from '@/components/services/ServiceLocationsGrid';
 import { ServiceFleetDisplay } from '@/components/services/ServiceFleetDisplay';
 import { formatPriceHighlight } from '@/lib/utils';
@@ -28,8 +28,8 @@ export const metadata: Metadata = {
 export default function OutstationCarRentalPage() {
   return (
     <div className="flex flex-col">
-      {/* Hero with booking form */}
-      <ServiceHeroWithChat
+      {/* Simple Hero without booking form */}
+      <SimpleServiceHero
         badge="Outstation Car Rental"
         title="Outstation Car Rental"
         titleHighlight="Starting @₹10/Km"
@@ -39,8 +39,14 @@ export default function OutstationCarRentalPage() {
           { icon: 'shield', text: 'All India Permits', color: 'text-blue-600' },
           { icon: 'zap', text: 'Quick Booking', color: 'text-green-600' },
         ]}
+        stats={[
+          { value: '1000+', label: 'Cars Available' },
+          { value: '250+', label: 'Cities Covered' },
+          { value: '50K+', label: 'Happy Trips' },
+        ]}
         gradientFrom="sky-50"
         gradientTo="blue-50"
+        gradientAccent="from-sky-600 to-blue-600"
       />
 
       {/* Fleet Display from Database */}

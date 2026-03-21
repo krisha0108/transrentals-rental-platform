@@ -1,6 +1,6 @@
 import { Metadata } from 'next';
 import { CarSubServicesGrid } from '@/components/services/CarSubServicesGrid';
-import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
+import { SimpleServiceHero } from '@/components/services/SimpleServiceHero';
 import { ServiceLocationsGrid } from '@/components/services/ServiceLocationsGrid';
 import { ServiceFleetDisplay } from '@/components/services/ServiceFleetDisplay';
 
@@ -54,8 +54,8 @@ export default function CarRentalPage() {
         }}
       />
 
-      {/* Hero with booking form */}
-      <ServiceHeroWithChat
+      {/* Simple Hero without booking form */}
+      <SimpleServiceHero
         badge="Car Rental Services"
         title="Car Rental"
         titleHighlight="Starting @₹999/Day"
@@ -65,8 +65,14 @@ export default function CarRentalPage() {
           { icon: 'shield', text: 'Verified Drivers', color: 'text-blue-600' },
           { icon: 'zap', text: 'Quick Booking', color: 'text-green-600' },
         ]}
+        stats={[
+          { value: '1000+', label: 'Cars Available' },
+          { value: '250+', label: 'Cities Covered' },
+          { value: '100K+', label: 'Happy Customers' },
+        ]}
         gradientFrom="blue-50"
         gradientTo="indigo-50"
+        gradientAccent="from-blue-600 to-indigo-600"
       />
 
       {/* Fleet Display from Database */}
