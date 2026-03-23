@@ -346,3 +346,56 @@ export async function DELETE(
     );
   }
 }
+
+// POST - Directly add service(s) to vendor (no request flow, manager/admin only)
+export async function POST(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const currentUser = await prisma.admin_users.findUnique({
+      where: { id: session.user.id },
+    });
+
+    if (!currentUser || !['SUPER_ADMIN', 'ADMIN', 'MANAGER'].includes(currentUser.role)) {
+      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
+    }
+
+    const { id: vendorId } = await params;
+    const body = await request.json();
+    const { serviceIds } = body; // array of serviceIds
+
+    if (!serviceIds || !Array.isArray(serviceIds) || serviceIds.length === 0) {
+      return NextResponse.json({ error: 'serviceIds array is required' }, { status: 400 });
+    }
+
+    for (const serviceId of serviceIds) {
+      await prisma.vendor_approved_services.upsert({
+        where: { vendorId_serviceId: { vendorId, serviceId } },
+        update: { isActive: true },
+        create: { id: generateId(), vendorId, serviceId, isActive: true, commissionPercent: 0 },
+      });
+    }
+
+    sendVendorDirectNotification({
+      vendorId,
+      title: '🎉 Services Added',
+      body: `${serviceIds.length} service${serviceIds.length > 1 ? 's have' : ' has'} been added to your profile.`,
+      type: 'service_approved',
+      serviceType: 'general',
+    }).catch((err: any) => console.error('[SvcAdd] Vendor notify failed:', err));
+
+    return NextResponse.json({ success: true, message: `${serviceIds.length} service(s) added` });
+  } catch (error: any) {
+    logger.error('Add services error', error);
+    return NextResponse.json(
+      { error: 'Failed to add services', details: error?.message },
+      { status: 500 }
+    );
+  }
+}

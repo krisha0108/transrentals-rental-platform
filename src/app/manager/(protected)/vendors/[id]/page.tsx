@@ -162,6 +162,21 @@ export default function VendorDetailPage({ params }: { params: { id: string } })
   const [svcSearch, setSvcSearch] = useState('');
   const [selectedSvcIds, setSelectedSvcIds] = useState<Set<string>>(new Set());
 
+  // Add Service panel
+  const [showAddSvc, setShowAddSvc] = useState(false);
+  const [allServices, setAllServices] = useState<{ id: string; name: string }[]>([]);
+  const [addSvcSearch, setAddSvcSearch] = useState('');
+  const [addSvcSelected, setAddSvcSelected] = useState<Set<string>>(new Set());
+  const [addSvcLoading, setAddSvcLoading] = useState(false);
+
+  // Add Location panel
+  const [showAddLoc, setShowAddLoc] = useState(false);
+  const [allLocations, setAllLocations] = useState<{ id: string; name: string; parentName: string }[]>([]);
+  const [addLocSearch, setAddLocSearch] = useState('');
+  const [addLocStateFilter, setAddLocStateFilter] = useState('');
+  const [addLocSelected, setAddLocSelected] = useState<Set<string>>(new Set());
+  const [addLocLoading, setAddLocLoading] = useState(false);
+
   // Upload form state
   const [showUploadForm, setShowUploadForm] = useState(false);
   const [uploadFile, setUploadFile] = useState<File | null>(null);
@@ -577,6 +592,93 @@ export default function VendorDetailPage({ params }: { params: { id: string } })
     }
   };
 
+  const openAddSvcPanel = async () => {
+    setShowAddSvc(true);
+    setAddSvcSearch('');
+    setAddSvcSelected(new Set());
+    if (allServices.length === 0) {
+      const res = await fetch('/api/admin/services/list');
+      if (res.ok) {
+        const data = await res.json();
+        setAllServices(data.services || data);
+      }
+    }
+  };
+
+  const handleAddServices = async () => {
+    if (addSvcSelected.size === 0) return;
+    setAddSvcLoading(true);
+    try {
+      const res = await fetch(`/api/admin/vendors/${id}/services`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ serviceIds: [...addSvcSelected] }),
+      });
+      if (res.ok) {
+        setShowAddSvc(false);
+        setAddSvcSelected(new Set());
+        await fetchVendor();
+      } else {
+        const err = await res.json();
+        alert(err.error || 'Failed to add services');
+      }
+    } catch {
+      alert('Failed to add services');
+    } finally {
+      setAddSvcLoading(false);
+    }
+  };
+
+  const openAddLocPanel = async () => {
+    setShowAddLoc(true);
+    setAddLocSearch('');
+    setAddLocSelected(new Set());
+    setAddLocStateFilter('');
+    if (allLocations.length === 0) {
+      const res = await fetch('/api/admin/locations?flat=true');
+      if (res.ok) {
+        const data = await res.json();
+        const raw: any[] = data.locations || data;
+        // Build id→{name,type} map
+        const infoMap: Record<string, { name: string; type: string }> = {};
+        raw.forEach((l: any) => { infoMap[l.id] = { name: l.name, type: l.type }; });
+        // Exclude COUNTRY, STATE, AIRPORT — show CITY, UNION_TERRITORY, AREA
+        const locs = raw
+          .filter((l: any) => !['COUNTRY', 'STATE', 'AIRPORT'].includes(l.type))
+          .map((l: any) => ({
+            id: l.id,
+            name: l.name,
+            parentName: infoMap[l.parentId]?.name || '',
+          }));
+        setAllLocations(locs);
+      }
+    }
+  };
+
+  const handleAddLocations = async () => {
+    if (addLocSelected.size === 0) return;
+    setAddLocLoading(true);
+    try {
+      const res = await fetch(`/api/admin/vendors/${id}/locations`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ locationIds: [...addLocSelected] }),
+      });
+      if (res.ok) {
+        setShowAddLoc(false);
+        setAddLocSelected(new Set());
+        await fetchVendor();
+      } else {
+        const err = await res.json();
+        alert(err.error || 'Failed to add locations');
+      }
+    } catch {
+      alert('Failed to add locations');
+    } finally {
+      setAddLocLoading(false);
+    }
+  };
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-IN', {
       day: '2-digit',
@@ -626,6 +728,19 @@ export default function VendorDetailPage({ params }: { params: { id: string } })
 
         {/* Quick Actions */}
         <div className="flex items-center gap-2">
+          {vendor.phone && (
+            <a
+              href={`https://wa.me/91${vendor.phone.replace(/\D/g, '').replace(/^91/, '')}?text=${encodeURIComponent(`Hi ${vendor.ownerName},\n\nCongratulations! 🎉 Your vendor profile on *TransRentals* has been approved.\n\nYou can now start receiving bookings for the services and locations you registered with us.\n\n👉 Login & manage your business here:\nhttps://transrentals.in/vendor/dashboard\n\nWelcome to the TransRentals family! Feel free to reach out if you need any help getting started.\n\n— Team TransRentals`)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium bg-green-500 hover:bg-green-600 text-white transition-colors"
+            >
+              <svg viewBox="0 0 24 24" className="w-4 h-4 fill-current" xmlns="http://www.w3.org/2000/svg">
+                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+              </svg>
+              WhatsApp
+            </a>
+          )}
           {vendor.status === 'UNDER_REVIEW' && (
             <>
               <Button
@@ -1167,6 +1282,67 @@ export default function VendorDetailPage({ params }: { params: { id: string } })
             </div>
           )}
 
+          {/* Add Service Panel */}
+          <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
+            <div className="p-4 flex items-center justify-between">
+              <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+                <Plus className="w-5 h-5 text-blue-600" />
+                Add Services Directly
+              </h3>
+              <Button size="sm" onClick={showAddSvc ? () => setShowAddSvc(false) : openAddSvcPanel} variant={showAddSvc ? 'outline' : 'default'}>
+                {showAddSvc ? <><X className="w-4 h-4 mr-1" />Cancel</> : <><Plus className="w-4 h-4 mr-1" />Add Service</>}
+              </Button>
+            </div>
+            {showAddSvc && (
+              <div className="px-4 pb-4 border-t pt-3 space-y-3">
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Search services..."
+                    value={addSvcSearch}
+                    onChange={(e) => setAddSvcSearch(e.target.value)}
+                    className="w-full pl-8 pr-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+                  />
+                </div>
+                {(() => {
+                  const alreadyApproved = new Set(vendor.approvedServices.map((s: any) => s.service?.id));
+                  const filtered = allServices.filter(
+                    (s) => !alreadyApproved.has(s.id) &&
+                      (!addSvcSearch || s.name.toLowerCase().includes(addSvcSearch.toLowerCase()))
+                  );
+                  return (
+                    <div className="max-h-56 overflow-y-auto border rounded-lg divide-y">
+                      {filtered.length === 0 ? (
+                        <p className="p-4 text-center text-sm text-gray-400">
+                          {allServices.length === 0 ? 'Loading...' : 'No services available to add'}
+                        </p>
+                      ) : (
+                        filtered.map((svc) => (
+                          <label key={svc.id} className="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={addSvcSelected.has(svc.id)}
+                              onChange={() => setAddSvcSelected((prev) => { const s = new Set(prev); s.has(svc.id) ? s.delete(svc.id) : s.add(svc.id); return s; })}
+                              className="w-4 h-4 accent-blue-600"
+                            />
+                            <span className="text-sm font-medium text-gray-900">{svc.name}</span>
+                          </label>
+                        ))
+                      )}
+                    </div>
+                  );
+                })()}
+                <div className="flex justify-end">
+                  <Button onClick={handleAddServices} disabled={addSvcSelected.size === 0 || addSvcLoading}>
+                    {addSvcLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Plus className="w-4 h-4 mr-2" />}
+                    Add {addSvcSelected.size > 0 ? `${addSvcSelected.size} ` : ''}Service{addSvcSelected.size !== 1 ? 's' : ''}
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+
           {/* Approved Services */}
           {(() => {
             const activeServices = vendor.approvedServices.filter((s: any) => s.isActive !== false);
@@ -1512,6 +1688,88 @@ export default function VendorDetailPage({ params }: { params: { id: string } })
               </div>
             </div>
           )}
+
+          {/* Add Location Panel */}
+          <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
+            <div className="p-4 flex items-center justify-between">
+              <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+                <Plus className="w-5 h-5 text-blue-600" />
+                Add Locations Directly
+              </h3>
+              <Button size="sm" onClick={showAddLoc ? () => setShowAddLoc(false) : openAddLocPanel} variant={showAddLoc ? 'outline' : 'default'}>
+                {showAddLoc ? <><X className="w-4 h-4 mr-1" />Cancel</> : <><Plus className="w-4 h-4 mr-1" />Add Location</>}
+              </Button>
+            </div>
+            {showAddLoc && (
+              <div className="px-4 pb-4 border-t pt-3 space-y-3">
+                <div className="flex items-center gap-2">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <input
+                      type="text"
+                      placeholder="Search locations..."
+                      value={addLocSearch}
+                      onChange={(e) => setAddLocSearch(e.target.value)}
+                      className="w-full pl-8 pr-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+                    />
+                  </div>
+                  {(() => {
+                    const states = [...new Set(allLocations.map((l) => l.parentName).filter(Boolean))].sort();
+                    return states.length > 0 ? (
+                      <div className="relative">
+                        <Filter className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                        <select
+                          value={addLocStateFilter}
+                          onChange={(e) => setAddLocStateFilter(e.target.value)}
+                          className="pl-8 pr-6 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white appearance-none cursor-pointer"
+                        >
+                          <option value="">All States</option>
+                          {states.map((s) => <option key={s} value={s}>{s}</option>)}
+                        </select>
+                      </div>
+                    ) : null;
+                  })()}
+                </div>
+                {(() => {
+                  const alreadyApproved = new Set(vendor.approvedLocations.map((l: any) => l.location?.id));
+                  const filtered = allLocations.filter(
+                    (l) => !alreadyApproved.has(l.id) &&
+                      (!addLocSearch || l.name.toLowerCase().includes(addLocSearch.toLowerCase()) || l.parentName.toLowerCase().includes(addLocSearch.toLowerCase())) &&
+                      (!addLocStateFilter || l.parentName === addLocStateFilter)
+                  );
+                  return (
+                    <div className="max-h-56 overflow-y-auto border rounded-lg divide-y">
+                      {filtered.length === 0 ? (
+                        <p className="p-4 text-center text-sm text-gray-400">
+                          {allLocations.length === 0 ? 'Loading...' : 'No locations available to add'}
+                        </p>
+                      ) : (
+                        filtered.map((loc) => (
+                          <label key={loc.id} className="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={addLocSelected.has(loc.id)}
+                              onChange={() => setAddLocSelected((prev) => { const s = new Set(prev); s.has(loc.id) ? s.delete(loc.id) : s.add(loc.id); return s; })}
+                              className="w-4 h-4 accent-blue-600"
+                            />
+                            <MapPin className="w-4 h-4 text-blue-500" />
+                            <span className="text-sm font-medium text-gray-900">{loc.name}</span>
+                            {loc.parentName && <span className="text-xs text-gray-400">({loc.parentName})</span>}
+                          </label>
+                        ))
+                      )}
+                    </div>
+                  );
+                })()}
+                <div className="flex justify-end">
+                  <Button onClick={handleAddLocations} disabled={addLocSelected.size === 0 || addLocLoading}>
+                    {addLocLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Plus className="w-4 h-4 mr-2" />}
+                    Add {addLocSelected.size > 0 ? `${addLocSelected.size} ` : ''}Location{addLocSelected.size !== 1 ? 's' : ''}
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
 
           {/* Approved Locations */}
           {(() => {
