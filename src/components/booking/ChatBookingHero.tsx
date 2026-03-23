@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
-import { Send, Sparkles, CheckCircle, User, AlertTriangle } from 'lucide-react';
+import { Send, Sparkles, CheckCircle, User, AlertTriangle, Calendar, Clock } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLocations } from './useLocations';
 import { useServices } from './useServices';
@@ -47,6 +47,7 @@ export function ChatBookingHero({
 }: ChatBookingHeroProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
+  const [dateError, setDateError] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [bookingData, setBookingData] = useState<any>({
     serviceType,
@@ -2538,6 +2539,26 @@ export function ChatBookingHero({
       askForLocation();
       setInputValue('');
     } else if (currentStep === 'pickup-datetime') {
+      // Validate 12-hour advance booking
+      const MIN_ADVANCE_HOURS = 12;
+      const pickupDt = new Date(inputValue);
+      const now = new Date();
+      const diffHours = (pickupDt.getTime() - now.getTime()) / (1000 * 60 * 60);
+      if (diffHours < MIN_ADVANCE_HOURS) {
+        const earliest = new Date(now.getTime() + MIN_ADVANCE_HOURS * 60 * 60 * 1000);
+        const fDate = earliest.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+        const fTime = earliest.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
+        setDateError(`Booking requires at least ${MIN_ADVANCE_HOURS} hours advance notice. Earliest pickup: ${fDate}, ${fTime}.`);
+        setTimeout(() => setDateError(''), 6000);
+        // Re-show datetime picker so user can retry
+        addShiviMessage(
+          'Please select a later date & time 📅',
+          undefined, 300, 'datetime-local', 'Select date & time'
+        );
+        setInputValue('');
+        return;
+      }
+      setDateError('');
       // Format datetime for display
       const formattedDateTime = new Date(inputValue).toLocaleString('en-IN', {
         day: 'numeric', month: 'short', year: 'numeric',
@@ -2748,33 +2769,110 @@ export function ChatBookingHero({
 
             {/* Input Area - Only show when expecting text input */}
             {messages[messages.length - 1]?.inputType && (
-              <form onSubmit={handleInputSubmit} className="p-3 bg-white border-t border-gray-200">
-                <div className="flex gap-2">
-                  <input
-                    ref={inputRef}
-                    type={messages[messages.length - 1]?.inputType || 'text'}
-                    value={inputValue}
-                    onChange={(e) => setInputValue(e.target.value)}
-                    placeholder={messages[messages.length - 1]?.placeholder || 'Type your message...'}
-                    min={
-                      messages[messages.length - 1]?.inputType === 'datetime-local'
-                        ? currentStep === 'return-datetime' && bookingData.pickupDateTime
-                          ? bookingData.pickupDateTime
-                          : new Date().toISOString().slice(0, 16)
-                        : undefined
-                    }
-                    className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                    disabled={currentStep === 'completed' || currentStep === 'summary'}
-                  />
+              messages[messages.length - 1]?.inputType === 'datetime-local' ? (
+                /* Custom Date + Time picker for datetime-local */
+                <div className="p-3 bg-white border-t border-gray-200 space-y-2">
+                  {/* Date Validation Error */}
+                  <AnimatePresence>
+                    {dateError && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 8, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 8, scale: 0.95 }}
+                        transition={{ duration: 0.2 }}
+                        className="flex items-start gap-2 p-2.5 bg-red-50 border border-red-200 rounded-lg"
+                      >
+                        <AlertTriangle className="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" />
+                        <p className="flex-1 text-xs font-medium text-red-700 leading-relaxed">{dateError}</p>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-500 mb-1">
+                        <Calendar className="w-3 h-3 inline mr-1" />Date
+                      </label>
+                      <input
+                        type="date"
+                        value={inputValue.split('T')[0] || ''}
+                        onChange={(e) => {
+                          const time = inputValue.split('T')[1] || '10:00';
+                          setInputValue(`${e.target.value}T${time}`);
+                          setDateError('');
+                        }}
+                        min={
+                          currentStep === 'return-datetime' && bookingData.pickupDateTime
+                            ? bookingData.pickupDateTime.split('T')[0]
+                            : new Date(Date.now() + 12 * 60 * 60 * 1000).toISOString().split('T')[0]
+                        }
+                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                        disabled={currentStep === 'completed' || currentStep === 'summary'}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-500 mb-1">
+                        <Clock className="w-3 h-3 inline mr-1" />Time
+                      </label>
+                      <select
+                        value={inputValue.split('T')[1] || ''}
+                        onChange={(e) => {
+                          const date = inputValue.split('T')[0] || '';
+                          setInputValue(`${date}T${e.target.value}`);
+                          setDateError('');
+                        }}
+                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                        disabled={currentStep === 'completed' || currentStep === 'summary'}
+                      >
+                        <option value="">Select Time</option>
+                        {Array.from({ length: 48 }, (_, i) => {
+                          const h = Math.floor(i / 2);
+                          const m = (i % 2) * 30;
+                          const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+                          const ap = h < 12 ? 'AM' : 'PM';
+                          const val = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+                          const label = `${String(h12).padStart(2, '0')}:${String(m).padStart(2, '0')} ${ap}`;
+                          return <option key={val} value={val}>{label}</option>;
+                        })}
+                      </select>
+                    </div>
+                  </div>
                   <button
-                    type="submit"
-                    disabled={!inputValue.trim() || currentStep === 'completed' || currentStep === 'summary'}
-                    className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2"
+                    type="button"
+                    onClick={() => {
+                      if (inputValue.includes('T') && inputValue.split('T')[0] && inputValue.split('T')[1]) {
+                        handleInputSubmit({ preventDefault: () => {} } as React.FormEvent);
+                      }
+                    }}
+                    disabled={!inputValue.includes('T') || !inputValue.split('T')[0] || !inputValue.split('T')[1] || currentStep === 'completed' || currentStep === 'summary'}
+                    className="w-full py-2 bg-primary text-white text-sm font-semibold rounded-lg hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
                   >
                     <Send className="w-3 h-3" />
+                    Confirm
                   </button>
                 </div>
-              </form>
+              ) : (
+                /* Regular text/tel/email input */
+                <form onSubmit={handleInputSubmit} className="p-3 bg-white border-t border-gray-200">
+                  <div className="flex gap-2">
+                    <input
+                      ref={inputRef}
+                      type={messages[messages.length - 1]?.inputType || 'text'}
+                      value={inputValue}
+                      onChange={(e) => setInputValue(e.target.value)}
+                      placeholder={messages[messages.length - 1]?.placeholder || 'Type your message...'}
+                      className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                      disabled={currentStep === 'completed' || currentStep === 'summary'}
+                    />
+                    <button
+                      type="submit"
+                      disabled={!inputValue.trim() || currentStep === 'completed' || currentStep === 'summary'}
+                      className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2"
+                    >
+                      <Send className="w-3 h-3" />
+                    </button>
+                  </div>
+                </form>
+              )
             )}
           </div>
         </div>

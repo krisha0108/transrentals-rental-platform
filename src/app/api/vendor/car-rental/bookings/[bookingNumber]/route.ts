@@ -84,7 +84,16 @@ export async function GET(
         localPackageId: booking.localPackageId,
         localPackageHours: booking.localPackageHours,
         localPackageKm: booking.localPackageKm,
+        intermediateStops: booking.intermediateStops
+          ? (() => { try { return JSON.parse(booking.intermediateStops); } catch { return []; } })()
+          : [],
         baseFare: booking.baseFare,
+        chargeableKm: booking.chargeableKm,
+        perKmRate: booking.perKmRate,
+        kmCharges: booking.kmCharges,
+        driverBatta: booking.driverBatta,
+        nightCharges: booking.nightCharges,
+        tollCharges: booking.tollCharges,
         gstAmount: booking.gstAmount,
         platformFee: booking.platformFee,
         grandTotal: booking.grandTotal,

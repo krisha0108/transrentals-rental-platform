@@ -365,7 +365,11 @@ export async function POST(request: NextRequest) {
 
       // Pricing
       baseFare: baseFare || 0,
-      perKmRate: 0, // Pre-calculated in frontend
+      perKmRate: body.perKmRate || 0,
+      chargeableKm: body.chargeableKm || null,
+      kmCharges: body.kmCharges || 0,
+      driverBatta: body.driverBatta || 0,
+      nightCharges: body.nightCharges || 0,
       gstAmount: gstAmount || 0,
       platformFee: platformFee || 99,
       grandTotal: grandTotal || 0,
@@ -400,6 +404,16 @@ export async function POST(request: NextRequest) {
         ...bookingData,
       },
     });
+
+    // Save intermediateStops via raw SQL (field added via migration, Prisma client may need regeneration)
+    if (body.intermediateStops?.length) {
+      const stopsJson = JSON.stringify(body.intermediateStops);
+      await prisma.$executeRawUnsafe(
+        'UPDATE chauffeur_bookings SET intermediateStops = ? WHERE id = ?',
+        stopsJson,
+        booking.id
+      );
+    }
 
     // Auto-register customer if not exists
     let customer = await prisma.customers.findFirst({

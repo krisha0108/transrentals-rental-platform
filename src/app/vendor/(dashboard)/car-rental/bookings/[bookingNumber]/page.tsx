@@ -10,6 +10,7 @@ import {
   MapPin,
   User,
   Mail,
+  Phone,
   CheckCircle,
   XCircle,
   AlertCircle,
@@ -36,6 +37,7 @@ interface BookingDetails {
   customerEmail: string;
   pickupCity: string;
   dropCity?: string;
+  intermediateStops?: Array<{ id: string; locationId: string; cityText: string }>;
   pickupAddress?: string;
   dropAddress?: string;
   pickupDate: string;
@@ -46,6 +48,12 @@ interface BookingDetails {
   localPackageHours?: number;
   localPackageKm?: number;
   baseFare: number;
+  chargeableKm?: number;
+  perKmRate?: number;
+  kmCharges?: number;
+  driverBatta?: number;
+  nightCharges?: number;
+  tollCharges?: number;
   gstAmount: number;
   platformFee: number;
   grandTotal: number;
@@ -57,7 +65,7 @@ interface BookingDetails {
   driverName?: string;
   driverPhone?: string;
   vehicleNumber?: string;
-  vehicle_model?: string;
+  vehicleModel?: string;
   tripStartOtp?: string;
   tripStartedAt?: string;
   tripEndedAt?: string;
@@ -206,7 +214,7 @@ export default function VendorBookingDetailPage() {
             driverName: data.booking.driverName,
             driverPhone: data.booking.driverPhone || '',
             vehicleNumber: data.booking.vehicleNumber || '',
-            vehicle_models: data.booking.vehicle_models || '',
+            vehicle_models: data.booking.vehicleModel || '',
           });
         }
       }
@@ -467,79 +475,106 @@ export default function VendorBookingDetailPage() {
               Trip Details
             </h2>
 
-            <div className="grid md:grid-cols-2 gap-6">
-              <div>
-                <p className="text-xs text-gray-500 mb-1">Trip Type</p>
-                <p className="font-medium">{TRIP_TYPE_LABELS[booking.tripType] || booking.tripType}</p>
-              </div>
+            {/* Badges */}
+            <div className="flex flex-wrap gap-2 mb-5">
+              <span className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-sm font-medium">
+                {TRIP_TYPE_LABELS[booking.tripType] || booking.tripType}
+              </span>
+              <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
+                {booking.carCategoryName}
+              </span>
+              {booking.totalDays && booking.totalDays > 1 && (
+                <span className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm font-medium">
+                  {booking.totalDays} Days
+                </span>
+              )}
+              {booking.localPackageHours && (
+                <span className="px-3 py-1 bg-amber-100 text-amber-700 rounded-full text-sm font-medium">
+                  {booking.localPackageHours}hrs / {booking.localPackageKm}km
+                </span>
+              )}
+            </div>
 
-              <div>
-                <p className="text-xs text-gray-500 mb-1">Car Category</p>
-                <p className="font-medium">{booking.carCategoryName}</p>
-              </div>
+            {/* Route */}
+            {(() => {
+              const stops = (booking.intermediateStops || []).filter((s) => s.cityText);
+              const allPoints = [
+                { city: booking.pickupCity, address: booking.pickupAddress, type: 'pickup' },
+                ...stops.map((s) => ({ city: s.cityText, address: undefined, type: 'stop' })),
+                { city: booking.dropCity || booking.pickupCity, address: booking.dropAddress, type: 'drop' },
+              ];
+              // Deduplicate if pickup===drop (local/round trip same city)
+              const showDrop = booking.dropCity && booking.dropCity !== booking.pickupCity || stops.length > 0;
+              const points = showDrop ? allPoints : [allPoints[0]];
 
-              <div>
-                <p className="text-xs text-gray-500 mb-1">Pickup Location</p>
-                <p className="font-medium">{booking.pickupCity}</p>
-                {booking.pickupAddress && (
-                  <p className="text-sm text-gray-500">{booking.pickupAddress}</p>
-                )}
-              </div>
+              return (
+                <div className="mb-5">
+                  <p className="text-xs text-gray-500 mb-3 uppercase tracking-wide font-medium">Route</p>
+                  <div className="relative">
+                    {/* Vertical line */}
+                    {points.length > 1 && (
+                      <div className="absolute left-[7px] top-4 bottom-4 w-0.5 bg-gray-200" />
+                    )}
+                    <div className="space-y-4">
+                      {points.map((pt, i) => (
+                        <div key={i} className="flex items-start gap-3">
+                          <div className={`w-4 h-4 rounded-full flex-shrink-0 mt-0.5 border-2 border-white shadow-sm relative z-10 ${
+                            i === 0 ? 'bg-emerald-500' :
+                            i === points.length - 1 ? 'bg-red-500' :
+                            'bg-orange-400'
+                          }`} />
+                          <div>
+                            <p className="font-semibold text-gray-900">{pt.city}</p>
+                            {pt.address && (
+                              <p className="text-sm text-gray-500">{pt.address}</p>
+                            )}
+                            {i === 0 && (
+                              <p className="text-xs text-emerald-600 font-medium mt-0.5">
+                                {new Date(booking.pickupDate).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })} · {booking.pickupTime}
+                              </p>
+                            )}
+                            {i === points.length - 1 && booking.returnDate && (
+                              <p className="text-xs text-red-500 font-medium mt-0.5">
+                                Return: {new Date(booking.returnDate).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
 
-              <div>
-                <p className="text-xs text-gray-500 mb-1">Drop Location</p>
-                <p className="font-medium">{booking.dropCity || booking.pickupCity}</p>
-                {booking.dropAddress && (
-                  <p className="text-sm text-gray-500">{booking.dropAddress}</p>
-                )}
-              </div>
+                  {/* Distance info */}
+                  {booking.chargeableKm && booking.chargeableKm > 0 && (
+                    <div className="mt-4 flex items-center gap-4 bg-blue-50 rounded-lg px-4 py-2.5 text-sm">
+                      <span className="text-blue-700 font-medium">{booking.chargeableKm} km</span>
+                      {booking.perKmRate && (
+                        <span className="text-blue-600">@ ₹{booking.perKmRate}/km</span>
+                      )}
+                      {stops.length > 0 && (
+                        <span className="text-blue-500 text-xs">{stops.length + 1} legs · Multi-Stop</span>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
 
-              <div>
+            {/* Date info (if local/no drop city shown separately) */}
+            {!booking.dropCity && !booking.intermediateStops?.length && (
+              <div className="mb-5">
                 <p className="text-xs text-gray-500 mb-1">Pickup Date & Time</p>
                 <p className="font-medium">
                   {new Date(booking.pickupDate).toLocaleDateString('en-IN', {
-                    weekday: 'long',
-                    day: 'numeric',
-                    month: 'long',
-                    year: 'numeric',
+                    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
                   })}
                 </p>
                 <p className="text-sm text-gray-500">{booking.pickupTime}</p>
               </div>
-
-              {booking.returnDate && (
-                <div>
-                  <p className="text-xs text-gray-500 mb-1">Return Date</p>
-                  <p className="font-medium">
-                    {new Date(booking.returnDate).toLocaleDateString('en-IN', {
-                      weekday: 'long',
-                      day: 'numeric',
-                      month: 'long',
-                      year: 'numeric',
-                    })}
-                  </p>
-                </div>
-              )}
-
-              {booking.localPackageHours && (
-                <div>
-                  <p className="text-xs text-gray-500 mb-1">Package</p>
-                  <p className="font-medium">
-                    {booking.localPackageHours} Hours / {booking.localPackageKm} Km
-                  </p>
-                </div>
-              )}
-
-              {booking.totalDays && booking.totalDays > 1 && (
-                <div>
-                  <p className="text-xs text-gray-500 mb-1">Total Days</p>
-                  <p className="font-medium">{booking.totalDays} Days</p>
-                </div>
-              )}
-            </div>
+            )}
 
             {booking.customerNotes && (
-              <div className="mt-4 pt-4 border-t">
+              <div className="pt-4 border-t">
                 <p className="text-xs text-gray-500 mb-1">Customer Notes</p>
                 <p className="text-sm text-gray-700">{booking.customerNotes}</p>
               </div>
@@ -553,9 +588,9 @@ export default function VendorBookingDetailPage() {
               Customer Details
             </h2>
 
-            <div className="grid md:grid-cols-2 gap-6">
+            <div className="grid md:grid-cols-3 gap-4">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-emerald-100 rounded-full flex items-center justify-center">
+                <div className="w-10 h-10 bg-emerald-100 rounded-full flex items-center justify-center flex-shrink-0">
                   <User className="w-5 h-5 text-emerald-600" />
                 </div>
                 <div>
@@ -564,13 +599,25 @@ export default function VendorBookingDetailPage() {
                 </div>
               </div>
 
-              <div className="flex items-center gap-3 md:col-span-2">
-                <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+                  <Phone className="w-5 h-5 text-blue-600" />
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500">Phone</p>
+                  <a href={`tel:${booking.customerPhone}`} className="font-medium text-blue-600 hover:underline">
+                    {booking.customerPhone}
+                  </a>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center flex-shrink-0">
                   <Mail className="w-5 h-5 text-purple-600" />
                 </div>
                 <div>
                   <p className="text-xs text-gray-500">Email</p>
-                  <a href={`mailto:${booking.customerEmail}`} className="font-medium text-emerald-600 hover:underline">
+                  <a href={`mailto:${booking.customerEmail}`} className="font-medium text-purple-600 hover:underline text-sm break-all">
                     {booking.customerEmail}
                   </a>
                 </div>
@@ -625,10 +672,10 @@ export default function VendorBookingDetailPage() {
                   <p className="text-xs text-gray-500 mb-1">Vehicle Number</p>
                   <p className="font-medium">{booking.vehicleNumber}</p>
                 </div>
-                {booking.vehicle_models && (
+                {booking.vehicleModel && (
                   <div>
                     <p className="text-xs text-gray-500 mb-1">Vehicle Model</p>
-                    <p className="font-medium">{booking.vehicle_models}</p>
+                    <p className="font-medium">{booking.vehicleModel}</p>
                   </div>
                 )}
               </div>
@@ -934,40 +981,82 @@ export default function VendorBookingDetailPage() {
               Payment Summary
             </h2>
 
-            <div className="space-y-3 text-sm">
-              <div className="flex justify-between">
-                <span className="text-gray-600">Base Fare</span>
-                <span>₹{booking.baseFare.toLocaleString()}</span>
-              </div>
+            <div className="space-y-2.5 text-sm">
+              {/* Distance / Base fare */}
+              {booking.kmCharges && booking.kmCharges > 0 ? (
+                <div className="flex justify-between">
+                  <span className="text-gray-600">
+                    Distance Charges
+                    {booking.chargeableKm ? <span className="text-xs text-gray-400 ml-1">({booking.chargeableKm} km)</span> : null}
+                  </span>
+                  <span>₹{booking.kmCharges.toLocaleString()}</span>
+                </div>
+              ) : (
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Base Fare</span>
+                  <span>₹{booking.baseFare.toLocaleString()}</span>
+                </div>
+              )}
+
+              {booking.driverBatta && booking.driverBatta > 0 ? (
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Driver Allowance</span>
+                  <span>₹{booking.driverBatta.toLocaleString()}</span>
+                </div>
+              ) : null}
+
+              {booking.nightCharges && booking.nightCharges > 0 ? (
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Night Charges</span>
+                  <span>₹{booking.nightCharges.toLocaleString()}</span>
+                </div>
+              ) : null}
+
+              {booking.tollCharges && booking.tollCharges > 0 ? (
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Toll Charges</span>
+                  <span>₹{booking.tollCharges.toLocaleString()}</span>
+                </div>
+              ) : null}
+
+              {booking.gstAmount > 0 ? (
+                <div className="flex justify-between">
+                  <span className="text-gray-600">GST</span>
+                  <span>₹{booking.gstAmount.toLocaleString()}</span>
+                </div>
+              ) : null}
+
+              {booking.platformFee > 0 ? (
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Platform Fee</span>
+                  <span>₹{booking.platformFee.toLocaleString()}</span>
+                </div>
+              ) : null}
+
               <div className="border-t pt-2 flex justify-between font-semibold">
                 <span>Grand Total</span>
                 <span className="text-emerald-600">₹{booking.grandTotal.toLocaleString()}</span>
               </div>
 
-              {booking.extraCharges && booking.extraCharges > 0 && (
+              {/* Post-trip extra charges */}
+              {booking.extraCharges && booking.extraCharges > 0 ? (
                 <>
                   <div className="border-t pt-2 flex justify-between text-amber-600">
                     <span>Extra Charges</span>
                     <span>₹{booking.extraCharges.toLocaleString()}</span>
                   </div>
-                  {booking.tollCharges && booking.tollCharges > 0 && (
-                    <div className="flex justify-between text-gray-600">
-                      <span>Toll Charges</span>
-                      <span>₹{booking.tollCharges.toLocaleString()}</span>
-                    </div>
-                  )}
-                  {booking.parkingCharges && booking.parkingCharges > 0 && (
+                  {booking.parkingCharges && booking.parkingCharges > 0 ? (
                     <div className="flex justify-between text-gray-600">
                       <span>Parking Charges</span>
                       <span>₹{booking.parkingCharges.toLocaleString()}</span>
                     </div>
-                  )}
+                  ) : null}
                   <div className="border-t pt-2 flex justify-between font-bold text-lg">
                     <span>Final Amount</span>
                     <span className="text-emerald-600">₹{booking.finalAmount?.toLocaleString()}</span>
                   </div>
                 </>
-              )}
+              ) : null}
             </div>
 
             <div className="mt-4 pt-4 border-t">

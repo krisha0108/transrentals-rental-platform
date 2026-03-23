@@ -413,6 +413,25 @@ export function SmartShivi() {
   };
 
   // God-level: Intelligent date validation
+  // Minimum advance booking: pickup must be at least 12 hours from now
+  const MIN_ADVANCE_HOURS = 12;
+
+  const getMinBookingDate = () => {
+    const now = new Date();
+    const minDateTime = new Date(now.getTime() + MIN_ADVANCE_HOURS * 60 * 60 * 1000);
+    return minDateTime.toISOString().split('T')[0];
+  };
+
+  const isPickupTooSoon = (date: string, time: string) => {
+    const pickupDateTime = new Date(`${date}T${time || '00:00'}:00`);
+    const now = new Date();
+    const diffMs = pickupDateTime.getTime() - now.getTime();
+    const diffHours = diffMs / (1000 * 60 * 60);
+    return diffHours < MIN_ADVANCE_HOURS;
+  };
+
+  const minBookingDate = getMinBookingDate();
+
   const validateDate = (dateStr: string): { valid: boolean; message?: string; suggestedDate?: string } => {
     const date = new Date(dateStr);
     const today = new Date();
@@ -423,12 +442,19 @@ export function SmartShivi() {
     }
 
     if (date < today) {
-      const tomorrow = new Date(today);
-      tomorrow.setDate(tomorrow.getDate() + 1);
       return {
         valid: false,
         message: "That date is in the past! The earliest I can book is today 📅",
-        suggestedDate: tomorrow.toISOString().split('T')[0]
+        suggestedDate: minBookingDate
+      };
+    }
+
+    // Check minimum booking date (12 hours advance)
+    if (dateStr < minBookingDate) {
+      return {
+        valid: false,
+        message: `Booking requires at least ${MIN_ADVANCE_HOURS} hours advance notice. Earliest date: ${new Date(minBookingDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })} 📅`,
+        suggestedDate: minBookingDate
       };
     }
 
@@ -1766,6 +1792,19 @@ export function SmartShivi() {
         return;
       }
 
+      // Validate 12-hour advance for pickup time
+      if (bookingStep === 'pickup-time') {
+        const pickupDate = bookingData.pickupDate || tempDate;
+        if (pickupDate && isPickupTooSoon(pickupDate, tempTime)) {
+          const now = new Date();
+          const earliest = new Date(now.getTime() + MIN_ADVANCE_HOURS * 60 * 60 * 1000);
+          const fDate = earliest.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+          const fTime = earliest.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
+          setCalendarError(`Booking requires at least ${MIN_ADVANCE_HOURS} hours advance. Earliest: ${fDate}, ${fTime}`);
+          return;
+        }
+      }
+
       const formattedTime = formatTimeLabel(tempTime) || tempTime;
       setShowDatePicker(false);
       setInputValue('');
@@ -2349,6 +2388,28 @@ export function SmartShivi() {
       return;
     }
 
+    // Convert 12h time to 24h for validation (e.g., "09:00 AM" → "09:00", "02:30 PM" → "14:30")
+    const parse24hTime = (t: string) => {
+      const match = t.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)?$/i);
+      if (!match) return t;
+      let h = parseInt(match[1]);
+      const m = match[2];
+      const period = match[3]?.toUpperCase();
+      if (period === 'PM' && h !== 12) h += 12;
+      if (period === 'AM' && h === 12) h = 0;
+      return `${String(h).padStart(2, '0')}:${m}`;
+    };
+
+    const time24 = parse24hTime(time);
+    if (isPickupTooSoon(date, time24)) {
+      const now = new Date();
+      const earliest = new Date(now.getTime() + MIN_ADVANCE_HOURS * 60 * 60 * 1000);
+      const fDate = earliest.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+      const fTime = earliest.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
+      addShiviMessage(`⚠️ Booking requires at least ${MIN_ADVANCE_HOURS} hours advance notice. Earliest pickup: ${fDate}, ${fTime}. Please select a later date or time.`);
+      await askForPickupDate();
+      return;
+    }
 
     setBookingData((prev) => ({ ...prev, pickupDate: date, pickupTime: time }));
 
@@ -3794,7 +3855,7 @@ Ready to confirm?
                         value={tempDate}
                         onChange={(e) => setTempDate(e.target.value)}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                        min={new Date().toISOString().split('T')[0]}
+                        min={minBookingDate}
                       />
                     </div>
                   )}
@@ -3804,12 +3865,14 @@ Ready to confirm?
                       <label className="block text-xs text-gray-600">
                         Time
                       </label>
-                      <input
-                        type="time"
+                      <select
                         value={tempTime}
                         onChange={(e) => setTempTime(e.target.value)}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                      />
+                      >
+                        <option value="">Select Time</option>
+                        {Array.from({ length: 48 }, (_, i) => { const h = Math.floor(i / 2); const m = (i % 2) * 30; const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h; const ap = h < 12 ? 'AM' : 'PM'; const val = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`; const label = `${String(h12).padStart(2, '0')}:${String(m).padStart(2, '0')} ${ap}`; return <option key={val} value={val}>{label}</option>; })}
+                      </select>
                     </div>
                   )}
 

@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Calendar, Clock, User, Mail, Phone, MessageSquare, ArrowRight, Check, Users, MapPin } from 'lucide-react';
+import { Calendar, Clock, User, Mail, Phone, MessageSquare, ArrowRight, Check, Users, MapPin, AlertCircle, X } from 'lucide-react';
+import { AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { useBookingSubmission } from './useBookingSubmission';
 import { LocationAutocomplete } from './LocationAutocomplete';
@@ -99,15 +100,30 @@ export function BusRentalBookingForm() {
     }));
   };
 
-  // Get today's date in YYYY-MM-DD format
-  const getTodayDate = () => {
-    const today = new Date();
-    return today.toISOString().split('T')[0];
+  const [dateError, setDateError] = useState('');
+
+  // Minimum advance booking: pickup must be at least 12 hours from now
+  const MIN_ADVANCE_HOURS = 12;
+
+  const getMinBookingDate = () => {
+    const now = new Date();
+    const minDateTime = new Date(now.getTime() + MIN_ADVANCE_HOURS * 60 * 60 * 1000);
+    return minDateTime.toISOString().split('T')[0];
   };
+
+  const isPickupTooSoon = (date: string, time: string) => {
+    const pickupDateTime = new Date(`${date}T${time || '00:00'}:00`);
+    const now = new Date();
+    const diffMs = pickupDateTime.getTime() - now.getTime();
+    const diffHours = diffMs / (1000 * 60 * 60);
+    return diffHours < MIN_ADVANCE_HOURS;
+  };
+
+  const minBookingDate = getMinBookingDate();
 
   // Get minimum return date (same as or after start date)
   const getMinReturnDate = () => {
-    return formData.startDate || getTodayDate();
+    return formData.startDate || minBookingDate;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -233,15 +249,18 @@ export function BusRentalBookingForm() {
             <div className="grid md:grid-cols-2 gap-4">
               <div className="text-center">
                 <label className="block text-sm font-medium text-gray-700 mb-2"><Calendar className="w-4 h-4 inline mr-2" />Start Date *</label>
-                <input type="date" value={formData.startDate} onChange={(e) => updateFormData('startDate', e.target.value)}
-                  min={getTodayDate()}
+                <input type="date" value={formData.startDate} onChange={(e) => { updateFormData('startDate', e.target.value); setDateError(''); }}
+                  min={minBookingDate}
                   className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-primary focus:outline-none" required />
-                <p className="text-xs text-gray-500 mt-1">Cannot select past dates</p>
+                <p className="text-xs text-gray-500 mt-1">Advance booking required (min 12 hrs)</p>
               </div>
               <div className="text-center">
                 <label className="block text-sm font-medium text-gray-700 mb-2"><Clock className="w-4 h-4 inline mr-2" />Start Time *</label>
-                <input type="time" value={formData.startTime} onChange={(e) => updateFormData('startTime', e.target.value)}
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-primary focus:outline-none" required />
+                <select value={formData.startTime} onChange={(e) => { updateFormData('startTime', e.target.value); setDateError(''); }}
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-primary focus:outline-none" required>
+                  <option value="">Select Time</option>
+                  {Array.from({ length: 48 }, (_, i) => { const h = Math.floor(i / 2); const m = (i % 2) * 30; const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h; const ap = h < 12 ? 'AM' : 'PM'; const val = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`; const label = `${String(h12).padStart(2, '0')}:${String(m).padStart(2, '0')} ${ap}`; return <option key={val} value={val}>{label}</option>; })}
+                </select>
               </div>
               <div className="text-center">
                 <label className="block text-sm font-medium text-gray-700 mb-2"><Calendar className="w-4 h-4 inline mr-2" />Return Date</label>
@@ -252,8 +271,11 @@ export function BusRentalBookingForm() {
               </div>
               <div className="text-center">
                 <label className="block text-sm font-medium text-gray-700 mb-2"><Clock className="w-4 h-4 inline mr-2" />Return Time</label>
-                <input type="time" value={formData.returnTime} onChange={(e) => updateFormData('returnTime', e.target.value)}
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-primary focus:outline-none" />
+                <select value={formData.returnTime} onChange={(e) => updateFormData('returnTime', e.target.value)}
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-primary focus:outline-none">
+                  <option value="">Select Time</option>
+                  {Array.from({ length: 48 }, (_, i) => { const h = Math.floor(i / 2); const m = (i % 2) * 30; const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h; const ap = h < 12 ? 'AM' : 'PM'; const val = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`; const label = `${String(h12).padStart(2, '0')}:${String(m).padStart(2, '0')} ${ap}`; return <option key={val} value={val}>{label}</option>; })}
+                </select>
               </div>
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -324,11 +346,47 @@ export function BusRentalBookingForm() {
           </div>
         )}
 
+        {/* Date Validation Error */}
+        <AnimatePresence>
+          {dateError && (
+            <motion.div
+              initial={{ opacity: 0, y: -8, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -8, scale: 0.95 }}
+              transition={{ duration: 0.2 }}
+              className="flex items-start gap-2.5 p-3 mt-4 bg-red-50 border border-red-200 rounded-lg"
+            >
+              <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+              <p className="flex-1 text-sm font-medium text-red-800">{dateError}</p>
+              <button
+                type="button"
+                onClick={() => setDateError('')}
+                className="text-red-400 hover:text-red-600 flex-shrink-0"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         <div className="flex items-center justify-between mt-8 pt-6 border-t border-gray-200">
           {currentStep > 1 && <Button type="button" variant="outline" onClick={() => setCurrentStep(currentStep - 1)} disabled={isSubmitting}>Previous</Button>}
           <div className="ml-auto">
             {currentStep < 3 ? (
-              <Button type="button" onClick={() => setCurrentStep(currentStep + 1)} disabled={!canProceed()} className="min-w-[120px]">
+              <Button type="button" onClick={() => {
+                // Validate 12-hour advance on step 2
+                if (currentStep === 2 && formData.startDate && formData.startTime && isPickupTooSoon(formData.startDate, formData.startTime)) {
+                  const now = new Date();
+                  const earliest = new Date(now.getTime() + MIN_ADVANCE_HOURS * 60 * 60 * 1000);
+                  const formattedDate = earliest.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+                  const formattedTime = earliest.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
+                  setDateError(`Booking requires at least ${MIN_ADVANCE_HOURS} hours advance notice. Earliest pickup: ${formattedDate}, ${formattedTime}.`);
+                  setTimeout(() => setDateError(''), 5000);
+                  return;
+                }
+                setDateError('');
+                setCurrentStep(currentStep + 1);
+              }} disabled={!canProceed()} className="min-w-[120px]">
                 Next<ArrowRight className="w-4 h-4 ml-2" />
               </Button>
             ) : (

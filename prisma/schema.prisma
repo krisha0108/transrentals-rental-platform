@@ -853,6 +853,7 @@ model chauffeur_bookings {
   localPackageKm                                       Int?
   pickupCity                                           String
   dropCity                                             String?
+  intermediateStops                                    String?                          @db.Text
   pickupAddress                                        String?                          @db.Text
   dropAddress                                          String?                          @db.Text
   estimatedDistance                                    Int?

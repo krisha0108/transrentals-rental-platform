@@ -203,6 +203,9 @@ export async function GET(request: NextRequest) {
         customerEmail: b.customerEmail,
         pickupCity: b.pickupCity,
         dropCity: b.dropCity,
+        intermediateStops: b.intermediateStops
+          ? (() => { try { return JSON.parse(b.intermediateStops); } catch { return []; } })()
+          : [],
         pickupAddress: b.pickupAddress,
         dropAddress: b.dropAddress,
         pickupDate: b.pickupDate,
@@ -213,6 +216,10 @@ export async function GET(request: NextRequest) {
         localPackageHours: b.localPackageHours,
         localPackageKm: b.localPackageKm,
         baseFare: b.baseFare,
+        chargeableKm: b.chargeableKm,
+        perKmRate: b.perKmRate,
+        kmCharges: b.kmCharges,
+        driverBatta: b.driverBatta,
         gstAmount: b.gstAmount,
         platformFee: b.platformFee,
         grandTotal: b.grandTotal,
