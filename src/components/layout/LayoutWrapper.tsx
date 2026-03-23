@@ -23,6 +23,7 @@ const noLayoutRoutes = [
   '/track',
   '/invoice',
   '/trip',
+  '/stories/',   // web stories - full screen, no header/footer/login
 ];
 
 export function LayoutWrapper({ children }: { children: React.ReactNode }) {

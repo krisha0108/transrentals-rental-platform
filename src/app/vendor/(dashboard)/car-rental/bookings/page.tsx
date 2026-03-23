@@ -34,6 +34,7 @@ interface CarRentalBooking {
   customerEmail: string;
   pickupCity: string;
   dropCity?: string;
+  intermediateStops?: Array<{ id: string; locationId: string; cityText: string }>;
   pickupAddress?: string;
   pickupDate: string;
   pickupTime: string;
@@ -42,6 +43,11 @@ interface CarRentalBooking {
   localPackageKm?: number;
   grandTotal: number;
   paidAmount: number;
+  chargeableKm?: number;
+  perKmRate?: number;
+  kmCharges?: number;
+  driverBatta?: number;
+  totalDays?: number;
   status: string;
   paymentStatus: string;
   driverName?: string;
@@ -596,23 +602,47 @@ export default function VendorCarRentalBookingsPage() {
 
                   {/* Trip Details */}
                   <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+                    {/* Route */}
                     <div className="flex items-start gap-2">
-                      <MapPin className="w-4 h-4 text-emerald-500 mt-0.5" />
-                      <div>
-                        <p className="text-xs text-gray-500">Route</p>
-                        <p className="text-sm font-medium">
-                          {booking.dropCity
-                            ? `${booking.pickupCity} → ${booking.dropCity}`
-                            : booking.pickupCity}
-                        </p>
+                      <MapPin className="w-4 h-4 text-emerald-500 mt-0.5 flex-shrink-0" />
+                      <div className="min-w-0">
+                        <p className="text-xs text-gray-500 mb-1">Route</p>
+                        {(() => {
+                          const stops = booking.intermediateStops?.filter((s) => s.cityText) || [];
+                          if (stops.length > 0) {
+                            const allCities = [booking.pickupCity, ...stops.map((s) => s.cityText), booking.dropCity || booking.pickupCity];
+                            return (
+                              <div className="space-y-0.5">
+                                {allCities.map((city, i) => (
+                                  <div key={i} className="flex items-center gap-1.5">
+                                    <div className={`w-2 h-2 rounded-full flex-shrink-0 ${i === 0 ? 'bg-emerald-500' : i === allCities.length - 1 ? 'bg-red-500' : 'bg-orange-400'}`} />
+                                    <span className="text-sm font-medium truncate">{city}</span>
+                                  </div>
+                                ))}
+                                <p className="text-xs text-blue-600 font-medium mt-1">{allCities.length - 1} legs · Multi-Stop</p>
+                              </div>
+                            );
+                          }
+                          return (
+                            <div>
+                              <p className="text-sm font-medium">
+                                {booking.dropCity && booking.dropCity !== booking.pickupCity
+                                  ? `${booking.pickupCity} → ${booking.dropCity}`
+                                  : booking.pickupCity}
+                              </p>
+                              {booking.chargeableKm && booking.chargeableKm > 0 && (
+                                <p className="text-xs text-gray-400">{booking.chargeableKm} km · ₹{booking.perKmRate}/km</p>
+                              )}
+                            </div>
+                          );
+                        })()}
                         {booking.pickupAddress && (
-                          <p className="text-xs text-gray-400 truncate max-w-[200px]">
-                            {booking.pickupAddress}
-                          </p>
+                          <p className="text-xs text-gray-400 truncate mt-1">{booking.pickupAddress}</p>
                         )}
                       </div>
                     </div>
 
+                    {/* Pickup date */}
                     <div className="flex items-start gap-2">
                       <Calendar className="w-4 h-4 text-emerald-500 mt-0.5" />
                       <div>
@@ -625,6 +655,11 @@ export default function VendorCarRentalBookingsPage() {
                           })}{' '}
                           at {booking.pickupTime}
                         </p>
+                        {booking.returnDate && (
+                          <p className="text-xs text-gray-400">
+                            Return: {new Date(booking.returnDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                          </p>
+                        )}
                         {booking.localPackageHours && (
                           <p className="text-xs text-gray-400">
                             {booking.localPackageHours}hrs / {booking.localPackageKm}km
@@ -638,7 +673,42 @@ export default function VendorCarRentalBookingsPage() {
                       <div>
                         <p className="text-xs text-gray-500">Customer</p>
                         <p className="text-sm font-medium">{booking.customerName}</p>
-                        <p className="text-xs text-gray-400">{booking.customerEmail}</p>
+                        <p className="text-xs text-gray-400 flex items-center gap-1">
+                          <Phone className="w-3 h-3" />{booking.customerPhone}
+                        </p>
+                        {booking.customerEmail && (
+                          <p className="text-xs text-gray-400 truncate">{booking.customerEmail}</p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Fare Details */}
+                    <div className="flex items-start gap-2">
+                      <TrendingUp className="w-4 h-4 text-emerald-500 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <p className="text-xs text-gray-500 mb-1">Fare Breakdown</p>
+                        {booking.tripType === 'LOCAL' && booking.localPackageHours ? (
+                          <div className="space-y-0.5">
+                            <p className="text-sm font-medium">{booking.localPackageHours}hrs / {booking.localPackageKm}km</p>
+                            <p className="text-xs text-gray-400">Base: ₹{(booking.kmCharges || booking.grandTotal)?.toLocaleString()}</p>
+                          </div>
+                        ) : (
+                          <div className="space-y-0.5">
+                            {booking.chargeableKm && booking.chargeableKm > 0 ? (
+                              <p className="text-xs text-gray-500">{booking.chargeableKm} km @ ₹{booking.perKmRate}/km</p>
+                            ) : null}
+                            {booking.kmCharges && booking.kmCharges > 0 ? (
+                              <p className="text-xs text-gray-400">Distance: ₹{booking.kmCharges.toLocaleString()}</p>
+                            ) : null}
+                            {booking.driverBatta && booking.driverBatta > 0 ? (
+                              <p className="text-xs text-gray-400">Driver allowance: ₹{booking.driverBatta.toLocaleString()}</p>
+                            ) : null}
+                            {booking.totalDays && booking.totalDays > 1 ? (
+                              <p className="text-xs text-blue-500">{booking.totalDays} days</p>
+                            ) : null}
+                          </div>
+                        )}
+                        <p className="text-sm font-bold text-emerald-600 mt-1">Total: ₹{booking.grandTotal.toLocaleString()}</p>
                       </div>
                     </div>
 

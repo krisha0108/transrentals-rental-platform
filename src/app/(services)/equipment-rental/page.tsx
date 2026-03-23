@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 import { LocationsGrid } from '@/components/services/LocationsGrid';
 import { FAQSection } from '@/components/services/FAQSection';
 import { EquipmentTypesCards } from '@/components/services/EquipmentTypesCards';
-import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
+import { SimpleServiceHero } from '@/components/services/SimpleServiceHero';
 
 export const metadata: Metadata = {
   title: 'Equipment Rental - Construction & Event Equipment | Starting @₹1499/Day',
@@ -27,8 +27,8 @@ export const metadata: Metadata = {
 export default function EquipmentRentalPage() {
   return (
     <div className="flex flex-col">
-      {/* Hero with Chat Booking System */}
-      <ServiceHeroWithChat
+      {/* Hero Section */}
+      <SimpleServiceHero
         badge="Equipment Rental"
         title="Construction & Event Equipment"
         titleHighlight="Starting @₹1499/Day"

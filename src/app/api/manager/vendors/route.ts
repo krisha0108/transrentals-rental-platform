@@ -27,34 +27,38 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Access denied. Manager role required.' }, { status: 403 });
     }
 
-    const assignedLocationIds = manager.manager_locations.map((ml) => ml.locationId);
+    // const assignedLocationIds = manager.manager_locations.map((ml) => ml.locationId);
 
     // Get query params
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status') || 'all';
     const search = searchParams.get('search') || '';
 
-    // Build where clause - include vendors with approved OR requested locations
-    const whereClause: any = {
-      OR: [
-        // Vendors with approved locations
-        {
-          vendor_approved_locations: {
-            some: {
-              locationId: { in: assignedLocationIds },
-            },
-          },
-        },
-        // Vendors with pending/requested locations
-        {
-          vendor_location_requests: {
-            some: {
-              locationId: { in: assignedLocationIds },
-            },
-          },
-        },
-      ],
-    };
+    // TEMPORARY: Show ALL vendors to manager (location/service filter commented out)
+    // To restore original filter, uncomment the block below and remove the current whereClause
+    const whereClause: any = {};
+
+    // ORIGINAL location-based filter (commented out temporarily):
+    // const whereClause: any = {
+    //   OR: [
+    //     // Vendors with approved locations
+    //     {
+    //       vendor_approved_locations: {
+    //         some: {
+    //           locationId: { in: assignedLocationIds },
+    //         },
+    //       },
+    //     },
+    //     // Vendors with pending/requested locations
+    //     {
+    //       vendor_location_requests: {
+    //         some: {
+    //           locationId: { in: assignedLocationIds },
+    //         },
+    //       },
+    //     },
+    //   ],
+    // };
 
     if (status !== 'all') {
       whereClause.status = status;
@@ -71,9 +75,8 @@ export async function GET(request: NextRequest) {
       };
     }
 
-    // Get vendors
-    const vendors = assignedLocationIds.length > 0
-      ? await prisma.vendors.findMany({
+    // Get vendors — TEMPORARY: fetch all vendors (was: assignedLocationIds.length > 0 ? ... : [])
+    const vendors = await prisma.vendors.findMany({
           where: whereClause,
           select: {
             id: true,
@@ -84,11 +87,11 @@ export async function GET(request: NextRequest) {
             status: true,
             createdAt: true,
             vendor_approved_locations: {
-              where: { locationId: { in: assignedLocationIds } },
+              // ORIGINAL: where: { locationId: { in: assignedLocationIds } },
               include: { locations: { select: { id: true, name: true } } },
             },
             vendor_location_requests: {
-              where: { locationId: { in: assignedLocationIds } },
+              // ORIGINAL: where: { locationId: { in: assignedLocationIds } },
               include: { locations: { select: { id: true, name: true } } },
             },
             vendor_approved_services: {
@@ -105,8 +108,7 @@ export async function GET(request: NextRequest) {
             },
           },
           orderBy: { createdAt: 'desc' },
-        })
-      : [];
+        });
 
     // Get stats
     const stats = {

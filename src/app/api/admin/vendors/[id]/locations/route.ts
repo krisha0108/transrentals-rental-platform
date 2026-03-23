@@ -388,3 +388,56 @@ export async function DELETE(
     );
   }
 }
+
+// POST - Directly add location(s) to vendor (no request flow, manager/admin only)
+export async function POST(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const currentUser = await prisma.admin_users.findUnique({
+      where: { id: session.user.id },
+    });
+
+    if (!currentUser || !['SUPER_ADMIN', 'ADMIN', 'MANAGER'].includes(currentUser.role)) {
+      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
+    }
+
+    const { id: vendorId } = await params;
+    const body = await request.json();
+    const { locationIds } = body; // array of locationIds
+
+    if (!locationIds || !Array.isArray(locationIds) || locationIds.length === 0) {
+      return NextResponse.json({ error: 'locationIds array is required' }, { status: 400 });
+    }
+
+    for (const locationId of locationIds) {
+      await prisma.vendor_approved_locations.upsert({
+        where: { vendorId_locationId: { vendorId, locationId } },
+        update: { isActive: true },
+        create: { id: generateId(), vendorId, locationId, isActive: true },
+      });
+    }
+
+    sendVendorDirectNotification({
+      vendorId,
+      title: '📍 Locations Added',
+      body: `${locationIds.length} location${locationIds.length > 1 ? 's have' : ' has'} been added to your profile.`,
+      type: 'location_approved',
+      serviceType: 'general',
+    }).catch((err: any) => console.error('[LocAdd] Vendor notify failed:', err));
+
+    return NextResponse.json({ success: true, message: `${locationIds.length} location(s) added` });
+  } catch (error: any) {
+    logger.error('Add locations error', error);
+    return NextResponse.json(
+      { error: 'Failed to add locations', details: error?.message },
+      { status: 500 }
+    );
+  }
+}

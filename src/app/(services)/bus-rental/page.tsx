@@ -7,7 +7,7 @@ import {
   MessageSquare,
   IndianRupee,
 } from 'lucide-react';
-import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
+import { SimpleServiceHero } from '@/components/services/SimpleServiceHero';
 import { ServiceLocationsGrid } from '@/components/services/ServiceLocationsGrid';
 import { ServiceFleetDisplay } from '@/components/services/ServiceFleetDisplay';
 import { formatPriceHighlight } from '@/lib/utils';
@@ -151,8 +151,8 @@ export default function BusRentalPage() {
         }}
       />
 
-      {/* Hero with Chat Booking System */}
-      <ServiceHeroWithChat
+      {/* Hero Section */}
+      <SimpleServiceHero
         badge="Bus & Tempo Traveller Rental"
         title="Bus Rental"
         titleHighlight="For Every Occasion"

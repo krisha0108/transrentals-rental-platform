@@ -1,6 +1,5 @@
 import React from 'react';
 import type { Metadata } from 'next';
-import { RoyalEnfieldRentalServiceHero } from '@/components/services/RoyalEnfieldRentalServiceHero';
 import { LocationsGrid } from '@/components/services/LocationsGrid';
 import { FAQSection } from '@/components/services/FAQSection';
 import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
@@ -87,8 +86,6 @@ export default function RoyalEnfieldOnRentPage() {
         gradientFrom="red-50"
         gradientTo="orange-50"
       />
-
-      <RoyalEnfieldRentalServiceHero />
 
       {/* Models Section */}
       <section className="py-16 bg-white">

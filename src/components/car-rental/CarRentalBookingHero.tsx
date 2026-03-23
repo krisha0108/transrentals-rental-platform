@@ -17,6 +17,8 @@ import {
   Info,
   ArrowRight,
   ArrowLeftRight,
+  Plus,
+  Minus,
   CheckCircle2,
   Loader2,
   AlertCircle,
@@ -65,6 +67,55 @@ interface Location {
   id: string;
   name: string;
   slug: string;
+  latitude?: number | null;
+  longitude?: number | null;
+}
+
+// Custom Time Picker with AM/PM — single dropdown, works consistently across all browsers
+function TimePickerSelect({
+  value,
+  onChange,
+}: {
+  value: string; // "HH:mm" 24-hour format
+  onChange: (value: string) => void;
+}) {
+  // Generate all time slots (every 30 min, 12-hour with AM/PM)
+  const timeSlots: { label: string; value24: string }[] = [];
+  for (let h = 0; h < 24; h++) {
+    for (const m of [0, 30]) {
+      const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+      const period = h >= 12 ? 'PM' : 'AM';
+      const label = `${String(h12).padStart(2, '0')}:${String(m).padStart(2, '0')} ${period}`;
+      const value24 = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+      timeSlots.push({ label, value24 });
+    }
+  }
+
+  return (
+    <div className="relative">
+      <Clock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none z-10" />
+      <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+      <select
+        value={value || '10:00'}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full pl-10 pr-9 py-3 border border-gray-200 rounded-lg text-gray-900 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none cursor-pointer font-medium"
+      >
+        {timeSlots.map((slot) => (
+          <option key={slot.value24} value={slot.value24}>{slot.label}</option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
+function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number) {
+  const R = 6371;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
 interface Airport {
@@ -105,6 +156,10 @@ interface PricingResult {
     actualKm: number;
     chargeableKm: number;
     perKmRate: number;
+    minKmPerDay?: number;
+    minApplied?: boolean;
+    minKmForDays?: number;
+    extraKm?: number;
   };
   route?: {
     from: Location;
@@ -120,6 +175,7 @@ interface PricingResult {
     parkingIncluded: boolean;
   };
   error?: string;
+  legs?: Array<{ from: string; to: string; km: number }>;
 }
 
 interface CarRentalBookingHeroProps {
@@ -139,6 +195,8 @@ function ComboLocationInput({
   placeholder = 'Type or select destination...',
   iconColor = 'text-gray-400',
   excludeId,
+  fromLocation,
+  minDistanceKm = 0,
 }: {
   locations: Location[];
   value: string;
@@ -148,18 +206,41 @@ function ComboLocationInput({
   placeholder?: string;
   iconColor?: string;
   excludeId?: string;
+  fromLocation?: Location | null;
+  minDistanceKm?: number;
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Filter locations based on text value and exclude ID
-  const filteredLocations = locations.filter((loc) => {
+  // Filter locations based on text value, exclude ID, and minimum distance
+  const baseFiltered = locations.filter((loc) => {
     if (excludeId && loc.id === excludeId) return false;
+    // Apply minimum distance filter for outstation (exclude nearby cities)
+    if (minDistanceKm > 0 && fromLocation?.latitude && fromLocation?.longitude && loc.latitude && loc.longitude) {
+      const dist = haversineKm(fromLocation.latitude!, fromLocation.longitude!, loc.latitude, loc.longitude);
+      if (dist < minDistanceKm) return false;
+    }
     if (!textValue) return true;
     return loc.name.toLowerCase().includes(textValue.toLowerCase());
   });
+
+  // Sort by proximity when from location has coordinates and user hasn't typed yet
+  const filteredLocations = (() => {
+    if (textValue || !fromLocation?.latitude || !fromLocation?.longitude) return baseFiltered;
+    return [...baseFiltered].sort((a, b) => {
+      const distA = a.latitude && a.longitude
+        ? haversineKm(fromLocation.latitude!, fromLocation.longitude!, a.latitude, a.longitude)
+        : Infinity;
+      const distB = b.latitude && b.longitude
+        ? haversineKm(fromLocation.latitude!, fromLocation.longitude!, b.latitude, b.longitude)
+        : Infinity;
+      return distA - distB;
+    });
+  })();
+
+  const nearbyCount = !textValue && fromLocation?.latitude ? Math.min(5, filteredLocations.length) : 0;
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -232,26 +313,38 @@ function ComboLocationInput({
             className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden"
           >
             <div className="px-3 py-2 bg-gray-50 border-b border-gray-100">
-              <span className="text-xs text-gray-500">Select from list or type custom destination</span>
+              <span className="text-xs text-gray-500">
+                {minDistanceKm > 0
+                  ? `Outstation cities (${minDistanceKm}+ km away)`
+                  : nearbyCount > 0 ? 'Nearby cities shown first' : 'Select from list or type custom destination'}
+              </span>
             </div>
             <div className="max-h-48 overflow-y-auto">
-              {filteredLocations.map((loc) => (
-                <button
-                  key={loc.id}
-                  type="button"
-                  onMouseDown={(e) => e.preventDefault()} // Prevent input blur
-                  onClick={() => handleSelectLocation(loc)}
-                  className={`w-full px-4 py-2.5 text-left text-sm hover:bg-blue-50 flex items-center gap-2 transition ${
-                    value === loc.id ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-700'
-                  }`}
-                >
-                  <MapPin className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                  <span>{loc.name}</span>
-                  {value === loc.id && (
-                    <CheckCircle2 className="w-4 h-4 text-blue-600 ml-auto" />
-                  )}
-                </button>
-              ))}
+              {filteredLocations.map((loc, idx) => {
+                const dist = !textValue && fromLocation?.latitude && fromLocation?.longitude && loc.latitude && loc.longitude
+                  ? Math.round(haversineKm(fromLocation.latitude!, fromLocation.longitude!, loc.latitude, loc.longitude))
+                  : null;
+                return (
+                  <button
+                    key={loc.id}
+                    type="button"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => handleSelectLocation(loc)}
+                    className={`w-full px-4 py-2.5 text-left text-sm hover:bg-blue-50 flex items-center gap-2 transition ${
+                      value === loc.id ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-700'
+                    } ${idx === nearbyCount - 1 && nearbyCount < filteredLocations.length ? 'border-b border-gray-100' : ''}`}
+                  >
+                    <MapPin className={`w-4 h-4 flex-shrink-0 ${idx < nearbyCount ? 'text-blue-400' : 'text-gray-400'}`} />
+                    <span className="flex-1">{loc.name}</span>
+                    {dist !== null && idx < nearbyCount && (
+                      <span className="text-xs text-blue-400 ml-auto mr-1">~{dist} km</span>
+                    )}
+                    {value === loc.id && (
+                      <CheckCircle2 className="w-4 h-4 text-blue-600" />
+                    )}
+                  </button>
+                );
+              })}
             </div>
           </motion.div>
         )}
@@ -553,6 +646,11 @@ export function CarRentalBookingHero({
   const [outstationMode, setOutstationMode] = useState<OutstationMode>('round-trip');
   const [airportMode, setAirportMode] = useState<AirportMode>('pickup');
 
+  // Multi-stop state
+  const [multiStops, setMultiStops] = useState<Array<{ id: string; locationId: string; cityText: string }>>([
+    { id: '1', locationId: '', cityText: '' },
+  ]);
+
   // Data from APIs
   const [vehicleCategories, setVehicleCategories] = useState<VehicleCategory[]>([]);
   const [localPackages, setLocalPackages] = useState<LocalPackage[]>([]);
@@ -571,6 +669,9 @@ export function CarRentalBookingHero({
   const [pickupTime, setPickupTime] = useState('10:00');
   const [returnDate, setReturnDate] = useState('');
   const [selectedPackageId, setSelectedPackageId] = useState<string>('');
+
+  // Date validation error
+  const [dateError, setDateError] = useState('');
 
   // Car selection state
   const [selectedCar, setSelectedCar] = useState<string | null>(null);
@@ -659,15 +760,42 @@ export function CarRentalBookingHero({
     fetchData();
   }, [citySlug, city, apiBasePath, serviceSlug]);
 
+  // Minimum advance booking: pickup must be at least 12 hours from now
+  const MIN_ADVANCE_HOURS = 12;
+
+  // Get minimum allowed booking date (for date picker `min` attribute)
+  const getMinBookingDate = () => {
+    const now = new Date();
+    const minDateTime = new Date(now.getTime() + MIN_ADVANCE_HOURS * 60 * 60 * 1000);
+    return minDateTime.toISOString().split('T')[0];
+  };
+
+  // Validate pickup date + time is at least 12 hours from now
+  const isPickupTooSoon = (date: string, time: string) => {
+    const pickupDateTime = new Date(`${date}T${time || '00:00'}:00`);
+    const now = new Date();
+    const diffMs = pickupDateTime.getTime() - now.getTime();
+    const diffHours = diffMs / (1000 * 60 * 60);
+    return diffHours < MIN_ADVANCE_HOURS;
+  };
+
+  const minBookingDate = getMinBookingDate();
+
   // Set default dates
   useEffect(() => {
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    setPickupDate(tomorrow.toISOString().split('T')[0]);
+    const now = new Date();
+    const minPickup = new Date(now.getTime() + MIN_ADVANCE_HOURS * 60 * 60 * 1000);
+    // Default pickup time is 10:00, so find the earliest date where 10:00 AM is ≥12hrs away
+    const defaultPickup = new Date(minPickup);
+    if (defaultPickup.getHours() >= 10) {
+      // 10 AM on this date is already past, move to next day
+      defaultPickup.setDate(defaultPickup.getDate() + 1);
+    }
+    setPickupDate(defaultPickup.toISOString().split('T')[0]);
 
-    const dayAfter = new Date();
-    dayAfter.setDate(dayAfter.getDate() + 2);
-    setReturnDate(dayAfter.toISOString().split('T')[0]);
+    const defaultReturn = new Date(defaultPickup);
+    defaultReturn.setDate(defaultReturn.getDate() + 1);
+    setReturnDate(defaultReturn.toISOString().split('T')[0]);
   }, []);
 
   // Set default package when packages load
@@ -727,6 +855,94 @@ export function CarRentalBookingHero({
               }
             }
 
+            // Multi-stop: when intermediate stops are added (works for both one-way and round-trip)
+            const validIntermediateStops = multiStops.filter((s) => s.locationId);
+            if (tripType === 'outstation' && validIntermediateStops.length > 0 && dropLocationId) {
+              // Build legs: From → Stop1 → Stop2 → ... → To
+              const allStops = [...validIntermediateStops, { id: 'final', locationId: dropLocationId, cityText: dropCity || dropCityText }];
+              const legPairs = [
+                { from: pickupLocationId, fromName: pickupCity, to: allStops[0].locationId, toName: allStops[0].cityText },
+                ...allStops.slice(0, -1).map((s, i) => ({
+                  from: s.locationId,
+                  fromName: s.cityText,
+                  to: allStops[i + 1].locationId,
+                  toName: allStops[i + 1].cityText,
+                })),
+              ].filter((l) => l.from && l.to);
+              if (legPairs.length === 0) {
+                prices[vehicle.id] = { success: false, tripType: 'multi-stop', pricing: { grandTotal: 0, totalBeforeGst: 0, gst: 0 } };
+                return;
+              }
+              const legResults = await Promise.all(
+                legPairs.map(async (leg) => {
+                  try {
+                    const legParams = new URLSearchParams({
+                      vehicleCategory: vehicle.id,
+                      tripType: 'one_way',
+                      from: leg.from,
+                      to: leg.to,
+                      startDate: pickupDate || '',
+                    });
+                    if (pickupTime) legParams.set('pickupTime', pickupTime);
+                    const r = await fetch('/api/chauffeur-pricing?' + legParams.toString());
+                    const d: PricingResult = await r.json();
+                    return { ...d, legFrom: leg.fromName, legTo: leg.toName };
+                  } catch {
+                    return null;
+                  }
+                })
+              );
+              const validLegs = legResults.filter(Boolean) as (PricingResult & { legFrom: string; legTo: string })[];
+              if (validLegs.length === 0) {
+                prices[vehicle.id] = { success: false, tripType: 'multi-stop', pricing: { grandTotal: 0, totalBeforeGst: 0, gst: 0 } };
+                return;
+              }
+              // Build per-leg km with haversine fallback for legs not in distance matrix
+              const computedLegs = validLegs.map((r, i) => {
+                const apiKm = r.route?.oneWayDistance || r.calculation?.actualKm || 0;
+                let km = apiKm;
+                if (km === 0) {
+                  const fromLoc = locations.find((l) => l.id === legPairs[i]?.from);
+                  const toLoc = locations.find((l) => l.id === legPairs[i]?.to);
+                  if (fromLoc?.latitude && fromLoc?.longitude && toLoc?.latitude && toLoc?.longitude) {
+                    km = Math.round(haversineKm(fromLoc.latitude, fromLoc.longitude, toLoc.latitude, toLoc.longitude));
+                  }
+                }
+                return { from: r.legFrom, to: r.legTo, km };
+              });
+              const totalKm = computedLegs.reduce((sum, l) => sum + l.km, 0);
+              // Calculate days from pickupDate / returnDate
+              let days = 1;
+              if (pickupDate && returnDate) {
+                const start = new Date(pickupDate);
+                const end = new Date(returnDate);
+                const diffDays = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+                if (diffDays > 1) days = diffDays;
+              }
+              // Apply min km/day from DB (via first leg's API response), fallback 300
+              const minKmPerDay = validLegs.find((r) => r.calculation?.minKmPerDay)?.calculation?.minKmPerDay ?? 300;
+              const minKmForDays = days * minKmPerDay;
+              const chargeableKm = Math.max(totalKm, minKmForDays);
+              const minApplied = chargeableKm > totalKm;
+              const extraKm = minApplied ? chargeableKm - totalKm : 0;
+              const perKmRate = validLegs.find((r) => r.calculation?.perKmRate)?.calculation?.perKmRate || 0;
+              // Per-day driver batta × number of days
+              const driverAllowancePerDay = Math.max(...validLegs.map((r) => r.pricing?.driverAllowance || 0));
+              const driverAllowance = driverAllowancePerDay * days;
+              const baseCharge = Math.round(chargeableKm * perKmRate);
+              const beforeGst = baseCharge + driverAllowance;
+              const gst = Math.round(beforeGst * 0.05);
+              prices[vehicle.id] = {
+                success: chargeableKm > 0 && perKmRate > 0,
+                tripType: outstationMode === 'one-way' ? 'one_way' : 'round_trip',
+                pricingMethod: 'per_km',
+                pricing: { grandTotal: beforeGst + gst, totalBeforeGst: beforeGst, gst, baseKmCharge: baseCharge, totalKm: chargeableKm, perKmRate, driverAllowance },
+                calculation: { days, actualKm: totalKm, chargeableKm, perKmRate, minKmPerDay, minApplied, minKmForDays, extraKm },
+                legs: computedLegs,
+              };
+              return;
+            }
+
             if (tripType === 'outstation') {
               if (pickupLocationId) params.set('from', pickupLocationId);
               if (dropLocationId) params.set('to', dropLocationId);
@@ -783,15 +999,29 @@ export function CarRentalBookingHero({
     pickupDate,
     returnDate,
     pickupTime,
+    multiStops,
+    locations,
   ]);
 
   // Handle search/proceed
   const handleSearch = () => {
     if (!pickupDate) {
-      alert('Please select pickup date');
+      setDateError('Please select a pickup date.');
+      setTimeout(() => setDateError(''), 5000);
       return;
     }
-    // For outstation, allow either selected location OR custom text
+    // Validate pickup date+time is at least 12 hours from now
+    if (isPickupTooSoon(pickupDate, pickupTime)) {
+      const now = new Date();
+      const earliest = new Date(now.getTime() + MIN_ADVANCE_HOURS * 60 * 60 * 1000);
+      const formattedDate = earliest.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+      const formattedTime = earliest.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
+      setDateError(`Booking requires at least ${MIN_ADVANCE_HOURS} hours advance notice. Earliest pickup: ${formattedDate}, ${formattedTime}.`);
+      setTimeout(() => setDateError(''), 5000);
+      return;
+    }
+    setDateError('');
+    // For outstation, require destination (To field)
     if (tripType === 'outstation' && !dropLocationId && !dropCityText.trim()) {
       alert('Please enter or select destination city');
       return;
@@ -837,6 +1067,8 @@ export function CarRentalBookingHero({
       dropLocationId,
       returnDate,
       outstationMode,
+      intermediateStops: multiStops.filter((s) => s.locationId || s.cityText.trim()),
+      legs: priceData.legs,
       airportMode,
       // Airport details
       airportId: selectedAirportId,
@@ -1004,6 +1236,10 @@ export function CarRentalBookingHero({
                   onClick={() => {
                     setTripType(tab.id);
                     setShowCarSelection(false);
+                    // Reset intermediate stops when leaving outstation
+                    if (tab.id !== 'outstation') {
+                      setMultiStops([{ id: '1', locationId: '', cityText: '' }]);
+                    }
                   }}
                   className={`flex-1 flex items-center justify-center gap-2 py-4 font-medium transition ${
                     tripType === tab.id
@@ -1084,8 +1320,8 @@ export function CarRentalBookingHero({
                               <input
                                 type="date"
                                 value={pickupDate}
-                                onChange={(e) => setPickupDate(e.target.value)}
-                                min={new Date().toISOString().split('T')[0]}
+                                onChange={(e) => { setPickupDate(e.target.value); setDateError(''); }}
+                                min={minBookingDate}
                                 className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500"
                               />
                             </div>
@@ -1094,15 +1330,10 @@ export function CarRentalBookingHero({
                             <label className="block text-sm font-medium text-gray-700 mb-1">
                               Pickup Time
                             </label>
-                            <div className="relative">
-                              <Clock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                              <input
-                                type="time"
-                                value={pickupTime}
-                                onChange={(e) => setPickupTime(e.target.value)}
-                                className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500"
-                              />
-                            </div>
+                            <TimePickerSelect
+                              value={pickupTime}
+                              onChange={(val) => { setPickupTime(val); setDateError(''); }}
+                            />
                           </div>
                         </div>
                       </>
@@ -1137,27 +1368,92 @@ export function CarRentalBookingHero({
                           </button>
                         </div>
 
-                        {/* From / To */}
-                        <div className="grid grid-cols-2 gap-3">
+                        {/* From / Intermediate Stops / To */}
+                        <div className="space-y-2">
+                          {/* From */}
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                              From
-                            </label>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">From</label>
                             <SearchableLocationSelect
                               locations={locations}
                               value={pickupLocationId}
                               onChange={(loc) => {
                                 setPickupLocationId(loc.id);
                                 setPickupCity(loc.name);
+                                // Auto-fill "To" with the same city as "From"
+                                setDropLocationId(loc.id);
+                                setDropCity(loc.name);
+                                setDropCityText(loc.name);
                               }}
                               placeholder="Search city..."
                               iconColor="text-blue-500"
                             />
                           </div>
+
+                          {/* Intermediate Stops */}
+                          {multiStops.map((stop, index) => (
+                            <div key={stop.id} className="flex items-center gap-2">
+                              <div className="flex-1">
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                  Stop {index + 1}
+                                </label>
+                                <ComboLocationInput
+                                  locations={locations}
+                                  value={stop.locationId}
+                                  textValue={stop.cityText}
+                                  onChange={(loc, customText) => {
+                                    setMultiStops((prev) =>
+                                      prev.map((s) =>
+                                        s.id === stop.id
+                                          ? { ...s, locationId: loc?.id || '', cityText: loc?.name || customText || '' }
+                                          : s
+                                      )
+                                    );
+                                  }}
+                                  onTextChange={(text) => {
+                                    setMultiStops((prev) =>
+                                      prev.map((s) => (s.id === stop.id ? { ...s, cityText: text } : s))
+                                    );
+                                  }}
+                                  placeholder={`Via city...`}
+                                  iconColor="text-orange-400"
+                                  excludeId={pickupLocationId}
+                                  fromLocation={
+                                    index === 0
+                                      ? locations.find((l) => l.id === pickupLocationId) || null
+                                      : locations.find((l) => l.id === multiStops[index - 1]?.locationId) || null
+                                  }
+                                />
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setMultiStops((prev) => prev.filter((s) => s.id !== stop.id))
+                                }
+                                className="p-1.5 text-gray-400 hover:text-red-500 transition flex-shrink-0 mt-5"
+                              >
+                                <Minus className="w-4 h-4" />
+                              </button>
+                            </div>
+                          ))}
+
+                          {/* Add Stop Button */}
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setMultiStops((prev) => [
+                                ...prev,
+                                { id: String(Date.now()), locationId: '', cityText: '' },
+                              ])
+                            }
+                            className="flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-700 font-medium py-0.5"
+                          >
+                            <Plus className="w-3.5 h-3.5" />
+                            Add Stop
+                          </button>
+
+                          {/* To (final destination) */}
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                              To
-                            </label>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">To</label>
                             <ComboLocationInput
                               locations={locations}
                               value={dropLocationId}
@@ -1174,7 +1470,7 @@ export function CarRentalBookingHero({
                               onTextChange={(text) => setDropCityText(text)}
                               placeholder="Type or select destination..."
                               iconColor="text-red-500"
-                              excludeId={pickupLocationId}
+                              fromLocation={locations.find((l) => l.id === pickupLocationId) || null}
                             />
                           </div>
                         </div>
@@ -1190,8 +1486,8 @@ export function CarRentalBookingHero({
                               <input
                                 type="date"
                                 value={pickupDate}
-                                onChange={(e) => setPickupDate(e.target.value)}
-                                min={new Date().toISOString().split('T')[0]}
+                                onChange={(e) => { setPickupDate(e.target.value); setDateError(''); }}
+                                min={minBookingDate}
                                 className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500"
                               />
                             </div>
@@ -1207,7 +1503,7 @@ export function CarRentalBookingHero({
                                   type="date"
                                   value={returnDate}
                                   onChange={(e) => setReturnDate(e.target.value)}
-                                  min={pickupDate || new Date().toISOString().split('T')[0]}
+                                  min={pickupDate || minBookingDate}
                                   className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500"
                                 />
                               </div>
@@ -1217,15 +1513,10 @@ export function CarRentalBookingHero({
                               <label className="block text-sm font-medium text-gray-700 mb-1">
                                 Pickup Time
                               </label>
-                              <div className="relative">
-                                <Clock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                                <input
-                                  type="time"
-                                  value={pickupTime}
-                                  onChange={(e) => setPickupTime(e.target.value)}
-                                  className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500"
-                                />
-                              </div>
+                              <TimePickerSelect
+                                value={pickupTime}
+                                onChange={(val) => { setPickupTime(val); setDateError(''); }}
+                              />
                             </div>
                           )}
                         </div>
@@ -1235,15 +1526,10 @@ export function CarRentalBookingHero({
                             <label className="block text-sm font-medium text-gray-700 mb-1">
                               Pickup Time
                             </label>
-                            <div className="relative">
-                              <Clock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                              <input
-                                type="time"
-                                value={pickupTime}
-                                onChange={(e) => setPickupTime(e.target.value)}
-                                className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500"
-                              />
-                            </div>
+                            <TimePickerSelect
+                              value={pickupTime}
+                              onChange={(val) => { setPickupTime(val); setDateError(''); }}
+                            />
                           </div>
                         )}
                       </>
@@ -1337,8 +1623,8 @@ export function CarRentalBookingHero({
                               <input
                                 type="date"
                                 value={pickupDate}
-                                onChange={(e) => setPickupDate(e.target.value)}
-                                min={new Date().toISOString().split('T')[0]}
+                                onChange={(e) => { setPickupDate(e.target.value); setDateError(''); }}
+                                min={minBookingDate}
                                 className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500"
                               />
                             </div>
@@ -1347,19 +1633,39 @@ export function CarRentalBookingHero({
                             <label className="block text-sm font-medium text-gray-700 mb-1">
                               {airportMode === 'pickup' ? 'Arrival Time' : 'Pickup Time'}
                             </label>
-                            <div className="relative">
-                              <Clock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                              <input
-                                type="time"
-                                value={pickupTime}
-                                onChange={(e) => setPickupTime(e.target.value)}
-                                className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500"
-                              />
-                            </div>
+                            <TimePickerSelect
+                              value={pickupTime}
+                              onChange={(val) => { setPickupTime(val); setDateError(''); }}
+                            />
                           </div>
                         </div>
                       </>
                     )}
+
+                    {/* Date Validation Error */}
+                    <AnimatePresence>
+                      {dateError && (
+                        <motion.div
+                          initial={{ opacity: 0, y: -8, scale: 0.95 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
+                          exit={{ opacity: 0, y: -8, scale: 0.95 }}
+                          transition={{ duration: 0.2 }}
+                          className="flex items-start gap-2.5 p-3 bg-red-50 border border-red-200 rounded-lg"
+                        >
+                          <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+                          <div className="flex-1">
+                            <p className="text-sm font-medium text-red-800">{dateError}</p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setDateError('')}
+                            className="text-red-400 hover:text-red-600 flex-shrink-0"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
 
                     {/* Search Button */}
                     <button
@@ -1414,8 +1720,11 @@ export function CarRentalBookingHero({
                         <span className="font-medium">
                           {tripType === 'local' &&
                             `${pickupCity} - ${selectedPackage?.hours || 8}hr/${selectedPackage?.kms || 80}km`}
-                          {tripType === 'outstation' &&
-                            `${pickupCity} → ${dropCity || dropCityText} (${outstationMode})`}
+                          {tripType === 'outstation' && (
+                            multiStops.filter((s) => s.cityText).length > 0
+                              ? `${pickupCity} → ${multiStops.filter((s) => s.cityText).map((s) => s.cityText).join(' → ')} → ${dropCity || dropCityText}`
+                              : `${pickupCity} → ${dropCity || dropCityText} (${outstationMode})`
+                          )}
                           {tripType === 'airport' &&
                             (airportMode === 'pickup'
                               ? `${selectedAirport?.code || 'Airport'} → ${pickupCity}`
@@ -1507,7 +1816,9 @@ export function CarRentalBookingHero({
                                       <div className="text-xs text-gray-500">
                                         {tripType === 'local' && 'All inclusive'}
                                         {tripType === 'outstation' &&
-                                          (priceData.pricingMethod === 'route_package'
+                                          (priceData.legs
+                                            ? `${priceData.calculation?.chargeableKm} km · Incl. driver`
+                                            : priceData.pricingMethod === 'route_package'
                                             ? 'Fixed fare'
                                             : 'Incl. driver allowance')}
                                         {tripType === 'airport' && 'Fixed fare'}
@@ -1555,7 +1866,7 @@ export function CarRentalBookingHero({
                                         )}
                                       </>
                                     )}
-                                    {tripType === 'outstation' && priceData.calculation && (
+                                    {tripType === 'outstation' && priceData.calculation && !priceData.legs && (
                                       <>
                                         <div className="flex justify-between">
                                           <span>
@@ -1583,6 +1894,52 @@ export function CarRentalBookingHero({
                                               </span>
                                             </div>
                                           )}
+                                      </>
+                                    )}
+                                    {tripType === 'outstation' && priceData.legs && (
+                                      <>
+                                        {/* Per-leg route breakdown */}
+                                        <div className="bg-blue-50 rounded-lg p-2.5 mb-2 space-y-1.5">
+                                          <div className="text-xs font-semibold text-blue-700 mb-1.5">Route Breakdown</div>
+                                          {priceData.legs.map((leg, i) => (
+                                            <div key={i} className="flex items-center gap-1.5">
+                                              <div className="flex flex-col items-center flex-shrink-0">
+                                                <div className={`w-2 h-2 rounded-full ${i === 0 ? 'bg-blue-500' : 'bg-orange-400'}`} />
+                                                {i < priceData.legs!.length - 1 && <div className="w-px h-3 bg-gray-300" />}
+                                              </div>
+                                              <div className="flex-1">
+                                                <span className="text-gray-600 truncate">{leg.from} → {leg.to}</span>
+                                              </div>
+                                            </div>
+                                          ))}
+                                          {priceData.calculation?.minApplied && (
+                                            <div className="flex items-center justify-between pt-1 border-t border-blue-200">
+                                              <span className="text-amber-600 text-xs font-medium">
+                                                Min {priceData.calculation.days}d × {priceData.calculation.minKmPerDay} km/day = {priceData.calculation.minKmForDays} km
+                                              </span>
+                                            </div>
+                                          )}
+                                        </div>
+                                        {/* Min km note */}
+                                        {priceData.calculation?.minApplied && (
+                                          <div className="flex items-start gap-1.5 bg-amber-50 border border-amber-200 rounded-md px-2.5 py-2 mb-1">
+                                            <Info className="w-3.5 h-3.5 text-amber-500 flex-shrink-0 mt-0.5" />
+                                            <p className="text-xs text-amber-700">
+                                              Minimum {priceData.calculation.minKmForDays} km charged for {priceData.calculation.days} days ({priceData.calculation.minKmPerDay} km/day). Extra km beyond this will be charged at ₹{priceData.calculation.perKmRate}/km.
+                                            </p>
+                                          </div>
+                                        )}
+                                        {/* Cost breakdown - clean */}
+                                        <div className="flex justify-between">
+                                          <span>
+                                            Distance ({priceData.calculation?.chargeableKm} km × ₹{priceData.calculation?.perKmRate}/km)
+                                          </span>
+                                          <span>₹{priceData.pricing.baseKmCharge?.toLocaleString()}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                          <span>Driver allowance ({priceData.calculation?.days}d)</span>
+                                          <span>₹{priceData.pricing.driverAllowance?.toLocaleString()}</span>
+                                        </div>
                                       </>
                                     )}
                                     {tripType === 'outstation' && priceData.routePackage && (

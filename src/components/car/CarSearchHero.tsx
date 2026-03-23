@@ -3,7 +3,8 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { Calendar, Clock, MapPin, Search, Car, Shield, Star, Zap, KeyRound } from 'lucide-react';
+import { Calendar, Clock, MapPin, Search, Car, Shield, Star, Zap, KeyRound, AlertCircle, X } from 'lucide-react';
+import { AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -21,9 +22,26 @@ export function CarSearchHero({ city, citySlug, pageHeading, pageDescription }: 
   const [dropDate, setDropDate] = useState('');
   const [dropTime, setDropTime] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [dateError, setDateError] = useState('');
 
-  // Get today's date in YYYY-MM-DD format
-  const today = new Date().toISOString().split('T')[0];
+  // Minimum advance booking: pickup must be at least 12 hours from now
+  const MIN_ADVANCE_HOURS = 12;
+
+  const getMinBookingDate = () => {
+    const now = new Date();
+    const minDateTime = new Date(now.getTime() + MIN_ADVANCE_HOURS * 60 * 60 * 1000);
+    return minDateTime.toISOString().split('T')[0];
+  };
+
+  const isPickupTooSoon = (date: string, time: string) => {
+    const pickupDateTime = new Date(`${date}T${time || '00:00'}:00`);
+    const now = new Date();
+    const diffMs = pickupDateTime.getTime() - now.getTime();
+    const diffHours = diffMs / (1000 * 60 * 60);
+    return diffHours < MIN_ADVANCE_HOURS;
+  };
+
+  const minBookingDate = getMinBookingDate();
 
   // Generate time options (every 30 minutes)
   const timeOptions = [];
@@ -56,6 +74,18 @@ export function CarSearchHero({ city, citySlug, pageHeading, pageDescription }: 
       setErrors(newErrors);
       return;
     }
+
+    // Validate pickup date+time is at least 12 hours from now
+    if (isPickupTooSoon(pickupDate, pickupTime)) {
+      const now = new Date();
+      const earliest = new Date(now.getTime() + MIN_ADVANCE_HOURS * 60 * 60 * 1000);
+      const formattedDate = earliest.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+      const formattedTime = earliest.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
+      setDateError(`Booking requires at least ${MIN_ADVANCE_HOURS} hours advance notice. Earliest pickup: ${formattedDate}, ${formattedTime}.`);
+      setTimeout(() => setDateError(''), 5000);
+      return;
+    }
+    setDateError('');
 
     // Navigate to fleet page with search params
     const searchParams = new URLSearchParams({
@@ -123,11 +153,12 @@ export function CarSearchHero({ city, citySlug, pageHeading, pageDescription }: 
                 </label>
                 <input
                   type="date"
-                  min={today}
+                  min={minBookingDate}
                   value={pickupDate}
                   onChange={(e) => {
                     setPickupDate(e.target.value);
                     setErrors({ ...errors, pickupDate: '' });
+                    setDateError('');
                     // Auto-set drop date if not set
                     if (!dropDate || e.target.value > dropDate) {
                       setDropDate(e.target.value);
@@ -154,6 +185,7 @@ export function CarSearchHero({ city, citySlug, pageHeading, pageDescription }: 
                   onChange={(e) => {
                     setPickupTime(e.target.value);
                     setErrors({ ...errors, pickupTime: '' });
+                    setDateError('');
                   }}
                   className={cn(
                     "w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all",
@@ -180,7 +212,7 @@ export function CarSearchHero({ city, citySlug, pageHeading, pageDescription }: 
                 </label>
                 <input
                   type="date"
-                  min={pickupDate || today}
+                  min={pickupDate || minBookingDate}
                   value={dropDate}
                   onChange={(e) => {
                     setDropDate(e.target.value);
@@ -225,6 +257,29 @@ export function CarSearchHero({ city, citySlug, pageHeading, pageDescription }: 
                 )}
               </div>
             </div>
+
+            {/* Date Validation Error */}
+            <AnimatePresence>
+              {dateError && (
+                <motion.div
+                  initial={{ opacity: 0, y: -8, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -8, scale: 0.95 }}
+                  transition={{ duration: 0.2 }}
+                  className="flex items-start gap-2.5 p-3 mb-4 bg-red-50 border border-red-200 rounded-lg"
+                >
+                  <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+                  <p className="flex-1 text-sm font-medium text-red-800">{dateError}</p>
+                  <button
+                    type="button"
+                    onClick={() => setDateError('')}
+                    className="text-red-400 hover:text-red-600 flex-shrink-0"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             {/* Search Button */}
             <Button

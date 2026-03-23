@@ -75,6 +75,8 @@ interface BookingDetails {
   packageKms?: number;
   pricing: PricingData;
   serviceSlug: string;
+  intermediateStops?: Array<{ id: string; locationId: string; cityText: string }>;
+  legs?: Array<{ from: string; to: string; km: number }>;
 }
 
 interface CarRentalBookingConfirmModalProps {
@@ -163,7 +165,7 @@ export function CarRentalBookingConfirmModal({
 
   if (!bookingDetails) return null;
 
-  const { vehicle, tripType, pickupCity, pickupDate, pickupTime, pricing, dropCity, airportName, airportMode, outstationMode, packageName, packageHours, packageKms, returnDate } = bookingDetails;
+  const { vehicle, tripType, pickupCity, pickupDate, pickupTime, pricing, dropCity, airportName, airportMode, outstationMode, packageName, packageHours, packageKms, returnDate, intermediateStops, legs } = bookingDetails;
   const advanceAmount = Math.round(pricing.grandTotal * 0.3);
 
   // Format helpers
@@ -355,6 +357,10 @@ export function CarRentalBookingConfirmModal({
         dropAddress: formData.dropAddress || dropCity || '',
         // Pricing - use correct field names expected by API
         baseFare: pricing.totalBeforeGst,
+        perKmRate: pricing.perKmRate || 0,
+        chargeableKm: pricing.totalKm || null,
+        kmCharges: pricing.baseKmCharge || 0,
+        driverBatta: pricing.driverAllowance || 0,
         gstAmount: pricing.gst,
         platformFee: 99,
         grandTotal: pricing.grandTotal,
@@ -368,6 +374,7 @@ export function CarRentalBookingConfirmModal({
           dropLocationId: bookingDetails.dropLocationId,
           mode: outstationMode,
           returnDate: returnDate,
+          intermediateStops: intermediateStops?.filter((s) => s.locationId || s.cityText.trim()) || [],
         }),
         ...(tripType === 'airport' && {
           airportMode,
@@ -505,13 +512,34 @@ export function CarRentalBookingConfirmModal({
 
         {tripType === 'outstation' && dropCity && (
           <div className="p-3 bg-gray-50 rounded-lg">
-            <div className="flex items-center gap-2 text-sm text-gray-500 mb-1">
+            <div className="flex items-center gap-2 text-sm text-gray-500 mb-2">
               <MapPin className="w-4 h-4 text-red-600" />
               {outstationMode === 'round-trip' ? 'Destination & Return' : 'Drop'}
             </div>
-            <p className="font-medium text-gray-900">{dropCity}</p>
-            {returnDate && (
-              <p className="text-sm text-gray-600">Return: {formatDate(returnDate)}</p>
+            {intermediateStops && intermediateStops.length > 0 ? (
+              <div className="space-y-1.5">
+                {[pickupCity, ...intermediateStops.map((s) => s.cityText), dropCity].map((city, i, arr) => (
+                  <div key={i} className="flex items-center gap-2">
+                    <div className="flex flex-col items-center flex-shrink-0">
+                      <div className={`w-2.5 h-2.5 rounded-full ${i === 0 ? 'bg-blue-500' : i === arr.length - 1 ? 'bg-red-500' : 'bg-orange-400'}`} />
+                      {i < arr.length - 1 && <div className="w-px h-3 bg-gray-300" />}
+                    </div>
+                    <span className={`text-sm ${i === 0 || i === arr.length - 1 ? 'font-semibold text-gray-900' : 'text-gray-600'}`}>
+                      {city}
+                    </span>
+                  </div>
+                ))}
+                {returnDate && (
+                  <p className="text-xs text-gray-500 mt-1 pl-4">Return: {formatDate(returnDate)}</p>
+                )}
+              </div>
+            ) : (
+              <>
+                <p className="font-medium text-gray-900">{dropCity}</p>
+                {returnDate && (
+                  <p className="text-sm text-gray-600">Return: {formatDate(returnDate)}</p>
+                )}
+              </>
             )}
           </div>
         )}
@@ -598,11 +626,28 @@ export function CarRentalBookingConfirmModal({
               <span className="font-medium">₹{pricing.basePrice.toLocaleString()}</span>
             </div>
           )}
-          {pricing.baseKmCharge && (
+          {pricing.baseKmCharge && !legs && (
             <div className="flex justify-between">
               <span className="text-gray-600">Distance Charge ({pricing.totalKm} km)</span>
               <span className="font-medium">₹{pricing.baseKmCharge.toLocaleString()}</span>
             </div>
+          )}
+          {legs && legs.length > 0 && (
+            <>
+              <div className="bg-blue-50 rounded-lg p-2.5 space-y-1.5 mb-1">
+                <p className="text-xs font-semibold text-blue-700 mb-1">Route Breakdown</p>
+                {legs.map((leg, i) => (
+                  <div key={i} className="flex justify-between text-xs text-gray-600">
+                    <span>{leg.from} → {leg.to}</span>
+                    <span className="text-gray-500">{leg.km} km</span>
+                  </div>
+                ))}
+                <div className="flex justify-between text-xs font-semibold text-blue-700 border-t border-blue-200 pt-1">
+                  <span>Total: {pricing.totalKm} km × ₹{pricing.perKmRate}/km</span>
+                  <span>₹{pricing.baseKmCharge?.toLocaleString()}</span>
+                </div>
+              </div>
+            </>
           )}
           {pricing.driverAllowance && pricing.driverAllowance > 0 && (
             <div className="flex justify-between">
@@ -823,7 +868,7 @@ export function CarRentalBookingConfirmModal({
                 value={formData.password}
                 onChange={handleChange}
                 placeholder="Enter your password"
-                className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
                 autoFocus
               />
               <button
@@ -978,18 +1023,20 @@ export function CarRentalBookingConfirmModal({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4 bg-black/50"
           onClick={onClose}
         >
           <motion.div
-            initial={{ scale: 0.95, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.95, opacity: 0 }}
-            className="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-hidden"
+            initial={{ y: '100%', opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: '100%', opacity: 0 }}
+            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+            className="bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl max-w-lg w-full flex flex-col"
+            style={{ maxHeight: 'min(92vh, 100dvh - env(safe-area-inset-bottom, 0px))' }}
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-gradient-to-r from-blue-600 to-blue-700 text-white">
+            <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-t-2xl flex-shrink-0">
               <h2 className="font-bold text-lg">
                 {step === 'confirm' && 'Confirm Booking'}
                 {step === 'auth' && 'Complete Registration'}
@@ -1003,8 +1050,8 @@ export function CarRentalBookingConfirmModal({
               </button>
             </div>
 
-            {/* Content */}
-            <div className="p-4 overflow-y-auto max-h-[calc(90vh-140px)]">
+            {/* Content — flex-1 so it fills remaining space, overflow-y-auto for scroll */}
+            <div className="flex-1 overflow-y-auto overscroll-contain p-4">
               {step === 'confirm' && renderBookingSummary()}
               {step === 'auth' && renderAuthStep()}
               {step === 'processing' && renderProcessingStep()}
@@ -1012,7 +1059,7 @@ export function CarRentalBookingConfirmModal({
 
             {/* Footer */}
             {step === 'confirm' && (
-              <div className="p-4 border-t border-gray-200 bg-gray-50">
+              <div className="p-4 border-t border-gray-200 bg-gray-50 flex-shrink-0 pb-[max(1rem,env(safe-area-inset-bottom))]">
                 <Button
                   onClick={handleConfirmBooking}
                   className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 text-lg font-semibold"

@@ -1,6 +1,6 @@
 import { Metadata } from 'next';
 import { Crown, Star, Shield, Car, MapPin, Clock } from 'lucide-react';
-import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
+import { SimpleServiceHero } from '@/components/services/SimpleServiceHero';
 import { ServiceLocationsGrid } from '@/components/services/ServiceLocationsGrid';
 import { ServiceFleetDisplay } from '@/components/services/ServiceFleetDisplay';
 
@@ -17,8 +17,8 @@ export const metadata: Metadata = {
 export default function LuxuryCarRentalPage() {
   return (
     <>
-      {/* Hero with booking form */}
-      <ServiceHeroWithChat
+      {/* Hero Section */}
+      <SimpleServiceHero
         badge="Premium Collection"
         title="Luxury & Exotic"
         titleHighlight="Car Rental"

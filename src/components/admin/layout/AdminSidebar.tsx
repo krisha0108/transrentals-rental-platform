@@ -61,6 +61,7 @@ import {
   Building2,
   Smile,
   Compass,
+  Film,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { signOut } from 'next-auth/react';
@@ -418,6 +419,7 @@ const websiteItems: NavItem[] = [
   { name: 'Homepage', href: '/admin/website/homepage', icon: LayoutDashboard },
   { name: 'Static Pages', href: '/admin/website/static-pages', icon: FileText },
   { name: 'General Blog', href: '/admin/blog', icon: FileEdit },
+  { name: 'Web Stories', href: '/admin/web-stories', icon: Film },
   { name: 'Media Library', href: '/admin/media', icon: Image },
   { name: 'Navigation', href: '/admin/website/navigation', icon: List },
   { name: 'Footer', href: '/admin/website/footer', icon: FileCheck },

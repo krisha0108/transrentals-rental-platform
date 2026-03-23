@@ -1,6 +1,5 @@
 import React from 'react';
 import type { Metadata } from 'next';
-import { ActivaRentalServiceHero } from '@/components/services/ActivaRentalServiceHero';
 import { LocationsGrid } from '@/components/services/LocationsGrid';
 import { FAQSection } from '@/components/services/FAQSection';
 import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
@@ -88,8 +87,6 @@ export default function ActivaOnRentPage() {
           gradientFrom="cyan-50"
           gradientTo="blue-50"
         />
-
-        <ActivaRentalServiceHero />
 
         {/* Key Features Section */}
         <section className="py-16 bg-white">
