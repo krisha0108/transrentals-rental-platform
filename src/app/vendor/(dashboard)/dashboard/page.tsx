@@ -113,19 +113,24 @@ const SERVICE_ROUTE_MAP: Record<string, string> = {
 };
 
 function getNotifRedirectUrl(notif: any): string {
-  const { type, serviceType, requestId, bookingId, bookingNumber } = notif;
+  const { type, serviceType, requestId, bookingId, bookingNumber, requestNumber } = notif;
   const routePrefix = serviceType ? SERVICE_ROUTE_MAP[serviceType] : null;
+  const carBookingRef = bookingNumber || requestNumber;
 
   // Quote request → specific request detail page
   if (type === 'quote_request' && routePrefix && requestId) {
+    // Car rental has no quote flow — redirect to booking details
+    if (routePrefix === 'car-rental') {
+      return `/vendor/car-rental/bookings/${carBookingRef || requestId}`;
+    }
     if (routePrefix === 'luxury') return `/vendor/luxury/send-quote/${requestId}`;
     return `/vendor/${routePrefix}/requests/${requestId}/quote`;
   }
 
   // Booking/payment related → specific booking detail
-  if (routePrefix && (bookingId || bookingNumber)) {
-    if (routePrefix === 'car-rental' && bookingNumber) {
-      return `/vendor/car-rental/bookings/${bookingNumber}`;
+  if (routePrefix && (bookingId || carBookingRef)) {
+    if (routePrefix === 'car-rental' && carBookingRef) {
+      return `/vendor/car-rental/bookings/${carBookingRef}`;
     }
     if (bookingId) {
       return `/vendor/${routePrefix}/bookings/${bookingId}`;

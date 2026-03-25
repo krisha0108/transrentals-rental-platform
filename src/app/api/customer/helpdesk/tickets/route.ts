@@ -72,9 +72,13 @@ export async function GET(request: NextRequest) {
         heading: ticket.heading,
         problem: ticket.problem,
         status: ticket.status.toLowerCase(),
+        priority: ticket.priority,
         image: imagePath,
-        images: ticket.images, // Keep original for web app
+        images: ticket.images,
         booking_id: ticket.bookingId,
+        resolution: ticket.resolution,
+        resolvedAt: ticket.resolvedAt?.toISOString() || null,
+        resolvedBy: ticket.resolvedBy,
         created_at: ticket.createdAt.toISOString(),
         updated_at: ticket.updatedAt.toISOString(),
       };

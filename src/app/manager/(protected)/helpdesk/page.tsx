@@ -29,7 +29,8 @@ const getStatusColor = (status: string) => {
     case 'REPLIED':
       return 'border-green-200 bg-green-50 text-green-700';
     case 'CLOSED':
-      return 'border-gray-200 bg-gray-50 text-gray-700';
+    case 'CANCELLED':
+      return 'border-red-200 bg-red-50 text-red-700';
     default:
       return 'border-slate-200 bg-slate-50 text-slate-700';
   }
@@ -159,60 +160,61 @@ export default function ManagerHelpdeskPage() {
 
   return (
     <div className="space-y-6">
-      <header className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+      {/* Header */}
+      <header className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between bg-gradient-to-r from-indigo-600 to-purple-600 rounded-2xl px-8 py-6 shadow-lg">
         <div>
-          <h1 className="text-3xl font-semibold text-slate-900">Helpdesk</h1>
-          <p className="text-sm text-slate-500 max-w-2xl">
+          <h1 className="text-2xl font-bold text-white tracking-tight">Helpdesk</h1>
+          <p className="text-sm text-indigo-100 mt-1">
             Manage support tickets and contact inquiries in one place.
           </p>
         </div>
-        <div className="text-sm text-slate-500">Updated {formatDateTime(new Date().toISOString())}</div>
+        <div className="text-xs text-indigo-200 font-medium">Last updated: {formatDateTime(new Date().toISOString())}</div>
       </header>
 
       <div className="grid gap-6 lg:grid-cols-[1fr,280px]">
         <section className="space-y-4">
           {/* Filters */}
-          <div className="flex flex-wrap items-center gap-3 rounded-3xl border border-slate-200 bg-white px-6 py-4 shadow-sm">
+          <div className="flex flex-wrap items-center gap-3 rounded-xl border border-slate-200 bg-white px-5 py-4 shadow-sm">
             <form className="flex flex-1 flex-wrap items-center gap-3" onSubmit={handleFilter}>
-              <label className="flex flex-1 flex-col gap-1 text-xs uppercase tracking-[0.3em] text-slate-400">
+              <label className="flex flex-1 flex-col gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
                 Search
                 <input
                   type="text"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder="Ticket no, name, email..."
-                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:border-indigo-400 focus:outline-none"
+                  className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3.5 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 focus:outline-none transition"
                 />
               </label>
-              <label className="flex flex-col gap-1 text-xs uppercase tracking-[0.3em] text-slate-400">
+              <label className="flex flex-col gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
                 Type
                 <select
                   value={typeFilter}
                   onChange={(e) => setTypeFilter(e.target.value)}
-                  className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm text-slate-700 focus:border-indigo-400 focus:outline-none"
+                  className="rounded-lg border border-slate-200 bg-slate-50 px-3.5 py-2 text-sm text-slate-700 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 focus:outline-none transition"
                 >
                   <option value="">All Types</option>
                   <option value="ticket">Tickets Only</option>
                   <option value="inquiry">Inquiries Only</option>
                 </select>
               </label>
-              <label className="flex flex-col gap-1 text-xs uppercase tracking-[0.3em] text-slate-400">
+              <label className="flex flex-col gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
                 Status
                 <select
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
-                  className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm text-slate-700 focus:border-indigo-400 focus:outline-none"
+                  className="rounded-lg border border-slate-200 bg-slate-50 px-3.5 py-2 text-sm text-slate-700 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 focus:outline-none transition"
                 >
                   <option value="">All Status</option>
                   <option value="OPEN">Open</option>
                   <option value="IN_PROGRESS">In Progress</option>
                   <option value="RESOLVED">Resolved</option>
-                  <option value="CLOSED">Closed</option>
+                  <option value="CLOSED">Cancelled</option>
                 </select>
               </label>
               <button
                 type="submit"
-                className="rounded-2xl bg-indigo-600 px-4 py-2 text-xs font-semibold uppercase tracking-[0.3em] text-white transition hover:bg-indigo-700 mt-5"
+                className="rounded-lg bg-indigo-600 px-5 py-2 text-xs font-semibold uppercase tracking-wider text-white transition hover:bg-indigo-700 hover:shadow-md mt-5"
               >
                 Filter
               </button>
@@ -220,19 +222,19 @@ export default function ManagerHelpdeskPage() {
           </div>
 
           {/* Table */}
-          <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-            <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
-              <p className="text-sm text-slate-500">
+          <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+            <div className="flex items-center justify-between border-b border-slate-100 px-6 py-3.5 bg-slate-50/50">
+              <p className="text-[13px] font-medium text-slate-500">
                 {loading
                   ? 'Loading...'
                   : `Showing ${items.length === 0 ? 0 : skip + 1}\u2013${Math.min(skip + ITEMS_PER_PAGE, pagination.total)} of ${pagination.total.toLocaleString()} items`}
               </p>
               <div className="flex items-center gap-2">
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-indigo-200 bg-indigo-50 px-2.5 py-0.5 text-xs font-medium text-indigo-700">
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-indigo-200 bg-indigo-50 px-2.5 py-0.5 text-[11px] font-semibold text-indigo-700">
                   <span className="h-1.5 w-1.5 rounded-full bg-indigo-500"></span>
                   Tickets
                 </span>
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-orange-200 bg-orange-50 px-2.5 py-0.5 text-xs font-medium text-orange-700">
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-orange-200 bg-orange-50 px-2.5 py-0.5 text-[11px] font-semibold text-orange-700">
                   <span className="h-1.5 w-1.5 rounded-full bg-orange-500"></span>
                   Inquiries
                 </span>
@@ -246,15 +248,15 @@ export default function ManagerHelpdeskPage() {
             ) : (
               <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-slate-100 text-left text-sm">
-                  <thead className="bg-slate-50 text-xs uppercase tracking-[0.3em] text-slate-500">
+                  <thead className="bg-slate-50/80">
                     <tr>
-                      <th className="px-6 py-3">Type</th>
-                      <th className="px-6 py-3">Reference</th>
-                      <th className="px-6 py-3">Customer</th>
-                      <th className="px-6 py-3">Subject</th>
-                      <th className="px-6 py-3">Status</th>
-                      <th className="px-6 py-3">Date</th>
-                      <th className="px-6 py-3">Action</th>
+                      <th className="px-5 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500">Type</th>
+                      <th className="px-5 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500">Reference</th>
+                      <th className="px-5 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500">Customer</th>
+                      <th className="px-5 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500">Subject</th>
+                      <th className="px-5 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500">Status</th>
+                      <th className="px-5 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500">Date</th>
+                      <th className="px-5 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500">Action</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
@@ -268,55 +270,55 @@ export default function ManagerHelpdeskPage() {
                       items.map((item) => (
                         <tr
                           key={`${item.type}-${item.id}`}
-                          className="bg-white transition hover:bg-slate-50"
+                          className="bg-white transition hover:bg-indigo-50/30 group"
                         >
-                          <td className="px-6 py-4">
+                          <td className="px-5 py-3.5">
                             <span
-                              className={`inline-flex rounded-full border px-2.5 py-0.5 text-xs font-semibold ${getTypeColor(item.type)}`}
+                              className={`inline-flex rounded-md border px-2 py-0.5 text-[11px] font-bold ${getTypeColor(item.type)}`}
                             >
                               {item.type === 'ticket' ? 'Ticket' : 'Inquiry'}
                             </span>
                           </td>
-                          <td className="px-6 py-4">
-                            <p className="text-sm font-semibold text-slate-900">{item.reference}</p>
+                          <td className="px-5 py-3.5">
+                            <p className="text-[13px] font-bold text-slate-900">{item.reference}</p>
                             {item.bookingType && (
-                              <p className="text-xs text-slate-400">{item.bookingType}</p>
+                              <p className="text-[11px] text-slate-400 mt-0.5">{item.bookingType}</p>
                             )}
                           </td>
-                          <td className="px-6 py-4">
-                            <p className="text-sm font-medium text-slate-900">{item.customerName}</p>
-                            <p className="text-xs text-slate-500">
+                          <td className="px-5 py-3.5">
+                            <p className="text-[13px] font-semibold text-slate-800">{item.customerName}</p>
+                            <p className="text-[11px] text-slate-500 mt-0.5">
                               {item.customerPhone || item.customerEmail || '\u2014'}
                             </p>
                           </td>
-                          <td className="px-6 py-4 max-w-xs">
-                            <p className="text-sm font-medium text-slate-800 truncate">
+                          <td className="px-5 py-3.5 max-w-xs">
+                            <p className="text-[13px] font-semibold text-slate-800 truncate">
                               {item.heading}
                             </p>
-                            <p className="text-xs text-slate-400 truncate">
+                            <p className="text-[11px] text-slate-400 truncate mt-0.5">
                               {previewText(item.description)}
                             </p>
                           </td>
-                          <td className="px-6 py-4">
+                          <td className="px-5 py-3.5">
                             <span
-                              className={`inline-flex rounded-full border px-2.5 py-0.5 text-xs font-semibold ${getStatusColor(item.status)}`}
+                              className={`inline-flex rounded-md border px-2 py-0.5 text-[11px] font-bold ${getStatusColor(item.status)}`}
                             >
-                              {item.status.replace('_', ' ')}
+                              {item.status === 'CLOSED' ? 'CANCELLED' : item.status.replace('_', ' ')}
                             </span>
                           </td>
-                          <td className="px-6 py-4 text-xs text-slate-500">
+                          <td className="px-5 py-3.5 text-[12px] text-slate-500 font-medium">
                             {formatDateTime(item.createdAt)}
                           </td>
-                          <td className="px-6 py-4">
+                          <td className="px-5 py-3.5">
                             <Link
                               href={
                                 item.type === 'ticket'
                                   ? `/manager/helpdesk/tickets/${item.id}`
                                   : `/manager/helpdesk/inquiries/${item.id}`
                               }
-                              className="rounded-full border border-slate-200 bg-white px-3 py-1 text-[0.7rem] font-semibold uppercase tracking-[0.4em] text-slate-600 transition hover:border-indigo-400 hover:text-indigo-600"
+                              className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-[11px] font-bold text-slate-600 transition hover:border-indigo-400 hover:text-indigo-600 hover:bg-indigo-50 shadow-sm"
                             >
-                              View
+                              View →
                             </Link>
                           </td>
                         </tr>
@@ -330,7 +332,7 @@ export default function ManagerHelpdeskPage() {
 
           {/* Pagination */}
           {pagination.totalPages > 1 && (
-            <nav className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-6 py-4 text-xs font-semibold text-slate-600">
+            <nav className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-5 py-3 text-xs font-semibold text-slate-600 shadow-sm">
               <button
                 onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
                 disabled={currentPage === 1}
@@ -373,34 +375,39 @@ export default function ManagerHelpdeskPage() {
         </section>
 
         {/* Sidebar */}
-        <aside className="space-y-5 rounded-3xl border border-slate-200 bg-gradient-to-b from-white to-slate-50 p-6 text-sm text-slate-700 shadow-sm h-fit">
-          <div>
-            <p className="text-xs uppercase tracking-[0.4em] text-slate-400">Dashboard</p>
-            <h2 className="text-xl font-semibold text-slate-900">Overview</h2>
+        <aside className="space-y-4 rounded-xl border border-slate-200 bg-white p-5 text-sm text-slate-700 shadow-sm h-fit">
+          <div className="pb-3 border-b border-slate-100">
+            <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Dashboard</p>
+            <h2 className="text-lg font-bold text-slate-900 mt-0.5">Overview</h2>
           </div>
-          <div className="grid gap-3">
+          <div className="grid grid-cols-2 gap-2.5">
             {statCards.map((stat) => (
               <div
                 key={stat.label}
-                className="rounded-2xl border border-dashed border-slate-200 bg-white px-4 py-3"
+                className="rounded-lg border border-slate-100 bg-slate-50/50 px-3 py-2.5 text-center"
               >
-                <p className="text-xs uppercase tracking-[0.3em] text-slate-400">{stat.label}</p>
-                <p className={`mt-1 text-2xl font-semibold ${stat.color || 'text-slate-900'}`}>
+                <p className={`text-xl font-bold ${stat.color || 'text-slate-900'}`}>
                   {stat.value}
                 </p>
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mt-0.5">{stat.label}</p>
               </div>
             ))}
           </div>
-          <div className="rounded-2xl border border-indigo-100 bg-indigo-50 px-4 py-3 text-sm text-indigo-900">
-            <p className="text-xs uppercase tracking-[0.3em] text-indigo-500">Quick Tips</p>
-            <ul className="mt-2 space-y-1 text-xs text-indigo-700">
-              <li>
-                <strong>Tickets:</strong> Customer issues from app
+          <div className="rounded-lg border border-indigo-100 bg-indigo-50/50 px-3.5 py-3 text-sm">
+            <p className="text-[11px] font-bold uppercase tracking-wider text-indigo-500 mb-2">Quick Tips</p>
+            <ul className="space-y-1.5 text-[12px] text-indigo-700 leading-relaxed">
+              <li className="flex items-start gap-1.5">
+                <span className="text-indigo-400 mt-0.5">•</span>
+                <span><strong>Tickets:</strong> Customer issues from app</span>
               </li>
-              <li>
-                <strong>Inquiries:</strong> Website contact forms
+              <li className="flex items-start gap-1.5">
+                <span className="text-indigo-400 mt-0.5">•</span>
+                <span><strong>Inquiries:</strong> Website contact forms</span>
               </li>
-              <li>Prioritize open tickets first</li>
+              <li className="flex items-start gap-1.5">
+                <span className="text-indigo-400 mt-0.5">•</span>
+                <span>Prioritize open tickets first</span>
+              </li>
             </ul>
           </div>
         </aside>

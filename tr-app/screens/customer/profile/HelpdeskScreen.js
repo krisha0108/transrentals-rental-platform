@@ -53,6 +53,9 @@ const HelpDeskScreen = () => {
   const [activeTab, setActiveTab] = useState('all');
   const [imageModalVisible, setImageModalVisible] = useState(false);
   const [selectedImage, setSelectedImage] = useState('');
+  const [bookings, setBookings] = useState([]);
+  const [selectedBooking, setSelectedBooking] = useState(null);
+  const [bookingDropdownOpen, setBookingDropdownOpen] = useState(false);
   const navigation = useNavigation();
 
   // Animation values
@@ -97,8 +100,40 @@ const HelpDeskScreen = () => {
     }
   };
 
+  const fetchBookings = async () => {
+    try {
+      const customerData = await AsyncStorage.getItem('customer');
+      const customer = JSON.parse(customerData);
+      const id = customer.id;
+      const ident = customer.phone || customer.email;
+      // Fetch all status categories in parallel
+      const statuses = ['Open', 'Confirmed', 'Ongoing', 'Completed', 'Dropped'];
+      const results = await Promise.all(
+        statuses.map(s =>
+          api.get(`/customer/bookings?customer_id=${id}&identifier=${ident}&status=${s}`)
+            .then(r => r.data.bookings || [])
+            .catch(() => [])
+        )
+      );
+      // Merge and deduplicate by id
+      const allBookings = results.flat();
+      const unique = [];
+      const seen = new Set();
+      for (const b of allBookings) {
+        if (!seen.has(b.id)) {
+          seen.add(b.id);
+          unique.push(b);
+        }
+      }
+      setBookings(unique);
+    } catch (e) {
+      console.log('Bookings fetch error:', e.message);
+    }
+  };
+
   useEffect(() => {
     fetchTickets();
+    fetchBookings();
   }, []);
 
   useEffect(() => {
@@ -160,6 +195,10 @@ const HelpDeskScreen = () => {
       formData.append('heading', heading);
       formData.append('problem', problem);
       formData.append('customer_id', customerId);
+      if (selectedBooking) {
+        formData.append('booking_id', selectedBooking.booking_number);
+        formData.append('booking_type', selectedBooking.service_type || '');
+      }
       if (imageFile) {
         formData.append('image', imageFile);
       }
@@ -176,6 +215,7 @@ const HelpDeskScreen = () => {
         setProblem('');
         setImageUri(null);
         setImageFile(null);
+        setSelectedBooking(null);
         fetchTickets();
         setModalVisible(false);
       } else {
@@ -192,13 +232,22 @@ const HelpDeskScreen = () => {
     const configs = {
       open: {color: TEAL, icon: 'time-outline'},
       pending: {color: '#F59E0B', icon: 'hourglass-outline'},
-      closed: {color: '#EF4444', icon: 'checkmark-done'},
+      closed: {color: '#EF4444', icon: 'close-circle'},
       resolved: {color: TEAL, icon: 'checkmark-circle'},
       completed: {color: TEAL, icon: 'checkmark-done'},
     };
     return (
       configs[status?.toLowerCase()] || {color: '#95A5A6', icon: 'help-outline'}
     );
+  };
+
+  const getBookingStatusColor = (status) => {
+    const s = (status || '').toUpperCase();
+    if (['COMPLETED', 'CONFIRMED', 'ACCEPTED', 'PAYMENT_VERIFIED', 'BOOKING_CONFIRMED', 'QUOTE_ACCEPTED'].includes(s)) return TEAL;
+    if (['PENDING', 'PENDING_PAYMENT', 'PENDING_VENDOR', 'BROADCASTED', 'QUOTES_RECEIVED'].includes(s)) return '#F59E0B';
+    if (['IN_PROGRESS', 'IN_TRANSIT', 'LOADING', 'PACKING', 'READY_FOR_PICKUP', 'DRIVER_ASSIGNED'].includes(s)) return '#3B82F6';
+    if (['CANCELLED', 'EXPIRED', 'DROPPED', 'REFUNDED'].includes(s)) return '#EF4444';
+    return '#6B7280';
   };
 
   const filteredTickets = tickets.filter(ticket => {
@@ -260,7 +309,7 @@ const HelpDeskScreen = () => {
                 color={config.color}
               />
               <Text style={[styles.statusPillText, {color: config.color}]}>
-                {ticket.status}
+                {ticket.status?.toLowerCase() === 'closed' ? 'Cancelled' : ticket.status}
               </Text>
             </View>
           </View>
@@ -284,7 +333,23 @@ const HelpDeskScreen = () => {
             </TouchableOpacity>
           )}
 
-          {/* Ticket ID footer */}
+          {/* Admin Response */}
+          {ticket.resolution && (
+            <View style={styles.resolutionBox}>
+              <View style={styles.resolutionHeader}>
+                <Ionicons name="chatbubbles" size={wp('3.5%')} color={TEAL_MID} />
+                <Text style={styles.resolutionLabel}>Admin Response</Text>
+              </View>
+              <Text style={styles.resolutionText}>{ticket.resolution}</Text>
+              {ticket.resolvedAt && (
+                <Text style={styles.resolutionDate}>
+                  Resolved: {new Date(ticket.resolvedAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                </Text>
+              )}
+            </View>
+          )}
+
+          {/* Ticket ID + Booking footer */}
           <View style={styles.ticketFooter}>
             <View style={styles.ticketIdRow}>
               <Ionicons
@@ -292,8 +357,14 @@ const HelpDeskScreen = () => {
                 size={wp('2.8%')}
                 color={TEXT_MUTED}
               />
-              <Text style={styles.ticketIdText}>#{ticket.id}</Text>
+              <Text style={styles.ticketIdText}>#{ticket.ticket_no || ticket.id}</Text>
             </View>
+            {ticket.booking_id && (
+              <View style={styles.ticketIdRow}>
+                <Ionicons name="car" size={wp('2.8%')} color={TEXT_MUTED} />
+                <Text style={styles.ticketIdText}>{ticket.booking_id}</Text>
+              </View>
+            )}
           </View>
         </View>
       </View>
@@ -654,6 +725,60 @@ const HelpDeskScreen = () => {
                 />
               </View>
 
+              <Text style={styles.fieldLabel}>Related Booking (Optional)</Text>
+              <TouchableOpacity
+                style={styles.inputField}
+                onPress={() => setBookingDropdownOpen(!bookingDropdownOpen)}>
+                <Ionicons
+                  name="document-text-outline"
+                  size={wp('4%')}
+                  color={TEXT_MUTED}
+                  style={styles.inputIcon}
+                />
+                <Text style={[styles.textInput, {color: selectedBooking ? TEXT_PRIMARY : TEXT_MUTED, paddingVertical: hp('1.5%')}]}>
+                  {selectedBooking
+                    ? `${selectedBooking.booking_number} — ${selectedBooking.location_name || ''}${selectedBooking.destination ? ' → ' + selectedBooking.destination : ''}`
+                    : 'Select a booking...'}
+                </Text>
+                <Ionicons
+                  name={bookingDropdownOpen ? 'chevron-up' : 'chevron-down'}
+                  size={wp('4%')}
+                  color={TEXT_MUTED}
+                />
+              </TouchableOpacity>
+              {bookingDropdownOpen && (
+                <View style={styles.bookingDropdown}>
+                  <TouchableOpacity
+                    style={styles.bookingDropdownItem}
+                    onPress={() => { setSelectedBooking(null); setBookingDropdownOpen(false); }}>
+                    <Text style={[styles.bookingItemText, {color: TEXT_MUTED}]}>None</Text>
+                  </TouchableOpacity>
+                  <ScrollView style={{maxHeight: hp('25%')}} nestedScrollEnabled>
+                    {bookings.map(b => (
+                      <TouchableOpacity
+                        key={b.id}
+                        style={[
+                          styles.bookingDropdownItem,
+                          selectedBooking?.id === b.id && {backgroundColor: TEAL_LIGHT},
+                        ]}
+                        onPress={() => { setSelectedBooking(b); setBookingDropdownOpen(false); }}>
+                        <View>
+                          <Text style={styles.bookingItemTitle}>{b.booking_number}</Text>
+                          <Text style={styles.bookingItemSub}>
+                            {b.service_name} — {b.location_name || ''}{b.destination ? ' → ' + b.destination : ''}
+                          </Text>
+                        </View>
+                        <View style={[styles.statusPill, {backgroundColor: getBookingStatusColor(b.status) + '18'}]}>
+                          <Text style={{fontSize: wp('2.2%'), color: getBookingStatusColor(b.status), fontWeight: '600'}}>
+                            {b.status}
+                          </Text>
+                        </View>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                </View>
+              )}
+
               <Text style={styles.fieldLabel}>Upload Photo</Text>
               <TouchableOpacity style={styles.uploadCard} onPress={pickImage}>
                 {imageUri ? (
@@ -950,9 +1075,39 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     textTransform: 'capitalize',
   },
+  resolutionBox: {
+    backgroundColor: '#F0FDF4',
+    borderRadius: wp('2.5%'),
+    padding: wp('3%'),
+    marginTop: hp('0.8%'),
+    borderLeftWidth: 3,
+    borderLeftColor: TEAL_MID,
+  },
+  resolutionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: wp('1.5%'),
+    marginBottom: hp('0.5%'),
+  },
+  resolutionLabel: {
+    fontSize: wp('3%'),
+    fontWeight: '700',
+    color: TEAL_MID,
+  },
+  resolutionText: {
+    fontSize: wp('3%'),
+    color: '#065F46',
+    lineHeight: wp('4.5%'),
+  },
+  resolutionDate: {
+    fontSize: wp('2.5%'),
+    color: TEXT_MUTED,
+    marginTop: hp('0.5%'),
+  },
   ticketFooter: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     borderTopWidth: 1,
     borderTopColor: '#F3F4F6',
     paddingTop: hp('0.8%'),
@@ -1301,6 +1456,38 @@ const styles = StyleSheet.create({
     height: hp('1%'),
     borderRadius: wp('1.5%'),
     backgroundColor: '#E5E7EB',
+  },
+  bookingDropdown: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: wp('3%'),
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    marginTop: hp('0.5%'),
+    marginBottom: hp('1%'),
+    ...SHADOW_SM,
+  },
+  bookingDropdownItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: wp('3.5%'),
+    paddingVertical: hp('1.2%'),
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  bookingItemTitle: {
+    fontSize: wp('3.2%'),
+    fontWeight: '700',
+    color: TEXT_PRIMARY,
+  },
+  bookingItemSub: {
+    fontSize: wp('2.6%'),
+    color: TEXT_SECONDARY,
+    marginTop: 2,
+  },
+  bookingItemText: {
+    fontSize: wp('3.2%'),
+    fontWeight: '500',
   },
 });
 

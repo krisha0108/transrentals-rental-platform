@@ -22,7 +22,30 @@ export async function GET(
     }
 
     const resolvedParams = 'then' in params ? await params : params;
-    const { id: bookingId } = resolvedParams;
+    let bookingId = resolvedParams.id;
+
+    // If bookingId looks like a bookingNumber (contains uppercase + dashes like CB-2026-XXX), resolve to actual id
+    if (bookingId && /^[A-Z]{2,4}-\d{4}-/.test(bookingId)) {
+      const prefix = bookingId.split('-')[0];
+      const tableMap: Record<string, string> = {
+        'BK': 'bike_bookings', 'BKQ': 'bike_quote_requests',
+        'CB': 'chauffeur_bookings',
+        'BUS': 'bus_bookings', 'BUSQ': 'bus_quote_requests',
+        'SD': 'car_bookings', 'SDQ': 'self_drive_quote_requests',
+        'TR': 'truck_bookings', 'TQR': 'truck_quote_requests',
+        'EQ': 'equipment_bookings', 'EQR': 'equipment_quote_requests',
+        'PK': 'packers_bookings', 'PKQ': 'packers_quote_requests',
+        'LUX': 'luxury_bookings', 'LUXQ': 'luxury_quote_requests',
+      };
+      const table = tableMap[prefix];
+      if (table) {
+        const found = await (prisma as any)[table].findUnique({
+          where: { bookingNumber: bookingId },
+          select: { id: true },
+        }).catch(() => null);
+        if (found) bookingId = found.id;
+      }
+    }
 
     // Get current user and verify they are a manager
     const manager = await prisma.admin_users.findUnique({

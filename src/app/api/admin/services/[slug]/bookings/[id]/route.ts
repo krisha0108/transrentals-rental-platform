@@ -397,6 +397,7 @@ export async function GET(
       case 'car-rental':
       case 'chauffeur-driven':
       case 'chauffeur-service': {
+        // Try by id first, then by bookingNumber (for helpdesk redirect links)
         booking = await prisma.chauffeur_bookings.findUnique({
           where: { id },
           include: {
@@ -427,6 +428,25 @@ export async function GET(
             },
           },
         });
+
+        // Fallback: try by bookingNumber if id lookup failed
+        if (!booking) {
+          booking = await prisma.chauffeur_bookings.findUnique({
+            where: { bookingNumber: id },
+            include: {
+              locations: true,
+              customers: {
+                select: { id: true, name: true, email: true, phone: true },
+              },
+              vendors_chauffeur_bookings_acceptedVendorIdTovendors: {
+                select: { id: true, businessName: true, phone: true, email: true },
+              },
+              vendors_chauffeur_bookings_assignedVendorIdTovendors: {
+                select: { id: true, businessName: true, phone: true, email: true },
+              },
+            },
+          });
+        }
 
         if (!booking) {
           return NextResponse.json({ error: 'Booking not found' }, { status: 404 });

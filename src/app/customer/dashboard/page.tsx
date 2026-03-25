@@ -635,7 +635,17 @@ export default function CustomerDashboardPage() {
     setIsRefreshing(false);
   };
 
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
+
   const handleLogout = () => {
+    setShowLogoutConfirm(true);
+  };
+
+  const confirmLogout = async () => {
+    setLoggingOut(true);
+    // Small delay so user sees the loader
+    await new Promise(r => setTimeout(r, 1000));
     localStorage.removeItem('auth_token');
     localStorage.removeItem('token');
     localStorage.removeItem('customer');
@@ -2223,6 +2233,43 @@ export default function CustomerDashboardPage() {
                   <p className="text-xs text-gray-400 text-center">To update company details, contact support at <a href="mailto:book@transrentals.in" className="text-emerald-600 font-medium">book@transrentals.in</a></p>
                 </>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Logout Confirmation Modal */}
+      {showLogoutConfirm && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl w-[90%] max-w-sm p-6 animate-in fade-in zoom-in duration-200">
+            <div className="flex items-center justify-center w-14 h-14 rounded-full bg-red-100 mx-auto mb-4">
+              <LogOut className="w-7 h-7 text-red-600" />
+            </div>
+            <h3 className="text-lg font-bold text-slate-900 text-center">Logout</h3>
+            <p className="text-sm text-slate-500 text-center mt-2">
+              Are you sure you want to logout? You will need to login again to access your account.
+            </p>
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => setShowLogoutConfirm(false)}
+                disabled={loggingOut}
+                className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmLogout}
+                disabled={loggingOut}
+                className="flex-1 px-4 py-2.5 rounded-xl bg-red-600 text-sm font-semibold text-white hover:bg-red-700 transition disabled:opacity-80 flex items-center justify-center gap-2"
+              >
+                {loggingOut ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
+                    Logging out...
+                  </>
+                ) : (
+                  'Yes, Logout'
+                )}
+              </button>
             </div>
           </div>
         </div>

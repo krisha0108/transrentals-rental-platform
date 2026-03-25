@@ -626,6 +626,30 @@ export default function VendorBookingDetailPage() {
 
             {/* Quick Actions */}
             <div className="mt-4 pt-4 border-t flex gap-3">
+              {/* Accept / Reject Buttons — for PENDING_VENDOR / BROADCASTED */}
+              {!booking.acceptedVendorId && ['PENDING_VENDOR', 'BROADCASTED'].includes(booking.status) && (
+                <>
+                  <button
+                    onClick={() => handleAction('accept')}
+                    disabled={actionLoading}
+                    className="flex-1 flex items-center justify-center gap-2 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition font-semibold disabled:opacity-50"
+                  >
+                    <CheckCircle className="w-5 h-5" />
+                    {actionLoading ? 'Processing...' : 'Accept'}
+                  </button>
+                  <button
+                    onClick={() => {
+                      const reason = prompt('Enter reason for rejection:');
+                      if (reason) handleAction('reject', { reason });
+                    }}
+                    disabled={actionLoading}
+                    className="flex-1 flex items-center justify-center gap-2 py-3 bg-red-50 text-red-600 border border-red-200 rounded-lg hover:bg-red-100 transition font-semibold disabled:opacity-50"
+                  >
+                    <XCircle className="w-5 h-5" />
+                    Reject
+                  </button>
+                </>
+              )}
               {vendorDbId && ['ACCEPTED', 'DRIVER_ASSIGNED', 'IN_PROGRESS', 'COMPLETED'].includes(booking.status) && (
                 <button
                   onClick={() => setShowChat(true)}
