@@ -52,13 +52,13 @@ const STATUSES = [
   { key: 'dropped', label: 'Dropped', color: '#e74c3c' },
 ];
 
-const MyBookingsScreen = () => {
+const MyBookingsScreen = ({route}) => {
   const navigation = useNavigation();
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [allBookings, setAllBookings] = useState(null);
   const [selectedService, setSelectedService] = useState('all');
-  const [selectedStatus, setSelectedStatus] = useState('all');
+  const [selectedStatus, setSelectedStatus] = useState(route?.params?.filter || 'all');
   const [customerId, setCustomerId] = useState(null);
   const [customerEmail, setCustomerEmail] = useState(null);
   const [customerPhone, setCustomerPhone] = useState(null);
@@ -69,6 +69,14 @@ const MyBookingsScreen = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchFocused, setSearchFocused] = useState(false);
   const [searchVisible, setSearchVisible] = useState(false);
+
+  // Update filter when navigating with new params
+  useEffect(() => {
+    if (route?.params?.filter) {
+      setSelectedStatus(route.params.filter);
+      setTempStatus(route.params.filter);
+    }
+  }, [route?.params?.filter, route?.params?.timestamp]);
 
   const activeFilterCount = (selectedService !== 'all' ? 1 : 0) + (selectedStatus !== 'all' ? 1 : 0);
 

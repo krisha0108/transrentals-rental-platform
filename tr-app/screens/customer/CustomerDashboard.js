@@ -754,7 +754,7 @@ export default function CustomerDashboard() {
   );
 
   const QuickStats = () => (
-    <TouchableOpacity activeOpacity={0.85} onPress={() => navigation.navigate('MyBookings')}>
+    <View>
       <LinearGradient
         colors={['#064E3B', '#065F46', '#047857']}
         start={{ x: 0, y: 0 }}
@@ -767,38 +767,50 @@ export default function CustomerDashboard() {
 
         <View style={styles.statsInnerRow}>
           {/* Active Bookings */}
-          <View style={styles.statItem}>
+          <TouchableOpacity
+            style={styles.statItem}
+            activeOpacity={0.7}
+            onPress={() => navigation.navigate('MyBookings', { filter: 'confirmed', timestamp: Date.now() })}
+          >
             <View style={[styles.statIconWrap, { backgroundColor: 'rgba(16,185,129,0.25)' }]}>
               <Icon name="calendar" size={20} color="#34D399" />
             </View>
             <Text style={styles.statValue}>{dashboardStats.active_bookings}</Text>
             <Text style={styles.statLabel}>Active Bookings</Text>
-          </View>
+          </TouchableOpacity>
 
           <View style={styles.statDivider} />
 
           {/* Upcoming Trips */}
-          <View style={styles.statItem}>
+          <TouchableOpacity
+            style={styles.statItem}
+            activeOpacity={0.7}
+            onPress={() => navigation.navigate('MyBookings', { filter: 'pending', timestamp: Date.now() })}
+          >
             <View style={[styles.statIconWrap, { backgroundColor: 'rgba(96,165,250,0.25)' }]}>
               <Icon name="map-pin" size={20} color="#60A5FA" />
             </View>
             <Text style={styles.statValue}>{upcomingTrips.length}</Text>
             <Text style={styles.statLabel}>Upcoming Trips</Text>
-          </View>
+          </TouchableOpacity>
 
           <View style={styles.statDivider} />
 
           {/* Active Quotes */}
-          <View style={styles.statItem}>
+          <TouchableOpacity
+            style={styles.statItem}
+            activeOpacity={0.7}
+            onPress={() => navigation.navigate('MyBookings', { filter: 'pending', timestamp: Date.now() })}
+          >
             <View style={[styles.statIconWrap, { backgroundColor: 'rgba(251,191,36,0.25)' }]}>
               <Icon name="file-text" size={20} color="#FBBF24" />
             </View>
             <Text style={styles.statValue}>{recentQuotes.length}</Text>
             <Text style={styles.statLabel}>Active Quotes</Text>
-          </View>
+          </TouchableOpacity>
         </View>
       </LinearGradient>
-    </TouchableOpacity>
+    </View>
   );
 
   const HowItWorksSection = () => (
@@ -1085,7 +1097,7 @@ export default function CustomerDashboard() {
             <View style={styles.section}>
               <View style={styles.actHeader}>
                 <Text style={styles.sectionTitle}>Upcoming Bookings</Text>
-                <TouchableOpacity style={styles.viewAllPill} onPress={() => navigation.navigate('MyBookings')}>
+                <TouchableOpacity style={styles.viewAllPill} onPress={() => navigation.navigate('MyBookings', { filter: 'confirmed', timestamp: Date.now() })}>
                   <Text style={styles.seeAll}>View All</Text>
                   <Icon name="chevron-right" size={14} color={BRAND_TEAL} />
                 </TouchableOpacity>
@@ -1156,7 +1168,7 @@ export default function CustomerDashboard() {
             <View style={styles.section}>
               <View style={styles.actHeader}>
                 <Text style={styles.sectionTitle}>Active Quotes</Text>
-                <TouchableOpacity style={styles.viewAllPill} onPress={() => navigation.navigate('MyBookings')}>
+                <TouchableOpacity style={styles.viewAllPill} onPress={() => navigation.navigate('MyBookings', { filter: 'pending', timestamp: Date.now() })}>
                   <Text style={styles.seeAll}>View All</Text>
                   <Icon name="chevron-right" size={14} color={BRAND_TEAL} />
                 </TouchableOpacity>

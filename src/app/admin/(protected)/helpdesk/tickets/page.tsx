@@ -44,7 +44,7 @@ const STATUS_CONFIG: Record<string, { label: string; bg: string; text: string; i
   'in progress': { label: 'In Progress', bg: 'bg-amber-100', text: 'text-amber-700', icon: Clock },
   pending: { label: 'Pending', bg: 'bg-yellow-100', text: 'text-yellow-700', icon: Clock },
   resolved: { label: 'Resolved', bg: 'bg-green-100', text: 'text-green-700', icon: CheckCircle },
-  closed: { label: 'Closed', bg: 'bg-gray-100', text: 'text-gray-700', icon: XCircle },
+  closed: { label: 'Cancelled', bg: 'bg-red-100', text: 'text-red-700', icon: XCircle },
 };
 
 const formatDateTime = (value?: string | null) => {
@@ -218,7 +218,7 @@ export default function AdminHelpdeskTicketsPage() {
               <option value="in progress">In Progress</option>
               <option value="pending">Pending</option>
               <option value="resolved">Resolved</option>
-              <option value="closed">Closed</option>
+              <option value="closed">Cancelled</option>
             </select>
           </div>
         </div>
@@ -406,7 +406,7 @@ export default function AdminHelpdeskTicketsPage() {
                     <option value="in progress">In Progress</option>
                     <option value="pending">Pending</option>
                     <option value="resolved">Resolved</option>
-                    <option value="closed">Closed</option>
+                    <option value="closed">Cancelled</option>
                   </select>
                 </div>
 

@@ -113,6 +113,7 @@ export async function sendQuoteRequestNotificationToVendors(
           body: notificationBody,
           requestId,
           requestNumber,
+          bookingNumber: requestNumber,
           serviceType,
           read: false,
           createdAt: new Date().toISOString(),

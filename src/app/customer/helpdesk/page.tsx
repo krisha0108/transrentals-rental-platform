@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 
 
@@ -21,6 +21,38 @@ import {
   RefreshCw,
 
   X,
+
+  MessageSquare,
+
+  Headphones,
+
+  Plus,
+
+  Search,
+
+  Filter,
+
+  Eye,
+
+  Pencil,
+
+  Upload,
+
+  FileImage,
+
+  LifeBuoy,
+
+  Phone,
+
+  Clock,
+
+  Paperclip,
+
+  ImageIcon,
+
+  ChevronRight,
+
+  CheckCircle,
 
 } from 'lucide-react';
 
@@ -73,6 +105,7 @@ const formatStatusLabel = (value?: string | null) => {
   const key = normalizeStatusKey(value);
 
   if (key === 'unknown') return 'Unspecified';
+  if (key === 'closed') return 'Cancelled';
 
   return key
 
@@ -132,6 +165,11 @@ const buildStorageUrl = (relative: string) => {
 
   }
 
+  // If path starts with uploads/ it's stored in public folder directly
+  if (relative.startsWith('uploads/') || relative.startsWith('/uploads/')) {
+    return `/${relative.replace(/^\/+/, '')}`;
+  }
+
   return `${STORAGE_BASE_URL}/${relative.replace(/^\/+/, '')}`;
 
 };
@@ -144,21 +182,21 @@ const getTicketImageUrls = (ticket: HelpdeskTicket) => parseTicketImages(ticket.
 
 const badgeStyles: Record<string, string> = {
 
-  open: 'bg-emerald-100 text-emerald-700 border border-emerald-200',
+  open: 'bg-emerald-50 text-emerald-700 border border-emerald-200',
 
-  pending: 'bg-amber-100 text-amber-700 border border-amber-200',
+  pending: 'bg-amber-50 text-amber-700 border border-amber-200',
 
-  completed: 'bg-blue-100 text-blue-700 border border-blue-200',
+  completed: 'bg-blue-50 text-blue-700 border border-blue-200',
 
-  resolved: 'bg-blue-100 text-blue-700 border border-blue-200',
+  resolved: 'bg-blue-50 text-blue-700 border border-blue-200',
 
-  closed: 'bg-slate-100 text-slate-600 border border-slate-200',
+  closed: 'bg-red-50 text-red-600 border border-red-200',
 
   escalated: 'bg-rose-50 text-rose-600 border border-rose-200',
 
-  ongoing: 'bg-amber-100 text-amber-700 border border-amber-200',
+  ongoing: 'bg-amber-50 text-amber-700 border border-amber-200',
 
-  inprogress: 'bg-amber-100 text-amber-700 border border-amber-200',
+  inprogress: 'bg-amber-50 text-amber-700 border border-amber-200',
 
   unknown: 'bg-slate-50 text-slate-500 border border-slate-100',
 
@@ -178,9 +216,17 @@ interface HelpdeskTicket {
 
   status?: string;
 
+  priority?: string;
+
   image?: string | null;
 
   booking_id?: number | string;
+
+  resolution?: string | null;
+
+  resolvedAt?: string | null;
+
+  resolvedBy?: string | null;
 
   created_at?: string | null;
 
@@ -223,6 +269,7 @@ export default function CustomerHelpdeskPage() {
   const router = useRouter();
 
   const [customerId, setCustomerId] = useState<string | number | null>(null);
+  const [customerIdentifier, setCustomerIdentifier] = useState('');
 
   const [customerName, setCustomerName] = useState('');
 
@@ -257,6 +304,8 @@ export default function CustomerHelpdeskPage() {
   const [description, setDescription] = useState('');
 
   const [bookingId, setBookingId] = useState('');
+  const [customerBookings, setCustomerBookings] = useState<Array<{ booking_number: string; service_type: string; status: string; from?: string; to?: string }>>([]);
+  const [bookingsLoaded, setBookingsLoaded] = useState(false);
 
   const [formAttachments, setFormAttachments] = useState<File[]>([]);
 
@@ -299,6 +348,7 @@ export default function CustomerHelpdeskPage() {
       }
 
       setCustomerName(parsed?.name || parsed?.full_name || parsed?.customer_name || '');
+      setCustomerIdentifier(parsed?.phone || parsed?.email || '');
 
     } catch (err) {
 
@@ -374,7 +424,36 @@ export default function CustomerHelpdeskPage() {
 
   }, [customerId, fetchTickets]);
 
-
+  // Fetch customer bookings for dropdown
+  useEffect(() => {
+    if (!customerId || bookingsLoaded) return;
+    const fetchBookings = async () => {
+      try {
+        const params = new URLSearchParams({ customer_id: String(customerId) });
+        if (customerIdentifier) params.set('identifier', customerIdentifier);
+        const res = await fetch(`/api/customer/bookings?${params.toString()}`);
+        const data = await res.json();
+        if (data.bookings) {
+          setCustomerBookings(
+            data.bookings
+              .filter((b: any) => b.booking_number)
+              .map((b: any) => ({
+                booking_number: b.booking_number,
+                service_type: b.service_type || b.type || '',
+                status: b.status || '',
+                from: b.location_name || b.pickup_city || '',
+                to: b.destination || b.drop_city || '',
+              }))
+          );
+        }
+      } catch (err) {
+        console.log('Could not fetch bookings for dropdown:', err);
+      } finally {
+        setBookingsLoaded(true);
+      }
+    };
+    fetchBookings();
+  }, [customerId, bookingsLoaded]);
 
   const statusFilters = useMemo(() => {
 
@@ -441,41 +520,13 @@ export default function CustomerHelpdeskPage() {
 
 
   const statsCards = useMemo<StatCard[]>(() => {
-
-    const base: StatCard[] = [
-
-      {
-
-        label: 'Total tickets',
-
-        value: tickets.length,
-
-        helper: 'Open and resolved requests',
-
-        icon: Inbox,
-
-      },
-
+    const statusMap = new Map(statusBreakdown);
+    return [
+      { label: 'Total', value: tickets.length, icon: Inbox },
+      { label: 'Open', value: statusMap.get('open') || 0, icon: AlertCircle },
+      { label: 'In Progress', value: statusMap.get('in progress') || statusMap.get('in_progress') || statusMap.get('inprogress') || 0, icon: Clock },
+      { label: 'Resolved', value: statusMap.get('resolved') || 0, icon: CheckCircle },
     ];
-
-    statusBreakdown.forEach(([status, count]) => {
-
-      base.push({
-
-        label: formatStatusLabel(status),
-
-        value: count,
-
-        helper: `${count} request${count === 1 ? '' : 's'}`,
-
-        icon: MessageCircle,
-
-      });
-
-    });
-
-    return base;
-
   }, [tickets.length, statusBreakdown]);
 
 
@@ -806,7 +857,7 @@ export default function CustomerHelpdeskPage() {
 
   return (
 
-      <div className="min-h-screen bg-slate-50">
+      <div className="min-h-screen bg-gray-50">
 
         <CustomerHeader
 
@@ -824,94 +875,37 @@ export default function CustomerHelpdeskPage() {
 
 
 
-        
-
-        <main className="pt-20 md:pt-24 pb-10">
+        <main className="pb-10 pt-20 mt-6 bg-gray-50 min-h-screen">
 
           <div className="container mx-auto px-4 max-w-6xl space-y-6">
 
-            <section className="rounded-3xl border border-slate-200 bg-white px-6 py-6 shadow-sm">
-
-              <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-
-                <div>
-
-                  <p className="text-xs uppercase tracking-[0.4em] text-slate-400">Helpdesk overview</p>
-
-                  <p className="text-sm text-slate-500 mt-1">
-
-                    {customerName ? `${customerName},` : 'Stay on top of'} every conversation you open with us.
-
-                  </p>
-
-                </div>
-
-                <div className="flex flex-wrap gap-2">
-
-                  <button
-
-                    type="button"
-
-                    onClick={handleRefresh}
-
-                    className="flex items-center gap-2 rounded-full border border-slate-200 px-5 py-2 text-xs font-semibold uppercase tracking-[0.3em] text-slate-600 transition hover:border-slate-400 hover:text-slate-900"
-
-                  >
-
-                    <RefreshCw className="h-4 w-4" />
-
-                    Refresh list
-
-                  </button>
-
-                  <button
-
-                    type="button"
-
-                    onClick={openCreateModal}
-
-                    className="rounded-full bg-indigo-600 px-5 py-2 text-xs font-semibold uppercase tracking-[0.3em] text-white transition hover:bg-indigo-700"
-
-                  >
-
-                    + New ticket
-
-                  </button>
-
-                </div>
-
-              </div>
-
-              <div className="mt-6 grid gap-4 md:grid-cols-3">
-
-                {statsCards.map((card, index) => (
-
+            {/* Stats Cards Row */}
+            <section className="grid gap-4 grid-cols-2 md:grid-cols-4">
+              {statsCards.map((card, index) => {
+                const colorSets = [
+                  { border: 'border-l-emerald-500', iconBg: 'bg-emerald-50', iconColor: 'text-emerald-600' },
+                  { border: 'border-l-blue-500', iconBg: 'bg-blue-50', iconColor: 'text-blue-600' },
+                  { border: 'border-l-amber-500', iconBg: 'bg-amber-50', iconColor: 'text-amber-600' },
+                  { border: 'border-l-violet-500', iconBg: 'bg-violet-50', iconColor: 'text-violet-600' },
+                ];
+                const colors = colorSets[index % colorSets.length];
+                return (
                   <div
-
                     key={`${card.label}-${index}`}
-
-                    className="rounded-2xl border border-slate-100 bg-slate-50/70 p-4 shadow-sm"
-
+                    className={`bg-white rounded-xl shadow-sm border border-gray-100 p-4 transition hover:shadow-md`}
                   >
-
-                    <div className="flex items-center gap-2 text-xs uppercase tracking-[0.4em] text-slate-500">
-
-                      <card.icon className="h-4 w-4 text-slate-400" />
-
-                      <span>{card.label}</span>
-
+                    <div className="flex items-center gap-3">
+                      <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${colors.iconBg} flex-shrink-0`}>
+                        <card.icon className={`h-5 w-5 ${colors.iconColor}`} />
+                      </div>
+                      <div>
+                        <p className="text-2xl font-bold text-slate-900">{card.value}</p>
+                        <p className="text-xs font-medium text-gray-500">{card.label}</p>
+                      </div>
                     </div>
-
-                    <p className="mt-2 text-2xl font-bold text-slate-900">{card.value}</p>
-
-                    {card.helper && <p className="text-xs text-slate-400">{card.helper}</p>}
-
                   </div>
-
-                ))}
-
-              </div>
-
+                );
+              })}
             </section>
 
 
@@ -920,19 +914,18 @@ export default function CustomerHelpdeskPage() {
 
               <section className="space-y-4">
 
-                <div className="rounded-3xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
 
-                  <div className="px-6 py-5 border-b border-slate-100">
+                  {/* Tickets Header */}
+                  <div className="px-6 py-5 border-b border-gray-100">
 
                     <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
 
                       <div>
 
-                        <p className="text-xs uppercase tracking-[0.35em] text-slate-400">Tickets</p>
+                        <h2 className="text-lg font-bold text-slate-900">Support Requests</h2>
 
-                        <h2 className="text-xl font-semibold text-slate-900">Support requests</h2>
-
-                        <p className="text-sm text-slate-500 mt-1">
+                        <p className="text-sm text-gray-500 mt-0.5">
 
                           Showing {filteredSortedTickets.length} of {tickets.length} total tickets
 
@@ -948,11 +941,13 @@ export default function CustomerHelpdeskPage() {
 
                           onClick={openCreateModal}
 
-                          className="rounded-2xl border border-transparent bg-indigo-600 px-4 py-2 text-xs font-semibold uppercase tracking-[0.3em] text-white transition hover:bg-indigo-700"
+                          className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-500 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:shadow-md hover:from-emerald-700 hover:to-teal-600"
 
                         >
 
-                          + New ticket
+                          <Plus className="h-4 w-4" />
+
+                          New Ticket
 
                         </button>
 
@@ -962,11 +957,11 @@ export default function CustomerHelpdeskPage() {
 
                           onClick={handleRefresh}
 
-                          className="flex items-center gap-2 rounded-2xl border border-slate-200 px-4 py-2 text-xs font-semibold uppercase tracking-[0.3em] text-slate-600 transition hover:border-slate-400 hover:text-slate-900"
+                          className="flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-600 transition hover:bg-gray-50 hover:border-gray-300"
 
                         >
 
-                          <RefreshCw className="h-4 w-4" />
+                          <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
 
                           Refresh
 
@@ -976,6 +971,7 @@ export default function CustomerHelpdeskPage() {
 
                     </div>
 
+                    {/* Status Filter Pills */}
                     <div className="mt-4 flex flex-wrap gap-2">
 
                       {statusFilters.map((filter) => (
@@ -988,13 +984,13 @@ export default function CustomerHelpdeskPage() {
 
                           onClick={() => setStatusFilter(filter.key)}
 
-                          className={`px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-[0.3em] transition ${
+                          className={`px-4 py-1.5 rounded-full text-xs font-semibold transition ${
 
                             statusFilter === filter.key
 
-                              ? 'bg-indigo-600 text-white'
+                              ? 'bg-emerald-600 text-white shadow-sm'
 
-                              : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
 
                           }`}
 
@@ -1008,15 +1004,18 @@ export default function CustomerHelpdeskPage() {
 
                     </div>
 
+                    {/* Filters Row */}
                     <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
 
-                      <div>
+                      <div className="relative">
 
                         <label className="sr-only" htmlFor="ticket-search">
 
                           Search tickets
 
                         </label>
+
+                        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
 
                         <input
 
@@ -1026,21 +1025,23 @@ export default function CustomerHelpdeskPage() {
 
                           onChange={(event) => setSearchTerm(event.target.value)}
 
-                          className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                          className="w-full rounded-xl border border-gray-200 bg-white pl-10 pr-4 py-2.5 text-sm text-gray-700 placeholder:text-gray-400 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
 
-                          placeholder="Search by heading, ID or description"
+                          placeholder="Search tickets..."
 
                         />
 
                       </div>
 
-                      <div>
+                      <div className="relative">
 
                         <label className="sr-only" htmlFor="booking-filter">
 
                           Booking filter
 
                         </label>
+
+                        <Filter className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
 
                         <input
 
@@ -1050,15 +1051,15 @@ export default function CustomerHelpdeskPage() {
 
                           onChange={(event) => setBookingFilter(event.target.value)}
 
-                          className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                          className="w-full rounded-xl border border-gray-200 bg-white pl-10 pr-4 py-2.5 text-sm text-gray-700 placeholder:text-gray-400 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
 
-                          placeholder="Filter by booking ID"
+                          placeholder="Booking ID..."
 
                         />
 
                       </div>
 
-                      <label className="flex items-center gap-2 rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-600 cursor-pointer">
+                      <label className="flex items-center gap-2.5 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-600 cursor-pointer hover:bg-gray-50 transition">
 
                         <input
 
@@ -1068,9 +1069,11 @@ export default function CustomerHelpdeskPage() {
 
                           onChange={(event) => setAttachmentsOnly(event.target.checked)}
 
-                          className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                          className="h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
 
                         />
+
+                        <Paperclip className="h-3.5 w-3.5 text-gray-400" />
 
                         Attachments only
 
@@ -1082,7 +1085,7 @@ export default function CustomerHelpdeskPage() {
 
                         onClick={clearFilters}
 
-                        className="rounded-2xl border border-slate-200 px-4 py-3 text-xs font-semibold uppercase tracking-[0.3em] text-slate-600 transition hover:bg-slate-100"
+                        className="rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-500 transition hover:bg-gray-50 hover:text-gray-700 hover:border-gray-300"
 
                       >
 
@@ -1096,13 +1099,13 @@ export default function CustomerHelpdeskPage() {
 
 
 
-                  <div className="px-4 pb-6 pt-4">
+                  <div className="p-4 md:p-6">
 
                     {error && (
 
-                      <div className="mb-4 flex items-center gap-2 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+                      <div className="mb-4 flex items-center gap-3 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
 
-                        <AlertCircle className="h-4 w-4" />
+                        <AlertCircle className="h-4 w-4 flex-shrink-0" />
 
                         {error}
 
@@ -1114,215 +1117,326 @@ export default function CustomerHelpdeskPage() {
 
                     {isLoading ? (
 
-                      <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white/60 px-4 py-8 text-sm text-slate-500">
+                      <div className="flex flex-col items-center justify-center gap-3 py-16 text-gray-400">
 
-                        <Loader2 className="h-5 w-5 animate-spin text-slate-400" />
+                        <Loader2 className="h-8 w-8 animate-spin text-emerald-500" />
 
-                        Loading tickets...
+                        <p className="text-sm font-medium text-gray-500">Loading your tickets...</p>
 
                       </div>
 
                     ) : filteredSortedTickets.length === 0 ? (
 
-                      <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">
+                      <div className="flex flex-col items-center justify-center py-16 text-center">
 
-                        No helpdesk activity yet. Raise a ticket to get started.
+                        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gray-100 mb-4">
+
+                          <Inbox className="h-8 w-8 text-gray-400" />
+
+                        </div>
+
+                        <h3 className="text-base font-semibold text-gray-700">No tickets found</h3>
+
+                        <p className="mt-1 text-sm text-gray-400 max-w-sm">
+
+                          {tickets.length === 0 ? 'You haven\'t raised any support tickets yet. Click the button above to get started.' : 'No tickets match your current filters. Try adjusting your search.'}
+
+                        </p>
+
+                        {tickets.length === 0 && (
+                          <button
+                            type="button"
+                            onClick={openCreateModal}
+                            className="mt-5 flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-500 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:shadow-md"
+                          >
+                            <Plus className="h-4 w-4" />
+                            Raise Your First Ticket
+                          </button>
+                        )}
 
                       </div>
 
                     ) : (
 
-                      <div className="overflow-x-auto">
+                      <>
+                        {/* Desktop Table */}
+                        <div className="hidden md:block overflow-x-auto">
 
-                        <table className="min-w-full divide-y divide-slate-200">
+                          <table className="min-w-full">
 
-                          <thead className="bg-gray-50">
+                            <thead>
 
-                            <tr>
+                              <tr className="border-b border-gray-100">
 
-                              <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-[0.25em] text-slate-500">
+                                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 bg-gray-50/80 rounded-tl-xl">
 
-                                Ticket
+                                  Ticket
 
-                              </th>
+                                </th>
 
-                              <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-[0.25em] text-slate-500">
+                                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 bg-gray-50/80">
 
-                                Booking
+                                  Booking
 
-                              </th>
+                                </th>
 
-                              <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-[0.25em] text-slate-500">
+                                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 bg-gray-50/80">
 
-                                Status
+                                  Status
 
-                              </th>
+                                </th>
 
-                              <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-[0.25em] text-slate-500 hidden md:table-cell">
+                                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 bg-gray-50/80">
 
-                                Attachments
+                                  Attachments
 
-                              </th>
+                                </th>
 
-                              <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-[0.25em] text-slate-500">
+                                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 bg-gray-50/80">
 
-                                Created
+                                  Created
 
-                              </th>
+                                </th>
 
-                              <th className="px-6 py-3 text-right text-xs font-semibold uppercase tracking-[0.25em] text-slate-500">
+                                <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500 bg-gray-50/80 rounded-tr-xl">
 
-                                Actions
+                                  Actions
 
-                              </th>
+                                </th>
 
-                            </tr>
+                              </tr>
 
-                          </thead>
+                            </thead>
 
-                          <tbody className="divide-y divide-slate-100 bg-white">
+                            <tbody className="divide-y divide-gray-50">
 
-                            {filteredSortedTickets.map(({ ticket, imageUrls }) => {
+                              {filteredSortedTickets.map(({ ticket, imageUrls }) => {
 
-                              const rowKey =
+                                const rowKey =
 
-                                ticket.id ?? ticket.ticket_no ?? `${ticket.heading}-${ticket.created_at ?? ''}`;
+                                  ticket.id ?? ticket.ticket_no ?? `${ticket.heading}-${ticket.created_at ?? ''}`;
 
-                              const badgeClass =
+                                const badgeClass =
 
-                                badgeStyles[normalizeStatusKey(ticket.status)] ?? badgeStyles.unknown;
+                                  badgeStyles[normalizeStatusKey(ticket.status)] ?? badgeStyles.unknown;
 
-                              const createdAt = formatDateTime(ticket.created_at);
+                                const createdAt = formatDateTime(ticket.created_at);
 
-                              return (
+                                return (
 
-                                <tr key={rowKey}>
+                                  <tr key={rowKey} className="group transition hover:bg-emerald-50/40">
 
-                                  <td className="px-6 py-4">
+                                    <td className="px-4 py-4">
 
-                                    <p className="text-sm font-semibold text-slate-900">
+                                      <p className="text-sm font-semibold text-slate-900 group-hover:text-emerald-700 transition">
 
-                                      {ticket.heading || 'Untitled ticket'}
+                                        {ticket.heading || 'Untitled ticket'}
 
-                                    </p>
+                                      </p>
 
-                                    <p className="text-xs text-slate-500">
+                                      <p className="text-xs text-gray-400 mt-0.5">
 
-                                      #{ticket.ticket_no ?? ticket.id ?? 'TBD'}
+                                        #{ticket.ticket_no ?? ticket.id ?? 'TBD'}
 
-                                    </p>
+                                      </p>
 
-                                    <p className="mt-1 text-xs text-slate-500 line-clamp-2">
+                                      <p className="mt-1 text-xs text-gray-500 line-clamp-1">
 
-                                      {ticket.problem || 'No description provided.'}
+                                        {ticket.problem || 'No description provided.'}
 
-                                    </p>
+                                      </p>
 
-                                  </td>
+                                    </td>
 
-                                  <td className="px-6 py-4 text-sm text-slate-700">
+                                    <td className="px-4 py-4">
 
-                                    {ticket.booking_id ? `#${ticket.booking_id}` : ''}
+                                      {ticket.booking_id ? (
+                                        <span className="inline-flex items-center rounded-lg bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-700">
+                                          #{ticket.booking_id}
+                                        </span>
+                                      ) : (
+                                        <span className="text-xs text-gray-300">&mdash;</span>
+                                      )}
 
-                                  </td>
+                                    </td>
 
-                                  <td className="px-6 py-4">
+                                    <td className="px-4 py-4">
 
-                                    <span
+                                      <span
 
-                                      className={`inline-flex items-center rounded-full px-3 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.3em] ${badgeClass}`}
+                                        className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[0.7rem] font-semibold ${badgeClass}`}
 
-                                    >
+                                      >
 
-                                      {formatStatusLabel(ticket.status)}
+                                        {formatStatusLabel(ticket.status)}
 
-                                    </span>
+                                      </span>
 
-                                  </td>
+                                    </td>
 
-                                  <td className="px-6 py-4 hidden md:table-cell">
+                                    <td className="px-4 py-4">
 
-                                    {imageUrls.length ? (
+                                      {imageUrls.length ? (
 
-                                      <div className="flex -space-x-2">
+                                        <div className="flex -space-x-2">
 
-                                        {imageUrls.slice(0, 3).map((image, index) => (
+                                          {imageUrls.slice(0, 3).map((image, index) => (
 
-                                          <img
+                                            <img
 
-                                            key={`${rowKey}-${index}`}
+                                              key={`${rowKey}-${index}`}
 
-                                            src={image}
+                                              src={image}
 
-                                            alt={`Attachment ${index + 1}`}
+                                              alt={`Attachment ${index + 1}`}
 
-                                            className="h-10 w-10 rounded-lg border border-white object-cover shadow"
+                                              className="h-9 w-9 rounded-lg border-2 border-white object-cover shadow-sm"
 
-                                            loading="lazy"
+                                              loading="lazy"
 
-                                          />
+                                            />
 
-                                        ))}
+                                          ))}
 
+                                          {imageUrls.length > 3 && (
+                                            <span className="flex h-9 w-9 items-center justify-center rounded-lg border-2 border-white bg-gray-100 text-xs font-semibold text-gray-500 shadow-sm">
+                                              +{imageUrls.length - 3}
+                                            </span>
+                                          )}
+
+                                        </div>
+
+                                      ) : (
+
+                                        <span className="text-xs text-gray-300">&mdash;</span>
+
+                                      )}
+
+                                    </td>
+
+                                    <td className="px-4 py-4">
+                                      <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                                        <Clock className="h-3.5 w-3.5 text-gray-400" />
+                                        {createdAt}
+                                      </div>
+                                    </td>
+
+                                    <td className="px-4 py-4 text-right">
+                                      <div className="flex items-center justify-end gap-1.5">
+                                        <button
+
+                                          type="button"
+
+                                          onClick={() => setSelectedTicket(ticket)}
+
+                                          className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition hover:bg-emerald-100 hover:text-emerald-600"
+
+                                          title="View details"
+
+                                        >
+
+                                          <Eye className="h-4 w-4" />
+
+                                        </button>
+
+                                        <button
+
+                                          type="button"
+
+                                          onClick={() => openEditModal(ticket)}
+
+                                          className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition hover:bg-blue-100 hover:text-blue-600"
+
+                                          title="Edit ticket"
+
+                                        >
+
+                                          <Pencil className="h-4 w-4" />
+
+                                        </button>
                                       </div>
 
-                                    ) : (
+                                    </td>
 
-                                      <span className="text-xs text-slate-400">No image</span>
+                                  </tr>
 
+                                );
+
+                              })}
+
+                            </tbody>
+
+                          </table>
+
+                        </div>
+
+                        {/* Mobile Card Layout */}
+                        <div className="md:hidden space-y-3">
+                          {filteredSortedTickets.map(({ ticket, imageUrls }) => {
+                            const rowKey =
+                              ticket.id ?? ticket.ticket_no ?? `${ticket.heading}-${ticket.created_at ?? ''}`;
+                            const badgeClass =
+                              badgeStyles[normalizeStatusKey(ticket.status)] ?? badgeStyles.unknown;
+                            const createdAt = formatDateTime(ticket.created_at);
+                            return (
+                              <div
+                                key={rowKey}
+                                className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm transition hover:shadow-md active:bg-gray-50"
+                              >
+                                <div className="flex items-start justify-between gap-3">
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-semibold text-slate-900 truncate">
+                                      {ticket.heading || 'Untitled ticket'}
+                                    </p>
+                                    <p className="text-xs text-gray-400 mt-0.5">
+                                      #{ticket.ticket_no ?? ticket.id ?? 'TBD'}
+                                      {ticket.booking_id ? ` \u00B7 Booking #${ticket.booking_id}` : ''}
+                                    </p>
+                                  </div>
+                                  <span
+                                    className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[0.65rem] font-semibold whitespace-nowrap ${badgeClass}`}
+                                  >
+                                    {formatStatusLabel(ticket.status)}
+                                  </span>
+                                </div>
+                                <p className="mt-2 text-xs text-gray-500 line-clamp-2">
+                                  {ticket.problem || 'No description provided.'}
+                                </p>
+                                <div className="mt-3 flex items-center justify-between">
+                                  <div className="flex items-center gap-3">
+                                    <div className="flex items-center gap-1 text-xs text-gray-400">
+                                      <Clock className="h-3 w-3" />
+                                      {createdAt}
+                                    </div>
+                                    {imageUrls.length > 0 && (
+                                      <div className="flex items-center gap-1 text-xs text-gray-400">
+                                        <ImageIcon className="h-3 w-3" />
+                                        {imageUrls.length}
+                                      </div>
                                     )}
-
-                                  </td>
-
-                                  <td className="px-6 py-4 text-xs uppercase tracking-[0.3em] text-slate-500">
-
-                                    {createdAt}
-
-                                  </td>
-
-                                  <td className="px-6 py-4 text-right space-y-1">
-
+                                  </div>
+                                  <div className="flex items-center gap-1">
                                     <button
-
                                       type="button"
-
                                       onClick={() => setSelectedTicket(ticket)}
-
-                                      className="text-xs font-semibold uppercase tracking-[0.3em] text-indigo-600 hover:text-indigo-900"
-
+                                      className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition hover:bg-emerald-100 hover:text-emerald-600"
                                     >
-
-                                      View
-
+                                      <Eye className="h-4 w-4" />
                                     </button>
-
                                     <button
-
                                       type="button"
-
                                       onClick={() => openEditModal(ticket)}
-
-                                      className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500 hover:text-slate-900"
-
+                                      className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition hover:bg-blue-100 hover:text-blue-600"
                                     >
-
-                                      Edit
-
+                                      <Pencil className="h-4 w-4" />
                                     </button>
-
-                                  </td>
-
-                                </tr>
-
-                              );
-
-                            })}
-
-                          </tbody>
-
-                        </table>
-
-                      </div>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </>
 
                     )}
 
@@ -1334,17 +1448,24 @@ export default function CustomerHelpdeskPage() {
 
 
 
-              <aside className="space-y-6">
+              {/* Sidebar */}
+              <aside className="space-y-5">
 
-                <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
 
-                  <p className="text-xs uppercase tracking-[0.4em] text-slate-400">Quick action</p>
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50">
+                      <Headphones className="h-5 w-5 text-emerald-600" />
+                    </div>
+                    <div>
+                      <h3 className="text-base font-bold text-slate-900">Need help now?</h3>
+                      <p className="text-xs text-gray-400">Quick support</p>
+                    </div>
+                  </div>
 
-                  <h3 className="text-xl font-semibold text-slate-900 mt-1">Need help now?</h3>
+                  <p className="text-sm text-gray-600">
 
-                  <p className="text-sm text-slate-500 mt-1">
-
-                    Click the button below to open the support form in a modal. Add a description, attach screenshots,
+                    Open the support form below. Add a description, attach screenshots,
 
                     and we will respond within 2 business hours.
 
@@ -1356,11 +1477,13 @@ export default function CustomerHelpdeskPage() {
 
                     onClick={openCreateModal}
 
-                    className="mt-4 flex w-full items-center justify-center rounded-2xl bg-indigo-600 px-4 py-2 text-sm font-semibold uppercase tracking-[0.3em] text-white transition hover:bg-indigo-700"
+                    className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-500 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:shadow-md hover:from-emerald-700 hover:to-teal-600"
 
                   >
 
-                    Raise a ticket
+                    <Plus className="h-4 w-4" />
+
+                    Raise a Ticket
 
                   </button>
 
@@ -1368,25 +1491,34 @@ export default function CustomerHelpdeskPage() {
 
 
 
-                <div className="rounded-3xl border border-slate-200 bg-gradient-to-b from-white to-slate-50 p-6 shadow-sm">
+                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
 
-                  <p className="text-xs uppercase tracking-[0.4em] text-slate-400">Need faster help?</p>
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50">
+                      <Phone className="h-5 w-5 text-blue-600" />
+                    </div>
+                    <div>
+                      <h4 className="text-base font-bold text-slate-900">Call Support</h4>
+                      <p className="text-xs text-gray-400">Faster resolution</p>
+                    </div>
+                  </div>
 
-                  <h4 className="text-lg font-semibold text-slate-900 mt-1">Call our support desk</h4>
+                  <p className="text-sm text-gray-600">
 
-                  <p className="text-sm text-slate-500 mt-1">
-
-                    Reach us on <span className="font-semibold text-slate-900">+91-9737965551</span> between 10am and
+                    Reach us on <span className="font-bold text-slate-900">+91-9737965551</span> between 10am and
 
                     8pm, Monday to Saturday. Keep your booking or ticket number ready.
 
                   </p>
 
-                  <p className="mt-4 text-xs text-slate-400">
+                  <div className="mt-4 flex items-start gap-2 rounded-xl bg-gray-50 p-3">
+                    <Clock className="h-4 w-4 text-gray-400 mt-0.5 flex-shrink-0" />
+                    <p className="text-xs text-gray-500">
 
-                    We normally reply within 2 business hours. Use the refresh button to pull the latest replies.
+                      We normally reply within 2 business hours. Use the refresh button to pull the latest replies.
 
-                  </p>
+                    </p>
+                  </div>
 
                 </div>
 
@@ -1400,13 +1532,12 @@ export default function CustomerHelpdeskPage() {
 
 
 
-
-
+        {/* Create/Edit Ticket Modal */}
         {isFormModalOpen && (
 
           <div
 
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 py-6"
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4 py-6"
 
             aria-modal="true"
 
@@ -1418,23 +1549,24 @@ export default function CustomerHelpdeskPage() {
 
             <div
 
-              className="relative w-full max-w-2xl overflow-hidden rounded-3xl bg-white p-6 shadow-2xl"
+              className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl bg-white shadow-2xl"
 
               onClick={(event) => event.stopPropagation()}
 
             >
 
-              <div className="flex items-start justify-between gap-4">
+              {/* Modal Header */}
+              <div className="sticky top-0 z-10 flex items-center justify-between gap-4 border-b border-gray-100 bg-white px-6 py-4 rounded-t-2xl">
 
                 <div>
 
-                  <p className="text-xs uppercase tracking-[0.35em] text-slate-400">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-emerald-600">
 
                     {formMode === 'create' ? 'Create ticket' : 'Edit ticket'}
 
                   </p>
 
-                  <h3 className="text-2xl font-semibold text-slate-900">
+                  <h3 className="text-xl font-bold text-slate-900">
 
                     {formMode === 'create' ? 'Describe your issue' : 'Update the ticket'}
 
@@ -1448,7 +1580,7 @@ export default function CustomerHelpdeskPage() {
 
                   onClick={closeFormModal}
 
-                  className="rounded-full border border-slate-200 p-1 text-slate-500 transition hover:border-slate-400 hover:text-slate-900"
+                  className="flex h-9 w-9 items-center justify-center rounded-xl bg-gray-100 text-gray-400 transition hover:bg-gray-200 hover:text-gray-600"
 
                   aria-label="Close form"
 
@@ -1460,261 +1592,296 @@ export default function CustomerHelpdeskPage() {
 
               </div>
 
+              <div className="px-6 py-5">
 
+                {formMessage && (
 
-              {formMessage && (
+                  <div
 
-                <div
+                    className={`mb-5 flex items-center gap-3 rounded-xl border px-4 py-3 text-sm ${
 
-                  className={`mt-4 rounded-2xl border px-4 py-3 text-sm ${
+                      formMessage.type === 'success'
 
-                    formMessage.type === 'success'
+                        ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
 
-                      ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                        : 'border-rose-200 bg-rose-50 text-rose-700'
 
-                      : 'border-rose-200 bg-rose-50 text-rose-700'
-
-                  }`}
-
-                >
-
-                  {formMessage.text}
-
-                </div>
-
-              )}
-
-
-
-              <form className="mt-5 space-y-4" onSubmit={handleFormSubmit}>
-
-                <label className="block space-y-1 text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">
-
-                  Subject
-
-                  <input
-
-                    value={subject}
-
-                    onChange={(event) => setSubject(event.target.value)}
-
-                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm text-slate-700 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200"
-
-                    placeholder="Booking confirmation issue"
-
-                  />
-
-                </label>
-
-
-
-                <label className="block space-y-1 text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">
-
-                  Description
-
-                  <textarea
-
-                    value={description}
-
-                    onChange={(event) => setDescription(event.target.value)}
-
-                    rows={4}
-
-                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm text-slate-700 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200"
-
-                    placeholder="Explain what happened and reference your booking if possible."
-
-                  />
-
-                </label>
-
-
-
-                <label className="block space-y-1 text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">
-
-                  Booking ID (optional)
-
-                  <input
-
-                    value={bookingId}
-
-                    onChange={(event) => setBookingId(event.target.value)}
-
-                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm text-slate-700 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200"
-
-                    placeholder="101216"
-
-                  />
-
-                </label>
-
-
-
-                <label className="block space-y-1 text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">
-
-                  Attach images (optional)
-
-                  <input
-
-                    key={fileInputKey}
-
-                    type="file"
-
-                    multiple
-
-                    accept="image/*"
-
-                    onChange={handleAttachmentChange}
-
-                    className="w-full text-xs text-slate-500 file:mr-4 file:rounded-full file:border-0 file:bg-indigo-600 file:px-3 file:py-1 file:text-xs file:font-semibold file:text-white hover:file:bg-indigo-700"
-
-                  />
-
-                </label>
-
-
-
-                {existingImagePaths.length > 0 && (
-
-                  <div className="space-y-2">
-
-                    <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">
-
-                      Existing attachments
-
-                    </p>
-
-                    <div className="flex flex-wrap gap-3">
-
-                      {existingImagePaths.map((path) => (
-
-                        <div key={path} className="relative h-24 w-24 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
-
-                          <img src={buildStorageUrl(path)} alt="Existing attachment" className="h-full w-full object-cover" />
-
-                          <button
-
-                            type="button"
-
-                            onClick={() => removeExistingImage(path)}
-
-                            className="absolute right-1 top-1 rounded-full bg-black/60 px-1 text-xs text-white"
-
-                          >
-
-                            Remove
-
-                          </button>
-
-                        </div>
-
-                      ))}
-
-                    </div>
-
-                  </div>
-
-                )}
-
-
-
-                {formAttachments.length > 0 && (
-
-                  <div className="space-y-2">
-
-                    <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">Ready to upload</p>
-
-                    <div className="flex flex-wrap gap-2">
-
-                      {formAttachments.map((file, index) => (
-
-                        <span
-
-                          key={`${file.name}-${index}`}
-
-                          className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-600"
-
-                        >
-
-                          {file.name}
-
-                          <button
-
-                            type="button"
-
-                            className="text-rose-600 hover:text-rose-800"
-
-                            onClick={() => removeAttachment(index)}
-
-                          >
-
-                            Remove
-
-                          </button>
-
-                        </span>
-
-                      ))}
-
-                    </div>
-
-                  </div>
-
-                )}
-
-
-
-                <div className="flex justify-between gap-3 pt-4">
-
-                  <button
-
-                    type="button"
-
-                    onClick={closeFormModal}
-
-                    className="rounded-2xl border border-slate-200 px-4 py-2 text-xs font-semibold uppercase tracking-[0.3em] text-slate-600 transition hover:border-slate-400 hover:text-slate-900"
+                    }`}
 
                   >
 
-                    Cancel
-
-                  </button>
-
-                  <button
-
-                    type="submit"
-
-                    disabled={isSubmitting}
-
-                    className="flex items-center gap-2 rounded-2xl bg-indigo-600 px-4 py-2 text-xs font-semibold uppercase tracking-[0.3em] text-white transition hover:bg-indigo-700 disabled:opacity-60 disabled:cursor-not-allowed"
-
-                  >
-
-                    {isSubmitting ? (
-
-                      <>
-
-                        <Loader2 className="h-4 w-4 animate-spin" />
-
-                        {formMode === 'create' ? 'Sendingâ¦' : 'Updatingâ¦'}
-
-                      </>
-
-                    ) : formMode === 'create' ? (
-
-                      'Submit ticket'
-
+                    {formMessage.type === 'success' ? (
+                      <div className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-200 flex-shrink-0">
+                        <span className="text-xs text-emerald-700">&#10003;</span>
+                      </div>
                     ) : (
-
-                      'Update ticket'
-
+                      <AlertCircle className="h-4 w-4 flex-shrink-0" />
                     )}
 
-                  </button>
+                    {formMessage.text}
 
-                </div>
+                  </div>
 
-              </form>
+                )}
+
+
+
+                <form className="space-y-5" onSubmit={handleFormSubmit}>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5" htmlFor="form-subject">
+                      Subject
+                    </label>
+
+                    <input
+
+                      id="form-subject"
+
+                      value={subject}
+
+                      onChange={(event) => setSubject(event.target.value)}
+
+                      className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm text-gray-700 placeholder:text-gray-400 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+
+                      placeholder="e.g. Booking confirmation issue"
+
+                    />
+                  </div>
+
+
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5" htmlFor="form-description">
+                      Description
+                    </label>
+
+                    <textarea
+
+                      id="form-description"
+
+                      value={description}
+
+                      onChange={(event) => setDescription(event.target.value)}
+
+                      rows={4}
+
+                      className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm text-gray-700 placeholder:text-gray-400 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 resize-none"
+
+                      placeholder="Explain what happened and reference your booking if possible."
+
+                    />
+                  </div>
+
+
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5" htmlFor="form-booking-id">
+                      Related Booking <span className="text-gray-400 font-normal">(optional)</span>
+                    </label>
+
+                    <select
+                      id="form-booking-id"
+                      value={bookingId}
+                      onChange={(event) => setBookingId(event.target.value)}
+                      className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm text-gray-700 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 bg-white"
+                    >
+                      <option value="">None — General inquiry</option>
+                      {customerBookings.map((b) => {
+                        const route = b.from && b.to ? `${b.from} → ${b.to}` : b.from || '';
+                        return (
+                          <option key={b.booking_number} value={b.booking_number}>
+                            #{b.booking_number}{route ? ` · ${route}` : ''} — {b.service_type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
+                          </option>
+                        );
+                      })}
+                    </select>
+                    {customerBookings.length === 0 && bookingsLoaded && (
+                      <p className="text-xs text-gray-400 mt-1">No bookings found. You can still raise a general ticket.</p>
+                    )}
+                  </div>
+
+
+
+                  {/* File Upload Drop Zone */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                      Attachments <span className="text-gray-400 font-normal">(optional)</span>
+                    </label>
+                    <label className="flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-gray-200 bg-gray-50/50 px-6 py-8 cursor-pointer transition hover:border-emerald-400 hover:bg-emerald-50/30">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-100">
+                        <Upload className="h-5 w-5 text-emerald-600" />
+                      </div>
+                      <div className="text-center">
+                        <p className="text-sm font-medium text-gray-600">Click to upload images</p>
+                        <p className="text-xs text-gray-400 mt-0.5">PNG, JPG, WEBP up to 10MB each</p>
+                      </div>
+
+                      <input
+
+                        key={fileInputKey}
+
+                        type="file"
+
+                        multiple
+
+                        accept="image/*"
+
+                        onChange={handleAttachmentChange}
+
+                        className="hidden"
+
+                      />
+
+                    </label>
+                  </div>
+
+
+
+                  {existingImagePaths.length > 0 && (
+
+                    <div>
+
+                      <p className="text-sm font-medium text-gray-700 mb-2">
+
+                        Existing attachments
+
+                      </p>
+
+                      <div className="grid grid-cols-4 gap-3">
+
+                        {existingImagePaths.map((path) => (
+
+                          <div key={path} className="group relative aspect-square overflow-hidden rounded-xl border border-gray-200 bg-gray-50">
+
+                            <img src={buildStorageUrl(path)} alt="Existing attachment" className="h-full w-full object-cover transition duration-200 group-hover:scale-105" />
+
+                            <button
+
+                              type="button"
+
+                              onClick={() => removeExistingImage(path)}
+
+                              className="absolute top-1.5 right-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-white opacity-0 group-hover:opacity-100 transition"
+
+                            >
+
+                              <X className="h-3 w-3" />
+
+                            </button>
+
+                          </div>
+
+                        ))}
+
+                      </div>
+
+                    </div>
+
+                  )}
+
+
+
+                  {formAttachments.length > 0 && (
+
+                    <div>
+
+                      <p className="text-sm font-medium text-gray-700 mb-2">Ready to upload</p>
+
+                      <div className="flex flex-wrap gap-2">
+
+                        {formAttachments.map((file, index) => (
+
+                          <span
+
+                            key={`${file.name}-${index}`}
+
+                            className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs font-medium text-gray-600"
+
+                          >
+
+                            <FileImage className="h-3.5 w-3.5 text-gray-400" />
+
+                            {file.name}
+
+                            <button
+
+                              type="button"
+
+                              className="flex h-4 w-4 items-center justify-center rounded-full bg-gray-200 text-gray-500 hover:bg-rose-100 hover:text-rose-600 transition"
+
+                              onClick={() => removeAttachment(index)}
+
+                            >
+
+                              <X className="h-2.5 w-2.5" />
+
+                            </button>
+
+                          </span>
+
+                        ))}
+
+                      </div>
+
+                    </div>
+
+                  )}
+
+
+
+                  <div className="flex gap-3 pt-2">
+
+                    <button
+
+                      type="button"
+
+                      onClick={closeFormModal}
+
+                      className="flex-1 rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm font-medium text-gray-600 transition hover:bg-gray-50 hover:border-gray-300"
+
+                    >
+
+                      Cancel
+
+                    </button>
+
+                    <button
+
+                      type="submit"
+
+                      disabled={isSubmitting}
+
+                      className="flex-[2] flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-500 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:shadow-md hover:from-emerald-700 hover:to-teal-600 disabled:opacity-60 disabled:cursor-not-allowed"
+
+                    >
+
+                      {isSubmitting ? (
+
+                        <>
+
+                          <Loader2 className="h-4 w-4 animate-spin" />
+
+                          {formMode === 'create' ? 'Sending\u2026' : 'Updating\u2026'}
+
+                        </>
+
+                      ) : formMode === 'create' ? (
+
+                        'Submit Ticket'
+
+                      ) : (
+
+                        'Update Ticket'
+
+                      )}
+
+                    </button>
+
+                  </div>
+
+                </form>
+
+              </div>
 
             </div>
 
@@ -1772,7 +1939,7 @@ function TicketDetailsModal({
 
     <div
 
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4 py-6"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4 py-6"
 
       aria-modal="true"
 
@@ -1780,111 +1947,79 @@ function TicketDetailsModal({
 
     >
 
-      <div className="relative w-full max-w-3xl overflow-hidden rounded-3xl bg-white p-6 shadow-2xl">
+      <div className="relative w-full max-w-3xl max-h-[90vh] overflow-y-auto rounded-2xl bg-white shadow-2xl">
 
-        <button
-
-          type="button"
-
-          className="absolute right-4 top-4 rounded-full border border-slate-200 p-1 text-slate-500 hover:border-slate-400 hover:text-slate-900"
-
-          onClick={onClose}
-
-          aria-label="Close ticket details"
-
-        >
-
-          <X className="h-4 w-4" />
-
-        </button>
-
-        <div className="space-y-4">
-
-          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-
-            <div>
-
-              <p className="text-xs uppercase tracking-[0.35em] text-slate-400">Ticket ID</p>
-
-              <h3 className="text-2xl font-semibold text-slate-900">#{ticket.id ?? 'Unknown'}</h3>
-
-              {ticket.ticket_no && (
-
-                <p className="text-xs text-slate-500 uppercase tracking-[0.3em]">#{ticket.ticket_no}</p>
-
-              )}
-
+        {/* Modal Header */}
+        <div className="sticky top-0 z-10 flex items-center justify-between gap-4 border-b border-gray-100 bg-white px-6 py-4 rounded-t-2xl">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50">
+              <MessageSquare className="h-5 w-5 text-emerald-600" />
             </div>
-
-            {onEdit && (
-
-              <button
-
-                type="button"
-
-                onClick={() => onEdit(ticket)}
-
-                className="rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold uppercase tracking-[0.3em] text-indigo-600 transition hover:border-indigo-300 hover:text-indigo-900"
-
-              >
-
-                Edit ticket
-
-              </button>
-
-            )}
-
+            <div>
+              <div className="flex items-center gap-2.5">
+                <h3 className="text-lg font-bold text-slate-900">#{ticket.id ?? 'Unknown'}</h3>
+                {ticket.ticket_no && (
+                  <span className="text-xs text-gray-400 font-medium">#{ticket.ticket_no}</span>
+                )}
+                <span
+                  className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[0.65rem] font-semibold ${badgeClass}`}
+                >
+                  {formatStatusLabel(ticket.status)}
+                </span>
+              </div>
+              <p className="text-sm text-gray-500">{ticket.heading || 'Untitled'}</p>
+            </div>
           </div>
+          <div className="flex items-center gap-2">
+            {onEdit && (
+              <button
+                type="button"
+                onClick={() => onEdit(ticket)}
+                className="flex items-center gap-1.5 rounded-xl border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-600 transition hover:bg-gray-50 hover:border-gray-300"
+              >
+                <Pencil className="h-3.5 w-3.5" />
+                Edit
+              </button>
+            )}
+            <button
+              type="button"
+              className="flex h-9 w-9 items-center justify-center rounded-xl bg-gray-100 text-gray-400 transition hover:bg-gray-200 hover:text-gray-600"
+              onClick={onClose}
+              aria-label="Close ticket details"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
 
-          <div className="grid gap-4 md:grid-cols-2">
+        <div className="px-6 py-5 space-y-5">
 
-            <div className="space-y-2">
+          {/* Ticket Info Grid */}
+          <div className="grid gap-4 sm:grid-cols-2">
 
-              <p className="text-xs uppercase tracking-[0.35em] text-slate-400">Subject</p>
+            <div className="rounded-xl bg-gray-50 p-4">
+
+              <p className="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-1">Subject</p>
 
               <p className="text-sm font-semibold text-slate-900">{ticket.heading || 'Untitled'}</p>
 
             </div>
 
-            <div className="space-y-2">
-
-              <p className="text-xs uppercase tracking-[0.35em] text-slate-400">Status</p>
-
-              <span
-
-                className={`inline-flex items-center rounded-full px-3 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.3em] ${badgeClass}`}
-
-              >
-
-                {formatStatusLabel(ticket.status)}
-
-              </span>
-
-            </div>
-
-            <div className="space-y-2 md:col-span-2">
-
-              <p className="text-xs uppercase tracking-[0.35em] text-slate-400">Description</p>
-
-              <p className="text-sm text-slate-700 whitespace-pre-line">{ticket.problem || 'No description provided.'}</p>
-
-            </div>
-
-            <div>
-
-              <p className="text-xs uppercase tracking-[0.35em] text-slate-400">Created</p>
-
-              <p className="text-sm text-slate-700">{formatDateTime(ticket.created_at)}</p>
-
+            <div className="rounded-xl bg-gray-50 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-1">Created</p>
+              <div className="flex items-center gap-1.5">
+                <Clock className="h-3.5 w-3.5 text-gray-400" />
+                <p className="text-sm text-gray-700">{formatDateTime(ticket.created_at)}</p>
+              </div>
             </div>
 
             {ticket.booking_id && (
 
-              <div>
+              <div className="rounded-xl bg-gray-50 p-4">
 
-                <p className="text-xs uppercase tracking-[0.35em] text-slate-400">Booking ID</p>
+                <p className="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-1">Booking ID</p>
 
-                <p className="text-sm text-slate-700">{ticket.booking_id}</p>
+                <p className="text-sm font-medium text-gray-700">#{ticket.booking_id}</p>
 
               </div>
 
@@ -1892,13 +2027,46 @@ function TicketDetailsModal({
 
           </div>
 
-          <div className="space-y-2">
+          {/* Description */}
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-2">Description</p>
+            <div className="rounded-xl bg-gray-50 p-4">
+              <p className="text-sm text-gray-600 whitespace-pre-line leading-relaxed">{ticket.problem || 'No description provided.'}</p>
+            </div>
+          </div>
 
-            <p className="text-xs uppercase tracking-[0.35em] text-slate-400">Attachments</p>
+          {/* Admin Response / Resolution */}
+          {ticket.resolution && (
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-2">Admin Response</p>
+              <div className="rounded-xl border border-emerald-200 bg-gradient-to-br from-emerald-50 to-teal-50 p-5">
+                <div className="flex items-start gap-3">
+                  <div className="mt-0.5 flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-emerald-200">
+                    <MessageSquare className="h-4 w-4 text-emerald-700" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-semibold text-emerald-900">Response from Support Team</p>
+                    <p className="mt-1.5 text-sm text-emerald-800 whitespace-pre-line leading-relaxed">{ticket.resolution}</p>
+                    {ticket.resolvedAt && (
+                      <p className="mt-2 text-xs text-emerald-600 flex items-center gap-1">
+                        <Clock className="h-3 w-3" />
+                        {formatDateTime(ticket.resolvedAt)}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Attachments */}
+          <div>
+
+            <p className="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-2">Attachments</p>
 
             {imageUrls.length > 0 ? (
 
-              <div className="grid gap-3 sm:grid-cols-2">
+              <div className="grid gap-3 grid-cols-2 sm:grid-cols-3">
 
                 {imageUrls.map((image, index) => (
 
@@ -1912,7 +2080,7 @@ function TicketDetailsModal({
 
                     rel="noreferrer"
 
-                    className="group relative overflow-hidden rounded-2xl border border-slate-200 bg-slate-50"
+                    className="group relative aspect-[4/3] overflow-hidden rounded-xl border border-gray-200 bg-gray-50"
 
                   >
 
@@ -1922,21 +2090,22 @@ function TicketDetailsModal({
 
                       alt={`Attachment ${index + 1}`}
 
-                      className="h-44 w-full object-cover transition duration-200 group-hover:scale-105"
+                      className="h-full w-full object-cover transition duration-300 group-hover:scale-110"
 
                       loading="lazy"
 
                     />
 
-                    <span className="absolute inset-x-0 bottom-0 flex items-center justify-between bg-gradient-to-t from-black/70 to-transparent px-3 py-2 text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-white">
-
-                      View full size
-
-                      <span>
-
-                        {index + 1}/{imageUrls.length}
-
+                    <span className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/40 transition duration-300">
+                      <span className="flex items-center gap-1.5 rounded-lg bg-white/90 px-3 py-1.5 text-xs font-semibold text-gray-700 opacity-0 group-hover:opacity-100 transition duration-300 shadow-lg">
+                        <Eye className="h-3.5 w-3.5" />
+                        View
                       </span>
+                    </span>
+
+                    <span className="absolute bottom-2 right-2 rounded-md bg-black/50 px-1.5 py-0.5 text-[0.6rem] font-semibold text-white">
+
+                      {index + 1}/{imageUrls.length}
 
                     </span>
 
@@ -1948,7 +2117,10 @@ function TicketDetailsModal({
 
             ) : (
 
-              <p className="text-sm text-slate-500 italic">No attachments were uploaded.</p>
+              <div className="flex items-center gap-3 rounded-xl bg-gray-50 p-4 text-sm text-gray-400">
+                <ImageIcon className="h-5 w-5" />
+                No attachments were uploaded.
+              </div>
 
             )}
 
@@ -1963,4 +2135,3 @@ function TicketDetailsModal({
   );
 
 }
-

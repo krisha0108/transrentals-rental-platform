@@ -29,7 +29,8 @@ export async function GET(
     const resolvedParams = 'then' in params ? await params : params;
     const { bookingNumber } = resolvedParams;
 
-    const booking = await prisma.chauffeur_bookings.findUnique({
+    // Try by bookingNumber first, then by ID (for notification redirects that pass DB ID)
+    let booking = await prisma.chauffeur_bookings.findUnique({
       where: { bookingNumber },
       include: {
         locations: {
@@ -41,6 +42,21 @@ export async function GET(
         },
       },
     });
+
+    if (!booking) {
+      booking = await prisma.chauffeur_bookings.findUnique({
+        where: { id: bookingNumber },
+        include: {
+          locations: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+            },
+          },
+        },
+      });
+    }
 
     if (!booking) {
       return NextResponse.json(
