@@ -841,17 +841,21 @@ export function CarRentalBookingHero({
             });
 
             if (tripType === 'local' && selectedPackageId) {
-              // Find the package for this vehicle category
-              const pkg =
-                localPackages.find(
-                  (p) =>
-                    p.vehicleCategoryId === vehicle.id &&
-                    p.hours === localPackages.find((lp) => lp.id === selectedPackageId)?.hours &&
-                    p.kms === localPackages.find((lp) => lp.id === selectedPackageId)?.kms
-                ) || localPackages.find((p) => p.id === selectedPackageId);
+              // Find the matching package for THIS vehicle category (same hours/kms)
+              const selectedPkg = localPackages.find((lp) => lp.id === selectedPackageId);
+              const pkg = localPackages.find(
+                (p) =>
+                  p.vehicleCategoryId === vehicle.id &&
+                  p.hours === selectedPkg?.hours &&
+                  p.kms === selectedPkg?.kms
+              );
 
               if (pkg) {
                 params.set('packageId', pkg.id);
+              } else {
+                // No matching package for this vehicle category — skip pricing
+                prices[vehicle.id] = { success: false, tripType: 'local', pricing: { grandTotal: 0, totalBeforeGst: 0, gst: 0 } };
+                return;
               }
             }
 

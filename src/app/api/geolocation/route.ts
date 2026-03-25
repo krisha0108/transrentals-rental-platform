@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
     }
 
     const data = await response.json();
-    return NextResponse.json(data);
+    return NextResponse.json({ success: true, ...data });
   } catch (error) {
     const message =
       error instanceof Error ? error.message : 'Unexpected reverse geocoding error';
