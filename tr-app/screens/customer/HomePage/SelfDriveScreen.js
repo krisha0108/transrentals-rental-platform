@@ -15,6 +15,8 @@ import Icon from 'react-native-vector-icons/Feather';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { locationService } from '../../services';
+import { getMinBookingDate, isPickupTooSoon, getEarliestPickupLabel } from '../../utils/dateValidation';
+import BookingAlertModal from '../../utils/AdvanceBookingAlert';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import LinearGradient from 'react-native-linear-gradient';
@@ -39,18 +41,14 @@ const faqList = [
   { q: 'Can I take it outstation?', a: 'Mention it in notes while requesting quote, vendor will quote accordingly.' },
 ];
 
-
-
-
 export default function SelfDriveScreen() {
   const navigation = useNavigation();
 
   // Location data
+  const [showBookingAlert, setShowBookingAlert] = useState(false);
   const [allLocations, setAllLocations] = useState([]);
-  const [serviceLocationIds, setServiceLocationIds] = useState(new Set());
   const [query, setQuery] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
-  const [locationNotServed, setLocationNotServed] = useState(false);
 
   // Form state
   const [pickupLocation, setPickupLocation] = useState('');
@@ -94,15 +92,9 @@ export default function SelfDriveScreen() {
 
   const fetchLocations = async () => {
     try {
-      const [allRes, serviceRes] = await Promise.all([
-        locationService.getLocations(),
-        locationService.getLocations('CITY', false, 'self-drive-car-rental'),
-      ]);
-      if (allRes?.success && allRes.locations) {
-        setAllLocations(allRes.locations);
-      }
-      if (serviceRes?.success && serviceRes.locations) {
-        setServiceLocationIds(new Set(serviceRes.locations.map(l => l.id)));
+      const response = await locationService.getLocations();
+      if (response.success && response.locations) {
+        setAllLocations(response.locations);
       }
     } catch (error) {
       console.log('Error fetching locations:', error?.response?.data || error);
@@ -111,9 +103,9 @@ export default function SelfDriveScreen() {
 
   const textSafe = (t) => (t || '').toLowerCase();
 
-  const filteredLocations = query.trim().length
+  const filteredLocations = query.length
     ? allLocations.filter(
-        (l) => typeof l.name === 'string' && l.name.toLowerCase().includes(textSafe(query.trim()))
+        (l) => typeof l.name === 'string' && l.name.toLowerCase().includes(textSafe(query))
       )
     : allLocations.slice(0, 35);
 
@@ -129,7 +121,6 @@ export default function SelfDriveScreen() {
     setPickupLocationId(loc.id);
     setQuery('');
     setShowSuggestions(false);
-    setLocationNotServed(serviceLocationIds.size > 0 && !serviceLocationIds.has(loc.id));
   };
 
   // Calculate days
@@ -192,6 +183,11 @@ export default function SelfDriveScreen() {
         const upd = new Date(pickupDate);
         upd.setHours(selected.getHours());
         upd.setMinutes(selected.getMinutes());
+        if (isPickupTooSoon(upd)) {
+          setShowBookingAlert(true);
+          setAndroidPickerVisible(false);
+          return;
+        }
         setPickupDate(upd);
         if (dropDate <= upd) {
           setDropDate(new Date(upd.getTime() + 24 * 60 * 60 * 1000));
@@ -214,6 +210,12 @@ export default function SelfDriveScreen() {
     }
     if (dropDate <= pickupDate) {
       Alert.alert('Invalid Dates', 'Drop date must be after pickup date');
+      return;
+    }
+
+    // 12-hour advance booking validation
+    if (isPickupTooSoon(pickupDate)) {
+      setShowBookingAlert(true);
       return;
     }
 
@@ -340,14 +342,6 @@ export default function SelfDriveScreen() {
             )}
           </View>
 
-          {/* Location not served message */}
-          {locationNotServed && (
-            <View style={styles.notServedBanner}>
-              <Ionicons name="information-circle" size={wp('4.5%')} color="#D97706" />
-              <Text style={styles.notServedText}>We are not currently providing our services in this location.</Text>
-            </View>
-          )}
-
           {/* Date Selection */}
           <View style={styles.dateRow}>
             {/* Pickup Date */}
@@ -434,12 +428,16 @@ export default function SelfDriveScreen() {
                 display="spinner"
                 onChange={(e, d) => {
                   if (!d) return;
+                  if (isPickupTooSoon(d)) {
+                    setShowBookingAlert(true);
+                    return;
+                  }
                   setPickupDate(d);
                   if (dropDate <= d) {
                     setDropDate(new Date(d.getTime() + 24 * 60 * 60 * 1000));
                   }
                 }}
-                minimumDate={new Date()}
+                minimumDate={getMinBookingDate()}
               />
               <TouchableOpacity style={styles.iosBtnWrap} onPress={() => setShowPickupPickerIOS(false)} activeOpacity={0.85}>
                 <LinearGradient
@@ -598,9 +596,10 @@ export default function SelfDriveScreen() {
           mode={androidPickerMode}
           display="default"
           onChange={onAndroidChange}
-          minimumDate={androidPickingTarget === 'pickup' ? new Date() : pickupDate}
+          minimumDate={androidPickingTarget === 'pickup' ? getMinBookingDate() : pickupDate}
         />
       )}
+      <BookingAlertModal visible={showBookingAlert} onClose={() => setShowBookingAlert(false)} />
     </SafeAreaView>
   );
 }
@@ -775,8 +774,8 @@ const styles = StyleSheet.create({
   suggestionItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: wp('4%'),
-    paddingVertical: hp('1.8%'),
+    paddingHorizontal: wp('3%'),
+    paddingVertical: hp('1.1%'),
     borderBottomWidth: 0.5,
     borderColor: '#F0F4F3',
   },
@@ -1150,23 +1149,5 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.15)',
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  notServedBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: '#FFFBEB',
-    borderWidth: 1,
-    borderColor: '#FDE68A',
-    borderRadius: 12,
-    padding: wp('3%'),
-    marginTop: hp('1%'),
-  },
-  notServedText: {
-    flex: 1,
-    fontSize: wp('3.2%'),
-    color: '#92400E',
-    fontWeight: '500',
-    lineHeight: wp('4.5%'),
   },
 });

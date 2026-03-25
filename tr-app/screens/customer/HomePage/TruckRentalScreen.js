@@ -14,6 +14,7 @@ import {
   ActivityIndicator,
   Pressable,
   StatusBar,
+  Alert,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Feather';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -24,6 +25,8 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import LinearGradient from 'react-native-linear-gradient';
 import { widthPercentageToDP as wp, heightPercentageToDP as hp } from 'react-native-responsive-screen';
 import { locationService, bookingService } from '../../services';
+import { getMinBookingDate, isPickupTooSoon, getEarliestPickupLabel } from '../../utils/dateValidation';
+import BookingAlertModal from '../../utils/AdvanceBookingAlert';
 import { TEAL_DEEP, TEAL_MID, TEAL, TEAL_LIGHT, BG, CARD, TEXT_PRIMARY, TEXT_SECONDARY, TEXT_MUTED, SHADOW_SM, SHADOW_MD } from '../../../theme';
 
 const { width } = Dimensions.get('window');
@@ -143,6 +146,7 @@ const quoteData = [
 export default function TruckRentalScreen() {
   const navigation = useNavigation();
 
+  const [showBookingAlert, setShowBookingAlert] = useState(false);
   const [expandedIndex, setExpandedIndex] = useState(null);
   const [activeQuoteIndex, setActiveQuoteIndex] = useState(0);
   const scrollX = useRef(new Animated.Value(0)).current;
@@ -219,21 +223,21 @@ export default function TruckRentalScreen() {
     }
   };
 
-  const textSafe = (t) => (t || '').toLowerCase();
+  const textSafe = (t) => (t || '').trim().toLowerCase();
 
-  const filteredLocations = query.trim().length
+  const filteredLocations = (query || '').trim().length
     ? allLocations.filter(
         (l) =>
           typeof l.name === 'string' &&
-          l.name.toLowerCase().includes(textSafe(query.trim())),
+          l.name.toLowerCase().includes(textSafe(query)),
       )
     : allLocations.slice(0, 35);
 
-  const filteredDestinations = destinationQuery.trim().length
+  const filteredDestinations = (destinationQuery || '').trim().length
     ? allLocations.filter(
         (l) =>
           typeof l.name === 'string' &&
-          l.name.toLowerCase().includes(textSafe(destinationQuery.trim())),
+          l.name.toLowerCase().includes(textSafe(destinationQuery)),
       )
     : allLocations.slice(0, 35);
 
@@ -317,6 +321,11 @@ const handleDestinationOutsideClick = () => {
       const upd = new Date(startDate);
       upd.setHours(selected.getHours());
       upd.setMinutes(selected.getMinutes());
+      if (isPickupTooSoon(upd)) {
+        setShowBookingAlert(true);
+        setAndroidPickerVisible(false);
+        return;
+      }
       setStartDate(upd);
       setAndroidPickerVisible(false);
     }
@@ -324,6 +333,10 @@ const handleDestinationOutsideClick = () => {
 
   const onStartDateChangeIOS = (event, selectedDate) => {
     if (!selectedDate) return;
+    if (isPickupTooSoon(selectedDate)) {
+      setShowBookingAlert(true);
+      return;
+    }
     setStartDate(selectedDate);
   };
 
@@ -346,6 +359,12 @@ const handleDestinationOutsideClick = () => {
     }
     if (!weightVal) {
       alert('Please enter weight');
+      return;
+    }
+
+    // 12-hour advance booking validation
+    if (isPickupTooSoon(startDate)) {
+      setShowBookingAlert(true);
       return;
     }
 
@@ -752,7 +771,7 @@ const handleDestinationOutsideClick = () => {
                 mode="datetime"
                 display="spinner"
                 onChange={onStartDateChangeIOS}
-                minimumDate={new Date()}
+                minimumDate={getMinBookingDate()}
               />
               <View style={styles.iosButtonContainer}>
                 <TouchableOpacity
@@ -1053,9 +1072,10 @@ const handleDestinationOutsideClick = () => {
           mode={androidPickerMode}
           display="default"
           onChange={onAndroidChange}
-          minimumDate={new Date()}
+          minimumDate={getMinBookingDate()}
         />
       )}
+      <BookingAlertModal visible={showBookingAlert} onClose={() => setShowBookingAlert(false)} />
     </SafeAreaView>
   );
 }

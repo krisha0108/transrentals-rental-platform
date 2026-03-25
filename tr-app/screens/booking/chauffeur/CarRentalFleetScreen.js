@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -16,7 +16,6 @@ import {
   BackHandler,
   KeyboardAvoidingView,
   Keyboard,
-  StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Feather';
@@ -24,44 +23,19 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
-import LinearGradient from 'react-native-linear-gradient';
-import { widthPercentageToDP as wp, heightPercentageToDP as hp } from 'react-native-responsive-screen';
 import { locationService, bookingService } from '../../services';
-import b2bService from '../../services/b2bService';
 import { BASE_URL } from '../../api';
+import { getMinBookingDate, isPickupTooSoon, getEarliestPickupLabel } from '../../utils/dateValidation';
+import BookingAlertModal from '../../utils/AdvanceBookingAlert';
 
-const { width, height } = Dimensions.get('window');
-const isSmallScreen = width < 360;
-
-/* ── Premium Dark Teal Design System ── */
-const TEAL_DEEP = '#064E3B';
-const TEAL_MID = '#065F46';
-const TEAL = '#10B981';
-const TEAL_LIGHT = '#D1FAE5';
-const BG = '#F5F7FA';
+const { width } = Dimensions.get('window');
+const GREEN = '#09B368';
+const BRAND_TEAL = '#09B368';
+const GOLD = '#FFD700';
+const BG = '#F8F9FA';
 const CARD = '#FFFFFF';
-const TEXT_PRIMARY = '#111827';
-const TEXT_SECONDARY = '#6B7280';
-const TEXT_MUTED = '#9CA3AF';
-const BORDER = '#E5E7EB';
-const DIVIDER = '#F3F4F6';
-
-const SHADOW_SM = Platform.select({
-  ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8 },
-  android: { elevation: 3 },
-});
-const SHADOW_MD = Platform.select({
-  ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.10, shadowRadius: 14 },
-  android: { elevation: 6 },
-});
-const SHADOW_LG = Platform.select({
-  ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.14, shadowRadius: 20 },
-  android: { elevation: 10 },
-});
-const SHADOW_TEAL = Platform.select({
-  ios: { shadowColor: TEAL, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.30, shadowRadius: 12 },
-  android: { elevation: 8 },
-});
+const TEXT_PRIMARY = '#0F172A';
+const TEXT_SECONDARY = '#64748B';
 
 const TRIP_TYPES = [
   { id: 'local', label: 'Local', icon: 'map-pin', desc: 'City rides with packages' },
@@ -78,12 +52,12 @@ const AIRPORT_DIRECTIONS = [
 export default function CarRentalFleetScreen({ navigation, route }) {
   // Trip selection - use route params if provided, default to 'local'
   const initialTripType = route?.params?.tripType || 'local';
+  const [showBookingAlert, setShowBookingAlert] = useState(false);
   const [tripType, setTripType] = useState(initialTripType);
   const [airportDirection, setAirportDirection] = useState('pickup');
 
   // Locations
   const [allLocations, setAllLocations] = useState([]);
-  const [serviceLocationIds, setServiceLocationIds] = useState(new Set());
   const [airports, setAirports] = useState([]);
   const [fromLocation, setFromLocation] = useState(null);
   const [toLocation, setToLocation] = useState(null);
@@ -91,7 +65,7 @@ export default function CarRentalFleetScreen({ navigation, route }) {
   const [toQuery, setToQuery] = useState('');
   const [showFromSuggestions, setShowFromSuggestions] = useState(false);
   const [showToSuggestions, setShowToSuggestions] = useState(false);
-  const [locationNotServed, setLocationNotServed] = useState(false);
+  const [multiStops, setMultiStops] = useState([]);
 
   // Local packages
   const [localPackages, setLocalPackages] = useState([]);
@@ -115,25 +89,8 @@ export default function CarRentalFleetScreen({ navigation, route }) {
   const [loadingPrices, setLoadingPrices] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  // Customer
+  // Customer 0
   const [customer, setCustomer] = useState(null);
-
-  // B2B booking
-  const [isB2BCustomer, setIsB2BCustomer] = useState(false);
-  const [bookingPurpose, setBookingPurpose] = useState('personal'); // 'personal' | 'company'
-  const [numberOfVehicles, setNumberOfVehicles] = useState('1');
-  const [numberOfPersons, setNumberOfPersons] = useState('');
-
-  // Custom Alert Modal
-  const [alertModal, setAlertModal] = useState({ visible: false, type: '', title: '', message: '', onClose: null });
-  const showAlert = (type, title, message, onClose = null) => {
-    setAlertModal({ visible: true, type, title, message, onClose });
-  };
-  const closeAlert = () => {
-    const cb = alertModal.onClose;
-    setAlertModal({ visible: false, type: '', title: '', message: '', onClose: null });
-    if (cb) cb();
-  };
 
   // Payment details
   const [bankDetails, setBankDetails] = useState(null);
@@ -144,18 +101,6 @@ export default function CarRentalFleetScreen({ navigation, route }) {
 
   // Step management
   const [step, setStep] = useState(1); // 1: Trip details, 2: Select vehicle, 3: Confirm
-
-  // Search & Filter for Step 2
-  const [vehicleSearchQuery, setVehicleSearchQuery] = useState('');
-  const [showFilterModal, setShowFilterModal] = useState(false);
-  const [vehicleTypeFilter, setVehicleTypeFilter] = useState(null);
-  const [acFilter, setAcFilter] = useState(null); // null = All, 'AC', 'Non-AC'
-  const [seaterFilter, setSeaterFilter] = useState(null); // null = All, or a number
-  const [priceSortOrder, setPriceSortOrder] = useState(null);
-
-  // ScrollView ref for keyboard handling
-  const scrollViewRef = useRef(null);
-  const fromInputRef = useRef(null);
 
   useEffect(() => {
     loadInitialData();
@@ -170,41 +115,40 @@ export default function CarRentalFleetScreen({ navigation, route }) {
   // Handle Android hardware back button
   useEffect(() => {
     const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
-      if (step > 1) {
+      if (step === 4 && bookingConfirmed) {
+        // After booking confirmation, redirect to booking details
+        navigation.navigate('BookingConfirmation', {
+          booking_id: confirmedBookingId,
+          bookingType: 'chauffeur',
+        });
+        return true;
+      } else if (step > 1) {
+        // Go to previous step
         setStep(step - 1);
         return true;
       }
+      // On step 1, allow default back behavior
       return false;
     });
 
     return () => backHandler.remove();
-  }, [step, navigation]);
+  }, [step, bookingConfirmed, confirmedBookingId, navigation]);
 
   const loadInitialData = async () => {
     try {
-      const [customerData, allLocsRes, serviceLocsRes, categoriesRes, bankDetailsRes] = await Promise.all([
+      const [customerData, locationsRes, categoriesRes, bankDetailsRes] = await Promise.all([
         AsyncStorage.getItem('customer'),
-        locationService.getLocations('CITY', true),
-        locationService.getLocations('CITY', true, 'car-rental-with-driver'),
-        bookingService.getChauffeurVehicleCategories('car-rental-with-driver'),
+        locationService.getLocations(),
+        bookingService.getChauffeurVehicleCategories(),
         fetch(`${BASE_URL}/api/payment-details?service=car-rental`).then(r => r.json()),
       ]);
 
-      if (customerData) {
-        const cust = JSON.parse(customerData);
-        setCustomer(cust);
-        if (cust?.isB2B && cust?.b2bStatus === 'APPROVED') {
-          setIsB2BCustomer(true);
-        }
-      }
+      if (customerData) setCustomer(JSON.parse(customerData));
 
-      if (allLocsRes.success) {
-        const locs = allLocsRes.locations || [];
+      if (locationsRes.success) {
+        const locs = locationsRes.locations || [];
         setAllLocations(locs);
-        setAirports(locs.filter(l => l.type === 'AIRPORT' || l.isAirport));
-      }
-      if (serviceLocsRes.success && serviceLocsRes.locations) {
-        setServiceLocationIds(new Set(serviceLocsRes.locations.map(l => l.id)));
+        setAirports(locs.filter(l => l.type === 'airport'));
       }
 
       if (categoriesRes.success) {
@@ -223,6 +167,8 @@ export default function CarRentalFleetScreen({ navigation, route }) {
 
   const fetchLocalPackages = async () => {
     try {
+      // Fetch all packages and filter/group them locally if needed
+      // To match web, we don't pass locationId here if we want global ones
       const res = await bookingService.getChauffeurLocalPackages();
       if (res.success) {
         setLocalPackages(res.packages || []);
@@ -249,6 +195,7 @@ export default function CarRentalFleetScreen({ navigation, route }) {
             };
 
             if (tripType === 'local') {
+              // For local, find the package matching selected hours/kms for this category
               const pkg = localPackages.find(p =>
                 p.vehicleCategoryId === category.id &&
                 p.hours === selectedPackage?.hours &&
@@ -258,10 +205,92 @@ export default function CarRentalFleetScreen({ navigation, route }) {
               if (pkg) {
                 params.packageId = pkg.id;
               } else {
+                // Fallback to first available package for this category if preferred
                 const catPkg = localPackages.find(p => p.vehicleCategoryId === category.id);
                 if (catPkg) params.packageId = catPkg.id;
               }
             } else {
+              // For outstation/airport
+              const validStops = multiStops.filter(s => s.locationId);
+
+              // Multi-stop pricing: calculate leg by leg
+              if ((tripType === 'one_way' || tripType === 'round_trip') && validStops.length > 0 && toLocation?.id) {
+                const allStops = [...validStops, { id: 'final', locationId: toLocation.id, name: toLocation.name }];
+                const legPairs = [
+                  { from: fromLocation?.id, to: allStops[0].locationId },
+                  ...allStops.slice(0, -1).map((s, i) => ({
+                    from: s.locationId,
+                    to: allStops[i + 1].locationId,
+                  })),
+                ].filter(l => l.from && l.to);
+
+                if (legPairs.length > 0) {
+                  const legResults = await Promise.all(
+                    legPairs.map(async (leg) => {
+                      try {
+                        const legRes = await bookingService.getChauffeurPricing({
+                          tripType: 'one_way',
+                          vehicleCategory: category.id,
+                          from: leg.from,
+                          to: leg.to,
+                          startDate: pickupDate.toISOString().split('T')[0],
+                          pickupTime,
+                        });
+                        return legRes.success ? legRes : null;
+                      } catch { return null; }
+                    })
+                  );
+
+                  const validLegs = legResults.filter(Boolean);
+                  if (validLegs.length > 0) {
+                    const totalKm = validLegs.reduce((sum, r) => sum + (r.pricing?.totalKm || r.route?.oneWayDistance || 0), 0);
+                    // Calculate days based on actual hours (ceil(hours/24))
+                    // e.g., 25 Mar 10PM → 28 Mar 10PM = 72hrs = 3 days
+                    // Night bookings (10PM+) naturally don't count as full first day
+                    let days = 1;
+                    if (tripType === 'round_trip') {
+                      const [h, m] = (pickupTime || '10:00').split(':').map(Number);
+                      const pickupWithTime = new Date(pickupDate);
+                      pickupWithTime.setHours(h, m, 0, 0);
+                      const totalHours = (returnDate.getTime() - pickupWithTime.getTime()) / (1000 * 60 * 60);
+                      const calcDays = Math.ceil(totalHours / 24);
+                      if (calcDays > 1) days = calcDays;
+                    }
+                    const minKmPerDay = validLegs[0]?.calculation?.minKmPerDay || 300;
+                    const chargeableKm = Math.max(totalKm, days * minKmPerDay);
+                    const perKmRate = validLegs[0]?.pricing?.perKmRate || validLegs[0]?.calculation?.perKmRate || 0;
+                    const driverAllowancePerDay = validLegs[0]?.pricing?.driverAllowance || 0;
+                    const driverAllowance = driverAllowancePerDay * days;
+                    const baseCharge = Math.round(chargeableKm * perKmRate);
+                    const beforeGst = baseCharge + driverAllowance;
+                    const gst = Math.round(beforeGst * 0.05);
+                    // Build leg names for route breakdown
+                    const legNames = legPairs.map(leg => {
+                      const fromName = leg.from === fromLocation?.id ? fromLocation?.name : (multiStops.find(s => s.locationId === leg.from)?.name || allLocations.find(l => l.id === leg.from)?.name || '');
+                      const toName = leg.to === toLocation?.id ? toLocation?.name : (multiStops.find(s => s.locationId === leg.to)?.name || allLocations.find(l => l.id === leg.to)?.name || '');
+                      return { from: fromName, to: toName };
+                    });
+
+                    newPricing[category.id] = {
+                      grandTotal: beforeGst + gst,
+                      totalBeforeGst: beforeGst,
+                      gst,
+                      totalKm: chargeableKm,
+                      actualKm: totalKm,
+                      perKmRate,
+                      driverAllowance,
+                      driverAllowancePerDay,
+                      days,
+                      minKmPerDay,
+                      legs: legNames,
+                      isMultiStop: true,
+                    };
+                  }
+                }
+                return; // Skip normal pricing below
+              }
+
+              // Normal single-leg pricing
               params.from = fromLocation?.id;
               params.to = toLocation?.id;
               params.startDate = pickupDate.toISOString().split('T')[0];
@@ -293,7 +322,10 @@ export default function CarRentalFleetScreen({ navigation, route }) {
       setFromLocation(loc);
       setFromQuery('');
       setShowFromSuggestions(false);
-      setLocationNotServed(serviceLocationIds.size > 0 && !serviceLocationIds.has(loc.id));
+      if (tripType === 'one_way' || tripType === 'round_trip') {
+        setToLocation(loc);
+        setToQuery(loc.name);
+      }
     } else {
       setToLocation(loc);
       setToQuery('');
@@ -301,13 +333,55 @@ export default function CarRentalFleetScreen({ navigation, route }) {
     }
   };
 
+  const addStop = () => {
+    setMultiStops(prev => [...prev, { id: String(Date.now()), locationId: '', name: '', query: '', showSuggestions: false }]);
+  };
+
+  const removeStop = (stopId) => {
+    setMultiStops(prev => prev.filter(s => s.id !== stopId));
+  };
+
+  const updateStopQuery = (stopId, text) => {
+    setMultiStops(prev => prev.map(s => s.id === stopId ? { ...s, query: text, locationId: '', name: '', showSuggestions: true } : s));
+  };
+
+  const selectStopLocation = (stopId, loc) => {
+    setMultiStops(prev => prev.map(s => s.id === stopId ? { ...s, locationId: loc.id, name: loc.name, query: loc.name, showSuggestions: false } : s));
+  };
+
+  // Haversine distance in km
+  const haversineKm = (lat1, lon1, lat2, lon2) => {
+    const R = 6371;
+    const dLat = ((lat2 - lat1) * Math.PI) / 180;
+    const dLon = ((lon2 - lon1) * Math.PI) / 180;
+    const a = Math.sin(dLat / 2) ** 2 + Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLon / 2) ** 2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  };
+
   const filteredLocations = (query, isAirport = false) => {
     const source = isAirport ? airports : allLocations;
-    const trimmed = query.trim();
-    if (!trimmed.length) return source.slice(0, 20);
-    return source.filter(l =>
-      l.name?.toLowerCase().includes(trimmed.toLowerCase())
-    ).slice(0, 20);
+    const trimmedQuery = (query || '').trim();
+    let results;
+
+    if (!trimmedQuery.length) {
+      results = [...source];
+    } else {
+      results = source.filter(l =>
+        l.name?.toLowerCase().includes(trimmedQuery.toLowerCase())
+      );
+    }
+
+    // Sort by proximity to fromLocation if available
+    if (fromLocation?.latitude && fromLocation?.longitude) {
+      results = results.map(loc => ({
+        ...loc,
+        _distance: (loc.latitude && loc.longitude)
+          ? Math.round(haversineKm(fromLocation.latitude, fromLocation.longitude, loc.latitude, loc.longitude))
+          : 99999,
+      })).sort((a, b) => a._distance - b._distance);
+    }
+
+    return results.slice(0, 15);
   };
 
   const openDatePicker = (target) => {
@@ -316,7 +390,7 @@ export default function CarRentalFleetScreen({ navigation, route }) {
       DateTimePickerAndroid.open({
         value: target === 'pickup' ? pickupDate : returnDate,
         mode: 'date',
-        minimumDate: target === 'pickup' ? new Date() : pickupDate,
+        minimumDate: target === 'pickup' ? getMinBookingDate() : pickupDate,
         onChange: (event, date) => {
           if (event.type === 'set' && date) {
             if (target === 'pickup') {
@@ -324,6 +398,27 @@ export default function CarRentalFleetScreen({ navigation, route }) {
               if (returnDate < date) {
                 setReturnDate(new Date(date.getTime() + 24 * 60 * 60 * 1000));
               }
+              // Auto-open time picker after pickup date selection
+              DateTimePickerAndroid.open({
+                value: new Date(),
+                mode: 'time',
+                is24Hour: false,
+                onChange: (eventTime, time) => {
+                  if (eventTime.type === 'set' && time) {
+                    const hours = time.getHours().toString().padStart(2, '0');
+                    const mins = time.getMinutes().toString().padStart(2, '0');
+                    const finalDateTime = new Date(date);
+                    finalDateTime.setHours(parseInt(hours, 10));
+                    finalDateTime.setMinutes(parseInt(mins, 10));
+                    if (isPickupTooSoon(finalDateTime)) {
+                      setShowBookingAlert(true);
+                      return;
+                    }
+                    setPickupDate(finalDateTime);
+                    setPickupTime(`${hours}:${mins}`);
+                  }
+                },
+              });
             } else {
               setReturnDate(date);
             }
@@ -345,6 +440,14 @@ export default function CarRentalFleetScreen({ navigation, route }) {
           if (event.type === 'set' && time) {
             const hours = time.getHours().toString().padStart(2, '0');
             const mins = time.getMinutes().toString().padStart(2, '0');
+            const finalDateTime = new Date(pickupDate);
+            finalDateTime.setHours(parseInt(hours, 10));
+            finalDateTime.setMinutes(parseInt(mins, 10));
+            if (isPickupTooSoon(finalDateTime)) {
+              setShowBookingAlert(true);
+              return;
+            }
+            setPickupDate(finalDateTime);
             setPickupTime(`${hours}:${mins}`);
           }
         },
@@ -357,23 +460,33 @@ export default function CarRentalFleetScreen({ navigation, route }) {
   const validateStep1 = () => {
     if (tripType === 'local') {
       if (!fromLocation) {
-        showAlert('error', 'Error', 'Please select pickup city');
+        Alert.alert('Error', 'Please select pickup city');
         return false;
       }
       if (!selectedPackage) {
-        showAlert('error', 'Error', 'Please select a package');
+        Alert.alert('Error', 'Please select a package');
         return false;
       }
     } else {
       if (!fromLocation) {
-        showAlert('error', 'Error', 'Please select pickup location');
+        Alert.alert('Error', 'Please select pickup location');
         return false;
       }
       if (!toLocation) {
-        showAlert('error', 'Error', 'Please select drop location');
+        Alert.alert('Error', 'Please select drop location');
         return false;
       }
     }
+
+    // 12-hour advance booking validation
+    const [hrs, mins] = (pickupTime || '10:00').split(':').map(Number);
+    const finalDateTime = new Date(pickupDate);
+    finalDateTime.setHours(hrs, mins, 0, 0);
+    if (isPickupTooSoon(finalDateTime)) {
+      setShowBookingAlert(true);
+      return false;
+    }
+
     return true;
   };
 
@@ -384,7 +497,7 @@ export default function CarRentalFleetScreen({ navigation, route }) {
       setStep(2);
     } else if (step === 2) {
       if (!selectedVehicle) {
-        showAlert('error', 'Error', 'Please select a vehicle');
+        Alert.alert('Error', 'Please select a vehicle');
         return;
       }
       setStep(3);
@@ -393,49 +506,12 @@ export default function CarRentalFleetScreen({ navigation, route }) {
 
   const handleBooking = async () => {
     if (!customer) {
-      showAlert('error', 'Login Required', 'Please login to book');
+      Alert.alert('Login Required', 'Please login to book');
       return;
-    }
-
-    // B2B company booking validation
-    if (bookingPurpose === 'company') {
-      const numVehicles = parseInt(numberOfVehicles);
-      if (!numVehicles || numVehicles < 1 || numVehicles > 500) {
-        showAlert('error', 'Error', 'Please enter valid number of vehicles (1-500)');
-        return;
-      }
     }
 
     setSubmitting(true);
     try {
-      // B2B Company Booking Flow
-      if (bookingPurpose === 'company' && isB2BCustomer) {
-        const b2bData = {
-          customerId: customer.id,
-          serviceType: 'car',
-          vehiclesRequired: parseInt(numberOfVehicles),
-          passengerCount: numberOfPersons ? parseInt(numberOfPersons) : null,
-          vehicleCategory: selectedVehicle?.name,
-          pickupLocation: fromLocation?.name,
-          dropLocation: tripType !== 'local' ? toLocation?.name : null,
-          tripType: tripType === 'local' ? 'HOURLY' : tripType === 'one_way' ? 'ONE_WAY' : 'ROUND_TRIP',
-          scheduledDate: pickupDate.toISOString().split('T')[0],
-          scheduledTime: pickupTime,
-          returnDate: tripType === 'round_trip' ? returnDate.toISOString().split('T')[0] : null,
-          returnTime: tripType === 'round_trip' ? pickupTime : null,
-        };
-
-        const response = await b2bService.createBooking(b2bData);
-
-        if (response.status === 'success' || response.booking) {
-          showAlert('success', 'B2B Booking Created!', `Your booking ${response.booking?.bookingNumber || ''} has been submitted. Vendors will send quotes soon.`, () => navigation.replace('B2BDashboard'));
-        } else {
-          showAlert('error', 'Error', response.error || response.message || 'Failed to create B2B booking');
-        }
-        return;
-      }
-
-      // Regular Personal Booking Flow
       const vehiclePrice = pricing[selectedVehicle.id];
 
       const bookingData = {
@@ -455,6 +531,10 @@ export default function CarRentalFleetScreen({ navigation, route }) {
         baseFare: vehiclePrice?.totalBeforeGst || 0,
         gstAmount: 0,
         estimatedAmount: vehiclePrice?.totalBeforeGst || 0,
+        advancePaid: Math.round((vehiclePrice?.totalBeforeGst || 0) * 0.2),
+        paymentMethod: 'UPI',
+        transactionId: utr,
+        paymentStatus: 'pending_verification',
       };
 
       if (tripType === 'local') {
@@ -465,6 +545,14 @@ export default function CarRentalFleetScreen({ navigation, route }) {
       } else {
         bookingData.dropCity = toLocation?.name;
         bookingData.dropAddress = toLocation?.name;
+        if ((tripType === 'one_way' || tripType === 'round_trip') && multiStops.length > 0) {
+          bookingData.intermediateStops = JSON.stringify(
+            multiStops.filter(s => s.locationId || s.name).map(s => ({
+              locationId: s.locationId,
+              cityText: s.name || s.query,
+            }))
+          );
+        }
         if (tripType === 'round_trip') {
           bookingData.returnDate = returnDate.toISOString().split('T')[0];
         }
@@ -476,27 +564,122 @@ export default function CarRentalFleetScreen({ navigation, route }) {
       const response = await bookingService.createChauffeurBooking(bookingData);
 
       if (response.success || response.booking) {
-        const bookingId = response.booking?.id || 'unknown';
-        const advanceAmount = Math.round((vehiclePrice?.totalBeforeGst || 0) * 0.2);
+        setBookingConfirmed(true);
+        setConfirmedBookingId(response.booking?.bookingNumber || response.booking?.id || 'unknown');
 
-        // Navigate to PaymentScreen for Razorpay payment
-        navigation.replace('PaymentScreen', {
-          bookingId,
-          bookingType: 'chauffeur',
-          amount: advanceAmount,
-        });
+        Alert.alert(
+          'Booking Confirmed!',
+          'Your booking has been successfully created.',
+          [
+            {
+              text: 'View Booking',
+              onPress: () => navigation.navigate('BookingConfirmation', {
+                booking_id: response.booking?.bookingNumber || response.booking?.id || 'unknown',
+                bookingType: 'chauffeur',
+              }),
+            },
+          ]
+        );
       } else {
-        showAlert('error', 'Error', response.message || 'Failed to create booking');
+        Alert.alert('Error', response.message || 'Failed to create booking');
       }
     } catch (error) {
       console.log('Booking error:', error);
-      showAlert('error', 'Error', error?.response?.data?.message || error?.response?.data?.error || 'Failed to create booking');
+      Alert.alert('Error', error?.response?.data?.message || 'Failed to create booking');
     } finally {
       setSubmitting(false);
     }
   };
 
-  /* ─── Render: Location Input ─── */
+  const renderMultiStops = () => {
+    if (tripType !== 'one_way' && tripType !== 'round_trip') return null;
+
+    return (
+      <View style={{ marginTop: 8 }}>
+        {multiStops.map((stop, index) => (
+          <View key={stop.id} style={{ marginBottom: 8 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
+              <Text style={[styles.inputLabel, { flex: 1, marginBottom: 0 }]}>Stop {index + 1}</Text>
+              <TouchableOpacity onPress={() => removeStop(stop.id)} style={{ padding: 4 }}>
+                <Ionicons name="close-circle" size={20} color="#EF4444" />
+              </TouchableOpacity>
+            </View>
+            <View style={styles.locationRow}>
+              <Ionicons name="ellipse-outline" size={16} color="#F59E0B" />
+              <TextInput
+                style={styles.locationInput}
+                value={stop.query || stop.name || ''}
+                onChangeText={(text) => updateStopQuery(stop.id, text)}
+                onFocus={() => setMultiStops(prev => prev.map(s => s.id === stop.id ? { ...s, showSuggestions: true } : s))}
+                placeholder="Via city..."
+                placeholderTextColor="#94A3B8"
+              />
+              {stop.name ? (
+                <Ionicons name="checkmark-circle" size={18} color="#09B368" />
+              ) : null}
+            </View>
+            {stop.showSuggestions && (() => {
+              // Get previous stop or fromLocation for proximity
+              const prevLoc = index === 0 ? fromLocation : (multiStops[index - 1]?.locationId ? allLocations.find(l => l.id === multiStops[index - 1].locationId) : fromLocation);
+              const trimmedStopQuery = (stop.query || '').trim();
+              let stopSuggestions = allLocations.filter(loc => {
+                if (fromLocation && loc.id === fromLocation.id) return false;
+                if (!trimmedStopQuery) return true;
+                return loc.name.toLowerCase().includes(trimmedStopQuery.toLowerCase());
+              });
+              // Sort by proximity to previous stop
+              if (prevLoc?.latitude && prevLoc?.longitude) {
+                stopSuggestions = stopSuggestions.map(loc => ({
+                  ...loc,
+                  _distance: (loc.latitude && loc.longitude)
+                    ? Math.round(haversineKm(prevLoc.latitude, prevLoc.longitude, loc.latitude, loc.longitude))
+                    : 99999,
+                })).sort((a, b) => a._distance - b._distance);
+              }
+              return stopSuggestions.length > 0 ? (
+                <View style={styles.inlineSuggestions}>
+                  {prevLoc?.latitude && !stop.query && (
+                    <View style={styles.nearbyHeader}>
+                      <Ionicons name="navigate-outline" size={12} color="#F59E0B" />
+                      <Text style={styles.nearbyHeaderText}>Nearby to {prevLoc.name || 'pickup'}</Text>
+                    </View>
+                  )}
+                  {stopSuggestions.slice(0, 8).map(loc => (
+                    <TouchableOpacity
+                      key={loc.id}
+                      style={styles.suggestionItem}
+                      onPress={() => selectStopLocation(stop.id, loc)}
+                    >
+                      <Ionicons name="location" size={16} color={loc._distance && loc._distance < 200 ? '#F59E0B' : '#64748B'} />
+                      <Text style={[styles.suggestionText, { flex: 1 }]}>{loc.name}</Text>
+                      {loc._distance && loc._distance < 5000 && (
+                        <Text style={styles.distanceBadge}>~{loc._distance} km</Text>
+                      )}
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              ) : null;
+            })()}
+          </View>
+        ))}
+
+        <TouchableOpacity
+          onPress={addStop}
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 6,
+            paddingVertical: 8,
+            paddingHorizontal: 4,
+          }}
+        >
+          <Ionicons name="add-circle-outline" size={20} color="#2563EB" />
+          <Text style={{ color: '#2563EB', fontSize: 13, fontWeight: '600' }}>Add Stop</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  };
+
   const renderLocationInput = (target) => {
     const isFrom = target === 'from';
     const location = isFrom ? fromLocation : toLocation;
@@ -511,30 +694,20 @@ export default function CarRentalFleetScreen({ navigation, route }) {
       (airportDirection === 'drop' && !isFrom)
     );
 
-    const handleFocus = () => {
-      setShowSuggestions(true);
-      setTimeout(() => {
-        if (scrollViewRef.current) {
-          scrollViewRef.current.scrollTo({ y: isFrom ? width * 0.65 : width * 0.85, animated: true });
-        }
-      }, 100);
-    };
+    const suggestions = filteredLocations(query, showAirports);
 
     return (
-      <View style={[styles.inputGroup, { zIndex: isFrom ? 20 : 10, elevation: isFrom ? 20 : 10 }]}>
+      <View style={styles.inputGroup}>
         <Text style={styles.inputLabel}>
           {isFrom ? 'From' : 'To'} {showAirports ? '(Airport)' : '(City)'}
         </Text>
         <TouchableOpacity style={styles.locationRow} activeOpacity={0.9}>
-          <View style={styles.locationIconWrap}>
-            <Ionicons
-              name={showAirports ? 'airplane-outline' : 'location-outline'}
-              size={wp('4.2%')}
-              color={TEAL}
-            />
-          </View>
+          <Ionicons
+            name={showAirports ? 'airplane-outline' : 'location-outline'}
+            size={18}
+            color="#0F172A"
+          />
           <TextInput
-            ref={isFrom ? fromInputRef : null}
             style={styles.locationInput}
             value={query || location?.name || ''}
             onChangeText={(text) => {
@@ -543,68 +716,54 @@ export default function CarRentalFleetScreen({ navigation, route }) {
               else setToLocation(null);
               setShowSuggestions(true);
             }}
-            onFocus={handleFocus}
+            onFocus={() => setShowSuggestions(true)}
             placeholder={showAirports ? 'Select airport' : 'Select city'}
-            placeholderTextColor={TEXT_MUTED}
+            placeholderTextColor="#94A3B8"
           />
           {location && (
             <TouchableOpacity onPress={() => {
               if (isFrom) setFromLocation(null);
               else setToLocation(null);
             }}>
-              <Ionicons name="close-circle" size={wp('5%')} color="#CBD5E1" />
+              <Ionicons name="close-circle" size={20} color="#CBD5E1" />
             </TouchableOpacity>
           )}
         </TouchableOpacity>
 
-        {showSuggestions && (
-          <View style={styles.suggestionsBox}>
-            <ScrollView
-              style={{ maxHeight: height * 0.35 }}
-              nestedScrollEnabled={true}
-              keyboardShouldPersistTaps="handled"
-              showsVerticalScrollIndicator={true}
-              scrollEventThrottle={16}
-              bounces={false}
-              onScrollBeginDrag={() => {
-                if (scrollViewRef.current) {
-                  scrollViewRef.current.setNativeProps({ scrollEnabled: false });
-                }
-              }}
-              onScrollEndDrag={() => {
-                if (scrollViewRef.current) {
-                  scrollViewRef.current.setNativeProps({ scrollEnabled: true });
-                }
-              }}
-            >
-              {filteredLocations(query, showAirports).map((loc) => (
-                <TouchableOpacity
-                  key={loc.id}
-                  style={styles.suggestionItem}
-                  activeOpacity={0.6}
-                  onPress={() => {
-                    Keyboard.dismiss();
-                    handleLocationSelect(loc, target);
-                  }}
-                >
-                  <Ionicons
-                    name={loc.type === 'AIRPORT' || loc.isAirport ? 'airplane-outline' : 'location'}
-                    size={wp('4%')}
-                    color={TEXT_SECONDARY}
-                  />
-                  <Text style={styles.suggestionText}>{loc.displayName || loc.name}</Text>
-                  {loc.code && <Text style={styles.suggestionCode}>{loc.code}</Text>}
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
+        {showSuggestions && suggestions.length > 0 && (
+          <View style={styles.inlineSuggestions}>
+            {!isFrom && fromLocation?.latitude && !query && (
+              <View style={styles.nearbyHeader}>
+                <Ionicons name="navigate-outline" size={12} color="#2563EB" />
+                <Text style={styles.nearbyHeaderText}>Nearby cities first</Text>
+              </View>
+            )}
+            {suggestions.slice(0, 8).map((loc, idx) => (
+              <TouchableOpacity
+                key={loc.id}
+                style={styles.suggestionItem}
+                onPress={() => handleLocationSelect(loc, target)}
+              >
+                <Ionicons
+                  name={loc.type === 'airport' ? 'airplane-outline' : 'location'}
+                  size={16}
+                  color={loc._distance && loc._distance < 200 ? '#2563EB' : '#64748B'}
+                />
+                <Text style={[styles.suggestionText, { flex: 1 }]}>{loc.name}</Text>
+                {loc._distance && loc._distance < 5000 && (
+                  <Text style={styles.distanceBadge}>~{loc._distance} km</Text>
+                )}
+                {loc.code && <Text style={styles.suggestionCode}>{loc.code}</Text>}
+              </TouchableOpacity>
+            ))}
           </View>
         )}
       </View>
     );
   };
 
-  /* ─── Render: Package Selector ─── */
   const renderPackageSelector = () => {
+    // Group packages by vehicle category
     const packagesByCategory = {};
     localPackages.forEach(pkg => {
       const catId = pkg.vehicleCategoryId;
@@ -612,6 +771,7 @@ export default function CarRentalFleetScreen({ navigation, route }) {
       packagesByCategory[catId].push(pkg);
     });
 
+    // Get unique packages (one per hours/km combo)
     const uniquePackages = [];
     const seen = new Set();
     localPackages.forEach(pkg => {
@@ -650,72 +810,11 @@ export default function CarRentalFleetScreen({ navigation, route }) {
     );
   };
 
-  /* ─── Filtered Vehicles (Step 2) ─── */
-  const filteredVehicles = useMemo(() => {
-    let vehicles = vehicleCategories.filter(v => v.isActive && (v.cityPricingCount > 0 || v.localPackagesCount > 0 || v.routePackagesCount > 0));
-
-    if (vehicleSearchQuery.trim()) {
-      const q = vehicleSearchQuery.trim().toLowerCase();
-      vehicles = vehicles.filter(v => {
-        const name = (v.name || '').toLowerCase();
-        let exVeh = v.exampleVehicles;
-        if (typeof exVeh === 'string') { try { exVeh = JSON.parse(exVeh); } catch(e) {} }
-        const examples = Array.isArray(exVeh)
-          ? exVeh.join(' ').toLowerCase()
-          : (typeof exVeh === 'string' ? exVeh : '').toLowerCase();
-        return name.includes(q) || examples.includes(q);
-      });
-    }
-
-    if (vehicleTypeFilter) {
-      vehicles = vehicles.filter(v => {
-        const isStandard = v.name.includes('Sedan');
-        return vehicleTypeFilter === 'Standard' ? isStandard : !isStandard;
-      });
-    }
-
-    if (acFilter) {
-      vehicles = vehicles.filter(v => {
-        const isAC = v.acAvailable !== false; // default to AC if not specified
-        return acFilter === 'AC' ? isAC : !isAC;
-      });
-    }
-
-    if (seaterFilter) {
-      vehicles = vehicles.filter(v => v.seatingCapacity === seaterFilter);
-    }
-
-    vehicles.sort((a, b) => {
-      const aAvailable = pricing[a.id] && pricing[a.id].totalBeforeGst > 0;
-      const bAvailable = pricing[b.id] && pricing[b.id].totalBeforeGst > 0;
-      if (aAvailable && !bAvailable) return -1;
-      if (!aAvailable && bAvailable) return 1;
-      if (priceSortOrder && aAvailable && bAvailable) {
-        const aPrice = pricing[a.id].totalBeforeGst;
-        const bPrice = pricing[b.id].totalBeforeGst;
-        if (priceSortOrder === 'low_to_high') return aPrice - bPrice;
-        if (priceSortOrder === 'high_to_low') return bPrice - aPrice;
-      }
-      return 0;
-    });
-
-    return vehicles;
-  }, [vehicleCategories, vehicleSearchQuery, vehicleTypeFilter, acFilter, seaterFilter, priceSortOrder, pricing]);
-
-  /* ─── Render: Vehicle Card ─── */
-  const [failedImages, setFailedImages] = useState({});
-  const [expandedCards, setExpandedCards] = useState({});
-
-  const toggleCardExpand = (vehicleId) => {
-    setExpandedCards(prev => ({ ...prev, [vehicleId]: !prev[vehicleId] }));
-  };
-
   const renderVehicleCard = (vehicle) => {
     const vehiclePrice = pricing[vehicle.id];
     const isSelected = selectedVehicle?.id === vehicle.id;
     const isAvailable = vehiclePrice && vehiclePrice.totalBeforeGst > 0;
-    const imageUrl = vehicle.image ? `${BASE_URL}${vehicle.image}` : null;
-    const showImage = imageUrl && !failedImages[vehicle.id];
+
     return (
       <TouchableOpacity
         key={vehicle.id}
@@ -724,178 +823,141 @@ export default function CarRentalFleetScreen({ navigation, route }) {
           isSelected && styles.vehicleCardSelected,
           !isAvailable && styles.vehicleCardUnavailable
         ]}
-        onPress={() => isAvailable && setSelectedVehicle(isSelected ? null : vehicle)}
+        onPress={() => isAvailable && setSelectedVehicle(vehicle)}
         activeOpacity={isAvailable ? 0.9 : 1}
         disabled={!isAvailable}
       >
         <View style={styles.vehicleCardTop}>
-          <View style={[styles.vehicleImageWrap, isSelected && styles.vehicleImageWrapSelected]}>
-            {showImage ? (
+          <View style={styles.vehicleImageWrap}>
+            {vehicle.image ? (
               <Image
-                source={{ uri: imageUrl }}
+                source={{ uri: `${BASE_URL}${vehicle.image}` }}
                 style={styles.vehicleImage}
                 resizeMode="contain"
-                onError={() => setFailedImages(prev => ({ ...prev, [vehicle.id]: true }))}
               />
             ) : (
-              <MaterialCommunityIcons name="car" size={wp('10%')} color="#CBD5E1" />
+              <MaterialCommunityIcons name="car" size={42} color="#CBD5E1" />
             )}
           </View>
 
           <View style={styles.vehicleMainInfo}>
-            <View style={styles.nameRow}>
-              <Text style={[styles.vehicleName, isSelected && styles.vehicleNameSelected]}>{vehicle.name}</Text>
-              <View style={[styles.vehicleTypeBadge, vehicle.name.includes('Sedan') ? styles.badgeStandard : styles.badgePremium]}>
-                <Text style={[styles.vehicleType, vehicle.name.includes('Sedan') ? styles.badgeStandardText : styles.badgePremiumText]}>
-                  {vehicle.name.includes('Sedan') ? 'Standard' : 'Premium'}
-                </Text>
-              </View>
-            </View>
+            <Text style={styles.vehicleType}>{vehicle.name.includes('Sedan') ? 'Standard' : 'Premium'}</Text>
+            <Text style={styles.vehicleName}>{vehicle.name}</Text>
 
             <View style={styles.vehicleStats}>
               <View style={styles.statItem}>
-                <Ionicons name="people-outline" size={wp('3.5%')} color={TEXT_SECONDARY} />
+                <Ionicons name="people-outline" size={14} color={TEXT_SECONDARY} />
                 <Text style={styles.statText}>{vehicle.seatingCapacity}</Text>
               </View>
               <View style={styles.statItem}>
-                <Ionicons name="briefcase-outline" size={wp('3.5%')} color={TEXT_SECONDARY} />
+                <Ionicons name="briefcase-outline" size={14} color={TEXT_SECONDARY} />
                 <Text style={styles.statText}>{vehicle.luggageCapacity || '2-3'}</Text>
               </View>
               <View style={styles.statItem}>
-                <Ionicons name="snow-outline" size={wp('3.5%')} color={TEXT_SECONDARY} />
+                <Ionicons name="snow-outline" size={14} color={TEXT_SECONDARY} />
                 <Text style={styles.statText}>AC</Text>
               </View>
             </View>
           </View>
         </View>
 
-        {vehicle.exampleVehicles && (() => {
-          let examples = vehicle.exampleVehicles;
-          if (typeof examples === 'string') {
-            try { examples = JSON.parse(examples); } catch (e) { /* use as-is */ }
-          }
-          const text = Array.isArray(examples)
-            ? examples.filter(e => typeof e === 'string' && e.trim()).join(', ')
-            : (typeof examples === 'string' ? examples : '');
-          return text ? (
-            <Text style={styles.vehicleExamples}>{text}</Text>
-          ) : null;
-        })()}
+        {vehicle.exampleVehicles && (Array.isArray(vehicle.exampleVehicles) ? vehicle.exampleVehicles : []).length > 0 && (
+          <Text style={styles.vehicleExamples}>
+            Example: {(Array.isArray(vehicle.exampleVehicles) ? vehicle.exampleVehicles : []).join(', ')}
+          </Text>
+        )}
 
         <View style={styles.vehicleFooter}>
           {isAvailable ? (
-            <View style={{ flex: 1 }}>
-              <View style={styles.priceRow}>
-                <View style={styles.priceBadge}>
-                  <Text style={[styles.currency, isSelected && styles.currencySelected]}>&#8377;</Text>
-                  <Text style={[styles.vehiclePrice, isSelected && styles.vehiclePriceSelected]}>
-                    {vehiclePrice.totalBeforeGst?.toLocaleString()}
-                  </Text>
-                </View>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: wp('2%') }}>
-                  <View style={styles.inclusiveBadge}>
-                    <Ionicons name="checkmark-circle" size={wp('3.5%')} color={TEAL} />
-                    <Text style={styles.inclusiveLabel}>All inclusive</Text>
-                  </View>
-                  <TouchableOpacity
-                    onPress={(e) => { e.stopPropagation && e.stopPropagation(); toggleCardExpand(vehicle.id); }}
-                    style={styles.detailsToggle}
-                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                  >
-                    <Ionicons
-                      name={expandedCards[vehicle.id] ? 'chevron-up' : 'chevron-down'}
-                      size={wp('4%')}
-                      color={TEAL_MID}
-                    />
-                  </TouchableOpacity>
-                </View>
+            <>
+              <View style={styles.priceBadge}>
+                <Text style={styles.currency}>₹</Text>
+                <Text style={styles.vehiclePrice}>
+                  {vehiclePrice.totalBeforeGst?.toLocaleString()}
+                </Text>
               </View>
-
-              {/* Expandable Pricing Details */}
-              {expandedCards[vehicle.id] && (
-                <View style={styles.pricingDetails}>
-                  {vehiclePrice.packageName && (
-                    <View style={styles.pricingDetailRow}>
-                      <Text style={styles.pricingDetailLabel}>Base fare ({vehiclePrice.hours}hr/{vehiclePrice.kms}km)</Text>
-                      <Text style={styles.pricingDetailValue}>₹{vehiclePrice.basePrice?.toLocaleString() || vehiclePrice.totalBeforeGst?.toLocaleString()}</Text>
-                    </View>
-                  )}
-                  {!vehiclePrice.packageName && vehiclePrice.baseKmCharge > 0 && (
-                    <View style={styles.pricingDetailRow}>
-                      <Text style={styles.pricingDetailLabel}>Base fare</Text>
-                      <Text style={styles.pricingDetailValue}>₹{vehiclePrice.baseKmCharge?.toLocaleString()}</Text>
-                    </View>
-                  )}
-                  {vehiclePrice.extraKmCharge > 0 && (
-                    <View style={styles.pricingDetailRow}>
-                      <Text style={styles.pricingDetailLabel}>Extra km charge</Text>
-                      <Text style={styles.pricingDetailValue}>₹{vehiclePrice.extraKmCharge}/km</Text>
-                    </View>
-                  )}
-                  {vehiclePrice.extraHourCharge > 0 && (
-                    <View style={styles.pricingDetailRow}>
-                      <Text style={styles.pricingDetailLabel}>Extra hour charge</Text>
-                      <Text style={styles.pricingDetailValue}>₹{vehiclePrice.extraHourCharge}/hr</Text>
-                    </View>
-                  )}
-                  {(vehiclePrice.perKmRate > 0 && !vehiclePrice.packageName) && (
-                    <View style={styles.pricingDetailRow}>
-                      <Text style={styles.pricingDetailLabel}>Per km rate</Text>
-                      <Text style={styles.pricingDetailValue}>₹{vehiclePrice.perKmRate}/km</Text>
-                    </View>
-                  )}
-                  <View style={styles.pricingDetailRow}>
-                    <Text style={styles.pricingDetailLabel}>Toll/Parking</Text>
-                    <Text style={styles.pricingDetailValue}>
-                      {vehiclePrice.tollEstimate > 0 || vehiclePrice.tollsEstimate > 0
-                        ? `₹${(vehiclePrice.tollEstimate || vehiclePrice.tollsEstimate)?.toLocaleString()}`
-                        : 'Extra (as applicable)'}
-                    </Text>
-                  </View>
-                </View>
-              )}
-            </View>
+              <Text style={styles.inclusiveLabel}>
+                {vehiclePrice.totalKm || 0} km · Incl. driver
+              </Text>
+            </>
           ) : (
             <View style={styles.unavailableBadge}>
-              <Ionicons name="close-circle" size={wp('4%')} color="#EF4444" />
+              <Ionicons name="close-circle" size={16} color="#EF4444" />
               <Text style={styles.unavailableText}>Route Not Available</Text>
             </View>
           )}
         </View>
 
+        {/* Route Breakdown - show when selected */}
+        {isSelected && isAvailable && (
+          <View style={styles.breakdownWrap}>
+            {/* Route legs */}
+            {vehiclePrice.legs?.length > 0 && (
+              <View style={styles.breakdownSection}>
+                <Text style={styles.breakdownSectionTitle}>Route Breakdown</Text>
+                {vehiclePrice.legs.map((leg, i) => (
+                  <View key={i} style={styles.breakdownLegRow}>
+                    <Ionicons name="arrow-forward" size={12} color={BRAND_TEAL} />
+                    <Text style={styles.breakdownLegText}>{leg.from} → {leg.to}</Text>
+                  </View>
+                ))}
+              </View>
+            )}
+
+            {/* Min km info */}
+            {vehiclePrice.minKmPerDay && (
+              <View style={styles.breakdownMinKm}>
+                <Ionicons name="information-circle-outline" size={14} color="#F59E0B" />
+                <Text style={styles.breakdownMinKmText}>
+                  Minimum {vehiclePrice.totalKm} km charged for {vehiclePrice.days || 1} day{(vehiclePrice.days || 1) > 1 ? 's' : ''} ({vehiclePrice.minKmPerDay} km/day). Extra km beyond this will be charged at ₹{vehiclePrice.perKmRate}/km.
+                </Text>
+              </View>
+            )}
+
+            {/* Price breakdown */}
+            <View style={styles.breakdownSection}>
+              <View style={styles.breakdownRow}>
+                <Text style={styles.breakdownLabel}>Distance ({vehiclePrice.totalKm} km × ₹{vehiclePrice.perKmRate}/km)</Text>
+                <Text style={styles.breakdownValue}>₹{(vehiclePrice.totalKm * vehiclePrice.perKmRate)?.toLocaleString()}</Text>
+              </View>
+              {vehiclePrice.driverAllowance > 0 && (
+                <View style={styles.breakdownRow}>
+                  <Text style={styles.breakdownLabel}>
+                    Driver allowance {(vehiclePrice.days || 1) > 1
+                      ? `(₹${vehiclePrice.driverAllowancePerDay || vehiclePrice.driverAllowance}/day × ${vehiclePrice.days}d)`
+                      : `(${vehiclePrice.days || 1}d)`}
+                  </Text>
+                  <Text style={styles.breakdownValue}>₹{vehiclePrice.driverAllowance?.toLocaleString()}</Text>
+                </View>
+              )}
+              <View style={styles.breakdownRow}>
+                <Text style={styles.breakdownLabel}>Toll/Parking</Text>
+                <Text style={[styles.breakdownValue, { color: '#64748B' }]}>Extra (as applicable)</Text>
+              </View>
+              <View style={[styles.breakdownRow, { borderTopWidth: 1, borderTopColor: '#E2E8F0', paddingTop: 8, marginTop: 4 }]}>
+                <Text style={[styles.breakdownLabel, { fontWeight: '700', color: '#0F172A' }]}>Total</Text>
+                <Text style={[styles.breakdownValue, { fontWeight: '700', color: BRAND_TEAL }]}>₹{vehiclePrice.totalBeforeGst?.toLocaleString()}</Text>
+              </View>
+            </View>
+          </View>
+        )}
+
         {isSelected && (
           <View style={styles.selectedBadge}>
-            <LinearGradient colors={[TEAL, TEAL_MID]} style={styles.selectedBadgeGradient}>
-              <Icon name="check" size={wp('4%')} color="#fff" />
-            </LinearGradient>
+            <Ionicons name="checkmark-circle" size={18} color="#fff" />
+            <Text style={styles.selectedBadgeText}>Selected</Text>
           </View>
         )}
       </TouchableOpacity>
     );
   };
 
-  /* ─── Render: Step 1 — Trip Details ─── */
   const renderStep1 = () => (
-    <ScrollView
-      ref={scrollViewRef}
-      style={styles.stepContent}
-      keyboardShouldPersistTaps="handled"
-      showsVerticalScrollIndicator={false}
-      scrollEventThrottle={16}
-      contentContainerStyle={{ paddingBottom: hp('3%') }}
-    >
-      {/* Hero Section with Dark Teal Gradient */}
-      <LinearGradient
-        colors={[TEAL_DEEP, TEAL_MID, '#047857']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.heroWrapper}
-      >
-        <View style={[styles.heroDecoCircle, { top: -wp('8%'), right: -wp('5%'), width: wp('25%'), height: wp('25%') }]} />
-        <View style={[styles.heroDecoCircle, { bottom: -wp('4%'), left: -wp('4%'), width: wp('16%'), height: wp('16%') }]} />
-
-        <Text style={styles.heroTitle}>Select Trip Type</Text>
-        <Text style={styles.heroSubtitle}>Choose your preferred travel style</Text>
+    <ScrollView style={styles.stepContent} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} nestedScrollEnabled keyboardDismissMode="on-drag">
+      {/* Hero Section Wrapper for Trip Type */}
+      <View style={styles.heroWrapper}>
+        <Text style={styles.heroTitle}>Where are you going?</Text>
+        <Text style={styles.heroSubtitle}>Select your trip type and pickup details</Text>
 
         <View style={styles.tripTypeGrid}>
           {TRIP_TYPES.map((type) => {
@@ -909,22 +971,20 @@ export default function CarRentalFleetScreen({ navigation, route }) {
                   setFromLocation(null);
                   setToLocation(null);
                   setSelectedPackage(null);
+                  setMultiStops([]);
                 }}
               >
                 <View style={[styles.tripTypeIcon, isActive && styles.tripTypeIconActive]}>
-                  <Icon name={type.icon} size={wp('4%')} color={isActive ? '#fff' : TEAL} />
+                  <Icon name={type.icon} size={18} color={isActive ? '#fff' : BRAND_TEAL} />
                 </View>
                 <Text style={[styles.tripTypeLabel, isActive && styles.tripTypeLabelActive]}>
                   {type.label}
-                </Text>
-                <Text style={[styles.tripTypeDesc, isActive && styles.tripTypeDescActive]}>
-                  {type.desc}
                 </Text>
               </TouchableOpacity>
             );
           })}
         </View>
-      </LinearGradient>
+      </View>
 
       {/* Airport Direction (only for airport trips) */}
       {tripType === 'airport' && (
@@ -940,8 +1000,8 @@ export default function CarRentalFleetScreen({ navigation, route }) {
             >
               <MaterialCommunityIcons
                 name={dir.icon}
-                size={wp('5.5%')}
-                color={airportDirection === dir.id ? TEAL : TEXT_SECONDARY}
+                size={22}
+                color={airportDirection === dir.id ? GREEN : '#64748B'}
               />
               <Text style={[
                 styles.airportDirLabel,
@@ -957,12 +1017,7 @@ export default function CarRentalFleetScreen({ navigation, route }) {
       {/* Location Inputs */}
       <View style={styles.locationsSection}>
         {renderLocationInput('from')}
-        {locationNotServed && (
-          <View style={styles.notServedBanner}>
-            <Ionicons name="information-circle" size={wp('4.5%')} color="#D97706" />
-            <Text style={styles.notServedText}>We are not currently providing our services in this location.</Text>
-          </View>
-        )}
+        {(tripType === 'one_way' || tripType === 'round_trip') && renderMultiStops()}
         {tripType !== 'local' && renderLocationInput('to')}
       </View>
 
@@ -970,189 +1025,132 @@ export default function CarRentalFleetScreen({ navigation, route }) {
       {tripType === 'local' && localPackages.length > 0 && renderPackageSelector()}
 
       {/* Date & Time */}
-      {tripType === 'round_trip' ? (
-        <>
-          <View style={styles.dateTimeRow}>
-            <TouchableOpacity style={styles.dateCard} onPress={() => openDatePicker('pickup')}>
-              <Text style={styles.dateLabel}>PICKUP DATE</Text>
-              <View style={styles.dateContent}>
-                <Ionicons name="calendar-outline" size={wp('4%')} color={TEAL_MID} />
-                <Text style={styles.dateValue}>
-                  {pickupDate.toLocaleDateString('en-US', {
-                    day: '2-digit', month: 'short', year: 'numeric'
-                  })}
-                </Text>
-              </View>
-            </TouchableOpacity>
+      <View style={styles.dateTimeRow}>
+        <TouchableOpacity style={styles.dateCard} onPress={() => openDatePicker('pickup')}>
+          <Text style={styles.dateLabel}>PICKUP DATE</Text>
+          <View style={styles.dateContent}>
+            <Ionicons name="calendar-outline" size={16} color="#0F172A" />
+            <Text style={styles.dateValue}>
+              {pickupDate.toLocaleDateString('en-US', {
+                day: '2-digit', month: 'short', year: 'numeric'
+              })}
+            </Text>
+          </View>
+        </TouchableOpacity>
 
-            <TouchableOpacity style={styles.dateCard} onPress={() => openDatePicker('return')}>
-              <Text style={styles.dateLabel}>RETURN DATE</Text>
-              <View style={styles.dateContent}>
-                <Ionicons name="calendar-outline" size={wp('4%')} color={TEAL_MID} />
-                <Text style={styles.dateValue}>
-                  {returnDate.toLocaleDateString('en-US', {
-                    day: '2-digit', month: 'short', year: 'numeric'
-                  })}
-                </Text>
-              </View>
-            </TouchableOpacity>
-          </View>
-          <View style={styles.dateTimeRow}>
-            <TouchableOpacity style={styles.dateCard} onPress={openTimePicker}>
-              <Text style={styles.dateLabel}>PICKUP TIME</Text>
-              <View style={styles.dateContent}>
-                <Ionicons name="time-outline" size={wp('4%')} color={TEAL_MID} />
-                <Text style={styles.dateValue}>{pickupTime}</Text>
-              </View>
-            </TouchableOpacity>
-          </View>
-        </>
-      ) : (
-        <View style={styles.dateTimeRow}>
-          <TouchableOpacity style={styles.dateCard} onPress={() => openDatePicker('pickup')}>
-            <Text style={styles.dateLabel}>PICKUP DATE</Text>
+        {tripType === 'round_trip' && (
+          <TouchableOpacity style={styles.dateCard} onPress={() => openDatePicker('return')}>
+            <Text style={styles.dateLabel}>RETURN DATE</Text>
             <View style={styles.dateContent}>
-              <Ionicons name="calendar-outline" size={wp('4%')} color={TEAL_MID} />
+              <Ionicons name="calendar-outline" size={16} color="#0F172A" />
               <Text style={styles.dateValue}>
-                {pickupDate.toLocaleDateString('en-US', {
+                {returnDate.toLocaleDateString('en-US', {
                   day: '2-digit', month: 'short', year: 'numeric'
                 })}
               </Text>
             </View>
           </TouchableOpacity>
+        )}
 
-          <TouchableOpacity style={styles.timeCard} onPress={openTimePicker}>
-            <Text style={styles.dateLabel}>TIME</Text>
-            <View style={styles.dateContent}>
-              <Ionicons name="time-outline" size={wp('4%')} color={TEAL_MID} />
-              <Text style={styles.dateValue}>{pickupTime}</Text>
-            </View>
-          </TouchableOpacity>
+        <TouchableOpacity style={styles.timeCard} onPress={openTimePicker}>
+          <Text style={styles.dateLabel}>TIME</Text>
+          <View style={styles.dateContent}>
+            <Ionicons name="time-outline" size={16} color="#0F172A" />
+            <Text style={styles.dateValue}>{pickupTime}</Text>
+          </View>
+        </TouchableOpacity>
+      </View>
+
+      {/* KM Approximation Note */}
+      {(fromLocation || toLocation) && tripType !== 'local' && (
+        <View style={[styles.kmNote, { marginTop: 12 }]}>
+          <Ionicons name="information-circle" size={15} color="#F59E0B" />
+          <Text style={styles.kmNoteText}>
+            Distances shown (~km) are approximate and may vary from actual road distance. Final billing will be based on actual km travelled.
+          </Text>
         </View>
       )}
+
+      <View style={{ height: 120 }} />
     </ScrollView>
   );
 
-  /* ─── Render: Step 2 — Vehicle Selection ─── */
+  const getRouteDisplay = () => {
+    if (tripType === 'local') return `${selectedPackage?.hours}hr / ${selectedPackage?.kms}km`;
+    const stops = multiStops.filter(s => s.name);
+    const parts = [fromLocation?.name];
+    stops.forEach(s => parts.push(s.name));
+    parts.push(toLocation?.name);
+    return parts.filter(Boolean).join('  →  ');
+  };
+
   const renderStep2 = () => (
     <View style={{ flex: 1 }}>
-
-      {/* Search Bar + Filter Button */}
-      {!loadingPrices && vehicleCategories.filter(v => v.isActive).length > 0 && (
-        <View style={styles.searchFilterRow}>
-          <View style={styles.searchBar}>
-            <Ionicons name="search" size={wp('4.5%')} color={TEAL} />
-            <TextInput
-              style={styles.searchInput}
-              placeholder="Search vehicles..."
-              placeholderTextColor={TEXT_MUTED}
-              value={vehicleSearchQuery}
-              onChangeText={setVehicleSearchQuery}
-              returnKeyType="search"
-            />
-            {vehicleSearchQuery.length > 0 && (
-              <TouchableOpacity onPress={() => setVehicleSearchQuery('')}>
-                <Ionicons name="close-circle" size={wp('4.5%')} color={TEXT_MUTED} />
-              </TouchableOpacity>
-            )}
+      <View style={styles.routeInfoBox}>
+        <Text style={styles.routeInfoTitle}>Select Vehicle</Text>
+        <View style={styles.routeDisplay}>
+          <Ionicons name="navigate-outline" size={14} color={BRAND_TEAL} />
+          <Text style={styles.routeDisplayText} numberOfLines={2}>{getRouteDisplay()}</Text>
+        </View>
+        <View style={styles.routeMeta}>
+          <View style={styles.routeMetaItem}>
+            <Ionicons name="calendar-outline" size={13} color="#64748B" />
+            <Text style={styles.routeMetaText}>
+              {pickupDate.toLocaleDateString('en-US', { day: '2-digit', month: 'short' })}
+            </Text>
           </View>
-          <TouchableOpacity
-            style={[styles.filterButton, (vehicleTypeFilter || acFilter || seaterFilter || priceSortOrder) && styles.filterButtonActive]}
-            onPress={() => setShowFilterModal(true)}
-          >
-            <Ionicons name="options-outline" size={wp('5%')} color={(vehicleTypeFilter || acFilter || seaterFilter || priceSortOrder) ? '#fff' : TEAL} />
-          </TouchableOpacity>
-        </View>
-      )}
-
-      {/* Active Filters */}
-      {(vehicleTypeFilter || acFilter || seaterFilter || priceSortOrder) && !loadingPrices && (
-        <View style={styles.activeFiltersRow}>
-          {vehicleTypeFilter && (
-            <View style={styles.activeFilterChip}>
-              <Text style={styles.activeFilterText}>{vehicleTypeFilter}</Text>
-              <TouchableOpacity onPress={() => setVehicleTypeFilter(null)}>
-                <Ionicons name="close-circle" size={wp('3.5%')} color={TEAL_MID} />
-              </TouchableOpacity>
-            </View>
-          )}
-          {acFilter && (
-            <View style={styles.activeFilterChip}>
-              <Text style={styles.activeFilterText}>{acFilter}</Text>
-              <TouchableOpacity onPress={() => setAcFilter(null)}>
-                <Ionicons name="close-circle" size={wp('3.5%')} color={TEAL_MID} />
-              </TouchableOpacity>
-            </View>
-          )}
-          {seaterFilter && (
-            <View style={styles.activeFilterChip}>
-              <Text style={styles.activeFilterText}>{seaterFilter} Seater</Text>
-              <TouchableOpacity onPress={() => setSeaterFilter(null)}>
-                <Ionicons name="close-circle" size={wp('3.5%')} color={TEAL_MID} />
-              </TouchableOpacity>
-            </View>
-          )}
-          {priceSortOrder && (
-            <View style={styles.activeFilterChip}>
-              <Text style={styles.activeFilterText}>
-                {priceSortOrder === 'low_to_high' ? 'Price: Low to High' : 'Price: High to Low'}
+          <View style={styles.routeMetaItem}>
+            <Ionicons name="time-outline" size={13} color="#64748B" />
+            <Text style={styles.routeMetaText}>{pickupTime || '10:00'}</Text>
+          </View>
+          {tripType === 'round_trip' && (
+            <View style={styles.routeMetaItem}>
+              <Ionicons name="return-down-back-outline" size={13} color="#64748B" />
+              <Text style={styles.routeMetaText}>
+                Return: {returnDate.toLocaleDateString('en-US', { day: '2-digit', month: 'short' })}
               </Text>
-              <TouchableOpacity onPress={() => setPriceSortOrder(null)}>
-                <Ionicons name="close-circle" size={wp('3.5%')} color={TEAL_MID} />
-              </TouchableOpacity>
+            </View>
+          )}
+          {multiStops.filter(s => s.name).length > 0 && (
+            <View style={styles.routeMetaItem}>
+              <Ionicons name="git-branch-outline" size={13} color="#F59E0B" />
+              <Text style={styles.routeMetaText}>{multiStops.filter(s => s.name).length} stop(s)</Text>
             </View>
           )}
         </View>
-      )}
+      </View>
 
-      <ScrollView
-        style={styles.stepContent}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: hp('3%') }}
-        keyboardShouldPersistTaps="handled"
-      >
+      <ScrollView style={styles.stepContent} showsVerticalScrollIndicator={false}>
         {loadingPrices ? (
           <View style={styles.loadingWrap}>
-            <ActivityIndicator size="large" color={TEAL} />
+            <ActivityIndicator size="large" color={BRAND_TEAL} />
             <Text style={styles.loadingText}>Fetching best prices...</Text>
-          </View>
-        ) : filteredVehicles.length === 0 ? (
-          <View style={styles.emptySearchWrap}>
-            <Ionicons name="car-outline" size={wp('12%')} color={TEXT_MUTED} />
-            <Text style={styles.emptySearchTitle}>No vehicles found</Text>
-            <Text style={styles.emptySearchSubtitle}>Try adjusting your search or filters</Text>
-            <TouchableOpacity
-              style={styles.clearAllFiltersBtn}
-              onPress={() => { setVehicleSearchQuery(''); setVehicleTypeFilter(null); setAcFilter(null); setSeaterFilter(null); setPriceSortOrder(null); }}
-            >
-              <Text style={styles.clearAllFiltersBtnText}>Clear All Filters</Text>
-            </TouchableOpacity>
           </View>
         ) : (
           <View style={styles.vehicleList}>
-            {filteredVehicles.map(renderVehicleCard)}
+            {vehicleCategories
+              .filter(v => v.isActive)
+              .sort((a, b) => {
+                const aAvailable = pricing[a.id] && pricing[a.id].totalBeforeGst > 0 ? 1 : 0;
+                const bAvailable = pricing[b.id] && pricing[b.id].totalBeforeGst > 0 ? 1 : 0;
+                return bAvailable - aAvailable;
+              })
+              .map(renderVehicleCard)}
           </View>
         )}
+        <View style={{ height: 120 }} />
       </ScrollView>
     </View>
   );
 
-  /* ─── Render: Step 3 — Confirmation ─── */
   const renderStep3 = () => (
-    <ScrollView
-      style={styles.stepContent}
-      showsVerticalScrollIndicator={false}
-      contentContainerStyle={{ paddingBottom: hp('3%') }}
-    >
+    <ScrollView style={styles.stepContent} showsVerticalScrollIndicator={false}>
       <View style={styles.summaryCard}>
-        {/* Teal Accent Stripe */}
-        <LinearGradient colors={[TEAL_DEEP, TEAL_MID]} style={styles.summaryAccentStripe} />
-
         <View style={styles.summaryHeader}>
-          <LinearGradient colors={[TEAL_DEEP, TEAL_MID]} style={styles.summaryVehicleIcon}>
-            <MaterialCommunityIcons name="car-hatchback" size={wp('7%')} color="#fff" />
-          </LinearGradient>
-          <View style={{ flex: 1 }}>
+          <View style={[styles.vehicleImageWrap, { width: 60, height: 40, marginRight: 12 }]}>
+            <MaterialCommunityIcons name="car-hatchback" size={32} color={BRAND_TEAL} />
+          </View>
+          <View>
             <Text style={styles.summaryTitle}>{selectedVehicle?.name}</Text>
             <Text style={styles.summaryLabel}>{selectedVehicle?.seatingCapacity} Seating Capacity</Text>
           </View>
@@ -1164,10 +1162,16 @@ export default function CarRentalFleetScreen({ navigation, route }) {
           <Text style={styles.summaryLabel}>Trip Type</Text>
           <Text style={styles.summaryValue}>{tripType.charAt(0).toUpperCase() + tripType.slice(1)}</Text>
         </View>
-        <View style={[styles.summaryRow, styles.summaryRowAlt]}>
+        <View style={styles.summaryRow}>
           <Text style={styles.summaryLabel}>Pickup</Text>
           <Text style={styles.summaryValue}>{fromLocation?.name}</Text>
         </View>
+        {tripType !== 'local' && multiStops.filter(s => s.name).length > 0 && (
+          <View style={styles.summaryRow}>
+            <Text style={styles.summaryLabel}>Via Stops</Text>
+            <Text style={styles.summaryValue}>{multiStops.filter(s => s.name).map(s => s.name).join(' → ')}</Text>
+          </View>
+        )}
         {tripType !== 'local' && (
           <View style={styles.summaryRow}>
             <Text style={styles.summaryLabel}>Drop</Text>
@@ -1180,7 +1184,7 @@ export default function CarRentalFleetScreen({ navigation, route }) {
             <Text style={styles.summaryValue}>{selectedPackage?.hours}hr / {selectedPackage?.kms}km</Text>
           </View>
         )}
-        <View style={[styles.summaryRow, styles.summaryRowAlt]}>
+        <View style={styles.summaryRow}>
           <Text style={styles.summaryLabel}>Date & Time</Text>
           <Text style={styles.summaryValue}>
             {pickupDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })} | {pickupTime}
@@ -1189,345 +1193,244 @@ export default function CarRentalFleetScreen({ navigation, route }) {
 
         <View style={styles.summaryDivider} />
 
-        {/* Gradient Total Fare */}
-        <LinearGradient colors={[TEAL_DEEP, TEAL_MID]} style={styles.totalFareGradient}>
-          <Text style={styles.totalLabelWhite}>Total Fare</Text>
-          <Text style={styles.totalValueWhite}>&#8377;{pricing[selectedVehicle?.id]?.totalBeforeGst?.toLocaleString() || '--'}</Text>
-        </LinearGradient>
-
-        {/* Advance Payment Info */}
-        <View style={styles.advancePaymentBox}>
-          <View style={styles.advancePaymentRow}>
-            <View style={styles.advanceIconCircle}>
-              <Ionicons name="wallet-outline" size={wp('4.5%')} color={TEAL} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.advanceLabel}>Advance Payment (20%)</Text>
-              <Text style={styles.advanceHint}>Pay now to confirm your booking</Text>
-            </View>
-            <Text style={styles.advanceAmount}>
-              &#8377;{Math.round((pricing[selectedVehicle?.id]?.totalBeforeGst || 0) * 0.2).toLocaleString()}
-            </Text>
-          </View>
-          <View style={styles.advanceDivider} />
-          <View style={styles.advancePaymentRow}>
-            <View style={[styles.advanceIconCircle, { backgroundColor: '#FEF3C7' }]}>
-              <Ionicons name="time-outline" size={wp('4.5%')} color="#F59E0B" />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.advanceLabel}>Remaining Balance</Text>
-              <Text style={styles.advanceHint}>Pay later before trip starts</Text>
-            </View>
-            <Text style={[styles.advanceAmount, { color: TEXT_SECONDARY }]}>
-              &#8377;{Math.round((pricing[selectedVehicle?.id]?.totalBeforeGst || 0) * 0.8).toLocaleString()}
-            </Text>
-          </View>
+        <View style={[styles.summaryRow, styles.totalRow]}>
+          <Text style={styles.totalLabel}>Total Fare</Text>
+          <Text style={styles.totalValue}>₹{pricing[selectedVehicle?.id]?.totalBeforeGst?.toLocaleString() || '--'}</Text>
         </View>
       </View>
-
-      {/* B2B Booking Purpose */}
-      {isB2BCustomer && (
-        <View style={styles.contactCard}>
-          <Text style={styles.contactTitle}>Booking Purpose</Text>
-          <View style={styles.b2bPurposeRow}>
-            <TouchableOpacity
-              style={[styles.b2bPurposeBtn, bookingPurpose === 'personal' && styles.b2bPurposeBtnActive]}
-              onPress={() => setBookingPurpose('personal')}
-            >
-              <Ionicons name="person-outline" size={wp('5%')} color={bookingPurpose === 'personal' ? '#fff' : TEAL} />
-              <Text style={[styles.b2bPurposeBtnText, bookingPurpose === 'personal' && styles.b2bPurposeBtnTextActive]}>Personal</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.b2bPurposeBtn, bookingPurpose === 'company' && styles.b2bPurposeBtnActive]}
-              onPress={() => setBookingPurpose('company')}
-            >
-              <Ionicons name="briefcase-outline" size={wp('5%')} color={bookingPurpose === 'company' ? '#fff' : TEAL} />
-              <Text style={[styles.b2bPurposeBtnText, bookingPurpose === 'company' && styles.b2bPurposeBtnTextActive]}>Company</Text>
-            </TouchableOpacity>
-          </View>
-
-          {bookingPurpose === 'company' && (
-            <View style={{ marginTop: hp('1.5%') }}>
-              <View style={styles.b2bInputRow}>
-                <View style={styles.b2bInputGroup}>
-                  <Text style={styles.contactFieldLabel}>No. of Vehicles *</Text>
-                  <TextInput
-                    style={styles.b2bInput}
-                    value={numberOfVehicles}
-                    onChangeText={(t) => setNumberOfVehicles(t.replace(/\D/g, '').slice(0, 3))}
-                    keyboardType="number-pad"
-                    placeholder="e.g. 5"
-                    placeholderTextColor={TEXT_MUTED}
-                  />
-                </View>
-                <View style={styles.b2bInputGroup}>
-                  <Text style={styles.contactFieldLabel}>No. of Persons</Text>
-                  <TextInput
-                    style={styles.b2bInput}
-                    value={numberOfPersons}
-                    onChangeText={(t) => setNumberOfPersons(t.replace(/\D/g, '').slice(0, 4))}
-                    keyboardType="number-pad"
-                    placeholder="e.g. 20"
-                    placeholderTextColor={TEXT_MUTED}
-                  />
-                </View>
-              </View>
-              <View style={styles.b2bInfoBox}>
-                <Ionicons name="information-circle-outline" size={wp('4%')} color={TEAL} />
-                <Text style={styles.b2bInfoText}>
-                  This will be a B2B corporate booking. Vendors will send quotes. Post-trip billing applies.
-                </Text>
-              </View>
-            </View>
-          )}
-        </View>
-      )}
 
       <View style={styles.contactCard}>
         <Text style={styles.contactTitle}>Customer Details</Text>
         <View style={styles.contactRow}>
-          <View style={styles.contactIconCircle}>
-            <Ionicons name="person-outline" size={wp('4%')} color={TEAL} />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.contactFieldLabel}>Name</Text>
-            <Text style={styles.contactValue}>{customer?.name}</Text>
-          </View>
+          <Ionicons name="person-outline" size={16} color={TEXT_SECONDARY} />
+          <Text style={styles.contactValue}>{customer?.name}</Text>
         </View>
         <View style={styles.contactRow}>
-          <View style={styles.contactIconCircle}>
-            <Ionicons name="call-outline" size={wp('4%')} color={TEAL} />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.contactFieldLabel}>Phone</Text>
-            <Text style={styles.contactValue}>{customer?.phone}</Text>
-          </View>
+          <Ionicons name="call-outline" size={16} color={TEXT_SECONDARY} />
+          <Text style={styles.contactValue}>{customer?.phone}</Text>
         </View>
       </View>
+
+      <View style={{ height: 120 }} />
     </ScrollView>
   );
 
-  /* ─── Loading State ─── */
+  const [utr, setUtr] = useState('');
+
+  const handlePayVia = (app) => {
+    const advanceAmount = Math.round((pricing[selectedVehicle?.id]?.totalBeforeGst || 0) * 0.2);
+    const upiId = bankDetails?.upiId || 'transrentals@kotak';
+    const payeeName = bankDetails?.accountHolderName || 'TransRentals';
+
+    const upiUrl = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(payeeName)}&am=${advanceAmount}&cu=INR`;
+
+    let appUrl = '';
+    switch(app) {
+      case 'gpay':
+        appUrl = `gpay://upi/pay?pa=${upiId}&pn=${encodeURIComponent(payeeName)}&am=${advanceAmount}&cu=INR`;
+        break;
+      case 'phonepe':
+        appUrl = `phonepe://pay?pa=${upiId}&pn=${encodeURIComponent(payeeName)}&am=${advanceAmount}&cu=INR`;
+        break;
+      case 'paytm':
+        appUrl = `paytmmp://pay?pa=${upiId}&pn=${encodeURIComponent(payeeName)}&am=${advanceAmount}&cu=INR`;
+        break;
+      default:
+        appUrl = upiUrl;
+    }
+
+    Linking.canOpenURL(appUrl)
+      .then((supported) => {
+        if (supported) {
+          return Linking.openURL(appUrl);
+        } else {
+          // Fallback to generic UPI
+          return Linking.openURL(upiUrl);
+        }
+      })
+      .catch((err) => {
+        Alert.alert('Error', 'Unable to open payment app. Please pay manually using UPI ID.');
+        console.log('Payment app error:', err);
+      });
+  };
+
+  const renderStep4 = () => {
+    const advanceAmount = Math.round((pricing[selectedVehicle?.id]?.totalBeforeGst || 0) * 0.2);
+    const upiId = bankDetails?.upiId || 'transrentals@kotak';
+    const qrCodeUrl = bankDetails?.upiQrCode
+      ? `${BASE_URL}${bankDetails.upiQrCode}`
+      : `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=upi://pay?pa=${upiId}&pn=TransRentals&am=${advanceAmount}`;
+
+    return (
+      <ScrollView style={styles.stepContent} showsVerticalScrollIndicator={false}>
+        <View style={styles.paymentCard}>
+          <Text style={styles.paymentTitle}>Advance Payment</Text>
+          <Text style={styles.paymentSubtitle}>Please pay the advance amount using UPI</Text>
+
+          <View style={styles.advanceRow}>
+            <Text style={styles.advanceLabel}>Advance to Pay (20%):</Text>
+            <Text style={styles.advanceValue}>
+              ₹{advanceAmount.toLocaleString()}
+            </Text>
+          </View>
+
+          {/* Pay Via Buttons */}
+          <View style={styles.payViaSection}>
+            <Text style={styles.payViaTitle}>Pay via</Text>
+            <View style={styles.payViaButtons}>
+              <TouchableOpacity style={styles.payViaBtn} onPress={() => handlePayVia('gpay')}>
+                <Image
+                  source={{ uri: 'https://upload.wikimedia.org/wikipedia/commons/f/f2/Google_Pay_Logo.svg' }}
+                  style={styles.payViaIcon}
+                  resizeMode="contain"
+                />
+                <Text style={styles.payViaBtnText}>Google Pay</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.payViaBtn} onPress={() => handlePayVia('phonepe')}>
+                <Image
+                  source={{ uri: 'https://upload.wikimedia.org/wikipedia/commons/0/09/Phonepe-logo.svg' }}
+                  style={styles.payViaIcon}
+                  resizeMode="contain"
+                />
+                <Text style={styles.payViaBtnText}>PhonePe</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.payViaBtn} onPress={() => handlePayVia('paytm')}>
+                <Image
+                  source={{ uri: 'https://upload.wikimedia.org/wikipedia/commons/2/24/Paytm_Logo_%28standalone%29.svg' }}
+                  style={styles.payViaIcon}
+                  resizeMode="contain"
+                />
+                <Text style={styles.payViaBtnText}>Paytm</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          <View style={styles.dividerWithText}>
+            <View style={styles.dividerLine} />
+            <Text style={styles.dividerText}>OR SCAN QR CODE</Text>
+            <View style={styles.dividerLine} />
+          </View>
+
+          <View style={styles.qrContainer}>
+            <Image
+              source={{ uri: qrCodeUrl }}
+              style={styles.qrImage}
+            />
+            <Text style={styles.upiId}>UPI ID: {upiId}</Text>
+          </View>
+
+          <View style={styles.utrSection}>
+            <Text style={styles.inputLabel}>Enter UTR / Transaction ID</Text>
+            <TextInput
+              style={styles.utrInput}
+              value={utr}
+              onChangeText={setUtr}
+              placeholder="e.g. 123456789012"
+              keyboardType="number-pad"
+            />
+            <Text style={styles.utrHint}>Please enter the 12-digit UTR number after payment</Text>
+          </View>
+        </View>
+
+        <View style={{ height: 120 }} />
+      </ScrollView>
+    );
+  };
+
+
   if (loading) {
     return (
-      <SafeAreaView style={styles.safe} edges={['bottom']}>
-        <StatusBar barStyle="light-content" backgroundColor={TEAL_DEEP} />
+      <SafeAreaView style={styles.safe}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={TEAL} />
+          <ActivityIndicator size="large" color={GREEN} />
         </View>
       </SafeAreaView>
     );
   }
 
-  /* ─── Render: Filter Modal ─── */
-  const renderFilterModal = () => (
-    <Modal
-      visible={showFilterModal}
-      animationType="slide"
-      transparent={true}
-      onRequestClose={() => setShowFilterModal(false)}
-    >
-      <View style={styles.filterModalOverlay}>
-        <View style={styles.filterModal}>
-          <LinearGradient colors={[TEAL_DEEP, TEAL_MID]} style={styles.filterModalAccent} />
-
-          <View style={styles.filterModalHeader}>
-            <View style={styles.filterModalTitleRow}>
-              <View style={styles.filterModalIcon}>
-                <Ionicons name="options" size={wp('4.5%')} color={TEAL} />
-              </View>
-              <Text style={styles.filterModalTitle}>Filters</Text>
-            </View>
-            <TouchableOpacity style={styles.filterModalCloseBtn} onPress={() => setShowFilterModal(false)}>
-              <Ionicons name="close" size={wp('5%')} color={TEXT_SECONDARY} />
-            </TouchableOpacity>
-          </View>
-
-          <ScrollView style={styles.filterModalContent} showsVerticalScrollIndicator={false}>
-            <Text style={styles.filterLabel}>Vehicle Type</Text>
-            <View style={styles.filterOptions}>
-              {[{ value: null, label: 'All' }, { value: 'Standard', label: 'Standard' }, { value: 'Premium', label: 'Premium' }].map(option => (
-                <TouchableOpacity
-                  key={option.label}
-                  style={[styles.filterChip, vehicleTypeFilter === option.value && styles.filterChipActive]}
-                  onPress={() => setVehicleTypeFilter(option.value)}
-                >
-                  <Text style={[styles.filterChipText, vehicleTypeFilter === option.value && styles.filterChipTextActive]}>
-                    {option.label}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-
-            <Text style={styles.filterLabel}>AC / Non-AC</Text>
-            <View style={styles.filterOptions}>
-              {[{ value: null, label: 'All' }, { value: 'AC', label: 'AC' }, { value: 'Non-AC', label: 'Non-AC' }].map(option => (
-                <TouchableOpacity
-                  key={option.label}
-                  style={[styles.filterChip, acFilter === option.value && styles.filterChipActive]}
-                  onPress={() => setAcFilter(option.value)}
-                >
-                  <Text style={[styles.filterChipText, acFilter === option.value && styles.filterChipTextActive]}>
-                    {option.label}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-
-            <Text style={styles.filterLabel}>Seater</Text>
-            <View style={styles.filterOptions}>
-              {[{ value: null, label: 'All' }, { value: 4, label: '4 Seater' }, { value: 5, label: '5 Seater' }, { value: 7, label: '7 Seater' }].map(option => (
-                <TouchableOpacity
-                  key={option.label}
-                  style={[styles.filterChip, seaterFilter === option.value && styles.filterChipActive]}
-                  onPress={() => setSeaterFilter(option.value)}
-                >
-                  <Text style={[styles.filterChipText, seaterFilter === option.value && styles.filterChipTextActive]}>
-                    {option.label}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-
-            <Text style={styles.filterLabel}>Sort By Price</Text>
-            <View style={styles.filterOptions}>
-              {[{ value: null, label: 'Default' }, { value: 'low_to_high', label: 'Low to High' }, { value: 'high_to_low', label: 'High to Low' }].map(option => (
-                <TouchableOpacity
-                  key={option.label}
-                  style={[styles.filterChip, priceSortOrder === option.value && styles.filterChipActive]}
-                  onPress={() => setPriceSortOrder(option.value)}
-                >
-                  <Text style={[styles.filterChipText, priceSortOrder === option.value && styles.filterChipTextActive]}>
-                    {option.label}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </ScrollView>
-
-          <View style={styles.filterModalActions}>
-            <TouchableOpacity
-              style={styles.filterClearBtn}
-              onPress={() => { setVehicleTypeFilter(null); setAcFilter(null); setSeaterFilter(null); setPriceSortOrder(null); }}
-            >
-              <Text style={styles.filterClearBtnText}>Clear All</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.filterApplyBtnWrap} onPress={() => setShowFilterModal(false)}>
-              <LinearGradient colors={[TEAL_MID, TEAL]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.filterApplyBtn}>
-                <Text style={styles.filterApplyBtnText}>Apply Filters</Text>
-              </LinearGradient>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </View>
-    </Modal>
-  );
-
-  /* ─── Main Return ─── */
   return (
-    <SafeAreaView style={styles.safe} edges={['bottom']}>
-      <StatusBar barStyle="light-content" backgroundColor={TEAL_DEEP} />
-
-      {/* Header with Dark Teal Gradient */}
-      <LinearGradient
-        colors={[TEAL_DEEP, TEAL_MID, '#047857']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.header}
-      >
-        <View style={[styles.decoCircle, { top: -wp('8%'), right: -wp('5%'), width: wp('26%'), height: wp('26%') }]} pointerEvents="none" />
-        <View style={[styles.decoCircle, { bottom: -wp('4%'), left: -wp('4%'), width: wp('16%'), height: wp('16%') }]} pointerEvents="none" />
-        <View style={styles.headerInner}>
+    <SafeAreaView style={styles.safe}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}>
+      {/* Header */}
+      <View style={styles.header}>
+        <TouchableOpacity
+          style={styles.backBtn}
+          onPress={() => {
+            if (step === 4 && bookingConfirmed) {
+              // After booking confirmation, redirect to booking details
+              navigation.navigate('BookingConfirmation', {
+                booking_id: confirmedBookingId,
+                bookingType: 'chauffeur',
+              });
+            } else if (step > 1) {
+              // Go to previous step
+              setStep(step - 1);
+            } else {
+              // On step 1, go back to previous screen
+              navigation.goBack();
+            }
+          }}
+        >
+          <Icon name="arrow-left" size={20} color="#0F172A" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>
+          {step === 1 ? 'Car Rental' : step === 2 ? 'Select Vehicle' : step === 3 ? 'Confirm Booking' : 'Payment'}
+        </Text>
+        <View style={{ width: 40 }} />
           <TouchableOpacity
-            style={styles.backBtn}
-            onPress={() => {
-              if (step > 1) {
-                setStep(step - 1);
-              } else {
-                navigation.goBack();
-              }
-            }}
-          >
-            <Ionicons name="chevron-back" size={wp('5.5%')} color="#FFF" />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>
-            {step === 1 ? 'Car Rental' : step === 2 ? 'Select Vehicle' : 'Confirm Booking'}
-          </Text>
-          <TouchableOpacity
-            onPress={() => navigation.navigate('MyCarBookings')}
-            style={styles.headerIconBtn}
-          >
-            <Ionicons name="document-text-outline" size={wp('5%')} color="#FFF" />
-          </TouchableOpacity>
-        </View>
-      </LinearGradient>
+                  onPress={() => navigation.navigate('MyCarBookings')}
+                  style={styles.myBookingsBtn}
+                >
+                  <Ionicons name="document-text-outline" size={20} color={GREEN} />
+                </TouchableOpacity>
+      </View>
 
-      {/* Steps Indicator with Connectors */}
+      {/* Steps Indicator */}
       <View style={styles.stepsRow}>
-        {[1, 2, 3].map((s, index) => (
-          <React.Fragment key={s}>
-            <View style={styles.stepItem}>
-              {step >= s ? (
-                <LinearGradient colors={[TEAL_DEEP, TEAL_MID]} style={styles.stepCircleActive}>
-                  {step > s ? (
-                    <Icon name="check" size={wp('3.5%')} color="#fff" />
-                  ) : (
-                    <Text style={[styles.stepNumber, styles.stepNumberActive]}>{s}</Text>
-                  )}
-                </LinearGradient>
+        {[1, 2, 3, 4].map((s) => (
+          <View key={s} style={styles.stepItem}>
+            <View style={[styles.stepCircle, step >= s && styles.stepCircleActive]}>
+              {step > s ? (
+                <Icon name="check" size={14} color="#fff" />
               ) : (
-                <View style={styles.stepCircle}>
-                  <Text style={styles.stepNumber}>{s}</Text>
-                </View>
+                <Text style={[styles.stepNumber, step >= s && styles.stepNumberActive]}>{s}</Text>
               )}
-              <Text style={[styles.stepLabel, step >= s && styles.stepLabelActive]}>
-                {s === 1 ? 'Details' : s === 2 ? 'Vehicle' : 'Confirm'}
-              </Text>
             </View>
-            {index < 2 && <View style={[styles.stepConnector, step > s && styles.stepConnectorActive]} />}
-          </React.Fragment>
+            <Text style={[styles.stepLabel, step >= s && styles.stepLabelActive]}>
+              {s === 1 ? 'Details' : s === 2 ? 'Vehicle' : s === 3 ? 'Confirm' : 'Payment'}
+            </Text>
+          </View>
         ))}
       </View>
 
-      {/* Content + Bottom Bar in KeyboardAvoidingView */}
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={{ flex: 1 }}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
-      >
-        <View style={{ flex: 1 }}>
-          {step === 1 && renderStep1()}
-          {step === 2 && renderStep2()}
-          {step === 3 && renderStep3()}
-        </View>
+      {/* Content */}
+      {step === 1 && renderStep1()}
+      {step === 2 && renderStep2()}
+      {step === 3 && renderStep3()}
+      {step === 4 && renderStep4()}
 
-        {/* Bottom Button with Gradient */}
-        <View style={styles.bottomBar}>
-          <TouchableOpacity
-            style={[styles.nextBtnWrap, submitting && styles.nextBtnDisabled]}
-            onPress={() => {
-              if (step === 3) handleBooking();
-              else handleNext();
-            }}
-            disabled={submitting || loadingPrices}
-          >
-            <LinearGradient
-              colors={submitting ? ['#94A3B8', '#94A3B8'] : [TEAL_MID, TEAL]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.nextBtn}
-            >
-              {submitting ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <Text style={styles.nextBtnText}>
-                  {step === 3 ? (bookingPurpose === 'company' ? 'Submit B2B Booking' : 'Confirm & Pay') : 'Continue'}
-                </Text>
-              )}
-            </LinearGradient>
-          </TouchableOpacity>
-        </View>
-      </KeyboardAvoidingView>
+      {/* Bottom Button */}
+      <View style={styles.bottomBar}>
+        <TouchableOpacity
+          style={[styles.nextBtn, submitting && styles.nextBtnDisabled]}
+          onPress={() => {
+            if (step === 3) setStep(4);
+            else if (step === 4) handleBooking();
+            else handleNext();
+          }}
+          disabled={submitting || loadingPrices}
+        >
+          {submitting ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={styles.nextBtnText}>
+              {step === 3 ? 'Proceed to Payment' : step === 4 ? 'Confirm & Book' : 'Continue'}
+            </Text>
+          )}
+        </TouchableOpacity>
+      </View>
 
       {/* iOS Date Picker Modal */}
       {showDatePicker && Platform.OS === 'ios' && (
@@ -1538,7 +1441,7 @@ export default function CarRentalFleetScreen({ navigation, route }) {
                 value={datePickerTarget === 'pickup' ? pickupDate : returnDate}
                 mode="date"
                 display="spinner"
-                minimumDate={datePickerTarget === 'pickup' ? new Date() : pickupDate}
+                minimumDate={datePickerTarget === 'pickup' ? getMinBookingDate() : pickupDate}
                 onChange={(event, date) => {
                   if (date) {
                     if (datePickerTarget === 'pickup') {
@@ -1559,1336 +1462,775 @@ export default function CarRentalFleetScreen({ navigation, route }) {
           </View>
         </Modal>
       )}
-
-      {/* Vehicle Filter Modal */}
-      {renderFilterModal()}
-
-      {/* Custom Alert Modal */}
-      <Modal visible={alertModal.visible} transparent animationType="fade" onRequestClose={closeAlert}>
-        <View style={styles.alertOverlay}>
-          <View style={styles.alertCard}>
-            <View style={[styles.alertIconCircle, { backgroundColor: alertModal.type === 'success' ? '#D1FAE5' : '#FEE2E2' }]}>
-              <Ionicons
-                name={alertModal.type === 'success' ? 'checkmark-circle' : 'alert-circle'}
-                size={wp('10%')}
-                color={alertModal.type === 'success' ? TEAL : '#EF4444'}
-              />
-            </View>
-            <Text style={styles.alertTitle}>{alertModal.title}</Text>
-            <Text style={styles.alertMessage}>{alertModal.message}</Text>
-            <TouchableOpacity
-              style={[styles.alertBtn, { backgroundColor: alertModal.type === 'success' ? TEAL : '#EF4444' }]}
-              onPress={closeAlert}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.alertBtnText}>{alertModal.type === 'success' ? 'Continue' : 'OK'}</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
+      <BookingAlertModal visible={showBookingAlert} onClose={() => setShowBookingAlert(false)} />
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
-/* ═══════════════════════════════════════════════════════════
-   STYLES — Premium Dark Teal Design System
-   ═══════════════════════════════════════════════════════════ */
 const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: BG,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: BG,
-  },
+  safe: { flex: 1, backgroundColor: BG },
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
 
-  /* ── Header ── */
+  // Header
   header: {
-    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + 8 : 8,
-    paddingBottom: hp('2%'),
-    paddingHorizontal: wp('4%'),
-    borderBottomLeftRadius: wp('6%'),
-    borderBottomRightRadius: wp('6%'),
-    overflow: 'hidden',
-    ...Platform.select({
-      ios: { shadowColor: TEAL_DEEP, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 12 },
-      android: { elevation: 8 },
-    }),
-  },
-  decoCircle: {
-    position: 'absolute',
-    borderRadius: wp('50%'),
-    backgroundColor: 'rgba(255,255,255,0.06)',
-  },
-  headerInner: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
   },
   backBtn: {
-    width: wp('10.5%'),
-    height: wp('10.5%'),
-    borderRadius: wp('5.25%'),
-    backgroundColor: 'rgba(255,255,255,0.15)',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: BG,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  headerTitle: {
-    fontSize: wp('4.8%'),
-    fontWeight: '800',
-    color: '#FFFFFF',
-    letterSpacing: 0.4,
-  },
-  headerIconBtn: {
-    width: wp('10.5%'),
-    height: wp('10.5%'),
-    borderRadius: wp('5.25%'),
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.2)',
-  },
+  headerTitle: { fontSize: 17, fontWeight: '700', color: '#0F172A' },
 
-  /* ── Step Indicator ── */
+  // Steps
   stepsRow: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: hp('1%'),
-    backgroundColor: CARD,
-    ...Platform.select({
-      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 4 },
-      android: { elevation: 2 },
-    }),
+    paddingVertical: 16,
+    backgroundColor: '#fff',
+    gap: 32,
   },
-  stepItem: {
-    alignItems: 'center',
-  },
+  stepItem: { alignItems: 'center' },
   stepCircle: {
-    width: wp('7%'),
-    height: wp('7%'),
-    borderRadius: wp('3.5%'),
-    backgroundColor: '#E5E7EB',
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#E2E8F0',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: hp('0.3%'),
-    borderWidth: 1.5,
-    borderColor: '#E5E7EB',
+    marginBottom: 4,
   },
-  stepCircleActive: {
-    width: wp('7%'),
-    height: wp('7%'),
-    borderRadius: wp('3.5%'),
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: hp('0.3%'),
-  },
-  stepNumber: {
-    fontSize: wp('2.8%'),
-    fontWeight: '600',
-    color: TEXT_MUTED,
-  },
-  stepNumberActive: {
-    color: '#fff',
-  },
-  stepLabel: {
-    fontSize: wp('2.4%'),
-    color: TEXT_MUTED,
-  },
-  stepLabelActive: {
-    color: TEAL,
-    fontWeight: '600',
-  },
-  stepConnector: {
-    width: wp('10%'),
-    height: 2,
-    backgroundColor: '#E5E7EB',
-    borderRadius: 1,
-    marginHorizontal: wp('1.5%'),
-  },
-  stepConnectorActive: {
-    backgroundColor: TEAL,
-  },
+  stepCircleActive: { backgroundColor: GREEN },
+  stepNumber: { fontSize: 13, fontWeight: '600', color: '#94A3B8' },
+  stepNumberActive: { color: '#fff' },
+  stepLabel: { fontSize: 12, color: '#94A3B8' },
+  stepLabelActive: { color: GREEN, fontWeight: '600' },
 
-  /* ── Content ── */
-  stepContent: {
-    flex: 1,
-    padding: wp('4%'),
-  },
-  sectionTitle: {
-    fontSize: wp('5.2%'),
-    fontWeight: '800',
-    color: TEXT_PRIMARY,
-    marginBottom: hp('0.4%'),
-  },
-  sectionSubtitle: {
-    fontSize: wp('3.5%'),
-    color: TEXT_SECONDARY,
-    marginBottom: 0,
-  },
-
-  /* ── Step 2 Info Box ── */
-  stepInfoBox: {
-    backgroundColor: CARD,
+  // Content
+  stepContent: { flex: 1, padding: 16 },
+  sectionTitle: { fontSize: 18, fontWeight: '700', color: '#0F172A', marginBottom: 12 },
+  sectionSubtitle: { fontSize: 14, color: '#64748B', marginBottom: 16 },
+  routeInfoBox: {
+    backgroundColor: '#fff',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: DIVIDER,
-    overflow: 'hidden',
+    borderBottomColor: '#E2E8F0',
   },
-  stepInfoAccent: {
-    height: 3,
-    backgroundColor: TEAL,
+  routeInfoTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: '#0F172A',
+    marginBottom: 8,
   },
-  stepInfoContent: {
-    paddingHorizontal: wp('5%'),
-    paddingVertical: hp('1.6%'),
+  routeDisplay: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    marginBottom: 10,
+    backgroundColor: '#F0FDF4',
+    borderRadius: 8,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: '#BBF7D0',
+  },
+  routeDisplayText: {
+    flex: 1,
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#166534',
+    lineHeight: 18,
+  },
+  routeMeta: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  routeMetaItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  routeMetaText: {
+    fontSize: 12,
+    color: '#64748B',
+    fontWeight: '500',
   },
 
-  /* ── Hero — Dark Teal Gradient ── */
+  // Hero
   heroWrapper: {
-    marginHorizontal: -wp('4%'),
-    marginTop: -wp('4%'),
-    paddingTop: hp('3%'),
-    paddingHorizontal: wp('4%'),
-    paddingBottom: hp('3.5%'),
-    borderBottomLeftRadius: wp('7%'),
-    borderBottomRightRadius: wp('7%'),
-    marginBottom: hp('3%'),
-    overflow: 'hidden',
-    ...Platform.select({
-      ios: { shadowColor: TEAL_DEEP, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.30, shadowRadius: 16 },
-      android: { elevation: 10 },
-    }),
-  },
-  heroDecoCircle: {
-    position: 'absolute',
-    borderRadius: wp('50%'),
-    backgroundColor: 'rgba(255,255,255,0.06)',
+    backgroundColor: BRAND_TEAL,
+    marginHorizontal: -16,
+    marginTop: -16,
+    padding: 24,
+    paddingBottom: 32,
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
+    marginBottom: 24,
   },
   heroTitle: {
-    fontSize: wp('5.2%'),
+    fontSize: 24,
     fontWeight: '800',
     color: '#fff',
-    marginBottom: hp('0.5%'),
-    textAlign: 'center',
-    letterSpacing: 0.5,
+    marginBottom: 4,
   },
   heroSubtitle: {
-    fontSize: wp('3.2%'),
-    color: 'rgba(255,255,255,0.75)',
-    marginBottom: hp('2%'),
-    textAlign: 'center',
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.8)',
+    marginBottom: 24,
   },
 
-  /* ── Trip Type — Glassmorphic Cards on Teal ── */
+  // Trip Type
   tripTypeGrid: {
     flexDirection: 'row',
-    gap: isSmallScreen ? wp('1.5%') : wp('2.5%'),
+    gap: 8,
   },
   tripTypeCard: {
     flex: 1,
-    backgroundColor: 'rgba(255,255,255,0.12)',
-    borderRadius: wp('4%'),
-    padding: wp('2.5%'),
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderRadius: 16,
+    padding: 12,
     alignItems: 'center',
-    borderWidth: 1.5,
-    borderColor: 'rgba(255,255,255,0.18)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
   },
   tripTypeCardActive: {
     backgroundColor: '#fff',
     borderColor: '#fff',
-    ...Platform.select({
-      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.14, shadowRadius: 8 },
-      android: { elevation: 8 },
-    }),
-    transform: [{ scale: 1.02 }],
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
   },
   tripTypeIcon: {
-    width: wp('9%'),
-    height: wp('9%'),
-    borderRadius: wp('4.5%'),
-    backgroundColor: 'rgba(255,255,255,0.22)',
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.2)',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: hp('0.7%'),
+    marginBottom: 8,
   },
-  tripTypeIconActive: {
-    backgroundColor: TEAL,
-    ...SHADOW_TEAL,
-  },
-  tripTypeLabel: {
-    fontSize: wp('2.8%'),
-    fontWeight: '700',
-    color: '#fff',
-  },
-  tripTypeLabelActive: {
-    color: TEAL_MID,
-  },
-  tripTypeDesc: {
-    fontSize: wp('2.3%'),
-    color: 'rgba(255,255,255,0.55)',
-    marginTop: hp('0.3%'),
-    textAlign: 'center',
-  },
-  tripTypeDescActive: {
-    color: TEXT_SECONDARY,
-  },
+  tripTypeIconActive: { backgroundColor: BRAND_TEAL },
+  tripTypeLabel: { fontSize: 13, fontWeight: '700', color: '#fff' },
+  tripTypeLabelActive: { color: BRAND_TEAL },
 
-  /* ── Airport Direction Cards ── */
+  // Airport Direction
   airportDirectionWrap: {
     flexDirection: 'row',
-    gap: wp('2.5%'),
-    marginBottom: hp('2.5%'),
+    gap: 10,
+    marginBottom: 20,
   },
   airportDirCard: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: wp('2%'),
-    backgroundColor: CARD,
-    borderRadius: wp('4%'),
-    padding: wp('4%'),
-    borderWidth: 1.5,
-    borderColor: BORDER,
-    ...SHADOW_SM,
+    gap: 8,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
   },
   airportDirCardActive: {
-    borderColor: TEAL,
-    borderWidth: 2,
-    backgroundColor: 'rgba(16, 185, 129, 0.04)',
-    ...Platform.select({
-      ios: { shadowColor: TEAL, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.15, shadowRadius: 8 },
-      android: { elevation: 4 },
-    }),
+    borderColor: GREEN,
+    backgroundColor: 'rgba(9, 179, 104, 0.05)',
   },
-  airportDirLabel: {
-    fontSize: wp('3.3%'),
-    color: TEXT_SECONDARY,
-    fontWeight: '500',
-  },
-  airportDirLabelActive: {
-    color: TEAL_MID,
-    fontWeight: '600',
-  },
+  airportDirLabel: { fontSize: 13, color: '#64748B', fontWeight: '500' },
+  airportDirLabelActive: { color: GREEN },
 
-  /* ── Location Inputs ── */
-  locationsSection: {
-    marginBottom: hp('2%'),
-    zIndex: 30,
-    elevation: 30,
-    overflow: 'visible',
-  },
-  inputGroup: {
-    marginBottom: hp('2%'),
-    position: 'relative',
-    zIndex: 10,
-  },
-  inputLabel: {
-    fontSize: wp('3%'),
-    fontWeight: '700',
-    color: TEXT_SECONDARY,
-    marginBottom: hp('0.8%'),
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
-  },
+  // Location Inputs
+  locationsSection: { marginBottom: 16 },
+  inputGroup: { marginBottom: 16, position: 'relative', zIndex: 10 },
+  inputLabel: { fontSize: 13, fontWeight: '600', color: '#64748B', marginBottom: 6 },
   locationRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: CARD,
-    borderRadius: wp('4%'),
-    borderWidth: 1.5,
-    borderColor: BORDER,
-    paddingHorizontal: wp('3%'),
-    minHeight: hp('6.5%'),
-    gap: wp('2.5%'),
-    ...SHADOW_SM,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    paddingHorizontal: 12,
+    minHeight: 50,
+    gap: 10,
   },
-  locationIconWrap: {
-    width: wp('8%'),
-    height: wp('8%'),
-    borderRadius: wp('4%'),
-    backgroundColor: TEAL_LIGHT,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  locationInput: {
-    flex: 1,
-    fontSize: wp('3.8%'),
-    color: TEXT_PRIMARY,
-    paddingVertical: 0,
-  },
+  locationInput: { flex: 1, fontSize: 15, color: '#0F172A' },
   suggestionsBox: {
     position: 'absolute',
     top: '100%',
     left: 0,
     right: 0,
-    backgroundColor: CARD,
-    borderRadius: wp('4%'),
+    backgroundColor: '#fff',
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: BORDER,
-    marginTop: hp('0.5%'),
+    borderColor: '#E2E8F0',
+    marginTop: 4,
     zIndex: 999,
-    ...Platform.select({
-      ios: { shadowColor: TEAL_DEEP, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.12, shadowRadius: 16 },
-      android: { elevation: 10 },
-    }),
+    elevation: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+  },
+  inlineSuggestions: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    marginTop: 6,
+    overflow: 'hidden',
   },
   suggestionItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: wp('4%'),
-    paddingVertical: hp('1.8%'),
+    paddingHorizontal: 14,
+    paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: DIVIDER,
-    gap: wp('2.5%'),
+    borderBottomColor: '#F1F5F9',
+    gap: 10,
   },
-  suggestionText: {
-    flex: 1,
-    fontSize: wp('3.5%'),
-    color: TEXT_PRIMARY,
-  },
-  suggestionCode: {
-    fontSize: wp('3%'),
-    color: TEAL_MID,
+  suggestionText: { flex: 1, fontSize: 14, color: '#0F172A' },
+  suggestionCode: { fontSize: 12, color: '#94A3B8', fontWeight: '600' },
+  distanceBadge: {
+    fontSize: 11,
+    color: '#2563EB',
     fontWeight: '600',
-    backgroundColor: TEAL_LIGHT,
-    paddingHorizontal: wp('1.5%'),
-    paddingVertical: hp('0.3%'),
-    borderRadius: wp('1%'),
+    backgroundColor: '#EFF6FF',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
     overflow: 'hidden',
   },
-
-  /* ── Package Selector ── */
-  packageChip: {
-    paddingHorizontal: wp('5%'),
-    paddingVertical: hp('1.8%'),
-    backgroundColor: CARD,
-    borderRadius: wp('6%'),
-    borderWidth: 1.5,
-    borderColor: BORDER,
-    marginRight: wp('2.5%'),
+  nearbyHeader: {
+    flexDirection: 'row',
     alignItems: 'center',
-    minWidth: wp('28%'),
-  
+    gap: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    backgroundColor: '#F8FAFC',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
+  },
+  nearbyHeaderText: {
+    fontSize: 11,
+    color: '#64748B',
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+
+  // Package Selector
+  packageChip: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    marginRight: 10,
+    alignItems: 'center',
   },
   packageChipSelected: {
-    borderColor: TEAL,
-    borderWidth: 2,
-    backgroundColor: 'rgba(16, 185, 129, 0.04)',
-  
+    borderColor: GREEN,
+    backgroundColor: 'rgba(9, 179, 104, 0.05)',
   },
-  packageName: {
-    fontSize: wp('3.5%'),
-    fontWeight: '600',
-    color: TEXT_PRIMARY,
-  },
-  packageNameSelected: {
-    color: TEAL_MID,
-  },
+  packageName: { fontSize: 14, fontWeight: '600', color: '#0F172A' },
+  packageNameSelected: { color: GREEN },
   popularBadge: {
     backgroundColor: '#FEF3C7',
-    paddingHorizontal: wp('1.5%'),
-    paddingVertical: hp('0.3%'),
-    borderRadius: wp('1%'),
-    marginTop: hp('0.5%'),
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    marginTop: 4,
   },
-  popularText: {
-    fontSize: wp('2.5%'),
-    color: '#D97706',
-    fontWeight: '600',
-  },
+  popularText: { fontSize: 10, color: '#D97706', fontWeight: '600' },
 
-  /* ── Date / Time Cards ── */
+  // Date/Time
   dateTimeRow: {
     flexDirection: 'row',
-    gap: wp('2.5%'),
-    marginBottom: hp('2%'),
+    gap: 10,
+    marginBottom: 16,
   },
   dateCard: {
     flex: 1,
-    backgroundColor: CARD,
-    borderRadius: wp('2%'),
-    borderWidth: 1.5,
-    borderColor: BORDER,
-    padding: wp('3.5%'),
-    ...SHADOW_SM,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    padding: 12,
   },
   timeCard: {
-    width: wp('26%'),
-    backgroundColor: CARD,
-    borderRadius: wp('4%'),
-    borderWidth: 1.5,
-    borderColor: BORDER,
-    padding: wp('3.5%'),
-    ...SHADOW_SM,
+    width: 100,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    padding: 12,
   },
   dateLabel: {
-    fontSize: wp('2.5%'),
-    fontWeight: '700',
-    color: TEAL,
-    textTransform: 'uppercase',
-    marginBottom: hp('0.7%'),
-    letterSpacing: 0.8,
-  },
-  dateContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: wp('1.5%'),
-  },
-  dateValue: {
-    fontSize: wp('3.5%'),
-    fontWeight: '700',
-    color: TEXT_PRIMARY,
-  },
-
-  /* ── Vehicle Cards ── */
-  loadingWrap: {
-    alignItems: 'center',
-    paddingVertical: hp('8%'),
-  },
-  loadingText: {
-    marginTop: hp('1.5%'),
-    color: TEAL,
-    fontSize: wp('3.8%'),
+    fontSize: 10,
     fontWeight: '600',
+    color: '#94A3B8',
+    textTransform: 'uppercase',
+    marginBottom: 6,
   },
-  vehicleList: {
-    gap: hp('2%'),
-    padding: wp('4%'),
-  },
+  dateContent: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  dateValue: { fontSize: 13, fontWeight: '600', color: '#0F172A' },
+
+  // Vehicle Cards
+  loadingWrap: { alignItems: 'center', paddingVertical: 40 },
+  loadingText: { marginTop: 12, color: TEXT_SECONDARY },
+  vehicleList: { gap: 16, padding: 16 },
   vehicleCard: {
     backgroundColor: CARD,
-    borderRadius: wp('5.5%'),
-    padding: wp('4.5%'),
+    borderRadius: 16,
+    padding: 16,
     borderWidth: 1.5,
-    borderColor: BORDER,
-    ...Platform.select({
-      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.08, shadowRadius: 10 },
-      android: { elevation: 4 },
-    }),
+    borderColor: '#E2E8F0',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    overflow: 'hidden',
   },
   vehicleCardSelected: {
-    borderColor: TEAL,
-    borderWidth: 1.5,
-    backgroundColor: CARD,
-    ...Platform.select({
-      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.10, shadowRadius: 10 },
-      android: { elevation: 4 },
-    }),
+    borderColor: BRAND_TEAL,
+    borderWidth: 2,
+    backgroundColor: '#F0FDF4',
+    elevation: 6,
+    shadowOpacity: 0.1,
   },
   vehicleCardUnavailable: {
-    opacity: 0.5,
-    backgroundColor: BG,
+    opacity: 0.45,
+    backgroundColor: '#FAFAFA',
     borderColor: '#E5E7EB',
-    borderStyle: 'dashed',
   },
   vehicleCardTop: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: hp('1.5%'),
-  },
-  nameRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: wp('2%'),
-    flexWrap: 'wrap',
-    marginBottom: hp('0.7%'),
-  },
-  vehicleTypeBadge: {
-    paddingHorizontal: wp('2%'),
-    paddingVertical: hp('0.25%'),
-    borderRadius: wp('1.5%'),
-  },
-  badgeStandard: {
-    backgroundColor: TEAL_LIGHT,
-  },
-  badgePremium: {
-    backgroundColor: '#FEF3C7',
-  },
-  badgeStandardText: {
-    color: TEAL_MID,
-  },
-  badgePremiumText: {
-    color: '#D97706',
+    marginBottom: 10,
   },
   vehicleImageWrap: {
-    width: wp('26%'),
-    height: wp('18%'),
+    width: 90,
+    height: 64,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#F8FAFC',
-    borderRadius: wp('4%'),
-    marginRight: wp('4%'),
-    borderWidth: 1,
-    borderColor: BORDER,
+    borderRadius: 12,
+    marginRight: 14,
   },
-  vehicleImageWrapSelected: {
-    borderColor: TEAL,
-    backgroundColor: 'rgba(16, 185, 129, 0.06)',
-  },
-  vehicleImage: {
-    width: wp('22%'),
-    height: wp('15%'),
-  },
-  vehicleMainInfo: {
-    flex: 1,
-  },
-  vehicleName: {
-    fontSize: wp('4.8%'),
-    fontWeight: '800',
-    color: TEXT_PRIMARY,
-  },
-  vehicleNameSelected: {
-    color: TEAL_DEEP,
-  },
-  vehicleType: {
-    fontSize: wp('3%'),
-    color: TEAL_MID,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-  },
+  vehicleImage: { width: 80, height: 55 },
+  vehicleMainInfo: { flex: 1 },
+  vehicleName: { fontSize: 16, fontWeight: '800', color: TEXT_PRIMARY, marginBottom: 2 },
+  vehicleType: { fontSize: 11, color: BRAND_TEAL, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5 },
 
   vehicleStats: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: wp('3%'),
-    marginTop: hp('1%'),
+    gap: 12,
+    marginTop: 8,
   },
   statItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: wp('1%'),
-    backgroundColor: '#F8FAFC',
-    paddingHorizontal: wp('2%'),
-    paddingVertical: hp('0.5%'),
-    borderRadius: wp('2%'),
+    gap: 4,
   },
-  statText: {
-    fontSize: wp('3.2%'),
-    color: TEXT_SECONDARY,
-    fontWeight: '500',
-  },
+  statText: { fontSize: 13, color: TEXT_SECONDARY, fontWeight: '500' },
 
   vehicleExamples: {
-    fontSize: wp('3%'),
+    fontSize: 12,
     color: TEXT_SECONDARY,
-    backgroundColor: DIVIDER,
-    paddingHorizontal: wp('2.5%'),
-    paddingVertical: hp('0.5%'),
-    borderRadius: wp('2%'),
-    marginTop: hp('1.5%'),
+    backgroundColor: '#F1F5F9',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+    marginTop: 12,
   },
 
   vehicleFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginTop: hp('2%'),
-    paddingTop: hp('2%'),
+    alignItems: 'center',
+    marginTop: 12,
+    paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: DIVIDER,
-  },
-  priceRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  detailsToggle: {
-    width: wp('7%'),
-    height: wp('7%'),
-    borderRadius: wp('3.5%'),
-    backgroundColor: TEAL_LIGHT,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  pricingDetails: {
-    backgroundColor: '#F8FAFC',
-    borderRadius: wp('3%'),
-    paddingHorizontal: wp('3%'),
-    paddingVertical: hp('1%'),
-    marginTop: hp('1.2%'),
-  },
-  pricingDetailRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: hp('0.5%'),
-  },
-  pricingDetailLabel: {
-    fontSize: wp('3%'),
-    color: TEXT_SECONDARY,
-    fontWeight: '500',
-  },
-  pricingDetailValue: {
-    fontSize: wp('3%'),
-    color: TEXT_PRIMARY,
-    fontWeight: '600',
+    borderTopColor: '#F1F5F9',
   },
   priceBadge: {
     flexDirection: 'row',
     alignItems: 'baseline',
     gap: 2,
   },
-  currency: {
-    fontSize: wp('4.5%'),
-    fontWeight: '800',
-    color: TEAL,
-  },
-  currencySelected: {
-    color: TEAL_DEEP,
-  },
-  vehiclePrice: {
-    fontSize: wp('6.2%'),
-    fontWeight: '900',
-    color: TEAL,
-  },
-  vehiclePriceSelected: {
-    color: TEAL_DEEP,
-  },
-  priceUnit: {
-    fontSize: wp('3%'),
-    color: TEXT_SECONDARY,
-    fontWeight: '500',
-  },
+  currency: { fontSize: 14, fontWeight: '700', color: TEXT_PRIMARY },
+  vehiclePrice: { fontSize: 22, fontWeight: '800', color: TEXT_PRIMARY },
+  priceUnit: { fontSize: 12, color: TEXT_SECONDARY, fontWeight: '500' },
 
-  inclusiveBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: TEAL_LIGHT,
-    paddingHorizontal: wp('2.5%'),
-    paddingVertical: hp('0.7%'),
-    borderRadius: wp('2.5%'),
-    gap: wp('1%'),
-  },
   inclusiveLabel: {
-    fontSize: wp('2.8%'),
-    color: TEAL_MID,
-    fontWeight: '700',
+    fontSize: 11,
+    color: BRAND_TEAL,
+    fontWeight: '600',
+    backgroundColor: 'rgba(9, 179, 104, 0.08)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
   },
 
   unavailableBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: wp('1.5%'),
+    gap: 6,
     backgroundColor: 'rgba(239, 68, 68, 0.1)',
-    paddingHorizontal: wp('2.5%'),
-    paddingVertical: hp('0.7%'),
-    borderRadius: wp('2%'),
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
   },
   unavailableText: {
-    fontSize: wp('3%'),
+    fontSize: 12,
     color: '#EF4444',
     fontWeight: '600',
   },
 
   selectedBadge: {
-    position: 'absolute',
-    top: -hp('1%'),
-    right: wp('3.5%'),
-  },
-  selectedBadgeGradient: {
-    width: wp('8.5%'),
-    height: wp('8.5%'),
-    borderRadius: wp('4.25%'),
-    justifyContent: 'center',
+    flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: 2.5,
-    borderColor: '#fff',
-    ...SHADOW_TEAL,
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: BRAND_TEAL,
+    borderRadius: 8,
+    paddingVertical: 8,
+    marginTop: 12,
+  },
+  selectedBadgeText: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: '700',
   },
 
-  /* ── Summary Card (Step 3) ── */
-  summaryCard: {
-    backgroundColor: CARD,
-    borderRadius: wp('5.5%'),
-    marginBottom: hp('2%'),
-    borderWidth: 0,
-    overflow: 'hidden',
-    ...SHADOW_MD,
+  // Route Breakdown
+  breakdownWrap: {
+    marginTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#E2E8F0',
+    paddingTop: 12,
   },
-  summaryAccentStripe: {
-    height: hp('0.5%'),
-    width: '100%',
+  breakdownSection: {
+    marginBottom: 10,
+  },
+  breakdownSectionTitle: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#0F172A',
+    marginBottom: 6,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  breakdownLegRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 3,
+  },
+  breakdownLegText: {
+    fontSize: 12,
+    color: '#475569',
+    fontWeight: '500',
+  },
+  breakdownMinKm: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#FFFBEB',
+    borderRadius: 8,
+    padding: 8,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  breakdownMinKmText: {
+    fontSize: 11,
+    color: '#92400E',
+    fontWeight: '500',
+    flex: 1,
+  },
+  breakdownRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 4,
+  },
+  breakdownLabel: {
+    fontSize: 12,
+    color: '#64748B',
+    flex: 1,
+  },
+  breakdownValue: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#0F172A',
+  },
+
+  // Summary Card
+  summaryCard: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
   },
   summaryHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: wp('2.5%'),
-    marginBottom: hp('1.5%'),
-    paddingHorizontal: wp('5%'),
-    paddingTop: hp('2.5%'),
+    gap: 10,
+    marginBottom: 12,
   },
-  summaryVehicleIcon: {
-    width: wp('13%'),
-    height: wp('13%'),
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: wp('4%'),
-    marginRight: wp('3%'),
-    ...Platform.select({
-      ios: { shadowColor: TEAL_DEEP, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 8 },
-      android: { elevation: 4 },
-    }),
-  },
-  summaryTitle: {
-    fontSize: wp('5%'),
-    fontWeight: '800',
-    color: TEXT_PRIMARY,
-  },
+  summaryTitle: { fontSize: 18, fontWeight: '700', color: '#0F172A' },
   summaryDivider: {
     height: 1,
-    backgroundColor: DIVIDER,
-    marginVertical: hp('1.5%'),
-    marginHorizontal: wp('5%'),
+    backgroundColor: '#F1F5F9',
+    marginVertical: 12,
   },
   summaryRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingHorizontal: wp('5%'),
-    paddingVertical: hp('1.5%'),
+    marginBottom: 8,
   },
-  summaryRowAlt: {
-    backgroundColor: '#FAFBFC',
-  },
-  summaryLabel: {
-    fontSize: wp('3.5%'),
-    color: TEXT_SECONDARY,
-  },
-  summaryValue: {
-    fontSize: wp('3.5%'),
-    fontWeight: '600',
-    color: TEXT_PRIMARY,
-  },
-  totalFareGradient: {
+  summaryLabel: { fontSize: 14, color: '#64748B' },
+  summaryValue: { fontSize: 14, fontWeight: '600', color: '#0F172A' },
+  priceRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: wp('5%'),
-    paddingVertical: hp('2.2%'),
+    marginBottom: 6,
   },
-  totalLabelWhite: {
-    fontSize: wp('4%'),
-    color: 'rgba(255,255,255,0.85)',
-    fontWeight: '600',
+  priceValue: { fontSize: 14, color: '#0F172A' },
+  totalRow: {
+    marginTop: 8,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#F1F5F9',
   },
-  totalValueWhite: {
-    fontSize: wp('6%'),
-    fontWeight: '900',
-    color: '#fff',
-  },
+  totalLabel: { fontSize: 16, fontWeight: '700', color: '#0F172A' },
+  totalValue: { fontSize: 18, fontWeight: '700', color: GREEN },
 
-  /* ── Advance Payment ── */
-  advancePaymentBox: {
-    marginHorizontal: wp('4%'),
-    marginTop: hp('1.5%'),
-    marginBottom: hp('1%'),
-    backgroundColor: '#F0FDF4',
-    borderRadius: wp('4%'),
-    borderWidth: 1,
-    borderColor: TEAL_LIGHT,
-    paddingVertical: hp('1.5%'),
-    paddingHorizontal: wp('4%'),
-  },
-  advancePaymentRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: wp('3%'),
-    paddingVertical: hp('0.8%'),
-  },
-  advanceIconCircle: {
-    width: wp('10%'),
-    height: wp('10%'),
-    borderRadius: wp('5%'),
-    backgroundColor: TEAL_LIGHT,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  advanceLabel: {
-    fontSize: wp('3.5%'),
-    fontWeight: '700',
-    color: TEXT_PRIMARY,
-  },
-  advanceHint: {
-    fontSize: wp('2.8%'),
-    color: TEXT_MUTED,
-    marginTop: hp('0.2%'),
-  },
-  advanceAmount: {
-    fontSize: wp('4.5%'),
-    fontWeight: '800',
-    color: TEAL_DEEP,
-  },
-  advanceDivider: {
-    height: 1,
-    backgroundColor: TEAL_LIGHT,
-    marginVertical: hp('0.8%'),
-    marginLeft: wp('13%'),
-  },
-
-  /* ── Contact Card ── */
+  // Contact Card
   contactCard: {
-    backgroundColor: CARD,
-    borderRadius: wp('5.5%'),
-    padding: wp('5%'),
-    borderWidth: 0,
-    marginBottom: hp('2%'),
-    ...SHADOW_SM,
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
   },
-  contactTitle: {
-    fontSize: wp('3.8%'),
-    fontWeight: '700',
-    color: TEXT_PRIMARY,
-    marginBottom: hp('1.5%'),
-  },
+  contactTitle: { fontSize: 15, fontWeight: '600', color: '#0F172A', marginBottom: 12 },
   contactRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: wp('3.5%'),
-    padding: wp('3.5%'),
-    borderRadius: wp('3.5%'),
-    marginBottom: hp('1%'),
-    borderWidth: 1,
-    borderColor: DIVIDER,
-    backgroundColor: '#FAFBFC',
+    gap: 10,
+    marginBottom: 8,
   },
-  contactIconCircle: {
-    width: wp('10%'),
-    height: wp('10%'),
-    borderRadius: wp('5%'),
-    backgroundColor: TEAL_LIGHT,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  contactFieldLabel: {
-    fontSize: wp('2.8%'),
-    color: TEXT_MUTED,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  contactValue: {
-    fontSize: wp('3.8%'),
-    color: TEXT_PRIMARY,
-    fontWeight: '600',
-  },
+  contactValue: { fontSize: 14, color: '#64748B' },
 
-  /* ── Custom Alert Modal ── */
-  alertOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: wp('8%'),
-  },
-  alertCard: {
+  // Bottom Bar
+  bottomBar: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
     backgroundColor: '#fff',
-    borderRadius: wp('5%'),
-    padding: wp('7%'),
-    width: '100%',
-    alignItems: 'center',
-    ...SHADOW_LG,
+    padding: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#E2E8F0',
   },
-  alertIconCircle: {
-    width: wp('18%'),
-    height: wp('18%'),
-    borderRadius: wp('9%'),
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: hp('1.5%'),
-  },
-  alertTitle: {
-    fontSize: wp('5%'),
-    fontWeight: '800',
-    color: TEXT_PRIMARY,
-    textAlign: 'center',
-    marginBottom: hp('0.8%'),
-  },
-  alertMessage: {
-    fontSize: wp('3.5%'),
-    color: TEXT_SECONDARY,
-    textAlign: 'center',
-    lineHeight: wp('5.2%'),
-    marginBottom: hp('2.5%'),
-  },
-  alertBtn: {
-    width: '100%',
-    paddingVertical: hp('1.6%'),
-    borderRadius: wp('3%'),
-    alignItems: 'center',
-  },
-  alertBtnText: {
-    fontSize: wp('4%'),
-    fontWeight: '700',
-    color: '#fff',
-  },
-
-  /* ── B2B Booking Purpose ── */
-  b2bPurposeRow: {
-    flexDirection: 'row',
-    gap: wp('3%'),
-    marginTop: hp('1%'),
-  },
-  b2bPurposeBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: wp('2%'),
-    paddingVertical: hp('1.5%'),
-    borderRadius: wp('3%'),
-    borderWidth: 1.5,
-    borderColor: TEAL,
-    backgroundColor: '#fff',
-  },
-  b2bPurposeBtnActive: {
-    backgroundColor: TEAL,
-    borderColor: TEAL,
-  },
-  b2bPurposeBtnText: {
-    fontSize: wp('3.5%'),
-    fontWeight: '600',
-    color: TEAL,
-  },
-  b2bPurposeBtnTextActive: {
-    color: '#fff',
-  },
-  b2bInputRow: {
-    flexDirection: 'row',
-    gap: wp('3%'),
-  },
-  b2bInputGroup: {
-    flex: 1,
-  },
-  b2bInput: {
-    marginTop: hp('0.5%'),
-    borderWidth: 1,
-    borderColor: BORDER,
-    borderRadius: wp('3%'),
-    paddingHorizontal: wp('3.5%'),
-    paddingVertical: hp('1.2%'),
-    fontSize: wp('3.8%'),
-    color: TEXT_PRIMARY,
-    fontWeight: '600',
-    backgroundColor: '#F9FAFB',
-  },
-  b2bInfoBox: {
+  kmNote: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: wp('2%'),
-    marginTop: hp('1.5%'),
-    backgroundColor: TEAL_LIGHT,
-    borderRadius: wp('3%'),
-    padding: wp('3%'),
+    gap: 8,
+    backgroundColor: '#FFFBEB',
+    borderRadius: 10,
+    padding: 10,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
   },
-  b2bInfoText: {
+  kmNoteText: {
     flex: 1,
-    fontSize: wp('3%'),
-    color: TEAL_DEEP,
-    lineHeight: wp('4.5%'),
-  },
-
-  /* ── Bottom Bar ── */
-  bottomBar: {
-    backgroundColor: CARD,
-    padding: wp('4%'),
-    borderTopWidth: 0,
-    ...Platform.select({
-      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: -6 }, shadowOpacity: 0.10, shadowRadius: 16 },
-      android: { elevation: 12 },
-    }),
-  },
-  nextBtnWrap: {
-    borderRadius: wp('4%'),
-    overflow: 'hidden',
+    fontSize: 11,
+    color: '#92400E',
+    lineHeight: 16,
+    fontWeight: '500',
   },
   nextBtn: {
-    borderRadius: wp('4%'),
-    paddingVertical: hp('2.1%'),
+    backgroundColor: GREEN,
+    borderRadius: 12,
+    paddingVertical: 16,
     alignItems: 'center',
-    ...SHADOW_TEAL,
   },
-  nextBtnDisabled: {
-    opacity: 0.6,
-  },
-  nextBtnText: {
-    color: '#fff',
-    fontSize: wp('4.3%'),
-    fontWeight: '800',
-    letterSpacing: 0.5,
-  },
+  nextBtnDisabled: { opacity: 0.6 },
+  nextBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
 
-  /* ── Picker Modal ── */
+  // Picker Modal
   pickerModal: {
     flex: 1,
     justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(0,0,0,0.4)',
   },
   pickerContent: {
-    backgroundColor: CARD,
-    borderTopLeftRadius: wp('6%'),
-    borderTopRightRadius: wp('6%'),
-    padding: wp('6%'),
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 20,
   },
   pickerDoneBtn: {
-    backgroundColor: TEAL,
-    borderRadius: wp('3%'),
-    paddingVertical: hp('1.8%'),
+    backgroundColor: GREEN,
+    borderRadius: 12,
+    paddingVertical: 14,
     alignItems: 'center',
-    marginTop: hp('1.2%'),
+    marginTop: 10,
   },
-  pickerDoneBtnText: {
-    color: '#fff',
-    fontSize: wp('4%'),
-    fontWeight: '700',
+  pickerDoneBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  // Payment Card
+  paymentCard: {
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
   },
+  paymentTitle: { fontSize: 20, fontWeight: '800', color: TEXT_PRIMARY, marginBottom: 4 },
+  paymentSubtitle: { fontSize: 13, color: TEXT_SECONDARY, marginBottom: 20 },
 
-  /* ── Search & Filter (Step 2) ── */
-  searchFilterRow: {
+  advanceRow: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: wp('4%'),
-    paddingVertical: hp('1%'),
-    gap: wp('2.5%'),
-    backgroundColor: CARD,
-    borderBottomWidth: 1,
-    borderBottomColor: DIVIDER,
+    backgroundColor: 'rgba(9, 179, 104, 0.05)',
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 24,
   },
-  searchBar: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: BG,
-    borderRadius: wp('3.5%'),
-    paddingHorizontal: wp('4%'),
-    paddingVertical: Platform.OS === 'ios' ? hp('1.5%') : hp('0.8%'),
-    borderWidth: 1,
-    borderColor: BORDER,
+  advanceLabel: { fontSize: 14, fontWeight: '600', color: TEXT_PRIMARY },
+  advanceValue: { fontSize: 20, fontWeight: '800', color: BRAND_TEAL },
+
+  // Pay Via Section
+  payViaSection: {
+    marginTop: 20,
+    marginBottom: 16,
   },
-  searchInput: {
-    flex: 1,
-    marginLeft: wp('2.5%'),
-    fontSize: wp('3.8%'),
-    color: TEXT_PRIMARY,
-    fontWeight: '500',
-    paddingVertical: hp('0.8%'),
-  },
-  filterButton: {
-    width: wp('11%'),
-    height: wp('11%'),
-    borderRadius: wp('3%'),
-    backgroundColor: BG,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: BORDER,
-  },
-  filterButtonActive: {
-    backgroundColor: TEAL,
-    borderColor: TEAL,
-  },
-  activeFiltersRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    paddingHorizontal: wp('4%'),
-    paddingVertical: hp('0.8%'),
-    gap: wp('2%'),
-    backgroundColor: CARD,
-    borderBottomWidth: 1,
-    borderBottomColor: DIVIDER,
-  },
-  activeFilterChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: TEAL_LIGHT,
-    paddingHorizontal: wp('3%'),
-    paddingVertical: hp('0.5%'),
-    borderRadius: wp('4%'),
-    gap: wp('1.5%'),
-    borderWidth: 1,
-    borderColor: TEAL,
-  },
-  activeFilterText: {
-    fontSize: wp('2.8%'),
-    color: TEAL_MID,
-    fontWeight: '600',
-  },
-  emptySearchWrap: {
-    alignItems: 'center',
-    paddingVertical: hp('8%'),
-    paddingHorizontal: wp('6%'),
-  },
-  emptySearchTitle: {
-    fontSize: wp('4.5%'),
+  payViaTitle: {
+    fontSize: 14,
     fontWeight: '700',
     color: TEXT_PRIMARY,
-    marginTop: hp('2%'),
-  },
-  emptySearchSubtitle: {
-    fontSize: wp('3.5%'),
-    color: TEXT_SECONDARY,
-    marginTop: hp('0.5%'),
+    marginBottom: 12,
     textAlign: 'center',
   },
-  clearAllFiltersBtn: {
-    marginTop: hp('2%'),
-    paddingHorizontal: wp('5%'),
-    paddingVertical: hp('1.2%'),
-    backgroundColor: TEAL_LIGHT,
-    borderRadius: wp('3%'),
-    borderWidth: 1,
-    borderColor: TEAL,
+  payViaButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    gap: 10,
   },
-  clearAllFiltersBtnText: {
-    fontSize: wp('3.2%'),
-    fontWeight: '700',
-    color: TEAL_MID,
+  payViaBtn: {
+    flex: 1,
+    backgroundColor: '#fff',
+    borderWidth: 2,
+    borderColor: BRAND_TEAL,
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    alignItems: 'center',
+    elevation: 2,
+    shadowColor: BRAND_TEAL,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+  },
+  payViaIcon: {
+    width: 32,
+    height: 32,
+    marginBottom: 4,
+  },
+  payViaBtnText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: TEXT_PRIMARY,
+    textAlign: 'center',
   },
 
-  /* ── Filter Modal ── */
-  filterModalOverlay: {
+  // Divider with text
+  dividerWithText: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 20,
+  },
+  dividerLine: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'flex-end',
+    height: 1,
+    backgroundColor: '#E2E8F0',
   },
-  filterModal: {
-    backgroundColor: CARD,
-    borderTopLeftRadius: wp('6%'),
-    borderTopRightRadius: wp('6%'),
-    maxHeight: '70%',
-    overflow: 'hidden',
-  },
-  filterModalAccent: {
-    height: hp('0.5%'),
-    width: '100%',
-  },
-  filterModalHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: wp('5%'),
-    paddingVertical: hp('2%'),
-    borderBottomWidth: 1,
-    borderBottomColor: DIVIDER,
-  },
-  filterModalTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: wp('2.5%'),
-  },
-  filterModalIcon: {
-    width: wp('9%'),
-    height: wp('9%'),
-    borderRadius: wp('2.5%'),
-    backgroundColor: TEAL_LIGHT,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  filterModalTitle: {
-    fontSize: wp('4.5%'),
-    fontWeight: '800',
-    color: TEXT_PRIMARY,
-  },
-  filterModalCloseBtn: {
-    width: wp('9%'),
-    height: wp('9%'),
-    borderRadius: wp('4.5%'),
-    backgroundColor: DIVIDER,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  filterModalContent: {
-    padding: wp('5%'),
-  },
-  filterLabel: {
-    fontSize: wp('3%'),
-    fontWeight: '700',
+  dividerText: {
+    marginHorizontal: 16,
+    fontSize: 12,
+    fontWeight: '600',
     color: TEXT_SECONDARY,
-    marginBottom: hp('1%'),
-    marginTop: hp('2%'),
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
   },
-  filterOptions: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: wp('2%'),
-  },
-  filterChip: {
-    backgroundColor: DIVIDER,
-    paddingHorizontal: wp('4%'),
-    paddingVertical: hp('1%'),
-    borderRadius: wp('5%'),
-    borderWidth: 1.5,
-    borderColor: 'transparent',
-  },
-  filterChipActive: {
-    backgroundColor: TEAL_LIGHT,
-    borderColor: TEAL,
-  },
-  filterChipText: {
-    fontSize: wp('3.2%'),
-    color: TEXT_SECONDARY,
-    fontWeight: '500',
-  },
-  filterChipTextActive: {
-    color: TEAL_MID,
-    fontWeight: '700',
-  },
-  filterModalActions: {
-    flexDirection: 'row',
-    padding: wp('4%'),
-    gap: wp('2.5%'),
-    borderTopWidth: 1,
-    borderTopColor: DIVIDER,
-    backgroundColor: CARD,
-  },
-  filterClearBtn: {
-    flex: 1,
-    paddingVertical: hp('1.8%'),
+
+  qrContainer: {
     alignItems: 'center',
-    borderWidth: 1.5,
-    borderColor: BORDER,
-    borderRadius: wp('3.5%'),
-    backgroundColor: CARD,
+    marginBottom: 24,
   },
-  filterClearBtnText: {
-    color: TEXT_SECONDARY,
-    fontWeight: '700',
-    fontSize: wp('3.5%'),
-  },
-  filterApplyBtnWrap: {
-    flex: 2,
-    borderRadius: wp('3.5%'),
-    overflow: 'hidden',
-  },
-  filterApplyBtn: {
-    paddingVertical: hp('1.8%'),
-    alignItems: 'center',
-    borderRadius: wp('3.5%'),
-  },
-  filterApplyBtnText: {
-    color: '#fff',
-    fontWeight: '700',
-    fontSize: wp('3.8%'),
-  },
-  notServedBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: '#FFFBEB',
-    borderWidth: 1,
-    borderColor: '#FDE68A',
+  qrImage: {
+    width: 200,
+    height: 200,
     borderRadius: 12,
-    padding: wp('3%'),
-    marginTop: hp('1%'),
+    backgroundColor: '#f8fafc',
+    marginBottom: 12,
   },
-  notServedText: {
-    flex: 1,
-    fontSize: wp('3.2%'),
-    color: '#92400E',
-    fontWeight: '500',
-    lineHeight: wp('4.5%'),
+  upiId: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: TEXT_PRIMARY,
+    backgroundColor: '#F1F5F9',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+
+  utrSection: {
+    marginTop: 8,
+  },
+  utrInput: {
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    fontSize: 16,
+    color: TEXT_PRIMARY,
+    fontWeight: '600',
+    marginTop: 8,
+  },
+  utrHint: {
+    fontSize: 12,
+    color: TEXT_SECONDARY,
+    marginTop: 8,
+    fontStyle: 'italic',
   },
 });

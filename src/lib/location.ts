@@ -163,48 +163,78 @@ export async function detectLocationByBrowser(): Promise<City | null> {
           }
 
           const data = await response.json();
-          const cityName =
-            data.address?.city ||
-            data.address?.town ||
-            data.address?.village ||
-            data.address?.hamlet ||
-            '';
-          const stateName = data.address?.state || data.address?.region || 'India';
-          const stateCode = data.address?.state_code || '';
+          console.log('📍 Geolocation API response:', JSON.stringify(data).slice(0, 200));
 
-          if (!data.success) {
+          if (!data.success && !data.address) {
+            console.error('📍 Geolocation API returned no data');
             resolve(null);
             return;
           }
 
-          // Find matching city
-          const normalizedCity = cityName.toLowerCase();
-          const matchedCity = ALL_CITIES.find(city =>
-            city.name.toLowerCase() === normalizedCity ||
-            city.slug === normalizedCity ||
-            city.keywords.some(keyword => keyword.toLowerCase() === normalizedCity)
-          );
+          const addr = data.address || {};
+          const stateName = addr.state || addr.region || 'India';
 
-          if (matchedCity) {
-            resolve(matchedCity);
+          // Collect all possible location names from nominatim (most specific to least)
+          const candidates = [
+            addr.city,           // Major city (Mumbai, Delhi, Ahmedabad)
+            addr.town,           // Smaller town
+            addr.county,         // County/district
+            addr.state_district, // State district (Thane, Pune district)
+            addr.village,
+            addr.hamlet,
+            addr.suburb,         // Suburb name
+          ].filter(Boolean).map((s: string) => s.toLowerCase());
+
+          console.log('📍 GPS location candidates:', candidates, '| State:', stateName);
+
+          if (candidates.length === 0) {
+            console.error('📍 Could not extract any location from geolocation data');
+            resolve(null);
             return;
           }
 
-          // Fallback to an on-the-fly city object for uncatalogued locations
-          const fallbackCity: City = {
-            name: cityName,
-            slug: cityName
-              .toLowerCase()
-              .replace(/[^a-z0-9]+/g, '-')
-              .replace(/^-+|-+$/g, '') || 'unknown-city',
-            state: stateName,
-            stateCode,
-            tier: 3,
-            priority: 3,
-            keywords: [],
-          };
+          // Try to match against ALL_CITIES — check each candidate
+          // Priority: exact name match > slug match > keyword match
+          for (const candidate of candidates) {
+            const match = ALL_CITIES.find(city =>
+              city.name.toLowerCase() === candidate ||
+              city.slug === candidate ||
+              city.keywords.some(kw => kw.toLowerCase() === candidate)
+            );
+            if (match) {
+              console.log('📍 Matched city:', match.name, 'from candidate:', candidate);
+              resolve(match);
+              return;
+            }
+          }
 
-          resolve(fallbackCity);
+          // Try partial match — candidate contains city name or vice versa
+          for (const candidate of candidates) {
+            const match = ALL_CITIES.find(city =>
+              candidate.includes(city.name.toLowerCase()) ||
+              city.name.toLowerCase().includes(candidate) ||
+              city.keywords.some(kw => candidate.includes(kw.toLowerCase()))
+            );
+            if (match) {
+              console.log('📍 Partial matched city:', match.name, 'from candidate:', candidate);
+              resolve(match);
+              return;
+            }
+          }
+
+          // Try matching by state — find highest priority city in same state
+          const stateMatch = ALL_CITIES
+            .filter(city => city.state.toLowerCase() === stateName.toLowerCase())
+            .sort((a, b) => b.priority - a.priority)[0];
+
+          if (stateMatch) {
+            console.log('📍 State fallback city:', stateMatch.name, 'for state:', stateName);
+            resolve(stateMatch);
+            return;
+          }
+
+          console.log('📍 No match found, using default');
+          resolve(null);
         } catch (error) {
           console.error('Browser geolocation reverse lookup failed:', error);
           resolve(null);

@@ -307,12 +307,19 @@ export async function GET(request: NextRequest) {
     const oneWayKm = distance.distanceKm;
     const totalKm = tripType === 'round_trip' ? oneWayKm * 2 : oneWayKm;
 
-    // Calculate number of days (for driver allowance)
+    // Calculate number of days based on actual hours (ceil(hours/24))
+    // e.g., 25 Mar 10PM → 28 Mar 10PM = 72hrs = 3 days
+    // Night bookings (10PM+) naturally don't count as full first day
     let days = 1;
     if (startDate && endDate) {
+      const timeStr = pickupTime || '10:00';
+      const [h, m] = timeStr.split(':').map(Number);
       const start = new Date(startDate);
+      start.setHours(h, m, 0, 0);
       const end = new Date(endDate);
-      days = Math.max(1, Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1);
+      end.setHours(h, m, 0, 0);
+      const totalHours = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
+      days = Math.max(1, Math.ceil(totalHours / 24));
     } else if (tripType === 'round_trip') {
       // Estimate days based on distance
       days = Math.max(1, Math.ceil(totalKm / cityPricing.minKmPerDay));

@@ -191,6 +191,18 @@ const BookingDetails = () => {
             created_at: carBooking.createdAt,
             updated_at: carBooking.updatedAt,
             dropReason: carBooking.dropReason,
+            intermediateStops: carBooking.intermediateStops || [],
+            trip_type: carBooking.tripType,
+            baseFare: carBooking.baseFare,
+            perKmRate: carBooking.perKmRate,
+            chargeableKm: carBooking.chargeableKm,
+            kmCharges: carBooking.kmCharges,
+            driverBatta: carBooking.driverBatta,
+            nightCharges: carBooking.nightCharges,
+            tollCharges: carBooking.tollCharges,
+            gst_amount: carBooking.gstAmount,
+            advanceAmount: carBooking.advanceAmount,
+            totalDays: carBooking.totalDays,
           });
           setQuotations([]);
           setAssignedVehicle(carBooking.vehicleModel || carBooking.carCategoryName);
@@ -618,25 +630,54 @@ const BookingDetails = () => {
           {/* Glass summary card inside gradient */}
           <View style={redesignStyles.glassCard}>
             {/* Route row */}
-            <View style={redesignStyles.routeRow}>
-              <View style={redesignStyles.routeItem}>
-                <Text style={redesignStyles.glassLabel}>Pickup</Text>
-                <Text style={redesignStyles.glassValue} numberOfLines={1}>
-                  {booking?.location_name || 'Pickup location'}
-                </Text>
-              </View>
-
-              <View style={redesignStyles.routeArrow}>
-                <Ionicons name="arrow-forward" size={16} color="#FFF" />
-              </View>
-
-              <View style={[redesignStyles.routeItem, { alignItems: 'flex-end' }]}>
-                <Text style={redesignStyles.glassLabel}>Destination</Text>
-                <Text style={[redesignStyles.glassValue, { textAlign: 'right' }]} numberOfLines={1}>
-                  {booking?.destination || 'Destination'}
-                </Text>
-              </View>
-            </View>
+            {(() => {
+              const stops = (booking?.intermediateStops || []).filter(s => s.cityText);
+              if (stops.length > 0) {
+                // Multi-stop route display
+                const allPoints = [
+                  booking?.location_name || 'Pickup',
+                  ...stops.map(s => s.cityText),
+                  booking?.destination || booking?.location_name || 'Drop',
+                ];
+                return (
+                  <View style={{ marginBottom: 8 }}>
+                    <Text style={[redesignStyles.glassLabel, { marginBottom: 6 }]}>Route</Text>
+                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 4 }}>
+                      {allPoints.map((point, i) => (
+                        <React.Fragment key={i}>
+                          <View style={{ backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5 }}>
+                            <Text style={{ color: '#fff', fontSize: 12, fontWeight: '600' }}>{point}</Text>
+                          </View>
+                          {i < allPoints.length - 1 && (
+                            <Ionicons name="arrow-forward" size={12} color="rgba(255,255,255,0.6)" />
+                          )}
+                        </React.Fragment>
+                      ))}
+                    </View>
+                  </View>
+                );
+              }
+              // Simple 2-point route
+              return (
+                <View style={redesignStyles.routeRow}>
+                  <View style={redesignStyles.routeItem}>
+                    <Text style={redesignStyles.glassLabel}>Pickup</Text>
+                    <Text style={redesignStyles.glassValue} numberOfLines={1}>
+                      {booking?.location_name || 'Pickup location'}
+                    </Text>
+                  </View>
+                  <View style={redesignStyles.routeArrow}>
+                    <Ionicons name="arrow-forward" size={16} color="#FFF" />
+                  </View>
+                  <View style={[redesignStyles.routeItem, { alignItems: 'flex-end' }]}>
+                    <Text style={redesignStyles.glassLabel}>Destination</Text>
+                    <Text style={[redesignStyles.glassValue, { textAlign: 'right' }]} numberOfLines={1}>
+                      {booking?.destination || 'Destination'}
+                    </Text>
+                  </View>
+                </View>
+              );
+            })()}
 
             {/* Date and time chips */}
             <View style={redesignStyles.metaRow}>
@@ -983,6 +1024,99 @@ const BookingDetails = () => {
                 {booking.vehicle_shifting && (
                   <Text style={redesignStyles.detailsDescMuted}>Vehicle: {booking.vehicle_shifting}</Text>
                 )}
+              </View>
+            )}
+
+            {/* Car Rental — Pricing & Payment Summary */}
+            {bookingType === 'car' && booking && (booking.grand_total || booking.total_amount) && (
+              <View style={redesignStyles.detailsCard}>
+                <View style={redesignStyles.detailsHeader}>
+                  <View style={redesignStyles.detailsIcon}>
+                    <Ionicons name="receipt-outline" size={wp('4%')} color={TEAL_MID} />
+                  </View>
+                  <Text style={redesignStyles.detailsTitle}>Fare Breakdown</Text>
+                </View>
+
+                {/* Fare rows */}
+                {booking.chargeableKm > 0 && (
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 6 }}>
+                    <Text style={{ fontSize: 13, color: '#64748B' }}>Distance ({booking.chargeableKm} km{booking.perKmRate ? ` × ₹${booking.perKmRate}/km` : ''})</Text>
+                    <Text style={{ fontSize: 13, fontWeight: '600', color: '#0F172A' }}>₹{(booking.kmCharges || booking.baseFare || 0).toLocaleString()}</Text>
+                  </View>
+                )}
+                {booking.driverBatta > 0 && (
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 6 }}>
+                    <Text style={{ fontSize: 13, color: '#64748B' }}>Driver allowance{booking.totalDays ? ` (${booking.totalDays}d)` : ''}</Text>
+                    <Text style={{ fontSize: 13, fontWeight: '600', color: '#0F172A' }}>₹{booking.driverBatta.toLocaleString()}</Text>
+                  </View>
+                )}
+                {booking.nightCharges > 0 && (
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 6 }}>
+                    <Text style={{ fontSize: 13, color: '#64748B' }}>Night charges</Text>
+                    <Text style={{ fontSize: 13, fontWeight: '600', color: '#0F172A' }}>₹{booking.nightCharges.toLocaleString()}</Text>
+                  </View>
+                )}
+                {booking.tollCharges > 0 && (
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 6 }}>
+                    <Text style={{ fontSize: 13, color: '#64748B' }}>Toll charges</Text>
+                    <Text style={{ fontSize: 13, fontWeight: '600', color: '#0F172A' }}>₹{booking.tollCharges.toLocaleString()}</Text>
+                  </View>
+                )}
+                {booking.gst_amount > 0 && (
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 6 }}>
+                    <Text style={{ fontSize: 13, color: '#64748B' }}>GST</Text>
+                    <Text style={{ fontSize: 13, fontWeight: '600', color: '#0F172A' }}>₹{booking.gst_amount.toLocaleString()}</Text>
+                  </View>
+                )}
+
+                {/* Total */}
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 10, marginTop: 6, borderTopWidth: 1, borderTopColor: '#E2E8F0' }}>
+                  <Text style={{ fontSize: 15, fontWeight: '700', color: '#0F172A' }}>Total Amount</Text>
+                  <Text style={{ fontSize: 15, fontWeight: '800', color: TEAL_MID }}>₹{(booking.grand_total || booking.total_amount || 0).toLocaleString()}</Text>
+                </View>
+
+                {/* Payment Status */}
+                <View style={{ backgroundColor: '#F8FAFC', borderRadius: 10, padding: 12, marginTop: 8 }}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
+                    <Text style={{ fontSize: 13, color: '#64748B' }}>Paid (Advance)</Text>
+                    <Text style={{ fontSize: 13, fontWeight: '700', color: '#059669' }}>₹{(booking.paid_amount || booking.advanceAmount || 0).toLocaleString()}</Text>
+                  </View>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                    <Text style={{ fontSize: 13, color: '#64748B' }}>Remaining</Text>
+                    <Text style={{ fontSize: 13, fontWeight: '700', color: '#DC2626' }}>
+                      ₹{Math.max(0, (booking.grand_total || booking.total_amount || 0) - (booking.paid_amount || booking.advanceAmount || 0)).toLocaleString()}
+                    </Text>
+                  </View>
+                  {booking.transaction_id && (
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 6, paddingTop: 6, borderTopWidth: 1, borderTopColor: '#E2E8F0' }}>
+                      <Text style={{ fontSize: 11, color: '#94A3B8' }}>Transaction ID</Text>
+                      <Text style={{ fontSize: 11, color: '#64748B', fontWeight: '600' }}>{booking.transaction_id}</Text>
+                    </View>
+                  )}
+                </View>
+              </View>
+            )}
+
+            {/* Car Rental — Return Date & Time */}
+            {bookingType === 'car' && booking?.return_date && (
+              <View style={redesignStyles.detailsCard}>
+                <View style={redesignStyles.detailsHeader}>
+                  <View style={redesignStyles.detailsIcon}>
+                    <Ionicons name="calendar-outline" size={wp('4%')} color={TEAL_MID} />
+                  </View>
+                  <Text style={redesignStyles.detailsTitle}>Return Details</Text>
+                </View>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 4 }}>
+                  <Ionicons name="return-down-back-outline" size={16} color="#64748B" />
+                  <Text style={{ fontSize: 14, fontWeight: '600', color: '#0F172A' }}>
+                    {(() => {
+                      const raw = booking.return_date;
+                      const dateStr = typeof raw === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(raw) ? raw + 'T00:00:00' : raw;
+                      const d = new Date(dateStr);
+                      return isNaN(d.getTime()) ? raw : d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+                    })()}
+                  </Text>
+                </View>
               </View>
             )}
 
