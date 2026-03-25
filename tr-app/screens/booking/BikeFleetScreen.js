@@ -14,6 +14,7 @@ import {
   RefreshControl,
   StatusBar,
   Platform,
+  Alert,
 } from 'react-native';
 import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -24,6 +25,8 @@ import { widthPercentageToDP as wp, heightPercentageToDP as hp } from 'react-nat
 import fleetService from '../services/fleetService';
 import locationService from '../services/locationService';
 import api, { BASE_URL } from '../api';
+import { getMinBookingDate, isPickupTooSoon, getEarliestPickupLabel } from '../utils/dateValidation';
+import BookingAlertModal from '../utils/AdvanceBookingAlert';
 
 /* ── Premium Dark Teal Design System ── */
 const TEAL_DEEP = '#064E3B';
@@ -78,13 +81,12 @@ const BikeFleetScreen = () => {
   const passedDropDate = route.params?.dropDate || null;
 
   // State for search
+  const [showBookingAlert, setShowBookingAlert] = useState(false);
   const [locationQuery, setLocationQuery] = useState(passedLocation?.name || '');
   const [selectedLocation, setSelectedLocation] = useState(passedLocation);
   const [allLocations, setAllLocations] = useState([]);
-  const [serviceLocationIds, setServiceLocationIds] = useState(new Set());
   const [filteredLocations, setFilteredLocations] = useState([]);
   const [showLocationDropdown, setShowLocationDropdown] = useState(false);
-  const [locationNotServed, setLocationNotServed] = useState(false);
 
   // State for dates - Use passed dates if available, otherwise default
   const [pickupDate, setPickupDate] = useState(() => {
@@ -165,15 +167,9 @@ const BikeFleetScreen = () => {
 
   const fetchLocations = async () => {
     try {
-      const [allRes, serviceRes] = await Promise.all([
-        locationService.getLocations(),
-        locationService.getLocations('CITY', false, 'bike-on-rent'),
-      ]);
-      if (allRes?.locations) {
-        setAllLocations(allRes.locations);
-      }
-      if (serviceRes?.locations) {
-        setServiceLocationIds(new Set(serviceRes.locations.map(l => l.id)));
+      const response = await locationService.getLocations();
+      if (response?.locations) {
+        setAllLocations(response.locations);
       }
     } catch (err) {
       console.log('Error fetching locations:', err);
@@ -184,10 +180,9 @@ const BikeFleetScreen = () => {
     setLocationQuery(text);
     setSelectedLocation(null);
 
-    const trimmed = text.trim();
-    if (trimmed.length > 0) {
+    if (text.length > 0) {
       const filtered = allLocations.filter(loc =>
-        loc.name?.toLowerCase().includes(trimmed.toLowerCase())
+        loc.name?.toLowerCase().includes(text.toLowerCase())
       );
       setFilteredLocations(filtered);
       setShowLocationDropdown(true);
@@ -201,27 +196,15 @@ const BikeFleetScreen = () => {
     setSelectedLocation(location);
     setLocationQuery(location.name);
     setShowLocationDropdown(false);
-    if (serviceLocationIds.size > 0 && !serviceLocationIds.has(location.id)) {
-      setLocationNotServed(true);
-    } else {
-      setLocationNotServed(false);
-    }
   };
 
   const openPickupDatePicker = () => {
     DateTimePickerAndroid.open({
       value: pickupDate,
       mode: 'date',
-      minimumDate: new Date(),
+      minimumDate: getMinBookingDate(),
       onChange: (event, date) => {
         if (event.type === 'set' && date) {
-          setPickupDate(date);
-          // If drop date is before pickup, adjust it
-          if (dropDate <= date) {
-            const newDrop = new Date(date);
-            newDrop.setDate(newDrop.getDate() + 1);
-            setDropDate(newDrop);
-          }
           // Open time picker
           DateTimePickerAndroid.open({
             value: new Date(),
@@ -231,7 +214,21 @@ const BikeFleetScreen = () => {
               if (evt.type === 'set' && time) {
                 const hours = time.getHours().toString().padStart(2, '0');
                 const mins = time.getMinutes().toString().padStart(2, '0');
+                const finalDateTime = new Date(date);
+                finalDateTime.setHours(parseInt(hours, 10));
+                finalDateTime.setMinutes(parseInt(mins, 10));
+                if (isPickupTooSoon(finalDateTime)) {
+                  setShowBookingAlert(true);
+                  return;
+                }
+                setPickupDate(date);
                 setPickupTime(`${hours}:${mins}`);
+                // If drop date is before pickup, adjust it
+                if (dropDate <= date) {
+                  const newDrop = new Date(date);
+                  newDrop.setDate(newDrop.getDate() + 1);
+                  setDropDate(newDrop);
+                }
               }
             },
           });
@@ -382,10 +379,13 @@ const BikeFleetScreen = () => {
 
       const response = await fleetService.createBikeQuoteRequest(quoteRequestData);
 
+      console.log('📋 Bike quote response:', JSON.stringify(response, null, 2));
       if (response?.success || response?.quoteRequest) {
         setShowBookingModal(false);
+        const bookingDisplayId = response?.quoteRequest?.requestNumber || response?.requestNumber || response?.quoteRequest?.id || 'TRX-' + Date.now();
+        console.log('📋 Booking display ID:', bookingDisplayId);
         navigation.navigate('BookingConfirmation', {
-          booking_id: response?.quoteRequest?.requestNumber || response?.quoteRequest?.id || 'TRX-' + Date.now(),
+          booking_id: bookingDisplayId,
           service_name: 'Bike Rental',
           service_type: 'bike',
         });
@@ -1043,14 +1043,6 @@ const BikeFleetScreen = () => {
           </View>
         )}
 
-        {/* Location not served message */}
-        {locationNotServed && (
-          <View style={styles.notServedBanner}>
-            <Ionicons name="information-circle" size={wp('4.5%')} color="#D97706" />
-            <Text style={styles.notServedText}>We are not currently providing our services in this location.</Text>
-          </View>
-        )}
-
         {/* Date Selection */}
         <View style={styles.dateRow}>
           <TouchableOpacity style={styles.dateBox} onPress={openPickupDatePicker}>
@@ -1189,6 +1181,7 @@ const BikeFleetScreen = () => {
       {renderFilterModal()}
       {renderBookingModal()}
       {renderPhoneModal()}
+      <BookingAlertModal visible={showBookingAlert} onClose={() => setShowBookingAlert(false)} />
     </SafeAreaView>
   );
 };
@@ -1314,8 +1307,7 @@ const styles = StyleSheet.create({
   dropdownItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: wp('4%'),
-    paddingVertical: hp('1.8%'),
+    padding: wp('3.5%'),
     borderBottomWidth: 1,
     borderBottomColor: DIVIDER,
     gap: wp('2.5%'),
@@ -2112,24 +2104,6 @@ const styles = StyleSheet.create({
   },
   disabledBtn: {
     opacity: 0.6,
-  },
-  notServedBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: '#FFFBEB',
-    borderWidth: 1,
-    borderColor: '#FDE68A',
-    borderRadius: 12,
-    padding: wp('3%'),
-    marginBottom: hp('1%'),
-  },
-  notServedText: {
-    flex: 1,
-    fontSize: wp('3.2%'),
-    color: '#92400E',
-    fontWeight: '500',
-    lineHeight: wp('4.5%'),
   },
 });
 

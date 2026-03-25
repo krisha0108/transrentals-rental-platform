@@ -24,6 +24,8 @@ import { widthPercentageToDP as wp, heightPercentageToDP as hp } from 'react-nat
 import DateTimePicker from '@react-native-community/datetimepicker';
 import fleetService from '../../services/fleetService';
 import api, { BASE_URL } from '../../api';
+import { getMinBookingDate, isPickupTooSoon, getEarliestPickupLabel } from '../../utils/dateValidation';
+import BookingAlertModal from '../../utils/AdvanceBookingAlert';
 
 /* ── Premium Dark Teal Design System ── */
 const TEAL_DEEP = '#064E3B';
@@ -76,6 +78,8 @@ const SelfDriveFleetScreen = () => {
   const locationName = route.params?.locationName || '';
   const passedPickupDate = route.params?.pickupDate;
   const passedDropDate = route.params?.dropDate;
+
+  const [showBookingAlert, setShowBookingAlert] = useState(false);
 
   // Dates
   const [pickupDate, setPickupDate] = useState(() => passedPickupDate ? new Date(passedPickupDate) : new Date());
@@ -205,6 +209,10 @@ const SelfDriveFleetScreen = () => {
   };
 
   const openBookingModal = (car) => {
+    if (isPickupTooSoon(pickupDate)) {
+      setShowBookingAlert(true);
+      return;
+    }
     setSelectedCar(car);
     setShowBookingModal(true);
   };
@@ -439,6 +447,11 @@ const SelfDriveFleetScreen = () => {
       if (datePickerTarget === 'pickup') {
         const upd = new Date(pickupDate);
         upd.setHours(selected.getHours(), selected.getMinutes());
+        if (isPickupTooSoon(upd)) {
+          setDatePickerVisible(false);
+          setShowBookingAlert(true);
+          return;
+        }
         setPickupDate(upd);
         if (dropDate <= upd) {
           const newDrop = new Date(upd);
@@ -1310,9 +1323,10 @@ const SelfDriveFleetScreen = () => {
           mode={datePickerMode}
           display="default"
           onChange={onDatePickerChange}
-          minimumDate={datePickerTarget === 'pickup' ? new Date() : pickupDate}
+          minimumDate={datePickerTarget === 'pickup' ? getMinBookingDate() : pickupDate}
         />
       )}
+      <BookingAlertModal visible={showBookingAlert} onClose={() => setShowBookingAlert(false)} />
     </SafeAreaView>
   );
 };

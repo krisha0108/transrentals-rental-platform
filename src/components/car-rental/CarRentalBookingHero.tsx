@@ -911,13 +911,16 @@ export function CarRentalBookingHero({
                 return { from: r.legFrom, to: r.legTo, km };
               });
               const totalKm = computedLegs.reduce((sum, l) => sum + l.km, 0);
-              // Calculate days from pickupDate / returnDate
+              // Calculate days based on actual hours (ceil(hours/24))
+              // e.g., 25 Mar 10PM → 28 Mar 10PM = 72hrs = 3 days
+              // Night bookings (10PM+) naturally don't count as full first day
               let days = 1;
               if (pickupDate && returnDate) {
-                const start = new Date(pickupDate);
-                const end = new Date(returnDate);
-                const diffDays = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
-                if (diffDays > 1) days = diffDays;
+                const start = new Date(`${pickupDate}T${pickupTime || '10:00'}:00`);
+                const end = new Date(`${returnDate}T${pickupTime || '10:00'}:00`);
+                const totalHours = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
+                const calcDays = Math.ceil(totalHours / 24);
+                if (calcDays > 1) days = calcDays;
               }
               // Apply min km/day from DB (via first leg's API response), fallback 300
               const minKmPerDay = validLegs.find((r) => r.calculation?.minKmPerDay)?.calculation?.minKmPerDay ?? 300;
@@ -1532,6 +1535,14 @@ export function CarRentalBookingHero({
                             />
                           </div>
                         )}
+
+                        {/* KM Approximation Note */}
+                        <div className="flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg mt-3">
+                          <Info className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
+                          <p className="text-xs text-amber-800 leading-relaxed">
+                            Distances shown (~km) are approximate and may vary from actual road distance. Final billing will be based on actual km travelled.
+                          </p>
+                        </div>
                       </>
                     )}
 

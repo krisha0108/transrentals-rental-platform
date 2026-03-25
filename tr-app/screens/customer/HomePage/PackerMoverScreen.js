@@ -11,7 +11,7 @@ import {
   Platform,
   ActivityIndicator,
   StatusBar,
-  Keyboard,
+  Alert,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Feather';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -23,6 +23,8 @@ import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/d
 import LinearGradient from 'react-native-linear-gradient';
 import { widthPercentageToDP as wp, heightPercentageToDP as hp } from 'react-native-responsive-screen';
 import { locationService, bookingService } from '../../services';
+import { getMinBookingDate, isPickupTooSoon, getEarliestPickupLabel } from '../../utils/dateValidation';
+import BookingAlertModal from '../../utils/AdvanceBookingAlert';
 import {
   TEAL_DEEP,
   TEAL_MID,
@@ -81,6 +83,7 @@ const faqs = [
 export default function PackerMoverScreen() {
   const navigation = useNavigation();
 
+  const [showBookingAlert, setShowBookingAlert] = useState(false);
   const [activeType, setActiveType] = useState('home'); // home | office | vehicle
   const [customerData, setCustomerData] = useState(null);
   const [isB2BCustomer, setIsB2BCustomer] = useState(false);
@@ -146,11 +149,12 @@ export default function PackerMoverScreen() {
     setExpandedIndex((prev) => (prev === i ? null : i));
   };
 
-  const filteredLocations = query.trim().length
+  const trimmedQuery = (query || '').trim();
+  const filteredLocations = trimmedQuery.length
     ? allLocations.filter(
         (l) =>
           typeof l.name === 'string' &&
-          l.name.toLowerCase().includes(query.trim().toLowerCase()),
+          l.name.toLowerCase().includes(trimmedQuery.toLowerCase()),
       )
     : allLocations.slice(0, 35);
 
@@ -162,18 +166,17 @@ export default function PackerMoverScreen() {
   };
 
   const handleLocationSelect = (loc) => {
-    Keyboard.dismiss();
     setPickupLocation(loc.name);
     setPickupLocationId(loc.id);
     setQuery('');
     setShowSuggestions(false);
   };
 
-  const filteredDestLocations = destQuery.trim().length
+  const filteredDestLocations = destQuery.length
     ? allLocations.filter(
         (l) =>
           typeof l.name === 'string' &&
-          l.name.toLowerCase().includes(destQuery.trim().toLowerCase()),
+          l.name.toLowerCase().includes(destQuery.toLowerCase()),
       )
     : allLocations.slice(0, 35);
 
@@ -184,7 +187,6 @@ export default function PackerMoverScreen() {
   };
 
   const handleDestSelect = (loc) => {
-    Keyboard.dismiss();
     setDestination(loc.name);
     setDestQuery('');
     setShowDestSuggestions(false);
@@ -195,7 +197,7 @@ export default function PackerMoverScreen() {
     DateTimePickerAndroid.open({
       value: moveDate,
       mode: 'date',
-      minimumDate: new Date(),
+      minimumDate: getMinBookingDate(),
       onChange: (event, date) => {
         if (event.type === 'dismissed' || !date) return;
 
@@ -219,6 +221,10 @@ export default function PackerMoverScreen() {
             const final = new Date(merged);
             final.setHours(time.getHours());
             final.setMinutes(time.getMinutes());
+            if (isPickupTooSoon(final)) {
+              setShowBookingAlert(true);
+              return;
+            }
             setMoveDate(final);
           },
         });
@@ -438,7 +444,7 @@ export default function PackerMoverScreen() {
                   placeholderTextColor={TEXT_MUTED}
                   style={styles.locationInput}
                   onFocus={() => setShowSuggestions(true)}
-                  onBlur={() => setTimeout(() => setShowSuggestions(false), 300)}
+                  onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
                 />
                 {pickupLocation ? (
                   <TouchableOpacity
@@ -505,7 +511,7 @@ export default function PackerMoverScreen() {
                   placeholderTextColor={TEXT_MUTED}
                   style={styles.locationInput}
                   onFocus={() => setShowDestSuggestions(true)}
-                  onBlur={() => setTimeout(() => setShowDestSuggestions(false), 300)}
+                  onBlur={() => setTimeout(() => setShowDestSuggestions(false), 150)}
                 />
                 {destination ? (
                   <TouchableOpacity
@@ -758,6 +764,7 @@ export default function PackerMoverScreen() {
           </View>
         </View>
       </Modal>
+      <BookingAlertModal visible={showBookingAlert} onClose={() => setShowBookingAlert(false)} />
     </SafeAreaView>
   );
 }

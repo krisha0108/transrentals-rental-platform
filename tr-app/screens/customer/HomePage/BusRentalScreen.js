@@ -1,5 +1,5 @@
-// BusRentalScreen.js — Premium Dark Teal Design
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+// BusRentalScreen.js
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -14,20 +14,21 @@ import {
   Animated,
   ActivityIndicator,
   Pressable,
-  StatusBar,
+  Alert,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Feather';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
-import LinearGradient from 'react-native-linear-gradient';
-import { widthPercentageToDP as wp, heightPercentageToDP as hp } from 'react-native-responsive-screen';
 import { locationService, bookingService } from '../../services';
-import { TEAL_DEEP, TEAL_MID, TEAL, TEAL_LIGHT, BG, CARD, TEXT_PRIMARY, TEXT_SECONDARY, TEXT_MUTED, SHADOW_SM, SHADOW_MD } from '../../../theme';
+import { getMinBookingDate, isPickupTooSoon, getEarliestPickupLabel } from '../../utils/dateValidation';
+import BookingAlertModal from '../../utils/AdvanceBookingAlert';
 
 const { width } = Dimensions.get('window');
+const GREEN = '#09B368';
+const BG = '#F5F5F7';
 
 const BUS_TYPES = [
   { id: '20seater', name: '20 Seater', img: require('../../../assets/20Seaterr.png') },
@@ -98,6 +99,7 @@ const quoteData = [
 export default function BusRentalScreen() {
   const navigation = useNavigation();
 
+  const [showBookingAlert, setShowBookingAlert] = useState(false);
   const [expandedIndex, setExpandedIndex] = useState(null);
   const [activeQuoteIndex, setActiveQuoteIndex] = useState(0);
   const scrollX = useRef(new Animated.Value(0)).current;
@@ -129,23 +131,8 @@ export default function BusRentalScreen() {
   const [showStartDatePicker, setShowStartDatePicker] = useState(false);
   const [showReturnDatePicker, setShowReturnDatePicker] = useState(false);
 
+  // Dropdown close handler के लिए ref
   const dropdownRef = useRef(null);
-
-  /* ── StatusBar management ── */
-  useFocusEffect(
-    useCallback(() => {
-      StatusBar.setBarStyle('light-content');
-      if (Platform.OS === 'android') {
-        StatusBar.setBackgroundColor(TEAL_DEEP);
-      }
-      return () => {
-        StatusBar.setBarStyle('dark-content');
-        if (Platform.OS === 'android') {
-          StatusBar.setBackgroundColor('#FFFFFF');
-        }
-      };
-    }, []),
-  );
 
   useEffect(() => {
     (async () => {
@@ -190,6 +177,7 @@ export default function BusRentalScreen() {
     setShowSuggestions(false);
   };
 
+  // Dropdown बाहर click करने पर close करने का function
   const handleOutsideClick = () => {
     setShowSuggestions(false);
   };
@@ -198,74 +186,89 @@ export default function BusRentalScreen() {
     setExpandedIndex((prev) => (prev === i ? null : i));
   };
 
-  const openAndroidPicker = (target) => {
-    const currentValue = target === 'start' ? startDate : returnDate;
+ const openAndroidPicker = (target) => {
+  // target: 'start' | 'end'
+  const currentValue = target === 'start' ? startDate : returnDate;
 
-    DateTimePickerAndroid.open({
-      value: currentValue,
-      mode: 'date',
-      minimumDate: target === 'start' ? new Date() : startDate,
-      onChange: (event, date) => {
-        if (event.type === 'dismissed' || !date) {
-          return;
+  // 1) open DATE
+  DateTimePickerAndroid.open({
+    value: currentValue,
+    mode: 'date',
+    minimumDate: target === 'start' ? getMinBookingDate() : startDate,
+    onChange: (event, date) => {
+      if (event.type === 'dismissed' || !date) {
+        return;
+      }
+
+      // merge selected date with existing time
+      if (target === 'start') {
+        const merged = new Date(
+          date.getFullYear(),
+          date.getMonth(),
+          date.getDate(),
+          startDate.getHours(),
+          startDate.getMinutes(),
+        );
+        setStartDate(merged);
+
+        // make sure return is after start
+        if (returnDate < merged) {
+          setReturnDate(new Date(merged.getTime() + 2 * 60 * 60 * 1000));
         }
 
-        if (target === 'start') {
-          const merged = new Date(
-            date.getFullYear(),
-            date.getMonth(),
-            date.getDate(),
-            startDate.getHours(),
-            startDate.getMinutes(),
-          );
-          setStartDate(merged);
+        // 2) now open TIME for start
+        DateTimePickerAndroid.open({
+          value: merged,
+          mode: 'time',
+          is24Hour: false,
+          onChange: (event2, time) => {
+            if (event2.type === 'dismissed' || !time) return;
+            const final = new Date(merged);
+            final.setHours(time.getHours());
+            final.setMinutes(time.getMinutes());
 
-          if (returnDate < merged) {
-            setReturnDate(new Date(merged.getTime() + 2 * 60 * 60 * 1000));
-          }
+            if (isPickupTooSoon(final)) {
+              setShowBookingAlert(true);
+              return;
+            }
 
-          DateTimePickerAndroid.open({
-            value: merged,
-            mode: 'time',
-            is24Hour: false,
-            onChange: (event2, time) => {
-              if (event2.type === 'dismissed' || !time) return;
-              const final = new Date(merged);
-              final.setHours(time.getHours());
-              final.setMinutes(time.getMinutes());
-              setStartDate(final);
+            setStartDate(final);
 
-              if (returnDate < final) {
-                setReturnDate(new Date(final.getTime() + 2 * 60 * 60 * 1000));
-              }
-            },
-          });
-        } else {
-          const merged = new Date(
-            date.getFullYear(),
-            date.getMonth(),
-            date.getDate(),
-            returnDate.getHours(),
-            returnDate.getMinutes(),
-          );
-          setReturnDate(merged);
+            // again keep end after start
+            if (returnDate < final) {
+              setReturnDate(new Date(final.getTime() + 2 * 60 * 60 * 1000));
+            }
+          },
+        });
+      } else {
+        // target === 'end'
+        const merged = new Date(
+          date.getFullYear(),
+          date.getMonth(),
+          date.getDate(),
+          returnDate.getHours(),
+          returnDate.getMinutes(),
+        );
+        setReturnDate(merged);
 
-          DateTimePickerAndroid.open({
-            value: merged,
-            mode: 'time',
-            is24Hour: false,
-            onChange: (event2, time) => {
-              if (event2.type === 'dismissed' || !time) return;
-              const final = new Date(merged);
-              final.setHours(time.getHours());
-              final.setMinutes(time.getMinutes());
-              setReturnDate(final);
-            },
-          });
-        }
-      },
-    });
-  };
+        // 2) now open TIME for end
+        DateTimePickerAndroid.open({
+          value: merged,
+          mode: 'time',
+          is24Hour: false,
+          onChange: (event2, time) => {
+            if (event2.type === 'dismissed' || !time) return;
+            const final = new Date(merged);
+            final.setHours(time.getHours());
+            final.setMinutes(time.getMinutes());
+            setReturnDate(final);
+          },
+        });
+      }
+    },
+  });
+};
+
 
   const onAndroidChange = (event, selected) => {
     if (event.type === 'dismissed') {
@@ -312,6 +315,11 @@ export default function BusRentalScreen() {
         const upd = new Date(startDate);
         upd.setHours(selected.getHours());
         upd.setMinutes(selected.getMinutes());
+        if (isPickupTooSoon(upd)) {
+          setShowBookingAlert(true);
+          setAndroidPickerVisible(false);
+          return;
+        }
         setStartDate(upd);
         if (returnDate < upd) {
           setReturnDate(new Date(upd.getTime() + 4 * 60 * 60 * 1000));
@@ -328,6 +336,10 @@ export default function BusRentalScreen() {
 
   const onStartDateChangeIOS = (event, selectedDate) => {
     if (!selectedDate) return;
+    if (isPickupTooSoon(selectedDate)) {
+      setShowBookingAlert(true);
+      return;
+    }
     setStartDate(selectedDate);
     if (returnDate < selectedDate) {
       setReturnDate(new Date(selectedDate.getTime() + 4 * 60 * 60 * 1000));
@@ -355,6 +367,10 @@ export default function BusRentalScreen() {
       alert('Please enter number of passengers');
       return;
     }
+    if (parseInt(totalPassengers) < 10) {
+      alert('Minimum 10 passengers required for bus booking');
+      return;
+    }
 
     if (customerData && !customerData.phone) {
       setIsPhoneModal(true);
@@ -374,7 +390,9 @@ export default function BusRentalScreen() {
         if (match) {
           finalLocationId = match.id;
         } else {
+          // Location not in admin-assigned list
           alert('📍 Location Notice\n\nThis location is not currently available for bus rental services. Our team will be expanding to this area soon!\n\nYou can still submit your request and we\'ll notify you once we\'re available in your area.');
+          // Allow to continue with submission
         }
       }
 
@@ -450,20 +468,15 @@ export default function BusRentalScreen() {
         style={[
           styles.quoteCard,
           {
-            width: width - wp('12%'),
+            width: width - 45,
             transform: [{ scale }, { translateY }],
           },
         ]}
       >
         <View style={styles.quoteTextWrapperMain}>
-          <LinearGradient
-            colors={[TEAL_MID, TEAL]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.quoteNumberCircle}
-          >
+          <View style={styles.quoteNumberCircle}>
             <Text style={styles.quoteNumber}>{item.number}</Text>
-          </LinearGradient>
+          </View>
           <Text style={styles.quoteHeading}>{item.heading}</Text>
         </View>
         <View style={styles.quoteBodyMain}>
@@ -474,53 +487,32 @@ export default function BusRentalScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safe} edges={['bottom']}>
-      {/* ── Premium Gradient Header ── */}
-      <View style={styles.headerClip}>
-        <LinearGradient
-          colors={[TEAL_DEEP, TEAL_MID, '#047857']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.headerGradient}
+    <SafeAreaView style={styles.safe}>
+      <View style={styles.topBar}>
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={styles.backBtn}
         >
-          {/* Decorative circles */}
-          <View style={styles.decoCircle1} pointerEvents="none" />
-          <View style={styles.decoCircle2} pointerEvents="none" />
-          <View style={styles.decoCircle3} pointerEvents="none" />
-
-          <View style={styles.headerRow}>
-            <TouchableOpacity
-              onPress={() => navigation.goBack()}
-              style={styles.backBtn}
-              activeOpacity={0.7}
-            >
-              <Icon name="arrow-left" size={wp('5%')} color="#FFFFFF" />
-            </TouchableOpacity>
-            <Text style={styles.topTitle}>Bus Rental</Text>
-            <View style={{ width: wp('10%') }} />
-          </View>
-        </LinearGradient>
+          <Icon name="arrow-left" size={22} color="#0F172A" />
+        </TouchableOpacity>
+        <Text style={styles.topTitle}>Bus Rental</Text>
+        <View style={{ width: 40 }} />
       </View>
 
       <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
         {/* form card */}
         <View style={styles.formCard}>
           <View style={styles.formHeaderRow}>
-            <View style={{ flex: 1 }}>
+            <View>
               <Text style={styles.formTitle}>Plan your bus journey</Text>
               <Text style={styles.formDesc}>
                 Fill this form once, get multiple quotes from bus operators.
               </Text>
             </View>
-            <LinearGradient
-              colors={[TEAL_MID, TEAL]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.securePill}
-            >
-              <Ionicons name="shield-checkmark" size={wp('3.5%')} color="#fff" />
+            <View style={styles.securePill}>
+              <Ionicons name="shield-checkmark" size={14} color="#fff" />
               <Text style={styles.securePillText}>Secure</Text>
-            </LinearGradient>
+            </View>
           </View>
 
           {/* Trip type */}
@@ -538,11 +530,11 @@ export default function BusRentalScreen() {
                   activeOpacity={0.9}
                   style={[styles.tripTypeTab, active && styles.tripTypeTabActive]}
                 >
-                  <View style={[styles.tripTypeIconCircle, active && styles.tripTypeIconCircleActive]}>
+                  <View style={styles.tripTypeIconCircle}>
                     <Ionicons
                       name={item.id === 'local' ? 'navigate' : 'map'}
-                      size={wp('3.8%')}
-                      color={active ? CARD : TEAL_MID}
+                      size={15}
+                      color={active ? '#0F172A' : '#0F172A'}
                     />
                   </View>
                   <Text
@@ -559,7 +551,7 @@ export default function BusRentalScreen() {
             })}
           </View>
 
-          {/* Location block */}
+          {/* Location block - MODIFIED WITH OVERLAY */}
           <View style={styles.locationBlock}>
             {/* FROM */}
             <Text style={styles.smallLabel}>
@@ -569,14 +561,12 @@ export default function BusRentalScreen() {
               activeOpacity={0.9}
               style={styles.locationRow}
             >
-              <View style={styles.locationIconCircle}>
-                <Ionicons name="location-outline" size={wp('4%')} color={TEAL} />
-              </View>
+              <Ionicons name="location-outline" size={18} color="#0F172A" />
               <TextInput
                 value={query.length ? query : pickupLocation}
                 onChangeText={handleInputChange}
                 placeholder="Enter pickup location"
-                placeholderTextColor={TEXT_MUTED}
+                placeholderTextColor="#94A3B8"
                 style={styles.locationInput}
                 onFocus={() => setShowSuggestions(true)}
               />
@@ -588,7 +578,7 @@ export default function BusRentalScreen() {
                     setQuery('');
                   }}
                 >
-                  <Ionicons name="close-circle" size={wp('5.5%')} color={TEXT_MUTED} />
+                  <Ionicons name="close-circle" size={24} color="#CBD5F5" />
                 </TouchableOpacity>
               ) : null}
             </TouchableOpacity>
@@ -596,11 +586,12 @@ export default function BusRentalScreen() {
             {/* suggestions with overlay */}
             {showSuggestions && (
               <>
-                <Pressable
+                {/* Overlay for outside click */}
+                <Pressable 
                   style={styles.overlay}
                   onPress={handleOutsideClick}
                 />
-
+                
                 <View style={styles.suggestionBox} ref={dropdownRef}>
                   <ScrollView
                     style={styles.suggestionScrollView}
@@ -618,7 +609,6 @@ export default function BusRentalScreen() {
                           style={styles.suggestionItem}
                           onPress={() => handleLocationSelect(loc)}
                         >
-                          <View style={styles.suggestionDot} />
                           <Text style={styles.suggestionText}>{loc.name}</Text>
                         </TouchableOpacity>
                       ))
@@ -631,21 +621,19 @@ export default function BusRentalScreen() {
             )}
 
             {/* TO */}
-            <Text style={[styles.smallLabel, { marginTop: hp('1.5%') }]}>
+            <Text style={[styles.smallLabel, { marginTop: 14 }]}>
               To (Area, Street or Landmark)
             </Text>
             <TouchableOpacity
               activeOpacity={0.9}
               style={styles.locationRow}
             >
-              <View style={styles.locationIconCircle}>
-                <Ionicons name="flag-outline" size={wp('4%')} color={TEAL} />
-              </View>
+              <Ionicons name="flag-outline" size={18} color="#0F172A" />
               <TextInput
                 value={destination}
                 onChangeText={setDestination}
                 placeholder="Enter drop location"
-                placeholderTextColor={TEXT_MUTED}
+                placeholderTextColor="#94A3B8"
                 style={styles.locationInput}
               />
             </TouchableOpacity>
@@ -667,14 +655,9 @@ export default function BusRentalScreen() {
             >
               <Text style={styles.dateLabel}>TRIP START</Text>
               <View style={styles.dateContent}>
-                <LinearGradient
-                  colors={[TEAL_MID, TEAL]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={styles.dateIconWrap}
-                >
-                  <Ionicons name="calendar-outline" size={wp('3.8%')} color="#FFFFFF" />
-                </LinearGradient>
+                <View style={styles.dateIconWrap}>
+                  <Ionicons name="calendar-outline" size={16} color="#0F172A" />
+                </View>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.dateMainText}>
                     {startDate.toLocaleDateString('en-US', {
@@ -710,14 +693,9 @@ export default function BusRentalScreen() {
               >
                 <Text style={styles.dateLabel}>TRIP END</Text>
                 <View style={styles.dateContent}>
-                  <LinearGradient
-                    colors={[TEAL_MID, TEAL]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={styles.dateIconWrap}
-                  >
-                    <Ionicons name="calendar-outline" size={wp('3.8%')} color="#FFFFFF" />
-                  </LinearGradient>
+                  <View style={styles.dateIconWrap}>
+                    <Ionicons name="calendar-outline" size={16} color="#0F172A" />
+                  </View>
                   <View style={{ flex: 1 }}>
                     <Text style={styles.dateMainText}>
                       {returnDate.toLocaleDateString('en-US', {
@@ -752,7 +730,7 @@ export default function BusRentalScreen() {
                 mode="datetime"
                 display="spinner"
                 onChange={onStartDateChangeIOS}
-                minimumDate={new Date()}
+                minimumDate={getMinBookingDate()}
               />
               <View style={styles.iosButtonContainer}>
                 <TouchableOpacity
@@ -786,11 +764,11 @@ export default function BusRentalScreen() {
           )}
 
           {/* Bus type */}
-          <Text style={[styles.label, { marginTop: hp('2%') }]}>Bus type</Text>
+          <Text style={[styles.label, { marginTop: 16 }]}>Bus type</Text>
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
-            style={{ marginTop: hp('0.8%') }}
+            style={{ marginTop: 6 }}
           >
             {BUS_TYPES.map((bus, idx) => {
               const active = busType === bus.id;
@@ -801,11 +779,6 @@ export default function BusRentalScreen() {
                   onPress={() => setBusType(bus.id)}
                   activeOpacity={0.85}
                 >
-                  {active && (
-                    <View style={styles.busChipActiveBadge}>
-                      <Ionicons name="checkmark" size={wp('3%')} color="#FFFFFF" />
-                    </View>
-                  )}
                   <Image source={bus.img} style={styles.busChipImg} />
                   <Text
                     style={[
@@ -821,65 +794,50 @@ export default function BusRentalScreen() {
           </ScrollView>
 
           {/* passengers */}
-          <Text style={[styles.label, { marginTop: hp('2%') }]}>
+          <Text style={[styles.label, { marginTop: 16 }]}>
             Total passengers
           </Text>
           <View style={styles.inputPill}>
-            <View style={styles.inputIconCircle}>
-              <Ionicons name="people-outline" size={wp('3.8%')} color={TEAL} />
-            </View>
+            <Ionicons name="people-outline" size={15} color="#64748B" />
             <TextInput
               value={totalPassengers}
               onChangeText={setTotalPassengers}
               placeholder="e.g. 40"
-              placeholderTextColor={TEXT_MUTED}
+              placeholderTextColor="#9CA3AF"
               keyboardType="numeric"
               style={styles.inputText}
             />
           </View>
 
           {/* other details */}
-          <Text style={[styles.label, { marginTop: hp('2%') }]}>
-            Other details
+          <Text style={[styles.label, { marginTop: 16 }]}>
+            Other details 
           </Text>
           <TextInput
             style={styles.textArea}
             value={otherDetails}
             onChangeText={setOtherDetails}
             placeholder="Example: 40 passengers, 2 big luggage compartments, AC required, need experienced driver."
-            placeholderTextColor={TEXT_MUTED}
+            placeholderTextColor="#9CA3AF"
             multiline
           />
 
           <TouchableOpacity
-            style={[styles.submitBtnWrap, isSubmitting && { opacity: 0.4 }]}
+            style={[styles.submitBtn, isSubmitting && { opacity: 0.4 }]}
             onPress={handleSubmit}
             disabled={isSubmitting}
-            activeOpacity={0.85}
           >
-            <LinearGradient
-              colors={[TEAL_MID, TEAL]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.submitBtn}
-            >
-              {isSubmitting ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <Text style={styles.submitText}>Submit Booking Request</Text>
-              )}
-            </LinearGradient>
+            {isSubmitting ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={styles.submitText}>Submit Booking Request</Text>
+            )}
           </TouchableOpacity>
         </View>
 
         {/* FAQ */}
         <View style={styles.faqSec}>
-          <View style={styles.faqHeaderRow}>
-            <View style={styles.faqIconCircle}>
-              <Ionicons name="help-circle-outline" size={wp('5%')} color={TEAL} />
-            </View>
-            <Text style={styles.faqTitle}>FAQs about bus rental</Text>
-          </View>
+          <Text style={styles.faqTitle}>FAQs about bus rental</Text>
           {faqs.map((item, idx) => {
             const open = expandedIndex === idx;
             return (
@@ -889,21 +847,17 @@ export default function BusRentalScreen() {
                   onPress={() => toggleFAQ(idx)}
                 >
                   <Text style={styles.faqQ}>{item.question}</Text>
-                  <View style={[styles.faqChevronCircle, open && styles.faqChevronCircleOpen]}>
-                    <Ionicons
-                      name={open ? 'chevron-up' : 'chevron-down'}
-                      size={wp('3.5%')}
-                      color={open ? '#FFFFFF' : TEAL_LIGHT}
-                    />
-                  </View>
+                  <Ionicons
+                    name={open ? 'chevron-up' : 'chevron-down'}
+                    size={18}
+                    color="#E2E8F0"
+                  />
                 </TouchableOpacity>
                 {open && <Text style={styles.faqA}>{item.answer}</Text>}
               </View>
             );
           })}
         </View>
-
-        <View style={{ height: hp('3%') }} />
       </ScrollView>
 
       {/* PHONE MODAL */}
@@ -915,40 +869,24 @@ export default function BusRentalScreen() {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
-            <LinearGradient
-              colors={[TEAL_MID, TEAL]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.modalIconCircle}
-            >
-              <Ionicons name="call-outline" size={wp('6%')} color="#FFFFFF" />
-            </LinearGradient>
             <Text style={styles.modalTitle}>Phone required</Text>
             <Text style={styles.modalBody}>
               Add your phone number once and book faster next time.
             </Text>
             <TouchableOpacity
-              style={styles.modalBtnWrap}
+              style={styles.modalBtn}
               onPress={() => {
                 setIsPhoneModal(false);
                 navigation.navigate('EditProfileScreen');
               }}
-              activeOpacity={0.85}
             >
-              <LinearGradient
-                colors={[TEAL_MID, TEAL]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.modalBtn}
-              >
-                <Text style={styles.modalBtnText}>Go to Profile</Text>
-              </LinearGradient>
+              <Text style={styles.modalBtnText}>Go to Profile</Text>
             </TouchableOpacity>
             <TouchableOpacity
               onPress={() => setIsPhoneModal(false)}
-              style={{ marginTop: hp('1.2%') }}
+              style={{ marginTop: 10 }}
             >
-              <Text style={{ color: TEXT_MUTED, fontSize: wp('3.5%') }}>Maybe later</Text>
+              <Text style={{ color: '#94A3B8' }}>Maybe later</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -956,219 +894,153 @@ export default function BusRentalScreen() {
 
       {/* ANDROID PICKER */}
 
+      <BookingAlertModal visible={showBookingAlert} onClose={() => setShowBookingAlert(false)} />
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: BG,
-  },
-  container: {
-    backgroundColor: 'transparent',
-  },
-
-  /* ── Header ── */
-  headerClip: {
-    borderBottomLeftRadius: wp('6%'),
-    borderBottomRightRadius: wp('6%'),
-    overflow: 'hidden',
-  },
-  headerGradient: {
-    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + 8 : 8,
-    paddingBottom: hp('2%'),
-    paddingHorizontal: wp('4%'),
-  },
-  decoCircle1: {
-    position: 'absolute',
-    width: wp('35%'),
-    height: wp('35%'),
-    borderRadius: wp('17.5%'),
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    top: -wp('10%'),
-    right: -wp('8%'),
-  },
-  decoCircle2: {
-    position: 'absolute',
-    width: wp('20%'),
-    height: wp('20%'),
-    borderRadius: wp('10%'),
-    backgroundColor: 'rgba(255,255,255,0.04)',
-    bottom: -wp('5%'),
-    left: wp('5%'),
-  },
-  decoCircle3: {
-    position: 'absolute',
-    width: wp('12%'),
-    height: wp('12%'),
-    borderRadius: wp('6%'),
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    top: wp('2%'),
-    left: wp('30%'),
-  },
-  headerRow: {
+  safe: { flex: 1, backgroundColor: BG },
+  container: { backgroundColor: 'transparent' },
+  topBar: {
+    height: 52,
     flexDirection: 'row',
     alignItems: 'center',
+    paddingHorizontal: 16,
     justifyContent: 'space-between',
-    zIndex: 2,
+    backgroundColor: BG,
   },
   backBtn: {
-    width: wp('10%'),
-    height: wp('10%'),
-    borderRadius: wp('5%'),
-    backgroundColor: 'rgba(255,255,255,0.15)',
+    width: 40,
+    height: 40,
+    borderRadius: 999,
+    backgroundColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.03,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
   },
-  topTitle: {
-    fontSize: wp('4.5%'),
-    fontWeight: '700',
-    color: '#FFFFFF',
-    letterSpacing: 0.3,
-  },
+  topTitle: { fontSize: 17, fontWeight: '700', color: '#0F172A' },
 
-  /* ── Form Card ── */
   formCard: {
-    backgroundColor: CARD,
-    marginHorizontal: wp('3.5%'),
-    marginTop: hp('2%'),
-    borderRadius: wp('5.5%'),
-    paddingVertical: hp('1.5%'),
-    paddingHorizontal: wp('4%'),
-    ...SHADOW_MD,
+    backgroundColor: '#FFFFFF',
+    marginHorizontal: 14,
+    marginTop: 20,
+    borderRadius: 22,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    shadowColor: '#000',
+    shadowOpacity: 0.04,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 6 },
   },
   formHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: hp('1%'),
+    alignItems: 'center',
+    marginBottom: 8,
   },
-  formTitle: {
-    fontSize: wp('4.5%'),
-    fontWeight: '700',
-    color: TEXT_PRIMARY,
-  },
-  formDesc: {
-    fontSize: wp('3%'),
-    color: TEXT_MUTED,
-    marginTop: hp('1%'),
-  },
+  formTitle: { fontSize: 18, fontWeight: '700', color: '#0F172A' },
+  formDesc: { fontSize: 12, color: '#94A3B8', marginTop:10},
   securePill: {
-    borderRadius: wp('5%'),
-    paddingHorizontal: wp('2.5%'),
-    paddingVertical: hp('0.5%'),
+    backgroundColor: GREEN,
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: wp('1%'),
+    gap: 4,
+    marginBottom: 25,
+    marginLeft: -80,
   },
-  securePillText: {
-    color: '#fff',
-    fontSize: wp('3%'),
-    fontWeight: '600',
-  },
+  securePillText: { color: '#fff', fontSize: 12, fontWeight: '600' },
 
-  /* ── Labels ── */
   label: {
-    fontSize: wp('3.8%'),
+    fontSize: 15,
     fontWeight: '700',
-    color: TEXT_PRIMARY,
-    marginBottom: hp('0.5%'),
+    color: '#0F172A',
+    marginBottom: 5,
   },
 
-  /* ── Trip Type ── */
   tripTypeBar: {
     flexDirection: 'row',
-    backgroundColor: '#F0F4F8',
-    borderRadius: wp('3.5%'),
+    backgroundColor: '#EFF3F6',
+    borderRadius: 14,
     overflow: 'hidden',
-    marginBottom: hp('1.5%'),
-    gap: wp('1.5%'),
-    padding: wp('1%'),
+    marginBottom: 14,
   },
   tripTypeTab: {
     flex: 1,
-    paddingVertical: hp('1.2%'),
-    paddingHorizontal: wp('2.5%'),
-    minHeight: hp('8.5%'),
+    paddingVertical: 10,
+    paddingHorizontal: 10,
+    minHeight: 70,
     justifyContent: 'center',
-    borderRadius: wp('3%'),
   },
   tripTypeTabActive: {
-    backgroundColor: CARD,
-    borderWidth: 1.5,
-    borderColor: `${TEAL}40`,
-    ...SHADOW_SM,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: 'rgba(9,179,104,0.25)',
+    borderRadius: 14,
+    elevation: 1,
   },
   tripTypeIconCircle: {
-    width: wp('6.5%'),
-    height: wp('6.5%'),
-    borderRadius: wp('3.25%'),
-    backgroundColor: `${TEAL}18`,
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: 'rgba(9,179,104,0.12)',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: hp('0.5%'),
-  },
-  tripTypeIconCircleActive: {
-    backgroundColor: TEAL,
+    marginBottom: 4,
   },
   tripTypeTitle: {
-    fontSize: wp('3.8%'),
+    fontSize: 15,
     fontWeight: '600',
-    color: TEXT_PRIMARY,
+    color: '#0F172A',
   },
   tripTypeTitleActive: {
-    color: TEAL_DEEP,
+    color: '#0F172A',
   },
   tripTypeSub: {
-    fontSize: wp('2.8%'),
-    color: TEXT_MUTED,
-    marginTop: hp('0.2%'),
+    fontSize: 11,
+    color: '#94A3B8',
+    marginTop: 2,
   },
 
-  /* ── Location ── */
   locationBlock: {
-    backgroundColor: '#F8FAF9',
-    borderRadius: wp('4%'),
+    backgroundColor: '#F8FAFC',
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: `${TEAL}12`,
-    padding: wp('3%'),
-    marginBottom: hp('1.5%'),
-    position: 'relative',
+    borderColor: 'rgba(15,23,42,0.04)',
+    padding: 12,
+    marginBottom: 12,
+    position: 'relative', // Important for overlay positioning
   },
   smallLabel: {
-    fontSize: wp('3.2%'),
-    color: TEXT_SECONDARY,
-    marginBottom: hp('0.5%'),
+    fontSize: 13,
+    color: '#94A3B8',
+    marginBottom: 4,
   },
   locationRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: CARD,
-    borderRadius: wp('3%'),
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: `${TEAL}20`,
-    paddingHorizontal: wp('3%'),
-    minHeight: hp('6.5%'),
-    gap: wp('2%'),
-    ...SHADOW_SM,
-  },
-  locationIconCircle: {
-    width: wp('8%'),
-    height: wp('8%'),
-    borderRadius: wp('4%'),
-    backgroundColor: `${TEAL}12`,
-    justifyContent: 'center',
-    alignItems: 'center',
+    borderColor: 'rgba(148,163,184,0.25)',
+    paddingHorizontal: 12,
+    minHeight: 54,
+    gap: 8,
   },
   locationInput: {
     flex: 1,
-    fontSize: wp('3.8%'),
-    color: TEXT_PRIMARY,
-    paddingVertical: hp('0.6%'),
+    fontSize: 15,
+    color: '#0F172A',
+    paddingVertical: 6,
   },
 
-  /* ── Overlay & Suggestions ── */
+  // NEW: Overlay style for outside click
   overlay: {
     position: 'absolute',
     top: 0,
@@ -1177,415 +1049,274 @@ const styles = StyleSheet.create({
     bottom: 0,
     zIndex: 998,
   },
+
   suggestionBox: {
     position: 'absolute',
-    top: hp('10%'),
-    left: wp('3%'),
-    right: wp('3%'),
-    backgroundColor: CARD,
-    borderRadius: wp('3.5%'),
-    borderWidth: 1,
-    borderColor: `${TEAL}20`,
+    top: 90, // Adjust based on your layout
+    left: 12,
+    right: 12,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    borderWidth: 0.5,
+    borderColor: '#E2E8F0',
     zIndex: 999,
-    maxHeight: hp('28%'),
+    maxHeight: 220,
     overflow: 'hidden',
-    ...SHADOW_MD,
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 5 },
   },
   suggestionScrollView: {
     width: '100%',
-    maxHeight: hp('28%'),
+    maxHeight: 220,
   },
   suggestionScrollContent: {
-    paddingVertical: hp('0.6%'),
+    paddingVertical: 6,
   },
   suggestionItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: wp('3%'),
-    paddingVertical: hp('1.1%'),
+    paddingHorizontal: 12,
+    paddingVertical: 9,
     borderBottomWidth: 0.5,
     borderColor: '#EDF2F7',
-    gap: wp('2.5%'),
   },
-  suggestionDot: {
-    width: wp('2%'),
-    height: wp('2%'),
-    borderRadius: wp('1%'),
-    backgroundColor: TEAL,
-    opacity: 0.5,
-  },
-  suggestionText: {
-    color: TEXT_PRIMARY,
-    fontSize: wp('3.5%'),
-  },
-  noResult: {
-    padding: wp('3%'),
-    textAlign: 'center',
-    color: TEXT_MUTED,
-    fontSize: wp('3.2%'),
-  },
+  suggestionText: { color: '#0F172A' },
+  noResult: { padding: 10, textAlign: 'center', color: '#94A3B8' },
 
-  /* ── Date Row ── */
   dateRow: {
     flexDirection: 'row',
-    gap: wp('3%'),
+    gap: 12,
   },
   dateCard: {
     flex: 1,
-    backgroundColor: CARD,
-    borderRadius: wp('3.5%'),
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: `${TEAL}18`,
-    paddingHorizontal: wp('3%'),
-    paddingVertical: hp('1%'),
-    ...SHADOW_SM,
+    borderColor: 'rgba(148,163,184,0.25)',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    shadowColor: '#000',
+    shadowOpacity: 0.01,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 3 },
   },
   dateLabel: {
-    fontSize: wp('2.8%'),
+    fontSize: 12,
     fontWeight: '600',
-    color: TEAL_MID,
+    color: '#94A3B8',
     textTransform: 'uppercase',
-    marginBottom: hp('0.6%'),
-    letterSpacing: 0.6,
+    marginBottom: 6,
+    letterSpacing: 0.4,
   },
   dateContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: wp('2%'),
+    gap: 5,
   },
   dateIconWrap: {
-    width: wp('7.5%'),
-    height: wp('7.5%'),
-    borderRadius: wp('2.2%'),
+    width: 30,
+    height: 30,
+    borderRadius: 10,
+    backgroundColor: '#F1F5F9',
     justifyContent: 'center',
     alignItems: 'center',
   },
   dateMainText: {
-    fontSize: wp('3.5%'),
+    fontSize: 14,
     fontWeight: '700',
-    color: TEXT_PRIMARY,
+    color: '#0F172A',
   },
   dateSubText: {
-    fontSize: wp('2.8%'),
-    color: TEXT_MUTED,
-    marginTop: hp('0.1%'),
+    fontSize: 11,
+    color: '#94A3B8',
+    marginTop: 1,
   },
 
-  /* ── iOS Pickers ── */
   iosDatePickerContainer: {
-    backgroundColor: CARD,
-    borderRadius: wp('3%'),
-    marginTop: hp('1%'),
-    padding: wp('2.5%'),
-    borderWidth: 1,
-    borderColor: `${TEAL}15`,
-    ...SHADOW_SM,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    marginTop: 8,
+    padding: 10,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   iosButtonContainer: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
-    paddingTop: hp('1%'),
+    paddingTop: 8,
     borderTopWidth: 1,
     borderTopColor: '#f0f0f0',
-    marginTop: hp('1%'),
+    marginTop: 8,
   },
   iosButton: {
-    backgroundColor: TEAL,
-    paddingHorizontal: wp('4%'),
-    paddingVertical: hp('0.8%'),
-    borderRadius: wp('2%'),
+    backgroundColor: '#09B368',
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    borderRadius: 6,
   },
-  iosButtonText: {
-    color: '#fff',
-    fontWeight: '600',
-    fontSize: wp('3.5%'),
-  },
+  iosButtonText: { color: '#fff', fontWeight: '600' },
 
-  /* ── Input Pill ── */
   inputPill: {
     flexDirection: 'row',
-    backgroundColor: '#F8FAF9',
-    borderRadius: wp('3%'),
-    borderColor: `${TEAL}12`,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 12,
+    borderColor: 'rgba(15,23,42,0.05)',
     borderWidth: 1,
-    paddingHorizontal: wp('3%'),
-    paddingVertical: hp('0.6%'),
-    gap: wp('2%'),
-    minHeight: hp('6.5%'),
+    paddingHorizontal: 15,
+    paddingVertical: 6,
+    gap: 6,
+    minHeight: 56,
     alignItems: 'center',
   },
-  inputIconCircle: {
-    width: wp('8%'),
-    height: wp('8%'),
-    borderRadius: wp('4%'),
-    backgroundColor: `${TEAL}12`,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  inputText: {
-    flex: 1,
-    fontSize: wp('3.2%'),
-    color: TEXT_PRIMARY,
-    paddingVertical: hp('0.3%'),
-  },
+  inputText: { flex: 1, fontSize: 12.5, color: '#0F172A', paddingVertical: 2 },
 
-  /* ── Bus Chips ── */
   busChip: {
-    width: wp('33%'),
-    backgroundColor: '#F8FAF9',
-    borderRadius: wp('3.5%'),
-    padding: wp('2%'),
-    marginRight: wp('2.5%'),
+    width: 130,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 14,
+    padding: 8,
+    marginRight: 10,
     alignItems: 'center',
-    gap: hp('0.6%'),
-    borderWidth: 1.5,
+    gap: 6,
+    borderWidth: 1,
     borderColor: 'transparent',
   },
   busChipActive: {
-    backgroundColor: CARD,
-    borderColor: `${TEAL}50`,
-    ...SHADOW_SM,
+    backgroundColor: '#FFFFFF',
+    borderColor: 'rgba(9,179,104,0.35)',
+    shadowColor: '#000',
+    shadowOpacity: 0.02,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
   },
-  busChipActiveBadge: {
-    position: 'absolute',
-    top: wp('1.5%'),
-    right: wp('1.5%'),
-    width: wp('5%'),
-    height: wp('5%'),
-    borderRadius: wp('2.5%'),
-    backgroundColor: TEAL,
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 2,
-  },
-  busChipImg: {
-    width: wp('18%'),
-    height: hp('5.5%'),
-    resizeMode: 'contain',
-  },
-  busChipText: {
-    fontSize: wp('3.2%'),
-    textAlign: 'center',
-    color: TEXT_SECONDARY,
-  },
-  busChipTextActive: {
-    color: TEAL_DEEP,
-    fontWeight: '700',
-  },
+  busChipImg: { width: 70, height: 45, resizeMode: 'contain' },
+  busChipText: { fontSize: 13, textAlign: 'center', color: '#475569' },
+  busChipTextActive: { color: '#0F172A', fontWeight: '600' },
 
-  /* ── Text Area ── */
   textArea: {
-    backgroundColor: '#F8FAF9',
-    borderRadius: wp('3%'),
+    backgroundColor: '#F8FAFC',
+    borderRadius: 10,
     borderWidth: 1,
-    borderColor: `${TEAL}12`,
-    minHeight: hp('10%'),
-    padding: wp('3%'),
+    borderColor: 'rgba(15,23,42,0.05)',
+    minHeight: 84,
+    padding: 10,
     textAlignVertical: 'top',
-    fontSize: wp('3.2%'),
-    color: TEXT_PRIMARY,
-  },
-
-  /* ── Submit Button ── */
-  submitBtnWrap: {
-    marginTop: hp('2%'),
-    borderRadius: wp('8%'),
-    overflow: 'hidden',
+    fontSize: 12.5,
   },
   submitBtn: {
-    borderRadius: wp('8%'),
-    paddingVertical: hp('1.6%'),
+    marginTop: 15,
+    backgroundColor: GREEN,
+    borderRadius: 999,
+    paddingVertical: 11,
     alignItems: 'center',
-    justifyContent: 'center',
   },
-  submitText: {
-    color: '#FFFFFF',
-    fontSize: wp('3.8%'),
-    fontWeight: '700',
-    letterSpacing: 0.3,
-  },
+  submitText: { color: '#FFFFFF', fontSize: 15, fontWeight: '700' },
 
-  /* ── Quote / How It Works ── */
   quoteTitle: {
-    marginTop: hp('2.5%'),
-    marginLeft: wp('5%'),
-    fontSize: wp('4%'),
+    marginTop: 20,
+    marginLeft: 23,
+    fontSize: 16,
     fontWeight: '700',
-    color: TEXT_PRIMARY,
+    color: '#000',
   },
   quoteTextWrapperMain: {
     width: '100%',
     flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: hp('1.2%'),
+    alignContent: 'center',
+    marginBottom: 10,
   },
   quoteCard: {
-    marginHorizontal: wp('5%'),
-    marginTop: hp('1.2%'),
-    backgroundColor: CARD,
-    borderRadius: wp('3.5%'),
-    paddingVertical: hp('2.5%'),
-    paddingHorizontal: wp('5%'),
-    ...SHADOW_MD,
+    marginHorizontal: 20,
+    marginTop: 10,
+    backgroundColor: 'white',
+    borderRadius: 10,
+    paddingVertical: 25,
+    paddingHorizontal: 20,
+    shadowColor: '#000',
+    shadowOpacity: 0.25,
+    shadowRadius: 3.55,
+    shadowOffset: { width: 0, height: 0 },
+    elevation: 4,
   },
   quoteNumberCircle: {
-    width: wp('10%'),
-    height: wp('10%'),
-    borderRadius: wp('5%'),
+    width: 60,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: wp('3%'),
+    marginRight: 10,
+    position: 'absolute',
+    opacity: 0.8,
+    bottom: -70,
   },
-  quoteNumber: {
-    fontWeight: '800',
-    fontSize: wp('5%'),
-    color: '#FFFFFF',
-  },
+  quoteNumber: { fontWeight: '700', fontSize: 100, color: '#DDF7E8' },
   quoteHeading: {
     fontWeight: '700',
-    fontSize: wp('4.2%'),
-    color: TEXT_PRIMARY,
+    fontSize: 17,
+    color: '#404040',
+    marginLeft: 65,
+    marginTop: 5,
   },
   quoteBody: {
     fontWeight: '400',
-    fontSize: wp('3.5%'),
-    color: TEXT_SECONDARY,
-    lineHeight: hp('2.4%'),
+    fontSize: 15,
+    color: '#4D4C4C',
+    lineHeight: 18,
     textAlign: 'center',
-    marginTop: hp('1%'),
+    marginTop: 10,
   },
   quoteBodyMain: { width: '100%' },
   paginationDots: {
-    marginTop: hp('1.5%'),
+    marginTop: 15,
     flexDirection: 'row',
     justifyContent: 'center',
-    marginBottom: hp('2%'),
+    marginBottom: 20,
   },
   dot: {
-    width: wp('2.5%'),
-    height: wp('2.5%'),
-    borderRadius: wp('1.25%'),
+    width: 10,
+    height: 10,
+    borderRadius: 5,
     backgroundColor: '#D9D9D9',
-    marginHorizontal: wp('1.2%'),
+    marginHorizontal: 5,
   },
-  activeDot: {
-    backgroundColor: TEAL,
-  },
+  activeDot: { backgroundColor: '#2FCD72' },
 
-  /* ── FAQ Section ── */
-  faqSec: {
-    backgroundColor: TEAL_DEEP,
-    marginTop: hp('2.5%'),
-    marginHorizontal: wp('3.5%'),
-    borderRadius: wp('5%'),
-    padding: wp('4%'),
-    ...SHADOW_MD,
-  },
-  faqHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: hp('1.5%'),
-    gap: wp('2.5%'),
-  },
-  faqIconCircle: {
-    width: wp('9%'),
-    height: wp('9%'),
-    borderRadius: wp('4.5%'),
-    backgroundColor: 'rgba(16,185,129,0.15)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
+  faqSec: { backgroundColor: '#0F172A', marginTop: 16, padding: 16 },
   faqTitle: {
-    fontSize: wp('4.3%'),
+    fontSize: 18,
     fontWeight: '700',
     color: '#FFFFFF',
+    marginBottom: 12,
   },
   faqItem: {
-    borderBottomColor: 'rgba(255,255,255,0.08)',
+    borderBottomColor: 'rgba(226,232,240,0.1)',
     borderBottomWidth: 1,
-    paddingVertical: hp('1.2%'),
+    paddingVertical: 10,
   },
   faqHead: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  faqQ: {
-    color: '#FFFFFF',
-    fontSize: wp('3.5%'),
-    flex: 1,
-    marginRight: wp('2.5%'),
-    lineHeight: hp('2.5%'),
-  },
-  faqChevronCircle: {
-    width: wp('7%'),
-    height: wp('7%'),
-    borderRadius: wp('3.5%'),
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  faqChevronCircleOpen: {
-    backgroundColor: TEAL,
-  },
-  faqA: {
-    color: TEAL_LIGHT,
-    fontSize: wp('3.2%'),
-    marginTop: hp('0.8%'),
-    lineHeight: hp('2.3%'),
-    opacity: 0.9,
-  },
+  faqQ: { color: '#FFFFFF', fontSize: 14, flex: 1, marginRight: 10 },
+  faqA: { color: '#CBD5F5', fontSize: 12.5, marginTop: 6, lineHeight: 18 },
 
-  /* ── Modal ── */
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(6,78,59,0.5)',
+    backgroundColor: 'rgba(15,23,42,0.4)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   modalCard: {
-    width: wp('80%'),
-    backgroundColor: CARD,
-    borderRadius: wp('5%'),
-    padding: wp('5%'),
-    alignItems: 'center',
-    ...SHADOW_MD,
-  },
-  modalIconCircle: {
-    width: wp('14%'),
-    height: wp('14%'),
-    borderRadius: wp('7%'),
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: hp('1.5%'),
-  },
-  modalTitle: {
-    fontSize: wp('4%'),
-    fontWeight: '700',
-    color: TEXT_PRIMARY,
-    marginBottom: hp('0.8%'),
-  },
-  modalBody: {
-    textAlign: 'center',
-    color: TEXT_SECONDARY,
-    fontSize: wp('3.2%'),
-    marginBottom: hp('2%'),
-    lineHeight: hp('2.2%'),
-  },
-  modalBtnWrap: {
-    borderRadius: wp('8%'),
-    overflow: 'hidden',
-    width: '100%',
-  },
-  modalBtn: {
-    borderRadius: wp('8%'),
-    paddingHorizontal: wp('5%'),
-    paddingVertical: hp('1.4%'),
+    width: 300,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
+    padding: 16,
     alignItems: 'center',
   },
-  modalBtnText: {
-    color: '#fff',
-    fontWeight: '700',
-    fontSize: wp('3.5%'),
-  },
+  modalTitle: { fontSize: 16, fontWeight: '700', color: '#0F172A', marginBottom: 6 },
+  modalBody: { textAlign: 'center', color: '#94A3B8', fontSize: 12.5, marginBottom: 14 },
+  modalBtn: { backgroundColor: GREEN, borderRadius: 999, paddingHorizontal: 20, paddingVertical: 10 },
+  modalBtnText: { color: '#fff', fontWeight: '700' },
 });

@@ -9,7 +9,8 @@ import {
   StyleSheet,
   SafeAreaView,
   Platform,
-  ActivityIndicator
+  ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -17,6 +18,8 @@ import axios from 'axios';
 import { useNavigation } from '@react-navigation/native';
 import { useRoute } from '@react-navigation/native'
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { getMinBookingDate, isPickupTooSoon, getEarliestPickupLabel } from '../../utils/dateValidation';
+import BookingAlertModal from '../../utils/AdvanceBookingAlert';
 
 
 const cities = [
@@ -64,6 +67,7 @@ const getTodayDate = () => {
   // };
 
 const VehicleBookingScreen = () => {
+  const [showBookingAlert, setShowBookingAlert] = useState(false);
   const [step, setStep] = useState(0);
   const [pickupLocation, setPickupLocation] = useState('');  // Pickup location text
   const [pickupLocationId, setPickupLocationId] = useState(null);  // Pickup location ID
@@ -77,7 +81,7 @@ const VehicleBookingScreen = () => {
   const [allLocations, setAllLocations] = useState([]);
   const [filteredLocations, setFilteredLocations] = useState([]);
     const [showDropdown, setShowDropdown] = useState(false);
-  
+
   const [showNoResults, setShowNoResults] = useState(false);
   const navigation = useNavigation();
   // const [totalPassengers, setTotalPassengers] = useState('');
@@ -123,7 +127,7 @@ const VehicleBookingScreen = () => {
     } else {
       // Filter locations that match the query
       const filtered = allLocations.filter((city) =>
-        city.name.toLowerCase().includes(text.trim().toLowerCase())
+        city.name.toLowerCase().includes(text.toLowerCase())
       );
       setFilteredLocations(filtered);
       setShowNoResults(filtered.length === 0); // Show "No results" if no matching locations
@@ -156,7 +160,7 @@ const VehicleBookingScreen = () => {
     value: startDate,
     mode: 'date', // Date picker first
     is24Hour: true,
-    minDate: getTodayDate(), // Disable past dates
+    minDate: getMinBookingDate(), // Disable past dates
     onChange: (event, date) => {
       if (event.type === 'dismissed' || !date) return;
       // Check if the selected date is in the past, reset to today if so
@@ -176,6 +180,10 @@ const VehicleBookingScreen = () => {
           const finalDateTime = new Date(date);
           finalDateTime.setHours(time.getHours());
           finalDateTime.setMinutes(time.getMinutes());
+          if (isPickupTooSoon(finalDateTime)) {
+            setShowBookingAlert(true);
+            return;
+          }
           setStartDate(finalDateTime); // Set final date and time
         },
       });
@@ -447,7 +455,7 @@ const handleBookingSubmit = async () => {
   };  
   
 
-  return <SafeAreaView style={styles.container}>{renderStep()}</SafeAreaView>;
+  return <SafeAreaView style={styles.container}>{renderStep()}<BookingAlertModal visible={showBookingAlert} onClose={() => setShowBookingAlert(false)} /></SafeAreaView>;
 };
 
 const styles = StyleSheet.create({

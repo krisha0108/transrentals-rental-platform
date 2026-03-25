@@ -24,6 +24,8 @@ import { widthPercentageToDP as wp, heightPercentageToDP as hp } from 'react-nat
 import bookingService from '../../services/bookingService';
 import locationService from '../../services/locationService';
 import api from '../../api';
+import { getMinBookingDate, isPickupTooSoon, getEarliestPickupLabel } from '../../utils/dateValidation';
+import BookingAlertModal from '../../utils/AdvanceBookingAlert';
 
 // --- PREMIUM DARK TEAL DESIGN SYSTEM ---
 const TEAL_DEEP = '#064E3B';
@@ -122,6 +124,7 @@ export default function BusRentalFleetScreen() {
   const navigation = useNavigation();
 
   // Current step in the flow
+  const [showBookingAlert, setShowBookingAlert] = useState(false);
   const [step, setStep] = useState(1);
   const [totalSteps, setTotalSteps] = useState(7);
 
@@ -208,12 +211,7 @@ export default function BusRentalFleetScreen() {
       navigation.navigate('CustomerDashboard');
       return true;
     } else if (step > 1) {
-      // For local trips, skip destination step (3) when going back
-      if (step === 4 && tripType === 'local') {
-        setStep(2);
-      } else {
-        setStep(step - 1);
-      }
+      setStep(step - 1);
       return true;
     }
     navigation.goBack();
@@ -222,9 +220,8 @@ export default function BusRentalFleetScreen() {
 
   // Location search with debounce
   useEffect(() => {
-    const trimmed = fromSearch.trim();
-    if (trimmed.length >= 2) {
-      const timer = setTimeout(() => searchLocations('from', trimmed), 300);
+    if (fromSearch.length >= 2) {
+      const timer = setTimeout(() => searchLocations('from', fromSearch), 300);
       return () => clearTimeout(timer);
     } else {
       setFromResults([]);
@@ -232,9 +229,8 @@ export default function BusRentalFleetScreen() {
   }, [fromSearch]);
 
   useEffect(() => {
-    const trimmed = toSearch.trim();
-    if (trimmed.length >= 2) {
-      const timer = setTimeout(() => searchLocations('to', trimmed), 300);
+    if (toSearch.length >= 2) {
+      const timer = setTimeout(() => searchLocations('to', toSearch), 300);
       return () => clearTimeout(timer);
     } else {
       setToResults([]);
@@ -295,7 +291,7 @@ export default function BusRentalFleetScreen() {
     const currentDate = type === 'pickup' ? pickupDate : returnDate;
     // For return date, minimum date should be pickup date
     // For pickup date, minimum date should be today
-    const minDate = type === 'return' ? pickupDate : new Date();
+    const minDate = type === 'return' ? pickupDate : getMinBookingDate();
 
     DateTimePickerAndroid.open({
       value: currentDate,
@@ -332,6 +328,13 @@ export default function BusRentalFleetScreen() {
           const timeString = `${formattedHours}:${formattedMinutes} ${ampm}`;
 
           if (type === 'pickup') {
+            const finalDateTime = new Date(pickupDate);
+            finalDateTime.setHours(hours);
+            finalDateTime.setMinutes(minutes);
+            if (isPickupTooSoon(finalDateTime)) {
+              setShowBookingAlert(true);
+              return;
+            }
             setPickupTime(timeString);
           } else {
             setReturnTime(timeString);
@@ -353,13 +356,6 @@ export default function BusRentalFleetScreen() {
       Alert.alert('Required', 'Please enter pickup location');
       return;
     }
-    // For local trips, skip destination step and auto-set destination = pickup
-    if (step === 2 && tripType === 'local') {
-      setToLocation(fromLocation);
-      setToSearch(fromSearch);
-      setStep(4); // skip step 3 (destination)
-      return;
-    }
     if (step === 3 && !toLocation && !toSearch.trim()) {
       Alert.alert('Required', 'Please enter drop location');
       return;
@@ -371,6 +367,25 @@ export default function BusRentalFleetScreen() {
     if (step === 4 && parseInt(passengers) < 10) {
       Alert.alert('Required', 'Minimum 10 passengers required for bus booking');
       return;
+    }
+
+    // Validate 12-hour advance booking on date/time step
+    if (step === 5) {
+      // Parse pickupTime (e.g., "10:00 AM") to 24h
+      const timeMatch = (pickupTime || '10:00 AM').match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
+      if (timeMatch) {
+        let h = parseInt(timeMatch[1]);
+        const m = parseInt(timeMatch[2]);
+        const period = timeMatch[3].toUpperCase();
+        if (period === 'PM' && h !== 12) h += 12;
+        if (period === 'AM' && h === 12) h = 0;
+        const finalDateTime = new Date(pickupDate);
+        finalDateTime.setHours(h, m, 0, 0);
+        if (isPickupTooSoon(finalDateTime)) {
+          setShowBookingAlert(true);
+          return;
+        }
+      }
     }
 
     // Move to next step
@@ -756,20 +771,18 @@ export default function BusRentalFleetScreen() {
 
       <View style={styles.passengerCard}>
         <View style={styles.passengerInputContainer}>
-          {parseInt(passengers || 0) > 10 && (
-            <TouchableOpacity
-              style={styles.passengerButton}
-              onPress={() => setPassengers(Math.max(10, parseInt(passengers || 0) - 1).toString())}
-              activeOpacity={0.7}
+          <TouchableOpacity
+            style={styles.passengerButton}
+            onPress={() => setPassengers(Math.max(1, parseInt(passengers || 0) - 1).toString())}
+            activeOpacity={0.7}
+          >
+            <LinearGradient
+              colors={[TEAL_MID, TEAL]}
+              style={styles.passengerBtnGradient}
             >
-              <LinearGradient
-                colors={[TEAL_MID, TEAL]}
-                style={styles.passengerBtnGradient}
-              >
-                <Ionicons name="remove" size={wp('6%')} color="#fff" />
-              </LinearGradient>
-            </TouchableOpacity>
-          )}
+              <Ionicons name="remove" size={wp('6%')} color="#fff" />
+            </LinearGradient>
+          </TouchableOpacity>
 
           <View style={styles.passengerDisplay}>
             <TextInput
@@ -1459,6 +1472,7 @@ export default function BusRentalFleetScreen() {
           </View>
         </View>
       </Modal>
+      <BookingAlertModal visible={showBookingAlert} onClose={() => setShowBookingAlert(false)} />
     </SafeAreaView>
   );
 }

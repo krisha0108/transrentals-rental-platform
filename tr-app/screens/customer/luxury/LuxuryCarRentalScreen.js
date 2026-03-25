@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   TextInput,
+  Alert,
   ActivityIndicator,
   Animated,
   Dimensions,
@@ -29,6 +30,8 @@ import {
 import api from '../../api';
 import b2bService from '../../services/b2bService';
 import { TEAL_DEEP, TEAL_MID, TEAL, TEAL_LIGHT, BG, CARD, TEXT_PRIMARY, TEXT_SECONDARY, TEXT_MUTED, SHADOW_SM, SHADOW_MD } from '../../../theme';
+import { getMinBookingDate, isPickupTooSoon, getEarliestPickupLabel } from '../../utils/dateValidation';
+import BookingAlertModal from '../../utils/AdvanceBookingAlert';
 
 const { width } = Dimensions.get('window');
 
@@ -38,6 +41,7 @@ export default function LuxuryCarRentalScreen() {
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
   // Customer data
+  const [showBookingAlert, setShowBookingAlert] = useState(false);
   const [customerData, setCustomerData] = useState(null);
   const [isB2BCustomer, setIsB2BCustomer] = useState(false);
   const [bookingPurpose, setBookingPurpose] = useState('personal'); // 'personal' | 'company'
@@ -80,12 +84,6 @@ export default function LuxuryCarRentalScreen() {
   const [fleetLoading, setFleetLoading] = useState(true);
   const [luxuryFleet, setLuxuryFleet] = useState([]);
 
-  // B2B Success modal
-  const [b2bSuccessModal, setB2bSuccessModal] = useState({ visible: false, bookingNumber: '', bookingId: '' });
-
-  // Custom alert modal
-  const [alertModal, setAlertModal] = useState({ visible: false, type: 'error', title: '', message: '', onClose: null });
-
   // Phone collection state
   const [showPhoneModal, setShowPhoneModal] = useState(false);
   const [phoneNumber, setPhoneNumber] = useState('');
@@ -95,10 +93,8 @@ export default function LuxuryCarRentalScreen() {
   const [showLocationPicker, setShowLocationPicker] = useState(false);
   const [locationPickerType, setLocationPickerType] = useState('pickup'); // 'pickup' or 'drop'
   const [locations, setLocations] = useState([]);
-  const [serviceLocationIds, setServiceLocationIds] = useState(new Set());
   const [locationsLoading, setLocationsLoading] = useState(false);
   const [locationSearch, setLocationSearch] = useState('');
-  const [locationNotServed, setLocationNotServed] = useState(false);
 
   // StatusBar management
   useFocusEffect(
@@ -119,7 +115,6 @@ export default function LuxuryCarRentalScreen() {
   useEffect(() => {
     loadCustomerData();
     fetchLuxuryFleet();
-    fetchServiceLocationIds();
 
     // Fade in animation
     Animated.timing(fadeAnim, {
@@ -158,27 +153,18 @@ export default function LuxuryCarRentalScreen() {
     }
   };
 
-  const fetchServiceLocationIds = async () => {
-    try {
-      const response = await api.get('/services/luxury-car-rental/locations', { params: { limit: 200 } });
-      if (response.data.success) {
-        setServiceLocationIds(new Set((response.data.locations || []).map(l => l.id)));
-      }
-    } catch (e) { /* silent */ }
-  };
-
   const fetchLocations = async (searchQuery = '') => {
     try {
       setLocationsLoading(true);
-      const response = await api.get('/locations', {
-        params: { type: 'CITY', q: searchQuery },
+      const response = await api.get('/services/luxury-car-rental/locations', {
+        params: { q: searchQuery, limit: 50 },
       });
       if (response.data.success) {
         setLocations(response.data.locations || []);
       }
     } catch (error) {
       console.error('Error fetching locations:', error);
-      setAlertModal({ visible: true, type: 'error', title: 'Error', message: 'Failed to load locations', onClose: null });
+      Alert.alert('Error', 'Failed to load locations');
     } finally {
       setLocationsLoading(false);
     }
@@ -194,7 +180,6 @@ export default function LuxuryCarRentalScreen() {
   const selectLocation = (location) => {
     if (locationPickerType === 'pickup') {
       setPickupCity(location.name);
-      setLocationNotServed(serviceLocationIds.size > 0 && !serviceLocationIds.has(location.id));
     } else {
       setDropCity(location.name);
     }
@@ -245,7 +230,7 @@ export default function LuxuryCarRentalScreen() {
   const handleSubmit = async () => {
     // Validation
     if (!customerData) {
-      setAlertModal({ visible: true, type: 'warning', title: 'Login Required', message: 'Please login to continue', onClose: null });
+      Alert.alert('Error', 'Please login to continue');
       return;
     }
 
@@ -256,22 +241,31 @@ export default function LuxuryCarRentalScreen() {
     }
 
     if (!pickupCity.trim()) {
-      setAlertModal({ visible: true, type: 'warning', title: 'Missing Field', message: 'Please enter pickup city', onClose: null });
+      Alert.alert('Error', 'Please enter pickup city');
       return;
     }
 
     if (!pickupAddress.trim()) {
-      setAlertModal({ visible: true, type: 'warning', title: 'Missing Field', message: 'Please enter pickup address', onClose: null });
+      Alert.alert('Error', 'Please enter pickup address');
       return;
     }
 
     if (tripType === 'outstation' && !dropCity.trim()) {
-      setAlertModal({ visible: true, type: 'warning', title: 'Missing Field', message: 'Please enter drop city for outstation trip', onClose: null });
+      Alert.alert('Error', 'Please enter drop city for outstation trip');
       return;
     }
 
     if (tripType === 'outstation' && !returnDate) {
-      setAlertModal({ visible: true, type: 'warning', title: 'Missing Field', message: 'Please select return date for outstation trip', onClose: null });
+      Alert.alert('Error', 'Please select return date for outstation trip');
+      return;
+    }
+
+    // 12-hour advance booking validation
+    const [pickupHours, pickupMins] = pickupTime.split(':').map(Number);
+    const pickupDateTime = new Date(pickupDate);
+    pickupDateTime.setHours(pickupHours, pickupMins, 0, 0);
+    if (isPickupTooSoon(pickupDateTime)) {
+      setShowBookingAlert(true);
       return;
     }
 
@@ -279,7 +273,7 @@ export default function LuxuryCarRentalScreen() {
     if (bookingPurpose === 'company') {
       const numVehicles = parseInt(numberOfVehicles);
       if (!numVehicles || numVehicles < 1 || numVehicles > 500) {
-        setAlertModal({ visible: true, type: 'warning', title: 'Invalid Input', message: 'Please enter valid number of vehicles (1-500)', onClose: null });
+        Alert.alert('Error', 'Please enter valid number of vehicles (1-500)');
         return;
       }
     }
@@ -318,13 +312,22 @@ export default function LuxuryCarRentalScreen() {
         const response = await b2bService.createBooking(b2bData);
 
         if (response.status === 'success' || response.booking) {
-          setB2bSuccessModal({
-            visible: true,
-            bookingNumber: response.booking?.bookingNumber || '',
-            bookingId: response.booking?.id || '',
-          });
+          Alert.alert(
+            'B2B Booking Created!',
+            `Your booking ${response.booking?.bookingNumber || ''} has been submitted. Vendors will send quotes soon.`,
+            [
+              {
+                text: 'View Booking',
+                onPress: () => navigation.replace('B2BDashboard'),
+              },
+              {
+                text: 'OK',
+                onPress: () => navigation.goBack(),
+              },
+            ]
+          );
         } else {
-          setAlertModal({ visible: true, type: 'error', title: 'Booking Failed', message: response.error || response.message || 'Failed to create B2B booking', onClose: null });
+          Alert.alert('Error', response.error || response.message || 'Failed to create B2B booking');
         }
         return;
       }
@@ -359,21 +362,24 @@ export default function LuxuryCarRentalScreen() {
 
       if (response.data.success) {
         const newRequestId = response.data.quoteRequest?.id;
-        const reqNumber = response.data.quoteRequest?.requestNumber || '';
-        setAlertModal({
-          visible: true,
-          type: 'success',
-          title: 'Request Submitted!',
-          message: `Your luxury car quote request has been submitted successfully.${reqNumber ? `\n\nRequest ID: ${reqNumber}` : ''}\n\nVendors will send you quotes within 24-48 hours.`,
-          onClose: () => {
-            setAlertModal(prev => ({ ...prev, visible: false }));
-            navigation.navigate('LuxuryQuoteDetail', { requestId: newRequestId });
-          },
-        });
+        Alert.alert(
+          'Success!',
+          `Quote request submitted successfully!\n\nRequest Number: ${response.data.quoteRequest.requestNumber}\n\nVendors will send you quotes within 24-48 hours.`,
+          [
+            {
+              text: 'View Request',
+              onPress: () => navigation.navigate('LuxuryQuoteDetail', { requestId: newRequestId }),
+            },
+            {
+              text: 'OK',
+              onPress: () => navigation.goBack(),
+            },
+          ]
+        );
       }
     } catch (error) {
       console.error('Error submitting luxury quote request:', error);
-      setAlertModal({ visible: true, type: 'error', title: 'Request Failed', message: error.response?.data?.message || 'Failed to submit request. Please try again.', onClose: null });
+      Alert.alert('Error', error.response?.data?.message || 'Failed to submit request. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -381,14 +387,14 @@ export default function LuxuryCarRentalScreen() {
 
   const handlePhoneSubmit = async () => {
     if (!phoneNumber || phoneNumber.trim() === '') {
-      setAlertModal({ visible: true, type: 'warning', title: 'Invalid Phone', message: 'Please enter a valid phone number', onClose: null });
+      Alert.alert('Error', 'Please enter a valid phone number');
       return;
     }
 
     // Validate phone number (basic validation for 10 digits)
     const phoneRegex = /^[0-9]{10}$/;
     if (!phoneRegex.test(phoneNumber.replace(/\s/g, ''))) {
-      setAlertModal({ visible: true, type: 'warning', title: 'Invalid Phone', message: 'Please enter a valid 10-digit phone number', onClose: null });
+      Alert.alert('Error', 'Please enter a valid 10-digit phone number');
       return;
     }
 
@@ -416,7 +422,7 @@ export default function LuxuryCarRentalScreen() {
       }
     } catch (error) {
       console.error('Phone update error:', error);
-      setAlertModal({ visible: true, type: 'error', title: 'Update Failed', message: error.response?.data?.error || 'Failed to update phone number. Please try again.', onClose: null });
+      Alert.alert('Error', error.response?.data?.error || 'Failed to update phone number. Please try again.');
     } finally {
       setPhoneLoading(false);
     }
@@ -686,12 +692,6 @@ export default function LuxuryCarRentalScreen() {
               <Ionicons name="chevron-down" size={wp('4.5%')} color={TEXT_MUTED} />
             </View>
           </TouchableOpacity>
-          {locationNotServed && (
-            <View style={styles.notServedBanner}>
-              <Ionicons name="information-circle" size={20} color="#D97706" />
-              <Text style={styles.notServedText}>We are not currently providing our services in this location.</Text>
-            </View>
-          )}
           <TextInput
             style={[styles.input, styles.inputMultiline]}
             placeholder="Pickup Address (with landmark) *"
@@ -770,7 +770,7 @@ export default function LuxuryCarRentalScreen() {
               value={pickupDate}
               mode="date"
               display="default"
-              minimumDate={new Date()}
+              minimumDate={getMinBookingDate()}
               onChange={(event, selectedDate) => {
                 setShowPickupDatePicker(Platform.OS === 'ios');
                 if (selectedDate) setPickupDate(selectedDate);
@@ -1080,6 +1080,7 @@ export default function LuxuryCarRentalScreen() {
                 value={locationSearch}
                 onChangeText={(text) => {
                   setLocationSearch(text);
+                  fetchLocations(text);
                 }}
               />
             </View>
@@ -1102,9 +1103,7 @@ export default function LuxuryCarRentalScreen() {
               </View>
             ) : (
               <FlatList
-                data={locationSearch.trim().length > 0
-                  ? locations.filter(loc => loc.name?.toLowerCase().includes(locationSearch.trim().toLowerCase()))
-                  : locations}
+                data={locations}
                 keyExtractor={(item) => item.id}
                 renderItem={({ item }) => (
                   <TouchableOpacity
@@ -1196,135 +1195,7 @@ export default function LuxuryCarRentalScreen() {
           </View>
         </View>
       </Modal>
-
-      {/* B2B Success Modal */}
-      <Modal visible={b2bSuccessModal.visible} transparent animationType="fade">
-        <View style={styles.b2bSuccessOverlay}>
-          <View style={styles.b2bSuccessCard}>
-            <LinearGradient colors={[TEAL_DEEP, TEAL_MID, '#047857']} style={styles.b2bSuccessHeader}>
-              <View style={styles.b2bSuccessIconCircle}>
-                <Ionicons name="checkmark-sharp" size={wp('10%')} color={TEAL_MID} />
-              </View>
-              <Text style={styles.b2bSuccessTitle}>Booking Created!</Text>
-              <View style={styles.b2bSuccessNumBadge}>
-                <Text style={styles.b2bSuccessNumText}>{b2bSuccessModal.bookingNumber}</Text>
-              </View>
-            </LinearGradient>
-
-            <View style={styles.b2bSuccessBody}>
-              <Text style={styles.b2bSuccessMsg}>
-                Your luxury B2B booking has been submitted successfully. Vendors will be notified and send quotes soon.
-              </Text>
-
-              <View style={styles.b2bSuccessInfoBox}>
-                <Ionicons name="time-outline" size={wp('4.5%')} color="#F59E0B" />
-                <Text style={styles.b2bSuccessInfoText}>Vendors typically respond within 2-4 hours</Text>
-              </View>
-
-              <TouchableOpacity
-                style={styles.b2bSuccessPrimaryBtn}
-                onPress={() => {
-                  setB2bSuccessModal({ visible: false, bookingNumber: '', bookingId: '' });
-                  navigation.replace('B2BDashboard');
-                }}
-              >
-                <LinearGradient colors={[TEAL_DEEP, TEAL_MID]} style={styles.b2bSuccessBtnGradient}>
-                  <Ionicons name="eye-outline" size={wp('5%')} color="#fff" />
-                  <Text style={styles.b2bSuccessPrimaryBtnText}>View in B2B Dashboard</Text>
-                </LinearGradient>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.b2bSuccessSecondaryBtn}
-                onPress={() => {
-                  setB2bSuccessModal({ visible: false, bookingNumber: '', bookingId: '' });
-                  navigation.goBack();
-                }}
-              >
-                <Text style={styles.b2bSuccessSecondaryBtnText}>Back to Home</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
-
-      {/* Custom Alert Modal */}
-      <Modal visible={alertModal.visible} transparent animationType="fade" onRequestClose={() => setAlertModal(prev => ({ ...prev, visible: false }))}>
-        <View style={styles.alertOverlay}>
-          <View style={styles.alertCard}>
-            <View style={[
-              styles.alertIconCircle,
-              alertModal.type === 'success' ? styles.alertIconSuccess :
-              alertModal.type === 'warning' ? styles.alertIconWarning :
-              styles.alertIconError
-            ]}>
-              <Ionicons
-                name={
-                  alertModal.type === 'success' ? 'checkmark-circle' :
-                  alertModal.type === 'warning' ? 'warning' :
-                  'alert-circle'
-                }
-                size={44}
-                color={
-                  alertModal.type === 'success' ? '#059669' :
-                  alertModal.type === 'warning' ? '#D97706' :
-                  '#DC2626'
-                }
-              />
-            </View>
-            <Text style={styles.alertTitle}>{alertModal.title}</Text>
-            <Text style={styles.alertMessage}>{alertModal.message}</Text>
-
-            {alertModal.type === 'success' && alertModal.onClose ? (
-              <View style={styles.alertBtnRow}>
-                <TouchableOpacity
-                  style={styles.alertBtnSecondary}
-                  onPress={() => {
-                    setAlertModal(prev => ({ ...prev, visible: false }));
-                    navigation.goBack();
-                  }}
-                  activeOpacity={0.85}
-                >
-                  <Text style={styles.alertBtnSecondaryText}>Go Back</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.alertBtnPrimary}
-                  onPress={() => alertModal.onClose()}
-                  activeOpacity={0.85}
-                >
-                  <LinearGradient
-                    colors={[TEAL_MID, '#047857']}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 0 }}
-                    style={styles.alertBtnGradient}
-                  >
-                    <Text style={styles.alertBtnPrimaryText}>View Request</Text>
-                  </LinearGradient>
-                </TouchableOpacity>
-              </View>
-            ) : (
-              <TouchableOpacity
-                style={styles.alertBtnFull}
-                onPress={() => setAlertModal(prev => ({ ...prev, visible: false }))}
-                activeOpacity={0.85}
-              >
-                <LinearGradient
-                  colors={
-                    alertModal.type === 'success' ? [TEAL_MID, '#047857'] :
-                    alertModal.type === 'warning' ? ['#F59E0B', '#D97706'] :
-                    ['#EF4444', '#DC2626']
-                  }
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  style={styles.alertBtnGradient}
-                >
-                  <Text style={styles.alertBtnPrimaryText}>OK</Text>
-                </LinearGradient>
-              </TouchableOpacity>
-            )}
-          </View>
-        </View>
-      </Modal>
+      <BookingAlertModal visible={showBookingAlert} onClose={() => setShowBookingAlert(false)} />
     </SafeAreaView>
   );
 }
@@ -2125,157 +1996,5 @@ const styles = StyleSheet.create({
     fontSize: wp('3%'),
     color: TEAL_DEEP,
     lineHeight: wp('4.2%'),
-  },
-  b2bSuccessOverlay: {
-    flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', padding: wp('6%'),
-  },
-  b2bSuccessCard: {
-    backgroundColor: CARD, borderRadius: wp('6%'), width: '100%', overflow: 'hidden',
-    elevation: 10, shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.15, shadowRadius: 20,
-  },
-  b2bSuccessHeader: {
-    alignItems: 'center', paddingVertical: hp('3.5%'), paddingHorizontal: wp('6%'),
-  },
-  b2bSuccessIconCircle: {
-    width: wp('18%'), height: wp('18%'), borderRadius: wp('9%'),
-    backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', marginBottom: hp('1.5%'),
-    elevation: 4, shadowColor: TEAL_MID, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8,
-  },
-  b2bSuccessTitle: {
-    fontSize: wp('5.5%'), fontWeight: '800', color: '#fff', marginBottom: hp('1%'),
-  },
-  b2bSuccessNumBadge: {
-    backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: wp('4%'), paddingVertical: hp('0.5%'),
-    borderRadius: wp('5%'),
-  },
-  b2bSuccessNumText: {
-    fontSize: wp('3.5%'), fontWeight: '700', color: '#fff', letterSpacing: 0.5,
-  },
-  b2bSuccessBody: {
-    padding: wp('6%'), alignItems: 'center',
-  },
-  b2bSuccessMsg: {
-    fontSize: wp('3.5%'), color: TEXT_SECONDARY, textAlign: 'center', lineHeight: wp('5.2%'), marginBottom: hp('2%'),
-  },
-  b2bSuccessInfoBox: {
-    flexDirection: 'row', alignItems: 'center', gap: wp('2%'),
-    backgroundColor: '#FFFBEB', paddingHorizontal: wp('4%'), paddingVertical: hp('1%'),
-    borderRadius: wp('2.5%'), marginBottom: hp('2.5%'), width: '100%',
-  },
-  b2bSuccessInfoText: { fontSize: wp('3.2%'), color: '#92400E', fontWeight: '500', flex: 1 },
-  b2bSuccessPrimaryBtn: {
-    width: '100%', borderRadius: wp('3.5%'), overflow: 'hidden', marginBottom: hp('1%'),
-  },
-  b2bSuccessBtnGradient: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: wp('2%'),
-    paddingVertical: hp('1.8%'),
-  },
-  b2bSuccessPrimaryBtnText: { fontSize: wp('4%'), fontWeight: '700', color: '#fff' },
-  b2bSuccessSecondaryBtn: {
-    width: '100%', paddingVertical: hp('1.5%'), alignItems: 'center',
-  },
-  b2bSuccessSecondaryBtnText: { fontSize: wp('3.5%'), fontWeight: '600', color: TEXT_MUTED },
-
-  // Custom Alert Modal
-  alertOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  alertCard: {
-    backgroundColor: '#fff',
-    borderRadius: 24,
-    padding: 28,
-    width: wp('82%'),
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.15,
-    shadowRadius: 24,
-    elevation: 12,
-  },
-  alertIconCircle: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  alertIconSuccess: { backgroundColor: '#ECFDF5' },
-  alertIconWarning: { backgroundColor: '#FFFBEB' },
-  alertIconError: { backgroundColor: '#FEF2F2' },
-  alertTitle: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: TEXT_PRIMARY,
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  alertMessage: {
-    textAlign: 'center',
-    color: TEXT_SECONDARY,
-    fontSize: 14,
-    lineHeight: 21,
-    marginBottom: 24,
-  },
-  alertBtnRow: {
-    flexDirection: 'row',
-    gap: 10,
-    width: '100%',
-  },
-  alertBtnSecondary: {
-    flex: 1,
-    paddingVertical: 14,
-    borderRadius: 999,
-    borderWidth: 1.5,
-    borderColor: '#E2E8F0',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  alertBtnSecondaryText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: TEXT_SECONDARY,
-  },
-  alertBtnPrimary: {
-    flex: 1,
-    borderRadius: 999,
-    overflow: 'hidden',
-  },
-  alertBtnFull: {
-    width: '100%',
-    borderRadius: 999,
-    overflow: 'hidden',
-  },
-  alertBtnGradient: {
-    paddingVertical: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 999,
-  },
-  alertBtnPrimaryText: {
-    color: '#fff',
-    fontWeight: '700',
-    fontSize: 14,
-  },
-  notServedBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: '#FFFBEB',
-    borderWidth: 1,
-    borderColor: '#FDE68A',
-    borderRadius: 12,
-    padding: 12,
-    marginTop: 8,
-  },
-  notServedText: {
-    flex: 1,
-    fontSize: 13,
-    color: '#92400E',
-    fontWeight: '500',
-    lineHeight: 18,
   },
 });

@@ -9,6 +9,8 @@ import Icon from 'react-native-vector-icons/Feather';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { b2bService } from '../services';
+import { getMinBookingDate, isPickupTooSoon, getEarliestPickupLabel } from '../utils/dateValidation';
+import BookingAlertModal from '../utils/AdvanceBookingAlert';
 
 const { width } = Dimensions.get('window');
 const scale = (size) => (size * width) / 375;
@@ -28,6 +30,7 @@ const TRIP_TYPES = [
 const VEHICLE_CATEGORIES = ['Sedan', 'SUV', 'Hatchback', 'Tempo Traveller', 'Mini Bus', 'Luxury', 'Other'];
 
 export default function B2BCreateBookingScreen({ navigation }) {
+  const [showBookingAlert, setShowBookingAlert] = useState(false);
   const [loading, setLoading] = useState(false);
   const [customer, setCustomer] = useState(null);
   const [showDatePicker, setShowDatePicker] = useState(null); // 'scheduled' | 'return'
@@ -35,7 +38,6 @@ export default function B2BCreateBookingScreen({ navigation }) {
   const [showServicePicker, setShowServicePicker] = useState(false);
   const [showTripPicker, setShowTripPicker] = useState(false);
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
-  const [successModal, setSuccessModal] = useState({ visible: false, bookingNumber: '', bookingId: '' });
 
   const [form, setForm] = useState({
     serviceType: '',
@@ -69,6 +71,14 @@ export default function B2BCreateBookingScreen({ navigation }) {
     if (!form.pickupLocation) return Alert.alert('Error', 'Please enter pickup location.');
     if (!form.vehiclesRequired || parseInt(form.vehiclesRequired) < 1) return Alert.alert('Error', 'Enter valid vehicle count.');
 
+    // 12-hour advance booking validation
+    const scheduledDateTime = new Date(form.scheduledDate);
+    scheduledDateTime.setHours(form.scheduledTime.getHours(), form.scheduledTime.getMinutes(), 0, 0);
+    if (isPickupTooSoon(scheduledDateTime)) {
+      setShowBookingAlert(true);
+      return;
+    }
+
     setLoading(true);
     try {
       const payload = {
@@ -93,11 +103,10 @@ export default function B2BCreateBookingScreen({ navigation }) {
 
       const response = await b2bService.createBooking(payload);
       if (response.booking || response.success) {
-        setSuccessModal({
-          visible: true,
-          bookingNumber: response.booking?.bookingNumber || '',
-          bookingId: response.booking?.id || '',
-        });
+        Alert.alert('Booking Created!', `Booking ${response.booking?.bookingNumber || ''} created successfully. Vendors will be notified.`, [
+          { text: 'View Booking', onPress: () => navigation.replace('B2BBookingDetail', { bookingId: response.booking?.id }) },
+          { text: 'OK', onPress: () => navigation.goBack() },
+        ]);
       } else {
         Alert.alert('Error', response.message || 'Failed to create booking');
       }
@@ -331,7 +340,7 @@ export default function B2BCreateBookingScreen({ navigation }) {
         <DateTimePicker
           value={showDatePicker === 'return' ? (form.returnDate || new Date()) : form.scheduledDate}
           mode="date"
-          minimumDate={new Date()}
+          minimumDate={getMinBookingDate()}
           onChange={(e, date) => {
             setShowDatePicker(null);
             if (date) handleChange(showDatePicker === 'return' ? 'returnDate' : 'scheduledDate', date);
@@ -353,46 +362,7 @@ export default function B2BCreateBookingScreen({ navigation }) {
       {renderPickerModal(showServicePicker, () => setShowServicePicker(false), SERVICE_TYPES, (v) => handleChange('serviceType', v), 'Select Service Type', form.serviceType, true)}
       {renderPickerModal(showTripPicker, () => setShowTripPicker(false), TRIP_TYPES, (v) => handleChange('tripType', v), 'Select Trip Type', form.tripType, true)}
       {renderPickerModal(showCategoryPicker, () => setShowCategoryPicker(false), VEHICLE_CATEGORIES, (v) => handleChange('vehicleCategory', v), 'Vehicle Category', form.vehicleCategory, false)}
-
-      {/* Success Modal */}
-      <Modal visible={successModal.visible} transparent animationType="fade">
-        <View style={styles.successOverlay}>
-          <View style={styles.successCard}>
-            <View style={styles.successIconCircle}>
-              <Icon name="check" size={scale(36)} color="#fff" />
-            </View>
-            <Text style={styles.successTitle}>Booking Created!</Text>
-            <Text style={styles.successBookingNum}>{successModal.bookingNumber}</Text>
-            <Text style={styles.successMsg}>
-              Your B2B booking has been submitted successfully. Vendors will be notified and send quotes soon.
-            </Text>
-            <View style={styles.successDivider} />
-            <View style={styles.successInfoRow}>
-              <Icon name="clock" size={scale(14)} color="#F59E0B" />
-              <Text style={styles.successInfoText}>Vendors typically respond within 2-4 hours</Text>
-            </View>
-            <TouchableOpacity
-              style={styles.successPrimaryBtn}
-              onPress={() => {
-                setSuccessModal({ visible: false, bookingNumber: '', bookingId: '' });
-                navigation.replace('B2BBookingDetail', { bookingId: successModal.bookingId });
-              }}
-            >
-              <Icon name="eye" size={scale(16)} color="#fff" />
-              <Text style={styles.successPrimaryBtnText}>View Booking</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.successSecondaryBtn}
-              onPress={() => {
-                setSuccessModal({ visible: false, bookingNumber: '', bookingId: '' });
-                navigation.goBack();
-              }}
-            >
-              <Text style={styles.successSecondaryBtnText}>Back to Dashboard</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
+      <BookingAlertModal visible={showBookingAlert} onClose={() => setShowBookingAlert(false)} />
     </SafeAreaView>
   );
 }
@@ -452,47 +422,4 @@ const styles = StyleSheet.create({
   modalItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: scale(16), borderBottomWidth: 0.5, borderBottomColor: '#f0f0f0' },
   modalItemActive: { backgroundColor: '#F0FFF4' },
   modalItemText: { fontSize: scale(15), color: '#333' },
-  successOverlay: {
-    flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', padding: scale(24),
-  },
-  successCard: {
-    backgroundColor: '#fff', borderRadius: scale(24), padding: scale(28),
-    alignItems: 'center', width: '100%', elevation: 10,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.15, shadowRadius: 20,
-  },
-  successIconCircle: {
-    width: scale(72), height: scale(72), borderRadius: scale(36),
-    backgroundColor: '#22C55E', alignItems: 'center', justifyContent: 'center',
-    marginBottom: scale(16), elevation: 4,
-    shadowColor: '#22C55E', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8,
-  },
-  successTitle: {
-    fontSize: scale(22), fontWeight: '800', color: '#1A1A2E', marginBottom: scale(6),
-  },
-  successBookingNum: {
-    fontSize: scale(15), fontWeight: '700', color: '#22C55E', backgroundColor: '#F0FFF4',
-    paddingHorizontal: scale(14), paddingVertical: scale(5), borderRadius: scale(20), overflow: 'hidden',
-    marginBottom: scale(12),
-  },
-  successMsg: {
-    fontSize: scale(13), color: '#666', textAlign: 'center', lineHeight: scale(20), marginBottom: scale(16),
-  },
-  successDivider: {
-    width: '100%', height: 1, backgroundColor: '#f0f0f0', marginBottom: scale(12),
-  },
-  successInfoRow: {
-    flexDirection: 'row', alignItems: 'center', gap: scale(6), marginBottom: scale(20),
-    backgroundColor: '#FFFBEB', paddingHorizontal: scale(12), paddingVertical: scale(8), borderRadius: scale(10),
-  },
-  successInfoText: { fontSize: scale(11), color: '#92400E', fontWeight: '500' },
-  successPrimaryBtn: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: scale(8),
-    backgroundColor: '#22C55E', width: '100%', paddingVertical: scale(14),
-    borderRadius: scale(14), marginBottom: scale(10),
-  },
-  successPrimaryBtnText: { fontSize: scale(15), fontWeight: '700', color: '#fff' },
-  successSecondaryBtn: {
-    width: '100%', paddingVertical: scale(12), alignItems: 'center',
-  },
-  successSecondaryBtnText: { fontSize: scale(14), fontWeight: '600', color: '#666' },
 });

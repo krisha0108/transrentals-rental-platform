@@ -13,6 +13,8 @@ import {
   ActivityIndicator,
   Platform,
   StatusBar,
+  Alert,
+  Animated,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Feather';
@@ -24,7 +26,8 @@ import DateTimePicker, {
   DateTimePickerAndroid,
 } from '@react-native-community/datetimepicker';
 import { locationService, bookingService, fleetService } from '../../services';
-import { Animated } from 'react-native';
+import { getMinBookingDate, isPickupTooSoon, getEarliestPickupLabel } from '../../utils/dateValidation';
+import BookingAlertModal from '../../utils/AdvanceBookingAlert';
 import LinearGradient from 'react-native-linear-gradient';
 import { widthPercentageToDP as wp, heightPercentageToDP as hp } from 'react-native-responsive-screen';
 import { TEAL_DEEP, TEAL_MID, TEAL, TEAL_LIGHT, BG, CARD, TEXT_PRIMARY, TEXT_SECONDARY, TEXT_MUTED, SHADOW_SM, SHADOW_MD } from '../../../theme';
@@ -84,6 +87,7 @@ export default function EquipmentScreen() {
   const navigation = useNavigation();
 
   // customer
+  const [showBookingAlert, setShowBookingAlert] = useState(false);
   const [customerData, setCustomerData] = useState(null);
   const [isB2BCustomer, setIsB2BCustomer] = useState(false);
   // remote
@@ -176,11 +180,11 @@ export default function EquipmentScreen() {
     }
   };
 
-  const filteredLocations = query.trim().length
+  const filteredLocations = query.length
     ? allLocations.filter(
         (l) =>
           typeof l.name === 'string' &&
-          l.name.toLowerCase().includes(query.trim().toLowerCase()),
+          l.name.toLowerCase().includes(query.toLowerCase()),
       )
     : allLocations.slice(0, 40);
 
@@ -210,7 +214,7 @@ export default function EquipmentScreen() {
     DateTimePickerAndroid.open({
       value: startDate,
       mode: 'date',
-      minimumDate: new Date(),
+      minimumDate: getMinBookingDate(),
       onChange: (event, date) => {
         if (event.type === 'dismissed') return;
         const pickedDate = date || startDate;
@@ -228,6 +232,10 @@ export default function EquipmentScreen() {
               const final = new Date(pickedDate);
               final.setHours(time.getHours());
               final.setMinutes(time.getMinutes());
+              if (isPickupTooSoon(final)) {
+                setShowBookingAlert(true);
+                return;
+              }
               setStartDate(final);
             } else {
               setStartDate(pickedDate);
@@ -253,6 +261,12 @@ export default function EquipmentScreen() {
     }
     if (!equipmentCount) {
       alert('Please enter no. of equipments');
+      return;
+    }
+
+    // 12-hour advance booking validation
+    if (isPickupTooSoon(startDate)) {
+      setShowBookingAlert(true);
       return;
     }
 
@@ -536,13 +550,20 @@ export default function EquipmentScreen() {
               value={startDate}
               mode="datetime"
               display="spinner"
-              minimumDate={new Date()}
+              minimumDate={getMinBookingDate()}
               onChange={(event, selected) => {
                 if (event.type === 'dismissed') {
                   setShowDatePicker(false);
                   return;
                 }
-                if (selected) setStartDate(selected);
+                if (selected) {
+                  if (isPickupTooSoon(selected)) {
+                    setShowBookingAlert(true);
+                    setShowDatePicker(false);
+                    return;
+                  }
+                  setStartDate(selected);
+                }
                 setShowDatePicker(false);
               }}
             />
@@ -789,6 +810,7 @@ export default function EquipmentScreen() {
           </View>
         </View>
       </Modal>
+      <BookingAlertModal visible={showBookingAlert} onClose={() => setShowBookingAlert(false)} />
     </SafeAreaView>
   );
 }
