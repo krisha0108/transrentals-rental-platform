@@ -932,9 +932,12 @@ model chauffeur_bookings {
   vendors_chauffeur_bookings_assignedVendorIdTovendors vendors?                         @relation("chauffeur_bookings_assignedVendorIdTovendors", fields: [assignedVendorId], references: [id])
   customers                                            customers?                       @relation(fields: [customerId], references: [id])
   locations                                            locations                        @relation(fields: [locationId], references: [id])
+  accepted_driver                                      drivers?                         @relation(fields: [acceptedDriverId], references: [id])
+  acceptedDriverId                                     String?
 
   @@index([acceptedVendorId])
   @@index([assignedVendorId])
+  @@index([acceptedDriverId])
   @@index([bookingNumber])
   @@index([createdAt])
   @@index([customerEmail])
@@ -3603,6 +3606,7 @@ model vendor_staff {
   staff_attendance   staff_attendance[]
   truck_bookings     truck_bookings[]
   assigned_bookings  vendor_direct_bookings[]    @relation("direct_booking_driver")
+  driver_vehicles    driver_vehicles[]
   vendors            vendors                     @relation(fields: [vendorId], references: [id], onDelete: Cascade)
 
   @@unique([vendorId, phone])
@@ -5721,4 +5725,132 @@ model web_story_reactions {
 
   @@index([storyId])
   @@index([reactionType])
+}
+
+// ─── Independent Driver App ───────────────────────────────────────────────────
+
+model drivers {
+  id                  String               @id @default(cuid())
+  name                String
+  phone               String               @unique
+  email               String               @unique
+  password            String
+
+  // Personal
+  profilePhoto        String?
+  dateOfBirth         DateTime?
+  address             String?              @db.Text
+  city                String?
+  state               String?
+  pincode             String?
+
+  // Role & Employment
+  role                String               @default("DRIVER")
+  status              drivers_status       @default(ACTIVE)
+  joiningDate         DateTime             @default(now())
+  salary              Float                @default(0)
+
+  // Identity
+  aadharNumber        String?
+  aadharDocument      String?
+  panNumber           String?
+  panDocument         String?
+
+  // License
+  licenseNumber       String?
+  licenseType         String?
+  licenseExpiry       DateTime?
+  licenseDocument     String?
+
+  // Bank
+  bankName            String?
+  accountHolderName   String?
+  accountNumber       String?
+  ifscCode            String?
+
+  // Emergency
+  emergencyContact    String?
+  emergencyPhone      String?
+
+  // App
+  fcmToken            String?              @db.Text
+  lastLoginAt         DateTime?
+
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+
+  chauffeur_bookings  chauffeur_bookings[]
+  driver_vehicles     driver_vehicles[]
+
+  @@index([email])
+  @@index([phone])
+  @@index([status])
+}
+
+model driver_vehicles {
+  id                  String                    @id @default(cuid())
+  driverId            String?
+  staffId             String?
+  make                String
+  model               String
+  year                Int?
+  registrationNo      String?
+  color               String?
+  category            String?
+  seatingCapacity     Int?
+  fuelType            String?
+  isActive            Boolean                   @default(true)
+
+  // Documents
+  insuranceNumber     String?
+  insuranceExpiry     DateTime?
+  insuranceDocument   String?
+  rcNumber            String?
+  rcExpiry            DateTime?
+  rcDocument          String?
+  fitnessExpiry       DateTime?
+  fitnessDocument     String?
+  permitExpiry        DateTime?
+  permitDocument      String?
+  vehiclePhotos       String?   @db.LongText
+
+  // Service
+  lastServiceDate     DateTime?
+  nextServiceDate     DateTime?
+  currentOdometer     Int?
+
+  createdAt           DateTime                  @default(now())
+  updatedAt           DateTime                  @updatedAt
+
+  driver              drivers?                  @relation(fields: [driverId], references: [id], onDelete: Cascade)
+  staff               vendor_staff?             @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  maintenance_logs    driver_maintenance_logs[]
+
+  @@index([driverId])
+  @@index([staffId])
+}
+
+model driver_maintenance_logs {
+  id              String          @id @default(cuid())
+  vehicleId       String
+  type            String
+  description     String?         @db.Text
+  cost            Float           @default(0)
+  date            DateTime
+  odometer        Int?
+  nextDueDate     DateTime?
+  document        String?
+
+  createdAt       DateTime        @default(now())
+
+  vehicle         driver_vehicles @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  @@index([vehicleId])
+}
+
+enum drivers_status {
+  PENDING
+  ACTIVE
+  INACTIVE
+  SUSPENDED
 }

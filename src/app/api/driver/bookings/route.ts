@@ -19,14 +19,47 @@ export async function GET(request: NextRequest) {
     const driver = await getDriver(request);
 
     if (!driver) {
-      console.log('Driver not authenticated');
-      return NextResponse.json(
-        { success: false, error: 'Not authenticated' },
-        { status: 401 }
-      );
+      return NextResponse.json({ success: false, error: 'Not authenticated' }, { status: 401 });
     }
 
-    console.log('Driver authenticated:', { id: driver.id, phone: driver.phone, vendorId: driver.vendorId });
+    // ── Independent driver: only chauffeur bookings via acceptedDriverId ───
+    if ((driver as any).userType === 'independent') {
+      const { searchParams } = new URL(request.url);
+      const filter = searchParams.get('filter') || 'active';
+
+      const where: any = { acceptedDriverId: driver.id };
+      if (filter === 'active') where.status = { in: ['ACCEPTED', 'DRIVER_ASSIGNED', 'IN_PROGRESS', 'STARTED'] };
+      else if (filter === 'completed') where.status = 'COMPLETED';
+
+      const rows = await prisma.chauffeur_bookings.findMany({
+        where, orderBy: { pickupDate: 'asc' },
+        select: {
+          id: true, bookingNumber: true, tripType: true, carCategoryName: true,
+          customerName: true, customerPhone: true,
+          pickupCity: true, dropCity: true, pickupAddress: true, dropAddress: true,
+          pickupDate: true, pickupTime: true, returnDate: true,
+          grandTotal: true, driverBatta: true, status: true,
+          vehicleNumber: true, vehicleModel: true,
+          tripStartOtp: true, tripStartedAt: true, completedAt: true,
+          driverRating: true, createdAt: true,
+        },
+      });
+
+      const bookings = rows.map(b => ({ ...b, serviceType: 'car' }));
+
+      const allRows = await prisma.chauffeur_bookings.findMany({
+        where: { acceptedDriverId: driver.id },
+        select: { status: true, driverBatta: true },
+      });
+      const stats = {
+        total: allRows.length,
+        active: allRows.filter(b => ['ACCEPTED', 'DRIVER_ASSIGNED', 'IN_PROGRESS', 'STARTED'].includes(b.status)).length,
+        completed: allRows.filter(b => b.status === 'COMPLETED').length,
+        totalEarnings: allRows.filter(b => b.status === 'COMPLETED').reduce((s, b) => s + (b.driverBatta || 0), 0),
+      };
+
+      return NextResponse.json({ success: true, bookings, stats, serviceType: 'car' });
+    }
 
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status');
@@ -36,7 +69,7 @@ export async function GET(request: NextRequest) {
     // Helper functions to build status filters
     const getCarStatusFilter = (filterType: string) => {
       if (filterType === 'active') {
-        return { in: ['DRIVER_ASSIGNED', 'IN_PROGRESS'] };
+        return { in: ['ACCEPTED', 'DRIVER_ASSIGNED', 'IN_PROGRESS'] };
       } else if (filterType === 'completed') {
         return 'COMPLETED';
       }
@@ -114,24 +147,24 @@ export async function GET(request: NextRequest) {
 
     // Fetch car bookings if needed
     if (serviceType === 'car' || serviceType === 'all') {
-      const carWhereConditions: any = {
+      const statusFilter = getCarStatusFilter(filter);
+      const todayFilter = filter === 'today' ? getTodayFilter() : undefined;
+      const forcedStatus = status && status !== 'all' ? status : undefined;
+
+      const vendorCondition: any = {
         driverPhone: driver.phone,
         acceptedVendorId: driver.vendorId,
+        ...(forcedStatus ? { status: forcedStatus } : statusFilter ? { status: statusFilter } : {}),
+        ...(todayFilter ? { pickupDate: todayFilter } : {}),
+      };
+      const selfAcceptedCondition: any = {
+        acceptedDriverId: driver.id,
+        ...(forcedStatus ? { status: forcedStatus } : statusFilter ? { status: statusFilter } : {}),
+        ...(todayFilter ? { pickupDate: todayFilter } : {}),
       };
 
-      const statusFilter = getCarStatusFilter(filter);
-      if (statusFilter) {
-        carWhereConditions.status = statusFilter;
-      }
-      if (filter === 'today') {
-        carWhereConditions.pickupDate = getTodayFilter();
-      }
-      if (status && status !== 'all') {
-        carWhereConditions.status = status;
-      }
-
       carBookings = await prisma.chauffeur_bookings.findMany({
-        where: carWhereConditions,
+        where: { OR: [vendorCondition, selfAcceptedCondition] },
         orderBy: [{ pickupDate: 'asc' }, { pickupTime: 'asc' }],
         select: {
           id: true,
@@ -174,13 +207,13 @@ export async function GET(request: NextRequest) {
 
       // Car stats
       const allCarBookings = await prisma.chauffeur_bookings.findMany({
-        where: { driverPhone: driver.phone, acceptedVendorId: driver.vendorId },
+        where: { OR: [{ driverPhone: driver.phone, acceptedVendorId: driver.vendorId }, { acceptedDriverId: driver.id }] },
         select: { status: true, driverBatta: true },
       });
 
       carStats = {
         total: allCarBookings.length,
-        active: allCarBookings.filter(b => ['DRIVER_ASSIGNED', 'IN_PROGRESS'].includes(b.status)).length,
+        active: allCarBookings.filter(b => ['ACCEPTED', 'DRIVER_ASSIGNED', 'IN_PROGRESS'].includes(b.status)).length,
         completed: allCarBookings.filter(b => b.status === 'COMPLETED').length,
         totalEarnings: allCarBookings.filter(b => b.status === 'COMPLETED').reduce((sum, b) => sum + (b.driverBatta || 0), 0),
       };
@@ -626,6 +659,51 @@ export async function GET(request: NextRequest) {
       };
     }
 
+    // ── Vendor Direct Bookings (assignedDriverId) ─────────────────────────
+    let directBookings: any[] = [];
+    let directStats = { total: 0, active: 0, completed: 0, totalEarnings: 0 };
+    {
+      const directWhere: any = { assignedDriverId: driver.id };
+      if (filter === 'active') directWhere.status = { in: ['confirmed', 'assigned', 'vehicle_assigned', 'in_progress'] };
+      else if (filter === 'completed') directWhere.status = 'completed';
+
+      const rows = await prisma.vendor_direct_bookings.findMany({
+        where: directWhere,
+        orderBy: { pickupDate: 'asc' },
+        select: {
+          id: true, bookingNumber: true, serviceType: true,
+          customerName: true, customerPhone: true,
+          pickupLocation: true, dropLocation: true,
+          pickupDate: true, returnDate: true,
+          totalAmount: true, status: true, assignedAt: true, createdAt: true,
+          assignedVehicle: { select: { registrationNumber: true, vehicleName: true } },
+        },
+      });
+
+      directBookings = rows.map(b => ({
+        id: b.id, bookingNumber: b.bookingNumber,
+        serviceType: 'direct', carCategoryName: b.serviceType,
+        customerName: b.customerName, customerPhone: b.customerPhone,
+        pickupCity: b.pickupLocation || '', dropCity: b.dropLocation || '',
+        pickupAddress: b.pickupLocation, dropAddress: b.dropLocation,
+        pickupDate: b.pickupDate, returnDate: b.returnDate,
+        grandTotal: b.totalAmount, driverBatta: null, status: b.status,
+        vehicleNumber: b.assignedVehicle?.registrationNumber,
+        createdAt: b.createdAt,
+      }));
+
+      const allDirect = await prisma.vendor_direct_bookings.findMany({
+        where: { assignedDriverId: driver.id },
+        select: { status: true },
+      });
+      directStats = {
+        total: allDirect.length,
+        active: allDirect.filter(b => ['confirmed', 'assigned', 'vehicle_assigned', 'in_progress'].includes(b.status)).length,
+        completed: allDirect.filter(b => b.status === 'completed').length,
+        totalEarnings: 0,
+      };
+    }
+
     // Combine bookings based on service type
     let bookings: any[] = [];
     if (serviceType === 'car') {
@@ -643,8 +721,7 @@ export async function GET(request: NextRequest) {
     } else if (serviceType === 'b2b') {
       bookings = b2bBookings;
     } else {
-      // Combine and sort by pickup date
-      bookings = [...carBookings, ...busBookings, ...truckBookings, ...packersBookings, ...equipmentBookings, ...luxuryBookings, ...b2bBookings].sort((a, b) => {
+      bookings = [...carBookings, ...busBookings, ...truckBookings, ...packersBookings, ...equipmentBookings, ...luxuryBookings, ...b2bBookings, ...directBookings].sort((a, b) => {
         const dateA = new Date(a.pickupDate).getTime();
         const dateB = new Date(b.pickupDate).getTime();
         return dateA - dateB;
@@ -653,9 +730,9 @@ export async function GET(request: NextRequest) {
 
     // Combined stats
     const stats = {
-      total: carStats.total + busStats.total + truckStats.total + packersStats.total + equipmentStats.total + luxuryStats.total + b2bStats.total,
-      active: carStats.active + busStats.active + truckStats.active + packersStats.active + equipmentStats.active + luxuryStats.active + b2bStats.active,
-      completed: carStats.completed + busStats.completed + truckStats.completed + packersStats.completed + equipmentStats.completed + luxuryStats.completed + b2bStats.completed,
+      total: carStats.total + busStats.total + truckStats.total + packersStats.total + equipmentStats.total + luxuryStats.total + b2bStats.total + directStats.total,
+      active: carStats.active + busStats.active + truckStats.active + packersStats.active + equipmentStats.active + luxuryStats.active + b2bStats.active + directStats.active,
+      completed: carStats.completed + busStats.completed + truckStats.completed + packersStats.completed + equipmentStats.completed + luxuryStats.completed + b2bStats.completed + directStats.completed,
       totalEarnings: carStats.totalEarnings + busStats.totalEarnings + truckStats.totalEarnings + packersStats.totalEarnings + equipmentStats.totalEarnings + luxuryStats.totalEarnings + b2bStats.totalEarnings,
       carCount: carStats.total,
       busCount: busStats.total,

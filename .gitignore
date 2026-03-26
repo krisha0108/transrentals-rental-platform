@@ -60,8 +60,15 @@ public/workbox-*.js
 public/worker-*.js
 public/fallback-*.js
 
-# Mobile App Build Directories (tr-app & vendor-app build separately)
+# Mobile App Build Directories
 tr-app/android/app/build/
 tr-app/ios/build/
-vendor-app/android/app/build/
-vendor-app/ios/build/
+tr-vendor-app/android/app/build/
+tr-vendor-app/ios/build/
+tr-driver-app/android/app/build/
+tr-driver-app/ios/build/
+
+# Mobile App Sensitive Files
+tr-driver-app/android/app/google-services.json
+tr-app/android/app/google-services.json
+tr-vendor-app/android/app/google-services.json

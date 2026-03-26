@@ -467,7 +467,7 @@ export async function PATCH(
 
     const { bookingNumber } = await params;
     const body = await request.json();
-    const { action, otp, actualKm, actualHours, tollCharges, parkingCharges } = body;
+    const { action, otp, actualKm, actualHours, tollCharges, parkingCharges, vehicleId, vehicleNumber, vehicleModel } = body;
 
     // Fetch booking - Try Chauffeur
     let booking: any = await prisma.chauffeur_bookings.findUnique({
@@ -602,6 +602,80 @@ export async function PATCH(
         { success: false, error: 'Booking not found' },
         { status: 404 }
       );
+    }
+
+    // ── Self-accepted chauffeur booking (both independent + vendor_staff) ──
+    if (serviceType === 'car' && booking.acceptedDriverId === driver.id) {
+      if (action === 'assign_vehicle') {
+        if (!vehicleId && !vehicleNumber) {
+          return NextResponse.json({ success: false, error: 'Vehicle is required' }, { status: 400 });
+        }
+        let finalVehicleNumber = vehicleNumber;
+        let finalVehicleModel = vehicleModel;
+
+        const isStaff = (driver as any).userType === 'vendor_staff';
+        if (vehicleId) {
+          const vehicle = await prisma.driver_vehicles.findFirst({
+            where: isStaff ? { id: vehicleId, staffId: driver.id } : { id: vehicleId, driverId: driver.id },
+          });
+          if (!vehicle) {
+            return NextResponse.json({ success: false, error: 'Vehicle not found in your fleet' }, { status: 404 });
+          }
+          finalVehicleNumber = vehicle.registrationNo || vehicleNumber;
+          finalVehicleModel = `${vehicle.make} ${vehicle.model}`.trim();
+        }
+
+        const tripOtp = generateOTP();
+        await prisma.chauffeur_bookings.update({
+          where: { bookingNumber },
+          data: {
+            vehicleNumber: finalVehicleNumber || null,
+            vehicleModel: finalVehicleModel || null,
+            status: 'DRIVER_ASSIGNED',
+            driverAssignedAt: new Date(),
+            tripStartOtp: tripOtp,
+          },
+        });
+        return NextResponse.json({ success: true, message: 'Vehicle assigned! You can now send the OTP to start the trip.' });
+      }
+
+      if (action === 'request_otp') {
+        if (booking.status !== 'DRIVER_ASSIGNED') {
+          return NextResponse.json({ success: false, error: 'Assign a vehicle first before sending OTP' }, { status: 400 });
+        }
+        // OTP already generated at assign_vehicle
+        return NextResponse.json({ success: true, message: 'OTP is ready. Ask the customer for the OTP shown in their booking.' });
+      }
+
+      if (action === 'start_trip') {
+        if (booking.tripStartOtp !== otp) {
+          return NextResponse.json({ success: false, error: 'Invalid OTP' }, { status: 400 });
+        }
+        await prisma.chauffeur_bookings.update({
+          where: { bookingNumber },
+          data: { status: 'IN_PROGRESS', tripStartedAt: new Date() },
+        });
+        return NextResponse.json({ success: true, message: 'Trip started!' });
+      }
+
+      if (action === 'complete_trip') {
+        if (booking.status !== 'IN_PROGRESS') {
+          return NextResponse.json({ success: false, error: 'Trip must be in progress to complete' }, { status: 400 });
+        }
+        await prisma.chauffeur_bookings.update({
+          where: { bookingNumber },
+          data: {
+            status: 'COMPLETED',
+            completedAt: new Date(),
+            actualKmTravelled: actualKm ? parseFloat(actualKm) : null,
+            actualHours: actualHours ? parseFloat(actualHours) : null,
+            tollCharges: tollCharges ? parseFloat(tollCharges) : null,
+          },
+        });
+        return NextResponse.json({ success: true, message: 'Trip completed!' });
+      }
+
+      return NextResponse.json({ success: false, error: 'Invalid action' }, { status: 400 });
     }
 
     // Verify this booking is assigned to this driver/team leader/operator

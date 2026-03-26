@@ -182,8 +182,21 @@ export default function DriverBookingDetailPage() {
     parkingCharges: '',
   });
 
+  // Assign vehicle (independent driver)
+  const [fleet, setFleet] = useState<any[]>([]);
+  const [selectedVehicleId, setSelectedVehicleId] = useState('');
+  const [useManualVehicle, setUseManualVehicle] = useState(false);
+  const [manualVehicleNo, setManualVehicleNo] = useState('');
+  const [manualVehicleModel, setManualVehicleModel] = useState('');
+  const [assignLoading, setAssignLoading] = useState(false);
+
   useEffect(() => {
     fetchBooking();
+    // Load fleet for assign vehicle step
+    fetch('/api/driver/fleet')
+      .then(r => r.json())
+      .then(d => { if (d.success) setFleet((d.vehicles || []).filter((v: any) => !v.isVendorVehicle && v.isActive !== false)); })
+      .catch(() => {});
   }, [bookingNumber]);
 
   const fetchBooking = async () => {
@@ -324,6 +337,41 @@ export default function DriverBookingDetailPage() {
       setError('Failed to complete trip');
     } finally {
       setActionLoading(false);
+    }
+  };
+
+  const handleAssignVehicle = async () => {
+    if (!useManualVehicle && !selectedVehicleId) {
+      setError('Select a vehicle from your fleet or enter details manually');
+      return;
+    }
+    if (useManualVehicle && !manualVehicleNo.trim()) {
+      setError('Please enter vehicle registration number');
+      return;
+    }
+    setAssignLoading(true);
+    setError('');
+    try {
+      const body = useManualVehicle
+        ? { action: 'assign_vehicle', vehicleNumber: manualVehicleNo.trim().toUpperCase(), vehicleModel: manualVehicleModel.trim() }
+        : { action: 'assign_vehicle', vehicleId: selectedVehicleId };
+
+      const res = await fetch(`/api/driver/bookings/${bookingNumber}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setSuccessMessage(data.message);
+        fetchBooking();
+      } else {
+        setError(data.error || 'Failed to assign vehicle');
+      }
+    } catch {
+      setError('Failed to assign vehicle');
+    } finally {
+      setAssignLoading(false);
     }
   };
 
@@ -501,6 +549,95 @@ export default function DriverBookingDetailPage() {
                 Verify OTP & Start Trip
               </>
             )}
+          </button>
+        </div>
+      )}
+
+      {/* Assign Vehicle — independent driver, status ACCEPTED */}
+      {booking.status === 'ACCEPTED' && !isBus && !isTruck && !isPackers && !isEquipment && !isLuxury && !isB2B && (
+        <div className="bg-white rounded-xl border p-6">
+          <h2 className="font-bold text-gray-900 mb-1 flex items-center gap-2">
+            <Car className="w-5 h-5 text-emerald-600" /> Assign a Vehicle
+          </h2>
+          <p className="text-sm text-gray-500 mb-4">Select a vehicle from your fleet or enter details manually to assign to this trip.</p>
+
+          {/* Toggle */}
+          <div className="flex gap-2 mb-4">
+            <button
+              onClick={() => setUseManualVehicle(false)}
+              className={`flex-1 py-2 rounded-lg text-sm font-semibold transition ${!useManualVehicle ? 'bg-emerald-600 text-white' : 'border border-gray-200 text-gray-600 hover:bg-gray-50'}`}
+            >
+              My Fleet
+            </button>
+            <button
+              onClick={() => setUseManualVehicle(true)}
+              className={`flex-1 py-2 rounded-lg text-sm font-semibold transition ${useManualVehicle ? 'bg-emerald-600 text-white' : 'border border-gray-200 text-gray-600 hover:bg-gray-50'}`}
+            >
+              Manual Entry
+            </button>
+          </div>
+
+          {!useManualVehicle && (
+            fleet.length === 0 ? (
+              <div className="text-center py-6 text-gray-500">
+                <Car className="w-10 h-10 text-gray-300 mx-auto mb-2" />
+                <p className="text-sm">No vehicles in fleet.</p>
+                <button onClick={() => setUseManualVehicle(true)} className="text-emerald-600 text-sm font-medium mt-1 hover:underline">
+                  Enter manually instead
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-2 mb-4">
+                {fleet.map(v => (
+                  <button
+                    key={v.id}
+                    onClick={() => setSelectedVehicleId(v.id)}
+                    className={`w-full flex items-center gap-3 p-3 rounded-xl border-2 transition text-left ${selectedVehicleId === v.id ? 'border-emerald-500 bg-emerald-50' : 'border-gray-200 hover:border-gray-300'}`}
+                  >
+                    <div className="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center">
+                      <Car className="w-5 h-5 text-emerald-600" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-semibold text-gray-900 text-sm">{v.make} {v.model}</p>
+                      <p className="text-xs text-emerald-700 font-medium">{v.registrationNo || 'No reg. no.'}</p>
+                      {v.category && <p className="text-xs text-gray-500">{v.category}{v.fuelType ? ` · ${v.fuelType}` : ''}</p>}
+                    </div>
+                    {selectedVehicleId === v.id && <CheckCircle className="w-5 h-5 text-emerald-600 shrink-0" />}
+                  </button>
+                ))}
+              </div>
+            )
+          )}
+
+          {useManualVehicle && (
+            <div className="space-y-3 mb-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Registration Number *</label>
+                <input
+                  className="w-full px-3 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm uppercase"
+                  placeholder="MH12AB1234"
+                  value={manualVehicleNo}
+                  onChange={e => setManualVehicleNo(e.target.value.toUpperCase())}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Vehicle Model</label>
+                <input
+                  className="w-full px-3 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm"
+                  placeholder="e.g. Maruti Swift Dzire"
+                  value={manualVehicleModel}
+                  onChange={e => setManualVehicleModel(e.target.value)}
+                />
+              </div>
+            </div>
+          )}
+
+          <button
+            onClick={handleAssignVehicle}
+            disabled={assignLoading}
+            className="w-full py-3 bg-emerald-600 text-white rounded-xl font-semibold hover:bg-emerald-700 transition disabled:opacity-50 flex items-center justify-center gap-2"
+          >
+            {assignLoading ? <><Loader2 className="w-4 h-4 animate-spin" /> Assigning...</> : <><CheckCircle className="w-4 h-4" /> Confirm Vehicle Assignment</>}
           </button>
         </div>
       )}

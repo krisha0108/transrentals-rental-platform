@@ -13,6 +13,8 @@ import {
   X,
   Download,
   Loader2,
+  TrendingUp,
+  Bell,
 } from 'lucide-react';
 import { useDriverWebNotifications } from '@/hooks/useDriverWebNotifications';
 
@@ -22,6 +24,7 @@ interface Driver {
   email: string;
   phone: string;
   profilePhoto?: string;
+  userType?: string;
   vendor?: {
     businessName: string;
   };
@@ -40,9 +43,27 @@ export default function DriverDashboardLayout({
   const [installPrompt, setInstallPrompt] = useState<any>(null);
   const [showInstallBanner, setShowInstallBanner] = useState(false);
   const [isInstalled, setIsInstalled] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   // Poll for new booking assignment notifications (web/PWA)
   useDriverWebNotifications();
+
+  // Fetch unread notification count
+  useEffect(() => {
+    const fetchUnread = () => {
+      fetch('/api/driver/notifications')
+        .then(r => r.json())
+        .then(d => {
+          if (d.notifications) {
+            setUnreadCount(d.notifications.filter((n: any) => !n.read).length);
+          }
+        })
+        .catch(() => {});
+    };
+    fetchUnread();
+    const interval = setInterval(fetchUnread, 30_000);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     checkAuth();
@@ -81,10 +102,28 @@ export default function DriverDashboardLayout({
     window.addEventListener('beforeinstallprompt', handleBeforeInstall);
     window.addEventListener('appinstalled', handleAppInstalled);
 
-    // ── Notifications: request permission ─────────────────────────────────
-    if ('Notification' in window && Notification.permission === 'default') {
-      Notification.requestPermission();
-    }
+    // ── Notifications: request permission + Firebase Web Push ─────────────
+    (async () => {
+      if ('Notification' in window) {
+        const permission = Notification.permission === 'default'
+          ? await Notification.requestPermission()
+          : Notification.permission;
+
+        if (permission === 'granted') {
+          import('@/lib/firebase-client').then(({ initFirebaseMessaging }) => {
+            initFirebaseMessaging().then(result => {
+              if (result?.token) {
+                fetch('/api/driver/web-push-token', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ token: result.token }),
+                }).catch(() => {});
+              }
+            });
+          }).catch(() => {});
+        }
+      }
+    })();
 
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstall);
@@ -113,6 +152,8 @@ export default function DriverDashboardLayout({
 
   const handleLogout = async () => {
     try {
+      // Clear web FCM token before logout
+      fetch('/api/driver/web-push-token', { method: 'DELETE' }).catch(() => {});
       await fetch('/api/driver/auth/logout', { method: 'POST' });
       localStorage.removeItem('driver-token');
       router.push('/driver/login');
@@ -131,9 +172,13 @@ export default function DriverDashboardLayout({
     }
   };
 
+  const isIndependent = driver?.userType === 'independent';
+
   const navItems = [
     { href: '/driver', icon: Home, label: 'Dashboard' },
     { href: '/driver/bookings', icon: Calendar, label: 'My Trips' },
+    { href: '/driver/fleet', icon: Car, label: 'Fleet' },
+    { href: '/driver/earnings', icon: TrendingUp, label: 'Earnings' },
     { href: '/driver/profile', icon: User, label: 'Profile' },
   ];
 
@@ -197,7 +242,9 @@ export default function DriverDashboardLayout({
                 </div>
                 <div className="hidden sm:block">
                   <p className="font-bold text-lg leading-none">Driver App</p>
-                  <p className="text-emerald-200 text-xs">{driver.vendor?.businessName}</p>
+                  <p className="text-emerald-200 text-xs">
+                    {driver.vendor?.businessName || (isIndependent ? 'Independent Driver' : '')}
+                  </p>
                 </div>
               </Link>
             </div>
@@ -211,7 +258,7 @@ export default function DriverDashboardLayout({
                   <Link
                     key={item.href}
                     href={item.href}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg transition ${
+                    className={`relative flex items-center gap-2 px-4 py-2 rounded-lg transition ${
                       isActive
                         ? 'bg-emerald-700 text-white'
                         : 'text-emerald-100 hover:bg-emerald-700'
@@ -219,6 +266,11 @@ export default function DriverDashboardLayout({
                   >
                     <item.icon className="w-5 h-5" />
                     {item.label}
+                    {(item as any).badge > 0 && (
+                      <span className="ml-0.5 bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full leading-none">
+                        {(item as any).badge > 9 ? '9+' : (item as any).badge}
+                      </span>
+                    )}
                   </Link>
                 );
               })}
@@ -226,6 +278,15 @@ export default function DriverDashboardLayout({
 
             {/* User Menu */}
             <div className="flex items-center gap-2">
+              {/* Notification Bell */}
+              <Link href="/driver/notifications" className="relative p-2 hover:bg-emerald-700 rounded-lg">
+                <Bell className="w-5 h-5" />
+                {unreadCount > 0 && (
+                  <span className="absolute top-1 right-1 w-4 h-4 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center leading-none">
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                )}
+              </Link>
               {/* Install button (desktop) — only shown when not yet installed */}
               {installPrompt && !isInstalled && (
                 <button
@@ -315,11 +376,16 @@ export default function DriverDashboardLayout({
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex flex-col items-center py-3 px-6 ${
+                className={`relative flex flex-col items-center py-3 px-4 ${
                   isActive ? 'text-emerald-600' : 'text-gray-500'
                 }`}
               >
                 <item.icon className="w-6 h-6" />
+                {(item as any).badge > 0 && (
+                  <span className="absolute top-2 right-2 w-4 h-4 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center leading-none">
+                    {(item as any).badge > 9 ? '9+' : (item as any).badge}
+                  </span>
+                )}
                 <span className="text-xs mt-1">{item.label}</span>
               </Link>
             );

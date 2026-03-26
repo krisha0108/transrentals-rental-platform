@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Find vendor
+    // Find vendor first
     const vendor = await prisma.vendors.findUnique({
       where: { email: email.toLowerCase() },
       select: {
@@ -61,82 +61,110 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    if (!vendor) {
-      logger.logSecurityEvent('Vendor mobile login failed - user not found', 'medium', {
-        email: email.toLowerCase(),
+    if (vendor) {
+      // --- VENDOR LOGIN ---
+      const isPasswordValid = await bcrypt.compare(password, vendor.password);
+      if (!isPasswordValid) {
+        logger.logSecurityEvent('Vendor mobile login failed - wrong password', 'medium', { vendorId: vendor.id });
+        return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 });
+      }
+
+      if (vendor.status === 'BLOCKED') {
+        return NextResponse.json({ error: 'Your account has been blocked. Please contact support.' }, { status: 403 });
+      }
+      if (vendor.status === 'SUSPENDED') {
+        return NextResponse.json({ error: 'Your account is suspended. Please contact support.' }, { status: 403 });
+      }
+      if (vendor.status === 'REJECTED') {
+        return NextResponse.json({ error: 'Your application was rejected. Please contact support.' }, { status: 403 });
+      }
+
+      await prisma.vendors.update({
+        where: { id: vendor.id },
+        data: { lastLoginAt: new Date(), ...(fcmToken ? { fcmToken } : {}) },
       });
-      return NextResponse.json(
-        { error: 'Invalid email or password' },
-        { status: 401 }
-      );
-    }
 
-    // Check password
-    const isPasswordValid = await bcrypt.compare(password, vendor.password);
-    if (!isPasswordValid) {
-      logger.logSecurityEvent('Vendor mobile login failed - wrong password', 'medium', {
-        vendorId: vendor.id,
+      const token = jwt.sign(
+        { id: vendor.id, email: vendor.email, role: 'VENDOR', userType: 'vendor' },
+        process.env.NEXTAUTH_SECRET || 'fallback-secret',
+        { expiresIn: '30d' }
+      );
+
+      const { password: _, ...vendorData } = vendor;
+      logger.info('Vendor mobile login successful', { vendorId: vendor.id });
+
+      return NextResponse.json({
+        success: true,
+        vendor: { ...vendorData, role: 'VENDOR', userType: 'vendor' },
+        token,
       });
-      return NextResponse.json(
-        { error: 'Invalid email or password' },
-        { status: 401 }
-      );
     }
 
-    // Check vendor status
-    if (vendor.status === 'BLOCKED') {
-      return NextResponse.json(
-        { error: 'Your account has been blocked. Please contact support.' },
-        { status: 403 }
-      );
-    }
-    if (vendor.status === 'SUSPENDED') {
-      return NextResponse.json(
-        { error: 'Your account is suspended. Please contact support.' },
-        { status: 403 }
-      );
-    }
-    if (vendor.status === 'REJECTED') {
-      return NextResponse.json(
-        { error: 'Your application was rejected. Please contact support.' },
-        { status: 403 }
-      );
-    }
-
-    // Update last login + FCM token if provided
-    await prisma.vendors.update({
-      where: { id: vendor.id },
-      data: {
-        lastLoginAt: new Date(),
-        ...(fcmToken ? { fcmToken } : {}),
+    // --- STAFF LOGIN ---
+    const staff = await prisma.vendor_staff.findUnique({
+      where: { email: email.toLowerCase() },
+      select: {
+        id: true,
+        email: true,
+        password: true,
+        name: true,
+        phone: true,
+        role: true,
+        status: true,
+        vendorId: true,
+        profilePhoto: true,
+        city: true,
+        state: true,
+        createdAt: true,
+        lastLoginAt: true,
+        vendors: {
+          select: { id: true, businessName: true, email: true, phone: true, city: true },
+        },
       },
     });
 
-    // Generate JWT token for mobile
-    const token = jwt.sign(
-      {
-        id: vendor.id,
-        email: vendor.email,
-        role: 'VENDOR',
-        userType: 'vendor',
-      },
+    if (!staff) {
+      logger.logSecurityEvent('Vendor mobile login failed - user not found', 'medium', { email: email.toLowerCase() });
+      return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 });
+    }
+
+    if (!staff.password) {
+      return NextResponse.json({ error: 'Password not set. Please contact your vendor admin.' }, { status: 401 });
+    }
+
+    const isStaffPasswordValid = await bcrypt.compare(password, staff.password);
+    if (!isStaffPasswordValid) {
+      logger.logSecurityEvent('Staff mobile login failed - wrong password', 'medium', { staffId: staff.id });
+      return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 });
+    }
+
+    if (staff.status === 'INACTIVE' || staff.status === 'TERMINATED') {
+      return NextResponse.json({ error: 'Your account is inactive. Please contact your vendor admin.' }, { status: 403 });
+    }
+
+    await prisma.vendor_staff.update({
+      where: { id: staff.id },
+      data: { lastLoginAt: new Date(), ...(fcmToken ? { fcmToken } : {}) },
+    });
+
+    const staffToken = jwt.sign(
+      { id: staff.id, email: staff.email, role: staff.role, userType: 'staff', vendorId: staff.vendorId },
       process.env.NEXTAUTH_SECRET || 'fallback-secret',
       { expiresIn: '30d' }
     );
 
-    // Remove password from response
-    const { password: _, ...vendorData } = vendor;
-
-    logger.info('Vendor mobile login successful', { vendorId: vendor.id });
+    const { password: __, ...staffData } = staff;
+    logger.info('Staff mobile login successful', { staffId: staff.id, vendorId: staff.vendorId });
 
     return NextResponse.json({
       success: true,
       vendor: {
-        ...vendorData,
-        role: 'VENDOR',
-        userType: 'vendor',
+        ...staffData,
+        businessName: staff.vendors?.businessName,
+        ownerName: staff.name,
+        userType: 'staff',
       },
-      token,
+      token: staffToken,
     });
   } catch (error) {
     console.error('Vendor mobile login error:', error);

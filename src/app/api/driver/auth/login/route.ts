@@ -3,209 +3,139 @@ import { prisma } from '@/lib/db/prisma';
 import bcrypt from 'bcryptjs';
 import { SignJWT } from 'jose';
 import {
-  checkRateLimit,
-  RATE_LIMITS,
-  checkLoginAllowed,
-  recordFailedLogin,
-  clearLockoutOnSuccess,
-  logger,
+  checkRateLimit, RATE_LIMITS, checkLoginAllowed,
+  recordFailedLogin, clearLockoutOnSuccess, logger,
 } from '@/lib/security';
 
 export const dynamic = 'force-dynamic';
 
-// JWT secret for driver tokens
 const JWT_SECRET = new TextEncoder().encode(
   process.env.NEXTAUTH_SECRET || 'driver-secret-key'
 );
 
-// Helper to get client IP
 function getClientIP(request: NextRequest): string {
-  return (
-    request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
-    request.headers.get('x-real-ip') ||
-    'unknown'
-  );
+  return request.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
+    || request.headers.get('x-real-ip') || 'unknown';
 }
 
-// POST - Driver login
+function setTokenCookie(response: NextResponse, token: string) {
+  response.cookies.set('driver-token', token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    maxAge: 7 * 24 * 60 * 60,
+    path: '/',
+  });
+}
+
 export async function POST(request: NextRequest) {
   const ip = getClientIP(request);
 
   try {
-    // Rate limiting
-    const { limited, remaining, resetIn } = checkRateLimit(
-      request,
-      RATE_LIMITS.login,
-      'driver-login'
-    );
-
+    const { limited, remaining, resetIn } = checkRateLimit(request, RATE_LIMITS.login, 'driver-login');
     if (limited) {
-      logger.logSecurityEvent('Driver login rate limit exceeded', 'medium', { ip });
       return NextResponse.json(
         { success: false, error: 'Too many login attempts. Please try again later.', retryAfter: resetIn },
-        { status: 429, headers: { 'Retry-After': String(resetIn) } }
+        { status: 429 }
       );
     }
 
     const body = await request.json();
     const { email, password } = body;
-
-    // Validate input
     if (!email || !password) {
-      return NextResponse.json(
-        { success: false, error: 'Email and password are required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ success: false, error: 'Email and password are required' }, { status: 400 });
     }
 
     const normalizedEmail = email.toLowerCase().trim();
 
-    // Check account lockout
     const lockoutCheck = checkLoginAllowed(normalizedEmail, ip);
     if (!lockoutCheck.allowed) {
-      logger.logSecurityEvent('Driver login blocked - account locked', 'medium', { email: normalizedEmail, ip });
-      return NextResponse.json(
-        {
-          success: false,
-          error: lockoutCheck.reason,
-          unlockIn: lockoutCheck.unlockIn,
-        },
-        { status: 429 }
-      );
+      return NextResponse.json({ success: false, error: lockoutCheck.reason, unlockIn: lockoutCheck.unlockIn }, { status: 429 });
     }
 
-    // Find driver by email
-    const driver = await prisma.vendor_staff.findUnique({
+    // ── 1. Try vendor_staff first ──────────────────────────────────────────
+    const staffDriver = await prisma.vendor_staff.findUnique({
       where: { email: normalizedEmail },
-      include: {
-        vendors: {
-          select: {
-            id: true,
-            businessName: true,
-            phone: true,
-          },
-        },
-      },
+      include: { vendors: { select: { id: true, businessName: true, phone: true } } },
     });
 
-    if (!driver) {
-      recordFailedLogin(normalizedEmail, ip);
-      return NextResponse.json(
-        { success: false, error: 'Invalid email or password' },
-        { status: 401 }
-      );
-    }
-
-    // Check if driver has a password
-    if (!driver.password) {
-      return NextResponse.json(
-        { success: false, error: 'Account not set up for login. Contact your vendor.' },
-        { status: 401 }
-      );
-    }
-
-    // Verify password
-    const isValidPassword = await bcrypt.compare(password, driver.password);
-    if (!isValidPassword) {
-      const lockoutResult = recordFailedLogin(normalizedEmail, ip);
-      logger.logSecurityEvent('Failed driver login attempt', 'low', { email: normalizedEmail, ip });
-
-      if (lockoutResult.locked) {
-        return NextResponse.json(
-          {
-            success: false,
-            error: 'Too many failed attempts. Account temporarily locked.',
-            unlockIn: lockoutResult.unlockIn,
-          },
-          { status: 429 }
-        );
+    if (staffDriver) {
+      if (!staffDriver.password) {
+        return NextResponse.json({ success: false, error: 'Account not set up for login. Contact your vendor.' }, { status: 401 });
       }
+      const valid = await bcrypt.compare(password, staffDriver.password);
+      if (!valid) {
+        const r = recordFailedLogin(normalizedEmail, ip);
+        if (r.locked) return NextResponse.json({ success: false, error: 'Too many failed attempts. Account temporarily locked.', unlockIn: r.unlockIn }, { status: 429 });
+        return NextResponse.json({ success: false, error: 'Invalid email or password', attemptsRemaining: r.attemptsRemaining }, { status: 401 });
+      }
+      if (staffDriver.status !== 'ACTIVE') return NextResponse.json({ success: false, error: 'Your account is inactive. Contact your vendor.' }, { status: 401 });
+      if (staffDriver.role !== 'DRIVER') return NextResponse.json({ success: false, error: 'Only drivers can access the driver portal.' }, { status: 401 });
 
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'Invalid email or password',
-          attemptsRemaining: lockoutResult.attemptsRemaining,
+      clearLockoutOnSuccess(normalizedEmail, ip);
+      const token = await new SignJWT({
+        driverId: staffDriver.id, vendorId: staffDriver.vendorId,
+        email: staffDriver.email, name: staffDriver.name,
+        role: 'driver', userType: 'vendor_staff',
+      }).setProtectedHeader({ alg: 'HS256' }).setExpirationTime('7d').setIssuedAt().sign(JWT_SECRET);
+
+      const response = NextResponse.json({
+        success: true, message: 'Login successful',
+        driver: {
+          id: staffDriver.id, name: staffDriver.name, email: staffDriver.email,
+          phone: staffDriver.phone, profilePhoto: staffDriver.profilePhoto,
+          licenseNumber: staffDriver.licenseNumber, licenseType: staffDriver.licenseType,
+          licenseExpiry: staffDriver.licenseExpiry,
+          vendor: staffDriver.vendors, userType: 'vendor_staff',
         },
-        { status: 401 }
-      );
+        token,
+      });
+      response.headers.set('X-RateLimit-Remaining', String(remaining));
+      setTokenCookie(response, token);
+      return response;
     }
 
-    // Check if driver is active
-    if (driver.status !== 'ACTIVE') {
-      logger.logSecurityEvent('Inactive driver login attempt', 'low', { driverId: driver.id });
-      return NextResponse.json(
-        { success: false, error: 'Your account is inactive. Contact your vendor.' },
-        { status: 401 }
-      );
+    // ── 2. Try independent driver ──────────────────────────────────────────
+    const indDriver = await prisma.drivers.findUnique({ where: { email: normalizedEmail } });
+
+    if (!indDriver) {
+      recordFailedLogin(normalizedEmail, ip);
+      return NextResponse.json({ success: false, error: 'Invalid email or password' }, { status: 401 });
     }
 
-    // Check if driver role
-    if (driver.role !== 'DRIVER') {
-      return NextResponse.json(
-        { success: false, error: 'Only drivers can access the driver app' },
-        { status: 401 }
-      );
+    const valid = await bcrypt.compare(password, indDriver.password);
+    if (!valid) {
+      const r = recordFailedLogin(normalizedEmail, ip);
+      if (r.locked) return NextResponse.json({ success: false, error: 'Too many failed attempts. Account temporarily locked.', unlockIn: r.unlockIn }, { status: 429 });
+      return NextResponse.json({ success: false, error: 'Invalid email or password', attemptsRemaining: r.attemptsRemaining }, { status: 401 });
+    }
+    if (indDriver.status !== 'ACTIVE') {
+      return NextResponse.json({ success: false, error: 'Your account is under review. Please wait for approval.' }, { status: 401 });
     }
 
-    // Clear lockout on successful login
     clearLockoutOnSuccess(normalizedEmail, ip);
-
-    // Generate JWT token
     const token = await new SignJWT({
-      driverId: driver.id,
-      vendorId: driver.vendorId,
-      email: driver.email,
-      name: driver.name,
-      role: 'driver',
-    })
-      .setProtectedHeader({ alg: 'HS256' })
-      .setExpirationTime('7d') // Token valid for 7 days
-      .setIssuedAt()
-      .sign(JWT_SECRET);
+      driverId: indDriver.id, email: indDriver.email,
+      name: indDriver.name, role: 'driver', userType: 'independent',
+    }).setProtectedHeader({ alg: 'HS256' }).setExpirationTime('7d').setIssuedAt().sign(JWT_SECRET);
 
-    // Prepare driver data (exclude password)
-    const { password: _, ...driverData } = driver;
-
-    logger.info('Driver login successful', { driverId: driver.id, vendorId: driver.vendorId });
-
-    // Create response with token in cookie
     const response = NextResponse.json({
-      success: true,
-      message: 'Login successful',
+      success: true, message: 'Login successful',
       driver: {
-        id: driverData.id,
-        name: driverData.name,
-        email: driverData.email,
-        phone: driverData.phone,
-        profilePhoto: driverData.profilePhoto,
-        licenseNumber: driverData.licenseNumber,
-        licenseType: driverData.licenseType,
-        licenseExpiry: driverData.licenseExpiry,
-        vendor: driverData.vendor,
+        id: indDriver.id, name: indDriver.name, email: indDriver.email,
+        phone: indDriver.phone, profilePhoto: indDriver.profilePhoto,
+        licenseNumber: indDriver.licenseNumber, licenseType: indDriver.licenseType,
+        licenseExpiry: indDriver.licenseExpiry, userType: 'independent',
       },
       token,
     });
-
-    // Add rate limit headers
     response.headers.set('X-RateLimit-Remaining', String(remaining));
-    response.headers.set('X-RateLimit-Reset', String(resetIn));
-
-    // Set HTTP-only cookie for secure token storage
-    response.cookies.set('driver-token', token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 7 * 24 * 60 * 60, // 7 days
-      path: '/',
-    });
-
+    setTokenCookie(response, token);
+    logger.info('Independent driver login', { driverId: indDriver.id });
     return response;
+
   } catch (error) {
     logger.error('Driver login error', error);
-    return NextResponse.json(
-      { success: false, error: 'Login failed' },
-      { status: 500 }
-    );
+    return NextResponse.json({ success: false, error: 'Login failed' }, { status: 500 });
   }
 }
