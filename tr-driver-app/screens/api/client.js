@@ -192,6 +192,16 @@ export async function confirmReturn(bookingId, otp) {
   return c.post(`${BASE}/bookings/${bookingId}/confirm-return`, { otp });
 }
 
+export async function b2bMarkArrival(bookingId) {
+  const c = await getClient();
+  return c.post(`${BASE}/bookings/${bookingId}/b2b-arrive`);
+}
+
+export async function b2bEndTrip(bookingId) {
+  const c = await getClient();
+  return c.post(`${BASE}/bookings/${bookingId}/b2b-end`);
+}
+
 // ── Fleet ─────────────────────────────────────────────────────────────────────
 export async function getFleet(personal = false) {
   const c = await getClient();

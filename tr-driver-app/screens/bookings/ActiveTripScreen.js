@@ -8,7 +8,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import LinearGradient from 'react-native-linear-gradient';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { startTrip, completeTrip, requestOtp, startTransit, startUnloading, startPackingLoading, startUnpacking, startUse, schedulePickup, confirmReturn } from '../api/client';
+import { startTrip, completeTrip, requestOtp, startTransit, startUnloading, startPackingLoading, startUnpacking, startUse, schedulePickup, confirmReturn, b2bMarkArrival, b2bEndTrip } from '../api/client';
 import moment from 'moment';
 
 const SCREEN_W = Dimensions.get('window').width;
@@ -99,6 +99,7 @@ export default function ActiveTripScreen({ route, navigation }) {
   const [toll, setToll]           = useState('');
   const [parking, setParking]     = useState('');
   const [showComplete, setShowComplete] = useState(false);
+  const [b2bOtp, setB2bOtp] = useState(booking.tripStartOtp || '');
 
   const isInProgress = booking.status === 'IN_PROGRESS';
 
@@ -347,6 +348,48 @@ export default function ActiveTripScreen({ route, navigation }) {
     } finally { setLoading(false); }
   }
 
+  // ── B2B handlers ─────────────────────────────────────────────────────────────
+  async function handleB2bMarkArrival() {
+    setLoading(true);
+    try {
+      const res = await b2bMarkArrival(booking.id);
+      if (res.data.success) {
+        const generatedOtp = res.data.otp;
+        setB2bOtp(generatedOtp);
+        navigation.replace('ActiveTrip', {
+          booking: { ...booking, status: 'DRIVER_ARRIVED', tripStartOtp: generatedOtp, hasOtp: true },
+        });
+      }
+    } catch (err) {
+      Alert.alert('Error', err.response?.data?.error || 'Failed to mark arrival');
+    } finally { setLoading(false); }
+  }
+
+  async function handleB2bResendOtp() {
+    setSendingOtp(true);
+    try {
+      const res = await b2bMarkArrival(booking.id);
+      if (res.data.success) {
+        setB2bOtp(res.data.otp);
+        Alert.alert('New OTP Generated', `New OTP: ${res.data.otp}\nShow this to the customer.`);
+      }
+    } catch (err) {
+      Alert.alert('Error', err.response?.data?.error || 'Failed to regenerate OTP');
+    } finally { setSendingOtp(false); }
+  }
+
+  async function handleB2bEndTrip() {
+    setLoading(true);
+    try {
+      const res = await b2bEndTrip(booking.id);
+      if (res.data.success) {
+        navigation.navigate('BookingDetail', { booking: { ...booking, status: 'COMPLETED' } });
+      }
+    } catch (err) {
+      Alert.alert('Error', err.response?.data?.error || 'Failed to end trip');
+    } finally { setLoading(false); }
+  }
+
   async function confirmComplete() {
     setShowComplete(false);
     setLoading(true);
@@ -407,6 +450,10 @@ export default function ActiveTripScreen({ route, navigation }) {
                   : booking.status === 'PICKUP_SCHEDULED' ? 'Pickup Scheduled'
                   : booking.status === 'RETURNED' ? 'Equipment Returned'
                   : 'Deliver Equipment'
+                : booking.source === 'b2b'
+                ? booking.status === 'DRIVER_ARRIVED' ? 'Waiting for Customer OTP'
+                  : booking.status === 'STARTED' ? 'B2B Trip In Progress'
+                  : 'B2B Trip — Head to Pickup'
                 : isInProgress ? 'Trip In Progress' : 'Start Trip'}
             </Text>
             <Text style={styles.heroSub}>{booking.bookingNumber}</Text>
@@ -1079,8 +1126,109 @@ export default function ActiveTripScreen({ route, navigation }) {
           </View>
         )}
 
+        {/* ── B2B TRIP MULTI-PHASE UI ── */}
+        {booking.source === 'b2b' && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>
+              {booking.status === 'PENDING' ? 'Step 1: Mark Your Arrival'
+                : booking.status === 'DRIVER_ARRIVED' ? 'Step 2: Show OTP to Customer'
+                : 'Step 3: End Trip'}
+            </Text>
+            <View style={styles.card}>
+
+              {/* PENDING: Mark Arrival */}
+              {booking.status === 'PENDING' && (
+                <View>
+                  <View style={styles.otpInfoBanner}>
+                    <View style={[styles.otpInfoIcon, { backgroundColor: '#EEF2FF' }]}>
+                      <Ionicons name="location" size={20} color="#4F46E5" />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.otpInfoTitle}>Mark Your Arrival</Text>
+                      <Text style={styles.otpInfoSub}>When you arrive at the pickup location, tap below. An OTP will be generated — show it to the customer.</Text>
+                    </View>
+                  </View>
+                  <TouchableOpacity
+                    style={[styles.primaryBtn, { backgroundColor: '#4F46E5' }, loading && { opacity: 0.6 }]}
+                    onPress={handleB2bMarkArrival}
+                    disabled={loading}
+                    activeOpacity={0.85}
+                  >
+                    {loading ? <ActivityIndicator color="#fff" /> : (
+                      <><Ionicons name="location" size={20} color="#fff" /><Text style={styles.primaryBtnText}>I've Arrived at Pickup</Text></>
+                    )}
+                  </TouchableOpacity>
+                </View>
+              )}
+
+              {/* DRIVER_ARRIVED: Show OTP to customer */}
+              {booking.status === 'DRIVER_ARRIVED' && (
+                <View>
+                  <View style={[styles.otpInfoBanner, { backgroundColor: '#EEF2FF' }]}>
+                    <Ionicons name="information-circle" size={18} color="#4F46E5" />
+                    <Text style={[styles.otpInfoSub, { color: '#4F46E5', marginLeft: 6, flex: 1 }]}>
+                      Show this OTP to the customer. They will enter it on the trip verification link to start the trip.
+                    </Text>
+                  </View>
+
+                  {/* Large OTP Display */}
+                  <View style={styles.b2bOtpDisplay}>
+                    <Text style={styles.b2bOtpLabel}>YOUR OTP</Text>
+                    <View style={styles.b2bOtpBoxRow}>
+                      {(b2bOtp || '----').split('').map((d, i) => (
+                        <View key={i} style={styles.b2bOtpBox}>
+                          <Text style={styles.b2bOtpDigit}>{d}</Text>
+                        </View>
+                      ))}
+                    </View>
+                    <Text style={styles.b2bOtpHint}>Show this to the customer</Text>
+                  </View>
+
+                  <TouchableOpacity style={styles.resendBtn} onPress={handleB2bResendOtp} disabled={sendingOtp} activeOpacity={0.7}>
+                    <Ionicons name="refresh" size={14} color={C.sub} />
+                    <Text style={styles.resendBtnText}>{sendingOtp ? 'Generating...' : 'Generate New OTP'}</Text>
+                  </TouchableOpacity>
+
+                  <View style={[styles.otpInfoBanner, { backgroundColor: '#FFF7ED', marginTop: 8 }]}>
+                    <Ionicons name="timer-outline" size={16} color="#EA580C" />
+                    <Text style={[styles.otpInfoSub, { color: '#EA580C', marginLeft: 6, flex: 1 }]}>
+                      Once customer verifies, trip starts automatically. Come back here to end the trip.
+                    </Text>
+                  </View>
+                </View>
+              )}
+
+              {/* STARTED: End Trip */}
+              {booking.status === 'STARTED' && (
+                <View>
+                  <View style={styles.otpInfoBanner}>
+                    <View style={[styles.otpInfoIcon, { backgroundColor: '#DCFCE7' }]}>
+                      <Ionicons name="checkmark-done-circle" size={20} color={C.primary} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.otpInfoTitle}>Trip In Progress</Text>
+                      <Text style={styles.otpInfoSub}>Customer has verified the OTP. Complete the trip and tap End Trip when you reach the destination.</Text>
+                    </View>
+                  </View>
+                  <TouchableOpacity
+                    style={[styles.primaryBtn, { backgroundColor: C.primaryDeep }, loading && { opacity: 0.6 }]}
+                    onPress={handleB2bEndTrip}
+                    disabled={loading}
+                    activeOpacity={0.85}
+                  >
+                    {loading ? <ActivityIndicator color="#fff" /> : (
+                      <><Ionicons name="flag" size={20} color="#fff" /><Text style={styles.primaryBtnText}>End Trip</Text></>
+                    )}
+                  </TouchableOpacity>
+                </View>
+              )}
+
+            </View>
+          </View>
+        )}
+
         {/* ── OTP Entry (DRIVER_ASSIGNED / VEHICLE_ASSIGNED) ── */}
-        {!isInProgress && !['truck', 'packers', 'equipment'].includes(booking.source) && (
+        {!isInProgress && !['truck', 'packers', 'equipment', 'b2b'].includes(booking.source) && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Verify Customer OTP</Text>
             <View style={styles.card}>
@@ -1164,7 +1312,7 @@ export default function ActiveTripScreen({ route, navigation }) {
         )}
 
         {/* ── Complete Trip ── */}
-        {isInProgress && !['truck', 'packers', 'equipment'].includes(booking.source) && (
+        {isInProgress && !['truck', 'packers', 'equipment', 'b2b'].includes(booking.source) && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Trip Details</Text>
             <View style={styles.card}>
@@ -1347,6 +1495,14 @@ const styles = StyleSheet.create({
   otpBoxActive:  { borderColor: C.primary, backgroundColor: '#fff', shadowColor: C.primary, shadowOpacity: 0.25, shadowRadius: 6, elevation: 3 },
   otpDigit:      { fontSize: 20, fontWeight: '900', color: C.text },
   otpCursor:     { position: 'absolute', bottom: 10, width: 18, height: 2.5, backgroundColor: C.primary, borderRadius: 2 },
+
+  // B2B OTP Display (large, shown to customer)
+  b2bOtpDisplay: { alignItems: 'center', paddingVertical: 20, marginBottom: 4 },
+  b2bOtpLabel:   { fontSize: 11, fontWeight: '800', color: C.sub, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 12 },
+  b2bOtpBoxRow:  { flexDirection: 'row', gap: 12, justifyContent: 'center' },
+  b2bOtpBox:     { width: 58, height: 70, borderRadius: 14, backgroundColor: '#4F46E5', justifyContent: 'center', alignItems: 'center', shadowColor: '#4F46E5', shadowOpacity: 0.4, shadowRadius: 10, elevation: 5 },
+  b2bOtpDigit:   { fontSize: 32, fontWeight: '900', color: '#fff' },
+  b2bOtpHint:    { fontSize: 12, color: C.sub, marginTop: 12, fontWeight: '600' },
 
   // CTA Button
   primaryBtn:    { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: C.primary, borderRadius: 14, minHeight: 52, paddingVertical: 10, paddingHorizontal: 14, marginTop: 6, shadowColor: C.primary, shadowOpacity: 0.3, shadowRadius: 8, elevation: 4 },

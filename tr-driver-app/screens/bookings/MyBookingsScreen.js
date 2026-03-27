@@ -89,6 +89,7 @@ function BookingCard({ item, navigation }) {
     const truckActiveStatuses = ['VEHICLE_ASSIGNED', 'LOADING', 'IN_TRANSIT', 'UNLOADING'];
     const packersActiveStatuses = ['TEAM_ASSIGNED', 'PACKING', 'LOADING', 'IN_TRANSIT', 'UNLOADING', 'UNPACKING'];
     const equipmentActiveStatuses = ['CONFIRMED', 'DELIVERED', 'IN_USE', 'PICKUP_SCHEDULED', 'RETURNED'];
+    const b2bActiveStatuses = ['PENDING', 'DRIVER_ARRIVED', 'STARTED'];
     if (['IN_PROGRESS', 'STARTED'].includes(item.status) && otpSources.includes(item.source)) {
       navigation.navigate('ActiveTrip', { booking: item });
     } else if (item.source === 'truck' && truckActiveStatuses.includes(item.status)) {
@@ -96,6 +97,8 @@ function BookingCard({ item, navigation }) {
     } else if (item.source === 'packers' && packersActiveStatuses.includes(item.status)) {
       navigation.navigate('ActiveTrip', { booking: item });
     } else if (item.source === 'equipment' && equipmentActiveStatuses.includes(item.status)) {
+      navigation.navigate('ActiveTrip', { booking: item });
+    } else if (item.source === 'b2b' && b2bActiveStatuses.includes(item.status)) {
       navigation.navigate('ActiveTrip', { booking: item });
     } else {
       navigation.navigate('BookingDetail', { booking: item });
