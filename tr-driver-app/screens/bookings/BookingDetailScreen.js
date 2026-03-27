@@ -171,6 +171,7 @@ function ServiceRows({ booking }) {
 
   if (source === 'b2b') return (
     <>
+      <Row icon="briefcase-outline" iconBg="#F5F3FF" iconColor="#7C3AED" label="Service Type" value={booking.serviceType} />
       <Row icon="car-outline" iconBg="#F5F3FF" iconColor="#7C3AED" label="Vehicle" value={booking.carCategoryName} />
       <Row icon="document-text-outline" iconBg="#F5F3FF" iconColor="#7C3AED" label="Registration" value={booking.vehicleNumber} mono last />
     </>
