@@ -260,11 +260,11 @@ export async function POST(
         data: { status: 'STARTED', startedAt: new Date(), otp: null },
       });
 
-      // Update booking to IN_PROGRESS if it's the first started trip
+      // Update booking to IN_PROGRESS if not yet started
       const b2bBooking = await prisma.b2b_bookings.findUnique({
         where: { id: trip.bookingId }, select: { status: true },
       });
-      if (b2bBooking?.status === 'TRIPS_CREATED') {
+      if (b2bBooking && ['TRIPS_CREATED', 'CONFIRMED'].includes(b2bBooking.status)) {
         await prisma.b2b_bookings.update({
           where: { id: trip.bookingId }, data: { status: 'IN_PROGRESS' },
         });

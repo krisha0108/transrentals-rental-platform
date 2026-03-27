@@ -131,8 +131,10 @@ export default function ActiveTripScreen({ route, navigation }) {
     try {
       const res = await startTrip(booking.id, otp, booking.source || 'chauffeur');
       if (res.data.success) {
+        // B2B trips use 'STARTED' status, all others use 'IN_PROGRESS'
+        const nextStatus = booking.source === 'b2b' ? 'STARTED' : 'IN_PROGRESS';
         navigation.replace('ActiveTrip', {
-          booking: { ...booking, status: 'IN_PROGRESS', tripStartedAt: new Date() },
+          booking: { ...booking, status: nextStatus, tripStartedAt: new Date() },
         });
       }
     } catch (err) {
