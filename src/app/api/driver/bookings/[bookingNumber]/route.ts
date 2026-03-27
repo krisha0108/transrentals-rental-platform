@@ -14,6 +14,12 @@ function generateOTP(): string {
   return Math.floor(1000 + Math.random() * 9000).toString();
 }
 
+function normalizePhone(phone: string | null | undefined): string {
+  if (!phone) return '';
+  const digits = phone.replace(/\D/g, '');
+  return digits.length >= 10 ? digits.slice(-10) : digits;
+}
+
 // GET - Get booking details
 export async function GET(
   request: NextRequest,
@@ -187,7 +193,7 @@ export async function GET(
     if (serviceType === 'car') vendorIdMatch = booking.acceptedVendorId;
     if (serviceType === 'luxury') vendorIdMatch = booking.assignedVendorId || booking.acceptedVendorId;
 
-    if (booking[driverPhoneField] !== driver.phone || vendorIdMatch !== driver.vendorId) {
+    if (normalizePhone(booking[driverPhoneField]) !== normalizePhone(driver.phone) || vendorIdMatch !== driver.vendorId) {
       return NextResponse.json(
         { success: false, error: 'This booking is not assigned to you' },
         { status: 403 }
@@ -687,7 +693,7 @@ export async function PATCH(
     if (serviceType === 'car') vendorIdMatch = booking.acceptedVendorId;
     if (serviceType === 'luxury') vendorIdMatch = booking.assignedVendorId || booking.acceptedVendorId;
 
-    if (booking[driverPhoneField] !== driver.phone || vendorIdMatch !== driver.vendorId) {
+    if (normalizePhone(booking[driverPhoneField]) !== normalizePhone(driver.phone) || vendorIdMatch !== driver.vendorId) {
       return NextResponse.json(
         { success: false, error: 'This booking is not assigned to you' },
         { status: 403 }

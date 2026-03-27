@@ -95,7 +95,10 @@ export async function GET(request: NextRequest) {
 
       // ── 2. BUS BOOKINGS (phone-based) ─────────────────────────────────────
       {
-        const where: any = { driverPhone: staffPhone, vendorId: (driver as any).vendorId };
+        const busPhone = staffPhone ? staffPhone.replace(/\D/g, '').slice(-10) : null;
+        const where: any = busPhone
+          ? { driverPhone: { endsWith: busPhone }, vendorId: (driver as any).vendorId }
+          : { id: 'none' };
         if (filter === 'active') where.status = { in: ACTIVE_STATUSES.bus };
         else if (filter === 'completed') where.status = 'COMPLETED';
 
@@ -107,7 +110,8 @@ export async function GET(request: NextRequest) {
             pickupCity: true, dropCity: true, pickupAddress: true, dropAddress: true,
             pickupDate: true, pickupTime: true, returnDate: true,
             totalAmount: true, status: true,
-            vehicleNumber: true, vehicleModel: true, createdAt: true,
+            vehicleNumber: true, vehicleModel: true,
+            tripStartOtp: true, tripStartedAt: true, createdAt: true,
           },
         });
 
@@ -122,16 +126,18 @@ export async function GET(request: NextRequest) {
           earnings: null, grandTotal: b.totalAmount,
           status: b.status,
           vehicleNumber: b.vehicleNumber, vehicleModel: b.vehicleModel,
-          hasOtp: false, createdAt: b.createdAt,
+          hasOtp: !!b.tripStartOtp, tripStartOtp: b.tripStartOtp,
+          tripStartedAt: b.tripStartedAt, createdAt: b.createdAt,
         })));
       }
 
       // ── 3. LUXURY BOOKINGS (phone-based) ──────────────────────────────────
       {
-        const where: any = {
-          driverPhone: staffPhone,
+        const luxPhone = staffPhone ? staffPhone.replace(/\D/g, '').slice(-10) : null;
+        const where: any = luxPhone ? {
+          driverPhone: { endsWith: luxPhone },
           OR: [{ assignedVendorId: (driver as any).vendorId }, { acceptedVendorId: (driver as any).vendorId }],
-        };
+        } : { id: 'none' };
         if (filter === 'active') where.status = { in: ACTIVE_STATUSES.luxury };
         else if (filter === 'completed') where.status = 'COMPLETED';
 
@@ -185,7 +191,10 @@ export async function GET(request: NextRequest) {
 
       // ── 4. TRUCK BOOKINGS (phone-based, same as driver web portal) ───────────
       {
-        const where: any = { driverPhone: staffPhone, vendorId: (driver as any).vendorId };
+        const truckPhone = staffPhone ? staffPhone.replace(/\D/g, '').slice(-10) : null;
+        const where: any = truckPhone
+          ? { driverPhone: { endsWith: truckPhone }, vendorId: (driver as any).vendorId }
+          : { id: 'none' }; // no phone — skip
         if (filter === 'active') where.status = { in: ACTIVE_STATUSES.truck };
         else if (filter === 'completed') where.status = 'COMPLETED';
 
@@ -218,7 +227,10 @@ export async function GET(request: NextRequest) {
 
       // ── 5. PACKERS BOOKINGS (phone-based, scheduledDate as pickup) ────────
       {
-        const where: any = { teamLeaderPhone: staffPhone };
+        const packersPhone = staffPhone ? staffPhone.replace(/\D/g, '').slice(-10) : null;
+        const where: any = packersPhone
+          ? { teamLeaderPhone: { endsWith: packersPhone } }
+          : { id: 'none' };
         if (filter === 'active') where.status = { in: ACTIVE_STATUSES.packers };
         else if (filter === 'completed') where.status = 'COMPLETED';
 
@@ -249,7 +261,10 @@ export async function GET(request: NextRequest) {
 
       // ── 6. EQUIPMENT BOOKINGS (phone-based, startDate as pickup) ──────────
       {
-        const where: any = { operatorPhone: staffPhone };
+        const equipPhone = staffPhone ? staffPhone.replace(/\D/g, '').slice(-10) : null;
+        const where: any = equipPhone
+          ? { operatorPhone: { endsWith: equipPhone } }
+          : { id: 'none' };
         if (filter === 'active') where.status = { in: ACTIVE_STATUSES.equipment };
         else if (filter === 'completed') where.status = 'COMPLETED';
 

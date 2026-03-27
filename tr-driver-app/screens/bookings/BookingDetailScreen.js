@@ -575,12 +575,36 @@ export default function BookingDetailScreen({ route, navigation }) {
             <Text style={styles.actionBtnText}>Assign Vehicle</Text>
           </TouchableOpacity>
         </View>
-      ) : ['DRIVER_ASSIGNED','vehicle_assigned'].includes(booking.status) && booking.source === 'chauffeur' ? (
+      ) : booking.source === 'equipment' && ['CONFIRMED','DELIVERED','IN_USE','PICKUP_SCHEDULED','RETURNED'].includes(booking.status) ? (
+        <View style={styles.footer}>
+          <TouchableOpacity style={[styles.actionBtn, { backgroundColor: '#0369A1' }]}
+            onPress={() => navigation.navigate('ActiveTrip', { booking })} activeOpacity={0.85}>
+            <Ionicons name="hammer-outline" size={20} color="#fff" />
+            <Text style={styles.actionBtnText}>Manage Equipment Rental</Text>
+          </TouchableOpacity>
+        </View>
+      ) : booking.source === 'packers' && ['TEAM_ASSIGNED','PACKING','LOADING','IN_TRANSIT','UNLOADING','UNPACKING'].includes(booking.status) ? (
+        <View style={styles.footer}>
+          <TouchableOpacity style={[styles.actionBtn, { backgroundColor: '#0369A1' }]}
+            onPress={() => navigation.navigate('ActiveTrip', { booking })} activeOpacity={0.85}>
+            <Ionicons name="cube-outline" size={20} color="#fff" />
+            <Text style={styles.actionBtnText}>Manage Packers Job</Text>
+          </TouchableOpacity>
+        </View>
+      ) : ['DRIVER_ASSIGNED','VEHICLE_ASSIGNED','vehicle_assigned'].includes(booking.status) && ['chauffeur','bus','luxury','truck'].includes(booking.source) ? (
         <View style={styles.footer}>
           <TouchableOpacity style={[styles.actionBtn, { backgroundColor: '#EA580C' }]}
             onPress={() => navigation.navigate('ActiveTrip', { booking })} activeOpacity={0.85}>
             <Ionicons name="play-circle-outline" size={20} color="#fff" />
-            <Text style={styles.actionBtnText}>Start Trip (Enter OTP)</Text>
+            <Text style={styles.actionBtnText}>{booking.source === 'truck' ? 'Manage Truck Trip' : 'Start Trip (Enter OTP)'}</Text>
+          </TouchableOpacity>
+        </View>
+      ) : booking.source === 'truck' && ['LOADING','IN_TRANSIT','UNLOADING'].includes(booking.status) ? (
+        <View style={styles.footer}>
+          <TouchableOpacity style={[styles.actionBtn, { backgroundColor: '#EA580C' }]}
+            onPress={() => navigation.navigate('ActiveTrip', { booking })} activeOpacity={0.85}>
+            <Ionicons name="construct-outline" size={20} color="#fff" />
+            <Text style={styles.actionBtnText}>Manage Truck Trip</Text>
           </TouchableOpacity>
         </View>
       ) : (isDirect || booking.source === 'b2b') && ['confirmed','assigned','vehicle_assigned','in_progress','STARTED'].includes(booking.status) ? (

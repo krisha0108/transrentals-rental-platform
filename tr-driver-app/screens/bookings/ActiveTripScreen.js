@@ -6,7 +6,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { startTrip, completeTrip } from '../api/client';
+import { startTrip, completeTrip, requestOtp, startTransit, startUnloading, startPackingLoading, startUnpacking, startUse, schedulePickup, confirmReturn } from '../api/client';
 import moment from 'moment';
 
 const C = {
@@ -41,8 +41,8 @@ function ElapsedTimer({ startedAt }) {
 }
 
 // ─── OTP Box ───────────────────────────────────────────────────────────────────
-function OtpInput({ value, onChange }) {
-  const digits = (value + '      ').slice(0, 6).split('');
+function OtpInput({ value, onChange, maxDigits = 6 }) {
+  const digits = (value + '      ').slice(0, maxDigits).split('');
   const inputRef = useRef(null);
   return (
     <TouchableOpacity style={styles.otpContainer} onPress={() => inputRef.current?.focus()} activeOpacity={1}>
@@ -50,13 +50,13 @@ function OtpInput({ value, onChange }) {
         ref={inputRef}
         style={styles.hiddenInput}
         value={value}
-        onChangeText={t => onChange(t.replace(/\D/g, '').slice(0, 6))}
+        onChangeText={t => onChange(t.replace(/\D/g, '').slice(0, maxDigits))}
         keyboardType="numeric"
-        maxLength={6}
+        maxLength={maxDigits}
         autoComplete="one-time-code"
       />
       <View style={styles.otpBoxRow}>
-        {digits.map((d, i) => {
+        {digits.slice(0, maxDigits).map((d, i) => {
           const filled = i < value.length;
           const active = i === value.length;
           return (
@@ -89,6 +89,8 @@ export default function ActiveTripScreen({ route, navigation }) {
   const { booking } = route.params;
   const [otp, setOtp]         = useState('');
   const [loading, setLoading] = useState(false);
+  const [sendingOtp, setSendingOtp] = useState(false);
+  const [otpSent, setOtpSent] = useState(!!booking.hasOtp);
   const [actualKm, setActualKm]   = useState('');
   const [toll, setToll]           = useState('');
   const [parking, setParking]     = useState('');
@@ -122,7 +124,7 @@ export default function ActiveTripScreen({ route, navigation }) {
     }
     setLoading(true);
     try {
-      const res = await startTrip(booking.id, otp);
+      const res = await startTrip(booking.id, otp, booking.source || 'chauffeur');
       if (res.data.success) {
         navigation.replace('ActiveTrip', {
           booking: { ...booking, status: 'IN_PROGRESS', tripStartedAt: new Date() },
@@ -135,6 +137,212 @@ export default function ActiveTripScreen({ route, navigation }) {
     }
   }
 
+  async function handleRequestOtp() {
+    setSendingOtp(true);
+    try {
+      const res = await requestOtp(booking.id, booking.source || 'chauffeur');
+      if (res.data.success) {
+        setOtpSent(true);
+        Alert.alert('OTP Sent!', 'OTP has been sent to the customer\'s phone. Ask them to share it with you.');
+      }
+    } catch (err) {
+      Alert.alert('Error', err.response?.data?.error || 'Failed to send OTP. Please try again.');
+    } finally {
+      setSendingOtp(false);
+    }
+  }
+
+  // ── Truck handlers ──────────────────────────────────────────────────────────
+  async function handleStartLoading() {
+    if (otp.length !== 6) { Alert.alert('Invalid OTP', 'Enter the 6-digit loading OTP'); return; }
+    setLoading(true);
+    try {
+      const res = await startTrip(booking.id, otp, 'truck');
+      if (res.data.success) {
+        navigation.replace('ActiveTrip', { booking: { ...booking, status: 'LOADING', loadingStartedAt: new Date() } });
+      }
+    } catch (err) {
+      Alert.alert('Error', err.response?.data?.error || 'Invalid OTP. Please try again.');
+    } finally { setLoading(false); }
+  }
+
+  async function handleStartTransit() {
+    setLoading(true);
+    try {
+      const res = await startTransit(booking.id);
+      if (res.data.success) {
+        navigation.replace('ActiveTrip', { booking: { ...booking, status: 'IN_TRANSIT' } });
+      }
+    } catch (err) {
+      Alert.alert('Error', err.response?.data?.error || 'Failed to start transit');
+    } finally { setLoading(false); }
+  }
+
+  async function handleStartUnloading() {
+    if (otp.length !== 6) { Alert.alert('Invalid OTP', 'Enter the 6-digit delivery OTP'); return; }
+    setLoading(true);
+    try {
+      const res = await startUnloading(booking.id, otp);
+      if (res.data.success) {
+        navigation.replace('ActiveTrip', { booking: { ...booking, status: 'UNLOADING' } });
+      }
+    } catch (err) {
+      Alert.alert('Error', err.response?.data?.error || 'Invalid OTP. Please try again.');
+    } finally { setLoading(false); }
+  }
+
+  async function handleCompleteDelivery() {
+    setLoading(true);
+    try {
+      const res = await completeTrip(booking.id, {}, 'truck');
+      if (res.data.success) {
+        navigation.navigate('BookingDetail', { booking: { ...booking, status: 'COMPLETED' } });
+      }
+    } catch (err) {
+      Alert.alert('Error', err.response?.data?.error || 'Failed to complete delivery');
+    } finally { setLoading(false); }
+  }
+
+  // ── Packers handlers ─────────────────────────────────────────────────────────
+  async function handleStartPacking() {
+    if (otp.length !== 6) { Alert.alert('Invalid OTP', 'Enter the 6-digit packing OTP'); return; }
+    setLoading(true);
+    try {
+      const res = await startTrip(booking.id, otp, 'packers');
+      if (res.data.success) {
+        navigation.replace('ActiveTrip', { booking: { ...booking, status: 'PACKING', packingStartedAt: new Date() } });
+      }
+    } catch (err) {
+      Alert.alert('Error', err.response?.data?.error || 'Invalid OTP. Please try again.');
+    } finally { setLoading(false); }
+  }
+
+  async function handleStartPackingLoading() {
+    if (otp.length !== 6) { Alert.alert('Invalid OTP', 'Enter the 6-digit loading OTP'); return; }
+    setLoading(true);
+    try {
+      const res = await startPackingLoading(booking.id, otp);
+      if (res.data.success) {
+        navigation.replace('ActiveTrip', { booking: { ...booking, status: 'LOADING', loadingStartedAt: new Date() } });
+      }
+    } catch (err) {
+      Alert.alert('Error', err.response?.data?.error || 'Invalid OTP. Please try again.');
+    } finally { setLoading(false); }
+  }
+
+  async function handleStartPackersTransit() {
+    setLoading(true);
+    try {
+      const res = await startTransit(booking.id, 'packers');
+      if (res.data.success) {
+        navigation.replace('ActiveTrip', { booking: { ...booking, status: 'IN_TRANSIT' } });
+      }
+    } catch (err) {
+      Alert.alert('Error', err.response?.data?.error || 'Failed to start transit');
+    } finally { setLoading(false); }
+  }
+
+  async function handleStartPackersUnloading() {
+    if (otp.length !== 6) { Alert.alert('Invalid OTP', 'Enter the 6-digit delivery OTP'); return; }
+    setLoading(true);
+    try {
+      const res = await startUnloading(booking.id, otp, 'packers');
+      if (res.data.success) {
+        navigation.replace('ActiveTrip', { booking: { ...booking, status: 'UNLOADING' } });
+      }
+    } catch (err) {
+      Alert.alert('Error', err.response?.data?.error || 'Invalid OTP. Please try again.');
+    } finally { setLoading(false); }
+  }
+
+  async function handleStartUnpacking() {
+    setLoading(true);
+    try {
+      const res = await startUnpacking(booking.id);
+      if (res.data.success) {
+        navigation.replace('ActiveTrip', { booking: { ...booking, status: 'UNPACKING' } });
+      }
+    } catch (err) {
+      Alert.alert('Error', err.response?.data?.error || 'Failed to start unpacking');
+    } finally { setLoading(false); }
+  }
+
+  async function handleCompleteJob() {
+    setLoading(true);
+    try {
+      const res = await completeTrip(booking.id, {}, 'packers');
+      if (res.data.success) {
+        navigation.navigate('BookingDetail', { booking: { ...booking, status: 'COMPLETED' } });
+      }
+    } catch (err) {
+      Alert.alert('Error', err.response?.data?.error || 'Failed to complete job');
+    } finally { setLoading(false); }
+  }
+
+  // ── Equipment handlers ───────────────────────────────────────────────────────
+  async function handleDeliverEquipment() {
+    if (otp.length !== 6) { Alert.alert('Invalid OTP', 'Enter the 6-digit delivery OTP'); return; }
+    setLoading(true);
+    try {
+      const res = await startTrip(booking.id, otp, 'equipment');
+      if (res.data.success) {
+        navigation.replace('ActiveTrip', { booking: { ...booking, status: 'DELIVERED', deliveredAt: new Date() } });
+      }
+    } catch (err) {
+      Alert.alert('Error', err.response?.data?.error || 'Invalid OTP. Please try again.');
+    } finally { setLoading(false); }
+  }
+
+  async function handleStartUse() {
+    setLoading(true);
+    try {
+      const res = await startUse(booking.id);
+      if (res.data.success) {
+        navigation.replace('ActiveTrip', { booking: { ...booking, status: 'IN_USE', inUseFrom: new Date() } });
+      }
+    } catch (err) {
+      Alert.alert('Error', err.response?.data?.error || 'Failed to mark equipment in use');
+    } finally { setLoading(false); }
+  }
+
+  async function handleSchedulePickup() {
+    setLoading(true);
+    try {
+      const res = await schedulePickup(booking.id);
+      if (res.data.success) {
+        setOtpSent(true);
+        navigation.replace('ActiveTrip', { booking: { ...booking, status: 'PICKUP_SCHEDULED', hasOtp: true } });
+      }
+    } catch (err) {
+      Alert.alert('Error', err.response?.data?.error || 'Failed to schedule pickup');
+    } finally { setLoading(false); }
+  }
+
+  async function handleConfirmReturn() {
+    if (otp.length !== 6) { Alert.alert('Invalid OTP', 'Enter the 6-digit return OTP'); return; }
+    setLoading(true);
+    try {
+      const res = await confirmReturn(booking.id, otp);
+      if (res.data.success) {
+        navigation.replace('ActiveTrip', { booking: { ...booking, status: 'RETURNED', returnedAt: new Date() } });
+      }
+    } catch (err) {
+      Alert.alert('Error', err.response?.data?.error || 'Invalid OTP. Please try again.');
+    } finally { setLoading(false); }
+  }
+
+  async function handleCompleteRental() {
+    setLoading(true);
+    try {
+      const res = await completeTrip(booking.id, {}, 'equipment');
+      if (res.data.success) {
+        navigation.navigate('BookingDetail', { booking: { ...booking, status: 'COMPLETED' } });
+      }
+    } catch (err) {
+      Alert.alert('Error', err.response?.data?.error || 'Failed to complete rental');
+    } finally { setLoading(false); }
+  }
+
   async function confirmComplete() {
     setShowComplete(false);
     setLoading(true);
@@ -143,7 +351,7 @@ export default function ActiveTripScreen({ route, navigation }) {
         actualKm:       actualKm || null,
         tollCharges:    toll     || null,
         parkingCharges: parking  || null,
-      });
+      }, booking.source || 'chauffeur');
       if (res.data.success) {
         navigation.navigate('BookingDetail', { booking: { ...booking, status: 'COMPLETED' } });
       }
@@ -177,7 +385,25 @@ export default function ActiveTripScreen({ route, navigation }) {
           </TouchableOpacity>
           <View style={{ flex: 1 }}>
             <Text style={styles.heroTitle}>
-              {isInProgress ? 'Trip In Progress' : 'Start Trip'}
+              {booking.source === 'truck'
+                ? booking.status === 'LOADING' ? 'Loading In Progress'
+                  : booking.status === 'IN_TRANSIT' ? 'In Transit'
+                  : booking.status === 'UNLOADING' ? 'Unloading'
+                  : 'Start Loading'
+                : booking.source === 'packers'
+                ? booking.status === 'PACKING' ? 'Packing In Progress'
+                  : booking.status === 'LOADING' ? 'Loading In Progress'
+                  : booking.status === 'IN_TRANSIT' ? 'In Transit'
+                  : booking.status === 'UNLOADING' ? 'Unloading'
+                  : booking.status === 'UNPACKING' ? 'Unpacking'
+                  : 'Start Packing'
+                : booking.source === 'equipment'
+                ? booking.status === 'DELIVERED' ? 'Equipment Delivered'
+                  : booking.status === 'IN_USE' ? 'Equipment In Use'
+                  : booking.status === 'PICKUP_SCHEDULED' ? 'Pickup Scheduled'
+                  : booking.status === 'RETURNED' ? 'Equipment Returned'
+                  : 'Deliver Equipment'
+                : isInProgress ? 'Trip In Progress' : 'Start Trip'}
             </Text>
             <Text style={styles.heroSub}>{booking.bookingNumber}</Text>
           </View>
@@ -277,45 +503,659 @@ export default function ActiveTripScreen({ route, navigation }) {
           </View>
         </View>
 
-        {/* ── OTP Entry (DRIVER_ASSIGNED) ── */}
-        {!isInProgress && (
+        {/* ── TRUCK MULTI-PHASE UI ── */}
+        {booking.source === 'truck' && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>
+              {booking.status === 'VEHICLE_ASSIGNED' ? 'Step 1: Start Loading'
+                : booking.status === 'LOADING' ? 'Step 2: Loading Complete?'
+                : booking.status === 'IN_TRANSIT' ? 'Step 3: Arrived at Destination?'
+                : 'Step 4: Complete Delivery'}
+            </Text>
+            <View style={styles.card}>
+
+              {/* VEHICLE_ASSIGNED: Send Loading OTP → Enter OTP → Start Loading */}
+              {booking.status === 'VEHICLE_ASSIGNED' && (
+                !otpSent ? (
+                  <View>
+                    <View style={styles.otpInfoBanner}>
+                      <View style={[styles.otpInfoIcon, { backgroundColor: '#EEF2FF' }]}>
+                        <Ionicons name="send" size={20} color="#4F46E5" />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.otpInfoTitle}>Send Loading OTP</Text>
+                        <Text style={styles.otpInfoSub}>When you arrive and are ready to load goods, send the OTP to the customer for verification.</Text>
+                      </View>
+                    </View>
+                    <TouchableOpacity
+                      style={[styles.primaryBtn, { backgroundColor: '#4F46E5' }, sendingOtp && { opacity: 0.6 }]}
+                      onPress={handleRequestOtp}
+                      disabled={sendingOtp}
+                      activeOpacity={0.85}
+                    >
+                      {sendingOtp ? <ActivityIndicator color="#fff" /> : (
+                        <><Ionicons name="notifications" size={20} color="#fff" /><Text style={styles.primaryBtnText}>Send Loading OTP</Text></>
+                      )}
+                    </TouchableOpacity>
+                  </View>
+                ) : (
+                  <View>
+                    <View style={[styles.otpInfoBanner, { backgroundColor: '#EEF2FF', borderRadius: 10, padding: 10, marginBottom: 12 }]}>
+                      <Ionicons name="checkmark-circle" size={16} color="#4F46E5" />
+                      <Text style={[styles.otpInfoSub, { color: '#4F46E5', marginLeft: 6 }]}>Loading OTP sent. Ask customer to share the 6-digit OTP.</Text>
+                    </View>
+                    <OtpInput value={otp} onChange={setOtp} maxDigits={6} />
+                    <TouchableOpacity style={styles.resendBtn} onPress={handleRequestOtp} disabled={sendingOtp} activeOpacity={0.7}>
+                      <Ionicons name="refresh" size={14} color={C.sub} />
+                      <Text style={styles.resendBtnText}>{sendingOtp ? 'Resending...' : 'Resend OTP'}</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.primaryBtn, { backgroundColor: '#4F46E5' }, (loading || otp.length < 6) && { opacity: 0.5 }]}
+                      onPress={handleStartLoading}
+                      disabled={loading || otp.length < 6}
+                      activeOpacity={0.85}
+                    >
+                      {loading ? <ActivityIndicator color="#fff" /> : (
+                        <><Ionicons name="cube" size={20} color="#fff" /><Text style={styles.primaryBtnText}>Start Loading</Text></>
+                      )}
+                    </TouchableOpacity>
+                  </View>
+                )
+              )}
+
+              {/* LOADING: Loading complete → start transit */}
+              {booking.status === 'LOADING' && (
+                <View>
+                  <View style={styles.otpInfoBanner}>
+                    <View style={[styles.otpInfoIcon, { backgroundColor: '#F5F3FF' }]}>
+                      <Ionicons name="navigate" size={20} color="#7C3AED" />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.otpInfoTitle}>Loading Complete?</Text>
+                      <Text style={styles.otpInfoSub}>Once all goods are loaded, tap below to start transit to the destination.</Text>
+                    </View>
+                  </View>
+                  <TouchableOpacity
+                    style={[styles.primaryBtn, { backgroundColor: '#7C3AED' }, loading && { opacity: 0.6 }]}
+                    onPress={handleStartTransit}
+                    disabled={loading}
+                    activeOpacity={0.85}
+                  >
+                    {loading ? <ActivityIndicator color="#fff" /> : (
+                      <><Ionicons name="navigate-circle" size={20} color="#fff" /><Text style={styles.primaryBtnText}>Loading Complete — Start Transit</Text></>
+                    )}
+                  </TouchableOpacity>
+                </View>
+              )}
+
+              {/* IN_TRANSIT: Send Delivery OTP → Enter OTP → Start Unloading */}
+              {booking.status === 'IN_TRANSIT' && (
+                !otpSent ? (
+                  <View>
+                    <View style={styles.otpInfoBanner}>
+                      <View style={[styles.otpInfoIcon, { backgroundColor: '#FFF7ED' }]}>
+                        <Ionicons name="send" size={20} color="#EA580C" />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.otpInfoTitle}>Send Delivery OTP</Text>
+                        <Text style={styles.otpInfoSub}>When you arrive at the delivery location, send the delivery OTP to the customer.</Text>
+                      </View>
+                    </View>
+                    <TouchableOpacity
+                      style={[styles.primaryBtn, { backgroundColor: '#EA580C' }, sendingOtp && { opacity: 0.6 }]}
+                      onPress={handleRequestOtp}
+                      disabled={sendingOtp}
+                      activeOpacity={0.85}
+                    >
+                      {sendingOtp ? <ActivityIndicator color="#fff" /> : (
+                        <><Ionicons name="notifications" size={20} color="#fff" /><Text style={styles.primaryBtnText}>Send Delivery OTP</Text></>
+                      )}
+                    </TouchableOpacity>
+                  </View>
+                ) : (
+                  <View>
+                    <View style={[styles.otpInfoBanner, { backgroundColor: '#FFF7ED', borderRadius: 10, padding: 10, marginBottom: 12 }]}>
+                      <Ionicons name="checkmark-circle" size={16} color="#EA580C" />
+                      <Text style={[styles.otpInfoSub, { color: '#EA580C', marginLeft: 6 }]}>Delivery OTP sent. Ask customer to share the 6-digit OTP.</Text>
+                    </View>
+                    <OtpInput value={otp} onChange={setOtp} maxDigits={6} />
+                    <TouchableOpacity style={styles.resendBtn} onPress={handleRequestOtp} disabled={sendingOtp} activeOpacity={0.7}>
+                      <Ionicons name="refresh" size={14} color={C.sub} />
+                      <Text style={styles.resendBtnText}>{sendingOtp ? 'Resending...' : 'Resend OTP'}</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.primaryBtn, { backgroundColor: '#EA580C' }, (loading || otp.length < 6) && { opacity: 0.5 }]}
+                      onPress={handleStartUnloading}
+                      disabled={loading || otp.length < 6}
+                      activeOpacity={0.85}
+                    >
+                      {loading ? <ActivityIndicator color="#fff" /> : (
+                        <><Ionicons name="package" size={20} color="#fff" /><Text style={styles.primaryBtnText}>Start Unloading</Text></>
+                      )}
+                    </TouchableOpacity>
+                  </View>
+                )
+              )}
+
+              {/* UNLOADING: Complete Delivery */}
+              {booking.status === 'UNLOADING' && (
+                <View>
+                  <View style={styles.otpInfoBanner}>
+                    <View style={[styles.otpInfoIcon, { backgroundColor: '#DCFCE7' }]}>
+                      <Ionicons name="checkmark-done-circle" size={20} color={C.primary} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.otpInfoTitle}>Complete Delivery</Text>
+                      <Text style={styles.otpInfoSub}>Once all goods are unloaded and delivered, mark the delivery as complete.</Text>
+                    </View>
+                  </View>
+                  <TouchableOpacity
+                    style={[styles.primaryBtn, { backgroundColor: C.primary }, loading && { opacity: 0.6 }]}
+                    onPress={handleCompleteDelivery}
+                    disabled={loading}
+                    activeOpacity={0.85}
+                  >
+                    {loading ? <ActivityIndicator color="#fff" /> : (
+                      <><Ionicons name="checkmark-circle" size={20} color="#fff" /><Text style={styles.primaryBtnText}>Mark Delivery Complete</Text></>
+                    )}
+                  </TouchableOpacity>
+                </View>
+              )}
+
+            </View>
+          </View>
+        )}
+
+        {/* ── PACKERS MULTI-PHASE UI ── */}
+        {booking.source === 'packers' && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>
+              {booking.status === 'TEAM_ASSIGNED' ? 'Step 1: Start Packing'
+                : booking.status === 'PACKING' ? 'Step 2: Packing Complete?'
+                : booking.status === 'LOADING' ? 'Step 3: Loading Complete?'
+                : booking.status === 'IN_TRANSIT' ? 'Step 4: Arrived at Destination?'
+                : booking.status === 'UNLOADING' ? 'Step 5: Unloading Complete?'
+                : 'Step 6: Complete Job'}
+            </Text>
+            <View style={styles.card}>
+
+              {/* TEAM_ASSIGNED: Send Packing OTP → Enter OTP → Start Packing */}
+              {booking.status === 'TEAM_ASSIGNED' && (
+                !otpSent ? (
+                  <View>
+                    <View style={styles.otpInfoBanner}>
+                      <View style={[styles.otpInfoIcon, { backgroundColor: '#FDF4FF' }]}>
+                        <Ionicons name="send" size={20} color="#9333EA" />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.otpInfoTitle}>Send Packing OTP</Text>
+                        <Text style={styles.otpInfoSub}>When you arrive at the customer's location, send the OTP to them for verification before starting to pack.</Text>
+                      </View>
+                    </View>
+                    <TouchableOpacity
+                      style={[styles.primaryBtn, { backgroundColor: '#9333EA' }, sendingOtp && { opacity: 0.6 }]}
+                      onPress={handleRequestOtp}
+                      disabled={sendingOtp}
+                      activeOpacity={0.85}
+                    >
+                      {sendingOtp ? <ActivityIndicator color="#fff" /> : (
+                        <><Ionicons name="notifications" size={20} color="#fff" /><Text style={styles.primaryBtnText}>Send Packing OTP</Text></>
+                      )}
+                    </TouchableOpacity>
+                  </View>
+                ) : (
+                  <View>
+                    <View style={[styles.otpInfoBanner, { backgroundColor: '#FDF4FF', borderRadius: 10, padding: 10, marginBottom: 12 }]}>
+                      <Ionicons name="checkmark-circle" size={16} color="#9333EA" />
+                      <Text style={[styles.otpInfoSub, { color: '#9333EA', marginLeft: 6 }]}>Packing OTP sent. Ask customer to share the 6-digit OTP.</Text>
+                    </View>
+                    <OtpInput value={otp} onChange={setOtp} maxDigits={6} />
+                    <TouchableOpacity style={styles.resendBtn} onPress={handleRequestOtp} disabled={sendingOtp} activeOpacity={0.7}>
+                      <Ionicons name="refresh" size={14} color={C.sub} />
+                      <Text style={styles.resendBtnText}>{sendingOtp ? 'Resending...' : 'Resend OTP'}</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.primaryBtn, { backgroundColor: '#9333EA' }, (loading || otp.length < 6) && { opacity: 0.5 }]}
+                      onPress={handleStartPacking}
+                      disabled={loading || otp.length < 6}
+                      activeOpacity={0.85}
+                    >
+                      {loading ? <ActivityIndicator color="#fff" /> : (
+                        <><Ionicons name="archive" size={20} color="#fff" /><Text style={styles.primaryBtnText}>Start Packing</Text></>
+                      )}
+                    </TouchableOpacity>
+                  </View>
+                )
+              )}
+
+              {/* PACKING: Send Loading OTP → Enter OTP → Start Loading */}
+              {booking.status === 'PACKING' && (
+                !otpSent ? (
+                  <View>
+                    <View style={styles.otpInfoBanner}>
+                      <View style={[styles.otpInfoIcon, { backgroundColor: '#EEF2FF' }]}>
+                        <Ionicons name="send" size={20} color="#4F46E5" />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.otpInfoTitle}>Send Loading OTP</Text>
+                        <Text style={styles.otpInfoSub}>Once packing is done, send the loading OTP to the customer for verification before loading the goods.</Text>
+                      </View>
+                    </View>
+                    <TouchableOpacity
+                      style={[styles.primaryBtn, { backgroundColor: '#4F46E5' }, sendingOtp && { opacity: 0.6 }]}
+                      onPress={handleRequestOtp}
+                      disabled={sendingOtp}
+                      activeOpacity={0.85}
+                    >
+                      {sendingOtp ? <ActivityIndicator color="#fff" /> : (
+                        <><Ionicons name="notifications" size={20} color="#fff" /><Text style={styles.primaryBtnText}>Send Loading OTP</Text></>
+                      )}
+                    </TouchableOpacity>
+                  </View>
+                ) : (
+                  <View>
+                    <View style={[styles.otpInfoBanner, { backgroundColor: '#EEF2FF', borderRadius: 10, padding: 10, marginBottom: 12 }]}>
+                      <Ionicons name="checkmark-circle" size={16} color="#4F46E5" />
+                      <Text style={[styles.otpInfoSub, { color: '#4F46E5', marginLeft: 6 }]}>Loading OTP sent. Ask customer to share the 6-digit OTP.</Text>
+                    </View>
+                    <OtpInput value={otp} onChange={setOtp} maxDigits={6} />
+                    <TouchableOpacity style={styles.resendBtn} onPress={handleRequestOtp} disabled={sendingOtp} activeOpacity={0.7}>
+                      <Ionicons name="refresh" size={14} color={C.sub} />
+                      <Text style={styles.resendBtnText}>{sendingOtp ? 'Resending...' : 'Resend OTP'}</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.primaryBtn, { backgroundColor: '#4F46E5' }, (loading || otp.length < 6) && { opacity: 0.5 }]}
+                      onPress={handleStartPackingLoading}
+                      disabled={loading || otp.length < 6}
+                      activeOpacity={0.85}
+                    >
+                      {loading ? <ActivityIndicator color="#fff" /> : (
+                        <><Ionicons name="cube" size={20} color="#fff" /><Text style={styles.primaryBtnText}>Start Loading</Text></>
+                      )}
+                    </TouchableOpacity>
+                  </View>
+                )
+              )}
+
+              {/* LOADING: Start Transit (no OTP) */}
+              {booking.status === 'LOADING' && (
+                <View>
+                  <View style={styles.otpInfoBanner}>
+                    <View style={[styles.otpInfoIcon, { backgroundColor: '#F5F3FF' }]}>
+                      <Ionicons name="navigate" size={20} color="#7C3AED" />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.otpInfoTitle}>Loading Complete?</Text>
+                      <Text style={styles.otpInfoSub}>Once all goods are loaded, tap below to start transit to the destination address.</Text>
+                    </View>
+                  </View>
+                  <TouchableOpacity
+                    style={[styles.primaryBtn, { backgroundColor: '#7C3AED' }, loading && { opacity: 0.6 }]}
+                    onPress={handleStartPackersTransit}
+                    disabled={loading}
+                    activeOpacity={0.85}
+                  >
+                    {loading ? <ActivityIndicator color="#fff" /> : (
+                      <><Ionicons name="navigate-circle" size={20} color="#fff" /><Text style={styles.primaryBtnText}>Loading Complete — Start Transit</Text></>
+                    )}
+                  </TouchableOpacity>
+                </View>
+              )}
+
+              {/* IN_TRANSIT: Send Delivery OTP → Enter OTP → Start Unloading */}
+              {booking.status === 'IN_TRANSIT' && (
+                !otpSent ? (
+                  <View>
+                    <View style={styles.otpInfoBanner}>
+                      <View style={[styles.otpInfoIcon, { backgroundColor: '#FFF7ED' }]}>
+                        <Ionicons name="send" size={20} color="#EA580C" />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.otpInfoTitle}>Send Delivery OTP</Text>
+                        <Text style={styles.otpInfoSub}>When you arrive at the destination, send the delivery OTP to the customer for verification.</Text>
+                      </View>
+                    </View>
+                    <TouchableOpacity
+                      style={[styles.primaryBtn, { backgroundColor: '#EA580C' }, sendingOtp && { opacity: 0.6 }]}
+                      onPress={handleRequestOtp}
+                      disabled={sendingOtp}
+                      activeOpacity={0.85}
+                    >
+                      {sendingOtp ? <ActivityIndicator color="#fff" /> : (
+                        <><Ionicons name="notifications" size={20} color="#fff" /><Text style={styles.primaryBtnText}>Send Delivery OTP</Text></>
+                      )}
+                    </TouchableOpacity>
+                  </View>
+                ) : (
+                  <View>
+                    <View style={[styles.otpInfoBanner, { backgroundColor: '#FFF7ED', borderRadius: 10, padding: 10, marginBottom: 12 }]}>
+                      <Ionicons name="checkmark-circle" size={16} color="#EA580C" />
+                      <Text style={[styles.otpInfoSub, { color: '#EA580C', marginLeft: 6 }]}>Delivery OTP sent. Ask customer to share the 6-digit OTP.</Text>
+                    </View>
+                    <OtpInput value={otp} onChange={setOtp} maxDigits={6} />
+                    <TouchableOpacity style={styles.resendBtn} onPress={handleRequestOtp} disabled={sendingOtp} activeOpacity={0.7}>
+                      <Ionicons name="refresh" size={14} color={C.sub} />
+                      <Text style={styles.resendBtnText}>{sendingOtp ? 'Resending...' : 'Resend OTP'}</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.primaryBtn, { backgroundColor: '#EA580C' }, (loading || otp.length < 6) && { opacity: 0.5 }]}
+                      onPress={handleStartPackersUnloading}
+                      disabled={loading || otp.length < 6}
+                      activeOpacity={0.85}
+                    >
+                      {loading ? <ActivityIndicator color="#fff" /> : (
+                        <><Ionicons name="package" size={20} color="#fff" /><Text style={styles.primaryBtnText}>Start Unloading</Text></>
+                      )}
+                    </TouchableOpacity>
+                  </View>
+                )
+              )}
+
+              {/* UNLOADING: Start Unpacking (no OTP) */}
+              {booking.status === 'UNLOADING' && (
+                <View>
+                  <View style={styles.otpInfoBanner}>
+                    <View style={[styles.otpInfoIcon, { backgroundColor: '#F0FDF4' }]}>
+                      <Ionicons name="construct" size={20} color={C.primary} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.otpInfoTitle}>Unloading Complete?</Text>
+                      <Text style={styles.otpInfoSub}>Once goods are unloaded, tap below to begin unpacking and arranging at the destination.</Text>
+                    </View>
+                  </View>
+                  <TouchableOpacity
+                    style={[styles.primaryBtn, { backgroundColor: C.primaryDark }, loading && { opacity: 0.6 }]}
+                    onPress={handleStartUnpacking}
+                    disabled={loading}
+                    activeOpacity={0.85}
+                  >
+                    {loading ? <ActivityIndicator color="#fff" /> : (
+                      <><Ionicons name="grid" size={20} color="#fff" /><Text style={styles.primaryBtnText}>Unloading Complete — Start Unpacking</Text></>
+                    )}
+                  </TouchableOpacity>
+                </View>
+              )}
+
+              {/* UNPACKING: Complete Job */}
+              {booking.status === 'UNPACKING' && (
+                <View>
+                  <View style={styles.otpInfoBanner}>
+                    <View style={[styles.otpInfoIcon, { backgroundColor: '#DCFCE7' }]}>
+                      <Ionicons name="checkmark-done-circle" size={20} color={C.primary} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.otpInfoTitle}>Complete the Job</Text>
+                      <Text style={styles.otpInfoSub}>Once all items are unpacked and arranged, mark the job as complete.</Text>
+                    </View>
+                  </View>
+                  <TouchableOpacity
+                    style={[styles.primaryBtn, { backgroundColor: C.primary }, loading && { opacity: 0.6 }]}
+                    onPress={handleCompleteJob}
+                    disabled={loading}
+                    activeOpacity={0.85}
+                  >
+                    {loading ? <ActivityIndicator color="#fff" /> : (
+                      <><Ionicons name="checkmark-circle" size={20} color="#fff" /><Text style={styles.primaryBtnText}>Mark Job Complete</Text></>
+                    )}
+                  </TouchableOpacity>
+                </View>
+              )}
+
+            </View>
+          </View>
+        )}
+
+        {/* ── EQUIPMENT MULTI-PHASE UI ── */}
+        {booking.source === 'equipment' && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>
+              {booking.status === 'CONFIRMED' ? 'Step 1: Deliver Equipment'
+                : booking.status === 'DELIVERED' ? 'Step 2: Start Equipment Use'
+                : booking.status === 'IN_USE' ? 'Step 3: Schedule Pickup'
+                : booking.status === 'PICKUP_SCHEDULED' ? 'Step 4: Confirm Return'
+                : 'Step 5: Complete Rental'}
+            </Text>
+            <View style={styles.card}>
+
+              {/* CONFIRMED: Send Delivery OTP → Enter OTP → Mark Delivered */}
+              {booking.status === 'CONFIRMED' && (
+                !otpSent ? (
+                  <View>
+                    <View style={styles.otpInfoBanner}>
+                      <View style={[styles.otpInfoIcon, { backgroundColor: '#FFF7ED' }]}>
+                        <Ionicons name="send" size={20} color="#EA580C" />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.otpInfoTitle}>Send Delivery OTP</Text>
+                        <Text style={styles.otpInfoSub}>When you arrive with the equipment, send the OTP to the customer for verification before handing over.</Text>
+                      </View>
+                    </View>
+                    <TouchableOpacity
+                      style={[styles.primaryBtn, { backgroundColor: '#EA580C' }, sendingOtp && { opacity: 0.6 }]}
+                      onPress={handleRequestOtp}
+                      disabled={sendingOtp}
+                      activeOpacity={0.85}
+                    >
+                      {sendingOtp ? <ActivityIndicator color="#fff" /> : (
+                        <><Ionicons name="notifications" size={20} color="#fff" /><Text style={styles.primaryBtnText}>Send Delivery OTP</Text></>
+                      )}
+                    </TouchableOpacity>
+                  </View>
+                ) : (
+                  <View>
+                    <View style={[styles.otpInfoBanner, { backgroundColor: '#FFF7ED', borderRadius: 10, padding: 10, marginBottom: 12 }]}>
+                      <Ionicons name="checkmark-circle" size={16} color="#EA580C" />
+                      <Text style={[styles.otpInfoSub, { color: '#EA580C', marginLeft: 6 }]}>Delivery OTP sent. Ask customer to share the 6-digit OTP.</Text>
+                    </View>
+                    <OtpInput value={otp} onChange={setOtp} maxDigits={6} />
+                    <TouchableOpacity style={styles.resendBtn} onPress={handleRequestOtp} disabled={sendingOtp} activeOpacity={0.7}>
+                      <Ionicons name="refresh" size={14} color={C.sub} />
+                      <Text style={styles.resendBtnText}>{sendingOtp ? 'Resending...' : 'Resend OTP'}</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.primaryBtn, { backgroundColor: '#EA580C' }, (loading || otp.length < 6) && { opacity: 0.5 }]}
+                      onPress={handleDeliverEquipment}
+                      disabled={loading || otp.length < 6}
+                      activeOpacity={0.85}
+                    >
+                      {loading ? <ActivityIndicator color="#fff" /> : (
+                        <><Ionicons name="cube" size={20} color="#fff" /><Text style={styles.primaryBtnText}>Confirm Delivery</Text></>
+                      )}
+                    </TouchableOpacity>
+                  </View>
+                )
+              )}
+
+              {/* DELIVERED: Mark In Use (no OTP) */}
+              {booking.status === 'DELIVERED' && (
+                <View>
+                  <View style={styles.otpInfoBanner}>
+                    <View style={[styles.otpInfoIcon, { backgroundColor: '#EEF2FF' }]}>
+                      <Ionicons name="construct" size={20} color="#4F46E5" />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.otpInfoTitle}>Equipment Delivered</Text>
+                      <Text style={styles.otpInfoSub}>Once the customer starts using the equipment, tap below to mark it as in use.</Text>
+                    </View>
+                  </View>
+                  <TouchableOpacity
+                    style={[styles.primaryBtn, { backgroundColor: '#4F46E5' }, loading && { opacity: 0.6 }]}
+                    onPress={handleStartUse}
+                    disabled={loading}
+                    activeOpacity={0.85}
+                  >
+                    {loading ? <ActivityIndicator color="#fff" /> : (
+                      <><Ionicons name="play-circle" size={20} color="#fff" /><Text style={styles.primaryBtnText}>Mark Equipment In Use</Text></>
+                    )}
+                  </TouchableOpacity>
+                </View>
+              )}
+
+              {/* IN_USE: Schedule Pickup (generates return OTP automatically) */}
+              {booking.status === 'IN_USE' && (
+                <View>
+                  <View style={styles.otpInfoBanner}>
+                    <View style={[styles.otpInfoIcon, { backgroundColor: '#F5F3FF' }]}>
+                      <Ionicons name="calendar" size={20} color="#7C3AED" />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.otpInfoTitle}>Schedule Equipment Pickup</Text>
+                      <Text style={styles.otpInfoSub}>When ready to pick up the equipment, tap below. A return OTP will be sent to the customer automatically.</Text>
+                    </View>
+                  </View>
+                  <TouchableOpacity
+                    style={[styles.primaryBtn, { backgroundColor: '#7C3AED' }, loading && { opacity: 0.6 }]}
+                    onPress={handleSchedulePickup}
+                    disabled={loading}
+                    activeOpacity={0.85}
+                  >
+                    {loading ? <ActivityIndicator color="#fff" /> : (
+                      <><Ionicons name="car" size={20} color="#fff" /><Text style={styles.primaryBtnText}>Schedule Pickup & Send Return OTP</Text></>
+                    )}
+                  </TouchableOpacity>
+                </View>
+              )}
+
+              {/* PICKUP_SCHEDULED: Enter Return OTP → Confirm Return */}
+              {booking.status === 'PICKUP_SCHEDULED' && (
+                <View>
+                  <View style={[styles.otpInfoBanner, { backgroundColor: '#FDF4FF', borderRadius: 10, padding: 10, marginBottom: 12 }]}>
+                    <Ionicons name="checkmark-circle" size={16} color="#9333EA" />
+                    <Text style={[styles.otpInfoSub, { color: '#9333EA', marginLeft: 6 }]}>Return OTP sent to customer. Ask them to share the 6-digit OTP to confirm pickup.</Text>
+                  </View>
+                  <OtpInput value={otp} onChange={setOtp} maxDigits={6} />
+                  <TouchableOpacity style={styles.resendBtn} onPress={handleRequestOtp} disabled={sendingOtp} activeOpacity={0.7}>
+                    <Ionicons name="refresh" size={14} color={C.sub} />
+                    <Text style={styles.resendBtnText}>{sendingOtp ? 'Resending...' : 'Resend Return OTP'}</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.primaryBtn, { backgroundColor: '#9333EA' }, (loading || otp.length < 6) && { opacity: 0.5 }]}
+                    onPress={handleConfirmReturn}
+                    disabled={loading || otp.length < 6}
+                    activeOpacity={0.85}
+                  >
+                    {loading ? <ActivityIndicator color="#fff" /> : (
+                      <><Ionicons name="checkmark-circle" size={20} color="#fff" /><Text style={styles.primaryBtnText}>Confirm Return</Text></>
+                    )}
+                  </TouchableOpacity>
+                </View>
+              )}
+
+              {/* RETURNED: Complete Rental */}
+              {booking.status === 'RETURNED' && (
+                <View>
+                  <View style={styles.otpInfoBanner}>
+                    <View style={[styles.otpInfoIcon, { backgroundColor: '#DCFCE7' }]}>
+                      <Ionicons name="checkmark-done-circle" size={20} color={C.primary} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.otpInfoTitle}>Equipment Returned</Text>
+                      <Text style={styles.otpInfoSub}>Equipment has been picked up. Mark the rental as complete to finish this booking.</Text>
+                    </View>
+                  </View>
+                  <TouchableOpacity
+                    style={[styles.primaryBtn, { backgroundColor: C.primary }, loading && { opacity: 0.6 }]}
+                    onPress={handleCompleteRental}
+                    disabled={loading}
+                    activeOpacity={0.85}
+                  >
+                    {loading ? <ActivityIndicator color="#fff" /> : (
+                      <><Ionicons name="flag" size={20} color="#fff" /><Text style={styles.primaryBtnText}>Complete Rental</Text></>
+                    )}
+                  </TouchableOpacity>
+                </View>
+              )}
+
+            </View>
+          </View>
+        )}
+
+        {/* ── OTP Entry (DRIVER_ASSIGNED / VEHICLE_ASSIGNED) ── */}
+        {!isInProgress && !['truck', 'packers', 'equipment'].includes(booking.source) && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Verify Customer OTP</Text>
             <View style={styles.card}>
-              <View style={styles.otpInfoBanner}>
-                <View style={styles.otpInfoIcon}>
-                  <Ionicons name="shield-checkmark" size={20} color={C.primary} />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.otpInfoTitle}>Enter the 6-digit OTP</Text>
-                  <Text style={styles.otpInfoSub}>Ask the customer for the OTP sent to their phone. This confirms you're with the right customer.</Text>
-                </View>
-              </View>
 
-              <OtpInput value={otp} onChange={setOtp} />
+              {/* Step 1: Send OTP to customer (if not yet sent) */}
+              {!otpSent ? (
+                <View>
+                  <View style={styles.otpInfoBanner}>
+                    <View style={[styles.otpInfoIcon, { backgroundColor: '#FFF7ED' }]}>
+                      <Ionicons name="send" size={20} color="#EA580C" />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.otpInfoTitle}>Send OTP to Customer</Text>
+                      <Text style={styles.otpInfoSub}>First, send the OTP to the customer's phone. They will receive it as a notification and can share it with you.</Text>
+                    </View>
+                  </View>
+                  <TouchableOpacity
+                    style={[styles.primaryBtn, { backgroundColor: '#EA580C' }, sendingOtp && { opacity: 0.6 }]}
+                    onPress={handleRequestOtp}
+                    disabled={sendingOtp}
+                    activeOpacity={0.85}
+                  >
+                    {sendingOtp ? (
+                      <ActivityIndicator color="#fff" />
+                    ) : (
+                      <>
+                        <Ionicons name="notifications" size={20} color="#fff" />
+                        <Text style={styles.primaryBtnText}>Send OTP to Customer</Text>
+                      </>
+                    )}
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                /* Step 2: OTP sent — enter OTP from customer */
+                <View>
+                  <View style={styles.otpInfoBanner}>
+                    <View style={styles.otpInfoIcon}>
+                      <Ionicons name="shield-checkmark" size={20} color={C.primary} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.otpInfoTitle}>Enter the 6-digit OTP</Text>
+                      <Text style={styles.otpInfoSub}>Ask the customer for the OTP sent to their phone. This confirms you're with the right customer.</Text>
+                    </View>
+                  </View>
 
-              <TouchableOpacity
-                style={[styles.primaryBtn, (loading || otp.length < 6) && { opacity: 0.5 }]}
-                onPress={handleStartTrip}
-                disabled={loading || otp.length < 6}
-                activeOpacity={0.85}
-              >
-                {loading ? (
-                  <ActivityIndicator color="#fff" />
-                ) : (
-                  <>
-                    <Ionicons name="play-circle" size={20} color="#fff" />
-                    <Text style={styles.primaryBtnText}>Start Trip</Text>
-                    <Ionicons name="arrow-forward" size={16} color="rgba(255,255,255,0.7)" />
-                  </>
-                )}
-              </TouchableOpacity>
+                  <OtpInput value={otp} onChange={setOtp} />
+
+                  {/* Resend option */}
+                  <TouchableOpacity
+                    style={styles.resendBtn}
+                    onPress={handleRequestOtp}
+                    disabled={sendingOtp}
+                    activeOpacity={0.7}
+                  >
+                    <Ionicons name="refresh" size={14} color={C.sub} />
+                    <Text style={styles.resendBtnText}>
+                      {sendingOtp ? 'Resending...' : 'Resend OTP to Customer'}
+                    </Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[styles.primaryBtn, (loading || otp.length < 6) && { opacity: 0.5 }]}
+                    onPress={handleStartTrip}
+                    disabled={loading || otp.length < 6}
+                    activeOpacity={0.85}
+                  >
+                    {loading ? (
+                      <ActivityIndicator color="#fff" />
+                    ) : (
+                      <>
+                        <Ionicons name="play-circle" size={20} color="#fff" />
+                        <Text style={styles.primaryBtnText}>Start Trip</Text>
+                        <Ionicons name="arrow-forward" size={16} color="rgba(255,255,255,0.7)" />
+                      </>
+                    )}
+                  </TouchableOpacity>
+                </View>
+              )}
             </View>
           </View>
         )}
 
         {/* ── Complete Trip ── */}
-        {isInProgress && (
+        {isInProgress && !['truck', 'packers', 'equipment'].includes(booking.source) && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Trip Details</Text>
             <View style={styles.card}>
@@ -486,6 +1326,8 @@ const styles = StyleSheet.create({
   otpInfoIcon:   { width: 36, height: 36, borderRadius: 10, backgroundColor: '#fff', justifyContent: 'center', alignItems: 'center' },
   otpInfoTitle:  { fontSize: 13, fontWeight: '800', color: C.primaryDeep },
   otpInfoSub:    { fontSize: 11, color: C.primaryDark, marginTop: 3, lineHeight: 16 },
+  resendBtn:     { flexDirection: 'row', alignItems: 'center', gap: 6, justifyContent: 'center', paddingVertical: 10, marginBottom: 4 },
+  resendBtnText: { fontSize: 12, color: C.sub, fontWeight: '600' },
 
   otpContainer:  { alignItems: 'center', marginBottom: 20 },
   hiddenInput:   { position: 'absolute', opacity: 0, height: 0, width: 0 },

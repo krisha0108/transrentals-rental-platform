@@ -142,14 +142,54 @@ export async function assignVehicle(bookingId, data) {
   return c.post(`${BASE}/bookings/${bookingId}/assign-vehicle`, data);
 }
 
-export async function startTrip(bookingId, otp) {
+export async function requestOtp(bookingId, source = 'chauffeur') {
   const c = await getClient();
-  return c.post(`${BASE}/bookings/${bookingId}/start-trip`, { otp });
+  return c.post(`${BASE}/bookings/${bookingId}/request-otp`, { source });
 }
 
-export async function completeTrip(bookingId, data = {}) {
+export async function startTrip(bookingId, otp, source = 'chauffeur') {
   const c = await getClient();
-  return c.post(`${BASE}/bookings/${bookingId}/complete`, data);
+  return c.post(`${BASE}/bookings/${bookingId}/start-trip`, { otp, source });
+}
+
+export async function completeTrip(bookingId, data = {}, source = 'chauffeur') {
+  const c = await getClient();
+  return c.post(`${BASE}/bookings/${bookingId}/complete`, { ...data, source });
+}
+
+export async function startTransit(bookingId, source = 'truck') {
+  const c = await getClient();
+  return c.post(`${BASE}/bookings/${bookingId}/start-transit`, { source });
+}
+
+export async function startUnloading(bookingId, otp, source = 'truck') {
+  const c = await getClient();
+  return c.post(`${BASE}/bookings/${bookingId}/start-unloading`, { otp, source });
+}
+
+export async function startPackingLoading(bookingId, otp) {
+  const c = await getClient();
+  return c.post(`${BASE}/bookings/${bookingId}/start-loading`, { otp });
+}
+
+export async function startUnpacking(bookingId) {
+  const c = await getClient();
+  return c.post(`${BASE}/bookings/${bookingId}/start-unpacking`);
+}
+
+export async function startUse(bookingId) {
+  const c = await getClient();
+  return c.post(`${BASE}/bookings/${bookingId}/start-use`);
+}
+
+export async function schedulePickup(bookingId) {
+  const c = await getClient();
+  return c.post(`${BASE}/bookings/${bookingId}/schedule-pickup`);
+}
+
+export async function confirmReturn(bookingId, otp) {
+  const c = await getClient();
+  return c.post(`${BASE}/bookings/${bookingId}/confirm-return`, { otp });
 }
 
 // ── Fleet ─────────────────────────────────────────────────────────────────────

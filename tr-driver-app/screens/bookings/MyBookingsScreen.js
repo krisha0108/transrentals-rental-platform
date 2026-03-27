@@ -85,7 +85,17 @@ function BookingCard({ item, navigation }) {
   const personalEarnings = isVendorAssigned ? null : (item.earnings ?? item.driverBatta);
 
   function handlePress() {
-    if ((item.status === 'IN_PROGRESS' || item.status === 'STARTED') && item.source === 'chauffeur') {
+    const otpSources = ['chauffeur', 'bus', 'luxury'];
+    const truckActiveStatuses = ['VEHICLE_ASSIGNED', 'LOADING', 'IN_TRANSIT', 'UNLOADING'];
+    const packersActiveStatuses = ['TEAM_ASSIGNED', 'PACKING', 'LOADING', 'IN_TRANSIT', 'UNLOADING', 'UNPACKING'];
+    const equipmentActiveStatuses = ['CONFIRMED', 'DELIVERED', 'IN_USE', 'PICKUP_SCHEDULED', 'RETURNED'];
+    if (['IN_PROGRESS', 'STARTED'].includes(item.status) && otpSources.includes(item.source)) {
+      navigation.navigate('ActiveTrip', { booking: item });
+    } else if (item.source === 'truck' && truckActiveStatuses.includes(item.status)) {
+      navigation.navigate('ActiveTrip', { booking: item });
+    } else if (item.source === 'packers' && packersActiveStatuses.includes(item.status)) {
+      navigation.navigate('ActiveTrip', { booking: item });
+    } else if (item.source === 'equipment' && equipmentActiveStatuses.includes(item.status)) {
       navigation.navigate('ActiveTrip', { booking: item });
     } else {
       navigation.navigate('BookingDetail', { booking: item });
@@ -169,9 +179,9 @@ function BookingCard({ item, navigation }) {
           <View style={styles.activeBar}>
             <View style={styles.activeDot} />
             <Text style={styles.activeBarText}>
-              {item.source === 'chauffeur' && item.status === 'IN_PROGRESS'
+              {['chauffeur','bus','luxury'].includes(item.source) && item.status === 'IN_PROGRESS'
                 ? 'Trip in progress — tap to manage'
-                : item.source === 'chauffeur' && item.status === 'DRIVER_ASSIGNED'
+                : ['chauffeur','bus','luxury'].includes(item.source) && ['DRIVER_ASSIGNED','VEHICLE_ASSIGNED'].includes(item.status)
                 ? 'Vehicle assigned — enter OTP to start'
                 : 'Trip assigned — tap for details'}
             </Text>
