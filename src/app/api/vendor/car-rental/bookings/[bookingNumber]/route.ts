@@ -418,6 +418,7 @@ export async function PATCH(
           vehicleNumber: data.vehicleNumber,
           vehicleModel: data.vehicleModel || data.vehicle_models || null,
           driverAssignedAt: new Date(),
+          tripStartOtp: Math.floor(100000 + Math.random() * 900000).toString(),
         };
         message = 'Driver assigned successfully';
         break;
