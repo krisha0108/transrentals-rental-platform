@@ -633,27 +633,52 @@ const BookingDetails = () => {
             {(() => {
               const stops = (booking?.intermediateStops || []).filter(s => s.cityText);
               if (stops.length > 0) {
-                // Multi-stop route display
+                // Multi-stop vertical timeline route display
                 const allPoints = [
-                  booking?.location_name || 'Pickup',
-                  ...stops.map(s => s.cityText),
-                  booking?.destination || booking?.location_name || 'Drop',
+                  { label: 'Pickup', city: booking?.location_name || 'Pickup', type: 'pickup' },
+                  ...stops.map((s, i) => ({ label: `Stop ${i + 1}`, city: s.cityText, type: 'stop' })),
+                  { label: 'Destination', city: booking?.destination || booking?.location_name || 'Drop', type: 'drop' },
                 ];
                 return (
-                  <View style={{ marginBottom: 8 }}>
-                    <Text style={[redesignStyles.glassLabel, { marginBottom: 6 }]}>Route</Text>
-                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 4 }}>
-                      {allPoints.map((point, i) => (
-                        <React.Fragment key={i}>
-                          <View style={{ backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5 }}>
-                            <Text style={{ color: '#fff', fontSize: 12, fontWeight: '600' }}>{point}</Text>
-                          </View>
-                          {i < allPoints.length - 1 && (
-                            <Ionicons name="arrow-forward" size={12} color="rgba(255,255,255,0.6)" />
-                          )}
-                        </React.Fragment>
-                      ))}
+                  <View style={{ marginBottom: hp('0.5%') }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: hp('1%') }}>
+                      <Ionicons name="navigate" size={wp('3.5%')} color="rgba(255,255,255,0.8)" />
+                      <Text style={[redesignStyles.glassLabel, { marginLeft: wp('1.5%'), marginBottom: 0 }]}>
+                        Route ({allPoints.length - 2} stop{allPoints.length - 2 !== 1 ? 's' : ''})
+                      </Text>
                     </View>
+                    {allPoints.map((point, i) => (
+                      <View key={i} style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
+                        {/* Timeline dots and line */}
+                        <View style={{ alignItems: 'center', width: wp('6%') }}>
+                          <View style={{
+                            width: point.type === 'stop' ? wp('2.5%') : wp('3%'),
+                            height: point.type === 'stop' ? wp('2.5%') : wp('3%'),
+                            borderRadius: wp('1.5%'),
+                            backgroundColor: point.type === 'pickup' ? '#10B981' : point.type === 'drop' ? '#EF4444' : 'rgba(255,255,255,0.6)',
+                            borderWidth: point.type === 'stop' ? 2 : 0,
+                            borderColor: 'rgba(255,255,255,0.8)',
+                          }} />
+                          {i < allPoints.length - 1 && (
+                            <View style={{
+                              width: 2,
+                              height: hp('2.5%'),
+                              backgroundColor: 'rgba(255,255,255,0.25)',
+                              marginVertical: hp('0.2%'),
+                            }} />
+                          )}
+                        </View>
+                        {/* Location text */}
+                        <View style={{ flex: 1, marginLeft: wp('2%'), paddingBottom: i < allPoints.length - 1 ? hp('0.8%') : 0 }}>
+                          <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: wp('2.5%'), fontWeight: '500' }}>
+                            {point.label}
+                          </Text>
+                          <Text style={{ color: '#fff', fontSize: wp('3.2%'), fontWeight: '700' }} numberOfLines={1}>
+                            {point.city}
+                          </Text>
+                        </View>
+                      </View>
+                    ))}
                   </View>
                 );
               }
@@ -744,9 +769,6 @@ const BookingDetails = () => {
                 <Text style={redesignStyles.assignedStatusText}>Ongoing</Text>
               </View>
             </View>
-
-            {console.log('Assigned Vehicle Data:', assignedVehicle)}
-            {console.log('Assigned Driver Data:', assignedDriver)}
 
             {/* Combined row layout */}
             <View style={redesignStyles.assignedContentRow}>
@@ -846,6 +868,58 @@ const BookingDetails = () => {
                 </View>
               ) : null}
             </View>
+
+            {/* Multi-Stop Route Card */}
+            {(() => {
+              const stops = (booking?.intermediateStops || []).filter(s => s.cityText);
+              if (stops.length === 0) return null;
+              const allPoints = [
+                { label: 'Pickup', city: booking?.location_name || 'Pickup', type: 'pickup' },
+                ...stops.map((s, i) => ({ label: `Stop ${i + 1}`, city: s.cityText, type: 'stop' })),
+                { label: 'Destination', city: booking?.destination || 'Drop', type: 'drop' },
+              ];
+              return (
+                <View style={redesignStyles.detailsCard}>
+                  <View style={redesignStyles.detailsHeader}>
+                    <View style={[redesignStyles.detailsIcon, { backgroundColor: '#DBEAFE' }]}>
+                      <Ionicons name="git-branch-outline" size={wp('4%')} color="#2563EB" />
+                    </View>
+                    <Text style={redesignStyles.detailsTitle}>
+                      Route ({stops.length} stop{stops.length !== 1 ? 's' : ''})
+                    </Text>
+                  </View>
+                  <View style={{ paddingHorizontal: wp('2%'), paddingVertical: hp('0.5%') }}>
+                    {allPoints.map((point, i) => (
+                      <View key={i} style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
+                        <View style={{ alignItems: 'center', width: wp('7%') }}>
+                          <View style={{
+                            width: point.type === 'stop' ? wp('3%') : wp('3.5%'),
+                            height: point.type === 'stop' ? wp('3%') : wp('3.5%'),
+                            borderRadius: wp('2%'),
+                            backgroundColor: point.type === 'pickup' ? TEAL : point.type === 'drop' ? '#EF4444' : '#F59E0B',
+                          }} />
+                          {i < allPoints.length - 1 && (
+                            <View style={{
+                              width: 2,
+                              flex: 1,
+                              minHeight: hp('3%'),
+                              backgroundColor: '#E5E7EB',
+                              marginVertical: hp('0.3%'),
+                            }} />
+                          )}
+                        </View>
+                        <View style={{ flex: 1, marginLeft: wp('2.5%'), paddingBottom: i < allPoints.length - 1 ? hp('1%') : 0 }}>
+                          <Text style={{ color: TEXT_MUTED, fontSize: wp('2.8%'), fontWeight: '500' }}>{point.label}</Text>
+                          <Text style={{ color: TEXT_PRIMARY, fontSize: wp('3.5%'), fontWeight: '600', marginTop: hp('0.2%') }}>
+                            {point.city}
+                          </Text>
+                        </View>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              );
+            })()}
 
             {/* B. Car / Cab details - Hide for car rentals */}
             {bookingType !== 'car' && (booking.vehicle_type || booking.car_type || booking.total_passangers || booking.fuel_type || booking.transmission) ? (

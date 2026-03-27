@@ -51,7 +51,7 @@ const bookingService = {
 
   // ==================== BIKE BOOKING ====================
   createBikeBooking: async (bookingData) => {
-    const response = await api.post('/bike-bookings', bookingData);
+    const response = await api.post('/bike-bookings', { ...bookingData, source: 'app' });
     return response.data;
   },
 
@@ -81,10 +81,18 @@ const bookingService = {
       baseFare: bookingData.baseFare,
       gstAmount: bookingData.gstAmount,
       grandTotal: bookingData.estimatedAmount,
+      // Intermediate stops for multi-stop outstation bookings
+      intermediateStops: bookingData.intermediateStops
+        ? (typeof bookingData.intermediateStops === 'string'
+          ? JSON.parse(bookingData.intermediateStops)
+          : bookingData.intermediateStops)
+        : undefined,
       // Advance Payment (Mobile specific)
       advancePaid: bookingData.advancePaid,
       transactionId: bookingData.transactionId,
       paymentMethod: bookingData.paymentMethod,
+      // Source tracking
+      source: 'app',
     };
     const response = await api.post('/car-rental/bookings', payload);
     return response.data;
@@ -102,7 +110,7 @@ const bookingService = {
      * - dailyRate, kmLimitPerDay, extraKmRate, securityDeposit
      * - customerNotes, licenseNumber
      */
-    const response = await api.post('/self-drive-bookings', bookingData);
+    const response = await api.post('/self-drive-bookings', { ...bookingData, source: 'app' });
     return response.data;
   },
 
@@ -122,7 +130,7 @@ const bookingService = {
      * - needPhotographer (optional)
      * - specialRequests, occasionType, budgetMin, budgetMax
      */
-    const response = await api.post('/luxury-bookings', bookingData);
+    const response = await api.post('/luxury-bookings', { ...bookingData, source: 'app' });
     return response.data;
   },
 
@@ -157,7 +165,7 @@ const bookingService = {
      * - needAC, needLuxury, needSleeper: boolean preferences
      * - budgetMin, budgetMax: optional budget range
      */
-    const response = await api.post('/bus-quote-requests', requestData);
+    const response = await api.post('/bus-quote-requests', { ...requestData, source: 'app' });
     return response.data;
   },
 
@@ -177,7 +185,7 @@ const bookingService = {
      * - dropCity, dropAddress
      * - requirements, needInsurance, needPackaging
      */
-    const response = await api.post('/truck-quote-requests', requestData);
+    const response = await api.post('/truck-quote-requests', { ...requestData, source: 'app' });
     return response.data;
   },
 
@@ -198,7 +206,7 @@ const bookingService = {
      * - needOperator, needDelivery, needInstallation
      * - requirements, budgetMin, budgetMax
      */
-    const response = await api.post('/equipment-quote-requests', requestData);
+    const response = await api.post('/equipment-quote-requests', { ...requestData, source: 'app' });
     return response.data;
   },
 
@@ -220,7 +228,7 @@ const bookingService = {
      * - needPacking, needUnpacking, needStorage, needInsurance
      * - requirements, budgetMin, budgetMax
      */
-    const response = await api.post('/packers-quote-requests', requestData);
+    const response = await api.post('/packers-quote-requests', { ...requestData, source: 'app' });
     return response.data;
   },
 

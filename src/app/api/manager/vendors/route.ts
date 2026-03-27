@@ -61,7 +61,12 @@ export async function GET(request: NextRequest) {
     // };
 
     if (status !== 'all') {
-      whereClause.status = status;
+      if (status === 'PENDING') {
+        // Include all pending-type statuses
+        whereClause.status = { in: ['PENDING', 'DOCUMENTS_PENDING', 'UNDER_REVIEW'] };
+      } else {
+        whereClause.status = status;
+      }
     }
 
     if (search) {
@@ -114,7 +119,7 @@ export async function GET(request: NextRequest) {
     const stats = {
       total: vendors.length,
       approved: vendors.filter((v) => v.status === 'APPROVED').length,
-      pending: vendors.filter((v) => v.status === 'PENDING' || v.status === 'UNDER_REVIEW').length,
+      pending: vendors.filter((v) => v.status === 'PENDING' || v.status === 'DOCUMENTS_PENDING' || v.status === 'UNDER_REVIEW').length,
       suspended: vendors.filter((v) => v.status === 'SUSPENDED').length,
     };
 

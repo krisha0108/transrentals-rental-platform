@@ -210,8 +210,9 @@ export default function ManagerVendorsPage() {
             >
               <option value="all">All Status</option>
               <option value="APPROVED">Approved</option>
-              <option value="PENDING">Pending</option>
+              <option value="PENDING">Pending (All)</option>
               <option value="UNDER_REVIEW">Under Review</option>
+              <option value="DOCUMENTS_PENDING">Docs Pending</option>
               <option value="SUSPENDED">Suspended</option>
               <option value="REJECTED">Rejected</option>
             </select>

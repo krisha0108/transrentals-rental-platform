@@ -118,18 +118,31 @@ export default function DashboardScreen({ navigation }) {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
+  const isVersionLower = (current, latest) => {
+    const c = current.split('.').map(Number);
+    const l = latest.split('.').map(Number);
+    const len = Math.max(c.length, l.length);
+    for (let i = 0; i < len; i++) {
+      const cv = c[i] || 0;
+      const lv = l[i] || 0;
+      if (cv < lv) return true;
+      if (cv > lv) return false;
+    }
+    return false;
+  };
+
   const checkForUpdate = useCallback(async () => {
     try {
       const base = await getBaseURL();
       const res  = await axios.get(`${base}/api/vendor/app-version`, { timeout: 8000 });
       if (res.data?.success) {
         const { latestVersion, forceUpdate, updateMessage, playStoreUrl } = res.data;
-        if (latestVersion && latestVersion !== APP_VERSION) {
+        if (latestVersion && isVersionLower(APP_VERSION, latestVersion)) {
           setUpdateInfo({ latestVersion, forceUpdate, updateMessage, playStoreUrl });
           setShowUpdateModal(true);
         }
       }
-    } catch (e) { console.log('[UpdateCheck]', e?.message); }
+    } catch (e) { /* update check is non-critical */ }
   }, []);
 
   useEffect(() => { checkForUpdate(); }, [checkForUpdate]);

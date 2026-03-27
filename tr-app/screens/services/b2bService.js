@@ -43,7 +43,7 @@ const b2bService = {
    * Create new B2B booking
    */
   createBooking: async (bookingData) => {
-    const response = await api.post('/b2b/bookings', bookingData);
+    const response = await api.post('/b2b/bookings', { ...bookingData, source: 'app' });
     return response.data;
   },
 

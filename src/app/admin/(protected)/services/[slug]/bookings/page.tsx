@@ -32,6 +32,8 @@ import {
   ChevronRight,
   IndianRupee,
   FileText,
+  Globe,
+  Smartphone,
 } from 'lucide-react';
 import { FLOW_TYPE_CONFIG } from '@/lib/constants/booking-services';
 import { Button } from '@/components/ui/button';
@@ -51,6 +53,7 @@ interface Booking {
   totalAmount: number;
   status: 'PENDING' | 'CONFIRMED' | 'ONGOING' | 'COMPLETED' | 'CANCELLED';
   paymentStatus: 'PENDING' | 'PARTIAL' | 'PAID' | 'REFUNDED';
+  source?: string;
   createdAt: string;
   vehicleImage?: string;
 }
@@ -210,6 +213,7 @@ export default function ServiceBookingsPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
+  const [sourceFilter, setSourceFilter] = useState('ALL');
   const [dateFilter, setDateFilter] = useState('ALL');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
@@ -348,16 +352,18 @@ export default function ServiceBookingsPage() {
   }, [slug, page, statusFilter, dateFilter, startDate, endDate, pagination.limit]);
 
   // Use bookings directly from API - filtering happens server-side
-  const filteredBookings = search
-    ? bookings.filter((booking) => {
+  const filteredBookings = bookings.filter((booking) => {
+    if (search) {
       const matchesSearch =
         booking.bookingNo.toLowerCase().includes(search.toLowerCase()) ||
         booking.customerName.toLowerCase().includes(search.toLowerCase()) ||
         booking.customerPhone.includes(search) ||
         booking.vehicleName.toLowerCase().includes(search.toLowerCase());
-      return matchesSearch;
-    })
-    : bookings;
+      if (!matchesSearch) return false;
+    }
+    if (sourceFilter !== 'ALL' && (booking.source || 'web') !== sourceFilter) return false;
+    return true;
+  });
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-IN', {
@@ -497,6 +503,15 @@ export default function ServiceBookingsPage() {
                   <option value="EXPIRED">Expired</option>
                 </optgroup>
               </select>
+              <select
+                value={sourceFilter}
+                onChange={(e) => setSourceFilter(e.target.value)}
+                className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="ALL">All Sources</option>
+                <option value="web">Web</option>
+                <option value="app">App</option>
+              </select>
             </div>
           </div>
 
@@ -596,7 +611,22 @@ export default function ServiceBookingsPage() {
                   return (
                     <tr key={booking.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4">
-                        <p className="font-medium text-gray-900 font-mono text-sm">{booking.bookingNo}</p>
+                        <div className="flex items-center gap-1.5">
+                          <p className="font-medium text-gray-900 font-mono text-sm">{booking.bookingNo}</p>
+                          {booking.source && (
+                            <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-semibold ${
+                              booking.source === 'app'
+                                ? 'bg-violet-100 text-violet-700'
+                                : 'bg-sky-100 text-sky-700'
+                            }`}>
+                              {booking.source === 'app'
+                                ? <><Smartphone className="w-2.5 h-2.5" /></>
+                                : <><Globe className="w-2.5 h-2.5" /></>
+                              }
+                              {booking.source === 'app' ? 'App' : 'Web'}
+                            </span>
+                          )}
+                        </div>
                         <p className="text-xs text-gray-500">{formatDate(booking.createdAt)}</p>
                       </td>
                       <td className="px-6 py-4">

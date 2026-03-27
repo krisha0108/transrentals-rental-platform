@@ -511,13 +511,27 @@ export default function CustomerDashboard() {
 
 
   // ────── CHECK FOR APP UPDATE ──────
+  // Compare version strings (e.g. "3.2" < "3.3", "3.3.1" < "3.4")
+  const isVersionLower = (current, latest) => {
+    const c = current.split('.').map(Number);
+    const l = latest.split('.').map(Number);
+    const len = Math.max(c.length, l.length);
+    for (let i = 0; i < len; i++) {
+      const cv = c[i] || 0;
+      const lv = l[i] || 0;
+      if (cv < lv) return true;
+      if (cv > lv) return false;
+    }
+    return false;
+  };
+
   const checkForUpdate = async () => {
     try {
       const response = await api.get('/app-version');
       if (response.data?.success) {
         const { latestVersion, forceUpdate, updateMessage, playStoreUrl } = response.data;
         const currentVersion = DeviceInfo.getVersion();
-        if (latestVersion && latestVersion !== currentVersion) {
+        if (latestVersion && isVersionLower(currentVersion, latestVersion)) {
           setUpdateInfo({ latestVersion, forceUpdate, updateMessage, playStoreUrl });
           setShowUpdateModal(true);
         }
@@ -915,7 +929,7 @@ export default function CustomerDashboard() {
 
       <StatusBar barStyle="light-content" backgroundColor="#0A6B3F" />
 
-      {/* FIXED PREMIUM HEADER */}
+      {/* HEADER — in normal flow, not absolute */}
       <View style={styles.fixedHeader}>
         <LinearGradient colors={['#0A6B3F', '#09B368']} start={{x: 0, y: 0}} end={{x: 1, y: 1}} style={styles.headerGradientBg}>
 
@@ -972,7 +986,7 @@ export default function CustomerDashboard() {
       </View>
       {showSkeleton ? (
         <ScrollView
-          contentContainerStyle={{ paddingTop: hp('16%'), paddingBottom: hp('12%') }}
+          contentContainerStyle={{ paddingBottom: hp('12%') }}
           showsVerticalScrollIndicator={false}
         >
           {/* Category Skeleton */}
@@ -1034,14 +1048,13 @@ export default function CustomerDashboard() {
             { useNativeDriver: true }
           )}
           scrollEventThrottle={16}
-          contentContainerStyle={{ paddingTop: hp('16%'), paddingBottom: hp('2%') }}
+          contentContainerStyle={{ paddingBottom: hp('2%') }}
           refreshControl={
             <RefreshControl
               refreshing={isRefreshing}
               onRefresh={handleRefresh}
               colors={[BRAND_TEAL]}
               tintColor={BRAND_TEAL}
-              progressViewOffset={hp('8%')}
             />
           }
         >
@@ -1465,12 +1478,8 @@ export default function CustomerDashboard() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: BG },
 
-  // Header (Premium Dark Green)
+  // Header (Premium Dark Green) — normal flow, not absolute
   fixedHeader: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
     zIndex: 10,
     borderBottomLeftRadius: 22,
     borderBottomRightRadius: 22,
@@ -1490,10 +1499,10 @@ const styles = StyleSheet.create({
   headerGradientBg: {
     paddingTop: Platform.select({
       ios: hp('6%'),
-      android: (StatusBar.currentHeight ?? 0) + hp('0.8%')
+      android: (StatusBar.currentHeight ?? 0) + hp('1.8%')
     }),
     paddingHorizontal: wp('4.5%'),
-    paddingBottom: hp('1.8%'),
+    paddingBottom: hp('2.5%'),
   },
 
   // Header Top Row
@@ -1661,14 +1670,14 @@ const styles = StyleSheet.create({
 
   // Section generic (Premium)
   section: {
-    marginTop: hp('2.5%'),
+    marginTop: hp('1.5%'),
     paddingHorizontal: wp('5%'),
   },
   sectionTitle: {
     fontSize: wp('5.2%'),
     fontWeight: '800',
     color: TEXT_PRIMARY,
-    marginTop: hp('1.5%'),
+    marginTop: hp('0.5%'),
     marginBottom: hp('1.8%'),
     letterSpacing: -0.3,
   },

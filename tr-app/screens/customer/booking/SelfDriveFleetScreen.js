@@ -108,6 +108,8 @@ const SelfDriveFleetScreen = () => {
     sort: 'price_low',
     minPrice: null,
     maxPrice: null,
+    transmission: null,
+    fuelType: null,
   });
   const [availableFilters, setAvailableFilters] = useState({
     categories: [],
@@ -199,13 +201,16 @@ const SelfDriveFleetScreen = () => {
   };
 
   const clearFilters = () => {
-    setFilters({
+    const clearedFilters = {
       category: null,
       brand: null,
       sort: 'price_low',
       minPrice: null,
       maxPrice: null,
-    });
+      transmission: null,
+      fuelType: null,
+    };
+    setFilters(clearedFilters);
   };
 
   const openBookingModal = (car) => {
@@ -467,8 +472,17 @@ const SelfDriveFleetScreen = () => {
     }
   };
 
-  // Filter cars based on search query
+  // Extract unique transmission and fuel types from loaded cars for filter options
+  const availableTransmissions = [...new Set(cars.map(c => c.transmission).filter(Boolean))];
+  const availableFuelTypes = [...new Set(cars.map(c => c.fuelType).filter(Boolean))];
+
+  // Filter cars based on search query + client-side filters (transmission, fuelType)
   const filteredCars = cars.filter(car => {
+    // Transmission filter
+    if (filters.transmission && car.transmission !== filters.transmission) return false;
+    // Fuel type filter
+    if (filters.fuelType && car.fuelType !== filters.fuelType) return false;
+    // Search query filter
     if (!searchQuery.trim()) return true;
     const q = searchQuery.trim().toLowerCase();
     const name = (car.name || '').toLowerCase();
@@ -725,6 +739,82 @@ const SelfDriveFleetScreen = () => {
                         filters.brand === brand.slug && styles.filterChipTextActive,
                       ]}>
                         {brand.name}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </>
+            )}
+
+            {/* Transmission */}
+            {availableTransmissions.length > 0 && (
+              <>
+                <Text style={styles.filterLabel}>Transmission</Text>
+                <View style={styles.filterOptions}>
+                  <TouchableOpacity
+                    style={[
+                      styles.filterChip,
+                      !filters.transmission && styles.filterChipActive,
+                    ]}
+                    onPress={() => setFilters({ ...filters, transmission: null })}
+                  >
+                    <Text style={[
+                      styles.filterChipText,
+                      !filters.transmission && styles.filterChipTextActive,
+                    ]}>All</Text>
+                  </TouchableOpacity>
+                  {availableTransmissions.map(t => (
+                    <TouchableOpacity
+                      key={t}
+                      style={[
+                        styles.filterChip,
+                        filters.transmission === t && styles.filterChipActive,
+                      ]}
+                      onPress={() => setFilters({ ...filters, transmission: t })}
+                    >
+                      <Text style={[
+                        styles.filterChipText,
+                        filters.transmission === t && styles.filterChipTextActive,
+                      ]}>
+                        {t}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </>
+            )}
+
+            {/* Fuel Type */}
+            {availableFuelTypes.length > 0 && (
+              <>
+                <Text style={styles.filterLabel}>Fuel Type</Text>
+                <View style={styles.filterOptions}>
+                  <TouchableOpacity
+                    style={[
+                      styles.filterChip,
+                      !filters.fuelType && styles.filterChipActive,
+                    ]}
+                    onPress={() => setFilters({ ...filters, fuelType: null })}
+                  >
+                    <Text style={[
+                      styles.filterChipText,
+                      !filters.fuelType && styles.filterChipTextActive,
+                    ]}>All</Text>
+                  </TouchableOpacity>
+                  {availableFuelTypes.map(ft => (
+                    <TouchableOpacity
+                      key={ft}
+                      style={[
+                        styles.filterChip,
+                        filters.fuelType === ft && styles.filterChipActive,
+                      ]}
+                      onPress={() => setFilters({ ...filters, fuelType: ft })}
+                    >
+                      <Text style={[
+                        styles.filterChipText,
+                        filters.fuelType === ft && styles.filterChipTextActive,
+                      ]}>
+                        {ft}
                       </Text>
                     </TouchableOpacity>
                   ))}
@@ -1185,6 +1275,13 @@ const SelfDriveFleetScreen = () => {
             onPress={() => setShowFilterModal(true)}
           >
             <Ionicons name="options-outline" size={wp('5%')} color="#FFF" />
+            {(filters.category || filters.brand || filters.transmission || filters.fuelType) && (
+              <View style={styles.filterBadge}>
+                <Text style={styles.filterBadgeText}>
+                  {[filters.category, filters.brand, filters.transmission, filters.fuelType].filter(Boolean).length}
+                </Text>
+              </View>
+            )}
           </TouchableOpacity>
         </View>
       </LinearGradient>
@@ -1395,6 +1492,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.2)',
+  },
+  filterBadge: {
+    position: 'absolute',
+    top: -wp('1%'),
+    right: -wp('1%'),
+    backgroundColor: '#EF4444',
+    borderRadius: wp('2.5%'),
+    minWidth: wp('4.5%'),
+    height: wp('4.5%'),
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: wp('1%'),
+  },
+  filterBadgeText: {
+    color: '#FFF',
+    fontSize: wp('2.5%'),
+    fontWeight: '700',
   },
 
   /* ── Date Summary ── */

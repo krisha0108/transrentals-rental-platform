@@ -189,7 +189,7 @@ export async function GET(request: NextRequest) {
         : Promise.resolve([]),
 
       // Truck Transport
-      shouldFetchService('truck-transport') || shouldFetchService('truck')
+      shouldFetchService('truck-transport') || shouldFetchService('truck') || shouldFetchService('transporter')
         ? prisma.truck_bookings.findMany({
             where: pickupCityFilter,
             include: {
@@ -252,6 +252,7 @@ export async function GET(request: NextRequest) {
         dailyRate: b.dailyRate,
         totalDays: b.totalDays,
         advancePaymentVerified: b.advancePaymentVerified,
+        source: b.source || 'web',
         createdAt: b.createdAt,
       })),
       ...busBookings.map((b: any) => ({
@@ -272,6 +273,7 @@ export async function GET(request: NextRequest) {
         dailyRate: b.baseAmount,
         totalDays: b.tripDays,
         advancePaymentVerified: b.advancePaymentVerified,
+        source: b.source || 'web',
         createdAt: b.createdAt,
       })),
       ...carBookings.map((b: any) => ({
@@ -292,6 +294,7 @@ export async function GET(request: NextRequest) {
         dailyRate: b.dailyRate,
         totalDays: b.totalDays,
         advancePaymentVerified: b.advancePaymentVerified,
+        source: b.source || 'web',
         createdAt: b.createdAt,
       })),
       ...chauffeurBookings.map((b: any) => ({
@@ -312,6 +315,7 @@ export async function GET(request: NextRequest) {
         dailyRate: b.baseFare,
         totalDays: b.totalDays,
         advancePaymentVerified: b.advancePaymentVerified,
+        source: b.source || 'web',
         createdAt: b.createdAt,
       })),
       ...equipmentBookings.map((b: any) => ({
@@ -332,6 +336,7 @@ export async function GET(request: NextRequest) {
         dailyRate: b.dailyRate,
         totalDays: b.durationDays,
         advancePaymentVerified: false,
+        source: b.source || 'web',
         createdAt: b.createdAt,
       })),
       ...luxuryBookings.map((b: any) => ({
@@ -352,6 +357,7 @@ export async function GET(request: NextRequest) {
         dailyRate: b.baseFare,
         totalDays: b.totalDays,
         advancePaymentVerified: b.advancePaymentVerified,
+        source: b.source || 'web',
         createdAt: b.createdAt,
       })),
       ...packersBookings.map((b: any) => ({
@@ -372,6 +378,7 @@ export async function GET(request: NextRequest) {
         dailyRate: null,
         totalDays: null,
         advancePaymentVerified: false,
+        source: b.source || 'web',
         createdAt: b.createdAt,
       })),
       ...truckBookings.map((b: any) => ({
@@ -392,6 +399,7 @@ export async function GET(request: NextRequest) {
         dailyRate: b.baseRate,
         totalDays: null,
         advancePaymentVerified: b.advancePaymentVerified,
+        source: b.source || 'web',
         createdAt: b.createdAt,
       })),
       ...wanderBookings.map((b: any) => ({
@@ -416,6 +424,7 @@ export async function GET(request: NextRequest) {
         companyName: b.companyName,
         invoiceSent: b.invoiceSent,
         tourTitle: b.quoteRequest?.listing?.title,
+        source: b.source || 'web',
         createdAt: b.createdAt,
       })),
     ];

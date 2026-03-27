@@ -330,6 +330,7 @@ export async function POST(request: NextRequest) {
         responseDeadline: null,
         broadcastedAt: null,
         version: 0, // Initialize version for optimistic locking
+        source: body.source || 'web',
       },
       include: {
         locations: { select: { name: true, slug: true } },

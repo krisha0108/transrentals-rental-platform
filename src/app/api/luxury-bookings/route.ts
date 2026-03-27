@@ -186,6 +186,8 @@ export async function POST(request: NextRequest) {
         responseDeadline: expiresAt,
         tripStartOtp: generateOTP(),
         tripEndOtp: generateOTP(),
+        // Source tracking
+        source: body.source || 'web',
       },
     });
 

@@ -92,9 +92,9 @@ export function ServiceFleetDisplay({
     fetchFleet();
   }, [serviceSlug, limit, locationSlug]);
 
-  // Client-side category filter
+  // Client-side category filter — match by slug or name
   const fleet = selectedCategory
-    ? allFleet.filter((v) => v.categorySlug === selectedCategory)
+    ? allFleet.filter((v) => v.categorySlug === selectedCategory || v.category === categories.find(c => c.slug === selectedCategory)?.name)
     : allFleet;
 
   // Hide entire section until first fetch completes
@@ -176,7 +176,7 @@ export function ServiceFleetDisplay({
                     <Car className="w-16 h-16 text-gray-300" />
                   </div>
                 )}
-                {vehicle.category && (
+                {vehicle.category && vehicle.category !== 'Uncategorized' && (
                   <span className="absolute top-2 left-2 bg-blue-600 text-white text-xs px-2 py-1 rounded">
                     {vehicle.category}
                   </span>
@@ -185,18 +185,25 @@ export function ServiceFleetDisplay({
 
               {/* Vehicle Details */}
               <div className="p-4">
-                <div className="flex items-center gap-2 mb-2">
-                  {vehicle.brandLogo && (
-                    <Image
-                      src={vehicle.brandLogo}
-                      alt={vehicle.brand}
-                      width={24}
-                      height={24}
-                      className="object-contain"
-                    />
-                  )}
-                  <span className="text-sm text-gray-500">{vehicle.brand}</span>
-                </div>
+                {vehicle.brand && (() => {
+                  const name = vehicle.name.toLowerCase();
+                  const brand = vehicle.brand.toLowerCase();
+                  const brandFirst = brand.split(/[\s-]/)[0];
+                  return !name.startsWith(brand) && !name.startsWith(brandFirst);
+                })() && (
+                  <div className="flex items-center gap-2 mb-2">
+                    {vehicle.brandLogo && (
+                      <Image
+                        src={vehicle.brandLogo}
+                        alt={vehicle.brand}
+                        width={24}
+                        height={24}
+                        className="object-contain"
+                      />
+                    )}
+                    <span className="text-sm text-gray-500">{vehicle.brand}</span>
+                  </div>
+                )}
 
                 <h3 className="font-bold text-lg text-gray-900 mb-2 group-hover:text-blue-600 transition">
                   {vehicle.name}
@@ -226,14 +233,11 @@ export function ServiceFleetDisplay({
 
                 {/* Price */}
                 {vehicle.basePricePerDay && (
-                  <div className="flex items-center justify-between border-t pt-3">
-                    <div>
-                      <p className="text-xs text-gray-500 font-medium mb-0.5">Starting from</p>
-                      <span className="text-2xl font-bold text-blue-600">
-                        ₹{vehicle.basePricePerDay.toLocaleString()}
-                      </span>
-                    </div>
-                    <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-blue-600 transition" />
+                  <div className="border-t pt-3">
+                    <p className="text-xs text-gray-500 font-medium mb-0.5">Starting from</p>
+                    <span className="text-2xl font-bold text-blue-600">
+                      ₹{vehicle.basePricePerDay.toLocaleString()}
+                    </span>
                   </div>
                 )}
               </div>

@@ -156,6 +156,7 @@ export async function POST(request: NextRequest) {
         status: 'PENDING',
         expiresAt,
         quotesOpenTill,
+        source: body.source || 'web',
       },
     });
 

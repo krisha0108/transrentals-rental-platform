@@ -185,8 +185,6 @@ const handleBookingSubmit = async () => {
   try {
     const customerId = await AsyncStorage.getItem("customer_id");
     const token = await AsyncStorage.getItem("token");
-    console.log("🪪 Retrieved customer_id from AsyncStorage:", customerId); // ✅ Add this
-    console.log("📦 Retrieved token from AsyncStorage:", token);
     if (!customerId) {
       alert("Customer ID is missing, please login first");
       return;

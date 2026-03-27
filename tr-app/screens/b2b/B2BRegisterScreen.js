@@ -83,7 +83,7 @@ export default function B2BRegisterScreen({ navigation }) {
           const fcmToken = await messaging().getToken();
           await authService.saveFcmToken(customerData.id, fcmToken);
         } catch (err) {
-          console.log('FCM token error:', err.message);
+          // FCM token save failed silently
         }
         showAlert('success', 'Registration Successful!',
           `Your B2B account is pending admin approval. You'll be notified once approved.\n\nCustomer ID: ${customerData.id}`,

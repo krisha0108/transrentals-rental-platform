@@ -13,6 +13,7 @@ import { ALL_CITIES, getCityBySlug } from '@/data/indian-cities';
 import { BikeServiceSchema } from '@/components/seo/schemas';
 import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
+import { ServiceFleetDisplay } from '@/components/services/ServiceFleetDisplay';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 
 interface PageProps {
@@ -316,41 +317,15 @@ export default async function BikeLocationPage({ params }: PageProps) {
       {/* Hero with Search */}
       <BikeSearchHero city={locationName} citySlug={params.location} pageHeading={seoData?.pageHeading || undefined} pageDescription={seoData?.pageDescription || undefined} />
 
-      {/* Popular Bikes Preview */}
-      <section className="py-16 bg-white">
-        <div className="container-custom">
-          <div className="text-center mb-10">
-            <h2 className="text-3xl font-bold text-gray-900 mb-3">
-              Popular Bikes in {locationName}
-            </h2>
-            <p className="text-gray-600">
-              Choose from our wide range of well-maintained bikes and scooters
-            </p>
-          </div>
-
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            {POPULAR_BIKES.map((bike) => (
-              <div
-                key={bike.name}
-                className="bg-gray-50 rounded-xl p-4 text-center hover:shadow-lg transition-shadow"
-              >
-                <div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                  <span className="text-3xl">🏍️</span>
-                </div>
-                <h3 className="font-semibold text-gray-900 mb-1">{bike.name}</h3>
-                <p className="text-sm text-gray-500 mb-2">{bike.type}</p>
-                <p className="text-emerald-600 font-bold">₹{bike.price}/day</p>
-              </div>
-            ))}
-          </div>
-
-          <div className="text-center mt-8">
-            <p className="text-gray-600">
-              Search above to see all available bikes with real-time pricing
-            </p>
-          </div>
-        </div>
-      </section>
+      {/* Available Bikes - Dynamic from Database */}
+      <ServiceFleetDisplay
+        serviceSlug="bike-on-rent"
+        locationSlug={params.location}
+        title={`Bikes Available for Rent in ${locationName}`}
+        showCategories={true}
+        limit={12}
+        priceUnit="/day"
+      />
 
       {/* Why Rent Here */}
       <WhyRentHere locationName={locationName} />

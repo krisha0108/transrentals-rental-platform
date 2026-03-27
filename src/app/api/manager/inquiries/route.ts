@@ -59,23 +59,18 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const serviceFilter = searchParams.get('service') || 'all';
 
-    // Helper to check if service is assigned
+    // Helper to check if service is assigned (exact match or known aliases)
     const isServiceAssigned = (serviceSlug: string): boolean => {
-      return assignedServiceSlugs.some(slug =>
-        slug === serviceSlug ||
-        slug.includes(serviceSlug) ||
-        serviceSlug.includes(slug)
-      );
+      return assignedServiceSlugs.some(slug => slug === serviceSlug);
     };
 
     // Helper to check if should fetch this service based on filter
-    const shouldFetchService = (serviceSlug: string): boolean => {
-      if (serviceFilter === 'all') return isServiceAssigned(serviceSlug);
-      return isServiceAssigned(serviceSlug) && (
-        serviceFilter === serviceSlug ||
-        serviceFilter.includes(serviceSlug) ||
-        serviceSlug.includes(serviceFilter)
-      );
+    // Pass all possible slugs for a service; match exactly to avoid car-rental matching luxury-car-rental
+    const shouldFetchService = (...serviceSlugs: string[]): boolean => {
+      const assigned = serviceSlugs.some(s => isServiceAssigned(s));
+      if (!assigned) return false;
+      if (serviceFilter === 'all') return true;
+      return serviceSlugs.includes(serviceFilter);
     };
 
     // Build filters for quote_requests tables
@@ -94,7 +89,7 @@ export async function GET(request: NextRequest) {
       truckInquiries,
     ] = await Promise.all([
       // Bike Rental Quote Requests
-      shouldFetchService('bike-rental') || shouldFetchService('bike')
+      shouldFetchService('bike-rental', 'bike')
         ? prisma.bike_quote_requests.findMany({
             where: locationIdFilter,
             include: {
@@ -107,7 +102,7 @@ export async function GET(request: NextRequest) {
         : Promise.resolve([]),
 
       // Bus Rental Quote Requests
-      shouldFetchService('bus-rental') || shouldFetchService('bus')
+      shouldFetchService('bus-rental', 'bus')
         ? prisma.bus_quote_requests.findMany({
             where: pickupCityFilter,
             include: {
@@ -119,7 +114,7 @@ export async function GET(request: NextRequest) {
         : Promise.resolve([]),
 
       // Self Drive Quote Requests
-      shouldFetchService('self-drive-car-rental') || shouldFetchService('self-drive')
+      shouldFetchService('self-drive-car-rentals', 'self-drive-car-rental', 'self-drive')
         ? prisma.self_drive_quote_requests.findMany({
             where: locationIdFilter,
             include: {
@@ -132,9 +127,9 @@ export async function GET(request: NextRequest) {
         : Promise.resolve([]),
 
       // Equipment Rental Quote Requests
-      shouldFetchService('equipment-rental') || shouldFetchService('equipment')
+      shouldFetchService('equipment-rental', 'equipment')
         ? prisma.equipment_quote_requests.findMany({
-            where: locationNameFilter,
+            where: { deliveryCity: { in: assignedLocationNames } },
             include: {
               customers: { select: { id: true, name: true, email: true, phone: true } },
               _count: { select: { equipment_quotes: true } },
@@ -144,7 +139,7 @@ export async function GET(request: NextRequest) {
         : Promise.resolve([]),
 
       // Luxury Cars Quote Requests
-      shouldFetchService('luxury-car-rental') || shouldFetchService('luxury')
+      shouldFetchService('luxury-car-rental', 'luxury')
         ? prisma.luxury_quote_requests.findMany({
             where: pickupCityFilter,
             include: {
@@ -156,9 +151,9 @@ export async function GET(request: NextRequest) {
         : Promise.resolve([]),
 
       // Packers & Movers Quote Requests
-      shouldFetchService('packers-and-movers') || shouldFetchService('packers-movers')
+      shouldFetchService('packers-and-movers', 'packers-movers')
         ? prisma.packers_quote_requests.findMany({
-            where: locationNameFilter,
+            where: { pickupCity: { in: assignedLocationNames } },
             include: {
               customers: { select: { id: true, name: true, email: true, phone: true } },
               _count: { select: { packers_quotes: true } },
@@ -168,7 +163,7 @@ export async function GET(request: NextRequest) {
         : Promise.resolve([]),
 
       // Truck Transport Quote Requests
-      shouldFetchService('truck-transport') || shouldFetchService('truck')
+      shouldFetchService('truck-transport', 'truck', 'transporter')
         ? prisma.truck_quote_requests.findMany({
             where: pickupCityFilter,
             include: {
@@ -196,6 +191,7 @@ export async function GET(request: NextRequest) {
         pickupTime: q.pickupTime,
         dropDate: q.dropDate,
         quotesCount: q._count?.bike_quotes_bike_quotes_requestIdTobike_quote_requests || 0,
+        source: q.source || 'web',
         createdAt: q.createdAt,
       })),
       ...busInquiries.map((q: any) => ({
@@ -212,6 +208,7 @@ export async function GET(request: NextRequest) {
         pickupTime: q.pickupTime,
         dropDate: q.returnDate,
         quotesCount: q._count?.bus_quotes_bus_quotes_requestIdTobus_quote_requests || 0,
+        source: q.source || 'web',
         createdAt: q.createdAt,
       })),
       ...selfDriveInquiries.map((q: any) => ({
@@ -228,6 +225,7 @@ export async function GET(request: NextRequest) {
         pickupTime: q.pickupTime,
         dropDate: q.dropDate,
         quotesCount: q._count?.self_drive_quotes_self_drive_quotes_requestIdToself_drive_quote_requests || 0,
+        source: q.source || 'web',
         createdAt: q.createdAt,
       })),
       ...equipmentInquiries.map((q: any) => ({
@@ -244,6 +242,7 @@ export async function GET(request: NextRequest) {
         pickupTime: null,
         dropDate: q.endDate,
         quotesCount: q._count?.equipment_quotes || 0,
+        source: q.source || 'web',
         createdAt: q.createdAt,
       })),
       ...luxuryInquiries.map((q: any) => ({
@@ -260,6 +259,7 @@ export async function GET(request: NextRequest) {
         pickupTime: q.pickupTime,
         dropDate: q.dropDate,
         quotesCount: q._count?.luxury_quotes || 0,
+        source: q.source || 'web',
         createdAt: q.createdAt,
       })),
       ...packersInquiries.map((q: any) => ({
@@ -276,6 +276,7 @@ export async function GET(request: NextRequest) {
         pickupTime: null,
         dropDate: null,
         quotesCount: q._count?.packers_quotes || 0,
+        source: q.source || 'web',
         createdAt: q.createdAt,
       })),
       ...truckInquiries.map((q: any) => ({
@@ -292,6 +293,7 @@ export async function GET(request: NextRequest) {
         pickupTime: q.pickupTime,
         dropDate: null,
         quotesCount: q._count?.truck_quotes || 0,
+        source: q.source || 'web',
         createdAt: q.createdAt,
       })),
     ];
@@ -300,21 +302,21 @@ export async function GET(request: NextRequest) {
     allInquiries.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
     // Create unique service list based on main service names
-    const mainServices = [
-      { slug: 'bike-rental', name: 'Bike Rental' },
-      { slug: 'bus-rental', name: 'Bus Rental' },
-      { slug: 'self-drive', name: 'Self Drive' },
-      { slug: 'car-rental', name: 'Car Rental' },
-      { slug: 'equipment-rental', name: 'Equipment Rental' },
-      { slug: 'luxury-car-rental', name: 'Luxury Cars' },
-      { slug: 'packers-and-movers', name: 'Packers & Movers' },
-      { slug: 'truck-transport', name: 'Truck Transport' },
+    // Each entry has alternateSlug variants so manager assignment matching works
+    const mainServices: { slug: string; name: string; alts: string[] }[] = [
+      { slug: 'bike-rental', name: 'Bike Rental', alts: ['bike'] },
+      { slug: 'bus-rental', name: 'Bus Rental', alts: ['bus'] },
+      { slug: 'self-drive', name: 'Self Drive', alts: ['self-drive-car-rentals', 'self-drive-car-rental'] },
+      { slug: 'equipment-rental', name: 'Equipment Rental', alts: ['equipment'] },
+      { slug: 'luxury-car-rental', name: 'Luxury Cars', alts: ['luxury'] },
+      { slug: 'packers-and-movers', name: 'Packers & Movers', alts: ['packers-movers'] },
+      { slug: 'truck-transport', name: 'Truck Transport', alts: ['truck', 'transporter'] },
     ];
 
-    // Only include services that manager is assigned to
+    // Only include services that manager is assigned to (exact match on slug or alts)
     const uniqueServices = mainServices.filter(mainSvc =>
       assignedServiceSlugs.some(assignedSlug =>
-        assignedSlug.includes(mainSvc.slug) || mainSvc.slug.includes(assignedSlug)
+        assignedSlug === mainSvc.slug || mainSvc.alts.includes(assignedSlug)
       )
     ).map((svc, index) => ({
       id: `service-${index}`,

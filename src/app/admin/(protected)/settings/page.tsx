@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Settings, Save, Globe, Share2, Mail, Loader2, CheckCircle } from 'lucide-react';
+import { Settings, Save, Globe, Share2, Mail, Loader2, CheckCircle, Smartphone } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { CONTACT_EMAIL, CONTACT_PHONE } from '@/lib/contact';
 
@@ -17,6 +17,14 @@ export default function SettingsPage() {
     linkedinUrl: 'https://linkedin.com/company/transrentals',
     defaultMetaTitle: 'TransRentals - Vehicle Rental Marketplace',
     defaultMetaDescription: 'Rent cars, bikes, buses and more across India',
+    // Customer App Version
+    app_latest_version: '3.3',
+    app_force_update: 'false',
+    app_update_message: 'New features and improvements available.',
+    // Vendor App Version
+    vendor_app_latest_version: '4.0.0',
+    vendor_app_force_update: 'false',
+    vendor_app_update_message: 'New features and improvements available.',
   });
 
   const [isLoading, setIsLoading] = useState(true);
@@ -261,6 +269,103 @@ export default function SettingsPage() {
               rows={3}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
+          </div>
+        </div>
+      </div>
+
+      {/* Mobile App Versions */}
+      <div className="bg-white rounded-xl shadow-md border border-gray-200 p-6">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="w-10 h-10 bg-teal-100 rounded-lg flex items-center justify-center">
+            <Smartphone className="w-5 h-5 text-teal-600" />
+          </div>
+          <div>
+            <h2 className="text-xl font-bold text-gray-900">Mobile App Versions</h2>
+            <p className="text-sm text-gray-600">Control app update prompts without redeploying</p>
+          </div>
+        </div>
+
+        {/* Customer App */}
+        <div className="mb-6">
+          <h3 className="text-sm font-semibold text-teal-700 bg-teal-50 px-3 py-1.5 rounded-lg inline-block mb-4">Customer App</h3>
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Latest Version</label>
+                <input
+                  type="text"
+                  value={(settings as any).app_latest_version}
+                  onChange={(e) => setSettings({ ...settings, app_latest_version: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="e.g. 3.4"
+                />
+                <p className="text-xs text-gray-500 mt-1">Version on Play Store</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Force Update</label>
+                <select
+                  value={(settings as any).app_force_update}
+                  onChange={(e) => setSettings({ ...settings, app_force_update: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="false">No — User can skip</option>
+                  <option value="true">Yes — Must update</option>
+                </select>
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Update Message</label>
+              <textarea
+                value={(settings as any).app_update_message}
+                onChange={(e) => setSettings({ ...settings, app_update_message: e.target.value })}
+                rows={2}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="What's new in this version..."
+              />
+            </div>
+          </div>
+        </div>
+
+        <hr className="my-6 border-gray-200" />
+
+        {/* Vendor App */}
+        <div>
+          <h3 className="text-sm font-semibold text-blue-700 bg-blue-50 px-3 py-1.5 rounded-lg inline-block mb-4">Vendor App</h3>
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Latest Version</label>
+                <input
+                  type="text"
+                  value={(settings as any).vendor_app_latest_version}
+                  onChange={(e) => setSettings({ ...settings, vendor_app_latest_version: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="e.g. 4.1.0"
+                />
+                <p className="text-xs text-gray-500 mt-1">Version on Play Store</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Force Update</label>
+                <select
+                  value={(settings as any).vendor_app_force_update}
+                  onChange={(e) => setSettings({ ...settings, vendor_app_force_update: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="false">No — User can skip</option>
+                  <option value="true">Yes — Must update</option>
+                </select>
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Update Message</label>
+              <textarea
+                value={(settings as any).vendor_app_update_message}
+                onChange={(e) => setSettings({ ...settings, vendor_app_update_message: e.target.value })}
+                rows={2}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="What's new in this version..."
+              />
+            </div>
           </div>
         </div>
       </div>
