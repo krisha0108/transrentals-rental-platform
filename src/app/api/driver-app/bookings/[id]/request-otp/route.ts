@@ -393,7 +393,8 @@ export async function POST(
       if (!['PENDING', 'DRIVER_ARRIVED'].includes(trip.status))
         return NextResponse.json({ success: false, error: 'Cannot send OTP at this stage' }, { status: 409 });
 
-      const otp = generateOTP();
+      // B2B uses 4-digit OTP (consistent with web b2b flow)
+      const otp = Math.floor(1000 + Math.random() * 9000).toString();
 
       await prisma.b2b_trips.update({
         where: { id: params.id },

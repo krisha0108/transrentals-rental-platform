@@ -122,8 +122,9 @@ export default function ActiveTripScreen({ route, navigation }) {
   }, [isInProgress]);
 
   async function handleStartTrip() {
-    if (otp.length !== 6) {
-      Alert.alert('Invalid OTP', 'Please enter the 6-digit OTP provided by the customer');
+    const otpDigits = booking.source === 'b2b' ? 4 : 6;
+    if (otp.length !== otpDigits) {
+      Alert.alert('Invalid OTP', `Please enter the ${otpDigits}-digit OTP provided by the customer`);
       return;
     }
     setLoading(true);
@@ -1166,12 +1167,12 @@ export default function ActiveTripScreen({ route, navigation }) {
                       <Ionicons name="shield-checkmark" size={20} color={C.primary} />
                     </View>
                     <View style={{ flex: 1 }}>
-                      <Text style={styles.otpInfoTitle}>Enter the 6-digit OTP</Text>
+                      <Text style={styles.otpInfoTitle}>Enter the {booking.source === 'b2b' ? '4' : '6'}-digit OTP</Text>
                       <Text style={styles.otpInfoSub}>Ask the customer for the OTP sent to their phone. This confirms you're with the right customer.</Text>
                     </View>
                   </View>
 
-                  <OtpInput value={otp} onChange={setOtp} />
+                  <OtpInput value={otp} onChange={setOtp} maxDigits={booking.source === 'b2b' ? 4 : 6} />
 
                   {/* Resend option */}
                   <TouchableOpacity
@@ -1187,9 +1188,9 @@ export default function ActiveTripScreen({ route, navigation }) {
                   </TouchableOpacity>
 
                   <TouchableOpacity
-                    style={[styles.primaryBtn, (loading || otp.length < 6) && { opacity: 0.5 }]}
+                    style={[styles.primaryBtn, (loading || otp.length < (booking.source === 'b2b' ? 4 : 6)) && { opacity: 0.5 }]}
                     onPress={handleStartTrip}
-                    disabled={loading || otp.length < 6}
+                    disabled={loading || otp.length < (booking.source === 'b2b' ? 4 : 6)}
                     activeOpacity={0.85}
                   >
                     {loading ? (
