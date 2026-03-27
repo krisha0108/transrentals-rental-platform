@@ -424,9 +424,9 @@ export default function ActiveTripScreen({ route, navigation }) {
                   : booking.status === 'RETURNED' ? 'Equipment Returned'
                   : 'Deliver Equipment'
                 : booking.source === 'b2b'
-                ? booking.status === 'STARTED' ? 'B2B Trip In Progress'
+                ? booking.status === 'STARTED' ? `${booking.serviceType || 'B2B'} In Progress`
                   : booking.status === 'DRIVER_ARRIVED' ? 'Enter Customer OTP'
-                  : 'B2B Trip — Send OTP'
+                  : `${booking.serviceType || 'B2B'} — Send OTP`
                 : isInProgress ? 'Trip In Progress' : 'Start Trip'}
             </Text>
             <Text style={styles.heroSub}>{booking.bookingNumber}</Text>

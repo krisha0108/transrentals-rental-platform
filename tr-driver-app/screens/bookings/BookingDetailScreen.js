@@ -23,7 +23,7 @@ const SVC_STYLE = {
   truck:     { color: '#EA580C', bg: '#FFF7ED',  label: 'Truck' },
   packers:   { color: '#15803D', bg: '#F0FDF4',  label: 'Packers' },
   equipment: { color: '#0369A1', bg: '#F0F9FF',  label: 'Equipment' },
-  b2b:       { color: '#7C3AED', bg: '#F5F3FF',  label: 'B2B Trip' },
+  b2b:       { color: '#7C3AED', bg: '#F5F3FF',  label: 'B2B' },
   direct:    { color: '#16A34A', bg: '#F0FDF4',  label: 'Vendor Direct' },
 };
 
@@ -314,7 +314,7 @@ export default function BookingDetailScreen({ route, navigation }) {
             <Text style={styles.heroTitle}>Booking Details</Text>
           </View>
           <View style={styles.svcBadge}>
-            <Text style={styles.svcBadgeText}>{svc.label}</Text>
+            <Text style={styles.svcBadgeText}>{booking.serviceType || svc.label}</Text>
           </View>
         </View>
 

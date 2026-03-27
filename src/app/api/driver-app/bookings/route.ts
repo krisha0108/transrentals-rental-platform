@@ -305,16 +305,23 @@ export async function GET(request: NextRequest) {
         const rows = await prisma.b2b_trips.findMany({
           where, orderBy: { scheduledDate: 'asc' },
           include: {
-            booking: { select: { id: true, bookingNumber: true, customerName: true, customerPhone: true } },
+            booking: { select: { id: true, bookingNumber: true, customerName: true, customerPhone: true, serviceType: true, companyName: true } },
             vehicle: { select: { vehicleName: true, registrationNumber: true } },
           },
         });
 
         rows.forEach(b => bookings.push(normalize('b2b', {
           id: b.id, bookingNumber: b.tripCode,
-          serviceType: 'B2B Trip', serviceLabel: 'Corporate Trip',
+          serviceType: b.booking?.serviceType
+            ? (b.booking.serviceType === 'self-drive'
+              ? 'B2B Self Drive'
+              : `B2B ${b.booking.serviceType.charAt(0).toUpperCase() + b.booking.serviceType.slice(1)}`)
+            : 'B2B',
+          serviceLabel: b.booking?.serviceType
+            ? (b.booking.serviceType === 'self-drive' ? 'Self Drive' : b.booking.serviceType.charAt(0).toUpperCase() + b.booking.serviceType.slice(1))
+            : 'Corporate',
           carCategoryName: b.vehicleName || b.vehicle?.vehicleName || 'Vehicle',
-          customerName: b.booking?.customerName || 'Corporate Client',
+          customerName: b.booking?.companyName || b.booking?.customerName || 'Corporate Client',
           customerPhone: b.booking?.customerPhone || '',
           pickupCity: b.pickupLocation, dropCity: b.dropLocation,
           pickupAddress: b.pickupLocation, dropAddress: b.dropLocation,
