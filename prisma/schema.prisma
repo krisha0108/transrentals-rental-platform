@@ -193,6 +193,7 @@ model bike_bookings {
   vendorNotes                                     String?                     @db.Text
   adminNotes                                      String?                     @db.Text
   cancellationReason                              String?                     @db.Text
+  source                                          String?                     @db.VarChar(20) @default("web")
   createdAt                                       DateTime                    @default(now())
   updatedAt                                       DateTime                    @updatedAt
   lastPaymentError                                String?                     @db.Text
@@ -285,6 +286,7 @@ model bike_quote_requests {
   vehicleCategoryName                                          String?
   vehicleModelId                                               String?
   vehicleModelName                                             String?
+  source                                                       String?                    @db.VarChar(20) @default("web")
   bike_bookings                                                bike_bookings?
   bike_quotes_bike_quote_requests_acceptedQuoteIdTobike_quotes bike_quotes?               @relation("bike_quote_requests_acceptedQuoteIdTobike_quotes", fields: [acceptedQuoteId], references: [id])
   customers                                                    customers?                 @relation(fields: [customerId], references: [id])
@@ -489,6 +491,7 @@ model bus_bookings {
   vehicleRating          Int?
   confirmedAt            DateTime?
   completedAt            DateTime?
+  source                 String?                    @db.VarChar(20) @default("web")
   createdAt              DateTime                   @default(now())
   updatedAt              DateTime                   @updatedAt
   advancePaymentDate     DateTime?
@@ -544,6 +547,7 @@ model bus_quote_requests {
   totalQuotesReceived                                       Int                       @default(0)
   quotesViewed                                              Int                       @default(0)
   acceptedQuoteId                                           String?
+  source                                                    String?                   @db.VarChar(20) @default("web")
   createdAt                                                 DateTime                  @default(now())
   updatedAt                                                 DateTime                  @updatedAt
   bus_bookings                                              bus_bookings?
@@ -693,6 +697,7 @@ model car_bookings {
   cancelledAt                                    DateTime?
   cancelledBy                                    String?
   completedAt                                    DateTime?
+  source                                         String?                    @db.VarChar(20) @default("web")
   createdAt                                      DateTime                   @default(now())
   updatedAt                                      DateTime                   @updatedAt
   advanceAmount                                  Float?
@@ -853,6 +858,7 @@ model chauffeur_bookings {
   localPackageKm                                       Int?
   pickupCity                                           String
   dropCity                                             String?
+  source                                               String?                          @db.VarChar(20) @default("web")
   intermediateStops                                    String?                          @db.Text
   pickupAddress                                        String?                          @db.Text
   dropAddress                                          String?                          @db.Text
@@ -1376,6 +1382,7 @@ model equipment_bookings {
   rating                   Int?
   review                   String?                          @db.Text
   equipmentRating          Int?
+  source                   String?                          @db.VarChar(20) @default("web")
   createdAt                DateTime                         @default(now())
   updatedAt                DateTime                         @updatedAt
   droppedAt                DateTime?
@@ -1423,6 +1430,7 @@ model equipment_quote_requests {
   totalQuotesReceived Int                             @default(0)
   quotesViewed        Int                             @default(0)
   acceptedQuoteId     String?
+  source              String?                         @db.VarChar(20) @default("web")
   createdAt           DateTime                        @default(now())
   updatedAt           DateTime                        @updatedAt
   equipment_bookings  equipment_bookings?
@@ -1921,6 +1929,7 @@ model luxury_bookings {
   driverRating                                      Int?
   vehicleRating                                     Int?
   acceptedAt                                        DateTime?
+  source                                            String?                       @db.VarChar(20) @default("web")
   createdAt                                         DateTime                      @default(now())
   updatedAt                                         DateTime                      @updatedAt
   acceptedQuoteId                                   String?                       @unique
@@ -1998,6 +2007,7 @@ model luxury_quote_requests {
   totalQuotesReceived Int                          @default(0)
   quotesViewed        Int                          @default(0)
   acceptedQuoteId     String?                      @unique
+  source              String?                      @db.VarChar(20) @default("web")
   createdAt           DateTime                     @default(now())
   updatedAt           DateTime                     @updatedAt
   luxury_bookings     luxury_bookings?
@@ -2226,6 +2236,7 @@ model packers_bookings {
   review                 String?                        @db.Text
   teamRating             Int?
   packingRating          Int?
+  source                 String?                        @db.VarChar(20) @default("web")
   createdAt              DateTime                       @default(now())
   updatedAt              DateTime                       @updatedAt
   deliveryOtpSent        Boolean                        @default(false)
@@ -2290,6 +2301,7 @@ model packers_quote_requests {
   totalQuotesReceived Int                           @default(0)
   quotesViewed        Int                           @default(0)
   acceptedQuoteId     String?
+  source              String?                       @db.VarChar(20) @default("web")
   createdAt           DateTime                      @default(now())
   updatedAt           DateTime                      @updatedAt
   packers_bookings    packers_bookings?
@@ -2572,6 +2584,7 @@ model self_drive_quote_requests {
   vehicleModelId                                                                 String?
   vehicleModelName                                                               String?
   vehicleType                                                                    String?
+  source                                                                         String?                          @db.VarChar(20) @default("web")
   car_bookings                                                                   car_bookings?
   self_drive_quotes_self_drive_quote_requests_acceptedQuoteIdToself_drive_quotes self_drive_quotes?               @relation("self_drive_quote_requests_acceptedQuoteIdToself_drive_quotes", fields: [acceptedQuoteId], references: [id])
   customers                                                                      customers?                       @relation(fields: [customerId], references: [id])
@@ -2934,6 +2947,7 @@ model truck_bookings {
   rating                 Int?
   review                 String?                      @db.Text
   driverRating           Int?
+  source                 String?                      @db.VarChar(20) @default("web")
   createdAt              DateTime                     @default(now())
   updatedAt              DateTime                     @updatedAt
   advancePaymentDate     DateTime?
@@ -3000,6 +3014,7 @@ model truck_quote_requests {
   totalQuotesReceived Int                         @default(0)
   quotesViewed        Int                         @default(0)
   acceptedQuoteId     String?
+  source              String?                     @db.VarChar(20) @default("web")
   createdAt           DateTime                    @default(now())
   updatedAt           DateTime                    @updatedAt
   truck_bookings      truck_bookings?

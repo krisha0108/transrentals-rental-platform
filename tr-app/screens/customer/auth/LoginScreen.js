@@ -143,11 +143,9 @@ export default function LoginScreen({ navigation }) {
         // Get and save FCM token
         try {
           const fcmToken = await messaging().getToken();
-          console.log('Got FCM token:', fcmToken);
           await authService.saveFcmToken(response.customers.id, fcmToken);
-          console.log('FCM token sent to backend successfully');
         } catch (err) {
-          console.log('Error sending FCM token to backend:', err.message);
+          // FCM token save failed silently
         }
 
         setLoggedInUserName(response.customers.name || 'User');
@@ -156,7 +154,6 @@ export default function LoginScreen({ navigation }) {
         Alert.alert("Error", response.message || "Login failed");
       }
     } catch (error) {
-      console.log("Login Error:", error.message || "Unknown error");
       const errorMessage = error.response?.data?.message || error.message || "Something went wrong during login.";
       Alert.alert("Error", errorMessage);
     } finally {
@@ -169,15 +166,12 @@ export default function LoginScreen({ navigation }) {
     try {
       await GoogleSignin.hasPlayServices();
       const userInfo = await GoogleSignin.signIn();
-      console.log('Google User Info:', userInfo);
 
       const response = await authService.googleLogin(
         userInfo.data.idToken,
         userInfo.data.user.email,
         userInfo.data.user.name
       );
-
-      console.log('customerdata', response);
 
       if (response.status === 'success') {
         // Save customer data
@@ -186,11 +180,9 @@ export default function LoginScreen({ navigation }) {
         // Get and save FCM token
         try {
           const fcmToken = await messaging().getToken();
-          console.log('Got FCM token:', fcmToken);
           await authService.saveFcmToken(response.customers.id, fcmToken);
-          console.log('FCM token sent to backend successfully');
         } catch (err) {
-          console.log('Error sending FCM token to backend:', err.message);
+          // FCM token save failed silently
         }
 
         setLoggedInUserName(response.customers.name || 'User');

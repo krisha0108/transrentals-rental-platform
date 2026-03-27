@@ -7,7 +7,6 @@ import {
   Image,
   StyleSheet,
   ScrollView,
-  Alert,
   ActivityIndicator,
   Modal,
   RefreshControl,
@@ -56,6 +55,7 @@ const HelpDeskScreen = () => {
   const [bookings, setBookings] = useState([]);
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [bookingDropdownOpen, setBookingDropdownOpen] = useState(false);
+  const [alertModal, setAlertModal] = useState({ visible: false, type: '', title: '', message: '' });
   const navigation = useNavigation();
 
   // Animation values
@@ -210,7 +210,6 @@ const HelpDeskScreen = () => {
       });
 
       if (response.data.message === 'Ticket submitted successfully!') {
-        Alert.alert('Success', 'Your ticket has been submitted');
         setHeading('');
         setProblem('');
         setImageUri(null);
@@ -218,11 +217,12 @@ const HelpDeskScreen = () => {
         setSelectedBooking(null);
         fetchTickets();
         setModalVisible(false);
+        setAlertModal({ visible: true, type: 'success', title: 'Ticket Submitted!', message: 'Your helpdesk ticket has been submitted successfully. We will get back to you soon.' });
       } else {
-        Alert.alert('Error', 'Something went wrong!');
+        setAlertModal({ visible: true, type: 'error', title: 'Error', message: 'Something went wrong. Please try again.' });
       }
     } catch (error) {
-      console.error('Ticket submission error:', error);
+      setAlertModal({ visible: true, type: 'error', title: 'Error', message: error?.response?.data?.message || 'Failed to submit ticket. Please try again.' });
     } finally {
       setSubmitLoading(false);
     }
@@ -867,6 +867,35 @@ const HelpDeskScreen = () => {
           </TouchableOpacity>
         </View>
       </Modal>
+
+      {/* Custom Alert Modal */}
+      <Modal visible={alertModal.visible} transparent animationType="fade">
+        <View style={styles.alertOverlay}>
+          <View style={styles.alertCard}>
+            <View style={[styles.alertIconCircle, alertModal.type === 'success' ? styles.alertIconSuccess : styles.alertIconError]}>
+              <Ionicons
+                name={alertModal.type === 'success' ? 'checkmark-circle' : 'alert-circle'}
+                size={wp('12%')}
+                color={alertModal.type === 'success' ? TEAL : '#EF4444'}
+              />
+            </View>
+            <Text style={styles.alertTitle}>{alertModal.title}</Text>
+            <Text style={styles.alertMessage}>{alertModal.message}</Text>
+            <TouchableOpacity
+              style={styles.alertBtn}
+              activeOpacity={0.8}
+              onPress={() => setAlertModal({ visible: false, type: '', title: '', message: '' })}
+            >
+              <LinearGradient
+                colors={alertModal.type === 'success' ? [TEAL, '#059669'] : ['#EF4444', '#DC2626']}
+                style={styles.alertBtnGradient}
+              >
+                <Text style={styles.alertBtnText}>OK</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -1488,6 +1517,65 @@ const styles = StyleSheet.create({
   bookingItemText: {
     fontSize: wp('3.2%'),
     fontWeight: '500',
+  },
+  // Custom Alert Modal
+  alertOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: wp('8%'),
+  },
+  alertCard: {
+    backgroundColor: '#FFF',
+    borderRadius: wp('5%'),
+    paddingVertical: hp('3.5%'),
+    paddingHorizontal: wp('6%'),
+    alignItems: 'center',
+    width: '100%',
+  },
+  alertIconCircle: {
+    width: wp('18%'),
+    height: wp('18%'),
+    borderRadius: wp('9%'),
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: hp('1.5%'),
+  },
+  alertIconSuccess: {
+    backgroundColor: TEAL_LIGHT,
+  },
+  alertIconError: {
+    backgroundColor: '#FEE2E2',
+  },
+  alertTitle: {
+    fontSize: wp('4.5%'),
+    fontWeight: '700',
+    color: TEXT_PRIMARY,
+    marginBottom: hp('0.8%'),
+    textAlign: 'center',
+  },
+  alertMessage: {
+    fontSize: wp('3.3%'),
+    color: TEXT_SECONDARY,
+    textAlign: 'center',
+    lineHeight: wp('5%'),
+    marginBottom: hp('2.5%'),
+  },
+  alertBtn: {
+    width: '100%',
+    borderRadius: wp('3%'),
+    overflow: 'hidden',
+  },
+  alertBtnGradient: {
+    paddingVertical: hp('1.5%'),
+    alignItems: 'center',
+    borderRadius: wp('3%'),
+  },
+  alertBtnText: {
+    color: '#FFF',
+    fontSize: wp('3.8%'),
+    fontWeight: '700',
   },
 });
 

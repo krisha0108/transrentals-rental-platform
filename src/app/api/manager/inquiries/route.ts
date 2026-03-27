@@ -134,7 +134,7 @@ export async function GET(request: NextRequest) {
       // Equipment Rental Quote Requests
       shouldFetchService('equipment-rental') || shouldFetchService('equipment')
         ? prisma.equipment_quote_requests.findMany({
-            where: locationNameFilter,
+            where: { deliveryCity: { in: assignedLocationNames } },
             include: {
               customers: { select: { id: true, name: true, email: true, phone: true } },
               _count: { select: { equipment_quotes: true } },
@@ -158,7 +158,7 @@ export async function GET(request: NextRequest) {
       // Packers & Movers Quote Requests
       shouldFetchService('packers-and-movers') || shouldFetchService('packers-movers')
         ? prisma.packers_quote_requests.findMany({
-            where: locationNameFilter,
+            where: { pickupCity: { in: assignedLocationNames } },
             include: {
               customers: { select: { id: true, name: true, email: true, phone: true } },
               _count: { select: { packers_quotes: true } },
@@ -168,7 +168,7 @@ export async function GET(request: NextRequest) {
         : Promise.resolve([]),
 
       // Truck Transport Quote Requests
-      shouldFetchService('truck-transport') || shouldFetchService('truck')
+      shouldFetchService('truck-transport') || shouldFetchService('truck') || shouldFetchService('transporter')
         ? prisma.truck_quote_requests.findMany({
             where: pickupCityFilter,
             include: {
@@ -196,6 +196,7 @@ export async function GET(request: NextRequest) {
         pickupTime: q.pickupTime,
         dropDate: q.dropDate,
         quotesCount: q._count?.bike_quotes_bike_quotes_requestIdTobike_quote_requests || 0,
+        source: q.source || 'web',
         createdAt: q.createdAt,
       })),
       ...busInquiries.map((q: any) => ({
@@ -212,6 +213,7 @@ export async function GET(request: NextRequest) {
         pickupTime: q.pickupTime,
         dropDate: q.returnDate,
         quotesCount: q._count?.bus_quotes_bus_quotes_requestIdTobus_quote_requests || 0,
+        source: q.source || 'web',
         createdAt: q.createdAt,
       })),
       ...selfDriveInquiries.map((q: any) => ({
@@ -228,6 +230,7 @@ export async function GET(request: NextRequest) {
         pickupTime: q.pickupTime,
         dropDate: q.dropDate,
         quotesCount: q._count?.self_drive_quotes_self_drive_quotes_requestIdToself_drive_quote_requests || 0,
+        source: q.source || 'web',
         createdAt: q.createdAt,
       })),
       ...equipmentInquiries.map((q: any) => ({
@@ -244,6 +247,7 @@ export async function GET(request: NextRequest) {
         pickupTime: null,
         dropDate: q.endDate,
         quotesCount: q._count?.equipment_quotes || 0,
+        source: q.source || 'web',
         createdAt: q.createdAt,
       })),
       ...luxuryInquiries.map((q: any) => ({
@@ -260,6 +264,7 @@ export async function GET(request: NextRequest) {
         pickupTime: q.pickupTime,
         dropDate: q.dropDate,
         quotesCount: q._count?.luxury_quotes || 0,
+        source: q.source || 'web',
         createdAt: q.createdAt,
       })),
       ...packersInquiries.map((q: any) => ({
@@ -276,6 +281,7 @@ export async function GET(request: NextRequest) {
         pickupTime: null,
         dropDate: null,
         quotesCount: q._count?.packers_quotes || 0,
+        source: q.source || 'web',
         createdAt: q.createdAt,
       })),
       ...truckInquiries.map((q: any) => ({
@@ -292,6 +298,7 @@ export async function GET(request: NextRequest) {
         pickupTime: q.pickupTime,
         dropDate: null,
         quotesCount: q._count?.truck_quotes || 0,
+        source: q.source || 'web',
         createdAt: q.createdAt,
       })),
     ];

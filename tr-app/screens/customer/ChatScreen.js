@@ -371,10 +371,8 @@ export default function ChatScreen({ route, navigation }) {
 
   const fetchMessages = async () => {
     setLoading(true);
-    console.log('[fetchMessages] Fetching messages from API...');
     try {
       const token = await AsyncStorage.getItem('token');
-      console.log('[fetchMessages] Retrieved token:', token ? 'Exists' : 'Null');
       const res = await api.get(
         `/customer/bookings/${bookingId}/chats/${vendorId}`,
         { headers: { Authorization: `Bearer ${token}` } }
@@ -849,32 +847,30 @@ const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: hp(1),
+    paddingVertical: hp(1.8),
     paddingHorizontal: wp(3.5),
-    borderTopWidth: 1,
-    borderColor: '#E5E7EB',
-    backgroundColor: '#fff',
-    ...SHADOW_SM,
+    borderTopWidth: 2,
+    borderColor: '#586273',
+    backgroundColor: '#FFFFFF',
   },
   input: {
     flex: 1,
-    backgroundColor: BG,
-    borderRadius: wp(6),
-    paddingVertical: Platform.OS === 'ios' ? hp(1.3) : hp(1),
+    backgroundColor: '#F8FAFC',
+    borderRadius: wp(2.5),
+    paddingVertical: Platform.OS === 'ios' ? hp(2) : hp(1.8),
     paddingHorizontal: wp(4),
-    fontSize: wp(3.6),
-    borderWidth: 1,
-    borderColor: TEAL_LIGHT,
+    fontSize: wp(3.8),
+    borderWidth: 2,
+    borderColor: '#586273',
     color: TEXT_PRIMARY,
   },
   sendIconButton: {
-    width: wp(10),
-    height: wp(10),
-    borderRadius: wp(5),
+    width: wp(12),
+    height: wp(12),
+    borderRadius: wp(2.5),
     backgroundColor: TEAL,
     justifyContent: 'center',
     alignItems: 'center',
     marginLeft: wp(2.5),
-    ...SHADOW_SM,
   },
 });

@@ -220,6 +220,21 @@ export default function MyCarBookingsScreen() {
                 </Text>
               </View>
             </View>
+            {/* Intermediate stops */}
+            {(request.intermediateStops || []).filter(s => s.cityText).map((stop, idx) => (
+              <React.Fragment key={idx}>
+                <View style={styles.locationConnector} />
+                <View style={styles.locationRow}>
+                  <View style={styles.locationDotWrap}>
+                    <View style={[styles.locationDot, { backgroundColor: '#F59E0B', width: wp('2%'), height: wp('2%'), borderRadius: wp('1%') }]} />
+                  </View>
+                  <View style={styles.locationInfo}>
+                    <Text style={styles.locationLabel}>Stop {idx + 1}</Text>
+                    <Text style={styles.locationText} numberOfLines={1}>{stop.cityText}</Text>
+                  </View>
+                </View>
+              </React.Fragment>
+            ))}
             {request.dropCity && (
               <>
                 <View style={styles.locationConnector} />
@@ -333,6 +348,21 @@ export default function MyCarBookingsScreen() {
                 </Text>
               </View>
             </View>
+            {/* Intermediate stops */}
+            {(booking.intermediateStops || []).filter(s => s.cityText).map((stop, idx) => (
+              <React.Fragment key={idx}>
+                <View style={styles.locationConnector} />
+                <View style={styles.locationRow}>
+                  <View style={styles.locationDotWrap}>
+                    <View style={[styles.locationDot, { backgroundColor: '#F59E0B', width: wp('2%'), height: wp('2%'), borderRadius: wp('1%') }]} />
+                  </View>
+                  <View style={styles.locationInfo}>
+                    <Text style={styles.locationLabel}>Stop {idx + 1}</Text>
+                    <Text style={styles.locationText} numberOfLines={1}>{stop.cityText}</Text>
+                  </View>
+                </View>
+              </React.Fragment>
+            ))}
             {booking.dropCity && (
               <>
                 <View style={styles.locationConnector} />

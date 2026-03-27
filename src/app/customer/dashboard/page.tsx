@@ -1326,7 +1326,7 @@ export default function CustomerDashboardPage() {
                           return (
                             <tr key={booking.id}
                               className="border-b border-gray-50 last:border-0 hover:bg-[#09B368]/[0.02] transition-colors cursor-pointer group"
-                              onClick={() => window.location.href = getBookingUrl(booking)}>
+                              onClick={() => window.open(getBookingUrl(booking), '_blank')}>
                               <td className="px-5 py-3.5">
                                 <div className="flex items-center gap-3">
                                   <div className={`w-9 h-9 ${serviceBadge.bg} border ${serviceBadge.border} rounded-xl flex items-center justify-center flex-shrink-0`}>

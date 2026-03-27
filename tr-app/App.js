@@ -354,10 +354,7 @@ function AppContent() {
         sound: customSound, // Same sound
       });
 
-      console.log('✅ All notification channels created with same custom sound');
-
       const fcmToken = await messaging().getToken();
-      console.log('FCM Token:', fcmToken);
 
       // ⭐ Save FCM token to backend
       try {
@@ -373,9 +370,7 @@ function AppContent() {
             }),
           });
           const result = await response.json();
-          if (result.success) {
-            console.log('✅ FCM token saved to backend');
-          } else {
+          if (!result.success) {
             console.error('❌ Failed to save FCM token:', result.message);
           }
         }

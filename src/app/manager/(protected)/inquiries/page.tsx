@@ -20,6 +20,8 @@ import {
   XCircle,
   IndianRupee,
   ChevronLeft,
+  Globe,
+  Smartphone,
 } from 'lucide-react';
 
 interface Inquiry {
@@ -36,6 +38,7 @@ interface Inquiry {
   pickupTime?: string;
   dropDate?: string;
   quotesCount: number;
+  source?: string;
   createdAt: string;
 }
 
@@ -96,6 +99,7 @@ export default function ManagerInquiriesPage() {
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [sourceFilter, setSourceFilter] = useState('all');
   const [serviceFilter, setServiceFilter] = useState('all');
   const [dateFilter, setDateFilter] = useState<DateFilter>('all');
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -198,9 +202,14 @@ export default function ManagerInquiriesPage() {
       );
     }
 
+    // Apply source filter
+    if (sourceFilter !== 'all') {
+      filtered = filtered.filter((i) => (i.source || 'web') === sourceFilter);
+    }
+
     setFilteredInquiries(filtered);
-    setCurrentPage(1); // Reset to first page when filters change
-  }, [searchTerm, statusFilter, dateFilter, inquiries]);
+    setCurrentPage(1);
+  }, [searchTerm, statusFilter, sourceFilter, dateFilter, inquiries]);
 
   // Pagination
   const totalPages = Math.ceil(filteredInquiries.length / itemsPerPage);
@@ -368,6 +377,20 @@ export default function ManagerInquiriesPage() {
                 <option value="REJECTED">Rejected ({stats.rejected})</option>
               </select>
             </div>
+
+            {/* Source Filter */}
+            <div className="relative">
+              <Globe className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <select
+                value={sourceFilter}
+                onChange={(e) => setSourceFilter(e.target.value)}
+                className="pl-10 pr-8 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent appearance-none bg-white min-w-[140px]"
+              >
+                <option value="all">All Sources</option>
+                <option value="web">Web</option>
+                <option value="app">App</option>
+              </select>
+            </div>
           </div>
         </div>
       </div>
@@ -438,6 +461,18 @@ export default function ManagerInquiriesPage() {
                         >
                           {statusConfig.label}
                         </span>
+                        {inquiry.source && (
+                          <span className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold ${
+                            inquiry.source === 'app'
+                              ? 'bg-violet-100 text-violet-700'
+                              : 'bg-sky-100 text-sky-700'
+                          }`}>
+                            {inquiry.source === 'app'
+                              ? <><Smartphone className="w-3 h-3" /> App</>
+                              : <><Globe className="w-3 h-3" /> Web</>
+                            }
+                          </span>
+                        )}
                         <span className="text-xs text-gray-400">{getTimeAgo(inquiry.createdAt)}</span>
                       </div>
 

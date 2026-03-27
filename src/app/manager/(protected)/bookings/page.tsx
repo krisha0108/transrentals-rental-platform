@@ -24,6 +24,8 @@ import {
   Package,
   Layers,
   ChevronLeft,
+  Globe,
+  Smartphone,
 } from 'lucide-react';
 
 interface Service {
@@ -49,6 +51,7 @@ interface Booking {
   dailyRate?: number;
   totalDays?: number;
   advancePaymentVerified: boolean;
+  source?: string;
   createdAt: string;
 }
 
@@ -107,6 +110,7 @@ export default function ManagerBookingsPage() {
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [sourceFilter, setSourceFilter] = useState('all');
   const [serviceFilter, setServiceFilter] = useState('all');
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [dateFilter, setDateFilter] = useState<DateFilter>('all');
@@ -193,9 +197,14 @@ export default function ManagerBookingsPage() {
       );
     }
 
+    // Apply source filter
+    if (sourceFilter !== 'all') {
+      filtered = filtered.filter((b) => (b.source || 'web') === sourceFilter);
+    }
+
     setFilteredBookings(filtered);
     setCurrentPage(1); // Reset to first page when filters change
-  }, [searchTerm, bookings, dateFilter]);
+  }, [searchTerm, bookings, dateFilter, sourceFilter]);
 
   const handleRefresh = () => {
     setIsRefreshing(true);
@@ -353,6 +362,20 @@ export default function ManagerBookingsPage() {
               ))}
             </select>
           </div>
+
+          {/* Source Filter */}
+          <div className="relative">
+            <Globe className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <select
+              value={sourceFilter}
+              onChange={(e) => setSourceFilter(e.target.value)}
+              className="pl-10 pr-8 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent appearance-none bg-white min-w-[140px]"
+            >
+              <option value="all">All Sources</option>
+              <option value="web">Web</option>
+              <option value="app">App</option>
+            </select>
+          </div>
         </div>
       </div>
 
@@ -425,6 +448,18 @@ export default function ManagerBookingsPage() {
                         >
                           {statusConfig.label}
                         </span>
+                        {booking.source && (
+                          <span className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold ${
+                            booking.source === 'app'
+                              ? 'bg-violet-100 text-violet-700'
+                              : 'bg-sky-100 text-sky-700'
+                          }`}>
+                            {booking.source === 'app'
+                              ? <><Smartphone className="w-3 h-3" /> App</>
+                              : <><Globe className="w-3 h-3" /> Web</>
+                            }
+                          </span>
+                        )}
                         {booking.advancePaymentVerified && (
                           <span className="flex items-center gap-1 text-xs text-green-600">
                             <CheckCircle className="w-3 h-3" />

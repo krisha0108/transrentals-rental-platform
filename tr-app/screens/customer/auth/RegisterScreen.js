@@ -215,11 +215,9 @@ export default function RegisterScreen({ navigation }) {
         // Get and save FCM token
         try {
           const fcmToken = await messaging().getToken();
-          console.log('Got FCM token:', fcmToken);
           await authService.saveFcmToken(response.customers.id, fcmToken);
-          console.log('FCM token sent to backend successfully');
         } catch (err) {
-          console.log('Error sending FCM token to backend:', err.message);
+          // FCM token save failed silently
         }
 
         Alert.alert("Success", "Registration successful!");
@@ -241,7 +239,6 @@ export default function RegisterScreen({ navigation }) {
     try {
       await GoogleSignin.hasPlayServices();
       const userInfo = await GoogleSignin.signIn();
-      console.log('Google User Info:', userInfo);
 
       const response = await authService.googleLogin(
         userInfo.data.idToken,
@@ -250,19 +247,15 @@ export default function RegisterScreen({ navigation }) {
       );
 
       if (response.status === 'success') {
-        console.log('customer data:', response);
-
         // Save customer data
         await authService.saveCustomerData(response.customers, response.token);
 
         // Get and save FCM token
         try {
           const fcmToken = await messaging().getToken();
-          console.log('Got FCM token:', fcmToken);
           await authService.saveFcmToken(response.customers.id, fcmToken);
-          console.log('FCM token sent to backend successfully');
         } catch (err) {
-          console.log('Error sending FCM token to backend:', err.message);
+          // FCM token save failed silently
         }
 
         Alert.alert("Success", "Register successful!");

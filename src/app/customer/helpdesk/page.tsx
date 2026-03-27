@@ -875,9 +875,9 @@ export default function CustomerHelpdeskPage() {
 
 
 
-        <main className="pb-10 pt-20 mt-6 bg-gray-50 min-h-screen">
+        <main className="pb-10 pt-20 mt-4 bg-gray-50 min-h-screen">
 
-          <div className="container mx-auto px-4 max-w-6xl space-y-6">
+          <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 space-y-5">
 
             {/* Stats Cards Row */}
             <section className="grid gap-4 grid-cols-2 md:grid-cols-4">
@@ -910,9 +910,9 @@ export default function CustomerHelpdeskPage() {
 
 
 
-            <div className="grid gap-6 lg:grid-cols-[1.7fr,0.9fr] lg:items-start">
+            <div className="flex gap-6 items-start">
 
-              <section className="space-y-4">
+              <section className="flex-1 min-w-0 space-y-4">
 
                 <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
 
@@ -934,22 +934,6 @@ export default function CustomerHelpdeskPage() {
                       </div>
 
                       <div className="flex flex-wrap gap-2">
-
-                        <button
-
-                          type="button"
-
-                          onClick={openCreateModal}
-
-                          className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-500 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:shadow-md hover:from-emerald-700 hover:to-teal-600"
-
-                        >
-
-                          <Plus className="h-4 w-4" />
-
-                          New Ticket
-
-                        </button>
 
                         <button
 
@@ -1448,79 +1432,73 @@ export default function CustomerHelpdeskPage() {
 
 
 
-              {/* Sidebar */}
-              <aside className="space-y-5">
+              {/* Right Sidebar */}
+              <aside className="hidden lg:flex flex-col gap-4 w-[280px] flex-shrink-0 sticky top-20">
 
-                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50">
-                      <Headphones className="h-5 w-5 text-emerald-600" />
-                    </div>
-                    <div>
-                      <h3 className="text-base font-bold text-slate-900">Need help now?</h3>
-                      <p className="text-xs text-gray-400">Quick support</p>
+                {/* Raise a Ticket */}
+                <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
+                  <div className="bg-gradient-to-br from-[#056040] to-[#09B368] px-5 py-4 relative overflow-hidden">
+                    <div className="absolute -top-4 -right-4 w-20 h-20 bg-white/10 rounded-full" />
+                    <div className="absolute -bottom-6 -left-2 w-16 h-16 bg-white/10 rounded-full" />
+                    <div className="relative flex items-center gap-3">
+                      <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center flex-shrink-0">
+                        <Headphones className="w-5 h-5 text-white" />
+                      </div>
+                      <div>
+                        <p className="text-white font-bold text-sm">Need Help?</p>
+                        <p className="text-white/70 text-xs">We respond in 2 hrs</p>
+                      </div>
                     </div>
                   </div>
-
-                  <p className="text-sm text-gray-600">
-
-                    Open the support form below. Add a description, attach screenshots,
-
-                    and we will respond within 2 business hours.
-
-                  </p>
-
-                  <button
-
-                    type="button"
-
-                    onClick={openCreateModal}
-
-                    className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-500 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:shadow-md hover:from-emerald-700 hover:to-teal-600"
-
-                  >
-
-                    <Plus className="h-4 w-4" />
-
-                    Raise a Ticket
-
-                  </button>
-
+                  <div className="p-3">
+                    <button
+                      type="button"
+                      onClick={openCreateModal}
+                      className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-500 text-sm font-semibold text-white shadow-sm transition hover:shadow-md hover:from-emerald-700 hover:to-teal-600"
+                    >
+                      <Plus className="h-4 w-4" />
+                      Raise a Ticket
+                    </button>
+                  </div>
                 </div>
 
-
-
-                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50">
-                      <Phone className="h-5 w-5 text-blue-600" />
+                {/* Call Support */}
+                <div className="bg-white rounded-2xl border border-gray-200 p-4 shadow-sm">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-9 h-9 bg-blue-50 rounded-xl flex items-center justify-center flex-shrink-0">
+                      <Phone className="w-4 h-4 text-blue-600" />
                     </div>
                     <div>
-                      <h4 className="text-base font-bold text-slate-900">Call Support</h4>
-                      <p className="text-xs text-gray-400">Faster resolution</p>
+                      <p className="text-sm font-bold text-slate-900">Call Support</p>
+                      <p className="text-xs text-gray-400">Mon-Sat, 10am-8pm</p>
                     </div>
                   </div>
-
-                  <p className="text-sm text-gray-600">
-
-                    Reach us on <span className="font-bold text-slate-900">+91-9737965551</span> between 10am and
-
-                    8pm, Monday to Saturday. Keep your booking or ticket number ready.
-
-                  </p>
-
-                  <div className="mt-4 flex items-start gap-2 rounded-xl bg-gray-50 p-3">
-                    <Clock className="h-4 w-4 text-gray-400 mt-0.5 flex-shrink-0" />
-                    <p className="text-xs text-gray-500">
-
-                      We normally reply within 2 business hours. Use the refresh button to pull the latest replies.
-
-                    </p>
-                  </div>
-
+                  <p className="text-sm font-bold text-slate-900">+91-9737965551</p>
+                  <p className="text-xs text-gray-500 mt-1">Keep your ticket number ready for faster resolution.</p>
                 </div>
+
+                {/* Response Time */}
+                <div className="flex items-center gap-3 bg-white border border-gray-200 rounded-2xl p-3.5 shadow-sm">
+                  <div className="w-9 h-9 bg-amber-50 rounded-xl flex items-center justify-center flex-shrink-0">
+                    <Clock className="w-4 h-4 text-amber-500" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-gray-800">Avg. Response</p>
+                    <p className="text-xs text-gray-400">Within 2 business hours</p>
+                  </div>
+                </div>
+
+                {/* Back to Dashboard */}
+                <a href="/customer/dashboard"
+                  className="flex items-center gap-3 bg-white border border-gray-200 rounded-2xl p-3.5 hover:border-emerald-300 hover:shadow-sm transition group shadow-sm">
+                  <div className="w-9 h-9 bg-gray-50 rounded-xl flex items-center justify-center flex-shrink-0">
+                    <ChevronRight className="w-4 h-4 text-gray-400 rotate-180" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-gray-800">Dashboard</p>
+                    <p className="text-xs text-gray-400">Back to overview</p>
+                  </div>
+                </a>
 
               </aside>
 
