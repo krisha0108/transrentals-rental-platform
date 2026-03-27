@@ -75,7 +75,8 @@ export async function GET(
           pickupCity: true, dropCity: true, pickupAddress: true, dropAddress: true,
           pickupDate: true, pickupTime: true, returnDate: true,
           totalAmount: true, status: true,
-          vehicleNumber: true, vehicleModel: true, createdAt: true,
+          vehicleNumber: true, vehicleModel: true,
+          tripStartOtp: true, tripStartedAt: true, createdAt: true,
         },
       });
       if (b) booking = normalize('bus', {
@@ -89,7 +90,8 @@ export async function GET(
         earnings: null, grandTotal: b.totalAmount,
         status: b.status,
         vehicleNumber: b.vehicleNumber, vehicleModel: b.vehicleModel,
-        hasOtp: false, createdAt: b.createdAt,
+        hasOtp: !!b.tripStartOtp, tripStartOtp: b.tripStartOtp,
+        tripStartedAt: b.tripStartedAt, createdAt: b.createdAt,
       });
     } else if (source === 'luxury') {
       const b = await prisma.luxury_bookings.findUnique({

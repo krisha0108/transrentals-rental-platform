@@ -26,7 +26,7 @@ import {
   User,
   Loader2,
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import CustomerHeader from '@/components/customer/CustomerHeader';
 import { cn } from '@/lib/utils';
 
 // Bike booking status types
@@ -232,308 +232,204 @@ export default function CustomerBikeBookingsPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+      <div className="min-h-screen flex items-center justify-center bg-[#F8FAF9]">
         <div className="text-center">
-          <Loader2 className="h-12 w-12 animate-spin text-purple-400 mx-auto" />
-          <p className="text-purple-200 mt-4">Loading your bookings...</p>
+          <Loader2 className="h-10 w-10 animate-spin text-[#09B368] mx-auto" />
+          <p className="text-gray-500 mt-3 text-sm">Loading your bookings...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100">
-      {/* Header */}
-      <header className="bg-gradient-to-r from-slate-900 via-purple-900 to-slate-900 text-white mt-6 pt-6 px-4 ">
-        <div className="container mx-auto px-4 max-w-6xl">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-4">
-              <Link href="/customer/dashboard" className="p-2 hover:bg-white/10 rounded-lg transition">
-                <ArrowLeft className="w-5 h-5" />
-              </Link>
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-blue-500 rounded-xl flex items-center justify-center">
-                  <Bike className="w-6 h-6" />
-                </div>
-                <div>
-                  <h1 className="font-bold text-lg">My Bike Rentals</h1>
-                  <p className="text-purple-300 text-xs">{filteredBookings.length} bookings</p>
-                </div>
+    <div className="min-h-screen bg-[#F8FAF9]">
+      <CustomerHeader
+        showBackButton
+        backHref="/customer/dashboard"
+        title="Bike Rentals"
+        onRefresh={handleRefresh}
+        isRefreshing={isRefreshing}
+      />
+
+      <main className="pt-16 pb-12">
+        {/* Hero */}
+        <div className="bg-[#09B368] pt-8 pb-14 relative overflow-hidden">
+          <div className="absolute inset-0 opacity-10" style={{backgroundImage: 'radial-gradient(circle at 75% 50%, #ffffff 0%, transparent 60%)'}} />
+          <div className="absolute inset-0 opacity-5" style={{backgroundImage: 'linear-gradient(rgba(255,255,255,0.2) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.2) 1px, transparent 1px)', backgroundSize: '40px 40px'}} />
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+            <div>
+              <p className="text-white/80 text-sm font-medium flex items-center gap-2">
+                <Bike className="h-4 w-4" />
+                Bike Rentals
+              </p>
+              <h1 className="text-2xl md:text-3xl font-bold text-white mt-1">My Bike Bookings</h1>
+              <p className="text-white/70 text-sm mt-1">{bookings.length} total booking{bookings.length !== 1 ? 's' : ''}</p>
+            </div>
+            <Link
+              href="/bike-on-rent"
+              className="inline-flex items-center gap-2 px-4 py-2.5 bg-white text-[#09B368] rounded-xl text-sm font-semibold hover:bg-white/90 transition-all shadow-sm"
+            >
+              <Bike className="h-4 w-4" />
+              Rent a Bike
+            </Link>
+          </div>
+        </div>
+
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-6 space-y-5">
+
+          {/* Filters */}
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4">
+            <div className="flex flex-col md:flex-row gap-3">
+              <div className="flex-1 relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Search by booking number, vehicle..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#09B368]/20 focus:border-[#09B368] focus:outline-none"
+                />
+              </div>
+              <div className="flex gap-2 flex-wrap">
+                {(['all', 'active', 'completed', 'cancelled'] as StatusFilter[]).map((status) => (
+                  <button
+                    key={status}
+                    onClick={() => setStatusFilter(status)}
+                    className={cn(
+                      'px-4 py-2 rounded-xl text-sm font-medium transition-all',
+                      statusFilter === status
+                        ? 'bg-[#09B368] text-white'
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    )}
+                  >
+                    {status.charAt(0).toUpperCase() + status.slice(1)}
+                  </button>
+                ))}
               </div>
             </div>
-            <div className="flex items-center gap-2">
+          </div>
+
+          {/* Table */}
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+              <div>
+                <h2 className="font-semibold text-gray-900">Bookings</h2>
+                <p className="text-xs text-gray-400 mt-0.5">Showing {filteredBookings.length} of {bookings.length}</p>
+              </div>
               <button
                 onClick={handleRefresh}
                 disabled={isRefreshing}
-                className="p-2 hover:bg-white/10 rounded-lg transition"
+                className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-gray-500 hover:text-gray-700 border border-gray-200 rounded-lg hover:bg-gray-50 transition"
               >
-                <RefreshCw className={cn('w-5 h-5', isRefreshing && 'animate-spin')} />
+                <RefreshCw className={cn('w-3.5 h-3.5', isRefreshing && 'animate-spin')} />
+                Refresh
               </button>
-              <Link href="/" className="p-2 hover:bg-white/10 rounded-lg transition">
-                <Home className="w-5 h-5" />
-              </Link>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <div className="container mx-auto px-4 max-w-6xl py-6">
-        {/* Filters */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-6">
-          <div className="flex flex-col md:flex-row gap-4">
-            {/* Search */}
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search by booking number, vehicle..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500"
-              />
             </div>
 
-            {/* Status Filter */}
-            <div className="flex gap-2">
-              {(['all', 'active', 'completed', 'cancelled'] as StatusFilter[]).map((status) => (
-                <button
-                  key={status}
-                  onClick={() => setStatusFilter(status)}
-                  className={cn(
-                    'px-4 py-2 rounded-xl text-sm font-medium transition',
-                    statusFilter === status
-                      ? 'bg-purple-600 text-white'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                  )}
-                >
-                  {status.charAt(0).toUpperCase() + status.slice(1)}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Bookings List */}
-        {filteredBookings.length === 0 ? (
-          <div className="bg-white rounded-2xl p-12 text-center">
-            <Bike className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">No bookings found</h3>
-            <p className="text-gray-500 mb-6">
-              {searchQuery || statusFilter !== 'all'
-                ? 'Try adjusting your filters'
-                : "You haven't made any bike rentals yet"}
-            </p>
-            <Link href="/bike-on-rent">
-              <Button className="bg-purple-600 hover:bg-purple-700 text-white">
-                <Bike className="w-5 h-5 mr-2" />
-                Rent a Bike
-              </Button>
-            </Link>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {filteredBookings.map((booking) => {
-              const statusConfig = getStatusConfig(booking.status);
-              const isActive = ['PENDING_PAYMENT', 'PENDING_VENDOR', 'BROADCASTED', 'ACCEPTED', 'IN_PROGRESS'].includes(
-                booking.status
-              );
-
-              return (
-                <div
-                  key={booking.id}
-                  className={cn(
-                    'bg-white rounded-2xl shadow-sm border overflow-hidden transition-shadow hover:shadow-md',
-                    isActive ? 'border-purple-200' : 'border-gray-100'
-                  )}
-                >
-                  <div className="p-4 md:p-6">
-                    <div className="flex flex-col md:flex-row gap-4">
-                      {/* Vehicle Image */}
-                      <div className="relative w-full md:w-40 h-32 md:h-28 rounded-xl overflow-hidden bg-gray-100 flex-shrink-0">
-                        <div className="w-full h-full bg-gradient-to-br from-purple-100 to-blue-100 flex items-center justify-center">
-                          <Bike className="w-12 h-12 text-purple-400" />
-                        </div>
-                        <div className="absolute bottom-2 left-2">
-                          <span className="bg-black/60 text-white text-xs px-2 py-1 rounded">
-                            {booking.vehicle_category || 'Bike'}
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Booking Details */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex flex-wrap items-start justify-between gap-2 mb-3">
-                          <div>
-                            <div className="flex items-center gap-2 mb-1">
-                              <h3 className="font-bold text-gray-900">{booking.vehicleName}</h3>
-                              <span
-                                className={cn(
-                                  'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium',
-                                  statusConfig.bg,
-                                  statusConfig.text
-                                )}
-                              >
-                                {statusConfig.icon}
-                                {statusConfig.label}
-                              </span>
-                            </div>
-                            <p className="text-sm text-gray-500">#{booking.bookingNumber}</p>
-                          </div>
-                          <div className="text-right">
-                            <p className="font-bold text-lg text-gray-900">₹{booking.grandTotal}</p>
-                            <p className="text-xs text-gray-500">{booking.totalDays} day{booking.totalDays > 1 ? 's' : ''}</p>
-                          </div>
-                        </div>
-
-                        {/* Trip Info */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
-                          <div className="flex items-center gap-2 text-sm text-gray-600">
-                            <MapPin className="w-4 h-4 text-purple-500" />
-                            <span className="truncate">{booking.locationName || booking.location?.name}</span>
-                          </div>
-                          <div className="flex items-center gap-2 text-sm text-gray-600">
-                            <Calendar className="w-4 h-4 text-purple-500" />
-                            <span>
-                              {formatDate(booking.pickupDate)} - {formatDate(booking.dropDate)}
-                            </span>
-                          </div>
-                        </div>
-
-                        {/* Vendor Info (if assigned) */}
-                        {booking.vendor && (
-                          <div className="flex items-center justify-between bg-gray-50 rounded-lg p-3 mb-3">
+            {filteredBookings.length === 0 ? (
+              <div className="py-16 text-center">
+                <div className="w-14 h-14 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                  <Bike className="w-7 h-7 text-gray-400" />
+                </div>
+                <h3 className="font-semibold text-gray-900 mb-1">No bookings found</h3>
+                <p className="text-sm text-gray-500 mb-4">
+                  {searchQuery || statusFilter !== 'all' ? 'Try adjusting your filters' : "You haven't made any bike rentals yet"}
+                </p>
+                <Link href="/bike-on-rent" className="inline-flex items-center gap-2 px-4 py-2 bg-[#09B368] text-white rounded-xl text-sm font-semibold hover:bg-[#078F53] transition">
+                  <Bike className="w-4 h-4" />
+                  Rent a Bike
+                </Link>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-gray-100 bg-gray-50/70">
+                      <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Vehicle</th>
+                      <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 hidden md:table-cell">Location</th>
+                      <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 hidden lg:table-cell">Dates</th>
+                      <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Status</th>
+                      <th className="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500 hidden sm:table-cell">Amount</th>
+                      <th className="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500"></th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50">
+                    {filteredBookings.map((booking) => {
+                      const statusConfig = getStatusConfig(booking.status);
+                      return (
+                        <tr
+                          key={booking.id}
+                          onClick={() => window.location.href = `/customer/bike-bookings/${booking.bookingNumber}`}
+                          className="hover:bg-gray-50/80 group cursor-pointer transition-colors"
+                        >
+                          <td className="px-6 py-4">
                             <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
-                                <User className="w-5 h-5 text-purple-600" />
+                              <div className="w-9 h-9 bg-[#09B368]/10 rounded-xl flex items-center justify-center flex-shrink-0">
+                                <Bike className="w-4 h-4 text-[#09B368]" />
                               </div>
                               <div>
-                                <p className="font-medium text-gray-900 text-sm">{booking.vendor.name}</p>
-                                <div className="flex items-center gap-1">
-                                  <Star className="w-3 h-3 text-amber-400 fill-amber-400" />
-                                  <span className="text-xs text-gray-500">{booking.vendor.rating}</span>
-                                </div>
+                                <p className="font-semibold text-gray-900 text-sm">{booking.vehicleName}</p>
+                                <p className="text-xs text-gray-400">#{booking.bookingNumber}</p>
                               </div>
                             </div>
-                            <div className="flex items-center gap-2">
-                              <a
-                                href={`tel:${booking.vendor.phone}`}
-                                className="p-2 bg-green-100 text-green-600 rounded-lg hover:bg-green-200 transition"
-                              >
-                                <Phone className="w-4 h-4" />
-                              </a>
-                              <a
-                                href={`https://wa.me/${booking.vendor.phone?.replace(/\D/g, '')}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="p-2 bg-emerald-100 text-emerald-600 rounded-lg hover:bg-emerald-200 transition"
-                              >
-                                <MessageCircle className="w-4 h-4" />
-                              </a>
+                          </td>
+                          <td className="px-6 py-4 hidden md:table-cell">
+                            <div className="flex items-center gap-1.5 text-sm text-gray-600">
+                              <MapPin className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+                              <span className="truncate max-w-[140px]">{booking.locationName || booking.location?.name || '—'}</span>
                             </div>
-                          </div>
-                        )}
-
-                        {/* Status Messages */}
-                        {booking.status === 'BROADCASTED' && (
-                          <div className="bg-purple-50 border border-purple-100 rounded-lg p-3 text-sm text-purple-700">
-                            <RefreshCw className="w-4 h-4 inline mr-2 animate-spin" />
-                            Looking for available vendors in {booking.locationName || booking.location?.name}...
-                          </div>
-                        )}
-                        {booking.status === 'PENDING_VENDOR' && (
-                          <div className="bg-blue-50 border border-blue-100 rounded-lg p-3 text-sm text-blue-700">
-                            <Timer className="w-4 h-4 inline mr-2" />
-                            Waiting for vendor confirmation. Usually takes 2-4 hours.
-                          </div>
-                        )}
-
-                        {/* Completed - Review */}
-                        {booking.status === 'COMPLETED' && booking.review && (
-                          <div className="bg-amber-50 border border-amber-100 rounded-lg p-3">
-                            <div className="flex items-center gap-1 mb-1">
-                              {[...Array(5)].map((_, i) => (
-                                <Star
-                                  key={i}
-                                  className={cn(
-                                    'w-4 h-4',
-                                    i < (booking.rating || 0)
-                                      ? 'text-amber-400 fill-amber-400'
-                                      : 'text-gray-300'
-                                  )}
-                                />
-                              ))}
+                          </td>
+                          <td className="px-6 py-4 hidden lg:table-cell">
+                            <div className="text-sm text-gray-600">
+                              <p>{formatDate(booking.pickupDate)}</p>
+                              <p className="text-xs text-gray-400">{booking.totalDays} day{booking.totalDays > 1 ? 's' : ''}</p>
                             </div>
-                            <p className="text-sm text-gray-700">{booking.review}</p>
-                          </div>
-                        )}
-
-                        {/* Cancelled Reason */}
-                        {booking.status === 'CANCELLED' && booking.cancellationReason && (
-                          <div className="bg-red-50 border border-red-100 rounded-lg p-3 text-sm text-red-700">
-                            <XCircle className="w-4 h-4 inline mr-2" />
-                            Cancelled: {booking.cancellationReason}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Actions Footer */}
-                  <div className="border-t border-gray-100 bg-gray-50 px-4 md:px-6 py-3 flex items-center justify-between">
-                    <div className="text-xs text-gray-500">
-                      Booked on {formatDate(booking.createdAt)}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {booking.status === 'COMPLETED' && !booking.review && (
-                        <Button size="sm" variant="outline" className="text-amber-600 border-amber-200">
-                          <Star className="w-4 h-4 mr-1" />
-                          Rate
-                        </Button>
-                      )}
-                      {isActive && booking.status !== 'PENDING_PAYMENT' && (
-                        <Button size="sm" variant="outline" className="text-red-600 border-red-200">
-                          Cancel
-                        </Button>
-                      )}
-                      <Link href={`/customer/bike-bookings/${booking.bookingNumber}`}>
-                        <Button size="sm" className="bg-purple-600 hover:bg-purple-700 text-white">
-                          View Details
-                          <ChevronRight className="w-4 h-4 ml-1" />
-                        </Button>
-                      </Link>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
+                          </td>
+                          <td className="px-6 py-4">
+                            <span className={cn('inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium', statusConfig.bg, statusConfig.text)}>
+                              {statusConfig.label}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 text-right hidden sm:table-cell">
+                            <p className="font-semibold text-gray-900 text-sm">₹{booking.grandTotal?.toLocaleString('en-IN')}</p>
+                          </td>
+                          <td className="px-6 py-4 text-right">
+                            <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-[#09B368] transition-colors ml-auto" />
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
-        )}
 
-        {/* Quick Links */}
-        <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Link
-            href="/bike-on-rent"
-            className="bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-2xl p-6 flex items-center justify-between hover:opacity-90 transition"
-          >
-            <div>
-              <h3 className="font-bold text-lg mb-1">Rent Another Bike</h3>
-              <p className="text-purple-200 text-sm">Browse scooters, bikes & more</p>
-            </div>
-            <Bike className="w-12 h-12 opacity-50" />
-          </Link>
-          <Link
-            href="/customer/dashboard"
-            className="bg-white border border-gray-200 rounded-2xl p-6 flex items-center justify-between hover:border-purple-300 transition"
-          >
-            <div>
-              <h3 className="font-bold text-lg text-gray-900 mb-1">All Bookings</h3>
-              <p className="text-gray-500 text-sm">View all your travel bookings</p>
-            </div>
-            <Calendar className="w-12 h-12 text-gray-300" />
-          </Link>
+          {/* Bottom nav cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Link
+              href="/bike-on-rent"
+              className="bg-[#09B368] text-white rounded-2xl p-5 flex items-center justify-between hover:bg-[#078F53] transition"
+            >
+              <div>
+                <h3 className="font-bold mb-0.5">Rent Another Bike</h3>
+                <p className="text-white/70 text-sm">Browse scooters, bikes & more</p>
+              </div>
+              <Bike className="w-10 h-10 opacity-40" />
+            </Link>
+            <Link
+              href="/customer/dashboard"
+              className="bg-white border border-gray-200 rounded-2xl p-5 flex items-center justify-between hover:border-[#09B368]/30 transition"
+            >
+              <div>
+                <h3 className="font-bold text-gray-900 mb-0.5">All Bookings</h3>
+                <p className="text-gray-500 text-sm">View all your travel bookings</p>
+              </div>
+              <Calendar className="w-10 h-10 text-gray-200" />
+            </Link>
+          </div>
         </div>
-      </div>
+      </main>
     </div>
   );
 }
